@@ -39,147 +39,122 @@
 
 #include"torch_npu/csrc/core/NPUStorageImpl.h"
 
+namespace {
+constexpr float EPSILON = 1e-6;
+
+// check all at::ScalarType is not negative
+#define ENUM_PAIR_FUNC(_1, n)                                                     \
+  static_assert(static_cast<int64_t>(at::ScalarType::n) >= 0, #n" is negative");
+AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
+#undef ENUM_PAIR_FUNC
+
+#define AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(_)                            \
+  _(at::ScalarType::Byte, ACL_UINT8)                                           \
+  _(at::ScalarType::Char, ACL_INT8)                                            \
+  _(at::ScalarType::Short, ACL_INT16)                                          \
+  _(at::ScalarType::Int, ACL_INT32)                                            \
+  _(at::ScalarType::Long, ACL_INT64)                                           \
+  _(at::ScalarType::Half, ACL_FLOAT16)                                         \
+  _(at::ScalarType::Float, ACL_FLOAT)                                          \
+  _(at::ScalarType::Double, ACL_DOUBLE)                                        \
+  _(at::ScalarType::ComplexHalf, ACL_DT_UNDEFINED)                             \
+  _(at::ScalarType::ComplexFloat, ACL_DT_UNDEFINED)                            \
+  _(at::ScalarType::ComplexDouble, ACL_DT_UNDEFINED)                           \
+  _(at::ScalarType::Bool, ACL_BOOL)                                            \
+  _(at::ScalarType::QInt8, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::QUInt8, ACL_DT_UNDEFINED)                                  \
+  _(at::ScalarType::QInt32, ACL_DT_UNDEFINED)                                  \
+  _(at::ScalarType::BFloat16, ACL_BF16)                                        \
+  _(at::ScalarType::QUInt4x2, ACL_DT_UNDEFINED)                                \
+  _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                               \
+  _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
+
+constexpr aclDataType kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(
+    at::ScalarType::NumOptions) + 1] = {
+#define DEFINE_ENUM(_1, n) n,
+    AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(DEFINE_ENUM)
+#undef DEFINE_ENUM
+};
+
+// check at::ScalarType has been changed or not
+#define ENUM_PAIR_FUNC(at_dtype, acl_dtype)                                       \
+  static_assert(                                                               \
+      kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(at_dtype)] ==     \
+          (acl_dtype),                                                           \
+      #at_dtype "and" #acl_dtype                                               \
+                " is not match any more, please check "                        \
+                "AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR and modify it");
+AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(ENUM_PAIR_FUNC)
+#undef DEFINE_ENUM
+
+static std::unordered_map<aclDataType, at::ScalarType> ACL_SCALAR_TYPE_TO_AT_TYPE_MAP = {
+    {ACL_UINT8, at::ScalarType::Byte},    {ACL_INT8, at::ScalarType::Char},
+    {ACL_INT16, at::ScalarType::Short},   {ACL_INT32, at::ScalarType::Int},
+    {ACL_FLOAT16, at::ScalarType::Half},  {ACL_FLOAT, at::ScalarType::Float},
+    {ACL_BOOL, at::ScalarType::Bool},     {ACL_INT64, at::ScalarType::Long},
+    {ACL_DOUBLE, at::ScalarType::Double},
+};
+
+static std::map<const string, const aclDataType>
+    STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {{"uint16", ACL_UINT16},
+                                          {"uint8", ACL_UINT8},
+                                          {"uint64", ACL_UINT64},
+                                          {"string", ACL_STRING}};
+
+aclError AclrtMemcpyAsyncParamCheck(void *dst, size_t destMax, const void *src,
+                                    size_t count, aclrtMemcpyKind kind,
+                                    aclrtStream stream) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    if (dst == nullptr || src == nullptr) {
+      AT_ERROR("Dst ptr or Src ptr of aclrtMemcpyAsync is nullptr!",
+               "Current run mode is graph mode, "
+               "try to use torch.npu.disable_graph_mode() to fix this error.");
+    }
+  }
+
+  auto ret = aclrtMemcpyAsync(dst, destMax, src, count, kind, stream);
+  return ret;
+}
+
+aclError AclrtMemcpyParamCheck(void *dst, size_t destMax, const void *src,
+                               size_t count, aclrtMemcpyKind kind) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    if (dst == nullptr || src == nullptr) {
+      AT_ERROR("Dst ptr or Src ptr of aclrtMemcpy is nullptr!",
+               "Current run mode is graph mode, "
+               "try to use torch.npu.disable_graph_mode() to fix this error.");
+    }
+  }
+
+  auto ret = aclrtMemcpy(dst, destMax, src, count, kind);
+  return ret;
+}
+} // namespace
+
 namespace at_npu
 {
   namespace native
   {
-
-    namespace
+    aclDataType CalcuOpUtil::convert_to_acl_data_type(const at::ScalarType &data_type)
     {
-      const static aclDataType kUnknownAclDataType = static_cast<aclDataType>(100);
-      const static aclFormat kUnKnownAclFormat = static_cast<aclFormat>(100);
-      const static string kUnknownDataTypeName = "UNKNOWN";
-      constexpr float EPSILON = 1e-6;
-
-      static std::unordered_map<at::ScalarType, aclDataType> AT_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
-          {at::ScalarType::Byte, ACL_UINT8},
-          {at::ScalarType::Char, ACL_INT8},
-          {at::ScalarType::Short, ACL_INT16},
-          {at::ScalarType::Int, ACL_INT32},
-          {at::ScalarType::Half, ACL_FLOAT16},
-          {at::ScalarType::Float, ACL_FLOAT},
-          {at::ScalarType::Bool, ACL_BOOL},
-          {at::ScalarType::Long, ACL_INT64},
-          {at::ScalarType::Double, ACL_DOUBLE},
-      };
-
-      static std::unordered_map<const at::ScalarType, const std::string> AT_SCALAR_TYPE_NAME_MAP = {
-          {at::ScalarType::Byte, "at::ScalarType::Byte"},
-          {at::ScalarType::Char, "at::ScalarType::Char"},
-          {at::ScalarType::Short, "at::ScalarType::Short"},
-          {at::ScalarType::Int, "at::ScalarType::Int"},
-          {at::ScalarType::Long, "at::ScalarType::Long"},
-          {at::ScalarType::Half, "at::ScalarType::Half"},
-          {at::ScalarType::Float, "at::ScalarType::Float"},
-          {at::ScalarType::Double, "at::ScalarType::Double"},
-      };
-
-      static std::map<const string, const aclDataType>
-          STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
-              {"uint16", ACL_UINT16},
-              {"uint8", ACL_UINT8},
-              {"uint64", ACL_UINT64},
-              {"string", ACL_STRING}};
-      
-      static std::map<aclDataType, at::ScalarType> ACL_SCALAR_TYPE_TO_AT_TYPE_MAP = {
-          {ACL_UINT8,   at::ScalarType::Byte},
-          {ACL_INT8,    at::ScalarType::Char},
-          {ACL_INT16,   at::ScalarType::Short},
-          {ACL_INT32,   at::ScalarType::Int},
-          {ACL_FLOAT16, at::ScalarType::Half},
-          {ACL_FLOAT,   at::ScalarType::Float},
-          {ACL_BOOL,    at::ScalarType::Bool},
-          {ACL_INT64,   at::ScalarType::Long},
-          {ACL_DOUBLE,  at::ScalarType::Double},
-      };
-
-      string GetAtScalarTypeName(const at::ScalarType data_type)
-      {
-        auto iter = AT_SCALAR_TYPE_NAME_MAP.find(data_type);
-        if (iter == AT_SCALAR_TYPE_NAME_MAP.end())
-        {
-          return kUnknownDataTypeName;
-        }
-
-        return iter->second;
-      }
-
-      aclError AclrtMemcpyAsyncParamCheck(
-          void *dst,
-          size_t destMax,
-          const void *src,
-          size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream)
-      {
-        if (c10_npu::NpuRunMode::IsGraphMode())
-        {
-          if (dst == nullptr || src == nullptr)
-          {
-            AT_ERROR(
-                "Dst ptr or Src ptr of aclrtMemcpyAsync is nullptr!",
-                "Current run mode is graph mode, "
-                "try to use torch.npu.disable_graph_mode() to fix this error.");
-          }
-        }
-
-        auto ret = aclrtMemcpyAsync(dst, destMax, src, count, kind, stream);
-        return ret;
-      }
-    
-      aclError AclrtMemcpyParamCheck(
-          void *dst,
-          size_t destMax,
-          const void *src,
-          size_t count,
-          aclrtMemcpyKind kind)
-      {
-        if (c10_npu::NpuRunMode::IsGraphMode())
-        {
-          if (dst == nullptr || src == nullptr)
-          {
-            AT_ERROR(
-                "Dst ptr or Src ptr of aclrtMemcpy is nullptr!",
-                "Current run mode is graph mode, "
-                "try to use torch.npu.disable_graph_mode() to fix this error.");
-          }
-        }
-
-        auto ret = aclrtMemcpy(dst, destMax, src, count, kind);
-        return ret;
-      }
-    } // namespace
- 
-    aclDataType CalcuOpUtil::convert_to_acl_data_type(const at::ScalarType data_type)
-    {
-      const auto &iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
-      if (iter == AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.end())
-      {
-        NPU_LOGE(
-            "Unsupport data type: %s.", GetAtScalarTypeName(data_type).c_str());
-        return kUnknownAclDataType;
-      }
-
-      return iter->second;
-    }
+    auto acl_dtype =
+        kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
+      TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED,
+                  std::string(c10::toString(data_type)) + " has not been supported")
+      return acl_dtype;
+   }
 
     aclDataType CalcuOpUtil::convert_to_acl_data_type(
-        const at::ScalarType data_type,
-        const string &realDataType)
-    {
-      auto iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
-      if (iter == AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.end())
-      {
-        NPU_LOGE(
-            "Unsupport data type: %s.", GetAtScalarTypeName(data_type).c_str());
-        return kUnknownAclDataType;
-      }
-      if (!realDataType.empty())
-      {
+        const at::ScalarType &data_type,
+        const string &realDataType) {
+      auto acl_dtype =
+          kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
+        TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED,
+                    std::string(c10::toString(data_type)) + " has not been supported")
+      if (!realDataType.empty()) {
         return STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP[realDataType];
       }
-
-      return iter->second;
+      return acl_dtype;
     }
 
     at::ScalarType CalcuOpUtil::convert_to_at_data_type(const aclDataType acl_type)
