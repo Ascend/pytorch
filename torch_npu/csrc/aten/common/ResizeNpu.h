@@ -48,7 +48,21 @@ static void storage_resize_npu(
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
   ptrdiff_t old_size = storage.nbytes();
   storage.set_nbytes(size);
-  StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
+
+  if (itemsize == 0) {
+    AT_ERROR("When resizing, item size of storage cannot be zero.");
+    return;
+  }
+  if ((size % itemsize) != 0) {
+    AT_ERROR("The specified storage nbytes cannot be divided by item size.",
+             "Please check the input parameter size.");
+    return;
+  }
+  std::vector<int64_t> resize_shape = {size/itemsize};
+  // It is necessary to properly refresh the storage according to sizes and strides,
+  // not just new sizes.
+  StorageDescHelper::UpdateDesc(
+      torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, resize_shape);
 
   if (old_data != nullptr) {
     ptrdiff_t copy_size = old_size;

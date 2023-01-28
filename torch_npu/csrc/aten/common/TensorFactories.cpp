@@ -92,36 +92,6 @@ namespace at_npu
         }
         return size * itemsize_bytes;
       }
-
-      void checkInBoundsForStorage(
-          c10::IntArrayRef size,
-          c10::IntArrayRef stride,
-          c10::optional<at::ScalarType> dtype_opt)
-      {
-        auto data_type = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-        int64_t storage_size_bytes = computeStorageNbytes(size, stride, data_type.itemsize());
-        if (storage_size_bytes == 0) {
-          // NB: (a tensor with arbitrary 0 dims)'s storage can have any numel.
-          return;
-        }
-
-        int64_t new_storage_size_bytes = c10::multiply_integers(size) * data_type.itemsize();
-        TORCH_CHECK(
-            storage_size_bytes <= new_storage_size_bytes,
-            "setStorage: sizes ",
-            size,
-            ", strides ",
-            stride,
-            ","
-            " storage offset ",
-            0,
-            ", and itemsize ",
-            data_type.itemsize(),
-            " requiring a storage size of ",
-            storage_size_bytes,
-            " are out of bounds for storage of size ",
-            new_storage_size_bytes);
-      }
     } // namespace
 
     at::Tensor NPUNativeFunctions::scalar_tensor(const c10::Scalar& s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
@@ -480,7 +450,6 @@ namespace at_npu
         c10::optional<bool> pin_memory_opt)
     {
       check_size_nonnegative(size);
-      checkInBoundsForStorage(size, stride, dtype_opt);
       c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
       auto t = NPUNativeFunctions::empty({0},
                                          dtype_opt,
