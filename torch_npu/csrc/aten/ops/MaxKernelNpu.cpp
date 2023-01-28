@@ -58,7 +58,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_out(
   OpPreparation::CheckOut(
       {self},
       output,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
   OpPreparation::CheckOut(
@@ -153,9 +153,9 @@ at::Tensor& NPUNativeFunctions::max_out(
   }
 
   at::ScalarType high_type = at::native::result_type(self, other);
-  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self)) ?
+  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self)) ?
       NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other)) ?
+  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other)) ?
       NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
   OpPreparation::CheckOut(
       {self_copy, other_copy},
@@ -170,9 +170,9 @@ at::Tensor NPUNativeFunctions::maximum(
     const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
-  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self)) ?
+  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self)) ?
       NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other)) ?
+  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other)) ?
       NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
   at::Tensor result = OpPreparation::ApplyTensor(self_copy, outputSize);
   max_out_npu_nocheck(self_copy, other_copy, result);
@@ -199,7 +199,7 @@ at::Tensor NPUNativeFunctions::amax(
     at::IntArrayRef dims, 
     bool keepdim) {
   auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   if (outputSize.empty()) {
     npu_format = ACL_FORMAT_ND;
   }
@@ -210,7 +210,7 @@ at::Tensor NPUNativeFunctions::amax(
 
 at::Tensor NPUNativeFunctions::max(
     const at::Tensor& self) {
-  at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::get_dimlist_for_tensor(self);
+  at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
   return amax(self, dims, false);
 }
 

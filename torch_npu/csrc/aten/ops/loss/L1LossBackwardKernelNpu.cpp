@@ -55,7 +55,7 @@ at::Tensor& NPUNativeFunctions::l1_loss_backward_out(
       {grad_output, self, target},
       grad_input,
       self);
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   return l1_loss_backward_out_npu_nocheck(
       grad_input,
       gradOutputBroadcast,
@@ -77,7 +77,7 @@ at::Tensor NPUNativeFunctions::l1_loss_backward(
   if (target.sizes() != self.sizes()) {
     targetBroadcast = NPUNativeFunctions::npu_broadcast(target, self.sizes());
   }
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpPipeWithApplyOut pipe;
   return pipe.ApplyOutputSameAs(self)
     .Func([&gradOutputBroadcast, &self, &targetBroadcast, &reductionStr](at::Tensor& result) {

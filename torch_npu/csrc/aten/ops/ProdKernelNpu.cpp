@@ -25,7 +25,7 @@ namespace {
 static inline int64_t calculate_prod_output_format(
     const at::Tensor& self,
     at::IntArrayRef size) {
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   // scalar scene no support nz
   if (size.empty()) {
     npu_format = ACL_FORMAT_ND;
@@ -158,7 +158,7 @@ at::Tensor NPUNativeFunctions::prod(const at::Tensor& self, c10::optional<at::Sc
 
   // calculate the output result of the NPU
   prod_out_npu_nocheck(
-      result, self_tmp, CalcuOpUtil::get_dimlist_for_tensor(self), false, dtype);
+      result, self_tmp, CalcuOpUtil::GetDimlistForTensor(self), false, dtype);
 
   if (result.scalar_type() != dstType) {
     result = npu_dtype_cast(result, dstType);

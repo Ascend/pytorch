@@ -44,7 +44,7 @@ void NPUNativeFunctions::_cummin_helper(const at::Tensor& self, at::Tensor& valu
     indices.copy_(indicesTemp);
   } else {
     // process aicore
-    int64_t firstDim = CalcuOpUtil::make_wrap_dim(0, self.dim());
+    int64_t firstDim = CalcuOpUtil::MakeWrapDim(0, self.dim());
     if (dim != firstDim) {
       c10::SmallVector<int64_t, SHAPE_SIZE> perm;
       for (int64_t i = 0; i < self.dim(); i++) {

@@ -51,7 +51,7 @@ namespace at_npu
     {
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+          self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
       // calculate the output result of the NPU
       neg_out_npu_nocheck(result, self);
@@ -63,7 +63,7 @@ namespace at_npu
     {
       c10::SmallVector<at::Tensor, N> inputs = {self};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
       if (!NpuUtils::check_match(&self))
       {

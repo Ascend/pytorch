@@ -29,7 +29,7 @@ namespace at_npu
       OpPreparation::CheckOut(
           {self},
           result,
-          CalcuOpUtil::get_tensor_npu_format(self),
+          CalcuOpUtil::GetTensorNpuFormat(self),
           self.scalar_type(),
           {self.size(0)});
 

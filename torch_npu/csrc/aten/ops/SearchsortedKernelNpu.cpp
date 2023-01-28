@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::searchsorted_out(
   OpPreparation::CheckOut(
       {sorted_sequence, self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       scalar_type,
       self.sizes());
   searchsorted_out_npu_nocheck(sorted_sequence, self, out_int32, right, result);

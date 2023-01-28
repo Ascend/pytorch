@@ -27,7 +27,7 @@ std::tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::multilabel_margin_loss_
     at::Tensor& is_target) {
 
   OpPreparation::CheckMemory({self, target}, {output, is_target});
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpCommand cmd;
   cmd.Name("MultilabelMarginLoss")
     .Input(self)

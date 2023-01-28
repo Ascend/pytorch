@@ -58,12 +58,12 @@ at::Tensor NPUNativeFunctions::image_normalize(
     result = OpPreparation::ApplyTensorWithFormat(
         outputSize,
         self.options().dtype(at::kFloat),
-        CalcuOpUtil::get_tensor_npu_format(self));
+        CalcuOpUtil::GetTensorNpuFormat(self));
   } else {
     result = OpPreparation::ApplyTensorWithFormat(
         outputSize,
         self.options().dtype(at::kHalf),
-        CalcuOpUtil::get_tensor_npu_format(self));
+        CalcuOpUtil::GetTensorNpuFormat(self));
   }
 
   // calculate the output result of the NPU

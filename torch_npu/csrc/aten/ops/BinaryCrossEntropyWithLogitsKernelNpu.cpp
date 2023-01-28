@@ -30,7 +30,7 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits(
   const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
   const at::Tensor& pos_weight = c10::value_or_else(pos_weight_opt, [] {return at::Tensor();});
   at::IntArrayRef outputSize;
-  int64_t resultformat = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t resultformat = CalcuOpUtil::GetTensorNpuFormat(self);
 
   if (reduction == at::Reduction::None) {
     outputSize = input_same_output_size(self);
@@ -54,7 +54,7 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits(
     posWeightTensor = at::ones(target.sizes(), target.options());
   }
 
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpCommand cmd;
   cmd.Name("SigmoidCrossEntropyWithLogitsV2")
       .Input(self.to(target.dtype()))

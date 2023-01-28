@@ -58,7 +58,7 @@ at::Tensor& NPUNativeFunctions::xlogy_out(const at::Tensor& self, const at::Tens
     OpPreparation::CheckOut(
         {self, other},
         result,
-        CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+        CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf),
         result.scalar_type(),
         outputSize);
     xlogy_out_npu_nocheck(formatCastOfSelf, formatCastOfOther, result);
@@ -69,7 +69,7 @@ at::Tensor& NPUNativeFunctions::xlogy_out(const at::Tensor& self, at::Scalar oth
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       self.sizes());
   xlogy_out_npu_nocheck(self, other, result);
@@ -80,7 +80,7 @@ at::Tensor& NPUNativeFunctions::xlogy_out(at::Scalar self, const at::Tensor& oth
    OpPreparation::CheckOut(
        {other},
        result,
-       CalcuOpUtil::get_tensor_npu_format(other),
+       CalcuOpUtil::GetTensorNpuFormat(other),
        other.scalar_type(),
        other.sizes());
   xlogy_out_npu_nocheck(self, other, result);
@@ -88,7 +88,7 @@ at::Tensor& NPUNativeFunctions::xlogy_out(at::Scalar self, const at::Tensor& oth
 }
 
 at::Tensor NPUNativeFunctions::xlogy(const at::Tensor& self, const at::Tensor& other) {
-    bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+    bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
     at::Tensor outputTensor = isSelfWrapped ? other : self;
     // calculate the output size
     auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -96,7 +96,7 @@ at::Tensor NPUNativeFunctions::xlogy(const at::Tensor& self, const at::Tensor& o
     at::Tensor result = OpPreparation::ApplyTensorWithFormat(
         outputSize,
         outputTensor.options(),
-        CalcuOpUtil::get_tensor_npu_format(outputTensor));
+        CalcuOpUtil::GetTensorNpuFormat(outputTensor));
     // calculate the output result of the NPU
     xlogy_out_npu_nocheck(self, other, result);
     return result;
@@ -119,7 +119,7 @@ at::Tensor NPUNativeFunctions::xlogy(at::Scalar self, const at::Tensor& other) {
 at::Tensor& NPUNativeFunctions::xlogy_(at::Tensor& self, const at::Tensor& other) {
     c10::SmallVector<at::Tensor, N> inputs = {self, other};
     c10::SmallVector<at::Tensor, N> outputs = {self};
-    CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+    CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
     if (!NpuUtils::check_match(&self))
     {
       at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

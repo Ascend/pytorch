@@ -57,7 +57,7 @@ at::Tensor NPUNativeFunctions::_add_relu(const at::Tensor& self, const at::Tenso
 at::Tensor& NPUNativeFunctions::_add_relu_(at::Tensor& self, const at::Tensor& other, at::Scalar alpha) {
   c10::SmallVector<at::Tensor, N> inputs = {self, other};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
   return _add_relu_out(self, other, alpha, self);
 }
 } // namespace native

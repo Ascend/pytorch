@@ -38,7 +38,7 @@ at::Tensor NPUNativeFunctions::npu_iou(
   at::Tensor overlap = OpPreparation::ApplyTensorWithFormat(
       bboxesFP16,
       outputSize,
-      CalcuOpUtil::get_tensor_npu_format(bboxes));
+      CalcuOpUtil::GetTensorNpuFormat(bboxes));
   string modeStr = "iou";
   if (mode == 1) {
     modeStr = "iof";

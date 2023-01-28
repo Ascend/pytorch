@@ -73,8 +73,8 @@ at::Tensor& batch_norm_backward_training_reduce_nocheck(
   auto format = (self.dim() == 5) ? ACL_FORMAT_NCDHW : ACL_FORMAT_NCHW;
 
   at::Tensor weight_cp = weight;
-  auto self_format = CalcuOpUtil::get_tensor_npu_format(self);
-  auto weight_format = CalcuOpUtil::get_tensor_npu_format(weight);
+  auto self_format = CalcuOpUtil::GetTensorNpuFormat(self);
+  auto weight_format = CalcuOpUtil::GetTensorNpuFormat(weight);
 
   bool check_bn_5hd = (self_format == ACL_FORMAT_NC1HWC0 && weight_format == ACL_FORMAT_ND) ? true : false;
   if (check_bn_5hd) {
@@ -303,8 +303,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm_
   }
 
   if (grad_weight.defined()) {
-    auto weight_format = CalcuOpUtil::get_tensor_npu_format(weight);
-    auto grad_weight_format = CalcuOpUtil::get_tensor_npu_format(grad_weight);
+    auto weight_format = CalcuOpUtil::GetTensorNpuFormat(weight);
+    auto grad_weight_format = CalcuOpUtil::GetTensorNpuFormat(grad_weight);
 
     if (grad_weight_format == ACL_FORMAT_NC1HWC0 && weight_format == ACL_FORMAT_ND) {
       FormatHelper::unsafe_format_cast(grad_weight, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);

@@ -42,7 +42,7 @@ at::Tensor& NPUNativeFunctions::logical_not_out(const at::Tensor& self, at::Tens
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       resultDtype,
       self.sizes());
   OpPipeWithDefinedOut pipe;

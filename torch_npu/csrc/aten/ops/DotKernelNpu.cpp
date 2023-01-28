@@ -24,7 +24,7 @@ at::Tensor& NPUNativeFunctions::dot_out(const at::Tensor& self, const at::Tensor
   OpPreparation::CheckOut(
       {self, tensor}, 
       result, 
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(), 
       outputSize);
              

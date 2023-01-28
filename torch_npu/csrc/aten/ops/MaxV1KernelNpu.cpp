@@ -48,7 +48,7 @@ std::tuple<at::Tensor, at::Tensor> npu_max_npu(const at::Tensor& self, int64_t d
       reduce_ops_npu_output_size(self, dims, keepdim);
   c10::SmallVector<int64_t, SIZE> indicesSize =
       reduce_ops_npu_output_size(self, dims, keepdim);
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   if (outputSize.empty()) {
     npu_format = ACL_FORMAT_NCHW;
   }

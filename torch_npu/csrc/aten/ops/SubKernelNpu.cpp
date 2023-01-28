@@ -30,8 +30,8 @@ namespace at_npu
         at::Scalar alpha)
     {
       // other*alpha
-      float otherValue = CalcuOpUtil::get_scalar_float_value(other);
-      float alphaValue = CalcuOpUtil::get_scalar_float_value(alpha);
+      float otherValue = CalcuOpUtil::GetScalarFloatValue(other);
+      float alphaValue = CalcuOpUtil::GetScalarFloatValue(alpha);
       at::Scalar scalarValue(otherValue * alphaValue);
 
       OpCommand cmd;
@@ -55,7 +55,7 @@ namespace at_npu
         sub_scalar_out_npu(result, self, other.item(), alpha);
       } else {
         at::Tensor otherMulResult = other;
-        if (!CalcuOpUtil::is_scalar_one(alpha)) {
+        if (!CalcuOpUtil::IsScalarOne(alpha)) {
           otherMulResult = at::mul(other, alpha);
         }
 
@@ -77,12 +77,12 @@ namespace at_npu
         at::Scalar alpha,
         at::Tensor &result)
     {
-      at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
+      at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
       auto outputSize = broadcast_ops_npu_output_size(self, other);
       OpPreparation::CheckOut(
           {self},
           result,
-          CalcuOpUtil::get_tensor_npu_format(outputTensor),
+          CalcuOpUtil::GetTensorNpuFormat(outputTensor),
           self.scalar_type(),
           outputSize);
       sub_out_npu_nocheck(result, self, other, alpha);
@@ -92,7 +92,7 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::sub(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
     {
-      bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+      bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
       at::Tensor outputTensor = isSelfWrapped ? other : self;
 
       // calculate the output size
@@ -102,7 +102,7 @@ namespace at_npu
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
           outputTensor.options(),
-          CalcuOpUtil::get_tensor_npu_format(outputTensor));
+          CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
       // calculate the output result of the NPU
       sub_out_npu_nocheck(result, self, other, alpha);
@@ -117,7 +117,7 @@ namespace at_npu
 
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+          outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
       // calculate the output result of the NPU
       sub_scalar_out_npu(result, self, other, alpha);
@@ -129,7 +129,7 @@ namespace at_npu
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
       if (!NpuUtils::check_match(&self))
       {

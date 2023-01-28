@@ -51,7 +51,7 @@ at::Tensor NPUNativeFunctions::repeat(const at::Tensor& self, at::IntArrayRef re
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, selfCp.options(), CalcuOpUtil::get_tensor_npu_format(selfCp));
+      outputSize, selfCp.options(), CalcuOpUtil::GetTensorNpuFormat(selfCp));
 
   // calculate the output result of the NPU
   repeat_out_npu_nocheck(result, selfCp, repeats);

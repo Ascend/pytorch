@@ -28,7 +28,7 @@ at::Tensor &sum_out_npu_nocheck(
     at::IntArrayRef dim,
     bool keepdim) {
   at::dim_list_to_bitset(dim, self.dim());
-  c10::SmallVector<int64_t, N> dimList = dim.empty() ? CalcuOpUtil::get_dimlist_for_tensor(self) :
+  c10::SmallVector<int64_t, N> dimList = dim.empty() ? CalcuOpUtil::GetDimlistForTensor(self) :
       c10::SmallVector<int64_t, N>(dim);
   OpCommand cmd;
   cmd.Name("ReduceSum")

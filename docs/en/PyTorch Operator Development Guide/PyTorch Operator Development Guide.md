@@ -438,7 +438,7 @@ The following uses the torch.add() operator as an example to describe the develo
                at::Tensor result = OpPreparation::ApplyTensorWithFormat(
                    outputSize,
              	  outputTensor.options(),
-             	  CalcuOpUtil::get_tensor_npu_format(outputTensor));
+             	  CalcuOpUtil::GetTensorNpuFormat(outputTensor));
              
                // calculate the output result of the NPU
                add_out_npu_nocheck(result, self, other, alpha);
@@ -454,7 +454,7 @@ The following uses the torch.add() operator as an example to describe the develo
                auto outputSize = input_same_output_size(self);
                // construct the output tensor of the NPU
                at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-                   outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+                   outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
              
                // calculate the output result of the NPU
                adds_out_npu_nocheck(result, self, other, alpha);
@@ -472,7 +472,7 @@ The following uses the torch.add() operator as an example to describe the develo
              {
                c10::SmallVector<at::Tensor, N> inputs = {self, other};
                c10::SmallVector<at::Tensor, N> outputs = {self};
-               CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+               CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
              
                if (!NpuUtils::check_match(&self))
                {
@@ -516,7 +516,7 @@ The following uses the torch.add() operator as an example to describe the develo
                at::Scalar alpha,
                at::Tensor &result)
            {
-             bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+             bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
        
              at::Tensor outputTensor;
              if (not isSelfWrapped)
@@ -531,7 +531,7 @@ The following uses the torch.add() operator as an example to describe the develo
              OpPreparation::CheckOut(
                  {self},
                  result,
-                 CalcuOpUtil::get_tensor_npu_format(result),
+                 CalcuOpUtil::GetTensorNpuFormat(result),
                  outputTensor.scalar_type(),
                  outputSize);
        

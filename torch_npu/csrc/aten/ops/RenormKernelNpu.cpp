@@ -39,8 +39,8 @@ at::Tensor& renorm_compute(
     at::Scalar p,
     int64_t dim,
     at::Scalar maxnorm) {
-  float p_value = CalcuOpUtil::get_scalar_float_value(p);
-  float maxnorm_value = CalcuOpUtil::get_scalar_float_value(maxnorm);
+  float p_value = CalcuOpUtil::GetScalarFloatValue(p);
+  float maxnorm_value = CalcuOpUtil::GetScalarFloatValue(maxnorm);
 
   OpCommand cmd;
   cmd.Name("Renorm")
@@ -66,12 +66,12 @@ at::Tensor& renorm_out_nocheck(
   if(result.scalar_type() != ori_type) {
     AT_ERROR("result's type must be equal to input's.");
   }
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
   auto outputSize = renorm_npu_output_size(self, dim);
   at::Tensor result_bak = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options().dtype(at::kFloat),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      CalcuOpUtil::GetTensorNpuFormat(self));
   if(ori_type == c10::ScalarType::Half) {
     at::Tensor self_no_name = self.rename(c10::nullopt);
     at::Tensor result_no_name = result.rename(c10::nullopt);
@@ -116,7 +116,7 @@ at::Tensor& NPUNativeFunctions::renorm_out(
 
   c10::SmallVector<at::Tensor, N> inputs = {self};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

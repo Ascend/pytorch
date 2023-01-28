@@ -48,7 +48,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pack_padded_sequence(
       tmp_vector.emplace_back(i);
     }
     auto index = at::from_blob(tmp_vector.data(), {len}, at::kInt);
-    index = CalcuOpUtil::copy_tensor_host_to_device(index);
+    index = CalcuOpUtil::CopyTensorHostToDevice(index);
     output = NPUNativeFunctions::index_select(output, 0, index);
     timesize = len;
   }
