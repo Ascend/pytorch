@@ -48,7 +48,7 @@ namespace at_npu
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           size,
           input.options(),
-          CalcuOpUtil::get_tensor_npu_format(self));
+          CalcuOpUtil::GetTensorNpuFormat(self));
 
       NPUNativeFunctions::npu_broadcast_out(input, size, result);
 

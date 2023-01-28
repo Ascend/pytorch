@@ -102,10 +102,10 @@ at::Tensor NPUNativeFunctions::upsample_nearest3d(
     const at::Tensor& input,
     c10::optional<at::IntArrayRef> output_size,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(input.sizes(), output_size, scale_factors);
-  auto scales_d = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 1);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 2);
+  auto osize = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);
+  auto scales_d = CalcuOpUtil::GetScaleValue(scale_factors, 0);
+  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 1);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 2);
   at::Tensor result = NPUNativeFunctions::upsample_nearest3d(
       input, osize, scales_d, scales_h, scales_w);
   return result;

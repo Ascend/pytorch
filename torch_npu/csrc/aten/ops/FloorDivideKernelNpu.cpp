@@ -36,7 +36,7 @@ at::Tensor& floor_divide_out_scalar_npu(const at::Tensor& self, at::Scalar other
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       result.scalar_type(),
       outputSize);
   floor_divide_out_npu_nocheck(result, formatCastOfSelf, other);
@@ -46,12 +46,9 @@ at::Tensor& floor_divide_out_scalar_npu(const at::Tensor& self, at::Scalar other
 at::Tensor& floor_divide_out_npu(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   auto outputSize = formatCastOfSelf.sizes();
-  OpPreparation::CheckOut(
-      {self, other},
-      result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      result.scalar_type(),
-      outputSize);
+  OpPreparation::CheckOut({self, other}, result,
+                          CalcuOpUtil::GetTensorNpuFormat(self),
+                          result.scalar_type(), outputSize);
   // executing the NPU operator
   if (other.dim() == 0) {
     floor_divide_out_npu_nocheck(result, self, other.item());
@@ -101,13 +98,13 @@ at::Tensor NPUNativeFunctions::floor_divide(const at::Tensor& self, const at::Te
   at::Tensor selfCast = self;
   at::Tensor otherCast = other;
   check_dtype_npu(selfCast, otherCast);
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfCast);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(selfCast);
   at::Tensor outputTensor = isSelfWrapped ? otherCast : selfCast;
   auto outputSize = broadcast_ops_npu_output_size(selfCast, otherCast);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       outputTensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(selfCast));
+      CalcuOpUtil::GetTensorNpuFormat(selfCast));
   floor_divide_out_npu(selfCast, otherCast, result);
   return result;
 }
@@ -126,7 +123,7 @@ at::Tensor& NPUNativeFunctions::floor_divide_(at::Tensor& self, const at::Tensor
   
   at::SmallVector<at::Tensor, N> inputs = {self, otherCast};
   at::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = floor_divide_out_npu(contiguousSelf, otherCast, contiguousSelf);

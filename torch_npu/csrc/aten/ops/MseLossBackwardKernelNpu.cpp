@@ -33,7 +33,7 @@ at::Tensor& NPUNativeFunctions::mse_loss_backward_out(
   }
 
   OpPreparation::CheckMemory({grad_output, self, target}, {grad_input});
-  string reductionStr(CalcuOpUtil::get_reduction_str(reduction));
+  string reductionStr(CalcuOpUtil::GetReductionStr(reduction));
 
   OpCommand cmd;
   cmd.Name("MseLossGrad")

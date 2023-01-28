@@ -67,8 +67,8 @@ at::Tensor NPUNativeFunctions::_softmax_backward_data(
 
   // output'format must be same with grad_output
   at::Tensor temp_output = output;
-  if (CalcuOpUtil::get_tensor_npu_format(temp_output) == ACL_FORMAT_NC1HWC0) {
-    NPUNativeFunctions::npu_format_cast_(temp_output, CalcuOpUtil::get_tensor_npu_format(grad_output));
+  if (CalcuOpUtil::GetTensorNpuFormat(temp_output) == ACL_FORMAT_NC1HWC0) {
+    NPUNativeFunctions::npu_format_cast_(temp_output, CalcuOpUtil::GetTensorNpuFormat(grad_output));
   }
 
   // construct the output tensor of the NPU

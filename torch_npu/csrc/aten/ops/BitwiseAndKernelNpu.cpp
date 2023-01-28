@@ -40,7 +40,7 @@ at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const 
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       self.sizes());
 
@@ -75,7 +75,7 @@ at::Tensor& bitwise_and_out_npu_nocheck(
 }
 
 at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & result) {
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
   at::Tensor ref_tensor;
   if (isSelfWrapped) {
@@ -89,7 +89,7 @@ at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const 
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(ref_tensor),
+      CalcuOpUtil::GetTensorNpuFormat(ref_tensor),
       ref_tensor.scalar_type(),
       outputSize);
 
@@ -100,7 +100,7 @@ at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const 
 
 at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
   at::Tensor ref_tensor;
   if (isSelfWrapped) {
@@ -115,7 +115,7 @@ at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Ten
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       ref_tensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(ref_tensor));
+      CalcuOpUtil::GetTensorNpuFormat(ref_tensor));
 
   // calculate the output result of the NPU
   bitwise_and_out_npu_nocheck(result, self, other);
@@ -129,7 +129,7 @@ at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Sca
 
   // construct the output at::Tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   bitwise_and_out_npu_nocheck(result, self, other);
@@ -140,7 +140,7 @@ at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Sca
 at::Tensor& NPUNativeFunctions::bitwise_and_(at::Tensor& self, const at::Tensor& other) {
   c10::SmallVector<at::Tensor, N> inputs = {self, other};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

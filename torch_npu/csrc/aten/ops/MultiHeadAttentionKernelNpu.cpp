@@ -46,7 +46,7 @@ std::vector<at::Tensor> multi_head_attention_npu(
     auto weight_col = attn_head_num * attn_dim_per_head;
 
     auto query_options = query.options();
-    auto query_format = CalcuOpUtil::get_tensor_npu_format(query);
+    auto query_format = CalcuOpUtil::GetTensorNpuFormat(query);
 
     at::Tensor y = OpPreparation::ApplyTensorWithFormat(
         {query_shape[0], weight_col}, query_options, query_format);

@@ -52,8 +52,8 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_nocheck(
     bool largest,
     bool sorted) {
 
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
-  int64_t lastDim = CalcuOpUtil::make_wrap_dim(-1, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
+  int64_t lastDim = CalcuOpUtil::MakeWrapDim(-1, self.dim());
 
   if (dim != lastDim) {
     c10::SmallVector<int64_t, SHAPE_SIZE> perm;
@@ -117,7 +117,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::topk_out(
 
   at::Tensor indices_tmp;
   OpPipeWithMultiOut<at::Tensor&, at::Tensor&> pipe(values, indices_tmp);
-  return pipe.FixOutputSizeAndFormat<0>({selfCp}, selfCp, CalcuOpUtil::get_tensor_npu_format(selfCp), outputSize)
+  return pipe.FixOutputSizeAndFormat<0>({selfCp}, selfCp, CalcuOpUtil::GetTensorNpuFormat(selfCp), outputSize)
       .ApplyOutputWithSpecailParams<1>(indicesSize, selfCp.options().dtype(at::kInt), ACL_FORMAT_ND)
       .Call(func)
       .ReflushOutputDtype<1>(at::ScalarType::Long)

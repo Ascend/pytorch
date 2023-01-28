@@ -34,7 +34,7 @@ at_npu::native::DynamicInputRegFunc stack_func =
 at::SmallVector<int64_t, SIZE> stack_npu_output_size(
     at::TensorList tensors,
     int64_t dim) {
-  dim = CalcuOpUtil::make_wrap_dim(dim, tensors[0].dim() + 1);
+  dim = CalcuOpUtil::MakeWrapDim(dim, tensors[0].dim() + 1);
   at::SmallVector<int64_t, SIZE> shape;
   for (int i = 0; i < dim; i++) {
     shape.emplace_back(tensors[0].size(i));

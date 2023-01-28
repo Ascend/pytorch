@@ -55,7 +55,7 @@ at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
     }
   }
 
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
 
   at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();
@@ -97,7 +97,7 @@ at::Tensor NPUNativeFunctions::nll_loss_backward(
 
   // construct the output tensor of the NPU
   at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   NPUNativeFunctions::nll_loss_backward_out(

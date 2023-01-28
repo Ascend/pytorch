@@ -48,7 +48,7 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits_backward(
   }
  
   at::Tensor doutTensor = NPUNativeFunctions::npu_broadcast(grad_output, self.sizes());
-  std::string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  std::string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpCommand cmd;
   cmd.Name("SigmoidCrossEntropyWithLogitsGradV2")
       .Input(self)

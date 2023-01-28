@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::all_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
 
@@ -110,7 +110,7 @@ at::Tensor NPUNativeFunctions::all(const at::Tensor& self) {
   all_out_npu_nocheck(
       result,
       self,
-      CalcuOpUtil::get_dimlist_for_tensor(self),
+      CalcuOpUtil::GetDimlistForTensor(self),
       false);
 
   return result;

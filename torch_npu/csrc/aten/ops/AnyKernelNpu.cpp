@@ -44,7 +44,7 @@ at::Tensor& NPUNativeFunctions::any_out(
     at::Tensor& result) {  
   at::SmallVector<int64_t, N> dimList;
   if (dim == LLONG_MIN) {
-    dimList = CalcuOpUtil::get_dimlist_for_tensor(self);
+    dimList = CalcuOpUtil::GetDimlistForTensor(self);
   } else {
     dimList = {dim};
   }
@@ -54,7 +54,7 @@ at::Tensor& NPUNativeFunctions::any_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
 
@@ -71,12 +71,12 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self, int64_t dim, bool kee
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU  
   if (dim == LLONG_MIN) {
     any_out_npu_nocheck(
-        result, self, CalcuOpUtil::get_dimlist_for_tensor(self), keepdim);
+        result, self, CalcuOpUtil::GetDimlistForTensor(self), keepdim);
   } else {
     any_out_npu_nocheck(result, self, {dim}, keepdim);
   }
@@ -91,7 +91,7 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self) {
       self_tmp = NPUNativeFunctions::npu_dtype_cast(OpPreparation::ApplyTensorWithFormat(
           {1}, 
           self.options().dtype(at::ScalarType::Float), 
-          CalcuOpUtil::get_tensor_npu_format(self))
+          CalcuOpUtil::GetTensorNpuFormat(self))
           .fill_(self.item())
           , at::ScalarType::Bool);
       return NPUNativeFunctions::any(self_tmp, 0, false);
@@ -106,7 +106,7 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self) {
 
   // calculate the output result of the NPU
   any_out_npu_nocheck(
-      result, self, CalcuOpUtil::get_dimlist_for_tensor(self), false);
+      result, self, CalcuOpUtil::GetDimlistForTensor(self), false);
 
   return result;
 }

@@ -27,7 +27,7 @@ namespace at_npu
 
     at::Tensor mul_dest_output(const at::Tensor &self, const at::Tensor &other)
     {
-      bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+      bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
       return isSelfWrapped ? other : self;
     }
 
@@ -85,7 +85,7 @@ namespace at_npu
       OpPreparation::CheckOut(
           {self},
           result,
-          CalcuOpUtil::get_tensor_npu_format(outputTensor),
+          CalcuOpUtil::GetTensorNpuFormat(outputTensor),
           self.scalar_type(),
           outputSize);
       mul_out_npu_nocheck(result, self, other);
@@ -111,7 +111,7 @@ namespace at_npu
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
           outputTensor.options(),
-          CalcuOpUtil::get_tensor_npu_format(outputTensor));
+          CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
       // calculate the output result of the NPU
       mul_out_npu_nocheck(result, selfCast, otherCast);
@@ -140,7 +140,7 @@ namespace at_npu
 
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
       at::Tensor selfDtypeCast = 
           (self.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;

@@ -54,8 +54,7 @@ at::Tensor& roll_transpose(
   auto outputSize = transpose_npu_output_size(result, perm);
   at::Tensor transposeResult = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
   c10::SmallVector<int64_t, SIZE> dim = {firstDim};
   c10::SmallVector<int64_t, SIZE> shift_bak = {shifts[id]};
   at::IntArrayRef dim_now = at::IntArrayRef(dim);
@@ -76,9 +75,9 @@ at::Tensor& roll_out_npu(
   } else {
     TORCH_CHECK(dims.size() == shifts.size(), 
                 "The size of shifts and dims should be the same when the size of dims is not 0.");
-    int64_t firstDim = CalcuOpUtil::make_wrap_dim(0, self.dim());
+    int64_t firstDim = CalcuOpUtil::MakeWrapDim(0, self.dim());
     for (int i = 0; i < dims.size(); i++) {
-      int64_t axis = CalcuOpUtil::make_wrap_dim(dims[i], self.dim());
+      int64_t axis = CalcuOpUtil::MakeWrapDim(dims[i], self.dim());
       if (i == 0) {
         if (axis == firstDim) {
           c10::SmallVector<int64_t, SIZE> dim = {firstDim};

@@ -63,9 +63,9 @@ at::Tensor NPUNativeFunctions::arange(
                                           .layout(layout_opt)
                                           .pinned_memory(pin_memory_opt);
 
-  float start_value = CalcuOpUtil::get_scalar_float_value(start);
-  float end_value = CalcuOpUtil::get_scalar_float_value(end);
-  float step_value = CalcuOpUtil::get_scalar_float_value(step);
+  float start_value = CalcuOpUtil::GetScalarFloatValue(start);
+  float end_value = CalcuOpUtil::GetScalarFloatValue(end);
+  float step_value = CalcuOpUtil::GetScalarFloatValue(step);
 
   // Check step start end
   TORCH_CHECK(step_value != 0, "step must be nonzero");
@@ -134,9 +134,9 @@ at::Tensor& NPUNativeFunctions::arange_out(
     const at::Scalar& end,
     const at::Scalar& step,
     at::Tensor& result) {
-  float start_value = CalcuOpUtil::get_scalar_float_value(start);
-  float end_value = CalcuOpUtil::get_scalar_float_value(end);
-  float step_value = CalcuOpUtil::get_scalar_float_value(step);
+  float start_value = CalcuOpUtil::GetScalarFloatValue(start);
+  float end_value = CalcuOpUtil::GetScalarFloatValue(end);
+  float step_value = CalcuOpUtil::GetScalarFloatValue(step);
 
   // Check step start end
   TORCH_CHECK(step_value != 0, "step must be nonzero");

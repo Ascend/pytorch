@@ -22,7 +22,7 @@ namespace at_npu {
 namespace native {
 
 void NPUNativeFunctions::check_memory_overlaps(at::TensorList inputs, at::TensorList outputs) {
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 }
 
 bool NPUNativeFunctions::check_match(const at::Tensor& self) {

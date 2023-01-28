@@ -53,7 +53,7 @@ tuple<at::Tensor&, at::Tensor&> nll_loss_forward_npu_nocheck(
     }
   }
 
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
 
   at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();

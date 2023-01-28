@@ -72,7 +72,7 @@ at::Tensor& NPUNativeFunctions::diag_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
   OpPipeWithDefinedOut pipe;

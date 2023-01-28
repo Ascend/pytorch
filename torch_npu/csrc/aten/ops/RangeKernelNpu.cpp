@@ -72,9 +72,9 @@ at::Tensor NPUNativeFunctions::range(
                                           .layout(layout_opt)
                                           .pinned_memory(pin_memory_opt);
 
-  float start_value = CalcuOpUtil::get_scalar_float_value(start);
-  float end_value = CalcuOpUtil::get_scalar_float_value(end);
-  float step_value = CalcuOpUtil::get_scalar_float_value(step);
+  float start_value = CalcuOpUtil::GetScalarFloatValue(start);
+  float end_value = CalcuOpUtil::GetScalarFloatValue(end);
+  float step_value = CalcuOpUtil::GetScalarFloatValue(step);
 
   TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
@@ -90,9 +90,9 @@ at::Tensor& NPUNativeFunctions::range_out(
     const at::Scalar& end,
     const at::Scalar& step,
     at::Tensor& result) {
-  float start_value = CalcuOpUtil::get_scalar_float_value(start);
-  float end_value = CalcuOpUtil::get_scalar_float_value(end);
-  float step_value = CalcuOpUtil::get_scalar_float_value(step);
+  float start_value = CalcuOpUtil::GetScalarFloatValue(start);
+  float end_value = CalcuOpUtil::GetScalarFloatValue(end);
+  float step_value = CalcuOpUtil::GetScalarFloatValue(step);
 
   TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),

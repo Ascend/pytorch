@@ -37,7 +37,7 @@ at::Tensor& NPUNativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& 
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       at::ScalarType::Long,
       outputSize);
 

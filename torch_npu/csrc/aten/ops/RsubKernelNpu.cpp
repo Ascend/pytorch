@@ -21,7 +21,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor rsub_dest_output(const at::Tensor& self, const at::Tensor& other) {
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
   return isSelfWrapped ? other : self;
 }
@@ -33,7 +33,7 @@ at::Tensor& rsub_out_npu_nocheck(
     at::Scalar alpha) {
   // other*alpha
   at::Tensor otherMulResult;
-  if (!CalcuOpUtil::is_scalar_one(alpha)) {
+  if (!CalcuOpUtil::IsScalarOne(alpha)) {
     otherMulResult = at::mul(self, alpha);
   }
 

@@ -94,7 +94,7 @@ at::Tensor& NPUNativeFunctions::scatter_out(
     const at::Scalar& value,
     at::Tensor& result) {
   at::Tensor srcTensor = scalar_to_tensor(value).to(at::ScalarType::Float);
-  srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
+  srcTensor = CalcuOpUtil::CopyTensorHostToDevice(srcTensor);
   at::Tensor srcTensor_broadcast = NPUNativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
   OpPreparation::CheckOut(
       {self, index, srcTensor_broadcast},

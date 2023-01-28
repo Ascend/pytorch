@@ -66,7 +66,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
 
   OpPreparation::CheckMemory({self, target, weight_tensor}, {result, total_weight});
 
-  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  auto reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpCommand cmd;
   cmd.Name("NLLLoss")
       .Input(self)

@@ -30,7 +30,7 @@ at::Tensor& NPUNativeFunctions::put_(
   }
   c10::SmallVector<at::Tensor, N> inputs = {self};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   at::Tensor selfFlatten = NpuUtils::format_contiguous(self.reshape(-1));
   at::Tensor indexFlatten = index.reshape({-1, 1});

@@ -44,8 +44,8 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::sort_out(
     bool descending,
     at::Tensor& values,
     at::Tensor& indices) {
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
-  int64_t lastDim = CalcuOpUtil::make_wrap_dim(-1, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
+  int64_t lastDim = CalcuOpUtil::MakeWrapDim(-1, self.dim());
 
   if (dim != lastDim) {
     at::SmallVector<int64_t, SHAPE_SIZE> perm;

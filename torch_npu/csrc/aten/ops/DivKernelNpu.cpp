@@ -60,7 +60,7 @@ at::Tensor &div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &other,
 at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
 {
   // calculate the output size
-  at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
+  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
   if (isIntegralType(high_type, true)) {
@@ -72,12 +72,12 @@ at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
       high_type,
       outputSize);
-  at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self) &&
+  at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
       at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other) &&
+  at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
       at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
   div_out_npu_nocheck(selfCopy, otherCopy, result);
 
@@ -108,7 +108,7 @@ at::Tensor &NPUNativeFunctions::div_out(
 at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &other)
 {
   // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
   at::Tensor outputTensor = isSelfWrapped ? other : self;
 
   auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -116,15 +116,15 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &oth
   if (isIntegralType(high_type, true)) {
     high_type = at::ScalarType::Float;
   }
-  at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self) &&
+  at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
       at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other) &&
+  at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
       at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       outputTensor.options().dtype(high_type),
-      CalcuOpUtil::get_tensor_npu_format(outputTensor));
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
   // calculate the output result of the NPU
   div_out_npu_nocheck(selfCopy, otherCopy, result);
@@ -141,7 +141,7 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Scalar& oth
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   div_scalar_out_npu(self, other, result);
@@ -190,7 +190,7 @@ at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Tensor &other)
 {
   c10::SmallVector<at::Tensor, N> inputs = {self, other};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   if (!NpuUtils::check_match(&self))
   {
