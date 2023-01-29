@@ -1003,6 +1003,8 @@ custom:
   - func: npu_hcom_allreduce(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm) -> Tensor
   - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_enque_tensor(Tensor[] tensors, str format_string) -> ()
+  - func: npu_hcom_allgather(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm) -> Tensor
+  - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
