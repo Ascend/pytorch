@@ -558,7 +558,6 @@ torch:
   - _adaptive_avg_pool2d
   - _add_relu
   - _add_relu_
-  - _addmv_impl_
   - _aminmax
   - _batch_norm_impl_index
   - _convolution
