@@ -114,18 +114,13 @@ void GraphCommandImpl::AddOutput(
         NodeExtInfoType::SENSITIVE_FORMAT_OF_OUTPUT,
         std::make_pair(desc_name, sensitive_format.value()));
   }
-  if (!ir_node_->GetInputs().empty() || output_index_ != 0) {
-    Value value{ir_node_, output_index_++};
-    if (!real_type.empty()) {
-      value.SetRealType(real_type);
-    }
-    GraphUtils::SetTensorIrValue(output, value);
-  } else {
-    // op without input and has outputs should be treated as graph input
-    GraphUtils::SetTensorIrValue(
-        output, Value(ir_node_, ir_node_, output_index_++));
-    GraphUtils::RetainGraphDataTensor(output);
+
+  // op without input and has outputs no longer need to be treated as graph input
+  Value value{ir_node_, output_index_++};
+  if (!real_type.empty()) {
+    value.SetRealType(real_type);
   }
+  GraphUtils::SetTensorIrValue(output, value);
 }
 
 void GraphCommandImpl::AddDynamicInputRegFunc(

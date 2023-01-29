@@ -47,7 +47,11 @@ void ReplayGraphImpl::SetInputGeTensor(ReplayGraphInfo& graphinfo, const at::Ten
                 graphinfo.inputs.at_tensor_info[i].storage_desc,
                 graphinfo.inputs.graph_desc_info[i].graph_value.GetRealDtype());
             TORCH_CHECK(idx < graphinfo.graph_inputs_ge_tensors.size(),
-                        "replay model internal error, please feedback bug.");
+                        "replay model internal error, please feedback bug. ",
+                        "idx < graphinfo.graph_inputs_ge_tensors.size(), ",
+                        " idx: ", idx,
+                        " graphinfo.graph_inputs_ge_tensors.size(): ",
+                        graphinfo.graph_inputs_ge_tensors.size());
             if (NpuUtils::check_match(&inputs[i])) {
                 auto data_ptr = inputs[i].data_ptr();
                 TORCH_CHECK(data_ptr != nullptr, "Input for replay graph must have data ptr");
@@ -81,7 +85,11 @@ std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensorAndSetReturnable(Repla
             build_tensor_struct.at_tensor_info[i].storage_desc,
             build_tensor_struct.graph_desc_info[i].graph_value.GetRealDtype());
         TORCH_CHECK(idx < graphinfo.graph_outputs_ge_tensors.size(),
-                    "replay model internal error, please feedback bug.");
+                    "replay model internal error, please feedback bug. ",
+                    "idx < graphinfo.graph_outputs_ge_tensors.size(), ",
+                    " idx: ", idx,
+                    " graphinfo.graph_outputs_ge_tensors.size(): ",
+                    graphinfo.graph_outputs_ge_tensors.size());
         graphinfo.graph_outputs_ge_tensors[idx] = ATenGeBridge::MakeGeTensor(tensor_desc, tensor.data_ptr(),
                                                                              numel * tensor.itemsize());
         tmp_outputs.emplace_back(tensor);
@@ -92,7 +100,11 @@ std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensorAndSetReturnable(Repla
 std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensor(ReplayGraphInfo& graphinfo,
                                                            at::TensorList assigned_outputs) {
     TORCH_CHECK(assigned_outputs.size() == graphinfo.assigned_outputs.at_tensor_info.size(),
-                "replay model internal error, please feedback bug.");
+                "replay model internal error, please feedback bug. ",
+                "assigned_outputs.size() == graphinfo.assigned_outputs.at_tensor_info.size(), ",
+                " assigned_outputs.size(): ", assigned_outputs.size(),
+                " graphinfo.assigned_outputs.at_tensor_info.size(): ",
+                graphinfo.assigned_outputs.at_tensor_info.size());
     for (size_t i = 0; i < assigned_outputs.size(); i++) {
         int64_t idx = graphinfo.assigned_outputs.mapping[i];
         size_t numel = NPUNativeFunctions::get_storage_size(assigned_outputs[i]);
@@ -101,7 +113,11 @@ std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensor(ReplayGraphInfo& grap
             graphinfo.assigned_outputs.at_tensor_info[i].storage_desc,
             graphinfo.assigned_outputs.graph_desc_info[i].graph_value.GetRealDtype());
         TORCH_CHECK(idx < graphinfo.graph_outputs_ge_tensors.size(),
-                    "replay model internal error, please feedback bug.");
+                    "replay model internal error, please feedback bug. ",
+                    "idx < graphinfo.graph_outputs_ge_tensors.size(), "
+                    " idx: ", idx,
+                    " graphinfo.graph_outputs_ge_tensors.size(): ",
+                    graphinfo.graph_outputs_ge_tensors.size());
         graphinfo.graph_outputs_ge_tensors[idx] = ATenGeBridge::MakeGeTensor(tensor_desc, data_ptr,
                                                                              numel * assigned_outputs[i].itemsize());
     }
@@ -221,7 +237,10 @@ void ReplayGraphImpl::SetInnerOutput(CombinedInfo& outputcombinedinfo, ReplayGra
     graphinfo.inner_outputs_tensors.clear();
     for (size_t i = 0; i < graphinfo.inner_outputs.at_tensor_info.size(); i++) {
         int64_t idx = graphinfo.inner_outputs.mapping[i];
-        TORCH_CHECK(idx < output_storages.size(), "replay model internal error, please feedback bug.");
+        TORCH_CHECK(idx < output_storages.size(), "replay model internal error, please feedback bug. ",
+                    "idx < output_storages.size(), ",
+                    " idx: ", idx,
+                    " output_storages.size(): ", output_storages.size());
         c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::intrusive_ptr<c10::StorageImpl>::
                                                 unsafe_reclaim_from_nonowning(output_storages[idx]);
         auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, storage_impl,
@@ -291,10 +310,15 @@ void ReplayGraphImpl::GenerateGraph(const at::TensorList& inputs, at::TensorList
     graphinfo.graph_outputs_ge_tensors = output_info.tensors;
 
     TORCH_CHECK(input_info.unique_ids.size() == graphinfo.graph_inputs_ge_tensors.size(),
-                "replay model internal error, please feedback bug.");
+                "replay model internal error, please feedback bug. ",
+                "input_info.unique_ids.size() == graphinfo.graph_inputs_ge_tensors.size(), ",
+                " input_info.unique_ids.size(): ", input_info.unique_ids.size(),
+                " graphinfo.graph_inputs_ge_tensors.size(): ", graphinfo.graph_inputs_ge_tensors.size());
     TORCH_CHECK(output_info.unique_ids.size() == graphinfo.graph_outputs_ge_tensors.size(),
-                "replay model internal error, please feedback bug.");
-
+                "replay model internal error, please feedback bug. ",
+                "output_info.unique_ids.size() == graphinfo.graph_outputs_ge_tensors.size(), ",
+                " output_info.unique_ids.size(): ", output_info.unique_ids.size(),
+                " graphinfo.graph_outputs_ge_tensors.size(): ", graphinfo.graph_outputs_ge_tensors.size());
     BuildReplayGraphInfoAll(inputs, assigned_outputs, returnable_outputs, input_info, output_info, graphinfo);
 
     bool is_cache_hit = false;
