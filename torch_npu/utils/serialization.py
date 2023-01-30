@@ -20,13 +20,12 @@ import torch.serialization as se
 
 import torch_npu
 
-
 DEFAULT_PROTOCOL = 2
 
 
 def _npu_tag(obj):
     if type(obj).__module__ == 'torch_npu':
-        return 'npu:' + str(obj.get_devic())
+        return 'npu:' + str(obj.get_device())
     return None
 
 
@@ -57,9 +56,7 @@ def _npu_deserialize(obj, location):
 
 
 def normalize_map_location_type(map_location):
-    if isinstance(map_location, torch_npu.utils.device_guard.device):
-        map_location = map_location.type + ':' + str(map_location.index)
-    return map_location
+    return str(map_location)
 
 
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=True):
