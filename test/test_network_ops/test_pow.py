@@ -14,16 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestPow(TestCase):
+    
     def cpu_op_exec(self, input1, input2):
         output = torch.pow(input1, input2)
         output = output.numpy()
@@ -243,6 +245,21 @@ class TestPow(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
         
+    @graph_mode
+    def test_pow_int32_float_format(self):
+        a = torch.randn(64).to(torch.int32)
+        na = a.npu()
+        cpu_out = self.cpu_op_exec(a, 1.0)
+        npu_out = self.npu_op_exec(na, 1.0)
+        self.assertRtolEqual(cpu_out, npu_out)
+
+    @graph_mode
+    def test_pow_float_int32_format(self):
+        a = torch.randn(64).to(torch.int32)
+        na = a.npu()
+        cpu_out = self.cpu_op_exec(1.0, a)
+        npu_out = self.npu_op_exec(1.0, na)
+        self.assertRtolEqual(cpu_out, npu_out)
 
 if __name__ == "__main__":
     run_tests()
