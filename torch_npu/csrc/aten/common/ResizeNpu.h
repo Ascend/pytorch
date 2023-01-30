@@ -62,7 +62,7 @@ static void storage_resize_npu(
   // It is necessary to properly refresh the storage according to sizes and strides,
   // not just new sizes.
   StorageDescHelper::UpdateDesc(
-      torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, resize_shape);
+      torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, resize_shape, new_size);
 
   if (old_data != nullptr) {
     ptrdiff_t copy_size = old_size;
