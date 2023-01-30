@@ -895,7 +895,8 @@ custom:
   - func: npu_get_float_status(Tensor self) -> Tensor
   - func: npu_clear_float_status(Tensor self) -> Tensor
   - func: one_(Tensor(a!) self) -> Tensor(a!)
-  - func: fast_gelu_backward(Tensor grad, Tensor self) -> Tensor
+  - func: npu_fast_gelu(Tensor self) -> Tensor
+  - func: npu_fast_gelu_backward(Tensor grad, Tensor self) -> Tensor
   - func: _amp_foreach_non_finite_check_(Tensor[] scaled_grads) -> bool
   - func: npu_sign_bits_pack(Tensor self, int size) -> Tensor
   - func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor var, Tensor m, Tensor v)
