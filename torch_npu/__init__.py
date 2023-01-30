@@ -63,7 +63,7 @@ def _isinstance(obj, class_or_tuple):
             if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
                 return eval(type_str) in class_tuple
         if eval("torch.device") == class_or_tuple:
-            return builtin_isinstance(obj, torch._C.device)
+            return builtin_isinstance(obj, torch._C.device) or builtin_isinstance(obj, torch_npu._C.device)
         raise e
 
 builtins.isinstance = _isinstance
@@ -89,7 +89,8 @@ all_monkey_patches = [
     ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
-    ["_C.Generator", torch_npu._C.Generator]
+    ["_C.Generator", torch_npu._C.Generator],
+    ["device", torch_npu._C.device],
 ]
 
 all_monkey_patches += serialization_patches
