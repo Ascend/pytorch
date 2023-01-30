@@ -154,6 +154,21 @@ class TestIndexPut(TestCase):
         ninput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value.npu()
         self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())
 
+    def test_index_put_NCDHW_and_resize(self):
+        index_list = [20, 26, 21, 8, 25], [8, 15, 2, 17, 1], [20, 79, 5, 28, 45], [24, 3, 44, 37, 10], [2, 3, 0, 10, 14]
+        index = [torch.LongTensor(i) for i in index_list]
+        input_data = torch.randn(32, 20, 80, 80, 16)
+        input2 = torch.randn(5,)
+
+        index_npu = [i.npu() for i in index]
+        input_data_npu = input_data.npu()
+        input2_npu = input2.npu()
+
+        input_data.index_put_(index, input2)
+        cpu_res = input_data.numpy()
+        input_data_npu.index_put_(index_npu, input2_npu)
+        npu_res = input_data_npu.cpu().numpy()
+        self.assertRtolEqual(cpu_res, npu_res)
 
 if __name__ == "__main__":
     run_tests()

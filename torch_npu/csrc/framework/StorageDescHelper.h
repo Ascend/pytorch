@@ -55,7 +55,8 @@ namespace at_npu
       static void CopyDesc(at::Tensor &dst, const c10::Storage &src);
       static void CopyDesc(const at::Tensor &dst, const torch_npu::NPUStorageDesc &src_desc);
 
-      static void UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10::IntArrayRef &new_size);
+      static void UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10::IntArrayRef &new_data_sizes,
+                             const c10::IntArrayRef &new_shape_sizes);
 
       static FormatShape ComputeStrideFromShape(const FormatShape &shape);
 
