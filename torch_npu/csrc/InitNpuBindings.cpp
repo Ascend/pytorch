@@ -32,6 +32,7 @@
 #include "torch_npu/csrc/utils/TensorMethods.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
+#include "torch_npu/csrc/core/Device.h"
 
 PyObject* module;
 
@@ -120,6 +121,7 @@ PyObject* initModule(){
   THNPEvent_init(module);
   THNPReplayGraph_init(module);
   THPGenerator_init(module);
+  TNPDevice_init(module);
 
   torch_npu::autograd::initTorchFunctions(module);
 
