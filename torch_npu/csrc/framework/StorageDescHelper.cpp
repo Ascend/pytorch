@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include <c10/util/accumulate.h>
 
 namespace at_npu
 {
@@ -59,8 +60,13 @@ namespace at_npu
       return false;
     }
 
-    void StorageDescHelper::UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10::IntArrayRef &new_size)
+    void StorageDescHelper::UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10::IntArrayRef &new_data_sizes,
+                                       const c10::IntArrayRef &new_shape_sizes)
     {
+      int64_t new_data_numel = c10::multiply_integers(new_data_sizes);
+      int64_t new_shape_numel = c10::multiply_integers(new_shape_sizes);
+      const c10::IntArrayRef &new_size = new_data_numel > new_shape_numel ? new_data_sizes : new_shape_sizes;
+
       npuDesc.base_sizes_ = new_size;
 
       // 计算连续场景下size对应的stride值
@@ -76,8 +82,12 @@ namespace at_npu
       npuDesc.base_strides_ = new_stride;
 
       // 更新物理内存信息
-      npuDesc.storage_sizes_ = new_size;
-      npuDesc.npu_format_ = InferFormat::GuessStorageFormat(new_size, ACL_FORMAT_ND);
+      npuDesc.storage_sizes_ = FormatHelper::GetStorageSizes(npuDesc);
+      if (new_data_numel > new_shape_numel) {
+        // Refresh format to base format only when flattening storage data
+        npuDesc.storage_sizes_ = new_size;
+        npuDesc.npu_format_ = InferFormat::GuessStorageFormat(npuDesc.storage_sizes_, ACL_FORMAT_ND);
+      }
     }
 
     FormatShape StorageDescHelper::ComputeStrideFromShape(const FormatShape &shape)
