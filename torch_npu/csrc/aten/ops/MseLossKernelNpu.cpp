@@ -33,7 +33,7 @@ at::Tensor& mse_loss_out_npu_nocheck(
     return result;
   }
   auto unified_result = OpPreparation::binary_op_check(result, self, target, true);
-  string reductionStr(CalcuOpUtil::get_reduction_str(reduction));
+  string reductionStr(CalcuOpUtil::GetReductionStr(reduction));
   OpCommand cmd;
   cmd.Name("MseLoss")
       .Expect(unified_result)

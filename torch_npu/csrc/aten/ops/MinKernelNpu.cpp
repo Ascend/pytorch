@@ -152,7 +152,7 @@ at::Tensor& min_out_npu_nocheck(
 
 at::Tensor NPUNativeFunctions::amin(const at::Tensor& self, at::IntArrayRef dims, bool keepdim) {
   auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   if (outputSize.empty()) {
     npu_format = ACL_FORMAT_NCHW;
   }
@@ -162,7 +162,7 @@ at::Tensor NPUNativeFunctions::amin(const at::Tensor& self, at::IntArrayRef dims
 }
 
 at::Tensor NPUNativeFunctions::min(const at::Tensor& self) {
-  c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::get_dimlist_for_tensor(self);
+  c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
   return amin(self, dims, false);
 }
 

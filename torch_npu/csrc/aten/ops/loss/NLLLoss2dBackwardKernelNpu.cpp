@@ -46,7 +46,7 @@ at::Tensor& NPUNativeFunctions::nll_loss2d_backward_out(
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
 
-  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  auto reductionStr = CalcuOpUtil::GetReductionStr(reduction);
 
   OpPreparation::CheckMemory({self, grad_output, target, weight_tensor, total_weight}, {grad_input});
   OpCommand cmd;
@@ -91,7 +91,7 @@ at::Tensor NPUNativeFunctions::nll_loss2d_backward(
 
   auto outputSize = input_same_output_size(self_input);
   at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self_input.options(), CalcuOpUtil::get_tensor_npu_format(self_input));
+      outputSize, self_input.options(), CalcuOpUtil::GetTensorNpuFormat(self_input));
   // calculate the output result of the NPU
   NPUNativeFunctions::nll_loss2d_backward_out(
       grad_output_reshape,

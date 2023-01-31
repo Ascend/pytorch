@@ -67,12 +67,12 @@ at::Tensor& NPUNativeFunctions::remainder_out(
     const at::Tensor& self,
     const at::Tensor& other,
     at::Tensor& result) {
-  at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
+  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
       self.scalar_type(),
       outputSize);
   remainder_out_tensor_npu_nocheck(result, self, other);
@@ -82,7 +82,7 @@ at::Tensor& NPUNativeFunctions::remainder_out(
 
 at::Tensor NPUNativeFunctions::remainder(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
   at::Tensor outputTensor = isSelfWrapped ? other : self;
 
   auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -91,7 +91,7 @@ at::Tensor NPUNativeFunctions::remainder(const at::Tensor& self, const at::Tenso
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       outputTensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(outputTensor));
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
   // calculate the output result of the NPU
   remainder_out_tensor_npu_nocheck(result, self, other);
@@ -112,7 +112,7 @@ at::Tensor NPUNativeFunctions::remainder(const at::Tensor& self, at::Scalar othe
 at::Tensor& NPUNativeFunctions::remainder_(at::Tensor& self, const at::Tensor& other) {
   at::SmallVector<at::Tensor, N> inputs = {other};
   at::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

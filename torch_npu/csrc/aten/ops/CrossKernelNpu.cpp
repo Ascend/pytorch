@@ -20,7 +20,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor cross_dest_output(const at::Tensor& self, const at::Tensor& other) {
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
   return isSelfWrapped ? other : self;
 }
 
@@ -50,7 +50,7 @@ at::Tensor& NPUNativeFunctions::cross_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
       self.scalar_type(),
       outputSize);
   cross_out_npu_nocheck(self, other, dim, result);

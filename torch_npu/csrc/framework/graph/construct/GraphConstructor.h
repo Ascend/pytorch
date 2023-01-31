@@ -95,7 +95,7 @@ public:
       const string& attr_name,
       const c10::Scalar& value,
       NodePtr node) {
-    float val = CalcuOpUtil::get_scalar_float_value(value);
+    float val = CalcuOpUtil::GetScalarFloatValue(value);
     node->AddExtInfo(
         NodeExtInfoType::ATTR_TYPE_FLOAT, std::make_pair(attr_name, val));
     node->UpdateNodeHash(val);

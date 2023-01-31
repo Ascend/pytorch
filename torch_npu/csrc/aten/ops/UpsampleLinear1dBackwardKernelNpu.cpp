@@ -127,8 +127,8 @@ at::Tensor NPUNativeFunctions::upsample_linear1d_backward(
     at::IntArrayRef input_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(input_size, output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
 
   upsample_linear1d_backward_check(grad_output, osize, input_size);
   at::Tensor _grad_output = grad_output;

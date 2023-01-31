@@ -88,7 +88,7 @@ at::Tensor& NPUNativeFunctions::scatter_(
     const at::Tensor& index_ex,
     at::Scalar src) {
   at::Tensor srcTensor = scalar_to_tensor(src).to(at::ScalarType::Float);
-  srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
+  srcTensor = CalcuOpUtil::CopyTensorHostToDevice(srcTensor);
   at::Tensor srcTensor_broadcast = NPUNativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index_ex.sizes()));
   scatter_npu_src_impl(self, dim, index_ex, srcTensor_broadcast);
   return self;

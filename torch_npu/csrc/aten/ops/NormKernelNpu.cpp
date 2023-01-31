@@ -23,7 +23,7 @@ namespace native {
 
 int64_t calculate_p(c10::optional<at::Scalar> p) {
   if (p.has_value()) {
-    float val = CalcuOpUtil::get_scalar_float_value(p.value());
+    float val = CalcuOpUtil::GetScalarFloatValue(p.value());
     if (val == INFINITY) {
       return static_cast<int64_t>(INT_MAX); // p = inf
     } else if (val == -INFINITY) {

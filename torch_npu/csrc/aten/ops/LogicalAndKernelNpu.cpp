@@ -68,7 +68,7 @@ at::Tensor& NPUNativeFunctions::logical_and_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       result.scalar_type(),
       outputSize);
   if (NpuUtils::check_match(&result) && (result.dtype() == at::kBool)) {
@@ -88,7 +88,7 @@ at::Tensor NPUNativeFunctions::logical_and(const at::Tensor& self, const at::Ten
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options().dtype(at::kBool), 
-      CalcuOpUtil::get_tensor_npu_format(self));
+      CalcuOpUtil::GetTensorNpuFormat(self));
   logical_and_out_npu_nocheck(self, other, result);
   return result;
 }

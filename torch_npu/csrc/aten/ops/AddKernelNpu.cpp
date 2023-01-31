@@ -40,7 +40,7 @@ namespace at_npu
 
     at::Tensor add_dest_output(const at::Tensor &self, const at::Tensor &other)
     {
-      bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+      bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
       return isSelfWrapped ? other : self;
     }
 
@@ -52,8 +52,8 @@ namespace at_npu
     {
       // constructs the input and output NPUTensorDesc
       alpha_check_npu(self.scalar_type(), alpha);
-      float otherValue = CalcuOpUtil::get_scalar_float_value(other);
-      float alphaValue = CalcuOpUtil::get_scalar_float_value(alpha);
+      float otherValue = CalcuOpUtil::GetScalarFloatValue(other);
+      float alphaValue = CalcuOpUtil::GetScalarFloatValue(alpha);
       float value = otherValue * alphaValue;
       OpCommand cmd;
       std::string real_type = "";
@@ -98,7 +98,7 @@ namespace at_npu
         OpCommand cmd;
         cmd.Expect(unified_result);
         // executing the NPU operator
-        if (CalcuOpUtil::is_scalar_one(alpha))
+        if (CalcuOpUtil::IsScalarOne(alpha))
         {
           if (self.scalar_type() == at::kLong)
           {
@@ -194,15 +194,15 @@ namespace at_npu
       at::Tensor outputTensor = add_dest_output(self, other);
       auto outputSize = broadcast_ops_npu_output_size(self, other);
       at::ScalarType high_type = at::native::result_type(self, other);
-      at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self)) ?
+      at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self)) ?
           NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-      at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other)) ?
+      at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other)) ?
           NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
           outputTensor.options().dtype(high_type),
-          CalcuOpUtil::get_tensor_npu_format(outputTensor));
+          CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
       // calculate the output result of the NPU
       add_out_npu_nocheck(result, selfCopy, otherCopy, alpha);
@@ -217,7 +217,7 @@ namespace at_npu
       auto outputSize = input_same_output_size(self);
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+          outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
       // calculate the output result of the NPU
       adds_out_npu_nocheck(result, self, other, alpha);
@@ -229,7 +229,7 @@ namespace at_npu
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
       if (!NpuUtils::check_match(&self))
       {
@@ -267,7 +267,7 @@ namespace at_npu
         at::Scalar alpha,
         at::Tensor &result)
     {
-      bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+      bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
       at::Tensor outputTensor;
       if (not isSelfWrapped)
@@ -282,7 +282,7 @@ namespace at_npu
       OpPreparation::CheckOut(
           {self},
           result,
-          CalcuOpUtil::get_tensor_npu_format(result),
+          CalcuOpUtil::GetTensorNpuFormat(result),
           outputTensor.scalar_type(),
           outputSize);
 

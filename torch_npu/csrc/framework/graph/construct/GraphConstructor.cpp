@@ -90,7 +90,7 @@ void GraphCommandImpl::AddInput(
     ir_node_->AddExtInfo(
         NodeExtInfoType::INPUT_TYPE_SCALAR,
         std::make_tuple(input_index_++, input, type));
-    ir_node_->UpdateNodeHash(CalcuOpUtil::get_scalar_float_value(input), type);
+    ir_node_->UpdateNodeHash(CalcuOpUtil::GetScalarFloatValue(input), type);
   }
 }
 
@@ -220,8 +220,7 @@ void GraphCommandImpl::AddZeroDimInput(
   ir_node_->AddExtInfo(
       NodeExtInfoType::INPUT_TYPE_SCALAR,
       std::make_tuple(input_index_++, expect_scalar, dtype));
-  ir_node_->UpdateNodeHash(
-      CalcuOpUtil::get_scalar_float_value(expect_scalar), dtype);
+  ir_node_->UpdateNodeHash(CalcuOpUtil::GetScalarFloatValue(expect_scalar), dtype);
 }
 
 void GraphCommandImpl::Run() {

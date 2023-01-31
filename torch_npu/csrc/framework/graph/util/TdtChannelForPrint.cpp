@@ -76,7 +76,7 @@ TupleToPrint TdtChannelForPrint::GetTupleToPrint() {
     }
 
     auto data_type = acl_tdt::AcltdtGetDataTypeFromItem(data_item);
-    auto at_data_type = CalcuOpUtil::convert_to_at_data_type(data_type);
+    auto at_data_type = CalcuOpUtil::ConvertToATDataType(data_type);
 
     auto options = c10::TensorOptions().dtype(at_data_type);
     at::Tensor tensor = at::empty(sizes, options);

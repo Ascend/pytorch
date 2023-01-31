@@ -135,7 +135,7 @@ namespace at_npu
       } else {
         return result;
       }
-      dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
+      dim = CalcuOpUtil::MakeWrapDim(dim, dim_post_expr);
 
       // executing the NPU operator
       int64_t input_number = 0;
@@ -185,7 +185,7 @@ namespace at_npu
       } else {
         return result;
       }
-      dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
+      dim = CalcuOpUtil::MakeWrapDim(dim, dim_post_expr);
       auto outputSize = cat_npu_output_size(inputTensors, dim);
       OpPreparation::CheckOut(
           {tensors[0]},
@@ -213,7 +213,7 @@ namespace at_npu
         at::Tensor result = OpPreparation::ApplyTensor(tensors[0]);
         return result;
       }
-      dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
+      dim = CalcuOpUtil::MakeWrapDim(dim, dim_post_expr);
 
       // calculate the output size
       auto outputSize = cat_npu_output_size(inputTensors, dim);

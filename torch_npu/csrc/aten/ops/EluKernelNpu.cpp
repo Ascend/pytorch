@@ -25,9 +25,9 @@ using torch::autograd::AutogradContext;
 using tensor_list = std::vector<at::Tensor>;
 
 at::Tensor& elu_out_nocheck(const at::Tensor& self, at::Scalar alpha, at::Scalar scale, at::Scalar input_scale, at::Tensor& result) {
-  float alphaValue = CalcuOpUtil::get_scalar_float_value(alpha);
-  float scaleValue = CalcuOpUtil::get_scalar_float_value(scale);
-  float inputScaleValue = CalcuOpUtil::get_scalar_float_value(input_scale);
+  float alphaValue = CalcuOpUtil::GetScalarFloatValue(alpha);
+  float scaleValue = CalcuOpUtil::GetScalarFloatValue(scale);
+  float inputScaleValue = CalcuOpUtil::GetScalarFloatValue(input_scale);
   OpCommand cmd;
   cmd.Name("Elu")
      .Input(self)
@@ -61,7 +61,7 @@ at::Tensor elu_npu_impl(const at::Tensor& self, at::Scalar alpha, at::Scalar sca
 }
 
 at::Tensor& elu_backward_out_npu(at::Tensor& grad_input, const at::Tensor& grad_output, at::Scalar alpha, at::Scalar scale, at::Scalar input_scale, const at::Tensor& output) {
-    float value = CalcuOpUtil::get_scalar_float_value(alpha);
+    float value = CalcuOpUtil::GetScalarFloatValue(alpha);
     OpCommand cmd;
     cmd.Name("EluGradV2")
        .Input(grad_output)

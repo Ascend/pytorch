@@ -59,7 +59,7 @@ at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, const at::Tensor&
   OpPreparation::CheckOut(
       {self, other},
       result,
-      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+      CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf),
       at::ScalarType::Bool,
       at::IntArrayRef(outputSize));
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
@@ -71,7 +71,7 @@ at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, at::Scalar other,
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+      CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf),
       at::ScalarType::Bool,
       formatCastOfSelf.sizes());
   ne_out_npu_nocheck(result, formatCastOfSelf, other);

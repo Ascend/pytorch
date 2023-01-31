@@ -358,7 +358,7 @@ at::Tensor get_mask(const at::Tensor& input, const at::Tensor& batchSizes, const
     int64_t len = coutLen.item().toInt();
     lens.emplace_back(len);
   }
-  at::Tensor length = CalcuOpUtil::copy_tensor_host_to_device(
+  at::Tensor length = CalcuOpUtil::CopyTensorHostToDevice(
       at::from_blob(lens.data(), {lens.size()}, at::kLong));    
   
   c10::SmallVector<at::Tensor, N> maskList;

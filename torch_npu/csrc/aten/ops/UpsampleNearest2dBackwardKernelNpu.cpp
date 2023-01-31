@@ -62,9 +62,9 @@ at::Tensor NPUNativeFunctions::upsample_nearest2d_backward(
     c10::optional<at::IntArrayRef> output_size,
     at::IntArrayRef input_size,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(input_size, output_size, scale_factors);
-  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+  auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);
+  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
   at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, input_size);
   NPUNativeFunctions::upsample_nearest2d_backward_out(grad_output, osize, input_size, scales_h, scales_w, grad_input);
   return grad_input;

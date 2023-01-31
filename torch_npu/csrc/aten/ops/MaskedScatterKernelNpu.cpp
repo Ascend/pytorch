@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::masked_scatter_(
     const at::Tensor& source) {
   c10::SmallVector<at::Tensor, N> inputs = {self, mask, source};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

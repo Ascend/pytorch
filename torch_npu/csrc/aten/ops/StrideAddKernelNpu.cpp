@@ -97,7 +97,7 @@ namespace at_npu
 
       // construct the output at::Tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+          outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
       // calculate the output result of the NPU
       stride_add_out_npu_nocheck(result, self, other, offset1, offset2, c1_len);

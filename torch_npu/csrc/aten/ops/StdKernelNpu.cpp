@@ -105,7 +105,7 @@ at::Tensor NPUNativeFunctions::std(
 at::Tensor NPUNativeFunctions::std(
     const at::Tensor & self, 
     bool unbiased) {
-  c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::get_dimlist_for_tensor(self);
+  c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
   return NPUNativeFunctions::std(self, dims, unbiased, false);
 }
 
@@ -127,7 +127,7 @@ tuple <at::Tensor, at::Tensor> NPUNativeFunctions::std_mean(
 tuple <at::Tensor, at::Tensor> NPUNativeFunctions::std_mean(
     const at::Tensor & self, 
     bool unbiased) {
-  c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::get_dimlist_for_tensor(self);
+  c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
   return NPUNativeFunctions::std_mean(self, dims, unbiased, false);
 }
 

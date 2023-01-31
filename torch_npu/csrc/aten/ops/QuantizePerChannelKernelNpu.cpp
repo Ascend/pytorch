@@ -69,7 +69,7 @@ at::Tensor NPUNativeFunctions::quantize_per_channel(
     const at::Tensor& zero_points,
     int64_t axis,
     at::ScalarType dtype) {
-  axis = CalcuOpUtil::make_wrap_dim(axis, self.dim());
+  axis = CalcuOpUtil::MakeWrapDim(axis, self.dim());
   TORCH_CHECK(scales.dim() == 1, "Scales' dim should be equal to 1.");
   TORCH_CHECK(zero_points.dim() == 1, "Zero points' dim should be equal to 1.");
   TORCH_CHECK(scales.sizes()[0] == zero_points.sizes()[0], "Scales' size should be equal to zero points' size.");
@@ -86,7 +86,7 @@ at::Tensor NPUNativeFunctions::quantize_per_channel(
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options().dtype(outputDtype),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      CalcuOpUtil::GetTensorNpuFormat(self));
   quantize_per_channel_out_nocheck(result, self, scales, zero_points, axis, dtype);
   return result;
 }

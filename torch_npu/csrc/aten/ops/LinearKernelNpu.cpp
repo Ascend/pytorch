@@ -85,12 +85,12 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_linear_backward(
   at::Tensor inputGrad = OpPreparation::ApplyTensor(input, inputGradOutputSize);
   at::Tensor weightGrad = OpPreparation::ApplyTensor(weight, weightGradOutputSize);
 
-  if (CalcuOpUtil::get_tensor_npu_format(grad) == CalcuOpUtil::get_tensor_npu_format(weight)) {
+  if (CalcuOpUtil::GetTensorNpuFormat(grad) == CalcuOpUtil::GetTensorNpuFormat(weight)) {
     linear_backward_out_npu(inputGrad, grad, weight, false, false);
     linear_backward_out_npu(weightGrad, grad, input, true, false);
   } else {
     at::Tensor gradFormatcast = OpPreparation::ApplyTensor(grad, grad.sizes());
-    gradFormatcast = NPUNativeFunctions::npu_format_cast(grad, CalcuOpUtil::get_tensor_npu_format(weight));
+    gradFormatcast = NPUNativeFunctions::npu_format_cast(grad, CalcuOpUtil::GetTensorNpuFormat(weight));
     linear_backward_out_npu(inputGrad, gradFormatcast, weight, false, false);
     linear_backward_out_npu(weightGrad, gradFormatcast, input, true, false);
   }

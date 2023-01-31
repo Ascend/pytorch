@@ -84,7 +84,7 @@ at::Tensor& NPUNativeFunctions::upsample_bicubic2d_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
 
@@ -127,9 +127,9 @@ at::Tensor NPUNativeFunctions::upsample_bicubic2d(
     c10::optional<at::IntArrayRef> output_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(self.sizes(), output_size, scale_factors);
-  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+  auto osize = CalcuOpUtil::ComputeOutputSize(self.sizes(), output_size, scale_factors);
+  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
 
   // calculate the output size
   int64_t N = self.size(0);

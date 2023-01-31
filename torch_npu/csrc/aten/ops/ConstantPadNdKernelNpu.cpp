@@ -29,7 +29,7 @@ at::Tensor constant_pad_nd_out_npu_nocheck(at::Tensor& result, const at::Tensor&
     vectorInt.emplace_back(paddingsVector[i - 1]);
   }
 
-  float val = CalcuOpUtil::get_scalar_float_value(value);
+  float val = CalcuOpUtil::GetScalarFloatValue(value);
 
   at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
 

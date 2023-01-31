@@ -99,7 +99,7 @@ at::Tensor& NPUNativeFunctions::upsample_linear1d_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
 
@@ -125,7 +125,7 @@ at::Tensor NPUNativeFunctions::upsample_linear1d(
   
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, result);
@@ -138,15 +138,15 @@ at::Tensor NPUNativeFunctions::upsample_linear1d(
     c10::optional<at::IntArrayRef> output_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(self.sizes(), output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto osize = CalcuOpUtil::ComputeOutputSize(self.sizes(), output_size, scale_factors);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
   // calculate the output size
   auto outputSize = upsample_linear1d_npu_output_size(
       self, osize, align_corners, scales_w);
   
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   upsample_linear1d_out_nocheck(self, osize, align_corners, scales_w, result);

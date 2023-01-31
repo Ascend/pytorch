@@ -28,7 +28,7 @@ void index_fill_d_check_index(at::IntArrayRef shape, const at::Tensor &index, in
   int index_temp = INT_MAX;
   for (int i = 0; i < index.sizes()[0]; i++)
   {
-    index_temp = static_cast<int>(CalcuOpUtil::get_scalar_float_value(index[i].item()));
+    index_temp = static_cast<int>(CalcuOpUtil::GetScalarFloatValue(index[i].item()));
     TORCH_CHECK(shape[dim] > index_temp,
                 "Index out of range, it should be in [0,", shape[dim], ")");  
   }
@@ -95,13 +95,13 @@ at::Tensor index_fill_d_assist_help(
   vector<int> index_vector;
   for (int i = 0; i < index.sizes()[0]; i++)
   {
-    int index_temp = static_cast<int>(CalcuOpUtil::get_scalar_float_value(index[i].item()));
+    int index_temp = static_cast<int>(CalcuOpUtil::GetScalarFloatValue(index[i].item()));
     index_vector.push_back(index_temp);
   }
   // input
   // index is a 1-D tensor
   // value is a tensor which has only one item
-  float value_float = CalcuOpUtil::get_scalar_float_value(value);
+  float value_float = CalcuOpUtil::GetScalarFloatValue(value);
   assist = index_fill_d_assist_help_init(dim, size, index_vector, flag, value_float);
   at::Tensor assistHelp = at::from_blob(assist.data(), size, dtype(at::ScalarType::Float));
   return assistHelp.to(at::device(at_npu::key::NativeDeviceType));

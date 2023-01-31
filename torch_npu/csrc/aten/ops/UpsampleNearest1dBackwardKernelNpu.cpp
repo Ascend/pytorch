@@ -68,7 +68,7 @@ at::Tensor& NPUNativeFunctions::upsample_nearest1d_backward_out(
   OpPreparation::CheckOut(
       {grad_output},
       grad_input,
-      CalcuOpUtil::get_tensor_npu_format(grad_output),
+      CalcuOpUtil::GetTensorNpuFormat(grad_output),
       grad_output.scalar_type(),
       outputSize);
 
@@ -88,8 +88,8 @@ at::Tensor NPUNativeFunctions::upsample_nearest1d_backward(
     c10::optional<at::IntArrayRef> output_size,
     at::IntArrayRef input_size,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(input_size, output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
   c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_backward_output_size(input_size);
   at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
 

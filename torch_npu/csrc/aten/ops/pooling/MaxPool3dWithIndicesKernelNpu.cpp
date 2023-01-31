@@ -58,9 +58,9 @@ namespace at_npu
       c10::SmallVector<int64_t, SIZE> padrs(pads);
       if (ceil_mode)
       {
-        padrs[0] += CalcuOpUtil::completePad(ds, pads[0], kernel_size[0], strideT);
-        padrs[1] += CalcuOpUtil::completePad(hs, pads[1], kernel_size[1], strideH);
-        padrs[2] += CalcuOpUtil::completePad(ws, pads[2], kernel_size[2], strideW);
+        padrs[0] += CalcuOpUtil::CompletePad(ds, pads[0], kernel_size[0], strideT);
+        padrs[1] += CalcuOpUtil::CompletePad(hs, pads[1], kernel_size[1], strideH);
+        padrs[2] += CalcuOpUtil::CompletePad(ws, pads[2], kernel_size[2], strideW);
       }
       c10::SmallVector<int64_t, SIZE> kernel_sizes = {1, 1, kernel_size[0], kernel_size[1], kernel_size[2]};
       c10::SmallVector<int64_t, SIZE> stride_sizes = {1, 1, strideT, strideH, strideW};

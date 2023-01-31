@@ -30,7 +30,8 @@ namespace at_npu
     {
       at::Tensor &cast_nocheck(at::Tensor &result, const at::Tensor &self)
       {
-        int64_t dstDataType = CalcuOpUtil::convert_to_acl_data_type(result.scalar_type());
+        int64_t dstDataType =
+            CalcuOpUtil::ConvertToAclDataType(result.scalar_type());
         OpCommand cmd;
         cmd.Name("Cast")
             .Input(self)

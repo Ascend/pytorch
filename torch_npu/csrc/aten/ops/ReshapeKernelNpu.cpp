@@ -62,7 +62,7 @@ at::Tensor& NPUNativeFunctions::npu_reshape_out(
 at::Tensor NPUNativeFunctions::npu_reshape(const at::Tensor& self, at::IntArrayRef shape, bool can_refresh) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      shape, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      shape, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
   NPUNativeFunctions::npu_reshape_out(self, shape, can_refresh, result);
 
   return result;

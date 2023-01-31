@@ -25,7 +25,7 @@ at::Tensor& NPUNativeFunctions::soft_margin_loss_backward_out(
     const at::Tensor& target,
     int64_t reduction,
     at::Tensor& grad_input) {
-  string reductionStr(CalcuOpUtil::get_reduction_str(reduction));
+  string reductionStr(CalcuOpUtil::GetReductionStr(reduction));
 
   OpPreparation::CheckMemory({grad_output, input, target}, {grad_input});
   OpCommand cmd;

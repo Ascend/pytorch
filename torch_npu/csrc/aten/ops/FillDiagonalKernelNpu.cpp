@@ -26,7 +26,7 @@ at::Tensor& fill_diagonal_out_npu(
     const at::Tensor& self,
     at::Scalar& value,
     bool wrap) {
-  float fill_value = CalcuOpUtil::get_scalar_float_value(value);
+  float fill_value = CalcuOpUtil::GetScalarFloatValue(value);
   OpCommand cmd;
   cmd.Name("FillDiagonal")
       .Input(self)

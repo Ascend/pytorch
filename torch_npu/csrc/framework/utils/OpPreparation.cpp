@@ -119,7 +119,7 @@ namespace at_npu
       CheckOut(
           inputs,
           output,
-          CalcuOpUtil::get_tensor_npu_format(dst),
+          CalcuOpUtil::GetTensorNpuFormat(dst),
           dst.scalar_type(),
           dst.sizes());
     }
@@ -132,8 +132,7 @@ namespace at_npu
     {
       CheckOut(
           inputs,
-          output,
-          CalcuOpUtil::get_tensor_npu_format(dst),
+          output, CalcuOpUtil::GetTensorNpuFormat(dst),
           dst.scalar_type(),
           shape);
     }
@@ -149,7 +148,7 @@ namespace at_npu
       // and do not share memory with inputs.
       c10::SmallVector<at::Tensor, N> inputs{input};
       c10::SmallVector<at::Tensor, N> outputs = {output};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
       TORCH_CHECK(at_npu::key::isDeviceTensor(output), "output with device ",
                   output.device(), " doesn't match the desired device NPU");
       TORCH_CHECK(output.scalar_type() == dtype, "expected dtype ",
@@ -174,7 +173,7 @@ namespace at_npu
         output.resize_(shape);
       }
 
-      if (CalcuOpUtil::get_tensor_npu_format(output) != format)
+      if (CalcuOpUtil::GetTensorNpuFormat(output) != format)
       {
         TORCH_CHECK(!is_read_write, "can not cast format when output is input");
         NPUNativeFunctions::npu_format_cast_(output, format);
@@ -202,17 +201,20 @@ namespace at_npu
 
     at::Tensor OpPreparation::ApplyTensor(const at::Tensor &src, c10::IntArrayRef sizes)
     {
-      return ApplyTensorWithFormat(sizes, src.options(), CalcuOpUtil::get_tensor_npu_format(src));
+      return ApplyTensorWithFormat(sizes, src.options(),
+                                   CalcuOpUtil::GetTensorNpuFormat(src));
     }
 
     at::Tensor OpPreparation::ApplyTensor(const at::Tensor &src, const c10::TensorOptions &options)
     {
-      return ApplyTensorWithFormat(src.sizes(), options, CalcuOpUtil::get_tensor_npu_format(src));
+      return ApplyTensorWithFormat(src.sizes(), options,
+                                   CalcuOpUtil::GetTensorNpuFormat(src));
     }
 
     at::Tensor OpPreparation::ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options, const at::Tensor &src)
     {
-      return ApplyTensorWithFormat(sizes, options, CalcuOpUtil::get_tensor_npu_format(src));
+      return ApplyTensorWithFormat(sizes, options,
+                                   CalcuOpUtil::GetTensorNpuFormat(src));
     }
 
     at::Tensor OpPreparation::ApplyTensorWithFormat(const at::Tensor &src, int64_t format)
@@ -248,7 +250,7 @@ namespace at_npu
     {
       c10::SmallVector<at::Tensor, N> in = inputs;
       c10::SmallVector<at::Tensor, N> out = outputs;
-      CalcuOpUtil::check_memory_over_laps(in, out);
+      CalcuOpUtil::CheckMemoryOverLaps(in, out);
     }
 
   } // namespace native
