@@ -23,6 +23,7 @@ from abc import ABCMeta, abstractmethod
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DEFAULT_UT_FILE = os.path.join(BASE_DIR, 'ci/pytorch_resnet.py')
+TEST_OPS = os.path.join(BASE_DIR, 'test/test_ops.py')
 
 
 class AccurateTest(metaclass=ABCMeta):
@@ -64,7 +65,7 @@ class OpStrategy(AccurateTest):
         if filename.find('KernelNpu') >= 0: 
             feature_line = filename.split('KernelNpu')[0]
             features = re.findall('[A-Z][^A-Z]*', feature_line)
-            regex = '*' + '*'.join(["%s" % feature.lower() for feature in features]) + '*'
+            regex = '*' + '*'.join([f"{feature.lower()}" for feature in features]) + '*'
             return AccurateTest.find_ut_by_regex(regex)
         return []
 
@@ -75,9 +76,7 @@ class DirectoryStrategy(AccurateTest):
     """
     def identify(self, modify_file):
         second_dir = modify_file.split("/")[0]
-        if second_dir == 'test':
-            return [os.path.join(BASE_DIR, modify_file)]
-        return []
+        return [os.path.join(BASE_DIR, modify_file)] if second_dir == 'test' else []
 
 
 class CopyOptStrategy(AccurateTest):
@@ -94,7 +93,10 @@ class CopyOptStrategy(AccurateTest):
 class TestMgr():
     def __init__(self):
         self.modify_files = []
-        self.ut_files = []
+        self.test_files = {
+            'ut_files': [],
+            'op_ut_files': []
+        }
 
     def load(self, modify_files):
         with open(modify_files) as f:
@@ -104,20 +106,22 @@ class TestMgr():
 
     def analyze(self):
         for modify_file in self.modify_files:
-            self.ut_files += DirectoryStrategy().identify(modify_file)
-            self.ut_files += OpStrategy().identify(modify_file)
-            self.ut_files += CopyOptStrategy().identify(modify_file)
-        unique_files = set(self.ut_files)
+            self.test_files['ut_files'] += DirectoryStrategy().identify(modify_file)          
+            self.test_files['ut_files'] += CopyOptStrategy().identify(modify_file)
+            self.test_files['ut_files'] += OpStrategy().identify(modify_file)
+            self.test_files['op_ut_files'] += OpStrategy().identify(modify_file)
+        unique_files = set(self.test_files['ut_files'])
 
-        exist_ut_file = []
-        for changed_file in unique_files:
-            if os.path.exists(changed_file):
-                exist_ut_file.append(changed_file)
-        self.ut_files = exist_ut_file
-        self.ut_files.append(DEFAULT_UT_FILE)
+        exist_ut_file = [
+            changed_file
+            for changed_file in unique_files
+            if os.path.exists(changed_file)
+        ]
+        self.test_files['ut_files'] = exist_ut_file
+        self.test_files['ut_files'].append(DEFAULT_UT_FILE)
 
-    def get_ut_files(self):
-        return self.ut_files
+    def get_test_files(self):
+        return self.test_files
 
     def print_modify_files(self):
         print("modify files:")
@@ -126,46 +130,74 @@ class TestMgr():
 
     def print_ut_files(self):
         print("ut files:")
-        for ut_file in self.ut_files:
+        for ut_file in self.test_files['ut_files']:
             print(ut_file)
+    
+    def print_op_ut_files(self):
+        print("op ut files:")
+        for op_ut_file in self.test_files['op_ut_files']:
+            print(op_ut_file)
 
 
-def exec_ut(ut_files):
+def exec_ut(files):
     """
     执行单元测试文件，其中存在失败，则标识异常并打印相关信息
     """
-    def change_dir_and_exec(ut_path):
-        ut_dir = os.path.dirname(ut_path)
-        ut_file = os.path.basename(ut_path)
+    def get_ut_name(ut_file):
+        return ut_file.split('/')[-1].split('.')[0].lstrip('test_')
+
+    def change_dir_and_exec(ut_path, is_op_ut=False):
+        if is_op_ut:
+            ut_dir = os.path.dirname(TEST_OPS)
+            cmd = f'python3 -m unittest test_ops.py -v -k {ut_path}_'
+        else:
+            ut_dir = os.path.dirname(ut_path)
+            ut_file = os.path.basename(ut_path)
+            cmd = f'python3 {ut_file}'
+
         os.chdir(ut_dir)
-        cmd = "python3 {}".format(ut_file)
-        p = subprocess.Popen(['python3', ut_file], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+        p = subprocess.Popen(cmd.split(' '), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+
         try:
             msg = p.communicate(timeout=2000)
             ret = p.poll()
             if ret:
-                print(msg)
-
+                stdout = msg[0].decode('utf-8')
+                stderr = msg[1].decode('utf-8') if msg[1] else msg[1]
+                print(stdout, stderr)
         except subprocess.TimeoutExpired:
             p.kill()
             p.terminate()
             ret = 1
-            print("Timeout: Command '" + cmd + "' timed out after 2000 seconds")
+            print(f"Timeout: Command '{cmd}' timed out after 2000 seconds")
         except Exception as err:
             ret = 1
             print(err)
         return ret
 
+    ut_files = files['ut_files']
+    op_ut_files = files['op_ut_files']
     ret_status = 0
     exec_infos = []
     for ut_file in ut_files:
         temp_ret = change_dir_and_exec(ut_file)
+
         if temp_ret:
             ret_status = temp_ret
             exec_infos.append("exec ut {} failed.".format(ut_file))
         else:
             exec_infos.append("exec ut {} success.".format(ut_file))
-    
+
+    for op_ut_file in op_ut_files:
+        ut_name = get_ut_name(op_ut_file)
+        op_ut_ret = change_dir_and_exec(ut_name, True)
+
+        if op_ut_ret:
+            ret_status = op_ut_ret
+            exec_infos.append("exec ut test_ops.py {} failed.".format(ut_name))
+        else:
+            exec_infos.append("exec ut test_ops.py {} success.".format(ut_name))
+
     print("***** Total result:")
     for exec_info in exec_infos:
         print(exec_info)
@@ -177,10 +209,11 @@ if __name__ == "__main__":
     test_mgr = TestMgr()
     test_mgr.load(cur_modify_files)
     test_mgr.analyze()
-    cur_ut_files = test_mgr.get_ut_files()
+    cur_test_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()
+    test_mgr.print_op_ut_files()
 
-    ret_ut = exec_ut(cur_ut_files)
+    ret_ut = exec_ut(cur_test_files)
     sys.exit(ret_ut)
