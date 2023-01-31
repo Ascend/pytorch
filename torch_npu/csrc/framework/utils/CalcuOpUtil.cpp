@@ -68,6 +68,7 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::QInt32, ACL_DT_UNDEFINED)                                  \
   _(at::ScalarType::BFloat16, ACL_BF16)                                        \
   _(at::ScalarType::QUInt4x2, ACL_DT_UNDEFINED)                                \
+  _(at::ScalarType::QUInt2x4, ACL_DT_UNDEFINED)                                \
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                               \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
@@ -83,7 +84,7 @@ constexpr aclDataType kATenScalarTypeToAclDataTypeTable
   static_assert(                                                               \
       kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(at_dtype)] ==     \
           (acl_dtype),                                                         \
-      #at_dtype "and" #acl_dtype " is not match any more, please check "       \
+      #at_dtype " and " #acl_dtype " is not match any more, please check "       \
                 "AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR and modify it");
 AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(ENUM_PAIR_FUNC)
 #undef DEFINE_ENUM
