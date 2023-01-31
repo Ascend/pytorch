@@ -288,6 +288,9 @@ class NativeFunction:
     # For now operators have at most one tag.
     tag: Optional['Tag']
 
+    # Whether or not the NativeFunction is bishengcpp kernel
+    bscpp_op: bool
+
     # NB: The benefit of defining a dataclass is that we automatically get
     # a constructor defined for all the fields we specify.  No need
     # to explicitly write it out.
@@ -382,6 +385,7 @@ class NativeFunction:
             return tag
         
         tag = parse_tag(e, structured)
+        bscpp_op = e.pop("bscpp_op", False)
 
         from codegen.api import cpp
 
@@ -450,7 +454,8 @@ class NativeFunction:
             python_module=python_module, category_override=category_override, device_guard=device_guard,
             device_check=device_check, cpp_no_default_args=cpp_no_default_args, is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
-            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel, tag=tag), backend_metadata
+            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel, tag=tag,
+            bscpp_op=bscpp_op), backend_metadata
 
 
     def validate_unstructured(self) -> None:

@@ -21,6 +21,7 @@
 
 
 import argparse
+import os
 import re
 from collections import defaultdict, namedtuple
 from typing import Dict, Optional, List, Tuple, Set, Sequence, Callable
@@ -138,6 +139,9 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
 
 @with_native_function
 def should_generate_py_binding(f: NativeFunction) -> bool:
+    if os.environ.get('BSCPP_OPS_ENABLE') is None and f.bscpp_op:
+        return False
+
     name = cpp.name(f.func)
     for skip_regex in SKIP_PYTHON_BINDINGS:
         if skip_regex.match(name):

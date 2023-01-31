@@ -13,3 +13,7 @@ LIST(APPEND ATEN_SRCS ${_ATEN_SRCS})
 
 # Pass to parent
 set(ATEN_SRCS ${ATEN_SRCS} PARENT_SCOPE)
+
+if(DEFINED ENV{BSCPP_OPS_ENABLE})
+  add_subdirectory(bscpp_ops)
+endif()

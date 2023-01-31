@@ -40,6 +40,8 @@ def create_backend_index(backend_ops: List[str],
     for op in backend_ops:
         op_name = OperatorName.parse(op)
         assert op_name in native_funcs_map, f"Found an invalid operator name: {op_name}"
+        if os.environ.get('BSCPP_OPS_ENABLE') is None and native_funcs_map[op_name].bscpp_op:
+            continue
         # See Note [External Backends Follow Dispatcher API]
         kernel_name = dispatcher.name(native_funcs_map[op_name].func)
         # TODO: allow structured external backends later.
