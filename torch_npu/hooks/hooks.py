@@ -176,11 +176,11 @@ def datadump_enque(x, prefix):
     if isinstance(x, (tuple, list)) and x:
         tensors = []
         for i in x:
-            if isinstance(i, torch.Tensor):
+            if isinstance(i, torch.Tensor) and i.device.type == 'npu':
                 tensors.append(i)
         if tensors:
             torch_npu.npu_enque_tensor(tensors, prefix)
-    elif isinstance(x, torch.Tensor):
+    elif isinstance(x, torch.Tensor) and x.device.type == 'npu':
         torch_npu.npu_enque_tensor([x], prefix)
 
 
