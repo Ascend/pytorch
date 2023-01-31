@@ -646,6 +646,26 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
         auto hcclType = getHcclDataType(input.scalar_type());
         checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
+
+        // allreduce_out is used in hook func by reducer, so fusion id can be specified correctly.
+        // allreduce may be directly called by external users, so fusion id cannot be specified.
+        // If the default fusion rule is used, it may not be a Direct Acyclic Graph after fusion.
+        // To sum up, this pr adopts fusion parameter: no fusion.
+        if (c10_npu::NpuRunMode::IsGraphMode()) {
+          int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
+          at_npu::native::NPUNativeFunctions::npu_hcom_allreduce_out(
+              input,
+              "sum",
+              "hccl_world_group",
+              0,
+              -1,
+              1,
+              0,
+              hccl_comm,
+              output);
+          return HCCL_SUCCESS;
+        }
+
         return HcclAllReduce(
             input.data_ptr(),
             output.data_ptr(),
@@ -767,6 +787,20 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
           HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
+
+        if (c10_npu::NpuRunMode::IsGraphMode()) {
+          int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
+          at_npu::native::NPUNativeFunctions::npu_hcom_allgather_out(
+              input,
+              size_,
+              "hccl_world_group",
+              1,
+              0,
+              hccl_comm,
+              output);
+          return HCCL_SUCCESS;
+        }
+
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
         return HcclAllGather(
