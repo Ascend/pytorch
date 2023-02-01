@@ -23,19 +23,20 @@
 #include <mutex>
 #include <set>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include <c10/util/UniqueVoidPtr.h>
 #include <c10/core/Allocator.h>
 #include <c10/core/ScalarType.h>
+#include <c10/util/flat_hash_map.h>
+#include <c10/util/irange.h>
 #include <c10/util/intrusive_ptr.h>
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include <c10/util/UniqueVoidPtr.h>
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -69,7 +70,7 @@ C10_DEFINE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 // work.
 //
 namespace {
-using stream_set = std::unordered_set<c10_npu::NPUStream>;
+using stream_set = ska::flat_hash_set<c10_npu::NPUStream>;
 
 constexpr size_t kMinBlockSize =
     512; // all sizes are rounded to at least 512 bytes
@@ -82,7 +83,7 @@ constexpr size_t kMinLargeAlloc =
     10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
 
-using StatTypes = std::bitset<static_cast<size_t>(StatType::NUM_TYPES)>;
+using StatTypes = std::array<bool, static_cast<size_t>(StatType::NUM_TYPES)>;
 
 void update_stat(Stat& stat, int64_t amount) {
   stat.current += amount;
@@ -104,51 +105,36 @@ void reset_peak_stat(Stat& stat) {
   stat.peak = stat.current;
 }
 
-void update_stat_array(
-    StatArray& stat_array,
-    int64_t amount,
-    const StatTypes& stat_types) {
-  for (size_t stat_type = 0; stat_type < stat_types.size(); ++stat_type) {
+template <typename Func>
+void for_each_selected_stat_type(const StatTypes& stat_types, Func f) {
+  for (const auto stat_type : c10::irange(stat_types.size())) {
     if (stat_types[stat_type]) {
-      update_stat(stat_array[stat_type], amount);
+      f(stat_type);
     }
   }
 }
 
-struct DeviceStats {
-  uint64_t amount_allocated; // total amount allocated in bytes
-  uint64_t max_amount_allocated; // max total amount allocated in bytes
-  uint64_t amount_cached; // total amount in cache in bytes
-  uint64_t max_amount_cached; // max total amount in cache in bytes
-
-  DeviceStats()
-      : amount_allocated(0),
-        max_amount_allocated(0),
-        amount_cached(0),
-        max_amount_cached(0) {}
-
-  void increaseAllocated(size_t delta) {
-    amount_allocated += delta;
-    max_amount_allocated = std::max(max_amount_allocated, amount_allocated);
-  }
-
-  void decreaseAllocated(size_t delta) {
-    amount_allocated -= delta;
-  }
-
-  void increaseCached(size_t delta) {
-    amount_cached += delta;
-    max_amount_cached = std::max(max_amount_cached, amount_cached);
-  }
-
-  void decreaseCached(size_t delta) {
-    amount_cached -= delta;
-  }
-};
+void update_stat_array(
+    StatArray& stat_array,
+    int64_t amount,
+    const StatTypes& stat_types) {
+  for_each_selected_stat_type(
+      stat_types, [&stat_array, amount](size_t stat_type) {
+        update_stat(stat_array[stat_type], amount);
+      });
+}
 
 struct Block;
 using Comparison = bool (*)(const Block*, const Block*);
-using BlockPool = std::set<Block*, Comparison>;
+
+struct BlockPool{
+  std::set<Block*, Comparison> blocks;
+  const bool is_small;
+
+  BlockPool(Comparison comparator, bool small)
+      : blocks(comparator),
+        is_small(small) {}
+};
 
 struct Block {
   int device; // npu
@@ -229,7 +215,6 @@ static std::string format_size(uint64_t size) {
 
 struct THNCachingAllocator {
   // device statistics
-  std::vector<DeviceStats> device_stats;
   std::vector<DeviceStats_> device_stats_;
 
   // lock around all operations
@@ -255,15 +240,8 @@ struct THNCachingAllocator {
   std::set<aclrtEvent> recorded_events;
 
   THNCachingAllocator()
-      : large_blocks(BlockComparator), small_blocks(BlockComparator) {}
-
-  DeviceStats& get_stats_for_device(int device) {
-    AT_ASSERT(device >= 0);
-    if ((size_t)device >= device_stats.size()) {
-      device_stats.resize(device + 1);
-    }
-    return device_stats.at(device);
-  }
+      : large_blocks(BlockComparator, false), 
+        small_blocks(BlockComparator, true) {}
 
   DeviceStats_& get_stats_for_device_(int device) {
     AT_ASSERT(device >= 0);
@@ -301,7 +279,6 @@ struct THNCachingAllocator {
         true;
     update_stat_array(stats_.allocation, -1, {stat_types});
     update_stat_array(stats_.allocated_bytes, -block->size, {stat_types});
-    get_stats_for_device(block->device).decreaseAllocated(block->size);
 
     if (!block->stream_uses.empty()) {
       insert_events(block);
@@ -315,8 +292,8 @@ struct THNCachingAllocator {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     synchronize_and_free_events(c10::nullopt);
     c10_npu::npuSynchronizeDevice();
-    free_blocks(large_blocks, large_blocks.begin(), large_blocks.end());
-    free_blocks(small_blocks, small_blocks.begin(), small_blocks.end());
+    free_blocks(large_blocks.blocks, large_blocks.blocks.begin(), large_blocks.blocks.end());
+    free_blocks(small_blocks.blocks, small_blocks.blocks.begin(), small_blocks.blocks.end());
   }
 
   void* getBaseAllocation(void* ptr, size_t* outSize) {
@@ -342,7 +319,7 @@ struct THNCachingAllocator {
 
   // Accumulates sizes of all memory blocks for given device in given pool
   void cacheInfoAux(
-      const BlockPool& blocks,
+      const std::set<Block*, Comparison>& blocks,
       int dev_id,
       size_t* total,
       size_t* largest) {
@@ -359,8 +336,8 @@ struct THNCachingAllocator {
 
   void cacheInfo(int dev_id, size_t* total, size_t* largest) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    cacheInfoAux(large_blocks, dev_id, total, largest);
-    cacheInfoAux(small_blocks, dev_id, total, largest);
+    cacheInfoAux(large_blocks.blocks, dev_id, total, largest);
+    cacheInfoAux(small_blocks.blocks, dev_id, total, largest);
   }
 
   /** Returns a copy of the memory allocator stats for the device **/
@@ -426,7 +403,7 @@ struct THNCachingAllocator {
       SegmentInfo& segment_info = result.back();
       segment_info.device = head_block->device;
       segment_info.address = reinterpret_cast<uintptr_t>(head_block->ptr);
-      segment_info.is_large = (head_block->pool == &large_blocks);
+      segment_info.is_large = (!head_block->pool->is_small);
 
       const Block* block = head_block;
       while (block != nullptr) {
@@ -464,8 +441,8 @@ struct THNCachingAllocator {
 
   std::vector<const Block*> get_all_blocks() const {
     std::vector<const Block*> blocks;
-    blocks.insert(blocks.end(), small_blocks.begin(), small_blocks.end());
-    blocks.insert(blocks.end(), large_blocks.begin(), large_blocks.end());
+    blocks.insert(blocks.end(), small_blocks.blocks.begin(), small_blocks.blocks.end());
+    blocks.insert(blocks.end(), large_blocks.blocks.begin(), large_blocks.blocks.end());
     for (const auto& item : allocated_blocks) {
       blocks.push_back(item.second);
     }
@@ -521,7 +498,7 @@ struct THNCachingAllocator {
       net_change_inactive_split_blocks -= 1;
       net_change_inactive_split_size -= subsumed_size_next;
     }
-    pool.insert(block);
+    pool.blocks.insert(block);
 
     if (block->is_split()) {
       net_change_inactive_split_blocks += 1;
@@ -564,7 +541,7 @@ struct THNCachingAllocator {
 
     const size_t subsumed_size = src->size;
     dst->size += src->size;
-    pool.erase(src);
+    pool.blocks.erase(src);
     delete src;
 
     return subsumed_size;
@@ -579,20 +556,14 @@ struct THNCachingAllocator {
   }
 
   StatType get_stat_type_for_pool(const BlockPool& pool) {
-    if (&pool == &small_blocks) {
-      return StatType::SMALL_POOL;
-    } else if (&pool == &large_blocks) {
-      return StatType::LARGE_POOL;
-    } else {
-      AT_ERROR("get_stat_type_for_pool: invalid pool");
-    }
+    return pool.is_small ? StatType::SMALL_POOL : StatType::LARGE_POOL;
   }
 
   bool should_split(const Block* block, size_t size) {
     size_t remaining = block->size - size;
-    if (block->pool == &small_blocks) {
+    if (block->pool->is_small) {
       return remaining >= kMinBlockSize;
-    } else if (block->pool == &large_blocks) {
+    } else if (!block->pool->is_small) {
       return remaining > kSmallSize;
     } else {
       AT_ERROR("should_split: invalid pool");
@@ -655,19 +626,19 @@ struct THNCachingAllocator {
 
     c10_npu::npuSynchronizeDevice();
     free_blocks(
-        large_blocks,
-        large_blocks.lower_bound(&lower_bound),
-        large_blocks.lower_bound(&upper_bound));
+        large_blocks.blocks,
+        large_blocks.blocks.lower_bound(&lower_bound),
+        large_blocks.blocks.lower_bound(&upper_bound));
     free_blocks(
-        small_blocks,
-        small_blocks.lower_bound(&lower_bound),
-        small_blocks.lower_bound(&upper_bound));
+        small_blocks.blocks,
+        small_blocks.blocks.lower_bound(&lower_bound),
+        small_blocks.blocks.lower_bound(&upper_bound));
   }
 
   void free_blocks(
-      BlockPool& blocks,
-      BlockPool::iterator it,
-      BlockPool::iterator end) {
+      std::set<Block*, Comparison>& blocks,
+      std::set<Block*, Comparison>::iterator it,
+      std::set<Block*, Comparison>::iterator end) {
     // Frees all non-split blocks between `it` and `end`
     std::lock_guard<std::mutex> lock(npu_free_mutex);
     while (it != end) {
@@ -675,7 +646,6 @@ struct THNCachingAllocator {
       if (!block->prev && !block->next) {
         aclrtFree((void*)block->ptr);
 
-        get_stats_for_device(block->device).decreaseCached(block->size);
         DeviceStats_& stats_ = get_stats_for_device_(block->device);
         StatTypes stat_types;
         stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
@@ -836,9 +806,6 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   // process outstanding npuEvents
   process_events();
   size = round_size(size);
-  DeviceStats& stats = get_stats_for_device(device);
-  ASCEND_LOGD("pta_memory torch_malloc: malloc = %zu, torch_cached = %lu, torch_allocated = %lu",
-              size, stats.amount_cached, stats.amount_allocated);
   Block search_key(device, stream, size);
   auto& pool = get_pool(size);
 
@@ -846,13 +813,17 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   StatTypes stat_types;
   stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
   stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
+  ASCEND_LOGD("pta_memory torch_malloc: malloc = %zu, torch_cached = %lu, torch_allocated = %lu",
+              size, 
+              stats_.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current, 
+              stats_.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
   auto find_free_block = [&]() -> Block* {
-    auto it = pool.lower_bound(&search_key);
-    if (it != pool.end() && (*it)->device == device &&
+    auto it = pool.blocks.lower_bound(&search_key);
+    if (it != pool.blocks.end() && (*it)->device == device &&
         (*it)->stream == stream) {
       Block* block = *it;
-      pool.erase(it);
+      pool.blocks.erase(it);
       return block;
     }
     return nullptr;
@@ -880,8 +851,6 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
         size_t device_total;
         C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
 
-        const auto& stats = get_stats_for_device(device);
-
         stats_.num_ooms += 1;
         // "total capacity": total global memory on NPU
         // "already allocated": memory allocated by the program using the
@@ -908,17 +877,16 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
             "; ",
             format_size(device_total),
             " total capacity; ",
-            format_size(stats.amount_allocated),
+            format_size(stats_.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
             " already allocated; ",
             format_size(device_free),
             " free; ",
-            format_size(stats.amount_cached - stats.amount_allocated),
+            format_size(stats_.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
             " cached)");
       } else {
         C10_NPU_CHECK(err);
       }
     }
-    stats.increaseCached(alloc_size);
     block = new Block(device, stream, alloc_size, &pool, ptr);
 
     update_stat_array(stats_.segment, 1, stat_types);
@@ -941,7 +909,7 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
     remaining->prev = block;
     remaining->ptr = static_cast<char*>(remaining->ptr) + size;
     remaining->size -= size;
-    pool.insert(remaining);
+    pool.blocks.insert(remaining);
 
     if (already_split) {
       // An already-split inactive block is being shrunk by size bytes.
@@ -963,7 +931,6 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   block->allocated = true;
   allocated_blocks[block->ptr] = block;
   *devPtr = block->ptr;
-  stats.increaseAllocated(block->size);
 
   c10::reportMemoryUsageToProfiler(
       block, block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, device));
