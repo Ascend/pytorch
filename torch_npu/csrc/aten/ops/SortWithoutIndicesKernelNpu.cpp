@@ -49,8 +49,8 @@ at::Tensor& NPUNativeFunctions::npu_sort_v2_out(
       result,
       self);
   
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
-  int64_t lastDim = CalcuOpUtil::make_wrap_dim(-1, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
+  int64_t lastDim = CalcuOpUtil::MakeWrapDim(-1, self.dim());
 
   if (dim != lastDim) {
     c10::SmallVector<int64_t, SHAPE_SIZE> perm;
@@ -85,8 +85,8 @@ at::Tensor NPUNativeFunctions::npu_sort_v2(
   auto outputSize = input_same_output_size(self);
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
-  int64_t lastDim = CalcuOpUtil::make_wrap_dim(-1, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
+  int64_t lastDim = CalcuOpUtil::MakeWrapDim(-1, self.dim());
 
   if (dim != lastDim) {
     c10::SmallVector<int64_t, SHAPE_SIZE> perm;

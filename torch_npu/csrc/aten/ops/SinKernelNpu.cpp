@@ -47,7 +47,7 @@ at::Tensor& NPUNativeFunctions::sin_out(const at::Tensor& self, at::Tensor& resu
 at::Tensor NPUNativeFunctions::sin(const at::Tensor& self) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   sin_out_npu_nocheck(result, self);

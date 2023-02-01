@@ -27,7 +27,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> nms_with_mask_npu_nocheck(
     at::Tensor& boxes,
     at::Tensor& idx,
     at::Tensor& mask) {
-  float iouThresholdValue = CalcuOpUtil::get_scalar_float_value(iou_threshold);
+  float iouThresholdValue = CalcuOpUtil::GetScalarFloatValue(iou_threshold);
   OpCommand cmd;
   cmd.Name("NMSWithMask")
       .Input(input)

@@ -29,7 +29,7 @@ int64_t adaptive_avg_pool3d_backward_safe_size(const at::Tensor& self){
      return size;
   }
   for (int64_t ndim : dims) {
-    ndim = CalcuOpUtil::make_wrap_dim(ndim, self.sizes().size());
+    ndim = CalcuOpUtil::MakeWrapDim(ndim, self.sizes().size());
     size *= self.sizes()[ndim];
   }
   return size;

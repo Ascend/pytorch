@@ -54,7 +54,7 @@ at::Tensor NPUNativeFunctions::embedding(
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       weight.options(),
-      CalcuOpUtil::get_tensor_npu_format(weight));
+      CalcuOpUtil::GetTensorNpuFormat(weight));
 
   // calculate the output resugt of the NPU
   embedding_out_npu_nocheck(result, weight, indices);

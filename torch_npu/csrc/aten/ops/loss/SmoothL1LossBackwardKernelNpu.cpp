@@ -26,7 +26,7 @@ at::Tensor& NPUNativeFunctions::smooth_l1_loss_backward_out(
     int64_t reduction,
     double beta,
     at::Tensor& grad_input) {
-  string reductionStr(CalcuOpUtil::get_reduction_str(reduction));
+  string reductionStr(CalcuOpUtil::GetReductionStr(reduction));
 
   OpPreparation::CheckMemory({self, grad_out, target}, {grad_input});
   OpCommand cmd;

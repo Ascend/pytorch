@@ -27,7 +27,7 @@ at::Tensor& NPUNativeFunctions::soft_margin_loss_out(
   }
 
   OpPreparation::CheckMemory({self, target}, {result});
-  string reductionStr(CalcuOpUtil::get_reduction_str(reduction));
+  string reductionStr(CalcuOpUtil::GetReductionStr(reduction));
   OpCommand cmd;
   cmd.Name("SoftMarginLoss")
       .Input(self)

@@ -42,7 +42,7 @@ at::Tensor& NPUNativeFunctions::logical_or_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       result.scalar_type(),
       outputSize);
   if (!NpuUtils::check_match(&result)) {

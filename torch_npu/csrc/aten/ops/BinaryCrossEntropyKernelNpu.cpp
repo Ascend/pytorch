@@ -33,7 +33,7 @@ at::Tensor& NPUNativeFunctions::binary_cross_entropy_out(
       weightTensor = at::ones(self.sizes(), self.options());
   }
 
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpCommand cmd;
   cmd.Name("BinaryCrossEntropy")
       .Input(self)

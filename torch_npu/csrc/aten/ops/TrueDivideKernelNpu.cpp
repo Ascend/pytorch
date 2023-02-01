@@ -71,12 +71,12 @@ at::Tensor &NPUNativeFunctions::true_divide_out(const at::Tensor &self, const at
     otherTemp = other.to(result.scalar_type());
   }    
   // calculate the output size
-  at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfTemp) ? otherTemp : selfTemp;
+  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(selfTemp) ? otherTemp : selfTemp;
   auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
   OpPreparation::CheckOut(
       {selfTemp},
       result,
-      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
       outputTensor.scalar_type(),
       outputSize);
       
@@ -107,7 +107,7 @@ at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Ten
   }
   
   // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfTemp);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(selfTemp);
   at::Tensor outputTensor = isSelfWrapped ? otherTemp : selfTemp;
 
   auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
@@ -116,7 +116,7 @@ at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Ten
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       outputTensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(outputTensor));
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
   // calculate the output result of the NPU
   true_div_out_npu_nocheck(selfTemp, otherTemp, result);
@@ -133,7 +133,7 @@ at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Sca
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   true_div_scalar_out_npu(self, other, result);

@@ -103,9 +103,9 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d(
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
   at::Tensor self = self_ex;
-  auto osize = CalcuOpUtil::compute_output_size(self_ex.sizes(), output_size, scale_factors);
-  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+  auto osize = CalcuOpUtil::ComputeOutputSize(self_ex.sizes(), output_size, scale_factors);
+  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
+  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
 
   if (self.scalar_type() != at::ScalarType::Float) {
     self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);

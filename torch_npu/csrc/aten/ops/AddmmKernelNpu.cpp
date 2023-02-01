@@ -75,7 +75,7 @@ namespace at_npu
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, mat1, mat2};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
       if (!NpuUtils::check_match(&self))
       {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

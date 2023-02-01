@@ -33,7 +33,7 @@ namespace at_npu
 
       // The performance of the ReluGrad operator is better than that of ThresholdGradV2D.
       // However, ReluGrad does not support the scenario where threshold is not 0.
-      if (CalcuOpUtil::get_scalar_float_value(threshold) != 0)
+      if (CalcuOpUtil::GetScalarFloatValue(threshold) != 0)
       {
         cmd.Name("ThresholdGradV2D")
             .Input(grad_output)
@@ -64,7 +64,7 @@ namespace at_npu
 
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+          outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
       // use 5HD in Relu
       if ((torch_npu::NPUBridge::GetNpuStorageImpl(grad_output)->npu_desc_.npu_format_ ==

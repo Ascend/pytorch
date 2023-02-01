@@ -49,7 +49,7 @@ at::Tensor NPUNativeFunctions::bincount(
 
   // calculate output size
   auto sizes = static_cast<int64_t>(
-      CalcuOpUtil::get_scalar_float_value(NPUNativeFunctions::max(self).item()));
+      CalcuOpUtil::GetScalarFloatValue(NPUNativeFunctions::max(self).item()));
   sizes = (sizes < minlength) ? minlength : (sizes + 1);
 
   // input convert to int32

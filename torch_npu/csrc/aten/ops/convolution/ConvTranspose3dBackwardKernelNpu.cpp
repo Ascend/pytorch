@@ -189,7 +189,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv_transpose
 
   if (output_mask[1]) {
     gradWeight = OpPreparation::ApplyTensorWithFormat(
-        weight.sizes(), weight.options().dtype(at::kFloat), CalcuOpUtil::get_tensor_npu_format(weight));
+        weight.sizes(), weight.options().dtype(at::kFloat), CalcuOpUtil::GetTensorNpuFormat(weight));
   }
 
   if (output_mask[2]) {

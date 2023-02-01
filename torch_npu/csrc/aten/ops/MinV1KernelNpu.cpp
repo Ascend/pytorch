@@ -51,7 +51,7 @@ tuple<at::Tensor, at::Tensor> min_v1_npu(const at::Tensor& self, int64_t dim, bo
   c10::SmallVector<int64_t, SIZE> indicesSize =
       reduce_ops_npu_output_size(self, dims, keepdim);
 
-  int64_t npuFormat = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npuFormat = CalcuOpUtil::GetTensorNpuFormat(self);
   if (outputSize.empty()) {
     npuFormat = ACL_FORMAT_NCHW;
   }

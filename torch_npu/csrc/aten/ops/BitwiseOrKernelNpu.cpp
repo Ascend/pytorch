@@ -78,7 +78,7 @@ at::Tensor& NPUNativeFunctions::bitwise_or_out(
     const at::Tensor& self,
     const at::Tensor& other,
     at::Tensor& result) {
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
   at::Tensor outputTensor;
   if (isSelfWrapped) {
@@ -90,7 +90,7 @@ at::Tensor& NPUNativeFunctions::bitwise_or_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
       outputTensor.scalar_type(),
       outputSize);
   if (!NpuUtils::check_match(&result)) {
@@ -105,7 +105,7 @@ at::Tensor& NPUNativeFunctions::bitwise_or_out(
 
 at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
   at::Tensor outputTensor;
   if (isSelfWrapped) {

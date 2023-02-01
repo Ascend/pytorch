@@ -175,8 +175,8 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
     weight_fp32 = NPUNativeFunctions::npu_dtype_cast(weight, at::kFloat);
   }
   at::Tensor bias_cp = bias;
-  auto self_format = CalcuOpUtil::get_tensor_npu_format(self);
-  auto weight_format = CalcuOpUtil::get_tensor_npu_format(weight_fp32);
+  auto self_format = CalcuOpUtil::GetTensorNpuFormat(self);
+  auto weight_format = CalcuOpUtil::GetTensorNpuFormat(weight_fp32);
 
   bool check_bn_5hd = (self_format == ACL_FORMAT_NC1HWC0 && weight_format == ACL_FORMAT_ND) ? true : false;
   if (check_bn_5hd) {
@@ -230,7 +230,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   at::Tensor self_reshape;
   c10::SmallVector<int64_t, N> self_shape = array_to_small_vector(self.sizes());
 
-  int64_t self_npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t self_npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   // BatchNorm is axis sensitive, the size of mean/var depends on dim_c.
   if (self_npu_format == ACL_FORMAT_NDHWC ||
       self_npu_format == ACL_FORMAT_NHWC) {

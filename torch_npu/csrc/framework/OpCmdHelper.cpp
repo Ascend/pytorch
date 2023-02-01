@@ -33,7 +33,7 @@ namespace at_npu
     {
       at::ScalarType scalarDataType = tensor.scalar_type();
       aclDataType aclDataType =
-          CalcuOpUtil::convert_to_acl_data_type(scalarDataType, forceDataType);
+          CalcuOpUtil::ConvertToAclDataType(scalarDataType, forceDataType);
       const auto &npuDesc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
       c10::SmallVector<int64_t, 5> storageDims;
       // if aclDataType is ACL_STRING, storageDims is empty.
@@ -66,7 +66,7 @@ namespace at_npu
         scalarDataType = tensor.scalar_type();
       }
       aclDataType aclDataType =
-          CalcuOpUtil::convert_to_acl_data_type(scalarDataType);
+          CalcuOpUtil::ConvertToAclDataType(scalarDataType);
       c10::Scalar expScalar = CalcuOpUtil::ConvertTensorToScalar(tensor);
       at::Tensor aclInput =
           CalcuOpUtil::CopyScalarToDevice(expScalar, scalarDataType);
@@ -82,7 +82,7 @@ namespace at_npu
         const at::Tensor &tensor, const string &descName)
     {
       aclDataType aclDataType =
-          CalcuOpUtil::convert_to_acl_data_type(tensor.scalar_type());
+          CalcuOpUtil::ConvertToAclDataType(tensor.scalar_type());
       AclTensorDescMaker desc;
       auto aclDesc =
           desc.Create(aclDataType, ACL_FORMAT_ND).SetName(descName).Get();
@@ -94,7 +94,7 @@ namespace at_npu
     std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertScalarToAclInput(
         const at::Tensor &aclInput, at::ScalarType type)
     {
-      aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
+      aclDataType aclDataType = CalcuOpUtil::ConvertToAclDataType(type);
 
       AclTensorDescMaker desc;
       auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
@@ -107,7 +107,7 @@ namespace at_npu
         const at::Tensor &tensor, at::ScalarType type, CompileType compileType,
         const string &forceDataType, const string &descName)
     {
-      aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type, forceDataType);
+      aclDataType aclDataType = CalcuOpUtil::ConvertToAclDataType(type, forceDataType);
       const auto &dims = tensor.sizes();
       AclTensorDescMaker desc;
       aclFormat format = ACL_FORMAT_ND;
@@ -124,7 +124,7 @@ namespace at_npu
     std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertToAclOutput(
         const at::Tensor &tensor, const string &forceDataType)
     {
-      aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(
+      aclDataType aclDataType = CalcuOpUtil::ConvertToAclDataType(
           tensor.scalar_type(), forceDataType);
       const auto &npuDesc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
       const auto &dims = tensor.sizes();

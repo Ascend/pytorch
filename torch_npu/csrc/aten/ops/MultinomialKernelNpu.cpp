@@ -56,7 +56,7 @@ at::Tensor& NPUNativeFunctions::multinomial_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       at::ScalarType::Long,
       outputSize);
   multinomial_out_npu_nocheck(result, self, num_samples, replacement, gen);
@@ -74,7 +74,7 @@ at::Tensor NPUNativeFunctions::multinomial(
   auto shape = array_to_small_vector(self.sizes());
   shape[dim-1] = num_samples;
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      shape, self.options().dtype(at::kLong), CalcuOpUtil::get_tensor_npu_format(self));
+      shape, self.options().dtype(at::kLong), CalcuOpUtil::GetTensorNpuFormat(self));
   multinomial_out_npu_nocheck(result, self, num_samples, replacement, gen);
   return result;
 }

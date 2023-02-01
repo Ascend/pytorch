@@ -29,8 +29,8 @@ at::Tensor& baddbmm_nocheck(
   auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
   at::Tensor BatchMatMulTensor = OpPreparation::ApplyTensor(self, outputSize);
   
-  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(tensor1);
-  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(tensor2);
+  bool isSelfT = CalcuOpUtil::IsTransposeLastTwoDims(tensor1);
+  bool isMat2T = CalcuOpUtil::IsTransposeLastTwoDims(tensor2);
 
 
   OpCommand cmd;
@@ -90,7 +90,7 @@ at::Tensor& NPUNativeFunctions::baddbmm_(
     const at::Scalar& alpha) {
   c10::SmallVector<at::Tensor, N> inputs = {self, tensor1, tensor2};
   c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
     
   if (!NpuUtils::check_match(&self)) {
       at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

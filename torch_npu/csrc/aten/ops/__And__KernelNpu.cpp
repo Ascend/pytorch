@@ -22,7 +22,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor and_dest_output(const at::Tensor& self, const at::Tensor& other) {
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
   if (not isSelfWrapped) {
     return self;

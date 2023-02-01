@@ -25,7 +25,7 @@ auto check_and_trans_dim(const at::Tensor& self, at::IntArrayRef dim) {
   std::vector<int64_t> result_dim;
   for(int64_t i = 0; i < dim.size(); i++) {
     if(dim[i] >= ne_dim_size && dim[i] <= (dim_size - 1)) {
-      int64_t tmp_dim = CalcuOpUtil::make_wrap_dim(dim[i], self.dim());
+      int64_t tmp_dim = CalcuOpUtil::MakeWrapDim(dim[i], self.dim());
       result_dim.emplace_back(tmp_dim);
     } else {
       AT_ERROR("dim value should be in the range of [-n, n-1], n is the dimension number of input tensor.");
@@ -153,7 +153,7 @@ at::Tensor& NPUNativeFunctions::var_out(
 
 at::Tensor NPUNativeFunctions::var(const at::Tensor& self, bool unbiased) {
   bool keepdim = false;
-  c10::SmallVector<int64_t, N> dim = CalcuOpUtil::get_dimlist_for_tensor(self);
+  c10::SmallVector<int64_t, N> dim = CalcuOpUtil::GetDimlistForTensor(self);
 
   return NPUNativeFunctions::var(self, dim, unbiased, keepdim);
 }
@@ -217,7 +217,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
 }
 
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(const at::Tensor& self, bool unbiased) {
-  c10::SmallVector<int64_t, SIZE> dim = CalcuOpUtil::get_dimlist_for_tensor(self);
+  c10::SmallVector<int64_t, SIZE> dim = CalcuOpUtil::GetDimlistForTensor(self);
 
   return NPUNativeFunctions::var_mean(self, dim, unbiased, false);
 }

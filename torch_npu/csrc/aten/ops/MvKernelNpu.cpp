@@ -26,7 +26,7 @@ namespace at_npu
 
     at::Tensor &mv_out_npu_nocheck(const at::Tensor &self, const at::Tensor &vec, at::Tensor &result)
     {
-      bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
+      bool isSelfT = CalcuOpUtil::IsTransposeLastTwoDims(self);
       at::Tensor contiguousSelf;
       contiguousSelf = isSelfT ? self : NpuUtils::format_contiguous(self);
       at::Tensor vecT = at::unsqueeze(vec, 1);
@@ -51,7 +51,7 @@ namespace at_npu
       OpPreparation::CheckOut(
           {self},
           result,
-          CalcuOpUtil::get_tensor_npu_format(self),
+          CalcuOpUtil::GetTensorNpuFormat(self),
           self.scalar_type(),
           {self.size(0)});
 

@@ -30,7 +30,7 @@ at::Tensor& binary_cross_entropy_backward_out_npu_nocheck(
     int64_t reduction) {
   at::Tensor weightTensor = weight.defined() ? weight :
               at::ones(self.sizes(), self.options());
-  std::string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  std::string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   OpCommand cmd;
   cmd.Name("BinaryCrossEntropyGrad")
      .Input(self)

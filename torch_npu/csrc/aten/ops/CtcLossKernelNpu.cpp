@@ -65,12 +65,12 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_ctc_loss(
   at::Tensor negLogLikelihood = OpPreparation::ApplyTensorWithFormat(
       std::get<0>(outputSizes),
       logProbsNeed.options(),
-      CalcuOpUtil::get_tensor_npu_format(logProbsNeed));
+      CalcuOpUtil::GetTensorNpuFormat(logProbsNeed));
   
   at::Tensor logAlpha = OpPreparation::ApplyTensorWithFormat(
       std::get<1>(outputSizes),
       logProbsNeed.options(),
-      CalcuOpUtil::get_tensor_npu_format(logProbsNeed));
+      CalcuOpUtil::GetTensorNpuFormat(logProbsNeed));
 
   // calculate the output result of the NPU 
   OpCommand cmd;
@@ -133,7 +133,7 @@ at::Tensor NPUNativeFunctions::ctc_loss(
   if (reduction == at::Reduction::Mean) {
     std::vector<int64_t> targetLengthsVector = targetLengths.vec();
 
-    auto targetLengthsTensor = CalcuOpUtil::copy_tensor_host_to_device(
+    auto targetLengthsTensor = CalcuOpUtil::CopyTensorHostToDevice(
         at::from_blob(targetLengthsVector.data(), {targetLengthsVector.size()}, at::kLong)).clamp_min(1);
 
     at::Tensor targetLengthsTensor_ = targetLengthsTensor.to(res.dtype()); 

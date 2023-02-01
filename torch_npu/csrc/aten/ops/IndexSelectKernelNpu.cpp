@@ -53,7 +53,7 @@ at::Tensor& NPUNativeFunctions::index_select_out(
     indexTmp = index.unsqueeze(0);
   }
   auto outputSize = index_select_npu_output_size(self, dim, indexTmp);
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   if (outputSize.empty()) {
     npu_format = ACL_FORMAT_ND;
   }
@@ -87,7 +87,7 @@ at::Tensor NPUNativeFunctions::index_select(
     indexTmp = index.unsqueeze(0);
   }
   auto outputSize = index_select_npu_output_size(self, dim, indexTmp);
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
   if (outputSize.empty()) {
     npu_format = ACL_FORMAT_ND;
   }

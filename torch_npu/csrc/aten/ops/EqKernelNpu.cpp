@@ -129,12 +129,12 @@ namespace at_npu
       at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
       c10::SmallVector<at::Tensor, N> inputs = {self, formatCastOfOther};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           self.sizes(),
           self.options().dtype(c10::ScalarType::Byte),
-          CalcuOpUtil::get_tensor_npu_format(self));
+          CalcuOpUtil::GetTensorNpuFormat(self));
 
       if (!NpuUtils::check_match(&self))
       {
@@ -157,12 +157,12 @@ namespace at_npu
       OpPreparation::CastBackToOriFormat(self);
       c10::SmallVector<at::Tensor, N> inputs = {self};
       c10::SmallVector<at::Tensor, N> outputs = {self};
-      CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           self.sizes(),
           self.options().dtype(c10::ScalarType::Byte),
-          CalcuOpUtil::get_tensor_npu_format(self));
+          CalcuOpUtil::GetTensorNpuFormat(self));
 
       if (!NpuUtils::check_match(&self))
       {

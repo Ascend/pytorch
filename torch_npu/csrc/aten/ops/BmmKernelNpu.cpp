@@ -27,8 +27,8 @@ at::Tensor& NPUNativeFunctions::bmm_out(const at::Tensor& self, const at::Tensor
 
   at::Tensor contiguousSelf = self;
   at::Tensor contiguousMat2 = mat2;
-  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
-  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(mat2);
+  bool isSelfT = CalcuOpUtil::IsTransposeLastTwoDims(self);
+  bool isMat2T = CalcuOpUtil::IsTransposeLastTwoDims(mat2);
 
   if(!isSelfT){
     contiguousSelf = NpuUtils::format_contiguous_add_copy_optimize(self);

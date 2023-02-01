@@ -33,7 +33,7 @@ at::Tensor& smooth_l1_loss_out_npu_nocheck(
     return result;
   }
 
-  string reductionStr(CalcuOpUtil::get_reduction_str(reduction));
+  string reductionStr(CalcuOpUtil::GetReductionStr(reduction));
   OpCommand cmd;
   cmd.Name("SmoothL1LossV2")
     .Input(self)
@@ -56,7 +56,7 @@ at::Tensor& NPUNativeFunctions::smooth_l1_loss_out(
   OpPreparation::CheckOut(
       {self, target},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
 

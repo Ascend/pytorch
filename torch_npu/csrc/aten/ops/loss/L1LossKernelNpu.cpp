@@ -46,7 +46,7 @@ at::Tensor& NPUNativeFunctions::l1_loss_out(
       {self, target},
       result,
       self);
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
   return l1_loss_out_npu_nocheck(result, self, target, reductionStr);
 }
 
@@ -59,7 +59,7 @@ at::Tensor NPUNativeFunctions::l1_loss(
     outputSize = input_same_output_size(self);
   }
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  string reductionStr = CalcuOpUtil::GetReductionStr(reduction);
 
   l1_loss_out_npu_nocheck(result, self, target, reductionStr);
   return result;

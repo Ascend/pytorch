@@ -41,7 +41,7 @@ namespace at_npu
       c10::SmallVector<int64_t, N> dimVec;
       if (dim.empty())
       {
-        dimVec = CalcuOpUtil::get_dimlist_for_tensor(self);
+        dimVec = CalcuOpUtil::GetDimlistForTensor(self);
       }
       else
       {
@@ -65,7 +65,7 @@ namespace at_npu
         bool keepdim)
     {
       auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-      int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(result);
+      int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(result);
       // scalar scene and rank=1 scene do not support NZ
       if (outputSize.size() < 2) {
         npu_format = ACL_FORMAT_NCHW;
@@ -134,7 +134,7 @@ namespace at_npu
       // calculate the output size
       auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
 
-      int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+      int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
       // scalar scene no support nz
       if (outputSize.empty())
       {

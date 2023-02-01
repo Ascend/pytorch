@@ -25,7 +25,7 @@ c10::SmallVector<int64_t, SIZE> median_npu_output_size(
     const at::Tensor& self,
     int64_t dim,
     bool keepdim) {
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
   at::IntArrayRef dims(dim);
   return reduce_ops_npu_output_size(self, dims, keepdim);
 }
@@ -51,7 +51,7 @@ std::tuple<at::Tensor&, at::Tensor&> median_out_value_nocheck(
     const at::Tensor& self,
     int64_t dim,
     bool keepdim) {
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
   int64_t k = self.dim() > 0 ? (self.size(dim) + 1) / 2 : 1;
 
   at::Tensor _self = self.has_names() ? self.rename(c10::nullopt) : self;
@@ -121,7 +121,7 @@ std::tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::median_out(
 
 at::Tensor NPUNativeFunctions::median(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      {}, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      {}, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   median_out_nocheck(result, self);
   return result;
@@ -133,7 +133,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::median(
     bool keepdim) {
   auto outputSize = median_npu_output_size(self, dim, keepdim);
   at::Tensor values = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
   //NCHW -> reflush base format
   at::Tensor indices = OpPreparation::ApplyTensorWithFormat(
       outputSize, self.options().dtype(at::kLong), ACL_FORMAT_NCHW);

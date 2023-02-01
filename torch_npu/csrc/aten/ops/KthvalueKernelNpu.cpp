@@ -123,7 +123,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::kthvalue_out(
   OpPreparation::CheckOut(
       {self},
       values,
-      CalcuOpUtil::get_tensor_npu_format(self),
+      CalcuOpUtil::GetTensorNpuFormat(self),
       self.scalar_type(),
       outputSize);
   OpPreparation::CheckOut(
@@ -137,7 +137,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::kthvalue_out(
       self.scalar_type() == at::kFloat ||
       self.scalar_type() == at::kInt,
       "the type of input must be float16, float32, or int32");
-  dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
+  dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
 
   TORCH_CHECK(
       k >= 0 && k <= (self.dim() > 0 ? self.size(dim) : 1),

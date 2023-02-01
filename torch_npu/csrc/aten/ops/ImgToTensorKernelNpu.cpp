@@ -39,7 +39,7 @@ at::Tensor NPUNativeFunctions::img_to_tensor(const at::Tensor &self)
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options().dtype(at::kFloat),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   img_to_tensor_out(self, result);
