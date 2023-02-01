@@ -39,7 +39,7 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> fused_at
 }
 
 at::Tensor dropout_gen_mask_v3(const at::Tensor& self, const at::Scalar& prob) {
-  at::IntArrayRef selfShape = {self.size(0), self.size(1), self.size(2) / 16, self.size(3) / 16, 16, 16};
+  at::IntArrayRef selfShape = self.sizes();
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(
       {self.numel()},
       self.options().dtype(at::kByte),
