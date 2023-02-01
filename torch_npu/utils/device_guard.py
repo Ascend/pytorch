@@ -27,12 +27,15 @@ def torch_device_guard(func):
                 if isinstance(arg, tuple) and "type='npu'" in str(arg):
                     args_list[index] = torch_npu.new_device(type=torch_npu.npu.native_device, index=arg.index)
                     break
+                elif isinstance(arg, str) and "npu" in arg:
+                    args_list[index] = args_list[index].replace("npu",torch_npu.npu.native_device)
+                    break
             args = tuple(args_list)
-        if kwargs and isinstance(kwargs.get("device"), tuple):
+        if kwargs and kwargs.get("device"):
             namedtuple_device = kwargs.get("device")
-            if "type='npu'" in str(namedtuple_device):
+            if isinstance(namedtuple_device, tuple) and "type='npu'" in str(namedtuple_device):
                 kwargs['device'] = torch_npu.new_device(type=torch_npu.npu.native_device, index=namedtuple_device.index)
-        if kwargs and 'device' in kwargs and not kwargs['device']:
-            kwargs['device'] = 'cpu'
+            elif isinstance(namedtuple_device, str) and "npu" in namedtuple_device:
+                kwargs['device'] = namedtuple_device.replace("npu",torch_npu.npu.native_device)
         return func(*args, **kwargs)
     return wrapper
