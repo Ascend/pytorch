@@ -193,6 +193,11 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.7m)
 
+if(DEFINED ENV{BSCPP_OPS_ENABLE})
+  message(STATUS "env BSCPP_OPS_ENABLE exists")
+  target_link_libraries(${PLUGIN_NAME} PUBLIC bscpp_ops)
+endif()
+
 set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
 message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
 if ("${ATEN_THREADING}" STREQUAL "OMP")
