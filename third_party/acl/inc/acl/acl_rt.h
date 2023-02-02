@@ -19,7 +19,11 @@
 extern "C" {
 #endif
 
+#define ACL_EVENT_SYNC      0x00000001u
 #define ACL_EVENT_TIME_LINE 0x00000008u
+
+#define ACL_STREAM_FAST_LAUNCH 0x00000001u
+#define ACL_STREAM_FAST_SYNC   0x00000002u
 
 typedef enum aclrtRunMode {
     ACL_DEVICE,
@@ -850,6 +854,22 @@ ACL_FUNC_VISIBILITY aclError aclrtMemsetAsync(void *devPtr,
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtCreateStream(aclrtStream *stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief  create stream instance with param
+ *
+ * @par Function
+ * Can create fast streams through the aclrtCreateStreamWithConfig interface
+ *
+ * @param  stream [OUT]   the created stream
+ * @param  priority [IN]   the priority of stream, reserved param, must be 0
+ * @param  flag [IN]   indicate the function for stream
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag);
 
 /**
  * @ingroup AscendCL

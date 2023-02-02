@@ -25,7 +25,11 @@ backend = None
 
 def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeFunction) -> Tuple[str, List[str]]:
     convert: str = f"// Convert args to cpu in order to use at::native kernel \n  " \
-                   f"std::cout << \"Cur kernel: {sig.func.name} is running on cpu.\" << std::endl; \n  "
+                   f"static auto warn_once = [](){{ \n      " \
+                   f"std::cout << \"Warning: kernel [{sig.func.name}] is not supported by NPU currently. " \
+                   f"Now this kernel is running on CPU.\" << std::endl; \n      " \
+                   f"return true; \n  " \
+                   f"}}();  \n  "
     args_names: List[str] = []
     args = native_arguments(sig.func, func.use_c10_dispatcher)
     for arg in args:

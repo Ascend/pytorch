@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-import numpy as np
-import torch.nn.functional as F
-import torch_npu
 
+import itertools
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
 
 class Testcdist(TestCase):
+
     def generate_data(self, min_n, max_n, shape_predict, shape_label, src_type):
         np.random.seed(10086)
         predict = np.random.uniform(min_n, max_n, shape_predict).astype(src_type)
@@ -31,7 +34,7 @@ class Testcdist(TestCase):
         label[label >= 0] = 1
         return predict, label
 
-    def op_exec(self, predict, label, reduction, device='cpu'):
+    def op_exec(self, predict, label, reduction, device='cpu', beta=1):
         is_fp16 = predict.dtype == np.float16
         if device == 'cpu' and is_fp16:
             predict = predict.astype(np.float32)
@@ -42,7 +45,7 @@ class Testcdist(TestCase):
         label = label.to(device)
 
         predict.requires_grad = True
-        output_forward = F.smooth_l1_loss(predict, label, reduction=reduction)
+        output_forward = F.smooth_l1_loss(predict, label, reduction=reduction, beta=beta)
         output_forward = output_forward.sum()
         output_forward.backward()
 
@@ -53,7 +56,7 @@ class Testcdist(TestCase):
 
     @graph_mode
     def test_smooth_l1_loss_backward_float16_3(self):
-        shape_format1 = [
+        shape_format = [
             [-1, 1, [100], [100], np.float16],
             [-0.1, 0.1, [100, 200], [100, 200], np.float16],
             [-10, 10, [100, 20, 30], [100, 20, 1], np.float16],
@@ -61,16 +64,11 @@ class Testcdist(TestCase):
             [-0.001, 0.001, [10,20,30,4], [10,20,30,4], np.float16],
             [-0.001, 0.001, [10,20,3,4,5], [10,20,3,4,5], np.float16],
         ]
-        for item in shape_format1:
+        reduction_list = ['none', 'mean', 'sum']
+        for item, reduction in itertools.product(shape_format, reduction_list):
             input1, input2 = self.generate_data(item[0], item[1], item[2], item[3], item[4])
-            cpu_output = self.op_exec(input1, input2, 'none','cpu')
-            npu_output = self.op_exec(input1, input2, 'none','npu')
-            cpu_output0 = self.op_exec(input1, input2, 'mean','cpu')
-            npu_output0 = self.op_exec(input1, input2, 'mean','npu')
-            cpu_output1 = self.op_exec(input1, input2, 'sum','cpu')
-            npu_output1 = self.op_exec(input1, input2, 'sum','npu')
-            self.assertRtolEqual(cpu_output, npu_output)
-            self.assertRtolEqual(cpu_output0, npu_output0)
+            cpu_output1 = self.op_exec(input1, input2, reduction, 'cpu')
+            npu_output1 = self.op_exec(input1, input2, reduction, 'npu')
             self.assertRtolEqual(cpu_output1, npu_output1)
 
     @graph_mode
@@ -83,17 +81,22 @@ class Testcdist(TestCase):
             [-0.001, 0.001, [10,20,30,4], [10,20,30,4], np.float32],
             [-0.001, 0.001, [10,20,3,4,5], [10,20,3,4,5], np.float32],
         ]
-        for item in shape_format:
+        reduction_list = ['none', 'mean', 'sum']
+        for item, reduction in itertools.product(shape_format, reduction_list):
             input1, input2 = self.generate_data(item[0], item[1], item[2], item[3], item[4])
-            cpu_output1 = self.op_exec(input1, input2, 'none','cpu')
-            npu_output1 = self.op_exec(input1, input2, 'none','npu')
-            cpu_output2 = self.op_exec(input1, input2, 'mean','cpu')
-            npu_output2 = self.op_exec(input1, input2, 'mean','npu')
-            cpu_output3 = self.op_exec(input1, input2, 'sum','cpu')
-            npu_output3 = self.op_exec(input1, input2, 'sum','npu')
+            cpu_output1 = self.op_exec(input1, input2, reduction, 'cpu')
+            npu_output1 = self.op_exec(input1, input2, reduction, 'npu')
             self.assertRtolEqual(cpu_output1, npu_output1)
-            self.assertRtolEqual(cpu_output2, npu_output2)
-            self.assertRtolEqual(cpu_output3, npu_output3)
+
+    @graph_mode
+    def test_smooth_l1_loss_backward_beta(self):
+        beta_list = [0.5, 1, 1.5, 2]
+        reduction_list = ['none', 'mean', 'sum']
+        input1, input2 = self.generate_data(-1, 1, 100, 100, np.float32)
+        for beta, reduction in itertools.product(beta_list, reduction_list):
+            cpu_output1 = self.op_exec(input1, input2, reduction, 'cpu', beta)
+            npu_output1 = self.op_exec(input1, input2, reduction, 'npu', beta)
+            self.assertRtolEqual(cpu_output1, npu_output1)
 
 
 if __name__ == "__main__":

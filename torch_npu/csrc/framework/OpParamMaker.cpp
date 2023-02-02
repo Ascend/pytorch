@@ -153,7 +153,7 @@ namespace at_npu
       do
       {
         if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
-            at_npu::native::aoe::aoe_manager().IsInWhiltelist(name)) {
+            at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
           ret = at_npu::native::AclGenGraphAndDumpForOp(
               name.c_str(),
               inputSize,
@@ -219,10 +219,37 @@ namespace at_npu
       return ret;
     }
 
+    void printErrorLog(ExecuteParas* cur_paras)
+    {
+      ASCEND_LOGE("---OpName---%s", cur_paras->opType);
+      for (int i = 0; i < cur_paras->paras.input_num; i++) {
+        const aclTensorDesc *tensorDesc = cur_paras->paras.input_desc[i];
+        aclDataType dataType = aclGetTensorDescType(tensorDesc);
+        aclFormat descformat = aclGetTensorDescFormat(tensorDesc);
+
+        int descNumDims = aclGetTensorDescNumDims(tensorDesc);
+        std::string descShape = "[";
+        for (int j = 0; j < descNumDims; j++) {
+          int64_t dimSize = 0;
+          aclGetTensorDescDimV2(tensorDesc, j, &dimSize);
+          descShape = descShape + std::to_string(dimSize);
+          if (j < descNumDims - 1) {
+            descShape += ", ";
+          }
+        }
+        descShape += "]";
+
+        ASCEND_LOGE("InputDesc[%d]: DescType = %s, DescFormat = %s, DescShape = %s", i,
+                    (AclDateTypeToString(dataType)).c_str(),
+                    (AclFormatToString(descformat)).c_str(),
+                    descShape.c_str());
+      }
+    }
+
     int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream)
     {
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
-      NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
+      NPU_LOGD("Op %s Run.", cur_paras->opType);
 
       if (cur_paras->isDataPreprocessOp) {
         OpAttrMaker::Set(const_cast<aclopAttr*>(cur_paras->attr), "_performance_prior", "true");
@@ -236,9 +263,9 @@ namespace at_npu
         reset_flag = true;
       }
       if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
-          at_npu::native::aoe::aoe_manager().IsInWhiltelist(cur_paras->opType)) {
+          at_npu::native::aoe::aoe_manager().IsInWhitelist(cur_paras->opType)) {
         ret = at_npu::native::AclGenGraphAndDumpForOp(
-            (cur_paras->opType).c_str(),
+            cur_paras->opType,
             cur_paras->paras.input_num,
             cur_paras->paras.input_desc,
             cur_paras->paras.input_data_buf,
@@ -255,7 +282,7 @@ namespace at_npu
         }
       }
       ret = aclopCompileAndExecute(
-          (cur_paras->opType).c_str(),
+          cur_paras->opType,
           cur_paras->paras.input_num,
           cur_paras->paras.input_desc,
           cur_paras->paras.input_data_buf,
@@ -274,13 +301,10 @@ namespace at_npu
 
       if (ret != ACL_ERROR_NONE)
       {
+        printErrorLog(cur_paras);
         C10_NPU_SHOW_ERR_MSG();
       }
 
-      if (ret != 0)
-      {
-        std::cout << "---OpName--- " << cur_paras->opType << std::endl;
-      }
       return ret;
     }
 
@@ -290,6 +314,8 @@ namespace at_npu
       aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
         cur_paras->srcLen, cur_paras->kind, stream);
       if (ret != ACL_ERROR_NONE) {
+        NPU_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d, paramCopyFinished = %d",
+                    ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, in->paramCopyFinished);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -300,6 +326,7 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtRecordEvent(cur_paras->event, stream);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtRecordEvent error! ret = %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
 
@@ -318,6 +345,7 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -327,6 +355,7 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("LazyDestroy error! ret = %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -347,11 +376,21 @@ namespace at_npu
         new(dstPtr->paramVal) CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
+        auto tmp = (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal));
+        if (tmp->srcLen == 0 || tmp->dstLen == 0 || tmp->src == nullptr || tmp->kind == 0) {
+          NPU_LOGE("dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
+                    tmp->dst, tmp->dstLen, tmp->src, tmp->srcLen, tmp->kind);
+          std::stringstream msg;
+          msg << __func__ << ":" << __FILE__ << ":" << __LINE__;
+          TORCH_CHECK(0, msg.str());
+        }
       } else {
         new(dstPtr->paramVal) EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }
+      __sync_synchronize();
+      dstPtr->paramCopyFinished = 1;
     }
 
     void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue)
@@ -384,8 +423,20 @@ namespace at_npu
     };
 
     int AsncExecFunc(void* data, uint32_t queueLen) {
-      auto queueParam = static_cast<c10_npu::queue::QueueParas* >(data);
-      auto type = queueParam->paramType;
+      c10_npu::queue::QueueParas* queueParam;
+      QueueParamType type;
+      int count = 10;
+      while(count > 0) {
+        count--;        
+        queueParam = static_cast<c10_npu::queue::QueueParas* >(data);
+        type = queueParam->paramType;
+        if (queueParam->paramCopyFinished != 1) {  
+          TORCH_WARN_ONCE("queue param copy not finished, try get param again.");
+          usleep(10);
+        } else {
+          break;
+        }
+      }
       aclrtStream stream = queueParam->paramStream;
       auto ret = funcMap[type](queueParam, stream);
       return ret;

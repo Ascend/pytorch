@@ -110,21 +110,22 @@ void copy_between_host_and_device(
     bool non_blocking) {
   int64_t nbytes = dst.numel() * dst.element_size();
   c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-  auto ret = CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
-      std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
-      nbytes,
-      std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
-      nbytes,
-      kind,
-      stream);
-  C10_NPU_CHECK(ret);
 
   if (non_blocking) {
+    auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
+    C10_NPU_CHECK(ret);
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
     void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
     C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = aclrtSynchronizeStream(stream);
+    auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
+        std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
+        nbytes,
+        std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
+        nbytes,
+        kind);
+    C10_NPU_CHECK(ret);
     if (error != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();
       AT_ERROR("ACL stream synchronize failed, error code:", error);

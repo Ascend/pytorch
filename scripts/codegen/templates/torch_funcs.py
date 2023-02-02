@@ -61,7 +61,11 @@ def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
 
 
 def _as_tensor(*args, **kwargs):
-    dst_device = "cpu"
+    if isinstance(args[0], torch.Tensor):
+        dst_device = args[0].device
+    else:
+        dst_device = "cpu"
+
     if kwargs and "device" in kwargs:
         dst_device = kwargs.pop("device")
 

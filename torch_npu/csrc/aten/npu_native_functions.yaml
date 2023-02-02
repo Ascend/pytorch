@@ -733,6 +733,7 @@ supported:
   - negative.out
   - repeat
   - repeat_interleave.self_int
+  - repeat_interleave.self_Tensor
   - reshape
   - _mkldnn_reshape
   - reshape_as
@@ -1970,6 +1971,8 @@ custom:
   - func: reverse(Tensor self, int[] axis) -> Tensor
   - func: image_normalize(Tensor self, Tensor mean, Tensor variance, int dtype=0) -> Tensor
   - func: image_normalize_(Tensor(a!) self, Tensor mean, Tensor variance, int dtype=0) -> Tensor(a!)
+  - func: batch_norm_reduce(Tensor input, float eps) -> (Tensor, Tensor)
+  - func: batch_norm_gather_stats_update(Tensor input, Tensor mean, Tensor invstd, Tensor? running_mean, Tensor? running_var, float momentum, float eps, Tensor counts) -> (Tensor, Tensor)
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor

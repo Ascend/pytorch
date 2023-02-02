@@ -58,6 +58,7 @@ std::vector<at::Tensor> npu_lstm_npu(
   at::Tensor tanhc = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_FRACTAL_NZ); 
  
   string direction = flagDirection? "REDIRECTIONAL" : "UNIDIRECTIONAL";
+  string gateOrder = "ifjo";
   OpCommand cmd;
   cmd.Name("DynamicRNN")
     .Input(input, "x")
@@ -91,6 +92,7 @@ std::vector<at::Tensor> npu_lstm_npu(
     .Attr("activation", (string)"tanh")
     .Attr("forget_bias", (float)0.0)
     .Attr("is_training", train)
+    .Attr("gate_order", gateOrder)
     .Run();
   tensor_list results = {yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc};
   return results;
@@ -627,6 +629,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> lstm
   at::Tensor wci = at::zeros({}, x.options());
   at::Tensor wcf = at::zeros({}, x.options());
   at::Tensor wco = at::zeros({}, x.options());
+  string gateOrder = "ifjo";
 
   OpCommand cmd;
     cmd.Name("DynamicRNNGrad")
@@ -665,6 +668,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> lstm
         .Attr("num_proj", (int64_t)0)
         .Attr("time_major", (bool)true)
         .Attr("forget_bias", (float)0.0)
+        .Attr("gate_order", gateOrder)
         .Run();
 
   return std::tuple< at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> {dx, dw, db, dht, dct};
@@ -697,8 +701,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNative
   at::Tensor grad_input = OpPreparation::ApplyTensor(input); 
   at::Tensor grad_weight = OpPreparation::ApplyTensor(weight);
   at::Tensor grad_bias = OpPreparation::ApplyTensor(bias);
-  at::Tensor grad_ht = OpPreparation::ApplyTensor(init_h);
-  at::Tensor grad_ct = OpPreparation::ApplyTensor(init_c);
+  at::Tensor grad_ht = OpPreparation::ApplyTensor(inh);
+  at::Tensor grad_ct = OpPreparation::ApplyTensor(inc);
   
   auto grad_y = grady.defined() ? grady : at::zeros(y.sizes(), y.options());
   auto grad_h = gradh.defined() ? gradh[input.size(0)-1] : at::zeros(inh.sizes(), h.options());

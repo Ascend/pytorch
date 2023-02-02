@@ -427,6 +427,9 @@ namespace at_npu
                                                      c10::optional<bool> pin_memory_opt,
                                                      int64_t dst_format)
     {
+      TORCH_CHECK(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType,
+          "Expected all tensors to be on the same device. "
+          "Expected NPU tensor, please check whether the input tensor device is correct.");
       caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                           .device(device_opt)
@@ -774,6 +777,100 @@ namespace at_npu
 
       auto result = OpPreparation::ApplyTensorWithSizes(size, options);
       return result.fill_(fill_value);
+    }
+
+    at::Tensor NPUNativeFunctions::tril_indices(
+        int64_t row,
+        int64_t col,
+        int64_t offset,
+        c10::optional<at::ScalarType> dtype_opt,
+        c10::optional<at::Layout> layout_opt,
+        c10::optional<at::Device> device_opt,
+        c10::optional<bool> pin_memory_opt) {
+      c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                                       .device(device_opt)
+                                                       .layout(layout_opt)
+                                                       .pinned_memory(pin_memory_opt);
+      check_args(row, col, options);
+
+      auto tril_size = get_tril_size(row, col, offset);
+
+      // create an empty Tensor with correct size
+      auto result = at::empty({2 * tril_size}, options);
+
+      // The following three approaches result in very little performance
+      // differences. Hence, the 2nd option is taken for simpler code, and to return
+      // contiguous tensors. Refer to #14904 for more details.
+      //
+      // 1. sequential RAM access: fill row coordinates first, then columns. This
+      //    results in two for-loop and more arithmetic operations.
+      //
+      // 2. interleaved RAM access: fill in index coordinates one by one, which
+      //    jumps between the two output Tensor rows in every iteration.
+      //
+      // 3. sequential RAM + transpose: create an n X 2 Tensor, fill the Tensor
+      //    sequentially, and then transpose it.
+      // fill the Tensor with correct values
+      int64_t i = 0;
+      int64_t r = std::max<int64_t>(0, -offset), c = 0;
+
+      while (i < tril_size) {
+        result[i] = r;
+        result[tril_size + i++] = c;
+
+        // move to the next column and check if (r, c) is still in bound
+        c += 1;
+        if (c > r + offset || c >= col) {
+          r += 1;
+          c = 0;
+          // NOTE: not necessary to check if r is less than row here, because i
+          // and tril_size provide the guarantee
+        }
+      }
+
+      return result.reshape({2, tril_size});
+    }
+
+    at::Tensor NPUNativeFunctions::triu_indices(
+        int64_t row,
+        int64_t col,
+        int64_t offset,
+        c10::optional<at::ScalarType> dtype_opt,
+        c10::optional<at::Layout> layout_opt,
+        c10::optional<at::Device> device_opt,
+        c10::optional<bool> pin_memory_opt) {
+      c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                                       .device(device_opt)
+                                                       .layout(layout_opt)
+                                                       .pinned_memory(pin_memory_opt);
+      check_args(row, col, options);
+
+      auto triu_size = row * col - get_tril_size(row, col, offset - 1);
+
+      // create an empty Tensor with correct size
+      auto result = at::empty({2 * triu_size}, options);
+
+      // fill the Tensor with correct values
+      int64_t i = 0;
+      // not typing std::max with scalar_t as it could be an unsigned type
+      // NOTE: no need to check if the returned value of std::max overflows
+      // scalar_t, as i and triu_size act as a guard.
+      int64_t c = std::max<int64_t>(0, offset), r = 0;
+      while (i < triu_size) {
+        result[i] = r;
+        result[triu_size + i++] = c;
+
+        // move to the next column and check if (r, c) is still in bound
+        c += 1;
+        if (c >= col) {
+          r += 1;
+          // not typing std::max with scalar_t as it could be an unsigned type
+          // NOTE: not necessary to check if c is less than col or overflows here,
+          // because i and triu_size act as a guard.
+          c = std::max<int64_t>(0, r + offset);
+        }
+      }
+      return result.reshape({2, triu_size});
     }
 
   } // namespace native

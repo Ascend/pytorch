@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# List of opts that register hooks
+# List of ops that register hooks
 
 functional:
   - conv1d
@@ -253,7 +253,6 @@ tensor:
   - clamp_min
   - clamp_min_
   - clip_
-  - copy_
   - copysign
   - copysign_
   - cos
@@ -328,7 +327,6 @@ tensor:
   - geometric_
   - geqrf
   - ger
-  - get_device
   - greater
   - greater_
   - gt
@@ -460,7 +458,6 @@ tensor:
   - put_
   - rad2deg
   - rad2deg_
-  - random_
   - ravel
   - real
   - reciprocal
@@ -486,7 +483,6 @@ tensor:
   - scatter
   - scatter_
   - scatter_add
-  - set_
   - scatter_add_
   - select
   - sgn
@@ -852,7 +848,6 @@ torch:
   - mean
   - median
   - min
-  - meshgrid
   - minimum
   - mm
   - mode
@@ -950,7 +945,6 @@ torch:
   - solve
   - sort
   - sparse_coo_tensor
-  - split
   - square
   - split_with_sizes
   - spmm

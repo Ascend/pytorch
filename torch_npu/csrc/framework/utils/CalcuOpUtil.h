@@ -232,27 +232,24 @@ namespace at_npu
 
       // Add some public interfaces for aclrtmemcpy process,
       // to launch graph in graph mode automatically.
-      static aclError AclrtMemcpyAsyncWithModeSwitch(
+      static aclError AclrtMemcpyWithModeSwitch(
           const StorageAndOffsetMemSizePair& dst,
           size_t dstMax,
           const StorageAndOffsetMemSizePair& src,
           size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream);
-      static aclError AclrtMemcpyAsyncWithModeSwitch(
+          aclrtMemcpyKind kind);
+      static aclError AclrtMemcpyWithModeSwitch(
           const StorageAndOffsetMemSizePair& dst,
           size_t dstMax,
           const void* src,
           size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream);
-      static aclError AclrtMemcpyAsyncWithModeSwitch(
+          aclrtMemcpyKind kind);
+      static aclError AclrtMemcpyWithModeSwitch(
           void* dst,
           size_t dstMax,
           const StorageAndOffsetMemSizePair& src,
           size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream);
+          aclrtMemcpyKind kind);
       static aclError LaunchAsyncCopyTaskWithModeSwitch(
           const at::Tensor& dst,
           size_t dstMax,
@@ -275,6 +272,9 @@ namespace at_npu
       static bool is_scalar_one(const c10::Scalar &scalar);
       static float get_scalar_float_value(const c10::Scalar &scalar);
       static int64_t get_tensor_npu_format(const at::Tensor &tensor);
+      static int64_t judge_and_get_format_from_input(bool is_cast_weight,
+                                                     const at::Tensor &input,
+                                                     int64_t target_format);
       static string get_reduction_str(int64_t reduction);
       static at::ScalarType GetNPUTensorDescScalarType(
           const NPUTensorDesc &npuTensorDesc);

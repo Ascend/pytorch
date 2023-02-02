@@ -24,9 +24,9 @@ from torch.nn.parameter import Parameter
 from torch.nn.modules.batchnorm import _NormBase
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 
+import torch_npu
 from torch_npu.utils.tensor_methods import torch_device_guard
 
-import torch_npu
 
 
 def npu(self, device=None):
@@ -99,6 +99,19 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
+        if "MultiheadAttention" in str(class_name) and \
+                hasattr(module, "q_proj_weight") and module.q_proj_weight is not None and \
+                hasattr(module, "k_proj_weight") and module.k_proj_weight is not None and \
+                hasattr(module, "v_proj_weight") and module.v_proj_weight is not None and \
+                not torch.npu.get_mm_bmm_format_nd():
+            module.q_proj_weight.data = module.q_proj_weight.data.to(device)
+            module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
+            module.k_proj_weight.data = module.k_proj_weight.data.to(device)
+            module.k_proj_weight.data = torch_npu.npu_format_cast(module.k_proj_weight.data, 29)
+            module.v_proj_weight.data = module.v_proj_weight.data.to(device)
+            module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
+        if torch.npu.is_jit_compile_false():
+            return
         if issubclass(class_name, (torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
             if module.affine:
                 module.weight.data = module.weight.data.to(device)
@@ -123,16 +136,6 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Conv3d):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
-        if "MultiheadAttention" in str(class_name) and \
-            hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
-            hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
-            hasattr(module,"v_proj_weight") and module.v_proj_weight is not None:
-            module.q_proj_weight.data = module.q_proj_weight.data.to(device)
-            module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
-            module.k_proj_weight.data = module.k_proj_weight.data.to(device)
-            module.k_proj_weight.data = torch_npu.npu_format_cast(module.k_proj_weight.data, 29)
-            module.v_proj_weight.data = module.v_proj_weight.data.to(device)
-            module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
 
     # supported devices list: "npu"(from module.npu), "xla"(from module.to)
     support_cast_devices = [torch_npu.npu.native_device, torch_npu.npu.npu_device]

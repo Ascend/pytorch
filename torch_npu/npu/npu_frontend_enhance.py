@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -26,9 +26,11 @@ __all__ = ["set_option", "set_compile_mode", "set_aoe", "profile", "prof_init",
 def set_option(option):
     if not isinstance(option, dict):
         raise TypeError("npu option must be a dict.")
-    
+
     if option.get("MM_BMM_ND_ENABLE") is "enable":
-        set_mm_bmm_format_nd()
+        set_mm_bmm_format_nd(True)
+    elif option.get("MM_BMM_ND_ENABLE") is "disable":
+        set_mm_bmm_format_nd(False)
 
     for option_name, option_value in option.items():
         option[option_name] = str(option_value)
@@ -75,16 +77,22 @@ torch.npu.set_option(option)
 
 Default: False
 """
-_MM_BMM_ND_ENABLE = False
-def set_mm_bmm_format_nd():
+_MM_BMM_ND_ENABLE = True
+def set_mm_bmm_format_nd(is_nd=True):
     global _MM_BMM_ND_ENABLE
-    _MM_BMM_ND_ENABLE = True
+    if is_nd:
+        _MM_BMM_ND_ENABLE = True
+    else:
+        _MM_BMM_ND_ENABLE = False
 
 def get_mm_bmm_format_nd():
     return _MM_BMM_ND_ENABLE
 
+def is_jit_compile_false() -> bool:
+    return torch_npu._C._npu_is_jit_compile_false()
+
 class npuEvent(object):
-    def __init__(self):    
+    def __init__(self):
         self.ACL_PROF_ACL_API            = 0x0001
         self.ACL_PROF_TASK_TIME          = 0x0002
         self.ACL_PROF_AICORE_METRICS     = 0x0004
@@ -131,7 +139,7 @@ class aiCoreMetrics(object):
 class profileConfig(object):
     def __init__(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,
                 ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True,
-                ACL_PROF_TRAINING_TRACE=False, aiCoreMetricsType=0):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+                ACL_PROF_TRAINING_TRACE=False, aiCoreMetricsType=0):
         self.NpuEventConfig = npuEvent().update(ACL_PROF_ACL_API, ACL_PROF_TASK_TIME, ACL_PROF_AICORE_METRICS,
                                                 ACL_PROF_AICPU, ACL_PROF_L2CACHE, ACL_PROF_HCCL_TRACE,
                                                 ACL_PROF_TRAINING_TRACE)
@@ -139,7 +147,7 @@ class profileConfig(object):
 
 
 class profile(object):
-    def __init__(self, profiler_result_path="./", use_e2e_profiler=False, 
+    def __init__(self, profiler_result_path="./", use_e2e_profiler=False,
         config=profileConfig()):
         self.result_path = profiler_result_path
         self.use_e2e_profiler = use_e2e_profiler
@@ -155,7 +163,7 @@ class profile(object):
             raise RuntimeError("npu profiler traces are not reentrant")
         self.entered = True
         if self.use_e2e_profiler:
-            torch_npu._C._enable_e2e_profiler(self.result_path, 
+            torch_npu._C._enable_e2e_profiler(self.result_path,
                                             self.config.NpuEventConfig | npuEvent().ACL_PROF_MSPROFTX,
                                             self.config.AiCoreMetricsConfig)
         else:
@@ -170,7 +178,7 @@ class profile(object):
             prof_stop()
             prof_finalize()
         return False
-  
+
 def prof_init(path):
     if not os.path.exists(path):
         raise AssertionError("profiler_result_path: %s not exists."%(path))

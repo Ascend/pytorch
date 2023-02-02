@@ -14,12 +14,16 @@
 # limitations under the License.
 
 import os
+import functools
 import random
 import numpy as np
 
 import torch
 
+import torch_npu
+
 from . import wrap_tensor, wrap_torch, wrap_functional
+from .module import HOOKModule
 
 
 def initialize_hook(hook):
@@ -38,6 +42,31 @@ def initialize_hook(hook):
     for attr_name in dir(wrap_functional.HOOKFunctionalOP):
         if attr_name.startswith("wrap_"):
             setattr(torch.nn.functional, attr_name[5:], getattr(wrap_functional.HOOKFunctionalOP, attr_name))
+
+
+def register_hook(model, hook, **kwargs):
+    assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
+
+    seed = kwargs.get('seed', 1234)
+    seed_all(seed)
+
+    torch_npu._C._clear_overflow_npu()
+
+    sample = kwargs.get('sample', True)
+    pid = os.getpid()
+    hook = functools.partial(hook, sample=sample, pid=pid)
+    initialize_hook(hook)
+
+    for _, module in model.named_modules():
+        if not isinstance(module, HOOKModule):
+            continue
+
+        prefix = "Module_" + module.__class__.__name__ + "_"
+        if hasattr(module, "prefix_op_name_"):
+            prefix = module.prefix_op_name_
+
+        module.register_forward_hook(hook(prefix + "forward"))
+        module.register_backward_hook(hook(prefix + "backward"))
 
 
 def seed_all(seed=1234):

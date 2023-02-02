@@ -30,6 +30,7 @@
 #include "torch_npu/csrc/npu/Generator.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
+#include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/core/Device.h"
 
@@ -102,6 +103,7 @@ PyObject* initModule(){
   AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
   AddPyMethodDefs(methods, torch_npu::utils::tensor_functions());
+  AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
   static struct PyModuleDef torchnpu_module = {
      PyModuleDef_HEAD_INIT,
      "torch_npu._C",

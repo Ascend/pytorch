@@ -48,12 +48,15 @@ namespace at_npu
       FormatShape InferShapeOfNCDHW(c10::IntArrayRef dims);
       FormatShape InferShapeOfNDC1HWC0(c10::IntArrayRef dims);
       FormatShape InferShapeOfFZ3D(c10::IntArrayRef dims);
+
+      FormatShape InferShapeofNHWC(c10::IntArrayRef dims);
     }
 
     std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::info = {
         {ACL_FORMAT_NC1HWC0, (FormatInfo){ACL_FORMAT_NC1HWC0, ACL_FORMAT_NCHW, InferShape4To5, "NC1HWC0", true}},
         {ACL_FORMAT_ND, (FormatInfo){ACL_FORMAT_ND, ACL_FORMAT_ND, InferShapeofND, "ND", false}},
         {ACL_FORMAT_NCHW, (FormatInfo){ACL_FORMAT_NCHW, ACL_FORMAT_NCHW, InferShapeofNCHW, "NCHW", false}},
+        {ACL_FORMAT_NHWC, (FormatInfo){ACL_FORMAT_NHWC, ACL_FORMAT_NHWC, InferShapeofNHWC, "NHWC", false}},
         {ACL_FORMAT_FRACTAL_NZ, (FormatInfo){ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, InferShapeNDToNZ, "FRACTAL_NZ", true}},
         {ACL_FORMAT_FRACTAL_Z, (FormatInfo){ACL_FORMAT_FRACTAL_Z, ACL_FORMAT_NCHW, InferShapeNDToZ, "FRACTAL_Z", true}},
         {ACL_FORMAT_NDHWC, (FormatInfo){ACL_FORMAT_NDHWC, ACL_FORMAT_NCDHW, InferShapeOfNDHWC, "NDHWC", false}},
@@ -181,6 +184,12 @@ namespace at_npu
                    dims.size());
         }
         return res;
+      }
+
+      FormatShape InferShapeofNHWC(c10::IntArrayRef dims)
+      {
+        AT_ASSERT(dims.size() == 4, "input dim should be equal to 4 when InferShapeofNHWC");
+        return FormatShape(dims.begin(), dims.end());
       }
 
       FormatShape InferShape4To5(c10::IntArrayRef dims)
@@ -435,5 +444,17 @@ namespace at_npu
       }
 
     } // namespace
+
+    at::Tensor& FormatHelper::unsafe_format_cast(at::Tensor& self, int64_t self_format, int64_t result_format) {
+      torch_npu::NPUStorageDesc &self_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+      if (self_format == ACL_FORMAT_ND && result_format == ACL_FORMAT_NC1HWC0) {
+        self_desc.storage_sizes_ = InferShape4To5(self.sizes());
+        self_desc.npu_format_ = ACL_FORMAT_NC1HWC0;
+      } else if (self_format == ACL_FORMAT_NC1HWC0 && result_format == ACL_FORMAT_ND) {
+        self_desc.storage_sizes_ = self_desc.base_sizes_;
+        self_desc.npu_format_ = ACL_FORMAT_ND;
+      }
+      return self;
+    }
   }   // namespace native
 } // namespace at_npu

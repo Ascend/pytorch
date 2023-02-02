@@ -19,6 +19,7 @@ import gc
 import numpy as np
 
 import torch
+from torch.autograd import Variable
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -519,6 +520,8 @@ class TestNpu(TestCase):
         x = torch.ones(()).npu()
         x_new_empty = x.new_empty((2, 3), dtype=torch.float16, device='npu')
         res = x_new_empty + 1
+        x_new_empty = x.new_empty(size=(2, 3), dtype=torch.float16, device='npu')
+        res = x_new_empty + 1
 
     def test_function_tensor_new_empty_strided(self):
         x = torch.ones(()).npu()
@@ -557,9 +560,11 @@ class TestNpu(TestCase):
         npu_output1 = x.new_ones((2, 3), device=None, requires_grad=False)
         npu_output2 = x.new_ones((2, 3), device='cpu', requires_grad=False)
         npu_output3 = x.new_ones((2, 3), device='npu', requires_grad=False)
+        npu_output4 = x.new_ones(size=(2, 3), device='npu', requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output4.cpu().numpy())
 
     def test_function_tensor_new_tensor(self):
         x_cpu = torch.tensor((), dtype=torch.float32)
@@ -601,9 +606,65 @@ class TestNpu(TestCase):
         npu_output1 = x.new_zeros((2, 3), device=None, requires_grad=False)
         npu_output2 = x.new_zeros((2, 3), device='cpu', requires_grad=False)
         npu_output3 = x.new_zeros((2, 3), device='npu', requires_grad=False)
+        npu_output4 = x.new_zeros(size=(2, 3), device='npu', requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output4.cpu().numpy())
+
+    def test_type_conversions_npu(self):
+        x = torch.randn(5, 5)
+        self.assertIsInstance(x.float(), torch.FloatTensor)
+        self.assertIsInstance(x.double().npu(), torch.npu.DoubleTensor)
+        self.assertIsInstance(x.npu().float(), torch.npu.FloatTensor)
+        self.assertIsInstance(x.npu().float().cpu(), torch.FloatTensor)
+        self.assertIsInstance(x.npu().float().cpu().int(), torch.IntTensor)
+    
+    def _test_type_conversion_backward(self, t):
+        fvar = Variable(t(torch.randn(5, 5).float()), requires_grad=True)
+        fvar.double().sum().backward()
+        self.assertEqual(fvar.grad, torch.ones_like(fvar))
+        self.assertEqual(type(fvar.grad), type(fvar))
+        dvar = Variable(t(torch.randn(5, 5).double()), requires_grad=True)
+        dvar.float().sum().backward()
+        self.assertEqual(dvar.grad, torch.ones_like(dvar))
+        self.assertEqual(type(dvar.grad), type(dvar))
+
+    def test_type_conversions(self):
+        x = torch.randn(5, 5)
+        self.assertIsInstance(x.float(), torch.FloatTensor)
+        self.assertIsInstance(x.int(), torch.IntTensor)
+        if torch.npu.is_available():
+            self.assertIsInstance(x.float().npu(), torch.npu.FloatTensor)
+            self.assertIsInstance(x.double().npu(), torch.npu.DoubleTensor)
+            self.assertIsInstance(x.int().npu(), torch.npu.IntTensor)
+            self.assertIsInstance(x.int().npu().cpu(), torch.IntTensor)
+        
+        tensor_types = [torch.DoubleTensor, torch.FloatTensor, torch.IntTensor, torch.ByteTensor]
+        for t, y_var in product(tensor_types, (True, False)):
+            y = torch.randint(5, (5, 5), dtype=t.dtype)
+            y = Variable(y) if y_var else y
+            self.assertIsInstance(x.type(t), t)
+            self.assertIsInstance(x.type_as(y), t)
+
+            t_dtype = t().dtype
+            self.assertIsInstance(x.type(t_dtype), t)
+            self.assertIs(t_dtype, x.type(t_dtype).dtype)
+            self.assertEqual(y.data_ptr(), y.type(t).data_ptr())
+
+            if torch.npu.is_available():
+                for x_npu, y_npu in product((True, False), (True, False)):
+                    x_c = x.npu() if x_npu else x
+                    y_c = y.npu() if y_npu else y
+                    _, y_type = y_c.type().rsplit('.', 1)
+                    y_typestr = ('torch.npu.' if y_npu else 'torch.') + y_type
+                    self.assertEqual(y_c.type(), x_c.type(y_typestr).type())
+                    self.assertIs(y_c.dtype, x_c.type(y_c.dtype).dtype)
+                    self.assertEqual(y_c.data_ptr(), y_c.npu().data_ptr() if y_npu else y_c.data_ptr())
+                    
+        self._test_type_conversion_backward(lambda x: x)
+        if torch.npu.is_available():
+            self._test_type_conversion_backward(lambda x: x.npu())
 
 
 if __name__ == '__main__':

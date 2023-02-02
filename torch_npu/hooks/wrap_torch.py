@@ -18,10 +18,11 @@ import yaml
 
 import torch
 
+from torch_npu.utils.device_guard import torch_device_guard
 from .module import HOOKModule
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
-yaml_path = os.path.join(cur_path, "support_wrap_opts.yaml")
+yaml_path = os.path.join(cur_path, "support_wrap_ops.yaml")
 with open(yaml_path, 'r') as f:
     WrapTorchOps = yaml.safe_load(f).get('torch')
 
@@ -44,6 +45,7 @@ class TorchOPTemplate(HOOKModule):
         self.prefix_op_name_ = "Torch_" + str(op_name) + "_"
         super().__init__(hook)
 
+    @torch_device_guard
     def forward(self, *args, **kwargs):
         return getattr(torch._C._VariableFunctionsClass, str(self.op_name_))(*args, **kwargs)
 

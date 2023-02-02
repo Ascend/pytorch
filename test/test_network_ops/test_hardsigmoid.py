@@ -12,72 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 class TestHardsigmoid(TestCase):
-    def generate_single_data(self, min_d, max_d, shape, dtype):
-        input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
-        npu_input1 = torch.from_numpy(input1)
-        return npu_input1
 
-    def cpu_op_exec(self, input1, input2):
-        output = input2
+    def cpu_op_exec(self, input1):
         h = torch.nn.Hardsigmoid()
         output = h(input1)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self, input1, input2):
-        input1 = input1.to("npu")
-        output = input2
+    def npu_op_exec(self, input1):
         h = torch.nn.Hardsigmoid()
         output = h(input1)
-        output = output.to("cpu")
-        output = output.numpy()
+        output = output.cpu().numpy()
+        return output
+
+    def npu_op_exec_inp(self, input1):
+        torch.nn.functional.hardsigmoid(input1, True)
+        output = input1.cpu().numpy()
         return output
 
     @graph_mode
-    def test_hardsigmoid_int32(self):
-        def cpu_op_exec_int32(input1):
-            input1 = input1.to(torch.float32)
-            h = torch.nn.Hardsigmoid()
-            output = h(input1)
-            output = output.numpy()
-            output = output.astype(np.int32)
-            return output
-        npu_input1 = self.generate_single_data(-6, 6, (3,6), np.int32)
-        npu_input2 = self.generate_single_data(-6, 6, (3,6), np.int32)
-        cpu_output = cpu_op_exec_int32(npu_input1)
-        npu_output = self.npu_op_exec(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output, npu_output)
+    def test_hardsigmoid(self):
+        shape_foramt = [
+            [np.int32, 0, (3, 6)],
+            [np.float32, 0, (9, 3)],
+            [np.float16, 0, (2, 7)]
+        ]
+        for item in shape_foramt:
+            cpu_input, npu_input = create_common_tensor(item, -6, 6)
+            if item[0] != np.float32:
+                cpu_output = self.cpu_op_exec(cpu_input.float()).astype(item[0])
+            else:
+                cpu_output = self.cpu_op_exec(cpu_input)
+            npu_output = self.npu_op_exec(npu_input)
+            npu_inp_output = self.npu_op_exec_inp(npu_input)
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_inp_output)
 
-    @graph_mode
-    def test_hardsigmoid_float32(self):
-        npu_input1 = self.generate_single_data(-6, 6, (9,3), np.float32)
-        npu_input2 = self.generate_single_data(-6, 6, (9,3), np.float32)
-        cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
-        npu_output = self.npu_op_exec(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output, npu_output)
-
-    @graph_mode
-    def test_hardsigmoid_float16(self):
-        def cpu_op_exec_float16(input1):
-            input1 = input1.to(torch.float32)
-            h = torch.nn.Hardsigmoid()
-            output = h(input1)
-            output = output.numpy()
-            output = output.astype(np.float16)
-            return output
-        npu_input1 = self.generate_single_data(-6, 6, (2,7), np.float16)
-        npu_input2 = self.generate_single_data(-6, 6, (2,7), np.float16)
-        cpu_output = cpu_op_exec_float16(npu_input1)
-        npu_output = self.npu_op_exec(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output, npu_output)
 
 if __name__ == '__main__':
     run_tests()

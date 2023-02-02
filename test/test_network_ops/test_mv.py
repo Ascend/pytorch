@@ -43,38 +43,38 @@ class TestMv(TestCase):
 
     def test_mv_shape_format(self, device='npu'):
         shape_format = [
-                [[np.float32, -1, (3, 3)], [np.float32, -1, (3)]],
-                [[np.float32, -1, (5, 8)], [np.float32, -1, (8)]],
-                [[np.float32, -1, (8, 9)], [np.float32, -1, (9)]],
+                [[np.float16, -1, (3, 3)], [np.float16, -1, (3)]],
+                [[np.float16, -1, (5, 8)], [np.float16, -1, (8)]],
+                [[np.float16, -1, (8, 9)], [np.float16, -1, (9)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[1], -100, 100)
-            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+            cpu_output = self.cpu_op_exec(cpu_input1.float(), cpu_input2.float()).astype(np.float16)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mv_out_shape_format(self, device='npu'):
         shape_format = [
-                [[np.float32, -1, (3, 3)], [np.float32, -1, (3)], [np.float32, -1, (3)]],
-                [[np.float32, -1, (5, 8)], [np.float32, -1, (8)], [np.float32, -1, (5)]],
-                [[np.float32, -1, (8, 9)], [np.float32, -1, (9)], [np.float32, -1, (8)]],
+                [[np.float16, -1, (3, 3)], [np.float16, -1, (3)], [np.float16, -1, (3)]],
+                [[np.float16, -1, (5, 8)], [np.float16, -1, (8)], [np.float16, -1, (5)]],
+                [[np.float16, -1, (8, 9)], [np.float16, -1, (9)], [np.float16, -1, (8)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[1], -100, 100)
             cpu_input3, npu_input3 = create_common_tensor(item[2], -100, 100)
-            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+            cpu_output = self.cpu_op_exec(cpu_input1.float(), cpu_input2.float()).astype(np.float16)
             npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
     
     def test_mv_with_transpose(self, device='npu'):
-        cpu_mat = torch.rand(1, 256)
+        cpu_mat = torch.rand(1, 256).half()
         npu_mat = cpu_mat.npu()
-        cpu_vec = torch.tensor([1.])
+        cpu_vec = torch.tensor([1.]).half()
         npu_vec = cpu_vec.npu()
 
-        cpu_mv = torch.mv(cpu_mat.t(), cpu_vec)
+        cpu_mv = torch.mv(cpu_mat.float().t(), cpu_vec.float()).half()
         npu_mv = torch.mv(npu_mat.t(), npu_vec)
         self.assertRtolEqual(cpu_mv, npu_mv.cpu())
 

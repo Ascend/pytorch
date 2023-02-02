@@ -26,7 +26,6 @@ import torch._six
 import torch_npu
 import torch_npu._C
 
-
 _initialized = False
 _tls = threading.local()
 _initialization_lock = threading.Lock()

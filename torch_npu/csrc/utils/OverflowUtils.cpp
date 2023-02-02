@@ -14,29 +14,27 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/utils/OverflowUtil.h"
+#include "torch_npu/csrc/utils/OverflowUtils.h"
 
 namespace torch_npu {
 namespace utils {
 
-OverflowUtil::OverflowUtil(){
-}
+OverflowUtil::OverflowUtil() {}
 
-OverflowUtil::~OverflowUtil(){
-}
+OverflowUtil::~OverflowUtil() {}
 
-bool OverflowUtil::CheckOverflowNpu(){
+bool OverflowUtil::CheckOverflowNpu() {
   auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
   at::Tensor tmp = at::empty({8}, options);
   auto floatStatus = at_npu::native::NPUNativeFunctions::npu_alloc_float_status(tmp);
   auto result = at_npu::native::NPUNativeFunctions::npu_get_float_status(floatStatus);
-  if (floatStatus.cpu()[0].item().toInt() != 0){
+  if (floatStatus.cpu()[0].item().toInt() != 0) {
     return true;
   }
   return false;
 }
 
-void OverflowUtil::ClearOverflowNpu(){
+void OverflowUtil::ClearOverflowNpu() {
   auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
   at::Tensor tmp = at::empty({8}, options);
   auto floatStatus = at_npu::native::NPUNativeFunctions::npu_alloc_float_status(tmp);
@@ -45,4 +43,4 @@ void OverflowUtil::ClearOverflowNpu(){
 }
 
 }
-} 
+}

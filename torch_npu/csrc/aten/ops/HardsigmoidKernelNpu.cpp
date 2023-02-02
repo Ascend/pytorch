@@ -53,8 +53,7 @@ at::Tensor NPUNativeFunctions::hardsigmoid(const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& hardsigmoid_(at::Tensor& self) {
-  OpPreparation::CheckMemory({self}, {self});
+at::Tensor& NPUNativeFunctions::hardsigmoid_(at::Tensor& self) {
   hardsigmoid_out(self, self);
   return self;
 }

@@ -19,6 +19,8 @@
 - 同一模型，从gpu(或cpu)移植到npu中存在精度下降问题，对比npu芯片中的算子计算数值与gpu(cpu)芯片中的算子计算数值，进行问题定位。
 - 同一模型，进行迭代(模型、算子或设备迭代)时存在的精度下降问题，对比相同模型在迭代前后版本的算子计算数值，进行问题定位。
 
+以gpu为参照定位精度问题，使用ptdbg_ascend插件来进行数据dump和比对，请参考[ptdbg_ascend](https://gitee.com/ascend/tools/tree/master/ptdbg_ascend)。
+
 ## **前提条件**
 
 已完成PyTorch Adapter插件的编译安装，具体操作请参考[《AscendPyTorch安装指南》](../PyTorch安装指南/PyTorch安装指南.md)。
@@ -94,7 +96,7 @@ import os
 import torch
 import torch.nn as nn
 
-from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
+from torch_npu.hooks import set_dump_path, seed_all, register_hook, wrap_acc_cmp_hook
 from torch_npu.hooks.tools import compare
 
 
@@ -113,10 +115,10 @@ class ModuleOP(nn.Module):
         r1 = self.relu(x2)
         return r1
 
-
 # 对该网络进行hook注入和数据dump
 module = ModuleOp()
-register_acc_cmp_hook(module) # 对模型注入forwar和backward的hooks
+# 对模型注入forwar和backward的hooks，如需关闭，请使用register_hook(model_cpu, wrap_acc_cmp_hook, sample=False)
+register_hook(model_cpu, wrap_acc_cmp_hook) 
 seed_all()
 x = torch.randn(2, 2)
 
@@ -140,7 +142,7 @@ compare("./npu_module_op.pkl", "./cpu_module_op.pkl", "./module_result.csv")
 ```
 
 
-使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu/gpu和npu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
+使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu和npu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
 ```python
 import os
 import copy
@@ -148,7 +150,7 @@ import torch
 import torch.nn as nn
 from torchvision import models, datasets, transforms
 
-from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
+from torch_npu.hooks import set_dump_path, seed_all, register_hook, wrap_acc_cmp_hook
 from torch_npu.hooks.tools import compare
 
 
@@ -158,17 +160,17 @@ model_cpu.eval()
 model_npu = copy.deepcopy(model_cpu)
 model_npu.eval()
 
-# 对该计算进行hook注入和数据dump
-register_acc_cmp_hook(model_cpu)
-register_acc_cmp_hook(model_npu)
 seed_all()
+# 对该计算进行hook注入和数据dump，采样功能默认开启，如需关闭，请使用register_hook(model_cpu, wrap_acc_cmp_hook, sample=False)
+register_hook(model_cpu, wrap_acc_cmp_hook)
+register_hook(model_npu, wrap_acc_cmp_hook)
 
 # 需要根据不同的模型输入和标签生成相应的tensor(或读取实际数据)，损失函数等，如果是随机生成的标签需要保证数据的有效性
 inputs = torch.randn(1, 3, 244, 244)
 labels = torch.randn(1).long()
 criterion = nn.CrossEntropyLoss()
 
-# cpu，若需要使用gpu或npu进行对比采用model_gpu = model.to("cuda:0")或model_npu = model.to("npu:0")
+# cpu
 set_dump_path("./cpu_resnet50_op.pkl")
 output = model_cpu(inputs)
 loss = criterion(output, labels)
@@ -185,4 +187,18 @@ loss.backward()
 
 # 对比dump出的数据精度，生成csv文件
 compare("./npu_resnet50_op.pkl", "./cpu_resnet50_op.pkl", "./resnet50_result.csv")
+```
+ 如需相对生成的pkl文件解析读取数据，可参考下列代码
+```python
+import json
+
+pkl_file=open(pkl_path,'r') # pkl_path：需要解析的文件
+tensor_line=pkl_file.readline() # 读取行数据
+tensor_data=json.loads(tensor_line)
+
+print(tensor_data[0]) # 算子名称
+print(tensor_data[1]) # 对应数据
+print(tensor_data[2]) # 数据类型
+print(tensor_data[3]) # 数据尺寸
+
 ```

@@ -41,7 +41,11 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 | 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 | 22.0.RC2-1.8.1 |
 | 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3 | \ |
 | 3.0.rc3 | CANN 6.0.RC1 | 1.8.1.rc3 | v1.8.1-3.0.rc3 | 22.0.RC3-1.8.1 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1 | v1.11.0-3.0.rc3 | \ |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1（beta） | v1.11.0-3.0.rc3 | \ |
+| 3.0.0 | CANN 6.0.1 | 1.5.0.post8 | v1.5.0-3.0.0 | \ |
+| 3.0.0 | CANN 6.0.1 | 1.8.1 | v1.8.1-3.0.0 | \ |
+| 3.0.0 | CANN 6.0.1 | 1.11.0.rc2（beta） | v1.11.0-3.0.0 | \ |
+
 
 # 安装方式
 
@@ -63,16 +67,18 @@ pip3 install wheel
 pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
 
 #aarch64（推荐使用镜像）
-可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
+1.可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
 #镜像仓库地址：（https://ascendhub.huawei.com/#/detail/pytorch-modelzoo）
-#社区未提供arm架构cpu安装包，如需尝试编译安装PyTorch框架，可参见FAQ第一条，使用源码编译安装pytorch。
+2.鲲鹏arm服务器可在鲲鹏开源软件文件共享中心获取编译好的PyTorch二进制安装包。
+#鲲鹏文件共享中心地址：（https://mirrors.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/）
+3.社区未提供的arm架构cpu安装包，可参见FAQ第一条，使用源码编译安装pytorch。
 ```
 
 编译生成pytorch插件的二进制安装包。
 
 ```
-# 下载1.8.1-3.0.rc3分支代码，进入插件根目录
-git clone -b 1.8.1-3.0.rc3 https://gitee.com/ascend/pytorch.git 
+# 下载1.8.1-3.0.0分支代码，进入插件根目录
+git clone -b v1.8.1-3.0.0 https://gitee.com/ascend/pytorch.git 
 cd pytorch    
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
@@ -186,12 +192,13 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 | **分支名** | **当前状态**  | **上线时间**          | **后续状态**                           | **EOL 日期**|
 |------------|--------------|----------------------|----------------------------------------|------------|
-| **v2.0.2**   | Maintained   | 2021-07-29           | Unmaintained <br> 2022-07-29 estimated |            |
-| **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
-| **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
+| **v2.0.2**   | EOL   | 2021-07-29           | N/A |            |
+| **v2.0.3**   | EOL  | 2021-10-15           | N/A |            |
+| **v2.0.4**   | Unmaintained   | 2022-01-15           | EOL <br> 2023-04-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 | **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |            |
 | **v3.0.rc3**   | Maintained   | 2022-10-20           | Unmaintained <br> 2023-10-20 estimated |            |
+| **v3.0.0**   | Maintained   | 2023-1-20           | Unmaintained <br> 2024-1-20 estimated |            |
 
 # FAQ
 

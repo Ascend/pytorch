@@ -70,6 +70,38 @@ class TestSiluBackward(TestCase):
             self.npu_op_exec(npu_input2, False)
             self.assertRtolEqual(input_grad, npu_input_grad)
 
+    def cpu_op_inplace_exec(self, x):
+        x.requires_grad = True
+        silu = torch.nn.SiLU(inplace=True)
+        x1 = x + 0.1
+        out = silu(x1)
+        loss = out.mean()
+        loss.backward()
+        return out.detach(), x.grad
+
+    def npu_op_inplace_exec(self, x):
+        x.requires_grad = True
+        silu = torch.nn.SiLU(inplace=True)
+        x1 = x + 0.1
+        out = silu(x1)
+        loss = out.mean()
+        loss.backward()
+        return out.cpu().detach(), x.grad.cpu()
+
+    def test_silu_backward_inplace(self):
+        format_list = [0]
+        shape_list = [(2, 3, 4)]
+        shape_format = [
+            [np.float32, i, j] for i in format_list for j in shape_list
+        ]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item, 1, 100)
+
+            cpu_out, cpu_grad = self.cpu_op_inplace_exec(cpu_input)
+            npu_out, npu_grad = self.npu_op_inplace_exec(npu_input)
+            self.assertRtolEqual(cpu_out, npu_out)
+            self.assertRtolEqual(cpu_grad, npu_grad)
+
 
 if __name__ == "__main__":
     run_tests()
