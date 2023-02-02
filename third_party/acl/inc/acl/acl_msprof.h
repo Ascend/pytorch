@@ -27,6 +27,9 @@ ACL_FUNC_VISIBILITY void *aclprofCreateStamp();
 @retval void
 */
 ACL_FUNC_VISIBILITY void aclprofDestroyStamp(void *stamp);
+
+ACL_FUNC_VISIBILITY aclError aclprofSetStampTagName(void *stamp, const char *tagName, uint16_t len);
+
 ACL_FUNC_VISIBILITY aclError aclprofSetCategoryName(uint32_t category, const char *categoryName);
 
 ACL_FUNC_VISIBILITY aclError aclprofSetStampCategory(void *stamp, uint32_t category);

@@ -22,14 +22,24 @@
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 
+std::atomic<bool> global_enable_profiling(false);
+
 namespace torch_npu {
 namespace profiler {
 
 aclprofConfig* local_profCfg = nullptr;
 
 void CheckProfilerRet(aclError ret, const char* message) {
+  static bool checkOnce = false;
+  if (ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+    if (!checkOnce) {
+      checkOnce = true;
+      NPU_LOGW("%s", message);
+    }
+    return;
+  }
   if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE(message);
+    NPU_LOGE("%s", message);
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     return;
@@ -94,7 +104,11 @@ void PushStartTime(at::RecordFunction& fn) {
     NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
     return;
   }
-  auto ret = at_npu::native::AclprofSetStampTraceMessage(
+  static const std::string tag_name = "torch_op";
+  auto ret = at_npu::native::AclprofSetStampTagName(local_stamp_, tag_name.c_str(), tag_name.size());
+  CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTagName set failed.");
+
+  ret = at_npu::native::AclprofSetStampTraceMessage(
       local_stamp_, fn.name(), strlen(fn.name()));
   CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
   uint32_t range_id_ = 0;
@@ -113,7 +127,7 @@ void PopEndTime(const at::RecordFunction& fn) {
 
 void InitE2eProfiler(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics) {
-
+  global_enable_profiling.store(true);
   InitMsPorf(dump_path, npu_event, aicore_metrics);
   auto handle = at::addThreadLocalCallback(at::RecordFunctionCallback(
       [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
@@ -126,6 +140,7 @@ void InitE2eProfiler(const std::string dump_path, uint64_t npu_event,
 }
 
 void FinalizeE2eProfiler() {
+  global_enable_profiling.store(false);
   c10_npu::npuSynchronizeDevice();
   auto ret = at_npu::native::AclProfilingStop(local_profCfg);
   if (ret) {
