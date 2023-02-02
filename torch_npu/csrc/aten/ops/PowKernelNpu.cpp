@@ -120,21 +120,19 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::pow(const at::Tensor &self, const at::Scalar& exp)
     {
-      at::Tensor result = OpPreparation::ApplyTensor(self);
-      pow_tensor_scalar_out_npu_nocheck(self, exp, result);
+      auto result_type = at::result_type(self, exp);
+      at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(result_type));
+      at::Tensor self_copy = (self.scalar_type() != result_type) ? NPUNativeFunctions::npu_dtype_cast(self, result_type) : self;
+      pow_tensor_scalar_out_npu_nocheck(self_copy, exp, result);
       return result;
     }
 
     at::Tensor NPUNativeFunctions::pow(const at::Scalar& self, const at::Tensor &exp)
     {
-      // calculate the output size
-      auto outputSize = input_same_output_size(exp);
-
-      // construct the output tensor of the NPU
-      at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, exp.options());
-
-      // calculate the output result of the NPU
-      pow_scalar_out_npu_nocheck(self, exp, result);
+      auto result_type = at::result_type(exp, self);
+      at::Tensor result = OpPreparation::ApplyTensor(exp, exp.options().dtype(result_type));
+      at::Tensor exp_copy = (exp.scalar_type() != result_type) ? NPUNativeFunctions::npu_dtype_cast(exp, result_type) : exp;
+      pow_scalar_out_npu_nocheck(self, exp_copy, result);
       return result;
     }
 
