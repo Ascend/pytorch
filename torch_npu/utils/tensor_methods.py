@@ -15,11 +15,10 @@
 
 
 import warnings
-import numpy
 import torch
 
 import torch_npu
-from torch_npu.utils.device_guard import torch_device_guard, device
+from torch_npu.utils.device_guard import torch_device_guard
 from .storage import _reduce_ex
 
 warnings.filterwarnings(action="once")
@@ -64,12 +63,6 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
 
 @torch_device_guard
 def _npu(self, *args, **kwargs):
-    if args and isinstance(args[0], str) and 'npu' in args[0]:
-        args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
-    if kwargs:
-        device = kwargs.get("device", "")
-        if device and 'npu' in device:
-            kwargs['device'] = kwargs['device'].replace("npu", torch_npu.npu.native_device)
     return torch_npu._C.npu(self, *args, **kwargs)
 
 
@@ -127,13 +120,6 @@ def _new_empty_strided(self, *args, **kwargs):
     return torch_npu._C.new_empty_strided(self, *args, **kwargs)
 
 
-@property
-def _device(self):
-    if torch_npu._C.is_npu(self):      
-        return device(type='npu', index=self.get_device())
-    return torch.device("cpu")
-
-
 @torch_device_guard
 def _new_full(self, *args, **kwargs):
     return torch_npu._C.new_full(self, *args, **kwargs)
@@ -141,32 +127,12 @@ def _new_full(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_ones(self, *args, **kwargs):
-    dst_device = kwargs.get("device", None)
-    if dst_device is not None and "npu" in str(dst_device):
-        kwargs["device"] = None
-        return torch._C._TensorBase.new_ones(self, *args, **kwargs).to(dst_device)
 
     return torch._C._TensorBase.new_ones(self, *args, **kwargs)
 
 
 @torch_device_guard
 def _new_tensor(self, *args, **kwargs):
-    if kwargs and "device" in kwargs:
-        dst_device = kwargs.get("device")
-        if "npu" in str(dst_device):
-            args_requires_grad = kwargs.get("requires_grad", False)
-            dtype = kwargs.get("dtype", self.dtype)
-            if isinstance(args[0], torch.Tensor):
-                res_tensor = args[0].clone().to(dtype=dtype, device=dst_device)
-            elif isinstance(args[0], numpy.ndarray):
-                res_tensor = torch.from_numpy(args[0]).to(dtype=dtype, device=dst_device)
-            else:
-                res_tensor = torch.from_numpy(numpy.array(args[0])).to(dtype=dtype, device=dst_device)
-
-            if args_requires_grad:
-                return res_tensor.detach().requires_grad_(args_requires_grad)
-            else:
-                return res_tensor.detach()
 
     return torch._C._TensorBase.new_tensor(self, *args, **kwargs)
 
@@ -184,6 +150,13 @@ def _new_zeros(self, *args, **kwargs):
     return torch_npu._C.new_zeros(self, *args, **kwargs)
 
 
+@property
+def _device(self):
+    if self.get_device() == -1:
+        return torch_npu._C.device("cpu")
+    return torch_npu._C.device(type="npu", index=self.get_device())
+
+
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
     torch.Tensor.npu_format_cast = npu_format_cast
@@ -195,12 +168,12 @@ def add_tensor_methods():
     torch.Tensor.npu = _npu
     torch.Tensor.type = _type
     torch.Tensor.to = _to
+    torch.Tensor.device = _device
     torch.Tensor.is_npu = _is_npu
     torch.Tensor.record_stream = _record_stream
     torch.Tensor.storage = _storage
     torch.Tensor.new_empty = _new_empty
     torch.Tensor.new_empty_strided = _new_empty_strided
-    torch.Tensor.device = _device
     torch.Tensor.new_full = _new_full
     torch.Tensor.new_ones = _new_ones
     torch.Tensor.new_tensor = _new_tensor
