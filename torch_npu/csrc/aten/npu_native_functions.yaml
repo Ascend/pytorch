@@ -26,6 +26,7 @@ supported:
  - _add_relu_.Tensor
  - _aminmax
  - _aminmax.dim
+ - aminmax.out
  - _amp_foreach_non_finite_check_
  - _amp_foreach_non_finite_check_and_unscale_
  - _batch_norm_impl_index
