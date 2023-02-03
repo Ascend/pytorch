@@ -15,11 +15,10 @@
 
 
 import warnings
-import numpy
 import torch
 
 import torch_npu
-from torch_npu.utils.device_guard import torch_device_guard, device
+from torch_npu.utils.device_guard import torch_device_guard
 from .storage import _reduce_ex
 
 warnings.filterwarnings(action="once")
@@ -121,13 +120,6 @@ def _new_empty_strided(self, *args, **kwargs):
     return torch_npu._C.new_empty_strided(self, *args, **kwargs)
 
 
-@property
-def _device(self):
-    if torch_npu._C.is_npu(self):      
-        return device(type='npu', index=self.get_device())
-    return torch.device("cpu")
-
-
 @torch_device_guard
 def _new_full(self, *args, **kwargs):
     return torch_npu._C.new_full(self, *args, **kwargs)
@@ -156,6 +148,13 @@ def _new_zeros(self, *args, **kwargs):
     return torch_npu._C.new_zeros(self, *args, **kwargs)
 
 
+@property
+def _device(self):
+    if self.get_device() == -1:
+        return torch_npu._C.device("cpu")
+    return torch_npu._C.device(type="npu", index=self.get_device())
+
+
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
     torch.Tensor.npu_format_cast = npu_format_cast
@@ -167,12 +166,12 @@ def add_tensor_methods():
     torch.Tensor.npu = _npu
     torch.Tensor.type = _type
     torch.Tensor.to = _to
+    torch.Tensor.device = _device
     torch.Tensor.is_npu = _is_npu
     torch.Tensor.record_stream = _record_stream
     torch.Tensor.storage = _storage
     torch.Tensor.new_empty = _new_empty
     torch.Tensor.new_empty_strided = _new_empty_strided
-    torch.Tensor.device = _device
     torch.Tensor.new_full = _new_full
     torch.Tensor.new_ones = _new_ones
     torch.Tensor.new_tensor = _new_tensor

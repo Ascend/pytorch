@@ -13,18 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy
 import torch
+
+
 import torch_npu
-from torch_npu.utils.device_guard import torch_device_guard, device
-
-
-@torch_device_guard
-def _device(*args, **kwargs):
-    new_device = torch_npu.new_device(*args, **kwargs)
-    if new_device.type == torch.npu.native_device:
-        return device(type=torch_npu.npu.npu_device, index=new_device.index)
-    return new_device
+from torch_npu.utils.device_guard import torch_device_guard
 
 
 @torch_device_guard
@@ -82,7 +75,6 @@ def _as_tensor(*args, **kwargs):
 ${device_methods_def_py_dispatch}
 
 def add_torch_funcs():
-    torch.device = _device
     torch.tensor = _tensor
     torch.full = _full
     torch.randint = _randint
