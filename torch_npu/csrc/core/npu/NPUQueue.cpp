@@ -258,6 +258,7 @@ bool Repository::WriteQueue(void* cur_paras) {
   }
 
   uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
+  __sync_synchronize();
   manager().Copy(datas, write_idx.idx, cur_paras, queueLen);
   __sync_synchronize();
 
@@ -549,6 +550,7 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
     return false;
   }
   std::unique_lock<std::mutex> lck(mtx);
+  __sync_synchronize();
   releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
 
   __sync_synchronize();
@@ -578,6 +580,7 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
     return false;
   }
 
+  __sync_synchronize();
   releaseManager().ReleaseParam(datas, read_idx.idx);
 
   __sync_synchronize();
