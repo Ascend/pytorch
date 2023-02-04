@@ -29,9 +29,7 @@ DEFAULT_PROTOCOL = 2
 
 
 def is_device(data):
-    if isinstance(data, torch_npu.utils.device_guard.device):
-        return True
-    return False
+    return "npu" in str(data)
 
 
 def module_to_cpu(module):
