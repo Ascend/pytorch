@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
@@ -147,12 +148,20 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
 
 at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
                                   const at::Tensor &mat2) {
+  const static int SPLIT_K_MULTI = 8;
   // calculate the output size
   auto outputSize = {self.size(0), mat2.size(1)};
-
+  auto k_dim = self.size(1);
   // construct the output tensor of the NPU
   at::Tensor result;
   bool is_nz_out = false;
+  static bool is_support_nd_out = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+  bool split_k = is_support_nd_out &&
+                 (k_dim >= SPLIT_K_MULTI * std::max(self.size(0), mat2.size(1))) &&
+                 (self.dtype() == at::ScalarType::Half) && (mat2.dtype() == at::ScalarType::Half) &&
+                 (FormatHelper::GetFormat(self) == ACL_FORMAT_ND) &&
+                 (FormatHelper::GetFormat(mat2) == ACL_FORMAT_ND);
+
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
@@ -166,21 +175,31 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     // being, only aligned scenes are supported.
     static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
-        && mm_bmm_nd && isAligin()) {
-      result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
+        && mm_bmm_nd && (isAligin() || is_support_nd_out)) {
+      if (split_k) {
+        result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::ScalarType::Float),
+                                                      ACL_FORMAT_ND);
+      } else {
+        result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
+      }
     } else {
-      result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
       is_nz_out = (!mm_bmm_nd);
+      if (split_k) {
+        result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::ScalarType::Float),
+                                                      ACL_FORMAT_FRACTAL_NZ);
+      } else {
+        result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+      }
     }
   } else {
     result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
   }
-
   // calculate the output result of the NPU
   NPUNativeFunctions::mm_out(self, mat2, result);
   if (is_nz_out) {
     result = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
   }
+  result = split_k ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half) : result;
   return result;
 }
 
