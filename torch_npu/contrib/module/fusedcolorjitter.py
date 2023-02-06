@@ -17,7 +17,6 @@ import random
 from math import sin, cos, pi
 import numbers
 import numpy as np
-from PIL import Image
 import torch
 
 
@@ -85,6 +84,8 @@ class FusedColorJitterApply(object):
         return img.reshape(H, W, C)
 
     def __call__(self, img):
+        from PIL import Image
+
         transform_matrix, transform_offset = self.get_random_transform_matrix(
             self.hue, self.saturation, self.contrast, self.brightness
         )
@@ -177,6 +178,8 @@ class FusedColorJitter(torch.nn.Module):
 
 
 if __name__ == '__main__':
+    from PIL import Image
+
     image = Image.fromarray(torch.randint(0, 256, size=(224, 224, 3)).numpy().astype(np.uint8))
     fcj = FusedColorJitter(0.1, 0.1, 0.1, 0.1)
     image = fcj(image)
