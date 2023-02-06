@@ -28,6 +28,8 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 
+extern std::atomic<bool> global_enable_profiling;
+
 namespace at_npu
 {
   namespace native
@@ -144,6 +146,10 @@ namespace at_npu
         bool sync, 
         c10::SmallVector<int64_t, N> &sync_index, 
         c10::SmallVector<at::Tensor, N> &outputTensor) {
+      bool enable_profiling = global_enable_profiling.load(std::memory_order_relaxed);
+      if (enable_profiling) {
+        NpuUtils::ReportCannOpToMsProfiler(name);
+      }
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();

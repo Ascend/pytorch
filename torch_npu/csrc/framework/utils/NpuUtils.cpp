@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -276,6 +277,21 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
 void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
   TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ",
               t.dim(), "-D");
+}
+
+void NpuUtils::ReportCannOpToMsProfiler(const std::string &msg) {
+  using namespace at_npu::native;
+  void *local_stamp = AclprofCreateStamp();
+  if (local_stamp == nullptr) {
+    return;
+  }
+  static const std::string tag_name = "torch_cann_op";
+  do {
+    if (AclprofSetStampTagName(local_stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE) break;
+    if (AclprofSetStampTraceMessage(local_stamp, msg.c_str(), msg.size()) != ACL_ERROR_NONE) break;
+    if (at_npu::native::AclprofMark(local_stamp) != ACL_ERROR_NONE) break;
+  } while (0);
+  at_npu::native::AclprofDestroyStamp(local_stamp);
 }
 
 const std::string AclDateTypeToString(aclDataType descDType)

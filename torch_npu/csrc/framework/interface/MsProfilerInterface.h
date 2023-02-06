@@ -25,6 +25,9 @@ namespace native {
 void *AclprofCreateStamp();
 
 void AclprofDestroyStamp(void *stamp);
+
+aclError AclprofSetStampTagName(void *stamp, const char *tagName, uint16_t len);
+
 aclError AclprofSetCategoryName(uint32_t category, const char *categoryName);
 
 aclError AclprofSetStampCategory(void *stamp, uint32_t category);
