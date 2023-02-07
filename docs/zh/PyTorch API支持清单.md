@@ -570,6 +570,7 @@
 |                                                     | argmin                              | 是                                                           |
 |                                                     | amax                                | 是                                                           |
 |                                                     | amin                                | 是                                                           |
+|                                                     | aminmax                             | 是                                                           |
 |                                                     | all                                 | 是                                                           |
 |                                                     | any                                 | 是                                                           |
 |                                                     | max                                 | 是                                                           |
