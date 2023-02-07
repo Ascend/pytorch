@@ -71,10 +71,14 @@ bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, c
     }
     // When the dtype of indices is bool, if the number of outputs exceeds 5000, go to AICPU.
     if (indices[0].scalar_type() == at::kBool && result.numel() < 5000) {
+      // when x'shape is (n, 1), there exist abnormal execution in the model.
+      if (self.dim() == 2 && self.size(1) == 1) {
+        return false;
+      }
       // Relax the scene : the dtype of indices is bool, and x'shape is equal to indices's shape.
       // Relax the scene : the dtype of indices is bool, and x'shape is (n, m) and indices's shape is (n,) and m > 1.
       if (indices[0].sizes() == self.sizes() ||
-          (self.dim() == 2 && indices[0].size(0) == self.size(0) && indices[0].dim() == 1 && self.size(1) > 1)) {
+          (self.dim() == 2 && indices[0].size(0) == self.size(0) && indices[0].dim() == 1)) {
         return true;
       }
     } else if (indices[0].scalar_type() == at::kLong && indices[0].dim() == 1) {
