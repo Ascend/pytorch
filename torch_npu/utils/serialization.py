@@ -22,6 +22,7 @@ import torch_npu
 
 
 DEFAULT_PROTOCOL = 2
+RE_MAP_CPU = False
 
 
 def _npu_tag(obj):
@@ -32,7 +33,7 @@ def _npu_tag(obj):
 
 def validate_npu_device(location):
     device = torch.device(location)
-    index = device.index
+    index = device.index if device.index else 0
     if not torch_npu.npu.is_available():
         raise RuntimeError('Attempting to deserialize object on a NPU '
                            'device but torch_npu.npu.is_available() is False. '
@@ -58,8 +59,15 @@ def _npu_deserialize(obj, location):
 
 def normalize_map_location_type(map_location):
     if isinstance(map_location, torch_npu.utils.device_guard.device):
-        map_location = map_location.type + ':' + str(map_location.index)
-    return map_location
+        return map_location.type + ':' + str(map_location.index if map_location.index else 0)
+    return str(map_location)
+
+
+def update_cpu_remap_info(map_location):
+    global RE_MAP_CPU
+    RE_MAP_CPU = False
+    if 'cpu' in map_location:
+        RE_MAP_CPU = True
 
 
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=True):
@@ -90,6 +98,8 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     The loaded data.
     """
     map_location = normalize_map_location_type(map_location)
+
+    update_cpu_remap_info(map_location)
     
     se._check_dill_version(pickle_module)
 
