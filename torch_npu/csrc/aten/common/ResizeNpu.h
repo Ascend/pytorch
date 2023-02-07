@@ -73,9 +73,9 @@ static void storage_resize_npu(
     if (copy_size > 0) {
       aclError error = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
           storage,
-          itemsize * copy_size,
+          copy_size,
           old_data.get(),
-          itemsize * copy_size,
+          copy_size,
           ACL_MEMCPY_DEVICE_TO_DEVICE);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
