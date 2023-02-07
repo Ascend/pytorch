@@ -69,11 +69,11 @@ bool is_aicpu_valid(const at::Tensor& self,
       }
     }
   }
-  // value size over 100 may cause aicore failed
+  // Value size over 100 may cause aicore failed.
   if (allDefinedIndices.size() == 1 && self.dim() == 1 && allDefinedIndices[0].sizes()[0] < 100) {
     return false;
   }
-  // Using AICPU when value need broadcast, otherwise AICPU.
+  // Using AICPU when value need broadcast, otherwise AICORE.
   if (allDefinedIndices.size() < self.dim()) {
     if (value.dim() != self.dim()) {
       return true;
@@ -85,7 +85,7 @@ bool is_aicpu_valid(const at::Tensor& self,
       }
     }
   }
-  if (reserver_dim > 100) {
+  if (reserver_dim > 100 || value.sizes()[0] > 100) {
     return true;
   }
   if (allDefinedIndices[0].sizes()[0] == 1 && value.sizes()[0] == 0) {
