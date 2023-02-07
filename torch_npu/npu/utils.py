@@ -143,7 +143,7 @@ def device_count():
 def set_device(device):
     if isinstance(device, str) and 'npu' in device:
         device = device.replace('npu', torch_npu.npu.native_device)
-    if isinstance(device, torch._C.device):
+    if isinstance(device, torch.device):
         torch_npu._C._npu_setDevice(device.index)
     elif torch.device(device) :
         torch_npu._C._npu_setDevice(torch.device(device).index)
@@ -188,7 +188,7 @@ def _get_device_index(device, optional=False):
         else:
             device = torch.device(device)
     device_idx = None
-    if isinstance(device, torch._C.device):
+    if isinstance(device, torch.device):
         # _get_device_index could be called from usrs(device="npu") or inner funcs(device="xla").
         # APIs like torch_npu.npu.synchronize would call torch.device, 
         # which has already changed the key from npu to xla.
