@@ -23,14 +23,18 @@ from torch.overrides import has_torch_function_unary, handle_torch_function, has
 from torch._namedtensor_internals import check_serializing_named_tensor
 
 import torch_npu
+from . import serialization
 
 
-def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_storage_info=True):
+def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_storage_info):
     tensor = _rebuild_tensor(storage, storage_offset, size, stride)
     tensor.requires_grad = requires_grad
     tensor._backward_hooks = backward_hooks
-    if npu_storage_info:
-        tensor = tensor.npu()
+    if not serialization.RE_MAP_CPU:
+        if isinstance(npu_storage_info, bool):
+            tensor = tensor.npu()
+        else:
+            tensor = torch_npu.npu_format_cast(tensor.npu(), npu_storage_info)
     return tensor
 
 
@@ -50,8 +54,8 @@ def _reduce_ex(self, proto):
         torch.utils.hooks.warn_if_has_hooks(self)
         backward_hooks: Dict[Any, Any] = OrderedDict()
         if self.device.type == 'npu':
+            npu_storage_format = torch_npu.get_npu_format(self)
             storage_info = self.cpu().storage()
-            storage_info.is_npu = True
             device_info = 'npu:' + str(self.device.index)
             arg_npu  = (storage_info,
                         self.storage_offset(),
@@ -59,7 +63,7 @@ def _reduce_ex(self, proto):
                         self.stride(),
                         self.requires_grad,
                         backward_hooks,
-                        storage_info.is_npu)
+                        npu_storage_format)
             return (_rebuild_npu_tensor, arg_npu)
         return self._reduce_ex_internal(proto)
     relevant_args = (self,)
