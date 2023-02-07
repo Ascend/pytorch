@@ -36,7 +36,7 @@ class _NpuMultiDeviceReplicator(_MultiDeviceReplicator):
     def __init__(self, master_tensor: torch.Tensor) -> None:
         assert master_tensor.is_npu
         self.master = master_tensor
-        self._per_device_tensors: Dict[torch.device, torch.Tensor] = {}
+        self._per_device_tensors = {}
 
 
 class GradScaler(Cuda_GradScaler):
