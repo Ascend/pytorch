@@ -590,7 +590,8 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   PyObject *value_1 = nullptr;
   PyObject *value_2 = nullptr;
   PyObject *value_3 = nullptr;
-  if(!PyArg_ParseTuple(args, "OOO", &value_1, &value_2, &value_3)) {
+  PyObject *value_4 = nullptr;
+  if(!PyArg_ParseTuple(args, "OOOO", &value_1, &value_2, &value_3, &value_4)) {
     throw torch::TypeError("e2eProfiler set path or option error.");
   }
   const char *dump_path = PyUnicode_AsUTF8(value_1);
@@ -600,7 +601,8 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   uint64_t npu_event = THPUtils_unpackLong(value_2);
   uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
   pybind11::gil_scoped_release no_gil;
-  torch_npu::profiler::InitE2eProfiler(dump_path, npu_event, aicore_metrics);
+  bool call_stack = THPUtils_unpackBool(value_4);
+  torch_npu::profiler::InitE2eProfiler(dump_path, npu_event, aicore_metrics, call_stack);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

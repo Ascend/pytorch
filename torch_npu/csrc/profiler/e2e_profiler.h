@@ -29,16 +29,25 @@
 namespace torch_npu {
 namespace profiler {
 
+struct FileLineFunc {
+    std::string filename;
+    size_t line;
+    std::string funcname;
+};
+
 void InitMsPorf(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics);
 
 void PushStartTime(at::RecordFunction& fn);
 void PopEndTime(const at::RecordFunction& fn);
 
-void InitE2eProfiler(const std::string dump_path,  uint64_t npu_event, uint64_t aicore_metrics);
+void InitE2eProfiler(const std::string dump_path,  uint64_t npu_event, uint64_t aicore_metrics, bool call_stack);
 
 void FinalizeE2eProfiler();
 
+std::vector<FileLineFunc> prepareCallstack(const std::vector<torch::jit::StackEntry> &cs);
+
+std::vector<std::string> callstack2Str(const std::vector<FileLineFunc> &cs);
 } // namespace profiler
 } // namespace torch_npu
 

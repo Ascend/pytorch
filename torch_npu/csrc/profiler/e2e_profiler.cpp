@@ -17,6 +17,8 @@
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include <third_party/acl/inc/acl/acl_prof.h>
+#include <torch/csrc/jit/frontend/tracer.h>
+#include <torch/csrc/jit/runtime/interpreter.h>
 #include <mutex>
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
@@ -28,6 +30,34 @@ namespace torch_npu {
 namespace profiler {
 
 aclprofConfig* local_profCfg = nullptr;
+bool global_call_stack = false;
+
+std::vector<FileLineFunc> prepareCallstack(const std::vector<torch::jit::StackEntry> &cs) {
+  std::vector<FileLineFunc> entries;
+  entries.reserve(cs.size());
+  for (const auto& entry : cs) {
+    auto& range = entry.range;
+    if (range.source()) {
+      auto& src = range.source();
+      if (src && src->filename()) {
+        auto line = src->starting_line_no() + src->lineno_for_offset(range.start());
+        entries.emplace_back(FileLineFunc{*(src->filename()), line, entry.filename});
+      }
+    }
+  }
+  return entries;
+}
+
+std::vector<std::string> callstack2Str(const std::vector<FileLineFunc> &cs) {
+  std::vector<std::string> cs_str;
+  cs_str.reserve(cs.size());
+  for (const auto& entry : cs) {
+    std::stringstream loc;
+    loc << entry.filename << "(" << entry.line << "):" << entry.funcname;
+    cs_str.push_back(loc.str());
+  }
+  return cs_str;
+}
 
 void CheckProfilerRet(aclError ret, const char* message) {
   static bool checkOnce = false;
@@ -111,6 +141,26 @@ void PushStartTime(at::RecordFunction& fn) {
   ret = at_npu::native::AclprofSetStampTraceMessage(
       local_stamp_, fn.name(), strlen(fn.name()));
   CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
+  if (global_call_stack) {
+    std::vector<std::string> py_stack;
+    if (fn.scope() != at::RecordScope::BACKWARD_FUNCTION) {
+      auto cs = prepareCallstack(torch::jit::currentCallstack());
+      if (cs.empty()) {
+        cs = prepareCallstack(torch::jit::tracer::pythonCallstack());
+      }
+      py_stack = callstack2Str(cs);
+    }
+    std::string call_stack_data;
+    for (size_t i = 0; i < py_stack.size(); i++) {
+      call_stack_data += py_stack[i];
+      call_stack_data += ((i == py_stack.size() - 1) ? "" : ";");
+    }
+    if (!call_stack_data.empty()) {
+      ret = at_npu::native::AclprofSetStampCallStack(local_stamp_, call_stack_data.c_str(), call_stack_data.size());
+      CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampCallTrace set warning."
+        " Try to install the matching Ascend Profiler.");
+    }
+  }
   uint32_t range_id_ = 0;
   ret = at_npu::native::AclprofRangeStart(local_stamp_, &range_id_);
   CheckProfilerRet(ret, "In npu e2e profiling, AclprofRangeStart failed.");
@@ -126,8 +176,9 @@ void PopEndTime(const at::RecordFunction& fn) {
 }
 
 void InitE2eProfiler(const std::string dump_path, uint64_t npu_event,
-    uint64_t aicore_metrics) {
+    uint64_t aicore_metrics, bool call_stack) {
   global_enable_profiling.store(true);
+  global_call_stack = call_stack;
   InitMsPorf(dump_path, npu_event, aicore_metrics);
   auto handle = at::addThreadLocalCallback(at::RecordFunctionCallback(
       [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
