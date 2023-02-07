@@ -72,7 +72,7 @@ __all__ = [
     "isend", "irecv", "send", "recv", "P2POp", "batch_isend_irecv", "broadcast", "all_reduce",
     "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
-    "_get_default_group", "_get_global_rank"
+    "_get_default_group", "_get_global_rank", "all_gather_togather"
 ]
 
 # Some reduce ops are not supported by complex numbers and will result in an error.
@@ -1236,6 +1236,63 @@ def all_gather(tensor_list,
         work = default_pg.allgather([tensor_list], [tensor])
     else:
         work = group.allgather([tensor_list], [tensor])
+
+    if async_op:
+        return work
+    else:
+        work.wait()
+
+def all_gather_togather(tensor_ouput,
+               tensor,
+               group=None,
+               async_op=False):
+    """
+    Gathers tensors from the whole group to a whole tensor.
+    This API is only used for `syncbn`, so use with caution.
+
+    Complex tensors are supported.
+
+    Args:
+        tensor_ouput (Tensor): Output tensor. It should contain 
+            correctly-sized tensors to be used for output of the collective.
+        tensor (Tensor): Tensor to be broadcast from current process.
+        group (ProcessGroup, optional): The process group to work on. If None,
+            the default process group will be used.
+        async_op (bool, optional): Whether this op should be an async op
+
+    Returns:
+        Async work handle, if async_op is set to True.
+        None, if not async_op or if not part of the group
+
+    Examples:
+        >>> # All tensors below are of torch.int64 dtype.
+        >>> # We have 2 process groups, 2 ranks.
+        >>> tensor_ouput = torch.zeros((rank, 2), dtype=torch.int64)
+        >>> tensor_ouput
+        tensor([[0, 0], [0, 0]]) # Rank 0, Rank 1
+        >>> tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * rank
+        >>> tensor
+        tensor([1, 2]) # Rank 0
+        tensor([3, 4]) # Rank 1
+        >>> dist.all_gather_togather(tensor_ouput, tensor)
+        >>> tensor_ouput
+        tensor([[1, 2], [3, 4]]) # Rank 0
+        tensor([[1, 2], [3, 4]]) # Rank 1
+
+    """
+    _check_single_tensor(tensor_ouput, "tensor_ouput")
+    _check_single_tensor(tensor, "tensor")
+    if _rank_not_in_group(group):
+        return
+
+    tensor_ouput = tensor_ouput if not tensor_ouput.is_complex() else torch.view_as_real(tensor_ouput)
+    tensor = tensor if not tensor.is_complex() else torch.view_as_real(tensor)
+
+    if group is None:
+        default_pg = _get_default_group()
+        work = default_pg.allgather_togather([tensor_ouput], [tensor])
+    else:
+        work = group.allgather_togather([tensor_ouput], [tensor])
 
     if async_op:
         return work
