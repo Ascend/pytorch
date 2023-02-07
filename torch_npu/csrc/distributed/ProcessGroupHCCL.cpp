@@ -827,6 +827,37 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
       });
 }
 
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togather(
+    std::vector<at::Tensor>& outputTensors,
+    std::vector<at::Tensor>& inputTensors,
+    const c10d::AllgatherOptions& opts) {
+  check_npu_tensors_different_devices(inputTensors);
+  check_npu_tensors_different_devices(outputTensors);
+  auto inputTensors_ = cast_to_origin_format(inputTensors);
+
+  return collective(
+      inputTensors_,
+      outputTensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclAllgatherTogather", std::vector<c10::IValue>({input}));
+        c10_npu::NPUCachingAllocator::recordStream(
+            output.storage().data_ptr(), stream);
+        return HcclAllGather(
+            input.data_ptr(),
+            output.data_ptr(),
+            getNumelForHCCL(input),
+            getHcclDataType(input.scalar_type()),
+            comm,
+            stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {}
+      );
+}
+
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
     at::Tensor& /* unused */,
     at::Tensor& /* unused */,

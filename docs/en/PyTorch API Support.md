@@ -375,6 +375,7 @@
 | 255  | torch.trapz                            | Supported                                                          |
 | 256  | torch.triangular_solve                 | Supported                                                          |
 | 257  | torch.vdot                             | Supported                                                          |
+| 258  | torch.aminmax                          | Supported                                                          |
 
 ## Utilities
 

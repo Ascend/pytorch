@@ -31,6 +31,7 @@ namespace native {
 REGISTER_LIBRARY(libmsprofiler)
 LOAD_FUNCTION(aclprofCreateStamp)
 LOAD_FUNCTION(aclprofDestroyStamp)
+LOAD_FUNCTION(aclprofSetStampTagName)
 LOAD_FUNCTION(aclprofSetCategoryName)
 LOAD_FUNCTION(aclprofSetStampCategory)
 LOAD_FUNCTION(aclprofSetStampPayload)
@@ -62,6 +63,20 @@ void AclprofDestroyStamp(void *stamp) {
     TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStamp");
     func(stamp);
 }
+
+aclError AclprofSetStampTagName(void *stamp, const char *tagName, uint16_t len) {
+    typedef aclError(*AclprofSetStampTagNameFunc)(void *, const char *, uint16_t);
+    static AclprofSetStampTagNameFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclprofSetStampTagNameFunc)GET_FUNC(aclprofSetStampTagName);
+        if (func == nullptr) {
+            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTagName");
+    return func(stamp, tagName, len);
+}
+
 aclError AclprofSetCategoryName(uint32_t category, const char *categoryName) {
     typedef aclError(*AclprofSetCategoryNameFunc)(uint32_t, const char *);
     static AclprofSetCategoryNameFunc func = nullptr;

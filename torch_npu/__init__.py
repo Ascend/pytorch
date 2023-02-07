@@ -62,14 +62,15 @@ def _isinstance(obj, class_or_tuple):
     try:
         return builtin_isinstance(obj, class_or_tuple)
     except TypeError as e:
+        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
         if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
             type_str = str(obj.type())
             tensor_type = type_str.split('.')[-1]
-            class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
             if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
                 return eval(type_str) in class_tuple
-        if eval("torch.device") == class_or_tuple:
-            return builtin_isinstance(obj, torch._C.device) or builtin_isinstance(obj, torch_npu._C.device)
+
+        if torch._C.device in class_tuple or torch_npu._C.device in class_tuple:
+            return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
         raise e
 
 builtins.isinstance = _isinstance
