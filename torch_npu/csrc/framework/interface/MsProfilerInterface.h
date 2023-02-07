@@ -36,6 +36,8 @@ aclError AclprofSetStampPayload(void *stamp, const int32_t type, void *value);
 
 aclError AclprofSetStampTraceMessage(void *stamp, const char *msg, uint32_t msgLen);
 
+aclError AclprofSetStampCallStack(void *stamp, const char *callStack, uint32_t len);
+
 aclError AclprofMsproftxSwitch(bool isOpen);
 
 aclError AclprofMark(void *stamp);
