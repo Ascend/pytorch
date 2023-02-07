@@ -21,6 +21,7 @@ import torch.serialization as se
 import torch_npu
 
 DEFAULT_PROTOCOL = 2
+RE_MAP_CPU = False
 
 
 def _npu_tag(obj):
@@ -59,6 +60,13 @@ def normalize_map_location_type(map_location):
     return str(map_location)
 
 
+def update_cpu_remap_info(map_location):
+    global RE_MAP_CPU
+    RE_MAP_CPU = False
+    if 'cpu' in map_location:
+        RE_MAP_CPU = True
+
+
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=True):
     """Saves the input data into a file.
 
@@ -87,6 +95,8 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     The loaded data.
     """
     map_location = normalize_map_location_type(map_location)
+
+    update_cpu_remap_info(map_location)
     
     se._check_dill_version(pickle_module)
 

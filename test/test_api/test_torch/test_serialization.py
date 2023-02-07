@@ -73,10 +73,15 @@ class TestSerialization(TestCase):
             torch.save(x, path)
             self.assertExpectedInline(f'{x.device.type}:{x.device.index}', f'{torch_npu.npu.npu_device}:0')
             x_loaded = torch.load(path, map_location="npu:0")
-            x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             y_loaded = torch.load(path, map_location="npu")
             self.assertRtolEqual(x.cpu(), y_loaded.cpu())
+            z_loaded = torch.load(path, map_location=torch.device("npu"))
+            self.assertRtolEqual(x.cpu(), z_loaded.cpu())
+            m_loaded = torch.load(path, map_location="cpu")
+            self.assertRtolEqual(x.cpu(), m_loaded)
+            n_loaded = torch.load(path, map_location=torch.device("cpu"))
+            self.assertRtolEqual(x.cpu(), n_loaded)
     
     def test_load_maplocation(self):
         x = torch.randn(2, 3)
