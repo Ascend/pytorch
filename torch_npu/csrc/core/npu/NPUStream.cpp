@@ -57,6 +57,8 @@ struct LeakyStreamInternals {
   bool is_data_preprocess_stream = false;
 };
 
+static constexpr uint32_t kOpWaitTimeout = 1800U; // second
+
 // Global stream state and constants
 static c10::DeviceIndex num_npus = -1;
 static constexpr int kStreamsPerPoolBits = 3;
@@ -175,6 +177,7 @@ static void initGlobalStreamState() {
   auto& secondary_streamsi = secondary_streams[device_id];
   C10_NPU_CHECK(
       acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+  C10_NPU_CHECK(acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
 }
 
 static void initDeviceStreamState(c10::DeviceIndex device_index) {

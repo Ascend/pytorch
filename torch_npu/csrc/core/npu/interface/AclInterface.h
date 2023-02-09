@@ -54,6 +54,16 @@ const char *AclGetErrMsg();
 aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag);
 
 /**
+ * This API is used to set stream mode
+ */
+aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode);
+
+/**
+ * This API is used to set op wait timeout
+ */
+aclError AclrtSetOpWaitTimeout(uint32_t timeout);
+
+/**
  * @ingroup AscendCL
  * @brief create event instance
  *

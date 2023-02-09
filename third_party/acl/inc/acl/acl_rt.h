@@ -25,6 +25,9 @@ extern "C" {
 #define ACL_STREAM_FAST_LAUNCH 0x00000001u
 #define ACL_STREAM_FAST_SYNC   0x00000002u
 
+#define ACL_CONTINUE_ON_FAILURE 0x00000000u
+#define ACL_STOP_ON_FAILURE     0x00000001u
+
 typedef enum aclrtRunMode {
     ACL_DEVICE,
     ACL_HOST,
@@ -399,6 +402,18 @@ ACL_FUNC_VISIBILITY aclError aclrtResetDevice(int32_t deviceId);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetDevice(int32_t *deviceId);
+
+/**
+ * @ingroup AscendCL
+ * @brief set stream failure mode
+ *
+ * @param stream [IN]  the stream to set
+ * @param mode [IN]  stream failure mode
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode);
 
 /**
  * @ingroup AscendCL
