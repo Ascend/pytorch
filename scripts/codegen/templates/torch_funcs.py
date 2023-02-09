@@ -55,6 +55,11 @@ def _npu_dropout_gen_mask(*args, **kwargs):
     return torch_npu.npu_dropout_gen_mask(*args, **kwargs)
 
 
+@torch_device_guard
+def _new_device(*args, **kwargs):
+    return torch_npu._C.device(*args, **kwargs)
+
+
 def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
     # (Ascend) Disable extension of torch.jit.script
     return obj
@@ -84,5 +89,6 @@ def add_torch_funcs():
     torch.npu_dropout_gen_mask = _npu_dropout_gen_mask
     torch.jit.script = jit_script
     torch.as_tensor = _as_tensor
+    torch.new_device = _new_device
 
 ${device_methods_def_py}
