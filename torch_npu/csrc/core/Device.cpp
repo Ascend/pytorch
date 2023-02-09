@@ -33,6 +33,7 @@
 #include <structmember.h>
 #include <sstream>
 
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/Device.h"
 
 PyObject *TNPDevice_New(const at::Device& device)
@@ -83,22 +84,23 @@ PyObject *TNPDevice_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
-    "Device(Device device)",
+    "Device(PyObject* device)",
     "Device(std::string type, int64_t? index=-1)"
   });
   torch::ParsedArgs<2> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
+
   if (r.idx == 0) {
-    auto device = at_npu::key::parse_npu_device(r.args[0]);
-    return TNPDevice_New(device);
-  } else if (r.idx == 1) {
-    auto as_device = at_npu::key::parse_npu_device(r.args[0]);
+    auto as_device = at_npu::key::parse_npu_device(r.pyobject(0));
+    return TNPDevice_New(as_device); 
+  } else {
+    auto as_device = at_npu::key::parse_npu_device(r.args[0]);  // this works, because device can take strings
     auto device_type = r.string(0);
-    if (as_device.has_index()) {
+    if (as_device.has_index() && !r.isNone(1)) {
       throw std::runtime_error("type (string) must not include an index because index "
                                 "was passed explicitly: " + device_type);
     }
-    int32_t device_index = -1;
+    int32_t device_index = as_device.has_index() ? as_device.index() : -1;
     if (!r.isNone(1)) {
       device_index = r.toInt64(1);
       // -1 is allowed in ATen/C++, to mean the default device, but not in
