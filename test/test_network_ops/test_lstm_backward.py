@@ -13,15 +13,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
 import copy
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestLstmBackward(TestCase):
+
     def test_lstm_backward(self, device="npu"):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
@@ -103,6 +107,33 @@ class TestLstmBackward(TestCase):
             npu_dx = npu_input1.grad
 
             self.assertRtolEqual(cpu_dx.numpy(), npu_dx.cpu().to(torch.float).numpy(), prec=1.e-3)
+
+    def test_lstm_backward_output_shape(self):
+        cpu_lstm = torch.nn.LSTM(input_size=512, hidden_size=512, num_layers=2, bias=True,
+            batch_first=True, dropout=0.1, bidirectional=False)
+        cpu_lstm.training = False
+        npu_lstm = copy.deepcopy(cpu_lstm).npu()
+        shape_format = [
+            [np.float16, 2, (8, 1, 512)], # the operator uses fp16  for calculation.
+            [np.float16, 2, (2, 8, 512)],
+        ]
+        cpu_input1, npu_input1 = create_common_tensor(shape_format[0], 0, 1)
+        cpu_input2, npu_input2 = create_common_tensor(shape_format[1], 0, 1)
+        cpu_input3, npu_input3 = create_common_tensor(shape_format[1], 0, 1)
+        cpu_input1.requires_grad = True
+        cpu_input2.requires_grad = True
+        cpu_input3.requires_grad = True
+        npu_input1.requires_grad = True
+        npu_input2.requires_grad = True
+        npu_input3.requires_grad = True
+
+        cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1.type(torch.float32),
+            (cpu_input2.type(torch.float32), cpu_input3.type(torch.float32))) 
+        npu_output_y, (npu_output_h, npu_output_c) = npu_lstm(npu_input1.type(torch.float32),
+            (npu_input2.type(torch.float32), npu_input3.type(torch.float32)))
+        cpu_output_y.sum().backward()
+        npu_output_y.sum().backward()
+        self.assertRtolEqual(npu_input1.grad.cpu().numpy(), cpu_input1.grad.numpy(), prec=1.e-3)
 
 if __name__ == "__main__":
     run_tests() 
