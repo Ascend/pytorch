@@ -16,16 +16,15 @@
 
 import warnings
 from collections import defaultdict
+import collections.abc as container_abcs
 from typing import Dict, List
 
 import torch
 import torch.distributed as dist
-import collections.abc as container_abcs
-from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, _refresh_per_optimizer_state
+from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, \
+    _refresh_per_optimizer_state
 from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
-
 import torch_npu
-from torch_npu.npu import get_npu_overflow_flag, clear_npu_overflow_flag
 from .common import amp_definitely_not_available
 
 
@@ -144,6 +143,12 @@ class GradScaler(Cuda_GradScaler):
         print("{:22} : {}".format("growth_interval", growth_interval))
         print("{:22} : {}".format("dynamic", dynamic))
         print("{:22} : {}".format("enabled", enabled))
+    
+    def _lazy_init_scale_growth_tracker(self, dev):
+        assert self._growth_tracker is None, "_growth_tracker initialized before _scale"
+        self._scale = torch.full((1,), self._init_scale, dtype=torch.float32).pin_memory().to(dev, non_blocking=True)
+        self._growth_tracker = torch.full((1,), self._init_growth_tracker, dtype=torch.int32)
+        self._growth_tracker = self._growth_tracker.pin_memory().to(dev, non_blocking=True)
 
     def _lazy_init_dist_flag_and_dist_overflow_count(self):
         assert self._dist_overflow_count is None, "_dist_overflow_count initialized before _scale"
@@ -173,7 +178,7 @@ class GradScaler(Cuda_GradScaler):
             assert self._dist_overflow_count is not None
 
         if self._dynamic and not self._clear_overflow_flag:
-            clear_npu_overflow_flag()
+            GradScaler.clear_npu_overflow_flag()
             self._clear_overflow_flag = True
 
         # Short-circuit for the common case.
@@ -217,7 +222,6 @@ class GradScaler(Cuda_GradScaler):
 
         # https://stackoverflow.com/questions/5029934/defaultdict-of-defaultdict
         # Google says mypy struggles with defaultdicts type annotations.
-        
         per_device_and_dtype_grads = defaultdict(lambda: defaultdict(list))
         with torch.no_grad():
             if self._dynamic:
@@ -238,7 +242,6 @@ class GradScaler(Cuda_GradScaler):
                         else:
                             to_unscale = param.grad
 
-                        # TODO: is there a way to split by device and dtype without appending in the inner loop?
                         per_device_and_dtype_grads[to_unscale.device][to_unscale.dtype].append(to_unscale)
 
                 for device, per_dtype_grads in per_device_and_dtype_grads.items():
@@ -304,7 +307,7 @@ class GradScaler(Cuda_GradScaler):
         # FP32 division can be imprecise for certain compile options, so we carry out the reciprocal in FP64.
         assert self._scale is not None
         inv_scale = self._scale.float().reciprocal()
-        found_inf = torch.full((1,), 0.0, dtype=torch.float32, device=self._scale.device)
+        found_inf = torch.full((1,), 0.0, dtype=torch.float32).pin_memory().to(self._scale.device, non_blocking=True)
 
         optimizer_state["found_inf_per_device"] = self._unscale_grads_(optimizer, inv_scale, found_inf, False)
         optimizer_state["stage"] = OptState.UNSCALED
@@ -315,6 +318,66 @@ class GradScaler(Cuda_GradScaler):
             retval = optimizer.step(*args, **kwargs)
         else:
             print("Gradient overflow. Skipping step")
+        return retval
+        
+    def step(self, optimizer, *args, **kwargs):
+        """
+        :meth:`step` carries out the following two operations:
+
+        1.  Internally invokes ``unscale_(optimizer)`` (unless :meth:`unscale_` was explicitly called for ``optimizer``
+            earlier in the iteration).  As part of the :meth:`unscale_`, gradients are checked for infs/NaNs.
+        2.  If no inf/NaN gradients are found, invokes ``optimizer.step()`` using the unscaled
+            gradients.  Otherwise, ``optimizer.step()`` is skipped to avoid corrupting the params.
+
+        ``*args`` and ``**kwargs`` are forwarded to ``optimizer.step()``.
+
+        Returns the return value of ``optimizer.step(*args, **kwargs)``.
+
+        Args:
+            optimizer (torch.optim.Optimizer):  Optimizer that applies the gradients.
+            args:  Any arguments.
+            kwargs:  Any keyword arguments.
+
+        .. warning::
+            Closure use is not currently supported.
+        """
+        if (not self._enabled):
+            return optimizer.step(*args, **kwargs)
+
+        if "closure" in kwargs:
+            raise RuntimeError("Closure use is not currently supported if GradScaler is enabled.")
+
+        self._check_scale_growth_tracker("step")
+
+        optimizer_state = self._per_optimizer_states[id(optimizer)]
+
+        if optimizer_state["stage"] is OptState.STEPPED:
+            raise RuntimeError("step() has already been called since the last update().")
+
+        retval = None
+
+        if (hasattr(optimizer, "_step_supports_amp_scaling") and optimizer._step_supports_amp_scaling):
+            # This optimizer has customized scale-handling logic, so we can call optimizer.step() directly.
+            # The contract with custom optimizers is that their step() should accept an additional,
+            # optional grad_scaler kwarg.  We append self to the kwargs so the custom optimizer has full information:
+            # it can query its own state, invoke unscale_ on itself, etc
+            retval = optimizer.step(*args, **dict(kwargs, grad_scaler=self))
+            optimizer_state["stage"] = OptState.STEPPED
+            return retval
+
+        if optimizer_state["stage"] is OptState.READY:
+            self.unscale_(optimizer)
+
+        assert len(optimizer_state["found_inf_per_device"]) > 0, "No inf checks were recorded for this optimizer."
+        
+        if self._dynamic:
+            retval = self._maybe_opt_step(optimizer, optimizer_state, *args, **kwargs)
+            optimizer_state["stage"] = OptState.STEPPED
+            return retval
+        
+        retval = optimizer.step(*args, **kwargs)
+        optimizer_state["stage"] = OptState.STEPPED
+
         return retval
 
     def update(self, new_scale=None):
@@ -342,7 +405,8 @@ class GradScaler(Cuda_GradScaler):
         if new_scale is not None:
             # Accept a new user-defined scale.
             if isinstance(new_scale, float):
-                self._scale = torch.full((1,), new_scale, dtype=torch.float32, device=_scale.device)
+                self._scale = torch.full((1,), new_scale, dtype=torch.float32)
+                self._scale = self._scale.pin_memory().to(_scale.device, non_blocking=True)
             else:
                 reason = "new_scale should be a float or a 1-element torch.npu.FloatTensor with requires_grad=False."
                 assert isinstance(new_scale, torch.npu.FloatTensor), reason  # type: ignore[attr-defined]
@@ -373,6 +437,20 @@ class GradScaler(Cuda_GradScaler):
 
         super(GradScaler, self).load_state_dict(state_dict)
         self._dynamic = state_dict["dynamic"]
+
+    @staticmethod
+    def get_npu_overflow_flag():
+        float_status = torch.zeros(8).pin_memory().to('npu', non_blocking=True)
+        result = torch_npu.npu_get_float_status(float_status)
+        if (float_status.cpu()[0] != 0):
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def clear_npu_overflow_flag():
+        float_status = torch.zeros(8).pin_memory().to('npu', non_blocking=True)
+        result = torch_npu.npu_clear_float_status(float_status)
 
     def _sync_dist_overflow_count(self):
         if self._dynamic and self._dist_initialized:
