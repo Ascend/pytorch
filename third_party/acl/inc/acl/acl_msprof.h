@@ -38,6 +38,8 @@ ACL_FUNC_VISIBILITY aclError aclprofSetStampPayload(void *stamp, const int32_t t
 
 ACL_FUNC_VISIBILITY aclError aclprofSetStampTraceMessage(void *stamp, const char *msg, uint32_t msgLen);
 
+ACL_FUNC_VISIBILITY aclError aclprofSetStampCallTrace(void *stamp, const char *callTrace, uint32_t len);
+
 ACL_FUNC_VISIBILITY aclError aclprofMsproftxSwitch(bool isOpen);
 
 ACL_FUNC_VISIBILITY aclError aclprofMark(void *stamp);
