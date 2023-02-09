@@ -33,6 +33,8 @@ aclError aclmdlFinalizeDump(){return 0;}
 
 // Stream
 aclError aclrtCreateStream(aclrtStream *stream) { return 0; }
+aclError aclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode) { return 0; }
+aclError aclrtSetOpWaitTimeout(uint32_t timeout) { return 0; }
 aclError aclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag) { return 0; }
 aclError aclrtDestroyStream(aclrtStream stream){return 0;}
 aclError aclrtSynchronizeStream(aclrtStream stream){return 0;}

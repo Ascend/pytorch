@@ -191,9 +191,7 @@ void syncStreams(
 
 // exit call back for allreduce error
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
-  std::string err = "AllReduce error in:" + std::string(__FILE__) + ": " +
-      std::to_string(__LINE__);
-  throw std::runtime_error(err);
+  ASCEND_LOGE("AllReduce error");
 }
 } // namespace
 
@@ -313,6 +311,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
       store_(store),
       options_(options),
       hcclCommCounter_(0),
+      opTimeout_(options->opTimeout),
       terminateWatchdog_(false) {
   char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
   try {

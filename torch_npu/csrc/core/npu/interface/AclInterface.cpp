@@ -29,6 +29,8 @@ LOAD_FUNCTION(aclprofCreateConfig)
 LOAD_FUNCTION(aclprofDestroyConfig)
 LOAD_FUNCTION(aclrtGetSocName)
 LOAD_FUNCTION(aclrtCreateStream)
+LOAD_FUNCTION(aclrtSetStreamFailureMode)
+LOAD_FUNCTION(aclrtSetOpWaitTimeout)
 LOAD_FUNCTION(aclrtCreateStreamWithConfig)
 LOAD_FUNCTION(aclrtSetDeviceSatMode)
 LOAD_FUNCTION(aclrtSetStreamOverflowSwitch)
@@ -98,10 +100,39 @@ aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uin
     func = (aclrtCreateStreamWithConfigFunc)GET_FUNC(aclrtCreateStreamWithConfig);
   }
 
+  aclError ret;
   if (func != nullptr) {
-    return func(stream, priority, flag);
+    ret = func(stream, priority, flag);
+  } else {
+    ret = aclrtCreateStream(stream);
   }
-  return aclrtCreateStream(stream);
+  if (ret == ACL_SUCCESS && stream != nullptr) {
+    return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
+  } else {
+    return ret;
+  }
+}
+
+aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode) {
+  if (stream == nullptr) { // default stream
+    return ACL_ERROR_INVALID_PARAM;
+  }
+  typedef aclError(*aclrtSetStreamFailureModeFunc)(aclrtStream, uint64_t);
+  static aclrtSetStreamFailureModeFunc func = (aclrtSetStreamFailureModeFunc)GET_FUNC(aclrtSetStreamFailureMode);
+  if (func == nullptr) {
+    return ACL_SUCCESS;
+  }
+  return func(stream, mode);
+}
+
+aclError AclrtSetOpWaitTimeout(uint32_t timeout) {
+  typedef aclError(*aclrtSetOpWaitTimeoutFunc)(uint32_t);
+  static aclrtSetOpWaitTimeoutFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclrtSetOpWaitTimeoutFunc)GET_FUNC(aclrtSetOpWaitTimeout);
+  }
+  TORCH_CHECK(func, "Failed to find function aclrtSetOpWaitTimeout");
+  return func(timeout);
 }
 
 aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
