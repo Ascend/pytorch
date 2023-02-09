@@ -36,6 +36,7 @@ LOAD_FUNCTION(aclprofSetCategoryName)
 LOAD_FUNCTION(aclprofSetStampCategory)
 LOAD_FUNCTION(aclprofSetStampPayload)
 LOAD_FUNCTION(aclprofSetStampTraceMessage)
+LOAD_FUNCTION(aclprofSetStampCallStack)
 LOAD_FUNCTION(aclprofMsproftxSwitch)
 LOAD_FUNCTION(aclprofMark)
 LOAD_FUNCTION(aclprofPush)
@@ -115,6 +116,19 @@ aclError AclprofSetStampTraceMessage(void *stamp, const char *msg, uint32_t msgL
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTraceMessage");
     return func(stamp, msg, msgLen);
+}
+
+aclError AclprofSetStampCallStack(void *stamp, const char *callStack, uint32_t len) {
+    typedef aclError(*AclprofSetStampCallStackFunc)(void *, const char *, uint32_t);
+    static AclprofSetStampCallStackFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclprofSetStampCallStackFunc)GET_FUNC(aclprofSetStampCallStack);
+        if (func == nullptr) {
+            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampCallStack");
+    return func(stamp, callStack, len);
 }
 
 aclError AclprofMsproftxSwitch(bool isOpen) {

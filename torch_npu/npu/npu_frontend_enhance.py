@@ -139,11 +139,12 @@ class aiCoreMetrics(object):
 class profileConfig(object):
     def __init__(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,
                 ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True,
-                ACL_PROF_TRAINING_TRACE=False, aiCoreMetricsType=0):
+                ACL_PROF_TRAINING_TRACE=False, aiCoreMetricsType=0, TORCH_CALL_STACK=False):
         self.NpuEventConfig = npuEvent().update(ACL_PROF_ACL_API, ACL_PROF_TASK_TIME, ACL_PROF_AICORE_METRICS,
                                                 ACL_PROF_AICPU, ACL_PROF_L2CACHE, ACL_PROF_HCCL_TRACE,
                                                 ACL_PROF_TRAINING_TRACE)
         self.AiCoreMetricsConfig = aiCoreMetricsType
+        self.TorchCallStack=TORCH_CALL_STACK
 
 
 class profile(object):
@@ -165,7 +166,7 @@ class profile(object):
         if self.use_e2e_profiler:
             torch_npu._C._enable_e2e_profiler(self.result_path,
                                             self.config.NpuEventConfig | npuEvent().ACL_PROF_MSPROFTX,
-                                            self.config.AiCoreMetricsConfig)
+                                            self.config.AiCoreMetricsConfig, self.config.TorchCallStack)
         else:
             prof_init(self.result_path)
             prof_start(self.config)
