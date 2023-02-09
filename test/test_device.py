@@ -35,6 +35,8 @@ class TestDevice(TestCase):
                 npu_tensor = func(self, *args, **kwargs)
                 self.assertEqual(npu_tensor.device.type, "npu")
                 self.assertEqual(npu_tensor.device.index, device_id)
+            kwargs["device"] = None
+            func(self, *args, **kwargs)
         return wrapper
 
 
@@ -66,6 +68,10 @@ class TestDevice(TestCase):
             device = torch.device(device)
         cpu_input = torch.randn(2,3)
         return cpu_input.npu(device)
+
+    @device_monitor
+    def test_torch_func_tensor_with_device_input(self, device=None):
+        return torch.tensor((2, 3), device=device)
 
 
 if __name__ == '__main__':
