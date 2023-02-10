@@ -21,6 +21,7 @@ from .activations import Mish, SiLU, Swish
 from .bidirectional_lstm import BiLSTM
 from .ps_roi_pooling import PSROIPool
 from .ensemble_dropout import NpuFairseqDropout, NpuCachedDropout
+from .ensemble_dropout import NpuPreGenDropout
 from .multihead_attention import MultiheadAttention
 from .fusedcolorjitter import FusedColorJitter
 from .drop_path import NpuDropPath
@@ -42,6 +43,7 @@ __all__ = [
     "Swish",
     "NpuFairseqDropout",
     "NpuCachedDropout",
+    "NpuPreGenDropout",
     "MultiheadAttention",
     "FusedColorJitter",
     "NpuDropPath",
