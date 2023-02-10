@@ -25,7 +25,7 @@
 
 #include <ATen/Device.h>
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 struct TORCH_API TNPDevice {
   PyObject_HEAD
