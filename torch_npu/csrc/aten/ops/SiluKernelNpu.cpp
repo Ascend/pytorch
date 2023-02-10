@@ -29,6 +29,7 @@ at::Tensor& silu_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
   cmd.Name("Swish")
      .Input(self)
      .Output(result)
+     .Attr("scale", (float)1.0)
      .Run();
   return result;
 }
