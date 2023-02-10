@@ -14,7 +14,10 @@
 
 import os
 import warnings
+import inspect
+import builtins
 from functools import wraps
+from builtins import isinstance as builtin_isinstance
 import torch
 import torch_npu
 
@@ -31,6 +34,33 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
 
+NPU_TENSOR = set([
+    "FloatTensor", "IntTensor", "DoubleTensor",
+    "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
+
+def _isinstance(obj, class_or_tuple):
+    try:
+        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
+        class_list = []
+        for type_item in class_tuple:
+            if type_item is torch.device:
+                class_list.append(torch_npu._C.device)
+            else:
+                class_list.append(type_item)
+        return builtin_isinstance(obj, tuple(class_list))
+    except TypeError as e:
+        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
+        if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
+            type_str = str(obj.type())
+            tensor_type = type_str.split('.')[-1]
+            if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
+                return eval(type_str) in class_tuple
+
+        if torch._C.device in class_tuple or torch_npu._C.device in class_tuple:
+            return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
+        raise e
+
+builtins.isinstance = _isinstance
 
 def wrapper_cuda(fn):
     @wraps(fn)
