@@ -312,6 +312,7 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
         raise ValueError('SyncBatchNorm expected input tensor to be on NPU or GPU')
 
     self._check_input_dim(input1)
+    self._check_non_zero_input_channels(input1)
 
     # exponential_average_factor is set to self.momentum
     # (when it is available) only so that it gets updated
@@ -323,7 +324,7 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
 
     if self.training and self.track_running_stats:
         assert self.num_batches_tracked is not None
-        self.num_batches_tracked = self.num_batches_tracked + 1
+        self.num_batches_tracked.add_(1)
         if self.momentum is None:  # use cumulative moving average
             exponential_average_factor = 1.0 / self.num_batches_tracked.item()
         else:  # use exponential moving average
@@ -344,12 +345,15 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
     used for normalization (i.e. in eval mode when buffers are not None).
     """
     # If buffers are not to be tracked, ensure that they won't be updated
-    assert self.running_mean is None or isinstance(self.running_mean, torch.Tensor)
-    assert self.running_var is None or isinstance(self.running_var, torch.Tensor)
-    running_mean = self.running_mean if not self.training or self.track_running_stats else None
-    running_var = self.running_var if not self.training or self.track_running_stats else None
+    running_mean = (
+        self.running_mean if not self.training or self.track_running_stats else None
+    )
+    running_var = (
+        self.running_var if not self.training or self.track_running_stats else None
+    )
 
-    need_sync = bn_training
+    # Don't sync batchnorm stats in inference mode (model.eval()).
+    need_sync = (bn_training and self.training)
     if need_sync:
         process_group = torch.distributed.group.WORLD
         if self.process_group:
@@ -363,9 +367,6 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             input1, running_mean, running_var, self.weight, self.bias,
             bn_training, exponential_average_factor, self.eps)
     else:
-        if not self.ddp_gpu_size:
-            raise AttributeError('SyncBatchNorm is only supported within torch.nn.parallel.DistributedDataParallel')
-
         assert bn_training
         return sync_batch_norm.apply(
             input1, self.weight, self.bias, running_mean, running_var,
