@@ -26,6 +26,8 @@
 #include <torch/csrc/Device.h>
 #include <torch/csrc/tensor/python_tensor.h>
 
+#include "torch_npu/csrc/core/Device.h"
+
 namespace at_npu {
 namespace key {
 static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::XLA;
@@ -60,6 +62,8 @@ static at::Device parse_npu_device(PyObject* obj) {
     const auto device = reinterpret_cast<THPDevice*>(obj);
     return device->device;
   }
+  const auto device = reinterpret_cast<TNPDevice*>(obj);
+  return device->device;
 }
 
 static c10::optional<at::Device>  parse_npu_device_optional(PyObject* obj) {
