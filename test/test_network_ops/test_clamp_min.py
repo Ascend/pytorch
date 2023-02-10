@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -14,20 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestClampMin(TestCase):
+
     def generate_data(self, data):
         input1 = np.random.uniform(data[0], data[1], data[2]).astype(data[3])
 
-        #modify from numpy.ndarray to torch.tensor
+        # modify from numpy.ndarray to torch.tensor
         input1 = torch.from_numpy(input1)
-        
+
         return input1
 
     def npu_op_exec(self, input1, min_val):
@@ -104,10 +106,11 @@ class TestClampMin(TestCase):
 
         return output
 
-    def test_clamp_min_common(self, device="npu"):
+    def test_clamp_min_common(self):
         shape_format2 = [
-                [1, 100, (4, 3), np.float32],
-                [1, 100, (4, 3), np.int32],
+            [1, 100, (4, 3), np.float32],
+            [1, 100, (4, 3), np.int32],
+            [1, 100, (4, 3), np.int64],
         ]
         for item in shape_format2:
             input3 = self.generate_data(item)
@@ -129,9 +132,9 @@ class TestClampMin(TestCase):
             self.assertRtolEqual(cpu_output, npu_out_output)
             self.assertRtolEqual(cpu_inp_uncon_output, npu_inp_uncon_output)
 
-    def test_clamp_min_float16(self, device="npu"):
+    def test_clamp_min_float16(self):
         shape_format3 = [
-                [1, 100, (4, 3), np.float16],
+            [1, 100, (4, 3), np.float16],
         ]
         for item in shape_format3:
             input3 = self.generate_data(item)
