@@ -28,7 +28,7 @@ at::Tensor& clamp_min_out_npu_nocheck(
     at::Scalar min) {
   // Set max according to self.dtype()
   at::Scalar max;
-  if (self.dtype() == at::kInt) {
+  if (self.dtype() == at::kInt || self.dtype() == at::kLong) {
     max = INT_MAX;
   } else if (self.dtype() == at::kFloat) {
     max = FLT_MAX;
@@ -63,7 +63,7 @@ at::Tensor& NPUNativeFunctions::clamp_min_out(
 at::Tensor& NPUNativeFunctions::clamp_max_out(const at::Tensor& self, const at::Scalar& max, at::Tensor& result) {
   // Set min according to self.dtype()
   at::Scalar min;
-  if (self.dtype() == at::kInt) {
+  if (self.dtype() == at::kInt || self.dtype() == at::kLong) {
     min = INT_MIN;
   } else if (self.dtype() == at::kFloat) {
     min = -FLT_MAX;    
