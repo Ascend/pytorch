@@ -235,6 +235,21 @@ class TestIndex(TestCase):
             npu_output = self.npu_op_exec(npu_input, npu_index)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_index_different_device(self):
+        index = torch.tensor([[True, True], [False, False]])
+        cpu_input1 = torch.rand([2, 2], dtype=torch.float32)
+        npu_input1 = cpu_input1.npu()
+        cpu_output1 = self.cpu_op_exec(cpu_input1, index)
+        npu_output1 = self.npu_op_exec(npu_input1, index)
+        self.assertRtolEqual(cpu_output1, npu_output1)
+
+        cpu_input2 = torch.randn(15,5)
+        cpu_index2 = torch.randn(15,5) > 0.5
+        npu_index2 = cpu_index2.npu()
+        cpu_output2 = self.cpu_op_exec(cpu_input2, cpu_index2)
+        npu_output2 = self.npu_op_exec(cpu_input2, npu_index2)
+        self.assertRtolEqual(cpu_output2, npu_output2)
+
 
 if __name__ == "__main__":
     run_tests()
