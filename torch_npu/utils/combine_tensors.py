@@ -1,0 +1,85 @@
+# Copyright (c) 2020 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import torch
+import torch_npu
+
+
+def npu_combine_tensors(list_of_tensor, require_copy_value=True):
+    if len(list_of_tensor) == 0:
+        return None
+    if None in list_of_tensor:
+        raise RuntimeError("Tensors to combine must not have `None`.")
+
+    total_numel = 0
+    dtype = list_of_tensor[0].dtype
+    for tensor in list_of_tensor:
+        if tensor.dtype != dtype:
+            raise RuntimeError("Tensors to combine must have the same dtype.")
+        if tensor.device.type != "npu":
+            raise RuntimeError("Tensors to combine must be on NPU, got {}.".format(tensor.device.type))
+        total_numel += torch_npu.get_storage_size(tensor)
+
+    if total_numel == 0:
+        return None
+
+    combined_tensor = torch.zeros(total_numel, dtype=dtype).npu()
+
+    idx = 0
+    if require_copy_value:
+        for tensor in list_of_tensor:
+            temp = tensor.clone()
+            torch_npu.npu_change_data_ptr(tensor, combined_tensor, idx)
+            tensor.copy_(temp)
+            idx += torch_npu.get_storage_size(tensor)
+    else:
+        for tensor in list_of_tensor:
+            torch_npu.npu_change_data_ptr(tensor, combined_tensor, idx)
+            idx += torch_npu.get_storage_size(tensor)
+
+    return combined_tensor
+
+
+def get_part_combined_tensor(combined_tensor, index, size):
+    if combined_tensor is None or size == 0:
+        return None
+    
+    if (index + size) > torch_npu.get_storage_size(combined_tensor):
+        raise RuntimeError("(index + size) ({}) > torch_npu.get_storage_size(combined_tensor) ({})".format(
+                           index + size, torch_npu.get_storage_size(combined_tensor)))
+
+    part_tensor = torch.zeros(size, dtype=combined_tensor.dtype).npu()
+    torch_npu.npu_change_data_ptr(part_tensor, combined_tensor, index)
+
+    return part_tensor
+
+
+def is_combined_tensor_valid(combined_tensor, list_of_tensor):
+    if len(list_of_tensor) == 0:
+        return True
+    if combined_tensor is None:
+        return False
+
+    combined_tensor_start_addr = combined_tensor.data_ptr()
+    combined_tensor_end_addr = combined_tensor_start_addr + \
+                               torch_npu.get_storage_size(combined_tensor) * combined_tensor.element_size()
+    
+    for tensor in list_of_tensor:
+        if tensor is None or \
+            tensor.data_ptr() < combined_tensor_start_addr or \
+            tensor.data_ptr() >= combined_tensor_end_addr:
+            return False
+
+    return True

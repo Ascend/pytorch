@@ -887,6 +887,7 @@ autograd:
   - silu.out
 
 custom:
+  - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
   - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
   - func: npu_transpose.out(Tensor self, int[] perm, bool require_contiguous=True, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_broadcast(Tensor self, int[] size) -> Tensor
