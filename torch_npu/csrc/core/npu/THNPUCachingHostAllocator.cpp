@@ -22,7 +22,9 @@
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
+#ifndef BUILD_LIBTORCH
 #include <Python.h>
+#endif
 
 #include <cstdint>
 #include <deque>
@@ -353,6 +355,7 @@ void THNPUCachingHostAllocator_emptyCache() {
 }
 
 static void THNPUCachingHostDeleter(void* ptr) {
+#ifndef BUILD_LIBTORCH
   // check the current thread have hold GIL Lock.
   if (PyGILState_Check()) {
     // the current thread should not hold GIL.
@@ -362,6 +365,9 @@ static void THNPUCachingHostDeleter(void* ptr) {
   } else {
     allocator.free(ptr);
   }
+#else
+  allocator.free(ptr);
+#endif
 }
 
 struct THNPUCachingHostAllocator final : public at::Allocator {

@@ -20,6 +20,7 @@ NDIR="$CDIR/.."
 
 cd $NDIR/scripts
 
+build_libtorch="$1"
 
 cp -f codegen/native_functions.yaml codegen/native_functions.yaml_bk
 
@@ -35,11 +36,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-python3 -m codegen.gen_python_functions  \
-  --output_dir="$NDIR/torch_npu/csrc/aten/" \
-  --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
-  --native_yaml="$NDIR/scripts/codegen/native_functions.yaml" \
-  --template_path="$NDIR/scripts/codegen/templates"
+if [[  ${build_libtorch} != "True" ]]; then
+  python3 -m codegen.gen_python_functions  \
+    --output_dir="$NDIR/torch_npu/csrc/aten/" \
+    --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
+    --native_yaml="$NDIR/scripts/codegen/native_functions.yaml" \
+    --template_path="$NDIR/scripts/codegen/templates"
+fi
 
 if [ $? -ne 0 ]; then
   echo "Failed to generate python bindings."

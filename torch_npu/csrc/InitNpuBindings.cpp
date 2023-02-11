@@ -32,7 +32,7 @@
 #include "torch_npu/csrc/utils/TensorMethods.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
-#include "torch_npu/csrc/core/Device.h"
+#include "torch_npu/csrc/utils/Device.h"
 
 PyObject* module;
 

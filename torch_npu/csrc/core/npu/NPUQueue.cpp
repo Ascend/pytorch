@@ -2,8 +2,12 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
+#ifndef BUILD_LIBTORCH
 #include <Python.h>
+#endif
 
+#include <unistd.h>
+#include <sys/time.h>
 #include <sys/eventfd.h>
 #include <sys/prctl.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
@@ -202,12 +206,16 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         // the TE module attempts to obtain the GIL.
         // If the current thread does not release the GIL, a deadlock will
         // occur.
+#ifndef BUILD_LIBTORCH
         if (PyGILState_Check()) {
           Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_empty, &u);
           Py_END_ALLOW_THREADS
         } else {
           s = eventfd_read(efd_empty, &u);
         }
+#else
+        s = eventfd_read(efd_empty, &u);
+#endif
         if (s != 0) {
           if (errno == EINTR) {
             QUEUE_DEBUG("EINTR occurs on the eventfd_read");
@@ -301,6 +309,7 @@ void Repository::Enqueue(void* cur_paras) {
       SetWriteWorking(false);
       __sync_synchronize();
       if (IsFullQueue()) {
+#ifndef BUILD_LIBTORCH
         // double check the current thread hold a Gil lock
         if (PyGILState_Check()) {
           Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_write, &u);
@@ -308,6 +317,9 @@ void Repository::Enqueue(void* cur_paras) {
         } else {
           s = eventfd_read(efd_write, &u);
         }
+#else
+        s = eventfd_read(efd_write, &u);
+#endif
         if (s != 0) {
           if (errno == EINTR) {
             QUEUE_DEBUG("EINTR occurs on the eventfd_read");

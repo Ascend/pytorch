@@ -14,8 +14,9 @@
 // limitations under the License.
 
 #include "GraphExecutor.h"
-
+#ifndef BUILD_LIBTORCH
 #include <Python.h>
+#endif
 #include <ATen/ATen.h>
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/graph/util/ATenGeBridge.h"
@@ -103,7 +104,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
     NPU_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, input number = %zu, output number = %zu",
              cur_graph_id, is_cache.c_str(), input_number, output_number);
   }
-
+#ifndef BUILD_LIBTORCH
   // Release GIL to avoid deadlocks.
   if (PyGILState_Check()) {
     Py_BEGIN_ALLOW_THREADS
@@ -112,7 +113,9 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   } else {
     RunGraph(cur_graph_id, inputs.tensors, outputs.tensors);
   }
-
+#else
+  RunGraph(cur_graph_id, inputs.tensors, outputs.tensors);
+#endif
   ScalarMemContext::GetContext().Reset();
   ResetGraphOutputs();
   if (!is_cache_hit) {

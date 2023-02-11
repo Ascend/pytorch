@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include <ATen/record_function.h>
-#include <Python.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
@@ -27,8 +27,10 @@
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
-
+#ifndef BUILD_LIBTORCH
+#include <Python.h>
 extern std::atomic<bool> global_enable_profiling;
+#endif
 
 namespace at_npu
 {
@@ -130,6 +132,7 @@ namespace at_npu
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
+#ifndef BUILD_LIBTORCH
       if (PyGILState_Check()) {
         // we need to release GIL for NPU to compile op.
         Py_BEGIN_ALLOW_THREADS
@@ -138,7 +141,10 @@ namespace at_npu
       } else {
         ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
       }
-    }
+#else
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
+#endif
+      }
 
     aclError OpCommandImpl::InnerRun(
         string name, 
@@ -146,10 +152,12 @@ namespace at_npu
         bool sync, 
         c10::SmallVector<int64_t, N> &sync_index, 
         c10::SmallVector<at::Tensor, N> &outputTensor) {
+#ifndef BUILD_LIBTORCH
       bool enable_profiling = global_enable_profiling.load(std::memory_order_relaxed);
       if (enable_profiling) {
         NpuUtils::ReportCannOpToMsProfiler(name);
       }
+#endif
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
