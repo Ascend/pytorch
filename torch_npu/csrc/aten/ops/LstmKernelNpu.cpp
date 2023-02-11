@@ -710,6 +710,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNative
 
   lstm_backward_out_npu(grad_weight, grad_bias, grad_input, grad_ht, grad_ct, input, weight,
                         bias, inh, inc, grad_y, grad_h, grad_c, y, h, c, i, j, f, o, tanhc);
+  grad_ht = at::unsqueeze(grad_ht, 0);
+  grad_ct = at::unsqueeze(grad_ct, 0);
 
   return std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> {grad_input, grad_weight, grad_bias, grad_ht, grad_ct};
 }
