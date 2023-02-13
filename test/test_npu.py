@@ -359,6 +359,14 @@ class TestNpu(TestCase):
             self.assertEqual(cpu_state, cpu_state_new)
             self.assertEqual(int(npu_state[0]), 2)
 
+    def test_get_set_rng_state_input_device(self):
+        npu_state = torch_npu.npu.get_rng_state()
+        torch_npu.npu.set_rng_state(npu_state)
+        devices = ["npu", 0, torch.device("npu:0")]
+        for device in devices:
+            npu_state = torch_npu.npu.get_rng_state(device)
+            torch_npu.npu.set_rng_state(npu_state, device)
+
     def test_get_device_index(self):
         from torch_npu.npu import _get_device_index
         with self.assertRaisesRegex(RuntimeError, "Invalid device string"):
@@ -529,9 +537,9 @@ class TestNpu(TestCase):
         device1 = torch.device("npu:1")
         device2 = torch.device("npu")
         device3 = torch.device("npu", 2)
-        self.assertEqual(str(device1), f"device(type='{torch_npu.npu.npu_device}', index=1)")
-        self.assertEqual(str(device2), f"device(type='{torch_npu.npu.npu_device}', index=None)")
-        self.assertEqual(str(device3), f"device(type='{torch_npu.npu.npu_device}', index=2)")
+        self.assertEqual(str(device1), f"{torch_npu.npu.npu_device}:1")
+        self.assertEqual(str(device2), f"{torch_npu.npu.npu_device}")
+        self.assertEqual(str(device3), f"{torch_npu.npu.npu_device}:2")
 
     def test_function_tensor_data_npu(self):
         x = torch.ones(())
