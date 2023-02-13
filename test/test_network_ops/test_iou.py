@@ -17,8 +17,9 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestIou(TestCase):
-    def test_iou_fp16(self, device="npu"):
+    def test_iou_fp16(self):
         bboxes = torch.tensor([[0, 0, 10, 10],
                                [10, 10, 20, 20],
                                [32, 32, 38, 42]], dtype=torch.float16).to("npu")
@@ -37,7 +38,7 @@ class TestIou(TestCase):
         output_iou = torch_npu.npu_iou(bboxes, gtboxes, 0)
         self.assertRtolEqual(expect_iou, output_iou.cpu())
 
-    def test_iou_fp16_pt(self, device="npu"):
+    def test_iou_fp16_pt(self):
         bboxs = torch.tensor([[1,  2,  3,  4],
                               [5,  6,  7,  8],
                               [9, 10, 11, 12],
@@ -53,6 +54,7 @@ class TestIou(TestCase):
                                       [0.0000, 0.9805, 0.0000, 0.0000]], dtype = torch.float16)
         output_iou = torch_npu.npu_ptiou(bboxs, gtboxes, 0)
         self.assertRtolEqual(expect_iou, output_iou.cpu(), 1.e-3)
+
 
 if __name__ == "__main__":
     run_tests()
