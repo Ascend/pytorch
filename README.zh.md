@@ -91,7 +91,7 @@ bash ci/build.sh --python=3.9
 然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc3-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.8.1-cp37-cp37m-linux_{arch}.whl
 ```
 
 下载torchvision。
