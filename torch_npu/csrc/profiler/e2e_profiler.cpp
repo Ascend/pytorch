@@ -155,7 +155,7 @@ void PushStartTime(at::RecordFunction& fn) {
     }
     if (!call_stack_data.empty()) {
       ret = at_npu::native::AclprofSetStampCallStack(local_stamp_, call_stack_data.c_str(), call_stack_data.size());
-      CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampCallTrace set warning."
+      CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampCallStack set warning."
         " Try to install the matching Ascend Profiler.");
     }
   }
