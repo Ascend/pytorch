@@ -58,8 +58,8 @@ bool AicoreValid(at::Tensor& self, const at::Tensor& src) {
     }
   }
 
-  // if diff equals 0, no need viewcopy.
-  if (diff == 0) {
+  // if diff or diff_index equals 0, no need viewcopy.
+  if (diff == 0 || diff_index == 0) {
     return false;
   } 
 
@@ -112,13 +112,19 @@ void copy_kernel_npu(
   };
 
   if (AicoreValid(self, src)) {
+    at::Tensor contiguous_src(src);
+    if (!NpuUtils::check_match(&contiguous_src)) {
+      contiguous_src = NpuUtils::format_contiguous(contiguous_src);
+    }
+    src_stride = contiguous_src.strides();
+
     OpCommand cmd;
     cmd.Name("ViewCopy")
       .InputWithoutContiguous(self)
       .Input(self_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Input(self_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Input(at::Scalar(0), at::kLong)
-      .Input(src)
+      .InputWithoutContiguous(contiguous_src)
       .Input(src_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Input(src_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Input(at::Scalar(0), at::kLong)
