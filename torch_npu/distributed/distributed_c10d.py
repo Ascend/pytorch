@@ -606,7 +606,7 @@ def _new_process_group_helper(world_size, rank, group_ranks, backend, store, gro
         elif backend == Backend.HCCL:
             if not is_hccl_available():
                 raise RuntimeError("Distributed package doesn't have HCCL built in")
-            pg = ProcessGroupHCCL(prefix_store, rank, world_size)
+            pg = ProcessGroupHCCL(prefix_store, rank, world_size, timeout)
             _pg_map[pg] = (Backend.HCCL, store)
             _pg_names[pg] = group_name
         else:

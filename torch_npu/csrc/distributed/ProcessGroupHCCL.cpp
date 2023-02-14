@@ -175,10 +175,9 @@ void syncStreams(
   }
 }
 
-// exit call back for an AI Core exception
+// exit call back for allreduce error
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
-  std::string err = "An exception occurred in AI CORE or HCCL, please analyze the Ascend log.";
-  throw std::runtime_error(err);
+  ASCEND_LOGE("AllReduce error");
 }
 } // namespace
 
