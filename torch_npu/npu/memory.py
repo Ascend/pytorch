@@ -81,6 +81,10 @@ def caching_allocator_delete(mem_ptr):
     torch_npu._C._npu_npuCachingAllocator_raw_delete(mem_ptr)
 
 
+def _cache_init():
+    torch_npu._C._npu_cacheInit()
+
+
 def empty_cache():
     r"""Releases all unoccupied cached memory currently held by the caching
     allocator so that those can be used in other NPU application and visible in

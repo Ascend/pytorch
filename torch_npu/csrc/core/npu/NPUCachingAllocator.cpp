@@ -22,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
@@ -179,9 +180,6 @@ struct Block {
 };
 
 static bool BlockComparator(const Block* a, const Block* b) {
-  if (a->device != b->device) {
-    return a->device < b->device;
-  }
   if (a->stream != b->stream) {
     return reinterpret_cast<uintptr_t>(a->stream) <
         reinterpret_cast<uintptr_t>(b->stream);
@@ -211,74 +209,192 @@ static std::string format_size(uint64_t size) {
   }
   return os.str();
 }
+
+struct AllocParams {
+  AllocParams(int device, size_t size, aclrtStream stream, BlockPool* pool, size_t alloc_size,
+              DeviceStats& stats) :
+    search_key(device, stream, size),
+    pool(pool),
+    alloc_size(alloc_size),
+    block(nullptr),
+    err(ACL_ERROR_NONE) {}
+
+  int device() { return search_key.device; }
+  aclrtStream stream() { return search_key.stream; }
+  size_t size() { return search_key.size; }
+
+  Block search_key;
+  BlockPool* pool;
+  size_t alloc_size;
+  Block* block;
+  StatTypes stat_types;
+  aclError err;
+};
+
 } // namespace
 
-struct THNCachingAllocator {
-  // device statistics
-  std::vector<DeviceStats_> device_stats_;
+class DeviceCachingAllocator {
+
+ private:
 
   // lock around all operations
   mutable std::recursive_mutex mutex;
-
-  // lock around calls to aclFree (to prevent deadlocks with NCCL)
-  mutable std::mutex npu_free_mutex;
-
+  
+  // lock around taskqueue events operations
   mutable std::mutex recorded_event_mutex;
 
-  // cached blocks larger than 1 MB
+  // device statistics
+  DeviceStats stats;
+
+  // unallocated cached blocks larger than 1 MB
   BlockPool large_blocks;
 
-  // cached blocks 1 MB or smaller
+  // unallocated cached blocks 1 MB or smaller
   BlockPool small_blocks;
 
-  // allocated blocks by device pointer
-  std::unordered_map<void*, Block*> allocated_blocks;
+  // allocated or in use by a stream
+  std::unordered_set<Block*> active_blocks;
 
   // outstanding acl events
   std::deque<std::pair<aclrtEvent, Block*>> npu_events;
-
+  
+  // outstanding taskqueue events
   std::set<aclrtEvent> recorded_events;
 
-  THNCachingAllocator()
-      : large_blocks(BlockComparator, false), 
-        small_blocks(BlockComparator, true) {}
+ public:
 
-  DeviceStats_& get_stats_for_device_(int device) {
-    AT_ASSERT(device >= 0);
-    if ((size_t)device >= device_stats_.size()) {
-      device_stats_.resize(device + 1);
+  DeviceCachingAllocator() :
+      large_blocks(BlockComparator, false),
+      small_blocks(BlockComparator, true) {}
+
+  // All public methods (except the above) acquire the allocator mutex.
+  // Thus, do not call a public method from another public method.
+
+  Block* malloc(int device, size_t size, aclrtStream stream)
+  {
+    std::unique_lock<std::recursive_mutex> lock(mutex);
+
+    if (device == -1) {
+        C10_NPU_CHECK(aclrtGetDevice(&device));
     }
-    return device_stats_.at(device);
+
+    // process outstanding npuEvents
+    process_events();
+    size = round_size(size);
+    auto& pool = get_pool(size);
+
+    const size_t alloc_size = get_allocation_size(size);
+    AllocParams params(device, size, stream, &pool, alloc_size, stats);
+    params.stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
+    params.stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
+
+    bool block_found =
+      // Search pool
+      get_free_block(params)
+      // Trigger callbacks and retry search
+      || (trigger_free_memory_callbacks(params) && get_free_block(params))
+      // Attempt allocate
+      || alloc_block(params, false)
+      // Free all non-split cached blocks and retry alloc.
+      || (free_cached_blocks() && alloc_block(params, true));
+
+    if (!block_found) {
+      if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+        size_t device_free;
+        size_t device_total;
+        C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+
+        stats.num_ooms += 1;
+        // "total capacity": total global memory on NPU
+        // "already allocated": memory allocated by the program using the
+        //                      caching allocator
+        // "free": free memory as reported by the NPU API
+        // "cached": memory held by the allocator but not used by the program
+        //
+        // The "allocated" amount  does not include memory allocated outside
+        // of the caching allocator, such as memory allocated by other programs
+        // or memory held by the driver.
+        //
+        // The sum of "allocated" + "free" + "cached" may be less than the
+        // total capacity due to memory held by the driver and usage by other
+        // programs.
+        //
+        // Note that at this point free_cached_blocks has already returned all
+        // possible "cached" memory to the driver. The only remaining "cached"
+        // memory is split from a larger block that is partially in-use.
+         AT_ERROR(
+             "NPU out of memory. Tried to allocate ",
+             format_size(alloc_size),
+             " (NPU ", device, "; ",
+             format_size(device_total),
+             " total capacity; ",
+             format_size(stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
+             " already allocated; ",
+             format_size(device_free),
+             " free; ",
+             format_size(stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
+             " cached)");
+      } else {
+        C10_NPU_CHECK(params.err);
+      }
+    }
+    Block* block = params.block;
+    Block* remaining = nullptr;
+    AT_ASSERT(block);
+
+    const bool already_split = block->is_split();
+    if (should_split(block, size)) {
+      remaining = block;
+
+      block = new Block(device, stream, size, &pool, block->ptr);
+      block->prev = remaining->prev;
+      if (block->prev) {
+        block->prev->next = block;
+      }
+      block->next = remaining;
+
+      remaining->prev = block;
+      remaining->ptr = static_cast<char*>(remaining->ptr) + size;
+      remaining->size -= size;
+      pool.blocks.insert(remaining);
+
+      if (already_split) {
+        // An already-split inactive block is being shrunk by size bytes.
+        update_stat_array(stats.inactive_split_bytes, -block->size, params.stat_types);
+      } else {
+        // A new split inactive block is being created from a previously unsplit block,
+        // size remaining->size bytes.
+        update_stat_array(stats.inactive_split_bytes, remaining->size, params.stat_types);
+        update_stat_array(stats.inactive_split, 1, params.stat_types);
+      }
+    } else if (already_split) {
+      // An already-split block is becoming active
+      update_stat_array(stats.inactive_split_bytes, -block->size, params.stat_types);
+      update_stat_array(stats.inactive_split, -1, params.stat_types);
+    }
+
+    block->allocated = true;
+    active_blocks.insert(block);
+
+    update_stat_array(stats.allocation, 1, params.stat_types);
+    update_stat_array(stats.allocated_bytes, block->size, params.stat_types);
+    update_stat_array(stats.active, 1, params.stat_types);
+    update_stat_array(stats.active_bytes, block->size, params.stat_types);
+
+    return block;
   }
 
-  /** allocates a block which is safe to use from the provided stream */
-  void malloc(void** devPtr, size_t size, aclrtStream stream, int device = -1);
-
-  void free(void* ptr) {
+  void free(Block* block)
+  {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    if (!ptr) {
-      return;
-    }
 
-    auto it = allocated_blocks.find(ptr);
-    if (it == allocated_blocks.end()) {
-      AT_ERROR("invalid device pointer: ", ptr);
-    }
-
-    Block* block = it->second;
-    allocated_blocks.erase(it);
     block->allocated = false;
 
-    c10::reportMemoryUsageToProfiler(
-        block, -block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
-
-    DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] =
-        true;
-    update_stat_array(stats_.allocation, -1, {stat_types});
-    update_stat_array(stats_.allocated_bytes, -block->size, {stat_types});
+    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
+    update_stat_array(stats.allocation, -1, {stat_types});
+    update_stat_array(stats.allocated_bytes, -block->size, {stat_types});
 
     if (!block->stream_uses.empty()) {
       insert_events(block);
@@ -287,25 +403,12 @@ struct THNCachingAllocator {
     }
   }
 
-  /** returns cached blocks to the system allocator */
-  void emptyCache() {
+  void* getBaseAllocation(Block* block, size_t* outSize) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    synchronize_and_free_events(c10::nullopt);
-    c10_npu::npuSynchronizeDevice();
-    free_blocks(large_blocks.blocks, large_blocks.blocks.begin(), large_blocks.blocks.end());
-    free_blocks(small_blocks.blocks, small_blocks.blocks.begin(), small_blocks.blocks.end());
-  }
-
-  void* getBaseAllocation(void* ptr, size_t* outSize) {
-    std::lock_guard<std::recursive_mutex> lock(mutex);
-    Block* block = find_allocated_block(ptr);
-    if (!block) {
-      AT_ERROR("invalid device pointer: ", ptr);
-    }
     while (block->prev) {
       block = block->prev;
     }
-    void* basePtr = block->ptr;
+    void *basePtr = block->ptr;
     if (outSize) {
       size_t size = 0;
       while (block) {
@@ -317,43 +420,41 @@ struct THNCachingAllocator {
     return basePtr;
   }
 
-  // Accumulates sizes of all memory blocks for given device in given pool
-  void cacheInfoAux(
-      const std::set<Block*, Comparison>& blocks,
-      int dev_id,
-      size_t* total,
-      size_t* largest) {
-    Block search_key(dev_id, 0, 0);
-    auto it = blocks.lower_bound(&search_key);
-    for (; it != blocks.end() && *it && (*it)->device == dev_id; ++it) {
-      size_t blocksize = (*it)->size;
-      *total += blocksize;
-      if (blocksize > *largest) {
-        *largest = blocksize;
-      }
+  void recordStream(Block* block, c10_npu::NPUStream stream) {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    if (stream.stream() == block->stream) {
+      // ignore uses on the allocation stream, since those don't require any
+      // special synchronization
+      return;
     }
+    block->stream_uses.insert(stream);
   }
 
-  void cacheInfo(int dev_id, size_t* total, size_t* largest) {
+  /** returns cached blocks to the system allocator **/
+  void emptyCache() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    cacheInfoAux(large_blocks.blocks, dev_id, total, largest);
-    cacheInfoAux(small_blocks.blocks, dev_id, total, largest);
+    free_cached_blocks();
   }
 
-  /** Returns a copy of the memory allocator stats for the device **/
-  DeviceStats_ getStatsForDevice(int dev_id) {
+  /** Retrieves info (total size + largest block) of the memory cache **/
+  void cacheInfo(size_t* total, size_t* largest)
+  {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    return get_stats_for_device_(dev_id);
+    cache_info_aux(large_blocks, total, largest);
+    cache_info_aux(small_blocks, total, largest);
+  }
+
+  /** Returns a copy of the memory allocator stats **/
+  DeviceStats getStats() {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    return stats;
   }
 
   /** Resets the historical accumulation stats for the device **/
-  void resetAccumulatedStats(int dev_id) {
+  void resetAccumulatedStats() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    DeviceStats_& stats = get_stats_for_device_(dev_id);
 
-    for (size_t statType = 0;
-         statType < static_cast<size_t>(StatType::NUM_TYPES);
-         ++statType) {
+    for (size_t statType = 0; statType < static_cast<size_t>(StatType::NUM_TYPES); ++statType) {
       reset_accumulated_stat(stats.allocation[statType]);
       reset_accumulated_stat(stats.segment[statType]);
       reset_accumulated_stat(stats.active[statType]);
@@ -369,13 +470,10 @@ struct THNCachingAllocator {
   }
 
   /** Resets the historical peak stats for the device **/
-  void resetPeakStats(int dev_id) {
+  void resetPeakStats() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    DeviceStats_& stats = get_stats_for_device_(dev_id);
 
-    for (size_t statType = 0;
-         statType < static_cast<size_t>(StatType::NUM_TYPES);
-         ++statType) {
+    for (size_t statType = 0; statType < static_cast<size_t>(StatType::NUM_TYPES); ++statType) {
       reset_peak_stat(stats.allocation[statType]);
       reset_peak_stat(stats.segment[statType]);
       reset_peak_stat(stats.active[statType]);
@@ -387,8 +485,7 @@ struct THNCachingAllocator {
     }
   }
 
-  /** Dump a complete snapshot of the memory held by the allocator. Potentially
-   * VERY expensive. **/
+  /** Dump a complete snapshot of the memory held by the allocator. Potentially VERY expensive. **/
   std::vector<SegmentInfo> snapshot() const {
     std::lock_guard<std::recursive_mutex> lock(mutex);
 
@@ -402,7 +499,7 @@ struct THNCachingAllocator {
       result.emplace_back();
       SegmentInfo& segment_info = result.back();
       segment_info.device = head_block->device;
-      segment_info.address = reinterpret_cast<uintptr_t>(head_block->ptr);
+      segment_info.address = reinterpret_cast<int64_t>(head_block->ptr);
       segment_info.is_large = (!head_block->pool->is_small);
 
       const Block* block = head_block;
@@ -426,78 +523,60 @@ struct THNCachingAllocator {
       }
     }
 
-    std::sort(
-        result.begin(),
-        result.end(),
-        [](const SegmentInfo& a, const SegmentInfo& b) {
-          if (a.device != b.device) {
-            return a.device < b.device;
-          }
-          return a.address < b.address;
-        });
+    std::sort(result.begin(), result.end(), [](const SegmentInfo& a, const SegmentInfo& b) {
+      return a.address < b.address;
+    });
 
     return result;
   }
+
+  static size_t round_size(size_t size) {
+    size = size + 32;
+    if (size < kMinBlockSize) {
+      return kMinBlockSize;
+    } else {
+      return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
+    }
+  }
+
+  void insertRecordedEvent(aclrtEvent event) {
+    std::lock_guard<std::mutex> lock(recorded_event_mutex);
+    recorded_events.insert(event);
+  }
+
+ private:
+
+  // All private methods do not acquire the allocator mutex.
 
   std::vector<const Block*> get_all_blocks() const {
     std::vector<const Block*> blocks;
     blocks.insert(blocks.end(), small_blocks.blocks.begin(), small_blocks.blocks.end());
     blocks.insert(blocks.end(), large_blocks.blocks.begin(), large_blocks.blocks.end());
-    for (const auto& item : allocated_blocks) {
-      blocks.push_back(item.second);
-    }
+    blocks.insert(blocks.end(), active_blocks.begin(), active_blocks.end());
     return blocks;
   }
 
-  void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
-    // Empty tensor's storage().data() might be a null ptr. As there is no
-    // blocks associated with those tensors, it is fine to do nothing here.
-    if (!ptr.get()) {
-      return;
-    }
-    // If a tensor is not allocated by this instance, simply skip
-    // This usually happens when NPU tensors are shared across processes,
-    // we have implemented reference counting based sharing mechanism to
-    // guarantee tensors won't be accidentally freed by one process while
-    // they are still being used in another
-    if (ptr.get_deleter() != &raw_delete) {
-      return;
-    }
-    std::lock_guard<std::recursive_mutex> lock(mutex);
-    Block* block = find_allocated_block(ptr.get());
-    // block could be nullptr in some cases, e.g., tensor loaded from blob, or
-    // shared from another process, or not pointing to a NPU tensor.
-    if (block) {
-      if (stream.stream() == block->stream) {
-        // ignore uses on the allocation stream, since those don't require any
-        // special synchronization
-        return;
-      }
-      block->stream_uses.insert(stream);
-    }
-  }
-
   /** moves a block into a pool of cached free blocks */
-  void free_block(Block* block) {
+  void free_block(Block* block)
+  {
     AT_ASSERT(!block->allocated && block->event_count == 0);
+
     size_t original_block_size = block->size;
 
     auto& pool = *block->pool;
     int64_t net_change_inactive_split_blocks = 0;
     int64_t net_change_inactive_split_size = 0;
 
-    const int64_t subsumed_size_prev =
-        try_merge_blocks(block, block->prev, pool);
-    if (subsumed_size_prev > 0) {
-      net_change_inactive_split_blocks -= 1;
-      net_change_inactive_split_size -= subsumed_size_prev;
+    const std::array<Block*, 2> merge_candidates = {block->prev, block->next};
+    for (Block* merge_candidate : merge_candidates) {
+      const int64_t subsumed_size = try_merge_blocks(block, merge_candidate, pool);
+      if (subsumed_size > 0) {
+        net_change_inactive_split_blocks -= 1;
+        net_change_inactive_split_size -= subsumed_size;
+      }
     }
-    const int64_t subsumed_size_next =
-        try_merge_blocks(block, block->next, pool);
-    if (subsumed_size_next > 0) {
-      net_change_inactive_split_blocks -= 1;
-      net_change_inactive_split_size -= subsumed_size_next;
-    }
+
+    active_blocks.erase(block);
     pool.blocks.insert(block);
 
     if (block->is_split()) {
@@ -505,27 +584,24 @@ struct THNCachingAllocator {
       net_change_inactive_split_size += block->size;
     }
 
-    DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] =
-        true;
-
-    update_stat_array(
-        stats_.inactive_split, net_change_inactive_split_blocks, stat_types);
-    update_stat_array(
-        stats_.inactive_split_bytes,
-        net_change_inactive_split_size,
-        stat_types);
-    update_stat_array(stats_.active, -1, stat_types);
-    update_stat_array(stats_.active_bytes, -original_block_size, stat_types);
+    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
+    update_stat_array(stats.inactive_split, net_change_inactive_split_blocks, stat_types);
+    update_stat_array(stats.inactive_split_bytes, net_change_inactive_split_size, stat_types);
+    update_stat_array(stats.active, -1, stat_types);
+    update_stat_array(stats.active_bytes, -original_block_size, stat_types);
   }
 
-  /** combine previously split blocks */
-  size_t try_merge_blocks(Block* dst, Block* src, BlockPool& pool) {
+  /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. */
+  size_t try_merge_blocks(Block* dst, Block* src, BlockPool& pool)
+  {
     if (!src || src->allocated || src->event_count > 0) {
       return 0;
     }
+
+    AT_ASSERT(dst->is_split() && src->is_split());
+
     if (dst->prev == src) {
       dst->ptr = src->ptr;
       dst->prev = src->prev;
@@ -540,7 +616,7 @@ struct THNCachingAllocator {
     }
 
     const size_t subsumed_size = src->size;
-    dst->size += src->size;
+    dst->size += subsumed_size;
     pool.blocks.erase(src);
     delete src;
 
@@ -570,17 +646,7 @@ struct THNCachingAllocator {
     }
   }
 
-  size_t round_size(size_t size) {
-    // be consistent with ACL memory alloc rules
-    size = size + 32;
-    if (size < kMinBlockSize) {
-      return kMinBlockSize;
-    } else {
-      return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
-    }
-  }
-
-  size_t get_allocation_size(size_t size) {
+  static size_t get_allocation_size(size_t size) {
     if (size <= kSmallSize) {
       return kSmallBuffer;
     } else if (size < kMinLargeAlloc) {
@@ -590,74 +656,77 @@ struct THNCachingAllocator {
     }
   }
 
-  aclError npu_malloc_retry(int device, void** devPtr, size_t size) {
-    // Try npuMalloc. If npuMalloc fails, frees all non-split cached blocks
-    // and retries.
-    aclError err = aclrtMalloc(
-        devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
-
-    if (err != ACL_ERROR_NONE) {
-      DeviceStats_& stats_ = get_stats_for_device_(device);
-      stats_.num_alloc_retries += 1;
-
-      // npuGetLastError();  // reset the last NPU error
-      free_cached_blocks(device);
-      err = aclrtMalloc(
-          devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
-      ASCEND_LOGD("pta_memory acl_malloc retry: malloc = %zu, ret = %d", size, err);
-      if (err != ACL_ERROR_NONE) {
-        C10_NPU_SHOW_ERR_MSG();
-        return err;
-      }
-    } else {
-      ASCEND_LOGD("pta_memory acl_malloc: malloc = %zu, ret = %d", size, err);
-    }
-    return ACL_ERROR_NONE;
+  bool get_free_block(AllocParams& p) {
+    BlockPool& pool = *p.pool;
+    auto it = pool.blocks.lower_bound(&p.search_key);
+    if (it == pool.blocks.end() || (*it)->stream != p.stream())
+      return false;
+    p.block = *it;
+    pool.blocks.erase(it);
+    return true;
   }
 
-  void free_cached_blocks(int device) {
+  bool trigger_free_memory_callbacks(AllocParams& p) {
+    bool freed_memory = false;
+    for (const auto& name : FreeNPUMemoryCallbacksRegistry()->Keys()) {
+      freed_memory |=
+        FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
+    }
+    return freed_memory;
+  }
+
+  bool alloc_block(AllocParams& p, bool isRetry) {
+    size_t size = p.alloc_size;
+    void* ptr = nullptr;
+
+    if (isRetry) {
+      stats.num_alloc_retries += 1;
+    }
+
+    p.err = aclrtMalloc(
+        &ptr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
+    if (p.err != ACL_ERROR_NONE) {
+      return false;
+    }
+
+    p.block = new Block(p.device(), p.stream(), size, p.pool, (char*)ptr);
+    update_stat_array(stats.segment, 1, p.stat_types);
+    update_stat_array(stats.reserved_bytes, size, p.stat_types);
+
+    return (p.block != nullptr);
+  }
+
+  bool free_cached_blocks()
+  {
     // First ensure that all blocks that can't currently be allocated due to
     // outstanding events are returned to the pool.
-    synchronize_and_free_events(device);
+    synchronize_and_free_events();
 
-    // Free all non-split cached blocks on device
-    Block lower_bound(device, nullptr, 0);
-    Block upper_bound(device + 1, nullptr, 0);
-
+    // Free all non-split cached blocks
     c10_npu::npuSynchronizeDevice();
-    free_blocks(
-        large_blocks.blocks,
-        large_blocks.blocks.lower_bound(&lower_bound),
-        large_blocks.blocks.lower_bound(&upper_bound));
-    free_blocks(
-        small_blocks.blocks,
-        small_blocks.blocks.lower_bound(&lower_bound),
-        small_blocks.blocks.lower_bound(&upper_bound));
+    free_blocks(large_blocks);
+    free_blocks(small_blocks);
+    return true;
   }
 
-  void free_blocks(
-      std::set<Block*, Comparison>& blocks,
-      std::set<Block*, Comparison>::iterator it,
-      std::set<Block*, Comparison>::iterator end) {
-    // Frees all non-split blocks between `it` and `end`
-    std::lock_guard<std::mutex> lock(npu_free_mutex);
-    while (it != end) {
+  void free_blocks(BlockPool& blocks)
+  {
+    // Frees all non-split blocks
+    auto it = blocks.blocks.begin();
+    while (it != blocks.blocks.end()) {
       Block* block = *it;
       if (!block->prev && !block->next) {
-        aclrtFree((void*)block->ptr);
+        aclrtFree((void *)block->ptr);
 
-        DeviceStats_& stats_ = get_stats_for_device_(block->device);
         StatTypes stat_types;
         stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-        stat_types[static_cast<size_t>(
-            get_stat_type_for_pool(*(block->pool)))] = true;
-
-        update_stat_array(stats_.segment, -1, stat_types);
-        update_stat_array(stats_.reserved_bytes, -block->size, stat_types);
+        stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
+        update_stat_array(stats.segment, -1, stat_types);
+        update_stat_array(stats.reserved_bytes, -block->size, stat_types);
         ASCEND_LOGD("pta_memory acl_free: free_size = %zu", block->size);
         auto cur = it;
         ++it;
-        blocks.erase(cur);
+        blocks.blocks.erase(cur);
         delete block;
       } else {
         ++it;
@@ -665,80 +734,73 @@ struct THNCachingAllocator {
     }
   }
 
-  void synchronize_and_free_events(c10::optional<int> device) {
+  aclrtEvent create_event_internal() {
+    aclrtEvent event = nullptr;
+    C10_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
+    return event;
+  }
+
+  void free_event_internal(aclrtEvent event) {
+    C10_NPU_CHECK(aclrtDestroyEvent(event));
+  }
+
+  void synchronize_and_free_events() {
     // Synchronize on outstanding events and then free associated blocks.
-    // Limited to blocks on the given device if specified.
-    auto remaining_events = decltype(npu_events)();
 
     for (auto& e : npu_events) {
       aclrtEvent event = e.first;
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
-            it == recorded_events.end()) {
-          break;
+        if (c10_npu::option::OptionsManager::CheckQueueEnable() && it == recorded_events.end()) {
+            break;
         }
       }
       Block* block = e.second;
-      if (device.has_value() && block->device != *device) {
-        remaining_events.push_back(e);
-        continue;
-      }
 
+      
       C10_NPU_CHECK(aclrtSynchronizeEvent(event));
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
         if (it != recorded_events.end()) {
-          recorded_events.erase(it);
+            recorded_events.erase(it);
         }
       }
-      C10_NPU_CHECK(aclrtDestroyEvent(event));
+      free_event_internal(event);
+
       block->event_count--;
       if (block->event_count == 0) {
         free_block(block);
       }
     }
 
-    std::swap(npu_events, remaining_events);
+    npu_events.clear();
   }
 
-  Block* find_allocated_block(void* ptr) {
-    auto it = allocated_blocks.find(ptr);
-    if (it == allocated_blocks.end()) {
-      return nullptr;
-    }
-    return it->second;
-  }
-
-  void insertRecordedEvent(aclrtEvent event) {
-    std::lock_guard<std::mutex> lock(recorded_event_mutex);
-    recorded_events.insert(event);
-  }
-
-  void insert_events(Block* block) {
-    int prev_device = 0;
+  void insert_events(Block* block)
+  {
+    int prev_device;
     C10_NPU_CHECK(aclrtGetDevice(&prev_device));
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
     for (auto it = streams.begin(); it != streams.end(); ++it) {
       int pre_device = 0;
-      aclError ret = aclrtGetDevice(&pre_device);
+      aclError ret = aclrtGetDevice(&pre_device);  
       if (ret != ACL_ERROR_NONE) {
         C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
       } else if (pre_device != it->device_index()) {
         C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
       }
 
-      aclrtEvent event = nullptr;
-      C10_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
+      aclrtEvent event = create_event_internal();
       c10_npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
 
       block->event_count++;
       npu_events.emplace_back(event, block);
     }
+
 
     int cur_device = 0;
     aclError ret = aclrtGetDevice(&cur_device);
@@ -749,7 +811,8 @@ struct THNCachingAllocator {
     }
   }
 
-  void process_events() {
+  void process_events()
+  {
     // Process outstanding npuEvents. Events that are completed are removed
     // from the queue, and the 'event_count' for the corresponding allocation
     // is decremented. Stops at the first event which has not been completed.
@@ -759,35 +822,35 @@ struct THNCachingAllocator {
       auto& e = npu_events.front();
       aclrtEvent event = e.first;
       Block* block = e.second;
-
+      
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.begin();
         it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
-            it == recorded_events.end()) {
-          break;
+        if (c10_npu::option::OptionsManager::CheckQueueEnable() && it == recorded_events.end()) {
+            break;
         }
       }
 
-      c10_npu::acl::aclrtEventRecordedStatus status =
-          c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+      c10_npu::acl::aclrtEventRecordedStatus status = c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
       aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
+
       if (err != ACL_ERROR_NONE) {
-           C10_NPU_CHECK(err);
+        C10_NPU_CHECK(err);
       }
       if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         break;
       }
-
+    
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
         if (it != recorded_events.end()) {
-          recorded_events.erase(it);
+            recorded_events.erase(it);
         }
       }
-      C10_NPU_CHECK(aclrtDestroyEvent(event));
+      
+      free_event_internal(event);
 
       block->event_count--;
       if (block->event_count == 0) {
@@ -796,180 +859,164 @@ struct THNCachingAllocator {
       npu_events.pop_front();
     }
   }
-};
 
-void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream, int device) {
-  std::lock_guard<std::recursive_mutex> lock(mutex);
-  if (device == -1) {
-    C10_NPU_CHECK(aclrtGetDevice(&device));
-  }
-  // process outstanding npuEvents
-  process_events();
-  size = round_size(size);
-  Block search_key(device, stream, size);
-  auto& pool = get_pool(size);
-
-  DeviceStats_& stats_ = get_stats_for_device_(device);
-  StatTypes stat_types;
-  stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-  stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
-  ASCEND_LOGD("pta_memory torch_malloc: malloc = %zu, torch_cached = %lu, torch_allocated = %lu",
-              size, 
-              stats_.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current, 
-              stats_.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
-
-  auto find_free_block = [&]() -> Block* {
-    auto it = pool.blocks.lower_bound(&search_key);
-    if (it != pool.blocks.end() && (*it)->device == device &&
-        (*it)->stream == stream) {
-      Block* block = *it;
-      pool.blocks.erase(it);
-      return block;
-    }
-    return nullptr;
-  };
-
-  Block* block = find_free_block();
-  if (block == nullptr) {
-    bool freed_memory = false;
-    for (const auto& name : FreeNPUMemoryCallbacksRegistry()->Keys()) {
-      freed_memory |=
-          FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
-    }
-    if (freed_memory) {
-      block = find_free_block();
-    }
-  }
-  if (block == nullptr) {
-    void* ptr = nullptr;
-    size_t alloc_size = get_allocation_size(size);
-    aclError err = npu_malloc_retry(device, &ptr, alloc_size);
-
-    if (err != ACL_ERROR_NONE) {
-      if (err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
-        size_t device_free;
-        size_t device_total;
-        C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-
-        stats_.num_ooms += 1;
-        // "total capacity": total global memory on NPU
-        // "already allocated": memory allocated by the program using the
-        //                      caching allocator
-        // "free": free memory as reported by the NPU API
-        // "cached": memory held by the allocator but not used by the program
-        //
-        // The "allocated" amount  does not include memory allocated outside
-        // of the caching allocator, such as memory allocated by other
-        // programs or memory held by the driver.
-        //
-        // The sum of "allocated" + "free" + "cached" may be less than the
-        // total capacity due to memory held by the driver and usage by other
-        // programs.
-        //
-        // Note that at this point npu_malloc_retry has already returned all
-        // possible "cached" memory to the driver. The only remaining "cached"
-        // memory is split from a larger block that is partially in-use.
-        AT_ERROR(
-            "NPU out of memory. Tried to allocate ",
-            format_size(alloc_size),
-            " (NPU ",
-            device,
-            "; ",
-            format_size(device_total),
-            " total capacity; ",
-            format_size(stats_.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-            " already allocated; ",
-            format_size(device_free),
-            " free; ",
-            format_size(stats_.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-            " cached)");
-      } else {
-        C10_NPU_CHECK(err);
+  // Accumulates sizes of all memory blocks for given device in given pool
+  void cache_info_aux(BlockPool& blocks, size_t* total, size_t* largest)
+  {
+    for (auto it = blocks.blocks.begin(); it != blocks.blocks.end(); ++it) {
+      size_t blocksize = (*it)->size;
+      *total += blocksize;
+      if (blocksize > *largest) {
+        *largest = blocksize;
       }
     }
-    block = new Block(device, stream, alloc_size, &pool, ptr);
+  }
+};
 
-    update_stat_array(stats_.segment, 1, stat_types);
-    update_stat_array(stats_.reserved_bytes, alloc_size, stat_types);
+class THNCachingAllocator {
+
+ private:
+
+  std::mutex mutex;
+
+  // allocated blocks by device pointer
+  std::unordered_map<void*, Block*> allocated_blocks;
+
+  // lock around calls to aclFree (to prevent deadlocks with HCCL)
+  mutable std::mutex npu_free_mutex;
+
+  void add_allocated_block(Block* block) {
+    std::lock_guard<std::mutex> lock(mutex);
+    allocated_blocks[block->ptr] = block;
   }
 
-  Block* remaining = nullptr;
-  AT_ASSERT(block);
+ public:
 
-  const bool already_split = block->is_split();
-  if (should_split(block, size)) {
-    remaining = block;
-    block = new Block(device, stream, size, &pool, block->ptr);
-    block->prev = remaining->prev;
-    if (block->prev) {
-      block->prev->next = block;
-    }
-    block->next = remaining;
+  std::vector<std::unique_ptr<DeviceCachingAllocator>> device_allocator;
 
-    remaining->prev = block;
-    remaining->ptr = static_cast<char*>(remaining->ptr) + size;
-    remaining->size -= size;
-    pool.blocks.insert(remaining);
-
-    if (already_split) {
-      // An already-split inactive block is being shrunk by size bytes.
-      update_stat_array(
-          stats_.inactive_split_bytes, -block->size, stat_types);
-    } else {
-      // A new split inactive block is being created from a previously unsplit
-      // block, size remaining->size bytes.
-      update_stat_array(
-          stats_.inactive_split_bytes, remaining->size, stat_types);
-      update_stat_array(stats_.inactive_split, 1, stat_types);
-    }
-  } else if (already_split) {
-    // An already-split block is becoming active
-    update_stat_array(stats_.inactive_split_bytes, -block->size, stat_types);
-    update_stat_array(stats_.inactive_split, -1, stat_types);
+  std::mutex* getNpuFreeMutex() const {
+    return &npu_free_mutex;
   }
 
-  block->allocated = true;
-  allocated_blocks[block->ptr] = block;
-  *devPtr = block->ptr;
+  Block* get_allocated_block(void *ptr, bool remove=false) {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto it = allocated_blocks.find(ptr);
+    if (it == allocated_blocks.end()) {
+      return nullptr;
+    }
+    Block* block = it->second;
+    if (remove) {
+      allocated_blocks.erase(it);
+    }
+    return block;
+  }
 
-  c10::reportMemoryUsageToProfiler(
-      block, block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, device));
+  void init(int device_count) {
+    int size = device_allocator.size();
+    if (size < device_count) {
+      device_allocator.resize(device_count);
+      for (int i = size; i < device_count; i++) {
+        device_allocator[i] = std::unique_ptr<DeviceCachingAllocator>(new DeviceCachingAllocator());
+      }
+    }
+  }
 
-  update_stat_array(stats_.allocation, 1, stat_types);
-  update_stat_array(stats_.allocated_bytes, block->size, stat_types);
-  update_stat_array(stats_.active, 1, stat_types);
-  update_stat_array(stats_.active_bytes, block->size, stat_types);
-}
+  /** allocates a block which is safe to use from the provided stream */
+  void malloc(void** devPtr, int device, size_t size, aclrtStream stream) {
+    Block* block = device_allocator[device]->malloc(device, size, stream);
+    add_allocated_block(block);
+    *devPtr = static_cast<void*>(block->ptr);
+  }
+
+  void free(void* ptr) {
+    if (!ptr) {
+      return;
+    }
+    Block* block = get_allocated_block(ptr, true);
+    if (!block) {
+      AT_ERROR("invalid device pointer: ", ptr);
+    }
+    device_allocator[block->device]->free(block);
+  }
+
+  void emptyCache() {
+    int count = device_allocator.size();
+    for (int i = 0; i < count; i++)
+      device_allocator[i]->emptyCache();
+  }
+
+  void* getBaseAllocation(void* ptr, size_t* outSize)
+  {
+    Block* block = get_allocated_block(ptr);
+    if (!block) {
+      AT_ERROR("invalid device pointer: ", ptr);
+    }
+    return device_allocator[block->device]->getBaseAllocation(block, outSize);
+  }
+
+  void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
+    // Empty tensor's storage().data() might be a null ptr. As there is no
+    // blocks associated with those tensors, it is fine to do nothing here.
+    if (!ptr.get()) {
+      return;
+    }
+
+    // If a tensor is not allocated by this instance, simply skip
+    // This usually happens when NPU tensors are shared across processes,
+    // we have implemented reference counting based sharing mechanism to
+    // guarantee tensors won't be accidentally freed by one process while
+    // they are still being used in another
+    if (ptr.get_deleter() != &raw_delete)
+      return;
+
+    Block* block = get_allocated_block(ptr.get());
+    // block must not be null reaching here
+    device_allocator[block->device]->recordStream(block, stream);
+  }
+
+  std::vector<SegmentInfo> snapshot() {
+    std::vector<SegmentInfo> result;
+    int count = device_allocator.size();
+    for (int i = 0; i < count; i++) {
+      auto snap = device_allocator[i]->snapshot();
+      result.insert(result.end(), snap.begin(), snap.end());
+    }
+
+    return result;
+  }
+};
 
 THNCachingAllocator caching_allocator;
-
-static void NPUCachingDeleter(void* ptr) {
-  caching_allocator.free(ptr);
-}
 
 // NB: I decided not to fold this into THNCachingAllocator, because the latter
 // has a lot more methods and it wasn't altogether clear that they should
 // actually be publically exposed
-struct NPUCachingAllocator : public c10::Allocator {
+struct NpuCachingAllocator : public c10::Allocator {
   c10::DataPtr allocate(size_t size) const override {
     int device = 0;
     C10_NPU_CHECK(aclrtGetDevice(&device));
     void* r = nullptr;
     if (size != 0) {
-      caching_allocator.malloc(
-          &r, size, c10_npu::getCurrentNPUStreamNoWait(device), device);
+      caching_allocator.malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
     }
-    return {r, r, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
+    return {r, r, &raw_delete, c10::Device(at_npu::key::NativeDeviceType, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
-    return &NPUCachingDeleter;
+    return &raw_delete;
   }
 };
 
-NPUCachingAllocator device_allocator;
+NpuCachingAllocator device_allocator;
 
-c10::Allocator* get(void) {
+c10::Allocator* get(void)
+{
   return &device_allocator;
+}
+
+void init() {
+  uint32_t device_count = 0;
+  C10_NPU_CHECK(aclrtGetDeviceCount(&device_count));
+  caching_allocator.init(device_count);
 }
 
 void emptyCache(void) {
@@ -977,19 +1024,22 @@ void emptyCache(void) {
 }
 
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {
-  caching_allocator.cacheInfo(dev_id, cachedAndFree, largestBlock);
+  caching_allocator.device_allocator[dev_id]->cacheInfo(cachedAndFree, largestBlock);
 }
 
-void* getBaseAllocation(void* ptr, size_t* size) {
+void* getBaseAllocation(void *ptr, size_t *size)
+{
   return caching_allocator.getBaseAllocation(ptr, size);
 }
 
-void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
+void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
+{
   caching_allocator.recordStream(ptr, stream);
 }
 
-std::mutex* getFreeMutex() {
-  return &caching_allocator.npu_free_mutex;
+std::mutex* getFreeMutex()
+{
+  return caching_allocator.getNpuFreeMutex();
 }
 
 static inline void assertValidDevice(int device) {
@@ -997,28 +1047,25 @@ static inline void assertValidDevice(int device) {
   AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.");
 }
 
-DeviceStats_ getDeviceStats(int device) {
+DeviceStats getDeviceStats(int device) {
   assertValidDevice(device);
-  return caching_allocator.getStatsForDevice(device);
+  return caching_allocator.device_allocator[device]->getStats();
 }
 
 void resetAccumulatedStats(int device) {
   assertValidDevice(device);
-  caching_allocator.resetAccumulatedStats(device);
+  caching_allocator.device_allocator[device]->resetAccumulatedStats();
 }
 
 void resetPeakStats(int device) {
   assertValidDevice(device);
-  caching_allocator.resetPeakStats(device);
+  caching_allocator.device_allocator[device]->resetPeakStats();
 }
 
 std::vector<SegmentInfo> snapshot() {
   return caching_allocator.snapshot();
 }
 
-void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
-  return caching_allocator.insertRecordedEvent(event);
-}
 
 //
 // In NPU IPC, sender sends a tensor to receiver, getIpcDevPtr
@@ -1049,7 +1096,7 @@ void* raw_alloc(size_t nbytes) {
   int device = 0;
   C10_NPU_CHECK(aclrtGetDevice(&device));
   void* r = nullptr;
-  caching_allocator.malloc(&r, nbytes, c10_npu::getCurrentNPUStreamNoWait(device), device);
+  caching_allocator.malloc(&r, device, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
   return r;
 }
 
@@ -1057,8 +1104,10 @@ void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) {
   if (nbytes == 0) {
     return nullptr;
   }
+  int device;
+  C10_NPU_CHECK(aclrtGetDevice(&device));
   void* r = nullptr;
-  caching_allocator.malloc(&r, nbytes, stream);
+  caching_allocator.malloc(&r, device, nbytes, stream);
   return r;
 }
 
@@ -1068,7 +1117,13 @@ void raw_delete(void* ptr) {
 
 void FreeDeviceCachedMemory(int device)
 {
-  caching_allocator.free_cached_blocks(device);
+  caching_allocator.device_allocator[device]->emptyCache();
+}
+
+void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
+  int device;
+  C10_NPU_CHECK(aclrtGetDevice(&device));
+  return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
 }
 
 } // namespace NPUCachingAllocator
