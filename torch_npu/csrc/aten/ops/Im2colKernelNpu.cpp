@@ -133,16 +133,24 @@ at::Tensor& NPUNativeFunctions::im2col_out(
     at::IntArrayRef padding, 
     at::IntArrayRef stride, 
     at::Tensor& result) {
+  at::Tensor self_cp = self.dim() == 3 ? at::unsqueeze(self, 0) : self;
+  auto output_size = image_to_col_npu_output_size(self_cp, kernel_size, stride, dilation, padding);
+
   OpPreparation::CheckOut(
-      {self},
+      {self_cp},
       result,
-      self,
-      image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding));
+      self_cp,
+      output_size);
 
   OpPipeWithDefinedOut pipe;
-  return pipe.CheckMemory({self}, {result})
-   .Func([&self, kernel_size, dilation, padding, stride](at::Tensor& result){im2col_out_npu_nocheck(result, self, kernel_size, dilation, padding, stride);})
-   .Call(result);
+  pipe.CheckMemory({self_cp}, {result})
+      .Func([&self_cp, kernel_size, dilation, padding, stride](at::Tensor& result) {
+        im2col_out_npu_nocheck(result, self_cp, kernel_size, dilation, padding, stride);})
+      .Call(result);
+  if (self.dim() == 3) {
+    result = at::squeeze(result, 0);
+  }
+  return result;
 }
 
 at::Tensor NPUNativeFunctions::im2col(
@@ -151,10 +159,13 @@ at::Tensor NPUNativeFunctions::im2col(
     at::IntArrayRef dilation,
     at::IntArrayRef padding, 
     at::IntArrayRef stride) {
-  auto outputSize =
-      image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  im2col_out(self, kernel_size, dilation, padding, stride, result);
+  at::Tensor self_cp = self.dim() == 3 ? at::unsqueeze(self, 0) : self;
+  auto output_size = image_to_col_npu_output_size(self_cp, kernel_size, stride, dilation, padding);
+  at::Tensor result = OpPreparation::ApplyTensor(self_cp, output_size);
+  im2col_out(self_cp, kernel_size, dilation, padding, stride, result);
+  if (self.dim() == 3) {
+    result = at::squeeze(result, 0);
+  }
   return result;
 }
 
