@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestReflectionPad2d(TestCase):
+
     def cpu_op_out_exec(self, input1, pad, output):
         m = torch._C._nn.reflection_pad2d(input1, pad, out=output)
         m = m.numpy()
@@ -60,7 +62,7 @@ class TestReflectionPad2d(TestCase):
         output = output.astype(np.float16)
         return output
 
-    def test_reflection_pad2d_out_shape_format_fp16(self, device="npu"):
+    def test_reflection_pad2d_out_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
             [[np.float16, 3, (1, 1, 4, 3)], 2]
@@ -74,10 +76,11 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, item[1], npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad2d_shape_format_fp16(self, device="npu"):
+    def test_reflection_pad2d_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
-            [[np.float16, 3, (1, 1, 4, 3)], 2]
+            [[np.float16, 3, (1, 1, 4, 3)], 2],
+            [[np.float16, 0, (1, 3, 3)], 2]
         ]
 
         for item in shape_format:
@@ -86,10 +89,11 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad2d_shape_format_fp32(self, device="npu"):
+    def test_reflection_pad2d_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 0, (1, 1, 37, 37)], [2, 2, 2, 2]],
-            [[np.float32, 3, (1, 1, 17, 17)], 2]
+            [[np.float32, 3, (1, 1, 17, 17)], 2],
+            [[np.float32, 0, (1, 3, 3)], 2]
         ]
 
         for item in shape_format:

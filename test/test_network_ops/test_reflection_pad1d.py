@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestReflectionPad1d(TestCase):
+
     def cpu_op_out_exec(self, input1, pad, output):
         m = torch._C._nn.reflection_pad1d(input1, pad, out=output)
         m = m.numpy()
@@ -45,10 +47,11 @@ class TestReflectionPad1d(TestCase):
         output = output.numpy()
         return output
 
-    def test_reflection_pad1d_out_shape_format_fp16(self, device="npu"):
+    def test_reflection_pad1d_out_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 2, (1, 2, 4)], [3, 1]],
-            [[np.float16, 3, (1, 2, 4)], [3, 1]]
+            [[np.float16, 3, (1, 2, 4)], [3, 1]],
+            [[np.float16, 2, (3, 5)], 3]
         ]
 
         def cpu_op_out_exec_fp16(input1, pad, output):
@@ -66,10 +69,11 @@ class TestReflectionPad1d(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, item[1], npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad1d_out_shape_format_fp32(self, device="npu"):
+    def test_reflection_pad1d_out_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 0, (1, 2, 4)], [3, 1]],
-            [[np.float32, 2, (1, 2, 4)], [3, 1]]
+            [[np.float32, 2, (1, 2, 4)], [3, 1]],
+            [[np.float32, 2, (3, 5)], 3]
         ]
 
         for item in shape_format:
@@ -80,10 +84,11 @@ class TestReflectionPad1d(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, item[1], npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad1d_shape_format_fp16(self, device="npu"):
+    def test_reflection_pad1d_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (2, 10, 12)], [4, 3]],
-            [[np.float16, 3, (2, 10, 12)], [4, 3]]
+            [[np.float16, 3, (2, 10, 12)], [4, 3]],
+            [[np.float16, 0, (3, 5)], 3],
         ]
 
         def cpu_op_exec_fp16(input1, pad):
@@ -100,10 +105,11 @@ class TestReflectionPad1d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad1d_shape_format_fp32(self, device="npu"):
+    def test_reflection_pad1d_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 2, (2, 10, 12)], [4, 3]],
-            [[np.float32, 2, (2, 10, 12)], [4, 3]]
+            [[np.float32, 2, (2, 10, 12)], [4, 3]],
+            [[np.float32, 2, (3, 5)], 3]
         ]
 
         for item in shape_format:

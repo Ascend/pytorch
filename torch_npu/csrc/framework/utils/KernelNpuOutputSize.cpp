@@ -866,10 +866,10 @@ namespace at_npu
 
     c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor &self, c10::IntArrayRef padding)
     {
-      int64_t N = self.size(0);
-      int64_t C = self.size(1);
-      int64_t H = self.size(2);
-      int64_t W = self.size(3);
+      int64_t N = self.dim() == 3 ? 1 : self.size(-4);
+      int64_t C = self.size(-3);
+      int64_t H = self.size(-2);
+      int64_t W = self.size(-1);
       int64_t padding_l = 0;
       int64_t padding_r = 0;
       int64_t padding_t = 0;
