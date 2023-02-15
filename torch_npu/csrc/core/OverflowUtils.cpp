@@ -14,7 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/utils/OverflowUtils.h"
+#include "torch_npu/csrc/core/OverflowUtils.h"
 
 namespace torch_npu {
 namespace utils {

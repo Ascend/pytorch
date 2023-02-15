@@ -14,7 +14,6 @@
 // limitations under the License.
 
 #include "npu_sys_ctrl.h"
-#include <Python.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"

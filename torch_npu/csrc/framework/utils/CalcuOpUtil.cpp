@@ -15,8 +15,6 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-
-#include <Python.h>
 #include <unordered_map>
 
 #include <ATen/record_function.h>

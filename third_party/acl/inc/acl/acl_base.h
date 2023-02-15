@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "error_codes/rt_error_codes.h"
-#include "error_codes/ge_error_codes.h"
+#include "../ge/ge_error_codes.h"
 
 #ifdef __cplusplus
 extern "C" {

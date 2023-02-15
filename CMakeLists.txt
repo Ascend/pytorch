@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
 project(TORCHNPU CXX C)
 
@@ -135,11 +135,20 @@ else()
   set(CXXFLAGS "-fstack-protector-all -Wl,-z,relro,-z,now,-s,-z,noexecstack -fPIE -pie ${CXXFLAGS}")
 endif()
 
+
+if (DEFINED BUILD_LIBTORCH)
+  add_compile_definitions(BUILD_LIBTORCH)
+endif()
+
+
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
+
+if (NOT DEFINED BUILD_LIBTORCH)
 include_directories(${PROJECT_SOURCE_DIR}/patch/include)
+endif()
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
@@ -159,23 +168,33 @@ endif()
 # sources
 set(ATEN_SRCS)
 set(CORE_SRCS)
-set(DIST_SRCS)
 set(FRAMEWORK_SRCS)
-set(NPU_SRCS)
-set(PROF_SRCS)
-set(UTILS_SRCS)
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  set(DIST_SRCS)
+  set(NPU_SRCS)
+  set(PROF_SRCS)
+  set(UTILS_SRCS)
+endif()
+
 
 add_subdirectory(${TORCHNPU_ROOT}/aten)
 add_subdirectory(${TORCHNPU_ROOT}/core)
-add_subdirectory(${TORCHNPU_ROOT}/distributed)
 add_subdirectory(${TORCHNPU_ROOT}/framework)
-add_subdirectory(${TORCHNPU_ROOT}/npu)
-add_subdirectory(${TORCHNPU_ROOT}/profiler)
-add_subdirectory(${TORCHNPU_ROOT}/utils)
 
+if (NOT DEFINED BUILD_LIBTORCH)
+  add_subdirectory(${TORCHNPU_ROOT}/distributed)
+  add_subdirectory(${TORCHNPU_ROOT}/npu)
+  add_subdirectory(${TORCHNPU_ROOT}/profiler)
+  add_subdirectory(${TORCHNPU_ROOT}/utils)
+endif()
+
+if (DEFINED BUILD_LIBTORCH)
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${FRAMEWORK_SRCS})
+else()
 # Compile code with pybind11
-set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${DIST_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS})
-
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${DIST_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS})
+endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
 
@@ -183,7 +202,10 @@ link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libhccl.so)
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
+endif()
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so)
@@ -191,25 +213,31 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_tdt_channel.so)
 
-target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.7m)
+if (DEFINED BUILD_LIBTORCH)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
+else()
+  target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.7m)
+endif()
 
 if(DEFINED ENV{BSCPP_OPS_ENABLE})
   message(STATUS "env BSCPP_OPS_ENABLE exists")
   target_link_libraries(${PLUGIN_NAME} PUBLIC bscpp_ops)
 endif()
 
-set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
-message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
-if ("${ATEN_THREADING}" STREQUAL "OMP")
-  target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_OPENMP=1")
-elseif ("${ATEN_THREADING}" STREQUAL "NATIVE")
-  target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE=1")
-elseif ("${ATEN_THREADING}" STREQUAL "TBB")
-  target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
-else()
-  message(FATAL_ERROR "Unknown ATen parallel backend: ${ATEN_THREADING}")
-endif()
+if (NOT DEFINED BUILD_LIBTORCH)
+  set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
+  message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
+  if ("${ATEN_THREADING}" STREQUAL "OMP")
+    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_OPENMP=1")
+  elseif ("${ATEN_THREADING}" STREQUAL "NATIVE")
+    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE=1")
+  elseif ("${ATEN_THREADING}" STREQUAL "TBB")
+    target_compile_definitions(${PLUGIN_NAME} PUBLIC "-DAT_PARALLEL_NATIVE_TBB=1")
+  else()
+    message(FATAL_ERROR "Unknown ATen parallel backend: ${ATEN_THREADING}")
+  endif()
 
-include(GNUInstallDirs)
-target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
-install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  include(GNUInstallDirs)
+  target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
+  install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()

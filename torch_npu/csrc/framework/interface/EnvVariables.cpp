@@ -22,7 +22,6 @@
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
-#include "torch_npu/csrc/profiler/cann_profiling.h"
 namespace at_npu {
 namespace native {
 namespace env {
@@ -96,28 +95,6 @@ REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val)
                       { AclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str()); })
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val)
                       { ForceJitCompileList::GetInstance().RegisterJitlist(val); })
-
-REGISTER_OPTION_HOOK(deliverswitch, [](const std::string &val) {
-  if (val == "enable") {
-    torch_npu::profiler::NpuProfilingDispatch::Instance().start();
-  } else {
-    torch_npu::profiler::NpuProfilingDispatch::Instance().stop();
-  }
-})
-
-REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string &val) {
-  torch_npu::profiler::NpuProfiling::Instance().Init(val);
-})
-
-REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
-  if (val.compare("stop") == 0) {
-    torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Stop();
-  } else if (val.compare("finalize") == 0) {
-    torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Finalize();
-  } else {
-    TORCH_CHECK(false, "profiling input: (", val, " ) error!")
-  }
-})
 
 REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDDisable, MM_BMM_ND_ENABLE, "enable", "disable")

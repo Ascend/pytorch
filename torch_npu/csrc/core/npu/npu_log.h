@@ -2,6 +2,9 @@
 
 #include <iostream>
 #include <string>
+#include <stdio.h>
+#include "third_party/acl/inc/acl/acl_base.h"
+
 
 #define NPUStatus std::string
 #define SUCCESS "SUCCESS"

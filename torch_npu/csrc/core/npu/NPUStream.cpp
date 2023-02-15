@@ -23,7 +23,6 @@
 #include <c10/util/Exception.h>
 #include "third_party/acl/inc/acl/acl_rt.h"
 
-#include <Python.h>
 #include <array>
 #include <atomic>
 #include <cstdint>

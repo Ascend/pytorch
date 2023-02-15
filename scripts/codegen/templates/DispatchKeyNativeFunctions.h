@@ -21,12 +21,15 @@
 
 #include <ATen/Tensor.h>
 #include <ATen/ATen.h>
+
+#ifndef BUILD_LIBTORCH
 #include <torch/csrc/utils/python_numbers.h>
 #include <torch/csrc/utils/python_strings.h>
-#include <torch/csrc/Device.h>
 #include <torch/csrc/tensor/python_tensor.h>
+#include "torch_npu/csrc/utils/Device.h"
+#endif
 
-#include "torch_npu/csrc/core/Device.h"
+#include <c10/core/Device.h>
 
 namespace at_npu {
 namespace key {
@@ -41,6 +44,7 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
   return tensor.is_xla();
 }
 
+#ifndef BUILD_LIBTORCH
 static at::Device parse_npu_device(PyObject* obj) {
   if (!obj || obj == Py_None) {
     return at::Device(c10::backendToDeviceType(c10::dispatchKeyToBackend(torch::tensors::get_default_dispatch_key())));
@@ -77,6 +81,7 @@ static at::Device  parse_npu_device_with_default(PyObject* obj, const at::Device
   if (!obj) return default_device;
   return parse_npu_device(obj);
 }
+#endif
 
 } // namespace key
 } // namespace at_npu
