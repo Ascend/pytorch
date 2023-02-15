@@ -11,15 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
 import copy
 import torch
-import torch_npu
+import numpy as np
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
 
 class TestNllloss2d(TestCase):
+
     def cpu_op_exec(self, data, target, reduction):
         loss = torch.nn.NLLLoss2d(reduction=reduction)
         output = loss(data, target)
@@ -38,7 +43,6 @@ class TestNllloss2d(TestCase):
     def test_nll_loss2d_mean(self):
         m = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
-        loss = torch.nn.NLLLoss()
         conv = torch.nn.Conv2d(16, dim_c, (3, 3))
         data = m(conv(torch.randn(dim_n, 16, 10, 10)))
         target = torch.empty(dim_n, 8, 8, dtype=torch.long).random_(0, dim_c)
@@ -56,7 +60,6 @@ class TestNllloss2d(TestCase):
     def test_nll_loss2d_none(self):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
-        loss = torch.nn.NLLLoss()
         conv = torch.nn.Conv2d(16, dim_c, (3, 3))
         data = exp(conv(torch.randn(dim_n, 16, 10, 10)))
         target = torch.empty(dim_n, 8, 8, dtype=torch.long).random_(0, dim_c)
@@ -74,7 +77,6 @@ class TestNllloss2d(TestCase):
     def test_nll_loss2d_sum(self):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
-        loss = torch.nn.NLLLoss()
         conv = torch.nn.Conv2d(16, dim_c, (3, 3))
         data = exp(conv(torch.randn(dim_n, 16, 10, 10)))
         target = torch.empty(dim_n, 8, 8, dtype=torch.long).random_(0, dim_c)
@@ -98,10 +100,26 @@ class TestNllloss2d(TestCase):
         cpu_con_loss = torch.nn.CrossEntropyLoss(reduce=False)
         npu_con_loss = copy.deepcopy(cpu_con_loss).npu()
 
-        cpu_con = cpu_con_loss(cpu_plabel, cpu_glabel)
-        npu_con = npu_con_loss(npu_plabel, npu_glabel)
+        cpu_output = cpu_con_loss(cpu_plabel, cpu_glabel)
+        npu_output = npu_con_loss(npu_plabel, npu_glabel)
 
-        self.assertRtolEqual(cpu_con, npu_con.cpu())
+        self.assertRtolEqual(cpu_output, npu_output.cpu())
+
+    @graph_mode
+    def test_nll_loss2d_dim_4(self):
+        cpu_input, npu_input = create_common_tensor((np.float32, 0, (32, 32, 32, 32)), -100, 100)
+        cpu_target, npu_target = create_common_tensor((np.int64, 0, (32, 32, 32)), 0, 32)
+        weight, _ = create_common_tensor((np.float32, 0, 32), 0, 32)
+        ignore_index = -100
+        reductions = ["mean", "sum", "none"]
+        for reduction in reductions:
+            cpu_loss = torch.nn.NLLLoss(weight=weight, ignore_index=ignore_index, reduction=reduction)
+            npu_loss = copy.deepcopy(cpu_loss).npu()
+
+            cpu_output = cpu_loss(cpu_input, cpu_target)
+            npu_output = npu_loss(npu_input, npu_target)
+
+            self.assertRtolEqual(cpu_output, npu_output.cpu())
 
 
 if __name__ == "__main__":
