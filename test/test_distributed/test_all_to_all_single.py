@@ -41,9 +41,7 @@ class HcclAlltoAllSingleTest(TestCase):
         pg = init_pg(rank, world_size)
         input1 = torch.arange(2) + rank * 2
         input1 = input1.float().npu()
-        input1 = input1.npu_format_cast(29)
         output = torch.empty(2).float().npu()
-        output = output.npu_format_cast(29)
         cout = 0
         pg.all_to_all_single(output, input1)
         c2p.put((rank, output.cpu(), cout))
@@ -54,7 +52,7 @@ class HcclAlltoAllSingleTest(TestCase):
         pg = init_pg(rank, world_size)
         input1 = data.float().npu()
         input1 = input1.npu_format_cast(29)
-        output = torch.empty(200).float().npu()
+        output = torch.empty(200, 1).float().npu()
         output = output.npu_format_cast(29)
         inputsize1 = [100, 100]
         inputsize2 = [100, 100]
@@ -97,7 +95,7 @@ class HcclAlltoAllSingleTest(TestCase):
                 for i in range(6, 10):
                     exp = torch.cat((exp, res[i]), dim=0)
             exp_2p = torch.arange(2) * 2 + rank
-            exp_format = torch.cat((exp, exp), dim=0)
+            exp_format = torch.cat((exp, exp), dim=0).reshape(200, 1)
             expected = exp_2p if cout == 0 else exp_format
             self.assertEqual(
                 output,
