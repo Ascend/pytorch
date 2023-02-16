@@ -192,6 +192,19 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     return FAILED;
   }
 
+  // While waiting for ACL thread to launch tasks,
+  // the current thread should not hold GIL.
+  // When the operator compilation is triggered in the ACL thread,
+  // the TE module attempts to obtain the GIL.
+  // If the current thread does not release the GIL, a deadlock will
+  // occur.
+#ifndef BUILD_LIBTORCH
+  PyThreadState *gilState = nullptr;
+  if(PyGILState_Check()) {
+    gilState = PyEval_SaveThread();
+  }
+#endif
+
   if (consumer.joinable()) {
     ssize_t s;
     uint64_t u = 1;
@@ -200,28 +213,19 @@ NPUStatus Repository::MakeSureQueueEmpty() {
       need_empty = true;
       __sync_synchronize();
       if (!IsEmptyQueue()) { // double-check, very important idea
-        // While waiting for ACL thread to launch tasks,
-        // the current thread should not hold GIL.
-        // When the operator compilation is triggered in the ACL thread,
-        // the TE module attempts to obtain the GIL.
-        // If the current thread does not release the GIL, a deadlock will
-        // occur.
-#ifndef BUILD_LIBTORCH
-        if (PyGILState_Check()) {
-          Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_empty, &u);
-          Py_END_ALLOW_THREADS
-        } else {
-          s = eventfd_read(efd_empty, &u);
-        }
-#else
         s = eventfd_read(efd_empty, &u);
-#endif
         if (s != 0) {
           if (errno == EINTR) {
             QUEUE_DEBUG("EINTR occurs on the eventfd_read");
             continue;
           }
           NPU_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
+#ifndef BUILD_LIBTORCH
+          // Get the GIL
+          if(gilState) {
+            PyEval_RestoreThread(gilState);
+          }
+#endif
           return INTERNEL_ERROR;
         }
         QUEUE_DEBUG("waiting ok, queue is empty now");
@@ -233,6 +237,14 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         write_idx.idx,
         read_idx.idx);
   }
+
+#ifndef BUILD_LIBTORCH
+  // Get the GIL
+  if(gilState) {
+    PyEval_RestoreThread(gilState);
+  }
+#endif
+
   return SUCCESS;
 }
 
