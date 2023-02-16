@@ -34,9 +34,7 @@ DynamicInputRegFunc index_func =
 // Limitations of the aicore branch
 bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, const at::IntArrayRef masks, const at::Tensor& result) {
   // The bool index only supports the input of 2D and 3D.
-  // The Int64 index only supports the input of 1D and 2D.
   if ((self.dim() == 1 && indices[0].scalar_type() == at::kBool) ||
-      (self.dim() > 2 && indices[0].scalar_type() == at::kLong) ||
       (self.dim() > 3 && indices[0].scalar_type() == at::kBool)) {
     return false;
   }
