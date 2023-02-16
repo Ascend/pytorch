@@ -26,6 +26,22 @@ do {                                                      \
     }                                                  \
   } while (0)
 
+#define NPU_CHECK_SUPPORTED_OR_ERROR(Error)               \
+  do {                                                    \
+    if ((Error) != ACL_ERROR_NONE                         \
+        && (Error) != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) { \
+      TORCH_CHECK(                                        \
+          false,                                          \
+          __func__,                                       \
+          ":",                                            \
+          __FILE__,                                       \
+          ":",                                            \
+          __LINE__,                                       \
+          " NPU error, error code is ", Error,            \
+          "\n", c10_npu::acl::AclGetErrMsg());            \
+    }                                                     \
+  } while (0)
+
 #define C10_NPU_CHECK_WARN(Error)                        \
   do {                                                   \
     if ((Error) != ACL_ERROR_NONE) {                     \
