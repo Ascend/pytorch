@@ -166,7 +166,7 @@ static void initGlobalStreamState() {
   default_streams[device_id].device_index = device_id;
   npu_counters[device_id] = 0;
   auto& default_streamsi = default_streams[device_id];
-  C10_NPU_CHECK(
+  NPU_CHECK_SUPPORTED_OR_ERROR(
       acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
     default_streamsi.repo->InitRepo(device_id);
@@ -174,7 +174,7 @@ static void initGlobalStreamState() {
   // Initializes secondary streams
   secondary_streams[device_id].device_index = device_id;
   auto& secondary_streamsi = secondary_streams[device_id];
-  C10_NPU_CHECK(
+  NPU_CHECK_SUPPORTED_OR_ERROR(
       acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   C10_NPU_CHECK(acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
 }
@@ -188,7 +188,7 @@ static void initDeviceStreamState(c10::DeviceIndex device_index) {
 
     npu_streami.device_index = device_index;
 
-    C10_NPU_CHECK(
+    NPU_CHECK_SUPPORTED_OR_ERROR(
         acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   }
 }
