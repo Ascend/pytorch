@@ -28,6 +28,7 @@ public:
     return &instance;
   }
 
+  void EnableOverflowNpu();
   bool CheckOverflowNpu();
   void ClearOverflowNpu();
 
