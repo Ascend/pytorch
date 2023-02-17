@@ -38,7 +38,10 @@ def get_rng_state(device='npu'):
         This function eagerly initializes NPU.
     """
     _lazy_init()
-    device = torch.device(str(device))
+    if isinstance(device, str):
+        device = torch.device(device)
+    elif isinstance(device, int):
+        device = torch.device('npu', device)
     idx = device.index
     if idx is None:
         idx = current_device()
@@ -64,7 +67,10 @@ def set_rng_state(new_state, device='npu'):
             Default: ``'npu'`` (i.e., ``torch.device('npu')``, the current NPU device).
     """
     new_state_copy = new_state.clone(memory_format=torch.contiguous_format)
-    device = torch.device(str(device))
+    if isinstance(device, str):
+        device = torch.device(device)
+    elif isinstance(device, int):
+        device = torch.device('npu', device)
 
     def cb():
         idx = device.index
