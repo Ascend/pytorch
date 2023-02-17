@@ -58,25 +58,35 @@ def returns_type(rs: Sequence[Return]) -> CType:
     # At present, there is no difference. But there could be!
     return cpp.returns_type(rs)
 
-def jit_arguments(func: FunctionSchema) -> List[Argument]:
-    def to_argument(a: Union[Argument, TensorOptionsArguments, SelfArgument]) -> List[Argument]:
-        if isinstance(a, Argument):
-            return [a]
-        elif isinstance(a, SelfArgument):
-            return [a.argument]
-        elif isinstance(a, TensorOptionsArguments):
-            return [a.dtype, a.layout, a.device, a.pin_memory]
-        else:
-            assert_never(a)
-    return list(concat_map(to_argument, itertools.chain(
-        func.arguments.positional,
-        func.arguments.kwarg_only,
-        func.arguments.out)))
+def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out: bool) -> List[Binding]:
+
+    should_default = not is_out
+    if isinstance(a, Argument):
+        default: Optional[str] = None
+        if should_default and a.default is not None:
+            default = cpp.default_expr(a.default, a.type)
+        return [
+            Binding(
+                nctype=argument_type(a, binds=a.name),
+                name=a.name, 
+                default=default, 
+                argument=a)
+        ]
+    elif isinstance(a, SelfArgument):
+        return argument(a.argument, is_out=is_out)
+    elif isinstance(a, TensorOptionsArguments):
+        return (
+            argument(a.dtype, is_out=is_out) + 
+            argument(a.layout, is_out=is_out) + 
+            argument(a.device, is_out=is_out) + 
+            argument(a.pin_memory, is_out=is_out) 
+        )
+    else:
+        assert_never(a)
 
 def arguments(func: FunctionSchema) -> List[Binding]:
-    return [
-        Binding(
-            nctype=argument_type(a, binds=a.name),
-            name=a.name,
-            argument=a,
-        ) for a in jit_arguments(func)]
+    args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
+    args.extend(func.arguments.positional)
+    args.extend(func.arguments.kwarg_only)
+    args.extend(func.arguments.out)
+    return [r for arg in args for r in argument(arg, is_out=func.is_out_fn())]

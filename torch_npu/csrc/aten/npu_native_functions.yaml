@@ -1,4 +1,4 @@
-backend: XLA
+backend: NPU
 cpp_namespace: at_npu::native
 supported:
  - __and__.Scalar
@@ -991,7 +991,7 @@ custom:
   - func: npu_fused_attention_score_fwd(Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor attention_mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool bmm_score_transpose_a=False, bool bmm_score_transpose_b=False, bool value_transpose=False, bool dx_transpose=False) -> (Tensor, Tensor, Tensor)
   - func: npu_fused_attention_score_grad(Tensor grad_output, Tensor softmax_output, Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool value_transpose=False, bool dx_transpose=False) -> (Tensor, Tensor, Tensor)
   - func: npu_fused_attention_qkv_grad(Tensor grad_output_query, Tensor grad_output_key, Tensor grad_output_value, Tensor query_kernel, Tensor key_kernel, Tensor value_kernel, Tensor hidden_states, Tensor grad_output_ln) -> Tensor[]
-  - func: npu_fused_attention_layernorm_qkv_fwd(Tensor x, Tensor kernel_query, Tensor kernel_key, Tensor kernel_value, Tensor gamma, Tensor beta, Tensor bias_query=None, Tensor bias_key=None, Tensor bias_value=None, int seq_len, int num_heads, float eps=1e-05) -> Tensor[]
+  - func: npu_fused_attention_layernorm_qkv_fwd(Tensor x, Tensor kernel_query, Tensor kernel_key, Tensor kernel_value, Tensor gamma, Tensor beta, Tensor? bias_query=None, Tensor? bias_key=None, Tensor? bias_value=None, int seq_len=128, int num_heads=12, float eps=1e-05) -> Tensor[]
   - func: npu_layernorm_grad(Tensor grad_out, Tensor input, int[] normalized_shape, Tensor mean, Tensor rstd, Tensor? weight, Tensor? bias) -> (Tensor, Tensor, Tensor)
   - func: format_contiguous(Tensor self) -> Tensor
   - func: check_match(Tensor self) -> bool
