@@ -82,7 +82,7 @@ namespace at_npu
       aclopSetAttrFloat(attr, name.c_str(), val);
     }
 
-    void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ScalarType value) 
+    void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ScalarType value)
     {
       aclDataType val = CalcuOpUtil::ConvertToAclDataType(value);
       aclopSetAttrDataType(attr, name.c_str(), val);
@@ -127,8 +127,8 @@ namespace at_npu
     }
 
     void OpCommandImpl::Run(
-        bool sync, 
-        c10::SmallVector<int64_t, N> &sync_index, 
+        bool sync,
+        c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
@@ -147,10 +147,10 @@ namespace at_npu
       }
 
     aclError OpCommandImpl::InnerRun(
-        string name, 
-        AclExecParam &params, 
-        bool sync, 
-        c10::SmallVector<int64_t, N> &sync_index, 
+        string name,
+        AclExecParam &params,
+        bool sync,
+        c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
 #ifndef BUILD_LIBTORCH
       bool enable_profiling = global_enable_profiling.load(std::memory_order_relaxed);
@@ -329,9 +329,8 @@ namespace at_npu
       aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
         cur_paras->srcLen, cur_paras->kind, stream);
       if (ret != ACL_ERROR_NONE) {
-        NPU_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d, paramCopyFinished = %d",
-                 ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, in->paramCopyFinished);
-        C10_NPU_SHOW_ERR_MSG();
+        ASCEND_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
+                    ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind);        C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
     }
@@ -341,7 +340,8 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtRecordEvent(cur_paras->event, stream);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("aclrtRecordEvent error! ret = %d", ret);
+        ASCEND_LOGE("aclrtRecordEvent error! ret = %d, event = %p, eventAllocatorType = %d",
+                    ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
 
@@ -360,7 +360,8 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d", ret);
+        ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d, event = %p, eventAllocatorType = %d",
+                    ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -370,13 +371,14 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("LazyDestroy error! ret = %d", ret);
+        ASCEND_LOGE("LazyDestroy error! ret = %d, event = %p, eventAllocatorType = %d",
+                    ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
     }
 
-    void CopyFunc(void* dst, void* src, uint32_t queueLen)
+    void CopyFunc(void* dst, void* src)
     {
       auto dstPtr = static_cast<c10_npu::queue::QueueParas* >(dst);
       auto srcPtr = static_cast<c10_npu::queue::QueueParas* >(src);
@@ -395,21 +397,11 @@ namespace at_npu
         new(dstPtr->paramVal) CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
-        auto tmp = (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal));
-        if (tmp->srcLen == 0 || tmp->dstLen == 0 || tmp->src == nullptr || tmp->kind == 0) {
-          NPU_LOGE("dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
-                   tmp->dst, tmp->dstLen, tmp->src, tmp->srcLen, tmp->kind);
-          std::stringstream msg;
-          msg << __func__ << ":" << __FILE__ << ":" << __LINE__;
-          TORCH_CHECK(0, msg.str());
-        }
       } else {
         new(dstPtr->paramVal) EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }
-      __sync_synchronize();
-      dstPtr->paramCopyFinished = 1;
     }
 
     void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue)
@@ -441,21 +433,9 @@ namespace at_npu
       {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
     };
 
-    int AsncExecFunc(void* data, uint32_t queueLen) {
-      c10_npu::queue::QueueParas* queueParam;
-      QueueParamType type;
-      int count = 10;
-      while(count > 0) {
-        count--;        
-        queueParam = static_cast<c10_npu::queue::QueueParas* >(data);
-        type = queueParam->paramType;
-        if (queueParam->paramCopyFinished != 1) {
-          TORCH_WARN_ONCE("queue param copy not finished, try get param again.");
-          usleep(10);
-        } else {
-          break;
-        }
-      }
+    int AsncExecFunc(void* data) {
+      auto queueParam = static_cast<c10_npu::queue::QueueParas* >(data);
+      auto type = queueParam->paramType;
       aclrtStream stream = queueParam->paramStream;
       auto ret = funcMap[type](queueParam, stream);
       return ret;
