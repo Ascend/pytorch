@@ -141,7 +141,11 @@ at::Tensor NPUNativeFunctions::to(
     return self;
   }
   if (at::ScalarType::Double == dtype) {
-    TORCH_WARN_ONCE("Unsupport Double dtype now, replace with float.");
+    static auto warn_once = [](){
+        std::cout << "Warning: Device do not support double dtype now, " \
+                     "dtype cast repalce with float." << std::endl;
+        return true;
+    }();
   }
   dtype = (at::ScalarType::Double == dtype) ? at::ScalarType::Float : dtype;
   return NPUNativeFunctions::npu_dtype_cast(self, dtype);
