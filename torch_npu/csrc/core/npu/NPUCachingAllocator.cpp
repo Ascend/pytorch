@@ -22,8 +22,6 @@
 #include <memory>
 #include <mutex>
 #include <set>
-#include <unordered_set>
-#include <unordered_map>
 #include <vector>
 
 #include <c10/core/Allocator.h>
@@ -227,7 +225,7 @@ struct AllocParams {
   BlockPool* pool;
   size_t alloc_size;
   Block* block;
-  StatTypes stat_types;
+  StatTypes stat_types = {false};
   aclError err;
 };
 
@@ -253,13 +251,20 @@ class DeviceCachingAllocator {
   BlockPool small_blocks;
 
   // allocated or in use by a stream
-  std::unordered_set<Block*> active_blocks;
+  ska::flat_hash_set<Block*> active_blocks;
 
   // outstanding acl events
   std::deque<std::pair<aclrtEvent, Block*>> npu_events;
   
   // outstanding taskqueue events
   std::set<aclrtEvent> recorded_events;
+
+  // record used memory.
+  size_t total_allocated_memory = 0;
+
+  size_t allowed_memory_maximum = 0;
+
+  bool set_fraction = false;
 
  public:
 
@@ -304,8 +309,15 @@ class DeviceCachingAllocator {
         size_t device_total;
         C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
 
+        std::string allowed_info;
+
+        if (set_fraction) {
+          allowed_info = format_size(allowed_memory_maximum) + " allowed; ";
+        }
+
         stats.num_ooms += 1;
         // "total capacity": total global memory on NPU
+        // "allowed": memory is allowed to use, which set by fraction.
         // "already allocated": memory allocated by the program using the
         //                      caching allocator
         // "free": free memory as reported by the NPU API
@@ -322,18 +334,19 @@ class DeviceCachingAllocator {
         // Note that at this point free_cached_blocks has already returned all
         // possible "cached" memory to the driver. The only remaining "cached"
         // memory is split from a larger block that is partially in-use.
-         AT_ERROR(
-             "NPU out of memory. Tried to allocate ",
-             format_size(alloc_size),
-             " (NPU ", device, "; ",
-             format_size(device_total),
-             " total capacity; ",
-             format_size(stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-             " already allocated; ",
-             format_size(device_free),
-             " free; ",
-             format_size(stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-             " cached)");
+        AT_ERROR(
+            "NPU out of memory. Tried to allocate ",
+            format_size(alloc_size),
+            " (NPU ", device, "; ",
+            format_size(device_total),
+            " total capacity; ",
+            format_size(stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
+            " already allocated; ",
+            format_size(device_free),
+            " free; ",
+            allowed_info,
+            format_size(stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
+            " cached)");
       } else {
         C10_NPU_CHECK(params.err);
       }
@@ -390,7 +403,7 @@ class DeviceCachingAllocator {
 
     block->allocated = false;
 
-    StatTypes stat_types;
+    StatTypes stat_types = {false};
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
     stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
     update_stat_array(stats.allocation, -1, {stat_types});
@@ -428,6 +441,15 @@ class DeviceCachingAllocator {
       return;
     }
     block->stream_uses.insert(stream);
+  }
+
+  /** set memory fraction to limit maximum allocated memory **/
+  void setMemoryFraction(double fraction) {
+    size_t device_free;
+    size_t device_total;
+    C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    allowed_memory_maximum = static_cast<size_t>(fraction * device_total);
+    set_fraction = true;
   }
 
   /** returns cached blocks to the system allocator **/
@@ -584,7 +606,7 @@ class DeviceCachingAllocator {
       net_change_inactive_split_size += block->size;
     }
 
-    StatTypes stat_types;
+    StatTypes stat_types = {false};
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
     stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
     update_stat_array(stats.inactive_split, net_change_inactive_split_blocks, stat_types);
@@ -683,12 +705,18 @@ class DeviceCachingAllocator {
       stats.num_alloc_retries += 1;
     }
 
-    p.err = aclrtMalloc(
-        &ptr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
+    if (set_fraction && total_allocated_memory + size > allowed_memory_maximum) {
+      p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
+    } else {
+      p.err = aclrtMalloc(
+          &ptr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
+    }
+
     if (p.err != ACL_ERROR_NONE) {
       return false;
     }
 
+    total_allocated_memory += size;
     p.block = new Block(p.device(), p.stream(), size, p.pool, (char*)ptr);
     update_stat_array(stats.segment, 1, p.stat_types);
     update_stat_array(stats.reserved_bytes, size, p.stat_types);
@@ -717,8 +745,9 @@ class DeviceCachingAllocator {
       Block* block = *it;
       if (!block->prev && !block->next) {
         aclrtFree((void *)block->ptr);
+        total_allocated_memory -= block->size;
 
-        StatTypes stat_types;
+        StatTypes stat_types = {false};
         stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
         stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
         update_stat_array(stats.segment, -1, stat_types);
@@ -880,7 +909,7 @@ class THNCachingAllocator {
   std::mutex mutex;
 
   // allocated blocks by device pointer
-  std::unordered_map<void*, Block*> allocated_blocks;
+  ska::flat_hash_map<void*, Block*> allocated_blocks;
 
   // lock around calls to aclFree (to prevent deadlocks with HCCL)
   mutable std::mutex npu_free_mutex;
@@ -915,8 +944,8 @@ class THNCachingAllocator {
     int size = device_allocator.size();
     if (size < device_count) {
       device_allocator.resize(device_count);
-      for (int i = size; i < device_count; i++) {
-        device_allocator[i] = std::unique_ptr<DeviceCachingAllocator>(new DeviceCachingAllocator());
+      for (const auto i : c10::irange(size, device_count)) {
+        device_allocator[i] = std::make_unique<DeviceCachingAllocator>();
       }
     }
   }
@@ -937,6 +966,25 @@ class THNCachingAllocator {
       AT_ERROR("invalid device pointer: ", ptr);
     }
     device_allocator[block->device]->free(block);
+  }
+
+  void setMemoryFraction(double fraction, int device) {
+    TORCH_INTERNAL_ASSERT(
+        0 <= device && device < device_allocator.size(),
+        "Allocator not initialized for device ",
+        device,
+        ": did you call init?");
+    TORCH_INTERNAL_ASSERT(
+        0 <= fraction  && fraction <= 1,
+        "invalid fraction:",
+        fraction,
+        ". Please set within (0, 1).");
+    int activated_device;
+    aclrtGetDevice(&activated_device);
+    if (activated_device != device) {
+        aclrtSetDevice(device);
+    }
+    device_allocator[device]->setMemoryFraction(fraction);
   }
 
   void emptyCache() {
@@ -1019,6 +1067,10 @@ void init() {
   caching_allocator.init(device_count);
 }
 
+void setMemoryFraction(double fraction, int device) {
+  caching_allocator.setMemoryFraction(fraction, device);
+}
+
 void emptyCache(void) {
   caching_allocator.emptyCache();
 }
@@ -1065,29 +1117,6 @@ void resetPeakStats(int device) {
 std::vector<SegmentInfo> snapshot() {
   return caching_allocator.snapshot();
 }
-
-
-//
-// In NPU IPC, sender sends a tensor to receiver, getIpcDevPtr
-// is called by the receiving process to map the NPU memory from the sending
-// process into its own address space.
-//
-// NPU IPC only allows sharing a big memory block associated with a
-// npuIpcMemHandle_t and it can be opened only **once** per context per
-// process. There can be multiple types of storage in the same IPC mem block, so
-// we must cache the device ptr to construct typed storage as it comes.
-//
-// ipcMemHandle_to_devptr maps a npuIpcMemHandle_t to a device pointer in the
-// process that can be used to access the memory block in the sender process. It
-// only saves a weak_ptr of the device pointer in the map, the shared_ptr will
-// be used to reconstruct all storages in this NPUMalloc allocation. And it
-// will deleted in npuIpcCloseMemHandle when its reference count is 0.
-//
-namespace {
-std::mutex IpcMutex;
-std::unordered_map<std::string, std::weak_ptr<void>> ipcMemHandle_to_devptr;
-} // namespace
-
 
 void* raw_alloc(size_t nbytes) {
   if (nbytes == 0) {
