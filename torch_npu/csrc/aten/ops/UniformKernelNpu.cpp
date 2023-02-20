@@ -42,7 +42,7 @@ at::Tensor& uniform_out_npu(
       .Attr("dtype", self.scalar_type())
       .Run();
   // StatelessRandomUniformV2 output: U(0~1) --> U(from~to)
-  result = result.mul(to).sub(result.mul(from).sub(from));
+  result.mul_(to).sub_(result.mul_(from).sub_(from));
   return result;
 }
 
