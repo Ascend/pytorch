@@ -175,9 +175,9 @@ void PopEndTime(const at::RecordFunction& fn) {
 
 void InitE2eProfiler(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics, bool call_stack) {
-  global_enable_profiling.store(true);
   global_call_stack = call_stack;
   InitMsPorf(dump_path, npu_event, aicore_metrics);
+  global_enable_profiling.store(true);
   auto handle = at::addThreadLocalCallback(at::RecordFunctionCallback(
       [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
         torch_npu::profiler::PushStartTime(const_cast<at::RecordFunction&>(fn));
@@ -189,8 +189,8 @@ void InitE2eProfiler(const std::string dump_path, uint64_t npu_event,
 }
 
 void FinalizeE2eProfiler() {
-  global_enable_profiling.store(false);
   c10_npu::npuSynchronizeDevice();
+  global_enable_profiling.store(false);
   auto ret = at_npu::native::AclProfilingStop(local_profCfg);
   if (ret) {
     NPU_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);
