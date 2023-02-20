@@ -68,9 +68,9 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_fused_attention_layernorm_qkv_fw
     const at::Tensor& kernel_value,
     const at::Tensor& gamma,
     const at::Tensor& beta,
-    const at::Tensor& bias_query,
-    const at::Tensor& bias_key,
-    const at::Tensor& bias_value,
+    const c10::optional<at::Tensor>& bias_query,
+    const c10::optional<at::Tensor>& bias_key,
+    const c10::optional<at::Tensor>& bias_value,
     int64_t seq_len,
     int64_t num_heads,
     double eps) {
@@ -84,8 +84,13 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_fused_attention_layernorm_qkv_fw
   at::Tensor value_output = OpPreparation::ApplyTensor(kernel_value, qkv_output_shape);
   at::Tensor mean = OpPreparation::ApplyTensorWithFormat(kernel_query, mean_output_shape, ACL_FORMAT_ND);
   at::Tensor variance = OpPreparation::ApplyTensorWithFormat(kernel_query, mean_output_shape, ACL_FORMAT_ND);
+
+  const at::Tensor& bias_query_output = c10::value_or_else(bias_query, [] {return at::Tensor();});
+  const at::Tensor& bias_key_output = c10::value_or_else(bias_key, [] {return at::Tensor();});
+  const at::Tensor& bias_value_output = c10::value_or_else(bias_value, [] {return at::Tensor();});
+
   fused_attention_ln_qkv_impl(norm, query_output, key_output, value_output, mean, variance,
-      x, kernel_query, kernel_key, kernel_value, gamma, beta, bias_query, bias_key, bias_value, eps);
+      x, kernel_query, kernel_key, kernel_value, gamma, beta, bias_query_output, bias_key_output, bias_value_output, eps);
   std::vector<at::Tensor> results = {norm, query_output, key_output, value_output, mean, variance};
   return results;
 }
