@@ -263,30 +263,35 @@ class FastSyncBatchNorm(_BatchNorm):
         momentum: float = 0.1,
         affine: bool = True,
         track_running_stats: bool = True,
-        process_group: Optional[Any] = None
+        process_group: Optional[Any] = None,
+        device=None,
+        dtype=None
     ) -> None:
-        super(FastSyncBatchNorm, self).__init__(num_features, eps, momentum, affine, track_running_stats)
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super(FastSyncBatchNorm, self).__init__(
+            num_features, eps, momentum, affine, track_running_stats, **factory_kwargs
+        )
         self.process_group = process_group
-        # gpu_size is set through DistributedDataParallel initialization. This is to ensure that SyncBatchNorm is used
-        # under supported condition (single GPU per process)
-        self.ddp_gpu_size = None
 
     def _check_input_dim(self, input1):
         if input1.dim() < 2:
-            raise ValueError('expected at least 2D input1 (got {}D input1)'
-                             .format(input1.dim()))
+            raise ValueError(
+                "expected at least 2D input1 (got {}D input1)".format(input1.dim())
+            )
 
-    def _specify_ddp_gpu_num(self, gpu_size):
-        if gpu_size > 1:
-            raise ValueError('SyncBatchNorm is only supported for DDP with single GPU per process')
-        self.ddp_gpu_size = gpu_size
+    def _check_non_zero_input_channels(self, input1):
+        if input1.size(1) == 0:
+            raise ValueError(
+                "SyncBatchNorm number of input1 channels should be non-zero"
+            )
 
     def forward(self, input1: Tensor) -> Tensor:
         # currently NPU or GPU input1 is supported
         if not input1.is_cuda and not input1.is_npu:
-            raise ValueError('SyncBatchNorm expected input1 tensor to be on NPU or GPU')
+            raise ValueError("SyncBatchNorm expected input1 tensor to be on NPU or GPU")
 
         self._check_input_dim(input1)
+        self._check_non_zero_input_channels(input1)
 
         # exponential_average_factor is set to self.momentum
         # (when it is available) only so that it gets updated
@@ -298,7 +303,7 @@ class FastSyncBatchNorm(_BatchNorm):
 
         if self.training and self.track_running_stats:
             assert self.num_batches_tracked is not None
-            self.num_batches_tracked = self.num_batches_tracked + 1
+            self.num_batches_tracked.add_(1)
             if self.momentum is None:  # use cumulative moving average
                 exponential_average_factor = 1.0 / self.num_batches_tracked.item()
             else:  # use exponential moving average
@@ -319,12 +324,15 @@ class FastSyncBatchNorm(_BatchNorm):
         used for normalization (i.e. in eval mode when buffers are not None).
         """
         # If buffers are not to be tracked, ensure that they won't be updated
-        assert self.running_mean is None or isinstance(self.running_mean, torch.Tensor)
-        assert self.running_var is None or isinstance(self.running_var, torch.Tensor)
-        running_mean = self.running_mean if not self.training or self.track_running_stats else None
-        running_var = self.running_var if not self.training or self.track_running_stats else None
+        running_mean = (
+            self.running_mean if not self.training or self.track_running_stats else None
+        )
+        running_var = (
+            self.running_var if not self.training or self.track_running_stats else None
+        )
 
-        need_sync = bn_training
+        # Don't sync batchnorm stats in inference mode (model.eval()).
+        need_sync = (bn_training and self.training)
         if need_sync:
             process_group = torch.distributed.group.WORLD
             if self.process_group:
@@ -335,16 +343,28 @@ class FastSyncBatchNorm(_BatchNorm):
         # fallback to framework BN when synchronization is not necessary
         if not need_sync:
             return F.batch_norm(
-                input1, running_mean, running_var, self.weight, self.bias,
-                bn_training, exponential_average_factor, self.eps)
+                input1,
+                running_mean,
+                running_var,
+                self.weight,
+                self.bias,
+                bn_training,
+                exponential_average_factor,
+                self.eps,
+            )
         else:
-            if not self.ddp_gpu_size:
-                raise AttributeError('SyncBatchNorm is only supported within torch.nn.parallel.DistributedDataParallel')
-
             assert bn_training
             return sync_batch_norm.apply(
-                input1, self.weight, self.bias, running_mean, running_var,
-                self.eps, exponential_average_factor, process_group, world_size)
+                input1,
+                self.weight,
+                self.bias,
+                running_mean,
+                running_var,
+                self.eps,
+                exponential_average_factor,
+                process_group,
+                world_size,
+            )
 
     @classmethod
     def convert_sync_batchnorm(cls, module, process_group=None):
@@ -352,7 +372,7 @@ class FastSyncBatchNorm(_BatchNorm):
         :class:`torch.nn.SyncBatchNorm` layers.
 
         Args:
-            module (nn.Module): module containing one or more attr:`BatchNorm*D` layers
+            module (nn.Module): module containing one or more :attr:`BatchNorm*D` layers
             process_group (optional): process group to scope synchronization,
                 default is the whole world
 
@@ -361,14 +381,36 @@ class FastSyncBatchNorm(_BatchNorm):
             layers. If the original :attr:`module` is a :attr:`BatchNorm*D` layer,
             a new :class:`torch.nn.SyncBatchNorm` layer object will be returned
             instead.
+
+        Example::
+
+            >>> # Network with nn.BatchNorm layer
+            >>> module = torch.nn.Sequential(
+            >>>            torch.nn.Linear(20, 100),
+            >>>            torch.nn.BatchNorm1d(100),
+            >>>          ).cuda()
+            >>> # creating process group (optional)
+            >>> # ranks is a list of int identifying rank ids.
+            >>> ranks = list(range(8))
+            >>> r1, r2 = ranks[:4], ranks[4:]
+            >>> # Note: every rank calls into new_group for every
+            >>> # process group created, even if that rank is not
+            >>> # part of the group.
+            >>> process_groups = [torch.distributed.new_group(pids) for pids in [r1, r2]]
+            >>> process_group = process_groups[0 if dist.get_rank() <= 3 else 1]
+            >>> sync_bn_module = torch.nn.SyncBatchNorm.convert_sync_batchnorm(module, process_group)
+
         """
         module_output = module
-        if isinstance(module, _BatchNorm):
-            module_output = FastSyncBatchNorm(module.num_features,
-                                                   module.eps, module.momentum,
-                                                   module.affine,
-                                                   module.track_running_stats,
-                                                   process_group)
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module_output = torch.nn.SyncBatchNorm(
+                module.num_features,
+                module.eps,
+                module.momentum,
+                module.affine,
+                module.track_running_stats,
+                process_group,
+            )
             if module.affine:
                 with torch.no_grad():
                     module_output.weight = module.weight
@@ -379,6 +421,8 @@ class FastSyncBatchNorm(_BatchNorm):
             if hasattr(module, "qconfig"):
                 module_output.qconfig = module.qconfig
         for name, child in module.named_children():
-            module_output.add_module(name, cls.convert_sync_batchnorm(child, process_group))
+            module_output.add_module(
+                name, cls.convert_sync_batchnorm(child, process_group)
+            )
         del module
         return module_output
