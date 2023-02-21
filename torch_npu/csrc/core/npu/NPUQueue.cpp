@@ -8,27 +8,8 @@
 #include <sys/prctl.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
 
-#ifdef OPEN_QUEUE_DEBUG
-#define QUEUE_DEBUG(fmt, ...)                                      \
-  do {                                                             \
-    printf("[%s:%d]" fmt "\n", __func__, __LINE__, ##__VA_ARGS__); \
-  } while (0)
-#else
-#define QUEUE_DEBUG(fmt, ...)
-#endif
-
-#ifdef OPEN_QUEUE_COUT
-#define QUEUE_COUT(fmt, ...)                                       \
-  do {                                                             \
-    printf("[%s:%d]" fmt "\n", __func__, __LINE__, ##__VA_ARGS__); \
-  } while (0)
-#else
-#define QUEUE_COUT(fmt, ...)
-#endif
-
 namespace c10_npu {
 
-constexpr int32_t MAX_JUDGE_NUM = 1000000;
 struct timeval delay = {0, 1};
 
 namespace {
@@ -65,16 +46,16 @@ public:
     this->deleteFunc = func;
   }
 
-  int Call(void* head, int offset, uint32_t queueLen) {
+  int Call(void* head, int offset) {
     TORCH_CHECK(this->execFunc, "Failed to find execution function.");
     auto dstPtr = (uint8_t*)head + sizePerParams * offset;
-    return this->execFunc(dstPtr, queueLen);
+    return this->execFunc(dstPtr);
   }
 
-  void Copy(void* dstHead, int offset, void* src, uint32_t queueLen) {
+  void Copy(void* dstHead, int offset, void* src) {
     TORCH_CHECK(this->copyFunc, "Failed to find copy function.");
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
-    return this->copyFunc(dstPtr, src, queueLen);
+    return this->copyFunc(dstPtr, src);
   }
 
   void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
@@ -156,7 +137,7 @@ static constexpr size_t kQueueCapacity = 4096;
 
 RepoStatus Repository::GetStatus() const {
   if (initialized == false) {
-    NPU_LOGE("Task queue is not initialized, shouldn't call GetStatus(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call GetStatus(). !!");
   }
 
   return repo_status.load();
@@ -164,7 +145,7 @@ RepoStatus Repository::GetStatus() const {
 
 void Repository::SetStatus(RepoStatus desired) {
   if (initialized == false) {
-    NPU_LOGE("Task queue is not initialized, shouldn't call SetStatus(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call SetStatus(). !!");
     return;
   }
 
@@ -173,8 +154,7 @@ void Repository::SetStatus(RepoStatus desired) {
 
 void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired) {
   if (initialized == false) {
-    NPU_LOGE(
-        "Task queue is not initialized, shouldn't call ChangeStatus(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call ChangeStatus(). !!");
     return;
   }
 
@@ -183,8 +163,7 @@ void Repository::ChangeStatus(RepoStatus expected, RepoStatus desired) {
 
 NPUStatus Repository::MakeSureQueueEmpty() {
   if (initialized == false) {
-    NPU_LOGE(
-        "Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
     return FAILED;
   }
 
@@ -210,24 +189,18 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         s = eventfd_read(efd_empty, &u);
         if (s != 0) {
           if (errno == EINTR) {
-            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
             continue;
           }
-          NPU_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
+          ASCEND_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
           // Get the GIL
           if(gilState) {
             PyEval_RestoreThread(gilState);
           }
           return INTERNEL_ERROR;
         }
-        QUEUE_DEBUG("waiting ok, queue is empty now");
       }
     }
     need_empty = false;
-    QUEUE_DEBUG(
-        "MakeSureQueueEmpty success, now write_idx=%d, read_idx=%d",
-        write_idx.idx,
-        read_idx.idx);
   }
 
   // Get the GIL
@@ -240,41 +213,32 @@ NPUStatus Repository::MakeSureQueueEmpty() {
 
 bool Repository::WriteQueue(void* cur_paras) {
   std::lock_guard<std::mutex> lock(mu_enqueue);
-  QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
   if (IsFullQueue()) {
-    QUEUE_DEBUG("queue is full");
     return false;
   }
 
-  uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
   __sync_synchronize();
-  manager().Copy(datas, write_idx.idx, cur_paras, queueLen);
+  manager().Copy(datas, write_idx.idx, cur_paras);
   __sync_synchronize();
 
-  write_idx.idx = (write_idx.idx + 1) % kQueueCapacity;
+  write_idx.idx = (write_idx.idx + 1) & (kQueueCapacity - 1);
   return true;
 }
 
 bool Repository::ReadQueue() {
-  QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
   if (IsEmptyQueue()) {
-    QUEUE_DEBUG("queue is empty");
     return false;
   }
 
   __sync_synchronize();
-  uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
-  if (queueLen == 1) {
-    usleep(2);
-  }
-  auto ret = manager().Call(datas, read_idx.idx, queueLen);
+  auto ret = manager().Call(datas, read_idx.idx);
 
   if (ret != 0) {
-    ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %d, read_idx = %d, status = %d, ret = %d",
+    ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
                 std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
     while (!IsEmptyQueue()) { // ignore other tasks
       manager().Release(datas, read_idx.idx, releaseQueue);
-      read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
+      read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
     }
     ReleaseResource();
     std::stringstream msg;
@@ -285,19 +249,18 @@ bool Repository::ReadQueue() {
   manager().Release(datas, read_idx.idx, releaseQueue);
   __sync_synchronize();
 
-  read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
-  QUEUE_DEBUG("read success, now read of repo is %d", read_idx.idx);
+  read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
 
   return true;
 }
 
 void Repository::Enqueue(void* cur_paras) {
   if (initialized == false) {
-    NPU_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
     return;
   }
   if (GetStatus() != RUN && GetStatus() != INIT) {
-    NPU_LOGE("Task queue thread is exit, cann't call Enqueue(). !!");
+    ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue(). !!");
     return;
   }
   bool ret = false;
@@ -320,27 +283,23 @@ void Repository::Enqueue(void* cur_paras) {
         }
         if (s != 0) {
           if (errno == EINTR) {
-            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
             continue;
           }
-          NPU_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
+          ASCEND_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         SetWriteWorking(true);
-        QUEUE_DEBUG("waiting ok, queue isn't full now");
       }
       continue;
     }
     __sync_synchronize();
     while (!IsReadWorking()) {
-      QUEUE_DEBUG("need notify consumer");
       s = eventfd_write(efd_read, u);
       if (s != 0) {
         if (errno == EINTR) {
-          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
           continue;
         }
-        NPU_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
+        ASCEND_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
         return;
       }
       break;
@@ -351,7 +310,7 @@ void Repository::Enqueue(void* cur_paras) {
 
 void Repository::Dequeue() {
   if (initialized == false) {
-    NPU_LOGE("Task queue is not initialized, shouldn't call Dequeue(). !!");
+    ASCEND_LOGE("Task queue is not initialized, shouldn't call Dequeue(). !!");
     return;
   }
 
@@ -375,14 +334,12 @@ void Repository::Dequeue() {
         s = eventfd_read(efd_read, &u);
         if (s != 0) {
           if (errno == EINTR) {
-            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
             continue;
           }
-          NPU_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
+          ASCEND_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         SetReadWorking(true);
-        QUEUE_DEBUG("waiting ok, queue isn't empty now");
       }
       continue;
     }
@@ -390,28 +347,24 @@ void Repository::Dequeue() {
     notify_empty = need_empty &&
         IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
     while (notify_empty) {
-      QUEUE_DEBUG("need notify make_sure");
       s = eventfd_write(efd_empty, u);
       if (s != 0) {
         if (errno == EINTR) {
-          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
           continue;
         }
-        NPU_LOGE("notify make_sure failed. s=%zd, errno=%s.", s, strerror(errno));
+        ASCEND_LOGE("notify make_sure failed. s=%zd, errno=%s.", s, strerror(errno));
         return;
       }
       break;
     }
     __sync_synchronize();
     while (!IsWriteWorking()) {
-      QUEUE_DEBUG("need notify producer");
       s = eventfd_write(efd_write, u);
       if (s != 0) {
         if (errno == EINTR) {
-          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
           continue;
         }
-        NPU_LOGE("notify producer failed. s=%zd, errno=%s.", s, strerror(errno));
+        ASCEND_LOGE("notify producer failed. s=%zd, errno=%s.", s, strerror(errno));
         return;
       }
       break;
@@ -438,35 +391,18 @@ void Repository::ReleaseResource() {
 
 Repository::~Repository() {
   if (initialized) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    QUEUE_COUT(
-        "%ds %dms %dus <-- device %d FinishRepo start.",
-        (int)(tv.tv_sec),
-        (int)(tv.tv_usec / 1000),
-        (int)(tv.tv_usec % 1000),
-        (int)device_idx);
     if (consumer.joinable()) {
       SetStatus(NEED_EXIT);
       (void)eventfd_write(efd_read, 1); // escape wait
-      QUEUE_DEBUG("acl escape wait.");
       consumer.join();
-      QUEUE_DEBUG("acl end, now we destruct.");
     }
-    gettimeofday(&tv, NULL);
-    QUEUE_COUT(
-        "%ds %dms %dus <-- device %d FinishRepo start.",
-        (int)(tv.tv_sec),
-        (int)(tv.tv_usec / 1000),
-        (int)(tv.tv_usec % 1000),
-        (int)device_idx);
     eventfd_write(efd_empty, 1);
     ReleaseResource();
   }
 }
 
 bool Repository::IsFullQueue() const {
-  return ((write_idx.idx + 1) % kQueueCapacity) == read_idx.idx;
+  return ((write_idx.idx + 1) & (kQueueCapacity - 1)) == read_idx.idx;
 }
 
 bool Repository::CheckInit() const {
@@ -475,14 +411,13 @@ bool Repository::CheckInit() const {
 
 void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
   if (prctl(PR_SET_NAME, ("ACL_thread")) != 0) {
-    std::cout << "set thread name failed!" << std::endl;
+    ASCEND_LOGE("set thread name failed!");
   }
 
   aclError ret = aclrtSetDevice(device_id);
   if (ret != 0) {
     C10_NPU_SHOW_ERR_MSG();
-    std::cout << "***Thread*" << std::this_thread::get_id() << ": set device ("
-              << device_id << "): ret = " << ret << std::endl;
+    ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);
   }
 
   while (repo->GetStatus() != RepoStatus::CAN_EXIT) {
@@ -492,16 +427,9 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
 }
 
 void Repository::InitRepo(c10::DeviceIndex device_id) {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  QUEUE_COUT(
-      "%ds %dms %dus <--InitRepo start.",
-      (int)(tv.tv_sec),
-      (int)(tv.tv_usec / 1000),
-      (int)(tv.tv_usec % 1000));
-
   if (datas == nullptr) {
     datas = manager().Init(kQueueCapacity);
+    ASCEND_LOGI("TaskQueue is enable");
   }
 
   efd_read = eventfd(0, 0);
@@ -521,7 +449,6 @@ static constexpr size_t kReleaseQueueCapacity = 8192;
 bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
 {
   if (IsFullQueue()) {
-    QUEUE_DEBUG("Release queue is full");
     return false;
   }
 
@@ -529,13 +456,13 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
   releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
 
   __sync_synchronize();
-  write_idx.idx = (write_idx.idx + 1) % kReleaseQueueCapacity;
+  write_idx.idx = (write_idx.idx + 1) & (kReleaseQueueCapacity - 1);
   return true;
 }
 
 void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
   if (initialized == false) {
-    NPU_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
     return;
   }
 
@@ -550,7 +477,6 @@ void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
 
 bool ReleaseQueue::ReadFromReleaseQueue() {
   if (IsEmptyQueue()) {
-    QUEUE_DEBUG("Release queue is empty");
     return false;
   }
 
@@ -558,14 +484,14 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
   releaseManager().ReleaseParam(datas, read_idx.idx);
 
   __sync_synchronize();
-  read_idx.idx = (read_idx.idx + 1) % kReleaseQueueCapacity;
+  read_idx.idx = (read_idx.idx + 1) & (kReleaseQueueCapacity - 1);
 
   return true;
 }
 
 void ReleaseQueue::PopFromReleaseQueue() {
   if (initialized == false) {
-    NPU_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
     return;
   }
 
@@ -585,7 +511,7 @@ void ReleaseQueue::PopFromReleaseQueue() {
 
 void StartRelease(ReleaseQueue* releaseQue) {
   if (prctl(PR_SET_NAME, ("Release_thread")) != 0) {
-    std::cout << "set thread name failed!" << std::endl;
+    ASCEND_LOGE("set thread name failed!");
   }
 
   while (releaseQue->GetStatus() != RepoStatus::CAN_EXIT) {
@@ -621,7 +547,7 @@ bool ReleaseQueue::IsFullQueue() const {
 
 RepoStatus ReleaseQueue::GetStatus() const {
   if (initialized == false) {
-    NPU_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
   }
 
   return repo_status.load();
@@ -629,7 +555,7 @@ RepoStatus ReleaseQueue::GetStatus() const {
 
 void ReleaseQueue::SetStatus(RepoStatus desired) {
   if (initialized == false) {
-    NPU_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
     return;
   }
 
@@ -638,7 +564,7 @@ void ReleaseQueue::SetStatus(RepoStatus desired) {
 
 void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
   if (initialized == false) {
-    NPU_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
+    ASCEND_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
     return;
   }
 

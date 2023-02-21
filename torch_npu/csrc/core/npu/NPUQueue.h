@@ -119,8 +119,8 @@ private:
   ReleaseQueue releaseQueue;
 };
 
-using ACL_EXEC_FUNC     = std::function<int(void*, uint32_t)>;
-using ACL_COPY_FUNC     = std::function<void(void*, void*, uint32_t)>;
+using ACL_EXEC_FUNC     = std::function<int(void*)>;
+using ACL_COPY_FUNC     = std::function<void(void*, void*)>;
 using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 using ACL_DELETE_FUNC   = std::function<void(void*)>;
