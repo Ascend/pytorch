@@ -40,7 +40,7 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
 }
 
 static at::Device parse_npu_device(PyObject* obj) {
-  if (!obj) {
+  if (!obj || obj == Py_None) {
     return at::Device(c10::backendToDeviceType(c10::dispatchKeyToBackend(torch::tensors::get_default_dispatch_key())));
   }
   if (THPUtils_checkLong(obj)) {
