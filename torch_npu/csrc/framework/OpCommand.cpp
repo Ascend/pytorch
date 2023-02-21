@@ -14,6 +14,8 @@
 // limitations under the License.
 
 #include <c10/util/Exception.h>
+#include <ATen/record_function.h>
+
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
@@ -221,6 +223,7 @@ void OpCommand::Run() {
   aclCmd->SetEnginePriority();
   string opName = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
+    RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);

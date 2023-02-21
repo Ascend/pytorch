@@ -269,7 +269,12 @@ namespace at_npu
     {
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType);
-
+#ifndef BUILD_LIBTORCH
+      bool enable_profiling = global_enable_profiling.load(std::memory_order_relaxed);
+      if (enable_profiling) {
+        NpuUtils::ReportCannOpToMsProfiler(std::string(cur_paras->opType));
+      }
+#endif
       aclError ret;
       bool reset_flag = false;
       if (!cur_paras->isJitDisable)
