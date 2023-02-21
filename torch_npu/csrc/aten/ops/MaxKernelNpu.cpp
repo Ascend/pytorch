@@ -44,6 +44,13 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_out(
     bool keepdim,
     at::Tensor& output,
     at::Tensor& indices) {
+  if (!output.is_contiguous() || !indices.is_contiguous()) {
+      auto out = NPUNativeFunctions::max(self, dim, keepdim);
+      output.copy_(std::get<0>(out));
+      indices.copy_(std::get<1>(out));
+      return std::tie(output, indices);
+  }
+
   at::SmallVector<int64_t, SIZE> dims = {dim};
   auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
   at::SmallVector<int64_t, SIZE> indicesSize = outputSize;
@@ -139,6 +146,12 @@ at::Tensor& NPUNativeFunctions::max_out(
     const at::Tensor& self, 
     const at::Tensor& other,
     at::Tensor& result) {
+  if (!result.is_contiguous()) {
+      auto out = NPUNativeFunctions::maximum(self, other);
+      result.copy_(out);
+      return result;
+  }
+
   at::ScalarType high_type = at::native::result_type(self, other);
   at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self)) ?
       NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
@@ -202,10 +215,16 @@ at::Tensor NPUNativeFunctions::max(
 }
 
 at::Tensor& NPUNativeFunctions::amax_out(
-    const at::Tensor& self, 
-    at::IntArrayRef dims, 
+    const at::Tensor& self,
+    at::IntArrayRef dims,
     bool keepdim,
     at::Tensor& result) {
+  if (!result.is_contiguous()) {
+      auto out = NPUNativeFunctions::amax(self, dims, keepdim);
+      result.copy_(out);
+      return result;
+  }
+
   auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
   OpPreparation::CheckOut(
       {self},
