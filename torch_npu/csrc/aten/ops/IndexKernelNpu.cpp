@@ -163,6 +163,16 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
    * Therefore, when the fourth type of operator is encountered in graph
    * mode, the single op mode is switched to execute by default.
    */
+  if (self.device().type() == at::kCPU) {
+    return at::native::index(self, orig);
+  }
+  auto indices = at::native::expandTensors(self, orig);
+  for (auto & indice : indices) {
+    if (indice.defined() && indice.device() != self.device()) {
+      indice = indice.to(self.device());
+    }
+  }
+
   GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
 
   at::native::checkIndexTensorTypes(orig);
@@ -181,6 +191,12 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
     masks.emplace_back(0);
   }
 
+  for (auto &allDefinedIndice : allDefinedIndices) {
+    if (allDefinedIndice.device() != self.device()) {
+      allDefinedIndice = allDefinedIndice.to(self.device());
+    }
+  }
+
   /**
    * When input.size(0) = 1, if the dtype of indices is int64,
    * and indices only for 0 dimension, can broadcast to output.
@@ -195,7 +211,6 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
 
   at::Tensor formatCastOfSelf = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
 
-  auto indices = at::native::expandTensors(self, orig);
   auto outputSize = index_npu_output_size(formatCastOfSelf, indices);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(formatCastOfSelf,  outputSize, ACL_FORMAT_ND);
 
