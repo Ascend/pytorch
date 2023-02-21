@@ -292,6 +292,28 @@ PyObject * THNPModule_cacheInit(PyObject *_unused, PyObject *noargs)
   Py_RETURN_NONE;
 }
 
+PyObject * THNPModule_setMemoryFraction(PyObject *_unused, PyObject *args)
+{
+  HANDLE_TH_ERRORS
+  PyObject* fraction_o = nullptr;
+  PyObject* device_o = nullptr;
+  if(!PyArg_ParseTuple(args, "OO", &fraction_o, &device_o)) {
+    THPUtils_invalidArguments(
+        args,
+        nullptr,
+        "set_memory_fraction",
+        1,
+        "(double fraction, int device);");
+    return nullptr;
+  }
+  double fraction = PyFloat_AsDouble(fraction_o);
+  int64_t device = PyLong_AsLongLong(device_o);
+
+  c10_npu::NPUCachingAllocator::setMemoryFraction(fraction, device);
+  END_HANDLE_TH_ERRORS
+  Py_RETURN_NONE;
+}
+  
 PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
@@ -709,6 +731,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_cacheInit", (PyCFunction) THNPModule_cacheInit, METH_NOARGS, nullptr},
+    {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},
