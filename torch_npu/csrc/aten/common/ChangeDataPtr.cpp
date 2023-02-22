@@ -44,7 +44,7 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at:
   int64_t src_storage_size = c10::multiply_integers(src_sizes);
 
   TORCH_CHECK(
-      offset + dst_storage_size * dst.element_size() <
+      offset + dst_storage_size * dst.element_size() <=
       src_storage_size * src.element_size(),
       "Offsets overflow, got: ",
       "offset ", offset,

@@ -143,7 +143,7 @@ class GradScaler(Cuda_GradScaler):
         print("{:22} : {}".format("growth_interval", growth_interval))
         print("{:22} : {}".format("dynamic", dynamic))
         print("{:22} : {}".format("enabled", enabled))
-    
+
     def _lazy_init_scale_growth_tracker(self, dev):
         assert self._growth_tracker is None, "_growth_tracker initialized before _scale"
         self._scale = torch.full((1,), self._init_scale, dtype=torch.float32).pin_memory().to(dev, non_blocking=True)
@@ -224,7 +224,25 @@ class GradScaler(Cuda_GradScaler):
         # Google says mypy struggles with defaultdicts type annotations.
         per_device_and_dtype_grads = defaultdict(lambda: defaultdict(list))
         with torch.no_grad():
-            if self._dynamic:
+            if hasattr(optimizer, 'is_fused_optimizer'):
+                if not optimizer.is_params_grads_combined:
+                    optimizer._maybe_init_combined_params_and_grads()
+
+                device = found_inf.device
+                for grads_combined_one_dtype in optimizer.grads_all_group_combined:
+                    if grads_combined_one_dtype is None:
+                        continue
+                    if self._dynamic:
+                        torch._amp_foreach_non_finite_check_and_unscale_(
+                            [grads_combined_one_dtype],
+                            per_device_found_inf.get(device),
+                            per_device_inv_scale.get(device))
+                        if per_device_found_inf.get(device)[0].item() > 0:
+                            self._has_overflow = True
+                    else:
+                        grads_combined_one_dtype.mul_(
+                            per_device_inv_scale.get(device))
+            else:
                 for group in optimizer.param_groups:
                     for param in group["params"]:
                         if param.grad is None:
@@ -246,11 +264,15 @@ class GradScaler(Cuda_GradScaler):
 
                 for device, per_dtype_grads in per_device_and_dtype_grads.items():
                     for grads in per_dtype_grads.values():
-                        torch._amp_foreach_non_finite_check_and_unscale_(grads,
-                                                                        per_device_found_inf.get(device),
-                                                                        per_device_inv_scale.get(device))
-                        if per_device_found_inf.get(device)[0].item() > 0:
-                            self._has_overflow = True
+                        if self._dynamic:
+                            torch._amp_foreach_non_finite_check_and_unscale_(grads,
+                                                                            per_device_found_inf.get(device),
+                                                                            per_device_inv_scale.get(device))
+                            if per_device_found_inf.get(device)[0].item() > 0:
+                                self._has_overflow = True
+                        else:
+                            for grad in grads:
+                                grad.mul_(per_device_inv_scale.get(device))
 
             self._sync_dist_overflow_count()
             if self._has_overflow:
@@ -319,7 +341,7 @@ class GradScaler(Cuda_GradScaler):
         else:
             print("Gradient overflow. Skipping step")
         return retval
-        
+
     def step(self, optimizer, *args, **kwargs):
         """
         :meth:`step` carries out the following two operations:
@@ -369,12 +391,12 @@ class GradScaler(Cuda_GradScaler):
             self.unscale_(optimizer)
 
         assert len(optimizer_state["found_inf_per_device"]) > 0, "No inf checks were recorded for this optimizer."
-        
+
         if self._dynamic:
             retval = self._maybe_opt_step(optimizer, optimizer_state, *args, **kwargs)
             optimizer_state["stage"] = OptState.STEPPED
             return retval
-        
+
         retval = optimizer.step(*args, **kwargs)
         optimizer_state["stage"] = OptState.STEPPED
 
