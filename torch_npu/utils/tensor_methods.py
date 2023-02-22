@@ -22,7 +22,6 @@ import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard, device
 from .storage import _reduce_ex
 
-
 warnings.filterwarnings(action="once")
 warning_str = "The tensor methods of custom operators would cause performance drop." + \
               " Suggest to use torch.{0} or torch_npu.{0} instead."
@@ -136,33 +135,11 @@ def _new_full(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_ones(self, *args, **kwargs):
-    dst_device = kwargs.get("device", None)
-    if dst_device is not None and "npu" in str(dst_device):
-        kwargs["device"] = None
-        return torch._C._TensorBase.new_ones(self, *args, **kwargs).to(dst_device)
-
     return torch._C._TensorBase.new_ones(self, *args, **kwargs)
 
 
 @torch_device_guard
 def _new_tensor(self, *args, **kwargs):
-    if kwargs and "device" in kwargs:
-        dst_device = kwargs.get("device")
-        if "npu" in str(dst_device):
-            args_requires_grad = kwargs.get("requires_grad", False)
-            dtype = kwargs.get("dtype", self.dtype)
-            if isinstance(args[0], torch.Tensor):
-                res_tensor = args[0].clone().to(dtype=dtype, device=dst_device)
-            elif isinstance(args[0], numpy.ndarray):
-                res_tensor = torch.from_numpy(args[0]).to(dtype=dtype, device=dst_device)
-            else:
-                res_tensor = torch.from_numpy(numpy.array(args[0])).to(dtype=dtype, device=dst_device)
-
-            if args_requires_grad:
-                return res_tensor.detach().requires_grad_(args_requires_grad)
-            else:
-                return res_tensor.detach()
-
     return torch._C._TensorBase.new_tensor(self, *args, **kwargs)
 
 
