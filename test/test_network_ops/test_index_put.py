@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import random
 import torch
 import numpy as np
 import torch_npu
@@ -153,6 +155,29 @@ class TestIndexPut(TestCase):
         cinput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value
         ninput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value.npu()
         self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())
+
+
+    def test_index_put_different_device(self):
+        m = random.randint(10, 20)
+        elems = random.randint(20000, 30000)
+        cpu_values = torch.rand(elems)
+        npu_values = cpu_values.npu()
+        indices = torch.randint(m, (elems,))
+        cpu_input1 = torch.rand(m)
+        npu_input1 = cpu_input1.npu()
+        cpu_output1 = self.cpu_op_exec(cpu_input1, (indices,), cpu_values)
+        npu_output1 = self.npu_op_exec(npu_input1, (indices,), npu_values)
+        self.assertRtolEqual(cpu_output1, npu_output1)
+
+        m = random.randint(10, 20)
+        elems = random.randint(20000, 30000)
+        values = torch.rand(elems)
+        cpu_indices = torch.randint(m, (elems,))
+        npu_indices = cpu_indices.npu()
+        input1 = torch.rand(m)
+        cpu_output2 = self.cpu_op_exec(input1, (cpu_indices,), values)
+        npu_output2 = self.npu_op_exec(input1, (npu_indices,), values)
+        self.assertRtolEqual(cpu_output2, npu_output2)
 
 
 if __name__ == "__main__":
