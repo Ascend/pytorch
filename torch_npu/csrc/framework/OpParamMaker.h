@@ -378,7 +378,7 @@ namespace at_npu
       }
 
       aclError InnerRun(
-        string name, 
+        const string &name, 
         AclExecParam &params, 
         bool sync, 
         c10::SmallVector<int64_t, N> &sync_index, 
