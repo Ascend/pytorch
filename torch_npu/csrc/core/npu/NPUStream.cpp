@@ -177,7 +177,7 @@ static void initGlobalStreamState() {
   auto& secondary_streamsi = secondary_streams[device_id];
   NPU_CHECK_SUPPORTED_OR_ERROR(
       acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-  C10_NPU_CHECK(acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+  NPU_CHECK_SUPPORTED_OR_ERROR(acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
 }
 
 static void initDeviceStreamState(c10::DeviceIndex device_index) {
