@@ -50,8 +50,8 @@ from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
 from .random import (manual_seed, manual_seed_all, seed, seed_all, initial_seed, 
                      get_rng_state_all, set_rng_state_all,
                      get_rng_state, set_rng_state)
-from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete, _cache_init,
-                     set_per_process_memory_fraction, empty_cache, memory_stats, memory_stats_as_nested_dict,
+from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete,
+                     empty_cache, memory_stats, memory_stats_as_nested_dict,
                      reset_accumulated_memory_stats, reset_peak_memory_stats,
                      reset_max_memory_allocated, reset_max_memory_cached, memory_allocated,
                      max_memory_allocated, memory_reserved, max_memory_reserved,
@@ -69,4 +69,3 @@ torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
 
 matmul = npu_frontend_enhance.allowHF32Matmul()
 conv = npu_frontend_enhance.allowHF32Conv()
-_cache_init()
