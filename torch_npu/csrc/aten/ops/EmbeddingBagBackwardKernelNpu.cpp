@@ -41,7 +41,7 @@ at::Tensor NPUNativeFunctions::_embedding_bag_backward(
   at::Tensor maximum_indices_cpu = maximum_indices.to("cpu");
   at::Tensor per_sample_weights_cpu = per_sample_weights;
   if (per_sample_weights_cpu.defined()) {
-    at::Tensor per_sample_weights_cpu = per_sample_weights_cpu.to("cpu");
+    per_sample_weights_cpu = per_sample_weights_cpu.to("cpu");
   }
 
   at::Tensor result = at::_embedding_bag_backward(
