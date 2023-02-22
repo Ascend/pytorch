@@ -48,6 +48,9 @@ public:
     // Init backwards thread
      SysStatus BackwardsInit();
 
+    // Set overflow switch
+     SysStatus OverflowSwitchEnable();
+
     // GE Environment Finalize, return SysStatus
      SysStatus Finalize();
 
