@@ -169,6 +169,13 @@ class TorchNPUApiTestCase(TestCase):
     def test_npu_get_device_name(self):
         res = torch_npu.npu.get_device_name(0)
         self.assertIsInstance(res, str)
+        res = torch_npu.npu.get_device_name()
+        self.assertIsInstance(res, str)
+        res = torch_npu.npu.get_device_name("npu:0")
+        self.assertIsInstance(res, str)
+        device = torch.device("npu:0")
+        res = torch_npu.npu.get_device_name(device)
+        self.assertIsInstance(res, str)
 
     def test_npu_get_device_properties(self):
         name = torch_npu.npu.get_device_properties(0).name
