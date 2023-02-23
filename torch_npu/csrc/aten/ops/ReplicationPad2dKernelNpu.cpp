@@ -18,49 +18,52 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& replication_pad2d_out_npu_nocheck(at::Tensor& out, const at::Tensor& self, at::IntArrayRef padding) {
+at::Tensor& replication_pad2d_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::IntArrayRef padding) {
   TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * self.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
+  at::Tensor self_cp = self.dim() == 3 ? self.unsqueeze(0) : self;
+  c10::SmallVector<int64_t, N> vector_int;
+  c10::SmallVector<int64_t, N> paddings_vector = array_to_small_vector(padding);
+  paddings_vector.resize(2 * self_cp.dim(), 0);
+  for (int64_t i = paddings_vector.size(); i > 1; i -= 2) {
+    vector_int.emplace_back(paddings_vector[i - 2]);
+    vector_int.emplace_back(paddings_vector[i - 1]);
   }
   // constructs the attr of the NPUAttrDesc
   c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
   OpCommand cmd;
   cmd.Name("PadV3")
-      .Input(self)
-      .Input(vectorInt, at::kInt)
+      .Input(self_cp)
+      .Input(vector_int, at::kInt)
       .Input(value_tensor, self.scalar_type())
-      .Output(out)
+      .Output(result)
       .Attr("mode", (string)"edge")
       .Attr("paddings_contiguous", true)
       .Run();
-
-  return out;
+  if (self.dim() == 3) {
+    result.squeeze_(0);
+  }
+  return result;
 }
 
 at::Tensor& NPUNativeFunctions::replication_pad2d_out(
     const at::Tensor& self,
     at::IntArrayRef padding,
-    at::Tensor& out) {
+    at::Tensor& result) {
   auto outputSize = replication_pad2d_npu_output_size(self, padding);
   OpPreparation::CheckOut(
       {self},
-      out,
+      result,
       self,
       outputSize);
-  return replication_pad2d_out_npu_nocheck(out, self, padding);
+  replication_pad2d_out_npu_nocheck(result, self, padding);
+  return result;
 }
 
 at::Tensor NPUNativeFunctions::replication_pad2d(const at::Tensor& self, at::IntArrayRef padding) {
   auto outputSize = replication_pad2d_npu_output_size(self, padding);
-  at::Tensor out = OpPreparation::ApplyTensor(self, outputSize);
-  replication_pad2d_out(self, padding, out);
-
-  return out;
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  replication_pad2d_out_npu_nocheck(result, self, padding);
+  return result;
 }
 } // namespace native
 } // namespace at_npu

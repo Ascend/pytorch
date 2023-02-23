@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -35,10 +36,11 @@ class TestReplicationPad2d(TestCase):
         m_n = m_n.numpy()
         return m_n
 
-    def test_replicationPad2d_shape_format_fp16(self, device="npu"):
+    def test_replicationPad2d_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
-            [[np.float16, 3, (1, 1, 4, 3)], 3]
+            [[np.float16, 3, (1, 1, 4, 3)], 3],
+            [[np.float16, 0, (1, 3, 3)], 4]
         ]
 
         def cpu_op_exec_fp16(input1, pad):
@@ -55,10 +57,11 @@ class TestReplicationPad2d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_replicationPad2d_out_shape_format_fp16(self, device="npu"):
+    def test_replicationPad2d_out_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
-            [[np.float16, 3, (1, 1, 4, 3)], 2]
+            [[np.float16, 3, (1, 1, 4, 3)], 2],
+            [[np.float16, 0, (1, 3, 3)], 4]
         ]
 
         def cpu_op_out_exec_fp16(input1, pad, output):

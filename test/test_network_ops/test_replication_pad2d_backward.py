@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -32,10 +33,11 @@ class TestReplicationPad2dBackward(TestCase):
         output = output.detach().numpy()
         return output, npu_grad.cpu().numpy()
 
-    def test_replicationPad2d_backward_shape_format_fp16(self, device="npu"):
+    def test_replicationPad2d_backward_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (1, 1, 27, 27)], [2, 2, 2, 2]],
-            [[np.float16, 0, (1, 1, 27, 27)], 3]
+            [[np.float16, 0, (1, 1, 27, 27)], 3],
+            [[np.float16, 0, (4, 27, 27)], 3]
         ]
 
         def cpu_op_exec_fp16(input1, pad):

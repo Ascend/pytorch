@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -46,10 +47,11 @@ class TestReplicationPad1d(TestCase):
         m = m.numpy()
         return m
 
-    def test_replicationPad1d_shape_format_fp16(self, device="npu"):
+    def test_replicationPad1d_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (1, 2, 4)], [3, 1]],
-            [[np.float16, 2, (1, 2, 4)], [3, 1]]
+            [[np.float16, 2, (1, 2, 4)], [3, 1]],
+            [[np.float16, 2, (3, 5)], 3]
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -59,10 +61,11 @@ class TestReplicationPad1d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_replicationPad1d_shape_format_fp32(self, device="npu"):
+    def test_replicationPad1d_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 0, (1, 2, 4)], [3, 1]],
-            [[np.float32, 2, (1, 2, 4)], [3, 1]]
+            [[np.float32, 2, (1, 2, 4)], [3, 1]],
+            [[np.float32, 2, (3, 5)], 3]
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -70,10 +73,11 @@ class TestReplicationPad1d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_replicationPad1d_out_shape_format_fp16(self, device="npu"):
+    def test_replicationPad1d_out_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (2, 17, 20)], [4, 3]],
-            [[np.float16, 3, (2, 17, 20)], [4, 3]]
+            [[np.float16, 3, (2, 17, 20)], [4, 3]],
+            [[np.float16, 0, (3, 5)], 3]
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -85,10 +89,11 @@ class TestReplicationPad1d(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, item[1], npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_replicationPad1d_out_shape_format_fp32(self, device="npu"):
+    def test_replicationPad1d_out_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 0, (2, 17, 20)], [4, 3]],
-            [[np.float32, 3, (2, 17, 20)], [4, 3]]
+            [[np.float32, 3, (2, 17, 20)], [4, 3]],
+            [[np.float32, 0, (3, 5)], 3]
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
