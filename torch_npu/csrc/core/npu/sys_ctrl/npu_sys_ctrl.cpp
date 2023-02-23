@@ -147,9 +147,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1){
     auto init_mode = aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION;
     c10_npu::acl::AclrtSetDeviceSatMode(init_mode);
-    // overflow_flag: 1 enable, 0 disable
-    uint32_t overflow_flag = 1;
-    c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), overflow_flag);
   }
 
   if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
@@ -180,6 +177,14 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
     C10_NPU_CHECK(aclrtSetDevice(device_id_));
     return INIT_SUCC;
+}
+
+ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
+   if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1){
+     c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
+     NPU_LOGI("Npu overflow check switch set successfully.");
+   }
+   return INIT_SUCC;
 }
 
 // GE Environment Finalize, return SysStatus
