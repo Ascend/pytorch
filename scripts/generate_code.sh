@@ -36,7 +36,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-if [[  ${build_libtorch} != "True" ]]; then
+if [[ ${build_libtorch} != "True" ]]; then
   python3 -m codegen.gen_python_functions  \
     --output_dir="$NDIR/torch_npu/csrc/aten/" \
     --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
