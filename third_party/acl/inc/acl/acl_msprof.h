@@ -52,6 +52,8 @@ ACL_FUNC_VISIBILITY aclError aclprofRangeStart(void *stamp, uint32_t *rangeId);
 
 ACL_FUNC_VISIBILITY aclError aclprofRangeStop(uint32_t rangeId);
 
+ACL_FUNC_VISIBILITY aclError aclprofReportStamp(
+    const char *tag, unsigned int tagLen, unsigned char *data, unsigned int dataLen);
 
 #ifdef __cplusplus
 }

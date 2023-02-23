@@ -50,7 +50,8 @@ aclError AclprofRangeStart(void *stamp, uint32_t *rangeId);
 
 aclError AclprofRangeStop(uint32_t rangeId);
 
-
+aclError AclprofReportStamp(const char *tag, unsigned int tagLen,
+                            unsigned char *data, unsigned int dataLen);
 }
 }
 

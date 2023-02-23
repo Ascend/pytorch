@@ -31,6 +31,7 @@ namespace native {
 REGISTER_LIBRARY(libmsprofiler)
 LOAD_FUNCTION(aclprofCreateStamp)
 LOAD_FUNCTION(aclprofDestroyStamp)
+LOAD_FUNCTION(aclprofReportStamp)
 LOAD_FUNCTION(aclprofSetStampTagName)
 LOAD_FUNCTION(aclprofSetCategoryName)
 LOAD_FUNCTION(aclprofSetStampCategory)
@@ -191,5 +192,12 @@ aclError AclprofRangeStop(uint32_t rangeId) {
     return func(rangeId);
 }
 
+aclError AclprofReportStamp(const char *tag, unsigned int tagLen,
+                            unsigned char *data, unsigned int dataLen) {
+    typedef aclError(*AclprofReportStampFunc)(const char *, unsigned int, unsigned char *, unsigned int);
+    static AclprofReportStampFunc func = (AclprofReportStampFunc)GET_FUNC(aclprofReportStamp);
+    TORCH_CHECK(func, "Failed to find function ", "aclprofReportStamp");
+    return func(tag, tagLen, data, dataLen);
+}
 }
 }

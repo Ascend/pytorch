@@ -27,9 +27,11 @@
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
-
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
+#ifndef BUILD_LIBTORCH
+#include <Python.h>
 extern std::atomic<bool> global_enable_profiling;
-
+#endif
 namespace at_npu
 {
   namespace native
@@ -141,15 +143,17 @@ namespace at_npu
     }
 
     aclError OpCommandImpl::InnerRun(
-        string name,
+        const string &name,
         AclExecParam &params,
         bool sync,
         c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
-      bool enable_profiling = global_enable_profiling.load(std::memory_order_relaxed);
-      if (enable_profiling) {
-        NpuUtils::ReportCannOpToMsProfiler(name);
+      aclError ret;
+#ifndef BUILD_LIBTORCH
+      if (global_enable_profiling.load(std::memory_order_relaxed)) {
+        torch_npu::profiler::PutMarkStamp(name);
       }
+#endif
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -159,7 +163,6 @@ namespace at_npu
         AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
         reset_flag = true;
       }
-      aclError ret;
       int index = 0;
       do
       {
@@ -261,11 +264,12 @@ namespace at_npu
     {
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType);
-      bool enable_profiling = global_enable_profiling.load(std::memory_order_relaxed);
-      if (enable_profiling) {
-        NpuUtils::ReportCannOpToMsProfiler(std::string(cur_paras->opType));
-      }
       aclError ret;
+#ifndef BUILD_LIBTORCH
+      if (global_enable_profiling.load(std::memory_order_relaxed)) {
+        torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
+      }
+#endif
       bool reset_flag = false;
       if (!cur_paras->isJitDisable)
       {
