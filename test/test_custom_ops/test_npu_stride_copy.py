@@ -24,7 +24,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestNpuStrideCopy(TestCase):
     def custom_op_exec(self, input1, size, stride, storage_offset):
-        output = torch.as_strided(input1, size, stride, 0)
+        output = torch.as_strided(input1, size, stride, 0).clone()
         output = output.cpu().numpy()
         return output
 
