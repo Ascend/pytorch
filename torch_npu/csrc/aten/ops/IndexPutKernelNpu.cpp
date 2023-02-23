@@ -215,7 +215,13 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
       masks.emplace_back(0);
     }
   }
-  
+
+  for (auto &allDefinedIndice : allDefinedIndices) {
+    if (allDefinedIndice.device() != self.device()) {
+      allDefinedIndice = allDefinedIndice.to(self.device());
+    }
+  }
+
   OpPreparation::CastBackToOriFormat(self);
   at::Tensor valueCopy = value;
   at::Tensor selfCopy = self;
