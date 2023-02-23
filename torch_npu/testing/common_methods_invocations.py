@@ -1147,7 +1147,7 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_new_fns,
         supports_out=False,
         supports_autograd=False,
-    )
+    ),
     OpInfo(
         'nn.functional.nll_loss',
         dtypes=_dispatch_dtypes((torch.float32, )),
