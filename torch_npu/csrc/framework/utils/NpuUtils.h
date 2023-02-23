@@ -68,7 +68,6 @@ namespace at_npu
       static bool check_5d_5d_match(const at::Tensor &tensor);
       static bool IsOomError(aclError ret, int index);
       static void check_1d(const at::Tensor &t, const char *arg, const char *fn);
-      static void ReportCannOpToMsProfiler(const std::string &msg);
     };
     const std::string AclDateTypeToString(aclDataType descDType);
     const std::string AclFormatToString(aclFormat descFormat);
