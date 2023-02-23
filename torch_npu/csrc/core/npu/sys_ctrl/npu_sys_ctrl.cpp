@@ -181,6 +181,14 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     return INIT_SUCC;
 }
 
+ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
+   if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1){
+     c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
+     NPU_LOGI("Npu overflow check switch set successfully.");
+   }
+   return INIT_SUCC;
+}
+
 // GE Environment Finalize, return SysStatus
  NpuSysCtrl::SysStatus NpuSysCtrl::Finalize() {
     if (!init_flag_) {
