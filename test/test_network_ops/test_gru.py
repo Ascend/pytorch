@@ -63,5 +63,45 @@ class TestGru(TestCase):
                 self.assertRtolEqual(cpu_output_y.detach().numpy(), npu_output_y.cpu().detach().numpy(), prec=1.e-1)
                 self.assertRtolEqual(cpu_output_h.detach().numpy(), npu_output_h.cpu().detach().numpy(), prec=1.e-1)
 
+    def pad_seq(self, pad_token, seq, seq_len, max_length):
+        seq += [pad_token for _ in range(max_length - seq_len)]
+        return seq
+
+    def test_pack_gru_pad(self, device="npu"):
+        batch_size = 3
+        max_len = 6
+        embedding_size = 8
+        hidden_size = 16
+        vocab_size = 20
+        input_seq = [[3, 5, 12, 7, 2], [4, 11, 14], [18, 7, 3, 8, 5, 4]]
+        lengths = [5, 3, 6]
+
+        embedding = torch.nn.Embedding(vocab_size, embedding_size, padding_idx=0)
+        GRU_cpu = torch.nn.GRU(embedding_size, hidden_size, batch_first=True)
+        GRU_npu = copy.deepcopy(GRU_cpu).npu()
+
+        input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
+        lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
+        pad_token = 0        
+        pad_seqs = []
+        for i, j in zip(input_seq, lengths):
+            pad_seqs.append(self.pad_seq(pad_token, i, j, max_len))
+
+        pad_seqs = torch.tensor(pad_seqs)
+        embeded = embedding(pad_seqs)
+
+        pack_cpu = torch.nn.utils.rnn.pack_padded_sequence(embeded, lengths, batch_first=True)
+        pack_npu = torch.nn.utils.rnn.pack_padded_sequence(embeded.npu(), lengths, batch_first=True)
+
+        state = None
+        gru_cpu, _ = GRU_cpu(pack_cpu, state)
+        gru_npu, _ = GRU_npu(pack_npu, state)
+
+        pad_cpu, others = torch.nn.utils.rnn.pad_packed_sequence(gru_cpu, batch_first=True)
+        pad_npu, others = torch.nn.utils.rnn.pad_packed_sequence(gru_npu, batch_first=True)
+
+        self.assertRtolEqual(pad_cpu.detach().numpy(), pad_npu.cpu().detach().numpy(), prec=1.e-3)
+
+
 if __name__ == "__main__":
     run_tests()

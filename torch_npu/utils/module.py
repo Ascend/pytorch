@@ -23,6 +23,7 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter 
 from torch.nn.modules.batchnorm import _NormBase
 from torch.nn.parallel._functions import _streams
+from torch.nn.utils.rnn import PackedSequence
 
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
@@ -411,6 +412,82 @@ def _get_stream(device: int):
         _streams[device] = torch.npu.Stream(device)
     return _streams[device]
 
+def gru_forward(self, input_tensor, hx=None):
+    orig_input = input_tensor
+
+    if isinstance(orig_input, PackedSequence):
+        input_tensor, batch_sizes, sorted_indices, unsorted_indices = input_tensor
+        max_batch_size = batch_sizes[0]
+        max_batch_size = int(max_batch_size)
+    else:
+        batch_sizes = None
+        max_batch_size = input_tensor.size(0) if self.batch_first else input_tensor.size(1)
+        sorted_indices = None
+        unsorted_indices = None
+
+    if hx is None:
+        num_directions = 2 if self.bidirectional else 1
+        hx = torch.zeros(self.num_layers * num_directions,
+                         max_batch_size, self.hidden_size,
+                         dtype=input_tensor.dtype, device=input_tensor.device)
+    else:
+        # Each batch of the hidden state should match the input sequence that
+        # the user believes he/she is passing in.
+        hx = self.permute_hidden(hx, sorted_indices)
+
+    self.check_forward_args(input_tensor, hx, batch_sizes)
+    if batch_sizes is None:
+        result = torch._VF.gru(input_tensor, hx, self._flat_weights, self.bias, self.num_layers,
+                               self.dropout, self.training, self.bidirectional, self.batch_first)
+    else:
+        if batch_sizes.device != input_tensor.device:
+            # convert to compact length
+            start = 0
+            idx_list = []
+            batch_list = batch_sizes.numpy()
+            for i in batch_list:
+                idx = list(range(start, start + i, 1))
+                idx_list = idx_list + idx
+                start = start + batch_list[0]
+            input_pack = input_tensor
+            if len(idx_list) != input_tensor.shape[0]:
+                idx_tensor = torch.Tensor(idx_list).long().to(input_tensor.device)
+                input_pack = torch.nn.functional.embedding(idx_tensor, input_tensor)
+
+            result = torch._VF.gru(input_pack, batch_sizes, hx, self._flat_weights, self.bias,
+                                   self.num_layers, self.dropout, self.training, self.bidirectional)
+
+            # convert to fixed length
+            if len(idx_list) != input_tensor.shape[0]:
+                start = 0
+                cur = start
+                shape = [1] + list(result[0].shape[1:])
+                pad_tensor = torch.zeros(shape, device = input_tensor.device)
+                cat_list = []
+                for i in batch_list:
+                    if (i < batch_list[0]):
+                        slice_tensor = result[0][start : cur + i, :]
+                        start = cur + i
+                        cur = start
+                        cat_list.append(slice_tensor)
+                        for j in range(batch_list[0] - i):
+                            cat_list.append(pad_tensor)
+                    else:
+                        cur = cur + batch_list[0]
+                result0 = torch.cat(cat_list, 0)
+                result = (result0, result[1])
+        else:
+            result = torch._VF.gru(input_tensor, batch_sizes, hx, self._flat_weights, self.bias,
+                                   self.num_layers, self.dropout, self.training, self.bidirectional)
+    output = result[0]
+    hidden = result[1]
+
+    if isinstance(orig_input, PackedSequence):
+        output_packed = PackedSequence(output, batch_sizes, sorted_indices, unsorted_indices)
+        return output_packed, self.permute_hidden(hidden, unsorted_indices)
+    else:
+        return output, self.permute_hidden(hidden, unsorted_indices)
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
@@ -418,6 +495,7 @@ def apply_module_patch():
     torch.nn.LayerNorm.forward = layernorm_forward
     torch.nn.parallel.DistributedDataParallel.forward = ddp_forward
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
+    torch.nn.modules.rnn.GRU.forward = gru_forward
     torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
     torch.nn.modules.batchnorm._NormBase.__init__ = _normbase_init_
