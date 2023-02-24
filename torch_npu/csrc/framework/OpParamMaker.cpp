@@ -27,8 +27,9 @@
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
-#include "torch_npu/csrc/profiler/e2e_profiler.h"
+
 #ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include <Python.h>
 extern std::atomic<bool> global_enable_profiling;
 #endif
