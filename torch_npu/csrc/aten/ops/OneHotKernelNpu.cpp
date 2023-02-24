@@ -54,9 +54,13 @@ at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
       self.options().dtype(at::ScalarType::Int),
       self);
   at::Scalar depthCp = depth;
+
+  auto self_copy = (self.scalar_type() != at::kLong) ?
+      self : NPUNativeFunctions::npu_dtype_cast(self, at::kInt);
+
   OpCommand cmd;
   cmd.Name("OneHot")
-      .Input(self)
+      .Input(self_copy)
       .Input(depthCp, at::ScalarType::Int, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(on_value, at::ScalarType::Int)
       .Input(off_value, at::ScalarType::Int)
