@@ -148,12 +148,13 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
 
 if (NOT DEFINED BUILD_LIBTORCH)
 include_directories(${PROJECT_SOURCE_DIR}/patch/include)
+include_directories(${PROJECT_SOURCE_DIR}/patch/include/torch/csrc/distributed)
 endif()
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
   include_directories(${PYTORCH_INSTALL_DIR}/include)
-  include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/api/include/)
+  include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/api/include)
 else()
   message(FATAL_ERROR, "Cannot find installed PyTorch directory")
 endif()

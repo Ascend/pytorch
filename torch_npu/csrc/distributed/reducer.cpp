@@ -29,6 +29,7 @@
 #include <torch/csrc/autograd/utils/grad_layout_contract.h>
 #include <torch/csrc/autograd/utils/lambda_post_hook.h>
 #include <torch/csrc/utils/memory.h>
+#include <torch/csrc/distributed/c10d/debug.h>
 
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
@@ -37,7 +38,6 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include "patch/include/c10d/debug.h"
 
 namespace c10d_npu {
 namespace {

@@ -16,6 +16,7 @@
 
 #include <deque>
 
+#include <torch/custom_class.h>
 #include <torch/csrc/python_headers.h>
 #include <c10/util/intrusive_ptr.h>
 #include <c10/util/irange.h>
@@ -30,16 +31,13 @@
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/tensor_flatten.h>
 #include <torch/csrc/distributed/c10d/python_comm_hook.h>
-
-#include <torch/custom_class.h>
+#include <torch/csrc/distributed/c10d/comm.hpp>
 
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
-#include "patch/include/c10d/comm.hpp"
-
 
 
 namespace {
