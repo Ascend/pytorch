@@ -22,19 +22,10 @@ cd $NDIR/scripts
 
 build_libtorch="$1"
 
-cp -f codegen/native_functions.yaml codegen/native_functions.yaml_bk
-
-
 python3 -m codegen.gen_backend_stubs  \
   --output_dir="$NDIR/torch_npu/csrc/aten/" \
   --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
   --impl_path="$NDIR/torch_npu/csrc/aten"  # Used to double-check the yaml file definitions.
-
-if [ $? -ne 0 ]; then
-  echo "Failed to generate NPU backend stubs."
-  mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
-  exit 1
-fi
 
 if [[ ${build_libtorch} != "True" ]]; then
   python3 -m codegen.gen_python_functions  \
@@ -43,11 +34,3 @@ if [[ ${build_libtorch} != "True" ]]; then
     --native_yaml="$NDIR/scripts/codegen/native_functions.yaml" \
     --template_path="$NDIR/scripts/codegen/templates"
 fi
-
-if [ $? -ne 0 ]; then
-  echo "Failed to generate python bindings."
-  mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
-  exit 1
-fi
-
-mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
