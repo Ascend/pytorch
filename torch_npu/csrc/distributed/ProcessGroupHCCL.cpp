@@ -14,9 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "torch_npu/csrc/core/npu/NPUStream.h"
+
 #include <ATen/record_function.h>
 #include <algorithm>
 #include <map>
@@ -39,6 +37,9 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 namespace c10d_npu {
 namespace {

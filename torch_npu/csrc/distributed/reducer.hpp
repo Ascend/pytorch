@@ -36,9 +36,9 @@
 #ifndef _WIN32
 #include <torch/csrc/distributed/autograd/context/context.h>
 #endif
-#include "patch/include/c10d/comm.hpp"
-#include "patch/include/c10d/logger.hpp"
-#include "patch/include/c10d/debug.h"
+#include <torch/csrc/distributed/c10d/logger.hpp>
+#include <torch/csrc/distributed/c10d/debug.h>
+
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace c10d_npu {
