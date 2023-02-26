@@ -253,6 +253,11 @@ public:
       std::vector<std::vector<at::Tensor>>& inputTensors,
       const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
 
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> _reduce_scatter_base(
+      at::Tensor& outputTensor,
+      at::Tensor& inputTensor,
+      const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
+
   c10::intrusive_ptr<c10d::ProcessGroup::Work> barrier(
       const c10d::BarrierOptions& opts = c10d::BarrierOptions()) override;
 
