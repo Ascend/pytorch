@@ -35,6 +35,7 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/utils/Device.h"
+#include "torch_npu/csrc/utils/DeviceParser.h"
 
 PyObject *TNPDevice_New(const at::Device& device)
 {

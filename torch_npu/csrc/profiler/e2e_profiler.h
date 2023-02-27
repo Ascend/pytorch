@@ -20,6 +20,7 @@
 #include <third_party/acl/inc/acl/acl.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/profiler/profiler_legacy.h"
+#include <list>
 #include <chrono>
 #include <sstream>
 #include <thread>

@@ -95,7 +95,7 @@ def get_build_type():
     if os.getenv('DEBUG', default='0').upper() in ['ON', '1', 'YES', 'TRUE', 'Y']:
         build_type = 'Debug'
 
-    if  os.getenv('REL_WITH_DEB_INFO', default='0').upper() in ['ON', '1', 'YES', 'TRUE', 'Y']:
+    if os.getenv('REL_WITH_DEB_INFO', default='0').upper() in ['ON', '1', 'YES', 'TRUE', 'Y']:
         build_type = 'RelWithDebInfo'
 
     return build_type
@@ -107,6 +107,7 @@ def _get_build_mode():
             return sys.argv[i]
 
     raise RuntimeError("Run setup.py without build mode.")
+
 
 def get_pytorch_dir():
     try:
@@ -187,6 +188,7 @@ class Clean(distutils.command.clean.clean):
         os.remove('torch_npu/csrc/aten/RegisterNPU.cpp')
         os.remove('torch_npu/csrc/aten/RegisterAutogradNPU.cpp')
 
+
 class CPPLibBuild(build_clib, object):
     def run(self):
         cmake = get_cmake_command()
@@ -202,8 +204,8 @@ class CPPLibBuild(build_clib, object):
         output_lib_path = os.path.join(build_type_dir, "packages/torch_npu/lib")
         os.makedirs(build_type_dir, exist_ok=True)
         os.makedirs(output_lib_path, exist_ok=True)
-        self.build_lib =  os.path.relpath(os.path.join(build_dir, "packages/torch_npu"))
-        self.build_temp =  os.path.relpath(build_type_dir)
+        self.build_lib = os.path.relpath(os.path.join(build_dir, "packages/torch_npu"))
+        self.build_temp = os.path.relpath(build_type_dir)
 
         cmake_args = [
             '-DCMAKE_BUILD_TYPE=' + get_build_type(),
@@ -224,8 +226,8 @@ class Build(build_ext, object):
 
     def run(self):
         self.run_command('build_clib')
-        self.build_lib =  os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
-        self.build_temp =  os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}"))
+        self.build_lib = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
+        self.build_temp = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}"))
         self.library_dirs.append(
             os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu/lib")))
         super(Build, self).run()
@@ -234,7 +236,7 @@ class Build(build_ext, object):
 class InstallCmd(install):
 
     def finalize_options(self) -> None:
-        self.build_lib =  os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
+        self.build_lib = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
         return super(InstallCmd, self).finalize_options()
 
 
@@ -307,6 +309,7 @@ class PythonPackageBuild(build_py, object):
         for src, dst in ret:
             self.copy_file(src, dst)
         super(PythonPackageBuild, self).finalize_options()
+
 
 to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
