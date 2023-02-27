@@ -60,7 +60,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_embed
   at::Tensor offsets_cpu = offsets.to("cpu");
   at::Tensor per_sample_weights_cpu = per_sample_weights;
   if (per_sample_weights_cpu.defined()) {
-    at::Tensor per_sample_weights_cpu = per_sample_weights_cpu.to("cpu");
+    per_sample_weights_cpu = per_sample_weights_cpu.to("cpu");
   }
   
   auto result = at::native::_embedding_bag_cpu(weight_cpu, indices_cpu, offsets_cpu, scale_grad_by_freq, mode, sparse, per_sample_weights_cpu, include_last_offset);
