@@ -527,6 +527,35 @@ class TestMax(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_output, npu_out)
 
+    def test_max_slice_out(self):
+        cpu_input = torch.randn(4, 4, 4, 4)
+        npu_input = cpu_input.npu()
+
+        cpu_val = torch.zeros(10, 10, 10)
+        cpu_ind = torch.zeros(10, 10, 10).long()
+        npu_val = cpu_val.npu()
+        npu_ind = cpu_ind.npu()
+        torch.max(cpu_input, 1, out=(cpu_val[0:4, 1:5, 2:6], cpu_ind[0:4, 1:5, 2:6]))
+        torch.max(npu_input, 1, out=(npu_val[0:4, 1:5, 2:6], npu_ind[0:4, 1:5, 2:6]))
+        self.assertRtolEqual(cpu_val.numpy(), npu_val.cpu().numpy())
+        self.assertRtolEqual(cpu_ind.numpy(), npu_ind.cpu().numpy())
+
+        cpu_val = torch.zeros(10, 10, 10)
+        npu_val = cpu_val.npu()
+        torch.amax(cpu_input, 1, out=cpu_val[0:4, 1:5, 2:6])
+        torch.amax(npu_input, 1, out=npu_val[0:4, 1:5, 2:6])
+        self.assertRtolEqual(cpu_val.numpy(), npu_val.cpu().numpy())
+
+        cpu_input0 = torch.randn(2, 2, 2, 2)
+        cpu_input1 = torch.randn(2, 2, 2, 2)
+        npu_input0 = cpu_input0.npu()
+        npu_input1 = cpu_input1.npu()
+        cpu_val = torch.zeros(3, 3, 3, 3)
+        npu_val = cpu_val.npu()
+        torch.max(cpu_input0, cpu_input1, out=cpu_val[0:2, 0:2, 0:2, 0:2])
+        torch.max(npu_input0, npu_input1, out=npu_val[0:2, 0:2, 0:2, 0:2])
+        self.assertRtolEqual(cpu_val.numpy(), npu_val.cpu().numpy())
+
 
 if __name__ == "__main__":
     run_tests()
