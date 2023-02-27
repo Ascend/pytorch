@@ -66,6 +66,7 @@ from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
 from .datadump import dump_enable, dump_disable
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
+config = npu_frontend_enhance.npuConfig()
 
 matmul = npu_frontend_enhance.allowHF32Matmul()
 conv = npu_frontend_enhance.allowHF32Conv()

@@ -127,7 +127,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max_pool2d_with_indices(
 
   // construct the output tensor of the NPU
   at::Tensor output = OpPreparation::ApplyTensor(self, outputSize);
-  at::Tensor indices = OpPreparation::ApplyTensorWithFormat(self, indicesSize, ACL_FORMAT_NC1HWC0);
+  at::Tensor indices = OpPreparation::ApplyTensorWithFormat(self, indicesSize, ACL_FORMAT_NC1HWC0, true);
 
   // calculate the output result of the NPU
   NPUNativeFunctions::max_pool2d_with_indices_out(

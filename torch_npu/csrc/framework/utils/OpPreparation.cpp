@@ -201,41 +201,41 @@ namespace at_npu
 
     at::Tensor OpPreparation::ApplyTensor(const at::Tensor &src, c10::IntArrayRef sizes)
     {
-      return ApplyTensorWithFormat(sizes, src.options(),
-                                   CalcuOpUtil::GetTensorNpuFormat(src));
+      return ApplyTensorWithFormat(sizes, src.options(), CalcuOpUtil::GetTensorNpuFormat(src));
     }
 
     at::Tensor OpPreparation::ApplyTensor(const at::Tensor &src, const c10::TensorOptions &options)
     {
-      return ApplyTensorWithFormat(src.sizes(), options,
-                                   CalcuOpUtil::GetTensorNpuFormat(src));
+      return ApplyTensorWithFormat(src.sizes(), options, CalcuOpUtil::GetTensorNpuFormat(src));
     }
 
     at::Tensor OpPreparation::ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options, const at::Tensor &src)
     {
-      return ApplyTensorWithFormat(sizes, options,
-                                   CalcuOpUtil::GetTensorNpuFormat(src));
+      return ApplyTensorWithFormat(sizes, options, CalcuOpUtil::GetTensorNpuFormat(src));
     }
 
-    at::Tensor OpPreparation::ApplyTensorWithFormat(const at::Tensor &src, int64_t format)
+    at::Tensor OpPreparation::ApplyTensorWithFormat(const at::Tensor &src, int64_t format,
+                                                    bool keep_format)
     {
-      return ApplyTensorWithFormat(src, src.sizes(), format);
+      return ApplyTensorWithFormat(src, src.sizes(), format, keep_format);
     }
 
-    at::Tensor OpPreparation::ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format)
+    at::Tensor OpPreparation::ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
+                                                    bool keep_format)
     {
-      return ApplyTensorWithFormat(sizes, src.options(), format);
+      return ApplyTensorWithFormat(sizes, src.options(), format, keep_format);
     }
 
-    at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format)
+    at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                                    int64_t format, bool keep_format)
     {
       TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
           "Expected all tensors to be on the same device. "
           "Expected NPU tensor, please check whether the input tensor device is correct.");
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-      return NPUNativeFunctions::empty_with_format(
+      return NPUNativeFunctions::unsafe_empty_with_format(
           sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
-          options.device_opt(), options.pinned_memory_opt(), fixFormat);
+          options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
     }
 
     at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
