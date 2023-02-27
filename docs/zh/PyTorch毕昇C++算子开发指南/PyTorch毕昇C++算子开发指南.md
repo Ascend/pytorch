@@ -15,44 +15,25 @@
 
 昇腾PyTorch支持C++ Extension和框架联合编译两种方式开发毕昇C++算子，该文档介绍了怎么在PyTorch中使用毕昇C++开发算子。
 <h2 id="环境准备md">环境准备</h2>
+在PyTorch框架中开发毕昇C++算子环境准备包括两部分内容：一是CANN和毕昇C++的安装，二是PyTorch框架安装：
 
--   参考README里安装CANN
--   参考README里编译安装PyTorch和昇腾PyTorch
--   参考毕昇C++文档安装毕昇C++，同时配置环境变量:
+- CANN和毕昇C++的安装：当前毕昇C++内置于CANN 6.3.T100版本，安装CANN时同时安装毕昇C++，使用CANN内置脚本配置CANN环境变量时会同时配置毕昇C++环境变量。
+  - CANN 6.3.T100下载地址及毕昇C++文档请参考：[CANN 6.3.T100（毕昇C++）安装包及文档](https://support.huawei.com/enterprise/zh/ascend-computing/cann-pid-251168373/software/259218207?idAbsPath=fixnode01%7C23710424%7C251366513%7C22892968%7C251168373)；
+  - CANN安装请参考昇腾社区文档中环境安装环节[《CANN软件安装》](https://www.hiascend.com/document?tag=community-developer)
+  - 安装后运行CANN安装目录下的`set_env.sh`自动配置CANN和毕昇C++相关环境变量。
+
+安装CANN并完成环境变量配置后可以查看CANN和毕昇C++的环境变量：
 ```
-export BSCPP_ROOT=/path/to/BiShengCPP
+echo $BISHENG_CPP_HOME
+echo $ASCEND_HOME_PATH
 ```
+
+- 参考README里编译安装原生PyTorch和昇腾PyTorch
 
 <h2 id="Extension方式开发算子md">C++ Extension方式开发算子</h2>
 <h3 id="环境准备md">环境准备</h3>
 
--   source env.sh
-
-env.sh
-```
-CANN_INSTALL_PATH_CONF='/etc/Ascend/ascend_cann_install.info'
-if [ -f $CANN_INSTALL_PATH_CONF ]; then
-  DEFAULT_CANN_INSTALL_PATH=$(cat $CANN_INSTALL_PATH_CONF | grep Install_Path | cut -d "=" -f 2)
-else
-  DEFAULT_CANN_INSTALL_PATH="/usr/local/Ascend/"
-fi
-CANN_INSTALL_PATH=${1:-${DEFAULT_CANN_INSTALL_PATH}}
-echo "CANN_INSTALL_PATH=$CANN_INSTALL_PATH"
-if [ -d ${CANN_INSTALL_PATH}/ascend-toolkit/latest ];then
-  source ${CANN_INSTALL_PATH}/ascend-toolkit/set_env.sh
-else
-  source ${CANN_INSTALL_PATH}/nnae/set_env.sh
-fi
-
-export TASK_QUEUE_ENABLE=0
-
-if [ -z $BSCPP_ROOT ];then
-  BSCPP_ROOT=/opt/BiShengCPP
-fi
-export LD_LIBRARY_PATH=${BSCPP_ROOT}/lib:$LD_LIBRARY_PATH
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-
-```
+参考前文安装CANN、毕昇C++和PyTorch，并配置环境变量
 
 <h3 id="add算子md">示例：add算子实现</h3>
 add_bisheng.cpp

@@ -2,11 +2,11 @@ file(GLOB SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 
 set(CMAKE_CXX_STANDARD 17)
 
-if(DEFINED ENV{BSCPP_ROOT})
-  set(CMAKE_C_COMPILER "$ENV{BSCPP_ROOT}/bin/clang")
-  set(CMAKE_CXX_COMPILER "$ENV{BSCPP_ROOT}/bin/clang++")
+if(DEFINED ENV{BISHENG_CPP_HOME})
+  set(CMAKE_C_COMPILER "$ENV{BISHENG_CPP_HOME}/bin/clang")
+  set(CMAKE_CXX_COMPILER "$ENV{BISHENG_CPP_HOME}/bin/clang++")
 else()
-  message(FATAL_ERROR "env BSCPP_ROOT not exists, please export BSCPP_ROOT")
+  message(FATAL_ERROR "env BISHENG_CPP_HOME not exists, please export BISHENG_CPP_HOME")
 endif()
 
 if(DEFINED ENV{BSCPP_SYCL_TARGET})
