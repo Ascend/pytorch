@@ -28,9 +28,9 @@ import torch.utils.cpp_extension as TorchExtension
 import torch_npu
 
 
-BSCPP_ROOT = os.environ.get('BSCPP_ROOT', '/opt/BiShengCPP')
-if not os.path.exists(BSCPP_ROOT):
-    raise RuntimeError(f"Dir {BSCPP_ROOT} not exists, please export BSCPP_ROOT.")
+BISHENG_CPP_HOME = os.environ.get('BISHENG_CPP_HOME', '/opt/BiShengCPP')
+if not os.path.exists(BISHENG_CPP_HOME):
+    raise RuntimeError(f"Dir {BISHENG_CPP_HOME} not exists, please export BISHENG_CPP_HOME.")
 PYTORCH_INSTALL_PATH = os.path.dirname(os.path.abspath(torch.__file__))
 PYTORCH_NPU_INSTALL_PATH = os.path.dirname(os.path.abspath(torch_npu.__file__))
 PYTHON_INCLUES = subprocess.getoutput("python3-config --includes")
@@ -185,8 +185,8 @@ def BiShengExtension(name, sources, *args, **kwargs):
     kwargs['extra_link_args'] = extra_link_args
 
     kwargs['language'] = 'c++'
-    os.environ["CC"] = f"{BSCPP_ROOT}/bin/clang"
-    os.environ["CXX"] = f"{BSCPP_ROOT}/bin/clang++"
+    os.environ["CC"] = f"{BISHENG_CPP_HOME}/bin/clang"
+    os.environ["CXX"] = f"{BISHENG_CPP_HOME}/bin/clang++"
     return setuptools.Extension(name, sources, *args, **kwargs)
 
 
@@ -201,7 +201,7 @@ def _build_source_file(name, source, build_directory, extra_cflags, extra_includ
 
     obj_name = source.replace(".cpp", ".o")
 
-    cmd = f"{BSCPP_ROOT}/bin/clang++  \
+    cmd = f"{BISHENG_CPP_HOME}/bin/clang++  \
     -I{PYTORCH_NPU_INSTALL_PATH}/include \
     -I{PYTORCH_INSTALL_PATH}/include \
     -I{PYTORCH_INSTALL_PATH}/include/torch/csrc/api/include \
@@ -228,7 +228,7 @@ def _link_target(name, sources, build_directory, extra_ldflags, verbose):
     if extra_ldflags is not None:
         extra_ldflags_str = " ".join(extra_ldflags)
 
-    cmd = f"{BSCPP_ROOT}/bin/clang++ {obj_str} -o {build_directory}/{name}.so \
+    cmd = f"{BISHENG_CPP_HOME}/bin/clang++ {obj_str} -o {build_directory}/{name}.so \
     -L{PYTORCH_INSTALL_PATH}/lib \
     -L{PYTORCH_NPU_INSTALL_PATH}/lib \
     -L{ASCEND_HOME_PATH}/{CANN_ARCH}/lib64 \
