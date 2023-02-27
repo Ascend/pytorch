@@ -1,5 +1,5 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// Copyright (c) 2022, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,8 +15,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTOPNS__
-#define __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTOPNS__
+#ifndef __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTIONS__
+#define __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTIONS__
 
 
 #include <ATen/Tensor.h>

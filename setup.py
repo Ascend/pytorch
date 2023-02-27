@@ -119,7 +119,7 @@ def get_pytorch_dir():
 
 
 def generate_bindings_code(base_dir, verbose):
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'scripts', 'generate_code.sh'), verbose]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -183,9 +183,20 @@ class Clean(distutils.command.clean.clean):
         # It's an old-style class in Python 2.7...
         distutils.command.clean.clean.run(self)
 
-        os.remove('torch_npu/csrc/aten/RegisterCPU.cpp')
-        os.remove('torch_npu/csrc/aten/RegisterNPU.cpp')
-        os.remove('torch_npu/csrc/aten/RegisterAutogradNPU.cpp')
+        remove_files = [
+            'torch_npu/csrc/aten/RegisterCPU.cpp',
+            'torch_npu/csrc/aten/RegisterNPU.cpp',
+            'torch_npu/csrc/aten/RegisterAutogradNPU.cpp',
+            'torch_npu/csrc/aten/NPUNativeFunctions.h',
+            'torch_npu/csrc/aten/python_custom_functions.cpp',
+            'torch_npu/utils/torch_funcs.py',
+            'torch_npu/version.py',
+        ]
+        for remove_file in remove_files:
+            file_path = os.path.join(BASE_DIR, remove_file)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
 
 class CPPLibBuild(build_clib, object):
     def run(self):
