@@ -28,7 +28,7 @@ at::Tensor& baddbmm_nocheck(
     at::Tensor& result) {
   auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
   at::Tensor BatchMatMulTensor = OpPreparation::ApplyTensor(self, outputSize);
-  
+
   bool isSelfT = CalcuOpUtil::IsTransposeLastTwoDims(tensor1);
   bool isMat2T = CalcuOpUtil::IsTransposeLastTwoDims(tensor2);
 
@@ -75,9 +75,7 @@ at::Tensor NPUNativeFunctions::baddbmm(
     at::Scalar alpha) {
   at::Tensor outputTensor = self;
   auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
-  at::Tensor result = OpPreparation::ApplyTensor(
-      outputTensor,
-      outputSize);
+  at::Tensor result = OpPreparation::ApplyTensor(outputTensor, outputSize);
   NPUNativeFunctions::baddbmm_out(self, tensor1, tensor2, beta, alpha, result);
   return result;
 }

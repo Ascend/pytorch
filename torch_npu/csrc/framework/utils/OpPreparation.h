@@ -70,13 +70,18 @@ namespace at_npu
             static at::Tensor ApplyTensor(const at::Tensor &src);
             static at::Tensor ApplyTensor(const at::Tensor &src, c10::IntArrayRef sizes);
             static at::Tensor ApplyTensor(const at::Tensor &src, const c10::TensorOptions &options);
-            static at::Tensor ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options, const at::Tensor &src);
-            static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, int64_t format);
-            static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format);
-            static at::Tensor ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format);
+            static at::Tensor ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                          const at::Tensor &src);
+            static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, int64_t format,
+                                                    bool keep_format = false);
+            static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
+                                                    bool keep_format = false);
+            static at::Tensor ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                                    int64_t format, bool keep_format = false);
             static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
             // check memory
-            static void CheckMemory(const std::initializer_list<at::Tensor> &inputs, const std::initializer_list<at::Tensor> &outputs);
+            static void CheckMemory(const std::initializer_list<at::Tensor> &inputs,
+                                    const std::initializer_list<at::Tensor> &outputs);
         }; // namespace OpPreparation
 
     } // namespace native

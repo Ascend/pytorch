@@ -28,6 +28,7 @@ bool CheckBmmV2Enable();
 bool CheckJitDisable();
 bool CheckProfilingEnable();
 bool CheckMmBmmNDDisable();
+bool CheckForbidInternalFormat();
 
 /**
   get the HF32 for Matmul and Conv.
