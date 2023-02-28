@@ -242,6 +242,35 @@ class TestNpu(TestCase):
         tensor.fill_(1)
         self.assertTrue((tensor == 1).all())
 
+    def test_set_per_process_memory_fraction(self):
+        # test invalid fraction value.
+        with self.assertRaisesRegex(TypeError, "Invalid type"):
+            torch_npu.npu.set_per_process_memory_fraction(int(1))
+        with self.assertRaisesRegex(ValueError, "Invalid fraction value"):
+            torch_npu.npu.set_per_process_memory_fraction(-0.1)
+        with self.assertRaisesRegex(ValueError, "Invalid fraction value"):
+            torch_npu.npu.set_per_process_memory_fraction(2.0)
+
+        tensor = torch.zeros(1024, device='npu')
+        torch_npu.npu.empty_cache()
+        total_memory = torch_npu.npu.get_device_properties(0).total_memory
+        torch_npu.npu.set_per_process_memory_fraction(0.5, 0)
+
+        # test 0.499 allocation is ok.
+        application = int(total_memory * 0.499) - torch_npu.npu.max_memory_reserved()
+        tmp_tensor = torch.empty(application, dtype=torch.int8, device='npu')
+        del tmp_tensor
+        torch_npu.npu.empty_cache()
+
+        application = int(total_memory * 0.5)
+        # it will get OOM when try to allocate more than half memory.
+        with self.assertRaisesRegex(RuntimeError, "out of memory"):
+            torch.empty(application, dtype=torch.int8, device='npu')
+
+        # ensure out of memory error doesn't disturb subsequent kernel
+        tensor.fill_(1)
+        self.assertTrue((tensor == 1).all()) 
+
     def _test_copy_sync_current_stream(self, x, y):
         x_plus_one = x + 1
         s0 = torch_npu.npu.Stream(device=x.device)
