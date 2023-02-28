@@ -70,7 +70,7 @@ enum struct StatType : uint64_t {
 
 typedef std::array<Stat, static_cast<size_t>(StatType::NUM_TYPES)> StatArray;
 // Struct containing memory allocator summary statistics for a device.
-struct DeviceStats_ {
+struct DeviceStats {
   // COUNT: allocations requested by client code
   StatArray allocation;
   // COUNT: number of allocated segments from npuMalloc().
@@ -120,11 +120,12 @@ void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
 void raw_delete(void* ptr);
 
 c10::Allocator* get();
+void init();
 void emptyCache();
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
 void* getBaseAllocation(void* ptr, size_t* size);
 void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
-DeviceStats_ getDeviceStats(int device);
+DeviceStats getDeviceStats(int device);
 void resetAccumulatedStats(int device);
 void resetPeakStats(int device);
 std::vector<SegmentInfo> snapshot();

@@ -284,6 +284,14 @@ PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
+PyObject * THNPModule_cacheInit(PyObject *_unused, PyObject *noargs)
+{
+  HANDLE_TH_ERRORS
+  c10_npu::NPUCachingAllocator::init();
+  END_HANDLE_TH_ERRORS
+  Py_RETURN_NONE;
+}
+
 PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
@@ -301,7 +309,7 @@ PyObject * THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
   using c10_npu::NPUCachingAllocator::StatType;
   using c10_npu::NPUCachingAllocator::Stat;
   using c10_npu::NPUCachingAllocator::StatArray;
-  using c10_npu::NPUCachingAllocator::DeviceStats_;
+  using c10_npu::NPUCachingAllocator::DeviceStats;
 
   const auto statToDict = [](const Stat& stat) {
     py::dict dict;
@@ -324,7 +332,7 @@ PyObject * THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
     return dict;
   };
 
-  const DeviceStats_ stats = c10_npu::NPUCachingAllocator::getDeviceStats(device);
+  const DeviceStats stats = c10_npu::NPUCachingAllocator::getDeviceStats(device);
 
   py::dict result;
   result["num_alloc_retries"] = stats.num_alloc_retries;
@@ -709,6 +717,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
+    {"_npu_cacheInit", (PyCFunction) THNPModule_cacheInit, METH_NOARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},

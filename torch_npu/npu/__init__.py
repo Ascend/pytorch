@@ -50,7 +50,7 @@ from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
 from .random import (manual_seed, manual_seed_all, seed, seed_all, initial_seed, 
                      get_rng_state_all, set_rng_state_all,
                      get_rng_state, set_rng_state)
-from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete,
+from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete, _cache_init,
                      empty_cache, memory_stats, memory_stats_as_nested_dict,
                      reset_accumulated_memory_stats, reset_peak_memory_stats,
                      reset_max_memory_allocated, reset_max_memory_cached, memory_allocated,
@@ -70,3 +70,4 @@ config = npu_frontend_enhance.npuConfig()
 
 matmul = npu_frontend_enhance.allowHF32Matmul()
 conv = npu_frontend_enhance.allowHF32Conv()
+_cache_init()

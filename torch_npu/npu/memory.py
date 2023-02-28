@@ -81,6 +81,10 @@ def caching_allocator_delete(mem_ptr):
     torch_npu._C._npu_npuCachingAllocator_raw_delete(mem_ptr)
 
 
+def _cache_init():
+    torch_npu._C._npu_cacheInit()
+
+
 def empty_cache():
     r"""Releases all unoccupied cached memory currently held by the caching
     allocator so that those can be used in other NPU application and visible in
@@ -94,6 +98,7 @@ def empty_cache():
     """
     if is_initialized():
         torch_npu._C._npu_emptyCache()
+
 
 def memory_stats(device=None):
     """Returns a dictionary of NPU memory allocator statistics for a
@@ -363,7 +368,8 @@ def memory_snapshot():
     """
     return torch_npu._C._npu_memorySnapshot()
 
-def create_metrics_to_display() :
+
+def create_metrics_to_display():
     def _format_size(sz, pref_sz):
         prefixes = ["B ", "KB", "MB", "GB", "TB", "PB"]
         prefix = prefixes[0]
@@ -405,6 +411,7 @@ def create_metrics_to_display() :
     lines.append("=" * 75)
     lines.append("        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot Freed  ")
     return metrics_to_display, lines
+
 
 def memory_summary(device=None, abbreviated=False):
     r"""Returns a human-readable printout of the current memory allocator
