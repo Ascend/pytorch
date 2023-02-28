@@ -912,6 +912,47 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
       [&](std::vector<c10_npu::NPUStream>& hcclStreams) {});
 }
 
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_base(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    const c10d::ReduceScatterOptions& opts) {
+
+  if (inputTensor.dtype() != outputTensor.dtype()) {
+    TORCH_CHECK(false, "input tensor must be the same type as the output tensor.");
+  }
+
+  if (inputTensor.numel() != outputTensor.numel() * size_) {
+    TORCH_CHECK(false, "input tensor must be the same size as output size times world size");
+  }
+
+  auto inputs = std::vector<at::Tensor> {inputTensor};
+  auto outputs = std::vector<at::Tensor> {outputTensor};
+
+  return collective(
+      inputs,
+      outputs,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        c10_npu::NPUCachingAllocator::recordStream(
+            output.storage().data_ptr(), stream);
+        auto hcclType = getHcclDataType(input.scalar_type());
+        checkSupportedDataTypeOfAllReduce(hcclType);
+        RECORD_FUNCTION("HcclReduceScatterBase", std::vector<c10::IValue>({input}));
+        return HcclReduceScatter(
+            input.data_ptr(),
+            output.data_ptr(),
+            getNumelForHCCL(output),
+            hcclType,
+            hcclOp[opts.reduceOp],
+            comm,
+            stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>&) {},
+      [&](std::vector<c10_npu::NPUStream>&) {});
+}
+
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
     const c10d::BarrierOptions& opts) {
   std::vector<at::Device> devices;
