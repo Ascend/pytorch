@@ -16,35 +16,11 @@
 from typing import Optional, List
 
 import torch
-from torch.onnx import symbolic_helper
 
 import torch_npu
 
 
-class wrapper_npu_transpose(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_transpose(*args, **kwargs)
-
-    @staticmethod
-    def symbolic(g, self: torch.Tensor, perm: List[int], require_contiguous: bool = True):
-        return g.op("npu::NPUTranspose", self, perms_i=perm,
-                    require_contiguous_i=require_contiguous)
-
-
-class wrapper_npu_broadcast(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_broadcast(*args, **kwargs)
-
-    @staticmethod
-    def symbolic(g, self: torch.Tensor, size: List[int]):
-        return g.op("npu::NPUBroadcast", self, sizes_i=size)
-
-
-class wrapper_npu_one_hot(torch.autograd.Function):
+class NPUOneHotOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -57,7 +33,7 @@ class wrapper_npu_one_hot(torch.autograd.Function):
                     on_value_i=on_value, off_value_i=off_value)
 
 
-class wrapper_npu_slice(torch.autograd.Function):
+class NPUSliceOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -68,7 +44,7 @@ class wrapper_npu_slice(torch.autograd.Function):
         return g.op("npu::NPUSlice", self, offsetss_i=offsets, sizes_i=size)
 
 
-class wrapper_npu_roi_align(torch.autograd.Function):
+class NPURoiAlignOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -82,7 +58,7 @@ class wrapper_npu_roi_align(torch.autograd.Function):
                     sample_num_i=sample_num, roi_end_mode_i=roi_end_mode)
 
 
-class wrapper_npu_iou(torch.autograd.Function):
+class NPUIouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -93,7 +69,7 @@ class wrapper_npu_iou(torch.autograd.Function):
         return g.op("npu::NPUIou", bboxes, gtboxes, mode_i=mode)
 
 
-class wrapper_npu_batch_nms(torch.autograd.Function):
+class NPUBatchNmsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -109,7 +85,7 @@ class wrapper_npu_batch_nms(torch.autograd.Function):
                     transpose_box_i=transpose_box, outputs=4)
 
 
-class wrapper_fast_gelu(torch.autograd.Function):
+class NPUFastGeluOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -120,70 +96,41 @@ class wrapper_fast_gelu(torch.autograd.Function):
         return g.op("npu::NPUFastGelu", self)
 
 
-class wrapper_npu_linear(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_linear(*args, **kwargs)
-
-    @staticmethod
-    def symbolic(g, x: torch.Tensor, weight: torch.Tensor, bias=None):
-        if bias is None:
-            return g.op("npu::NPULinear", x, weight)
-        return g.op("npu::NPULinear", x, weight, bias)
-
-
-def torch_wrapper_npu_transpose(self: torch.Tensor, perm: List[int],
-                                require_contiguous: bool = True):
-    return wrapper_npu_transpose.apply(self, perm, require_contiguous)
-
-
-def torch_wrapper_npu_broadcast(self: torch.Tensor, size: List[int]):
-    return wrapper_npu_broadcast.apply(self, size)
-
-
 def torch_wrapper_npu_one_hot(self: torch.Tensor, num_classses: int = -1, depth: int = 1,
                               on_value: int = 1, off_value: int = 0):
-    return wrapper_npu_one_hot.apply(self, num_classses, depth, on_value, off_value)
+    return  NPUOneHotOP.apply(self, num_classses, depth, on_value, off_value)
 
 
 def torch_wrapper_npu_slice(self: torch.Tensor, offsets: List[int], size: List[int]):
-    return wrapper_npu_slice.apply(self, offsets, size)
+    return NPUSliceOP.apply(self, offsets, size)
 
 
 def torch_wrapper_npu_roi_align(self: torch.Tensor, rois: torch.Tensor, spatial_scale: float,
                                 pooled_height: int, pooled_width: int, sample_num: int, roi_end_mode: int):
-    return wrapper_npu_roi_align.apply(self, rois, spatial_scale,
+    return NPURoiAlignOP.apply(self, rois, spatial_scale,
                                        pooled_height, pooled_width, sample_num, roi_end_mode)
 
 
 def torch_wrapper_npu_iou(bboxes: torch.Tensor, gtboxes: torch.Tensor, mode: int = 0):
-    return wrapper_npu_iou.apply(bboxes, gtboxes, mode)
+    return NPUIouOP.apply(bboxes, gtboxes, mode)
 
 
 def torch_wrapper_npu_batch_nms(self: torch.Tensor, scores: torch.Tensor, score_threshold: float,
                                 iou_threshold: float, max_size_per_class: int, max_total_size: int,
                                 change_coordinate_frame: bool = False, transpose_box: bool = False):
-    return wrapper_npu_batch_nms.apply(self, scores, score_threshold,
+    return NPUBatchNmsOP.apply(self, scores, score_threshold,
                                        iou_threshold, max_size_per_class, max_total_size,
                                        change_coordinate_frame, transpose_box)
 
 
 def torch_wrapper_fast_gelu(self: torch.Tensor):
-    return wrapper_fast_gelu.apply(self)
-
-
-def torch_wrapper_npu_linear(x: torch.Tensor, weight: torch.Tensor, bias=None):
-    return wrapper_npu_linear.apply(x, weight, bias)
+    return NPUFastGeluOP.apply(self)
 
 
 def add_onnx_ops():
-    torch_npu.npu_transpose = torch_wrapper_npu_transpose
-    torch_npu.npu_broadcast = torch_wrapper_npu_broadcast
     torch_npu.npu_one_hot = torch_wrapper_npu_one_hot
     torch_npu.npu_slice = torch_wrapper_npu_slice
     torch_npu.npu_roi_align = torch_wrapper_npu_roi_align
     torch_npu.npu_iou = torch_wrapper_npu_iou
     torch_npu.npu_batch_nms = torch_wrapper_npu_batch_nms
     torch_npu.fast_gelu = torch_wrapper_fast_gelu
-    torch_npu.npu_linear = torch_wrapper_npu_linear

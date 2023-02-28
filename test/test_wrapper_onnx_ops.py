@@ -34,8 +34,11 @@ class TestOnnxOps(TestCase):
                 os.remove(os.path.join(file_path, file))
 
     def onnx_export(self, model, x, onnx_model_name,
-                    input_names=["input_names"], output_names=["output_names"]):
-
+                    input_names=None, output_names=None):
+        if input_names is None:
+            input_names = ["input_names"]
+        if output_names is None:
+            output_names = ["output_names"]
         model.eval()
         OPERATOR_EXPORT_TYPE = torch._C._onnx.OperatorExportTypes.ONNX
         with torch.no_grad():
@@ -46,44 +49,10 @@ class TestOnnxOps(TestCase):
                               input_names=input_names,
                               output_names=output_names)
 
-    def test_wrapper_npu_transpose(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super().__init__()
-
-            def forward(self, x):
-                x = torch_npu.npu_transpose(x, (2, 0, 1))
-                return x
-
-        def export_onnx():
-            x = torch.randn(2, 3, 5).npu()
-            model = Model().to("npu")
-            self.onnx_export(model, x, "model_npu_transpose.onnx")
-
-        export_onnx()
-        assert (os.path.isfile("./model_npu_transpose.onnx"))
-
-    def test_wrapper_npu_broadcast(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super().__init__()
-
-            def forward(self, x):
-                x = torch_npu.npu_broadcast(x, (3, 4))
-                return x
-
-        def export_onnx():
-            x = torch.tensor([[1], [2], [3]]).npu()
-            model = Model().to("npu")
-            self.onnx_export(model, x, "model_npu_broadcast.onnx")
-
-        export_onnx()
-        assert (os.path.isfile("./model_npu_broadcast.onnx"))
-
     def test_wrapper_npu_one_hot(self):
         class Model(torch.nn.Module):
             def __init__(self):
-                super().__init__()
+                super(Model, self).__init__()
 
             def forward(self, x):
                 x = torch_npu.npu_one_hot(x, depth=5)
@@ -100,7 +69,7 @@ class TestOnnxOps(TestCase):
     def test_wrapper_npu_slice(self):
         class Model(torch.nn.Module):
             def __init__(self):
-                super().__init__()
+                super(Model, self).__init__()
 
             def forward(self, x):
                 x = torch_npu.npu_slice(x, [0, 0], [2, 2])
@@ -118,7 +87,7 @@ class TestOnnxOps(TestCase):
     def test_wrapper_npu_roi_align(self):
         class Model(torch.nn.Module):
             def __init__(self):
-                super().__init__()
+                super(Model, self).__init__()
 
             def forward(self, x, rois):
                 x = torch_npu.npu_roi_align(x, rois, 0.25, 3, 3, 2, 0)
@@ -141,7 +110,7 @@ class TestOnnxOps(TestCase):
     def test_wrapper_npu_iou(self):
         class Model(torch.nn.Module):
             def __init__(self):
-                super().__init__()
+                super(Model, self).__init__()
 
             def forward(self, bboxes, gtboxes):
                 x = torch_npu.npu_iou(bboxes, gtboxes, 0)
@@ -164,7 +133,7 @@ class TestOnnxOps(TestCase):
     def test_wrapper_npu_batch_nms(self):
         class Model(torch.nn.Module):
             def __init__(self):
-                super().__init__()
+                super(Model, self).__init__()
 
             def forward(self, boxes, scores):
                 x = torch_npu.npu_batch_nms(boxes, scores, 0.3, 0.5, 3, 4)
@@ -184,7 +153,7 @@ class TestOnnxOps(TestCase):
     def test_wrapper_fast_gelu(self):
         class Model(torch.nn.Module):
             def __init__(self):
-                super().__init__()
+                super(Model, self).__init__()
 
             def forward(self, x):
                 x = torch_npu.fast_gelu(x)
@@ -197,26 +166,6 @@ class TestOnnxOps(TestCase):
 
         export_onnx()
         assert (os.path.isfile("./model_fast_gelu.onnx"))
-
-    def test_wrapper_npu_linear(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super().__init__()
-
-            def forward(self, x, weight, bias):
-                x = torch_npu.npu_linear(x, weight, bias)
-                return x
-
-        def export_onnx():
-            x = torch.rand(2, 16).npu()
-            weight = torch.rand(4, 16).npu()
-            bias = torch.rand(4).npu()
-            model = Model().to("npu")
-            self.onnx_export(model, (x, weight, bias), "model_npu_linear.onnx",
-                             input_names=["x", "weight", "bias"])
-
-        export_onnx()
-        assert (os.path.isfile("./model_npu_linear.onnx"))
 
 
 if __name__ == '__main__':
