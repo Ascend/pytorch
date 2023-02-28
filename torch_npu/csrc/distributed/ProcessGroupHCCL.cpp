@@ -859,10 +859,36 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togathe
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
-    at::Tensor& /* unused */,
-    at::Tensor& /* unused */,
-    const c10d::AllgatherOptions& /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support allgather_base");
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    const c10d::AllgatherOptions& opts) {
+  std::vector<at::Tensor> inputTensors = {inputTensor};
+  std::vector<at::Tensor> outputTensors = {outputTensor};
+  check_npu_tensors_different_devices(inputTensors);
+  check_npu_tensors_different_devices(outputTensors);
+  auto inputTensors_ = cast_to_origin_format(inputTensors);
+
+  return collective(
+      inputTensors_,
+      outputTensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclAllgatherBase", std::vector<c10::IValue>({input}));
+        c10_npu::NPUCachingAllocator::recordStream(
+            output.storage().data_ptr(), stream);
+        return HcclAllGather(
+            input.data_ptr(),
+            output.data_ptr(),
+            getNumelForHCCL(input),
+            getHcclDataType(input.scalar_type()),
+            comm,
+            stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {}
+      );
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
