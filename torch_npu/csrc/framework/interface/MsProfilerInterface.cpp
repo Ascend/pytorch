@@ -199,5 +199,11 @@ aclError AclprofReportStamp(const char *tag, unsigned int tagLen,
     TORCH_CHECK(func, "Failed to find function ", "aclprofReportStamp");
     return func(tag, tagLen, data, dataLen);
 }
+
+bool CheckInterfaceReportStamp() {
+    typedef aclError(*AclprofReportStampFunc)(const char *, unsigned int, unsigned char *, unsigned int);
+    static AclprofReportStampFunc func = (AclprofReportStampFunc)GET_FUNC(aclprofReportStamp);
+    return (func == nullptr) ? false : true;
+}
 }
 }
