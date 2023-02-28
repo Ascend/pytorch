@@ -157,14 +157,16 @@ def current_device():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDevice()
 
-def get_device_name(device_id: int):
+def get_device_name(device_name=None):
+    device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceProperties(device_id)
     return device_prop.name
 
-def get_device_properties(device_id: int):
+def get_device_properties(device_name=None):
+    device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
