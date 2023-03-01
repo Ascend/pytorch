@@ -192,7 +192,8 @@ void syncStreams(
 
 // exit call back for allreduce error
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
-  ASCEND_LOGE("AllReduce error");
+  // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
+  fprintf(stdout, "AllReduce error, see details in Ascend logs.");
 }
 } // namespace
 
