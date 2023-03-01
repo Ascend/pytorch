@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import torch
+from torch._six import inf
 from torch.optim.optimizer import Optimizer
 from torch_npu.utils import npu_combine_tensors, get_part_combined_tensor
 
@@ -31,6 +32,7 @@ class NpuFusedOptimizerBase(Optimizer):
         self.grads_all_group_combined = 2 * [None]
         self.is_params_grads_combined = False
         self.is_states_combined = False
+        self.is_grads_masks_combined = False
 
     def _maybe_init_combined_params_and_grads(self):
         if self.is_params_grads_combined:
@@ -85,6 +87,7 @@ class NpuFusedOptimizerBase(Optimizer):
             grads_size_each_group.append(group_grads_size)
 
         self.params_lists_indexed_by_group = params_list_each_group
+        self.params_all_group = params_all_group
 
         for dtype_index, _ in enumerate(params_all_group):
             self.params_all_group_combined[dtype_index] = npu_combine_tensors(params_all_group[dtype_index])
@@ -159,3 +162,70 @@ class NpuFusedOptimizerBase(Optimizer):
 
     def get_combined_grads(self):
         return self.grads_all_group_combined
+
+    def _clip_grad_norm_fused_(self, combined_grads, combined_grads_masks, max_norm, norm_type):
+        assert len(combined_grads) == len(combined_grads_masks)
+        if len(combined_grads) == 0 or all(i is None for i in combined_grads):
+            return torch.tensor(0.)
+
+        max_norm = float(max_norm)
+        norm_type = float(norm_type)
+        masked_grad_list = []
+        if norm_type == inf:
+            for combined_grad, combined_grad_mask in zip(combined_grads, combined_grads_masks):
+                if combined_grad is not None:
+                    masked_grad_list.append(combined_grad.float().abs().mul_(combined_grad_mask).max())
+            total_norm = max(masked_grad_list)
+        else:
+            for combined_grad, combined_grad_mask in zip(combined_grads, combined_grads_masks):
+                if combined_grad is not None:
+                    masked_grad_list.append(combined_grad.float().abs().pow(norm_type).mul_(combined_grad_mask).sum())
+            total_norm = torch.stack(masked_grad_list).sum().pow(1 / norm_type)
+        clip_coef = max_norm / (total_norm + 1e-6)
+        if clip_coef < 1:
+            for combined_grad in combined_grads:
+                if combined_grad is not None:
+                    combined_grad.mul_(clip_coef)
+        return total_norm
+
+    def _combine_grads_mask(self, list_of_params):
+        if len(list_of_params) == 0:
+            return None
+
+        list_of_grads_masks = []
+        for param in list_of_params:
+            if param.requires_grad:
+                grad_size = param.grad.size()
+                grad_format = torch.get_npu_format(param)
+                list_of_grads_masks.append(torch.npu_format_cast(torch.ones(grad_size).npu(), grad_format))
+        grad_mask_combined = npu_combine_tensors(list_of_grads_masks)
+
+        return grad_mask_combined
+
+    def _maybe_init_combined_grads_masks(self):
+        # Create a mask to ensure the padded data to be zero in case of combining tensors with NPU-private format.
+        assert self.is_params_grads_combined
+
+        combined_grads_masks = []
+        for params_group_one_dtype in self.params_all_group:
+            combined_grads_mask = self._combine_grads_mask(params_group_one_dtype)
+            combined_grads_masks.append(combined_grads_mask)
+
+        self.combined_grads_masks = combined_grads_masks
+        self.is_grads_masks_combined = True
+
+    def _get_combined_grad_masks(self):
+        return self.combined_grads_masks
+
+    def clip_grad_norm_fused_(self, max_norm, norm_type=2):
+        if not self.is_params_grads_combined:
+            with torch.no_grad():
+                self._maybe_init_combined_params_and_grads()
+
+        if not self.is_grads_masks_combined:
+            self._maybe_init_combined_grads_masks()
+
+        combined_grads = self.get_combined_grads()
+        combined_grads_masks = self._get_combined_grad_masks()
+
+        return self._clip_grad_norm_fused_(combined_grads, combined_grads_masks, max_norm, norm_type)

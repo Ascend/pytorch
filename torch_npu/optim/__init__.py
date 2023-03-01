@@ -14,7 +14,8 @@
 # limitations under the License.
 
 __all__ = [
-    "NpuFusedSGD",
+    "NpuFusedSGD", "NpuFusedAdamW",
 ]
 
 from .npu_fused_sgd import NpuFusedSGD
+from .npu_fused_adamw import NpuFusedAdamW
