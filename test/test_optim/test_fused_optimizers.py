@@ -15,18 +15,30 @@
 from copy import deepcopy
 
 import torch
-from torch.optim import SGD
+from torch.optim import SGD, AdamW
 from torch_npu.npu.amp import GradScaler, autocast
-from torch_npu.optim import NpuFusedSGD
+from torch_npu.optim import NpuFusedSGD, NpuFusedAdamW
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestFusedOptim(TestCase):
+    def __init__(self, method_name='runTest'):
+        super(TestCase, self).__init__(method_name)
 
-    def _create_optimizer_cases(self):
-        optim_cases = [
+        self.optim_cases = [
             (SGD, NpuFusedSGD, dict(lr=0.01, momentum=0.9, weight_decay=0.001)),
+            (AdamW, NpuFusedAdamW, dict(eps=1e-8, betas=(0.9, 0.999), lr=2e-3, weight_decay=0.05)),
         ]
+
+        # Full tests for these optimizers will be run, including a small model.
+        # Otherwise, only test the optimizer-related APIs.
+        self.base_cases = [SGD, AdamW]
+
+    def _create_optimizer_cases(self, all_cases=False):
+        optim_cases = self.optim_cases
+        if not all_cases:
+            optim_cases = list(filter(lambda x: x[0] in self.base_cases, optim_cases))
+
         return optim_cases
 
     def _create_simple_model(self):
@@ -93,9 +105,7 @@ class TestFusedOptim(TestCase):
 
         return params
 
-    def test_zero_grad(self):
-        optim_cases = self._create_optimizer_cases()
-        params = self._create_simple_params_and_grads()
+    def _create_params_clone(self, params):
         params_clone = []
         for p in params:
             p_clone = p.clone().detach()
@@ -103,7 +113,13 @@ class TestFusedOptim(TestCase):
                 p_clone.requires_grad = True
                 p_clone.grad = p.grad.clone().detach()
                 params_clone.append(p_clone)
+        return params_clone
+
+    def test_zero_grad(self):
+        optim_cases = self._create_optimizer_cases()
         for opt_obj, fused_opt_obj, opt_kwargs in optim_cases:
+            params = self._create_simple_params_and_grads()
+            params_clone = self._create_params_clone(params)
             with torch.no_grad():
                 opt = opt_obj(params, **opt_kwargs)
                 opt.zero_grad()
@@ -117,17 +133,11 @@ class TestFusedOptim(TestCase):
                     self.assertEqual(p.grad, torch.zeros_like(p.grad))
 
     def test_step(self):
-        optim_cases = self._create_optimizer_cases()
-        params = self._create_simple_params_and_grads()
-        params_clone = []
-        for p in params:
-            p_clone = p.clone().detach()
-            if p.requires_grad:
-                p_clone.requires_grad = True
-                p_clone.grad = p.grad.clone().detach()
-                params_clone.append(p_clone)
+        optim_cases = self._create_optimizer_cases(all_cases=True)
         num_iters = 10
         for opt_obj, fused_opt_obj, opt_kwargs in optim_cases:
+            params = self._create_simple_params_and_grads()
+            params_clone = self._create_params_clone(params)
             opt = opt_obj(params, **opt_kwargs)
             fused_opt = fused_opt_obj(params_clone, **opt_kwargs)
             with torch.no_grad():
@@ -188,7 +198,7 @@ class TestFusedOptim(TestCase):
                 scaler_fused.scale(loss_fused).backward()
                 scaler_fused.step(opt_fused)
                 scaler_fused.update()
-                self.assertEqual(loss, loss_fused)
+                self.assertRtolEqual(loss, loss_fused)
 
     def test_simple_model_train_static(self):
         model = self._create_simple_model()
@@ -218,7 +228,22 @@ class TestFusedOptim(TestCase):
                 scaler_fused.scale(loss_fused).backward()
                 scaler_fused.step(opt_fused)
                 scaler_fused.update()
-                self.assertEqual(loss, loss_fused)
+                self.assertRtolEqual(loss, loss_fused)
+
+    def test_clip_grad_norm_fused(self):
+        optim_cases = self._create_optimizer_cases()
+        for _, fused_opt_obj, opt_kwargs in optim_cases:
+            params = self._create_simple_params_and_grads()
+            params_clone = self._create_params_clone(params)
+
+            fused_opt = fused_opt_obj(params_clone, **opt_kwargs)
+
+            grad_norm = torch.nn.utils.clip_grad_norm_(params, 5.0)
+            grad_norm_fused = fused_opt.clip_grad_norm_fused_(5.0)
+            for p, p_clone in zip(params, params_clone):
+                if p.grad is not None:
+                    self.assertRtolEqual(p.grad, p_clone.grad)
+            self.assertRtolEqual(grad_norm, grad_norm_fused)
 
 
 if __name__ == "__main__":
