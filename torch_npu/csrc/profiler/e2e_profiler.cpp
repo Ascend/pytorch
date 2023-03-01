@@ -37,6 +37,7 @@ bool global_call_stack = false;
 std::mutex g_rangeStampMtx;
 struct StampGroupMng g_rangeStamp;
 struct StampRingQueue g_markStamp;
+bool g_concatenateReport = false;
 
 void InitRangeStamp() {
   g_rangeStamp.groups = reinterpret_cast<struct StampGroup *>(malloc(sizeof(struct StampGroup) * GROUP_NUM));
@@ -154,19 +155,48 @@ void InitMarkStamp() {
   }
 }
 
-void PutMarkStamp(const std::string &msg) {
-  using namespace at_npu::native;
-  void *local_stamp = AclprofCreateStamp();
-  if (local_stamp == nullptr) {
-    return;
+void PutMarkStamp(const std::string &opName) {
+  if (!g_concatenateReport) {
+    using namespace at_npu::native;
+    void *local_stamp = AclprofCreateStamp();
+    if (local_stamp == nullptr) {
+      return;
+    }
+    static const std::string tag_name = "torch_cann_op";
+    do {
+      if (AclprofSetStampTagName(local_stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE) break;
+      if (AclprofSetStampTraceMessage(local_stamp, opName.c_str(), opName.size()) != ACL_ERROR_NONE) break;
+      if (at_npu::native::AclprofMark(local_stamp) != ACL_ERROR_NONE) break;
+    } while (0);
+    at_npu::native::AclprofDestroyStamp(local_stamp);
+  } else {
+    if (g_markStamp.nodes == nullptr) {
+      NPU_LOGE("PutMarkStamp nodes is null.");
+      return;
+    }
+    // get idle node index
+    static std::mutex markStampMtx;
+    markStampMtx.lock();
+    int index = g_markStamp.idleNodeInd;
+    g_markStamp.idleNodeInd = (g_markStamp.idleNodeInd + 1) & (STAMP_QUEUE_LEN - 1);
+    markStampMtx.unlock();
+    // set tid/time/opname
+    static thread_local int tid = syscall(SYS_gettid);
+    g_markStamp.nodes[index].threadId = tid;
+    g_markStamp.nodes[index].eventType = 0;
+    g_markStamp.nodes[index].startTime = getTime();
+    g_markStamp.nodes[index].endTime = g_markStamp.nodes[index].startTime;
+    std::strncpy(g_markStamp.nodes[index].message, opName.c_str(), OP_NAME_LEN);
+    // report data
+    if ((index & (ONCE_REPORT_NUM - 1)) == (ONCE_REPORT_NUM - 1)) {
+      int ret = at_npu::native::AclprofReportStamp("torch_cann_op", strlen("torch_cann_op"),
+        (unsigned char *)&g_markStamp.nodes[index + 1 - ONCE_REPORT_NUM],
+        sizeof(struct Stamp) * ONCE_REPORT_NUM);
+      if (ret != ACL_ERROR_NONE) {
+        NPU_LOGE("PutMarkStamp report fail, ret=%d.", ret);
+      }
+    }
   }
-  static const std::string tag_name = "torch_cann_op";
-  do {
-    if (AclprofSetStampTagName(local_stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE) break;
-    if (AclprofSetStampTraceMessage(local_stamp, msg.c_str(), msg.size()) != ACL_ERROR_NONE) break;
-    if (at_npu::native::AclprofMark(local_stamp) != ACL_ERROR_NONE) break;
-  } while (0);
-  at_npu::native::AclprofDestroyStamp(local_stamp);
 }
 
 void FlushMarkStamp() {
@@ -288,57 +318,81 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
     (void)at_npu::native::AclProfilingFinalize();
     return;
   }
+  if (g_concatenateReport) {
+    InitRangeStamp();
+    InitMarkStamp();
+  }
 }
 
 void PushStartTime(at::RecordFunction& fn) {
-  auto local_stamp_ = at_npu::native::AclprofCreateStamp();
-  if (local_stamp_  == nullptr) {
-    NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
-    return;
-  }
-  static const std::string tag_name = "torch_op";
-  auto ret = at_npu::native::AclprofSetStampTagName(local_stamp_, tag_name.c_str(), tag_name.size());
-  CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTagName set failed.");
-
-  ret = at_npu::native::AclprofSetStampTraceMessage(
-      local_stamp_, fn.name(), strlen(fn.name()));
-  CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
-  if (global_call_stack) {
-    std::vector<std::string> py_stack;
-    if (fn.scope() != at::RecordScope::BACKWARD_FUNCTION) {
-      auto cs = prepareCallstack(torch::jit::currentCallstack());
-      if (cs.empty()) {
-        cs = prepareCallstack(torch::jit::tracer::pythonCallstack());
+  if (!g_concatenateReport || global_call_stack) {
+    auto local_stamp_ = at_npu::native::AclprofCreateStamp();
+    if (local_stamp_  == nullptr) {
+      NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
+      return;
+    }
+    static const std::string tag_name = "torch_op";
+    auto ret = at_npu::native::AclprofSetStampTagName(local_stamp_, tag_name.c_str(), tag_name.size());
+    CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTagName set failed.");
+    ret = at_npu::native::AclprofSetStampTraceMessage(
+        local_stamp_, fn.name(), strlen(fn.name()));
+    CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
+    if (global_call_stack) {
+      std::vector<std::string> py_stack;
+      if (fn.scope() != at::RecordScope::BACKWARD_FUNCTION) {
+        auto cs = prepareCallstack(torch::jit::currentCallstack());
+        if (cs.empty()) {
+          cs = prepareCallstack(torch::jit::tracer::pythonCallstack());
+        }
+        py_stack = callstack2Str(cs);
       }
-      py_stack = callstack2Str(cs);
+      std::string call_stack_data;
+      for (size_t i = 0; i < py_stack.size(); i++) {
+        call_stack_data += py_stack[i];
+        call_stack_data += ((i == py_stack.size() - 1) ? "" : ";");
+      }
+      if (!call_stack_data.empty()) {
+        ret = at_npu::native::AclprofSetStampCallStack(local_stamp_, call_stack_data.c_str(), call_stack_data.size());
+        CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampCallStack set warning."
+          " Try to install the matching Ascend Profiler.");
+      }
     }
-    std::string call_stack_data;
-    for (size_t i = 0; i < py_stack.size(); i++) {
-      call_stack_data += py_stack[i];
-      call_stack_data += ((i == py_stack.size() - 1) ? "" : ";");
+    uint32_t range_id_ = 0;
+    ret = at_npu::native::AclprofRangeStart(local_stamp_, &range_id_);
+    CheckProfilerRet(ret, "In npu e2e profiling, AclprofRangeStart failed.");
+    fn.setHandle((uint64_t)range_id_);
+    fn.setForwardThreadId((uint64_t)local_stamp_);
+  } else {
+    struct Stamp *node = GetRangeStamp();
+    if (node == nullptr) {
+      return;
     }
-    if (!call_stack_data.empty()) {
-      ret = at_npu::native::AclprofSetStampCallStack(local_stamp_, call_stack_data.c_str(), call_stack_data.size());
-      CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampCallStack set warning."
-        " Try to install the matching Ascend Profiler.");
-    }
+    static thread_local int tid = syscall(SYS_gettid);
+    node->threadId = tid;
+    node->startTime = getTime();
+    int nameLen = strlen(fn.name());
+    std::strncpy(node->message, fn.name(), OP_NAME_LEN);
+    fn.setForwardThreadId(reinterpret_cast<uint64_t>(node));
   }
-  uint32_t range_id_ = 0;
-  ret = at_npu::native::AclprofRangeStart(local_stamp_, &range_id_);
-  CheckProfilerRet(ret, "In npu e2e profiling, AclprofRangeStart failed.");
-  fn.setHandle((uint64_t)range_id_);
-  fn.setForwardThreadId((uint64_t)local_stamp_);
 }
 
 void PopEndTime(const at::RecordFunction& fn) {
-  auto ret = at_npu::native::AclprofRangeStop((uint32_t)fn.handle());
-  CheckProfilerRet(ret, "In npu e2e profiling, AclprofRangeStop failed.");
-  at_npu::native::AclprofDestroyStamp((void*)fn.forwardThreadId());
+  if (!g_concatenateReport || global_call_stack) {
+    auto ret = at_npu::native::AclprofRangeStop((uint32_t)fn.handle());
+    CheckProfilerRet(ret, "In npu e2e profiling, AclprofRangeStop failed.");
+    at_npu::native::AclprofDestroyStamp((void*)fn.forwardThreadId());
+  } else {
+    struct Stamp *node = reinterpret_cast<struct Stamp *>(fn.forwardThreadId());
+    node->endTime = getTime();
+    node->eventType = 2;  // msproftx data envent type: START_OR_STOP
+    PutRangeStamp(node);
+  }
 }
 
 void InitE2eProfiler(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics, bool call_stack) {
   global_call_stack = call_stack;
+  g_concatenateReport = at_npu::native::CheckInterfaceReportStamp();
   InitMsPorf(dump_path, npu_event, aicore_metrics);
   global_enable_profiling.store(true);
   auto handle = at::addThreadLocalCallback(at::RecordFunctionCallback(
@@ -358,6 +412,12 @@ void FinalizeE2eProfiler() {
   if (ret) {
     NPU_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
+  }
+  if (g_concatenateReport) {
+    FlushRangeStamp();
+    FlushMarkStamp();
+    UninitRangeStamp();
+    UninitMarkStamp();
   }
   at_npu::native::AclProfilingFinalize();
   at::clearThreadLocalCallbacks();
