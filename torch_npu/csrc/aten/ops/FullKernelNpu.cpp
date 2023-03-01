@@ -42,6 +42,16 @@ at::Tensor NPUNativeFunctions::full(
                                           .layout(layout_opt)
                                           .pinned_memory(pin_memory_opt);
   at::Tensor result = OpPreparation::ApplyTensorWithSizes(size, option);
+
+  if (!dtype_opt.has_value()) {
+    if (fill_value.isBoolean()) {
+      option = option.dtype(at::kBool);
+    } else if (fill_value.isIntegral(false)) {
+      option = option.dtype(at::kLong);
+    } else {
+      option = option.dtype(c10::get_default_dtype());
+    }
+  }
   return result.fill_(fill_value);
 }
 
