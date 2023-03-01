@@ -744,6 +744,16 @@ namespace at_npu
           options.layout() != at::kSparse,
           "full(...) is not implemented for sparse layout");
 
+      if (!dtype_opt.has_value()) {
+        if (fill_value.isBoolean()) {
+          options = options.dtype(at::kBool);
+        } else if (fill_value.isIntegral(false)) {
+          options = options.dtype(at::kLong);
+        } else {
+          options = options.dtype(c10::get_default_dtype());
+        }
+      }
+
       auto result = OpPreparation::ApplyTensorWithSizes(size, options);
       return result.fill_(fill_value);
     }
