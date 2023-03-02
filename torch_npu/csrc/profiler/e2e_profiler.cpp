@@ -338,18 +338,22 @@ void PushStartTime(at::RecordFunction& fn) {
         local_stamp_, fn.name(), strlen(fn.name()));
     CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
     if (global_call_stack) {
+      std::string seq_nr = "seq=" + std::to_string(fn.seqNr());
       std::vector<std::string> py_stack;
+      std::string call_stack_data;
       if (fn.scope() != at::RecordScope::BACKWARD_FUNCTION) {
         auto cs = prepareCallstack(torch::jit::currentCallstack());
         if (cs.empty()) {
           cs = prepareCallstack(torch::jit::tracer::pythonCallstack());
         }
         py_stack = callstack2Str(cs);
-      }
-      std::string call_stack_data;
-      for (size_t i = 0; i < py_stack.size(); i++) {
-        call_stack_data += py_stack[i];
-        call_stack_data += ((i == py_stack.size() - 1) ? "" : ";");
+        for (size_t i = 0; i < py_stack.size(); ++i) {
+          call_stack_data += py_stack[i];
+          call_stack_data += ("," + seq_nr);
+          call_stack_data += ((i == py_stack.size() - 1) ? "" : ";");
+        }
+      } else {
+        call_stack_data = seq_nr;
       }
       if (!call_stack_data.empty()) {
         ret = at_npu::native::AclprofSetStampCallStack(local_stamp_, call_stack_data.c_str(), call_stack_data.size());
