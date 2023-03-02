@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <regex>
 #include <set>
 #include <vector>
 
@@ -55,8 +56,11 @@ C10_DEFINE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 // - Large (>1MB) and small allocations are stored in separate pools.
 //   Small requests are packed into 2MB buffers. Large requests will use the
 //   smallest available free block or allocate a new block using npuMalloc.
-//   To reduce fragmentation, requests between 1MB and 10MB will allocate and
+// - To reduce fragmentation, requests between 1MB and 10MB will allocate and
 //   split a 20MB block, if no free block of sufficient size is available.
+// - To further reduce fragmentation, blocks >= 200MB are not allowed to be
+//   split. These oversize cached blocks will still satisfy requests within
+//   20MB of the oversize cached block size.
 //
 // With this allocator, allocations and frees should logically be considered
 // "usages" of the memory segment associated with streams, just like kernel
@@ -227,6 +231,63 @@ struct AllocParams {
 
 } // namespace
 
+class CachingAllocatorConfig {
+
+ public:
+
+  static size_t max_split_size() {
+    return instance().m_max_split_size;
+  }
+
+ private:
+
+  size_t m_max_split_size;
+
+  static CachingAllocatorConfig &instance() {
+    static CachingAllocatorConfig *s_instance = ([]() {
+      auto inst = new CachingAllocatorConfig();
+      inst->parseArgs();
+      return inst;
+    })();
+    return *s_instance;
+  }
+
+  CachingAllocatorConfig() : m_max_split_size(std::numeric_limits<size_t>::max()) {}
+
+  void parseArgs() {
+      const char *val = getenv("PYTORCH_NPU_ALLOC_CONF");
+      if (val != nullptr) {
+        const std::string config(val);
+        std::regex exp("[\\s,]+");
+        std::sregex_token_iterator it(config.begin(), config.end(), exp, -1);
+        std::sregex_token_iterator end;
+        std::vector<std::string> options(it, end);
+
+        for (auto option : options) {
+          std::regex exp2("[:]+");
+          std::sregex_token_iterator it2(option.begin(), option.end(), exp2, -1);
+          std::sregex_token_iterator end2;
+          std::vector<std::string> kv(it2, end2);
+          if (kv.size() >= 2) {
+            /* Maximum split size in MB.  Limited to large size blocks */
+            if (kv[0].compare("max_split_size_mb") == 0) {
+              size_t val2 = stoi(kv[1]);
+              TORCH_CHECK(val2 > kLargeBuffer / (1024 * 1024),
+                  "CachingAllocator option max_split_size_mb too small, must be > ",
+                  kLargeBuffer / (1024 * 1024),
+                  "");
+              val2 = std::max(val2, kLargeBuffer / (1024 * 1024));
+              val2 = std::min(val2, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
+              m_max_split_size = val2 * 1024 * 1024;
+            } else {
+              TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", kv[0]);
+            }
+          }
+        }
+      }
+    }
+};
+
 class DeviceCachingAllocator {
 
  private:
@@ -258,6 +319,7 @@ class DeviceCachingAllocator {
   // record used memory.
   size_t total_allocated_memory = 0;
 
+  // record maximum allowed memory.
   size_t allowed_memory_maximum = 0;
 
   bool set_fraction = false;
@@ -265,8 +327,10 @@ class DeviceCachingAllocator {
  public:
 
   DeviceCachingAllocator() :
-      large_blocks(BlockComparator, false),
-      small_blocks(BlockComparator, true) {}
+    large_blocks(BlockComparator, false),
+    small_blocks(BlockComparator, true) {
+    stats.max_split_size = CachingAllocatorConfig::max_split_size();
+  }
 
   // All public methods (except the above) acquire the allocator mutex.
   // Thus, do not call a public method from another public method.
@@ -295,8 +359,10 @@ class DeviceCachingAllocator {
       || (trigger_free_memory_callbacks(params) && get_free_block(params))
       // Attempt allocate
       || alloc_block(params, false)
+      // Free enough available cached blocks to satisfy alloc and retry alloc.
+      || (release_available_cached_blocks(params) && alloc_block(params, false))
       // Free all non-split cached blocks and retry alloc.
-      || (free_cached_blocks() && alloc_block(params, true));
+      || (release_cached_blocks() && alloc_block(params, true));
 
     if (!block_found) {
       if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
@@ -339,7 +405,8 @@ class DeviceCachingAllocator {
             " free; ",
             allowed_info,
             format_size(stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
-            " cached)");
+            " reserved in total by PyTorch)",
+            " If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.");
       } else {
         C10_NPU_CHECK(params.err);
       }
@@ -370,22 +437,30 @@ class DeviceCachingAllocator {
       } else {
         // A new split inactive block is being created from a previously unsplit block,
         // size remaining->size bytes.
-        update_stat_array(stats.inactive_split_bytes, remaining->size, params.stat_types);
-        update_stat_array(stats.inactive_split, 1, params.stat_types);
+        for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
+          update_stat(stats.inactive_split_bytes[stat_type], remaining->size);
+          update_stat(stats.inactive_split[stat_type], 1);
+        });
       }
     } else if (already_split) {
       // An already-split block is becoming active
-      update_stat_array(stats.inactive_split_bytes, -block->size, params.stat_types);
-      update_stat_array(stats.inactive_split, -1, params.stat_types);
+      for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
+        update_stat(stats.inactive_split_bytes[stat_type], -block->size);
+        update_stat(stats.inactive_split[stat_type], -1);
+      });
     }
 
     block->allocated = true;
     active_blocks.insert(block);
 
-    update_stat_array(stats.allocation, 1, params.stat_types);
-    update_stat_array(stats.allocated_bytes, block->size, params.stat_types);
-    update_stat_array(stats.active, 1, params.stat_types);
-    update_stat_array(stats.active_bytes, block->size, params.stat_types);
+    for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
+      update_stat(stats.allocation[stat_type], 1);
+      update_stat(stats.allocated_bytes[stat_type], block->size);
+      update_stat(stats.active[stat_type], 1);
+      update_stat(stats.active_bytes[stat_type], block->size);
+    });
+    if (block->size >= CachingAllocatorConfig::max_split_size())
+      update_stat(stats.oversize_allocations, 1);
 
     return block;
   }
@@ -398,8 +473,12 @@ class DeviceCachingAllocator {
     StatTypes stat_types = {false};
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
     stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
-    update_stat_array(stats.allocation, -1, {stat_types});
-    update_stat_array(stats.allocated_bytes, -block->size, {stat_types});
+    for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
+      update_stat(stats.allocation[stat_type], -1);
+      update_stat(stats.allocated_bytes[stat_type], -block->size);
+    });
+    if (block->size >= CachingAllocatorConfig::max_split_size())
+      update_stat(stats.oversize_allocations, -1);
 
     if (!block->stream_uses.empty()) {
       insert_events(block);
@@ -447,7 +526,7 @@ class DeviceCachingAllocator {
   /** returns cached blocks to the system allocator **/
   void emptyCache() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    free_cached_blocks();
+    release_cached_blocks();
   }
 
   /** Retrieves info (total size + largest block) of the memory cache **/
@@ -480,6 +559,8 @@ class DeviceCachingAllocator {
 
     stats.num_alloc_retries = 0;
     stats.num_ooms = 0;
+    reset_accumulated_stat(stats.oversize_allocations);
+    reset_accumulated_stat(stats.oversize_segments);
   }
 
   /** Resets the historical peak stats for the device **/
@@ -496,6 +577,9 @@ class DeviceCachingAllocator {
       reset_peak_stat(stats.active_bytes[statType]);
       reset_peak_stat(stats.inactive_split_bytes[statType]);
     }
+
+    reset_peak_stat(stats.oversize_allocations);
+    reset_peak_stat(stats.oversize_segments);
   }
 
   /** Dump a complete snapshot of the memory held by the allocator. Potentially VERY expensive. **/
@@ -569,7 +653,7 @@ class DeviceCachingAllocator {
     return blocks;
   }
 
-  /** moves a block into a pool of cached free blocks */
+  /** moves a block into a pool of cached free blocks **/
   void free_block(Block* block) {
     AT_ASSERT(!block->allocated && block->event_count == 0);
 
@@ -599,13 +683,15 @@ class DeviceCachingAllocator {
     StatTypes stat_types = {false};
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
     stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
-    update_stat_array(stats.inactive_split, net_change_inactive_split_blocks, stat_types);
-    update_stat_array(stats.inactive_split_bytes, net_change_inactive_split_size, stat_types);
-    update_stat_array(stats.active, -1, stat_types);
-    update_stat_array(stats.active_bytes, -original_block_size, stat_types);
+    for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
+      update_stat(stats.inactive_split[stat_type], net_change_inactive_split_blocks);
+      update_stat(stats.inactive_split_bytes[stat_type], net_change_inactive_split_size);
+      update_stat(stats.active[stat_type], -1);
+      update_stat(stats.active_bytes[stat_type], -original_block_size);
+    });
   }
 
-  /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. */
+  /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. **/
   size_t try_merge_blocks(Block* dst, Block* src, BlockPool& pool) {
     if (!src || src->allocated || src->event_count > 0) {
       return 0;
@@ -650,10 +736,8 @@ class DeviceCachingAllocator {
     size_t remaining = block->size - size;
     if (block->pool->is_small) {
       return remaining >= kMinBlockSize;
-    } else if (!block->pool->is_small) {
-      return remaining > kSmallSize;
     } else {
-      AT_ERROR("should_split: invalid pool");
+      return (size < CachingAllocatorConfig::max_split_size()) && (remaining > kSmallSize);
     }
   }
 
@@ -672,6 +756,13 @@ class DeviceCachingAllocator {
     auto it = pool.blocks.lower_bound(&p.search_key);
     if (it == pool.blocks.end() || (*it)->stream != p.stream())
       return false;
+    // Do not return an oversized block for a large request
+    if ((p.size() < CachingAllocatorConfig::max_split_size()) &&
+        ((*it)->size >= CachingAllocatorConfig::max_split_size()))
+        return false;
+    // Allow oversized block size to be rounded up but within a limit
+    if ((p.size() >= CachingAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer))
+        return false;
     p.block = *it;
     pool.blocks.erase(it);
     return true;
@@ -707,23 +798,98 @@ class DeviceCachingAllocator {
 
     total_allocated_memory += size;
     p.block = new Block(p.device(), p.stream(), size, p.pool, (char*)ptr);
-    update_stat_array(stats.segment, 1, p.stat_types);
-    update_stat_array(stats.reserved_bytes, size, p.stat_types);
+    for_each_selected_stat_type(p.stat_types, [&](size_t stat_type) {
+      update_stat(stats.segment[stat_type], 1);
+      update_stat(stats.reserved_bytes[stat_type], size);
+    });
+    if (size >= CachingAllocatorConfig::max_split_size())
+        update_stat(stats.oversize_segments, 1);
     ASCEND_LOGD("pta_memory acl_malloc: malloc = %zu, ret = %d", size, p.err);
 
     return (p.block != nullptr);
   }
 
-  bool free_cached_blocks() {
+  /** Free one or more oversize blocks to the system allocator.  But only enough to satisfy the target size **/
+  bool release_available_cached_blocks(const AllocParams& p) {
+    if (CachingAllocatorConfig::max_split_size() == std::numeric_limits<size_t>::max()) {
+      return false;
+    }
+    BlockPool &pool = *p.pool;
+    Block key = p.search_key;
+    key.size =
+        (key.size < CachingAllocatorConfig::max_split_size()) ? CachingAllocatorConfig::max_split_size() : key.size;
+    auto it = pool.blocks.lower_bound(&key);
+    if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
+      // No single block is large enough; free multiple oversize blocks, starting with the largest
+      if (it == pool.blocks.begin()){
+        return false;
+      }
+      size_t totalReleased = 0;
+      // Back up one item.  Now on the largest block for the correct stream
+      --it;  
+      while ((totalReleased < key.size) && ((*it)->size >= CachingAllocatorConfig::max_split_size()) &&
+            ((*it)->stream == p.stream())) {
+        auto cur = it;
+        totalReleased += (*it)->size;
+        if (it != pool.blocks.begin()) {
+          --it;
+          release_block(*cur);
+        } else {
+          release_block(*cur);
+          break;
+        }
+      }
+      if (totalReleased < key.size) {
+        return false;
+      }
+    } else {
+      release_block(*it);
+    }
+    return true;
+  }
+
+  bool release_cached_blocks() {
     // First ensure that all blocks that can't currently be allocated due to
     // outstanding events are returned to the pool.
     synchronize_and_free_events();
 
     // Free all non-split cached blocks
     c10_npu::npuSynchronizeDevice();
-    free_blocks(large_blocks);
-    free_blocks(small_blocks);
+    release_blocks(large_blocks);
+    release_blocks(small_blocks);
+
     return true;
+  }
+
+  void release_block(Block* block) {
+    aclrtFree((void*)block->ptr);
+    total_allocated_memory -= block->size;
+
+    auto* pool = block->pool; 
+    StatTypes stat_types;
+    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
+    stat_types[static_cast<size_t>(get_stat_type_for_pool(*pool))] = true;
+    for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
+      update_stat(stats.segment[stat_type], -1);
+      update_stat(stats.reserved_bytes[stat_type], -block->size);
+    });
+    if (block->size >= CachingAllocatorConfig::max_split_size())
+      update_stat(stats.oversize_segments, -1);
+
+    pool->blocks.erase(block);
+    delete block;
+    }
+
+  void release_blocks(BlockPool& pool) {
+    // Frees all non-split blocks
+    auto it = pool.blocks.begin();
+    while (it != pool.blocks.end()) {
+      Block *block = *it;
+      ++it;
+      if (!block->prev && !block->next) {
+        release_block(block);
+      }
+    }
   }
 
   void free_blocks(BlockPool& blocks) {
@@ -1064,7 +1230,7 @@ void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {
   caching_allocator.device_allocator[dev_id]->cacheInfo(cachedAndFree, largestBlock);
 }
 
-void* getBaseAllocation(void* ptr, size_t *size) {
+void* getBaseAllocation(void* ptr, size_t* size) {
   return caching_allocator.getBaseAllocation(ptr, size);
 }
 
