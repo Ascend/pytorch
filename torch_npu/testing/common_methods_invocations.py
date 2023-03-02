@@ -1224,10 +1224,6 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_pow,
         formats=(2, ),
         supports_inplace_autograd=False,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float16, torch.float32]),
-        ),
     ),
     OpInfo(
         'nn.functional.prelu',
