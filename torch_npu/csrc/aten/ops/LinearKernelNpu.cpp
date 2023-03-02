@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <torch/csrc/autograd/custom_function.h>
-
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -144,7 +144,8 @@ at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
            (!(static_cast<uint64_t>(weight.size(1)) & 0x0000000F));
   };
   static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
-  at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd && isAligin()) ?
+  static bool is_support_nd_out = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+  at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd && (is_support_nd_out || isAligin())) ?
       input : NPUNativeFunctions::npu_format_cast(input, ACL_FORMAT_FRACTAL_NZ);
   return NPULinearFunction::apply(input_cast, weight, bias_opt);
 }
