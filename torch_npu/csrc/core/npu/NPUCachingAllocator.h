@@ -121,6 +121,7 @@ void raw_delete(void* ptr);
 
 c10::Allocator* get();
 void init();
+void setMemoryFraction(double fraction, int device);
 void emptyCache();
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
 void* getBaseAllocation(void* ptr, size_t* size);
