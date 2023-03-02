@@ -247,11 +247,13 @@ class TestPow(TestCase):
 
     @graph_mode
     def test_pow_int32_float_format(self):
-        a = torch.randn(64).to(torch.int32)
-        na = a.npu()
-        cpu_out = self.cpu_op_exec(a, 1.0)
-        npu_out = self.npu_op_exec(na, 1.0)
-        self.assertRtolEqual(cpu_out, npu_out)
+        scalar_list = [1.0, 2, 2.0]
+        for i in scalar_list:
+            a = torch.randn(64).to(torch.int32)
+            na = a.npu()
+            cpu_out = self.cpu_op_exec(a, i)
+            npu_out = self.npu_op_exec(na, i)
+            self.assertRtolEqual(cpu_out, npu_out)
 
     @graph_mode
     def test_pow_float_int32_format(self):
@@ -260,6 +262,19 @@ class TestPow(TestCase):
         cpu_out = self.cpu_op_exec(1.0, a)
         npu_out = self.npu_op_exec(1.0, na)
         self.assertRtolEqual(cpu_out, npu_out)
+
+    @graph_mode
+    def test_pow_scalar_two_mul(self):
+        scalar_list = [2, 2.0]
+        tensor_type = [torch.int32, torch.float32]
+        for i, scalar_value in enumerate(scalar_list):
+            a = torch.randn(64).to(tensor_type[i])
+            na = a.npu()
+            b = torch.randn(64).to(tensor_type[i])
+            nb = b.npu()
+            cpu_out = torch.pow(a, scalar_value, out = b)
+            npu_out = self.npu_op_exec_out(na, scalar_value, nb)
+            self.assertRtolEqual(b.numpy(), npu_out)
 
 
 if __name__ == "__main__":
