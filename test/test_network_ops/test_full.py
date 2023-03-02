@@ -64,6 +64,15 @@ class TestFull(TestCase):
             npu_output = npu_output.numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_full_without_dtype(self, device="npu"):
+        fill_values = [5, True, 1.0]
+        for value in fill_values:
+            cpu_output = torch.full((10,), value, device="cpu")
+            cpu_output = cpu_output.numpy()
+            npu_output = torch.full((10,), value, device="npu")
+            npu_output = npu_output.to("cpu").numpy()
+            self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == '__main__':
     run_tests()
