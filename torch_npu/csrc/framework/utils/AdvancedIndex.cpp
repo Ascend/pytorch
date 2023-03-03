@@ -14,6 +14,9 @@
 // limitations under the License.
 
 #include "AdvancedIndex.h"
+#include "NpuUtils.h"
+#include "OpPreparation.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 
 namespace at_npu {
 namespace native {
@@ -167,6 +170,57 @@ AdvancedIndex AdvanceIndex::make_info(at::Tensor self, const torch::List<c10::op
     }
   }
   return AdvancedIndex(self, indices);
+}
+
+at::Tensor npu_nonzero_transpose(const at::Tensor& self) {
+  c10::SmallVector<int64_t, SHAPE_SIZE> output_size = {self.dim(), self.numel()};
+  at::Tensor result = OpPreparation::ApplyTensor(
+      output_size, self.options().dtype(at::kLong), self);
+  c10::SmallVector<int64_t, N> output_sync_idx = {0};
+  OpCommand cmd;
+  cmd.Sync(output_sync_idx)
+      .Name("NonZero")
+      .Input(self)
+      .Output(result)
+      .Attr("transpose", true)
+      .Run();
+  return result;
+}
+
+std::vector<at::Tensor> AdvanceIndex::npu_expand_tensors(
+    const at::Tensor& self,
+    const torch::List<c10::optional<at::Tensor>>& indices) {
+  // If indices come in as ByteTensor or BoolTensor (masks), expand them into the equivalent indexing by LongTensors
+  std::vector<at::Tensor> result;
+  for (c10::optional<at::Tensor> index_opt : indices) {
+    if (!index_opt.has_value()) {
+      result.emplace_back();
+    } else {
+      at::Tensor index = std::move(*index_opt);
+      if (index.scalar_type() == at::kByte || index.scalar_type() == at::kBool) {
+        if (index.scalar_type() == at::kByte) {
+          TORCH_WARN("indexing with dtype torch.uint8 is now deprecated," \
+              " please use a dtype torch.bool instead.");
+        }
+        // The sizes of the ByteTensor mask or bool tensor must match the sizes of the corresponding dimensions in self
+        for (int64_t j = 0; j < index.dim(); j++) {
+          int64_t srcIdx = result.size() + j;
+          if (index.size(j) != self.size(srcIdx)) {
+            TORCH_CHECK_INDEX(false, "The shape of the mask ", index.sizes(), " at index ", j,
+                " does not match the shape of the indexed tensor ", self.sizes(), " at index ", srcIdx);
+          }
+        }
+        // Replace with nonzeros
+        auto nonzero = npu_nonzero_transpose(index);
+        for (int64_t j = 0; j < index.dim(); j++) {
+          result.emplace_back(nonzero.select(0, j));
+        }
+      } else {
+        result.emplace_back(std::move(index));
+      }
+    }
+  }
+  return result;
 }
 
 } // namespace native
