@@ -110,8 +110,8 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
                  bmm_score_transpose_a: bool = False, bmm_score_transpose_b: bool = False, value_transpose:
                  bool = False, dx_transpose: bool = False):
         return g.op("npu::NPUFusedAttentionScore", query_layer, key_layer, value_layer, attention_mask,
-                    keep_prob_f=keep_prob, scale_f=scale, query_transpose_i=query_transpose, 
-                    key_transpose_i=key_transpose, bmm_score_transpose_a_i=bmm_score_transpose_a, 
+                    keep_prob_f=keep_prob, scale_f=scale, query_transpose_i=query_transpose,
+                    key_transpose_i=key_transpose, bmm_score_transpose_a_i=bmm_score_transpose_a,
                     bmm_score_transpose_b_i=bmm_score_transpose_b, value_transpose_i=value_transpose,
                     dx_transpose_i=dx_transpose)
 
@@ -262,8 +262,8 @@ class NPUIfmrOP(torch.autograd.Function):
     def symbolic(g, data: Tensor, data_min: Tensor, data_max: Tensor, cumsum: Tensor,
                  min_percentile: float, max_percentile: float, search_start: float,
                  search_end: float, search_step: float, with_offset: bool):
-        return g.op("npu::NPUIfmr", data, data_min, data_max, cumsum, min_percentile_f=min_percentile, 
-                    max_percentile_f=max_percentile, search_start_f=search_start, search_end_f=search_end, 
+        return g.op("npu::NPUIfmr", data, data_min, data_max, cumsum, min_percentile_f=min_percentile,
+                    max_percentile_f=max_percentile, search_start_f=search_start, search_end_f=search_end,
                     search_step_f=search_step, with_offset_i=with_offset, outputs=2)
 
 
@@ -528,7 +528,7 @@ class NPUScatterOP(torch.autograd.Function):
         return g.op("npu::NPUScatterOP", self, indices, updates, dim_i=dim)
 
 
-class NPLstmOP(torch.autograd.Function):
+class NPULstmOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -539,12 +539,12 @@ class NPLstmOP(torch.autograd.Function):
                  c: Tensor, has_biases: bool, num_layers: int,  dropout: float, train: bool,
                  bidirectional: bool, batch_first: bool, flagSeq: bool, direction: bool):
         assert train is False
-        return g.op("npu::NPLstm", input, weight, bias, seqMask, h, c, has_biases_i=has_biases, 
-                    num_layers_i=num_layers, dropout_f=dropout, train_i=train, bidirectional_i=bidirectional, 
+        return g.op("npu::NPULstm", input, weight, bias, seqMask, h, c, has_biases_i=has_biases,
+                    num_layers_i=num_layers, dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, flagSeq_i=flagSeq, direction_i=direction, outputs=8)
 
 
-class NPLstmCellOP(torch.autograd.Function):
+class NPULstmCellOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
@@ -558,7 +558,24 @@ class NPLstmCellOP(torch.autograd.Function):
             b_ih = g.op("Constant", value_t=torch.tensor([]).to(dtype))
         if b_hh is None:
             b_hh = g.op("Constant", value_t=torch.tensor([]).to(dtype))
-        return g.op("npu::NPLstmCell", input, w_ih, w_hh, h, c, b_ih, b_hh, outputs=8)
+        return g.op("npu::NPULstmCell", input, w_ih, w_hh, h, c, b_ih, b_hh, outputs=8)
+
+
+class NPUGruOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_gru(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, input: Tensor, hx: Tensor, weight_input: Tensor, weight_hidden: Tensor,
+                 bias_input: Tensor, bias_hidden: Tensor, seq_length: Tensor, has_biases: bool,
+                 num_layers: int, dropout: float, train: bool, bidirectional: bool,
+                 batch_first: bool):
+        return g.op("npu::NPUGru", input, hx, weight_input, weight_hidden, bias_input,
+                    bias_hidden, seq_length, has_biases_i=has_biases, num_layers_i=num_layers,
+                    dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
+                    batch_first_i=batch_first, outputs=6)
 
 
 def wrapper_npu_one_hot(self, num_classses=-1, depth=1, on_value=1, off_value=0):
@@ -596,8 +613,8 @@ def wrapper_npu_fused_attention_score(query_layer, key_layer, value_layer, atten
                                       bmm_score_transpose_a=False, bmm_score_transpose_b=False,
                                       value_transpose=False, dx_transpose=False):
     return NPUFusedAttentionScoreOP.apply(query_layer, key_layer, value_layer, attention_mask,
-                                          scale, keep_prob, query_transpose, key_transpose, 
-                                          bmm_score_transpose_a, bmm_score_transpose_b, 
+                                          scale, keep_prob, query_transpose, key_transpose,
+                                          bmm_score_transpose_a, bmm_score_transpose_b,
                                           value_transpose, dx_transpose)
 
 
@@ -606,12 +623,12 @@ def wrapper_npu_ciou(self, gtboxes, trans=False, is_cross=True, mode=0, atan_sub
 
 
 def wrapper_npu_multi_head_attention(query, key, value, query_weight, key_weight, value_weight,
-                                     attn_mask, out_proj_weight, query_bias, key_bias, value_bias, 
-                                     out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head, 
+                                     attn_mask, out_proj_weight, query_bias, key_bias, value_bias,
+                                     out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head,
                                      src_len, tgt_len, dropout_prob, softmax_use_float):
     return NPUMultiHeadAttentionOP.apply(query, key, value, query_weight, key_weight, value_weight,
-                                         attn_mask, out_proj_weight, query_bias, key_bias, value_bias, 
-                                         out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head, 
+                                         attn_mask, out_proj_weight, query_bias, key_bias, value_bias,
+                                         out_proj_bias, dropout_mask, attn_head_num, attn_dim_per_head,
                                          src_len, tgt_len, dropout_prob, softmax_use_float)
 
 
@@ -625,7 +642,7 @@ def wrapper_npu_giou(self, gtboxes, trans=False, is_cross=False, mode=0):
 
 def wrapper_npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding,
                                   dilation=[1, 1, 1, 1], groups=1, deformable_groups=1, modulated=True):
-    return NPUDeformableConv2dOP.apply(input, weight, offset, bias, kernel_size, stride, 
+    return NPUDeformableConv2dOP.apply(input, weight, offset, bias, kernel_size, stride,
                                        padding, dilation, groups, deformable_groups, modulated)
 
 
@@ -642,10 +659,10 @@ def wrapper_npu_ps_roi_pooling(self, rois, spatial_scale, group_size, output_dim
 
 
 def wrapper_npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_overlaps,
-                                     argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, 
+                                     argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps,
                                      num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all):
     return NPUGridAssignPositiveOP.apply(self, overlaps, box_responsible_flags, max_overlaps,
-                                         argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, 
+                                         argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps,
                                          num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all)
 
 
@@ -656,22 +673,22 @@ def wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_perce
 
 
 def wrapper_npu_fused_attention_layernorm_qkv_fwd(x, kernel_query, kernel_key, kernel_value,
-                                                  gamma, beta, bias_query=None, bias_key=None, 
+                                                  gamma, beta, bias_query=None, bias_key=None,
                                                   bias_value=None, seq_len=-1,
                                                   num_heads=-1, eps=1e-05):
     assert seq_len != -1 and num_heads != -1
     return NPUFusedAttentionLayernormQkvFwdOP.apply(x, kernel_query, kernel_key, kernel_value,
-                                                    gamma, beta, bias_query, bias_key, bias_value, 
+                                                    gamma, beta, bias_query, bias_key, bias_value,
                                                     seq_len, num_heads, eps)
 
 
 def wrapper_npu_fused_attention_score_fwd(query_layer, key_layer, value_layer, attention_mask,
                                           scale, keep_prob,  query_transpose=False, key_transpose=False,
-                                          bmm_score_transpose_a=False, bmm_score_transpose_b=False, 
+                                          bmm_score_transpose_a=False, bmm_score_transpose_b=False,
                                           value_transpose=False, dx_transpose=False):
     return NPUFusedAttentionScoreFwdOP.apply(query_layer, key_layer, value_layer, attention_mask,
-                                             scale, keep_prob, query_transpose, key_transpose, 
-                                             bmm_score_transpose_a, bmm_score_transpose_b, 
+                                             scale, keep_prob, query_transpose, key_transpose,
+                                             bmm_score_transpose_a, bmm_score_transpose_b,
                                              value_transpose, dx_transpose)
 
 
@@ -750,13 +767,13 @@ def wrapper_npu_sign_bits_pack(self, size):
 
 
 def wrapper_npu_lstm_cell(input, w_ih, w_hh, h, c, b_ih=None, b_hh=None):
-    return NPLstmCellOP.apply(input, w_ih, w_hh, h, c, b_ih, b_hh)
+    return NPULstmCellOP.apply(input, w_ih, w_hh, h, c, b_ih, b_hh)
 
 
 def wrapper_npu_lstm(input, weight, bias, seqMask, h, c, has_biases, num_layers,
                      dropout, train, bidirectional, batch_first, flagSeq, direction):
-    return NPLstmOP.apply(input, weight, bias, seqMask, h, c, has_biases, num_layers,
-                          dropout, train, bidirectional, batch_first, flagSeq, direction)
+    return NPULstmOP.apply(input, weight, bias, seqMask, h, c, has_biases, num_layers,
+                           dropout, train, bidirectional, batch_first, flagSeq, direction)
 
 
 def wrapper_npu_scatter(self, indices, updates, dim):
@@ -765,6 +782,12 @@ def wrapper_npu_scatter(self, indices, updates, dim):
 
 def wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
+
+
+def wrapper_npu_gru(input, hx, weight_input, weight_hidden, bias_input, bias_hidden,
+                    seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first):
+    return NPUGruOP.apply(input, hx, weight_input, weight_hidden, bias_input, bias_hidden,
+                          seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)
 
 
 def add_onnx_ops():
@@ -808,3 +831,4 @@ def add_onnx_ops():
     torch_npu.npu_scatter = wrapper_npu_scatter
     torch_npu.npu_lstm = wrapper_npu_lstm
     torch_npu.npu_lstm_cell = wrapper_npu_lstm_cell
+    torch_npu.npu_gru = wrapper_npu_gru
