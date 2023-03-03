@@ -212,6 +212,8 @@ def _get_device_index(device, optional=False):
 def is_available():
     if (not hasattr(torch_npu._C, '_npu_setDevice')):
         return False
+    # enable binary by default
+    torch_npu.npu.set_compile_mode(jit_compile=False)
     return device_count() > 0
 
 
