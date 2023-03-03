@@ -28,7 +28,7 @@ FORMAT_NZ = 29
 class TestOnnxOps(TestCase):
 
     test_onnx_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "test_onnx_combined")
+        os.path.abspath(os.path.dirname(__file__)), "test_onnx_wrapper_ops")
 
     @classmethod
     def setUpClass(cls):
@@ -1084,6 +1084,55 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
+        
+    def test_wrapper_npu_gru(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.input_size = 10
+                self.hidden_size = 6
+                self.batch_size = 3
+                self.num_layers = 1
+                self.seq_length = 6
+                self.has_biases = True
+                self.seq_length_t = torch.Tensor([self.seq_length]).int().npu()
 
+                self.weight_ih = torch.rand((self.input_size, 3 * self.hidden_size)).uniform_(
+                                    -1, 1).npu().to(torch.float16).npu_format_cast(4)
+                self.weight_hh = torch.rand((self.hidden_size, 3 * self.hidden_size)).uniform_(
+                                    -1, 1).npu().to(torch.float16).npu_format_cast(4)
+                self.bias_ih = torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(
+                                    torch.float16).npu_format_cast(2)
+                self.bias_hh = torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(
+                                    torch.float16).npu_format_cast(2)
+
+            def forward(self, input, hx):
+                return torch_npu.npu_gru(input, hx, self.weight_ih, self.weight_hh,
+                        self.bias_ih, self.bias_hh, self.seq_length_t, self.has_biases,
+                        self.num_layers, 0.0, False, False, False)
+
+        def export_onnx(onnx_model_name):
+            input_size = 10
+            hidden_size = 6
+            batch_size = 3
+            num_layers = 1
+            seq_length = 6
+            input_shape = [seq_length, batch_size, input_size]
+            h_0_shape = [num_layers, batch_size, hidden_size]
+            input_ = torch.rand(input_shape).uniform_(-1, 1).npu().to(
+                                torch.float16).npu_format_cast(29)
+            hx = torch.rand(h_0_shape).uniform_(-1, 1).npu().to(
+                                torch.float16).npu_format_cast(29)
+            model = Model().to("npu")
+            model(input_, hx)
+            self.onnx_export(model, (input_, hx), onnx_model_name,
+                                                    ["input_", "hx"])
+
+        onnx_model_name = "model_npu_gru.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+        
+        
 if __name__ == '__main__':
     run_tests()
