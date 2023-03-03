@@ -70,7 +70,7 @@ def get_build_type():
     if os.getenv('DEBUG', default='0').upper() in ['ON', '1', 'YES', 'TRUE', 'Y']:
         build_type = 'Debug'
 
-    if  os.getenv('REL_WITH_DEB_INFO', default='0').upper() in ['ON', '1', 'YES', 'TRUE', 'Y']:
+    if os.getenv('REL_WITH_DEB_INFO', default='0').upper() in ['ON', '1', 'YES', 'TRUE', 'Y']:
         build_type = 'RelWithDebInfo'
 
     return build_type
@@ -120,7 +120,7 @@ def clean_generated_files():
                 shutil.rmtree(filename, ignore_errors=True)
     f_ignore.close()
     clean_files = ['torch_npu/csrc/aten/RegisterCPU.cpp', 'torch_npu/csrc/aten/RegisterNPU.cpp',
-        'torch_npu/csrc/aten/RegisterAutogradNPU.cpp', 'torch_npu/csrc/aten/python_custom_functions.cpp']
+                   'torch_npu/csrc/aten/RegisterAutogradNPU.cpp', 'torch_npu/csrc/aten/NpuNativeFunctions.h']
     for file in clean_files:
         if os.path.exists(os.path.join(BASE_DIR, file)):
             os.remove(os.path.join(BASE_DIR, file))
@@ -161,8 +161,7 @@ def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, lev
     former two default to whatever is in the Distribution object, and
     the latter defaults to false for commands that don't define it.)
     """
-    return file_util.copy_file(infile, outfile, preserve_mode,
-                                preserve_times, True, link)
+    return file_util.copy_file(infile, outfile, preserve_mode, preserve_times, True, link)
 
 
 def copy_hpp():

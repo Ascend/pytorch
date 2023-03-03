@@ -21,14 +21,6 @@
 
 #include <ATen/Tensor.h>
 #include <ATen/ATen.h>
-
-#ifndef BUILD_LIBTORCH
-#include <torch/csrc/utils/python_numbers.h>
-#include <torch/csrc/utils/python_strings.h>
-#include <torch/csrc/tensor/python_tensor.h>
-#include "torch_npu/csrc/utils/Device.h"
-#endif
-
 #include <c10/core/Device.h>
 
 namespace at_npu {
@@ -43,45 +35,6 @@ static const std::string default_device_str = "xla";
 static bool isDeviceTensor(const at::Tensor &tensor) {
   return tensor.is_xla();
 }
-
-#ifndef BUILD_LIBTORCH
-static at::Device parse_npu_device(PyObject* obj) {
-  if (!obj || obj == Py_None) {
-    return at::Device(c10::backendToDeviceType(c10::dispatchKeyToBackend(torch::tensors::get_default_dispatch_key())));
-  }
-  if (THPUtils_checkLong(obj)) {
-    const auto device_index = THPUtils_unpackLong(obj);
-    TORCH_CHECK(device_index >= 0, "Device index must not be negative");
-    return at::Device(at_npu::key::NativeDeviceType, device_index);
-  }
-  if (THPUtils_checkString(obj)) {
-    std::string device_str = THPUtils_unpackString(obj);
-    if (device_str.find(npu_device_str) != std::string::npos) {
-      device_str = device_str.replace(device_str.find(npu_device_str), npu_device_str.length(), default_device_str);
-    }
-    return at::Device(device_str);
-  }
-
-  if (THPDevice_Check(obj)) {
-    const auto device = reinterpret_cast<THPDevice*>(obj);
-    return device->device;
-  }
-  const auto device = reinterpret_cast<TNPDevice*>(obj);
-  return device->device;
-}
-
-static c10::optional<at::Device>  parse_npu_device_optional(PyObject* obj) {
-  if (!obj) {
-    return c10::nullopt;
-  }
-  return parse_npu_device(obj);
-}
-
-static at::Device  parse_npu_device_with_default(PyObject* obj, const at::Device& default_device) {
-  if (!obj) return default_device;
-  return parse_npu_device(obj);
-}
-#endif
 
 } // namespace key
 } // namespace at_npu

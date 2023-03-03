@@ -16,6 +16,7 @@
 
 
 #include "torch_npu/csrc/utils/TensorMethods.h"
+#include "torch_npu/csrc/utils/DeviceParser.h"
 
 namespace torch_npu {
 namespace utils {
