@@ -699,21 +699,27 @@ PyObject* THNPModule_clear_overflow_npu(
 
 PyObject* THNPModule_npu_datadump_enable(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
-  if (!PyList_Check(args)) {
+  PyObject *value_1 = nullptr;
+  PyObject *value_2 = nullptr;
+  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
+    throw torch::TypeError("npu_datadump_enable set opWhiteList or capacity error.");
+  }
+  if (!PyList_Check(value_1)) {
     throw torch::TypeError("ops must be a list.");
   }
   c10::SmallVector<std::string, at_npu::native::N> opWhiteList;
-  Py_ssize_t size = PyList_Size(args);
+  Py_ssize_t size = PyList_Size(value_1);
   PyObject* item = nullptr;
   for (Py_ssize_t i = 0; i < size; i++) {
-    item = PyList_GetItem(args, i);
+    item = PyList_GetItem(value_1, i);
     if (item == nullptr || !PyUnicode_Check(item)) {
       throw torch::TypeError("op name is nullptr or is not string.");
     }
     const char* pItem = PyUnicode_AsUTF8(item);
     opWhiteList.push_back(pItem);
   }
-  at_npu::native::NpuDataDumpMgr::GetInstance().EnableDatadump(opWhiteList);
+  uint64_t capacity = THPUtils_unpackLong(value_2);
+  at_npu::native::NpuDataDumpMgr::GetInstance().EnableDatadump(opWhiteList, capacity);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -765,7 +771,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_enable_overflow_npu", (PyCFunction)THNPModule_enable_overflow_npu, METH_NOARGS, nullptr},
     {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
-    {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_O, nullptr},
+    {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_VARARGS, nullptr},
     {"_npu_datadump_disable", (PyCFunction)THNPModule_npu_datadump_disable, METH_NOARGS, nullptr},
     {nullptr}};
 

@@ -36,21 +36,22 @@ void NpuDataDumpMgr::DatadumpEnqueue(const at::TensorList &inputs,
   enableFlag_ = false;
   string tensorName = std::to_string(idx) + '_' + opName;
   if (!inputs.empty()) {
-    at_npu::native::NPUNativeFunctions::npu_enque_tensor(inputs,
-                                                         tensorName + "_input");
+    at_npu::native::NPUNativeFunctions::npu_enque_tensor(
+        inputs, tensorName + "_input", capacity_);
   }
   if (!outputs.empty()) {
     at_npu::native::NPUNativeFunctions::npu_enque_tensor(
-        outputs, tensorName + "_output");
+        outputs, tensorName + "_output", capacity_);
   }
   enableFlag_ = true;
 }
 
 void NpuDataDumpMgr::EnableDatadump(
-    const c10::SmallVector<std::string, N> &opWhiteList) {
+    const c10::SmallVector<std::string, N> &opWhiteList, int64_t capacity) {
   ASCEND_LOGI("Datadump enable.");
   opWhiteList_ = opWhiteList;
   enableFlag_ = true;
+  capacity_ = capacity;
 }
 void NpuDataDumpMgr::DisableDatadump() {
   ASCEND_LOGI("Datadump disable.");

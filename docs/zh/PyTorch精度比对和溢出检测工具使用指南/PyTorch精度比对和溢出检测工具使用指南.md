@@ -288,7 +288,7 @@ for epoch in range(num_train_epochs):
         step_schedule.step()
 ```
 异步算子数据导出wrap_async_datadump_hook（仅应用于npu算子导出）；针对精度对比工具同步tensor数据导出，npu同cpu数据同步耗时较长的问题，利用npu上tdtchannel实现tensor数据的异步导出。
-* 通过register_hook方法注册异步导出hook wrap_async_datadump_hook，并通过path参数指定导出tensor数据的路径。
+* 通过register_hook方法注册异步导出hook wrap_async_datadump_hook，并通过path参数指定导出tensor数据的路径；导出算子较多时，可以通过capacity参数调整异步导出队列长度，默认3，参数范围3~2048。
 * 导出的文件名为：唯一索引_算子名_前反向_输入输出_shape_stride_offset_format.npy，例：16_Functional_relu_backward_input0_shape[2,1]_stride[1,1]_offset[0]_format[2].npy；导出的文件可以使用numpy.load方便导入。
 * wrap_async_datadump_hook依赖OutfeedEnqueueOpV2算子，该算子不支持runtime2.0；需设置环境变量规避**export RUNTIME_V2_BLACKLIST=OutfeedEnqueueOpV2**。
 ```python
