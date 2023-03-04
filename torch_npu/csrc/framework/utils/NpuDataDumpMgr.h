@@ -34,7 +34,7 @@ public:
     return instance;
   }
 
-  void EnableDatadump(const c10::SmallVector<std::string, N> &opWhiteList);
+  void EnableDatadump(const c10::SmallVector<std::string, N> &opWhiteList, int64_t capacity);
   void DisableDatadump();
   bool IsDatadumpEnable() const;
   void DatadumpEnqueue(const at::TensorList &inputs,
@@ -47,6 +47,7 @@ private:
   bool enableFlag_ = false;
   c10::SmallVector<std::string, N> opWhiteList_;
   int index_ = 0;
+  int64_t capacity_ = 0;
 };
 }  // namespace native
 }  // namespace at_npu

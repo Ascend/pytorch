@@ -30,7 +30,8 @@ at_npu::native::DynamicInputRegFunc outfeedenque_func =
 namespace at_npu {
 namespace native {
 void NPUNativeFunctions::npu_enque_tensor(at::TensorList tensors,
-                                          string tensor_name) {
+                                          string tensor_name,
+                                          int64_t capacity) {
   OpCommand cmd;
   cmd.Name("OutfeedEnqueueOpV2");
   size_t input_num = tensors.size();
@@ -40,7 +41,7 @@ void NPUNativeFunctions::npu_enque_tensor(at::TensorList tensors,
   }
 
   std::string channel_name =
-      at_npu::native::TdtChannelForPrint::GetInstance().GetChannelName();
+      at_npu::native::TdtChannelForPrint::GetInstance().GetChannelName(capacity);
   TORCH_CHECK(!channel_name.empty(), "Get channel for npu enque tensor failed");
   cmd.DynamicInputReg(outfeedenque_func, {{input_num, 0}})
       .Input(tensor_name)
