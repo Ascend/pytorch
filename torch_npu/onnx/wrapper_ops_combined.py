@@ -29,7 +29,7 @@ class NPULinearOP(object):
 
 
 class NPUTransposeOP(object):
-
+    
     @staticmethod
     def forward(self, perm, require_contiguous=True, out=None):
         if torch.onnx.is_in_onnx_export():
@@ -38,7 +38,8 @@ class NPUTransposeOP(object):
             else:
                 out = self.permute(perm)
             return out
-        out = torch_npu._C._VariableFunctionsClass.npu_transpose(self, perm, require_contiguous)
+        out = torch_npu._C._VariableFunctionsClass.npu_transpose(
+                                                    self, perm, require_contiguous)
         return out
 
 
@@ -95,6 +96,191 @@ class NPUConv3dOP(object):
                                                                padding, dilation, groups)
 
 
+class NPUStrideCopyOP(object):
+
+    @staticmethod
+    def forward(self, shape, stride, storage_offset, out=None):
+        if torch.onnx.is_in_onnx_export():
+            out = torch.as_strided(self, shape, stride, 0).clone()
+            return out
+        out = torch_npu._C._VariableFunctionsClass.npu_stride_copy(self, shape, stride, storage_offset)
+        return out
+
+
+class NPUSortV2OP(object):
+
+    @staticmethod
+    def forward(self, dim=-1, descending=False, out=None):
+        if torch.onnx.is_in_onnx_export():
+            out, indices = torch.sort(self, dim, descending)
+            return out
+        out = torch_npu._C._VariableFunctionsClass.npu_sort_v2(self, dim, descending)
+        return out
+
+
+class NPUReshapeOP(object):
+
+    @staticmethod
+    def forward(self, shape, can_refresh=False, out=None):
+        if torch.onnx.is_in_onnx_export():
+            if can_refresh:
+                out = torch.reshape(self, shape).clone()
+            else:
+                out = torch.reshape(self, shape)
+            return out
+        out = torch_npu._C._VariableFunctionsClass.npu_reshape(self, shape, can_refresh)
+        return out
+
+
+class NPUPadOP(object):
+
+    @staticmethod
+    def forward(input_, paddings):
+        if torch.onnx.is_in_onnx_export():
+            return torch.nn.functional.pad(input_, paddings[2:] + paddings[:2], "constant", 0)
+        return torch_npu._C._VariableFunctionsClass.npu_pad(input_, paddings)
+
+
+class NPUConvolutionOP(object):
+
+    @staticmethod
+    def forward(input_, weight, bias, stride, padding, dilation, groups):
+        if torch.onnx.is_in_onnx_export():
+            dim = input_.dim()
+            if dim == 4:
+                output = torch.nn.functional.conv2d(input_, weight, bias, stride,
+                                                    padding, dilation, groups)
+            elif dim == 5:
+                is_dilated = False
+                for d in dilation:
+                    is_dilated |= (d != 1)
+                if groups == 1 and not is_dilated:
+                    output = torch._C._nn.slow_conv3d(input_, weight, weight.size()[2],
+                                                      bias, stride, padding)
+                else:
+                    output = torch.nn.functional.conv3d(input_, weight, bias, stride,
+                                                        padding, dilation, groups)
+            else:
+                raise ValueError("input dim must be 4 or 5, but got ", dim)
+            return output
+        else:
+            return torch_npu._C._VariableFunctionsClass.npu_convolution(input_, weight, bias,
+                                                                   stride, padding, dilation, groups)
+
+
+class NPUConvolutionTransposeOP(object):
+
+    @staticmethod
+    def forward(input_, weight, bias, padding, output_padding, stride, dilation, groups):
+        if torch.onnx.is_in_onnx_export():
+            dim = input_.dim()
+            if dim == 4:
+                output = torch.conv_transpose2d(input_, weight, bias, stride,
+                                                padding, output_padding, groups, dilation)
+            elif dim == 5:
+                output = torch.conv_transpose3d(input_, weight, bias, stride,
+                                                padding, output_padding, groups, dilation)
+            else:
+                raise ValueError("input dim must be 4 or 5, but got ", dim)
+            return output
+        else:
+            return torch_npu._C._VariableFunctionsClass.npu_convolution_transpose(
+                input_, weight, bias, padding, output_padding, stride, dilation, groups)
+
+
+class NPUConfusionTransposeOP(object):
+
+    @staticmethod
+    def forward(self, perm, shape, transpose_first):
+        if torch.onnx.is_in_onnx_export():
+            if transpose_first:
+                return self.permute(*perm).contiguous().view(shape)
+            else:
+                return self.view(shape).permute(*perm)
+        return torch_npu._C._VariableFunctionsClass.npu_confusion_transpose(self, perm, shape, transpose_first)
+
+
+class NPUMaxOP(object):
+
+    @staticmethod
+    def forward(self, dim, keepdim=False):
+        if torch.onnx.is_in_onnx_export():
+            values, indices = torch.max(self, dim, keepdim)
+            indices = indices.to(torch.int32)
+            return values, indices
+        return torch_npu._C._VariableFunctionsClass.npu_max(self, dim, keepdim)
+
+
+class NPUBmmV2OP(object):
+
+    @staticmethod
+    def forward(self, mat2, output_sizes):
+        if torch.onnx.is_in_onnx_export():
+            return torch.matmul(self, mat2)
+        return torch_npu._C._VariableFunctionsClass.npu_bmmV2(self, mat2, output_sizes)
+
+
+class NPUDtypeCastOP(object):
+
+    @staticmethod
+    def forward(self, dtype):
+        if torch.onnx.is_in_onnx_export():
+            return self.to(dtype)
+        return torch_npu._C._VariableFunctionsClass.npu_dtype_cast(self, dtype)
+
+
+class NPUSiluOP(object):
+
+    @staticmethod
+    def forward(self):
+        if torch.onnx.is_in_onnx_export():
+            return self * torch.sigmoid(self)
+        return torch_npu._C._VariableFunctionsClass.npu_silu(self)
+
+
+class NPUSilu_OP(object):
+
+    @staticmethod
+    def forward(self):
+        if torch.onnx.is_in_onnx_export():
+            self = self * torch.sigmoid(self)
+            return self
+        return torch_npu._C._VariableFunctionsClass.npu_silu_(self)
+
+
+class NPUMishOP(object):
+
+    @staticmethod
+    def forward(self):
+        if torch.onnx.is_in_onnx_export():
+            return self * torch.tanh(torch._C._nn.softplus(self))
+        return torch_npu._C._VariableFunctionsClass.npu_mish(self)
+
+
+class NPUMinOP(object):
+
+    @staticmethod
+    def forward(self, dim, keepdim=False):
+        if torch.onnx.is_in_onnx_export():
+            outputs, indices = torch.min(self, dim, keepdim)
+            indices = indices.to(torch.int32)
+            return outputs, indices
+        return torch_npu._C._VariableFunctionsClass.npu_min(self, dim, keepdim)
+
+
+class NPUScaledMaskedSoftmaxOP(object):
+
+    @staticmethod
+    def forward(x, mask, scale=1, fixed_triu_mask=False):
+        if torch.onnx.is_in_onnx_export():
+            if fixed_triu_mask:
+                mask = torch.triu(torch.ones(mask.shape, device=x.device()), diagonal=1).bool()
+            mask_data = (x * scale).masked_fill(mask, value=-1e4)
+            return torch.nn.functional.softmax(mask_data, dim=-1)
+
+        return torch_npu._C._VariableFunctionsClass.npu_scaled_masked_softmax(x, mask, scale, fixed_triu_mask)
+
+
 def add_ops_combined_for_onnx():
     torch_npu.npu_linear = NPULinearOP.forward
     torch_npu.npu_transpose = NPUTransposeOP.forward
@@ -103,3 +289,18 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_conv_transpose2d = NPUConvTranspose2dOP.forward
     torch_npu.npu_conv2d = NPUConv2dOP.forward
     torch_npu.npu_conv3d = NPUConv3dOP.forward
+    torch_npu.npu_stride_copy = NPUStrideCopyOP.forward
+    torch_npu.npu_sort_v2 = NPUSortV2OP.forward
+    torch_npu.npu_reshape = NPUReshapeOP.forward
+    torch_npu.npu_pad = NPUPadOP.forward
+    torch_npu.npu_convolution = NPUConvolutionOP.forward
+    torch_npu.npu_convolution_transpose = NPUConvolutionTransposeOP.forward
+    torch_npu.npu_confusion_transpose = NPUConfusionTransposeOP.forward
+    torch_npu.npu_max = NPUMaxOP.forward
+    torch_npu.npu_bmmV2 = NPUBmmV2OP.forward
+    torch_npu.npu_dtype_cast = NPUDtypeCastOP.forward
+    torch_npu.npu_silu = NPUSiluOP.forward
+    torch_npu.npu_silu_ = NPUSilu_OP.forward
+    torch_npu.npu_mish = NPUMishOP.forward
+    torch_npu.npu_min = NPUMinOP.forward
+    torch_npu.npu_scaled_masked_softmax = NPUScaledMaskedSoftmaxOP.forward
