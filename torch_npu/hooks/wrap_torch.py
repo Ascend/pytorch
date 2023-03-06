@@ -45,13 +45,22 @@ class TorchOPTemplate(HOOKModule):
         self.prefix_op_name_ = "Torch_" + str(op_name) + "_"
         super().__init__(hook)
 
+    def input_param_need_adapt(self):
+        special_op_list = ["broadcast_tensors"]
+        for item in special_op_list:
+            if item in self.op_name_:
+                return True
+        return False
+
     @torch_device_guard
     def forward(self, *args, **kwargs):
-        return getattr(torch._C._VariableFunctionsClass, str(self.op_name_))(*args, **kwargs)
+        if self.input_param_need_adapt():
+            return getattr(torch._C._VariableFunctionsClass, str(self.op_name_))(args, **kwargs)
+        else:
+            return getattr(torch._C._VariableFunctionsClass, str(self.op_name_))(*args, **kwargs)
 
 
 def wrap_torch_op(op_name, hook):
-
     def torch_op_template(*args, **kwargs):
         return TorchOPTemplate(op_name, hook)(*args, **kwargs)
 

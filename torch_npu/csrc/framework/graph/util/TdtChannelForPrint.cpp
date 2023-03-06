@@ -28,13 +28,13 @@ namespace at_npu {
 namespace native {
 namespace {
 const int32_t kChannelTimeOut = 500;
-const int32_t kChannelCapacity = 3;
 }
 using namespace c10_npu;
-bool TdtChannelForPrint::Init() {
+bool TdtChannelForPrint::Init(int64_t capacity) {
   std::lock_guard<std::mutex> lock(channel_mutex_);
   if (channel_ == nullptr) {
-    channel_ = new NpuTdtChannel(kChannelTimeOut, kChannelCapacity, "TDTChannelForPrint");
+    ASCEND_LOGI("TDTChannelForPrint init, capacity: %d", capacity);
+    channel_ = new NpuTdtChannel(kChannelTimeOut, capacity, "TDTChannelForPrint");
   }
   TORCH_CHECK(channel_ != nullptr, "Channel is none during Init TdtChannelForPrint");
   return channel_->Init();
@@ -67,12 +67,15 @@ TupleToPrint TdtChannelForPrint::GetTupleToPrint() {
     auto data_item = acl_tdt::AcltdtGetDataItem(data_set.get(), i);
     void* data_addr = acl_tdt::AcltdtGetDataAddrFromItem(data_item);
     size_t dim_size = acl_tdt::AcltdtGetDimNumFromItem(data_item);
-    int64_t dims[dim_size];
-    acl_tdt::AcltdtGetDimsFromItem(data_item, dims, dim_size);
 
     c10::SmallVector<int64_t, 5> sizes;
-    for (auto& j : dims) {
-      sizes.emplace_back(j);
+    // scalar do not need parse size
+    if (dim_size > 0) {
+      int64_t dims[dim_size];
+      acl_tdt::AcltdtGetDimsFromItem(data_item, dims, dim_size);
+      for (auto& j : dims) {
+        sizes.emplace_back(j);
+      }
     }
 
     auto data_type = acl_tdt::AcltdtGetDataTypeFromItem(data_item);
