@@ -18,7 +18,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self, c10::string_view approximate) {
     at::Tensor result = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
     OpCommand cmd;

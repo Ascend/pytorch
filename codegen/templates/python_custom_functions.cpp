@@ -417,7 +417,16 @@ static PyObject * THPVariable_tensor(PyObject* self, PyObject* args, PyObject* k
     torch_npu::utils::maybe_initialize_npu(device);
     PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
   }
-  return THPVariable_Wrap(torch::utils::tensor_ctor(torch::tensors::get_default_dispatch_key(), torch::tensors::get_default_scalar_type(), args, kwargs));
+  static torch::PythonArgParser parser({
+      "tensor(PyObject* data, *, ScalarType dtype=None, Device? device=None, bool pin_memory=False, bool requires_grad=False, DimnameList? names=None)",
+  });
+  constexpr int ctor_num_args = 6;
+  torch::ParsedArgs<ctor_num_args> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  return THPVariable_Wrap(torch::utils::tensor_ctor(
+      torch::tensors::get_default_dispatch_key(),
+      torch::tensors::get_default_scalar_type(),
+      r));
   END_HANDLE_TH_ERRORS
 }
 

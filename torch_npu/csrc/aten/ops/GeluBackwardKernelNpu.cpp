@@ -37,7 +37,8 @@ at::Tensor& gelu_backward_out_npu_nocheck(
 
 at::Tensor NPUNativeFunctions::gelu_backward(
     const at::Tensor& grad, 
-    const at::Tensor& self) {
+    const at::Tensor& self,
+    c10::string_view approximate) {
   at::Tensor grad_input = OpPreparation::ApplyTensor(self);
   gelu_backward_out_npu_nocheck(grad_input, grad, self);
   return grad_input;

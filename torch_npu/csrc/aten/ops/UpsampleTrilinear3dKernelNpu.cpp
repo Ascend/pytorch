@@ -106,7 +106,7 @@ at::Tensor NPUNativeFunctions::upsample_trilinear3d(
 
 at::Tensor NPUNativeFunctions::upsample_trilinear3d(
     const at::Tensor& input,
-    c10::optional<at::IntArrayRef> output_size,
+    at::OptionalIntArrayRef output_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
   auto osize = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);

@@ -99,7 +99,7 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d(
 
 at::Tensor NPUNativeFunctions::upsample_bilinear2d(
     const at::Tensor& self_ex,
-    c10::optional<at::IntArrayRef> output_size,
+    at::OptionalIntArrayRef output_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
   at::Tensor self = self_ex;

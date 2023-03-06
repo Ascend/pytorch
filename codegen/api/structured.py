@@ -23,7 +23,7 @@ from codegen.model import (Argument, BaseTy, BaseType, ListType,
 from codegen.api.types import (ArgName, BaseCType, Binding, ArrayRefCType,
                                ConstRefCType, OptionalCType, NamedCType,
                                tensorT, scalarT, intArrayRefT, dimnameListT,
-                               optionalTensorRefT, optionalScalarRefT)
+                               optionalTensorRefT, optionalScalarRefT, optionalIntArrayRefT)
 
 from codegen.api import cpp
 
@@ -52,6 +52,8 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
             return NamedCType(binds, BaseCType(optionalTensorRefT))
         elif t.elem == BaseType(BaseTy.Scalar):
             return NamedCType(binds, BaseCType(optionalScalarRefT))
+        elif isinstance(t.elem, ListType) and str(t.elem.elem) == "int":
+            return NamedCType(binds, BaseCType(optionalIntArrayRefT))
         elem = argumenttype_type(t.elem, mutable=mutable, binds=binds)
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):

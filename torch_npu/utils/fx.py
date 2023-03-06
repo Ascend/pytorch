@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from torch.nn.modules.module import _addindent
 from torch.fx import Node, map_arg
-from torch.fx.graph import _type_repr, _format_target, _format_args, _get_qualified_name, magic_methods
+from torch.fx.graph import _type_repr, _format_target, _get_qualified_name, magic_methods
 
 import torch_npu
 
@@ -94,6 +94,20 @@ def python_code(self, root_module: str) -> str:
             body.append(f';  {to_delete_str}\n')
         else:
             body.append('\n')
+
+    def _format_args(args: Tuple[Argument, ...], kwargs: Dict[str, Argument]) -> str:
+        def _get_repr(arg):
+            # Handle NamedTuples (if it has `_fields`) via add_global.
+            if isinstance(arg, tuple) and hasattr(arg, '_fields'):
+                qualified_name = _get_qualified_name(type(arg))
+                global_name = add_global(qualified_name, type(arg))
+                return f"{global_name}{repr(tuple(arg))}"
+            return repr(arg)
+        args_s = ', '.join(_get_repr(a) for a in args)
+        kwargs_s = ', '.join(f'{k} = {_get_repr(v)}' for k, v in kwargs.items())
+        if args_s and kwargs_s:
+            return f'{args_s}, {kwargs_s}'
+        return args_s or kwargs_s
 
     def emit_node(node : Node):
         if node.op == 'placeholder':

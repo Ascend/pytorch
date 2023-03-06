@@ -44,38 +44,45 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> npu_expand_outplace(
       to_expand3.expand(expanded_size, true));
 }
 
-at::Tensor NPUNativeFunctions::_s_where(
+at::Tensor& NPUNativeFunctions::where_out(
     const at::Tensor& condition,
     const at::Tensor& self,
-    const at::Tensor& other) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+    const at::Tensor& other,
+    at::Tensor& out) {
+  at::Tensor self_, other_;
+  if (self.dtype() != other.dtype()) {
+    auto result_type = at::native::result_type(self, other);
+    self_ = self.to(result_type);
+    other_ = other.to(result_type);
+  } else {
+    self_ = self;
+    other_ = other;
+  }
+  if (condition.scalar_type() != at::ScalarType::Byte && condition.scalar_type() != at::ScalarType::Bool) {
+    AT_ERROR("Expected condition to have ScalarType Byte, but got ScalarType ",
+        toString(condition.scalar_type()));
+  }
 
   OpCommand cmd;
   cmd.Name("Select")
     .Input(condition)
-    .Input(self)
-    .Input(other)
-    .Output(result)
+    .Input(self_)
+    .Input(other_)
+    .Output(out)
     .Run();
 
-  return result;
+  return out;
 }
 
 at::Tensor NPUNativeFunctions::where(
     const at::Tensor& condition,
     const at::Tensor& self,
     const at::Tensor& other) {
-  TORCH_CHECK(condition.device() == self.device() && self.device() == other.device(),
-              "expected condition, x and y to be on the same device, but condition is on ",
-              condition.device(), " and x and y are on ", self.device(), " and ", other.device(),
-              " respectively");
-  if (condition.scalar_type() != at::ScalarType::Byte && condition.scalar_type() != at::ScalarType::Bool) {
-    AT_ERROR("Expected condition to have ScalarType Byte, but got ScalarType ",
-        toString(condition.scalar_type()));
-  }
   at::Tensor b_condition, b_self, b_other;
   std::tie(b_condition, b_self, b_other) = npu_expand_outplace(condition, self, other, "where_npu");
-  return at::_s_where(b_condition, b_self, b_other);
+  at::Tensor ret = OpPreparation::ApplyTensor(b_self);
+  NPUNativeFunctions::where_out(b_condition, b_self, b_other, ret);
+  return ret;
 }
 
 at::SmallVector<int64_t, SIZE> where_npu_output_size(const at::Tensor& condition){

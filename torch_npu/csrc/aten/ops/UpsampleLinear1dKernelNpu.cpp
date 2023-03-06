@@ -135,7 +135,7 @@ at::Tensor NPUNativeFunctions::upsample_linear1d(
 
 at::Tensor NPUNativeFunctions::upsample_linear1d(
     const at::Tensor& self,
-    c10::optional<at::IntArrayRef> output_size,
+    at::OptionalIntArrayRef output_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
   auto osize = CalcuOpUtil::ComputeOutputSize(self.sizes(), output_size, scale_factors);

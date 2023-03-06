@@ -69,7 +69,7 @@ at::Tensor NPUNativeFunctions::upsample_nearest2d(
 
 at::Tensor NPUNativeFunctions::upsample_nearest2d(
     const at::Tensor& input,
-    c10::optional<at::IntArrayRef> output_size,
+    at::OptionalIntArrayRef output_size,
     c10::optional<at::ArrayRef<double>> scale_factors) {
   auto osize = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);
   at::SmallVector<int64_t, SIZE> outputSize = upsample_nearest2d_npu_output_size(input, osize);

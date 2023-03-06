@@ -79,7 +79,7 @@ class UnaryUfuncInfo(OpInfo, Of_UnaryUfuncInfo):
             self,
             name,  # the string name of the function
             ref=None,
-            sample_inputs_func=common_methods_invocations.sample_inputs_unary,
+            sample_inputs_func=common_methods_invocations.sample_inputs_elementwise_unary,
             **kwargs):
 
         super().__init__(
@@ -90,8 +90,11 @@ class UnaryUfuncInfo(OpInfo, Of_UnaryUfuncInfo):
 
 
 class BinaryUfuncInfo(OpInfo, Of_BinaryUfuncInfo):
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self,
+                 name,
+                 sample_inputs_func=common_methods_invocations.sample_inputs_elementwise_binary,
+                 **kwargs):
+        super().__init__(name,sample_inputs_func=sample_inputs_func, **kwargs)
 
 
 op_db: List[OpInfo] = [
@@ -274,7 +277,6 @@ op_db: List[OpInfo] = [
         aliases=('arctan2', ),
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_atan2,
         formats=(0, 2, 3),
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
@@ -337,7 +339,6 @@ op_db: List[OpInfo] = [
         'bitwise_and',
         dtypes=_dispatch_dtypes((torch.int8, torch.int16, )),
         dtypesIfNPU=_dispatch_dtypes((torch.int8, torch.int16, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_binary_pwise,
         supports_autograd=False,
         formats=(0, 2),
         skips=(
@@ -467,7 +468,6 @@ op_db: List[OpInfo] = [
         aliases=('divide',),
         dtypes=_dispatch_dtypes((torch.int32, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
-        sample_inputs_func=partial(common_methods_invocations.sample_inputs_binary_pwise, python_scalars=True),
         formats=(0, 3, 29),
         skipSample={
             'test_variant_consistency_eager' : (8, 17, ),
@@ -600,7 +600,6 @@ op_db: List[OpInfo] = [
         'fmod',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_fmod_remainder,
         formats=(0, 3),
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
@@ -934,7 +933,6 @@ op_db: List[OpInfo] = [
         'logical_and',
         dtypes=_dispatch_dtypes((torch.bool, )),
         dtypesIfNPU=_dispatch_dtypes((torch.bool, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_binary_pwise,
         supports_autograd=False,
     ),  
     # np.int8 np.int32 np.uint8 np.float16 np.float32 np.bool
@@ -948,7 +946,6 @@ op_db: List[OpInfo] = [
         'logical_or',
         dtypes=_dispatch_dtypes((torch.bool, )),
         dtypesIfNPU=_dispatch_dtypes((torch.bool, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_binary_pwise,
         supports_autograd=False,
     ),  
     UnaryUfuncInfo(
@@ -1026,7 +1023,6 @@ op_db: List[OpInfo] = [
         aliases=('maximum',),
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_max_min_binary,
         formats=(0, 3, 4, 29),
         supports_out=False,
         skipSample={
@@ -1052,7 +1048,6 @@ op_db: List[OpInfo] = [
         aliases=('minimum',),
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_max_min_binary,
         supports_out=False,
         formats=(0, 3, 4, 29),
     ),
@@ -1083,7 +1078,7 @@ op_db: List[OpInfo] = [
         'nn.functional.mse_loss',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_mse_loss,
+        sample_inputs_func=common_methods_invocations.sample_inputs_loss,
         formats=(2, ),
         supports_out=False,
     ),
@@ -1092,8 +1087,6 @@ op_db: List[OpInfo] = [
         aliases=('multiply',),
         dtypes=_dispatch_dtypes((torch.int32, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
-        sample_inputs_func=partial(common_methods_invocations.sample_inputs_binary_pwise, 
-        python_scalars=True),
         formats=(0, 3, 4, 29),
         skipSample={
             'test_variant_consistency_eager' : (8, 17, ),
@@ -1221,9 +1214,12 @@ op_db: List[OpInfo] = [
         'pow',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_pow,
         formats=(2, ),
         supports_inplace_autograd=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
+            dtypes=[torch.float16, torch.float32]),
+        ),
     ),
     OpInfo(
         'nn.functional.prelu',
@@ -1283,7 +1279,6 @@ op_db: List[OpInfo] = [
         'remainder',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_fmod_remainder,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float16, torch.float32]),
@@ -1346,8 +1341,7 @@ op_db: List[OpInfo] = [
         'rsub',
         dtypes=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
-        sample_inputs_func=partial(common_methods_invocations.sample_inputs_rsub, 
-        other_scalar=False),
+        sample_inputs_func=partial(common_methods_invocations.sample_inputs_add_sub),
         formats=(0, 2, 3, 29),
         supports_inplace_autograd=False,
         supports_out=False,
@@ -1597,7 +1591,6 @@ op_db: List[OpInfo] = [
         'true_divide',
         dtypes=_dispatch_dtypes((torch.bool, torch.int32, torch.float16, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.int32, torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_binary_pwise,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.bool, torch.int32, torch.float16, torch.float32]),
@@ -1629,7 +1622,6 @@ op_db: List[OpInfo] = [
         aliases=('special.xlogy', ),
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_xlogy,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float32]),

@@ -116,7 +116,7 @@ at::Tensor NPUNativeFunctions::upsample_trilinear3d_backward(
 
 at::Tensor NPUNativeFunctions::upsample_trilinear3d_backward(
     const at::Tensor& grad_output,
-    c10::optional<at::IntArrayRef> output_size,
+    at::OptionalIntArrayRef output_size,
     at::IntArrayRef input_size,
     bool align_corners,
     c10::optional<at::ArrayRef<double>> scale_factors) {
