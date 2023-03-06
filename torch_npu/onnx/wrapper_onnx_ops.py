@@ -577,6 +577,17 @@ class NPUGruOP(torch.autograd.Function):
                     dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, outputs=6)
 
+class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
+    
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_dropout_with_add_softmax(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, x1: Tensor, alpha: float, prob: float, dim: int):
+        return g.op("npu::NPUDropoutWithAddSoftmax", self, x1, alpha_f=alpha, prob_f=prob,
+                    dim_i=dim, outputs=3)
+
 
 def wrapper_npu_one_hot(self, num_classses=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classses, depth, on_value, off_value)
@@ -789,6 +800,9 @@ def wrapper_npu_gru(input, hx, weight_input, weight_hidden, bias_input, bias_hid
     return NPUGruOP.apply(input, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                           seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)
 
+def wrapper_npu_dropout_with_add_softmax(self, x1, alpha, prob, dim):
+    return NPUDropoutWithAddSoftmaxOP.apply(self, x1, alpha, prob, dim)
+
 
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
@@ -832,3 +846,4 @@ def add_onnx_ops():
     torch_npu.npu_lstm = wrapper_npu_lstm
     torch_npu.npu_lstm_cell = wrapper_npu_lstm_cell
     torch_npu.npu_gru = wrapper_npu_gru
+    torch_npu.npu_dropout_with_add_softmax = wrapper_npu_dropout_with_add_softmax

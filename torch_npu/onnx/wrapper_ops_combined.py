@@ -278,18 +278,6 @@ class NPUMinOP(object):
         return torch_npu._C._VariableFunctionsClass.npu_min(self, dim, keepdim)
 
 
-class NPUDropoutWithAddSoftmaxOP(object):
-
-    @staticmethod
-    def forward(self, x1, alpha, prob, dim):
-        if torch.onnx.is_in_onnx_export():
-            add_out = alpha * (x1 + self)
-            softmax_out = torch.nn.functional.softmax(add_out, dim=dim)
-            return _VF.dropout(softmax_out, prob, False)
-
-        return torch_npu._C._VariableFunctionsClass.npu_dropout_with_add_softmax(self, x1, alpha, prob, dim)
-
-
 class NPUScaledMaskedSoftmaxOP(object):
 
     @staticmethod
@@ -326,5 +314,4 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_silu_ = NPUSilu_OP.forward
     torch_npu.npu_mish = NPUMishOP.forward
     torch_npu.npu_min = NPUMinOP.forward
-    torch_npu.npu_dropout_with_add_softmax = NPUDropoutWithAddSoftmaxOP.forward
     torch_npu.npu_scaled_masked_softmax = NPUScaledMaskedSoftmaxOP.forward

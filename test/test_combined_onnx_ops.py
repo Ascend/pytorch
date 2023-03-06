@@ -580,30 +580,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    def test_wrapper_npu_dropout_with_add_softmax(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super().__init__()
-
-            def forward(self, input_1, input_2):
-                alpha = 0.1
-                prob = 0
-                dim = -1
-                return torch_npu.npu_dropout_with_add_softmax(input_1, input_2,
-                                                              alpha, prob, dim)
-
-        def export_onnx(onnx_model_name):
-            input_1 = torch.rand((4, 3, 64, 64)).npu()
-            input_2 = torch.rand((4, 3, 64, 64)).npu()
-            model = Model().to("npu")
-            self.onnx_export(model, (input_1, input_2), onnx_model_name,
-                             ["input_1", "input_2"])
-
-        onnx_model_name = "model_npu_dropout_with_add_softmax.onnx"
-        export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))
-
     def test_wrapper_npu_scaled_masked_softmax(self):
         class Model(torch.nn.Module):
             def __init__(self):
