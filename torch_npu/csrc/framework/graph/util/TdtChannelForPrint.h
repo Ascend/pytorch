@@ -36,7 +36,7 @@ class TdtChannelForPrint {
 public:
   static TdtChannelForPrint& GetInstance();
 
-  bool Init();
+  bool Init(int64_t capacity);
 
   void Finalize() {
     std::lock_guard<std::mutex> lock(channel_mutex_);
@@ -46,9 +46,9 @@ public:
     }
   }
 
-  const std::string& GetChannelName() {
+  const std::string& GetChannelName(int64_t capacity) {
     if (channel_ == nullptr) {
-      this->Init();
+      this->Init(capacity);
     }
     TORCH_CHECK(channel_ != nullptr, "Channel is none during GetChannelName");
     return channel_->GetChannelName();

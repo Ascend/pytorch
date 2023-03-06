@@ -63,7 +63,7 @@ def register_hook(model, hook, **kwargs):
     sched = kwargs.get('schedule', default_schedule)
     step_schedule.set_schedule(sched)
 
-    hook = functools.partial(hook, sample=sample, pid=pid, path=path)
+    hook = functools.partial(hook, sample=sample, pid=pid, path=path, capacity=kwargs.get('capacity'))
     initialize_hook(hook)
 
     for _, module in model.named_modules():

@@ -26,31 +26,32 @@ import torch_npu
 
 class DatadumpBeginOp(Function):
     @staticmethod
-    def forward(ctx, tensor, ops, dumpBackward):
+    def forward(ctx, tensor, ops, dumpBackward, capacity):
         ctx.npu_dump_backward = dumpBackward
-        torch_npu._C._npu_datadump_enable(ops)
+        torch_npu._C._npu_datadump_enable(ops, capacity)
         return tensor
 
     @staticmethod
     def backward(ctx, grad_outputs):
         if ctx.npu_dump_backward:
             torch_npu._C._npu_datadump_disable()
-        return grad_outputs, None, None
+        return grad_outputs, None, None, None
 
 
 class DatadumpEndOp(Function):
     @staticmethod
-    def forward(ctx, tensor, ops, dumpBackward):
+    def forward(ctx, tensor, ops, dumpBackward, capacity):
         ctx.npu_dump_backward = dumpBackward
         ctx.npu_dump_ops = ops
+        ctx.capacity = capacity
         torch_npu._C._npu_datadump_disable()
         return tensor
 
     @staticmethod
     def backward(ctx, grad_outputs):
         if ctx.npu_dump_backward:
-            torch_npu._C._npu_datadump_enable(ctx.npu_dump_ops)
-        return grad_outputs, None, None
+            torch_npu._C._npu_datadump_enable(ctx.npu_dump_ops, ctx.capacity)
+        return grad_outputs, None, None, None
 
 
 class NpuDatadumpMgr(object):
@@ -61,6 +62,7 @@ class NpuDatadumpMgr(object):
         self._path = None
         self._status = False
         self._deviceId = -1
+        self.capacity = None
 
     def isDumpBackward(self):
         return self._dumpBackward
@@ -120,7 +122,7 @@ mgr = NpuDatadumpMgr()
 
 
 def dump_enable(tensor: Tensor, path: str = "./", ops: List[str] = None,
-                dump_backward: bool = False):
+                dump_backward: bool = False, capacity: int = 3):
     if torch_npu.npu.is_graph_mode():
         raise RuntimeError("datadump not support graph mode")
     if not path.endswith("/"):
@@ -132,9 +134,12 @@ def dump_enable(tensor: Tensor, path: str = "./", ops: List[str] = None,
     if dump_backward and not tensor.requires_grad:
         raise RuntimeError("Before enable dump_backward, please ensure dump_enable input tensor requires_grad is true.")
     mgr.enable(path, ops, dump_backward)
-    return DatadumpBeginOp.apply(tensor, mgr.getOps(), mgr.isDumpBackward())
+    if capacity < 3 or capacity > 2048:
+        raise RuntimeError("capacity range [3, 2048].")
+    mgr.capacity = capacity
+    return DatadumpBeginOp.apply(tensor, mgr.getOps(), mgr.isDumpBackward(), mgr.capacity)
 
 
 def dump_disable(tensor: Tensor):
     mgr.disable()
-    return DatadumpEndOp.apply(tensor, mgr.getOps(), mgr.isDumpBackward())
+    return DatadumpEndOp.apply(tensor, mgr.getOps(), mgr.isDumpBackward(), mgr.capacity)

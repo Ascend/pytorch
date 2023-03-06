@@ -155,8 +155,13 @@ datadump_deque_thread = None
 def wrap_async_datadump_hook(name, **kwargs):
     pid = kwargs.get('pid')
     path = kwargs.get('path')
+    capacity = kwargs.get('capacity')
     if not pid:
         raise RuntimeError("Not get the specified process pid.")
+    if not capacity:
+        capacity = 3
+    if isinstance(capacity, int) and (capacity < 3 or capacity > 2048):
+        raise RuntimeError("capacity range [3, 2048].")
 
     def async_datadump_hook(module, in_feat, out_feat):
         if pid != os.getpid():
@@ -166,22 +171,27 @@ def wrap_async_datadump_hook(name, **kwargs):
         if not datadump_deque_thread:
             start_datadump_deque_thread(path)
         name_template = f"{name}" + "_{}"
-        datadump_enque(in_feat, name_template.format("input"))
-        datadump_enque(out_feat, name_template.format("output"))
+        datadump_enque(in_feat, name_template.format("input"), capacity)
+        datadump_enque(out_feat, name_template.format("output"), capacity)
 
     return async_datadump_hook
 
 
-def datadump_enque(x, prefix):
-    if isinstance(x, (tuple, list)) and x:
+def datadump_enque(input_tensors, prefix, capacity):
+    if isinstance(input_tensors, (tuple, list)) and input_tensors:
         tensors = []
-        for i in x:
-            if isinstance(i, torch.Tensor) and i.device.type == 'npu':
-                tensors.append(i)
-        if tensors:
-            torch_npu.npu_enque_tensor(tensors, prefix)
-    elif isinstance(x, torch.Tensor) and x.device.type == 'npu':
-        torch_npu.npu_enque_tensor([x], prefix)
+        for item in input_tensors:
+            if isinstance(item, torch.Tensor) and item.device.type == 'npu':
+                tensors.append(item)
+        if not tensors:
+            return
+        if len(tensors) < 100:
+            torch_npu.npu_enque_tensor(tensors, prefix, capacity)
+        else:
+            for index, item in enumerate([tensors[i:i + 100] for i in range(0, len(tensors), 100)]):
+                torch_npu.npu_enque_tensor(item, prefix + str(index), capacity)
+    elif isinstance(input_tensors, torch.Tensor) and input_tensors.device.type == 'npu':
+        torch_npu.npu_enque_tensor([input_tensors], prefix, capacity)
 
 
 def start_datadump_deque_thread(path):
