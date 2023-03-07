@@ -22,31 +22,32 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& fill_out_npu(at::Tensor& result, at::Tensor& self, const at::Tensor& other) {
-  c10::SmallVector<int64_t, N> dims;
-  if (self.dim() != 0) {
-    dims = array_to_small_vector(self.sizes());
-  } else {
-    dims = {1};
-  }
   OpCommand cmd;
-  cmd.Name("Fill")
-      .Input(dims, at::kLong)
-      .Input(other)
+  cmd.Name("Fill");
+  if (self.dim() == 0) {
+    c10::SmallVector<int64_t, N> dims = {1};
+    cmd.Input(dims, at::kLong);
+  } else {
+    cmd.Input(self.sizes(), at::kLong);
+  }
+  cmd.Input(other)
       .Output(result)
       .Run();
   return result;
 }
 
-at::Tensor& fills_out_npu(at::Tensor& result, at::Tensor& self, at::Scalar value) {
-  AT_DISPATCH_ALL_TYPES_AND3(at::kHalf, at::kBool, at::kBFloat16, self.scalar_type(), "fills_out_npu", [&]() {
-    auto value_converted = value.to<scalar_t>();});
+at::Tensor& fill_out_npu(at::Tensor& result, at::Tensor& self, at::Scalar value) {
   OpCommand cmd;
-  cmd.Name("Fills")
-      .Input(self)
+  cmd.Name("Fill");
+  if (self.dim() == 0) {
+    c10::SmallVector<int64_t, N> dims = {1};
+    cmd.Input(dims, at::kLong);
+  } else {
+    cmd.Input(self.sizes(), at::kLong);
+  }
+  cmd.Input(value, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(result)
-      .Attr("value", value)
       .Run();
-
   return result;
 }
 
@@ -54,8 +55,8 @@ at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other)
   auto other_dim = other.dim();
   TORCH_CHECK(other_dim <= 1, "fill_ only supports 0 or 1 dimension value tensor but got tensor with ",
       other_dim, " dimension.");
-  if (other_dim == 0 && !at_npu::key::isDeviceTensor(other) || self.dim() == 0) {
-    fills_out_npu(self, self, other.item());
+  if (other_dim == 0 && !at_npu::key::isDeviceTensor(other)) {
+    fill_out_npu(self, self, other.item());
   } else {
     fill_out_npu(self, self, other);
   }
@@ -65,10 +66,10 @@ at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other)
 at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, at::Scalar value) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = fills_out_npu(contiguousSelf, contiguousSelf, value);
+    at::Tensor result = fill_out_npu(contiguousSelf, contiguousSelf, value);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    fills_out_npu(self, self, value);
+    fill_out_npu(self, self, value);
   }
 
   return self;
