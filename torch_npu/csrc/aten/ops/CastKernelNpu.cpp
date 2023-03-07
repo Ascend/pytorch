@@ -95,10 +95,8 @@ namespace at_npu
       static tensor_list backward(AutogradContext *ctx,
           tensor_list grad_outputs) {
         auto dtype = ctx->saved_data["dtype"].toScalarType();
-        at::Tensor result = npu_dtype_cast_impl(grad_outputs[0], dtype);
-        tensor_list output = {result, at::Tensor()};
-
-        return output;
+        grad_outputs[0].requires_grad_();
+        return {NPUDtypeCastFunction::apply(grad_outputs[0], dtype), at::Tensor()};
       }
     };
 
