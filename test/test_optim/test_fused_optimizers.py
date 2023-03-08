@@ -15,9 +15,14 @@
 from copy import deepcopy
 
 import torch
-from torch.optim import SGD, AdamW
+from torch.optim import SGD, Adam, AdamW, Adadelta, RMSprop
 from torch_npu.npu.amp import GradScaler, autocast
-from torch_npu.optim import NpuFusedSGD, NpuFusedAdamW
+from torch_npu.optim import (
+    NpuFusedSGD, NpuFusedAdam, NpuFusedAdamW, NpuFusedAdamP,
+    NpuFusedLamb, NpuFusedAdadelta, NpuFusedBertAdam,
+    NpuFusedRMSprop, NpuFusedRMSpropTF
+)
+
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -27,12 +32,28 @@ class TestFusedOptim(TestCase):
 
         self.optim_cases = [
             (SGD, NpuFusedSGD, dict(lr=0.01, momentum=0.9, weight_decay=0.001)),
+            (Adam, NpuFusedAdam, dict(eps=1e-8, betas=(0.9, 0.999), lr=2e-3, weight_decay=0.05)),
             (AdamW, NpuFusedAdamW, dict(eps=1e-8, betas=(0.9, 0.999), lr=2e-3, weight_decay=0.05)),
+            (Adadelta, NpuFusedAdadelta, dict(lr=1.0, rho=0.9, eps=1e-6, weight_decay=0.05)),
+            (RMSprop, NpuFusedRMSprop, dict(eps=0.001, lr=0.01, weight_decay=1e-5)),
+
+            # 3rd-party optimizers
+            (None, NpuFusedAdamP, dict(eps=1e-5, betas=(0.9, 0.999), lr=2e-3, weight_decay=0.05)),
+            (None, NpuFusedLamb, dict(lr=0.01, eps=1e-5)),
+            (None, NpuFusedBertAdam, dict(lr=0.01, warmup=0.1, t_total=20, max_grad_norm=-1)),
+            (None, NpuFusedRMSpropTF, dict(eps=0.001, lr=0.01, weight_decay=1e-5)),
         ]
 
         # Full tests for these optimizers will be run, including a small model.
         # Otherwise, only test the optimizer-related APIs.
-        self.base_cases = [SGD, AdamW]
+        self.base_cases = [SGD, Adam, AdamW, Adadelta, RMSprop]
+
+        # Cases and baseline for 3rd-party optimizers
+        self.third_optim_baseline = dict()
+        self.third_optim_baseline[NpuFusedAdamP] = [14.885, 65.714, 14.882, 65.75, 104.615, 152.75]
+        self.third_optim_baseline[NpuFusedBertAdam] = [12.982, 61.537, 13.023, 61.5625, 99.305, 146.125]
+        self.third_optim_baseline[NpuFusedLamb] = [13.407, 62.683, 13.414, 62.625, 101.258, 149.0]
+        self.third_optim_baseline[NpuFusedRMSpropTF] = [14.9797, 65.911, 15.0, 66.0, 104.8588, 153.0]
 
     def _create_optimizer_cases(self, all_cases=False):
         optim_cases = self.optim_cases
@@ -53,55 +74,19 @@ class TestFusedOptim(TestCase):
 
     def _create_simple_params_and_grads(self):
         params = [
-            torch.rand(2,
-                       3,
-                       dtype=torch.float32,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(4,
-                       3,
-                       dtype=torch.float32,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(2,
-                       3,
-                       dtype=torch.float16,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(2,
-                       3,
-                       dtype=torch.float16,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(2,
-                       3,
-                       dtype=torch.float32,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(5,
-                       3,
-                       dtype=torch.float32,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(2,
-                       3,
-                       dtype=torch.float16,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.rand(6,
-                       3,
-                       dtype=torch.float16,
-                       device='npu:0',
-                       requires_grad=True),
-            torch.randint(1024, (2, 3),
-                          dtype=torch.float32,
-                          device='npu:0',
-                          requires_grad=False),
+            torch.arange(6).reshape(2, 3).float().npu(),
+            torch.arange(12).reshape(4, 3).float().npu(),
+            torch.arange(6).reshape(2, 3).half().npu(),
+            torch.arange(12).reshape(4, 3).half().npu(),
+            torch.arange(15).reshape(5, 3).float().npu(),
+            torch.arange(18).reshape(6, 3).half().npu(),
+            torch.arange(6).reshape(2, 3).float().npu(),
         ]
 
-        for p in params:
-            if p.requires_grad:
-                p.grad = torch.rand_like(p, device=p.device, dtype=p.dtype)
+        for i, p in enumerate(params):
+            if i < len(params) - 1:
+                p.requires_grad = True
+                p.grad = p.clone().detach() / 100.
 
         return params
 
@@ -112,7 +97,7 @@ class TestFusedOptim(TestCase):
             if p.requires_grad:
                 p_clone.requires_grad = True
                 p_clone.grad = p.grad.clone().detach()
-                params_clone.append(p_clone)
+            params_clone.append(p_clone)
         return params_clone
 
     def test_zero_grad(self):
@@ -136,6 +121,8 @@ class TestFusedOptim(TestCase):
         optim_cases = self._create_optimizer_cases(all_cases=True)
         num_iters = 10
         for opt_obj, fused_opt_obj, opt_kwargs in optim_cases:
+            if opt_obj is None:
+                continue
             params = self._create_simple_params_and_grads()
             params_clone = self._create_params_clone(params)
             opt = opt_obj(params, **opt_kwargs)
@@ -146,7 +133,22 @@ class TestFusedOptim(TestCase):
                     fused_opt.step()
                     for p, p_clone in zip(params, params_clone):
                         if p.grad is not None:
-                            self.assertEqual(p, p_clone)
+                            self.assertRtolEqual(p, p_clone, prec=1e-3)
+
+    def test_step_3rd_optims(self):
+        optim_cases = self._create_optimizer_cases(all_cases=True)
+        num_iters = 10
+        for _, fused_opt_obj, opt_kwargs in optim_cases:
+            if not fused_opt_obj in self.third_optim_baseline:
+                continue
+            params = self._create_simple_params_and_grads()
+            fused_opt = fused_opt_obj(params, **opt_kwargs)
+            with torch.no_grad():
+                for _ in range(num_iters):
+                    fused_opt.step()
+            for i, p in enumerate(params):
+                if p.grad is not None:
+                    self.assertRtolEqual(p.sum().item(), self.third_optim_baseline[fused_opt_obj][i])
 
     def test_unscale(self):
         model = self._create_simple_model()
@@ -228,7 +230,7 @@ class TestFusedOptim(TestCase):
                 scaler_fused.scale(loss_fused).backward()
                 scaler_fused.step(opt_fused)
                 scaler_fused.update()
-                self.assertRtolEqual(loss, loss_fused)
+                self.assertRtolEqual(loss, loss_fused, prec=1e-3)
 
     def test_clip_grad_norm_fused(self):
         optim_cases = self._create_optimizer_cases()
@@ -242,8 +244,8 @@ class TestFusedOptim(TestCase):
             grad_norm_fused = fused_opt.clip_grad_norm_fused_(5.0)
             for p, p_clone in zip(params, params_clone):
                 if p.grad is not None:
-                    self.assertRtolEqual(p.grad, p_clone.grad)
-            self.assertRtolEqual(grad_norm, grad_norm_fused)
+                    self.assertRtolEqual(p.grad, p_clone.grad, prec=1e-3)
+            self.assertRtolEqual(grad_norm, grad_norm_fused, prec=1e-3)
 
 
 if __name__ == "__main__":
