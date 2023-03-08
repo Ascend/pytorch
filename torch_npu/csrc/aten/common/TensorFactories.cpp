@@ -345,6 +345,26 @@ namespace at_npu
       return tensor;
     }
 
+    at::Tensor NPUNativeFunctions::unsafe_empty_with_format(c10::IntArrayRef size,
+                                                            c10::optional <at::ScalarType> dtype_opt,
+                                                            c10::optional <c10::Layout> layout_opt,
+                                                            c10::optional <c10::Device> device_opt,
+                                                            c10::optional<bool> pin_memory_opt,
+                                                            int64_t dst_format,
+                                                            bool keep_format)
+    {
+      // This is a special interface that can adjust the memory application results. Check before use.
+
+      // Some ops cannot operate directly based on ND format, such as MatMul, BatchMatMul, MaxPoolWithArgmaxV1.
+      // For these ops, specify the parameter keep_format to ensure that
+      // the specified internal format is preserved.
+      if ((!keep_format) && at_npu::native::env::CheckForbidInternalFormat()) {
+        dst_format = static_cast<int64_t>(FormatHelper::GetBaseFormat(static_cast<aclFormat>(dst_format)));
+      }
+
+      return NPUNativeFunctions::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
+    }
+
     at::Tensor empty_with_format_npu(c10::IntArrayRef size,
                                      const c10::TensorOptions &options,
                                      int64_t dst_format)

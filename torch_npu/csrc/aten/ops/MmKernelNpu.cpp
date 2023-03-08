@@ -186,9 +186,9 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
       is_nz_out = (!mm_bmm_nd);
       if (split_k) {
         result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::ScalarType::Float),
-                                                      ACL_FORMAT_FRACTAL_NZ);
+                                                      ACL_FORMAT_FRACTAL_NZ, true);
       } else {
-        result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+        result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ, true);
       }
     }
   } else {

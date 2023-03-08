@@ -91,6 +91,13 @@ def get_mm_bmm_format_nd():
 def is_jit_compile_false() -> bool:
     return torch_npu._C._npu_is_jit_compile_false()
 
+class npuConfig:
+    @classmethod
+    def __setattr__(self, name, value):
+        if name == "allow_internal_format":
+            option = {"ALLOW_INTERNAL_FORMAT": "enable" if value else "disable"}
+            torch_npu._C._npu_setOption(option)
+
 class npuEvent(object):
     def __init__(self):
         self.ACL_PROF_ACL_API            = 0x0001
