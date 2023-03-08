@@ -22,32 +22,32 @@ from torch_npu.utils import npu_combine_tensors
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 
-class NpuFusedAdamW(NpuFusedOptimizerBase):
-    r"""Implements AdamW algorithm.
+class NpuFusedAdam(NpuFusedOptimizerBase):
 
-    For further details regarding the algorithm we refer to `Decoupled Weight Decay Regularization`_.
-    Args:
+    """Implements Adam algorithm.
+
+    Adam was been proposed in `Adam: A Method for Stochastic Optimization`_.
+
+    Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining
             parameter groups
-        lr (float, optional): learning rate (default: 1e-3)
-        betas (Tuple[float, float], optional): coefficients used for computing
-            running averages of gradient and its square (default: (0.9, 0.999))
-        eps (float, optional): term added to the denominator to improve
-            numerical stability (default: 1e-8)
-        weight_decay (float, optional): weight decay coefficient (default: 1e-2)
-        amsgrad (boolean, optional): whether to use the AMSGrad variant of this
+        lr (float, optional, default=1e-3): learning rate
+        betas (Tuple[float, float], optional, default=(0.9, 0.999)): coefficients used for computing
+            running averages of gradient and its square
+        eps (float, optional, default=1e-8): term added to the denominator to improve
+            numerical stability
+        weight_decay (float, optional, default=0): weight decay (L2 penalty)
+        amsgrad (boolean, optional, default=False): whether to use the AMSGrad variant of this
             algorithm from the paper `On the Convergence of Adam and Beyond`_
-            (default: False)
-        maximize (bool, optional): maximize the params based on the objective, instead of
-            minimizing (default: False)
-    .. _Decoupled Weight Decay Regularization:
-        https://arxiv.org/abs/1711.05101
+
+    .. _Adam - A Method for Stochastic Optimization:
+        https://arxiv.org/abs/1412.6980
     .. _On the Convergence of Adam and Beyond:
         https://openreview.net/forum?id=ryQu7f-RZ
     """
 
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=1e-2, amsgrad=False):
+                 weight_decay=0, amsgrad=False):
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if eps < 0.0:
@@ -61,10 +61,10 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=amsgrad)
         self.is_npu_fused_optimizer = True
-        super(NpuFusedAdamW, self).__init__(params, defaults)
+        super(NpuFusedAdam, self).__init__(params, defaults)
 
     def __setstate__(self, state):
-        super(NpuFusedAdamW, self).__setstate__(state)
+        super(NpuFusedAdam, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 
@@ -112,7 +112,7 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
                     continue
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('NpuFusedAdamW does not support sparse gradients, '
+                    raise RuntimeError('NpuFusedAdam does not support sparse gradients, '
                                        'please consider SparseAdam instead')
 
                 self._init_param_state(p, amsgrad)
@@ -122,7 +122,7 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
                 exp_avg_sq_list.append(state['exp_avg_sq'])
                 if amsgrad:
                     max_exp_avg_sq_list.append(state['max_exp_avg_sq'])
-
+            
             combined_step = 0
             combined_exp_avg = None
             combined_exp_avg_sq = None
@@ -133,7 +133,7 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
                 combined_exp_avg = npu_combine_tensors(exp_avg_list)
                 combined_exp_avg_sq = npu_combine_tensors(exp_avg_sq_list)
                 combined_max_exp_avg_sq = npu_combine_tensors(max_exp_avg_sq_list)
-
+            
             combined_state = defaultdict(dict)
             combined_state['step'] = combined_step
             combined_state['exp_avg'] = combined_exp_avg
@@ -145,11 +145,12 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
+        
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-
+        
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -158,11 +159,10 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
         for p in group['params']:
             if p.grad is None:
                 continue
-
             grad = p.grad
             if grad.is_sparse:
-                raise RuntimeError('NpuFusedAdamW does not support sparse gradients, '
-                                   'please consider SparseAdam instead')
+                raise RuntimeError('NpuFusedAdam does not support sparse gradients, '
+                                    'please consider SparseAdam instead')
             state_p = self.state[p]
             state_p['step'] += 1
 
@@ -173,14 +173,11 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
         combined_group_grads = self.combined_grads_indexed_by_group[group_index]
         combined_group_param_states = self.combined_param_states_indexed_by_group[group_index]
 
-        for combined_param, combined_grad, combined_param_state in zip(combined_group_params,
-                                                                       combined_group_grads,
+        for combined_param, combined_grad, combined_param_state in zip(combined_group_params, 
+                                                                       combined_group_grads, 
                                                                        combined_group_param_states):
             if combined_param is None or combined_grad is None:
                 continue
-
-            # Perform stepweight decay. The fused method is used here to speed up the calculation
-            combined_param.mul_(1 - group['lr'] * group['weight_decay'])
 
             exp_avg, exp_avg_sq = combined_param_state['exp_avg'], combined_param_state['exp_avg_sq']
             if amsgrad:
@@ -189,6 +186,9 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
             combined_param_state['step'] += 1
             bias_correction1 = 1 - beta1 ** combined_param_state['step']
             bias_correction2 = 1 - beta2 ** combined_param_state['step']
+
+            if group['weight_decay'] != 0:
+                combined_grad = combined_grad.add(combined_param, alpha=group['weight_decay'])
 
             # Decay the first and second moment running average coefficient
             exp_avg.mul_(beta1).add_(combined_grad, alpha=1 - beta1)

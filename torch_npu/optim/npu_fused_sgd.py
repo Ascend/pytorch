@@ -17,7 +17,7 @@
 from collections import defaultdict
 
 import torch
-from torch.optim.optimizer import Optimizer, required
+from torch.optim.optimizer import required
 
 from torch_npu.utils import npu_combine_tensors
 from .npu_fused_optim_base import NpuFusedOptimizerBase
