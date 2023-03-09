@@ -199,6 +199,9 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
     const at::Tensor& value,
     const bool accumulate,
     const bool unsafe) {
+  if (self.device().type() == at::kCPU) {
+    return at::native::_index_put_impl_(self, indices, value, accumulate, unsafe);
+  }
   at::native::checkIndexTensorTypes(indices);
   at::SmallVector<int64_t, N> masks;
   std::vector<at::Tensor> allDefinedIndices;
