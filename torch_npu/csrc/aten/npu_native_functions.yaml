@@ -180,7 +180,6 @@ supported:
  - binary_cross_entropy_backward
  - binary_cross_entropy_backward.grad_input
  - binary_cross_entropy_with_logits
- - binary_cross_entropy_with_logits_backward
  - bincount
  - bitwise_and.Scalar
  - bitwise_and.Scalar_out
@@ -885,6 +884,7 @@ autograd:
   - silu
   - silu_
   - silu.out
+  - binary_cross_entropy_with_logits_backward
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
