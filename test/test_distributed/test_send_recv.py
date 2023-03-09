@@ -45,7 +45,7 @@ class HcclSendRecvDistTest(TestCase):
     def _test_send_recv_dist(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
-        res = torch.ones(2, 2).to(f"npu:{rank}")
+        res = torch.ones(2, 2).to(shared_tensors.dtype).to(f"npu:{rank}")
         xs = shared_tensors.to(f"npu:{rank}")
         dst = 0
         src = 1
@@ -121,6 +121,11 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_pg_hccl)
 
+    def test_send_recv_hccl_bool(self):
+         self._test_multiprocess(
+            HcclSendRecvDistTest._test_send_recv_dist,
+            torch.randn(2, 2) > 0.5,
+            HcclSendRecvDistTest._init_dist_hccl)
 
 if __name__ == '__main__':
     run_tests()
