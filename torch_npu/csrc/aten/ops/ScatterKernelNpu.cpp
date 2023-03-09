@@ -21,8 +21,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& scatter_out_npu_nocheck(
-    at::Tensor& result,
+at::Tensor& scatter_npu_nocheck(
     at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
@@ -32,24 +31,20 @@ at::Tensor& scatter_out_npu_nocheck(
      .Input(self)
      .Input(index)
      .Input(src)
-     .Output(result)
+     .Output(self)
      .Attr("axis", dim)
      .Run();
-  return result;
+  return self;
 }
 
 at::Tensor& scatter_npu_src_impl(
-    at::Tensor& result,
-    const at::Tensor& self_ex,
+    at::Tensor& self,
     int64_t dim,
     const at::Tensor& index_ex,
     const at::Tensor& src_ex) {
-  at::Tensor self = self_ex;
-  at::Tensor result_ex = result;
   at::ScalarType selfType = self.scalar_type();
   if (selfType == at::ScalarType::Half) {
     self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-    result_ex = NPUNativeFunctions::npu_dtype_cast(result_ex, at::ScalarType::Float);
   }
 
   at::Tensor index(index_ex);
@@ -61,16 +56,14 @@ at::Tensor& scatter_npu_src_impl(
   if (src.scalar_type() != self.scalar_type()) {
     src = NPUNativeFunctions::npu_dtype_cast(src, self.scalar_type());
   }
-  scatter_out_npu_nocheck(result_ex, self, dim, index, src);
-  
-  if(result_ex.scalar_type() != selfType){
-    result_ex = NPUNativeFunctions::npu_dtype_cast(result_ex, selfType);
-    result.copy_(result_ex);
-  } else {
-    result = result_ex;
-  }
 
-  return result;
+  scatter_npu_nocheck(self, dim, index, src);
+  
+  if(self.scalar_type() != selfType){
+    self = NPUNativeFunctions::npu_dtype_cast(self, selfType);
+  } 
+
+  return self;
 }
 
 at::Tensor& NPUNativeFunctions::scatter_out(
@@ -83,7 +76,8 @@ at::Tensor& NPUNativeFunctions::scatter_out(
       {self, src, index},
       result,
       self);
-  scatter_npu_src_impl(result, self, dim, index, src);
+  result = NPUNativeFunctions::copy_(result, self, false);
+  scatter_npu_src_impl(result, dim, index, src);
   return result;
 }
 
@@ -100,7 +94,8 @@ at::Tensor& NPUNativeFunctions::scatter_out(
       {self, index, srcTensor_broadcast},
       result,
       self);
-  scatter_npu_src_impl(result, self, dim, index, srcTensor_broadcast);
+  result = NPUNativeFunctions::copy_(result, self, false);
+  scatter_npu_src_impl(result, dim, index, srcTensor_broadcast);
   return result;
 }
 } // namespace native
