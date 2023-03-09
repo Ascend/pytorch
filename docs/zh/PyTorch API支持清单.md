@@ -507,7 +507,7 @@
 |                                                     | nn.UpsamplingNearest2d              | 是                                                           |
 |                                                     | nn.UpsamplingBilinear2d             | 是                                                           |
 | Shuffle Layers                                      | nn.ChannelShuffle                   | 是                                                           |
-| DataParallel Layers                                 | nn.DataParallel                     | 是                                                           |
+| DataParallel Layers                                 | nn.DataParallel                     | 否                                                           |
 |                                                     | nn.parallel.DistributedDataParallel | 是                                                           |
 | Utilities                                           | clip_grad_norm_                     | 是                                                           |
 |                                                     | clip_grad_value_                    | 是                                                           |
