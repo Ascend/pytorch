@@ -33,6 +33,7 @@ import codegen.dest.utils as utils
 import codegen.api.dispatcher as dispatcher
 from codegen.api.signature import DispatcherSignature
 
+
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(backend_ops: List[str],
                          dispatch_key: DispatchKey,
@@ -53,6 +54,7 @@ def create_backend_index(backend_ops: List[str],
         use_out_as_primary=False,
         external=True,
         index=metadata)
+
 
 # Check whether the function is placed at the wrong place.
 def check_grouped_native_functions(
@@ -106,7 +108,7 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         f_str = StringIO()
         with open(custom_path, 'r') as f:
             for line in f:
-                if line.split(':')[0] in ['backend', 'cpp_namespace', 'extra_headers',
+                if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu',
                                           'supported', 'autograd', 'custom', 'custom_autograd']:
                     continue
                 if ':' not in line:
@@ -133,6 +135,7 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
 
     return _GLOBAL_PARSE_NATIVE_YAML_CACHE[path]
 
+
 # Parses the external backend's yaml, and adds a new BackendIndex for the backend's dispatch key.
 # Returns a Tuple of (true_backend, backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
 ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
@@ -153,7 +156,7 @@ def parse_backend_yaml(
         yaml_values = yaml.safe_load(f)
     assert isinstance(yaml_values, dict)
 
-    valid_keys = ['backend', 'cpp_namespace', 'extra_headers', 'supported', 'autograd', 'custom', 'custom_autograd']
+    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'XLA' if yaml_backend=='NPU' else yaml_backend
@@ -170,6 +173,9 @@ def parse_backend_yaml(
 
     supported_autograd = yaml_values.pop('autograd', [])
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
+
+    supported_tocpu = yaml_values.pop('tocpu', [])
+    assert isinstance(supported_tocpu, list), f'expected "tocpu" to be a list, but got: {supported_tocpu}'
 
     custom = yaml_values.pop('custom', [])
     assert isinstance(custom, list), f'expected "autograd" to be a list, but got: {custom}'
@@ -207,8 +213,21 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         assert autograd_key not in backend_indices
         backend_indices[autograd_key] = autograd_idx
 
+    check_op_on_cpu_kernels(supported_tocpu, backend_indices)
     check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
     return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
+
+
+def check_op_on_cpu_kernels(
+        expected_to_cpu: List,
+        backend_indices: Dict[DispatchKey, BackendIndex]):
+    
+    op_names: List[OperatorName] = list(backend_indices[DispatchKey.CPU].index.keys())
+
+    for op_name in op_names:
+        if op_name.name.base not in expected_to_cpu:
+            backend_indices[DispatchKey.CPU].index.pop(op_name, None)
+
 
 # Double-check the functions we supported to see whether there exists something mismatch.
 def error_on_missing_kernels(
@@ -259,25 +278,6 @@ but expected {expected_overload_count} kernel(s). The expected function schemas 
 {expected_schemas_str}
 """
     assert missing_kernels_err_msg == "", missing_kernels_err_msg
-
-
-def error_on_cpu_kernels(
-        cur_backend_key: DispatchKey,
-        native_functions: Sequence[NativeFunction],
-        backend_indices: Dict[DispatchKey, BackendIndex],
-) -> None:
-
-    expected_backend_op_names: List[OperatorName] = \
-        list(backend_indices[cur_backend_key].index.keys())
-    expected_backend_native_funcs: List[NativeFunction] = \
-        [f for f in native_functions if f.func.name in expected_backend_op_names]
-    expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
-    for native_f in expected_backend_native_funcs:
-        expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
-
-    for expected_name, funcs in expected_backend_kernel_name_counts.items():
-        for func in funcs:
-            backend_indices[DispatchKey.CPU].index.pop(func.func.name, None)
 
 
 def main() -> None:
@@ -393,13 +393,9 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                     grouped_native_functions
                 )),
             })
-            
-        if to_cpu.upper() in ['OFF', '0', 'NO', 'FALSE', 'F', 'N']:
-            return
 
-        backend_list = [backend_key, autograd_key, DispatchKey.Math, DispatchKey.CompositeExplicitAutograd]
-        for key in backend_list:
-            error_on_cpu_kernels(key, native_functions, backend_indices)
+        if to_cpu.upper() in {'OFF', '0', 'NO', 'FALSE', 'F', 'N'}:
+            return
 
         dispatch_key = true_backend
         native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"\n'

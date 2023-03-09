@@ -886,6 +886,18 @@ autograd:
   - silu_
   - silu.out
 
+tocpu:
+  - angle
+  - mode
+  - nanmedian.dim_values
+  - nansum
+  - native_dropout
+  - native_dropout_backward
+  - poisson
+  - vdot
+  - view_as_complex
+  - view_as_real
+
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
   - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
