@@ -40,6 +40,14 @@ class TestDtypeCast(TestCase):
         custom_output = self.custom_op_exec(npu_input, dst_dtype)
         self.assertRtolEqual(supported_output, custom_output)
 
+    def test_npu_dtype_cast_double_backward(self, device="npu"):
+        x = torch.randn(3, 3, requires_grad=True).to(device)
+        y = torch_npu.npu_dtype_cast(x, torch.half)
+        z = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=torch.ones_like(y))
+        self.assertIsNone(z[0].grad_fn)
+        z = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=torch.ones_like(y), create_graph=True) 
+        self.assertIsNotNone(z[0].grad_fn)
+
 
 if __name__ == "__main__":
     run_tests()
