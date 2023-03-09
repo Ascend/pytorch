@@ -154,7 +154,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
   auto k_dim = self.size(1);
   // construct the output tensor of the NPU
   at::Tensor result;
-  bool is_nz_out = false;
+  bool need_nd_out = false;
   static bool is_support_nd_out = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
   bool split_k = is_support_nd_out &&
                  (k_dim >= SPLIT_K_MULTI * std::max(self.size(0), mat2.size(1))) &&
@@ -183,7 +183,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
         result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
       }
     } else {
-      is_nz_out = (!mm_bmm_nd);
+      need_nd_out = mm_bmm_nd;
       if (split_k) {
         result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::ScalarType::Float),
                                                       ACL_FORMAT_FRACTAL_NZ, true);
@@ -196,7 +196,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
   }
   // calculate the output result of the NPU
   NPUNativeFunctions::mm_out(self, mat2, result);
-  if (is_nz_out) {
+  if (need_nd_out) {
     result = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
   }
   result = split_k ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half) : result;
