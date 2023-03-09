@@ -40,6 +40,9 @@ public:
       at::IntArrayRef replacement_shape);
   static std::string shapes_as_str(at::TensorList tensors);
   static AdvancedIndex make_info(at::Tensor self, const torch::List<c10::optional<at::Tensor>>& orig);
+  static std::vector<at::Tensor> npu_expand_tensors(
+      const at::Tensor& self,
+      const torch::List<c10::optional<at::Tensor>>& indices);
 };
 
 } // namespace native
