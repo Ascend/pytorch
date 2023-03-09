@@ -86,7 +86,7 @@ class HcclReduceTest(TestCase):
 
     def test_all_gather_dist(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
@@ -102,7 +102,7 @@ class HcclReduceTest(TestCase):
 
     def test_all_gather_togather_dist(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
