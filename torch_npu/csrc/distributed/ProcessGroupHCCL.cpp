@@ -59,10 +59,11 @@ std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kHalf, HCCL_DATA_TYPE_FP16},
     {at::kFloat, HCCL_DATA_TYPE_FP32},
     {at::kDouble, HCCL_DATA_TYPE_FP64},
+    {at::kBool, HCCL_DATA_TYPE_UINT8},
 };
 
 std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
-    {HCCL_DATA_TYPE_UINT8, "at::kByte"},
+    {HCCL_DATA_TYPE_UINT8, "at::kByte/at::kBool"},
     {HCCL_DATA_TYPE_INT8,  "at::kChar"},
     {HCCL_DATA_TYPE_INT16, "at::kShort"},
     {HCCL_DATA_TYPE_INT32, "at::kInt"},
@@ -112,6 +113,16 @@ std::string getHcclDataTypeSerialString(HcclDataType type){
     TORCH_WARN_ONCE("Can not serialize undefined hccl data type.");
     return "";
   }
+}
+
+HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input) {
+  if (reduceOp == c10d::ReduceOp::SUM && input.scalar_type() == at::kBool) {
+    // For bool tensors, map sum to max, which both represent a bitwise or.
+    // This is to prevent overflow issues with sum, since we use uint8 to
+    // represent a bool (see ncclDataType mapping).
+    return HCCL_REDUCE_MAX;
+  }
+  return hcclOp[reduceOp];
 }
 
 // AllGather & Broadcast support all data type, no need do more check.
@@ -611,7 +622,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             output.data_ptr(),
             getNumelForHCCL(input),
             hcclType,
-            hcclOp[opts.reduceOp],
+            getHcclReduceOp(opts.reduceOp, input),
             comm,
             stream.stream());
       });
@@ -702,7 +713,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
             output.data_ptr(),
             getNumelForHCCL(input),
             hcclType,
-            hcclOp[opts.reduceOp],
+            getHcclReduceOp(opts.reduceOp, input),
             rank,
             comm,
             stream.stream());
@@ -818,7 +829,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
             output.data_ptr(),
             getNumelForHCCL(output),
             hcclType,
-            hcclOp[opts.reduceOp],
+            getHcclReduceOp(opts.reduceOp, input),
             comm,
             stream.stream());
       },
