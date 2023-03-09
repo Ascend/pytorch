@@ -23,23 +23,23 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestIndexPut(TestCase):
     def cpu_op_exec(self, input1, indices, value):
-        output = input1.index_put(indices, value)
+        output = input1.index_put(indices, value, accumulate=True)
         output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, indices, value):
-        output = input1.index_put(indices, value)
+        output = input1.index_put(indices, value, accumulate=True)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def cpu_op_inp_exec(self, input1, indices, value):
-        input1.index_put_(indices, value)
+        input1.index_put_(indices, value, accumulate=True)
         output = input1.numpy()
         return output
 
     def npu_op_inp_exec(self, input1, indices, value):
-        input1.index_put_(indices, value)
+        input1.index_put_(indices, value, accumulate=True)
         input1 = input1.to("cpu")
         output = input1.numpy()
         return output
