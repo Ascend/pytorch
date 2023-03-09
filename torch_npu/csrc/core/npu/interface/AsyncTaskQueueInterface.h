@@ -36,6 +36,7 @@ enum QueueParamType {
   RECORD_EVENT = 3,
   WAIT_EVENT = 4,
   LAZY_DESTROY_EVENT = 5,
+  LAMBDA_EXECUTE = 6,
 };
 
 struct QueueParas {

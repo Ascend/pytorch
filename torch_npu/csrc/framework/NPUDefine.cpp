@@ -96,6 +96,19 @@ namespace at_npu
       return SUCCESS;
     }
 
+    void ExecuteBsParas::Release() {
+      return;
+    }
+
+    void ExecuteBsParas::Copy(ExecuteBsParas& other) {
+      strncpy(this->opType, other.opType, sizeof(ExecuteBsParas::opType) - 1);
+      this->paras = other.paras;
+    }
+
+    void ExecuteBsParas::CopyEx(ExecuteBsParas& other) {
+      this->paras = other.paras;
+    }
+
     void DestroyConstParams(CONST_PARAMS &params)
     {
       if (params.constList != nullptr)
