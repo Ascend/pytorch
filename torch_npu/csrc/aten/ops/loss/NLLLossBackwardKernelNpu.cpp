@@ -30,16 +30,17 @@ at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
     int64_t ignore_index,
     const at::Tensor& total_weight,
     at::Tensor& grad_input) {
+  at::Tensor self_cp = self.dim() == 1 ? self.unsqueeze(0) : self;
   const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
   at::Tensor weight_tensor;
   if (weight.defined()) {
     weight_tensor = NpuUtils::format_contiguous(weight);
   } else {
-    weight_tensor = at::ones(self.size(1), self.options());
+    weight_tensor = at::ones(self_cp.size(1), self_cp.options());
   }
 
-  if (ignore_index >= 0 && ignore_index < self.size(-1)) {
-    at::Tensor zero = at::zeros(1, self.options());
+  if (ignore_index >= 0 && ignore_index < self_cp.size(-1)) {
+    at::Tensor zero = at::zeros(1, self_cp.options());
     if (c10_npu::NpuRunMode::IsGraphMode()) {
       auto ignore_tensor = weight_tensor
           .view({-1})
@@ -68,10 +69,13 @@ at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
     AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
         " for argument 'target'  in call to nll_loss_backward");
   }
-
+  OpPreparation::CheckOut(
+      {self_cp},
+      grad_input,
+      self_cp);
   OpCommand cmd;
   cmd.Name("NLLLossGrad")
-      .Input(self)
+      .Input(self_cp)
       .Input(grad_output)
       .Input(targetCast)
       .Input(weight_tensor)
@@ -80,7 +84,9 @@ at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
       .Attr("reduction", reductionStr)
       .Attr("ignore_index", ignore_index)
       .Run();
-
+  if (self.dim() == 1) {
+    grad_input.squeeze_(0);
+  }
   return grad_input;
 }
 
@@ -92,12 +98,8 @@ at::Tensor NPUNativeFunctions::nll_loss_backward(
     int64_t reduction,
     int64_t ignore_index,
     const at::Tensor& total_weight) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
   // construct the output tensor of the NPU
-  at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor grad_input = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
   NPUNativeFunctions::nll_loss_backward_out(
