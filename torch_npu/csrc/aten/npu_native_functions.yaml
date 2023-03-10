@@ -31,8 +31,6 @@ supported:
  - _amp_foreach_non_finite_check_and_unscale_
  - _batch_norm_impl_index
  - _batch_norm_impl_index_backward
- - _cat
- - _cat.out
  - _cdist_backward
  - _cdist_forward
  - _conv_depthwise2d
@@ -59,7 +57,6 @@ supported:
  - _pad_packed_sequence
  - _pdist_forward
  - _pin_memory
- - _s_where
  - _slow_conv2d_backward.output_mask
  - _slow_conv2d_forward
  - _slow_conv2d_forward.output
@@ -864,6 +861,7 @@ supported:
  - view
  - where
  - where.self
+ - where.self_out
  - xlogy.OutScalar_Other
  - xlogy.OutScalar_Self
  - xlogy.OutTensor

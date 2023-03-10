@@ -23,7 +23,7 @@ from codegen.api.types import (ArgName, BaseCType, Binding, ConstRefCType, Named
                                MutRefCType, ArrayCType, ListCType, VectorCType, ArrayRefCType,
                                OptionalCType, TupleCType, SpecialArgName, boolT, scalarT,
                                tensorListT, dimnameListT, tensorT, voidT,
-                               BaseTypeToCppMapping, intArrayRefT, tensorOptionsT)
+                               BaseTypeToCppMapping, intArrayRefT, tensorOptionsT, optionalIntArrayRefT)
 from codegen import local
 
 # This file describes the translation of JIT schema to the public C++
@@ -101,6 +101,8 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
                 return NamedCType(binds, ConstRefCType(OptionalCType(BaseCType(tensorT))))
         elif str(t.elem) == 'Scalar':
             return NamedCType(binds, ConstRefCType(OptionalCType(BaseCType(scalarT))))
+        elif isinstance(t.elem, ListType) and str(t.elem.elem) == "int":
+            return NamedCType(binds, BaseCType(optionalIntArrayRefT))
         elem = argumenttype_type(t.elem, mutable=mutable, binds=binds)
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):

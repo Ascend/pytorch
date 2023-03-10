@@ -95,7 +95,7 @@ at::Tensor& NPUNativeFunctions::upsample_nearest1d_backward_out(
 
 at::Tensor NPUNativeFunctions::upsample_nearest1d_backward(
     const at::Tensor& grad_output,
-    c10::optional<at::IntArrayRef> output_size,
+    at::OptionalIntArrayRef output_size,
     at::IntArrayRef input_size,
     c10::optional<at::ArrayRef<double>> scale_factors) {
   auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);

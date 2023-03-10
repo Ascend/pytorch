@@ -607,7 +607,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
 at::native::ConvBackend select_conv_backend(
     const at::Tensor& input,
     const at::Tensor& weight,
-    const c10::optional<at::IntArrayRef> bias_sizes_opt,
+    const at::OptionalIntArrayRef bias_sizes_opt,
     const bool need_backward,
     const ConvParams& params) {
 
@@ -737,7 +737,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
     const at::Tensor& grad_output_,
     const at::Tensor& input_,
     const at::Tensor& weight_,
-    const c10::optional<at::IntArrayRef> bias_sizes_opt,
+    const at::OptionalIntArrayRef bias_sizes_opt,
     at::IntArrayRef stride,
     at::IntArrayRef padding,
     at::IntArrayRef dilation,

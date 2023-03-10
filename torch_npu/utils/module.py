@@ -386,8 +386,8 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
     super().__init__()
 
 
-def ddp_ddp_init_helper(
-    self, parameters, expect_sparse_gradient, param_to_name_mapping):
+def npu_ddp_init_helper(
+    self, parameters, expect_sparse_gradient, param_to_name_mapping, static_graph):
     """
     Initialization helper function that does the following:
     (1) bucketing the parameters for reductions
@@ -452,7 +452,7 @@ def ddp__setstate__(self, state):
     else:
         param_to_name_mapping = {}
     # Builds reducer
-    self._ddp_init_helper(parameters, expect_sparse_gradient, param_to_name_mapping)
+    self._ddp_init_helper(parameters, expect_sparse_gradient, param_to_name_mapping, False)
     if self.static_graph:
         self.reducer._set_static_graph()
 
@@ -602,7 +602,7 @@ def apply_module_patch():
     torch.nn.LayerNorm.forward = layernorm_forward
     torch.nn.parallel.distributed._DDPJoinHook.__init__ = DDPJoinHook__init__
     torch.nn.parallel.DistributedDataParallel.__setstate__ = ddp__setstate__
-    torch.nn.parallel.DistributedDataParallel._ddp_init_helper = ddp_ddp_init_helper
+    torch.nn.parallel.DistributedDataParallel._ddp_init_helper = npu_ddp_init_helper
     torch.nn.parallel.DistributedDataParallel._get_ddp_logging_data = ddp_get_ddp_logging_data
     torch.nn.parallel.DistributedDataParallel._register_builtin_comm_hook = ddp_register_builtin_comm_hook
     torch.nn.parallel.DistributedDataParallel._set_static_graph = ddp_set_static_graph

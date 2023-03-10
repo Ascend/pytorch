@@ -48,12 +48,12 @@ class TestWhere(TestCase):
         return output
 
     def cpu_op_exec_s(self, input1, ones):
-        output = torch._s_where(input1 > 0, input1, ones)
+        output = torch.where(input1 > 0, input1, ones)
         output = output.numpy()
         return output
 
     def npu_op_exec_s(self, input1, ones):
-        output = torch._s_where(input1 > 0, input1, ones)
+        output = torch.where(input1 > 0, input1, ones)
         output = output.to("cpu").numpy()
         return output
 

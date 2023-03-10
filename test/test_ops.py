@@ -30,6 +30,26 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
+    def transform(sample, f):
+        def tt(t):
+            def _tt(t):
+                return f(t)
+
+            if isinstance(t, torch.Tensor):
+                return _tt(t)
+            elif isinstance(t, torch.dtype):
+                return _tt(t)
+            elif isinstance(t, list):
+                return list(map(tt, t))
+            elif isinstance(t, tuple):
+                return tuple(map(tt, t))
+            elif isinstance(t, dict):
+                return {k: tt(v) for k, v in t.items()}
+            else:
+                return t
+
+        sample_tt_input, tt_args, tt_kwargs = tt(sample.input), tt(sample.args), tt(sample.kwargs)
+        return (sample_tt_input, tt_args, tt_kwargs)
 
     def _trans_helper(arg):
         if isinstance(arg, torch.Tensor):
@@ -42,7 +62,7 @@ def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
 
         return arg
     
-    sample_helper = sample.transform(_trans_helper)
+    sample_helper = transform(sample, _trans_helper)
     res = SampleInput(input=sample_helper[0], 
                       args=sample_helper[1], 
                       kwargs=sample_helper[2], 

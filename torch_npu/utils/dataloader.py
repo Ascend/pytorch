@@ -95,6 +95,7 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
 
     def __init__(self, loader):
         self._dataset = loader.dataset
+        self._shared_seed = loader._get_shared_seed()
         self._dataset_kind = loader._dataset_kind
         self._IterableDataset_len_called = loader._IterableDataset_len_called
         self._auto_collation = loader._auto_collation
@@ -143,7 +144,7 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
                       self._worker_result_queue, self._workers_done_event,
                       self._auto_collation, self._collate_fn, self._drop_last,
                       self._base_seed, self._worker_init_fn, i, self._num_workers,
-                      self._persistent_workers))
+                      self._persistent_workers, self._shared_seed))
             w.daemon = daemon
             w.start()
             self._index_queues.append(index_queue)

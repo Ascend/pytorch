@@ -31,7 +31,7 @@ from torch.cuda.amp import autocast as cuda_autocast
 from torch._six import string_classes
 from .common import amp_definitely_not_available
 
-class autocast(torch.autocast_mode.autocast):
+class autocast(torch.amp.autocast_mode.autocast):
     r"""
     Instances of :class:`autocast` serve as context managers or decorators that
     allow regions of your script to run in mixed precision.

@@ -120,7 +120,7 @@ namespace at_npu
       return size;
     }
 
-    at::Tensor &NPUNativeFunctions::_cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
+    at::Tensor &_cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
     {
       if (tensors.size() == 1)
       {
@@ -193,7 +193,7 @@ namespace at_npu
           ACL_FORMAT_ND,
           tensors[0].scalar_type(),
           outputSize);
-      return at::_cat_out(result, tensors, dim);
+      return _cat_out(tensors, dim, result);
     }
 
     at::Tensor &NPUNativeFunctions::cat_out(at::TensorList tensors, at::Dimname dim, at::Tensor &result)
@@ -201,7 +201,7 @@ namespace at_npu
       return at::cat_out(result, tensors, dimname_to_position(tensors[0], dim));
     }
 
-    at::Tensor NPUNativeFunctions::_cat(at::TensorList tensors, int64_t dim)
+    at::Tensor _cat(at::TensorList tensors, int64_t dim)
     {
       c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
 
@@ -238,20 +238,20 @@ namespace at_npu
       if (tensors_dim_check == true)
       {
         at::Tensor result = OpPreparation::ApplyTensor(inputTensors[0], outputSize);
-        NPUNativeFunctions::_cat_out(tensors, dim, result);
+        _cat_out(tensors, dim, result);
         return result;
       }
       else
       {
         at::Tensor result = OpPreparation::ApplyTensorWithFormat(inputTensors[0], outputSize, ACL_FORMAT_ND);
-        NPUNativeFunctions::_cat_out(tensors, dim, result);
+        _cat_out(tensors, dim, result);
         return result;
       }
     }
 
     at::Tensor NPUNativeFunctions::cat(at::TensorList tensors, int64_t dim)
     {
-      return at::_cat(tensors, dim);
+      return _cat(tensors, dim);
     }
 
     at::Tensor NPUNativeFunctions::cat(at::TensorList tensors, at::Dimname dim)

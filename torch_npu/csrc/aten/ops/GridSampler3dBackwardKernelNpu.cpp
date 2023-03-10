@@ -49,7 +49,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::grid_sampler_3d_backward(
     const at::Tensor& grid,
     int64_t interpolation_mode,
     int64_t padding_mode,
-    bool align_corners) {
+    bool align_corners,
+    std::array<bool,2> output_mask) {
   TORCH_CHECK(
       (0 <= interpolation_mode && interpolation_mode <= 2),
       "interpolation_mode must be in range [0~2].")

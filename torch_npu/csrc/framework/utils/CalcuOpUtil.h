@@ -127,7 +127,7 @@ public:
                              int64_t stride);
   static c10::SmallVector<int64_t, 3>
   ComputeOutputSize(c10::IntArrayRef input_size,
-                      c10::optional<c10::IntArrayRef> output_size,
+                      at::OptionalIntArrayRef output_size,
                       c10::optional<c10::ArrayRef<double>> scale_factors);
   static c10::optional<double>
   GetScaleValue(c10::optional<c10::ArrayRef<double>> scales, int idx);
