@@ -196,13 +196,13 @@ pip3 install wheel
      1. 进入安装目录，执行如下命令获取鲲鹏文件共享中心上对应版本的whl包。
    
         ```
-        wget https://repo.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/torch-1.11.0a0+gitbc2c6ed-cp37-cp37m-linux_aarch64.whl
+        wget https://repo.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/torch-1.11.0-cp37-cp37m-linux_aarch64.whl
         ```
    
      2. 执行如下命令安装，如果使用非root用户安装，需要在命令后加**--user。**
    
          ```
-         pip3 install torch-1.11.0a0+gitbc2c6ed-cp37-cp37m-linux_aarch64.whl
+         pip3 install torch-1.11.0-cp37-cp37m-linux_aarch64.whl
          ```
 
 
