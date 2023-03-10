@@ -353,7 +353,7 @@ class NPUNmsV4OP(torch.autograd.Function):
     @staticmethod
     def symbolic(g, self: Tensor, scores: Tensor, max_output_size: float, iou_threshold: Tensor,
                  scores_threshold: Tensor, pad_to_max_output_size: bool = False):
-        return g.op("npu::NPUNmsV4", self, scores, iou_threshold, scores_threshold,
+        return g.op("npu::NPUNmsV4", self, scores, iou_threshold, scores_threshold, max_output_size_f=max_output_size,
                     pad_to_max_output_size_i=pad_to_max_output_size, outputs=2)
 
 
