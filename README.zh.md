@@ -198,14 +198,14 @@ pip3 install wheel
 
         ```
         # 安装1.8.1版本
-        wget https://repo.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/torch-1.8.0a0+56b43f4-cp37-cp37m-linux_aarch64.whl
+        wget https://repo.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/torch-1.8.1-cp37-cp37m-linux_aarch64.whl
         ```
 
      2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
 
         ```
         # 安装1.8.1版本
-        pip3 install torch-1.8.0a0+56b43f4-cp37-cp37m-linux_aarch64.whl
+        pip3 install torch-1.8.1-cp37-cp37m-linux_aarch64.whl
         ```
 
 
