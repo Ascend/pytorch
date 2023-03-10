@@ -16,6 +16,7 @@
 #include "npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
@@ -89,6 +90,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         C10_NPU_CHECK(aclmdlInitDump());
         NPU_LOGD("dump init success");
     }
+
+    c10_npu::NPUCachingAllocator::init();
+    NPU_LOGD("Npu caching allocator initialize successfully");
 
     auto ret = aclrtGetDevice(&device_id_);
     if (ret != ACL_ERROR_NONE) {

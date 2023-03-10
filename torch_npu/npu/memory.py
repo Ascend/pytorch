@@ -81,10 +81,6 @@ def caching_allocator_delete(mem_ptr):
     torch_npu._C._npu_npuCachingAllocator_raw_delete(mem_ptr)
 
 
-def _cache_init():
-    torch_npu._C._npu_cacheInit()
-
-
 def set_per_process_memory_fraction(fraction, device=None) -> None:
     r"""Set memory fraction for a process.
     The fraction is used to limit an caching allocator to allocated memory on a NPU device.
