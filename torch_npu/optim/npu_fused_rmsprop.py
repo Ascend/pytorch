@@ -63,7 +63,6 @@ class NpuFusedRMSprop(NpuFusedOptimizerBase):
             raise ValueError("Invalid alpha value: {}".format(alpha))
 
         defaults = dict(lr=lr, momentum=momentum, alpha=alpha, eps=eps, centered=centered, weight_decay=weight_decay)
-        self.is_npu_fused_optimizer = True
         super(NpuFusedRMSprop, self).__init__(params, defaults)
 
     def __setstate__(self, state):

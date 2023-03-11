@@ -65,7 +65,6 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
                         weight_decay=weight_decay)
         self.adam = adam
         self.use_global_grad_norm = use_global_grad_norm
-        self.is_npu_fused_optimizer = True
         self.global_grad_norm = torch.Tensor([1]).to('npu')
         self.middle_vars_are_combined_by_group = False
         super(NpuFusedLamb, self).__init__(params, defaults)

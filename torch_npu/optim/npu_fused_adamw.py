@@ -60,7 +60,6 @@ class NpuFusedAdamW(NpuFusedOptimizerBase):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=amsgrad)
-        self.is_npu_fused_optimizer = True
         super(NpuFusedAdamW, self).__init__(params, defaults)
 
     def __setstate__(self, state):
