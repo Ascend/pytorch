@@ -55,7 +55,6 @@ class NpuFusedRMSpropTF(NpuFusedOptimizerBase):
 
         defaults = dict(lr=lr, momentum=momentum, alpha=alpha, eps=eps, centered=centered, weight_decay=weight_decay,
                         decoupled_decay=decoupled_decay, lr_in_momentum=lr_in_momentum)
-        self.is_npu_fused_optimizer = True
         super(NpuFusedRMSpropTF, self).__init__(params, defaults)
 
     def __setstate__(self, state):

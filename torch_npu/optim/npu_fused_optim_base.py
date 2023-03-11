@@ -33,6 +33,7 @@ class NpuFusedOptimizerBase(Optimizer):
         self.is_params_grads_combined = False
         self.is_states_combined = False
         self.is_grads_masks_combined = False
+        self.is_fused_optimizer = True
 
     def _maybe_init_combined_params_and_grads(self):
         if self.is_params_grads_combined:
