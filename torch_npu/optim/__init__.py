@@ -14,11 +14,12 @@
 # limitations under the License.
 
 __all__ = [
-    "NpuFusedSGD", "NpuFusedAdadelta", "NpuFusedLamb",
+    "NpuFusedOptimizerBase", "NpuFusedSGD", "NpuFusedAdadelta", "NpuFusedLamb",
     "NpuFusedAdam", "NpuFusedAdamW", "NpuFusedAdamP",
     "NpuFusedBertAdam", "NpuFusedRMSprop", "NpuFusedRMSpropTF",
 ]
 
+from .npu_fused_optim_base import NpuFusedOptimizerBase
 from .npu_fused_sgd import NpuFusedSGD
 from .npu_fused_adadelta import NpuFusedAdadelta
 from .npu_fused_lamb import NpuFusedLamb

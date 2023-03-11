@@ -133,7 +133,7 @@ class TestFusedOptim(TestCase):
                     fused_opt.step()
                     for p, p_clone in zip(params, params_clone):
                         if p.grad is not None:
-                            self.assertRtolEqual(p, p_clone, prec=1e-3)
+                            self.assertRtolEqual(p.cpu(), p_clone.cpu(), prec=1e-3)
 
     def test_step_3rd_optims(self):
         optim_cases = self._create_optimizer_cases(all_cases=True)
@@ -148,7 +148,7 @@ class TestFusedOptim(TestCase):
                     fused_opt.step()
             for i, p in enumerate(params):
                 if p.grad is not None:
-                    self.assertRtolEqual(p.sum().item(), self.third_optim_baseline[fused_opt_obj][i])
+                    self.assertEqual(p.sum().item(), self.third_optim_baseline[fused_opt_obj][i], prec=1e-3)
 
     def test_unscale(self):
         model = self._create_simple_model()
@@ -200,7 +200,7 @@ class TestFusedOptim(TestCase):
                 scaler_fused.scale(loss_fused).backward()
                 scaler_fused.step(opt_fused)
                 scaler_fused.update()
-                self.assertRtolEqual(loss, loss_fused)
+                self.assertRtolEqual(loss.cpu().detach(), loss_fused.cpu().detach())
 
     def test_simple_model_train_static(self):
         model = self._create_simple_model()
@@ -230,7 +230,7 @@ class TestFusedOptim(TestCase):
                 scaler_fused.scale(loss_fused).backward()
                 scaler_fused.step(opt_fused)
                 scaler_fused.update()
-                self.assertRtolEqual(loss, loss_fused, prec=1e-3)
+                self.assertRtolEqual(loss.cpu().detach(), loss_fused.cpu().detach(), prec=1e-3)
 
     def test_clip_grad_norm_fused(self):
         optim_cases = self._create_optimizer_cases()
@@ -244,8 +244,8 @@ class TestFusedOptim(TestCase):
             grad_norm_fused = fused_opt.clip_grad_norm_fused_(5.0)
             for p, p_clone in zip(params, params_clone):
                 if p.grad is not None:
-                    self.assertRtolEqual(p.grad, p_clone.grad, prec=1e-3)
-            self.assertRtolEqual(grad_norm, grad_norm_fused, prec=1e-3)
+                    self.assertRtolEqual(p.grad.cpu(), p_clone.grad.cpu(), prec=1e-3)
+            self.assertRtolEqual(grad_norm.cpu(), grad_norm_fused.cpu(), prec=1e-3)
 
 
 if __name__ == "__main__":

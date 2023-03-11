@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <c10/util/accumulate.h>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 
