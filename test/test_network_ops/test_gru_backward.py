@@ -14,20 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import copy
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestGruBackward(TestCase):
-    def test_gru_backward(self, device="npu"):
+
+    def test_gru_backward(self):
         shape_format = [
             [[np.float16, (16, 32, 64)], 64, 32],
             [[np.float16, (5, 32, 64)], 64, 32],
             [[np.float32, (5, 32, 64)], 64, 32],
             [[np.float32, (5, 32, 64)], 64, 64],
+            [[np.float32, (5, 1, 64)], 64, 64],
         ]
 
         for item in shape_format:
@@ -73,6 +76,7 @@ class TestGruBackward(TestCase):
             self.assertRtolEqual(cpu_dw_hh.numpy(), npu_dw_hh.cpu().numpy().astype(np.float32), prec=1.e-1)
             self.assertRtolEqual(cpu_db_ih.numpy(), npu_db_ih.cpu().numpy().astype(np.float32), prec=1.e1)
             self.assertRtolEqual(cpu_db_hh.numpy(), npu_db_hh.cpu().numpy().astype(np.float32), prec=1.e1)
+
 
 if __name__ == "__main__":
     run_tests()

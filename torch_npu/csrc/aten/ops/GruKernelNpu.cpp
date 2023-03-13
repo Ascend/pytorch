@@ -140,11 +140,10 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_gru_backward(
     const at::Tensor& hidden_new) {
   const at::Tensor& grady = c10::value_or_else(grady_opt, [] {return at::Tensor();});
   const at::Tensor& gradh = c10::value_or_else(gradh_opt, [] {return at::Tensor();});
-  at::Tensor inh = at::squeeze(init_h, 0);
-  auto grad_y =
-      grady.defined() ? grady : OpPreparation::ApplyTensorWithFormat(output_y.sizes(), output_y.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
-  auto grad_h =
-      gradh.defined() ? gradh[input.size(0)-1] : OpPreparation::ApplyTensorWithFormat(inh.sizes(), output_h.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+  auto grad_y = grady.defined() ? grady :
+      OpPreparation::ApplyTensorWithFormat(output_y.sizes(), output_y.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+  auto grad_h = gradh.defined() ? gradh[input.size(0) - 1] :
+      OpPreparation::ApplyTensorWithFormat(init_h.sizes(), output_h.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
 
   at::Tensor mask = at::zeros({}, input.options().dtype(at::kByte)); // uint8
   at::Tensor seq_lengths = at::zeros({}, input.options());
@@ -164,7 +163,7 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_gru_backward(
       .Input(weight_input)
       .Input(weight_hidden)
       .Input(output_y)
-      .Input(inh)
+      .Input(init_h)
       .Input(output_h)
       .Input(grad_y)
       .Input(grad_h)
