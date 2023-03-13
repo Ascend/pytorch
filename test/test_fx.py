@@ -202,7 +202,7 @@ class TestFX(TestCase):
 
         wfq = WrapperForQualname()
         traced2 = symbolic_trace(wfq)
-        traced2.graph.lint(traced2)
+        traced2.graph.lint()
         traced2(torch.rand(4, 4).npu())
 
     def test_symbolic_trace_sequential(self):
@@ -216,7 +216,7 @@ class TestFX(TestCase):
             Simple()
         )
         traced = symbolic_trace(seq)
-        traced.graph.lint(traced)
+        traced.graph.lint()
         x = torch.rand(3, 4).npu()
         self.assertEqual(traced(x), seq(x))
 
@@ -227,7 +227,7 @@ class TestFX(TestCase):
 
         ct = ConstTensor()
         traced = symbolic_trace(ct)
-        traced.graph.lint(traced)
+        traced.graph.lint()
         traced(torch.rand(4, 4).npu())
 
     def test_unpack_list_better_error(self):
@@ -271,7 +271,7 @@ class TestFX(TestCase):
         
         module = MyModule()
         traced = symbolic_trace(module)
-        traced.graph.lint(traced)
+        traced.graph.lint()
         x = torch.rand(4, 3).npu()
         self.assertEqual(traced(x), module(x))
 
@@ -285,7 +285,7 @@ class TestFX(TestCase):
         
         module = MyModule()
         traced = symbolic_trace(module)
-        traced.graph.lint(traced)
+        traced.graph.lint()
         x = torch.rand(4, 3).npu()
         self.assertEqual(traced(x), module(x))
 
@@ -296,7 +296,7 @@ class TestFX(TestCase):
         
         module = MyModule()
         traced = symbolic_trace(module)
-        traced.graph.lint(traced)
+        traced.graph.lint()
         x = torch.rand(4, 3).npu()
         self.assertEqual(traced(x), module(x))
 
