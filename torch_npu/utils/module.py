@@ -228,12 +228,17 @@ def ddp_forward(self, *inputs, **kwargs):
 def lstm_forward(self, input, hx=None):
     orig_input = input
     # xxx: isinstance check needs to be in conditional for TorchScript to compile
+    batch_sizes = None
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input, batch_sizes, sorted_indices, unsorted_indices = input
         max_batch_size = batch_sizes[0]
         max_batch_size = int(max_batch_size)
     else:
         batch_sizes = None
+        is_batched = input.dim() == 3
+        batch_dim = 0 if self.batch_first else 1
+        if not is_batched:
+            input = input.unsqueeze(batch_dim)
         max_batch_size = input.size(0) if self.batch_first else input.size(1)
         sorted_indices = None
         unsorted_indices = None
@@ -249,6 +254,19 @@ def lstm_forward(self, input, hx=None):
                                 dtype=input.dtype, device=input.device)
         hx = (h_zeros, c_zeros)
     else:
+        if batch_sizes is None:
+            if is_batched:
+                if (hx[0].dim() != 3 or hx[1].dim() != 3):
+                    msg = ("For batched 3-D input, hx and cx should "
+                            f"also be 3-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors")
+                    raise RuntimeError(msg)
+            else:
+                if hx[0].dim() != 2 or hx[1].dim() != 2:
+                    msg = ("For unbatched 2-D input, hx and cx should "
+                            f"also be 2-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors")
+                    raise RuntimeError(msg)
+                hx = (hx[0].unsqueeze(1), hx[1].unsqueeze(1))
+
         # Each batch of the hidden state should match the input sequence that
         # the user believes he/she is passing in.
         hx = self.permute_hidden(hx, sorted_indices)
@@ -262,7 +280,7 @@ def lstm_forward(self, input, hx=None):
             batch_sizes_npu = batch_sizes.to(input.device)
             result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
-            # 根据TMG决策，pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
+            # when pack-lstm-pad，remain valid pads in T0 because lstm can only support fixed length in npu.
             if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
                 result = list(result)
                 shape = [result[0].shape[0] * result[0].shape[1]]
@@ -280,6 +298,9 @@ def lstm_forward(self, input, hx=None):
         output_packed = torch.nn.utils.rnn.PackedSequence(output, batch_sizes, sorted_indices, unsorted_indices)
         return output_packed, self.permute_hidden(hidden, unsorted_indices)
     else:
+        if not is_batched:
+            output = output.squeeze(batch_dim)
+            hidden = (hidden[0].squeeze(1), hidden[1].squeeze(1))
         return output, self.permute_hidden(hidden, unsorted_indices)
 
 

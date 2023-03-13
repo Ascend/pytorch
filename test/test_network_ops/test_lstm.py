@@ -38,6 +38,9 @@ class TestLstm(TestCase):
                         [[np.float32, (5, 32, 64)], 2, 64, 64, False, False],
                         [[np.float32, (26, 2560, 512)], 2, 512, 256, False, True],
                         [[np.float32, (10, 33, 128)], 2, 128, 64, False, False],
+                        [[np.float32, (32, 64)], 2, 64, 64, False, False],
+                        [[np.float32, (2560, 512)], 2, 512, 256, False, True],
+                        [[np.float32, (33, 128)], 2, 128, 64, False, False],
         ]
 
         for item in shape_format: 
@@ -65,11 +68,14 @@ class TestLstm(TestCase):
         # num_layers, input_size, hidden_size, is_training]
         shape_format = [
             [[np.float16, (16, 32, 64)], 1, 64, 32, True], [[np.float16, (5, 32, 64)], 1, 64, 32, False],
-            [[np.float32, (5, 32, 64)], 1,64, 64, True], [[np.float32, (5, 32, 64)], 1, 64, 64, False],
+            [[np.float32, (5, 32, 64)], 1, 64, 64, True], [[np.float32, (5, 32, 64)], 1, 64, 64, False],
             [[np.float32, (26, 2560, 512)], 1, 512, 256, False], [[np.float32, (10, 33, 128)], 1, 128, 64, False],
             [[np.float16, (16, 32, 64)], 2, 64, 32, True], [[np.float16, (5, 32, 64)], 2, 64, 32, False],
-            [[np.float32, (5, 32, 64)], 2,64, 64, True], [[np.float32, (5, 32, 64)], 2, 64, 64, False],
+            [[np.float32, (5, 32, 64)], 2, 64, 64, True], [[np.float32, (5, 32, 64)], 2, 64, 64, False],
             [[np.float32, (26, 2560, 512)], 2, 512, 256, False], [[np.float32, (10, 33, 128)], 2, 128, 64, False],
+            [[np.float16, (32, 64)], 2, 64, 32, True], [[np.float16, (32, 64)], 2, 64, 32, False],
+            [[np.float32, (32, 64)], 2, 64, 64, True], [[np.float32, (32, 64)], 2, 64, 64, False],
+            [[np.float32, (2560, 512)], 2, 512, 256, False], [[np.float32, (33, 128)], 2, 128, 64, False],
         ]
 
         for item in shape_format:
