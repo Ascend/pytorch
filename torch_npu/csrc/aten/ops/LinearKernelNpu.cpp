@@ -145,7 +145,8 @@ at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
   };
   static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
   static bool is_support_nd_out = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
-  at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd && (is_support_nd_out || isAligin())) ?
+  at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd &&
+  ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(input, weight)) || isAligin())) ?
       input : NPUNativeFunctions::npu_format_cast(input, ACL_FORMAT_FRACTAL_NZ);
   return NPULinearFunction::apply(input_cast, weight, bias_opt);
 }
