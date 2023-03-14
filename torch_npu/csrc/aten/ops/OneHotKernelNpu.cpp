@@ -34,16 +34,10 @@ at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
       depth = num_classes;
     }
   }
-
-  TORCH_CHECK(
-      self_temp.min().item().toLong() >= 0, 
-      "Class values must be non-negative.");
+  
   if (num_classes == -1) {
     depth = self_temp.max().item().toLong() + 1;
   } else {
-    TORCH_CHECK(
-        num_classes > self_temp.max().item().toLong(),
-        "Class values must be smaller than num_classes.");
     depth = num_classes;
   }
 
