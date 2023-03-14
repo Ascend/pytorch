@@ -69,7 +69,6 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
                         dampening=dampening,
                         weight_decay=weight_decay,
                         nesterov=nesterov)
-        self.is_fused_optimizer = True
         self._momentum_buffer_already_in_state = False
         super(NpuFusedSGD, self).__init__(params, defaults)
 

@@ -51,7 +51,6 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
         defaults = dict(lr=lr, rho=rho, eps=eps, weight_decay=weight_decay)
-        self.is_npu_fused_optimizer = True
         super(NpuFusedAdadelta, self).__init__(params, defaults)
 
     def _init_param_state(self, p):
