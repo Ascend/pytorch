@@ -14,23 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestUniqueConsecutive(TestCase):
-    def test_unique_consecutive(self, device="npu"):
+
+    def test_unique_consecutive(self):
         shape_format = [
-                        [[torch.int32, (2, 3)], 0],
-                        [[torch.long, (2, 3)], 1],
-                        [[torch.float32, (2, 3)], 0],
-                        [[torch.float16, (2, 3)], 1],
-                        [[torch.int32, (2, 3)], None],
-                        [[torch.long, (2, 3)], None],
-                        [[torch.float32, (2, 3)], None],
-                        [[torch.float16, (2, 3)], None]
+            [[torch.int32, (2, 3)], 0],
+            [[torch.long, (2, 3)], 1],
+            [[torch.float32, (2, 3)], 0],
+            [[torch.float16, (2, 3)], 1],
+            [[torch.int32, (2, 3)], None],
+            [[torch.long, (2, 3)], None],
+            [[torch.float32, (2, 3)], None],
+            [[torch.float16, (2, 3)], None]
         ]
 
         for item in shape_format:
@@ -49,8 +52,8 @@ class TestUniqueConsecutive(TestCase):
             self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
             self.assertRtolEqual(cpu_idx.numpy(), npu_idx.cpu().numpy())
             self.assertRtolEqual(cpu_counts.numpy(), npu_counts.cpu().numpy())
-    
-    def test_unique_consecutive_case_in_dino(self, device="npu"):
+
+    def test_unique_consecutive_case_in_dino(self):
         input_list = [
             torch.tensor([224, 224, 96, 96, 96, 96, 96, 96, 96, 96]),
             torch.tensor([224, 224])
@@ -61,5 +64,22 @@ class TestUniqueConsecutive(TestCase):
             self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
             self.assertRtolEqual(cpu_counts.numpy(), npu_counts.cpu().numpy())
 
+    def test_unique_consecutive_return_inverse_and_counts(self):
+        return_list = [
+            [True, True],
+            [True, False],
+            [False, False],
+            [False, True]
+        ]
+        input_tensor = torch.randn(8)
+        for item in return_list:
+            cpu_outputs = torch.unique_consecutive(input_tensor, return_inverse=item[0],
+                                                   return_counts=item[1])
+            npu_outputs = torch.unique_consecutive(input_tensor.npu(), return_inverse=item[0],
+                                                   return_counts=item[1])
+            for i in torch.arange(len(npu_outputs)):
+                self.assertRtolEqual(cpu_outputs[i].numpy(), npu_outputs[i].cpu().numpy())
+
+
 if __name__ == "__main__":
-    run_tests() 
+    run_tests()
