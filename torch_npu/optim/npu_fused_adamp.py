@@ -53,7 +53,6 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
                  weight_decay=0, delta=0.1, wd_ratio=0.1, nesterov=False):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay,
                         delta=delta, wd_ratio=wd_ratio, nesterov=nesterov)
-        self.is_npu_fused_optimizer = True
         self.middle_vars_are_combined_by_group = False
         super(NpuFusedAdamP, self).__init__(params, defaults)
 

@@ -96,7 +96,6 @@ class NpuFusedBertAdam(NpuFusedOptimizerBase):
         defaults = dict(lr=lr, schedule=schedule, warmup=warmup, t_total=t_total,
                         b1=b1, b2=b2, e=e, weight_decay=weight_decay,
                         max_grad_norm=max_grad_norm)
-        self.is_npu_fused_optimizer = True
         self.max_grad_norm = max_grad_norm
         super(NpuFusedBertAdam, self).__init__(params, defaults)
 
