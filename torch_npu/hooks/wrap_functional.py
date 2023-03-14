@@ -26,9 +26,6 @@ yaml_path = os.path.join(cur_path, "support_wrap_ops.yaml")
 with open(yaml_path, 'r') as f:
     WrapFunctionalOps = yaml.safe_load(f).get('functional')
 
-for f in dir(torch.nn.functional):
-    locals().update({f: getattr(torch.nn.functional, f)})
-
 
 def get_functional_ops():
     global WrapFunctionalOps
@@ -50,7 +47,7 @@ class FunctionalOPTemplate(HOOKModule):
 
     @torch_device_guard
     def forward(self, *args, **kwargs):
-        return eval(self.op_name_)(*args, **kwargs)
+        return getattr(torch.nn.functional, str(self.op_name_))(*args, **kwargs)
 
 
 def wrap_functional_op(op_name, hook):
