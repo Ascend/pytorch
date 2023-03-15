@@ -40,7 +40,6 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib/aarch64_64-linux-gnu
 # 配置自定义环境变量
 export HCCL_WHITELIST_DISABLE=1
 
-export TASK_QUEUE_ENABLE=0 # 使用异步任务下发，异步调用acl接口，建议默认开启，开启设置为1
 #export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
 #export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
 
