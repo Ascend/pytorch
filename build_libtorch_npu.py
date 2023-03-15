@@ -120,7 +120,7 @@ def clean_generated_files():
                 shutil.rmtree(filename, ignore_errors=True)
     f_ignore.close()
     clean_files = ['torch_npu/csrc/aten/RegisterCPU.cpp', 'torch_npu/csrc/aten/RegisterNPU.cpp',
-                   'torch_npu/csrc/aten/RegisterAutogradNPU.cpp', 'torch_npu/csrc/aten/NpuNativeFunctions.h']
+                   'torch_npu/csrc/aten/RegisterAutogradNPU.cpp', 'torch_npu/csrc/aten/NPUNativeFunctions.h']
     for file in clean_files:
         if os.path.exists(os.path.join(BASE_DIR, file)):
             os.remove(os.path.join(BASE_DIR, file))
@@ -163,6 +163,14 @@ def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, lev
     """
     return file_util.copy_file(infile, outfile, preserve_mode, preserve_times, True, link)
 
+def move_special_hpp(ret):
+    hpp_name = "library_npu.h"
+    for _, dst in ret:
+        if dst.endswith(hpp_name):
+            dir_name = os.path.join(os.path.dirname(dst), "../../" + hpp_name)
+            copy_file(dst, dir_name)
+            return
+
 
 def copy_hpp():
     def get_src_py_and_dst():
@@ -174,6 +182,7 @@ def copy_hpp():
             "torch_npu/csrc/aten/*/*/*.h",
             "torch_npu/csrc/core/*.h",
             "torch_npu/csrc/core/*/*.h",
+            "torch_npu/csrc/libs/*.h",
             "torch_npu/csrc/core/*/*/*.h",
             "torch_npu/csrc/framework/*.h",
             "torch_npu/csrc/framework/*/*.h",
@@ -187,7 +196,7 @@ def copy_hpp():
 
         for src in glob_header_files:
             dst = os.path.join(
-                os.path.join(BASE_DIR, f"libtorch/include/torch_npu"),
+                os.path.join(BASE_DIR, "libtorch_npu/include/torch_npu"),
                 os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             ret.append((src, dst))
@@ -196,7 +205,7 @@ def copy_hpp():
     ret = get_src_py_and_dst()
     for src, dst in ret:
         copy_file(src, dst)
-
+    move_special_hpp(ret)
 
 def copy_lib():
     lib_file = [f"build/{get_build_type()}/packages/torch_npu/lib/*.*"]
@@ -204,7 +213,7 @@ def copy_lib():
 
     for regex_pattern in lib_file:
         glob_lib_files += glob.glob(os.path.join(BASE_DIR, regex_pattern), recursive=True)
-    dst_path = os.path.join(BASE_DIR, f"libtorch/lib")
+    dst_path = os.path.join(BASE_DIR, "libtorch_npu/lib")
     os.makedirs(dst_path, exist_ok=True)
 
     for src in glob_lib_files:
