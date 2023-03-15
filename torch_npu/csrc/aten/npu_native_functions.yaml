@@ -213,8 +213,6 @@ supported:
  - ceil
  - ceil.out
  - ceil_
- - celu
- - celu_
  - channel_shuffle
  - clamp
  - clamp.out
@@ -879,6 +877,8 @@ supported:
  - zeros_like
 
 autograd:
+  - celu
+  - celu_
   - elu.out
   - elu
   - elu_
