@@ -1330,7 +1330,22 @@ op_db: List[OpInfo] = [
         'round',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-    ), 
+    ),
+    UnaryUfuncInfo(
+        'nn.functional.celu',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=False,
+        supports_autograd=True,
+        assert_autodiffed=False,
+        supports_gradgrad=True,
+        supports_out=False,
+        sample_kwargs=lambda device, dtype, input:
+            ({'alpha': 0.8}, {'alpha': 0.8}),
+        inplace_variant=lambda x, alpha=1.0:
+            torch.nn.functional.celu(x, alpha, inplace=True),
+    ),
     UnaryUfuncInfo(
         'nn.functional.rrelu',
         dtypes=_dispatch_dtypes((torch.float32, )),
