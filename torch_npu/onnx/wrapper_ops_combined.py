@@ -268,19 +268,6 @@ class NPUMinOP(object):
         return torch_npu._C._VariableFunctionsClass.npu_min(self, dim, keepdim)
 
 
-class NPUScaledMaskedSoftmaxOP(object):
-
-    @staticmethod
-    def forward(x, mask, scale=1, fixed_triu_mask=False):
-        if torch.onnx.is_in_onnx_export():
-            if fixed_triu_mask:
-                mask = torch.triu(torch.ones(mask.shape, device=x.device()), diagonal=1).bool()
-            mask_data = (x * scale).masked_fill(mask, value=-1e4)
-            return torch.nn.functional.softmax(mask_data, dim=-1)
-
-        return torch_npu._C._VariableFunctionsClass.npu_scaled_masked_softmax(x, mask, scale, fixed_triu_mask)
-
-
 def add_ops_combined_for_onnx():
     torch_npu.npu_linear = NPULinearOP.forward
     torch_npu.npu_transpose = NPUTransposeOP.forward
@@ -303,4 +290,3 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_silu_ = NPUSilu_OP.forward
     torch_npu.npu_mish = NPUMishOP.forward
     torch_npu.npu_min = NPUMinOP.forward
-    torch_npu.npu_scaled_masked_softmax = NPUScaledMaskedSoftmaxOP.forward
