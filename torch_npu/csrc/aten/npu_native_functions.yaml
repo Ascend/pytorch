@@ -222,6 +222,15 @@ supported:
  - clamp_min
  - clamp_min.out
  - clamp_min_
+ - clamp.Tensor
+ - clamp.Tensor_out
+ - clamp_.Tensor
+ - clamp_max.Tensor
+ - clamp_max.Tensor_out
+ - clamp_max_.Tensor
+ - clamp_min.Tensor
+ - clamp_min.Tensor_out
+ - clamp_min_.Tensor
  - clone
  - col2im
  - col2im.out
