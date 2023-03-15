@@ -57,12 +57,74 @@ class HcclSendRecvDistTest(TestCase):
             c2p.put((src, res.cpu()))
 
     @classmethod 
+    def _test_send_recv_dist_recv_with_format(
+            cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        pg = init_pg(rank, world_size)
+        res = torch.ones(2, 2).to(shared_tensors.dtype).to(f"npu:{rank}").npu_format_cast(29)
+        xs = shared_tensors.to(f"npu:{rank}")
+        dst = 0
+        src = 1
+        if src == rank:
+            pg.send(xs, dst)
+            c2p.put((dst, xs.cpu()))
+        else:
+            pg.recv(res, src)
+            c2p.put((src, res.cpu()))
+
+    @classmethod 
+    def _test_send_recv_dist_send_with_format(
+            cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        pg = init_pg(rank, world_size)
+        res = torch.ones(2, 2).to(shared_tensors.dtype).to(f"npu:{rank}")
+        xs = shared_tensors.to(f"npu:{rank}").npu_format_cast(29)
+        dst = 0
+        src = 1
+        if src == rank:
+            pg.send(xs, dst)
+            c2p.put((dst, xs.cpu()))
+        else:
+            pg.recv(res, src)
+            c2p.put((src, res.cpu()))
+
+    @classmethod 
     def _test_send_recv_group(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         tag = 1
         res = [torch.ones(2, 2).to(f"npu:{rank}")]
         xs = [shared_tensors.to(f"npu:{rank}")]
+        dst = 0
+        src = 1
+        if src == rank:
+            pg.send(xs, dst, tag).wait()
+            c2p.put((dst, xs[0].cpu()))
+        else:
+            pg.recv(res, src, tag).wait()
+            c2p.put((src, res[0].cpu()))
+
+    @classmethod 
+    def _test_send_recv_group_recv_with_format(
+            cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        pg = init_pg(rank, world_size)
+        tag = 1
+        res = [torch.ones(2, 2).to(f"npu:{rank}").npu_format_cast(29)]
+        xs = [shared_tensors.to(f"npu:{rank}")]
+        dst = 0
+        src = 1
+        if src == rank:
+            pg.send(xs, dst, tag).wait()
+            c2p.put((dst, xs[0].cpu()))
+        else:
+            pg.recv(res, src, tag).wait()
+            c2p.put((src, res[0].cpu()))
+
+    @classmethod 
+    def _test_send_recv_group_send_with_format(
+            cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
+        pg = init_pg(rank, world_size)
+        tag = 1
+        res = [torch.ones(2, 2).to(f"npu:{rank}")]
+        xs = [shared_tensors.to(f"npu:{rank}").npu_format_cast(29)]
         dst = 0
         src = 1
         if src == rank:
@@ -115,9 +177,31 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
 
+    def test_send_recv_hccl_dist_with_format(self):
+         self._test_multiprocess(
+            HcclSendRecvDistTest._test_send_recv_dist_recv_with_format,
+            torch.randn(2, 2),
+            HcclSendRecvDistTest._init_dist_hccl)
+
+         self._test_multiprocess(
+            HcclSendRecvDistTest._test_send_recv_dist_send_with_format,
+            torch.randn(2, 2),
+            HcclSendRecvDistTest._init_dist_hccl) 
+
     def test_send_recv_hccl_group(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_group,
+            torch.randn(2, 2),
+            HcclSendRecvDistTest._init_pg_hccl)
+
+    def test_send_recv_hccl_group_with_format(self):
+        self._test_multiprocess(
+            HcclSendRecvDistTest._test_send_recv_group_recv_with_format,
+            torch.randn(2, 2),
+            HcclSendRecvDistTest._init_pg_hccl)
+
+        self._test_multiprocess(
+            HcclSendRecvDistTest._test_send_recv_group_send_with_format,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_pg_hccl)
 
