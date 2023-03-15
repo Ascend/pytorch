@@ -106,6 +106,74 @@ class TestProfiler(TestCase):
         }
         judge(expected_event_count, prof)
 
+    def test_memory_profiler(self):
+        # test memory usage
+        def run_profiler(create_tensor, metric):
+            # collecting allocs / deallocs
+            with torch.autograd.profiler.profile(profile_memory=True, record_shapes=False, use_npu=True) as prof:
+                input_x = None
+                with torch.autograd.profiler.record_function("user_allocate"):
+                    input_x = create_tensor()
+                with torch.autograd.profiler.record_function("user_deallocate"):
+                    del input_x
+            return prof.key_averages()
+
+        def check_metrics(stats, metric, allocs=None, deallocs=None):
+            stat_metrics = {}
+            for stat in stats:
+                stat_metrics[stat.key] = getattr(stat, metric)
+            if allocs:
+                for alloc_fn in allocs:
+                    print(alloc_fn, stat_metrics)
+                    self.assertTrue(alloc_fn in stat_metrics)
+                    self.assertTrue(stat_metrics.get(alloc_fn, 0) > 0)
+            if deallocs:
+                for dealloc_fn in deallocs:
+                    self.assertTrue(dealloc_fn in stat_metrics)
+                    self.assertTrue(stat_metrics.get(dealloc_fn, 0) < 0)
+
+        def create_cpu_tensor():
+            return torch.rand(10, 10)
+
+        def create_npu_tensor():
+            return torch.rand(20, 30).npu()
+
+        stats = run_profiler(create_cpu_tensor, "cpu_memory_usage")
+        check_metrics(
+            stats,
+            "cpu_memory_usage",
+            allocs=[
+                "aten::empty",
+                "aten::rand",
+                "user_allocate",
+            ],
+            deallocs=[
+                "user_deallocate",
+            ]
+        )
+
+        if torch.npu.is_available():
+            create_npu_tensor()
+            stats = run_profiler(create_npu_tensor, "npu_memory_usage")
+            check_metrics(
+                stats,
+                "npu_memory_usage",
+                allocs=[
+                    "user_allocate",
+                    "aten::to",
+                ],
+                deallocs=[
+                    "user_deallocate",
+                ]
+            )
+            check_metrics(
+                stats,
+                "cpu_memory_usage",
+                allocs=[
+                    "aten::rand",
+                    "aten::empty"
+                ]
+            )
 
     def test_npu_simple_profiler(self):
         steps = 5
