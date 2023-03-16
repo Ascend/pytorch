@@ -1051,10 +1051,9 @@ op_db: List[OpInfo] = [
         'min',
         aliases=('minimum',),
         dtypes=_dispatch_dtypes((torch.float32, )),
-        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.int8, torch.int32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_max_min_binary,
-        supports_out=False,
-        formats=(0, 3, 4, 29),
+        formats=(0, 2),
     ),
     UnaryUfuncInfo(
         'nn.functional.mish',
