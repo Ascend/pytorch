@@ -51,14 +51,19 @@ bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, c
     return false;
   }
 
-  if (indices.size() == 2) {
-    // The dtype of indices only support int64, when there are 2 indices.
-    if (indices[0].scalar_type() != at::kLong || indices[1].scalar_type() != at::kLong) {
+  if (indices.size() > 1) {
+    // The dtype of indices only support int64, and all indices's shape is (n,).
+    if (indices[0].scalar_type() != at::kLong || indices[0].dim() != 1) {
       return false;
     }
-    // Relax the scene : the dtype of two indices is int64, and x'shape is (n, n), and both indices's shape is (n,).
-    if (self.dim() == 2 && indices[0].dim() == 1 && indices[1].dim() == 1 && 
-        indices[0].sizes() == indices[1].sizes()) {
+    for (int32_t idx = 1; idx < indices.size(); idx++) {
+      if (indices[idx].scalar_type() != at::kLong ||
+          indices[idx].dim() != 1 ||
+          indices[idx].sizes() != indices[idx - 1].sizes()) {
+        return false;
+      }
+    }
+    if (self.dim() == indices.size()) {
       return true;
     }
   }
@@ -151,6 +156,42 @@ at::Tensor& index_out_nocheck_npu(
   return result;
 }
 
+at::Tensor index_high_dims(const at::Tensor& self, std::vector<at::Tensor> indices) {
+  // masks corresponds to indices. 0 indicates undefined tensor.
+  at::SmallVector<int64_t, N> masks;
+  std::vector<at::Tensor> all_defined_indices;
+  for (int i = 0; i < indices.size(); i++) {
+    if (indices[i].defined()) {
+      all_defined_indices.emplace_back(indices[i]);
+      masks.emplace_back(1);
+      continue;
+    }
+    masks.emplace_back(0);
+  }
+
+  /**
+   * When input.size(0) = 1, if the dtype of indices is int64,
+   * and indices only for 0 dimension, can broadcast to output.
+   */
+  if (self.size(0) == 1 && masks.size() == 1 && masks[0] == 1 &&
+      all_defined_indices[0].scalar_type() == at::kLong && all_defined_indices[0].dim() == 1) {
+    c10::SmallVector<int64_t, N> output_size = array_to_small_vector(self.sizes());
+    output_size[0] = all_defined_indices[0].size(0);
+    at::Tensor result = NPUNativeFunctions::npu_broadcast(self, output_size);
+    return result;
+  }
+
+  at::Tensor self_nd = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+
+  auto output_size = index_npu_output_size(self_nd, indices);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self_nd, output_size, ACL_FORMAT_ND);
+
+  // calculate the output result of the NPU
+  index_out_nocheck_npu(self_nd, masks, all_defined_indices, result);
+
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {
   /**
    * In the cann framework, index operator belongs to the fourth type of
@@ -164,35 +205,48 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
   if (self.device().type() == at::kCPU) {
     return at::native::index(self, orig);
   }
-  auto indices = at::native::expandTensors(self, orig);
-  for (auto & indice : indices) {
-    if (indice.defined() && indice.device() != self.device()) {
-      indice = indice.to(self.device());
-    }
-  }
 
   GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
 
   at::native::checkIndexTensorTypes(orig);
+  auto indices = AdvanceIndex::npu_expand_tensors(self, orig);
+
   // masks corresponds to indices. 0 indicates undefined tensor.
   at::SmallVector<int64_t, N> masks;
-  std::vector<at::Tensor> allDefinedIndices;
-  for (c10::optional<at::Tensor> index_opt : orig) {
-    if (index_opt.has_value()) {
-      at::Tensor index = std::move(*index_opt);
-      if (index.defined()) {
-        allDefinedIndices.emplace_back(index);
-        masks.emplace_back(1);
-        continue;
-      }
+  std::vector<at::Tensor> all_defined_indices;
+
+  /**
+   * indices_flag: 0, 1, 2, 3
+   * 0 -- dim 0 and contiguous, e.g. masks: [1, 1, 1]
+   * 1 -- not dim 0 and contiguous, e.g. masks: [0, 1, 1, 1] or [0, 0, 1]
+   * 2 -- not contiguous, e.g. masks: [0, 1, 1, 0, 1] or [1, 1, 0, 1]
+   * 3 -- index.dim > 0, e.g. indices: [:, [[1, 0], [0, 1]]]
+   */
+  int indices_flag = 0;
+  int is_1_in_masks = 0;
+  for (int i = 0; i < indices.size(); i++) {
+    if (indices[i].dim() > 1) {
+      indices_flag = 3;
+      break;
+    }
+    if (indices[i].defined()) {
+      all_defined_indices.emplace_back(indices[i]);
+      masks.emplace_back(1);
+      is_1_in_masks = 1;
+      continue;
     }
     masks.emplace_back(0);
-  }
-
-  for (auto &allDefinedIndice : allDefinedIndices) {
-    if (allDefinedIndice.device() != self.device()) {
-      allDefinedIndice = allDefinedIndice.to(self.device());
+    if (indices_flag == 2) {
+      continue;
     }
+    if (is_1_in_masks == 1) {
+      indices_flag = 2;
+    } else {
+      indices_flag = 1;
+    }
+  }
+  if (indices_flag == 3) {
+    return index_high_dims(self, indices);
   }
 
   /**
@@ -200,20 +254,59 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
    * and indices only for 0 dimension, can broadcast to output.
    */
   if (self.size(0) == 1 && masks.size() == 1 && masks[0] == 1 &&
-      allDefinedIndices[0].scalar_type() == at::kLong && allDefinedIndices[0].dim() == 1) {
+      all_defined_indices[0].scalar_type() == at::kLong && all_defined_indices[0].dim() == 1) {
     c10::SmallVector<int64_t, N> output_size = array_to_small_vector(self.sizes());
-    output_size[0] = allDefinedIndices[0].size(0);
+    output_size[0] = all_defined_indices[0].size(0);
     at::Tensor result = NPUNativeFunctions::npu_broadcast(self, output_size);
     return result;
   }
 
-  at::Tensor formatCastOfSelf = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+  at::Tensor self_nd = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
 
-  auto outputSize = index_npu_output_size(formatCastOfSelf, indices);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(formatCastOfSelf,  outputSize, ACL_FORMAT_ND);
+  at::SmallVector<int64_t, N> masks_trans = {};
+  if (indices_flag != 0) {
+    int index_num = all_defined_indices.size();
+    masks_trans.assign(index_num, 1);
+  } else {
+    masks_trans = masks;
+  }
+
+  at::SmallVector<int64_t, N> perm_0 = {};
+  at::SmallVector<int64_t, N> perm_1 = {};
+  for (int i = 0; i < masks.size(); i++) {
+    if (masks[i] == 0) {
+      perm_0.emplace_back(i);
+    } else {
+      perm_1.emplace_back(i);
+    }
+  }
+  perm_1.insert(perm_1.end(), perm_0.begin(), perm_0.end());
+  int supplement_iter = self_nd.dim() - perm_1.size();
+  int perm_1_size = perm_1.size();
+  if (perm_1.size() < self_nd.dim()) {
+    for (int i = 0; i < supplement_iter; i++) {
+      perm_1.emplace_back(perm_1_size + i);
+    }
+  }
+
+  at::Tensor self_nd_trans = (perm_0.size() != 0) ?
+      NPUNativeFunctions::npu_transpose(self_nd, perm_1, true) : self_nd;
+
+  auto output_size = index_npu_output_size(self_nd_trans, all_defined_indices);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self_nd_trans, output_size, ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
-  index_out_nocheck_npu(formatCastOfSelf, masks, allDefinedIndices, result);
+  index_out_nocheck_npu(self_nd_trans, masks_trans, all_defined_indices, result);
+
+  if (indices_flag == 1) {
+    int out_dim = result.dim();
+    at::SmallVector<int64_t, N> perm_flag1 = {};
+    for (int i = 1; i < out_dim; i++) {
+      perm_flag1.emplace_back(i);
+    }
+    perm_flag1.insert(perm_flag1.begin() + perm_1[0], 0);
+    result = NPUNativeFunctions::npu_transpose(result, perm_flag1, true);
+  }
 
   return result;
 }
