@@ -14,23 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/core/IListRef.h>
+#include <ATen/native/TypeProperties.h>
+#include <third_party/acl/inc/op_proto/split_combination_ops.h>
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include <ATen/native/TypeProperties.h>
-#include <third_party/acl/inc/op_proto/split_combination_ops.h>
 
 namespace at_npu
 {
   namespace native
   {
 
-    namespace 
+    namespace
     {
     template <typename ge_op_type>
     at_npu::native::DynamicInputRegFunc concat_func =
         [](DyNumAndIndex num_and_index,
-          std::string op_name) -> ge::OperatorPtr 
+          std::string op_name) -> ge::OperatorPtr
           {
             auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
             ge_op->create_dynamic_input_byindex_x(
@@ -38,14 +40,15 @@ namespace at_npu
             return ge_op;
           };
     }
-    
-    c10::SmallVector<at::Tensor, N> cat_dest_tensor_list(at::TensorList tensors)
+
+    c10::SmallVector<at::Tensor, N> cat_dest_tensor_list(const at::MaterializedITensorListRef& tensors)
     {
-      at::ScalarType high_type = at::native::result_type(tensors);
+      auto high_type = at::native::result_type(tensors);
       c10::SmallVector<at::Tensor, N> dstTensorList;
       // pytorch supports empty tensors, which needs to be removed from the NPU.
-      for (at::Tensor tensor : tensors)
+      for (const at::Tensor& t : tensors)
       {
+        at::Tensor tensor = t;
         if (tensor.dim() == 1 && tensor.sizes()[0] == 0)
         {
           continue;
@@ -120,11 +123,11 @@ namespace at_npu
       return size;
     }
 
-    at::Tensor &_cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
+    at::Tensor &_cat_out(const at::MaterializedITensorListRef& tensors, int64_t dim, at::Tensor &result)
     {
       if (tensors.size() == 1)
       {
-        return result.copy_(tensors[0]);
+        return result.copy_(tensors[0].get());
       }
 
       c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
@@ -174,9 +177,10 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
+    at::Tensor &NPUNativeFunctions::cat_out(const at::ITensorListRef& tensors, int64_t dim, at::Tensor &result)
     {
-      c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
+      auto materialized = tensors.materialize();
+      c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(materialized);
 
       int64_t dim_post_expr = 0;
       if (inputTensors.size() > 0)
@@ -188,12 +192,12 @@ namespace at_npu
       dim = CalcuOpUtil::MakeWrapDim(dim, dim_post_expr);
       auto outputSize = cat_npu_output_size(inputTensors, dim);
       OpPreparation::CheckOut(
-          {tensors[0]},
+          {materialized[0].get()},
           result,
           ACL_FORMAT_ND,
-          tensors[0].scalar_type(),
+          materialized[0].get().scalar_type(),
           outputSize);
-      return _cat_out(tensors, dim, result);
+      return _cat_out(materialized, dim, result);
     }
 
     at::Tensor &NPUNativeFunctions::cat_out(at::TensorList tensors, at::Dimname dim, at::Tensor &result)
@@ -201,7 +205,7 @@ namespace at_npu
       return at::cat_out(result, tensors, dimname_to_position(tensors[0], dim));
     }
 
-    at::Tensor _cat(at::TensorList tensors, int64_t dim)
+    at::Tensor _cat(const at::MaterializedITensorListRef& tensors, int64_t dim)
     {
       c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
 
@@ -249,9 +253,10 @@ namespace at_npu
       }
     }
 
-    at::Tensor NPUNativeFunctions::cat(at::TensorList tensors, int64_t dim)
+    at::Tensor NPUNativeFunctions::cat(const at::ITensorListRef& tensors, int64_t dim)
     {
-      return _cat(tensors, dim);
+      auto materialized = tensors.materialize();
+      return _cat(materialized, dim);
     }
 
     at::Tensor NPUNativeFunctions::cat(at::TensorList tensors, at::Dimname dim)

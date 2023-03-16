@@ -32,7 +32,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_npu_support(
   const at::Tensor& bias_ = c10::value_or_else(bias_ex, [] {return at::Tensor();});
   at::Tensor bias = bias_;
 
-  DCHECK_EQ(input.numel(), M * N);
+  TORCH_DCHECK_EQ(input.numel(), M * N);
   DCHECK(!weight.defined() || weight.numel() == N);
   DCHECK(!bias.defined() || bias.numel() == N);
 

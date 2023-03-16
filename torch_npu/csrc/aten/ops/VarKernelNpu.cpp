@@ -120,19 +120,19 @@ tuple<at::Tensor&, at::Tensor&> var_mean_out_npu(
 
 at::Tensor& NPUNativeFunctions::var_out(
     const at::Tensor& self,
-    at::IntArrayRef dim,
+    at::OptionalIntArrayRef dim,
     bool unbiased,
     bool keepdim,
     at::Tensor& var) {
   // check and trans dim
-  auto dim_now = check_and_trans_dim(self, dim);
+  auto dim_now = check_and_trans_dim(self, dim.value());
   auto outputSize = var_npu_output_size(self, dim_now, keepdim);
 
   // construct the output mean tensor of the NPU
   at::Tensor mean = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor var_ = OpPreparation::ApplyTensor(self, outputSize);
   
-  var_mean_out_npu(var_, mean, self, dim, unbiased, keepdim);
+  var_mean_out_npu(var_, mean, self, dim.value(), unbiased, keepdim);
   OpPreparation::CheckOut(
       {var_},
       var,
@@ -160,10 +160,10 @@ at::Tensor NPUNativeFunctions::var(const at::Tensor& self, bool unbiased) {
 
 at::Tensor NPUNativeFunctions::var(
     const at::Tensor& self,
-    at::IntArrayRef dim,
+    at::OptionalIntArrayRef dim,
     bool unbiased,
     bool keepdim) {
-  auto dim_now = check_and_trans_dim(self, dim);
+  auto dim_now = check_and_trans_dim(self, dim.value());
   // calculate the output size
   auto outputSize = var_npu_output_size(self, dim_now, keepdim);
 
@@ -171,7 +171,7 @@ at::Tensor NPUNativeFunctions::var(
   at::Tensor variance = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
-  NPUNativeFunctions::var_out(self, dim, unbiased, keepdim, variance);
+  NPUNativeFunctions::var_out(self, dim.value(), unbiased, keepdim, variance);
 
   return variance;
 }
@@ -198,10 +198,10 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
 
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
     const at::Tensor& self,
-    at::IntArrayRef dim,
+    at::OptionalIntArrayRef dim,
     bool unbiased,
     bool keepdim) {
-  auto dim_now = check_and_trans_dim(self, dim);
+  auto dim_now = check_and_trans_dim(self, dim.value());
   // calculate the output size
   auto outputSize = var_npu_output_size(self, dim_now, keepdim);
 
@@ -211,7 +211,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
   at::Tensor mean = OpPreparation::ApplyTensor(self, outputSize);
   
   // calculate the output result of the NPU
-  var_mean_out_npu(variance, mean, self, dim, unbiased, keepdim);
+  var_mean_out_npu(variance, mean, self, dim.value(), unbiased, keepdim);
 
   return tuple<at::Tensor, at::Tensor>(variance, mean);
 }

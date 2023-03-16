@@ -73,8 +73,8 @@ at::Tensor& check_self_dtype_npu(at::Tensor& self){
 
 std::tuple<at::Tensor, at::Tensor> check_dtype_npu(at::Tensor& self, at::Tensor& other){
   if (self.dtype() == at::ScalarType::Bool ||
-      self.dtype() == at::ScalarType::Int &&
-      other.scalar_type() == at::ScalarType::Double) {
+      (self.dtype() == at::ScalarType::Int &&
+      other.scalar_type() == at::ScalarType::Double)) {
     self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
   if (other.scalar_type() == at::ScalarType::Double) {

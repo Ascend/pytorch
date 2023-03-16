@@ -22,6 +22,7 @@
 #include <c10/util/irange.h>
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/PyProcessGroup.hpp>
+#include <c10d/Work.hpp>
 #include <pybind11/chrono.h>
 
 #include <torch/csrc/Exceptions.h>
@@ -154,7 +155,7 @@ protected:
 private:
 
   // The broadcast work that is kicked off upon construction.
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> work_;
+  c10::intrusive_ptr<c10d::Work> work_;
 };
 
 // Broadcast many tensors to all processes in the process group.
@@ -412,7 +413,7 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
       .def("allgather_togather",
            [](const c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL>& self,
               std::vector<at::Tensor>& output_tensors,
-              std::vector<at::Tensor>& input_tensor) -> c10::intrusive_ptr<c10d::ProcessGroup::Work> {
+              std::vector<at::Tensor>& input_tensor) -> c10::intrusive_ptr<c10d::Work> {
               return self->allgather_togather(
                   output_tensors, input_tensor);
            },
@@ -423,7 +424,7 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
                std::vector<at::Tensor>& inputs,
                std::vector<at::Tensor>& outputs,
                int64_t fusion_id,
-               const c10d::AllreduceOptions& opts) -> c10::intrusive_ptr<c10d::ProcessGroup::Work> {
+               const c10d::AllreduceOptions& opts) -> c10::intrusive_ptr<c10d::Work> {
                  return pg.allreduce_out(inputs, outputs, fusion_id, opts);
            },
            py::call_guard<py::gil_scoped_release>());

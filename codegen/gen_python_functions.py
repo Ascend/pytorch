@@ -86,6 +86,7 @@ SKIP_PYTHON_BINDINGS_SIGNATURES = []
 
 DONT_RECORD_TRACE = []
 
+
 def should_trace(f: NativeFunction) -> bool:
     # Operations involving Storage or Type are not traceable at the moment
     if any(str(arg.type) in {'Storage', 'Type', 'ConstQuantizerPtr'}
@@ -96,8 +97,11 @@ def should_trace(f: NativeFunction) -> bool:
         return False
     return f.func.name.name.base not in DONT_RECORD_TRACE
 
+
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
+
+
 def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     rs: List[NativeFunction] = []
     bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
@@ -154,8 +158,10 @@ def should_generate_py_binding(f: NativeFunction) -> bool:
 
     return True
 
+
 def get_pycname(name: BaseOperatorName) -> str:
     return f'THPVariable_{name}'
+
 
 def group_filter_overloads(
     pairs: Sequence[PythonSignatureNativeFunctionPair],
@@ -166,6 +172,7 @@ def group_filter_overloads(
         if pred(pair.function):
             grouped[pair.function.func.name.name].append(pair)
     return grouped
+
 
 def create_python_bindings(
     fm: FileManager,
@@ -247,7 +254,6 @@ def _${name}(*args, **kwargs):
     for name in sorted(grouped.keys(), key=lambda x: str(x)):
         py_device_method_defs.append(method_device_def(name))
         device_methods_def_py_dispatch.append(method_device_def_dispatch(name))
-        
 
     fm.write_with_template(filename, filename, lambda: {
         'device_methods_def_py': py_device_method_defs,
@@ -265,8 +271,9 @@ def _${name}(*args, **kwargs):
 
     device_methods = query_methods(fm.install_dir + filename)
     if len(device_methods) != len(set(device_methods)):
-        raise RuntimeError("In device methods file " + 
-                    str(fm.install_dir + filename) + " has multi-definition function.")
+        raise RuntimeError("In device methods file " +
+                           str(fm.install_dir + filename) + " has multi-definition function.")
+
 
 def load_signatures(
     native_functions: List[NativeFunction],
@@ -285,11 +292,13 @@ def load_signatures(
     pairs = list(map(gen_signature_pairs, native_functions))
     return pairs
 
+
 @with_native_function
 def gen_namedtuple_typename_key(f: NativeFunction) -> str:
     name = cpp.name(f.func)
     fieldnames = namedtuple_fieldnames(f.func.returns)
     return '_'.join([name] + fieldnames)
+
 
 def emit_namedtuple_typedefs(
     overloads: Sequence[PythonSignatureNativeFunctionPair]
@@ -336,6 +345,7 @@ if (!{typename}_initialized) {{
 """)
 
     return field_defs + type_defs, type_names
+
 
 # python binding for all overloads of a particular function/method
 PY_VARIABLE_METHOD_VARARGS = CodeTemplate(r"""\
@@ -396,6 +406,7 @@ static PyObject * ${pycname}(PyObject* self_, PyObject* args)
   ${method_footer}
 }
 """)
+
 
 def method_impl(
     name: BaseOperatorName,
@@ -598,7 +609,6 @@ def sort_overloads(
                 # last in signature ordering. See discussion: https://github.com/pytorch/pytorch/issues/58087
                 str(t1) == 'Tensor[]' and str(t2).find("[]") != -1)
 
-
     def is_smaller(s1: PythonSignature, s2: PythonSignature) -> bool:
         """Returns True if s1 < s2 in the partial order."""
         args1, args2 = s1.arguments(skip_outputs=True), s2.arguments(skip_outputs=True)
@@ -641,7 +651,7 @@ def sort_overloads(
 
 
 def emit_single_dispatch(
-    ps: PythonSignature, f: NativeFunction, namedtuple_typenames: Dict[str, str], custom = True
+    ps: PythonSignature, f: NativeFunction, namedtuple_typenames: Dict[str, str], custom=True
 ) -> str:
     """
     Emit dispatch code for a single native function.
@@ -653,8 +663,7 @@ def emit_single_dispatch(
 
         # dispatch lambda signature
         name = cpp.name(f.func)
-        lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}",
-                                    dispatch_lambda_args(ps, f, custom)))
+        lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}", dispatch_lambda_args(ps, f, custom)))
         lambda_return = dispatch_lambda_return_str(f)
 
         # device init
@@ -709,6 +718,7 @@ return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad
 
     return go(f)
 
+
 # Parse native_functions.yaml into a sequence of NativeFunctions
 def parse_native_yaml(path: str) -> List[NativeFunction]:
     from io import StringIO
@@ -739,6 +749,7 @@ def parse_native_yaml(path: str) -> List[NativeFunction]:
             rs.append(func)
     return rs
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate functions binding files')
     parser.add_argument(
@@ -766,7 +777,7 @@ if __name__ == "__main__":
     create_python_bindings(file_manager, functions, device_native_functions, lambda f: Variant.function in f.variants,
                            'torch_npu', 'python_custom_functions.cpp', method=False)
     
-    file_device_manager=FileManager(install_dir=options.output_dir +"../../utils/", 
-                                    template_dir=options.template_path, dry_run=False)
-    create_python_device_bindings(file_device_manager, device_native_functions, 
-                            lambda f: Variant.function in f.variants, 'torch_npu', 'torch_funcs.py', method=False)
+    file_device_manager = FileManager(install_dir=options.output_dir + "../../utils/",
+                                      template_dir=options.template_path, dry_run=False)
+    create_python_device_bindings(file_device_manager, device_native_functions,
+                                  lambda f: Variant.function in f.variants, 'torch_npu', 'torch_funcs.py', method=False)

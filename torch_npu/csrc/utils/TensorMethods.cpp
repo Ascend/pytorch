@@ -298,7 +298,7 @@ static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args,
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {
-          "new_empty_strided(Tensor self, IntArrayRef size, IntArrayRef "
+          "new_empty_strided(Tensor self, SymIntArrayRef size, SymIntArrayRef "
           "stride, *, ScalarType dtype=None, Layout layout=torch.strided, "
           "Device device=None, bool pin_memory=False, bool "
           "requires_grad=False)",
@@ -318,11 +318,11 @@ static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args,
       .layout(r.layoutWithDefault(4, c10::layout_from_backend(self_.options().backend())))
       .requires_grad(r.toBool(7))
       .pinned_memory(r.toBool(6));
-  auto dispatch_new_empty_strided = [](at::Tensor & self, c10::IntArrayRef size, c10::IntArrayRef stride, at::TensorOptions options) -> at::Tensor {
+  auto dispatch_new_empty_strided = [](at::Tensor & self, c10::SymIntArrayRef size, c10::SymIntArrayRef stride, at::TensorOptions options) -> at::Tensor {
     pybind11::gil_scoped_release no_gil;
-    return self.new_empty_strided(size, stride, options);
+    return self.new_empty_strided_symint(size, stride, options);
   };
-  return torch::autograd::utils::wrap(dispatch_new_empty_strided(self_, r.intlist(1), r.intlist(2), options).set_requires_grad(r.toBool(7)));
+  return torch::autograd::utils::wrap(dispatch_new_empty_strided(self_, r.symintlist(1), r.symintlist(2), options).set_requires_grad(r.toBool(7)));
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

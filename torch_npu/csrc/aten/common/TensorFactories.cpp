@@ -482,6 +482,17 @@ namespace at_npu
       return t;
     }
 
+    at::Tensor NPUNativeFunctions::new_empty_strided(
+        const at::Tensor& self,
+        c10::SymIntArrayRef size,
+        c10::SymIntArrayRef stride,
+        c10::optional<at::ScalarType> dtype,
+        c10::optional<at::Layout> layout,
+        c10::optional<at::Device> device,
+        c10::optional<bool> pin_memory) {
+      return at::native::new_empty_strided_symint(self, size, stride, dtype, layout, device, pin_memory);
+    }
+
     at::Tensor &empty_out_npu(
         at::Tensor &result,
         c10::IntArrayRef size,

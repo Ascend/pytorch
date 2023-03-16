@@ -44,49 +44,51 @@ from codegen.utils import concat_map
 def name(func: FunctionSchema) -> str:
     return cpp.name(func)
 
-def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
+
+def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName, symint: bool = True) -> NamedCType:
     # This is a faux amis.  If it makes sense in the future to add
     # more special cases here, or invert things so cpp.argument_type
     # calls this, or just completely inline the function, please do
     # it.
-    return cpp.argumenttype_type(t, mutable=mutable, binds=binds)
+    return cpp.argumenttype_type(t, mutable=mutable, binds=binds, symint=symint)
 
-def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
-    return argumenttype_type(a.type, mutable=a.is_write, binds=binds)
 
-def returns_type(rs: Sequence[Return]) -> CType:
+def argument_type(a: Argument, *, binds: ArgName, symint: bool = True) -> NamedCType:
+    return argumenttype_type(a.type, mutable=a.is_write, binds=binds, symint=symint)
+
+
+def returns_type(rs: Sequence[Return], *, symint: bool = True) -> CType:
     # At present, there is no difference. But there could be!
-    return cpp.returns_type(rs)
+    return cpp.returns_type(rs, symint=symint)
 
-def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out: bool) -> List[Binding]:
 
-    should_default = not is_out
-    if isinstance(a, Argument):
-        default: Optional[str] = None
-        if should_default and a.default is not None:
-            default = cpp.default_expr(a.default, a.type)
-        return [
-            Binding(
-                nctype=argument_type(a, binds=a.name),
-                name=a.name, 
-                default=default, 
-                argument=a)
-        ]
-    elif isinstance(a, SelfArgument):
-        return argument(a.argument, is_out=is_out)
-    elif isinstance(a, TensorOptionsArguments):
-        return (
-            argument(a.dtype, is_out=is_out) + 
-            argument(a.layout, is_out=is_out) + 
-            argument(a.device, is_out=is_out) + 
-            argument(a.pin_memory, is_out=is_out) 
-        )
-    else:
-        assert_never(a)
+def jit_arguments(func: FunctionSchema) -> List[Argument]:
+    def to_argument(a: Union[Argument, TensorOptionsArguments, SelfArgument]) -> List[Argument]:
+        if isinstance(a, Argument):
+            return [a]
+        elif isinstance(a, SelfArgument):
+            return [a.argument]
+        elif isinstance(a, TensorOptionsArguments):
+            return [a.dtype, a.layout, a.device, a.pin_memory]
+        else:
+            assert_never(a)
+    return list(concat_map(to_argument, itertools.chain(
+        func.arguments.positional,
+        func.arguments.kwarg_only,
+        func.arguments.out)))
 
-def arguments(func: FunctionSchema) -> List[Binding]:
-    args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
-    args.extend(func.arguments.positional)
-    args.extend(func.arguments.kwarg_only)
-    args.extend(func.arguments.out)
-    return [r for arg in args for r in argument(arg, is_out=func.is_out_fn())]
+
+def argument(
+    a: Argument, *, symint: bool = True
+) -> Binding:
+    return Binding(
+        nctype=argument_type(
+            a,
+            binds=a.name,
+            symint=symint,),
+        name=a.name,
+        argument=a,)
+
+
+def arguments(func: FunctionSchema, *, symint: bool = True) -> List[Binding]:
+    return [argument(a, symint=symint) for a in jit_arguments(func)]

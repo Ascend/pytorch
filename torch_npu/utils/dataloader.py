@@ -17,17 +17,19 @@ import threading
 import itertools
 import queue
 import torch
-from torch.utils.data import _utils
+import torch.distributed as dist
+from torch.utils.data import _utils, IterDataPipe
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter as SrcSingleProcessDataLoaderIter
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter as SrcMultiProcessingDataLoaderIter
 from torch.utils.data.dataloader import DataLoader as SrcDataLoader
-from torch.utils.data.dataloader import _DatasetKind
+from torch.utils.data.dataloader import _DatasetKind, _share_dist_seed
 from torch._utils import ExceptionWrapper
 import torch.multiprocessing as multiprocessing
 from torch._six import string_classes
 import torch_npu
 
 MP_STATUS_CHECK_INTERVAL = 5.0
+
 
 def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
     # This setting is thread local, and prevents the copy in pin_memory from
@@ -62,6 +64,7 @@ def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
                 continue
         del r  # save memory
 
+
 def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                   auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                   num_workers, persistent_workers):
@@ -72,6 +75,7 @@ def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                                auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                                num_workers, persistent_workers)
 
+
 class DataLoader(SrcDataLoader):
     def _get_iterator(self) -> '_BaseDataLoaderIter':
         if self.num_workers == 0:
@@ -79,6 +83,7 @@ class DataLoader(SrcDataLoader):
         else:
             self.check_worker_number_rationality()
             return _MultiProcessingDataLoaderIter(self)
+
 
 class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
     def __init__(self, loader):
@@ -90,12 +95,18 @@ class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
         self._dataset_fetcher = _DatasetKind.create_fetcher(
             self._dataset_kind, self._dataset, self._auto_collation, self._collate_fn, self._drop_last)
 
+
 class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
     r"""Iterates once over the DataLoader's dataset, as specified by the sampler"""
 
     def __init__(self, loader):
         self._dataset = loader.dataset
-        self._shared_seed = loader._get_shared_seed()
+        self._shared_seed = None
+        self._pg = None
+        if isinstance(self._dataset, IterDataPipe):
+            if dist.is_available() and dist.is_initialized():
+                self._pg = dist.new_group(backend="gloo")
+            self._shared_seed = _share_dist_seed(loader.generator, self._pg)
         self._dataset_kind = loader._dataset_kind
         self._IterableDataset_len_called = loader._IterableDataset_len_called
         self._auto_collation = loader._auto_collation
@@ -267,6 +278,7 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
 
     def __del__(self):
         self._shutdown_workers()
-        
+
+
 def add_dataloader_method():
     torch.utils.data.DataLoader = DataLoader
