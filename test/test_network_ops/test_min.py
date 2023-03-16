@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMin(TestCase):
+
     def cpu_op_exec(self, input1):
         output = torch.min(input1)
         output = output.numpy()
@@ -49,6 +51,26 @@ class TestMin(TestCase):
         torch.min(input1, input2, out=out)
         output = out.to("cpu")
         output = output.numpy()
+        return output
+
+    def cpu_op_exec_minimum(self, input1, input2):
+        output = torch.minimum(input1, input2)
+        output = output.numpy()
+        return output
+
+    def npu_op_exec_minimum(self, input1, input2):
+        output = torch.minimum(input1, input2)
+        output = output.to("cpu").numpy()
+        return output
+
+    def cpu_op_other_exec_out_minimum(self, input1, input2, out):
+        torch.minimum(input1, input2, out=out)
+        output = out.numpy()
+        return output
+
+    def npu_op_other_exec_out_minimum(self, input1, input2, out):
+        torch.minimum(input1, input2, out=out)
+        output = out.to("cpu").numpy()
         return output
 
     def cpu_op_dim_exec(self, input1, dim, keepdim):
@@ -507,6 +529,99 @@ class TestMin(TestCase):
                         in keepdim_list
                         ]
         self.amin_result(shape_format)
+
+    def test_minimum_result_float(self):
+        shape_format = [
+            [[np.float32, 2, [3]], [np.float64, 2, [3]]],
+            [[np.float32, 2, [3, 4]], [np.float64, 2, [3, 4]]],
+            [[np.float32, 2, [3, 4, 5]], [np.float64, 2, [3, 4, 5]]],
+            [[np.float32, 2, [3, 4, 5, 6]], [np.float64, 2, [3, 4, 5, 6]]],
+        ]
+        for item in shape_format:
+            cpuinput1, npuinput1 = create_common_tensor(item[0], -10, 10)
+            cpuinput2, npuinput2 = create_common_tensor(item[1], 0, 10)
+            cpu_output, npu_output = create_common_tensor(item[1], 0, 10)
+            cpu_output = self.cpu_op_exec_minimum(cpuinput1, cpuinput2)
+            npu_output = self.npu_op_exec_minimum(npuinput1, npuinput2)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_minimum_result_int(self):
+        shape_format = [
+            [[np.int32, 2, [3]], [np.int64, 2, [3]]],
+            [[np.int32, 2, [3, 4]], [np.int64, 2, [3, 4]]],
+            [[np.int32, 2, [3, 4, 5]], [np.int64, 2, [3, 4, 5]]],
+            [[np.int32, 2, [3, 4, 5, 6]], [np.int64, 2, [3, 4, 5, 6]]],
+        ]
+        for item in shape_format:
+            cpuinput1, npuinput1 = create_common_tensor(item[0], -10, 10)
+            cpuinput2, npuinput2 = create_common_tensor(item[1], 0, 10)
+            cpu_output, npu_output = create_common_tensor(item[1], 0, 10)
+            cpu_output = self.cpu_op_exec_minimum(cpuinput1, cpuinput2)
+            npu_output = self.npu_op_exec_minimum(npuinput1, npuinput2)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_minimum_result_float_int(self):
+        shape_format = [
+            [[np.int32, 2, [3]], [np.float64, 2, [3]]],
+            [[np.int32, 2, [3, 4]], [np.float64, 2, [3, 4]]],
+            [[np.int32, 2, [3, 4, 5]], [np.float64, 2, [3, 4, 5]]],
+            [[np.int32, 2, [3, 4, 5, 6]], [np.float64, 2, [3, 4, 5, 6]]],
+        ]
+        for item in shape_format:
+            cpuinput1, npuinput1 = create_common_tensor(item[0], -10, 10)
+            cpuinput2, npuinput2 = create_common_tensor(item[1], 0, 10)
+            cpu_output, npu_output = create_common_tensor(item[0], 0, 10)
+            cpu_output = self.cpu_op_exec_minimum(cpuinput1, cpuinput2)
+            npu_output = self.npu_op_exec_minimum(npuinput1, npuinput2)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_minimum_result_out_float(self):
+        shape_format = [
+            [[np.float32, 2, [3]], [np.float64, 2, [3]]],
+            [[np.float32, 2, [3, 4]], [np.float64, 2, [3, 4]]],
+            [[np.float32, 2, [3, 4, 5]], [np.float64, 2, [3, 4, 5]]],
+            [[np.float32, 2, [3, 4, 5, 6]], [np.float64, 2, [3, 4, 5, 6]]],
+        ]
+        for item in shape_format:
+            cpuinput1, npuinput1 = create_common_tensor(item[0], -10, 10)
+            cpuinput2, npuinput2 = create_common_tensor(item[1], 0, 10)
+            cpu_output, npu_output = create_common_tensor(item[0], 0, 10)
+            cpu_result, npu_result = create_common_tensor(item[0], 0, 10)
+            cpu_result = self.cpu_op_other_exec_out_minimum(cpuinput1, cpuinput2, out=cpu_output)
+            npu_result = self.npu_op_other_exec_out_minimum(npuinput1, npuinput2, out=npu_output)
+            self.assertRtolEqual(cpu_result, npu_result)
+
+    def test_minimum_result_out_int(self):
+        shape_format = [
+            [[np.int32, 2, [3]], [np.int64, 2, [3]]],
+            [[np.int32, 2, [3, 4]], [np.int64, 2, [3, 4]]],
+            [[np.int32, 2, [3, 4, 5]], [np.int64, 2, [3, 4, 5]]],
+            [[np.int32, 2, [3, 4, 5, 6]], [np.int64, 2, [3, 4, 5, 6]]],
+        ]
+        for item in shape_format:
+            cpuinput1, npuinput1 = create_common_tensor(item[0], -10, 10)
+            cpuinput2, npuinput2 = create_common_tensor(item[1], 0, 10)
+            cpu_output, npu_output = create_common_tensor(item[1], 0, 10)
+            cpu_result, npu_result = create_common_tensor(item[1], 0, 10)
+            cpu_result = self.cpu_op_other_exec_out_minimum(cpuinput1, cpuinput2, out=cpu_output)
+            npu_result = self.npu_op_other_exec_out_minimum(npuinput1, npuinput2, out=npu_output)
+            self.assertRtolEqual(cpu_result, npu_result)
+
+    def test_minimum_result_out_float_int(self):
+        shape_format = [
+            [[np.int32, 2, [3]], [np.float64, 2, [3]]],
+            [[np.int32, 2, [3, 4]], [np.float64, 2, [3, 4]]],
+            [[np.int32, 2, [3, 4, 5]], [np.float64, 2, [3, 4, 5]]],
+            [[np.int32, 2, [3, 4, 5, 6]], [np.float64, 2, [3, 4, 5, 6]]],
+        ]
+        for item in shape_format:
+            cpuinput1, npuinput1 = create_common_tensor(item[0], -10, 10)
+            cpuinput2, npuinput2 = create_common_tensor(item[1], 0, 10)
+            cpu_output, npu_output = create_common_tensor(item[1], 0, 10)
+            cpu_result, npu_result = create_common_tensor(item[1], 0, 10)
+            cpu_result = self.cpu_op_other_exec_out_minimum(cpuinput1, cpuinput2, out=cpu_output)
+            npu_result = self.npu_op_other_exec_out_minimum(npuinput1, npuinput2, out=npu_output)
+            self.assertRtolEqual(cpu_result, npu_result)
 
 
 if __name__ == "__main__":
