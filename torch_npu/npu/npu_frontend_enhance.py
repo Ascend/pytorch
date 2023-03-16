@@ -27,9 +27,9 @@ def set_option(option):
     if not isinstance(option, dict):
         raise TypeError("npu option must be a dict.")
 
-    if option.get("MM_BMM_ND_ENABLE") is "enable":
+    if option.get("MM_BMM_ND_ENABLE") == "enable":
         set_mm_bmm_format_nd(True)
-    elif option.get("MM_BMM_ND_ENABLE") is "disable":
+    elif option.get("MM_BMM_ND_ENABLE") == "disable":
         set_mm_bmm_format_nd(False)
 
     for option_name, option_value in option.items():
