@@ -388,25 +388,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    def test_wrapper_npu_format_cast(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super(Model, self).__init__()
-
-            def forward(self, input_):
-                return torch_npu.npu_format_cast(input_, 2)
-
-        def export_onnx(onnx_model_name):
-            input_ = torch.rand(3, 3).npu()
-            model = Model().to("npu")
-            model(input_)
-            self.onnx_export(model, input_, onnx_model_name, ["input_"])
-
-        onnx_model_name = "model_npu_format_cast.onnx"
-        export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))
-
     def test_wrapper_npu_softmax_cross_entropy_with_logits(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1153,6 +1134,29 @@ class TestOnnxOps(TestCase):
                              ["input_1", "input_2"])
 
         onnx_model_name = "model_npu_dropout_with_add_softmax.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
+    def test_wrapper_npu_scaled_masked_softmax(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, input_, mask):
+                scale = 0.56
+                fixed_triu_mask = False
+                return torch_npu.npu_scaled_masked_softmax(input_, mask,
+                                                           scale, fixed_triu_mask)
+
+        def export_onnx(onnx_model_name):
+            input_ = torch.rand((4, 3, 64, 64)).npu()
+            mask = torch.rand((4, 3, 64, 64)).npu() > 0
+            model = Model().to("npu")
+            self.onnx_export(model, (input_, mask), onnx_model_name,
+                             ["input_", "mask"])
+
+        onnx_model_name = "model_npu_scaled_masked_softmax.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))

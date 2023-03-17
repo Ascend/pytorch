@@ -177,9 +177,9 @@ class NPUGiouOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_giou(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, self: Tensor, gtboxes: Tensor, tran: bool = False, is_cross: bool = False,
+    def symbolic(g, self: Tensor, gtboxes: Tensor, trans: bool = False, is_cross: bool = False,
                  mode: int = 0):
-        return g.op("npu::NPUGiou", self, gtboxes, tran_i=tran, is_cross_i=is_cross, mode_i=mode)
+        return g.op("npu::NPUGiou", self, gtboxes, trans_i=trans, is_cross_i=is_cross, mode_i=mode)
 
 
 class NPUDeformableConv2dOP(torch.autograd.Function):
@@ -197,17 +197,6 @@ class NPUDeformableConv2dOP(torch.autograd.Function):
         return g.op("npu::NPUDeformableConv2d", input, weight, offset, bias, kernel_sizes_i=kernel_size,
                     strides_i=stride, paddings_i=padding, dilations_i=dilation, groups_i=groups,
                     deformable_groups_i=deformable_groups, modulated_i=modulated, outputs=2)
-
-
-class NPUFormatCastOP(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_format_cast(*args, **kwargs)
-
-    @staticmethod
-    def symbolic(g, self: Tensor, acl_format: int):
-        return g.op("npu::NPUFormatCast", self, acl_format_i=acl_format)
 
 
 class NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
@@ -577,8 +566,9 @@ class NPUGruOP(torch.autograd.Function):
                     dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, outputs=6)
 
+
 class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch_npu._C._VariableFunctionsClass.npu_dropout_with_add_softmax(*args, **kwargs)
@@ -587,6 +577,17 @@ class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
     def symbolic(g, self: Tensor, x1: Tensor, alpha: float, prob: float, dim: int):
         return g.op("npu::NPUDropoutWithAddSoftmax", self, x1, alpha_f=alpha, prob_f=prob,
                     dim_i=dim, outputs=3)
+
+
+class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_scaled_masked_softmax(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, x: Tensor, mask: Tensor, scale: float = 1, fixed_triu_mask: bool = False):
+        return g.op("npu::NPUScaledMaskedSoftmax", x, mask, scale_f=scale, fixed_triu_mask_i=fixed_triu_mask)
 
 
 def wrapper_npu_one_hot(self, num_classses=-1, depth=1, on_value=1, off_value=0):
@@ -655,10 +656,6 @@ def wrapper_npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stri
                                   dilation=[1, 1, 1, 1], groups=1, deformable_groups=1, modulated=True):
     return NPUDeformableConv2dOP.apply(input, weight, offset, bias, kernel_size, stride,
                                        padding, dilation, groups, deformable_groups, modulated)
-
-
-def wrapper_npu_format_cast(self, acl_format):
-    return NPUFormatCastOP.apply(self, acl_format)
 
 
 def wrapper_npu_softmax_cross_entropy_with_logits(self, labels):
@@ -800,8 +797,13 @@ def wrapper_npu_gru(input, hx, weight_input, weight_hidden, bias_input, bias_hid
     return NPUGruOP.apply(input, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                           seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)
 
+
 def wrapper_npu_dropout_with_add_softmax(self, x1, alpha, prob, dim):
     return NPUDropoutWithAddSoftmaxOP.apply(self, x1, alpha, prob, dim)
+
+
+def wrapper_npu_scaled_masked_softmax(x, mask, scale=1, fixed_triu_mask=False):
+    return NPUScaledMaskedSoftmaxOP.apply(x, mask, scale, fixed_triu_mask)
 
 
 def add_onnx_ops():
@@ -818,7 +820,6 @@ def add_onnx_ops():
     torch_npu.npu_diou = wrapper_npu_diou
     torch_npu.npu_giou = wrapper_npu_giou
     torch_npu.npu_deformable_conv2d = wrapper_npu_deformable_conv2d
-    torch_npu.npu_format_cast = wrapper_npu_format_cast
     torch_npu.npu_softmax_cross_entropy_with_logits = wrapper_npu_softmax_cross_entropy_with_logits
     torch_npu.npu_ps_roi_pooling = wrapper_npu_ps_roi_pooling
     torch_npu.npu_grid_assign_positive = wrapper_npu_grid_assign_positive
@@ -847,3 +848,4 @@ def add_onnx_ops():
     torch_npu.npu_lstm_cell = wrapper_npu_lstm_cell
     torch_npu.npu_gru = wrapper_npu_gru
     torch_npu.npu_dropout_with_add_softmax = wrapper_npu_dropout_with_add_softmax
+    torch_npu.npu_scaled_masked_softmax = wrapper_npu_scaled_masked_softmax
