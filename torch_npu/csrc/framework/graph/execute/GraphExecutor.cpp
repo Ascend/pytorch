@@ -29,6 +29,7 @@
 #include <third_party/acl/inc/op_proto/array_ops.h>
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include <third_party/acl/inc/ge/ge_ir_build.h>
 
 #include <stack>
 
@@ -89,7 +90,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   // before construct graph and tensor, do H2D copy for scalar.
   ScalarMemContext::GetContext().ExecuteH2D(c10_npu::getCurrentNPUStream());
   CombinedInfo inputs = GetInputCombinedInfo();
-  CombinedInfo outputs = GetOutputCombinedInfo();
+  CombinedInfo outputs = GetLiveTensorOutputCombinedInfo();
   if ((outputs.nodes.empty()) && (outputs.none_output_nodes.empty())) {
     return;
   }
@@ -148,7 +149,7 @@ uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo
     input_ops.insert(input_ops.end(),
                      const_input_ops.begin(),
                      const_input_ops.end());
-    graph.SetInputs(input_ops).SetOutputs(GetOutputOps());
+    graph.SetInputs(input_ops).SetOutputs(GetLiveTensorOutputOps());
 
     C10_NPU_CHECK(session_->AddGraph(cur_graph_id, graph));
     graph_id = cur_graph_id;
@@ -156,6 +157,33 @@ uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo
     cur_graph_id = cached_graph_id.value();
   }
   is_cache_hit = cached_graph_id.has_value();
+  return cur_graph_id;
+}
+
+uint32_t GraphExecutor::GetGraphIdWithoutCache(const CombinedInfo &inputs,
+                                               CombinedInfo &outputs,
+                                               at::TensorList returnable_outputs) {
+  uint32_t cur_graph_id = ++graph_id;
+
+  RECORD_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
+  std::vector <ge::Operator> const_input_ops;
+  ConstructOpsAndAddEdge(outputs, const_input_ops);
+  ge::Graph graph("PytorchGraph");
+  std::vector <ge::Operator> input_ops = GetInputOps();
+  input_ops.insert(input_ops.end(),
+                   const_input_ops.begin(),
+                   const_input_ops.end());
+  graph.SetInputs(input_ops).SetOutputs(GetAllOutputOps(returnable_outputs));
+
+  C10_NPU_CHECK(session_->AddGraph(cur_graph_id, graph));
+
+  std::string graph_name = "pt_compile_graph_" + std::to_string(cur_graph_id);
+  auto status = aclgrphDumpGraph(graph, graph_name.c_str(), graph_name.length());
+  if (status != 0) {
+    std::cout << "Dump graph failed: " << graph_name << std::endl;
+    return -1;
+  }
+
   return cur_graph_id;
 }
 
@@ -316,7 +344,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
   return ops;
 }
 
-GeOutPutOpType GraphExecutor::GetOutputOps() {
+GeOutPutOpType GraphExecutor::GetLiveTensorOutputOps() {
   GeOutPutOpType ops_and_idx;
   auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
@@ -353,6 +381,15 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
       ge::Tensor ge_tensor =
           PrepareInputTensor(input_storages[index], tensor_desc, tensor_capacity);
       input_infos.tensors.push_back(std::move(ge_tensor));
+
+      if (verbose_) {
+        std::cout<<"----ins "<<index<<", emplace shape";
+        for (auto it : tensor_desc.GetShape().GetDims()){
+          std::cout<<" "<<it;
+        }
+        std::cout<<", at-ptr "<<(void *) (input_storages[index]->data())<<std::endl;
+      }
+
     }
     hash_t topo_hash =
         GraphCache::GetTensorTopoHash(graph_desc.graph_value, tensor_desc);
@@ -364,8 +401,8 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
   return input_infos;
 }
 
-CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
-  RECORD_FUNCTION("GetOutputCombinedInfo", std::vector<c10::IValue>({}));
+CombinedInfo GraphExecutor::GetLiveTensorOutputCombinedInfo() {
+  RECORD_FUNCTION("GetLiveTensorOutputCombinedInfo", std::vector<c10::IValue>({}));
   CombinedInfo output_infos;
   auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
@@ -384,7 +421,7 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
     }
     auto& graph_value =
         torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
-    TORCH_CHECK(graph_value.HashNode(), "output must have node!");
+    TORCH_CHECK(graph_value.HashNode(), "live tensor output must have node!");
     output_infos.nodes.push_back(graph_value.GetCurNode());
     ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
         torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_desc(),
@@ -406,6 +443,147 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
     output_infos.hash_of_topo_and_attr.emplace_back(node_ptr->GetNodeHash());
   }
   return output_infos;
+}
+
+
+CombinedInfo GraphExecutor::GetAllOutputCombinedInfo(at::TensorList returnable_outputs) {
+  RECORD_FUNCTION("GetAllOutputCombinedInfo", std::vector<c10::IValue>({}));
+  CombinedInfo output_infos;
+  std::vector<int> returnable_outputs_unique_ids;
+
+  int i = 0;
+  // part 1 for returnable output
+  for (const auto &output_tensor:returnable_outputs) {
+    const auto &output_storage = output_tensor.storage().unsafeGetStorageImpl();
+    auto &graph_value =
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
+    TORCH_CHECK(graph_value.HashNode(), "returnable output must have node!");
+    output_infos.nodes.push_back(graph_value.GetCurNode());
+    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_desc(),
+        graph_value.GetRealDtype());
+    auto ge_tensor = PrepareOutputTenosr(output_storage, tensor_desc);
+    output_infos.tensors.push_back(std::move(ge_tensor));
+
+    auto graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_graph_desc();
+    output_infos.unique_ids.emplace_back(graph_desc.unique_id);
+    returnable_outputs_unique_ids.emplace_back(graph_desc.unique_id);
+
+    if (verbose_) {
+      std::cout<<"----out "<<i<<", emplace shape";
+      for (auto it : tensor_desc.GetShape().GetDims()){
+        std::cout<<" "<<it;
+      }
+      std::cout<<", at-ptr "<<(void *) (output_tensor.data_ptr())<<std::endl;
+    }
+    i++;
+  }
+
+  // part 2 for live tensor output
+  auto output_storages = NpuGraphContextManager::GetInstance()
+      .GetAllStorageOfLiveTensors(init_device_id_);
+  for (auto &output_storage : output_storages) {
+    if (GraphUtils::IsTensorWithoutNode(output_storage) ||
+        GraphUtils::IsDataTensor(output_storage)) {
+      torch_npu::NpuGraphDesc graph_desc =
+          torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_graph_desc();
+      // the tensor of scalar_merge_copy will enter here because is has't node,
+      // only the length of the out queue is increased, nothing else.
+      if ((output_storage->data() == nullptr) &&
+          (!graph_desc.graph_value.GetScalarMemOffset().has_value())) {
+        size_t nbytes = GraphUtils::GetTensorCapacity(output_storage);
+        GraphUtils::SetDataPtrAndNbytes(output_storage, nbytes);
+      }
+      continue;
+    }
+
+    auto graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_graph_desc();
+    bool skip_cur_live_tensor_output = false;
+    for (auto iter :  returnable_outputs_unique_ids) {
+      if (iter == graph_desc.unique_id) {
+        skip_cur_live_tensor_output = true;
+        break;
+      }
+    }
+    if (skip_cur_live_tensor_output) {
+      continue;
+    }
+
+    auto &graph_value =
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
+    TORCH_CHECK(graph_value.HashNode(), "live tensor output must have node!");
+    output_infos.nodes.push_back(graph_value.GetCurNode());
+    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_desc(),
+        graph_value.GetRealDtype());
+    auto ge_tensor = PrepareOutputTenosr(output_storage, tensor_desc);
+    output_infos.tensors.push_back(std::move(ge_tensor));
+    output_infos.unique_ids.emplace_back(graph_desc.unique_id);
+
+    if (verbose_) {
+      std::cout<<"----out live "<<i<<", emplace shape";
+      for (auto it : tensor_desc.GetShape().GetDims()){
+        std::cout<<" "<<it;
+      }
+      std::cout<<", at-ptr "<<(void *) (output_storage->data())<<std::endl;
+    }
+    i++;
+  }
+
+  std::vector <NodePtr> none_output_nodes =
+      NpuGraphContextManager::GetInstance().
+          GetNoneOutputNode(init_device_id_);
+  for (auto &node_ptr : none_output_nodes) {
+    output_infos.none_output_nodes.emplace_back(node_ptr);
+    output_infos.hash_of_topo_and_attr.emplace_back(node_ptr->GetNodeHash());
+  }
+  return output_infos;
+}
+
+
+GeOutPutOpType GraphExecutor::GetAllOutputOps(at::TensorList returnable_outputs) {
+  GeOutPutOpType ops_and_idx;
+  std::vector<int> returnable_out_op_ids;
+
+  for (const auto &output_tensor:returnable_outputs) {
+    const auto &output_storage = output_tensor.storage().unsafeGetStorageImpl();
+    const auto &graph_value =
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
+    auto op_ptr = graph_value.GetCurNode()->GetGeOp();
+    ops_and_idx.emplace_back(
+        *op_ptr, std::vector < size_t > {graph_value.GetValueIndex()});
+
+    auto graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_graph_desc();
+    returnable_out_op_ids.emplace_back(graph_desc.unique_id);
+  }
+
+  auto output_storages = NpuGraphContextManager::GetInstance()
+      .GetAllStorageOfLiveTensors(init_device_id_);
+  for (auto &output_storage : output_storages) {
+    if (GraphUtils::IsTensorWithoutNode(output_storage) ||
+        GraphUtils::IsDataTensor(output_storage)) {
+      continue;
+    }
+
+    auto graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_graph_desc();
+    bool skip_cur_out_op = false;
+    for (auto iter:returnable_out_op_ids) {
+      if (iter == graph_desc.unique_id) {
+        skip_cur_out_op = true;
+        break;
+      }
+    }
+    if (skip_cur_out_op) {
+      continue;
+    }
+
+    const auto &graph_value =
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
+    auto op_ptr = graph_value.GetCurNode()->GetGeOp();
+    ops_and_idx.emplace_back(
+        *op_ptr, std::vector < size_t > {graph_value.GetValueIndex()});
+  }
+  return ops_and_idx;
 }
 
 ge::Tensor GraphExecutor::PrepareInputTensor(

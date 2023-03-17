@@ -32,7 +32,7 @@ struct ReplayGraphInfo {
     /* output struct */
     AtTensorInfoAndMap assigned_outputs;
     AtTensorInfoAndMap returnable_outputs;
-    AtTensorInfoAndMap inner_outputs;
+    AtTensorInfoAndMap live_tensor_outputs;
     std::vector<ge::Tensor> graph_outputs_ge_tensors;
     std::vector<at::Tensor> inner_outputs_tensors;
 };
@@ -41,9 +41,9 @@ class ReplayGraphImpl {
 public:
     ReplayGraphImpl() = default;
 
-    void GenerateGraph(const at::TensorList& inputs, at::TensorList assigned_outputs,
-                        at::TensorList returnable_outputs, bool retain_inner_output);
-    std::vector<at::Tensor> Replay(const at::TensorList& inputs, at::TensorList assigned_outputs);
+    void GenerateGraph(const at::TensorList& inputs,
+                        at::TensorList returnable_outputs);
+    std::vector<at::Tensor> Replay(const at::TensorList& inputs);
     std::vector<at::Tensor> GetInnerOutputs(const at::TensorList& inputs);
     bool ReplayCacheHit(const at::TensorList& inputs);
 
@@ -53,16 +53,16 @@ private:
     int64_t FindMapping(const std::vector<int64_t>& graph_uid, const torch_npu::NpuGraphDesc& desc);
     void BuildReplayGraphInfo(const at::TensorList& tensors, AtTensorInfoAndMap& build_tensor_struct,
                               CombinedInfo& combinedinfo);
-    void SetInnerOutput(CombinedInfo& outputcombinedinfo, ReplayGraphInfo& graphinfo);
+    void SetLiveTensorOutput(CombinedInfo& input_infos, CombinedInfo& output_infos, ReplayGraphInfo& graphinfo);
     void GetInputUniqueId(CombinedInfo& input_infos);
-    void GetOutputUniqueId(CombinedInfo& output_infos);
-    void BuildReplayGraphInfoAll(const at::TensorList& inputs, at::TensorList assigned_outputs,
+
+    void BuildReplayGraphInfoAll(const at::TensorList& inputs,
                                  at::TensorList returnable_outputs, CombinedInfo& input_infos,
                                  CombinedInfo& output_infos, ReplayGraphInfo& graphinfo);
     void ClearGraphExecutor();
-    void SetInputGeTensor(ReplayGraphInfo& graphinfo, const at::TensorList& inputs);
-    std::vector<at::Tensor> SetOutputGeTensor(ReplayGraphInfo& graphinfo,
-                                              at::TensorList assigned_outputs);
+    std::unordered_map<uint32_t, at::Tensor> SetInputGeTensor(ReplayGraphInfo& graphinfo,
+                                                              const at::TensorList& inputs);
+    std::vector<at::Tensor> SetOutputGeTensor(ReplayGraphInfo& graphinfo);
     std::vector<at::Tensor> SetOutputGeTensorAndSetReturnable(ReplayGraphInfo& graphinfo,
                                                               AtTensorInfoAndMap& build_tensor_struct);
 };
@@ -75,7 +75,7 @@ public:
     }
 
     void GenerateGraph(const at::TensorList& inputs, at::TensorList assigned_outputs,
-                        at::TensorList returnable_outputs, bool retain_inner_output = false);
+                       at::TensorList returnable_outputs, bool retain_inner_output = false);
     std::vector<at::Tensor> Replay(const at::TensorList& inputs, at::TensorList assigned_outputs);
     std::vector<at::Tensor> GetInnerOutputs(const at::TensorList& inputs);
     bool ReplayCacheHit(const at::TensorList& inputs);
