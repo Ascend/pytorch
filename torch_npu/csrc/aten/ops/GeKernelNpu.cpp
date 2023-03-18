@@ -85,15 +85,23 @@ at::Tensor& NPUNativeFunctions::ge_out(const at::Tensor& self, at::Scalar other,
 }
 
 at::Tensor NPUNativeFunctions::ge(const at::Tensor& self, const at::Tensor& other) {
-  at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-  at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
-  auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
-      formatCastOfSelf.options().dtype(at::kBool),
-      ACL_FORMAT_ND);
-  ge_out_npu_nocheck(formatCastOfSelf, formatCastOfOther, result);
-  return result;
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+    return NPUNativeFunctions::ge(self, other.item());
+  }
+  else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
+    return NPUNativeFunctions::lt(other, self.item());
+  }
+  else {
+    at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
+    at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
+    auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
+    at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+        outputSize,
+        formatCastOfSelf.options().dtype(at::kBool),
+        ACL_FORMAT_ND);
+    ge_out_npu_nocheck(formatCastOfSelf, formatCastOfOther, result);
+    return result;
+  }
 }
 
 at::Tensor NPUNativeFunctions::ge(const at::Tensor& self, at::Scalar other) {
