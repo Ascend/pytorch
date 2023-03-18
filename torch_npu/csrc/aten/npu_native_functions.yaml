@@ -853,14 +853,14 @@ supported:
  - upsample_trilinear3d_backward
  - upsample_trilinear3d_backward.grad_input
  - upsample_trilinear3d_backward.vec
- - var
- - var.dim
- - var.names_dim
- - var.names_out
+ - var.correction
+ - var.correction_names
  - var.out
- - var_mean
- - var_mean.dim
- - var_mean.names_dim
+ - var.names_out
+ - var.correction_out
+ - var.correction_names_out
+ - var_mean.correction
+ - var_mean.correction_names
  - view
  - where
  - where.self
