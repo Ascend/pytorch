@@ -60,11 +60,11 @@ tuple<at::Tensor&, at::Tensor&> std_mean_out_npu_nocheck(
 
 at::Tensor& NPUNativeFunctions::std_out(
     const at::Tensor& self, 
-    at::IntArrayRef dim, 
+    at::OptionalIntArrayRef dim,
     bool unbiased, 
     bool keepdim,
     at::Tensor& result) {
-  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(self, dim.value(), keepdim);
   at::Tensor meanResult = OpPreparation::ApplyTensor(self, outputSize);
 
   OpPreparation::CheckOut(
@@ -74,7 +74,7 @@ at::Tensor& NPUNativeFunctions::std_out(
       self.scalar_type(),
       outputSize);
 
-  std_mean_out_npu_nocheck(result, meanResult, self, dim, unbiased, keepdim);
+  std_mean_out_npu_nocheck(result, meanResult, self, dim.value(), unbiased, keepdim);
 
   return result;
 }
@@ -90,15 +90,15 @@ at::Tensor& NPUNativeFunctions::std_out(
 
 at::Tensor NPUNativeFunctions::std(
     const at::Tensor & self, 
-    at::IntArrayRef dim, 
+    at::OptionalIntArrayRef dim,
     bool unbiased, 
     bool keepdim) {
-  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(self, dim.value(), keepdim);
 
   at::Tensor result1 = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor result2 = OpPreparation::ApplyTensor(self, outputSize);
 
-  std_mean_out_npu_nocheck(result1, result2, self, dim, unbiased, keepdim);
+  std_mean_out_npu_nocheck(result1, result2, self, dim.value(), unbiased, keepdim);
   return result1;
 }
 
@@ -111,15 +111,15 @@ at::Tensor NPUNativeFunctions::std(
 
 tuple <at::Tensor, at::Tensor> NPUNativeFunctions::std_mean(
     const at::Tensor & self, 
-    at::IntArrayRef dim, 
+    at::OptionalIntArrayRef dim,
     bool unbiased, 
     bool keepdim) {
-  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(self, dim.value(), keepdim);
 
   at::Tensor result1 = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor result2 = OpPreparation::ApplyTensor(self, outputSize);
 
-  std_mean_out_npu_nocheck(result1, result2, self, dim, unbiased, keepdim);
+  std_mean_out_npu_nocheck(result1, result2, self, dim.value(), unbiased, keepdim);
 
   return std::tie(result1, result2);
 }

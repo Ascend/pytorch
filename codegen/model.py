@@ -52,8 +52,10 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
+
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
+
 
 # NOTE: Keep the list in sync with `DispatchKey` in c10/core/DispatchKey.h
 class DispatchKey(Enum):
@@ -120,6 +122,7 @@ class DispatchKey(Enum):
     Autograd = auto()
     CompositeImplicitAutograd = auto()
     CompositeExplicitAutograd = auto()
+    CompositeExplicitAutogradNonFunctional = auto()
     EndOfAliasKeys = CompositeExplicitAutograd
     DefaultBackend = CompositeExplicitAutograd
 
@@ -142,16 +145,20 @@ class DispatchKey(Enum):
                 return v
         raise AssertionError(f'unknown dispatch key {value}')
 
+
 class UseC10Dispatcher(Enum):
     full = 0
     hacky_wrapper_for_legacy_signatures = 1
 
+
 STRUCTURED_DISPATCH_KEYS = {DispatchKey.CUDA, DispatchKey.CPU}
+
 
 # Dispatch keys that "support all backends".  These codegen slightly differently
 # then backend specific keys.
 def is_generic_dispatch_key(dk: DispatchKey) -> bool:
     return dk in {DispatchKey.CompositeExplicitAutograd, DispatchKey.CompositeImplicitAutograd}
+
 
 # CUDA specific dispatch keys
 def is_cuda_dispatch_key(dk: DispatchKey) -> bool:
@@ -164,14 +171,17 @@ def is_cuda_dispatch_key(dk: DispatchKey) -> bool:
         DispatchKey.CUDATensorId,
     }
 
+
 # Structured kernel generation is only supported for certain key types;
 # otherwise use old-style
 def is_structured_dispatch_key(dk: DispatchKey) -> bool:
     return dk in STRUCTURED_DISPATCH_KEYS
 
+
 class DeviceCheckType(Enum):
     NoCheck = 0
     ExactSame = 1
+
 
 class Tag(Enum):
     inplace_view = 0
@@ -185,6 +195,7 @@ class Tag(Enum):
             if k == value:
                 return v
         raise AssertionError(f'unknown tag {value}')
+
 
 # The basic input to the code generation is native_functions.yaml.
 # The name "native", BTW, comes from the distinction between native
@@ -282,6 +293,7 @@ class NativeFunction:
     # Whether or not the NativeFunction contains a backend-agnostic kernel
     has_composite_implicit_autograd_kernel: bool
     has_composite_explicit_autograd_kernel: bool
+    has_composite_explicit_autograd_non_functional_kernel: bool
 
     # Tags are used to describe semantic information about (groups of) operators,
     # That aren't easily inferrable directly from the operator's schema.
@@ -301,6 +313,7 @@ class NativeFunction:
     def from_yaml(ei: Dict[str, object]) -> Tuple['NativeFunction',
                                                   Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
         e = ei.copy()
+
         def parse_func(e):
             funcs = e.pop('func')
             assert isinstance(funcs, str), f'not a str: {funcs}'
@@ -429,6 +442,9 @@ class NativeFunction:
 
         has_composite_implicit_autograd_kernel = DispatchKey.CompositeImplicitAutograd in dispatch.keys()
         has_composite_explicit_autograd_kernel = DispatchKey.CompositeExplicitAutograd in dispatch.keys()
+        has_composite_explicit_autograd_non_functional_kernel = (
+                DispatchKey.CompositeExplicitAutogradNonFunctional in dispatch.keys()
+        )
 
         backend_metadata = {k: {func.name: BackendMetadata(
             kernel=v, structured=structured and is_structured_dispatch_key(k))} for k, v in dispatch.items()}
@@ -446,17 +462,28 @@ class NativeFunction:
                         f"if structured_delegate, then must not have {key} in dispatch dictionary " \
                         "(it is delegated!)"
         assert_last(e, structured_delegate, dispatch)
-        return NativeFunction(func=func,
+        return NativeFunction(
+            func=func,
             use_const_ref_for_mutable_tensors=use_const_ref_for_mutable_tensors,
-            variants=variants, structured=structured, structured_delegate=structured_delegate,
-            structured_inherits=structured_inherits, precomputed=precomputed,
-            manual_kernel_registration=manual_kernel_registration, manual_cpp_binding=manual_cpp_binding,
-            python_module=python_module, category_override=category_override, device_guard=device_guard,
-            device_check=device_check, cpp_no_default_args=cpp_no_default_args, is_abstract=is_abstract,
+            variants=variants,
+            structured=structured,
+            structured_delegate=structured_delegate,
+            structured_inherits=structured_inherits,
+            precomputed=precomputed,
+            manual_kernel_registration=manual_kernel_registration,
+            manual_cpp_binding=manual_cpp_binding,
+            python_module=python_module,
+            category_override=category_override,
+            device_guard=device_guard,
+            device_check=device_check,
+            cpp_no_default_args=cpp_no_default_args,
+            is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
-            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel, tag=tag,
-            bscpp_op=bscpp_op), backend_metadata
-
+            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel,
+            has_composite_explicit_autograd_non_functional_kernel=has_composite_explicit_autograd_non_functional_kernel,
+            tag=tag,
+            bscpp_op=bscpp_op,
+        ), backend_metadata
 
     def validate_unstructured(self) -> None:
         # TODO: probably better to accumulate these errors and report them all
@@ -506,7 +533,13 @@ class NativeFunction:
     def has_composite_kernel(self) -> bool:
         return self.has_composite_implicit_autograd_kernel or self.has_composite_explicit_autograd_kernel
 
+    @property
+    def part_of_structured_group(self) -> bool:
+        return self.structured or self.structured_delegate is not None
+
+
 SchemaKind = Enum('SchemaKind', ('functional', 'inplace', 'out'))
+
 
 # A structured kernel is guaranteed to have a functional and out variant, and
 # optionally an inplace variant.
@@ -532,6 +565,11 @@ class NativeFunctionsGroup:
                 raise AssertionError(
                     "NativeFunctionsGroup constructed from two NativeFunctions "
                     f"that don't have matching signatures: {test_sig} != {f.func.signature()}"
+                )
+            if self.structured != f.part_of_structured_group:
+                raise AssertionError(
+                    "NativeFunctionsGroup constructed from structured and unstructured "
+                    f"functions: {self.out.func.name} and {f.func.name}"
                 )
         assert self.functional.func.kind() == SchemaKind.functional
         assert self.out.func.kind() == SchemaKind.out
@@ -579,6 +617,7 @@ class NativeFunctionsGroup:
             inplace=inplace,
             out=out,
         )
+
 
 def is_foreach_op(name: str) -> bool:
     return str(name) in set([
@@ -628,6 +667,7 @@ def is_foreach_op(name: str) -> bool:
         '_foreach_addcmul_.ScalarList',
         '_foreach_addcdiv_.ScalarList',
         '_foreach_zero_'])
+
 
 @dataclass(frozen=True)
 class BackendMetadata:
@@ -685,7 +725,6 @@ class BackendIndex:
     def has_kernel(self, g: Union[NativeFunction, NativeFunctionsGroup]) -> bool:
         m = self.get_kernel(g)
         return m is not None
-
 
     def get_kernel(self, g: Union[NativeFunction, NativeFunctionsGroup]) -> Optional[BackendMetadata]:
         if isinstance(g, NativeFunction):
@@ -778,25 +817,19 @@ class FunctionSchema:
             self.arguments.out
         )
 
+    decl_re = re.compile(r"(?P<name>[^\(]+)\((?P<args>.*)\) -> (?P<returns>.*)")
+
     @staticmethod
-    def parse(func: str) -> 'FunctionSchema':
+    def parse(func: str) -> "FunctionSchema":
         # We should probably get a proper parser here
-        assert ' -> ' in func, "function schema missing return type (spaces are mandatory)"
-        last_index = func.rfind(" -> ")
-        func_decl = func[:last_index]
-        return_decl = func[last_index + len(" -> "):]
-        ops, args = func_decl.split('(', 1)
-        assert args[-1] == ")", "Expecting closing )"
-        args = args[:-1]
+        decls = FunctionSchema.decl_re.findall(func)
+        assert len(decls) == 1, f"Invalid function schema: {func}"
+        ops, args, return_decl = decls[0]
         name = OperatorName.parse(ops)
         arguments = Arguments.parse(args)
         returns = parse_returns(return_decl)
-        r = FunctionSchema(
-            name=name,
-            arguments=arguments,
-            returns=returns
-        )
-        assert str(r) == func, f'{str(r)} != {func}'
+        r = FunctionSchema(name=name, arguments=arguments, returns=returns)
+        assert str(r) == func, f"{str(r)} != {func}"
         return r
 
     def __post_init__(self) -> None:
@@ -912,6 +945,7 @@ class FunctionSchema:
             returns = '(' + ', '.join(map(str, self.returns)) + ')'
         return f'{self.name}({all_arguments_str}) -> {returns}'
 
+
 # Here is the rest of the data model, described more briefly.
 
 # Simplified version for what actually shows up in built-ins.
@@ -952,6 +986,7 @@ class Annotation:
             alias_set = f'{alias_set}{" -> "}{self.alias_set_after}'
         is_write = '!' if self.is_write else ''
         return f'{alias_set}{is_write}'
+
 
 # The base class for the type system.  This is also loosely modeled
 # off of jit_type.h, but we've simplified the hierarchy to focus
@@ -998,25 +1033,32 @@ class Type:
     def is_list_like(self) -> Optional['ListType']:
         raise NotImplementedError
 
+
 # Base types are simple, atomic types with no further structure
-BaseTy = Enum('BaseTy', (
-    'Generator',
-    'ScalarType',
-    'Tensor',
-    'int',
-    'Dimname',
-    'float',
-    'str',
-    'bool',
-    'Layout',
-    'Device',
-    'Scalar',
-    'MemoryFormat',
-    'QScheme',
-    'Storage',
-    'Stream',
-    'ConstQuantizerPtr',  # TODO: rename
-))
+BaseTy = Enum(
+    "BaseTy",
+    (
+        "Generator",
+        "ScalarType",
+        "Tensor",
+        "int",
+        "Dimname",
+        "DimVector",
+        "float",
+        "str",
+        "bool",
+        "Layout",
+        "Device",
+        "Scalar",
+        "MemoryFormat",
+        "QScheme",
+        "Storage",
+        "Stream",
+        "SymInt",
+        "ConstQuantizerPtr",  # TODO: rename
+    ),
+)
+
 
 @dataclass(frozen=True)
 class BaseType(Type):
@@ -1034,6 +1076,10 @@ class BaseType(Type):
     def is_list_like(self) -> Optional['ListType']:
         return None
 
+    def is_symint_like(self) -> bool:
+        return self.name == BaseTy.SymInt
+
+
 # Optional types may be specified, or may also be validly given None
 @dataclass(frozen=True)
 class OptionalType(Type):
@@ -1050,6 +1096,7 @@ class OptionalType(Type):
 
     def is_list_like(self) -> Optional['ListType']:
         return self.elem.is_list_like()
+
 
 # List types specify that we may have multiples of an element.  We
 # also support explicit sizes on list types, but these have
@@ -1075,6 +1122,7 @@ class ListType(Type):
 
     def is_list_like(self) -> Optional['ListType']:
         return self
+
 
 @dataclass(frozen=True)
 class Argument:
@@ -1208,6 +1256,7 @@ class Return:
 class SelfArgument:
     argument: Argument
 
+
 # Bundle of arguments that represent a TensorOptions.  This is mostly
 # relevant for the public C++ API but we bake it into the core data
 # model because other APIs often have to interact with it
@@ -1220,6 +1269,7 @@ class TensorOptionsArguments:
 
     def all(self) -> Sequence[Argument]:
         return [self.dtype, self.layout, self.device, self.pin_memory]
+
 
 @dataclass(frozen=True)
 class Arguments:
@@ -1320,7 +1370,6 @@ class Arguments:
             out=(),
         )
 
-
     @staticmethod
     def _preparse(args: str) -> Tuple[List[Argument], List[Argument], List[Argument]]:
         positional: List[Argument] = []
@@ -1382,6 +1431,7 @@ class Arguments:
         tensor_options: Optional[TensorOptionsArguments] = None
         post_tensor_options_kwarg_only: List[Argument] = []
         kwarg_only_acc = pre_tensor_options_kwarg_only
+
         def pred(name: str, ty: Type) -> Callable[[Argument], bool]:
             return lambda a: a.name == name and a.type in [ty, OptionalType(ty)]
 
@@ -1394,7 +1444,7 @@ class Arguments:
             # If there is enough space...
             if i <= len(kwarg_only) - len(predicates):
                 # And the next len(predicates) arguments look like TensorOptions arguments
-                if all(p(a) for p, a in zip(predicates, kwarg_only[i : i + len(predicates)])):
+                if all(p(a) for p, a in zip(predicates, kwarg_only[i: i + len(predicates)])):
                     assert kwarg_only_acc is pre_tensor_options_kwarg_only
                     # Group them together as one argument
                     tensor_options = TensorOptionsArguments(
@@ -1418,7 +1468,6 @@ class Arguments:
             out=tuple(out),
         )
 
-
     def __str__(self) -> str:
         all_arguments: List[str] = []
         all_arguments.extend(map(str, self.flat_positional))
@@ -1441,6 +1490,7 @@ class Arguments:
 # Taken from https://www.python.org/dev/peps/pep-0203/#new-methods
 # NB: PyTorch hasn't actually implemented all of these
 AUGMENTED_ASSIGNMENT_NAMES = ['add', 'sub', 'mul', 'div', 'mod', 'pow', 'lshift', 'rshift', 'and', 'xor', 'or']
+
 
 # A BaseOperatorName is what we think of the operator name, without
 # the overload name.  Unusually, we don't represent this as just a
@@ -1494,6 +1544,7 @@ class BaseOperatorName:
             i = '_' if self.inplace else ''
             return f'{self.base}{i}'
 
+
 # Operator name is the base operator name along with the (typically not
 # user visible) overload string.
 @dataclass(frozen=True)
@@ -1537,6 +1588,7 @@ def gets_generated_out_inplace_wrapper(f: NativeFunction, g: NativeFunctionsGrou
     return f.func.kind() is not SchemaKind.functional and \
         not b.has_kernel(f) and \
         b.has_kernel(g.functional)
+
 
 # Helper functions for parsing argument lists (both inputs and returns)
 

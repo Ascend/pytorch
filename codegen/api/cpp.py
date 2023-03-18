@@ -22,8 +22,9 @@ from codegen.model import (Argument, Arguments, BaseTy, BaseType,
 from codegen.api.types import (ArgName, BaseCType, Binding, ConstRefCType, NamedCType, CType,
                                MutRefCType, ArrayCType, ListCType, VectorCType, ArrayRefCType,
                                OptionalCType, TupleCType, SpecialArgName, boolT, scalarT,
-                               tensorListT, dimnameListT, tensorT, voidT,
-                               BaseTypeToCppMapping, intArrayRefT, tensorOptionsT, optionalIntArrayRefT)
+                               tensorListT, dimnameListT, tensorT, voidT, iTensorListRefT,
+                               BaseTypeToCppMapping, intArrayRefT, tensorOptionsT, optionalIntArrayRefT,
+                               longT, SymIntT, symIntArrayRefT, optionalSymIntArrayRefT)
 from codegen import local
 
 # This file describes the translation of JIT schema to the public C++
@@ -43,8 +44,11 @@ from codegen import local
 # BTW: policy on name collisions: we try not to have types with
 # collisions, but functions are fair game to collide
 
-def name(func: FunctionSchema, *, faithful_name_for_out_overloads: bool = False) -> str:
+
+def name(func: FunctionSchema, *, faithful_name_for_out_overloads: bool = False, symint_overload: bool = False) -> str:
     func_name = str(func.name.name)
+    if symint_overload:
+        func_name += "_symint"
     if func.is_out_fn():
         if faithful_name_for_out_overloads:
             func_name += '_outf'
@@ -53,17 +57,23 @@ def name(func: FunctionSchema, *, faithful_name_for_out_overloads: bool = False)
 
     return func_name
 
+
 # Translation of "value types" in JIT schema to C++ API type.  Value
 # types look the same no matter if they are argument types or return
 # types.  Returns None if the type in question is not a value type.
-def valuetype_type(t: Type, *, binds: ArgName) -> Optional[NamedCType]:
+def valuetype_type(t: Type, *, binds: ArgName, symint: bool = False) -> Optional[NamedCType]:
     if isinstance(t, BaseType):
         if t.name == BaseTy.Tensor or t.name == BaseTy.Scalar:
             return None
+        elif str(t) == "SymInt":
+            if symint:
+                return NamedCType(binds, BaseCType(SymIntT))
+            else:
+                return NamedCType(binds, BaseCType(longT))
         # All other BaseType currently map directly to BaseCppTypes.
         return NamedCType(binds, BaseCType(BaseTypeToCppMapping[t.name]))
     elif isinstance(t, OptionalType):
-        elem = valuetype_type(t.elem, binds=binds)
+        elem = valuetype_type(t.elem, binds=binds, symint=symint)
         if elem is None:
             return None
         return NamedCType(binds, OptionalCType(elem.type))
@@ -76,10 +86,11 @@ def valuetype_type(t: Type, *, binds: ArgName) -> Optional[NamedCType]:
     else:
         raise AssertionError(f"unrecognized type {repr(t)}")
 
+
 # Translation of types occuring in JIT arguments to a C++ argument type.
-def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
+def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName, symint: bool = False) -> NamedCType:
     # If it's a value type, do the value type translation
-    r = valuetype_type(t, binds=binds)
+    r = valuetype_type(t, binds=binds, symint=symint)
     if r is not None:
         return r
 
@@ -103,36 +114,52 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
             return NamedCType(binds, ConstRefCType(OptionalCType(BaseCType(scalarT))))
         elif isinstance(t.elem, ListType) and str(t.elem.elem) == "int":
             return NamedCType(binds, BaseCType(optionalIntArrayRefT))
-        elem = argumenttype_type(t.elem, mutable=mutable, binds=binds)
+        elif isinstance(t.elem, ListType) and str(t.elem.elem) == "SymInt":
+            if symint:
+                return NamedCType(binds, BaseCType(optionalSymIntArrayRefT))
+            else:
+                return NamedCType(binds, BaseCType(optionalIntArrayRefT))
+        elem = argumenttype_type(t.elem, mutable=mutable, binds=binds, symint=symint)
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):
         # TODO: remove these special cases, ArrayRef fallthrough works fine
         type_dict = {
             "int": BaseCType(intArrayRefT),
-            "Tensor": BaseCType(tensorListT),
             "Scalar": ArrayRefCType(BaseCType(scalarT)),
             "Dimname": BaseCType(dimnameListT),
             "Tensor?": ConstRefCType(ListCType(OptionalCType(BaseCType(tensorT))))
         }
+        if str(t.elem) == "Tensor":
+            if local.use_ilistref_for_tensor_lists():
+                return NamedCType(binds, ConstRefCType(BaseCType(iTensorListRefT)))
+            else:
+                return NamedCType(binds, BaseCType(tensorListT))
+        if str(t.elem) == "SymInt":
+            if symint:
+                return NamedCType(binds, BaseCType(symIntArrayRefT))
+            else:
+                return NamedCType(binds, BaseCType(intArrayRefT))
         if str(t.elem) in type_dict:
             return NamedCType(binds, type_dict[str(t.elem)])
-        elem = argumenttype_type(t.elem, mutable=mutable, binds=binds)
+        elem = argumenttype_type(t.elem, mutable=mutable, binds=binds, symint=symint)
         return NamedCType(binds, ArrayRefCType(elem.type))
     else:
         raise AssertionError(f"unrecognized type {repr(t)}")
 
+
 # Translate a JIT argument into its C++ type
-def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
-    return argumenttype_type(a.type, mutable=a.is_write, binds=binds)
+def argument_type(a: Argument, *, binds: ArgName, symint: bool = False) -> NamedCType:
+    return argumenttype_type(a.type, mutable=a.is_write, symint=symint, binds=binds)
+
 
 # Translation of a (non-multi) return type from JIT to C++
 # N.B: returntype_type returns a CType, not a NamedCType.
 # This is mostly because of the mismatch between return types and return names.
 # e.g. a function with a return type of 'void' has 0 return names,
 # and a function with a return type of 'std::tuple' has >1 return name.
-def returntype_type(t: Type, *, mutable: bool) -> CType:
+def returntype_type(t: Type, *, mutable: bool, symint: bool = False) -> CType:
     # placeholder is ignored
-    r = valuetype_type(t, binds="__placeholder__")
+    r = valuetype_type(t, binds="__placeholder__", symint=symint)
     if r is not None:
         return r.type
 
@@ -151,24 +178,30 @@ def returntype_type(t: Type, *, mutable: bool) -> CType:
         elif t.name == BaseTy.Scalar:
             return BaseCType(scalarT)
     elif isinstance(t, ListType):
-        elem = returntype_type(t.elem, mutable=mutable)
+        assert (
+            not mutable
+        ), "Native functions should never return a mutable tensor list. They should return void."
+        elem = returntype_type(t.elem, mutable=False, symint=symint)
         assert t.size is None, f"fixed size list returns not supported: {t}"
         return VectorCType(elem)
 
     raise AssertionError(f"unrecognized return type {t}")
 
+
 # Translation of a single return to its C++ type
-def return_type(r: Return) -> CType:
-    return returntype_type(r.type, mutable=r.is_write)
+def return_type(r: Return, *, symint: bool = False) -> CType:
+    return returntype_type(r.type, mutable=r.is_write, symint=symint)
+
 
 # Translation of a full (possibly multi) return from JIT to its C++ type
-def returns_type(rs: Sequence[Return]) -> CType:
+def returns_type(rs: Sequence[Return], *, symint: bool = False) -> CType:
     if len(rs) == 0:
         return BaseCType(voidT)
     elif len(rs) == 1:
-        return return_type(rs[0])
+        return return_type(rs[0], symint=symint)
     else:
-        return TupleCType([return_type(r) for r in rs])
+        return TupleCType([return_type(r, symint=symint) for r in rs])
+
 
 def return_names(f: NativeFunction, *, fallback_name: str = 'result') -> Sequence[str]:
     returns: List[str] = []
@@ -199,6 +232,7 @@ def return_names(f: NativeFunction, *, fallback_name: str = 'result') -> Sequenc
         returns.append(func_name)
     return returns
 
+
 JIT_TO_CPP_DEFAULT = {
     'False': 'false',
     'True': 'true',
@@ -208,6 +242,7 @@ JIT_TO_CPP_DEFAULT = {
     'contiguous_format': 'c10::MemoryFormat::Contiguous',
     'long': 'at::kLong',
 }
+
 
 # Convert a JIT default into C++ expression representing the default
 def default_expr(d: str, t: Type) -> str:
@@ -244,7 +279,7 @@ def default_expr(d: str, t: Type) -> str:
         return default_expr(d, t.elem)
 
     if isinstance(t, ListType):
-        if (d.startswith('[') and d.endswith(']')):
+        if d.startswith('[') and d.endswith(']'):
             return '{' + d[1:-1] + '}'
         elif t.size is None:
             # NOTE: Sized lists can have scalar defaults
@@ -254,14 +289,15 @@ def default_expr(d: str, t: Type) -> str:
 
 # Convert an argument into its C++ API form
 
+
 def argument(
     a: Union[Argument, TensorOptionsArguments, SelfArgument],
-    *, cpp_no_default_args: Set[str], method: bool, faithful: bool,
+    *, cpp_no_default_args: Set[str], method: bool, faithful: bool, symint: bool = False,
     has_tensor_options: bool
 ) -> List[Binding]:
     def sub_argument(a: Union[Argument, TensorOptionsArguments, SelfArgument]) -> List[Binding]:
         return argument(
-            a, cpp_no_default_args=cpp_no_default_args, method=method, faithful=faithful,
+            a, cpp_no_default_args=cpp_no_default_args, method=method, faithful=faithful, symint=symint,
             has_tensor_options=has_tensor_options)
 
     if isinstance(a, Argument):
@@ -274,7 +310,7 @@ def argument(
         if a.name not in cpp_no_default_args and a.default is not None:
             default = default_expr(a.default, a.type)
         return [Binding(
-            nctype=argument_type(a, binds=binds),
+            nctype=argument_type(a, binds=binds, symint=symint),
             name=a.name,
             default=default,
             argument=a,
@@ -306,9 +342,10 @@ def argument(
     else:
         assert_never(a)
 
+
 def arguments(
     func_arguments: Arguments,
-    *, faithful: bool, method: bool, cpp_no_default_args: Set[str]
+    *, faithful: bool, symint: bool = False, method: bool, cpp_no_default_args: Set[str]
 ) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
     if faithful:
@@ -320,7 +357,7 @@ def arguments(
     return [
         r.no_default() if faithful else r for a in args
         for r in argument(
-            a, faithful=faithful, method=method,
+            a, faithful=faithful, symint=symint, method=method,
             has_tensor_options=func_arguments.tensor_options is not None,
             cpp_no_default_args=cpp_no_default_args)
     ]

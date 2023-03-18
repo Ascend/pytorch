@@ -22,6 +22,7 @@
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
+#include <c10d/Work.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -72,7 +73,7 @@ constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 class ProcessGroupHCCL : public c10d::ProcessGroup {
 public:
-  class WorkHCCL : public c10d::ProcessGroup::Work {
+  class WorkHCCL : public c10d::Work {
   public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
@@ -210,84 +211,84 @@ public:
   const std::string getBackendName() const {
       return "undefined";
   }
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> broadcast(
+  c10::intrusive_ptr<c10d::Work> broadcast(
       std::vector<at::Tensor>& tensors,
       const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> allreduce(
+  c10::intrusive_ptr<c10d::Work> allreduce(
       std::vector<at::Tensor>& tensors,
       const c10d::AllreduceOptions& opts = c10d::AllreduceOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> allreduce_out(
+  c10::intrusive_ptr<c10d::Work> allreduce_out(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
     int64_t fusion_id,
     const c10d::AllreduceOptions& opts = c10d::AllreduceOptions());
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work>allreduce_coalesced(
+  c10::intrusive_ptr<c10d::Work>allreduce_coalesced(
       std::vector<at::Tensor>& tensors,
       const c10d::AllreduceCoalescedOptions& opts =
           c10d::AllreduceCoalescedOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work>reduce(
+  c10::intrusive_ptr<c10d::Work>reduce(
       std::vector<at::Tensor>& tensors,
       const c10d::ReduceOptions& opts = c10d::ReduceOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> allgather(
+  c10::intrusive_ptr<c10d::Work> allgather(
       std::vector<std::vector<at::Tensor>>& outputTensors,
       std::vector<at::Tensor>& inputTensors,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> allgather_togather(
+  c10::intrusive_ptr<c10d::Work> allgather_togather(
       std::vector<at::Tensor>& outputTensors,
       std::vector<at::Tensor>& inputTensors,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions());
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> _allgather_base(
+  c10::intrusive_ptr<c10d::Work> _allgather_base(
       at::Tensor& outputbuffer,
       at::Tensor& inputbuffer,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> reduce_scatter(
+  c10::intrusive_ptr<c10d::Work> reduce_scatter(
       std::vector<at::Tensor>& outputTensors,
       std::vector<std::vector<at::Tensor>>& inputTensors,
       const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> _reduce_scatter_base(
+  c10::intrusive_ptr<c10d::Work> _reduce_scatter_base(
       at::Tensor& outputTensor,
       at::Tensor& inputTensor,
       const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> barrier(
+  c10::intrusive_ptr<c10d::Work> barrier(
       const c10d::BarrierOptions& opts = c10d::BarrierOptions()) override;
 
 
   // Unsupported Ops
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> gather(
+  c10::intrusive_ptr<c10d::Work> gather(
       std::vector<std::vector<at::Tensor>>& outputTensors,
       std::vector<at::Tensor>& inputTensors,
       const c10d::GatherOptions& opts = c10d::GatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> scatter(
+  c10::intrusive_ptr<c10d::Work> scatter(
       std::vector<at::Tensor>& outputTensors,
       std::vector<std::vector<at::Tensor>>& inputTensors,
       const c10d::ScatterOptions& opts = c10d::ScatterOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> send(
+  c10::intrusive_ptr<c10d::Work> send(
       std::vector<at::Tensor>& tensors,
       int dstRank,
       int tag) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> recv(
+  c10::intrusive_ptr<c10d::Work> recv(
       std::vector<at::Tensor>& tensors,
       int srcRank,
       int tag) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> recvAnysource(
+  c10::intrusive_ptr<c10d::Work> recvAnysource(
       std::vector<at::Tensor>& tensors,
       int tag) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> alltoall_base(
+  c10::intrusive_ptr<c10d::Work> alltoall_base(
       at::Tensor& outputTensor,
       at::Tensor& inputTensor,
       std::vector<int64_t>& outputSplitSizes,
@@ -433,12 +434,12 @@ private:
   //                    ncclComm_t, at::cuda::CUDAStream&);
   //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
   template <typename Fn>
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
+  c10::intrusive_ptr<c10d::Work> collective(
       std::vector<at::Tensor>& input,
       std::vector<at::Tensor>& output,
       Fn fn);
   template <typename Fn, typename PreProcess, typename PostProcess>
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
+  c10::intrusive_ptr<c10d::Work> collective(
       std::vector<at::Tensor>& input,
       std::vector<at::Tensor>& output,
       Fn fn,

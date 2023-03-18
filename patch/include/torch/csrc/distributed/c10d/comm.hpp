@@ -125,7 +125,7 @@ inline at::Tensor parseCppCommHookResult(
 template <typename T>
 class CppCommHookInterface : public CommHookInterface {
  public:
-  explicit CppCommHookInterface(T& state) : state_(state) {}
+  explicit CppCommHookInterface(const T& state) : state_(state) {}
 
   ~CppCommHookInterface() override = default;
 

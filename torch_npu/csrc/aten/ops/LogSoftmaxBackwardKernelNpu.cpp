@@ -56,5 +56,28 @@ at::Tensor& NPUNativeFunctions::_log_softmax_backward_data_out(
   return result;
 }
 
+at::Tensor NPUNativeFunctions::_log_softmax_backward_data(
+    const at::Tensor& grad_output,
+    const at::Tensor& output,
+    int64_t dim,
+    at::ScalarType input_dtype) {
+  // calculate the output size
+  auto outputSize = input_same_output_size(grad_output);
+
+  // output'format must be same with grad_output
+  at::Tensor temp_output = output;
+  if (CalcuOpUtil::GetTensorNpuFormat(temp_output) == ACL_FORMAT_NC1HWC0) {
+    NPUNativeFunctions::npu_format_cast_(temp_output, CalcuOpUtil::GetTensorNpuFormat(grad_output));
+  }
+
+  // construct the output tensor of the NPU
+  at::Tensor grad_input = OpPreparation::ApplyTensor(temp_output, outputSize);
+
+  // calculate the output result of the NPU
+  log_softmax_backward_data_out_npu_nocheck(grad_input, grad_output, temp_output, dim, input_dtype);
+
+  return grad_input;
+}
+
 } // namespace native
 } // namespace at_npu

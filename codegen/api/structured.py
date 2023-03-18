@@ -22,7 +22,7 @@ from codegen.model import (Argument, BaseTy, BaseType, ListType,
 
 from codegen.api.types import (ArgName, BaseCType, Binding, ArrayRefCType,
                                ConstRefCType, OptionalCType, NamedCType,
-                               tensorT, scalarT, intArrayRefT, dimnameListT,
+                               tensorT, scalarT, intArrayRefT, dimnameListT, iTensorListRefT,
                                optionalTensorRefT, optionalScalarRefT, optionalIntArrayRefT)
 
 from codegen.api import cpp
@@ -30,6 +30,7 @@ from codegen.api import cpp
 # This file describes the translation of JIT schema to the structured functions API.
 # This is similar to native API, but a number of historical problems with native
 # API have been fixed.
+
 
 # Translation of types occuring in JIT arguments to a C++ argument type.
 # NB: For now, mutable doesn't do anything; but it could if we make
@@ -58,11 +59,7 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):
         if t.elem == BaseType(BaseTy.Tensor):
-            raise AssertionError(
-                "list of tensor not supported by structured yet; to implement this "
-                "resolve torch::List issue, see "
-                "https://fb.workplace.com/groups/894363187646754/permalink/1149276442155426"
-            )
+            return NamedCType(binds, ConstRefCType(BaseCType(iTensorListRefT)))
         # TODO: delete these special cases; see tools.codegen.api.cpp--these
         # must be changed in tandem, but there are problems; see
         # https://github.com/pytorch/pytorch/pull/51485
@@ -75,6 +72,7 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
     else:
         raise AssertionError(f"unrecognized type {repr(t)}")
 
+
 def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
     return argumenttype_type(a.type, mutable=a.is_write, binds=binds)
 
@@ -82,6 +80,7 @@ def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
 # instead, they always indirectly report their outputs (in the case of a meta
 # function, by calling set_output; in the case of an impl function, by writing
 # directly into the provided out argument).
+
 
 # Structured kernels are never defaulted
 def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments]) -> List[Binding]:
@@ -98,6 +97,7 @@ def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments]) -> List[B
         raise AssertionError("structured kernels don't support TensorOptions yet")
     else:
         assert_never(a)
+
 
 def impl_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
@@ -125,10 +125,12 @@ def impl_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args.extend(g.out.func.arguments.out)
     return [r for arg in args for r in argument(arg)]
 
+
 def meta_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
     args.extend(g.functional.func.arguments.non_out)
     return [r for arg in args for r in argument(arg)]
+
 
 def out_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []

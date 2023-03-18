@@ -83,7 +83,7 @@ namespace at_npu
 
     at::Tensor &NPUNativeFunctions::mean_out(
         const at::Tensor &self,
-        at::IntArrayRef dim,
+        at::OptionalIntArrayRef dim,
         bool keepdim,
         c10::optional<c10::ScalarType> dtype,
         at::Tensor &result)
@@ -105,11 +105,11 @@ namespace at_npu
       // dtype same
       if (dstType == self.scalar_type())
       {
-        mean_out_npu_no_dtype(result, self, dim, keepdim);
+        mean_out_npu_no_dtype(result, self, dim.value(), keepdim);
         return result;
       }
 
-      mean_out_npu_no_dtype(result, self.toType(dstType), dim, keepdim);
+      mean_out_npu_no_dtype(result, self.toType(dstType), dim.value(), keepdim);
       return result;
     }
 
@@ -125,14 +125,14 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::mean(
         const at::Tensor &self,
-        at::IntArrayRef dim,
+        at::OptionalIntArrayRef dim,
         bool keepdim,
         c10::optional<c10::ScalarType> dtype)
     {
       c10::ScalarType dstType = dtype.has_value() ? dtype.value() : self.scalar_type();
 
       // calculate the output size
-      auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+      auto outputSize = reduce_ops_npu_output_size(self, dim.value(), keepdim);
 
       int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
       // scalar scene no support nz

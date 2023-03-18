@@ -43,11 +43,11 @@ at::Tensor &sum_out_npu_nocheck(
 
 at::Tensor &NPUNativeFunctions::sum_out(
     const at::Tensor &self,
-    at::IntArrayRef dim,
+    at::OptionalIntArrayRef dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype,
     at::Tensor &result) {
-  auto outputSize = sum_npu_output_size(self, dim, keepdim);
+  auto outputSize = sum_npu_output_size(self, dim.value(), keepdim);
   auto res_type = dtype.has_value() ? dtype.value() : result.scalar_type();
 
   OpPreparation::CheckOut(
@@ -71,7 +71,7 @@ at::Tensor &NPUNativeFunctions::sum_out(
   at::Tensor result_cp = result.scalar_type() == self_cp.scalar_type() ? result :
       NPUNativeFunctions::npu_dtype_cast(result, self_cp.scalar_type());
 
-  sum_out_npu_nocheck(result_cp, self_cp, dim, keepdim);
+  sum_out_npu_nocheck(result_cp, self_cp, dim.value(), keepdim);
   if (result_cp.scalar_type() != res_type) {
     result_cp = NPUNativeFunctions::npu_dtype_cast(result_cp, res_type);
     result.copy_(result_cp);
@@ -92,12 +92,12 @@ at::Tensor &NPUNativeFunctions::sum_out(
 
 at::Tensor NPUNativeFunctions::sum(
     const at::Tensor &self,
-    at::IntArrayRef dim,
+    at::OptionalIntArrayRef dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
   at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
       NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
-  auto outputSize = reduce_ops_npu_output_size(self_cp, dim, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(self_cp, dim.value(), keepdim);
   auto selfSize = self_cp.sizes();
   auto out_type = self.scalar_type();
 
@@ -115,7 +115,7 @@ at::Tensor NPUNativeFunctions::sum(
 
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize, self_cp.options(), ACL_FORMAT_ND);
-  sum_out_npu_nocheck(result, self_cp, dim, keepdim);
+  sum_out_npu_nocheck(result, self_cp, dim.value(), keepdim);
 
   if (result.scalar_type() != out_type) {
     result = NPUNativeFunctions::npu_dtype_cast(result, out_type);

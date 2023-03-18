@@ -202,10 +202,6 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
    * Therefore, when the fourth type of operator is encountered in graph
    * mode, the single op mode is switched to execute by default.
    */
-  if (self.device().type() == at::kCPU) {
-    return at::native::index(self, orig);
-  }
-
   GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
 
   at::native::checkIndexTensorTypes(orig);

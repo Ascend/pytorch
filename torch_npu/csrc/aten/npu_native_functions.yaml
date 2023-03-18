@@ -51,6 +51,7 @@ supported:
  - _linalg_svd.U
  - _local_scalar_dense
  - _log_softmax
+ - _log_softmax_backward_data
  - _log_softmax_backward_data.out
  - _nnpack_spatial_convolution
  - _pack_padded_sequence
@@ -500,6 +501,7 @@ supported:
  - masked_select
  - masked_select.out
  - matmul
+ - matmul_backward
  - matmul.out
  - max
  - max.dim
@@ -575,6 +577,7 @@ supported:
  - neg
  - neg.out
  - neg_
+ - new_empty_strided
  - nll_loss
  - nll_loss.out
  - nll_loss2d

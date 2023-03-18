@@ -98,6 +98,7 @@ __all__ = [
     "_reduce_scatter_base", "_all_gather_base"
 ]
 
+
 # Some reduce ops are not supported by complex numbers and will result in an error.
 # We currently provide complex support to the distributed API by viewing
 # complex tensors as real (torch.view_as_real), meaning that calling
@@ -180,7 +181,6 @@ class Backend(object):
         Backend._plugins[name.upper()] = func
 
 
-
 # `_backend`, `dist_backend`, and `reduce_op` are here to maintain backward
 # compatibility with pre-c10d distributed package.
 # TODO: remove them when users are ready to take a hard dependency on PyTorch 1.
@@ -198,14 +198,15 @@ class _reduce_op(object):
 
     def __init__(self):
         # __members__ is a dict storing key-value pairs for enum classes
-        for k, v in ReduceOp.__members__.items():
+        for k, v in ReduceOp.RedOpType.__members__.items():
             setattr(self, k, v)
-        self.__members__ = ReduceOp.__members__
+        self.__members__ = ReduceOp.RedOpType.__members__
 
     def __getattribute__(self, key):
         warnings.warn("torch.distributed.reduce_op is deprecated, please use "
                       "torch.distributed.ReduceOp instead")
         return object.__getattribute__(self, key)
+
 
 reduce_op = _reduce_op()
 
@@ -238,6 +239,7 @@ _group_count = 0
 
 STORE_BASED_BARRIER_PREFIX = "store_based_barrier_key"
 
+
 def _store_based_barrier(rank, store, timeout):
     """
     Barrier based on store which is used for synchronizing processes after
@@ -247,7 +249,6 @@ def _store_based_barrier(rank, store, timeout):
     store_key = "{}:{}".format(STORE_BASED_BARRIER_PREFIX, _group_count)
     store.add(store_key, 1)
     logger.info('Added key: {} to store for rank: {}'.format(store_key, rank))
-
 
     # Now wait for all workers to check in with the store.
     world_size = get_world_size()
@@ -280,6 +281,7 @@ def _store_based_barrier(rank, store, timeout):
     logger.info(
         f"Rank {rank}: Completed store-based barrier for key:{store_key} with {world_size} nodes.")
 
+
 def _rank_not_in_group(group: ProcessGroup):
     """
     Helper that checks if the current process's rank is not in a given group.
@@ -288,11 +290,13 @@ def _rank_not_in_group(group: ProcessGroup):
         return False
     return group == GroupMember.NON_GROUP_MEMBER
 
+
 def _warn_not_in_group(op_name):
     global_rank = -1 if GroupMember.WORLD is None else GroupMember.WORLD.rank()
     warnings.warn(
         f"Running {op_name} on global rank {global_rank} which does not "
         "belong to the given group.")
+
 
 def _get_group_rank(group: ProcessGroup, rank):
     """
@@ -364,6 +368,7 @@ def _check_op(op):
                            "to be of type ``torch.distributed.isend`` or "
                            "``torch.distributed.irecv``.")
 
+
 def _check_p2p_op_list(p2p_op_list):
     """
     Helper to check that the ``p2p_op_list`` is a list of P2POp instances and
@@ -373,7 +378,6 @@ def _check_p2p_op_list(p2p_op_list):
        not all(isinstance(p2p_op, P2POp) for p2p_op in p2p_op_list):
         raise RuntimeError("Invalid ``p2p_op_list``. Each op is expected to "
                            "to be of type ``torch.distributed.P2POp``.")
-
 
     backend = get_backend(p2p_op_list[0].group)
     if not all(backend == get_backend(p2p_op.group) for p2p_op in p2p_op_list):
@@ -400,6 +404,7 @@ def is_gloo_available():
     """
     return _GLOO_AVAILABLE
 
+
 def is_hccl_available():
     """
     Checks if the HCCL backend is available.
@@ -407,11 +412,13 @@ def is_hccl_available():
     """
     return _HCCL_AVAILABLE
 
+
 def is_initialized():
     """
     Checking if the default process group has been initialized
     """
     return GroupMember.WORLD is not None
+
 
 def is_torchelastic_launched():
     """
@@ -423,6 +430,7 @@ def is_torchelastic_launched():
     non-null value indicating the job id for peer discovery purposes..
     """
     return os.getenv("TORCHELASTIC_RUN_ID") is not None
+
 
 def _get_default_group():
     """
@@ -444,6 +452,7 @@ def _get_default_store():
     default_pg = _get_default_group()
     _, default_store = _pg_map[default_pg]
     return default_store
+
 
 def _update_default_pg(pg):
     GroupMember.WORLD = Group.WORLD = pg
@@ -1233,7 +1242,6 @@ def reduce(tensor,
     if async_op:
         raise RuntimeError("Reduce implemented by all_reduce: "
                            "not support async")
-        return
 
     _check_single_tensor(tensor, "tensor")
     if _rank_not_in_group(group):
@@ -1315,6 +1323,7 @@ def all_gather(tensor_list,
     else:
         work.wait()
 
+
 def all_gather_togather(tensor_ouput,
                tensor,
                group=None,
@@ -1386,10 +1395,11 @@ def all_gather_togather(tensor_ouput,
     else:
         work.wait()
 
+
 def _all_gather_base(output_tensor,
-               input_tensor,
-               group=None,
-               async_op=False):
+                     input_tensor,
+                     group=None,
+                     async_op=False):
     """
     Gathers tensors from the whole group to a whole tensor.
     This API is only used for `syncbn`, so use with caution.
@@ -1442,6 +1452,7 @@ def _all_gather_base(output_tensor,
         return work
     else:
         work.wait()
+
 
 def all_gather_coalesced(output_tensor_lists,
                          input_tensor_list,
@@ -1846,6 +1857,7 @@ def all_to_all_single(output_tensor,
         if judge_format:
             output_tensor.copy_(out_tensor)
 
+
 def all_to_all(output_tensor_list,
                input_tensor_list,
                group=None,
@@ -2012,6 +2024,7 @@ def barrier(group=GroupMember.WORLD,
     else:
         work.wait()
 
+
 def _create_process_group_wrapper(
     wrapped_pg: ProcessGroup,
     store_prefix: str,
@@ -2027,6 +2040,7 @@ def _create_process_group_wrapper(
     # Wrap the underlying pg with ProcessGroupWrapper.
     wrapped_pg = _ProcessGroupWrapper(wrapped_pg, helper_pg)
     return wrapped_pg
+
 
 def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=None):
     """
@@ -2064,7 +2078,6 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
     Returns:
         A handle of distributed group that can be given to collective calls.
     """
-
 
     global _pg_group_ranks
 
@@ -2134,6 +2147,7 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
 
     return pg
 
+
 def _object_to_tensor(obj):
     f = io.BytesIO()
     _pickler(f).dump(obj)
@@ -2149,6 +2163,7 @@ def _object_to_tensor(obj):
 def _tensor_to_object(tensor, tensor_size):
     buf = tensor.numpy().tobytes()[:tensor_size]
     return _unpickler(io.BytesIO(buf)).load()
+
 
 def all_gather_object(object_list, obj, group=None):
     """
@@ -2318,7 +2333,7 @@ def broadcast_object_list(object_list, src=0, group=None, device=None):
     offset = 0
     if my_rank != src:
         for i, obj_size in enumerate(object_sizes_tensor):
-            obj_view = object_tensor[offset : offset + obj_size]
+            obj_view = object_tensor[offset: offset + obj_size]
             obj_view = obj_view.type(torch.uint8)
             if obj_view.device != torch.device("cpu"):
                 obj_view = obj_view.cpu()

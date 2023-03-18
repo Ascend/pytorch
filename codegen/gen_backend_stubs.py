@@ -88,6 +88,8 @@ _GLOBAL_PARSE_NATIVE_YAML_CACHE = {}
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
+
+
 def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
@@ -140,6 +142,8 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
 # Returns a Tuple of (true_backend, backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
 ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
     'true_backend', 'backend_key', 'autograd_key', 'cpp_namespace', 'backend_indices'])
+
+
 def parse_backend_yaml(
         backend_yaml_path: str,
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
@@ -159,7 +163,7 @@ def parse_backend_yaml(
     valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd']
 
     yaml_backend = yaml_values.pop('backend', None)
-    true_backend = 'XLA' if yaml_backend=='NPU' else yaml_backend
+    true_backend = 'XLA' if yaml_backend == 'NPU' else yaml_backend
     assert true_backend is not None, 'You must provide a value for "backend"'
     backend = "NPU"
 
@@ -321,7 +325,6 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
     backend_indices = parsed_backend_yaml.backend_indices
 
     selector = SelectiveBuilder.get_nop_selector()
-
 
     if backend_key is not None:
         backend_dispatch_key: DispatchKey = backend_key

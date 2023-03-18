@@ -28,6 +28,7 @@
 #include <c10/util/intrusive_ptr.h>
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Utils.hpp>
+#include <c10d/Work.hpp>
 #include <c10d/comm.hpp>
 #include <c10d/default_comm_hooks.hpp>
 #include <torch/csrc/autograd/function.h>
@@ -36,9 +37,8 @@
 #ifndef _WIN32
 #include <torch/csrc/distributed/autograd/context/context.h>
 #endif
-#include <torch/csrc/distributed/c10d/logger.hpp>
-#include <torch/csrc/distributed/c10d/debug.h>
-
+#include <c10d/logger.hpp>
+#include <c10d/debug.h>
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace c10d_npu {
@@ -219,7 +219,7 @@ public:
   // Creates and sets ForwardPassWorkHandle given a ProcessGroup::Work and the
   // corresponding tensor being reduced.
   void set_forward_pass_work_handle(
-      c10::intrusive_ptr<c10d::ProcessGroup::Work> forwardPassWorkHandle,
+      c10::intrusive_ptr<c10d::Work> forwardPassWorkHandle,
       bool useStaticWorldSize);
 
   // Retrieve on-device tensors used to track locally unused parameters. It is
@@ -314,7 +314,7 @@ protected:
   c10::optional<c10::List<c10::intrusive_ptr<c10::ivalue::Future>>> installed_futures_{c10::nullopt};
 
   // Work handle for allreduce on local_used_map_
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> local_used_work_;
+  c10::intrusive_ptr<c10d::Work> local_used_work_;
 
   void mark_variable_ready_dense(size_t variable_index);
 
@@ -444,7 +444,7 @@ protected:
     size_t pending;
 
     // Keep work handle around when this set of buckets is being reduced.
-    c10::intrusive_ptr<c10d::ProcessGroup::Work> work;
+    c10::intrusive_ptr<c10d::Work> work;
 
     // Keep future work handle around DDP comm hook.
     // If no hook is registered, a temporary vanilla allreduce hook will be
@@ -531,7 +531,7 @@ protected:
   // A struct containing work handle and tensor for allreduce scheduled in
   // forward pass, if applicable.
   struct ForwardPassAllreduceWork {
-    c10::intrusive_ptr<c10d::ProcessGroup::Work> workHandle;
+    c10::intrusive_ptr<c10d::Work> workHandle;
     at::Tensor resultTensor;
     // whether we should divide by the initial world_size or the no. of
     // remaining DDP ranks.

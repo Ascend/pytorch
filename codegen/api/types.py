@@ -32,6 +32,7 @@ SpecialArgName = Enum('SpecialArgName', (
 ))
 ArgName = Union[str, SpecialArgName]
 
+
 # This class shouldn't be created directly; instead, use/create one of the singletons below.
 @dataclass(frozen=True)
 class BaseCppType:
@@ -43,9 +44,11 @@ class BaseCppType:
             return self.name
         return f"{self.ns}::{self.name}"
 
+
 # The set of all non-templated, valid, fully-qualified names of C++ types that are used in the codegen.
 # Templated types get their own dataclass, mainly to make namespace parsing easier.
 intT = BaseCppType('', 'int64_t')
+longT = BaseCppType('', 'int64_t')
 doubleT = BaseCppType('', 'double')
 boolT = BaseCppType('', 'bool')
 voidT = BaseCppType('', 'void')
@@ -55,6 +58,7 @@ scalarTypeT = BaseCppType('at', 'ScalarType')
 tensorT = BaseCppType('at', 'Tensor')
 optionalTensorRefT = BaseCppType('at', 'OptionalTensorRef')
 tensorListT = BaseCppType('at', 'TensorList')
+iTensorListRefT = BaseCppType('at', 'ITensorListRef')
 dimnameT = BaseCppType('at', 'Dimname')
 dimnameListT = BaseCppType('at', 'DimnameList')
 layoutT = BaseCppType('at', 'Layout')
@@ -70,6 +74,9 @@ optionalIntArrayRefT = BaseCppType("at", "OptionalIntArrayRef")
 tensorOptionsT = BaseCppType('at', 'TensorOptions')
 typeAndSizeT = BaseCppType('torch::autograd::generated', 'TypeAndSize')
 tensorGeometryT = BaseCppType('at', 'TensorGeometry')
+SymIntT = BaseCppType('c10', 'SymInt')
+symIntArrayRefT = BaseCppType('c10', 'SymIntArrayRef')
+optionalSymIntArrayRefT = BaseCppType('at', 'OptionalSymIntArrayRef')
 
 BaseTypeToCppMapping: Dict[BaseTy, BaseCppType] = {
     BaseTy.int: intT,
@@ -87,7 +94,9 @@ BaseTypeToCppMapping: Dict[BaseTy, BaseCppType] = {
     BaseTy.QScheme: qschemeT,
     BaseTy.Storage: storageT,
     BaseTy.Stream: streamT,
+    BaseTy.SymInt: SymIntT,
 }
+
 
 # CTypes encode C++ type structure as needed for translation.
 
@@ -106,6 +115,7 @@ class BaseCType:
     def remove_const_ref(self) -> 'CType':
         return self
 
+
 @dataclass(frozen=True)
 class ConstRefCType:
     elem: 'CType'
@@ -120,6 +130,7 @@ class ConstRefCType:
 
     def remove_const_ref(self) -> 'CType':
         return self.elem.remove_const_ref()
+
 
 @dataclass(frozen=True)
 class MutRefCType:
@@ -136,6 +147,7 @@ class MutRefCType:
     def remove_const_ref(self) -> 'CType':
         return self.elem.remove_const_ref()
 
+
 @dataclass(frozen=True)
 class OptionalCType:
     elem: 'CType'
@@ -149,6 +161,7 @@ class OptionalCType:
 
     def remove_const_ref(self) -> 'CType':
         return OptionalCType(self.elem.remove_const_ref())
+
 
 @dataclass(frozen=True)
 class ListCType:
@@ -164,6 +177,7 @@ class ListCType:
     def remove_const_ref(self) -> 'CType':
         return ListCType(self.elem.remove_const_ref())
 
+
 @dataclass(frozen=True)
 class ArrayRefCType:
     elem: 'CType'
@@ -178,6 +192,7 @@ class ArrayRefCType:
     def remove_const_ref(self) -> 'CType':
         return ArrayRefCType(self.elem.remove_const_ref())
 
+
 @dataclass(frozen=True)
 class VectorCType:
     elem: 'CType'
@@ -191,6 +206,7 @@ class VectorCType:
 
     def remove_const_ref(self) -> 'CType':
         return VectorCType(self.elem.remove_const_ref())
+
 
 @dataclass(frozen=True)
 class ArrayCType:
@@ -207,6 +223,7 @@ class ArrayCType:
     def remove_const_ref(self) -> 'CType':
         return ArrayCType(self.elem.remove_const_ref(), self.size)
 
+
 @dataclass(frozen=True)
 class TupleCType:
     elems: List['CType']
@@ -221,6 +238,7 @@ class TupleCType:
     def remove_const_ref(self) -> 'CType':
         return TupleCType([e.remove_const_ref() for e in self.elems])
 
+
 CType = Union[
     BaseCType,
     OptionalCType,
@@ -232,6 +250,7 @@ CType = Union[
     VectorCType,
     TupleCType
 ]
+
 
 # A NamedCType is short for Named C++ semantic type.  A NamedCType represents a C++ type, plus
 # semantic information about what it represents.  For example, consider the
@@ -258,6 +277,7 @@ class NamedCType:
 
     def with_name(self, name: str) -> 'NamedCType':
         return NamedCType(name, self.type)
+
 
 # A binding represents any C++ binding site for a formal parameter.
 # We don't distinguish between binding sites for different APIs;
@@ -307,6 +327,7 @@ class Binding:
 
     def defn(self) -> str:
         return f"{self.type} {self.name}"
+
 
 # An Expr is a C++ expression.  It has a C++ string representing its syntax,
 # as well as a CType saying what it provides.

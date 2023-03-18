@@ -73,6 +73,7 @@ def error_check_native_functions(funcs: Sequence[NativeFunction]) -> None:
                 f"{f.structured_delegate}, but {f.structured_delegate} is not marked as structured. " \
                 f"Consider adding 'structured=True' to the delegated operator"
 
+
 def cpp_string(s: str) -> str:
     """Convert a python string into a c++ string literal """
     s = s.replace('\\', '\\\\')
@@ -84,6 +85,7 @@ def cpp_string(s: str) -> str:
     s = s.replace('\v', '\\v')
     s = s.replace('\t', '\\t')
     return f'"{s}"'
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 #
@@ -100,6 +102,7 @@ def _read_template(template_fn: str) -> CodeTemplate:
 def string_stable_hash(s: str) -> int:
     sha1 = hashlib.sha1(s.encode('latin1')).digest()
     return int.from_bytes(sha1, byteorder='little')
+
 
 # A small abstraction for writing out generated files and keeping track
 # of what files have been written (so you can write out a list of output
@@ -125,7 +128,7 @@ class FileManager:
         except IOError:
             old_contents = None
         if contents != old_contents:
-            with os.fdopen(os.open(filename, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
+            with os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as f:
                 f.write(contents)
 
     def write_with_template(self, filename: str, template_fn: str,
@@ -148,7 +151,6 @@ class FileManager:
                 self._write_if_changed(filename, env)
             else:
                 assert_never(env)
-
 
     def write(self, filename: str, env_callable: Callable[[], Union[str, Union[str, Dict[str, Any]]]]) -> None:
         self.write_with_template(filename, filename, env_callable)
@@ -180,7 +182,6 @@ class FileManager:
                     shard[key] = shard[key].copy()
                 else:
                     shard[key] = []
-
 
         def merge_env(into: Dict[str, List[str]], from_: Dict[str, List[str]]) -> None:
             for k, v in from_.items():
@@ -218,6 +219,7 @@ class FileManager:
         self._write_if_changed(
             filename,
             ''.join(name + ";" for name in sorted(self.filenames)))
+
 
 def get_grouped_native_functions(
         native_functions: Sequence[NativeFunction]) -> Sequence[Union[NativeFunction, NativeFunctionsGroup]]:

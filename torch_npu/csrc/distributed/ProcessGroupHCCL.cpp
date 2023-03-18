@@ -564,7 +564,7 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
     is_high_priority_stream(is_high_priority_stream){}
 
 template <typename Fn, typename PreProcess, typename PostProcess>
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
     Fn fn,
@@ -629,7 +629,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
 }
 
 template <typename Fn>
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
     Fn fn) {
@@ -642,7 +642,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
 }
 
 int g_allreduceID = 0;
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
     std::vector<at::Tensor>& tensors,
     const c10d::AllreduceOptions& opts) {
   check_npu_tensors_different_devices(tensors);
@@ -689,7 +689,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
       });
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_out(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
     int64_t fusion_id,
@@ -724,7 +724,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
 }
 
 int g_broadcastID = 100000;
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
     std::vector<at::Tensor>& tensors,
     const c10d::BroadcastOptions& opts) {
   check_npu_tensors_different_devices(tensors);
@@ -747,14 +747,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
       });
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_coalesced(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
     std::vector<at::Tensor>& /* unused */,
     const c10d::AllreduceCoalescedOptions& /* unused */) {
   throw std::runtime_error(
       "ProcessGroupHCCL does not support allreduce_coalesced");
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
     std::vector<at::Tensor>& tensors,
     const c10d::ReduceOptions& opts) {
   check_npu_tensors_different_devices(tensors);
@@ -781,7 +781,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
       });
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     std::vector<std::vector<at::Tensor>>& outputTensors,
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts) {
@@ -839,7 +839,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
       });
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togather(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
     std::vector<at::Tensor>& outputTensors,
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts) {
@@ -870,7 +870,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togathe
       );
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     const c10d::AllgatherOptions& opts) {
@@ -903,7 +903,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
       );
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
     std::vector<at::Tensor>& outputTensors,
     std::vector<std::vector<at::Tensor>>& inputTensors,
     const c10d::ReduceScatterOptions& opts) {
@@ -950,7 +950,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
       [&](std::vector<c10_npu::NPUStream>& hcclStreams) {});
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_base(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     const c10d::ReduceScatterOptions& opts) {
@@ -991,7 +991,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
       [&](std::vector<c10_npu::NPUStream>&) {});
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(
     const c10d::BarrierOptions& opts) {
   std::vector<at::Device> devices;
   if (usedDeviceIdxs_.empty()) {
@@ -1025,21 +1025,21 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
   return work;
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::gather(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
     std::vector<std::vector<at::Tensor>>& /* unused */,
     std::vector<at::Tensor>& /* unused */,
     const c10d::GatherOptions& /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support gather");
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::scatter(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     std::vector<at::Tensor>& /* unused */,
     std::vector<std::vector<at::Tensor>>& /* unused */,
     const c10d::ScatterOptions& /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support scatter");
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(
     std::vector<at::Tensor>& tensors,
     int dstRank,
     int tag) {
@@ -1062,7 +1062,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
       });
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(
     std::vector<at::Tensor>& tensors,
     int srcRank,
     int tag) {
@@ -1085,13 +1085,13 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
       });
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recvAnysource(
     std::vector<at::Tensor>& /* unused */,
     int /* unused */) {
   TORCH_CHECK(false, "ProcessGroupHCCL does not support recv");
 }
 
-c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
+c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     std::vector<int64_t>& outputSplitSizes,
