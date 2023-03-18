@@ -199,6 +199,17 @@ class NPUDeformableConv2dOP(torch.autograd.Function):
                     deformable_groups_i=deformable_groups, modulated_i=modulated, outputs=2)
 
 
+class NPUFormatCastOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_format_cast(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, acl_format: int):
+        return g.op("npu::NPUFormatCast", self, acl_format_i=acl_format)
+
+
 class NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
 
     @staticmethod
@@ -657,6 +668,10 @@ def wrapper_npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stri
                                        padding, dilation, groups, deformable_groups, modulated)
 
 
+def wrapper_npu_format_cast(self, acl_format):
+    return NPUFormatCastOP.apply(self, acl_format)
+
+
 def wrapper_npu_softmax_cross_entropy_with_logits(self, labels):
     return NPUSoftmaxCrossEntropyWithLogitsOP.apply(self, labels)
 
@@ -819,6 +834,7 @@ def add_onnx_ops():
     torch_npu.npu_diou = wrapper_npu_diou
     torch_npu.npu_giou = wrapper_npu_giou
     torch_npu.npu_deformable_conv2d = wrapper_npu_deformable_conv2d
+    torch_npu.npu_format_cast = wrapper_npu_format_cast
     torch_npu.npu_softmax_cross_entropy_with_logits = wrapper_npu_softmax_cross_entropy_with_logits
     torch_npu.npu_ps_roi_pooling = wrapper_npu_ps_roi_pooling
     torch_npu.npu_grid_assign_positive = wrapper_npu_grid_assign_positive
