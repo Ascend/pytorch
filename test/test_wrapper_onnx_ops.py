@@ -388,6 +388,25 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    def test_wrapper_npu_format_cast(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, input_):
+                return torch_npu.npu_format_cast(input_, 2)
+
+        def export_onnx(onnx_model_name):
+            input_ = torch.rand(3, 3).npu()
+            model = Model().to("npu")
+            model(input_)
+            self.onnx_export(model, input_, onnx_model_name, ["input_"])
+
+        onnx_model_name = "model_npu_format_cast.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
     def test_wrapper_npu_softmax_cross_entropy_with_logits(self):
         class Model(torch.nn.Module):
             def __init__(self):
