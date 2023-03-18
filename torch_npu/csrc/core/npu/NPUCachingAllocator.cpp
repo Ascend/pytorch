@@ -462,6 +462,14 @@ class DeviceCachingAllocator {
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_allocations, 1);
 
+    c10::reportMemoryUsageToProfiler(
+        block,
+        block->size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        c10::Device(at_npu::key::NativeDeviceType, block->device)
+    );
+
     return block;
   }
 
@@ -469,6 +477,11 @@ class DeviceCachingAllocator {
     std::lock_guard<std::recursive_mutex> lock(mutex);
 
     block->allocated = false;
+
+    // following logic might modifying underlaying Block, causing the size
+    // changed. We store ahead for reporting
+    auto orig_block_ptr = block->ptr;
+    auto orig_block_size = block->size;
 
     StatTypes stat_types = {false};
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
@@ -485,6 +498,14 @@ class DeviceCachingAllocator {
     } else {
       free_block(block);
     }
+
+    c10::reportMemoryUsageToProfiler(
+        orig_block_ptr,
+        -orig_block_size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        c10::Device(at_npu::key::NativeDeviceType, block->device)
+    );
   }
 
   void* getBaseAllocation(Block* block, size_t* outSize) {
