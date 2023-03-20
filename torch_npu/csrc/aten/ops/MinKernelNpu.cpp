@@ -129,10 +129,27 @@ at::Tensor& NPUNativeFunctions::min_out(
 }
 
 at::Tensor NPUNativeFunctions::minimum(const at::Tensor& self, const at::Tensor& other) {
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  min_out_npu_nocheck(self, other, result);
+  auto result_type = at::result_type(self, other);
+  at::Tensor self_copy = (self.scalar_type() != result_type) ?
+      NPUNativeFunctions::npu_dtype_cast(self, result_type) : self;
+  at::Tensor other_copy = (other.scalar_type() != result_type) ?
+      NPUNativeFunctions::npu_dtype_cast(other, result_type) : other;
+  auto output_size = broadcast_ops_npu_output_size(self, other);
+  at::Tensor result = OpPreparation::ApplyTensor(self_copy, output_size);
+  min_out_npu_nocheck(self_copy, other_copy, result);
   return result;
+}
+
+at::Tensor& NPUNativeFunctions::minimum_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  auto high_type = at::result_type(self, other);
+  auto result_type = result.scalar_type();
+  TORCH_CHECK(canCast(high_type, result_type), "result type ", high_type,
+      " can't be cast to the desired output type ", result_type);
+  at::Tensor self_copy = (self.scalar_type() != result_type) ?
+      NPUNativeFunctions::npu_dtype_cast(self, result_type) : self;
+  at::Tensor other_copy = (other.scalar_type() != result_type) ?
+      NPUNativeFunctions::npu_dtype_cast(other, result_type) : other;
+  return NPUNativeFunctions::min_out(self_copy, other_copy, result);
 }
 
 at::Tensor& min_out_npu_nocheck(
