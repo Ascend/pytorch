@@ -220,7 +220,25 @@ class GradScaler(Cuda_GradScaler):
         
         per_device_and_dtype_grads = defaultdict(lambda: defaultdict(list))
         with torch.no_grad():
-            if self._dynamic:
+            if hasattr(optimizer, 'is_fused_optimizer'):
+                if not optimizer.is_params_grads_combined:
+                    optimizer._maybe_init_combined_params_and_grads()
+
+                device = found_inf.device
+                for grads_combined_one_dtype in optimizer.grads_all_group_combined:
+                    if grads_combined_one_dtype is None:
+                        continue
+                    if self._dynamic:
+                        torch._amp_foreach_non_finite_check_and_unscale_(
+                            [grads_combined_one_dtype],
+                            per_device_found_inf.get(device),
+                            per_device_inv_scale.get(device))
+                        if per_device_found_inf.get(device)[0].item() > 0:
+                            self._has_overflow = True
+                    else:
+                        grads_combined_one_dtype.mul_(
+                            per_device_inv_scale.get(device))
+            else:
                 for group in optimizer.param_groups:
                     for param in group["params"]:
                         if param.grad is None:
@@ -243,11 +261,15 @@ class GradScaler(Cuda_GradScaler):
 
                 for device, per_dtype_grads in per_device_and_dtype_grads.items():
                     for grads in per_dtype_grads.values():
-                        torch._amp_foreach_non_finite_check_and_unscale_(grads,
-                                                                        per_device_found_inf.get(device),
-                                                                        per_device_inv_scale.get(device))
-                        if per_device_found_inf.get(device)[0].item() > 0:
-                            self._has_overflow = True
+                        if self._dynamic:
+                            torch._amp_foreach_non_finite_check_and_unscale_(grads,
+                                                                            per_device_found_inf.get(device),
+                                                                            per_device_inv_scale.get(device))
+                            if per_device_found_inf.get(device)[0].item() > 0:
+                                self._has_overflow = True
+                        else:
+                            for grad in grads:
+                                grad.mul_(per_device_inv_scale.get(device))
 
             self._sync_dist_overflow_count()
             if self._has_overflow:
