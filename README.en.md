@@ -1,7 +1,7 @@
 # AscendPyTorch
 ## Overview
 
-This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors. When setting up the environments for PyTorch model development and operating, developers can manually compile related modules on servers.
+This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors. When setting up the environments for PyTorch model development and operating, developers can manually compile related modules on servers. It is recommended to select branch in table *Ascend Auxiliary Software* while master is unstable. For development purposes on master, please refer to FAQ [Compile and Install PyTorch](#FAQs).
 
 ## Prerequisites
 
@@ -14,26 +14,26 @@ This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch 
 
 yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
 
-yum install -y gcc==7.5.0 cmake==3.12.0
+yum install -y gcc==7.5.0 cmake==3.13.0
 
 ## Ubuntu
 
 apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
 
-apt-get install -y gcc==7.5.0 cmake==3.12.0
+apt-get install -y gcc==7.5.0 cmake==3.13.0
 
 >![](figures/icon-note.gif) **NOTE:** 
 >If an error occurs during the installation of the GCC and CMake dependency commands, use the source code for installation. For details, see the FAQ.  
 # Ascend Auxiliary Software
-| AscendPyTorch Version| CANN Version| Supported PyTorch Version| Gitee Branch|
-| :------------ | :----------- | :----------- | ------------- |
-| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
-| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
-| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
-| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
+| AscendPyTorch Version | CANN Version | Supported PyTorch Version | Gitee Branch   |
+|:----------------------|:-------------|:--------------------------|----------------|
+| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               | 2.0.2.tr5      |
+| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               | 2.0.3.tr5      |
+| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               | 2.0.4.tr5      |
+| 3.0.rc1               | CANN 5.1.RC1 | 1.5.0.post5               | v1.5.0-3.0.rc1 |
+| 3.0.rc1               | CANN 5.1.RC1 | 1.8.1.rc1                 | v1.8.1-3.0.rc1 |
+| 3.0.rc2               | CANN 5.1.RC2 | 1.5.0.post6               | v1.5.0-3.0.rc2 |
+| 3.0.rc2               | CANN 5.1.RC2 | 1.8.1.rc2                 | v1.8.1-3.0.rc2 |
 
 # Installation Methods
 
@@ -52,7 +52,7 @@ Install the official torch package, and then compile and install the plugin.
 
 ```sh
 #x86_64
-pip3 install torch==1.11.0+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
+pip3 install torch==1.13.0+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
 
 #AArch64
 #The community does not provide the CPU installation package of the ARM architecture. For details, see the first FAQ to compile and install PyTorch using the source code.
@@ -75,11 +75,11 @@ bash ci/build.sh --python=3.9
 Install the **torch_npu** package generated in the **pytorch/dist** directory. *{arch}* indicates the architecture name.
 
 ```
-pip3 install --upgrade dist/torch_npu-1.11.0-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.13.0-cp37-cp37m-linux_{arch}.whl
 ```
 Download TorchVision.
 ```
-pip3 install torchvision==0.12.0
+pip3 install torchvision==0.14.0
 ```
 
 
@@ -137,7 +137,7 @@ python3 test_div.py
 
 # (Optional) Installing the Mixed Precision Module
 
-AscendPyTorch 1.11.0 integrates the AMP module and can be used for training with mixed precision. The differences between the AMP module and the Apex module are as follows. You can select a desired module. For details about how to compile and install the Apex module, see the related [**README.en**](https://gitee.com/ascend/apex) file.
+AscendPyTorch integrates the AMP module and can be used for training with mixed precision. The differences between the AMP module and the Apex module are as follows. You can select a desired module. For details about how to compile and install the Apex module, see the related [**README.en**](https://gitee.com/ascend/apex) file.
 
 - AMP
   - Dynamic loss scale: The loss scale value is dynamically calculated to determine whether overflow occurs.
@@ -165,45 +165,61 @@ We sincerely welcome you to join discussions in the community and contribute you
 
 The version branches of AscendPyTorch have the following maintenance phases:
 
-| **Status**      | **Duration**   | **Description**                                         |
-|-------------|---------------|--------------------------------------------------|
-| Planning    | 1-3 months  | Plan features.                    |
-| Development | 3 months      | Develop features.                 |
-| Maintained  | 6-12 months | Allow the incorporation of all resolved issues and release the version.|
-| Unmaintained| 0-3 months  | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released.                                                |
-| End Of Life (EOL) |  N/A |  Do not accept any modification to a branch.   |
+| **Status**        | **Duration** | **Description**                                                                                                                |
+|-------------------|--------------|--------------------------------------------------------------------------------------------------------------------------------|
+| Planning          | 1-3 months   | Plan features.                                                                                                                 |
+| Development       | 3 months     | Develop features.                                                                                                              |
+| Maintained        | 6-12 months  | Allow the incorporation of all resolved issues and release the version.                                                        |
+| Unmaintained      | 0-3 months   | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released. |
+| End Of Life (EOL) | N/A          | Do not accept any modification to a branch.                                                                                    |
 
 # Maintenance Status of Existing Branches
 
-| **Branch Name**| **Status** | **Launch Date**         | **Subsequent Status**                          | **EOL Date**|
-|------------|--------------|----------------------|----------------------------------------|------------|
-| **v2.0.2**   | Maintained   | 2021-07-29           | Unmaintained <br> 2022-07-29 estimated |            |
-| **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
-| **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
-| **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
-| **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |  
+| **Branch Name** | **Status** | **Launch Date** | **Subsequent Status**                  | **EOL Date** |
+|-----------------|------------|-----------------|----------------------------------------|--------------|
+| **v2.0.2**      | Maintained | 2021-07-29      | Unmaintained <br> 2022-07-29 estimated |              |
+| **v2.0.3**      | Maintained | 2021-10-15      | Unmaintained <br> 2022-10-15 estimated |              |
+| **v2.0.4**      | Maintained | 2022-01-15      | Unmaintained <br> 2023-01-15 estimated |              |
+| **v3.0.rc1**    | Maintained | 2022-04-10      | Unmaintained <br> 2023-04-10 estimated |              |
+| **v3.0.rc2**    | Maintained | 2022-07-15      | Unmaintained <br> 2023-07-15 estimated |  
 # FAQs
 
-## When the CPU architecture is ARM, PyTorch 1.11.0 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.11.0.
+## When the CPU architecture is ARM, PyTorch 1.13.0 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.13.0.
 
-Download the PyTorch 1.11.0 source package.
+Download the PyTorch 1.13.0 source package.
 
 ```
-git clone -b v1.11.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.11.0
+git clone -b v1.13.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.13.0
 ```
 
 Access the source package to obtain the passive dependency code.
 
 ```
-cd pytorch_v1.11.0
+cd pytorch_v1.13.0
 git submodule sync
 git submodule update --init --recursive 
 ```
 
-Compile and install PyTorch 1.11.0.
+Compile and install PyTorch 1.13.0.
 
 ```
 python3 setup.py install
+```
+
+Compile torch_npu.
+
+```
+git clone https://gitee.com/ascend/pytorch.git 
+cd pytorch    
+# Compile with python version(--python=3.7, --python=3.8 or --python=3.9)
+bash ci/build.sh --python=3.7
+```
+
+Install torch_npu
+
+```
+# replace aarch64 with x86_64 when using environment in x86 arch
+pip3 install --upgrade dist/torch_npu-1.13.0-cp37-cp37m-linux_aarch64.whl
 ```
 
 ## When PIP is set to the Huawei source, a Python environment error occurs after the typing dependency in the **requirements.txt** file is installed.
@@ -252,12 +268,12 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 Method 1: Download the installation script and install CMake. (For details, see the CMake official website.)
 
-​		x86_64 environment: cmake-3.12.0-Linux-x86_64.sh  
-​		AArch64 environment: cmake-3.12.0-Linux-aarch64.sh  
+​		x86_64 environment: cmake-3.13.0-Linux-x86_64.sh  
+​		AArch64 environment: cmake-3.13.0-Linux-aarch64.sh  
 1. Run the following command:
 
    ```
-   ./cmake-3.12.0-Linux-{arch}.sh # {arch} indicates the architecture name.
+   ./cmake-3.13.0-Linux-{arch}.sh # {arch} indicates the architecture name.
    ```
 
 2. Set the soft link.
@@ -272,21 +288,21 @@ Method 1: Download the installation script and install CMake. (For details, see 
    cmake --version
    ```
 
-   If the message "cmake version 3.12.0" is displayed, the installation is successful.
+   If the message "cmake version 3.13.0" is displayed, the installation is successful.
 
 Method 2: Use the source code to compile and install.
 
 1. Obtain the CMake software package.
 
    ```
-   wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
+   wget https://cmake.org/files/v3.13/cmake-3.13.0.tar.gz --no-check-certificate
    ```
 
 2. Decompress the package and go to the software package directory.
 
    ```
-   tar -xf cmake-3.12.0.tar.gz
-   cd cmake-3.12.0/
+   tar -xf cmake-3.13.0.tar.gz
+   cd cmake-3.13.0/
    ```
 
 3. Run the configuration, compilation, and installation commands.
@@ -308,7 +324,7 @@ Method 2: Use the source code to compile and install.
    cmake --version
    ```
 
-   If the message "cmake version 3.12.0" is displayed, the installation is successful.
+   If the message "cmake version 3.13.0" is displayed, the installation is successful.
 
 ## During GCC installation through the CLI, an error is reported indicating that the package cannot be found. During GCC compilation, another error is reported.
 
