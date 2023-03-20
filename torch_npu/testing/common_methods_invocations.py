@@ -1047,9 +1047,8 @@ op_db: List[OpInfo] = [
         'min',
         aliases=('minimum',),
         dtypes=_dispatch_dtypes((torch.float32, )),
-        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        supports_out=False,
-        formats=(0, 3, 4, 29),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.int8, torch.int32)),
+        formats=(0, 2),
     ),
     UnaryUfuncInfo(
         'nn.functional.mish',

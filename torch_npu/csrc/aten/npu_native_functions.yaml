@@ -545,6 +545,7 @@ supported:
  - min.names_dim_min
  - min.out
  - minimum
+ - minimum.out
  - mm
  - mm.out
  - mse_loss
