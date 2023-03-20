@@ -21,6 +21,7 @@ from torchvision.transforms import ToTensor
 
 import torch_npu
 
+torch_npu.npu.set_device(0)
 
 JIT_COMPILE_EXTENSION = True
 if JIT_COMPILE_EXTENSION:
