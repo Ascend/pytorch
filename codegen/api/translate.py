@@ -229,11 +229,11 @@ Check this module for more information.
                 symIntArrayRef_type = direct_solve(
                     NamedCType(goal.name, BaseCType(symIntArrayRefT))
                 )
-                return f"c10::asIntArrayRefSlow({symIntArrayRef_type})"
+                return f"C10_AS_INTARRAYREF_SLOW({symIntArrayRef_type})"
         elif goal.type == BaseCType(symIntArrayRefT):
             try:
                 r = direct_solve(NamedCType(goal.name, BaseCType(intArrayRefT)))
-                return f"c10::fromIntArrayRef({r})"
+                return f"c10::fromIntArrayRefSlow({r})"
             except UnsatError:
                 return direct_solve(NamedCType(goal.name, longSymVec_ctype))
         elif goal.type == BaseCType(SymIntT):
@@ -258,14 +258,14 @@ Check this module for more information.
                 argname = direct_solve(
                     NamedCType(goal.name, BaseCType(optionalSymIntArrayRefT))
                 )
-                return f"{argname}.has_value() ? c10::make_optional(c10::asIntArrayRefSlow(*{argname})) : c10::nullopt"
+                return f"{argname}.has_value() ? c10::make_optional(C10_AS_INTARRAYREF_SLOW(*{argname})) : c10::nullopt"
         elif goal.type == BaseCType(optionalSymIntArrayRefT):
             # TODO: You might also want to solve this from longSymVec_ctype or
             # an optional version of it
             argname = direct_solve(
                 NamedCType(goal.name, BaseCType(optionalIntArrayRefT))
             )
-            return f"{argname}.has_value() ? c10::make_optional(c10::fromIntArrayRef(*{argname})) : c10::nullopt"
+            return f"{argname}.has_value() ? c10::make_optional(c10::fromIntArrayRefSlow(*{argname})) : c10::nullopt"
         elif goal.type == BaseCType(optionalScalarRefT):
             return direct_solve(NamedCType(goal.name, optionalScalar_ctype))
         elif goal.type == BaseCType(optionalTensorRefT):

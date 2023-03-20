@@ -25,7 +25,6 @@ from torch.utils.data.dataloader import DataLoader as SrcDataLoader
 from torch.utils.data.dataloader import _DatasetKind, _share_dist_seed
 from torch._utils import ExceptionWrapper
 import torch.multiprocessing as multiprocessing
-from torch._six import string_classes
 import torch_npu
 
 MP_STATUS_CHECK_INTERVAL = 5.0

@@ -21,7 +21,6 @@ import threading
 from multiprocessing.util import register_after_fork as _register_after_fork
 
 import torch
-import torch._six
 
 import torch_npu
 import torch_npu._C
@@ -186,7 +185,7 @@ def _get_device_index(device, optional=False):
     If :attr:`device` is ``None``, this will return the current default CUDA
     device if :attr:`optional` is ``True``.
     """
-    if isinstance(device, torch._six.string_classes):
+    if isinstance(device, (str, bytes)):
         if "npu" not in device:
             return int(device)
         else:
@@ -284,13 +283,26 @@ def stream(stream):
         with device(stream.device):
             dst_prev_stream = current_stream()
 
-    torch_npu._C._npu_setStream(stream._cdata)
+    torch.npu.set_stream(stream)
     try:
         yield
     finally:
         if src_prev_stream.device != stream.device:
-            torch_npu._C._npu_setStream(dst_prev_stream._cdata)
-        torch_npu._C._npu_setStream(src_prev_stream._cdata)
+            torch.npu.set_stream(dst_prev_stream)
+        torch.npu.set_stream(src_prev_stream)
+
+
+def set_stream(stream):
+    r"""Sets the current stream.This is a wrapper API to set the stream.
+        Usage of this function is discouraged in favor of the ``stream``
+        context manager.
+    Args:
+        stream (Stream): selected stream. This function is a no-op
+            if this argument is ``None``.
+    """
+    if stream is None:
+        return
+    torch_npu._C._npu_setStream(stream_id=stream.stream_id, device_index=stream.device_index, device_type=stream.device_type)
 
 
 def current_stream(device=None):
@@ -303,8 +315,9 @@ def current_stream(device=None):
             (default).
     """
     torch_npu.npu._lazy_init()
-    return torch_npu.npu.Stream(_cdata=torch_npu._C._npu_getCurrentStream(
-        _get_device_index(device, optional=True)))
+    streamdata = torch_npu._C._npu_getCurrentStream(
+        _get_device_index(device, optional=True))
+    return torch_npu.npu.Stream(stream_id=streamdata[0], device_index=streamdata[1], device_type=streamdata[2])
 
 
 def default_stream(device=None):
@@ -317,8 +330,9 @@ def default_stream(device=None):
             (default).
     """
     torch_npu.npu._lazy_init()
-    return torch_npu.npu.Stream(_cdata=torch_npu._C._npu_getDefaultStream(
-        _get_device_index(device, optional=True)))
+    streamdata = torch_npu._C._npu_getDefaultStream(
+        _get_device_index(device, optional=True))
+    return torch_npu.npu.Stream(stream_id=streamdata[0], device_index=streamdata[1], device_type=streamdata[2])
 
 
 def _dummy_type(name):

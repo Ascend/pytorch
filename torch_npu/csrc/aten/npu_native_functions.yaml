@@ -46,7 +46,6 @@ supported:
  - _embedding_bag_backward
  - _embedding_bag_dense_backward
  - _embedding_bag_forward_only
- - _index_copy_
  - _index_put_impl_
  - _linalg_svd.U
  - _local_scalar_dense
@@ -509,7 +508,6 @@ supported:
  - max.names_dim
  - max.names_dim_max
  - max.out
- - max_pool2d
  - max_pool2d_with_indices
  - max_pool2d_with_indices.out
  - max_pool2d_with_indices_backward
@@ -762,6 +760,7 @@ supported:
  - std
  - std.dim
  - std.names_dim
+ - std.correction
  - std.names_out
  - std.out
  - std_mean

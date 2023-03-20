@@ -40,7 +40,7 @@ import torch
 import expecttest
 import numpy as np
 
-from torch._six import string_classes, inf
+from torch import inf
 
 from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices, IS_WINDOWS
 from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
@@ -342,7 +342,7 @@ class TestCase(expecttest.TestCase):
             elif isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor):
                 self._assertTensorsEqual(x, y, prec=prec, message=message,
                                         allow_inf=allow_inf, exact_dtype=exact_dtype)
-            elif isinstance(x, string_classes) and isinstance(y, string_classes):
+            elif isinstance(x, (str, bytes)) and isinstance(y, (str, bytes)):
                 super(TestCase, self).assertEqual(x, y, message)
             elif type(x) == set and type(y) == set:
                 super(TestCase, self).assertEqual(x, y, message)

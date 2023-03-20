@@ -34,13 +34,6 @@ class TestIndexCopy(TestCase):
         output = input1.numpy()
         return output
 
-    def op_inp_exec_(self, npuflag, input1, dim, indices, updates):
-        output = torch._index_copy_(input1, dim, indices, updates)
-        if npuflag:
-            output = output.to("cpu")
-        output = output.numpy()
-        return output
-
     def case_exec(self, input1, dim, indices, updates):
         npu_input = input1.npu()
         npu_indices = indices.npu()
@@ -50,9 +43,6 @@ class TestIndexCopy(TestCase):
         self.assertEqual(cpu_output, npu_output)
         cpu_output = self.op_inp_exec(0, input1, dim, indices, updates)
         npu_output = self.op_inp_exec(1, npu_input, dim, npu_indices, npu_updates)
-        self.assertEqual(cpu_output, npu_output)
-        cpu_output = self.op_inp_exec_(0, input1, dim, indices, updates)
-        npu_output = self.op_inp_exec_(1, npu_input, dim, npu_indices, npu_updates)
         self.assertEqual(cpu_output, npu_output)
 
     def test_index_copy_dim0_0(self):

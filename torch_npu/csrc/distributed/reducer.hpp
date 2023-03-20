@@ -186,7 +186,11 @@ public:
   // Runs allreduce or installed communication hook given GradBucket instance.
   c10::intrusive_ptr<c10::ivalue::Future> run_comm_hook(
       c10d::GradBucket& grad_bucket);
-  
+
+  // Runs default allreduce hook.
+  c10::intrusive_ptr<c10::ivalue::Future> run_allreduce_hook(
+    c10d::GradBucket& grad_bucket);
+
   // Returns gradient buckets in sequential order of buckets_. This is the order
   // in which buckets are reduced across processes. If return_zero_tensors=true,
   // will return zero tensors of the same shape instead of the true tensors.

@@ -563,8 +563,8 @@ struct  ProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
   void reportMemoryUsage(
       void* /* unused */,
       int64_t alloc_size,
-      int64_t /* total_allocated, unused for legacy */,
-      int64_t /* total_reserved, unused for legacy */,
+      size_t /* total_allocated, unused for legacy */,
+      size_t /* total_reserved, unused for legacy */,
       c10::Device device) override;
 
   bool memoryProfilingEnabled() const override;

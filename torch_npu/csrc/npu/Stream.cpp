@@ -38,11 +38,29 @@ static PyObject * THNPStream_pynew(
   C10_NPU_CHECK(aclrtGetDevice(&current_device));
 
   int priority = 0;
-  uint64_t cdata = 0;
+  int64_t stream_id = 0;
+  int64_t device_index = 0;
+  int64_t device_type = 0;
+  uint64_t stream_ptr = 0;
 
-  static char *kwlist[] = {"priority", "_cdata", nullptr};
+  // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
+  constexpr char* kwlist[] = {
+      "priority",
+      "stream_id",
+      "device_index",
+      "device_type",
+      "stream_ptr",
+      nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-      args, kwargs, "|iK", kwlist, &priority, &cdata)) {
+          args,
+          kwargs,
+          "|iLLLK",
+          const_cast<char**>(kwlist),
+          &priority,
+          &stream_id,
+          &device_index,
+          &device_type,
+          &stream_ptr)) {
     return nullptr;
   }
 
@@ -52,12 +70,15 @@ static PyObject * THNPStream_pynew(
   }
 
   c10_npu::NPUStream stream =
-    cdata ?
-    c10_npu::NPUStream::unpack(cdata) :
+    (stream_id || device_index || device_type) ?
+    c10_npu::NPUStream::unpack3(
+            stream_id, device_index, static_cast<c10::DeviceType>(device_type)) :
     c10_npu::getNPUStreamFromPool();
 
   THNPStream* self = (THNPStream *)ptr.get();
-  self->cdata = stream.pack();
+  self->stream_id = static_cast<int64_t>(stream.id());
+  self->device_index = static_cast<int64_t>(stream.device_index());
+  self->device_type = static_cast<int64_t>(stream.device_type());
   new (&self->npu_stream) c10_npu::NPUStream(stream);
 
   return (PyObject *)ptr.release();
@@ -124,9 +145,11 @@ static PyObject * THNPStream_eq(THNPStream *self, THNPStream *other) {
 }
 
 static struct PyMemberDef THNPStream_members[] = {
-  {(char*)"_cdata", T_ULONGLONG, offsetof(THNPStream, cdata), READONLY, nullptr},
+  {(char*)"stream_id", T_ULONGLONG, offsetof(THNPStream, stream_id), READONLY, nullptr},
+  {(char*)"device_type", T_ULONGLONG, offsetof(THNPStream, device_type), READONLY, nullptr},
+  {(char*)"device_index", T_ULONGLONG, offsetof(THNPStream, device_index), READONLY, nullptr},
   {nullptr}
-};
+  };
 
 static struct PyGetSetDef THNPStream_properties[] = {
   {"device", (getter)THNPStream_get_device, nullptr, nullptr, nullptr},
@@ -188,6 +211,8 @@ PyTypeObject THNPStreamType = {
 
 void THNPStream_init(PyObject *module)
 {
+  Py_INCREF(THPStreamClass);
+  THNPStreamType.tp_base = THPStreamClass;
   THNPStreamClass = (PyObject*)&THNPStreamType;
   if (PyType_Ready(&THNPStreamType) < 0) {
     throw python_error();
