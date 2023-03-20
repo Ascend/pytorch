@@ -513,8 +513,10 @@ std::vector<at::Tensor> create_base_format_tensors(const std::vector<at::Tensor>
     if (at_npu::native::FormatHelper::IsBaseFormatType(inputTensors[i])) {
       inputTensors_[i] = inputTensors[i];
     } else {
-      inputTensors_[i] = 
-        at::empty(inputTensors[i].sizes(), at::TensorOptions().device(inputTensors[i].device()).dtype(inputTensors[i].dtype()));
+      auto options = at::TensorOptions().dtype(inputTensors[i].dtype()).device(inputTensors[i].device());
+      inputTensors_[i] = at_npu::native::NPUNativeFunctions::empty(
+          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(), 
+          options.device_opt(), options.pinned_memory_opt(), options.memory_format_opt());
     }
   }
   return inputTensors_;
