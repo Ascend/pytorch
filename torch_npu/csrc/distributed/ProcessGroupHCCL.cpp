@@ -471,6 +471,22 @@ std::vector<at::Tensor> cast_to_origin_format(const std::vector<at::Tensor>& inp
   return inputTensors_;
 }
 
+std::vector<at::Tensor> create_base_format_tensors(const std::vector<at::Tensor>& inputTensors) {
+  std::vector<at::Tensor> inputTensors_;
+  inputTensors_.resize(inputTensors.size());
+  for (size_t i = 0; i < inputTensors.size(); ++i) {
+    if (at_npu::native::FormatHelper::IsBaseFormatType(inputTensors[i])) {
+      inputTensors_[i] = inputTensors[i];
+    } else {
+      auto options = at::TensorOptions().dtype(inputTensors[i].dtype()).device(inputTensors[i].device());
+      inputTensors_[i] = at_npu::native::NPUNativeFunctions::empty(
+          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(), 
+          options.device_opt(), options.pinned_memory_opt(), options.memory_format_opt());
+    }
+  }
+  return inputTensors_;
+}
+
 // Flatten each list in `tensor_lists' for a gather or scatter operation, and
 // ensure compatibility with the corresponding tensor in `other'.
 std::vector<at::Tensor> flatten_for_scatter_gather(
@@ -902,9 +918,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
     int dstRank,
     int tag) {
   check_npu_tensors(tensors);
+  auto tensors_ = cast_to_origin_format(tensors);
   return collective(
-      tensors,
-      tensors,
+      tensors_,
+      tensors_,
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
@@ -925,21 +942,33 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
     int srcRank,
     int tag) {
   check_npu_tensors(tensors);
+  auto tensors_ = create_base_format_tensors(tensors);
+
   return collective(
       tensors,
-      tensors,
+      tensors_,
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
+        c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
         return HcclRecv(
-            input.data_ptr(),
-            getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
+            output.data_ptr(),
+            getNumelForHCCL(output),
+            getHcclDataType(output.scalar_type()),
             srcRank,
             comm,
             stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
+        for (size_t i = 0; i < tensors_.size(); ++i) {
+          c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
+          if (!at_npu::native::FormatHelper::IsBaseFormatType(tensors[i])) {
+            tensors[i].copy_(tensors_[i], true);
+          }
+        }
       });
 }
 
