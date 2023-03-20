@@ -700,8 +700,6 @@ supported:
  - searchsorted.Scalar
  - searchsorted.Tensor
  - searchsorted.Tensor_out
- - selu
- - selu_
  - set_
  - set_.source_Storage
  - set_.source_Storage_storage_offset
@@ -895,6 +893,8 @@ autograd:
   - silu_
   - silu.out
   - binary_cross_entropy_with_logits_backward
+  - selu
+  - selu_
 
 tocpu:
   - angle
