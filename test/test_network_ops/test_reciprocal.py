@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
 
 import torch_npu
-
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestReciprocal(TestCase):
+
     def cpu_op_exec(self, input1):
         output = torch.reciprocal(input1)
         output = output.numpy()
@@ -79,79 +80,102 @@ class TestReciprocal(TestCase):
             self.assertRtolEqual(cpu_output, npu_output_out)
 
     def test_reciprocal_shape_format_fp16_out(self, device='npu'):
-        shape_format = [[[np.float16, 0, [18]], [np.float16, 0, [18, 20]]],
-                        [[np.float16, 0, [18, 20, 30]], [np.float16, 0, [18, 20, 30]]],
-                        [[np.float16, 0, [18, 10, 10, 20]], [np.float16, 0, [18, 10, 20]]],
-                        [[np.float16, 3, [18]], [np.float16, 3, [18, 20]]],
-                        [[np.float16, 3, [18, 20, 30]], [np.float16, 3, [18, 20, 30]]],
-                        [[np.float16, 3, [18, 10, 10, 20]], [np.float16, 3, [18, 10, 20]]],
-                        [[np.float16, 4, [18]], [np.float16, 4, [18, 20]]],
-                        [[np.float16, 4, [18, 20, 30]], [np.float16, 4, [18, 20, 30]]],
-                        [[np.float16, 4, [18, 10, 10, 20]], [np.float16, 4, [18, 10, 20]]],
-                        ]
+        shape_format = [
+            [[np.float16, 0, [18]], [np.float16, 0, [18, 20]]],
+            [[np.float16, 0, [18, 20, 30]], [np.float16, 0, [18, 20, 30]]],
+            [[np.float16, 0, [18, 10, 10, 20]], [np.float16, 0, [18, 10, 20]]],
+            [[np.float16, 3, [18]], [np.float16, 3, [18, 20]]],
+            [[np.float16, 3, [18, 20, 30]], [np.float16, 3, [18, 20, 30]]],
+            [[np.float16, 3, [18, 10, 10, 20]], [np.float16, 3, [18, 10, 20]]],
+            [[np.float16, 4, [18]], [np.float16, 4, [18, 20]]],
+            [[np.float16, 4, [18, 20, 30]], [np.float16, 4, [18, 20, 30]]],
+            [[np.float16, 4, [18, 10, 10, 20]], [np.float16, 4, [18, 10, 20]]],
+        ]
         self.reciprocal_result_out(shape_format)
 
     def test_reciprocal_shape_format_fp32_out(self, device='npu'):
-        shape_format = [[[np.float32, 0, [18]], [np.float32, 0, [18, 20]]],
-                        [[np.float32, 0, [18, 20, 30]], [np.float32, 0, [18, 20, 30]]],
-                        [[np.float32, 0, [18, 10, 10, 20]], [np.float32, 0, [18, 10, 20]]],
-                        [[np.float32, 3, [18]], [np.float32, 3, [18, 20]]],
-                        [[np.float32, 3, [18, 20, 30]], [np.float32, 3, [18, 20, 30]]],
-                        [[np.float32, 3, [18, 10, 10, 20]], [np.float32, 3, [18, 10, 20]]],
-                        [[np.float32, 4, [18]], [np.float32, 4, [18, 20]]],
-                        [[np.float32, 4, [18, 20, 30]], [np.float32, 4, [18, 20, 30]]],
-                        [[np.float32, 4, [18, 10, 10, 20]], [np.float32, 4, [18, 10, 20]]],
-                        ]
+        shape_format = [
+            [[np.float32, 0, [18]], [np.float32, 0, [18, 20]]],
+            [[np.float32, 0, [18, 20, 30]], [np.float32, 0, [18, 20, 30]]],
+            [[np.float32, 0, [18, 10, 10, 20]], [np.float32, 0, [18, 10, 20]]],
+            [[np.float32, 3, [18]], [np.float32, 3, [18, 20]]],
+            [[np.float32, 3, [18, 20, 30]], [np.float32, 3, [18, 20, 30]]],
+            [[np.float32, 3, [18, 10, 10, 20]], [np.float32, 3, [18, 10, 20]]],
+            [[np.float32, 4, [18]], [np.float32, 4, [18, 20]]],
+            [[np.float32, 4, [18, 20, 30]], [np.float32, 4, [18, 20, 30]]],
+            [[np.float32, 4, [18, 10, 10, 20]], [np.float32, 4, [18, 10, 20]]],
+        ]
         self.reciprocal_result_out(shape_format)
 
     def test_reciprocal_shape_format_fp16_1d(self, device='npu'):
         format_list = [0, 3, 4]
-        shape_format = [[np.float16, i, [18]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float16, i, [18]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp32_1d(self, device='npu'):
         format_list = [0, 3, 4]
-        shape_format = [[np.float32, i, [256]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float32, i, [256]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp16_2d(self, device='npu'):
         format_list = [0, 3, 4, 29]
-        shape_format = [[np.float16, i, [64, 516]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float16, i, [64, 516]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp32_2d(self, device='npu'):
         format_list = [0, 3, 4, 29]
-        shape_format = [[np.float32, i, [64, 516]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float32, i, [64, 516]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp16_3d(self, device='npu'):
         format_list = [0, 3, 4, 29]
-        shape_format = [[np.float16, i, [64, 124, 516]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float16, i, [64, 124, 516]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp32_3d(self, device='npu'):
         format_list = [0, 3, 4, 29]
-        shape_format = [[np.float32, i, [64, 124, 516]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float32, i, [64, 124, 516]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp16_4d(self, device='npu'):
         format_list = [0, 3, 4, 29]
-        shape_format = [[np.float16, i, [64, 128, 516, 32]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float16, i, [64, 128, 516, 32]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
     def test_reciprocal_shape_format_fp32_4d(self, device='npu'):
         format_list = [0, 3, 4, 29]
-        shape_format = [[np.float32, i, [64, 128, 516, 32]] for i in format_list
-                        ]
+        shape_format = [
+            [np.float32, i, [64, 128, 516, 32]] for i in format_list
+        ]
         self.reciprocal_result(shape_format)
 
+    def test_reciprocal_result_int(self):
+        shape_format = [
+            [[np.int8, 2, (3, 4, 5)], [np.int8, 2, (2, 3, 4)]],
+            [[np.int16, 2, (3, 4, 5)], [np.int16, 2, (2, 3, 4)]],
+            [[np.int32, 2, (3, 4, 5)], [np.int32, 2, (2, 3, 4)]],
+            [[np.int64, 2, (3, 4, 5)], [np.int64, 2, (2, 3, 4)]],
+        ]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 1, 1000)
+            cpu_output, npu_output = create_common_tensor(item[1], 1, 1000)
+            cpu_output = self.cpu_op_exec(cpu_input)
+            npu_output = self.npu_op_exec(npu_input)
+            self.assertRtolEqual(cpu_output, npu_output)
 
 
 if __name__ == "__main__":
