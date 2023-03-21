@@ -1230,11 +1230,6 @@ def reduce(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if async_op:
-        raise RuntimeError("Reduce implemented by all_reduce: "
-                           "not support async")
-        return
-
     _check_single_tensor(tensor, "tensor")
     if _rank_not_in_group(group):
         _warn_not_in_group("reduce")
