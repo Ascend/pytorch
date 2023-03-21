@@ -25,12 +25,18 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/framework/NPUDefine.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 
 namespace at_npu
 {
   namespace native
   {
-
+    constexpr size_t MAX_PARAS_BYTE_SIZE = (sizeof(ExecuteParas) > sizeof(c10_npu::queue::CopyParas)) ?
+      ((sizeof(ExecuteParas) >  sizeof(c10_npu::queue::EventParas)) ?
+        sizeof(ExecuteParas) : sizeof(c10_npu::queue::EventParas)) :
+      ((sizeof(c10_npu::queue::CopyParas) > sizeof(c10_npu::queue::EventParas)) ?
+        sizeof(c10_npu::queue::CopyParas) : sizeof(c10_npu::queue::EventParas));
     // This file is defined wrapper C++ functions of ACL
     //
     class OpAttrMaker
