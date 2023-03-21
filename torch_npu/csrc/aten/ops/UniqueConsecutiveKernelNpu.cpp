@@ -32,7 +32,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> unique_consecutive_out_npu(
     selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
     output = NPUNativeFunctions::npu_dtype_cast(output, at::ScalarType::Float);
   }
-  c10::SmallVector<int64_t, N> output_sync_idx = {0, 1, 2};
+  c10::SmallVector<int64_t, N> output_sync_idx = {0, 2};
   OpCommand cmd;
   cmd.Sync(output_sync_idx)
      .Name("UniqueConsecutive")
