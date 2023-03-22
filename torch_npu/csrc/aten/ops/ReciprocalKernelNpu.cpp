@@ -43,10 +43,10 @@ at::Tensor& NPUNativeFunctions::reciprocal_out(const at::Tensor& self, at::Tenso
 }
 
 at::Tensor NPUNativeFunctions::reciprocal(const at::Tensor& self) {
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self);
-  // calculate the output result of the NPU
-  reciprocal_out_npu_nocheck(self, result);
+  at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
+      NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+  at::Tensor result = OpPreparation::ApplyTensor(self_cp);
+  reciprocal_out_npu_nocheck(self_cp, result);
 
   return result;
 }
