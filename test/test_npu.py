@@ -72,6 +72,28 @@ class TestNpu(TestCase):
             for k, v in expected.items():
                 self.assertEqual(v, stats[k])
 
+    def test_memory_summary_format(self, device=None):
+        summary = torch_npu.npu.memory_summary()
+
+        device = torch_npu.npu._get_device_index(device, optional=True)
+        stats = torch_npu.npu.memory_stats(device=device)
+        fmt_dict = {"_": "", "device": device}
+        for k, v in stats.items():
+            fmt_dict[k.replace(".", "-")] = v
+        
+        expected_head = []
+        expected_head.append("=" * 75)
+        expected_head.append(" {_:16} PyTorch NPU memory summary, device ID {device:<18d} ")
+        expected_head.append("-" * 75)
+        expected_head.append("  {_:9} NPU OOMs: {num_ooms:<13d} | {_:6} npuMalloc retries: {num_alloc_retries:<9d}  ")
+        expected_head.append("=" * 75)
+        expected_head.append("        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot Freed  ")
+
+        expected_head_str = "|" + "|\n|".join(expected_head).format(**fmt_dict) + "|\n"
+        assert_len = len(expected_head_str)
+
+        self.assertEqual(expected_head_str, summary[:assert_len])
+         
     @staticmethod
     def _test_memory_stats_generator(self, device=None, N=35):
         if device is None:

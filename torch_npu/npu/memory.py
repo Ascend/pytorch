@@ -400,29 +400,31 @@ def memory_snapshot():
     return torch_npu._C._npu_memorySnapshot()
 
 
+def _format_size(sz, pref_sz):
+    prefixes = ["B ", "KB", "MB", "GB", "TB", "PB"]
+    prefix = prefixes[0]
+    for new_prefix in prefixes[1:]:
+        if pref_sz < 768 * 1024:
+            break
+        prefix = new_prefix
+        sz //= 1024
+        pref_sz /= 1024
+    return "{:7d} {}".format(sz, prefix)
+
+
+def _format_count(cnt, pref_cnt):
+    prefixes = [" ", "K", "M"]
+    prefix = prefixes[0]
+    for new_prefix in prefixes[1:]:
+        if pref_cnt < 750 * 1000:
+            break
+        prefix = new_prefix
+        cnt //= 1000
+        pref_cnt /= 1000
+    return "{:7d} {} ".format(cnt, prefix)
+
+
 def create_metrics_to_display():
-    def _format_size(sz, pref_sz):
-        prefixes = ["B ", "KB", "MB", "GB", "TB", "PB"]
-        prefix = prefixes[0]
-        for new_prefix in prefixes[1:]:
-            if pref_sz < 768 * 1024:
-                break
-            prefix = new_prefix
-            sz //= 1024
-            pref_sz /= 1024
-        return "{:7d} {}".format(sz, prefix)
-
-    def _format_count(cnt, pref_cnt):
-        prefixes = [" ", "K", "M"]
-        prefix = prefixes[0]
-        for new_prefix in prefixes[1:]:
-            if pref_cnt < 750 * 1000:
-                break
-            prefix = new_prefix
-            cnt //= 1000
-            pref_cnt /= 1000
-        return "{:7d} {} ".format(cnt, prefix)
-
     metrics_to_display = [
         ("allocated_bytes", "Allocated memory", _format_size),
         ("active_bytes", "Active memory", _format_size),
