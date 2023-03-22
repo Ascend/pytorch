@@ -88,7 +88,8 @@ const char *AclGetErrMsg()
     func = (aclGetErrMsg)GET_FUNC(aclGetRecentErrMsg);
   }
   if (func != nullptr) {
-    return func();
+    auto res = func();
+    return res != nullptr ? res : "";
   }
   return "";
 }
