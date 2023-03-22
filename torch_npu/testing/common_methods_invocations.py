@@ -1412,7 +1412,19 @@ op_db: List[OpInfo] = [
         'sign',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-    ), 
+    ),
+    UnaryUfuncInfo(
+        'nn.functional.selu',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        supports_forward_ad=True,  # depends on 'elu'
+        supports_fwgrad_bwgrad=False,  # Needs: elu_backward
+        supports_autograd=True,
+        assert_autodiffed=False,
+        supports_gradgrad=True,
+        supports_out=False,
+        inplace_variant=lambda x: torch.nn.functional.selu(x, inplace=True),
+    ),
     UnaryUfuncInfo(
         'nn.functional.silu',
         dtypes=_dispatch_dtypes((torch.float32, )),
