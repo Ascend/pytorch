@@ -757,8 +757,6 @@ supported:
   - select.Dimname
   - select.int
   - select_backward
-  - selu
-  - selu_
   - celu
   - celu_
   - silu_backward
@@ -1861,6 +1859,8 @@ autograd:
   - silu
   - silu_
   - silu.out
+  - selu
+  - selu_
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
