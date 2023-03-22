@@ -27,11 +27,11 @@ using torch::autograd::AutogradContext;
 using tensor_list = std::vector<at::Tensor>;
 
 tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_deformable_conv2dbk(
-    const at::Tensor& input,
-    const at::Tensor& grad_output,
-    const at::Tensor& offset_out,
-    const at::Tensor& weight,
-    const at::Tensor& offset,
+    const at::Tensor& input_ori,
+    const at::Tensor& grad_output_ori,
+    const at::Tensor& offset_out_ori,
+    const at::Tensor& weight_ori,
+    const at::Tensor& offset_ori,
     at::IntArrayRef kernel_size,
     at::IntArrayRef stride,
     at::IntArrayRef padding,
@@ -39,6 +39,16 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_de
     int64_t groups,
     int64_t deformable_groups,
     bool modulated) {
+  at::Tensor input = (input_ori.dtype() != at::kFloat) ?
+      NPUNativeFunctions::npu_dtype_cast(input_ori, at::kFloat) : input_ori;
+  at::Tensor grad_output = (grad_output_ori.dtype() != at::kFloat) ?
+      NPUNativeFunctions::npu_dtype_cast(grad_output_ori, at::kFloat) : grad_output_ori;
+  at::Tensor offset_out = (offset_out_ori.dtype() != at::kFloat) ?
+      NPUNativeFunctions::npu_dtype_cast(offset_out_ori, at::kFloat) : offset_out_ori;
+  at::Tensor weight = (weight_ori.dtype() != at::kFloat) ?
+      NPUNativeFunctions::npu_dtype_cast(weight_ori, at::kFloat) : weight_ori;
+  at::Tensor offset = (offset_ori.dtype() != at::kFloat) ?
+      NPUNativeFunctions::npu_dtype_cast(offset_ori, at::kFloat) : offset_ori;
   // deformable_conv2d_backward includes conv2d_backward and DeformableOffsetsGrad
   c10::SmallVector<int64_t, SIZE> conv2dStride = array_to_small_vector(kernel_size);
   c10::SmallVector<int64_t, SIZE> conv2dPadding = {0, 0, 0, 0};
@@ -75,10 +85,9 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_de
     c10::SmallVector<int64_t, SHAPE_SIZE> in_perm = {0, 2, 3, 1};
     auto nhwc_grad_input_shape = transpose_npu_output_size(input, in_perm);
     auto nhwc_grad_offset_shape = transpose_npu_output_size(offset, in_perm);
-    at::Tensor nhwc_grad_input = OpPreparation::ApplyTensorWithFormat(
-        nhwc_grad_input_shape, input.options().dtype(at::kFloat), ACL_FORMAT_NHWC);
+    at::Tensor nhwc_grad_input = OpPreparation::ApplyTensorWithFormat(input, nhwc_grad_input_shape, ACL_FORMAT_NHWC);
     at::Tensor nhwc_grad_offset = OpPreparation::ApplyTensorWithFormat(
-        nhwc_grad_offset_shape, offset.options().dtype(at::kFloat), ACL_FORMAT_NHWC);
+        offset, nhwc_grad_offset_shape, ACL_FORMAT_NHWC);
 
     auto trans_shape = transpose_npu_output_size(deformableOffsetsBackwardInput, in_perm);
 
@@ -107,19 +116,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_de
     c10::SmallVector<int64_t, SHAPE_SIZE> nhwc_dilations = {dilation[0], dilation[2], dilation[3], dilation[1]};
     string dataFormat = "NHWC";
     OpCommand cmd;
-    auto nhwc_deformableOffsetsBackwardInput_fp32 = (nhwc_deformableOffsetsBackwardInput.dtype() != at::kFloat) ?
-        NPUNativeFunctions::npu_dtype_cast(nhwc_deformableOffsetsBackwardInput, at::kFloat) :
-        nhwc_deformableOffsetsBackwardInput;
-    auto nhwc_input_fp32 = (nhwc_input.dtype() != at::kFloat) ?
-        NPUNativeFunctions::npu_dtype_cast(nhwc_input, at::kFloat) :
-        nhwc_input;
-    auto nhwc_offset_fp32 = (nhwc_offset.dtype() != at::kFloat) ?
-        NPUNativeFunctions::npu_dtype_cast(nhwc_offset, at::kFloat) :
-        nhwc_offset;
     cmd.Name("DeformableOffsetsGrad")
-        .Input(nhwc_deformableOffsetsBackwardInput_fp32, "grad")
-        .Input(nhwc_input_fp32, "X")
-        .Input(nhwc_offset_fp32, "offsets")
+        .Input(nhwc_deformableOffsetsBackwardInput, "grad")
+        .Input(nhwc_input, "X")
+        .Input(nhwc_offset, "offsets")
         .Output(nhwc_grad_input, "grad_X")
         .Output(nhwc_grad_offset, "grad_offsets")
         .Attr("strides", nhwc_strides)
@@ -130,12 +130,6 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_de
         .Attr("deformable_groups", deformable_groups)
         .Attr("modulated", modulated)
         .Run();
-    if (nhwc_grad_input.dtype() != input.dtype()) {
-      nhwc_grad_input = NPUNativeFunctions::npu_dtype_cast(nhwc_grad_input, input.scalar_type());
-    }
-    if (nhwc_grad_offset.dtype() != offset.dtype()) {
-      nhwc_grad_offset = NPUNativeFunctions::npu_dtype_cast(nhwc_grad_offset, offset.scalar_type());
-    }
     c10::SmallVector<int64_t, SHAPE_SIZE> out_perm = {0, 3, 1, 2};
     nhwc_deformableOffsetsBackwardInput_desc.npu_format_ = ACL_FORMAT_NCHW;
     nhwc_deformableOffsetsBackwardInput_desc.origin_format_ = ACL_FORMAT_NCHW;
@@ -169,6 +163,8 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
     int64_t deformable_groups,
     bool modulated) {
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
+  at::Tensor bias_fp32 = (bias.defined() && bias.dtype() != at::kFloat) ?
+      NPUNativeFunctions::npu_dtype_cast(bias, at::kFloat) : bias;
   auto outputSize = deformable_conv2d_npu_output_size(
       input, weight, offset, bias, kernel_size, stride, padding, dilation, groups, deformable_groups, modulated);
 
@@ -193,7 +189,7 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
     c10::SmallVector<int64_t, SIZE> conv2dPadding = {0, 0, 0, 0};
     c10::SmallVector<int64_t, SIZE> conv2dDilation = {1, 1};
     at::Tensor conv2dOutput = NPUNativeFunctions::npu_conv2d(
-        deformableOffsetsOutput, weight, bias, conv2dStride, conv2dPadding, conv2dDilation, groups);
+        deformableOffsetsOutput, weight, bias_fp32, conv2dStride, conv2dPadding, conv2dDilation, groups);
 
     return std::tie(conv2dOutput, deformableOffsetsOutput);
   } else {
@@ -206,7 +202,7 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
     c10::SmallVector<int64_t, SIZE> nhwc_deformableOffsetsOutput_shape = {
         outputSize[0], outputSize[2], outputSize[3], outputSize[1]};
     at::Tensor nhwc_deformableOffsetsOutput = OpPreparation::ApplyTensorWithFormat(
-        nhwc_deformableOffsetsOutput_shape, input.options().dtype(at::kFloat), ACL_FORMAT_NHWC);
+        nhwc_deformableOffsetsOutput_shape, input.options(), ACL_FORMAT_NHWC);
     c10::SmallVector<int64_t, SHAPE_SIZE> in_perm = {0, 2, 3, 1};
     at::Tensor ori_input = OpPreparation::CastBackToOriFormat(input);
     at::Tensor ori_offset = OpPreparation::CastBackToOriFormat(offset);
@@ -225,16 +221,9 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
     c10::SmallVector<int64_t, SHAPE_SIZE> nhwc_dilations = {dilation[0], dilation[2], dilation[3], dilation[1]};
     string dataFormat = "NHWC";
     OpCommand cmd;
-    auto nhwc_input_fp32 = (nhwc_input.dtype() != at::kFloat) ?
-        NPUNativeFunctions::npu_dtype_cast(nhwc_input, at::kFloat) :
-        nhwc_input;
-    auto nhwc_offset_fp32 = (nhwc_offset.dtype() != at::kFloat) ?
-        NPUNativeFunctions::npu_dtype_cast(nhwc_offset, at::kFloat) :
-        nhwc_offset;
-
     cmd.Name("DeformableOffsets")
-        .Input(nhwc_input_fp32, "X")
-        .Input(nhwc_offset_fp32, "offsets")
+        .Input(nhwc_input, "X")
+        .Input(nhwc_offset, "offsets")
         .Output(nhwc_deformableOffsetsOutput, "y")
         .Attr("ksize", kernel_size)
         .Attr("strides", nhwc_strides)
@@ -244,10 +233,7 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
         .Attr("data_format", dataFormat)
         .Attr("modulated", modulated)
         .Run();
-    if (nhwc_deformableOffsetsOutput.dtype() != input.dtype()) {
-      nhwc_deformableOffsetsOutput = NPUNativeFunctions::npu_dtype_cast(
-          nhwc_deformableOffsetsOutput, input.scalar_type());
-    }
+
     c10::SmallVector<int64_t, SHAPE_SIZE> out_perm = {0, 3, 1, 2};
     nhwc_input_desc.npu_format_ = ACL_FORMAT_NCHW;
     nhwc_input_desc.origin_format_ = ACL_FORMAT_NCHW;
@@ -263,7 +249,7 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
     c10::SmallVector<int64_t, SIZE> conv2dPadding = {0, 0, 0, 0};
     c10::SmallVector<int64_t, SIZE> conv2dDilation = {1, 1};
     at::Tensor conv2dOutput = NPUNativeFunctions::npu_conv2d(
-        deformableOffsetsOutput, weight, bias, conv2dStride, conv2dPadding, conv2dDilation, groups);
+        deformableOffsetsOutput, weight, bias_fp32, conv2dStride, conv2dPadding, conv2dDilation, groups);
 
     return std::tie(conv2dOutput, deformableOffsetsOutput);
   }
@@ -272,9 +258,9 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
 class NPUDeformableConv2dFunction : public torch::autograd::Function<NPUDeformableConv2dFunction> {
 public:
   static tensor_list forward(AutogradContext *ctx,
-    const at::Tensor& input,
-    const at::Tensor& weight,
-    const at::Tensor& offset,
+    const at::Tensor& input_ori,
+    const at::Tensor& weight_ori,
+    const at::Tensor& offset_ori,
     const c10::optional<at::Tensor>& bias_opt,
     at::IntArrayRef kernel_size,
     at::IntArrayRef stride,
@@ -283,6 +269,12 @@ public:
     int64_t groups,
     int64_t deformable_groups,
     bool modulated) {
+    at::Tensor input = (input_ori.dtype() != at::kFloat) ?
+        NPUNativeFunctions::npu_dtype_cast(input_ori, at::kFloat) : input_ori;
+    at::Tensor weight = (weight_ori.dtype() != at::kFloat) ?
+        NPUNativeFunctions::npu_dtype_cast(weight_ori, at::kFloat) : weight_ori;
+    at::Tensor offset = (offset_ori.dtype() != at::kFloat) ?
+        NPUNativeFunctions::npu_dtype_cast(offset_ori, at::kFloat) : offset_ori;
     ctx->saved_data["kernel_size"] = kernel_size;
     ctx->saved_data["stride"] = stride;
     ctx->saved_data["padding"] = padding;
