@@ -48,7 +48,7 @@ at::Tensor &NPUNativeFunctions::normal_out(
     double std, 
     c10::optional<at::Generator> generator,
     at::Tensor &result) {
-  TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
+  TORCH_CHECK(std >= 0.0, "normal_ expects std >= 0.0, but found std=", std);
 
   OpPreparation::CheckOut({mean}, result, mean);
   normal_out_npu_nocheck(result, generator);
@@ -72,8 +72,8 @@ at::Tensor &NPUNativeFunctions::normal_out(
     const at::Tensor &std,
     c10::optional<at::Generator> generator, 
     at::Tensor &result) {
-  at::SmallVector<int64_t, SIZE> outputSize = broadcast_ops_npu_output_size(mean, std);
-  OpPreparation::CheckOut({mean, std}, result, mean, outputSize);
+  at::SmallVector<int64_t, SIZE> output_size = broadcast_ops_npu_output_size(mean, std);
+  OpPreparation::CheckOut({mean, std}, result, mean, output_size);
   normal_out_npu_nocheck(result, generator);
   result.mul_(std).add_(mean);
   return result;
@@ -85,7 +85,7 @@ at::Tensor &NPUNativeFunctions::normal_out(
     at::IntArrayRef size,
     c10::optional<at::Generator> generator, 
     at::Tensor &result) {
-  TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
+  TORCH_CHECK(std >= 0.0, "normal_ expects std >= 0.0, but found std=", std);
   OpPreparation::CheckOut({}, result, result, size);
   normal_out_npu_nocheck(result, generator);
   result.mul_(std).add_(mean);
@@ -150,9 +150,9 @@ at::Tensor &NPUNativeFunctions::normal_(
     double std,
     c10::optional<at::Generator> generator) {
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    NPUNativeFunctions::normal_out(mean, std, contiguousSelf.sizes(), generator, contiguousSelf);
-    NpuUtils::format_fresh_view(self, contiguousSelf);
+    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+    NPUNativeFunctions::normal_out(mean, std, contiguous_self.sizes(), generator, contiguous_self);
+    NpuUtils::format_fresh_view(self, contiguous_self);
   } else {
     NPUNativeFunctions::normal_out(mean, std, self.sizes(), generator, self);
   }
