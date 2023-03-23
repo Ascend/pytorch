@@ -757,8 +757,6 @@ supported:
   - select.Dimname
   - select.int
   - select_backward
-  - celu
-  - celu_
   - silu_backward
   - sigmoid
   - sigmoid_
@@ -1853,6 +1851,8 @@ supported:
   - _test_ambiguous_defaults.b
 
 autograd:
+  - celu
+  - celu_
   - elu.out
   - elu
   - elu_
