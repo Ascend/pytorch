@@ -23,6 +23,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+torch_npu.npu.set_device(0)
 
 JIT_COMPILE_EXTENSION = True
 if JIT_COMPILE_EXTENSION:
