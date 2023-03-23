@@ -25,7 +25,8 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 UnaryUfuncInfo as Of_UnaryUfuncInfo,
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
                                                                 DecorateInfo,
-                                                                wrapper_set_seed)
+                                                                wrapper_set_seed,
+                                                                sample_inputs_normal_common)
 
 
 class OpInfo(Of_OpInfo):
@@ -95,6 +96,15 @@ class BinaryUfuncInfo(OpInfo, Of_BinaryUfuncInfo):
                  sample_inputs_func=common_methods_invocations.sample_inputs_elementwise_binary,
                  **kwargs):
         super().__init__(name,sample_inputs_func=sample_inputs_func, **kwargs)
+
+
+def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwargs):
+    cases = [
+        ([3, 4], 0.3, {}),
+        ([3, 55], 0, {}),
+        ([5, 6, 7, 8], [5, 6, 7, 8], {})
+    ]
+    return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
 
 
 op_db: List[OpInfo] = [
@@ -1176,12 +1186,12 @@ op_db: List[OpInfo] = [
         'normal',
         dtypes=_dispatch_dtypes((torch.float16, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_normal_tensor_second,
+        sample_inputs_func=sample_inputs_normal_tensor_second,
         supports_autograd=False,
         formats=(2, ),
         inplace_variant=None,
         skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
             dtypes=[torch.float16, torch.float32]),
         ),
     ),
