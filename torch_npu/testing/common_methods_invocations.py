@@ -1273,12 +1273,8 @@ op_db: List[OpInfo] = [
     UnaryUfuncInfo(
         'reciprocal',
         dtypes=_dispatch_dtypes((torch.float32, )),
-        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        formats=(0, 3, 4, 29),
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float16, torch.float32]),
-        ),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.int32, torch.int64)),
+        formats=(2,),
     ),  
     OpInfo(
         'nn.functional.relu',
