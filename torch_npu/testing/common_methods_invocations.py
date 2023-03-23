@@ -390,17 +390,6 @@ op_db: List[OpInfo] = [
         ),
     ),
     UnaryUfuncInfo(
-        'clamp',
-        aliases=('clip',),
-        dtypes=_dispatch_dtypes((torch.float32, )),
-        dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_clamp_scalar,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.int32]),
-        ),
-    ),
-    UnaryUfuncInfo(
         'ceil',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
@@ -671,7 +660,7 @@ op_db: List[OpInfo] = [
         'nn.functional.hardshrink',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_softshrink_hardshrink_hardtanh,
+        sample_inputs_func=common_methods_invocations.sample_inputs_hardshrink,
         formats=(2, ),
         supports_out=False,
     ),
@@ -697,7 +686,7 @@ op_db: List[OpInfo] = [
         'nn.functional.hardtanh',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_softshrink_hardshrink_hardtanh,
+        sample_inputs_func=common_methods_invocations.sample_inputs_hardtanh,
         formats=(0, 3, 4, 29),
         supports_out=False,
     ),
@@ -1224,7 +1213,7 @@ op_db: List[OpInfo] = [
         'nn.functional.prelu',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_nn_functional_prelu,
+        sample_inputs_func=common_methods_invocations.sample_inputs_prelu,
         supports_out=False,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
@@ -1462,7 +1451,7 @@ op_db: List[OpInfo] = [
         'nn.functional.softshrink',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_softshrink_hardshrink_hardtanh,
+        sample_inputs_func=common_methods_invocations.sample_inputs_softshrink,
         supports_out=False,
     ), 
     OpInfo(
