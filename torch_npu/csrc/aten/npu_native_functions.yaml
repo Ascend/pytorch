@@ -897,6 +897,9 @@ autograd:
 
 tocpu:
   - angle
+  - count_nonzero.dim_IntList
+  - linalg_vector_norm
+  - linalg_vector_norm.out
   - mode
   - nanmedian.dim_values
   - nansum
@@ -906,6 +909,7 @@ tocpu:
   - vdot
   - view_as_complex
   - view_as_real
+  - _fft_r2c
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int

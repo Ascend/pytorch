@@ -225,7 +225,7 @@ def check_op_on_cpu_kernels(
     op_names: List[OperatorName] = list(backend_indices[DispatchKey.CPU].index.keys())
 
     for op_name in op_names:
-        if op_name.name.base not in expected_to_cpu:
+        if str(op_name) not in expected_to_cpu:
             backend_indices[DispatchKey.CPU].index.pop(op_name, None)
 
 

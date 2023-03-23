@@ -24,7 +24,7 @@ from torch.testing._internal.common_utils import (clone_input_helper,
                                                   first_sample, 
                                                   is_iterable_of_tensors)
 
-from torch_npu.testing.common_methods_invocations import op_db
+from torch_npu.testing.common_methods_invocations import op_db, tocpu_db
 from torch_npu.testing.decorator import Dtypes, Formats, instantiate_ops_tests
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -49,6 +49,7 @@ def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
                       broadcasts_input=sample.broadcasts_input)
     return res
 
+op_db += tocpu_db
 
 @instantiate_ops_tests(op_db)
 class TestOps(TestCase):
@@ -142,8 +143,7 @@ class TestOps(TestCase):
 
         samples = op.sample_inputs('cpu',
                                    dtype,
-                                   requires_grad=requires_grad,
-                                   include_conjugated_inputs=True)
+                                   requires_grad=requires_grad)
 
         def _test_consistency_helper(samples, variants):
             for index, sample in enumerate(samples):
@@ -218,7 +218,9 @@ class TestOps(TestCase):
         _test_consistency_helper(samples, variants)
 
         def _test_inplace_preserve_storage(samples, variants):
-            for sample in samples:
+            for index, sample in enumerate(samples):
+                if op.skipSample and index in op.skipSample.get('test_variant_consistency_eager', {}):
+                    continue
 
                 sample = trans_device_and_dtype(sample, dtype, dtype, npu_format, to_npu=True)
                 # Skips inplace variants if the output dtype is not the same as
