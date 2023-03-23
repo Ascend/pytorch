@@ -20,10 +20,12 @@ import unittest
 
 import torch
 from torch.testing._internal import common_methods_invocations
-from torch.testing._internal.common_dtype import _dispatch_dtypes, floating_and_complex_types_and
+from torch.testing._internal.common_dtype import (_dispatch_dtypes, floating_and_complex_types_and,
+                                                  floating_types, floating_types_and, complex_types)
 from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpInfo,
                                                                 UnaryUfuncInfo as Of_UnaryUfuncInfo,
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
+                                                                ReductionOpInfo as Of_ReductionOpInfo,
                                                                 DecorateInfo,
                                                                 wrapper_set_seed,
                                                                 sample_inputs_normal_common)
@@ -91,6 +93,11 @@ class UnaryUfuncInfo(OpInfo, Of_UnaryUfuncInfo):
 
 
 class BinaryUfuncInfo(OpInfo, Of_BinaryUfuncInfo):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+
+
+class ReductionOpInfo(OpInfo, Of_ReductionOpInfo):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
@@ -1682,4 +1689,19 @@ op_db: List[OpInfo] = [
             dtypes=[torch.float32]),
         ),
     ), 
+]
+
+
+tocpu_db: List[OpInfo] = [
+    OpInfo(
+        'linalg.vector_norm',
+        op=torch.linalg.vector_norm,
+        dtypes=floating_and_complex_types_and(torch.float16, torch.bfloat16),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_linalg_vector_norm,
+        aten_name='linalg_vector_norm',
+        skipSample={
+            'test_correctness' : (16, ),
+        },
+    ),
 ]
