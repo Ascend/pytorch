@@ -180,7 +180,6 @@ supported:
  - binary_cross_entropy_backward
  - binary_cross_entropy_backward.grad_input
  - binary_cross_entropy_with_logits
- - binary_cross_entropy_with_logits_backward
  - bincount
  - bitwise_and.Scalar
  - bitwise_and.Scalar_out
@@ -547,6 +546,7 @@ supported:
  - min.names_dim_min
  - min.out
  - minimum
+ - minimum.out
  - mm
  - mm.out
  - mse_loss
@@ -701,8 +701,6 @@ supported:
  - searchsorted.Scalar
  - searchsorted.Tensor
  - searchsorted.Tensor_out
- - selu
- - selu_
  - set_
  - set_.source_Storage
  - set_.source_Storage_storage_offset
@@ -860,14 +858,14 @@ supported:
  - upsample_trilinear3d_backward
  - upsample_trilinear3d_backward.grad_input
  - upsample_trilinear3d_backward.vec
- - var
- - var.dim
- - var.names_dim
- - var.names_out
+ - var.correction
+ - var.correction_names
  - var.out
- - var_mean
- - var_mean.dim
- - var_mean.names_dim
+ - var.names_out
+ - var.correction_out
+ - var.correction_names_out
+ - var_mean.correction
+ - var_mean.correction_names
  - view
  - where
  - where.self
@@ -894,6 +892,9 @@ autograd:
   - silu
   - silu_
   - silu.out
+  - binary_cross_entropy_with_logits_backward
+  - selu
+  - selu_
 
 tocpu:
   - angle

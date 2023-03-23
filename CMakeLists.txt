@@ -178,6 +178,9 @@ if (NOT DEFINED BUILD_LIBTORCH)
   set(UTILS_SRCS)
 endif()
 
+if (DEFINED BUILD_LIBTORCH)
+  set(NPU_CPP_LIBS_SRCS)
+endif()
 
 add_subdirectory(${TORCHNPU_ROOT}/aten)
 add_subdirectory(${TORCHNPU_ROOT}/core)
@@ -191,7 +194,11 @@ if (NOT DEFINED BUILD_LIBTORCH)
 endif()
 
 if (DEFINED BUILD_LIBTORCH)
-  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${FRAMEWORK_SRCS})
+  add_subdirectory(${TORCHNPU_ROOT}/libs)
+endif()
+
+if (DEFINED BUILD_LIBTORCH)
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${FRAMEWORK_SRCS} ${NPU_CPP_LIBS_SRCS})
 else()
 # Compile code with pybind11
   set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${DIST_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS})
