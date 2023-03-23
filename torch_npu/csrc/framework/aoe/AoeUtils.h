@@ -149,7 +149,11 @@ public:
       "AvgPoolV2",
       "Conv1D",
       "DeformableConv2D",
-      "AvgPool3D"
+      "AvgPool3D",
+      "LogSoftmaxGrad",
+      "LogSoftmaxV2",
+      "SoftmaxGrad",
+      "SoftmaxV2",
     };
 
 };
