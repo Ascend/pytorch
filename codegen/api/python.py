@@ -992,13 +992,16 @@ def cpp_record_func(f: NativeFunction, custom=False) -> str:
         return record_func
     raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
 
-def cpp_dispatch_target(f: NativeFunction, custom=False) -> str:
+def cpp_dispatch_target(f: NativeFunction, custom=False, is_npu_autograd=False) -> str:
     name = cpp.name(f.func)
     if Variant.method in f.variants and not custom:
         return f'self.{name}'
     if Variant.function in f.variants:
         if custom:
-            namespace = 'at_npu::native::NPUNativeFunctions'
+            if is_npu_autograd:
+                namespace = 'at_npu::autograd::VariableType'
+            else:
+                namespace = 'at_npu::native::NPUNativeFunctions'
         elif has_tensor_options(f) or f.func.name.name.base.endswith('_like'):
             namespace = 'torch'
         else:
