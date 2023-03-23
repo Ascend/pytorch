@@ -217,7 +217,20 @@ def generate_replay_graph(replay_graph: ReplayGraph, inputs: list, assigned_outp
                           returnable_outputs: list, retain_inner_outputs: bool=False) -> ReplayGraph:
     if replay_graph is None:
         replay_graph = ReplayGraph()
-    replay_graph._ReplayGraph__generate_replay_graph(inputs, assigned_outputs, returnable_outputs, retain_inner_outputs)
+
+    real_input = []
+    for arg in inputs:
+        if torch_npu.get_npu_format(arg) == 2:
+            arg = torch_npu.npu_format_cast(arg, 0)
+        real_input.append(arg)
+
+    real_output = []
+    for arg in returnable_outputs:
+        if torch_npu.get_npu_format(arg) == 2:
+            arg = torch_npu.npu_format_cast(arg, 0)
+        real_output.append(arg)
+
+    replay_graph._ReplayGraph__generate_replay_graph(real_input, assigned_outputs, real_output, retain_inner_outputs)
     return replay_graph
 
 @contextmanager
