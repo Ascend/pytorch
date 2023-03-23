@@ -54,6 +54,8 @@ def wrapper_dist_dtype_one_input(fn):
             tar_type = WRAP_DTYPE_DICT[str(args[0].dtype)]
             new_args[0] = new_args[0].to(tar_type)
             output = fn(*new_args, **kwargs)
+            if output is not None:
+                output.wait()
             args[0].copy_(new_args[0].to(raw_type))
             return output
         elif 'tensor' in kwargs and str(kwargs['tensor'].dtype) in WRAP_DTYPE_DICT.keys():
@@ -62,6 +64,8 @@ def wrapper_dist_dtype_one_input(fn):
             tar_type = WRAP_DTYPE_DICT[str(raw_type)]
             new_kwargs['tensor'] = new_kwargs['tensor'].to(tar_type)
             output = fn(*args, **new_kwargs)
+            if output is not None:
+                output.wait()
             kwargs['tensor'].copy_(new_kwargs['tensor'].to(raw_type))
             return output
         return fn(*args, **kwargs)
