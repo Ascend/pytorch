@@ -55,6 +55,7 @@ bool is_transpose_last_two_dims_flex(const at::Tensor &tensor) {
   }
 }
 
+
 // Pick out strict-transpose tensors from flex-transpose tensors.
 bool is_transpose_last_two_dims_strict(const at::Tensor &tensor,
                                        bool is_transpose_flex) {
@@ -161,8 +162,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
                  (self.dtype() == at::ScalarType::Half) && (mat2.dtype() == at::ScalarType::Half) &&
                  (FormatHelper::GetFormat(self) == ACL_FORMAT_ND) &&
                  (FormatHelper::GetFormat(mat2) == ACL_FORMAT_ND);
-
-  // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
+  // check format_out of mm is NCHW. Delate after definite NLP model.
   if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
     auto isAligin = [&]() {
@@ -175,7 +175,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     // being, only aligned scenes are supported.
     static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
-        && mm_bmm_nd && (is_support_nd_out || isAligin())) {
+        && mm_bmm_nd && ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(self, mat2)) || isAligin())) {
       if (split_k) {
         result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::ScalarType::Float),
                                                       ACL_FORMAT_ND);
