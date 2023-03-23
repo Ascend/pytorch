@@ -18,14 +18,14 @@ import os
 import stat
 import functools
 import hashlib
-from typing import List, Dict, Optional, Set, Callable, Any, Union, Sequence, TypeVar, Iterable
+from typing import (List, Dict, Optional, Set, Callable, Any, 
+                    Union, Sequence, TypeVar, Iterable)
 from collections import defaultdict
 
 from codegen.code_template import CodeTemplate
 from codegen.model import (FunctionSchema, NativeFunction,
                            NativeFunctionsGroup, OperatorName,
                            SchemaKind, assert_never)
-
 from codegen.utils import concat_map
 
 T = TypeVar('T')

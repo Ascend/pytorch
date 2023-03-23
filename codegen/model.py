@@ -52,6 +52,15 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
+# Represent a source location; used for better error reporting
+@dataclass(frozen=True)
+class Location:
+    file: str
+    line: int
+
+    def __str__(self) -> str:
+        return "{}:{}".format(self.file, self.line)
+
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
 
@@ -457,7 +466,6 @@ class NativeFunction:
             has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel, tag=tag,
             bscpp_op=bscpp_op), backend_metadata
 
-
     def validate_unstructured(self) -> None:
         # TODO: probably better to accumulate these errors and report them all
         # at once
@@ -505,6 +513,20 @@ class NativeFunction:
     @property
     def has_composite_kernel(self) -> bool:
         return self.has_composite_implicit_autograd_kernel or self.has_composite_explicit_autograd_kernel
+    
+    @property
+    def is_view_op(self) -> bool:
+        rets = self.func.returns
+        is_non_mutating_view = len(rets) > 0 and any(r.annotation is not None 
+                                                     and not r.annotation.is_write for r in rets)
+        is_inplace_view = self.tag is not None and self.tag is Tag.inplace_view
+        is_wildcard_view = any(inp.annotation is not None and
+                               inp.annotation.alias_set_after != "" for inp in self.func.schema_order_arguments())
+        return is_non_mutating_view or is_inplace_view or is_wildcard_view
+
+    @property
+    def root_name(self) -> str:
+        return self.func.name.name.base
 
 SchemaKind = Enum('SchemaKind', ('functional', 'inplace', 'out'))
 
