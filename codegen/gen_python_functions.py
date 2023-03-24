@@ -86,6 +86,7 @@ SKIP_PYTHON_BINDINGS_SIGNATURES = []
 
 DONT_RECORD_TRACE = []
 
+NPU_AUTOGRAD_FUNCTION = []
 
 def should_trace(f: NativeFunction) -> bool:
     # Operations involving Storage or Type are not traceable at the moment
@@ -673,9 +674,14 @@ def emit_single_dispatch(
             init_npu_device = f"//"
 
         # dispatch lambda body
+        is_npu_autograd = str(f.func.name) in NPU_AUTOGRAD_FUNCTION
         record_func_define = cpp_record_func(f, custom=custom)
-        dispatch_callee = cpp_dispatch_target(f, custom=custom)
+        dispatch_key_set = '' if not is_npu_autograd else 'auto ks_set = ' \
+            'c10::DispatchKeySet().add(c10::DispatchKey::AutogradXLA).add(c10::DispatchKey::XLA);'
+        dispatch_callee = cpp_dispatch_target(f, custom=custom, is_npu_autograd=is_npu_autograd)
         dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=custom))
+        if is_npu_autograd:
+            dispatch_args = 'ks_set, ' + dispatch_args
 
         # from arg parser outputs to dispatch lambda arguments
         parser_outputs = arg_parser_output_exprs(ps, f)
@@ -696,6 +702,7 @@ auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
   {init_npu_device}
   pybind11::gil_scoped_release no_gil;
   {record_func_define}
+  {dispatch_key_set}
   {dispatch_callee}({dispatch_args});
 }};
 dispatch_{name}({lambda_args}){set_requires_grad};
@@ -711,6 +718,7 @@ auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
   {init_npu_device}
   pybind11::gil_scoped_release no_gil;
   {record_func_define}
+  {dispatch_key_set}
   return {dispatch_callee}({dispatch_args});
 }};
 return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad});
