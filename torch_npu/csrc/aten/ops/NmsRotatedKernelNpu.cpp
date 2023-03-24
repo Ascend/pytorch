@@ -32,7 +32,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_nms_rotated(const at::Tens
     scoresCast = NPUNativeFunctions::npu_dtype_cast(scores, at::kFloat);
   }
   c10::SmallVector<int64_t, SIZE> selectedIndexSize = {dets.size(0)};
-  at::Tensor selectedBox = OpPreparation::ApplyTensor(dets);
+  at::Tensor selectedBox = OpPreparation::ApplyTensor(detsCast);
   at::Tensor selectedIndex = OpPreparation::ApplyTensor(selectedIndexSize, dets.options().dtype(at::kInt), dets);
 
   c10::SmallVector<int64_t, N> output_sync_idx = {0, 1};
