@@ -26,6 +26,7 @@
 #include "torch_npu/csrc/profiler/profiler_legacy.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
+#include "torch_npu/csrc/framework/OpParamMaker.h"
 
 std::atomic<bool> global_enable_profiling(false);
 
@@ -197,6 +198,41 @@ void PutMarkStamp(const std::string &opName) {
       }
     }
   }
+}
+
+static void ReportPipelineDataToMsProfiler(uint32_t category, const std::string &op_name) {
+  static const std::string tag_name = "torch_pipeline";
+  void *stamp = at_npu::native::AclprofCreateStamp();
+  if (stamp == nullptr) {
+    return;
+  }
+  if (at_npu::native::AclprofSetStampTagName(stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE ||
+      at_npu::native::AclprofSetStampCategory(stamp, category) != ACL_ERROR_NONE ||
+      at_npu::native::AclprofSetStampTraceMessage(stamp, op_name.c_str(), op_name.size()) != ACL_ERROR_NONE ||
+      at_npu::native::AclprofMark(stamp) != ACL_ERROR_NONE) {
+    NPU_LOGE("Report Pipeline data to MsProfiler failed.");
+  }
+  at_npu::native::AclprofDestroyStamp(stamp);
+}
+
+void MarkQueueStamp(uint32_t category, const std::string &op_name) {
+  if (!global_enable_profiling.load()) {
+    return;
+  }
+  ReportPipelineDataToMsProfiler(category, op_name);
+}
+
+void MarkQueueStamp(uint32_t category, void *data, size_t offset) {
+  if (!global_enable_profiling.load()) {
+    return;
+  }
+  void *cur_addr = (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
+  auto cur_param = static_cast<c10_npu::queue::QueueParas *>(cur_addr);
+  if (cur_param->paramType != c10_npu::queue::COMPILE_AND_EXECUTE) {
+    return;
+  }
+  auto param_val = static_cast<at_npu::native::ExecuteParas *>(cur_param->paramVal);
+  ReportPipelineDataToMsProfiler(category, std::string(param_val->opType));
 }
 
 void FlushMarkStamp() {

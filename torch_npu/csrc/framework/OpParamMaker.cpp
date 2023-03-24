@@ -28,19 +28,13 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
-#ifndef BUILD_LIBTORCH
 #include <Python.h>
+
 extern std::atomic<bool> global_enable_profiling;
-#endif
 namespace at_npu
 {
   namespace native
   {
-    using namespace c10_npu::queue;
-    constexpr size_t MAX_VAL_SIZE = (sizeof(ExecuteParas) > sizeof(CopyParas)) ?
-      ((sizeof(ExecuteParas) >  sizeof(EventParas)) ? sizeof(ExecuteParas) : sizeof(EventParas)) :
-      ((sizeof(CopyParas) > sizeof(EventParas)) ? sizeof(CopyParas) : sizeof(EventParas));
-
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
     {
       aclopSetAttrBool(attr, name.c_str(), value);
@@ -149,11 +143,9 @@ namespace at_npu
         c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       aclError ret;
-#ifndef BUILD_LIBTORCH
       if (global_enable_profiling.load(std::memory_order_relaxed)) {
         torch_npu::profiler::PutMarkStamp(name);
       }
-#endif
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -265,11 +257,9 @@ namespace at_npu
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType);
       aclError ret;
-#ifndef BUILD_LIBTORCH
       if (global_enable_profiling.load(std::memory_order_relaxed)) {
         torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
       }
-#endif
       bool reset_flag = false;
       if (!cur_paras->isJitDisable)
       {
@@ -393,11 +383,11 @@ namespace at_npu
         new(dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
       } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
-        new(dstPtr->paramVal) CopyParas();
+        new(dstPtr->paramVal) c10_npu::queue::CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
       } else {
-        new(dstPtr->paramVal) EventParas();
+        new(dstPtr->paramVal) c10_npu::queue::EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }
@@ -410,7 +400,7 @@ namespace at_npu
 
     void* NewFunc(int caption, int& size)
     {
-      size = sizeof(c10_npu::queue::QueueParas) + MAX_VAL_SIZE;
+      size = sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE;
       void *ptr = malloc(size * caption);
       TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
       memset(ptr, 0, size * caption);

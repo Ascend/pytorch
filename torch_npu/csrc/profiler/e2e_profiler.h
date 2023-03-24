@@ -81,6 +81,10 @@ void UninitRangeStamp();
 
 void InitMarkStamp();
 
+void MarkQueueStamp(uint32_t category, const std::string &op_name);
+
+void MarkQueueStamp(uint32_t category, void *data, size_t offset);
+
 void PutMarkStamp(const std::string &opName);
 
 void FlushMarkStamp();

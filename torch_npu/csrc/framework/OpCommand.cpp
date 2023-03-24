@@ -22,7 +22,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
-
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
 namespace {
 const uint64_t kStringOffset = 16UL;
 const std::string kStringDType = "string";
@@ -219,19 +219,21 @@ void OpCommand::Run() {
     return;
   }
   aclCmd->SetEnginePriority();
-  string opName = aclCmd->GetName();
+  string op_name = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
-    RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
+    RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
+    torch_npu::profiler::MarkQueueStamp(0, op_name);
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
+    torch_npu::profiler::MarkQueueStamp(0, op_name);
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
   }
-  at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, opName);
+  at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, op_name);
   aclCmds->Pop();
 }
 

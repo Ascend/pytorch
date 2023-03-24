@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
 
 #include <Python.h>
 
@@ -231,7 +232,9 @@ bool Repository::ReadQueue() {
   }
 
   __sync_synchronize();
+  torch_npu::profiler::MarkQueueStamp(1, datas, read_idx.idx);
   auto ret = manager().Call(datas, read_idx.idx);
+  torch_npu::profiler::MarkQueueStamp(1, datas, read_idx.idx);
 
   if (ret != 0) {
     ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
