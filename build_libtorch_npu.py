@@ -163,6 +163,7 @@ def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, lev
     """
     return file_util.copy_file(infile, outfile, preserve_mode, preserve_times, True, link)
 
+
 def move_special_hpp(ret):
     hpp_name = "library_npu.h"
     for _, dst in ret:
@@ -206,6 +207,7 @@ def copy_hpp():
     for src, dst in ret:
         copy_file(src, dst)
     move_special_hpp(ret)
+
 
 def copy_lib():
     lib_file = [f"build/{get_build_type()}/packages/torch_npu/lib/*.*"]

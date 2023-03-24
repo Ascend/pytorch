@@ -73,7 +73,7 @@ void finalize_npu() {
       TORCH_CHECK(false, "NPU sys finalize failed.\n");
     }
   } else {
-    TORCH_WARN("WARNING: Please init npu device first!");
+    TORCH_WARN("Please init npu device first!");
   }
 }
 
@@ -84,7 +84,7 @@ c10::DeviceIndex current_device() {
     aclrtGetDevice(&device);
     return (c10::DeviceIndex)device;
   } else {
-    TORCH_WARN("WARNING: Please init npu device first!");
+    TORCH_WARN("Please init npu device first!");
     return (c10::DeviceIndex)-1;
   }
 }
