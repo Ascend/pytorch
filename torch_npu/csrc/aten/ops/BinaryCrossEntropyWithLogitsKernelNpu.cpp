@@ -39,19 +39,23 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits(
     resultformat = ACL_FORMAT_ND;
   }
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, target.options(), resultformat);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), resultformat);
   at::Tensor weightTensor;
   if (weight.defined()) {
     weightTensor = NpuUtils::format_contiguous(weight);
+    weightTensor = (weight.scalar_type() != self.scalar_type()) ? NPUNativeFunctions::npu_dtype_cast(weightTensor,
+        self.scalar_type()) : weightTensor;
   } else {
-    weightTensor = at::ones(target.sizes(), target.options());
+    weightTensor = at::ones(self.sizes(), self.options());
   }
 
   at::Tensor posWeightTensor;
   if (pos_weight.defined()) {
     posWeightTensor = NpuUtils::format_contiguous(pos_weight);
+    posWeightTensor = (posWeightTensor.scalar_type() != self.scalar_type()) ? NPUNativeFunctions::npu_dtype_cast(posWeightTensor,
+        self.scalar_type()) : posWeightTensor;
   } else {
-    posWeightTensor = at::ones(target.sizes(), target.options());
+    posWeightTensor = at::ones(self.sizes(), self.options());
   }
 
   string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
