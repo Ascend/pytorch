@@ -190,6 +190,8 @@ private:
   at::Tensor& CreateHostTensor(void *data, at::IntArrayRef size,
                               const c10::TensorOptions &options, at::ScalarType toType);
 
+  bool ScalarIsInLimits(const c10::Scalar &scalar, at::ScalarType type);
+
   at::Tensor& CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type);
 
   c10::SmallVector<at::Tensor, N> storage; // tensor's life cycle should maintain when Run() is called
