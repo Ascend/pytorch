@@ -29,9 +29,6 @@ class _Formatter(SrcFormatter):
         self.int_mode = True
         self.sci_mode = False
         self.max_width = 1
-        device = tensor.device
-        if device.type == "npu":
-            tensor = tensor.to("cpu")
         super(_Formatter, self).__init__(tensor)
 
 def _tensor_str(self, indent):
@@ -46,11 +43,18 @@ def _tensor_str(self, indent):
         # an unnamed tensor to the formatting code as a workaround.
         self = self.rename(None)
 
-    if torch.npu.is_graph_mode():
-        tensor_manager = torch_npu.npu.npu_print.NpuTensorManager()
-        if tensor_manager.is_enter_npu_print:
-            tensor_manager.add_npu_tensor_to_print(self)
-            return '{}'
+    # step 1:
+    # Put 'to-cpu' here is to avoid the long compile time of 'ConcatD','Pack' on npu.
+    # Previous version put this operation in _Formatter class.
+    device = self.device
+    is_npu = self.is_npu
+    if is_npu:
+        if torch.npu.is_graph_mode():
+            tensor_manager = torch_npu.npu.npu_print.NpuTensorManager()
+            if tensor_manager.is_enter_npu_print:
+                tensor_manager.add_npu_tensor_to_print(self)
+                return '{}'
+        self = self.cpu()
     
     summarize = self.numel() > PRINT_OPTS.threshold
     if self.dtype is torch.float16 or self.dtype is torch.bfloat16:
@@ -59,10 +63,16 @@ def _tensor_str(self, indent):
     if self.dtype.is_complex:
         real_formatter = _Formatter(get_summarized_data(self.real) if summarize else self.real)
         imag_formatter = _Formatter(get_summarized_data(self.imag) if summarize else self.imag)
-        return _tensor_str_with_formatter(self, indent, summarize, real_formatter, imag_formatter)
+        rst = _tensor_str_with_formatter(self, indent, summarize, real_formatter, imag_formatter)
     else:
         formatter = _Formatter(get_summarized_data(self) if summarize else self)
-        return _tensor_str_with_formatter(self, indent, summarize, formatter)
+        rst = _tensor_str_with_formatter(self, indent, summarize, formatter)
+    
+    # step 2:
+    # When above operations finished, we need to do 'to-npu' with self for following operations.
+    if is_npu:
+        self = self.to(device)
+    return rst
 
 def _str_intern(inp):
     prefix = 'tensor('
