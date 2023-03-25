@@ -26,7 +26,8 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
                                                                 DecorateInfo,
                                                                 wrapper_set_seed,
-                                                                sample_inputs_normal_common)
+                                                                sample_inputs_normal_common,
+                                                                sample_inputs_binary_cross_entropy_with_logits)
 
 
 class OpInfo(Of_OpInfo):
@@ -1339,6 +1340,18 @@ op_db: List[OpInfo] = [
             ({'alpha': 0.8}, {'alpha': 0.8}),
         inplace_variant=lambda x, alpha=1.0:
             torch.nn.functional.celu(x, alpha, inplace=True),
+    ),
+    OpInfo(
+        "nn.functional.binary_cross_entropy_with_logits",
+        aten_name="binary_cross_entropy_with_logits",
+        supports_autograd=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        supports_out=False,
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
+        sample_inputs_func=sample_inputs_binary_cross_entropy_with_logits,
+        formats=(2,),
     ),
     UnaryUfuncInfo(
         'nn.functional.rrelu',
