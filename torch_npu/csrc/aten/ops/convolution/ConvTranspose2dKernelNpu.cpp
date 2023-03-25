@@ -36,7 +36,7 @@ at::Tensor& conv_transpose2d_out_npu(
     int64_t groups) {
   c10::SmallVector<int64_t, N> paddings = {
       padding[0], padding[0], padding[1], padding[1]};
-  c10::SmallVector<int64_t, N> outputpadding = {0, 0, 0, 0};
+  c10::SmallVector<int64_t, N> outputpadding = {0, 0, output_padding[0], output_padding[1]};
   c10::SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   c10::SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
   string dataFormat = "NCHW";
