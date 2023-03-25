@@ -17,6 +17,7 @@
 from typing import List
 from functools import partial
 import unittest
+from torch.testing import make_tensor
 
 import torch
 from torch.testing._internal import common_methods_invocations
@@ -28,7 +29,9 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 ReductionOpInfo as Of_ReductionOpInfo,
                                                                 DecorateInfo,
                                                                 wrapper_set_seed,
-                                                                sample_inputs_normal_common)
+                                                                sample_inputs_normal_common,
+                                                                S,
+                                                                SampleInput)
 
 
 class OpInfo(Of_OpInfo):
@@ -110,6 +113,34 @@ def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwa
     ]
     return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
 
+def sample_inputs_binary_cross_entropy_with_logits(
+    op_info, device, dtype, requires_grad, **kwargs
+):
+    make = partial(make_tensor, device=device, dtype=dtype)
+    make_prob = partial(make, low=0, high=1)
+    reductions = ("mean", "sum", "none")
+
+    def make_weight_shape_kwargs():
+        kwargs = []
+        for shape in ((1,), (1, S), (S), (S, S)):
+            kwargs.extend([((S, S), dict(reduction=reduction, weight=make(shape))) for reduction in reductions])
+        return kwargs
+
+    shapes_and_kwargs = [
+        *[(shape, None) for shape in ((), (1,), (S,), (S, S), (S, S, S))],
+        *[((S, S), dict(reduction=reduction)) for reduction in reductions],
+        *make_weight_shape_kwargs(),
+        *[((S, S), dict(reduction=reduction, pos_weight=make((S,), low=0))) for reduction in reductions],
+        *[((S, S), dict(reduction=reduction, weight=make((S, S)),
+            pos_weight=make((S,), low=0))) for reduction in reductions],
+    ]
+
+    for shape, kwargs in shapes_and_kwargs:
+        yield SampleInput(
+            make(shape, requires_grad=requires_grad),
+            args=(make_prob(shape, requires_grad=requires_grad),),
+            kwargs=kwargs,
+        )
 
 op_db: List[OpInfo] = [
     UnaryUfuncInfo(
@@ -1362,6 +1393,18 @@ op_db: List[OpInfo] = [
             ({'alpha': 0.8}, {'alpha': 0.8}),
         inplace_variant=lambda x, alpha=1.0:
             torch.nn.functional.celu(x, alpha, inplace=True),
+    ),
+    OpInfo(
+        "nn.functional.binary_cross_entropy_with_logits",
+        aten_name="binary_cross_entropy_with_logits",
+        supports_autograd=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        supports_out=False,
+        dtypes=_dispatch_dtypes((torch.float32, torch.float16)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
+        sample_inputs_func=sample_inputs_binary_cross_entropy_with_logits,
+        formats=(2,),
     ),
     UnaryUfuncInfo(
         'nn.functional.rrelu',
