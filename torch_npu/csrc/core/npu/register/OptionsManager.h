@@ -32,6 +32,7 @@ public:
   static bool CheckDisableAclopComAndExe();
   static bool CheckSwitchMMOutputEnable();
   static bool CheckUseNpuLogEnable();
+  static uint32_t GetHCCLExecTimeout();
   static std::string CheckDisableDynamicPath();
 private:
   static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

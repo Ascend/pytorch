@@ -69,6 +69,12 @@ int OptionsManager::GetBoolTypeOption(const char* env_str, int defaultVal) {
   return (envFlag != 0) ? 1 : 0;
 }
 
+uint32_t OptionsManager::GetHCCLExecTimeout() {
+  char* env_val = std::getenv("HCCL_EXEC_TIMEOUT");
+  int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+  return static_cast<uint32_t>(envFlag);
+}
+
 bool OptionsManager::CheckUseNpuLogEnable() {
   static int useNpuLog = -1;
   if (useNpuLog == -1) {
