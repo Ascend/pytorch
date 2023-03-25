@@ -36,6 +36,8 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits_backward(
   at::Tensor weightTensor;
   if (weight.defined()) {
     weightTensor = NpuUtils::format_contiguous(weight);
+    weightTensor = (weightTensor.scalar_type() != self.scalar_type()) ?
+        NPUNativeFunctions::npu_dtype_cast(weightTensor, self.scalar_type()) : weightTensor;
   } else {
     weightTensor = at::ones(self.sizes(), self.options());
   }
@@ -43,6 +45,8 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits_backward(
   at::Tensor posWeightTensor;
   if (pos_weight.defined()) {
     posWeightTensor = NpuUtils::format_contiguous(pos_weight);
+    posWeightTensor = (posWeightTensor.scalar_type() != self.scalar_type()) ?
+        NPUNativeFunctions::npu_dtype_cast(posWeightTensor, self.scalar_type()) : posWeightTensor;
   } else {
     posWeightTensor = at::ones(self.sizes(), self.options());
   }
