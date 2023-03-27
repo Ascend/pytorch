@@ -17,7 +17,6 @@ import torch_npu
 
 
 def torch_device_guard(func):
-    torch_npu.npu._lazy_init()
     # Parse args/kwargs matched torch.device objects
     def wrapper(*args, **kwargs):
         if args:
