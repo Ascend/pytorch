@@ -62,9 +62,11 @@ def npu(self, device=None):
 
 @torch_device_guard
 def to(self, *args, **kwargs):
+    if args and isinstance(args[0], str) and 'npu' in args[0]:
+        args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
+    if kwargs and 'npu' in str(kwargs.get("device", "")):
+        kwargs['device'] = kwargs['device'].replace("npu", torch_npu.npu.native_device)
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
-    if device.index is not None:
-        device = torch.device(type=torch_npu.npu.native_device, index=device.index)
 
     if dtype is not None:
         if not (dtype.is_floating_point or dtype.is_complex):
