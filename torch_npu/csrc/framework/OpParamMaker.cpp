@@ -31,7 +31,6 @@
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include <Python.h>
-extern std::atomic<bool> global_enable_profiling;
 #endif
 
 namespace at_npu
@@ -151,7 +150,7 @@ namespace at_npu
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       aclError ret;
 #ifndef BUILD_LIBTORCH
-      if (global_enable_profiling.load(std::memory_order_relaxed)) {
+      if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
         torch_npu::profiler::PutMarkStamp(name);
       }
 #endif
@@ -267,7 +266,7 @@ namespace at_npu
       NPU_LOGD("Op %s Run.", cur_paras->opType);
       aclError ret;
 #ifndef BUILD_LIBTORCH
-      if (global_enable_profiling.load(std::memory_order_relaxed)) {
+      if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
         torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
       }
 #endif
