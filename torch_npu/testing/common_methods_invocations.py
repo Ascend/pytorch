@@ -418,6 +418,22 @@ op_db: List[OpInfo] = [
         formats=(2, ),
     ),
     OpInfo(
+        'nn.functional.conv_transpose2d',
+        aten_name='conv_transpose2d',
+        aliases=('conv_transpose2d',),
+        dtypes=_dispatch_dtypes((torch.int64, torch.float32, torch.float16)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, )),
+        sample_inputs_func=common_methods_invocations.sample_inputs_conv_transpose2d,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+            dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+            dtypes=[torch.float16, torch.float32]),
+        ),
+        supports_out=False,),
+    OpInfo(
         'cross',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
