@@ -38,11 +38,6 @@ namespace at_npu
 {
   namespace native
   {
-    using namespace c10_npu::queue;
-    constexpr size_t MAX_VAL_SIZE = (sizeof(ExecuteParas) > sizeof(CopyParas)) ?
-      ((sizeof(ExecuteParas) >  sizeof(EventParas)) ? sizeof(ExecuteParas) : sizeof(EventParas)) :
-      ((sizeof(CopyParas) > sizeof(EventParas)) ? sizeof(CopyParas) : sizeof(EventParas));
-
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
     {
       aclopSetAttrBool(attr, name.c_str(), value);
@@ -419,11 +414,11 @@ namespace at_npu
         new(dstPtr->paramVal) ExecuteBsParas();
         (static_cast<ExecuteBsParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteBsParas* >(srcPtr->paramVal)));
       } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
-        new(dstPtr->paramVal) CopyParas();
+        new(dstPtr->paramVal) c10_npu::queue::CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
       } else {
-        new(dstPtr->paramVal) EventParas();
+        new(dstPtr->paramVal) c10_npu::queue::EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }
@@ -436,7 +431,7 @@ namespace at_npu
 
     void* NewFunc(int caption, int& size)
     {
-      size = sizeof(c10_npu::queue::QueueParas) + MAX_VAL_SIZE;
+      size = sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE;
       void *ptr = malloc(size * caption);
       TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
       memset(ptr, 0, size * caption);

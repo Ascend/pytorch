@@ -98,6 +98,10 @@ void InitE2eProfiler(const std::string dump_path,  uint64_t npu_event, uint64_t 
 
 void FinalizeE2eProfiler();
 
+void MarkQueueStamp(uint32_t category, const std::string &op_name);
+
+void MarkQueueStamp(uint32_t category, void *data, size_t offset);
+
 std::vector<FileLineFunc> prepareCallstack(const std::vector<torch::jit::StackEntry> &cs);
 
 std::vector<std::string> callstack2Str(const std::vector<FileLineFunc> &cs);
