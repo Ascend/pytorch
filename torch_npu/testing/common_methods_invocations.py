@@ -1060,12 +1060,6 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         supports_out=False,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float16, torch.float32]),
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float16, torch.float32]),
-        ),
     ), 
     OpInfo(
         'mm',
