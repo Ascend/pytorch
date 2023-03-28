@@ -601,6 +601,17 @@ class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
         return g.op("npu::NPUScaledMaskedSoftmax", x, mask, scale_f=scale, fixed_triu_mask_i=fixed_triu_mask)
 
 
+class NPUMishOP(torch.autograd.Function):
+    
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_mish(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor):
+        return g.op("npu::NPUMish", self)
+    
+
 def wrapper_npu_one_hot(self, num_classses=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classses, depth, on_value, off_value)
 
@@ -821,6 +832,10 @@ def wrapper_npu_scaled_masked_softmax(x, mask, scale=1, fixed_triu_mask=False):
     return NPUScaledMaskedSoftmaxOP.apply(x, mask, scale, fixed_triu_mask)
 
 
+def wrapper_npu_mish(self):
+    return NPUMishOP.apply(self)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -865,3 +880,4 @@ def add_onnx_ops():
     torch_npu.npu_gru = wrapper_npu_gru
     torch_npu.npu_dropout_with_add_softmax = wrapper_npu_dropout_with_add_softmax
     torch_npu.npu_scaled_masked_softmax = wrapper_npu_scaled_masked_softmax
+    torch_npu.npu_mish = wrapper_npu_mish
