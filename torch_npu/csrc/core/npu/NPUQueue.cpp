@@ -4,6 +4,7 @@
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #endif
 
 #include <unistd.h>
@@ -241,7 +242,13 @@ bool Repository::ReadQueue() {
   }
 
   __sync_synchronize();
+#ifndef BUILD_LIBTORCH
+  torch_npu::profiler::MarkQueueStamp(1, datas, read_idx.idx);
   auto ret = manager().Call(datas, read_idx.idx);
+  torch_npu::profiler::MarkQueueStamp(1, datas, read_idx.idx);
+#else
+  auto ret = manager().Call(datas, read_idx.idx);
+#endif
 
   if (ret != 0) {
     ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
