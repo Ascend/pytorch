@@ -19,6 +19,7 @@ from functools import partial
 import unittest
 
 import torch
+from torch.testing import make_tensor
 from torch.testing._internal import common_methods_invocations
 from torch.testing._internal.common_dtype import (_dispatch_dtypes, floating_and_complex_types_and,
                                                   floating_types, floating_types_and, complex_types)
@@ -109,6 +110,18 @@ def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwa
         ([5, 6, 7, 8], [5, 6, 7, 8], {})
     ]
     return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
+
+
+def sample_inputs_mm_custom(self, device, dtype, requires_grad, **kwargs):
+    make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
+
+    empty_tensor_shape = [((7, 0), (0, 7)),
+                          ((0, 7), (7, 0))]
+    for shape in empty_tensor_shape:
+        yield common_methods_invocations.SampleInput(make_arg(shape[0]), args=(make_arg(shape[1]),))
+    
+    for torch_sample in common_methods_invocations.sample_inputs_mm(self, device, dtype, requires_grad, **kwargs):
+        yield torch_sample
 
 
 op_db: List[OpInfo] = [
@@ -1088,7 +1101,7 @@ op_db: List[OpInfo] = [
         'mm',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=common_methods_invocations.sample_inputs_mm,
+        sample_inputs_func=sample_inputs_mm_custom,
         formats=(2, 29),
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
