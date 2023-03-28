@@ -546,6 +546,10 @@ supported:
  - min.out
  - minimum
  - minimum.out
+ - mish
+ - mish.out
+ - mish_
+ - mish_backward
  - mm
  - mm.out
  - mse_loss
