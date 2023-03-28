@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
-
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torch_npu
 
 
 from torch_npu.testing.testcase import TestCase, run_tests
-
+from torch_npu.testing.common_utils import create_common_tensor
 
 class TestLossFunctions(TestCase):
     def test_binary_cross_entropy(self):
@@ -207,6 +207,24 @@ class TestLossFunctions(TestCase):
         npu_output = F.triplet_margin_loss(npu_input1, npu_input2, npu_input3)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
+
+    def test_gaussian_nll_loss_reduction_modes(self):
+        shape_format = [ 
+            [[np.float32, 2, [5, 5]] for _ in range(3)],
+            [[np.float32, 3, [10, 10]] for _ in range(3)],
+            [[np.float32, 2, [15, 15]] for _ in range(3)],
+            [[np.float32, 3, [20, 20]] for _ in range(3)]
+        ]
+
+        for item in shape_format:
+            input_cpu, input_npu = create_common_tensor(item[0], -10, 10)
+            target_cpu, target_npu = create_common_tensor(item[1], -10, 10)
+            var_cpu, var_npu = create_common_tensor(item[2], 0, 3)
+
+            npu_output = F.gaussian_nll_loss(input_npu, target_npu, var_npu, reduction='none')
+            cpu_output = F.gaussian_nll_loss(input_cpu, target_cpu, var_cpu, reduction='none')
+
+            self.assertRtolEqual(npu_output.detach().cpu().numpy(), cpu_output.detach().numpy())
 
 
 if __name__ == "__main__":
