@@ -3,20 +3,20 @@
 <h2 id="简介md">简介</h2>
 
 本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译相关模块。
-当前master分支为在研版本，功能较不稳定，推荐使用版本配套中的版本。
+当前master分支为在研版本，上下游依赖存在变动可能，功能较不稳定，推荐使用Ascend配套软件表格中分支对应版本。master分支的安装使用请参考FAQ-[使用源码编译安装PyTorch框架](#FAQ)。
 
 
 # 文档
 
 有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
 
-| 文档名称                   | 文档链接                                                     |
-| -------------------------- | ------------------------------------------------------------ |
-| PyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000035.html) |
-| PyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptmigr/ptmigr_0001.html) |
-| PyTorch 在线推理           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptonlineinfer/ptonlineinfer_000001.html) |
-| PyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/operatordev/operatordevg/atlasopdev_10_0081.html) |
-| PyTorch API清单            | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/oplist/fwoperator/fwoperatorlist_0301.html) |
+| 文档名称              | 文档链接                                                                                                                      |
+|-------------------|---------------------------------------------------------------------------------------------------------------------------|
+| PyTorch 安装指南      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000035.html)              |
+| PyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptmigr/ptmigr_0001.html)                 |
+| PyTorch 在线推理      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptonlineinfer/ptonlineinfer_000001.html) |
+| PyTorch 算子适配      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/operatordev/operatordevg/atlasopdev_10_0081.html)   |
+| PyTorch API清单     | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/oplist/fwoperator/fwoperatorlist_0301.html)         |
 
 # 快速安装PyTorch
 
@@ -178,63 +178,40 @@ pip3 install wheel
 
 **安装PyTorch<a name="section1762728142316"></a>**
 
-推荐用户使用编好的二进制whl包安装PyTorch 1.11.0。用户也可选择编译安装方式安装PyTorch 1.11.0。请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+推荐用户使用编好的二进制whl包安装PyTorch 1.13.0。用户也可选择编译安装方式安装PyTorch 1.13.0。请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
 
 1. 安装官方torch包。
 
    - x86\_64
 
      ```
-     pip3 install torch==1.11.0+cpu  
+     pip3 install torch==1.13.0+cpu  
      ```
      
      若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
      
-     PyTorch 1.11.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.11.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
+     PyTorch 1.13.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.13.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
      
    - aarch64
-   
-     1. 进入安装目录，执行如下命令获取鲲鹏文件共享中心上对应版本的whl包。
-   
-        ```
-        wget https://repo.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/torch-1.11.0-cp37-cp37m-linux_aarch64.whl
-        ```
-   
-     2. 执行如下命令安装，如果使用非root用户安装，需要在命令后加**--user。**
-   
-         ```
-         pip3 install torch-1.11.0-cp37-cp37m-linux_aarch64.whl
-         ```
 
+     暂无可用ARM架构下预编译的PyTorch安装包，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
 
-2. 安装PyTorch插件torch\_npu。以下命令以在aarch64架构下安装为例。
+2. 安装PyTorch插件torch\_npu。
 
-   1. 进入安装目录，执行如下命令获取PyTorch插件的whl包。
-
-      ```
-      # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      wget https://gitee.com/ascend/pytorch/releases/download/v3.0.0-pytorch1.11.0/torch_npu-1.11.0rc2-cp37-cp37m-linux_aarch64.whl
-      ```
-      
-   2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
-   
-      ```
-      # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      pip3 install torch_npu-1.11.0rc2-cp37-cp37m-linux_aarch64.whl
-      ```
+   master分支暂不提供对应的torch_npu预编译安装包，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
    
 3. 安装对应框架版本的torchvision。
 
    ```
-   #PyTorch 1.11.0需安装0.12.0版本
-   pip3 install torchvision==0.9.1   
+   #PyTorch 1.13.0需安装0.14.0版本
+   pip3 install torchvision==0.14.0  
    ```
 
 **安装APEX混合精度模块<a name="section154215015416"></a>**
 
 混合精度训练是在训练时混合使用单精度（float32）与半精度\(float16\)数据类型，将两者结合在一起，并使用相同的超参数实现了与float32几乎相同的精度。在迁移完成、训练开始之前，基于NPU芯片的架构特性，用户需要开启混合精度，可以提升模型的性能。APEX混合精度模块是一个集优化性能、精度收敛于一身的综合优化库，可以提供不同场景下的混合精度训练支持。APEX模块的使用介绍可参考《[PyTorch 网络模型迁移和训练指南](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptmigr/ptmigr_0001.html)》中的“混合精度说明“章节。
 
-请参见[apex: Ascend apex adapter - Gitee.com](https://gitee.com/ascend/apex/tree/v1.11.0/)安装混合精度模块。
+请参见[apex: Ascend apex adapter - Gitee.com](https://gitee.com/ascend/apex/tree/master)安装混合精度模块。
 
 # 建议与交流
 
@@ -244,25 +221,25 @@ pip3 install wheel
 
 Ascend PyTorch的版本分支有以下几种维护阶段：
 
-| **状态**          | **持续时间**  | **说明**                                           |
-| ----------------- | ------------- | -------------------------------------------------- |
-| Planning          | 1 - 3 months  | 特性规划。                                         |
-| Development       | 3 months      | 特性开发。                                         |
-| Maintained        | 6 - 12 months | 允许所有问题修复的合入，并发布版本。               |
+| **状态**            | **持续时间**      | **说明**                    |
+|-------------------|---------------|---------------------------|
+| Planning          | 1 - 3 months  | 特性规划。                     |
+| Development       | 3 months      | 特性开发。                     |
+| Maintained        | 6 - 12 months | 允许所有问题修复的合入，并发布版本。        |
 | Unmaintained      | 0 - 3 months  | 允许所有问题修复的合入，无专人维护，不再发布版本。 |
-| End Of Life (EOL) | N/A           | 不再接受修改合入该分支。                           |
+| End Of Life (EOL) | N/A           | 不再接受修改合入该分支。              |
 
 # 现有分支维护状态
 
-| **分支名**   | **当前状态** | **上线时间** | **后续状态**                           | **EOL 日期** |
-| ------------ | ------------ | ------------ | -------------------------------------- | ------------ |
-| **v2.0.2**   | EOL          | 2021-07-29   | N/A                                    |              |
-| **v2.0.3**   | EOL          | 2021-10-15   | N/A                                    |              |
-| **v2.0.4**   | Unmaintained | 2022-01-15   | EOL <br> 2023-04-15 estimated          |              |
-| **v3.0.rc1** | Maintained   | 2022-04-10   | Unmaintained <br> 2023-04-10 estimated |              |
-| **v3.0.rc2** | Maintained   | 2022-07-15   | Unmaintained <br> 2023-07-15 estimated |              |
-| **v3.0.rc3** | Maintained   | 2022-10-20   | Unmaintained <br> 2023-10-20 estimated |              |
-| **v3.0.0**   | Maintained   | 2023-1-18    | Unmaintained <br> 2024-1-18 estimated  |              |
+| **分支名**      | **当前状态**     | **上线时间**   | **后续状态**                               | **EOL 日期** |
+|--------------|--------------|------------|----------------------------------------|------------|
+| **v2.0.2**   | EOL          | 2021-07-29 | N/A                                    |            |
+| **v2.0.3**   | EOL          | 2021-10-15 | N/A                                    |            |
+| **v2.0.4**   | Unmaintained | 2022-01-15 | EOL <br> 2023-04-15 estimated          |            |
+| **v3.0.rc1** | Maintained   | 2022-04-10 | Unmaintained <br> 2023-04-10 estimated |            |
+| **v3.0.rc2** | Maintained   | 2022-07-15 | Unmaintained <br> 2023-07-15 estimated |            |
+| **v3.0.rc3** | Maintained   | 2022-10-20 | Unmaintained <br> 2023-10-20 estimated |            |
+| **v3.0.0**   | Maintained   | 2023-1-18  | Unmaintained <br> 2024-1-18 estimated  |            |
 
 # FAQ
 
@@ -289,44 +266,44 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
   ```
   yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git 
-  yum install -y gcc==7.5.0 cmake==3.12.0 #gcc7.5.0版本及以上，cmake3.12.0版本及以上。
+  yum install -y gcc==7.5.0 cmake==3.13.0 #gcc7.5.0版本及以上，cmake3.13.0版本及以上。
   ```
 
 - Ubuntu
 
   ```
   apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git 
-  apt-get install -y gcc==7.5.0 cmake==3.12.0 #gcc7.5.0版本及以上，cmake3.12.0版本及以上。
+  apt-get install -y gcc==7.5.0 cmake==3.13.0 #gcc7.5.0版本及以上，cmake3.13.0版本及以上。
   ```
 
-**安装1.11.0<a name="section462918122313"></a>**
+**安装1.13.0<a name="section462918122313"></a>**
 
-以下操作步骤以安装PyTorch 1.11.0版本为例。
+以下操作步骤以安装PyTorch 1.13.0版本为例。
 
 1. 安装官方torch包。
 
    - x86\_64
 
      ```
-     pip3 install torch==1.11.0+cpu  
+     pip3 install torch==1.13.0+cpu  
      ```
 
      若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
 
-     PyTorch 1.11.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.11.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
+     PyTorch 1.13.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.13.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
 
    - 在aarch64架构下，用户可以选择编译安装官方torch包。
 
-     1. 下载PyTorch v1.11.0源码包。
+     1. 下载PyTorch v1.13.0源码包。
 
         ```
-     	git clone -b v1.11.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.11.0
+     	git clone -b v1.13.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.13.0
         ```
      
      2. 进入源码包获取被动依赖代码。
 
         ```
-     	cd pytorch_v1.11.0
+     	cd pytorch_v1.13.0
         git submodule sync
         git submodule update --init --recursive
         ```
@@ -346,28 +323,28 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 **安装torch_npu**
 
 
-1. 编译生成PyTorch插件的二进制安装包。
+1. 编译生成PyTorch插件的二进制安装包（以master分支为例，当前对应版本1.13.0）。
 
    ```
-   # 下载对应PyTorch版本分支代码，进入插件根目录，以v1.11.0-3.0.0为例
-   git clone -b  v1.11.0-3.0.0 https://gitee.com/ascend/pytorch.git 
+   # 下载对应PyTorch版本分支代码，进入插件根目录
+   git clone https://gitee.com/ascend/pytorch.git 
    cd pytorch    
-   # 指定Python版本编包方式，以Python3.7为例，其他Python版本请使用 --python=3.8或--python3.9
+   # 指定Python版本编包方式，以Python3.7为例，其他Python版本请使用 --python=3.8或--python=3.9
    bash ci/build.sh --python=3.7
    ```
 
 2. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加**--user**。
 
    ```
-   pip3 install --upgrade dist/torch_npu-1.11.0-cp37-cp37m-linux_aarch64.whl
+   pip3 install --upgrade dist/torch_npu-1.13.0-cp37-cp37m-linux_aarch64.whl
    # 若用户在x86架构下安装插件，请替换为对应的whl包。
    ```
 
 3. 安装对应框架版本的torchvision。
 
    ```
-   #PyTorch 1.11.0需安装0.12.0版本
-   pip3 install torchvision==0.9.1   
+   #PyTorch 1.13.0需安装0.14.0版本
+   pip3 install torchvision==0.14.0  
    ```
 
 4. 配置环境变量，验证是否安装成功。
@@ -435,14 +412,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 方法一：下载安装脚本安装cmake。（参考cmake官网）
 
-​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
+​		X86_64环境脚本安装：cmake-3.13.0-Linux-x86_64.sh
 
-​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
+​		aarch64环境脚本安装：cmake-3.13.0-Linux-aarch64.sh
 
 1. 执行命令。
 
    ```
-   ./cmake-3.12.0-Linux-{arch}.sh #{arch}为架构名称
+   ./cmake-3.13.0-Linux-{arch}.sh #{arch}为架构名称
    ```
 
 2. 设置软连接。
@@ -457,7 +434,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    cmake --version
    ```
 
-   如显示“cmake version 3.12.0”则表示安装成功。
+   如显示“cmake version 3.13.0”则表示安装成功。
 
 
 方法二：使用源码编译安装。
@@ -465,14 +442,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 1. 获取cmake软件包。
 
    ```
-   wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
+   wget https://cmake.org/files/v3.13/cmake-3.13.0.tar.gz --no-check-certificate
    ```
 
 2. 解压并进入软件包目录。
 
    ```
-   tar -xf cmake-3.12.0.tar.gz
-   cd cmake-3.12.0/
+   tar -xf cmake-3.13.0.tar.gz
+   cd cmake-3.13.0/
    ```
 
 3. 执行配置、编译和安装命令。
@@ -494,7 +471,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    cmake --version
    ```
 
-   如显示“cmake version 3.12.0”则表示安装成功。
+   如显示“cmake version 3.13.0”则表示安装成功。
 
 ## 命令行安装gcc依赖时提示找不到包、编译时gcc报错问题
 
