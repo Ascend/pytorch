@@ -156,6 +156,12 @@ void InitMarkStamp() {
   }
 }
 
+static int64_t getClockMonotonicRaw() {
+  struct timespec ts{};
+  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+  return static_cast<int64_t>(ts.tv_sec) * 1000000000 + static_cast<int64_t>(ts.tv_nsec);
+}
+
 void PutMarkStamp(const std::string &opName) {
   if (!g_concatenateReport) {
     using namespace at_npu::native;
@@ -185,7 +191,7 @@ void PutMarkStamp(const std::string &opName) {
     static thread_local int tid = syscall(SYS_gettid);
     g_markStamp.nodes[index].threadId = tid;
     g_markStamp.nodes[index].eventType = 0;
-    g_markStamp.nodes[index].startTime = getTime();
+    g_markStamp.nodes[index].startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
     g_markStamp.nodes[index].endTime = g_markStamp.nodes[index].startTime;
     std::strncpy(g_markStamp.nodes[index].message, opName.c_str(), OP_NAME_LEN);
     // report data
@@ -410,7 +416,7 @@ void PushStartTime(at::RecordFunction& fn) {
     }
     static thread_local int tid = syscall(SYS_gettid);
     node->threadId = tid;
-    node->startTime = getTime();
+    node->startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
     int nameLen = strlen(fn.name().str());
     std::strncpy(node->message, fn.name().str(), OP_NAME_LEN);
     fn.setForwardThreadId(reinterpret_cast<uint64_t>(node));
@@ -424,7 +430,7 @@ void PopEndTime(const at::RecordFunction& fn) {
     at_npu::native::AclprofDestroyStamp((void*)fn.forwardThreadId());
   } else {
     struct Stamp *node = reinterpret_cast<struct Stamp *>(fn.forwardThreadId());
-    node->endTime = getTime();
+    node->endTime = static_cast<unsigned long long>(getClockMonotonicRaw());
     node->eventType = 2;  // msproftx data envent type: START_OR_STOP
     PutRangeStamp(node);
   }
