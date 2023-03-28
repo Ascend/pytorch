@@ -81,6 +81,10 @@ void set_transposed_npu_desc(at::Tensor &tensor) {
 at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
                                        const at::Tensor &mat2,
                                        at::Tensor &result) {
+  if (self.numel() == 0 || mat2.numel() == 0) {
+    return result.zero_();
+  }
+
   at::Tensor contiguousResult =
       result.is_contiguous() ? result : result.contiguous();
 
