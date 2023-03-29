@@ -1216,12 +1216,6 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, )),
         sample_inputs_func=common_methods_invocations.sample_inputs_nll_loss,
         supports_out=False,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float16, torch.float32]),
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float16, torch.float32]),
-        ),
     ),
     OpInfo(
         'nonzero',
