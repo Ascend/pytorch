@@ -175,7 +175,8 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     // being, only aligned scenes are supported.
     static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
-        && mm_bmm_nd && ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(self, mat2)) || isAligin())) {
+        && mm_bmm_nd && ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(self, mat2)) ||
+        (!is_support_nd_out && isAligin()))) {
       if (split_k) {
         result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::ScalarType::Float),
                                                       ACL_FORMAT_ND);
