@@ -1180,6 +1180,25 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    def test_wrapper_npu_mish(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, input_):
+                return torch_npu.npu_mish(input_)
+
+        def export_onnx(onnx_model_name):
+            input_ = torch.randn(5, 5).npu()
+            model = Model().to("npu")
+            model(input_)
+            self.onnx_export(model, input_, onnx_model_name, ["input_"])
+
+        onnx_model_name = "model_npu_mish.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
 
 if __name__ == '__main__':
     run_tests()

@@ -258,15 +258,6 @@ class NPUSilu_OP(object):
         return torch_npu._C._VariableFunctionsClass.npu_silu_(self)
 
 
-class NPUMishOP(object):
-
-    @staticmethod
-    def forward(self):
-        if torch.onnx.is_in_onnx_export():
-            return self * torch.tanh(torch._C._nn.softplus(self))
-        return torch_npu._C._VariableFunctionsClass.npu_mish(self)
-
-
 class NPUMinOP(object):
 
     @staticmethod
@@ -299,5 +290,4 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_dtype_cast = NPUDtypeCastOP.forward
     torch_npu.npu_silu = NPUSiluOP.forward
     torch_npu.npu_silu_ = NPUSilu_OP.forward
-    torch_npu.npu_mish = NPUMishOP.forward
     torch_npu.npu_min = NPUMinOP.forward
