@@ -38,7 +38,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.13.0'
+VERSION = '2.0.0'
 
 
 def generate_torch_npu_version():
@@ -48,7 +48,7 @@ def generate_torch_npu_version():
         version_path.unlink()
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     modes = stat.S_IWUSR | stat.S_IRUSR
-    with os.fdopen(os.open(version_path, flags, modes), 'w') as f: 
+    with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
 
 

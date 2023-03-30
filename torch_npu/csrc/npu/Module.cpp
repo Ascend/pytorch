@@ -28,6 +28,7 @@
 #include <torch/csrc/autograd/generated/variable_factories.h>
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/python_strings.h>
+#include <torch/csrc/utils/python_numbers.h>
 #include <torch/csrc/THP.h>
 #include <torch/csrc/Exceptions.h>
 #include <chrono>
@@ -181,8 +182,19 @@ PyObject * THNPModule_getCurrentStream_wrap(
   THPUtils_assert(
     THPUtils_checkLong(device_index), "invalid argument to getCurrentStream");
   int64_t device = THPUtils_unpackLong(device_index);
-  return PyLong_FromUnsignedLongLong(
-      c10_npu::getCurrentNPUStream(device).pack());
+  auto stream = c10_npu::getCurrentNPUStream(device);
+  PyObject* output_tuple = PyTuple_New(3);
+  PyTuple_SetItem(
+      output_tuple, 0, THPUtils_packInt64(static_cast<int64_t>(stream.id())));
+  PyTuple_SetItem(
+      output_tuple,
+      1,
+      THPUtils_packInt64(static_cast<int64_t>(stream.device_index())));
+  PyTuple_SetItem(
+      output_tuple,
+      2,
+      THPUtils_packInt64(static_cast<int64_t>(stream.device_type())));
+  return output_tuple;
   END_HANDLE_TH_ERRORS
 }
 
@@ -190,19 +202,47 @@ PyObject * THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObjec
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDefaultStream");
   int64_t device = THPUtils_unpackLong(device_index);
-  return PyLong_FromUnsignedLongLong(c10_npu::getDefaultNPUStream(device).pack());
+  auto stream = c10_npu::getDefaultNPUStream(device);
+  PyObject* output_tuple = PyTuple_New(3);
+  PyTuple_SetItem(
+      output_tuple, 0, THPUtils_packInt64(static_cast<int64_t>(stream.id())));
+  PyTuple_SetItem(
+      output_tuple,
+      1,
+      THPUtils_packInt64(static_cast<int64_t>(stream.device_index())));
+  PyTuple_SetItem(
+      output_tuple,
+      2,
+      THPUtils_packInt64(static_cast<int64_t>(stream.device_type())));
+  return output_tuple;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
-{
+PyObject* THNPModule_setStream_wrap(
+    PyObject* self,
+    PyObject* args,
+    PyObject* kwargs) {
   HANDLE_TH_ERRORS
-  THPUtils_assert(PyLong_Check(obj), "invalid stream");
-  uint64_t bits = PyLong_AsUnsignedLongLong(obj);
-  if (bits == static_cast<uint64_t>(-1) && PyErr_Occurred()) {
-    throw python_error();
+  int64_t stream_id = 0;
+  int64_t device_index = 0;
+  int64_t device_type = 0;
+
+  // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
+  constexpr char* kwlist[] = {
+      "stream_id", "device_index", "device_type", nullptr};
+  if (!PyArg_ParseTupleAndKeywords(
+          args,
+          kwargs,
+          "|LLL",
+          const_cast<char**>(kwlist),
+          &stream_id,
+          &device_index,
+          &device_type)) {
   }
-  auto stream = c10_npu::NPUStream::unpack(bits);
+
+  auto stream = c10_npu::NPUStream::unpack3(
+      stream_id, device_index, static_cast<c10::DeviceType>(device_type));
+
   int device;
   C10_NPU_CHECK(aclrtGetDevice(&device));
   if (device != stream.device_index()) {
@@ -732,7 +772,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
-    {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
+    {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_VARARGS | METH_KEYWORDS, nullptr},
     {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_O, nullptr},
     {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_enable_replay_graph_mode", (PyCFunction)THNPModule_enable_replay_graph_mode_wrap, METH_O, nullptr},

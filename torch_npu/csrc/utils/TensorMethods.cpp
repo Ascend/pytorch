@@ -327,15 +327,26 @@ static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args,
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_record_stream(PyObject* self, PyObject* args)
+static PyObject * THPVariable_record_stream(PyObject* self_, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
-  PyObject *_tensor, *_stream;
-  if (!PyArg_ParseTuple(args, "OO", &_tensor, &_stream)) {
-    throw torch::TypeError("record_stream useage: tensor.record_stream(stream)");
+  const at::Tensor& self = THPVariable_Unpack(self_);
+  static torch::PythonArgParser parser({
+    "record_stream(Stream s)",
+  }, /*tranceable=*/false);
+
+  torch::ParsedArgs<1> parsed_args;
+  auto _r = parser.parse(self_, args, kwargs, parsed_args);
+  if (_r.has_torch_function()) {
+    return torch::handle_torch_function(_r, self_, args, kwargs, THPVariableClass, "torch.Tensor");
   }
-  auto& self_ = THPVariable_Unpack(_tensor);
-  c10_npu::NPUCachingAllocator::recordStream(self_.storage().data_ptr(), c10_npu::NPUStream::unpack(((THNPStream*)_stream)->cdata));
+
+  auto dispath_recode_stream = [](const at::Tensor & self, at::Stream s) -> void {
+    pybind11::gil_scoped_release no_gil;
+    self.record_stream(s);
+  };
+
+  dispath_recode_stream(self, _r.stream(0));
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

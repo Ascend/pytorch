@@ -25,7 +25,6 @@ from datetime import timedelta
 from typing import Callable, Dict, Optional, Tuple, Union
 
 import torch
-from torch._six import string_classes
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous  # noqa: F401
 from torch._C._distributed_c10d import (
@@ -139,7 +138,7 @@ class Backend(object):
     _plugins: Dict[str, Callable] = {}
 
     def __new__(cls, name: str):
-        if not isinstance(name, string_classes):
+        if not isinstance(name, (str, bytes)):
             raise ValueError("Backend name must be a string, but got: {}".format(name))
         value = getattr(Backend, name.upper(), Backend.UNDEFINED)
 

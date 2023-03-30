@@ -225,7 +225,7 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 if (DEFINED BUILD_LIBTORCH)
   target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
 else()
-  target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.7m)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.8)
 endif()
 
 if(DEFINED ENV{BSCPP_OPS_ENABLE})

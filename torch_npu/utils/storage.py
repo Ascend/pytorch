@@ -40,7 +40,7 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
 
 def normalize_storage_type(storage):
     if isinstance(storage, torch.storage.TypedStorage):
-        npu_flag = storage._storage.is_npu
+        npu_flag = storage._untyped_storage.is_npu
     else:
         npu_flag = storage.is_npu
     return npu_flag

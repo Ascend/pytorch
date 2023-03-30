@@ -18,11 +18,10 @@
 #define THNP_STREAM_INC
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include <torch/csrc/Stream.h>
 #include <torch/csrc/python_headers.h>
 
-struct THNPStream {
-  PyObject_HEAD
-  uint64_t cdata;
+struct THNPStream : THPStream {
   c10_npu::NPUStream npu_stream;
 };
 extern PyObject *THNPStreamClass;

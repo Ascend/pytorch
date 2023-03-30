@@ -28,7 +28,6 @@ from torch.types import _dtype
 
 import torch
 from torch.cuda.amp import autocast as cuda_autocast
-from torch._six import string_classes
 from .common import amp_definitely_not_available
 
 class autocast(torch.amp.autocast_mode.autocast):
@@ -217,7 +216,7 @@ def _cast(value, dtype):
     if isinstance(value, torch.Tensor):
         is_eligible = (value.is_floating_point() and value.device.type == 'npu' and (value.dtype is not torch.float64))
         return value.to(dtype) if is_eligible else value
-    elif isinstance(value, string_classes):
+    elif isinstance(value, (str, bytes)):
         return value
     elif HAS_NUMPY and isinstance(value, np.ndarray):
         return value

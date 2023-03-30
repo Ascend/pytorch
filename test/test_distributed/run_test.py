@@ -12,7 +12,6 @@ import time
 import unittest
 
 import torch
-import torch._six
 import torch.distributed as dist
 
 from torch.testing._internal.common_utils import TEST_WITH_ROCM, shell

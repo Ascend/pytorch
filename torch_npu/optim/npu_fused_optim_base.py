@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import torch
-from torch._six import inf
+from torch import inf
 from torch.optim.optimizer import Optimizer
 from torch_npu.utils import npu_combine_tensors, get_part_combined_tensor
 
