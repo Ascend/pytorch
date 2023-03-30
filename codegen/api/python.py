@@ -23,6 +23,7 @@ from codegen.api import cpp
 from codegen.model import (Argument, BaseTy, BaseType, ListType,
                            NativeFunction, OptionalType, Return, Type,
                            Variant)
+from codegen.autograd.utils import type_wrapper_name
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 #
@@ -993,7 +994,11 @@ def cpp_record_func(f: NativeFunction, custom=False) -> str:
     raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
 
 def cpp_dispatch_target(f: NativeFunction, custom=False, is_npu_autograd=False) -> str:
-    name = cpp.name(f.func)
+    if is_npu_autograd:
+        name = type_wrapper_name(f)
+    else:
+        name = cpp.name(f.func)
+
     if Variant.method in f.variants and not custom:
         return f'self.{name}'
     if Variant.function in f.variants:
