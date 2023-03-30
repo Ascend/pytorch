@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
+#include <torch/library.h>
 #include <ATen/NativeFunctions.h>
 #include <c10/util/Optional.h>
 #include <c10/core/impl/DeviceGuardImplInterface.h>
@@ -157,5 +158,59 @@ at::Tensor NPUNativeFunctions::to(
   return to_impl_npu(
       self, options.memory_format(optional_memory_format), non_blocking, copy);
 }
+
+at::Tensor _to_copy(
+    const at::Tensor& self,
+    c10::optional<c10::ScalarType> dtype,
+    c10::optional<c10::Layout> layout,
+    c10::optional<c10::Device> device,
+    c10::optional<bool> pin_memory,
+    bool non_blocking,
+    c10::optional<c10::MemoryFormat> optional_memory_format) {
+  TORCH_CHECK(!layout.has_value() || self.layout() == layout.value(),
+              "to(options) doesn't support converting to a different layout, "
+              "but got self.layout being ", self.layout(),
+              " and options.layout set as ", layout.value());
+  auto options = c10::TensorOptions()
+    .dtype(dtype)
+    .layout(layout)
+    .device(device)
+    .pinned_memory(pin_memory);
+
+  if (options.has_device()) {
+    options = options.device(ensure_has_index(options.device()));
+  }
+  // memory_format is handled separately due to MemoryFormat::Preserve logic
+  options = self.options().merge_in(options).memory_format(c10::nullopt);
+  auto memory_format = optional_memory_format.value_or(c10::MemoryFormat::Preserve);
+
+  bool pin_out = (non_blocking && options.device().is_cpu() &&
+                  (options.layout() == c10::kStrided));
+
+  if (memory_format == c10::MemoryFormat::Preserve) {
+    if (self.is_non_overlapping_and_dense()) {
+      at::Tensor r;
+      r = at::empty_strided(
+          self.sizes(),
+          self.strides(),
+          options.pinned_memory(pin_out));
+      r.copy_(self, non_blocking);
+      return r;
+    } else {
+      memory_format = self.suggest_memory_format();
+    }
+  }
+  // See Note [Explicit nullopt MemoryFormat argument]
+  auto r = at::empty(self.sizes(),
+                     options.memory_format(memory_format).pinned_memory(pin_out),
+                     c10::nullopt);
+  r.copy_(self, non_blocking);
+  return r;
+}
+
+TORCH_LIBRARY_IMPL(aten, BackendSelect, m){
+  m.impl(TORCH_SELECTIVE_NAME("aten::_to_copy"), TORCH_FN(_to_copy));
+}
+
 } // namespace native
 } // namespace at_npu
