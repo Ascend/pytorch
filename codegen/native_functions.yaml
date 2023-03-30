@@ -1865,7 +1865,7 @@
   device_check: NoCheck
   device_guard: False
 
-- func: empty.memory_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor
+- func: empty.memory_format(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor
   dispatch:
     CPU: empty_cpu
     CUDA: empty_cuda
@@ -1926,7 +1926,7 @@
   dispatch:
     QuantizedCPU, QuantizedCUDA: empty_quantized
 
-- func: empty.out(int[] size, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
+- func: empty.out(SymInt[] size, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
   device_check: NoCheck
   device_guard: False
 
@@ -1938,7 +1938,7 @@
     SparseCPU, SparseCUDA: empty_like_sparse_coo
     SparseCsrCPU, SparseCsrCUDA: empty_like_sparse_csr
 
-- func: empty_strided(int[] size, int[] stride, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+- func: empty_strided(SymInt[] size, SymInt[] stride, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   dispatch:
     CPU: empty_strided_cpu
     CUDA: empty_strided_cuda

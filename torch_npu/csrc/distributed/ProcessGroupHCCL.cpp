@@ -515,7 +515,7 @@ std::vector<at::Tensor> create_base_format_tensors(const std::vector<at::Tensor>
     } else {
       auto options = at::TensorOptions().dtype(inputTensors[i].dtype()).device(inputTensors[i].device());
       inputTensors_[i] = at_npu::native::NPUNativeFunctions::empty(
-          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(), 
+          inputTensors[i].sym_sizes(), options.dtype().toScalarType(), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), options.memory_format_opt());
     }
   }

@@ -103,7 +103,7 @@ namespace at_npu
       return result.to(at::device(at_npu::key::NativeDeviceType));
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
+    at::Tensor NPUNativeFunctions::empty(c10::SymIntArrayRef size,
                                          c10::optional<at::ScalarType> dtype_opt,
                                          c10::optional<c10::Layout> layout_opt,
                                          c10::optional<c10::Device> device_opt,
@@ -112,9 +112,10 @@ namespace at_npu
     {
       AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
-      check_size_nonnegative(size);
+      auto unsymbolic_size = asIntArrayRefUnchecked(size);
+      check_size_nonnegative(unsymbolic_size);
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-      int64_t nelements = c10::multiply_integers(size);
+      int64_t nelements = c10::multiply_integers(unsymbolic_size);
       auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       int64_t size_bytes = nelements * dtype.itemsize();
       c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
@@ -138,7 +139,7 @@ namespace at_npu
       // Default at::TensorImpl has size [0]
       if (size.size() != 1 || size[0] != 0)
       {
-        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
+        tensor.unsafeGetTensorImpl()->generic_set_sizes_contiguous(size);
       }
       auto memory_format =
           memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
@@ -146,7 +147,7 @@ namespace at_npu
           memory_format == c10::MemoryFormat::Contiguous,
           "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor");
       tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
-      StorageDescHelper::SetDesc(tensor, size, tensor.strides());
+      StorageDescHelper::SetDesc(tensor, unsymbolic_size, tensor.strides());
 
       return tensor;
     }
@@ -462,14 +463,16 @@ namespace at_npu
     }
 
     at::Tensor NPUNativeFunctions::empty_strided(
-        c10::IntArrayRef size,
-        c10::IntArrayRef stride,
+        c10::SymIntArrayRef size,
+        c10::SymIntArrayRef stride,
         c10::optional<at::ScalarType> dtype_opt,
         c10::optional<c10::Layout> layout_opt,
         c10::optional<c10::Device> device_opt,
         c10::optional<bool> pin_memory_opt)
     {
-      check_size_nonnegative(size);
+      auto unsymbolic_size = asIntArrayRefUnchecked(size);
+      auto unsymbolic_stride = asIntArrayRefUnchecked(stride);
+      check_size_nonnegative(unsymbolic_size);
       c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
       auto t = NPUNativeFunctions::empty({0},
                                          dtype_opt,
@@ -477,8 +480,8 @@ namespace at_npu
                                          device_opt,
                                          pin_memory_opt,
                                          optional_memory_format);
-      StorageDescHelper::SetDesc(t, size, stride);
-      at_npu::native::resize_impl_npu_(t.unsafeGetTensorImpl(), size, stride);
+      StorageDescHelper::SetDesc(t, unsymbolic_size, unsymbolic_stride);
+      at_npu::native::resize_impl_npu_(t.unsafeGetTensorImpl(), unsymbolic_size, unsymbolic_stride);
       return t;
     }
 
