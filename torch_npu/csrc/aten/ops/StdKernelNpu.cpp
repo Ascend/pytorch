@@ -102,7 +102,7 @@ at::Tensor NPUNativeFunctions::std(
   return result1;
 }
 
-at::Tensor NPUNativeFunctions::std(const at::Tensor& self, at::OptionalIntArrayRef dim,
+at::Tensor std(const at::Tensor& self, at::OptionalIntArrayRef dim,
            c10::optional<int64_t> correction, bool keepdim) {
     return NPUNativeFunctions::std(self, dim, correction.value() > 0, keepdim);
 }

@@ -300,10 +300,11 @@ void ATenGeBridge::CheckAndBuildGeOpForNode(
 }
 
 ge::Tensor ATenGeBridge::MakeGeTensor(const ge::TensorDesc& tensor_desc,
-                                      void* device_ptr, const size_t nbytes) {
+                                      const void* device_ptr, const size_t nbytes) {
   ge::Tensor ge_tensor{tensor_desc};
-  ge_tensor.SetData(reinterpret_cast<uint8_t *>(device_ptr),
-                    nbytes, [](uint8_t* device_ptr) { return; });
+  void* tmp_ptr = const_cast<void*>(device_ptr);
+  ge_tensor.SetData(reinterpret_cast<uint8_t *>(tmp_ptr),
+                    nbytes, [](uint8_t* tmp_ptr) { return; });
   return ge_tensor;
 }
 } // namespace native

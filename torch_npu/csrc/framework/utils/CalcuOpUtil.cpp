@@ -67,6 +67,11 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::BFloat16, ACL_BF16)                                        \
   _(at::ScalarType::QUInt4x2, ACL_DT_UNDEFINED)                                \
   _(at::ScalarType::QUInt2x4, ACL_DT_UNDEFINED)                                \
+  _(at::ScalarType::Bits1x8, ACL_DT_UNDEFINED)                                 \
+  _(at::ScalarType::Bits2x4, ACL_DT_UNDEFINED)                                 \
+  _(at::ScalarType::Bits4x2, ACL_DT_UNDEFINED)                                 \
+  _(at::ScalarType::Bits8, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::Bits16, ACL_DT_UNDEFINED)                                  \
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                               \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
@@ -239,9 +244,9 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
   }
 
   void *dst_ptr = static_cast<void *>(
-      static_cast<uint8_t *>(dst.first->data()) + dst.second);
+      static_cast<uint8_t *>(const_cast<void*>(dst.first->data())) + dst.second);
   void *src_ptr = static_cast<void *>(
-      static_cast<uint8_t *>(src.first->data()) + src.second);
+      static_cast<uint8_t *>(const_cast<void*>(src.first->data())) + src.second);
   return AclrtMemcpyParamCheck(dst_ptr, dstMax, const_cast<void *>(src_ptr),
                                count, kind);
 }
@@ -255,7 +260,7 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
   }
 
   void *dst_ptr = static_cast<void *>(
-      static_cast<uint8_t *>(dst.first->data()) + dst.second);
+      static_cast<uint8_t *>(const_cast<void*>(dst.first->data())) + dst.second);
   return AclrtMemcpyParamCheck(dst_ptr, dstMax, src, count, kind);
 }
 
@@ -268,7 +273,7 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
   }
 
   void *src_ptr = static_cast<void *>(
-      static_cast<uint8_t *>(src.first->data()) + src.second);
+      static_cast<uint8_t *>(const_cast<void*>(src.first->data())) + src.second);
   return AclrtMemcpyParamCheck(dst, dstMax, const_cast<void *>(src_ptr), count,
                                kind);
 }
@@ -295,7 +300,7 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
   }
 
   aclError ret =
-      c10_npu::queue::LaunchAsyncCopyTask(dst.data(), dstMax, src, count, kind);
+      c10_npu::queue::LaunchAsyncCopyTask(const_cast<void*>(dst.data()), dstMax, src, count, kind);
   return ret;
 }
 

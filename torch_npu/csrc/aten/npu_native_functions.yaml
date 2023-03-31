@@ -763,7 +763,7 @@ supported:
  - std
  - std.dim
  - std.names_dim
- - std.correction
+# - std.correction
  - std.names_out
  - std.out
  - std_mean
