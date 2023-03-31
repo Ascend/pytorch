@@ -292,7 +292,9 @@ def set_stream(stream):
     """
     if stream is None:
         return
-    torch_npu._C._npu_setStream(stream_id=stream.stream_id, device_index=stream.device_index, device_type=stream.device_type)
+    torch_npu._C._npu_setStream(stream_id=stream.stream_id,
+                                device_index=stream.device_index,
+                                device_type=stream.device_type)
 
 
 def current_stream(device=None):
