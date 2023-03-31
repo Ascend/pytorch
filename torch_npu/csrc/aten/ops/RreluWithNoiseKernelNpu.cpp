@@ -29,34 +29,17 @@ void _rrelu_with_noise_train(
     at::Scalar lower_,
     at::Scalar upper_,
     c10::optional<at::Generator> generator) {
-  float lower = lower_.toFloat();
-  float upper = upper_.toFloat();
-  auto shape = output.sizes();
-  auto noise_shape = noise.sizes();
-  at::Tensor tmp_tensor = output.contiguous();
-  at::Tensor output_data = tmp_tensor.reshape({output.numel()});
-  at::Tensor input_data = input.reshape({input.numel()});
-  at::Tensor tmp_noise = noise;
-  tmp_noise = tmp_noise.reshape({tmp_noise.numel()});
-  auto gen = at::get_generator_or_default<at::CPUGeneratorImpl>(generator, at::detail::getDefaultCPUGenerator());
-
-  for (int64_t i = 0; i < input.numel(); i++) {
-    if (input_data[i].item().toFloat() <= 0) {
-      at::uniform_real_distribution<double> uniform(lower, upper);
-      const float r = uniform(gen);
-      output_data[i] = input_data[i] * r;
-      tmp_noise[i] = r;
-    } else {
-      tmp_noise[i] = 1;
-      output_data[i] = input_data[i];
-    }
-  }
-  if (!output.is_contiguous()) {
-    output.copy_(tmp_tensor);
-  }
-  tmp_noise.reshape(noise_shape);
-  noise.copy_(tmp_noise);
-  output.reshape(shape);
+  // use vector calculation instead of point-loop calculation
+  double lower = lower_.toDouble();
+  double upper = upper_.toDouble();
+  at::Tensor uniform_tensor = at::empty(input.sizes(), input.options()).uniform_(lower, upper, generator);
+  at::Tensor mask_tensor = input.le(0);
+  at::Tensor one_tensor = at::empty(input.sizes(), input.options()).fill_(1).to(noise.dtype());
+  at::Tensor select_tensor = at::_s_where(mask_tensor, uniform_tensor, one_tensor);
+  noise.copy_(select_tensor);
+  at::Tensor result = output.contiguous();
+  result = input.mul(noise);
+  output.copy_(result);
 }
 
 at::Tensor& rrelu_with_noise_out_nocheck(
