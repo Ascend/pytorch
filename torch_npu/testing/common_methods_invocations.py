@@ -1156,6 +1156,13 @@ op_db: List[OpInfo] = [
         supports_out=False,
     ),
     OpInfo(
+        "nn.functional.gaussian_nll_loss",
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
+        supports_out=False,
+        sample_inputs_func=common_methods_invocations.sample_inputs_gaussian_nll_loss,
+    ),
+    OpInfo(
         'nonzero',
         dtypes=_dispatch_dtypes((torch.int32, torch.int64, torch.float16, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.int64, torch.float16, torch.float32)),
