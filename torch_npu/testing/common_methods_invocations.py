@@ -1672,7 +1672,14 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
             dtypes=[torch.float32]),
         ),
-    ),  
+    ),
+    OpInfo(
+        'trapezoid',
+        dtypes=_dispatch_dtypes((torch.int64, torch.int32, torch.int16, torch.float32)),
+        dtypesIfNPU=_dispatch_dtypes((torch.int64, torch.int32, torch.int16, torch.float32)),
+        supports_out=False,
+        sample_inputs_func=common_methods_invocations.sample_trapezoid,
+    ),
     OpInfo(
         'tril',
         dtypes=_dispatch_dtypes((torch.float16, torch.float32, )),
