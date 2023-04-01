@@ -401,7 +401,7 @@ namespace at_npu
     class OpCommandImpls
     {
     public:
-      static OpCommandImpls *GetInstance();
+      static OpCommandImpls *GetInstanceByTid(std::thread::id tid);
       void Push(OpCommandImpl *&ptr);
       void Pop();
 
@@ -410,6 +410,8 @@ namespace at_npu
       c10::SmallVector<OpCommandImpl, N> objs;
     }; // class OpCommandImpls
 
+    static std::unordered_map<std::thread::id, OpCommandImpls> opcommand_impls_map;
+    static std::mutex map_mutex;
   } // namespace native
 } // namespace at_npu
 

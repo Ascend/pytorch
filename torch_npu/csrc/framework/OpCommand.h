@@ -53,7 +53,7 @@ class OpCommand {
 public:
   OpCommand() {
     IF_GRAPH_MODE_THEN_RUN(return;)
-    aclCmds = OpCommandImpls::GetInstance();
+    aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
     aclCmds->Push(aclCmd);
   }
   ~OpCommand() {}
