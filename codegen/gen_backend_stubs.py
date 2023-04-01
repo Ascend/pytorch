@@ -26,7 +26,7 @@ from codegen.gen import FileManager, get_grouped_native_functions, error_check_n
 from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
 from codegen.selective_build.selector import SelectiveBuilder
-from codegen.utils import Target, concat_map, context
+from torchgen.utils import Target, concatMap, context
 from codegen.context import native_function_manager
 import codegen.dest as dest
 import codegen.dest.utils as utils
@@ -152,7 +152,7 @@ def parse_backend_yaml(
 
     native_functions_map: Dict[OperatorName, NativeFunction] = {
         f.func.name: f
-        for f in concat_map(lambda f: [f] if isinstance(f, NativeFunction)
+        for f in concatMap(lambda f: [f] if isinstance(f, NativeFunction)
                             else list(f.functions()), grouped_native_functions)
     }
 
@@ -342,13 +342,13 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
             'class_name': class_name,
             # Convert to a set first to remove duplicate kernel names.
             # Backends are allowed to repeat kernel names; only generate the declaration once!
-            'dispatch_declarations': list(set(concat_map(
+            'dispatch_declarations': list(set(concatMap(
                 lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
                 grouped_native_functions
-            ))) + list(set(concat_map(
+            ))) + list(set(concatMap(
                 lambda f: dest.compute_native_function_declaration(f, backend_indices[autograd_dispatch_key]),
                 grouped_native_functions
-            ))) if autograd_dispatch_key else list(set(concat_map(
+            ))) if autograd_dispatch_key else list(set(concatMap(
                 lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
                 grouped_native_functions
             ))),
@@ -365,7 +365,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                 'DispatchKey': dispatch_key.name.replace("NPU", true_backend),
                 'dispatch_namespace': dispatch_key.lower(),
                 'dispatch_helpers': dest.gen_registration_helpers(backend_indices[dispatch_key]),
-                'dispatch_namespaced_definitions': list(concat_map(
+                'dispatch_namespaced_definitions': list(concatMap(
                     dest.RegisterDispatchKey(
                         backend_indices[dispatch_key],
                         Target.NAMESPACED_DEFINITION,
@@ -375,7 +375,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                         class_method_name=f'{backend_dispatch_key}NativeFunctions'),
                     grouped_native_functions
                 )),
-                'dispatch_anonymous_definitions': list(concat_map(
+                'dispatch_anonymous_definitions': list(concatMap(
                     dest.RegisterDispatchKey(
                         backend_indices[dispatch_key],
                         Target.ANONYMOUS_DEFINITION,
@@ -385,7 +385,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                         class_method_name=f'{backend_dispatch_key}NativeFunctions'),
                     grouped_native_functions
                 )),
-                'dispatch_registrations': list(concat_map(
+                'dispatch_registrations': list(concatMap(
                     dest.RegisterDispatchKey(
                         backend_indices[dispatch_key],
                         Target.REGISTRATION,
@@ -408,7 +408,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
             'DispatchKey': dispatch_key,
             'dispatch_namespace': dispatch_key.lower(),
             'dispatch_helpers': dest.gen_registration_helpers(backend_indices[DispatchKey.CPU]),
-            'dispatch_namespaced_definitions': list(concat_map(
+            'dispatch_namespaced_definitions': list(concatMap(
                 dest.RegisterDispatchKeyCPU(
                     backend_indices[DispatchKey.CPU],
                     Target.NAMESPACED_DEFINITION,
@@ -418,7 +418,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                     class_method_name=f'NPUNativeFunctions'),
                 grouped_native_functions
             )),
-            'dispatch_anonymous_definitions': list(concat_map(
+            'dispatch_anonymous_definitions': list(concatMap(
                 dest.RegisterDispatchKeyCPU(
                     backend_indices[DispatchKey.CPU],
                     Target.ANONYMOUS_DEFINITION,
@@ -428,7 +428,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                     class_method_name=f'NPUNativeFunctions'),
                 grouped_native_functions
             )),
-            'dispatch_registrations': list(concat_map(
+            'dispatch_registrations': list(concatMap(
                 dest.RegisterDispatchKeyCPU(
                     backend_indices[DispatchKey.CPU],
                     Target.REGISTRATION,

@@ -27,7 +27,7 @@ from collections import defaultdict, namedtuple
 from typing import Dict, Optional, List, Tuple, Set, Sequence, Callable
 
 import yaml
-from codegen.code_template import CodeTemplate
+from torchgen.code_template import CodeTemplate
 from codegen.api import cpp
 from codegen.api.python import (PythonSignature,
                                 PythonSignatureGroup,
@@ -46,7 +46,7 @@ from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
                            Type, Variant, BackendIndex,
                            BackendMetadata, DispatchKey, OperatorName)
-from codegen.utils import context
+from torchgen.utils import context
 
 
 # These functions require manual Python bindings or are not exposed to Python

@@ -23,7 +23,7 @@ from typing import List, Optional, Union
 from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
-from codegen.utils import Target, map_maybe
+from torchgen.utils import Target, mapMaybe
 from codegen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
                            TensorOptionsArguments,
@@ -203,7 +203,7 @@ class RegisterDispatchKey:
             if g.structured:
                 return self.gen_structured(g)
             else:
-                return list(map_maybe(lambda f: self.gen_unstructured(f, g), g.functions()))
+                return list(mapMaybe(lambda f: self.gen_unstructured(f, g), g.functions()))
         elif isinstance(f, NativeFunction):
             r = self.gen_unstructured(f)
             return [] if r is None else [r]
@@ -262,7 +262,7 @@ class RegisterDispatchKey:
                 "Do not explicitly specify CompositeExplicitAutograd dispatch key on structured " \
                 "functions, they will be automatically generated for you"
         elif metadata is None or not metadata.structured:
-            return list(map_maybe(lambda f: self.gen_unstructured(f, g), g.functions()))
+            return list(mapMaybe(lambda f: self.gen_unstructured(f, g), g.functions()))
 
         structured_gen = StructuredRegisterDispatchKey(
             self.backend_index,
@@ -273,7 +273,7 @@ class RegisterDispatchKey:
             self.class_method_name,
             g
         )
-        return list(map_maybe(structured_gen.gen_one, g.functions()))
+        return list(mapMaybe(structured_gen.gen_one, g.functions()))
 
     def gen_unstructured(self, f: NativeFunction, g: Optional[NativeFunctionsGroup] = None) -> Optional[str]:
         with native_function_manager(f):

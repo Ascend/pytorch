@@ -23,7 +23,7 @@ from codegen.model import (Argument, FunctionSchema, Return,
 
 from codegen.api.types import ArgName, Binding, NamedCType, CType
 from codegen.api import cpp
-from codegen.utils import concat_map
+from torchgen.utils import concatMap
 
 
 # This file describes the translation of JIT schema to the dispatcher
@@ -72,7 +72,7 @@ def jit_arguments(func: FunctionSchema) -> List[Argument]:
             return [a.dtype, a.layout, a.device, a.pin_memory]
         else:
             assert_never(a)
-    return list(concat_map(to_argument, itertools.chain(
+    return list(concatMap(to_argument, itertools.chain(
         func.arguments.positional,
         func.arguments.kwarg_only,
         func.arguments.out)))

@@ -17,7 +17,7 @@
 from typing import List, Union, Optional
 
 from codegen.context import with_native_function_and_index
-from codegen.utils import map_maybe
+from torchgen.utils import mapMaybe
 from codegen.model import NativeFunction, NativeFunctionsGroup, BackendIndex
 from codegen.api.signature import kernel_signature
 import codegen.api.meta as meta
@@ -65,7 +65,7 @@ def compute_native_function_declaration(
             else:
                 return gen_structured(g, backend_index)
         else:
-            return list(map_maybe(lambda f: gen_unstructured(f, backend_index), g.functions()))
+            return list(mapMaybe(lambda f: gen_unstructured(f, backend_index), g.functions()))
     else:
         x = gen_unstructured(g, backend_index)
         return [] if x is None else [x]
