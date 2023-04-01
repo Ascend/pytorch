@@ -1654,7 +1654,15 @@ op_db: List[OpInfo] = [
         aliases=('fix', ),
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-    ), 
+    ),
+    OpInfo(
+        'vsplit',
+        dtypes=_dispatch_dtypes((torch.int16, torch.int32, torch.float64, torch.float32)),
+        dtypesIfNPU=_dispatch_dtypes((torch.int16, torch.int32, torch.float64, torch.float32)),
+        supports_out=False,
+        sample_inputs_func=common_methods_invocations.sample_inputs_vsplit,
+        skips=(DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',))
+    ),
     OpInfo(
         'where',
         dtypes=_dispatch_dtypes((torch.float32, )),
