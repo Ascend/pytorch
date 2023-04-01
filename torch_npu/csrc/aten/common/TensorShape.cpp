@@ -20,7 +20,7 @@
 #include <ATen/NamedTensorUtils.h>
 #include <ATen/NativeFunctions.h>
 #include <torch/library.h>
-#include <ATen/SparseTensorUtils.h>
+#include <ATen/native/SparseTensorUtils.h>
 #include <ATen/WrapDimUtils.h>
 #include <ATen/native/Copy.h>
 #include <ATen/native/Resize.h>

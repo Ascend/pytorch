@@ -45,7 +45,7 @@ public:
                                        std::vector<ge::Operator>& const_input_ops);
 
   static ge::Tensor MakeGeTensor(const ge::TensorDesc& tensor_desc,
-                                 void* device_ptr, const size_t nbytes);
+                                 const void* device_ptr, const size_t nbytes);
 private:
   template <typename T>
   static T TryToGetAnyValue(const Any& any_val) {
