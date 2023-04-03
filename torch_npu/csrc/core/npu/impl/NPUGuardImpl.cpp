@@ -6,7 +6,7 @@ namespace impl {
 
 constexpr c10::DeviceType NPUGuardImpl::static_type;
 
-C10_REGISTER_GUARD_IMPL(XLA, NPUGuardImpl);
+C10_REGISTER_GUARD_IMPL(PrivateUse1, NPUGuardImpl);
 
 } // namespace impl
 

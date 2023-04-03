@@ -25,15 +25,15 @@
 
 namespace at_npu {
 namespace key {
-static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::XLA;
-static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::XLA;
-static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradXLA;
-static constexpr c10::Backend NativeBackend = c10::Backend::XLA;
+static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::PrivateUse1;
+static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::PrivateUse1;
+static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradPrivateUse1;
+static constexpr c10::Backend NativeBackend = c10::Backend::PrivateUse1;
 static const std::string npu_device_str = "npu";
-static const std::string default_device_str = "xla";
+static const std::string default_device_str = "PrivateUse1";
 
 static bool isDeviceTensor(const at::Tensor &tensor) {
-  return tensor.is_xla();
+  return tensor.device().type() == NativeDeviceType;
 }
 
 } // namespace key

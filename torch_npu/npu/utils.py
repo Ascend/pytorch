@@ -140,16 +140,9 @@ def device_count():
 
 
 def set_device(device):
-    if isinstance(device, str) and 'npu' in device:
-        device = device.replace('npu', torch_npu.npu.native_device)
-    if isinstance(device, (torch_npu._C.device, torch._C.device)):
-        torch_npu._C._npu_setDevice(device.index)
-    elif isinstance(device, int):
-        torch_npu._C._npu_setDevice(device)
-    elif torch.device(str(device)):
-        torch_npu._C._npu_setDevice(torch.device(str(device)).index)
-    else :
-        raise AssertionError("input can not convert to torch.device")
+    device_id = _get_device_index(device, optional=True)
+    if device_id >=0:
+        torch_npu._C._npu_setDevice(device_id)
 
 
 def current_device():
@@ -186,16 +179,13 @@ def _get_device_index(device, optional=False):
     device if :attr:`optional` is ``True``.
     """
     if isinstance(device, (str, bytes)):
-        if "npu" not in device:
-            return int(device)
-        else:
             device = torch.device(device)
     device_idx = None
     if isinstance(device, (torch.device, torch._C.device)):
         # _get_device_index could be called from usrs(device="npu") or inner funcs(device="xla").
         # APIs like torch_npu.npu.synchronize would call torch.device, 
         # which has already changed the key from npu to xla.
-        if device.type not in ['npu', torch_npu.npu.native_device]:
+        if device.type != 'npu':
             raise ValueError('Expected a npu device, but got: {}'.format(device))
         device_idx = device.index
     if isinstance(device, int):

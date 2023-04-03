@@ -82,14 +82,6 @@ static PyObject * Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwarg
   if (tensor_type.is_npu && c10_npu::device_count() == 0) {
     throw unavailable_type(tensor_type);
   }
-  if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
-    PyObject* obj = PyDict_GetItem(kwargs, THPUtils_internString("device"));
-    auto device = at_npu::key::parse_npu_device(obj);
-    torch_npu::utils::maybe_initialize_npu(device);
-    PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
-  } else {
-    torch_npu::utils::maybe_initialize_npu(c10::Device(at_npu::key::NativeDeviceType));
-  }
   return THPVariable_Wrap(torch::utils::legacy_tensor_ctor(tensor_type.get_dispatch_key(),
                                                            tensor_type.get_scalar_type(),
                                                            args,

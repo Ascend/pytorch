@@ -163,7 +163,7 @@ def parse_backend_yaml(
     valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd']
 
     yaml_backend = yaml_values.pop('backend', None)
-    true_backend = 'XLA' if yaml_backend == 'NPU' else yaml_backend
+    true_backend = 'PrivateUse1' if yaml_backend == 'NPU' else yaml_backend
     assert true_backend is not None, 'You must provide a value for "backend"'
     backend = "NPU"
 

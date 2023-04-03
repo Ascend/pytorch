@@ -18,7 +18,6 @@ import warnings
 import torch
 
 import torch_npu
-from torch_npu.utils.device_guard import torch_device_guard
 from .storage import _reduce_ex
 
 warnings.filterwarnings(action="once")
@@ -61,7 +60,6 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
     return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
 
-@torch_device_guard
 def _npu(self, *args, **kwargs):
     return torch_npu._C.npu(self, *args, **kwargs)
 
@@ -69,19 +67,6 @@ def _npu(self, *args, **kwargs):
 @property
 def _is_npu(self):
     return torch_npu._C.is_npu(self)
-
-
-def _type(self, *args, **kwargs):
-    return torch_npu._C.type(self, *args, **kwargs)
-
-
-@torch_device_guard
-def _to(self, *args, **kwargs):
-    return torch_npu._C.to(self, *args, **kwargs)
-
-
-def _record_stream(self, *args, **kwargs):
-    return torch_npu._C.record_stream(self, *args, **kwargs)
 
 
 class NpuStorage(object):
@@ -102,59 +87,6 @@ def _storage(self):
     return storage_impl(self)
 
 
-@torch_device_guard
-def _new_empty(self, *args, **kwargs):
-    if args and isinstance(args[0], int):
-        list_args = list(args)
-        sizes = []
-        for item in list_args:
-            if not isinstance(item, int):
-                break
-            sizes.append(item)
-        args = tuple([tuple(sizes)] + list_args[len(sizes):])
-    return torch_npu._C.new_empty(self, *args, **kwargs)
-
-
-@torch_device_guard
-def _new_empty_strided(self, *args, **kwargs):
-    return torch_npu._C.new_empty_strided(self, *args, **kwargs)
-
-
-@torch_device_guard
-def _new_full(self, *args, **kwargs):
-    return torch_npu._C.new_full(self, *args, **kwargs)
-
-
-@torch_device_guard
-def _new_ones(self, *args, **kwargs):
-    return torch._C._TensorBase.new_ones(self, *args, **kwargs)
-
-
-@torch_device_guard
-def _new_tensor(self, *args, **kwargs):
-    return torch._C._TensorBase.new_tensor(self, *args, **kwargs)
-
-
-@torch_device_guard
-def _new_zeros(self, *args, **kwargs):
-    if args and isinstance(args[0], int):
-        list_args = list(args)
-        sizes = []
-        for item in list_args:
-            if not isinstance(item, int):
-                break
-            sizes.append(item)
-        args = tuple([tuple(sizes)] + list_args[len(sizes):])
-    return torch_npu._C.new_zeros(self, *args, **kwargs)
-
-
-@property
-def _device(self):
-    if self.get_device() == -1:
-        return torch_npu._C.device("cpu")
-    return torch_npu._C.device(type="npu", index=self.get_device())
-
-
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
     torch.Tensor.npu_format_cast = npu_format_cast
@@ -164,16 +96,6 @@ def add_tensor_methods():
     torch.Tensor.one_ = one_
     torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
     torch.Tensor.npu = _npu
-    torch.Tensor.type = _type
-    torch.Tensor.to = _to
-    torch.Tensor.device = _device
     torch.Tensor.is_npu = _is_npu
-    torch.Tensor.record_stream = _record_stream
     torch.Tensor.storage = _storage
-    torch.Tensor.new_empty = _new_empty
-    torch.Tensor.new_empty_strided = _new_empty_strided
-    torch.Tensor.new_full = _new_full
-    torch.Tensor.new_ones = _new_ones
-    torch.Tensor.new_tensor = _new_tensor
-    torch.Tensor.new_zeros = _new_zeros
     torch.Tensor.__reduce_ex__ = _reduce_ex

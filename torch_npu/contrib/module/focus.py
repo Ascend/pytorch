@@ -37,7 +37,7 @@ class Conv(nn.Module):
 def fast_slice(x):
     _, _, w, _ = x.shape
     device = x.device
-    if device.type == torch_npu.npu.npu_device:
+    if device.type == "npu":
         w_zerostart = torch.linspace(0, w - 1 - 1, w // 2, dtype=torch.float32, device=device).int()
         w_onestart = torch.linspace(1, w - 1, w // 2, dtype=torch.float32, device=device).int()
     else:

@@ -46,5 +46,8 @@ namespace {
 // to override it themselves!
 
 // (Ascend) TORCH_LIBRARY_IMPL
+TORCH_LIBRARY_IMPL(_, AutogradPrivateUse1, m){
+  m.fallback(torch::CppFunction::makeFallthrough());
+}
 
 }
