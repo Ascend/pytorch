@@ -75,7 +75,8 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
     static bool is_support_nd_out = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2) &&
-        mm_bmm_nd && ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(self, mat2)) || isAligin())) {
+        mm_bmm_nd && ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(self, mat2)) ||
+        (!is_support_nd_out && isAligin()))) {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
     } else {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ, true);

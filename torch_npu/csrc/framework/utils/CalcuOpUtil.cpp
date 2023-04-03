@@ -390,8 +390,11 @@ bool CalcuOpUtil::IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat
   // get inner axis of input after transpose.
   auto self_inner_axis = IsTransposeLastTwoDims(self) ? self.size(self.dim() - 2) : self.size(self.dim() - 1);
   auto mat2_inner_axis = IsTransposeLastTwoDims(mat2) ? mat2.size(mat2.dim() - 2) : mat2.size(mat2.dim() - 1);
-  return (self_inner_axis >= kInnerAxisMinLimit && self_inner_axis <= kInnerAxisMaxLimit &&
-          mat2_inner_axis >= kInnerAxisMinLimit && mat2_inner_axis <= kInnerAxisMaxLimit);
+  // self inner_axis and mat2_inner_axis both in [128, 65535] or in (0, 128) and is multi of 16
+  return ((self_inner_axis >= kInnerAxisMinLimit && self_inner_axis <= kInnerAxisMaxLimit) ||
+          (self_inner_axis < kInnerAxisMinLimit && !(self_inner_axis & 0x0000000F))) &&
+         ((mat2_inner_axis >= kInnerAxisMinLimit && mat2_inner_axis <= kInnerAxisMaxLimit) ||
+          (mat2_inner_axis < kInnerAxisMinLimit && !(mat2_inner_axis & 0x0000000F)));
 }
 
 bool CalcuOpUtil::IsScalarWrappedToTensor(const at::Tensor &tensor) {
