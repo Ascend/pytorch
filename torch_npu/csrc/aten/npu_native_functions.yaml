@@ -901,20 +901,182 @@ autograd:
   - selu_
 
 tocpu:
+  - _cholesky_helper
+  - _cholesky_solve_helper
+  - _compute_linear_combination
+  - _compute_linear_combination.out
+  - _dirichlet_grad
+  - _embedding_bag_dense_backward
+  - _embedding_bag_per_sample_weights_backward
+  - _fft_r2c
+  - _fft_r2c.out
+  - _fft_c2r
+  - _fft_c2r.out
+  - _fft_c2c
+  - _fft_c2c.out
+  - _foreach_add.Scalar
+  - _foreach_add_.Scalar
+  - _foreach_sub.Scalar
+  - _foreach_sub_.Scalar
+  - _foreach_mul.Scalar
+  - _foreach_mul_.Scalar
+  - _foreach_div.Scalar
+  - _foreach_div_.Scalar
+  - _foreach_add.List
+  - _foreach_add_.List
+  - _foreach_sub.List
+  - _foreach_sub_.List
+  - _foreach_mul.List
+  - _foreach_mul_.List
+  - _foreach_div.List
+  - _foreach_div_.List
+  - _foreach_add.ScalarList
+  - _foreach_add_.ScalarList
+  - _foreach_sub.ScalarList
+  - _foreach_sub_.ScalarList
+  - _foreach_div.ScalarList
+  - _foreach_div_.ScalarList
+  - _foreach_mul.ScalarList
+  - _foreach_mul_.ScalarList
+  - _foreach_exp
+  - _foreach_zero_
+  - _foreach_exp_
+  - _foreach_sqrt
+  - _foreach_sqrt_
+  - _foreach_abs
+  - _foreach_abs_
+  - _foreach_acos
+  - _foreach_acos_
+  - _foreach_asin
+  - _foreach_asin_
+  - _foreach_atan
+  - _foreach_atan_
+  - _foreach_ceil
+  - _foreach_ceil_
+  - _foreach_cos
+  - _foreach_cos_
+  - _foreach_cosh
+  - _foreach_cosh_
+  - _foreach_erf
+  - _foreach_erf_
+  - _foreach_erfc
+  - _foreach_erfc_
+  - _foreach_expm1
+  - _foreach_expm1_
+  - _foreach_floor
+  - _foreach_floor_
+  - _foreach_log
+  - _foreach_log_
+  - _foreach_log10
+  - _foreach_log10_
+  - _foreach_log1p
+  - _foreach_log1p_
+  - _foreach_log2
+  - _foreach_log2_
+  - _foreach_neg
+  - _foreach_neg_
+  - _foreach_tan
+  - _foreach_tan_
+  - _foreach_tanh
+  - _foreach_tanh_
+  - _foreach_sin
+  - _foreach_sin_
+  - _foreach_sinh
+  - _foreach_sinh_
+  - _foreach_round
+  - _foreach_round_
+  - _foreach_lgamma
+  - _foreach_lgamma_
+  - _foreach_frac
+  - _foreach_frac_
+  - _foreach_reciprocal 
+  - _foreach_reciprocal_
+  - _foreach_sigmoid
+  - _foreach_sigmoid_
+  - _foreach_trunc
+  - _foreach_trunc_
+  - _foreach_addcdiv_.Scalar
+  - _foreach_addcmul_.Scalar
+  - _foreach_addcdiv_.ScalarList
+  - _foreach_addcmul_.ScalarList
+  - _foreach_addcdiv.Scalar
+  - _foreach_addcmul.Scalar
+  - _foreach_addcdiv.ScalarList
+  - _foreach_addcmul.ScalarList
+  - _foreach_maximum.List
+  - _foreach_minimum.List
+  - _linalg_inv_out_helper_
+  - _linalg_qr_helper
+  - _logcumsumexp
+  - _logcumsumexp.out
+  - _pdist_backward
+  - _sample_dirichlet
+  - _standard_gamma_grad
+  - _standard_gamma
+  - _test_optional_intlist
+  - _test_optional_filled_intlist
+  - _test_optional_floatlist
+  - _solve_helper
+  - _unique
   - angle
+  - angle.out
+  - binomial
+  - bucketize.Tensor
+  - bucketize.Tensor_out
+  - bucketize.Scalar
+  - cauchy_
+  - cholesky_inverse
+  - cholesky_inverse.out
+  - complex.out
   - count_nonzero.dim_IntList
+  - exponential_
+  - geometric_
+  - is_set_to
   - linalg_vector_norm
   - linalg_vector_norm.out
+  - linalg_slogdet
+  - linalg_slogdet.out
+  - logical_xor.out
+  - log_normal_
+  - logit
+  - logit_
+  - logit.out
+  - multilabel_margin_loss_backward.grad_input
+  - multilabel_margin_loss_backward
+  - multi_margin_loss.out
+  - multi_margin_loss
+  - multi_margin_loss_backward.grad_input
+  - multi_margin_loss_backward
   - mode
+  - nanmedian
   - nanmedian.dim_values
   - nansum
+  - nansum.dim_IntList
+  - nansum.IntList_out
   - native_dropout
   - native_dropout_backward
+  - native_group_norm_backward
+  - narrow_copy.out
   - poisson
+  - polar.out
+  - replication_pad3d_backward.grad_input
+  - replication_pad3d_backward
+  - repeat_interleave.Tensor
+  - slow_conv_dilated3d
+  - slow_conv_transpose3d.out
+  - slow_conv_transpose3d
+  - sspaddmm.out
+  - tensordot.out
+  - trace
+  - to_sparse.sparse_dim
+  - to_sparse
+  - to_mkldnn
+  - unfold_backward
+  - unique_dim
+  - unique_dim_consecutive
   - vdot
   - view_as_complex
   - view_as_real
-  - _fft_r2c
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
