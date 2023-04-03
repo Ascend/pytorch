@@ -25,7 +25,7 @@
 **对应分支代码包下载<a name="zh-cn_topic_0000001435374593_section5248152713711"></a>**
 
 >![](D:\project\pzr_pytorch\pytorch\figures\icon-note.gif) **说明：** 
->PyTorch配套的Python版本是：Python3.7.x（3.7.5\~3.7.11）、Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2）。
+>PyTorch配套的Python版本是：Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2)。
 
 安装PyTorch时，请参见[表1](#zh-cn_topic_0000001435374593_table723553621419)下载对应分支代码包。
 
@@ -178,23 +178,10 @@ pip3 install wheel
 
 **安装PyTorch<a name="section1762728142316"></a>**
 
-推荐用户使用编好的二进制whl包安装PyTorch 1.13.0。用户也可选择编译安装方式安装PyTorch 1.13.0。请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+推荐用户使用编好的二进制whl包安装PyTorch。用户也可选择编译安装方式安装PyTorch。请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
 
 1. 安装官方torch包。
-
-   - x86\_64
-
-     ```
-     pip3 install torch==1.13.0+cpu  
-     ```
-     
-     若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
-     
-     PyTorch 1.13.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.13.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
-     
-   - aarch64
-
-     暂无可用ARM架构下预编译的PyTorch安装包，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+   官方torch的master分支，并无每日构建包，请下载官方源码并通过编译安装，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
 
 2. 安装PyTorch插件torch\_npu。
 
@@ -203,8 +190,8 @@ pip3 install wheel
 3. 安装对应框架版本的torchvision。
 
    ```
-   #PyTorch 1.13.0需安装0.14.0版本
-   pip3 install torchvision==0.14.0  
+   # PyTorch master需安装最新的torchvision，当前最新的为0.15.1
+   pip3 install torchvision==0.15.1 --no-deps
    ```
 
 **安装APEX混合精度模块<a name="section154215015416"></a>**
@@ -266,49 +253,38 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
   ```
   yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git 
-  yum install -y gcc==7.5.0 cmake==3.13.0 #gcc7.5.0版本及以上，cmake3.13.0版本及以上。
+  yum install -y gcc==7.5.0 cmake==3.18.0 # gcc7.5.0版本及以上，cmake3.18.0版本及以上。
   ```
 
 - Ubuntu
 
   ```
   apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git 
-  apt-get install -y gcc==7.5.0 cmake==3.13.0 #gcc7.5.0版本及以上，cmake3.13.0版本及以上。
+  apt-get install -y gcc==7.5.0 cmake==3.18.0 # gcc7.5.0版本及以上，cmake3.18.0版本及以上。
   ```
 
-**安装1.13.0<a name="section462918122313"></a>**
+**安装<a name="section462918122313"></a>**
 
-以下操作步骤以安装PyTorch 1.13.0版本为例。
+以下操作步骤以安装PyTorch master分支为例。
 
 1. 安装官方torch包。
 
-   - x86\_64
-
-     ```
-     pip3 install torch==1.13.0+cpu  
-     ```
-
-     若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
-
-     PyTorch 1.13.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.13.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
-
-   - 在aarch64架构下，用户可以选择编译安装官方torch包。
-
-     1. 下载PyTorch v1.13.0源码包。
+   - 请通过源码进行编译安装
+     1. 下载PyTorch master源码包。
 
         ```
-     	git clone -b v1.13.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.13.0
+     	git clone https://github.com/pytorch/pytorch.git --depth=1 pytorch_master
         ```
      
      2. 进入源码包获取被动依赖代码。
 
         ```
-     	cd pytorch_v1.13.0
+     	cd pytorch_master
         git submodule sync
         git submodule update --init --recursive
         ```
      
-     3. 配置环境变量。
+     3. 在aarch64架构下需要配置环境变量。
 
         ```
      	export USE_XNNPACK=0
@@ -323,28 +299,28 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 **安装torch_npu**
 
 
-1. 编译生成PyTorch插件的二进制安装包（以master分支为例，当前对应版本1.13.0）。
+1. 编译生成PyTorch插件的二进制安装包。
 
    ```
    # 下载对应PyTorch版本分支代码，进入插件根目录
    git clone https://gitee.com/ascend/pytorch.git 
    cd pytorch    
-   # 指定Python版本编包方式，以Python3.7为例，其他Python版本请使用 --python=3.8或--python=3.9
-   bash ci/build.sh --python=3.7
+   # 指定Python版本编包方式，以Python3.8为例，其他Python版本请使用 --python=3.9
+   bash ci/build.sh --python=3.8
    ```
 
 2. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加**--user**。
 
    ```
-   pip3 install --upgrade dist/torch_npu-1.13.0-cp37-cp37m-linux_aarch64.whl
+   pip3 install --upgrade dist/torch_npu-2.1.0-cp38-cp38m-linux_aarch64.whl
    # 若用户在x86架构下安装插件，请替换为对应的whl包。
    ```
 
 3. 安装对应框架版本的torchvision。
 
    ```
-   #PyTorch 1.13.0需安装0.14.0版本
-   pip3 install torchvision==0.14.0  
+   # PyTorch master分支需安装最新的torchvision，当前最新的为0.15.1
+   pip3 install torchvision==0.15.1 --no-deps
    ```
 
 4. 配置环境变量，验证是否安装成功。
@@ -412,14 +388,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 方法一：下载安装脚本安装cmake。（参考cmake官网）
 
-​		X86_64环境脚本安装：cmake-3.13.0-Linux-x86_64.sh
+​		X86_64环境脚本安装：cmake-3.18.0-Linux-x86_64.sh
 
-​		aarch64环境脚本安装：cmake-3.13.0-Linux-aarch64.sh
+​		aarch64环境脚本安装：cmake-3.18.0-Linux-aarch64.sh
 
 1. 执行命令。
 
    ```
-   ./cmake-3.13.0-Linux-{arch}.sh #{arch}为架构名称
+   ./cmake-3.18.0-Linux-{arch}.sh # {arch}为架构名称
    ```
 
 2. 设置软连接。
@@ -434,7 +410,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    cmake --version
    ```
 
-   如显示“cmake version 3.13.0”则表示安装成功。
+   如显示“cmake version 3.18.0”则表示安装成功。
 
 
 方法二：使用源码编译安装。
@@ -442,14 +418,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 1. 获取cmake软件包。
 
    ```
-   wget https://cmake.org/files/v3.13/cmake-3.13.0.tar.gz --no-check-certificate
+   wget https://cmake.org/files/v3.18/cmake-3.18.0.tar.gz --no-check-certificate
    ```
 
 2. 解压并进入软件包目录。
 
    ```
-   tar -xf cmake-3.13.0.tar.gz
-   cd cmake-3.13.0/
+   tar -xf cmake-3.18.0.tar.gz
+   cd cmake-3.18.0/
    ```
 
 3. 执行配置、编译和安装命令。
@@ -471,7 +447,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    cmake --version
    ```
 
-   如显示“cmake version 3.13.0”则表示安装成功。
+   如显示“cmake version 3.18.0”则表示安装成功。
 
 ## 命令行安装gcc依赖时提示找不到包、编译时gcc报错问题
 
