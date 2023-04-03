@@ -34,7 +34,6 @@ except ImportError as e:
         traceback.print_exc()
 import torch_npu.npu.amp
 import torch_npu.distributed
-import torch_npu.optim
 import torch_npu._C
 
 import torch_npu.npu.npu_print as _npu_print
@@ -72,7 +71,6 @@ all_monkey_patches = [
     ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
-    ["optim", torch_npu.optim]
 ]
 
 all_monkey_patches += serialization_patches

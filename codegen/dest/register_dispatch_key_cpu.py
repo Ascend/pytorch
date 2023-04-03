@@ -26,14 +26,14 @@ from torchgen.utils import Target, mapMaybe
 from codegen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
                            TensorOptionsArguments,FunctionSchema,
-                           Argument, SelfArgument, TensorOptionsArguments, UseC10Dispatcher,
+                           Argument, SelfArgument, TensorOptionsArguments,
                            DeviceCheckType, Argument, assert_never,
                            is_cuda_dispatch_key, BackendIndex)
 from codegen.api.types import (BaseCType, Binding, ConstRefCType,
                                Expr, MutRefCType, tensorT, NamedCType)
 from codegen.api.signature import (CppSignature, CppSignatureGroup, kernel_signature,
                                    NativeSignature, DispatcherSignature)
-import codegen.api.meta as meta
+import torchgen.api.meta as meta
 import codegen.api.cpp as cpp
 import codegen.api.structured as structured
 from codegen.api.translate import translate

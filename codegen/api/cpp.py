@@ -25,7 +25,7 @@ from codegen.api.types import (ArgName, BaseCType, Binding, ConstRefCType, Named
                                tensorListT, dimnameListT, tensorT, voidT, iTensorListRefT,
                                BaseTypeToCppMapping, intArrayRefT, tensorOptionsT, optionalIntArrayRefT,
                                longT, SymIntT, symIntArrayRefT, optionalSymIntArrayRefT)
-from codegen import local
+from torchgen import local
 
 # This file describes the translation of JIT schema to the public C++
 # API, which is what people use when they call functions like at::add.

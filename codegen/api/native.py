@@ -24,7 +24,7 @@ from codegen.api.types import (ArgName, BaseCType, Binding,
                                OptionalCType, tensorT, scalarT, layoutT,
                                deviceT, boolT, scalarTypeT)
 from codegen.api import cpp
-from codegen import local
+from torchgen import local
 from codegen.model import assert_never
 
 # This file describes the translation of JIT schema to the native functions API.
