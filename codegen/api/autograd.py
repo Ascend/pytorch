@@ -21,7 +21,7 @@ from typing import Optional, Sequence, Set, List, Tuple, Match
 from codegen.api import cpp
 from codegen.api.types import Binding, NamedCType
 from codegen.model import NativeFunction, Type, SchemaKind
-from codegen.utils import IDENT_REGEX
+from torchgen.utils import IDENT_REGEX
 
 # Represents a saved attribute involved in backward calculation.
 # Note that it can be a derived property of an input argument, e.g.:

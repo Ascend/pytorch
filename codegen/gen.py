@@ -22,11 +22,11 @@ from typing import (List, Dict, Optional, Set, Callable, Any,
                     Union, Sequence, TypeVar, Iterable)
 from collections import defaultdict
 
-from codegen.code_template import CodeTemplate
+from torchgen.code_template import CodeTemplate
 from codegen.model import (FunctionSchema, NativeFunction,
                            NativeFunctionsGroup, OperatorName,
                            SchemaKind, assert_never)
-from codegen.utils import concat_map
+from torchgen.utils import concatMap
 
 T = TypeVar('T')
 
@@ -236,4 +236,4 @@ def get_grouped_native_functions(
         else:
             return [r]
 
-    return list(concat_map(flatten_pre_group, list(pre_grouped_native_functions.values())))
+    return list(concatMap(flatten_pre_group, list(pre_grouped_native_functions.values())))

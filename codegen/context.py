@@ -18,7 +18,7 @@ import functools
 import contextlib
 from typing import TypeVar, Union, Iterator, Callable, Dict
 
-from codegen.utils import S, T, context
+from torchgen.utils import S, T, context
 from codegen.model import (NativeFunction, NativeFunctionsGroup, BackendIndex, DispatchKey)
 import codegen.local as local
 
