@@ -14,13 +14,10 @@
 # limitations under the License.
 
 import sys
-import builtins
-import inspect
 import types
 import atexit
 import traceback
 
-from builtins import isinstance as builtin_isinstance
 from typing import Set, Type
 
 import torch
@@ -43,8 +40,8 @@ import torch_npu._C
 import torch_npu.npu.npu_print as _npu_print
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
-from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
-     serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
+from torch_npu.utils import apply_module_patch, add_tensor_methods, \
+     serialization_patches, add_storage_methods, add_dataloader_method, \
      add_fx_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
@@ -58,23 +55,6 @@ _tensor_classes: Set[Type] = set()
 NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
     "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
-
-def _isinstance(obj, class_or_tuple):
-    try:
-        return builtin_isinstance(obj, class_or_tuple)
-    except TypeError as e:
-        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
-        if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
-            type_str = str(obj.type())
-            tensor_type = type_str.split('.')[-1]
-            if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
-                return eval(type_str) in class_tuple
-
-        if torch._C.device in class_tuple or torch_npu._C.device in class_tuple:
-            return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
-        raise e
-
-builtins.isinstance = _isinstance
 
 
 __all__ = []
@@ -98,7 +78,6 @@ all_monkey_patches = [
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
     ["_C.Generator", torch_npu._C.Generator],
-    ["device", torch_npu._C.device],
     ["optim", torch_npu.optim]
 ]
 
@@ -141,8 +120,6 @@ def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
     add_tensor_methods()
-    add_torch_funcs()
-    add_str_methods()
     add_dataloader_method()
     wrap_dtype_for_hccl()
     add_fx_methods()
@@ -155,6 +132,7 @@ _apply_patches(all_monkey_patches)
 apply_class_patches()
 torch_npu._C._initExtension()
 
+torch.utils.rename_privateuse1_backend("npu")
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():

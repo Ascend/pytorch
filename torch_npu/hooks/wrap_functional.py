@@ -18,7 +18,6 @@ import yaml
 
 import torch
 
-from torch_npu.utils.device_guard import torch_device_guard
 from .module import HOOKModule
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
@@ -45,7 +44,6 @@ class FunctionalOPTemplate(HOOKModule):
         self.prefix_op_name_ = "Functional_" + str(op_name) + "_"
         super().__init__(hook)
 
-    @torch_device_guard
     def forward(self, *args, **kwargs):
         return getattr(torch.nn.functional, str(self.op_name_))(*args, **kwargs)
 

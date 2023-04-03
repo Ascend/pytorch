@@ -18,7 +18,6 @@ import yaml
 
 import torch
 
-from torch_npu.utils.device_guard import torch_device_guard
 from .module import HOOKModule
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +51,6 @@ class TorchOPTemplate(HOOKModule):
                 return True
         return False
 
-    @torch_device_guard
     def forward(self, *args, **kwargs):
         if self.input_param_need_adapt():
             return getattr(torch._C._VariableFunctionsClass, str(self.op_name_))(args, **kwargs)

@@ -178,7 +178,6 @@ def group_filter_overloads(
 def create_python_bindings(
     fm: FileManager,
     pairs: Sequence[PythonSignatureNativeFunctionPair],
-    pairs_device: Sequence[PythonSignatureNativeFunctionPair],
     pred: Callable[[NativeFunction], bool],
     module: Optional[str],
     filename: str,
@@ -189,12 +188,8 @@ def create_python_bindings(
     py_methods: List[str] = []
     py_method_defs: List[str] = []
     py_forwards: List[str] = []
-    py_device_methods: List[str] = []
-    py_device_forwards: List[str] = []
-    py_device_method_defs: List[str] = []
 
     grouped = group_filter_overloads(pairs, pred)
-    grouped_device = group_filter_overloads(pairs_device, pred)
 
     for name in sorted(grouped.keys(), key=lambda x: str(x)):
         overloads = grouped[name]
@@ -202,78 +197,12 @@ def create_python_bindings(
         py_method_defs.append(method_def(name, module, overloads, method=method))
         py_forwards.extend(forward_decls(name, overloads, method=method))
 
-    for name in sorted(grouped_device.keys(), key=lambda x: str(x)):
-        overloads = grouped_device[name]
-        py_device_methods.append(method_impl(name, module, overloads, method=method, custom=False))
-        py_device_method_defs.append(method_def(name, module, overloads, method=method))
-        py_device_forwards.extend(forward_decls(name, overloads, method=method))
-
     fm.write_with_template(filename, filename, lambda: {
         'generated_comment': '@' + f'generated from {fm.template_dir}/{filename}',
         'py_forwards': py_forwards,
         'py_methods': py_methods,
-        'py_device_methods': py_device_methods,
         'py_method_defs': py_method_defs,
-        'py_device_forwards': py_device_forwards,
-        'py_device_method_defs': py_device_method_defs,
     })
-
-
-def create_python_device_bindings(
-    fm: FileManager,
-    pairs: Sequence[PythonSignatureNativeFunctionPair],
-    pred: Callable[[NativeFunction], bool],
-    module: Optional[str],
-    filename: str,
-    *,
-    method: bool,
-) -> None:
-    """Generates Python bindings to ATen functions"""
-    py_device_method_defs: List[str] = []
-    device_methods_def_py_dispatch: List[str] = []
-
-    grouped = group_filter_overloads(pairs, pred)
-
-    PY_DEVICE_METHOD_DEF = CodeTemplate("""\
-    torch.${name} = _${name}
-""")
-
-    PY_DEVICE_METHOD_DEF_DISPATCH = CodeTemplate("""\
-
-@torch_device_guard
-def _${name}(*args, **kwargs):
-    return torch_npu.${name}(*args, **kwargs)
-
-""")
-
-    def method_device_def(name):
-        return PY_DEVICE_METHOD_DEF.substitute(name=name)
-
-    def method_device_def_dispatch(name):
-        return PY_DEVICE_METHOD_DEF_DISPATCH.substitute(name=name)
-
-    for name in sorted(grouped.keys(), key=lambda x: str(x)):
-        py_device_method_defs.append(method_device_def(name))
-        device_methods_def_py_dispatch.append(method_device_def_dispatch(name))
-
-    fm.write_with_template(filename, filename, lambda: {
-        'device_methods_def_py': py_device_method_defs,
-        'device_methods_def_py_dispatch': device_methods_def_py_dispatch
-    })
-
-    def query_methods(filepath):
-        with open(filepath, 'r', encoding='UTF-8') as f:
-            read_lines = f.readlines()
-        def_methods = []
-        for read_line in read_lines:
-            if read_line.startswith("def"):
-                def_methods.append((read_line[4:read_line.index("(")]).strip())
-        return def_methods
-
-    device_methods = query_methods(fm.install_dir + filename)
-    if len(device_methods) != len(set(device_methods)):
-        raise RuntimeError("In device methods file " +
-                           str(fm.install_dir + filename) + " has multi-definition function.")
 
 
 def load_signatures(
@@ -440,7 +369,7 @@ def method_impl(
     for overload_index, overload in enumerate(grouped_overloads):
         overload_signature = overload.signature.signature_str()
         signatures.append(f'{cpp_string(str(overload_signature))},')
-        dispatch_body = emit_dispatch_case(overload, namedtuple_typenames, custom)
+        dispatch_body = emit_dispatch_case(overload, namedtuple_typenames)
         dispatch.append(
             PY_VARIABLE_CASE.substitute(overload_index=overload_index, body=dispatch_body)
             if not is_singleton else dispatch_body)
@@ -667,17 +596,11 @@ def emit_single_dispatch(
         lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}", dispatch_lambda_args(ps, f, custom)))
         lambda_return = dispatch_lambda_return_str(f)
 
-        # device init
-        if custom and ("Device" in str(f.func)):
-            init_npu_device = f"torch_npu::utils::maybe_initialize_npu(device);"
-        else:
-            init_npu_device = f"//"
-
         # dispatch lambda body
         is_npu_autograd = str(f.func.name) in NPU_AUTOGRAD_FUNCTION
         record_func_define = cpp_record_func(f, custom=custom)
         dispatch_key_set = '' if not is_npu_autograd else 'auto ks_set = ' \
-            'c10::DispatchKeySet().add(c10::DispatchKey::AutogradXLA).add(c10::DispatchKey::XLA);'
+            'c10::DispatchKeySet().add(c10::DispatchKey::AutogradPrivateUse1).add(c10::DispatchKey::PrivateUse1);'
         dispatch_callee = cpp_dispatch_target(f, custom=custom, is_npu_autograd=is_npu_autograd)
         dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=custom))
         if is_npu_autograd:
@@ -699,7 +622,6 @@ def emit_single_dispatch(
 {schema_comment}
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
-  {init_npu_device}
   pybind11::gil_scoped_release no_gil;
   {record_func_define}
   {dispatch_key_set}
@@ -715,7 +637,6 @@ Py_RETURN_NONE;
 {schema_comment}
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
-  {init_npu_device}
   pybind11::gil_scoped_release no_gil;
   {record_func_define}
   {dispatch_key_set}
@@ -779,13 +700,6 @@ if __name__ == "__main__":
     valid_native_functions = list(filter(should_generate_py_binding, parsed_native_functions))
 
     functions = load_signatures(valid_native_functions, method=False)
-    torch_native_functions = list(filter(should_generate_py_binding, parse_native_yaml(options.native_yaml)))
-    device_native_functions = load_signatures(torch_native_functions, method=False)
-
-    create_python_bindings(file_manager, functions, device_native_functions, lambda f: Variant.function in f.variants,
+    create_python_bindings(file_manager, functions, lambda f: Variant.function in f.variants,
                            'torch_npu', 'python_custom_functions.cpp', method=False)
-    
-    file_device_manager = FileManager(install_dir=options.output_dir + "../../utils/",
-                                      template_dir=options.template_path, dry_run=False)
-    create_python_device_bindings(file_device_manager, device_native_functions,
-                                  lambda f: Variant.function in f.variants, 'torch_npu', 'torch_funcs.py', method=False)
+   

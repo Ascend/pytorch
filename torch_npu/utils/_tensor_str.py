@@ -81,8 +81,8 @@ def _str_intern(inp):
     self, tangent = torch.autograd.forward_ad.unpack_dual(inp)
 
     if self.device.type != torch._C._get_default_device()\
-            or (self.device.type == torch_npu.npu.native_device and torch.npu.current_device() != self.device.index):
-        suffixes.append('device=\'' + str(torch_npu.npu.npu_device) + ':'+ str(torch.npu.current_device())+'\'')
+            or (self.device.type == 'npu' and torch.npu.current_device() != self.device.index):
+        suffixes.append('device=\'' + str(self.device) + '\'')
 
     _default_complex_dtype = torch.cdouble if torch.get_default_dtype() == torch.double else torch.cfloat
     has_default_dtype = self.dtype in (torch.get_default_dtype(), _default_complex_dtype, torch.int64, torch.bool)

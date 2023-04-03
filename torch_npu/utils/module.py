@@ -31,7 +31,6 @@ from torch.nn.parallel._functions import _streams
 import torch_npu
 import torch_npu.distributed as dist
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
-from torch_npu.utils.tensor_methods import torch_device_guard
 
 
 def npu(self, device=None):
@@ -60,12 +59,7 @@ def npu(self, device=None):
             torch_npu.npu.enable_graph_mode()
     return self._apply(lambda t: t.npu(device))
 
-@torch_device_guard
 def to(self, *args, **kwargs):
-    if args and isinstance(args[0], str) and 'npu' in args[0]:
-        args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
-    if kwargs and 'npu' in str(kwargs.get("device", "")):
-        kwargs['device'] = kwargs['device'].replace("npu", torch_npu.npu.native_device)
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
 
     if dtype is not None:
@@ -142,9 +136,7 @@ def cast_weight(self, device):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
 
-    # supported devices list: "npu"(from module.npu), "xla"(from module.to)
-    support_cast_devices = [torch_npu.npu.native_device, torch_npu.npu.npu_device]
-    if device is None or not any(support_cast_device in str(device) for support_cast_device in support_cast_devices):
+    if device is None or not "npu" in str(device):
         return
 
     current_class = self.__class__

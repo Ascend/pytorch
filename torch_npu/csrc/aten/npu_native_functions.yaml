@@ -65,6 +65,7 @@ supported:
  - _softmax_backward_data.out
  - _symeig_helper
  - _unique2
+ - _reshape_alias
  - abs
  - abs.out
  - abs_

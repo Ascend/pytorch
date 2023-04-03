@@ -39,8 +39,6 @@ __all__ = [
 import torch
 import torch_npu
 
-from .device import __device__ as native_device
-from .device import __npu_device__ as npu_device
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     synchronize, device_count, set_device, current_device, get_device_name,
                     get_device_properties, _get_device_index, is_available, device, device_of,
