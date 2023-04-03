@@ -211,6 +211,11 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
   at::native::checkIndexTensorTypes(orig);
   auto indices = AdvanceIndex::npu_expand_tensors(self, orig);
 
+  // not to transpose at non-binary scene
+  if (!env::CheckJitDisable()) {
+    return index_high_dims(self, indices);
+  }
+
   // masks corresponds to indices. 0 indicates undefined tensor.
   at::SmallVector<int64_t, N> masks;
   std::vector<at::Tensor> all_defined_indices;
