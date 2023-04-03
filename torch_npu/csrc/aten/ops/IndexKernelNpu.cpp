@@ -157,18 +157,15 @@ at::Tensor& index_out_nocheck_npu(
   return result;
 }
 
-at::Tensor index_high_dims(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {
+at::Tensor index_high_dims(const at::Tensor& self, std::vector<at::Tensor> indices) {
   // masks corresponds to indices. 0 indicates undefined tensor.
   at::SmallVector<int64_t, N> masks;
-  std::vector<at::Tensor> allDefinedIndices;
-  for (c10::optional<at::Tensor> index_opt : orig) {
-    if (index_opt.has_value()) {
-      at::Tensor index = std::move(*index_opt);
-      if (index.defined()) {
-        allDefinedIndices.emplace_back(index);
-        masks.emplace_back(1);
-        continue;
-      }
+  std::vector<at::Tensor> all_defined_indices;
+  for (int i = 0; i < indices.size(); i++) {
+    if (indices[i].defined()) {
+      all_defined_indices.emplace_back(indices[i]);
+      masks.emplace_back(1);
+      continue;
     }
     masks.emplace_back(0);
   }
@@ -178,21 +175,20 @@ at::Tensor index_high_dims(const at::Tensor& self, const torch::List<c10::option
    * and indices only for 0 dimension, can broadcast to output.
    */
   if (self.size(0) == 1 && masks.size() == 1 && masks[0] == 1 &&
-      allDefinedIndices[0].scalar_type() == at::kLong && allDefinedIndices[0].dim() == 1) {
+      all_defined_indices[0].scalar_type() == at::kLong && all_defined_indices[0].dim() == 1) {
     c10::SmallVector<int64_t, N> output_size = array_to_small_vector(self.sizes());
-    output_size[0] = allDefinedIndices[0].size(0);
+    output_size[0] = all_defined_indices[0].size(0);
     at::Tensor result = NPUNativeFunctions::npu_broadcast(self, output_size);
     return result;
   }
 
-  at::Tensor formatCastOfSelf = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+  at::Tensor self_nd = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
 
-  auto indices = at::native::expandTensors(self, orig);
-  auto outputSize = index_npu_output_size(formatCastOfSelf, indices);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(formatCastOfSelf,  outputSize, ACL_FORMAT_ND);
+  auto output_size = index_npu_output_size(self_nd, indices);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self_nd, output_size, ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
-  index_out_nocheck_npu(formatCastOfSelf, masks, allDefinedIndices, result);
+  index_out_nocheck_npu(self_nd, masks, all_defined_indices, result);
 
   return result;
 }
@@ -211,6 +207,11 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
 
   at::native::checkIndexTensorTypes(orig);
   auto indices = AdvanceIndex::npu_expand_tensors(self, orig);
+
+  // not to transpose at non-binary scene
+  if (!env::CheckJitDisable()) {
+    return index_high_dims(self, indices);
+  }
 
   // masks corresponds to indices. 0 indicates undefined tensor.
   at::SmallVector<int64_t, N> masks;
@@ -247,7 +248,7 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
     }
   }
   if (indices_flag == 3) {
-    return index_high_dims(self, orig);
+    return index_high_dims(self, indices);
   }
 
   /**
