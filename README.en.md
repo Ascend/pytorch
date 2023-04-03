@@ -6,7 +6,7 @@ This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch 
 ## Prerequisites
 
 - The development or operating environment of CANN has been installed. For details, see the *CANN Software Installation Guide*.
-- Python 3.7.5, 3.8, and 3.9 are supported.
+- Python 3.8, and 3.9 are supported.
 
 # System Dependencies
 
@@ -14,13 +14,13 @@ This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch 
 
 yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
 
-yum install -y gcc==7.5.0 cmake==3.13.0
+yum install -y gcc==7.5.0 cmake==3.18.0
 
 ## Ubuntu
 
 apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
 
-apt-get install -y gcc==7.5.0 cmake==3.13.0
+apt-get install -y gcc==7.5.0 cmake==3.18.0
 
 >![](figures/icon-note.gif) **NOTE:** 
 >If an error occurs during the installation of the GCC and CMake dependency commands, use the source code for installation. For details, see the FAQ.  
@@ -51,11 +51,7 @@ pip3 install wheel
 Install the official torch package, and then compile and install the plugin.
 
 ```sh
-#x86_64
-pip3 install torch==1.13.0+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
-
-#AArch64
-#The community does not provide the CPU installation package of the ARM architecture. For details, see the first FAQ to compile and install PyTorch using the source code.
+# See the first FAQ to compile and install PyTorch using the source code.
 ```
 
 Compile and generate the binary installation package of the PyTorch plugin.
@@ -65,8 +61,6 @@ Download code of the corresponding branch and go to the root directory of the pl
 git clone -b master https://gitee.com/ascend/pytorch.git 
 cd pytorch    
 # Specify the Python version packaging mode:
-bash ci/build.sh --python=3.7
-# or
 bash ci/build.sh --python=3.8
 # or
 bash ci/build.sh --python=3.9
@@ -75,11 +69,11 @@ bash ci/build.sh --python=3.9
 Install the **torch_npu** package generated in the **pytorch/dist** directory. *{arch}* indicates the architecture name.
 
 ```
-pip3 install --upgrade dist/torch_npu-1.13.0-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-2.1.0-cp38-cp38m-linux_{arch}.whl
 ```
 Download TorchVision.
 ```
-pip3 install torchvision==0.14.0
+pip3 install torchvision=0.15.1 --no-deps
 ```
 
 
@@ -184,23 +178,23 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | **v3.0.rc2**    | Maintained | 2022-07-15      | Unmaintained <br> 2023-07-15 estimated |  
 # FAQs
 
-## When the CPU architecture is ARM, PyTorch 1.13.0 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.13.0.
+## When the CPU architecture is ARM, PyTorch cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch.
 
-Download the PyTorch 1.13.0 source package.
+Download the PyTorch master source package.
 
 ```
-git clone -b v1.13.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.13.0
+git clone https://github.com/pytorch/pytorch.git --depth=1 pytorch_master
 ```
 
 Access the source package to obtain the passive dependency code.
 
 ```
-cd pytorch_v1.13.0
+cd pytorch_master
 git submodule sync
 git submodule update --init --recursive 
 ```
 
-Compile and install PyTorch 1.13.0.
+Compile and install PyTorch master.
 
 ```
 python3 setup.py install
@@ -211,15 +205,15 @@ Compile torch_npu.
 ```
 git clone https://gitee.com/ascend/pytorch.git 
 cd pytorch    
-# Compile with python version(--python=3.7, --python=3.8 or --python=3.9)
-bash ci/build.sh --python=3.7
+# Compile with python version(--python=3.8 or --python=3.9)
+bash ci/build.sh --python=3.8
 ```
 
 Install torch_npu
 
 ```
 # replace aarch64 with x86_64 when using environment in x86 arch
-pip3 install --upgrade dist/torch_npu-1.13.0-cp37-cp37m-linux_aarch64.whl
+pip3 install --upgrade dist/torch_npu-2.1.0-cp38-cp38m-linux_aarch64.whl
 ```
 
 ## When PIP is set to the Huawei source, a Python environment error occurs after the typing dependency in the **requirements.txt** file is installed.
@@ -268,12 +262,12 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 Method 1: Download the installation script and install CMake. (For details, see the CMake official website.)
 
-​		x86_64 environment: cmake-3.13.0-Linux-x86_64.sh  
-​		AArch64 environment: cmake-3.13.0-Linux-aarch64.sh  
+​		x86_64 environment: cmake-3.18.0-Linux-x86_64.sh  
+​		AArch64 environment: cmake-3.18.0-Linux-aarch64.sh  
 1. Run the following command:
 
    ```
-   ./cmake-3.13.0-Linux-{arch}.sh # {arch} indicates the architecture name.
+   ./cmake-3.18.0-Linux-{arch}.sh # {arch} indicates the architecture name.
    ```
 
 2. Set the soft link.
@@ -288,21 +282,21 @@ Method 1: Download the installation script and install CMake. (For details, see 
    cmake --version
    ```
 
-   If the message "cmake version 3.13.0" is displayed, the installation is successful.
+   If the message "cmake version 3.18.0" is displayed, the installation is successful.
 
 Method 2: Use the source code to compile and install.
 
 1. Obtain the CMake software package.
 
    ```
-   wget https://cmake.org/files/v3.13/cmake-3.13.0.tar.gz --no-check-certificate
+   wget https://cmake.org/files/v3.18/cmake-3.18.0.tar.gz --no-check-certificate
    ```
 
 2. Decompress the package and go to the software package directory.
 
    ```
-   tar -xf cmake-3.13.0.tar.gz
-   cd cmake-3.13.0/
+   tar -xf cmake-3.18.0.tar.gz
+   cd cmake-3.18.0/
    ```
 
 3. Run the configuration, compilation, and installation commands.
@@ -324,7 +318,7 @@ Method 2: Use the source code to compile and install.
    cmake --version
    ```
 
-   If the message "cmake version 3.13.0" is displayed, the installation is successful.
+   If the message "cmake version 3.18.0" is displayed, the installation is successful.
 
 ## During GCC installation through the CLI, an error is reported indicating that the package cannot be found. During GCC compilation, another error is reported.
 
