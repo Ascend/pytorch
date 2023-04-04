@@ -358,7 +358,7 @@ def get_soc_version():
 def get_npu_overflow_flag():
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_get_float_status(float_status)
-    if (float_status.cpu()[0] != 0):
+    if (result.cpu()[0] != 0):
         return True
     else:
         return False
