@@ -19,6 +19,7 @@
 #include <torch/csrc/python_headers.h>
 #include <torch/csrc/utils/pycfunction_helpers.h>
 #include <torch/csrc/utils/python_arg_parser.h>
+#include <torch/csrc/utils/tensor_new.h>
 #include <torch/csrc/autograd/generated/VariableType.h>
 #include <torch/csrc/autograd/python_variable.h>
 #include <torch/csrc/autograd/utils/python_arg_parsing.h>
