@@ -225,6 +225,7 @@ class CPPLibBuild(build_clib, object):
             '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.abspath(output_lib_path),
             '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
             '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
+            '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
