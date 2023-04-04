@@ -41,8 +41,7 @@ import torch_npu.npu.npu_print as _npu_print
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     serialization_patches, add_storage_methods, add_dataloader_method, \
-     add_fx_methods, add_checkpoint_methods
+     serialization_patches, add_storage_methods, add_fx_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 
@@ -120,7 +119,6 @@ def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
     add_tensor_methods()
-    add_dataloader_method()
     wrap_dtype_for_hccl()
     add_fx_methods()
     add_checkpoint_methods()
@@ -132,7 +130,9 @@ _apply_patches(all_monkey_patches)
 apply_class_patches()
 torch_npu._C._initExtension()
 
+# Bridge PrivateUse1 to NPU.
 torch.utils.rename_privateuse1_backend("npu")
+
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
