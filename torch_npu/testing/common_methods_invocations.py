@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 
 import torch
+from torch.testing import make_tensor
 from torch.testing._internal import common_methods_invocations
 from torch.testing._internal.common_dtype import _dispatch_dtypes, floating_and_complex_types_and
 from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpInfo,
@@ -96,6 +97,17 @@ def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwa
         ([5, 6, 7, 8], [5, 6, 7, 8], {})
     ]
     return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
+
+def sample_inputs_median_custom(self, device, dtype, requires_grad, **kwargs):
+    make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
+
+    empty_tensor_shape = [(2, 0), (0, 2)]
+    for shape in empty_tensor_shape:
+        yield common_methods_invocations.SampleInput(make_arg(shape))
+    
+    for torch_sample in common_methods_invocations.sample_inputs_reduction\
+        (self, device, dtype, requires_grad, **kwargs):
+        yield torch_sample
 
 
 op_db: List[OpInfo] = [
@@ -1064,8 +1076,10 @@ op_db: List[OpInfo] = [
         'median',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=partial(common_methods_invocations.sample_inputs_reduction, 
-        supports_multiple_dims=False),
+        sample_inputs_func=partial(
+            sample_inputs_median_custom, 
+            supports_multiple_dims=False
+        ),
         supports_out=False,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
