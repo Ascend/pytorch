@@ -134,6 +134,17 @@ def sample_inputs_logpace(op, device, dtype, requires_grad, **kwargs):
 
     yield SampleInput(1, args=(3, 1, 2.))
 
+def sample_inputs_median_custom(self, device, dtype, requires_grad, **kwargs):
+    make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
+
+    empty_tensor_shape = [(2, 0), (0, 2)]
+    for shape in empty_tensor_shape:
+        yield common_methods_invocations.SampleInput(make_arg(shape))
+    
+    for torch_sample in common_methods_invocations.sample_inputs_reduction\
+        (self, device, dtype, requires_grad, **kwargs):
+        yield torch_sample
+
 
 op_db: List[OpInfo] = [
     UnaryUfuncInfo(
@@ -1184,8 +1195,10 @@ op_db: List[OpInfo] = [
         'median',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
-        sample_inputs_func=partial(common_methods_invocations.sample_inputs_reduction, 
-        supports_multiple_dims=False),
+        sample_inputs_func=partial(
+            sample_inputs_median_custom, 
+            supports_multiple_dims=False
+        ),
         supports_out=False,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 

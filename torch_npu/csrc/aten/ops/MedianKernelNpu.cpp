@@ -33,6 +33,12 @@ c10::SmallVector<int64_t, SIZE> median_npu_output_size(
 at::Tensor& median_out_nocheck(
     at::Tensor& result,
     const at::Tensor& self) {
+  int64_t size = self.numel();
+  if (size <= 0) {
+    result = at::full({}, std::numeric_limits<float>::quiet_NaN()).to(self.options());
+    return result;
+  }
+
   at::Tensor input = self.has_names() ?
       self.rename(c10::nullopt).reshape({-1}) : self.reshape({-1});
   int64_t k = input.size(0) / 2;
