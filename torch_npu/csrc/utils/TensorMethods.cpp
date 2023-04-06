@@ -406,6 +406,40 @@ static PyObject * THPVariable_new_zeros(PyObject* self, PyObject* args, PyObject
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * THPVariable_new_ones(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
+    PyObject* obj = PyDict_GetItem(kwargs, THPUtils_internString("device"));
+    auto device = at_npu::key::parse_npu_device(obj);
+    torch_npu::utils::maybe_initialize_npu(device);
+    PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
+  }
+  PyObject* self_obj = PyTuple_GetItem(args, 0);
+  auto& self_ = THPVariable_Unpack(self_obj);
+  c10::OptionalDeviceGuard device_guard(device_of(self_));
+  PyObject* new_args = PyTuple_GetSlice(args, 1 ,PyTuple_GET_SIZE(args));
+  return THPVariable_Wrap(torch::utils::new_ones(legacyExtractDispatchKey(self_), self_.scalar_type(), new_args, kwargs));
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject * THPVariable_new_tensor(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
+    PyObject* obj = PyDict_GetItem(kwargs, THPUtils_internString("device"));
+    auto device = at_npu::key::parse_npu_device(obj);
+    torch_npu::utils::maybe_initialize_npu(device);
+    PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
+  }
+  PyObject* self_obj = PyTuple_GetItem(args, 0);
+  auto& self_ = THPVariable_Unpack(self_obj);
+  c10::OptionalDeviceGuard device_guard(device_of(self_));
+  PyObject* new_args = PyTuple_GetSlice(args, 1 ,PyTuple_GET_SIZE(args));
+  return THPVariable_Wrap(torch::utils::new_tensor(legacyExtractDispatchKey(self_), self_.scalar_type(), new_args, kwargs));
+  END_HANDLE_TH_ERRORS
+}
+
 // autograd methods on torch._C
 static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"npu", castPyCFunctionWithKeywords(THPVariable_npu), METH_VARARGS | METH_KEYWORDS, NULL},
@@ -417,6 +451,8 @@ static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"new_empty_strided", castPyCFunctionWithKeywords(THPVariable_new_empty_strided), METH_VARARGS | METH_KEYWORDS, NULL},
   {"new_full", castPyCFunctionWithKeywords(THPVariable_new_full), METH_VARARGS | METH_KEYWORDS, NULL},
   {"new_zeros", castPyCFunctionWithKeywords(THPVariable_new_zeros), METH_VARARGS | METH_KEYWORDS, NULL},
+  {"new_ones", castPyCFunctionWithKeywords(THPVariable_new_ones), METH_VARARGS | METH_KEYWORDS, NULL},
+  {"new_tensor", castPyCFunctionWithKeywords(THPVariable_new_tensor), METH_VARARGS | METH_KEYWORDS, NULL},
   {nullptr, nullptr, 0, nullptr}
 };
 
