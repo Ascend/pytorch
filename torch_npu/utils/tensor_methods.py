@@ -127,12 +127,12 @@ def _new_full(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_ones(self, *args, **kwargs):
-    return torch._C._TensorBase.new_ones(self, *args, **kwargs)
+    return torch_npu._C.new_ones(self, *args, **kwargs)
 
 
 @torch_device_guard
 def _new_tensor(self, *args, **kwargs):
-    return torch._C._TensorBase.new_tensor(self, *args, **kwargs)
+    return torch_npu._C.new_tensor(self, *args, **kwargs)
 
 
 @torch_device_guard
