@@ -15,7 +15,7 @@
 
 #ifndef __PLUGIN_NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
 #define __PLUGIN_NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
-
+#include <c10/util/Optional.h>
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
 
 namespace at_npu {
@@ -43,6 +43,29 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError AclSetCompileopt(aclCompileOpt opt, const char *value);
+
+/**
+ * @ingroup AscendCL
+ * @brief get compile option value size
+ *
+ * @param aclCompileOpt [IN]      compile option
+ *
+ * @retval size of compile option value
+ */
+ACL_FUNC_VISIBILITY c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt);
+
+/**
+ * @ingroup AscendCL
+ * @brief get compile option
+ *
+ * @param aclCompileOpt [IN]      compile option
+ * @param value [OUT]             pointer for the option value
+ * @param length [IN]             length of value
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError AclGetCompileopt(aclCompileOpt opt, char *value, size_t length);
 
 /**
  * @ingroup AscendCL

@@ -67,6 +67,22 @@ void MakeCompileCacheDirAndSetOption() {
   c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", "enable");
   c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
 }
+
+void GetAndSetDefaultJitCompileByAcl() {
+  auto opt_size = at_npu::native::AclGetCompileoptSize(ACL_OP_JIT_COMPILE);
+  if (!opt_size.has_value()) {
+    ASCEND_LOGW("Get ACL JitCompile default value size failed, use PTA default value: True");
+    return;
+  }
+  TORCH_CHECK(opt_size.value() != 0, "AclGetCompileoptSize opt_size.value() = 0 !");
+  char value_name[opt_size.value()];
+  auto ret = at_npu::native::AclGetCompileopt(ACL_OP_JIT_COMPILE, value_name, opt_size.value());
+  // Get func success but get value failed, throw error
+  TORCH_CHECK(ret == ACL_SUCCESS, "Get ACL JitCompile default value failed.");
+  std::string value_str(value_name);
+  c10_npu::option::SetOption("jitCompile", value_str);
+  ASCEND_LOGI("Get ACL JitCompile default value %s and set", value_str.c_str());
+}
 } // namespace
 
 namespace c10_npu {
@@ -165,6 +181,8 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
   // set default compile cache mode and dir for users to improve op compile time
   MakeCompileCacheDirAndSetOption();
+  // set default jit_Compile value from Get acl defalut value
+  GetAndSetDefaultJitCompileByAcl();
 
   return INIT_SUCC;
 }
