@@ -145,7 +145,7 @@ namespace at_npu
       at::Tensor selfDtypeCast = 
           (self.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
       at::Tensor otherDtypeCast = 
-          (other.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(other, at::kFloat) : other;
+          (other.scalar_type() == at::kBool && other.dim() != 0) ? NPUNativeFunctions::npu_dtype_cast(other, at::kFloat) : other;
       if (!NpuUtils::check_match(&selfDtypeCast)) {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfDtypeCast);
         at::Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, otherDtypeCast);
