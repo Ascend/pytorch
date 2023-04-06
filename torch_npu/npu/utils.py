@@ -377,8 +377,5 @@ def npu_check_over_flow(grad):
 
 def clear_npu_overflow_flag():
     soc_version = get_soc_version()
-    if (soc_version >= 220):
-        print("Unnessary operate when soc_version >= Ascend910B1 !")
-        return
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_clear_float_status(float_status)
