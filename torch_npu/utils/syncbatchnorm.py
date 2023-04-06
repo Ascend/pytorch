@@ -90,14 +90,17 @@ class SyncBatchNorm(Function):
                 combined, torch.distributed.ReduceOp.SUM, process_group, async_op=False)
             sum_dy, sum_dy_xmu = torch.split(combined, num_channels)
 
+            divisor = count_tensor.sum()
+            mean_dy = sum_dy / divisor
+            mean_dy_xmu = sum_dy_xmu / divisor
             # backward pass for gradient calculation
             grad_input = torch.batch_norm_backward_elemt(grad_output,
                                                          saved_input,
                                                          mean,
                                                          invstd,
                                                          weight,
-                                                         sum_dy,
-                                                         sum_dy_xmu,
+                                                         mean_dy,
+                                                         mean_dy_xmu,
                                                          count_tensor)
 
         # synchronizing of grad_weight / grad_bias is not needed as distributed
