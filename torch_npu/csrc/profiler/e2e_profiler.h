@@ -34,6 +34,8 @@ namespace profiler {
 #define ONCE_REPORT_NUM 4       // mark stamp once report num, must be 2^(n-m)
 #define GROUP_CAPACITY ONCE_REPORT_NUM
 #define GROUP_NUM 40            // range stamp group num
+#define MSPROF_MSPROFTX_DATA_TAG 120
+#define MSPROF_DATA_HEAD_MAGIC_NUM 0x5a5a
 
 struct Stamp {
     unsigned short magicNum;
@@ -91,10 +93,19 @@ void FlushMarkStamp();
 
 void UninitMarkStamp();
 
+void InitPipelineStamp();
+
+void PutPipelineStamp(uint32_t category, const std::string &op_name);
+
+void FlushPipelineStamp();
+
+void UninitPipelineStamp();
+
 void InitMsPorf(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics);
 
 void PushStartTime(at::RecordFunction& fn);
+
 void PopEndTime(const at::RecordFunction& fn);
 
 void InitE2eProfiler(const std::string dump_path,  uint64_t npu_event, uint64_t aicore_metrics, bool call_stack);
