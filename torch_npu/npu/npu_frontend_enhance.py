@@ -89,6 +89,7 @@ def get_mm_bmm_format_nd():
     return _MM_BMM_ND_ENABLE
 
 def is_jit_compile_false() -> bool:
+    torch_npu.npu._lazy_init()
     return torch_npu._C._npu_is_jit_compile_false()
 
 class npuConfig:

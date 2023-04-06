@@ -14,15 +14,15 @@
 // limitations under the License.
 
 #include <c10/util/Exception.h>
-
+#include <c10/util/Optional.h>
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
+#include "third_party/acl/inc/acl/acl_base.h"
 
 namespace at_npu
 {
   namespace native
   {
-
 #undef LOAD_FUNCTION
 #define LOAD_FUNCTION(funcName) \
   REGISTER_FUNCTION(libacl_op_compiler, funcName)
@@ -32,6 +32,8 @@ namespace at_npu
 
     REGISTER_LIBRARY(libacl_op_compiler)
     LOAD_FUNCTION(aclSetCompileopt)
+    LOAD_FUNCTION(aclGetCompileoptSize)
+    LOAD_FUNCTION(aclGetCompileopt)
     LOAD_FUNCTION(aclGenGraphAndDumpForOp)
     LOAD_FUNCTION(aclCreateGraphDumpOpt)
     LOAD_FUNCTION(aclDestroyGraphDumpOpt)
@@ -47,6 +49,32 @@ aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
   TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt");
   auto ret = func(opt, value);
   return ret;
+}
+
+c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt) {
+  typedef aclError (*aclGetCompileoptSizeFunc)(aclCompileOpt opt);
+  static aclGetCompileoptSizeFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclGetCompileoptSizeFunc)GET_FUNC(aclGetCompileoptSize);
+  }
+  if (func == nullptr) {
+    return c10::nullopt;
+  } else {
+    return func(opt);
+  }
+}
+
+aclError AclGetCompileopt(aclCompileOpt opt, char *value, size_t length) {
+  typedef aclError (*aclGetCompileoptFunc)(aclCompileOpt opt, char *value, size_t length);
+  static aclGetCompileoptFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclGetCompileoptFunc)GET_FUNC(aclGetCompileopt);
+  }
+  if (func == nullptr) {
+    return ACL_ERROR_GE_FAILURE;
+  } else {
+    return func(opt, value, length);
+  }
 }
 
 aclError AclGenGraphAndDumpForOp(const char *opType,
