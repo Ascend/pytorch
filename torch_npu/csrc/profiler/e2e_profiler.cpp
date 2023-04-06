@@ -39,8 +39,10 @@ namespace profiler {
 aclprofConfig* local_profCfg = nullptr;
 bool global_call_stack = false;
 std::mutex g_rangeStampMtx;
+std::mutex g_pipelineStampMtx;
 struct StampGroupMng g_rangeStamp;
 struct StampRingQueue g_markStamp;
+struct StampRingQueue g_pipelineStamp;
 bool g_concatenateReport = false;
 
 void InitRangeStamp() {
@@ -56,8 +58,8 @@ void InitRangeStamp() {
     g_rangeStamp.groups[i].idleNodeInd = 0;
     g_rangeStamp.groups[i].fillEndNodeCnt = 0;
     for (int j = 0; j < GROUP_CAPACITY; j++) {
-      g_rangeStamp.groups[i].nodes[j].magicNum = 0x5a5a;  // MSPROF_DATA_HEAD_MAGIC_NUM
-      g_rangeStamp.groups[i].nodes[j].dataTag = 120;      // MSPROF_MSPROFTX_DATA_TAG
+      g_rangeStamp.groups[i].nodes[j].magicNum = MSPROF_DATA_HEAD_MAGIC_NUM;
+      g_rangeStamp.groups[i].nodes[j].dataTag = MSPROF_MSPROFTX_DATA_TAG;
       g_rangeStamp.groups[i].nodes[j].groupId = i;
       g_rangeStamp.groups[i].nodes[j].nodeId = j;
       g_rangeStamp.groups[i].nodes[j].processId = static_cast<int>(getpid());
@@ -153,8 +155,8 @@ void InitMarkStamp() {
   }
   memset(g_markStamp.nodes, 0, sizeof(struct Stamp) * STAMP_QUEUE_LEN);
   for (int i = 0; i < STAMP_QUEUE_LEN; i++) {
-    g_markStamp.nodes[i].magicNum = 0x5a5a; // MSPROF_DATA_HEAD_MAGIC_NUM
-    g_markStamp.nodes[i].dataTag = 120;     // MSPROF_MSPROFTX_DATA_TAG
+    g_markStamp.nodes[i].magicNum = MSPROF_DATA_HEAD_MAGIC_NUM;
+    g_markStamp.nodes[i].dataTag = MSPROF_MSPROFTX_DATA_TAG;
     g_markStamp.nodes[i].processId = static_cast<int>(getpid());
   }
 }
@@ -233,26 +235,91 @@ void UninitMarkStamp() {
   }
 }
 
-static void ReportPipelineDataToMsProfiler(uint32_t category, const std::string &op_name) {
-  static const std::string tag_name = "torch_pipeline";
-  void *stamp = at_npu::native::AclprofCreateStamp();
-  if (stamp == nullptr) {
+void InitPipelineStamp() {
+  g_pipelineStamp.idleNodeInd = 0;
+  g_pipelineStamp.nodes = reinterpret_cast<struct Stamp *>(malloc(sizeof(struct Stamp) * STAMP_QUEUE_LEN));
+  if (g_pipelineStamp.nodes == nullptr) {
+    NPU_LOGE("InitPipelineStamp malloc fail.");
     return;
   }
-  if (at_npu::native::AclprofSetStampTagName(stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE ||
+  memset(g_pipelineStamp.nodes, 0, sizeof(struct Stamp) * STAMP_QUEUE_LEN);
+  for (int i = 0; i < STAMP_QUEUE_LEN; i++) {
+    g_pipelineStamp.nodes[i].magicNum = MSPROF_DATA_HEAD_MAGIC_NUM;
+    g_pipelineStamp.nodes[i].dataTag = MSPROF_MSPROFTX_DATA_TAG;
+    g_pipelineStamp.nodes[i].processId = static_cast<int>(getpid());
+  }
+}
+
+void PutPipelineStamp(uint32_t category, const std::string &op_name) {
+  static const std::string tag_name = "torch_pipeline";
+  if (!g_concatenateReport) {
+    void *stamp = at_npu::native::AclprofCreateStamp();
+    if (stamp == nullptr) {
+      return;
+    }
+    if (at_npu::native::AclprofSetStampTagName(stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE ||
       at_npu::native::AclprofSetStampCategory(stamp, category) != ACL_ERROR_NONE ||
       at_npu::native::AclprofSetStampTraceMessage(stamp, op_name.c_str(), op_name.size()) != ACL_ERROR_NONE ||
       at_npu::native::AclprofMark(stamp) != ACL_ERROR_NONE) {
-    NPU_LOGE("Report Pipeline data to MsProfiler failed.");
+      NPU_LOGE("Report Pipeline data to MsProfiler failed.");
+    }
+    at_npu::native::AclprofDestroyStamp(stamp);
+  } else {
+    if (g_pipelineStamp.nodes == nullptr) {
+      NPU_LOGE("PutPipelineStamp nodes is null.");
+      return;
+    }
+    std::lock_guard<std::mutex> lk(g_pipelineStampMtx);
+    int index = g_pipelineStamp.idleNodeInd;
+    g_pipelineStamp.idleNodeInd = (g_pipelineStamp.idleNodeInd + 1) & (STAMP_QUEUE_LEN - 1);
+    static thread_local int tid = syscall(SYS_gettid);
+    g_pipelineStamp.nodes[index].threadId = tid;
+    g_pipelineStamp.nodes[index].category = category;
+    g_pipelineStamp.nodes[index].eventType = 0;
+    g_pipelineStamp.nodes[index].startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
+    g_pipelineStamp.nodes[index].endTime = g_pipelineStamp.nodes[index].startTime;
+    std::strncpy(g_pipelineStamp.nodes[index].message, op_name.c_str(), OP_NAME_LEN);
+    if ((index & (ONCE_REPORT_NUM - 1)) == (ONCE_REPORT_NUM - 1)) {
+      int ret = at_npu::native::AclprofReportStamp(tag_name.c_str(), tag_name.size(),
+          (unsigned char *)&g_pipelineStamp.nodes[index + 1 - ONCE_REPORT_NUM],
+          sizeof(struct Stamp) * ONCE_REPORT_NUM);
+      if (ret != ACL_ERROR_NONE) {
+        NPU_LOGE("PutPipelineStamp report fail, ret=%d.", ret);
+      }
+    }
   }
-  at_npu::native::AclprofDestroyStamp(stamp);
+}
+
+void FlushPipelineStamp() {
+  static const std::string tag_name = "torch_pipeline";
+  if (g_pipelineStamp.nodes == nullptr) {
+    NPU_LOGE("FlushPipelineStamp nodes is null.");
+    return;
+  }
+  int unReportNum = g_pipelineStamp.idleNodeInd % ONCE_REPORT_NUM;
+  if (unReportNum == 0) {
+    return;
+  }
+  int ret = at_npu::native::AclprofReportStamp(tag_name.c_str(), tag_name.size(),
+      (unsigned char *)&g_pipelineStamp.nodes[g_pipelineStamp.idleNodeInd - unReportNum],
+      sizeof(struct Stamp) * unReportNum);
+  if (ret != ACL_ERROR_NONE) {
+    NPU_LOGE("FlushPipelineStamp report fail, ret=%d.", ret);
+  }
+}
+
+void UninitPipelineStamp() {
+  if (g_pipelineStamp.nodes != nullptr) {
+    free(g_pipelineStamp.nodes);
+    g_pipelineStamp.nodes = nullptr;
+  }
 }
 
 void MarkQueueStamp(uint32_t category, const std::string &op_name) {
   if (!global_enable_profiling.load()) {
     return;
   }
-  ReportPipelineDataToMsProfiler(category, op_name);
+  PutPipelineStamp(category, op_name);
 }
 
 void MarkQueueStamp(uint32_t category, void *data, size_t offset) {
@@ -265,7 +332,7 @@ void MarkQueueStamp(uint32_t category, void *data, size_t offset) {
     return;
   }
   auto param_val = static_cast<at_npu::native::ExecuteParas *>(cur_param->paramVal);
-  ReportPipelineDataToMsProfiler(category, std::string(param_val->opType));
+  PutPipelineStamp(category, std::string(param_val->opType));
 }
 
 std::vector<FileLineFunc> prepareCallstack(const std::vector<torch::jit::StackEntry> &cs) {
@@ -366,6 +433,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
   if (g_concatenateReport) {
     InitRangeStamp();
     InitMarkStamp();
+    InitPipelineStamp();
   }
 }
 
@@ -465,8 +533,10 @@ void FinalizeE2eProfiler() {
   if (g_concatenateReport) {
     FlushRangeStamp();
     FlushMarkStamp();
+    FlushPipelineStamp();
     UninitRangeStamp();
     UninitMarkStamp();
+    UninitPipelineStamp();
   }
   at_npu::native::AclProfilingFinalize();
   at::clearThreadLocalCallbacks();
