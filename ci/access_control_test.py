@@ -149,17 +149,17 @@ def exec_ut(files):
     def change_dir_and_exec(ut_path, is_op_ut=False):
         if is_op_ut:
             ut_dir = os.path.dirname(TEST_OPS)
-            cmd = f'python3 -m unittest test_ops.py -v -k {ut_path}_'
+            cmd = f'python3.8 -m unittest test_ops.py -v -k {ut_path}_'
         else:
             ut_dir = os.path.dirname(ut_path)
             ut_file = os.path.basename(ut_path)
-            cmd = f'python3 {ut_file}'
+            cmd = f'python3.8 {ut_file}'
 
         os.chdir(ut_dir)
         p = subprocess.Popen(cmd.split(' '), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
         try:
-            msg = p.communicate(timeout=2000)
+            msg = p.communicate(timeout=500)
             ret = p.poll()
             if ret:
                 stdout = msg[0].decode('utf-8')
