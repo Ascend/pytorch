@@ -140,6 +140,29 @@ ACL_FUNC_VISIBILITY aclError aclSetCompileopt(aclCompileOpt opt, const char *val
 
 /**
  * @ingroup AscendCL
+ * @brief get compile option value size
+ *
+ * @param aclCompileOpt [IN]      compile option
+ *
+ * @retval size of compile option value
+ */
+ACL_FUNC_VISIBILITY size_t aclGetCompileoptSize(aclCompileOpt opt);
+
+/**
+ * @ingroup AscendCL
+ * @brief get compile option
+ *
+ * @param aclCompileOpt [IN]      compile option
+ * @param value [OUT]             pointer for the option value
+ * @param length [IN]             length of value
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclGetCompileopt(aclCompileOpt opt, char *value, size_t length);
+
+/**
+ * @ingroup AscendCL
  * @brief set compile flag
  *
  * @param flag [IN]    compile flag, ACL_OP_COMPILE_DEFAULT means compile with default mode
