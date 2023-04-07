@@ -20,7 +20,7 @@ from codegen.context import with_native_function_and_index
 from torchgen.utils import mapMaybe
 from codegen.model import NativeFunction, NativeFunctionsGroup, BackendIndex
 from codegen.api.signature import kernel_signature
-import codegen.api.meta as meta
+import torchgen.api.meta as meta
 import codegen.api.structured as structured
 
 @with_native_function_and_index

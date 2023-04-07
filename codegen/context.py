@@ -20,7 +20,7 @@ from typing import TypeVar, Union, Iterator, Callable, Dict
 
 from torchgen.utils import S, T, context
 from codegen.model import (NativeFunction, NativeFunctionsGroup, BackendIndex, DispatchKey)
-import codegen.local as local
+import torchgen.local as local
 
 
 # Helper functions for defining generators on things in the model
@@ -45,8 +45,8 @@ def native_function_manager(g: Union[NativeFunctionsGroup, NativeFunction]) -> I
         f = g
     with context(lambda: f'in native_functions.yaml func:\n  {f.func}'):
         with local.parametrize(
-            new_use_const_ref_for_mutable_tensors=f.use_const_ref_for_mutable_tensors,
-            new_use_ilistref_for_tensor_lists=f.part_of_structured_group
+            use_const_ref_for_mutable_tensors=f.use_const_ref_for_mutable_tensors,
+            use_ilistref_for_tensor_lists=f.part_of_structured_group
         ):
             yield
 

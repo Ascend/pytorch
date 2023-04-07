@@ -33,7 +33,7 @@ from codegen.api.types import (BaseCType, Binding, ConstRefCType,
                                Expr, MutRefCType, tensorT, NamedCType)
 from codegen.api.signature import (CppSignature, CppSignatureGroup, kernel_signature,
                                    NativeSignature, DispatcherSignature)
-import codegen.api.meta as meta
+import torchgen.api.meta as meta
 import codegen.api.cpp as cpp
 import codegen.api.structured as structured
 from codegen.api.translate import translate

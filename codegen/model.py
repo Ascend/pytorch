@@ -154,11 +154,6 @@ class DispatchKey(Enum):
         raise AssertionError(f'unknown dispatch key {value}')
 
 
-class UseC10Dispatcher(Enum):
-    full = 0
-    hacky_wrapper_for_legacy_signatures = 1
-
-
 STRUCTURED_DISPATCH_KEYS = {DispatchKey.CUDA, DispatchKey.CPU}
 
 
