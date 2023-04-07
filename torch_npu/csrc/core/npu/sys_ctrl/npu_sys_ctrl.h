@@ -57,6 +57,11 @@ public:
     // Get Init_flag
      bool GetInitFlag();
 
+    // return current device index
+     int GetCurrentDeviceIndex() {
+        return device_id_;
+     }
+
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
      void RegisterReleaseFn(ReleaseFn release_fn,

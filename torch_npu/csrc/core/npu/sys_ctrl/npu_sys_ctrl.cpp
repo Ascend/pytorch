@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -190,6 +190,10 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
+
+    // TODO: not support exchange device now.
+    TORCH_CHECK(false, "NPU device dose not support exchange device.");
+
     C10_NPU_CHECK(aclrtResetDevice(pre_device));
     C10_NPU_CHECK(aclrtSetDevice(device));
     device_id_= device;

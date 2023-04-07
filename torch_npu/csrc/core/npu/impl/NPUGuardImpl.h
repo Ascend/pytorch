@@ -37,9 +37,15 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     return old_device;
   }
   c10::Device getDevice() const override {
-    int device = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&device));
-    return c10::Device(at_npu::key::NativeDeviceType, device);
+    if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+      auto device = c10::Device(at_npu::key::NativeDeviceType,
+          c10_npu::NpuSysCtrl::GetInstance().GetCurrentDeviceIndex());
+      setDevice(device);
+      return device;
+    }
+    int device_index = 0;
+    C10_NPU_CHECK(aclrtGetDevice(&device_index));
+    return c10::Device(at_npu::key::NativeDeviceType, device_index);
   }
   void setDevice(c10::Device d) const override {
     TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
