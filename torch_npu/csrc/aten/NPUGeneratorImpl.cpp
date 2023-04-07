@@ -15,6 +15,8 @@
 
 #include <ATen/Utils.h>
 #include <c10/core/StreamGuard.h>
+#include <ATen/core/GeneratorForPrivateuseone.h>
+
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
@@ -345,5 +347,12 @@ NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const {
   gen->set_philox_offset_per_thread(this->philox_offset_per_thread_);
   return gen;
 }
+
+// this is used to register generator
+at::Generator make_npu_generator(c10::DeviceIndex device_index) {
+  return at::make_generator<NPUGeneratorImpl>(device_index);
+}
+
+REGISTER_GENERATOR_PRIVATEUSE1(make_npu_generator)
 
 } // namespace at_npu

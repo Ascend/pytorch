@@ -27,7 +27,6 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
-#include "torch_npu/csrc/npu/Generator.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
 #include "torch_npu/csrc/utils/TensorType.h"
@@ -91,7 +90,6 @@ static PyMethodDef TorchNpuMethods[] = {
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
 void THNPReplayGraph_init(PyObject *module);
-bool THPGenerator_init(PyObject *module);
 PyMethodDef* THNPModule_get_methods();
 
 namespace torch_npu { namespace autograd {
@@ -128,7 +126,6 @@ PyObject* initModule(){
   THNPStream_init(module);
   THNPEvent_init(module);
   THNPReplayGraph_init(module);
-  THPGenerator_init(module);
   TNPDevice_init(module);
 
   torch_npu::autograd::initTorchFunctions(module);
