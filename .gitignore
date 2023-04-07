@@ -193,3 +193,11 @@ TAGS
 
 # bazel symlinks
 bazel-*
+
+# Generated files
+torch_npu/version.py
+torch_npu/csrc/aten/NPUNativeFunctions.h
+torch_npu/csrc/aten/RegisterAutogradNPU.cpp
+torch_npu/csrc/aten/RegisterCPU.cpp
+torch_npu/csrc/aten/RegisterNPU.cpp
+torch_npu/csrc/aten/python_custom_functions.cpp
