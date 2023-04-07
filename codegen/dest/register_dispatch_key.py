@@ -29,7 +29,7 @@ from codegen.model import (DispatchKey, NativeFunction,
                            TensorOptionsArguments,
                            DeviceCheckType, Argument, assert_never,
                            is_cuda_dispatch_key, BackendIndex)
-from codegen.api.types import (BaseCType, Binding, ConstRefCType,
+from torchgen.api.types import (BaseCType, Binding, ConstRefCType,
                                Expr, MutRefCType, tensorT, NamedCType)
 from codegen.api.signature import (CppSignature, CppSignatureGroup, kernel_signature,
                                    NativeSignature, DispatcherSignature)

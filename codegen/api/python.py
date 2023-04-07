@@ -17,7 +17,7 @@
 from dataclasses import dataclass
 from typing import Optional, Union, Sequence, Set, List, Dict, Tuple
 
-from codegen.api.types import Binding
+from torchgen.api.types import Binding
 from codegen.api.signature import CppSignature, CppSignatureGroup
 from codegen.api import cpp
 from codegen.model import (Argument, BaseTy, BaseType, ListType,

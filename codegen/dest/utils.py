@@ -15,7 +15,7 @@
 
 from typing import Tuple, List
 
-from codegen.api.types import (BaseCType, TupleCType, OptionalCType, BaseCppType)
+from torchgen.api.types import (BaseCType, TupleCType, OptionalCType, BaseCppType)
 
 from codegen.api.signature import DispatcherSignature, NativeSignature
 from codegen.model import SchemaKind, NativeFunction
