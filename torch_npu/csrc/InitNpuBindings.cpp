@@ -32,6 +32,7 @@
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/utils/Device.h"
+#include "torch_npu/csrc/core/AutocastMode.h"
 
 PyObject* module;
 
@@ -110,6 +111,7 @@ PyObject* initModule(){
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
   AddPyMethodDefs(methods, torch_npu::utils::tensor_functions());
   AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
+  AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
   static struct PyModuleDef torchnpu_module = {
      PyModuleDef_HEAD_INIT,
      "torch_npu._C",
