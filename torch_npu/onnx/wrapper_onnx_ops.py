@@ -29,9 +29,9 @@ class NPUOneHotOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_one_hot(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, self: torch.Tensor, num_classses: int = -1, depth: int = 1,
+    def symbolic(g, self: torch.Tensor, num_classes: int = -1, depth: int = 1,
                  on_value: int = 1, off_value: int = 0):
-        return g.op("npu::NPUOneHot", self, num_classses_i=num_classses, depth_i=depth,
+        return g.op("npu::NPUOneHot", self, num_classes_i=num_classes, depth_i=depth,
                     on_value_i=on_value, off_value_i=off_value)
 
 
@@ -612,8 +612,8 @@ class NPUMishOP(torch.autograd.Function):
         return g.op("npu::NPUMish", self)
     
 
-def wrapper_npu_one_hot(self, num_classses=-1, depth=1, on_value=1, off_value=0):
-    return NPUOneHotOP.apply(self, num_classses, depth, on_value, off_value)
+def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
+    return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
 
 def wrapper_npu_slice(self, offsets, size):
