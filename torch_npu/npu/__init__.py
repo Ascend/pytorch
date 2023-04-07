@@ -33,7 +33,7 @@ __all__ = [
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
     "get_rng_state_all", "set_rng_state_all", "make_replay_graph", "is_jit_compile_false",
-    "dump_enable", "dump_disable",
+    "dump_enable", "dump_disable"
 ]
 
 import torch

@@ -302,6 +302,3 @@ def custom_bwd(bwd):
         with autocast(args[0]._fwd_used_autocast):
             return bwd(*args, **kwargs)
     return decorate_bwd
-
-def apply_autocast_patch():
-    torch.autocast = autocast
