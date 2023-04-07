@@ -43,8 +43,6 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      serialization_patches, add_storage_methods, add_fx_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
-from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
-
 from .version import __version__ as __version__
 
 graph_printer = _npu_print.GraphPrinter()
@@ -67,8 +65,6 @@ for name in dir(torch_npu._C._VariableFunctions):
     setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
 
 all_monkey_patches = [
-    ["npu", torch_npu.npu],
-    ["npu.amp", torch_npu.npu.amp],
     ["autograd.profiler", torch_npu.npu.profiler],
     ["distributed", torch_npu.distributed],
     ["nn.parallel.distributed._get_device_index", torch_npu.npu._get_device_index],
@@ -122,17 +118,14 @@ def apply_class_patches():
     wrap_dtype_for_hccl()
     add_fx_methods()
     add_checkpoint_methods()
-    apply_autocast_patch()
 
+torch.utils.rename_privateuse1_backend("npu")
+torch._register_device_module('npu', torch_npu.npu)
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 apply_class_patches()
 torch_npu._C._initExtension()
-
-# Bridge PrivateUse1 to NPU.
-torch.utils.rename_privateuse1_backend("npu")
-
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
