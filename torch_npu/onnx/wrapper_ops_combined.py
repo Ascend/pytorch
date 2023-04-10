@@ -54,16 +54,6 @@ class NPUBroadcastOP(object):
         return out
 
 
-class NPUOneOP(object):
-
-    @staticmethod
-    def forward(self):
-        if torch.onnx.is_in_onnx_export():
-            self = torch.ones_like(self)
-            return self
-        return torch_npu._C._VariableFunctionsClass.one_(self)
-
-
 class NPUConvTranspose2dOP(object):
 
     @staticmethod
@@ -248,16 +238,6 @@ class NPUSiluOP(object):
         return torch_npu._C._VariableFunctionsClass.npu_silu(self)
 
 
-class NPUSilu_OP(object):
-
-    @staticmethod
-    def forward(self):
-        if torch.onnx.is_in_onnx_export():
-            self = self * torch.sigmoid(self)
-            return self
-        return torch_npu._C._VariableFunctionsClass.npu_silu_(self)
-
-
 class NPUMinOP(object):
 
     @staticmethod
@@ -273,7 +253,6 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_linear = NPULinearOP.forward
     torch_npu.npu_transpose = NPUTransposeOP.forward
     torch_npu.npu_broadcast = NPUBroadcastOP.forward
-    torch_npu.one_ = NPUOneOP.forward
     torch_npu.npu_conv_transpose2d = NPUConvTranspose2dOP.forward
     torch_npu.npu_conv2d = NPUConv2dOP.forward
     torch_npu.npu_conv3d = NPUConv3dOP.forward
@@ -289,6 +268,5 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_bmmV2 = NPUBmmV2OP.forward
     torch_npu.npu_dtype_cast = NPUDtypeCastOP.forward
     torch_npu.npu_silu = NPUSiluOP.forward
-    torch_npu.npu_silu_ = NPUSilu_OP.forward
     torch_npu.npu_min = NPUMinOP.forward
 
