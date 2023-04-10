@@ -39,7 +39,7 @@ void assert_no_internal_overlap(const at::Tensor& t);
 void assert_no_internal_overlap(at::TensorImpl* t);
 
 MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b);
-MemOverlapStatus get_overlap_status(at::TensorImpl* a, at::TensorImpl* b);
+MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImpl* b);
 
 void assert_no_partial_overlap(const at::Tensor& a, const at::Tensor& b);
 void assert_no_partial_overlap(at::TensorImpl* a, at::TensorImpl* b);
