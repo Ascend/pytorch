@@ -243,6 +243,8 @@ supported:
  - convolution_backward
  - convolution_backward_overrideable
  - convolution_overrideable
+ - count_nonzero
+ - count_nonzero.dim_IntList
  - copy_
  - copy_memory_
  - cos
