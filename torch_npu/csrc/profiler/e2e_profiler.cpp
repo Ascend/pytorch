@@ -30,6 +30,10 @@
 
 std::atomic<bool> global_enable_profiling(false);
 
+std::atomic<bool>& get_global_enable_profiling() {
+  return global_enable_profiling;
+}
+
 namespace torch_npu {
 namespace profiler {
 
