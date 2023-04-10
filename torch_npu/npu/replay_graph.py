@@ -47,6 +47,7 @@ class WrapModule(object):
         self.verbose = verbose
         self.requires_grad = requires_grad
         self.warm_up_step = warm_up_step if self.requires_grad else 1
+        self.none_output_idx = []
 
     def __wrap_forward(self, *args, **kwargs):
         for arg in args:
@@ -91,6 +92,16 @@ class WrapModule(object):
                     shallow_fwd_output = [shallow_fwd_output]
                 if isinstance(shallow_fwd_output, tuple):
                     shallow_fwd_output = list(shallow_fwd_output)
+
+                shallow_fwd_output_tmp = shallow_fwd_output
+                shallow_fwd_output = []
+                id = 0
+                for iter in shallow_fwd_output_tmp:
+                    if iter is None:
+                        self.none_output_idx.append(id)
+                    else:
+                        shallow_fwd_output.append(iter)
+                    id = id + 1
 
                 fwd_graph_info = [fwd_inputs, self.module.parameters(), self.module.buffers()]
                 fwd_graph_inputs = []
@@ -138,6 +149,16 @@ class WrapModule(object):
                 fwd_output = self.fwd_graph._ReplayGraph__replay(inputs=fwd_inputs_full,
                                                                  assigned_outputs=fwd_assigned_outputs)
 
+                all_outputs = []
+                none_output_idx=0
+                for i in range (len(fwd_output) + len(self.none_output_idx)):
+                    if none_output_idx < len(self.none_output_idx):
+                        if i == self.none_output_idx[none_output_idx]:
+                            all_outputs.append(None)
+                            none_output_idx = none_output_idx + 1
+                            continue
+                    all_outputs.append(fwd_output[i - none_output_idx])
+
                 if self.requires_grad:
                     save_var = self.fwd_graph._ReplayGraph__get_inner_outputs(inputs=fwd_inputs)
                     ctx.fwd_input = fwd_inputs
@@ -147,7 +168,7 @@ class WrapModule(object):
                         fwd_output[0].requires_grad_(True)
                     else:
                         raise ValueError("Forward output has no value")
-                return fwd_output
+                return all_outputs
 
             @staticmethod
             @torch.autograd.function.once_differentiable
@@ -182,8 +203,6 @@ class WrapModule(object):
                 return bwd_output
 
         ret = ReplayFunction.apply(*args, **kwargs)
-        if ret[0] is None:
-            raise ValueError("ReplayFunction return has no value")
         return ret
 
 
@@ -198,7 +217,20 @@ def generate_replay_graph(replay_graph: ReplayGraph, inputs: list, assigned_outp
                           returnable_outputs: list, retain_inner_outputs: bool=False) -> ReplayGraph:
     if replay_graph is None:
         replay_graph = ReplayGraph()
-    replay_graph._ReplayGraph__generate_replay_graph(inputs, assigned_outputs, returnable_outputs, retain_inner_outputs)
+
+    real_input = []
+    for arg in inputs:
+        if torch_npu.get_npu_format(arg) == 2:
+            arg = torch_npu.npu_format_cast(arg, 0)
+        real_input.append(arg)
+
+    real_output = []
+    for arg in returnable_outputs:
+        if torch_npu.get_npu_format(arg) == 2:
+            arg = torch_npu.npu_format_cast(arg, 0)
+        real_output.append(arg)
+
+    replay_graph._ReplayGraph__generate_replay_graph(real_input, assigned_outputs, real_output, retain_inner_outputs)
     return replay_graph
 
 @contextmanager

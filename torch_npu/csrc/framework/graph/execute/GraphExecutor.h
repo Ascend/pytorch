@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
 #include <c10/core/StorageImpl.h>
 #include <c10/macros/Export.h>
+#include <ATen/ATen.h>
 
 #ifdef SUCCESS
 #undef SUCCESS
@@ -32,6 +33,7 @@
 
 namespace at_npu {
 namespace native {
+using at::TensorList;
 
 using namespace at_npu::native::hash_utils;
 
@@ -71,11 +73,17 @@ public:
                                                  CombinedInfo& outputs,
                                                  bool& is_cache_hit);
 
+  uint32_t GetGraphIdWithoutCache(const CombinedInfo &inputs,
+                                  CombinedInfo &outputs,
+                                  at::TensorList returnable_outputs);
+
   bool CheckDeviceIdAndInit();
 
   CombinedInfo GetInputCombinedInfo();
 
-  CombinedInfo GetOutputCombinedInfo();
+  CombinedInfo GetLiveTensorOutputCombinedInfo();
+
+  CombinedInfo GetAllOutputCombinedInfo(at::TensorList returnable_outputs);
 
   void ResetGraphOutputs();
 
@@ -114,7 +122,8 @@ private:
 
   std::vector<ge::Operator> GetInputOps();
 
-  GeOutPutOpType GetOutputOps();
+  GeOutPutOpType GetLiveTensorOutputOps();
+  GeOutPutOpType GetAllOutputOps(at::TensorList returnable_outputs);
 
   static ge::Tensor PrepareInputTensor(
       const c10::StorageImpl* const storage,
