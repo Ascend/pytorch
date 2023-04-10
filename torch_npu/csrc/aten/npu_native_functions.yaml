@@ -246,6 +246,8 @@ supported:
  - convolution_backward
  - convolution_backward_overrideable
  - convolution_overrideable
+ - count_nonzero
+ - count_nonzero.dim_IntList
  - copy_
  - copy_memory_
  - cos
@@ -1028,7 +1030,6 @@ tocpu:
   - cholesky_inverse
   - cholesky_inverse.out
   - complex.out
-  - count_nonzero.dim_IntList
   - exponential_
   - geometric_
   - is_set_to
