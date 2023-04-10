@@ -21,6 +21,9 @@ from typing import List, Dict, Optional, Iterator, Tuple, Set, NoReturn, Sequenc
 from enum import Enum, auto
 import itertools
 
+from torchgen.model import (BackendMetadata, Precompute, Type, BaseType,
+                            OptionalType, ListType, BaseTy, DEFAULT_KERNEL_NAMESPACE)
+
 
 # A little trick from https://github.com/python/mypy/issues/6366
 # for getting mypy to do exhaustiveness checking
@@ -63,7 +66,6 @@ class Location:
 
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
-
 
 # NOTE: Keep the list in sync with `DispatchKey` in c10/core/DispatchKey.h
 class DispatchKey(Enum):
@@ -450,7 +452,10 @@ class NativeFunction:
         )
 
         backend_metadata = {k: {func.name: BackendMetadata(
-            kernel=v, structured=structured and is_structured_dispatch_key(k))} for k, v in dispatch.items()}
+            kernel=v,
+            structured=structured and is_structured_dispatch_key(k),
+            cpp_namespace=DEFAULT_KERNEL_NAMESPACE)}
+            for k, v in dispatch.items()}
 
         def assert_last(e, structured_delegate, dispatch):
             # don't care if it exists or not; make it easier to use this function
@@ -684,24 +689,6 @@ def is_foreach_op(name: str) -> bool:
         '_foreach_addcmul_.ScalarList',
         '_foreach_addcdiv_.ScalarList',
         '_foreach_zero_'])
-
-
-@dataclass(frozen=True)
-class BackendMetadata:
-    # The name of the backend kernel, for a given operator
-    # for in-tree backends. These names come directly from the 'dispatch" field
-    # in native_functions.yaml. The dispatch entry is optional; in that
-    # case, that is equivalent to having written:
-    #
-    #   dispatch:
-    #       CompositeImplicitAutograd: $operator_name
-    kernel: str
-    # Whether or not the operator has a structured kernel implemented, for this particular backend.
-    # For in-tree backends, they all have the same value for structured- this is listed
-    # in native_functions.yaml.
-    # However, external backends like XLA can indendently toggle which ops are structured.
-    structured: bool
-    #
 
 
 # BackendIndex represents a backend.
@@ -1003,142 +990,6 @@ class Annotation:
             alias_set = f'{alias_set}{" -> "}{self.alias_set_after}'
         is_write = '!' if self.is_write else ''
         return f'{alias_set}{is_write}'
-
-
-# The base class for the type system.  This is also loosely modeled
-# off of jit_type.h, but we've simplified the hierarchy to focus
-# in on the aspects of the type system that matter for code generation
-# (for example, there's no SingleElementType subclass anymore).
-# You never actually construct a Type; usually it's going to be one
-# of the subclasses.  If Python had ADTs this would be one!
-@dataclass(frozen=True)
-class Type:
-    @staticmethod
-    def parse(t: str) -> 'Type':
-        r = Type._parse(t)
-        assert str(r) == t, f'{r} != {t}'
-        return r
-
-    @staticmethod
-    def _parse(t: str) -> 'Type':
-        m = re.match(r'^(.+)\?$', t)
-        if m is not None:
-            return OptionalType(Type.parse(m.group(1)))
-        m = re.match(r'^(.+)\[([0-9]+)?\]$', t)
-        if m is not None:
-            size = int(m.group(2)) if m.group(2) is not None else None
-            return ListType(elem=Type.parse(m.group(1)), size=size)
-        try:
-            return BaseType(BaseTy[t])
-        except KeyError:
-            raise RuntimeError(f"unrecognized type {t}")
-
-    def __str__(self) -> str:
-        raise NotImplementedError
-
-    # WARNING: These concepts are not very well-defined.  For example,
-    # is "int?" nullable? How about "int?[]".  They are defined
-    # so we can conveniently generate legacy Declarations.yaml but
-    # really we should probably just remove these at some point
-
-    def is_tensor_like(self) -> bool:
-        raise NotImplementedError
-
-    def is_nullable(self) -> bool:
-        raise NotImplementedError
-
-    def is_list_like(self) -> Optional['ListType']:
-        raise NotImplementedError
-
-
-# Base types are simple, atomic types with no further structure
-BaseTy = Enum(
-    "BaseTy",
-    (
-        "Generator",
-        "ScalarType",
-        "Tensor",
-        "int",
-        "Dimname",
-        "DimVector",
-        "float",
-        "str",
-        "bool",
-        "Layout",
-        "Device",
-        "Scalar",
-        "MemoryFormat",
-        "QScheme",
-        "Storage",
-        "Stream",
-        "SymInt",
-        "ConstQuantizerPtr",  # TODO: rename
-    ),
-)
-
-
-@dataclass(frozen=True)
-class BaseType(Type):
-    name: BaseTy
-
-    def __str__(self) -> str:
-        return f'{self.name.name}'
-
-    def is_tensor_like(self) -> bool:
-        return self.name == BaseTy.Tensor
-
-    def is_nullable(self) -> bool:
-        return False
-
-    def is_list_like(self) -> Optional['ListType']:
-        return None
-
-    def is_symint_like(self) -> bool:
-        return self.name == BaseTy.SymInt
-
-
-# Optional types may be specified, or may also be validly given None
-@dataclass(frozen=True)
-class OptionalType(Type):
-    elem: Type
-
-    def __str__(self) -> str:
-        return f'{self.elem}?'
-
-    def is_tensor_like(self) -> bool:
-        return self.elem.is_tensor_like()
-
-    def is_nullable(self) -> bool:
-        return True
-
-    def is_list_like(self) -> Optional['ListType']:
-        return self.elem.is_list_like()
-
-
-# List types specify that we may have multiples of an element.  We
-# also support explicit sizes on list types, but these have
-# some nontrivial semantics!  (However, for C++ API purposes, explicit
-# sizes are mostly erased from the type system.)
-#
-# DANGER WILL ROBINSON: C++ elaboration depends on elem type; e.g.,
-# int[] elaborates differently than bool[3]!
-@dataclass(frozen=True)
-class ListType(Type):
-    elem: Type
-    size: Optional[int]
-
-    def __str__(self) -> str:
-        size = f'{self.size}' if self.size else ''
-        return f'{self.elem}[{size}]'
-
-    def is_tensor_like(self) -> bool:
-        return self.elem.is_tensor_like()
-
-    def is_nullable(self) -> bool:
-        return self.elem.is_nullable()
-
-    def is_list_like(self) -> Optional['ListType']:
-        return self
 
 
 @dataclass(frozen=True)
@@ -1620,41 +1471,3 @@ def parse_returns(return_decl: str) -> Tuple[Return, ...]:
         return_decl = return_decl[1:-1]
     return tuple(Return.parse(arg) for arg in return_decl.split(', '))
 
-
-# A Precompute instance consists of a map from kernel argument name
-# to the list of Argument instances that should replace that
-# kernel argument in the impl function.
-@dataclass(frozen=True)
-class Precompute:
-    # A map from kernel argument name -> a list of precomputed
-    # elements that replaces/supersedes it.
-    replace: Dict[str, List[Argument]]
-
-    @staticmethod
-    def parse(src: object) -> 'Precompute':
-        assert isinstance(src, list)
-
-        # src is a list of strings of the format:
-        #   {kernel param name} -> {replacement decl}[, {replacement decl}, ...]
-        # Parse this list to get the names of which precomputed elements
-        # should replace which kernel arguments.
-        replace = {}
-        for raw_replace_item in src:
-            assert isinstance(raw_replace_item, str)
-
-            arg, with_list_raw = raw_replace_item.split(' -> ')
-            with_list = with_list_raw.split(',')
-            with_list_args = [Argument.parse(name.strip()) for name in with_list]
-            replace[arg] = with_list_args
-
-        r = Precompute(replace=replace)
-        assert r.to_list() == src, 'r.to_list() != src'
-        return r
-
-    def to_list(self) -> List[str]:
-        replace_list = []
-        for kernel_param, replacement_params in self.replace.items():
-            replacements = ', '.join(str(param) for param in replacement_params)
-            replace_list.append(f'{kernel_param} -> {replacements}')
-
-        return replace_list

@@ -21,7 +21,7 @@ from codegen.model import (Argument, FunctionSchema, Return,
                            SelfArgument, TensorOptionsArguments, Type,
                            assert_never)
 
-from codegen.api.types import ArgName, Binding, NamedCType, CType
+from torchgen.api.types import ArgName, Binding, NamedCType, CType
 from codegen.api import cpp
 from torchgen.utils import concatMap
 

@@ -45,7 +45,8 @@ from codegen.gen import cpp_string, FileManager, error_check_native_functions
 from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
                            Type, Variant, BackendIndex,
-                           BackendMetadata, DispatchKey, OperatorName)
+                           DispatchKey, OperatorName)
+from torchgen.model import BackendMetadata
 from torchgen.utils import context
 
 

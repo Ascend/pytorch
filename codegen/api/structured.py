@@ -20,7 +20,7 @@ from codegen.model import (Argument, BaseTy, BaseType, ListType,
                            SelfArgument, TensorOptionsArguments, Type,
                            assert_never)
 
-from codegen.api.types import (ArgName, BaseCType, Binding, ArrayRefCType,
+from torchgen.api.types import (ArgName, BaseCType, Binding, ArrayRefCType,
                                ConstRefCType, OptionalCType, NamedCType,
                                tensorT, scalarT, intArrayRefT, dimnameListT, iTensorListRefT,
                                optionalTensorRefT, optionalScalarRefT, optionalIntArrayRefT)

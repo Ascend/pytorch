@@ -29,7 +29,7 @@ from codegen.model import (DispatchKey, NativeFunction,
                            Argument, SelfArgument, TensorOptionsArguments,
                            DeviceCheckType, Argument, assert_never,
                            is_cuda_dispatch_key, BackendIndex)
-from codegen.api.types import (BaseCType, Binding, ConstRefCType,
+from torchgen.api.types import (BaseCType, Binding, ConstRefCType,
                                Expr, MutRefCType, tensorT, NamedCType)
 from codegen.api.signature import (CppSignature, CppSignatureGroup, kernel_signature,
                                    NativeSignature, DispatcherSignature)
@@ -38,7 +38,7 @@ import codegen.api.cpp as cpp
 import codegen.api.structured as structured
 from codegen.api.translate import translate
 from codegen.selective_build.selector import SelectiveBuilder
-from codegen.api.types import (BaseCType, TupleCType, BaseCppType)
+from torchgen.api.types import (BaseCType, TupleCType, BaseCppType)
 from .utils import transfer_args_of_wrapper_func_to_cpu, transfer_ret_of_wrapper_func_to_xla
 
 # Generates Register{dispatch}.cpp (e.g., RegisterCPU.cpp).

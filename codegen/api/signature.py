@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Optional, Union, Sequence, List, Set
 
 from codegen.model import FunctionSchema, NativeFunction, BackendIndex
-from codegen.api.types import Binding, CType, Expr
+from torchgen.api.types import Binding, CType, Expr
 from codegen.api import cpp, dispatcher, native, translate
 
 

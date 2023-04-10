@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from typing import Dict, Sequence, List, NoReturn, Union
-from codegen.api.types import (BaseCType, Binding, ConstRefCType,
+from torchgen.api.types import (BaseCType, Binding, ConstRefCType,
                                Expr, MutRefCType, OptionalCType,
                                NamedCType, SpecialArgName, tensorT,
                                memoryFormatT, tensorOptionsT, scalarTypeT,

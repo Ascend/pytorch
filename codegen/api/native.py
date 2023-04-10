@@ -19,7 +19,7 @@ from typing import Union, Sequence, List, Optional
 from codegen.model import (Argument, FunctionSchema, Return,
                            SelfArgument, TensorOptionsArguments, Type)
 
-from codegen.api.types import (ArgName, BaseCType, Binding,
+from torchgen.api.types import (ArgName, BaseCType, Binding,
                                ConstRefCType, NamedCType, CType, MutRefCType, ListCType,
                                OptionalCType, tensorT, scalarT, layoutT,
                                deviceT, boolT, scalarTypeT)

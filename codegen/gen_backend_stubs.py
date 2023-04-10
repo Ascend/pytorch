@@ -23,8 +23,9 @@ from typing import List, Dict, Union, Sequence, Optional
 import yaml
 
 from codegen.gen import FileManager, get_grouped_native_functions, error_check_native_functions
-from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
+from codegen.model import (BackendIndex, DispatchKey,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
+from torchgen.model import BackendMetadata, DEFAULT_KERNEL_NAMESPACE
 from codegen.selective_build.selector import SelectiveBuilder
 from torchgen.utils import Target, concatMap, context
 from codegen.context import native_function_manager
@@ -47,7 +48,7 @@ def create_backend_index(backend_ops: List[str],
         # See Note [External Backends Follow Dispatcher API]
         kernel_name = dispatcher.name(native_funcs_map[op_name].func)
         # TODO: allow structured external backends later.
-        m = BackendMetadata(kernel=kernel_name, structured=False)
+        m = BackendMetadata(kernel=kernel_name, structured=False, cpp_namespace=DEFAULT_KERNEL_NAMESPACE)
         metadata[op_name] = m
     return BackendIndex(
         dispatch_key=dispatch_key,

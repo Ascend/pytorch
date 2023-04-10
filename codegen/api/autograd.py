@@ -19,7 +19,7 @@ import re
 from typing import Optional, Sequence, Set, List, Tuple, Match
 
 from codegen.api import cpp
-from codegen.api.types import Binding, NamedCType
+from torchgen.api.types import Binding, NamedCType
 from codegen.model import NativeFunction, Type, SchemaKind
 from torchgen.utils import IDENT_REGEX
 
