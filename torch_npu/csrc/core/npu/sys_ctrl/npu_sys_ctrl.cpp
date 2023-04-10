@@ -214,12 +214,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
 
     this->RegisterReleaseFn([=]() ->void {
-          c10_npu::NPUEventManager::GetInstance().ClearEvent();
-          auto stream = c10_npu::getCurrentNPUStream();
-          (void)aclrtDestroyStream(stream);
           C10_NPU_CHECK(ge::GEFinalize());
-          C10_NPU_CHECK(aclrtResetDevice(device_id_));
           C10_NPU_CHECK(aclFinalize());
+          C10_NPU_CHECK(aclrtResetDevice(device_id_));
         }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;
