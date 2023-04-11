@@ -109,7 +109,7 @@ class RegisterDispatchKeyCPU:
             # Note: We call gen_structured() if the operator is marked structured, regardless of the backend.
             # gen_structured() has special logic to handle auto-generated kernels.
             if g.structured:
-                return []
+                return self.gen_structured(g)
             else:
                 return list(map_maybe(lambda f: self.gen_unstructured(f, g), g.functions()))
         elif isinstance(f, NativeFunction):
@@ -524,7 +524,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 metadata = self.backend_index.get_kernel(self.g)
                 assert metadata is not None
                 class_name = f"structured_{metadata.kernel}_{k.name}"
-                parent_class = f"{self.cpp_namespace}::structured_{metadata.kernel}"
+                parent_class = f"at::native::structured_{metadata.kernel}"
 
             if is_cuda_dispatch_key(self.backend_index.dispatch_key):
                 device_check_args = itertools.chain(
@@ -534,23 +534,26 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 sig_body.append(
                     RegisterDispatchKeyCPU.gen_device_check(f.device_check, list(device_check_args), sig.name()))
 
+            trans_to_cpu_code, args_name = transfer_args_of_wrapper_func_to_cpu(sig, f)
+            sig_body.append(trans_to_cpu_code)
+
             if k is SchemaKind.functional:
                 sig_body.append(f"{class_name} op;")
             elif k is SchemaKind.inplace:
-                sig_body.append(f"{class_name} op(self);")
+                sig_body.append(f"{class_name} op(self_cpu);")
             elif k is SchemaKind.out:
-                out_args_str = ', '.join(a.name for a in f.func.arguments.out)
+                out_args_arr = []
+                for a in f.func.arguments.out:
+                    out_args_arr.append(f"{a.name}_cpu")
+                for arg in out_args_arr:
+                    if arg in args_name:
+                        args_name.remove(arg)
+                out_args_str = ', '.join(out_args_arr)
                 sig_body.append(f"{class_name} op({out_args_str});")
 
             # Translate the input native arguments into structured
             # arguments for the meta call
-            meta_exprs = ', '.join(
-                e.expr for e in translate(
-                    context,
-                    structured.meta_arguments(self.g),
-                    method=False
-                )
-            )
+            meta_exprs = ', '.join(args_name)
 
             if self.g.out.precomputed:
                 # If this function group has precomputed elements, the meta function
@@ -616,14 +619,17 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 # I didn't do it for this version
                 sig_body.append(f"at::{api_name}({out_exprs});")
             elif self.backend_index.dispatch_key != DispatchKey.Meta:
-                impl_exprs = ', '.join(
-                    e.expr for e in translate(
-                        context,
-                        structured.impl_arguments(self.g),
-                        method=False
-                    )
-                )
-                sig_body.append(f"op.impl({impl_exprs});")
+                impl_arr = [e.expr for e in translate(context,
+                                                        structured.impl_arguments(self.g),
+                                                        method=False)]
+                tmp_arr = []
+                for x in impl_arr:
+                    if '.' not in x and x not in args_name:
+                        tmp_arr.append(f"{x}_cpu")
+                    else:
+                        tmp_arr.append(f"{x}")
+
+                sig_body.append(f"op.impl({', '.join(tmp_arr)});")
 
             # Destructively return the final tensors
             # TODO: Do this in translate instead
@@ -641,7 +647,9 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     refs = ', '.join(a.name for a in f.func.arguments.out)
                     ret_expr = f"std::forward_as_tuple({refs})"
-            sig_body.append(f"return {ret_expr};")
+            
+            ret_code = transfer_ret_of_wrapper_func_to_xla(sig, ret_expr)
+            sig_body.append(f"{ret_code}")
 
             sig_body_str = "\n".join(sig_body)
 
