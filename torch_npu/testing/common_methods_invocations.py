@@ -1534,19 +1534,6 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_variant_consistency_eager' : (8, 18),
         },
-    ),  
-    # sum reductioninfo
-    OpInfo(
-        'symeig',
-        dtypes=_dispatch_dtypes((torch.float32, )),
-        dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_symeig,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float32]),
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32]),
-        ),
     ),    
     OpInfo(
         'take',
