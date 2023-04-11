@@ -127,6 +127,14 @@ def _new_full(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_ones(self, *args, **kwargs):
+    if args and isinstance(args[0], int):
+        list_args = list(args)
+        sizes = []
+        for item in list_args:
+            if not isinstance(item, int):
+                break
+            sizes.append(item)
+        args = tuple([tuple(sizes)] + list_args[len(sizes):])
     return torch_npu._C.new_ones(self, *args, **kwargs)
 
 
