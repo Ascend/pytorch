@@ -1077,6 +1077,69 @@ tocpu:
   - vdot
   - view_as_complex
   - view_as_real
+  - sinc.out
+  - gcd.out
+  - lcm.out 
+  - argmax.out
+  - argmin.out
+  - isposinf.out
+  - isneginf.out
+  - fmin
+  - fmin.out
+  - fmax
+  - fmax.out
+  - copysign.Tensor
+  - copysign_.Tensor
+  - copysign.out
+  - copysign.Scalar
+  - copysign_.Scalar
+  - matrix_exp
+  - _empty_affine_quantized
+  - _empty_per_channel_affine_quantized
+  - lgamma.out
+  - lgamma_
+  - lgamma
+  - digamma.out
+  - digamma
+  - polygamma.out
+  - igamma.out
+  - igamma
+  - igamma_
+  - igammac.out
+  - igammac
+  - igammac_
+  - i0.out
+  - signbit.out
+  - hypot.out
+  - hypot
+  - nextafter.out
+  - nextafter
+  - batch_norm_update_stats
+  - heaviside.out
+  - scatter_.reduce
+  - scatter_.value_reduce
+  - digamma_
+  - adaptive_max_pool3d.out
+  - adaptive_max_pool3d
+  - adaptive_max_pool3d_backward.grad_input
+  - adaptive_max_pool3d_backward
+  - fractional_max_pool3d.output
+  - fractional_max_pool3d
+  - fractional_max_pool3d_backward.grad_input
+  - fractional_max_pool3d_backward
+  - fractional_max_pool2d.output
+  - fractional_max_pool2d
+  - fractional_max_pool2d_backward.grad_input
+  - fractional_max_pool2d_backward
+  - reflection_pad1d_backward.grad_input
+  - reflection_pad1d_backward
+  - replication_pad3d.out
+  - replication_pad3d
+  - logit_backward.grad_input
+  - logit_backward
+  - orgqr.out
+  - orgqr
+  - _lu_with_info
 
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
