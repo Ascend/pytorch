@@ -17,9 +17,9 @@
 #include <torch/library.h>
 #include <c10/core/CPUAllocator.h>
 #include <ATen/EmptyTensor.h>
+
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-
 
 namespace at_npu {
 namespace native {

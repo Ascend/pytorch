@@ -25,6 +25,7 @@
 
 namespace at_npu {
 namespace native {
+
 using torch::autograd::Function;
 using torch::autograd::AutogradContext;
 using tensor_list = std::vector<at::Tensor>;
