@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <torch/csrc/autograd/custom_function.h>
-
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -137,7 +137,19 @@ public:
 at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt) {
-  return NPULinearFunction::apply(input, weight, bias_opt);
+  auto isAligin = [&]() {
+  return (!(static_cast<uint64_t>(input.size(0)) & 0x0000000F)) &&
+          (!(static_cast<uint64_t>(input.size(1)) & 0x0000000F)) &&
+          (!(static_cast<uint64_t>(weight.size(0)) & 0x0000000F)) &&
+          (!(static_cast<uint64_t>(weight.size(1)) & 0x0000000F));
+  };
+  static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
+  static bool is_support_nd_out = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+  at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd &&
+  ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(input, weight)) ||
+  (!is_support_nd_out && isAligin()))) ?
+      input : NPUNativeFunctions::npu_format_cast(input, ACL_FORMAT_FRACTAL_NZ);
+  return NPULinearFunction::apply(input_cast, weight, bias_opt);
 }
 
 } // namespace native
