@@ -20,6 +20,7 @@
 
 namespace at_npu {
 namespace native {
+
 bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src);
 void copy_kernel_npu(at::Tensor& self, const at::Tensor& src, bool non_blocking);
 void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSize=0);

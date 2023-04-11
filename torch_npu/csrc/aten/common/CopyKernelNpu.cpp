@@ -12,10 +12,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <c10/core/Scalar.h>
 #include <ATen/record_function.h>
-#include "torch_npu/csrc/core/npu/NPUStream.h"
 
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"

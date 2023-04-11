@@ -17,6 +17,7 @@
 #pragma once
 
 #include <ATen/ATen.h>
+
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"

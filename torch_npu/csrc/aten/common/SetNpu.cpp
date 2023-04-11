@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #pragma once
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <ATen/native/Resize.h>
@@ -25,6 +24,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+
 namespace at_npu {
 namespace native {
 
