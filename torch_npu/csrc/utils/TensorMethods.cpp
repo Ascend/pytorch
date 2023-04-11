@@ -330,23 +330,20 @@ static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args,
 static PyObject * THPVariable_record_stream(PyObject* self_, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
-  const at::Tensor& self = THPVariable_Unpack(self_);
-  static torch::PythonArgParser parser({
-    "record_stream(Stream s)",
-  }, /*tranceable=*/false);
-
-  torch::ParsedArgs<1> parsed_args;
+  static torch::PythonArgParser parser(
+      {
+          "record_stream(Tensor self, Stream s)",
+      },
+      false);
+  torch::ParsedArgs<2> parsed_args;
   auto _r = parser.parse(self_, args, kwargs, parsed_args);
+  const at::Tensor& self = _r.tensor(0);
   if (_r.has_torch_function()) {
-    return torch::handle_torch_function(_r, self_, args, kwargs, THPVariableClass, "torch.Tensor");
+    return torch::handle_torch_function(_r, args, kwargs, THPVariableClass, "torch.Tensor");
   }
-
-  auto dispath_recode_stream = [](const at::Tensor & self, at::Stream s) -> void {
-    pybind11::gil_scoped_release no_gil;
-    self.record_stream(s);
-  };
-
-  dispath_recode_stream(self, _r.stream(0));
+  struct c10::StreamData3 data = _r.stream(1).pack3();
+  c10_npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(),
+      c10_npu::NPUStream::unpack3(data.stream_id, data.device_index, data.device_type));
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -424,7 +421,7 @@ static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"to", castPyCFunctionWithKeywords(THPVariable_to), METH_VARARGS | METH_KEYWORDS, NULL},
   {"type", castPyCFunctionWithKeywords(THPVariable_type), METH_VARARGS | METH_KEYWORDS, NULL},
   {"is_npu", castPyCFunctionWithKeywords(THPVariable_is_npu), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"record_stream", (PyCFunction)(void(*)(void))THPVariable_record_stream, METH_VARARGS, NULL},
+  {"record_stream", castPyCFunctionWithKeywords(THPVariable_record_stream), METH_VARARGS | METH_KEYWORDS, NULL},
   {"new_empty", castPyCFunctionWithKeywords(THPVariable_new_empty), METH_VARARGS | METH_KEYWORDS, NULL},
   {"new_empty_strided", castPyCFunctionWithKeywords(THPVariable_new_empty_strided), METH_VARARGS | METH_KEYWORDS, NULL},
   {"new_full", castPyCFunctionWithKeywords(THPVariable_new_full), METH_VARARGS | METH_KEYWORDS, NULL},
