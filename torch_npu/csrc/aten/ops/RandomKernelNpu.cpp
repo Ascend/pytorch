@@ -84,44 +84,34 @@ at::Tensor& random_npu_(at::Tensor& self, int64_t from, int64_t to, c10::optiona
   return self;
 }
 
+int64_t get_max(const auto dtype) {
+  if (dtype == at::kHalf) {return RANDOM_HALF_MAX + 1;}
+  if (dtype == at::kFloat) {return RANDOM_FLOAT_MAX + 1;}
+  if (dtype == at::kDouble) {return RANDOM_DOUBLE_MAX + 1;}
+  if (dtype == at::kInt) {return INT_MAX;}
+  if (dtype == at::kShort) {return SHRT_MAX + 1;}
+  if (dtype == at::kChar) {return SCHAR_MAX + 1;}
+  if (dtype == at::kByte) {return UCHAR_MAX + 1;}
+  if (dtype == at::kLong) {return LONG_MAX;}
+  return 1;
+}
+
 at::Tensor& NPUNativeFunctions::random_(
     at::Tensor& self, int64_t from,
     c10::optional<int64_t> to,
     c10::optional<at::Generator> gen_) {
-  int64_t to_ = to.value();
+  int64_t to_ = to.has_value() ? to.value() : get_max(self.dtype());
   random_npu_(self, from, to_, gen_);
   return self;
 }
 
 at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, int64_t to, c10::optional<at::Generator> gen_) {
-  int64_t from = 0;
-  random_npu_(self, from, to, gen_);
+  random_npu_(self, 0, to, gen_);
   return self;
 }
 
 at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, c10::optional<at::Generator> gen_) {
-  int64_t from = 0;
-  int64_t to = 1;
-  
-  if (self.dtype() == at::kHalf) {
-    to = RANDOM_HALF_MAX + 1;
-  } else if (self.dtype() == at::kFloat) {
-    to = RANDOM_FLOAT_MAX + 1;
-  } else if (self.dtype() == at::kDouble) {
-    to = RANDOM_DOUBLE_MAX + 1;
-  } else if (self.dtype() == at::kInt) {
-    to = INT_MAX;
-  } else if (self.dtype() == at::kShort) {
-    to = SHRT_MAX + 1;
-  } else if (self.dtype() == at::kChar) {
-    to = SCHAR_MAX + 1;
-  } else if (self.dtype() == at::kByte) {
-    to = UCHAR_MAX + 1;
-  } else if (self.dtype() == at::kLong) {
-    to = LONG_MAX;
-  } 
-
-  random_npu_(self, from, to, gen_);
+  random_npu_(self, 0, get_max(self.dtype()), gen_);
 
   return self;
 }
