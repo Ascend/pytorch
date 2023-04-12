@@ -52,6 +52,7 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
+
 # Represent a source location; used for better error reporting
 @dataclass(frozen=True)
 class Location:
@@ -60,6 +61,7 @@ class Location:
 
     def __str__(self) -> str:
         return "{}:{}".format(self.file, self.line)
+
 
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
@@ -959,6 +961,11 @@ class FunctionSchema:
             returns=tuple(map(strip_ret_annotation, self.returns)),
         )
 
+    def has_symint(self) -> bool:
+        return self.arguments.has_symint_arg() or any(
+            r.type.is_symint_like() for r in self.returns
+        )
+
     def __str__(self) -> str:
         all_arguments_str = str(self.arguments)
         if len(self.returns) == 1:
@@ -1046,8 +1053,14 @@ class Type:
     # so we can conveniently generate legacy Declarations.yaml but
     # really we should probably just remove these at some point
 
+    def is_base_ty_like(self, base_ty: "BaseTy") -> bool:
+        raise NotImplementedError
+
     def is_tensor_like(self) -> bool:
         raise NotImplementedError
+
+    def is_symint_like(self) -> bool:
+        return self.is_base_ty_like(BaseTy.SymInt)
 
     def is_nullable(self) -> bool:
         raise NotImplementedError
@@ -1057,29 +1070,25 @@ class Type:
 
 
 # Base types are simple, atomic types with no further structure
-BaseTy = Enum(
-    "BaseTy",
-    (
-        "Generator",
-        "ScalarType",
-        "Tensor",
-        "int",
-        "Dimname",
-        "DimVector",
-        "float",
-        "str",
-        "bool",
-        "Layout",
-        "Device",
-        "Scalar",
-        "MemoryFormat",
-        "QScheme",
-        "Storage",
-        "Stream",
-        "SymInt",
-        "ConstQuantizerPtr",  # TODO: rename
-    ),
-)
+class BaseTy(Enum):
+    Generator = auto()
+    ScalarType = auto()
+    Tensor = auto()
+    int = auto()
+    Dimname = auto()
+    DimVector = auto()
+    float = auto()
+    str = auto()
+    bool = auto()
+    Layout = auto()
+    Device = auto()
+    Scalar = auto()
+    MemoryFormat = auto()
+    QScheme = auto()
+    Storage = auto()
+    Stream = auto()
+    SymInt = auto()
+    ConstQuantizerPtr = auto()  # TODO: rename
 
 
 @dataclass(frozen=True)
@@ -1088,6 +1097,9 @@ class BaseType(Type):
 
     def __str__(self) -> str:
         return f'{self.name.name}'
+
+    def is_base_ty_like(self, base_ty: BaseTy) -> bool:
+        return self.name == base_ty
 
     def is_tensor_like(self) -> bool:
         return self.name == BaseTy.Tensor
@@ -1110,8 +1122,14 @@ class OptionalType(Type):
     def __str__(self) -> str:
         return f'{self.elem}?'
 
+    def is_base_ty_like(self, base_ty: BaseTy) -> bool:
+        return self.elem.is_base_ty_like(base_ty)
+
     def is_tensor_like(self) -> bool:
         return self.elem.is_tensor_like()
+
+    def is_symint_like(self) -> bool:
+        return self.elem.is_symint_like()
 
     def is_nullable(self) -> bool:
         return True
@@ -1136,8 +1154,14 @@ class ListType(Type):
         size = f'{self.size}' if self.size else ''
         return f'{self.elem}[{size}]'
 
+    def is_base_ty_like(self, base_ty: BaseTy) -> bool:
+        return self.elem.is_base_ty_like(base_ty)
+
     def is_tensor_like(self) -> bool:
         return self.elem.is_tensor_like()
+
+    def is_symint_like(self) -> bool:
+        return self.elem.is_symint_like()
 
     def is_nullable(self) -> bool:
         return self.elem.is_nullable()
@@ -1366,6 +1390,9 @@ class Arguments:
             ret.append(self.tensor_options)
         ret.extend(self.post_tensor_options_kwarg_only)
         return ret
+
+    def has_symint_arg(self) -> bool:
+        return any(a.type.is_symint_like() for a in self.flat_non_out)
 
     def signature(self, *, strip_default: bool = False) -> 'Arguments':
         # dataclasses.replace could be used here, but it is less
