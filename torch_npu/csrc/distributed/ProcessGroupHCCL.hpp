@@ -98,6 +98,7 @@ public:
     // Helper function that checks if the HCCL have finished
     // execution on the NPUs
     bool finishedNPUExecution();
+    std::vector<at::Tensor> result() override;
 
   protected:
     // The cached list of NPU devices to operate on.
@@ -151,8 +152,17 @@ public:
     // exception_ptr.
     bool finishedNPUExecutionInternal() const;
 
+    // Get a Future object that will be marked as completed internally.
+    c10::intrusive_ptr<c10::ivalue::Future> getFuture() override;
+
+    // Store a reference to HCCL collective's outputs, used by result and to
+    // give a more descriptive message when representing the Work as a string.
+    std::shared_ptr<std::vector<at::Tensor>> outputs_;
+
     // Temporarily not implemented
     // std::shared_ptr<c10d::Store> store_;
+    // The future returned by getFuture.
+    c10::intrusive_ptr<at::ivalue::Future> future_;
 
     friend class ProcessGroupHCCL;
   };

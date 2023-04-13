@@ -870,7 +870,17 @@ void Reducer::all_reduce_bucket(Bucket& bucket) {
 
   auto variables_for_bucket = get_variables_for_bucket(next_bucket_, bucket);
   if (comm_hook_ == nullptr) {
-    bucket.work = process_group_->allreduce(tensors);
+    c10d::GradBucket grad_bucket(
+        next_bucket_,
+        buckets_.size(),
+        tensors[0],
+        // Since we only support single-process single-device
+        // mode, there is always only one replica in the bucket.
+        bucket.replicas[0].offsets,
+        bucket.replicas[0].lengths,
+        bucket.replicas[0].sizes_vec,
+        variables_for_bucket);
+    bucket.future_work = run_comm_hook(grad_bucket);
   } else {
     c10d::GradBucket grad_bucket(
         next_bucket_,
@@ -1481,10 +1491,20 @@ void Reducer::finalize_backward() {
     // See Note [DDP Communication Hook]
     if (comm_hook_ == nullptr) {
       TORCH_INTERNAL_ASSERT(
-          bucket.work,
+          bucket.future_work,
           "Expected bucket.work not to be null. "
           "This may indicate that allreduce hooks were not properly installed.");
-      bucket.work->wait();
+      bucket.future_work->wait();
+      auto future_result = 
+        c10d::detail::parseCppCommHookResult(bucket.future_work->value());
+      auto& replica = bucket.replicas[0];
+      if (bucket.expect_sparse_gradient) {
+        replica.contents.copy_(future_result);
+      } else {
+        // Reinitialize only `bucket_views_out` with the future_result by
+        // following the same logic in `initialize_buckets`.
+        populate_bucket_views_out(replica, future_result);
+      }
     } else {
       TORCH_INTERNAL_ASSERT(
           bucket.future_work,

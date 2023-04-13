@@ -315,6 +315,15 @@ bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
   return true;
 }
 
+c10::intrusive_ptr<c10::ivalue::Future> ProcessGroupHCCL::WorkHCCL::
+    getFuture() {
+  return future_;
+}
+
+std::vector<at::Tensor> ProcessGroupHCCL::WorkHCCL::result() {
+  return *outputs_;
+}
+
 ProcessGroupHCCL::ProcessGroupHCCL(
     const c10::intrusive_ptr<c10d::Store>& store,
     int rank,
@@ -599,6 +608,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
   syncStreams(devices, hcclEvents_[key], hcclStreams);
   // Work itself will create the events on all NPUs of tensors
   auto work = initWork(devices);
+  // Store references to outputs to be used by WorkHCCL::result and operator<<.
+  work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
   c10_npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams);
 
@@ -631,6 +642,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     }
   }
   post(hcclStreams);
+
+  {
+    c10_npu::NPUMultiStreamGuard guard(hcclStreams);
+    work->future_ = c10::make_intrusive<at::ivalue::Future>(
+        c10::ListType::create(c10::TensorType::get()),
+        devices);
+
+    work->future_->markCompleted(at::IValue(*work->outputs_));
+  }
 
   if (!c10_npu::NpuRunMode::IsGraphMode()) {
     for (size_t i = 0; i < inputs.size(); ++i) {
