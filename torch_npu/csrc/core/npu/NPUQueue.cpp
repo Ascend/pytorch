@@ -200,8 +200,8 @@ NPUStatus Repository::MakeSureQueueEmpty() {
           return INTERNEL_ERROR;
         }
       }
+      need_empty = false;
     }
-    need_empty = false;
   }
 
   // Get the GIL
