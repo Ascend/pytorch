@@ -29,13 +29,12 @@ class TestFloatStatus(TestCase):
         float_status = torch_npu.npu_alloc_float_status(input1)
         local_float_status = torch_npu.npu_get_float_status(float_status)
 
-        self.assertTrue(float_status.cpu()[0] != 0)
+        self.assertTrue(local_float_status.cpu()[0] != 0)
         cleared_float_status = torch_npu.npu_clear_float_status(local_float_status)
-        print("test_float_status overflow!!!")
         input1 = torch.zeros(8).npu()
         float_status = torch_npu.npu_alloc_float_status(input1)
         local_float_status = torch_npu.npu_get_float_status(float_status)
-        self.assertTrue(float_status.cpu()[0] == 0)
+        self.assertTrue(local_float_status.cpu()[0] == 0)
 
 
 if __name__ == "__main__":

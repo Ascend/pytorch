@@ -30,7 +30,7 @@ bool NPUNativeFunctions::_amp_foreach_non_finite_check_(at::TensorList scaled_gr
     at::Tensor float_status = at::zeros({FLOAT_STATUS_OP_DIMS_SIZE}, options);
     auto ans = NPUNativeFunctions::npu_get_float_status(float_status);
 
-    auto result = float_status[0].item().to<bool>();
+    auto result = ans[0].item().to<bool>();
 
     if(result == true) {
         auto ans_clear = NPUNativeFunctions::npu_clear_float_status(float_status);
