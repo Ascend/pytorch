@@ -270,4 +270,32 @@ private:
   c10::impl::InlineOptionalStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
 };
 
+/// A variant of MultiStreamGuard that is specialized for NPU.
+struct NPUMultiStreamGuard {
+  explicit NPUMultiStreamGuard(at::ArrayRef<NPUStream> streams)
+      : guard_(unwrapStreams(streams)) {}
+
+  /// Copy is disallowed
+  NPUMultiStreamGuard(const NPUMultiStreamGuard&) = delete;
+  NPUMultiStreamGuard& operator=(const NPUMultiStreamGuard&) = delete;
+
+  // See Note [Move construction for RAII guards is tricky]
+  NPUMultiStreamGuard(NPUMultiStreamGuard&& other) = delete;
+
+  // See Note [Move assignment for RAII guards is tricky]
+  NPUMultiStreamGuard& operator=(NPUMultiStreamGuard&& other) = delete;
+
+ private:
+  c10::impl::InlineMultiStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
+
+  static std::vector<c10::Stream> unwrapStreams(at::ArrayRef<NPUStream> NPUStreams) {
+    std::vector<c10::Stream> streams;
+    streams.reserve(NPUStreams.size());
+    for (const NPUStream& NPUStream : NPUStreams) {
+      streams.push_back(NPUStream);
+    }
+    return streams;
+  }
+};
+
 } // namespace c10_npu
