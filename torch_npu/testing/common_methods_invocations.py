@@ -951,7 +951,6 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.bool, )),
         supports_autograd=False,
     ),  
-    # np.int8 np.int32 np.uint8 np.float16 np.float32 np.bool
     UnaryUfuncInfo(
         'logical_not',
         dtypes=_dispatch_dtypes((torch.bool, )),
@@ -1330,7 +1329,6 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_view_reshape,
         supports_out=False,
     ),
-    # np
     OpInfo(
         'roll',
         dtypes=_dispatch_dtypes((torch.float16, torch.float32)),
@@ -1648,7 +1646,9 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.int16, torch.int32, torch.float64, torch.float32)),
         supports_out=False,
         sample_inputs_func=common_methods_invocations.sample_inputs_vsplit,
-        skips=(DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',))
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness'),
+        ),
     ),
     OpInfo(
         'where',

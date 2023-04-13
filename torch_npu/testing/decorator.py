@@ -91,7 +91,7 @@ def gen_ops_testcase(cls, func, name, keys, value, op_info):
     new_func = partialmethod(func, **new_kwargs)
 
     setattr(cls, test_name, new_func)
-    for decorator in op_info.get_decorators(cls.__name__, func.__name__, 'cpu', value[0]):
+    for decorator in op_info.get_decorators(cls.__name__, func.__name__, 'cpu', value[0], {}):
         setattr(cls, test_name, decorator(new_func))
 
 
