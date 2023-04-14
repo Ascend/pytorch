@@ -915,6 +915,22 @@ ACL_FUNC_VISIBILITY aclError aclrtDestroyStream(aclrtStream stream);
 
 /**
  * @ingroup AscendCL
+ * @brief destroy stream instance by force
+ *
+ * @par Function
+ * Can only destroy streams created through the aclrtCreateStream interface
+ *
+ * @param stream [IN]  the stream to destroy
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ *
+ * @see aclrtCreateStream
+ */
+ACL_FUNC_VISIBILITY aclError aclrtDestroyStreamForce(aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
  * @brief block the host until all tasks
  * in the specified stream have completed
  *
