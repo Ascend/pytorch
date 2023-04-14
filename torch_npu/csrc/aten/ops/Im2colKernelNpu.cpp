@@ -169,24 +169,5 @@ at::Tensor NPUNativeFunctions::im2col(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::col2im_backward(
-    const at::Tensor &self, 
-    at::IntArrayRef kernel_size, 
-    at::IntArrayRef dilation,
-    at::IntArrayRef padding, 
-    at::IntArrayRef stride) {
-  return im2col(self, kernel_size, dilation, padding, stride);
-}
-
-at::Tensor& NPUNativeFunctions::col2im_backward_out(
-    const at::Tensor &self, 
-    at::IntArrayRef kernel_size,
-    at::IntArrayRef dilation,
-    at::IntArrayRef padding, 
-    at::IntArrayRef stride, 
-    at::Tensor& result) {
-  return im2col_out(self, kernel_size, dilation, padding, stride, result);
-}
-
 } // namespace native
 } // namespace at_npu

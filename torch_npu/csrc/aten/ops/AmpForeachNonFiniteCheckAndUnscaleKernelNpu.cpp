@@ -23,7 +23,7 @@ namespace native {
 
 const int FLOAT_STATUS_OP_DIMS_SIZE = 8;
 
-bool NPUNativeFunctions::_amp_foreach_non_finite_check_(at::TensorList scaled_grads) {
+bool NPUNativeFunctions::_amp_foreach_non_finite_check(at::TensorList scaled_grads) {
     TORCH_WARN_ONCE("Non finite check on NPU device!");
 
     auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
@@ -51,7 +51,7 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
         return;
     }
 
-    if (NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads) == 0) {
+    if (NPUNativeFunctions::_amp_foreach_non_finite_check(scaled_grads) == 0) {
         auto expected_device = scaled_grads[0].device();
         auto expected_dtype = scaled_grads[0].dtype();
         for (auto t : scaled_grads) {

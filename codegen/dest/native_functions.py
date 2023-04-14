@@ -18,10 +18,10 @@ from typing import List, Union, Optional
 
 from codegen.context import with_native_function_and_index
 from torchgen.utils import mapMaybe
-from codegen.model import NativeFunction, NativeFunctionsGroup, BackendIndex
-from codegen.api.signature import kernel_signature
+from torchgen.model import NativeFunction, NativeFunctionsGroup, BackendIndex
+from torchgen.api.types import kernel_signature
 import torchgen.api.meta as meta
-import codegen.api.structured as structured
+import torchgen.api.structured as structured
 
 @with_native_function_and_index
 def gen_unstructured(f: NativeFunction, backend_index: BackendIndex) -> Optional[str]:

@@ -146,13 +146,13 @@ at::Tensor NPUNativeFunctions::as_strided(
   return result;
 }
 
-const at::Tensor& NPUNativeFunctions::as_strided_(
+const at::Tensor& NPUNativeFunctions::as_strided__symint(
     const at::Tensor& self,
-    c10::IntArrayRef size,
-    c10::IntArrayRef stride,
-    c10::optional<int64_t> storage_offset_) {
+    c10::SymIntArrayRef size,
+    c10::SymIntArrayRef stride,
+    c10::optional<c10::SymInt> storage_offset_) {
   at::Tensor result = self;
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, size)) {
+  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, c10::asIntArrayRefUnchecked(size))) {
     result = FormatCastHelper::CovertSelfToBaseFormat(result);
   }
   auto storage_offset = storage_offset_.value_or(result.storage_offset());

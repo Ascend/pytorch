@@ -18,11 +18,11 @@ from dataclasses import dataclass
 from typing import Optional, Union, Sequence, Set, List, Dict, Tuple
 
 from torchgen.api.types import Binding
-from codegen.api.signature import CppSignature, CppSignatureGroup
-from codegen.api import cpp
-from codegen.model import (Argument, BaseTy, BaseType, ListType,
-                           NativeFunction, OptionalType, Return, Type,
-                           Variant)
+from torchgen.api.types import CppSignature, CppSignatureGroup
+from torchgen.api import cpp
+from torchgen.model import (Argument, BaseTy, BaseType, ListType,
+                            NativeFunction, OptionalType, Return, Type,
+                            Variant)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 #
@@ -680,7 +680,7 @@ def argument(a: Argument) -> PythonArgument:
         name=a.name,
         type=a.type,
         # TODO: directly translate a.default to python default
-        default=str(pythonify_default(cpp.default_expr(a.default, a.type)))
+        default=str(pythonify_default(cpp.default_expr(a.default, a.type, symint=False)))
         if a.default is not None else None,
         default_init=None,
     )

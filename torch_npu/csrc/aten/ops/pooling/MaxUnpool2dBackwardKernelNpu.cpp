@@ -18,7 +18,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::max_unpool2d_backward_out(
+at::Tensor& max_unpool2d_backward_out(
     const at::Tensor& gradOutput,
     const at::Tensor& self,
     const at::Tensor& indices,
@@ -63,7 +63,7 @@ at::Tensor& NPUNativeFunctions::max_unpool2d_backward_out(
   gradInput = gradInput.reshape({n, c, h * w});
   const int dim = 2;
   
-  gradInput = gather_out(gradOutputContiguous, dim, indicesContiguous, false, gradInput);
+  gradInput = NPUNativeFunctions::gather_out(gradOutputContiguous, dim, indicesContiguous, false, gradInput);
   if (selfDim == 3) {
     gradInput = gradInput.reshape({c, h, w});
   } else { 
@@ -72,7 +72,7 @@ at::Tensor& NPUNativeFunctions::max_unpool2d_backward_out(
   return gradInput;
 }
 
-at::Tensor NPUNativeFunctions::max_unpool2d_backward(
+at::Tensor max_unpool2d_backward(
     const at::Tensor& gradOutput,
     const at::Tensor& self,
     const at::Tensor& indices,

@@ -23,7 +23,7 @@ from typing import (List, Dict, Optional, Set, Callable, Any,
 from collections import defaultdict
 
 from torchgen.code_template import CodeTemplate
-from codegen.model import (FunctionSchema, NativeFunction,
+from torchgen.model import (FunctionSchema, NativeFunction,
                            NativeFunctionsGroup, OperatorName,
                            SchemaKind, assert_never)
 from torchgen.utils import concatMap

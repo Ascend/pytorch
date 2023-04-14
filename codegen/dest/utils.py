@@ -17,9 +17,9 @@ from typing import Tuple, List
 
 from torchgen.api.types import (BaseCType, TupleCType, OptionalCType, BaseCppType)
 
-from codegen.api.signature import DispatcherSignature, NativeSignature
-from codegen.model import SchemaKind, NativeFunction
-from codegen.api.native import arguments
+from torchgen.api.types import DispatcherSignature, NativeSignature
+from torchgen.model import SchemaKind, NativeFunction
+from torchgen.api.native import arguments
 
 backend = None
 
@@ -31,7 +31,7 @@ def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeF
                    f"return true; \n  " \
                    f"}}();  \n  "
     args_names: List[str] = []
-    args = arguments(sig.func)
+    args = arguments(sig.func, symint=sig.symint)
     for arg in args:
         arg_type = str(arg.type)
         if 'Tensor' not in arg_type:

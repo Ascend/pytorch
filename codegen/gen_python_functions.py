@@ -28,7 +28,8 @@ from typing import Dict, Optional, List, Tuple, Set, Sequence, Callable
 
 import yaml
 from torchgen.code_template import CodeTemplate
-from codegen.api import cpp
+from torchgen.gen import parse_tags_yaml, LineLoader
+from torchgen.api import cpp
 from codegen.api.python import (PythonSignature,
                                 PythonSignatureGroup,
                                 PythonSignatureNativeFunctionPair,
@@ -43,12 +44,11 @@ from codegen.api.python import (PythonSignature,
                                 namedtuple_fieldnames, signature)
 from codegen.gen import cpp_string, FileManager, error_check_native_functions
 from codegen.context import with_native_function
-from codegen.model import (BaseOperatorName, NativeFunction,
-                           Type, Variant, BackendIndex,
+from torchgen.model import (BaseOperatorName, NativeFunction, BackendMetadata,
+                           Type, Variant, BackendIndex, Location,
                            DispatchKey, OperatorName)
-from torchgen.model import BackendMetadata
 from torchgen.utils import context
-
+from codegen.utils import get_torchgen_dir
 
 # These functions require manual Python bindings or are not exposed to Python
 _SKIP_PYTHON_BINDINGS = [
@@ -104,7 +104,8 @@ def should_trace(f: NativeFunction) -> bool:
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 
 
-def parse_custom_yaml(custom_path: str) -> ParsedYaml:
+def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
+    valid_tags = parse_tags_yaml(tag_path)
     rs: List[NativeFunction] = []
     bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
     # Filter the custom native yaml file, and extract the functions we defined.
@@ -124,11 +125,12 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
             f_str.write(line)
 
     f_str.seek(0)
-    custom_es = yaml.safe_load(f_str)
+    custom_es = yaml.load(f_str, Loader=LineLoader)
     for e_with_vars in custom_es:
         funcs = e_with_vars.get('func')
-        with context(lambda: f'in {custom_path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e_with_vars)
+        loc = Location(custom_path, e_with_vars["__line__"])
+        with context(lambda: f'in {loc}:\n  {funcs}'):
+            func, m = NativeFunction.from_yaml(e_with_vars, loc, valid_tags)
             func.variants.discard(Variant.method)
             rs.append(func)
             BackendIndex.grow_index(bs, m)
@@ -139,15 +141,16 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
         dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, index={}))
     for k, v in bs.items():
         # All structured in-tree operators are implemented in terms of their out operator.
-        indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, index=v)
+        indices[k] = BackendIndex(dispatch_key=k,
+                                  use_out_as_primary=True,
+                                  external=False,
+                                  device_guard=False,
+                                  index=v)
     return ParsedYaml(rs, indices)
 
 
 @with_native_function
 def should_generate_py_binding(f: NativeFunction) -> bool:
-    if os.environ.get('BSCPP_OPS_ENABLE') is None and f.bscpp_op:
-        return False
-
     name = cpp.name(f.func)
     for skip_regex in SKIP_PYTHON_BINDINGS:
         if skip_regex.match(name):
@@ -649,37 +652,6 @@ return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad
     return go(f)
 
 
-# Parse native_functions.yaml into a sequence of NativeFunctions
-def parse_native_yaml(path: str) -> List[NativeFunction]:
-    from io import StringIO
-    f_str = StringIO()
-    with open(path, 'r') as f:
-        for line in f:
-            f_str.write(line)
-    f_str.seek(0)
-    es = yaml.safe_load(f_str)
-    assert isinstance(es, list)
-    rs: List[NativeFunction] = []
-    with_device_base_operator = set()
-
-    for e in es:
-        funcs = e.get('func')
-        with context(lambda: f'in {path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e)
-            if "Device" in funcs:
-                with_device_base_operator.add(func.func.name.name.base)
-
-    for e in es:
-        funcs = e.get('func')
-        with context(lambda: f'in {path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e)
-            if func.func.name.name.base not in with_device_base_operator:
-                continue
-            func.variants.discard(Variant.method)
-            rs.append(func)
-    return rs
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate functions binding files')
     parser.add_argument(
@@ -687,17 +659,16 @@ if __name__ == "__main__":
         '--source_yaml',
         help='path to source yaml file containing operator external definitions')
     parser.add_argument(
-        '-n',
-        '--native_yaml',
-        help='path to native yaml file containing operator external definitions with device arugment')
-    parser.add_argument(
         '-o', '--output_dir', help='output directory')
     parser.add_argument(
         '-t', '--template_path', type=str, default=None, help='path of the templates')
     options = parser.parse_args()
 
+    torchgen_path = get_torchgen_dir()
+    tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
+
     file_manager = FileManager(install_dir=options.output_dir, template_dir=options.template_path, dry_run=False)
-    parsed_native_functions = parse_custom_yaml(options.source_yaml).native_functions
+    parsed_native_functions = parse_custom_yaml(options.source_yaml, tags_yaml_path).native_functions
     valid_native_functions = list(filter(should_generate_py_binding, parsed_native_functions))
 
     functions = load_signatures(valid_native_functions, method=False)

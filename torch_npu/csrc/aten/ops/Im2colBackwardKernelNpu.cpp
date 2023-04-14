@@ -50,14 +50,14 @@ at::Tensor& im2col_backward_out_npu_nocheck(
   return grad_input;
 }
 
-at::Tensor& NPUNativeFunctions::im2col_backward_out(
+at::Tensor& NPUNativeFunctions::col2im_out(
     const at::Tensor& grad_output,
     at::IntArrayRef input_size,
     at::IntArrayRef kernel_size,
     at::IntArrayRef dilation,
     at::IntArrayRef padding,
     at::IntArrayRef stride,
-    at::Tensor& grad_input) {
+    at::Tensor& grad_input){
   at::Tensor grad_output_cp = grad_output.dim() == 2 ? at::unsqueeze(grad_output, 0) : grad_output;
   c10::SmallVector<int64_t, SIZE> output_size = {
     grad_output_cp.size(0),
@@ -82,7 +82,7 @@ at::Tensor& NPUNativeFunctions::im2col_backward_out(
   return grad_input;
 }
 
-at::Tensor NPUNativeFunctions::im2col_backward(
+at::Tensor NPUNativeFunctions::col2im(
     const at::Tensor& grad_output,
     at::IntArrayRef input_size,
     at::IntArrayRef kernel_size,
@@ -109,40 +109,6 @@ at::Tensor NPUNativeFunctions::im2col_backward(
     grad_input = at::squeeze(grad_input, 0);
   }
   return grad_input;
-}
-
-at::Tensor& NPUNativeFunctions::col2im_out(
-    const at::Tensor& grad_output,
-    at::IntArrayRef input_size,
-    at::IntArrayRef kernel_size,
-    at::IntArrayRef dilation,
-    at::IntArrayRef padding,
-    at::IntArrayRef stride,
-    at::Tensor& grad_input){
-  return im2col_backward_out(
-      grad_output,
-      input_size,
-      kernel_size,
-      dilation,
-      padding,
-      stride,
-      grad_input);
-}
-
-at::Tensor NPUNativeFunctions::col2im(
-    const at::Tensor& grad_output,
-    at::IntArrayRef input_size,
-    at::IntArrayRef kernel_size,
-    at::IntArrayRef dilation,
-    at::IntArrayRef padding,
-    at::IntArrayRef stride) {
-  return im2col_backward(
-      grad_output,
-      input_size,
-      kernel_size,
-      dilation,
-      padding,
-      stride);
 }
 
 } // namespace native
