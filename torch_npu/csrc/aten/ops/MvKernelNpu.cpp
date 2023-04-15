@@ -37,7 +37,6 @@ namespace at_npu
           .Input(vecT)
           .Attr("transpose_x1", isSelfT)
           .Attr("transpose_x2", false)
-          .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
           .Output(result)
           .Run();
 
