@@ -123,12 +123,13 @@ at::Tensor& set_format_npu_(
 
 at::Tensor& NPUNativeFunctions::set_(at::Tensor& self) {
   caffe2::TypeMeta dtype = self.dtype();
-  c10::Storage storage(
-      c10::Storage::use_byte_size_t(),
-      0,
-      c10_npu::NPUCachingAllocator::get(),
-      true);
-
+  c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+          c10::StorageImpl::use_byte_size_t(),
+          0,
+          c10_npu::NPUCachingAllocator::get()->allocate(0),
+          c10_npu::NPUCachingAllocator::get(),
+          true);
+  c10::Storage storage(npu_storage_impl);
   set_storage_npu_(self, storage, 0, {0}, {});
   StorageDescHelper::SetDesc(self);
   TORCH_INTERNAL_ASSERT(dtype == self.dtype());

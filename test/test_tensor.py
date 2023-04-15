@@ -14,8 +14,9 @@
 
 import itertools
 import torch
-import torch_npu
+from torch.testing import make_tensor
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
@@ -32,8 +33,8 @@ class TestTensor(TestCase):
             self.assertEqual(sz, y.size())
 
     def test_tensor_set(self):
-        t1 = torch.Tensor()
-        t2 = torch.Tensor(3, 4, 9, 10).uniform_()
+        t1 = torch.Tensor().npu()
+        t2 = torch.Tensor(3, 4, 9, 10).uniform_().npu()
         t1.set_(t2)
         self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
         size = torch.Size([9, 3, 4, 10])
@@ -50,7 +51,7 @@ class TestTensor(TestCase):
         self.assertEqual(t1.stride(), stride)
 
         # test argument names
-        t1 = torch.Tensor()
+        t1 = torch.Tensor().npu()
         # 1. case when source is tensor
         t1.set_(source=t2)
         self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
@@ -62,10 +63,30 @@ class TestTensor(TestCase):
         self.assertEqual(t1.size(), size)
         self.assertEqual(t1.stride(), stride)
 
-        t1 = torch.tensor([True, True], dtype=torch.bool)
-        t2 = torch.tensor([False, False], dtype=torch.bool)
+        t1 = torch.tensor([True, True], dtype=torch.bool).npu()
+        t2 = torch.tensor([False, False], dtype=torch.bool).npu()
         t1.set_(t2)
         self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
+
+    @Dtypes(torch.half, torch.float)
+    def test_set_storage(self, dtype):
+        device = torch.device("npu")
+        a = make_tensor((4, 5, 3), dtype=dtype, device=device, low=-9, high=9)
+        a_s = a.storage()
+        b = torch.tensor([], device=device, dtype=dtype).set_(a_s).reshape(a.size())
+        self.assertEqual(a, b)
+        c = torch.tensor([], device=device, dtype=dtype).set_(a_s.untyped()).reshape(a.size())
+        self.assertEqual(a, c)
+
+        x = torch.randn((1, 2, 3), dtype=dtype, device=device)
+        def inplace():
+            y = torch.randn((1, 2, 3), dtype=dtype, device=device)
+            return y
+
+        inplace().set_()
+        inplace().set_(x)
+        inplace().set_(x.storage())
+        inplace().set_(x.storage(), x.storage_offset(), x.size(), x.stride())
 
     @Dtypes(torch.half, torch.float)
     def test_cat_all_dtypes_and_devices(self, device, dtype):

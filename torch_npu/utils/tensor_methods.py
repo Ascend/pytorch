@@ -69,24 +69,6 @@ def _is_npu(self):
     return torch_npu._C.is_npu(self)
 
 
-class NpuStorage(object):
-
-    def __init__(self, size):
-        self._size = size
-
-    def size(self):
-        return self._size
-
-
-storage_impl = torch.Tensor.storage
-
-def _storage(self):
-    if torch_npu._C.is_npu(self):
-        return NpuStorage(torch_npu.get_storage_size(self))
-
-    return storage_impl(self)
-
-
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
     torch.Tensor.npu_format_cast = npu_format_cast
@@ -97,5 +79,4 @@ def add_tensor_methods():
     torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
     torch.Tensor.npu = _npu
     torch.Tensor.is_npu = _is_npu
-    torch.Tensor.storage = _storage
     torch.Tensor.__reduce_ex__ = _reduce_ex
