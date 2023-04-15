@@ -23,7 +23,6 @@ namespace at_npu
 {
   namespace native
   {
-
     at::Tensor &NPUNativeFunctions::mv_out(const at::Tensor &self, const at::Tensor &vec, at::Tensor &result)
     {
       OpPreparation::CheckOut(

@@ -40,7 +40,6 @@ at::Tensor& baddbmm_nocheck(
      .Output(BatchMatMulTensor)
      .Attr("adj_x1", isSelfT)
      .Attr("adj_x2", isMat2T)
-     .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
      .Run();
 
   at::Tensor alphaMulTensor = NPUNativeFunctions::mul(BatchMatMulTensor, alpha);
