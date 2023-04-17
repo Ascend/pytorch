@@ -149,7 +149,7 @@ static struct PyMemberDef THNPStream_members[] = {
   {(char*)"device_type", T_ULONGLONG, offsetof(THNPStream, device_type), READONLY, nullptr},
   {(char*)"device_index", T_ULONGLONG, offsetof(THNPStream, device_index), READONLY, nullptr},
   {nullptr}
-  };
+};
 
 static struct PyGetSetDef THNPStream_properties[] = {
   {"device", (getter)THNPStream_get_device, nullptr, nullptr, nullptr},
