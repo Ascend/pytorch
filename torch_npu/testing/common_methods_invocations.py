@@ -951,7 +951,6 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.bool, )),
         supports_autograd=False,
     ),  
-    # np.int8 np.int32 np.uint8 np.float16 np.float32 np.bool
     UnaryUfuncInfo(
         'logical_not',
         dtypes=_dispatch_dtypes((torch.bool, )),
