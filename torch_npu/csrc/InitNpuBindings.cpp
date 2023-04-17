@@ -64,7 +64,14 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
     } catch (std::exception& e) {
       NPU_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
     }
-
+    at_npu::native::GraphExecutor::GetInstance().Finalize();
+    at_npu::native::TdtChannelForPrint::GetInstance().Finalize();
+    THNPUCachingHostAllocator_emptyCache();
+    try {
+      c10_npu::NPUCachingAllocator::emptyCache();
+    } catch (std::exception& e) {
+      NPU_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
+    }
     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
     if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
       fprintf(stdout, "THPModule_npu_shutdown failed.\n");
