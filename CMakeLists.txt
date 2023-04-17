@@ -146,11 +146,6 @@ include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
 
-if (NOT DEFINED BUILD_LIBTORCH)
-include_directories(${PROJECT_SOURCE_DIR}/patch/include)
-include_directories(${PROJECT_SOURCE_DIR}/patch/include/torch/csrc/distributed)
-endif()
-
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
   include_directories(${PYTORCH_INSTALL_DIR}/include)
