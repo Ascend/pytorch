@@ -41,7 +41,11 @@ bool AicoreValid(at::Tensor& self, const at::Tensor& src) {
 
   // count the difference between dst_storage and dst_size.
   int diff = dst_storage_size_len - self_size_len;
-  if (diff < 0 || diff > 1) {
+  if (diff == 1) {
+    return true;
+  }
+
+  if (diff != 0) {
     return false;
   }
 
