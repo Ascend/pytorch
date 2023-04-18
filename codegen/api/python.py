@@ -680,7 +680,7 @@ def argument_type_str(
             # Is it desired to keep '?' for simple_type with new style dispatcher?
             return 'Tensor?'
         elem = argument_type_str(t.elem, simple_type=simple_type, symint=symint)
-        return 'Layout' if elem == 'Layout' else f'{elem}?'
+        return f'{elem}?'
 
     elif isinstance(t, ListType):
         ret = list_type_str(t, simple_type)
@@ -758,33 +758,44 @@ def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> 
 
     tensor_options_args: List[PythonArgument] = []
     if is_factory_function or is_like_or_new_func:
+
+        def topt_default_init(name: str) -> Optional[str]:
+            topt_args = f.func.arguments.tensor_options
+            if topt_args is None:
+                return None
+            a = getattr(topt_args, name)
+            if a.default is None or a.default == "None":
+                return None
+            return cpp.default_expr(a.default, a.type)
+
         tensor_options_args.append(PythonArgument(
             name='dtype',
-            type=BaseType(BaseTy.ScalarType),
-            default='None' if pyi else _dtype_default_type_hack(name),
-            default_init='self.scalar_type()' if is_like_or_new_func else None,
+            type=OptionalType(BaseType(BaseTy.ScalarType)),
+            default='None',
+            default_init='self.scalar_type()' if is_like_or_new_func else topt_default_init('dtype'),
         ))
         tensor_options_args.append(PythonArgument(
             name='layout',
             type=OptionalType(BaseType(BaseTy.Layout)),
-            default='strided' if pyi else 'torch.strided',
-            default_init='self.layout()' if is_like_or_new_func else None,
+            default='None',
+            default_init='self.layout()' if is_like_or_new_func else topt_default_init('layout'),
         ))
         tensor_options_args.append(PythonArgument(
             name='device',
-            type=BaseType(BaseTy.Device),
+            type=OptionalType(BaseType(BaseTy.Device)),
             default='None',
-            default_init='self.device()' if is_like_or_new_func else None,
+            default_init='self.device()' if is_like_or_new_func else (topt_default_init('device') or 
+                                                                      'torch::tensors::get_default_device()'),
         ))
         tensor_options_args.append(PythonArgument(
             name='pin_memory',
-            type=BaseType(BaseTy.bool),
+            type=OptionalType(BaseType(BaseTy.bool)),
             default='False',
             default_init=None,
         ))
         tensor_options_args.append(PythonArgument(
             name='requires_grad',
-            type=BaseType(BaseTy.bool),
+            type=OptionalType(BaseType(BaseTy.bool)),
             default='False',
             default_init=None,
         ))
@@ -1200,11 +1211,11 @@ def arg_parser_output_exprs(
 
 # argument name to type for scattered tensor options fields
 TENSOR_OPTIONS_FIELDS = {
-    'dtype': 'ScalarType',
-    'device': 'Device',
-    'layout': 'Layout?',
-    'pin_memory': 'bool',
-    'requires_grad': 'bool',
+    "dtype": "ScalarType?",
+    "device": "Device?",
+    "layout": "Layout?",
+    "pin_memory": "bool?",
+    "requires_grad": "bool?",
 }
 
 
