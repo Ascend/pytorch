@@ -556,18 +556,6 @@ def _normbase__load_from_state_dict(self, state_dict, prefix, local_metadata, st
         missing_keys, unexpected_keys, error_msgs)
 
 
-def _get_stream(device: int):
-    """Gets a background stream for copying between CPU and NPU"""
-    global _streams
-    if device == -1:
-        return None
-    if _streams is None:
-        _streams = [None] * torch.npu.device_count()
-    if _streams[device] is None:
-        _streams[device] = torch.npu.Stream(device)
-    return _streams[device]
-
-
 def _lazynormbase__init__(self, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True,
                           device=None, dtype=None) -> None:
     factory_kwargs = {'device': device, 'dtype': dtype}
@@ -605,4 +593,3 @@ def apply_module_patch():
     torch.nn.modules.batchnorm._NormBase.__init__ = _normbase_init_
     torch.nn.modules.batchnorm._NormBase._load_from_state_dict = _normbase__load_from_state_dict
     torch.nn.modules.batchnorm._LazyNormBase.__init__ = _lazynormbase__init__
-    torch.nn.parallel._functions._get_stream = _get_stream
