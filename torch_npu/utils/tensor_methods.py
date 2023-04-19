@@ -77,6 +77,4 @@ def add_tensor_methods():
     torch.Tensor.copy_memory_ = copy_memory_
     torch.Tensor.one_ = one_
     torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
-    torch.Tensor.npu = _npu
-    torch.Tensor.is_npu = _is_npu
     torch.Tensor.__reduce_ex__ = _reduce_ex

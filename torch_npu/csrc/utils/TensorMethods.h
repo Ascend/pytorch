@@ -41,7 +41,5 @@ namespace utils {
 
 const char* _backend_to_string_npu(const at::Backend& backend);
 
-PyMethodDef* tensor_functions();
-
 }
 }

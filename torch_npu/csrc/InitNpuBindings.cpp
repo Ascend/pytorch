@@ -109,7 +109,6 @@ PyObject* initModule(){
   AddPyMethodDefs(methods, THNPModule_get_methods());
   AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
-  AddPyMethodDefs(methods, torch_npu::utils::tensor_functions());
   AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
   AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
   static struct PyModuleDef torchnpu_module = {
