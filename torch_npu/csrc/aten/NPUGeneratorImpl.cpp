@@ -128,6 +128,24 @@ void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
   philox_offset_per_thread_ = 0;
 }
 
+/**
+ * Sets the offset to be used by curandStatePhilox4_32_10
+ *
+ * See Note [Acquire lock when using random generators]
+ */
+void NPUGeneratorImpl::set_offset(uint64_t offset) {
+  philox_offset_per_thread_ = offset;
+}
+
+/**
+ * Gets the current offset of NPUGeneratorImpl.
+ */
+uint64_t NPUGeneratorImpl::get_offset() const {
+  // Debatable if get_offset() should be allowed in captured regions.
+  // Conservatively disallow it for now.
+  return philox_offset_per_thread_;
+}
+
 #define CAPTURE_DEFAULT_GENS_MSG \
 "In regions captured by NPU graphs, you may only use the default NPU RNG " \
 "generator on the device that's current when capture begins. " \
