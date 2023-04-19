@@ -52,6 +52,7 @@ supported:
  - _log_softmax
  - _log_softmax_backward_data
  - _log_softmax_backward_data.out
+ - _native_batch_norm_legit
  - _nnpack_spatial_convolution
  - _pack_padded_sequence
  - _pad_packed_sequence
@@ -500,7 +501,6 @@ supported:
  - masked_select
  - masked_select.out
  - matmul
- - matmul_backward
  - matmul.out
  - max
  - max.dim
@@ -703,6 +703,7 @@ supported:
  - searchsorted.Scalar
  - searchsorted.Tensor
  - searchsorted.Tensor_out
+ - select_backward
  - set_
  - set_.source_Storage
  - set_.source_Storage_storage_offset
@@ -899,6 +900,7 @@ autograd:
   - binary_cross_entropy_with_logits_backward
   - selu
   - selu_
+  - matmul_backward
 
 tocpu:
   - angle

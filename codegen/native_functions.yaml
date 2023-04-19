@@ -838,6 +838,11 @@
 
 - func: bartlett_window.periodic(int window_length, bool periodic, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
 
+- func: _native_batch_norm_legit(Tensor input, Tensor? weight, Tensor? bias, Tensor(a!) running_mean, Tensor(b!) running_var, bool training, float momentum, float eps) -> (Tensor, Tensor, Tensor)
+  dispatch:
+    CPU: _batch_norm_legit_cpu
+    CUDA: _batch_norm_legit_cuda
+
 - func: batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool training, float momentum, float eps, bool cudnn_enabled) -> Tensor
 
 - func: quantized_batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor mean, Tensor var, float eps, float output_scale, int output_zero_point) -> Tensor
@@ -3818,12 +3823,12 @@
   dispatch:
     CompositeExplicitAutograd: select
 
-- func: select_backward(Tensor grad_output, int[] input_sizes, int dim, int index) -> Tensor
+- func: select_backward(Tensor grad_output, SymInt[] input_sizes, int dim, SymInt index) -> Tensor
   variants: function
   device_check: NoCheck
   device_guard: False
   dispatch:
-    CompositeExplicitAutograd: select_backward
+    CompositeExplicitAutograd: select_backward_symint
 
 - func: selu(Tensor self) -> Tensor
   device_check: NoCheck   # TensorIterator

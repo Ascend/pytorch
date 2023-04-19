@@ -830,5 +830,13 @@ at::Tensor NPUNativeFunctions::triu_indices(
   return result.reshape({2, triu_size});
 }
 
+at::Tensor NPUNativeFunctions::select_backward(
+    const at::Tensor& grad_output,
+    c10::SymIntArrayRef input_sizes,
+    int64_t dim,
+    c10::SymInt index) {
+  return at::native::select_backward_symint(grad_output, input_sizes, dim, index);
+}
+
 } // namespace native
 } // namespace at_npu

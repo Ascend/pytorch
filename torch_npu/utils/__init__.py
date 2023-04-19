@@ -26,6 +26,7 @@ from .storage import add_storage_methods
 from .fx import add_fx_methods
 from .checkpoint import add_checkpoint_methods
 from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_combined_tensor_valid
+from .dynamo import add_dynamo_patch
 
 serialization_patches = [
     ["save", save],
