@@ -423,10 +423,6 @@ supported:
  - kthvalue.dimname
  - kthvalue.dimname_out
  - kthvalue.values
- - l1_loss
- - l1_loss.out
- - l1_loss_backward
- - l1_loss_backward.grad_input
  - le.Scalar
  - le.Scalar_out
  - le.Tensor
@@ -901,6 +897,7 @@ autograd:
   - selu
   - selu_
   - matmul_backward
+  - l1_loss
 
 tocpu:
   - angle

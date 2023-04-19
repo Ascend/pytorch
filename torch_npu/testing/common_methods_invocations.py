@@ -1089,6 +1089,14 @@ op_db: List[OpInfo] = [
         ),
     ),
     OpInfo(
+        'nn.functional.l1_loss',
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32,)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_l1_loss,
+        formats=(2,),
+        supports_out=False,
+    ),
+    OpInfo(
         'nn.functional.mse_loss',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
