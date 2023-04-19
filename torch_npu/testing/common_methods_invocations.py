@@ -16,6 +16,7 @@
 
 from typing import List
 from functools import partial
+from itertools import product
 import unittest
 
 import torch
@@ -25,6 +26,7 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 UnaryUfuncInfo as Of_UnaryUfuncInfo,
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
                                                                 DecorateInfo,
+                                                                SampleInput,
                                                                 wrapper_set_seed,
                                                                 sample_inputs_normal_common,
                                                                 sample_inputs_binary_cross_entropy_with_logits)
@@ -106,6 +108,24 @@ def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwa
         ([5, 6, 7, 8], [5, 6, 7, 8], {})
     ]
     return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
+
+def sample_inputs_logpace(op, device, dtype, requires_grad, **kwargs):
+    ends = (-3, 0, 1.2, 2, 4)
+    starts = (-2., 0, 1, 2, 4.3)
+    nsteps = (0, 1, 2, 4)
+    bases = (2., 1.1) if dtype in (torch.int8, torch.uint8) else (None, 2., 3., 1.1, 5.)
+    for start, end, nstep, base in product(starts, ends, nsteps, bases):
+        if dtype == torch.uint8 and end < 0 or start < 0:
+            continue
+        if nstep == 1 and isinstance(start, float) and not (dtype.is_complex or dtype.is_floating_point):
+            # https://github.com/pytorch/pytorch/issues/82242
+            continue
+        if base is None:
+            yield SampleInput(start, args=(end, nstep), kwargs={"dtype": dtype, "device": device})
+        else:
+            yield SampleInput(start, args=(end, nstep, base), kwargs={"dtype": dtype, "device": device})
+
+    yield SampleInput(1, args=(3, 1, 2.))
 
 
 op_db: List[OpInfo] = [
@@ -1672,4 +1692,20 @@ op_db: List[OpInfo] = [
             dtypes=[torch.float32]),
         ),
     ), 
+    OpInfo(
+        'logspace',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=sample_inputs_logpace,
+        formats=(0, 2),
+        supports_out=True,
+        supports_autograd=False,
+        skips=(
+             # Tests that assume input is a tensor or sequence of tensors
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
+            dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
+            dtypes=[torch.float16]),
+        ),
+    ),
 ]
