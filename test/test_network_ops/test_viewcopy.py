@@ -149,7 +149,7 @@ class TestViewCopy(TestCase):
         with torch.autograd.profiler.profile(use_npu=True) as prof:
             npu_slice = npu_x[:, 1:2]
             npu_slice.copy_(npu_other)
-        self.assertEqual(check_operators_in_prof(['ViewCopy'], prof), True, "Error operators called!")
+        self.assertEqual(check_operators_in_prof(['contiguous_d_ViewCopy'], prof), True, "Error operators called!")
         self.assertRtolEqual(cpu_slice, npu_slice.cpu())
 
     @graph_mode
@@ -163,7 +163,7 @@ class TestViewCopy(TestCase):
         with torch.autograd.profiler.profile(use_npu=True) as prof:
             npu_t = npu_x.t()
             npu_t.copy_(npu_other)
-        self.assertEqual(check_operators_in_prof(['ViewCopy'], prof), True, "Error operators called!")
+        self.assertEqual(check_operators_in_prof(['contiguous_d_ViewCopy'], prof), True, "Error operators called!")
         self.assertRtolEqual(cpu_t, npu_t.cpu())
 
 
