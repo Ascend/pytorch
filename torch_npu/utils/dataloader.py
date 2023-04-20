@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import threading
 import itertools
 import torch
@@ -64,6 +65,8 @@ def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
 def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                   auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                   num_workers, persistent_workers):
+    # valid only in DVPP acceleration scenario
+    os.environ["TE_PARALLEL_COMPILER"] = "1" # set the number of operator compilation processes to 1
     torch_npu.npu.set_device(dataset.device)
     torch_npu.npu.current_stream().set_data_preprocess_stream(True)
     torch.npu.set_compile_mode(jit_compile=False)

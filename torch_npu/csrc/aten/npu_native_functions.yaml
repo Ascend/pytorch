@@ -1968,7 +1968,7 @@ custom:
   - func: npu_dropout_gen_mask(int[] size, float p, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   - func: npu_ciou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, Tensor? atan_sub, bool trans=False, bool is_cross=True, int mode=0) -> (Tensor, Tensor)
   - func: npu_sign_bits_unpack(Tensor input, int size, ScalarType dtype) -> Tensor
-  - func: decode_jpeg(Tensor self, int[] image_shape, int channels=3) -> Tensor
+  - func: decode_jpeg(Tensor self, int[] image_shape, int channels=3, bool try_recover_truncated=False) -> Tensor
   - func: crop_and_resize(Tensor self, float[]? boxes, int[] box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
   - func: reverse(Tensor self, int[] axis) -> Tensor
   - func: image_normalize(Tensor self, float[]? mean, float[]? variance, int dtype=0) -> Tensor

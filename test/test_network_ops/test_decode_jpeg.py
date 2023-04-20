@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from struct import pack, unpack_from
+from PIL import Image
 from PIL.ImageFile import _safe_read
 
 import torch
@@ -85,8 +87,14 @@ def extract_jpeg_shpae(fp):
 
 
 class TestDecodeJpeg(TestCase):
+    def setUp(self):
+        img = Image.fromarray(np.random.uniform(0, 255, (224, 224, 3)).astype(np.uint8))
+        img.save("./test.jpg")
+
+    def tearDown(self):
+        os.remove("./test.jpg")
+
     def result_error(self, img, image_shape, channels):
-        error_name = "result error"
         if img.shape[0] != channels or \
            img.shape[1] != image_shape[0] or img.shape[2] != image_shape[1]:
             self.fail("shape error")
@@ -95,10 +103,8 @@ class TestDecodeJpeg(TestCase):
         if img.device.type != "npu":
             self.fail("device error")
 
-    def test_decode_jpeg(self, device="npu"):
-        path = "../../docs/en/PyTorch Network Model Porting and Training Guide/figures/pth-file.jpg"
-        
-        with open(path, "rb") as f:
+    def test_decode_jpeg(self):
+        with open("./test.jpg", "rb") as f:
             f.seek(0)
             image_shape = extract_jpeg_shpae(f)
 
