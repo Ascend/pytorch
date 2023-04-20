@@ -1,7 +1,10 @@
+import os
+import re
 import sys
 import types
 import atexit
 import traceback
+import warnings
 
 from typing import Set, Type
 
@@ -11,10 +14,13 @@ try:
     import torch_npu.npu
 except ImportError as e:
     if "libhccl.so" in str(e):
-        ei = sys.exc_info()
-        newErr = ImportError(str(ei[1]) + ". Please run 'source set_env.sh' in the CANN installation path.")
-        traceback.print_exception(ei[0], newErr, ei[2])
-        sys.exit()
+        raise Exception(f"Please check that the cann package is installed, " \
+                        "Please run 'source set_env.sh' in the CANN installation path.")
+    
+    if "libascendcl.so" in str(e):
+        raise Exception(f"Please check that the runtime package is installed, " \
+                        "Please run 'source set_env.sh' in the CANN installation path.")
+
     else:
         traceback.print_exc()
 import torch_npu.npu.amp
@@ -29,6 +35,60 @@ from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      serialization_patches, add_storage_methods
 from torch_npu.distributed.distributed_c10d import apply_c10d_patch
 from .version import __version__ as __version__
+
+
+cann_pytorch_version_map = {
+    "6.3.RC1" : ["1.8.1.post1", "1.11.0"],
+    "6.1.RC1" : ["1.8.1.post1", "1.11.0"],
+    "6.0.1" : ["1.5.0.post8", "1.8.1", "1.11.0.rc2"],
+    "6.0.RC1" : ["1.8.1", "1.11.0.rc1"]
+}
+
+def get_cann_version(ascend_home_path):
+    cann_version = ""
+    for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
+        if cann_version:
+            break
+        install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
+        if install_files:
+            filepath = os.path.join(dirpath, install_files[0])
+            with open(filepath, "r") as f:
+                for line in f:
+                    if line.find("version") != -1:
+                        cann_version = line.strip().split("=")[-1]
+                        break
+    return cann_version
+
+def cann_package_check():
+    if "ASCEND_HOME_PATH" in os.environ:
+        ascend_home_path = os.environ["ASCEND_HOME_PATH"]
+        if not os.path.exists(ascend_home_path):
+            raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist." \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+        
+        # check whether environment variables are correctly configured
+        if "ASCEND_OPP_PATH" not in os.environ:
+            raise Exception(f"ASCEND_OPP_PATH environment variable is not set." \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+
+
+        ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
+        if not os.path.exists(ascend_opp_path):
+            raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist." \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+
+        # get the cann version
+        cann_version = get_cann_version(ascend_home_path)
+
+        # check whether the CANN package version matches the pytorch version
+        if cann_version in cann_pytorch_version_map and \
+            torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
+            warnings.warn(f"CANN package version {cann_version} and PyTorch version {torch_npu.__version__}" \
+                          "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
+    else:
+        warnings.warn(f"ASCEND_HOME_PATH environment variable is not set.")
+
+cann_package_check()
 
 graph_printer = _npu_print.GraphPrinter()
 
