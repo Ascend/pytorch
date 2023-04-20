@@ -350,21 +350,21 @@ namespace at_npu
     }
 
     tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
-        const at::Tensor &logProbs,
-        const at::Tensor &targets,
-        c10::IntArrayRef targetLengths,
-        int64_t maxLength)
+        const at::Tensor &log_probs,
+        int64_t max_length)
     {
-      int64_t maxInputLength = logProbs.size(0);
-      int64_t batchSize = logProbs.size(1);
-      int64_t numLabels = logProbs.size(2);
+      int64_t time_size = log_probs.size(0);
+      int64_t batch_size = log_probs.size(1);
 
-      c10::SmallVector<int64_t, SIZE> negLogLikelihoodSize = {batchSize};
+      c10::SmallVector<int64_t, SIZE> neg_log_likelihood_size = {batch_size};
 
-      int64_t tSize = 2 * maxLength + 1;
-      c10::SmallVector<int64_t, SIZE> logAlphaSize = {batchSize, maxInputLength, tSize};
+      int64_t alpha_tail_size = 2 * max_length + 1;
+      // Apply for a 32 byte aligned space to avoid address shifting in the OP.
+      int64_t alpha_tail_size_align = (alpha_tail_size + 7) / 8 * 8;
+      c10::SmallVector<int64_t, SIZE> log_alpha_size = {batch_size, time_size, alpha_tail_size_align};
 
-      return tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>>(negLogLikelihoodSize, logAlphaSize);
+      return tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>>(neg_log_likelihood_size,
+                                                                                     log_alpha_size);
     }
 
     c10::SmallVector<int64_t, SIZE> dot_npu_output_size(
