@@ -17,7 +17,7 @@
 __all__ = [
     "native_device", "npu_device", "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
     "synchronize", "device_count", "set_device", "current_device", "get_device_name",
-    "get_device_properties", "_get_device_index", "is_available", "device", "device_of",
+    "get_device_properties", "get_device_capability", "_get_device_index", "is_available", "device", "device_of",
     "stream", "set_stream", "current_stream", "default_stream", "init_dump",
     "finalize_dump", "set_dump", "manual_seed", "manual_seed_all",
     "seed", "seed_all", "initial_seed", "_free_mutex", "caching_allocator_alloc",
@@ -42,7 +42,7 @@ import torch_npu
 
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     synchronize, device_count, set_device, current_device, get_device_name,
-                    get_device_properties, _get_device_index, is_available, device, device_of,
+                    get_device_properties, get_device_capability, _get_device_index, is_available, device, device_of,
                     stream, set_stream, current_stream, default_stream, init_dump,
                     finalize_dump, set_dump, _in_bad_fork, get_npu_overflow_flag,
                     clear_npu_overflow_flag)

@@ -183,7 +183,21 @@ class TorchNPUApiTestCase(TestCase):
         total_memory = torch_npu.npu.get_device_properties(0).total_memory
         self.assertIsInstance(total_memory, int)
 
+    def test_npu_get_device_capability(self):
+        res = torch.npu.get_device_capability()
+        self.assertEqual(res, None)
+        res = torch.npu.get_device_capability(0)
+        self.assertEqual(res, None)
+        name = torch.npu.get_device_properties(0).name
+        res = torch.npu.get_device_capability(name)
+        self.assertEqual(res, None)
+        device = torch.npu.device("npu")
+        res = torch.npu.get_device_capability(device)
+        self.assertEqual(res, None)
+        
+    def test_npu_get_aclnn_version(self):
+        res = torch.npu.aclnn.version()
+        self.assertEqual(res, None)
+
 if __name__ == "__main__":
     run_tests()
-
-
