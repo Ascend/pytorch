@@ -22,124 +22,92 @@ namespace at_npu {
 namespace native {
 
 std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_ctc_loss(
-    const at::Tensor& logProbs,
+    const at::Tensor& log_probs,
     const at::Tensor& targets,
-    at::IntArrayRef inputLengths,
-    at::IntArrayRef targetLengths,
+    at::IntArrayRef input_lengths_list,
+    at::IntArrayRef target_lengths_list,
     int64_t blank,
-    bool zeroInfinity) {
-  at::Tensor logProbsNeed = logProbs;
-  if (logProbs.scalar_type() == at::ScalarType::Half) {
-    logProbsNeed = NPUNativeFunctions::npu_dtype_cast(logProbsNeed, at::ScalarType::Float);
-  }
-  
-  // Aicore supports only the int type
-  at::Tensor targetsCast = targets;
-  if(targets.scalar_type() == at::ScalarType::Long){
-    targetsCast = NPUNativeFunctions::npu_dtype_cast(targetsCast, at::ScalarType::Int);
+    bool zero_infinity) {
+  at::Tensor log_probs_cast = log_probs;
+  if (log_probs.scalar_type() == at::ScalarType::Half) {
+    log_probs_cast = NPUNativeFunctions::npu_dtype_cast(log_probs_cast, at::ScalarType::Float);
   }
   
   // IntArrayRef to Tensor
-  auto inputLengthsTensor = at::tensor(inputLengths, targetsCast.options());
-  auto targetLengthsTensor = at::tensor(targetLengths, targetsCast.options());
-  
-  int64_t maxLength = 0;
-  if (targetsCast.dim() == 2) {
-    maxLength = targetsCast.size(1);  
-  } else if (targetsCast.dim() == 1) {
-    for (auto &i : targetLengths) {
-      if (i > maxLength) {
-        maxLength = i;
-      }
+  auto input_lengths_tensor = at::tensor(input_lengths_list, targets.options());
+  auto target_lengths_tensor = at::tensor(target_lengths_list, targets.options());
+
+  int64_t max_length = 0;
+  for (auto &i : target_lengths_list) {
+    if (i > max_length) {
+      max_length = i;
     }
   }
-  
-  auto shape = logProbs.sizes();
-  
-  auto blankNew = blank + maxLength * shape[2];
-  
+
   // calculate the output size
-  auto outputSizes = ctc_loss_npu_output_size(logProbs, targetsCast, targetLengths, maxLength);
+  auto outputSizes = ctc_loss_npu_output_size(log_probs, max_length);
 
   // construct the output tensor of the NPU
-  at::Tensor negLogLikelihood = OpPreparation::ApplyTensorWithFormat(
+  at::Tensor neg_log_likelihood = OpPreparation::ApplyTensorWithFormat(
       std::get<0>(outputSizes),
-      logProbsNeed.options(),
-      CalcuOpUtil::GetTensorNpuFormat(logProbsNeed));
+      log_probs_cast.options(),
+      CalcuOpUtil::GetTensorNpuFormat(log_probs_cast));
   
-  at::Tensor logAlpha = OpPreparation::ApplyTensorWithFormat(
+  at::Tensor log_alpha = OpPreparation::ApplyTensorWithFormat(
       std::get<1>(outputSizes),
-      logProbsNeed.options(),
-      CalcuOpUtil::GetTensorNpuFormat(logProbsNeed));
+      log_probs_cast.options(),
+      CalcuOpUtil::GetTensorNpuFormat(log_probs_cast));
 
   // calculate the output result of the NPU 
   OpCommand cmd;
-  if (targetsCast.dim() == 2) {
-    cmd.Name("CTCLossV2")
-      .Input(logProbsNeed)
-      .Input(targetsCast)
-      .Input(inputLengthsTensor)
-      .Input(targetLengthsTensor)
-      .Output(negLogLikelihood)
-      .Output(logAlpha)
-      .Attr("blank", blank)
-      .Attr("zero_infinity", zeroInfinity)
-      .Run();
-  } else if (targetsCast.dim() == 1) {
-    cmd.Name("CTCLossV2")
-      .Input(logProbsNeed)
-      .Input(targetsCast)
-      .Input(inputLengthsTensor)
-      .Input(targetLengthsTensor)
-      .Output(negLogLikelihood)
-      .Output(logAlpha)
-      .Attr("blank", blankNew)
-      .Attr("zero_infinity", zeroInfinity)
-      .Run();  
-  }
-
+  cmd.Name("CTCLossV2")
+    .Input(log_probs_cast)
+    .Input(targets)
+    .Input(input_lengths_tensor)
+    .Input(target_lengths_tensor)
+    .Output(neg_log_likelihood)
+    .Output(log_alpha)
+    .Attr("blank", blank)
+    .Attr("zero_infinity", zero_infinity)
+    .Run();
   
-  if (logProbs.scalar_type() == at::ScalarType::Half) {
-    negLogLikelihood = NPUNativeFunctions::npu_dtype_cast(negLogLikelihood, at::ScalarType::Half);
-    logAlpha = NPUNativeFunctions::npu_dtype_cast(logAlpha, at::ScalarType::Half);
+  if (log_probs.scalar_type() == at::ScalarType::Half) {
+    neg_log_likelihood = NPUNativeFunctions::npu_dtype_cast(neg_log_likelihood, at::ScalarType::Half);
+    log_alpha = NPUNativeFunctions::npu_dtype_cast(log_alpha, at::ScalarType::Half);
   }  
 
-  return std::tuple<at::Tensor, at::Tensor>(negLogLikelihood, logAlpha);
+  return std::tuple<at::Tensor, at::Tensor>(neg_log_likelihood, log_alpha);
 }
 
 at::Tensor NPUNativeFunctions::ctc_loss(
-    const at::Tensor& logProbs,
+    const at::Tensor& log_probs,
     const at::Tensor& targets,
-    at::IntArrayRef inputLengths,
-    at::IntArrayRef targetLengths,
+    at::IntArrayRef input_lengths_list,
+    at::IntArrayRef target_lengths_list,
     int64_t blank,
     int64_t reduction,
-    bool zeroInfinity) {
+    bool zero_infinity) {
   at::Tensor res = std::get<0>(at::_ctc_loss(
-      logProbs, 
+      log_probs, 
       targets, 
-      inputLengths, 
-      targetLengths, 
+      input_lengths_list, 
+      target_lengths_list, 
       blank, 
-      zeroInfinity));
-  
-  if (zeroInfinity) {
+      zero_infinity));
+
+  if (zero_infinity) {
     res = at::where(
         res == at::Scalar(std::numeric_limits<double>::infinity()), 
         at::zeros({}, res.options()), 
-        res);   
+        res);
   }
 
   if (reduction == at::Reduction::Mean) {
-    std::vector<int64_t> targetLengthsVector = targetLengths.vec();
-
-    auto targetLengthsTensor = CalcuOpUtil::CopyTensorHostToDevice(
-        at::from_blob(targetLengthsVector.data(), {targetLengthsVector.size()}, at::kLong)).clamp_min(1);
-
-    at::Tensor targetLengthsTensor_ = targetLengthsTensor.to(res.dtype()); 
-
-    return (res / targetLengthsTensor_).mean(); 
-
+    std::vector<int64_t> target_lengths_vector = target_lengths_list.vec();
+    auto target_lengths_tensor = CalcuOpUtil::CopyTensorHostToDevice(
+        at::from_blob(target_lengths_vector.data(), {target_lengths_vector.size()}, at::kLong)).clamp_min(1);
+    at::Tensor target_lengths_tensor_ = target_lengths_tensor.to(res.dtype()); 
+    return (res / target_lengths_tensor_).mean();
   } else if (reduction == at::Reduction::Sum) {
     return res.sum();
   }
@@ -148,23 +116,23 @@ at::Tensor NPUNativeFunctions::ctc_loss(
 }
 
 at::Tensor NPUNativeFunctions::ctc_loss(
-    const at::Tensor& logProbs,
+    const at::Tensor& log_probs,
     const at::Tensor& targets,
-    const at::Tensor& inputLengths,
-    const at::Tensor& targetLengths,
+    const at::Tensor& input_lengths,
+    const at::Tensor& target_lengths,
     int64_t blank,
     int64_t reduction,
-    bool zeroInfinity) { 
-  TORCH_CHECK(isIntegralType(inputLengths.scalar_type(), false), "input_lengths must be integral");
-  TORCH_CHECK(isIntegralType(targetLengths.scalar_type(), false), "target_lengths must be integral");
+    bool zero_infinity) { 
+  TORCH_CHECK(isIntegralType(input_lengths.scalar_type(), false), "input_lengths must be integral");
+  TORCH_CHECK(isIntegralType(target_lengths.scalar_type(), false), "target_lengths must be integral");
 
-  at::Tensor inputLengthsTensor = inputLengths.to(at::Device(at::kCPU), at::kLong).contiguous();
-  at::Tensor targetLengthsTensor = targetLengths.to(at::Device(at::kCPU), at::kLong).contiguous();
+  at::Tensor input_lengths_tensor = input_lengths.to(at::Device(at::kCPU), at::kLong).contiguous();
+  at::Tensor target_lengths_tensor = target_lengths.to(at::Device(at::kCPU), at::kLong).contiguous();
   
-  at::IntArrayRef inputLengthsList(inputLengthsTensor.data_ptr<int64_t>(), inputLengthsTensor.numel());
-  at::IntArrayRef targetLengthsList(targetLengthsTensor.data_ptr<int64_t>(), targetLengthsTensor.numel());
+  at::IntArrayRef input_lengths_list(input_lengths_tensor.data_ptr<int64_t>(), input_lengths_tensor.numel());
+  at::IntArrayRef target_lengths_list(target_lengths_tensor.data_ptr<int64_t>(), target_lengths_tensor.numel());
   
-  return at::ctc_loss(logProbs, targets, inputLengthsList, targetLengthsList, blank, reduction, zeroInfinity);
+  return at::ctc_loss(log_probs, targets, input_lengths_list, target_lengths_list, blank, reduction, zero_infinity);
 }
 } // namespace native
 } // namespace at_npu

@@ -21,64 +21,58 @@ namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeFunctions::_ctc_loss_backward(
-    const at::Tensor& gradOut,
-    const at::Tensor& logProbs,
+    const at::Tensor& grad_out,
+    const at::Tensor& log_probs,
     const at::Tensor& targets,
-    at::IntArrayRef inputLengths,
-    at::IntArrayRef targetLengths,
-    const at::Tensor& negLogLikelihood,
-    const at::Tensor& logAlpha,
+    at::IntArrayRef input_lengths,
+    at::IntArrayRef target_lengths,
+    const at::Tensor& neg_log_likelihood,
+    const at::Tensor& log_alpha,
     int64_t blank,
     bool zeroInfinity) {
-  at::Tensor gradOutNeed = gradOut;
-  if (gradOut.scalar_type() == at::ScalarType::Half) {
-    gradOutNeed = NPUNativeFunctions::npu_dtype_cast(gradOutNeed, at::ScalarType::Float);
+  at::Tensor grad_out_cast = grad_out;
+  if (grad_out.scalar_type() == at::ScalarType::Half) {
+    grad_out_cast = NPUNativeFunctions::npu_dtype_cast(grad_out, at::ScalarType::Float);
   }
 
-  at::Tensor logProbsNeed = logProbs;
-  if (logProbs.scalar_type() == at::ScalarType::Half) {
-    logProbsNeed = NPUNativeFunctions::npu_dtype_cast(logProbsNeed, at::ScalarType::Float);
+  at::Tensor log_probs_cast = log_probs;
+  if (log_probs.scalar_type() == at::ScalarType::Half) {
+    log_probs_cast = NPUNativeFunctions::npu_dtype_cast(log_probs, at::ScalarType::Float);
   }
 
-  at::Tensor negLogLikelihoodNeed = negLogLikelihood;
-  if (negLogLikelihood.scalar_type() == at::ScalarType::Half) {
-    negLogLikelihoodNeed = NPUNativeFunctions::npu_dtype_cast(negLogLikelihoodNeed, at::ScalarType::Float);
+  at::Tensor neg_log_likelihood_cast = neg_log_likelihood;
+  if (neg_log_likelihood.scalar_type() == at::ScalarType::Half) {
+    neg_log_likelihood_cast = NPUNativeFunctions::npu_dtype_cast(neg_log_likelihood, at::ScalarType::Float);
   }
 
-  at::Tensor logAlphaNeed = logAlpha;
-  if (logAlpha.scalar_type() == at::ScalarType::Half) {
-    logAlphaNeed = NPUNativeFunctions::npu_dtype_cast(logAlphaNeed, at::ScalarType::Float);
-    
+  at::Tensor log_alpha_cast = log_alpha;
+  if (log_alpha.scalar_type() == at::ScalarType::Half) {
+    log_alpha_cast = NPUNativeFunctions::npu_dtype_cast(log_alpha, at::ScalarType::Float);
   }
-  
-  at::Tensor targetsCast = targets;
-  if(targets.scalar_type() == at::ScalarType::Long){
-    targetsCast = NPUNativeFunctions::npu_dtype_cast(targetsCast, at::ScalarType::Int);
-  }
-  
-  auto inputLengthsTensor = at::tensor(inputLengths, targetsCast.options().dtype(at::kInt));
-  auto targetLengthsTensor = at::tensor(targetLengths, targetsCast.options().dtype(at::kInt));
 
-  auto outputSize = input_same_output_size(logProbs);
+  auto input_lengths_tensor = at::tensor(input_lengths, targets.options().dtype(at::kInt));
+  auto target_lengths_tensor = at::tensor(target_lengths, targets.options().dtype(at::kInt));
+
+  auto outputSize = input_same_output_size(log_probs);
 
   // construct the output tensor of the NPU
-  at::Tensor grad = OpPreparation::ApplyTensor(logProbsNeed, outputSize);
+  at::Tensor grad = OpPreparation::ApplyTensor(log_probs_cast, outputSize);
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("CTCLossV2Grad")
-      .Input(gradOutNeed)
-      .Input(logProbsNeed)
-      .Input(targetsCast)
-      .Input(inputLengthsTensor)
-      .Input(targetLengthsTensor)      
-      .Input(negLogLikelihoodNeed)
-      .Input(logAlphaNeed)      
+      .Input(grad_out_cast)
+      .Input(log_probs_cast)
+      .Input(targets)
+      .Input(input_lengths_tensor)
+      .Input(target_lengths_tensor)
+      .Input(neg_log_likelihood_cast)
+      .Input(log_alpha_cast)
       .Output(grad)
       .Attr("blank", blank)
       .Attr("zero_infinity", zeroInfinity)
       .Run();
 
-  if (gradOut.scalar_type() == at::ScalarType::Half) {
+  if (grad_out.scalar_type() == at::ScalarType::Half) {
     grad = NPUNativeFunctions::npu_dtype_cast(grad, at::ScalarType::Half);
   }
   
