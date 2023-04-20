@@ -407,6 +407,14 @@ op_db: List[OpInfo] = [
         formats=(0, 3, 4, 29),
     ),
     UnaryUfuncInfo(
+        'count_nonzero',
+        dtypes=_dispatch_dtypes((torch.float16, torch.float32, torch.int32, torch.bool, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.int32, torch.bool, )),
+        supports_inplace_autograd=False,
+        supports_autograd=False,
+        supports_out=False,
+    ),
+    UnaryUfuncInfo(
         'cos',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
