@@ -118,6 +118,7 @@ def apply_class_patches():
 
 torch.utils.rename_privateuse1_backend("npu")
 torch._register_device_module('npu', torch_npu.npu)
+torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True)
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)

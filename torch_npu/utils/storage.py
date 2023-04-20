@@ -84,8 +84,3 @@ def _reduce_ex(self, proto):
 
 def add_storage_methods():
     torch._utils._rebuild_tensor = _rebuild_tensor
-    torch.UntypedStorage.is_npu = False
-    for storage in iter(_storage_classes):
-        if isinstance(storage, _CudaBase):
-            continue
-        storage.is_npu = False
