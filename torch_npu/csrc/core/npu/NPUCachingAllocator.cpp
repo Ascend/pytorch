@@ -347,11 +347,6 @@ class DeviceCachingAllocator {
     size = round_size(size);
     auto& pool = get_pool(size);
 
-    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, cached = %lu, allocated = %lu",
-        size,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
-
     const size_t alloc_size = get_allocation_size(size);
     AllocParams params(device, size, stream, &pool, alloc_size, stats);
     params.stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
@@ -467,6 +462,12 @@ class DeviceCachingAllocator {
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_allocations, 1);
 
+    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, address = %lu, cached = %lu, allocated = %lu",
+        size,
+        block->ptr,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
+
     c10::reportMemoryUsageToProfiler(
         block,
         block->size,
@@ -480,11 +481,6 @@ class DeviceCachingAllocator {
 
   void free(Block* block) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-
-    ASCEND_LOGD("PTA CachingAllocator free: free = %zu, cached = %lu, allocated = %lu",
-        block->size,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
     block->allocated = false;
 
@@ -508,6 +504,12 @@ class DeviceCachingAllocator {
     } else {
       free_block(block);
     }
+
+    ASCEND_LOGD("PTA CachingAllocator free: free = %zu, address = %lu, cached = %lu, allocated = %lu",
+        orig_block_size,
+        orig_block_ptr,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
     c10::reportMemoryUsageToProfiler(
         orig_block_ptr,
