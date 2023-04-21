@@ -261,6 +261,8 @@ supported:
  - cumprod.out
  - cumprod_
  - cumprod_.dimname
+ - cumsum
+ - cumsum_
  - cumsum.dimname_out
  - cumsum.out
  - decode_jpeg
