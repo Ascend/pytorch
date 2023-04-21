@@ -40,7 +40,7 @@ import torch_npu.npu.npu_print as _npu_print
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     serialization_patches, add_storage_methods, add_fx_methods, add_checkpoint_methods
+     serialization_patches, add_storage_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from .version import __version__ as __version__
 
@@ -113,7 +113,6 @@ def apply_class_patches():
     apply_module_patch()
     add_tensor_methods()
     wrap_dtype_for_hccl()
-    add_fx_methods()
     add_checkpoint_methods()
 
 torch.utils.rename_privateuse1_backend("npu")
