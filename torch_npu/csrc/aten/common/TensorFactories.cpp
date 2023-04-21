@@ -459,7 +459,7 @@ at::Tensor NPUNativeFunctions::empty_strided(
   return t;
 }
 
-at::Tensor NPUNativeFunctions::new_empty_strided(
+at::Tensor NPUNativeFunctions::new_empty_strided_symint(
     const at::Tensor& self,
     c10::SymIntArrayRef size,
     c10::SymIntArrayRef stride,

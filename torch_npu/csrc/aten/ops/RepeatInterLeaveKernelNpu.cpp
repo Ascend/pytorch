@@ -44,24 +44,25 @@ at::Tensor& repeat_interleave_out_npu(at::Tensor& result, const at::Tensor& self
   return result;
 }
 
-at::Tensor NPUNativeFunctions::repeat_interleave(
+at::Tensor NPUNativeFunctions::repeat_interleave_symint(
     const at::Tensor& self,
-    int64_t repeats,
+    c10::SymInt repeats,
     c10::optional<int64_t> dim,
     c10::optional<int64_t> output_size) {
   int64_t realDim = dim.value_or(0);
   int64_t self_dim = self.dim();
+  int64_t repeats_ = repeats.guard_int(__FILE__, __LINE__);
   TORCH_CHECK(
       (realDim >= -self_dim) && (realDim <= self_dim - 1),
       "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
   TORCH_CHECK(
-      repeats >= 1,
+      repeats_ >= 1,
       "repeats can not be negative.");
   at::Tensor selfTensor = self;
   if (!dim.has_value()) {
     selfTensor = at::flatten(selfTensor);
   }
-  if (repeats == 1) {
+  if (repeats_ == 1) {
     return selfTensor;
   }
 
@@ -69,9 +70,9 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     selfTensor = selfTensor.transpose(0, realDim);
   }
 
-  auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeats, 0);
+  auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeats_, 0);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(selfTensor, outputSize, ACL_FORMAT_ND);
-  repeat_interleave_out_npu(result, selfTensor, repeats);
+  repeat_interleave_out_npu(result, selfTensor, repeats_);
   if (self_dim > 1 && realDim != 0) {
     result = result.transpose(0, realDim);
   }

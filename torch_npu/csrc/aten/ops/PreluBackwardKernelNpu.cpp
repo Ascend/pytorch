@@ -45,7 +45,7 @@ tuple<at::Tensor, at::Tensor> prelu_backward_out_npu(
   return tuple<at::Tensor, at::Tensor>(grad_input, grad_weight);
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::prelu_backward(
+tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_prelu_kernel_backward(
     const at::Tensor& grad_output, 
     const at::Tensor& self, 
     const at::Tensor& weight) {

@@ -19,34 +19,38 @@ import argparse
 import os
 import re
 from collections import namedtuple, Counter, defaultdict
-from typing import List, Dict, Union, Sequence, Optional
+from typing import List, Dict, Union, Sequence, Optional, Set
 import yaml
 
 from codegen.gen import FileManager, get_grouped_native_functions, error_check_native_functions
-from codegen.model import (BackendIndex, DispatchKey,
-                           NativeFunction, NativeFunctionsGroup, OperatorName)
-from torchgen.model import BackendMetadata, DEFAULT_KERNEL_NAMESPACE
+from torchgen.gen import parse_tags_yaml, LineLoader
+from torchgen.model import (BackendIndex, DispatchKey, Location,
+                           NativeFunction, NativeFunctionsGroup, OperatorName,
+                            BackendMetadata, DEFAULT_KERNEL_NAMESPACE, is_cuda_dispatch_key)
+from torchgen.native_function_generation import add_generated_native_functions
 from codegen.selective_build.selector import SelectiveBuilder
 from torchgen.utils import Target, concatMap, context
 from codegen.context import native_function_manager
 import codegen.dest as dest
 import codegen.dest.utils as utils
-import codegen.api.dispatcher as dispatcher
-from codegen.api.signature import DispatcherSignature
+import torchgen.api.dispatcher as dispatcher
+from torchgen.api.types import DispatcherSignature
+from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(backend_ops: List[str],
+                         symint_ops: Set[str],
                          dispatch_key: DispatchKey,
                          native_funcs_map: Dict[OperatorName, NativeFunction]) -> BackendIndex:
     metadata: Dict[OperatorName, BackendMetadata] = {}
     for op in backend_ops:
         op_name = OperatorName.parse(op)
         assert op_name in native_funcs_map, f"Found an invalid operator name: {op_name}"
-        if os.environ.get('BSCPP_OPS_ENABLE') is None and native_funcs_map[op_name].bscpp_op:
-            continue
         # See Note [External Backends Follow Dispatcher API]
         kernel_name = dispatcher.name(native_funcs_map[op_name].func)
+        if op in symint_ops:
+            kernel_name += "_symint"
         # TODO: allow structured external backends later.
         m = BackendMetadata(kernel=kernel_name, structured=False, cpp_namespace=DEFAULT_KERNEL_NAMESPACE)
         metadata[op_name] = m
@@ -54,6 +58,7 @@ def create_backend_index(backend_ops: List[str],
         dispatch_key=dispatch_key,
         use_out_as_primary=False,
         external=True,
+        device_guard=False,
         index=metadata)
 
 
@@ -91,18 +96,20 @@ _GLOBAL_PARSE_NATIVE_YAML_CACHE = {}
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 
 
-def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
+def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
+        valid_tags = parse_tags_yaml(tag_path)
         with open(path, 'r') as f:
-            es = yaml.safe_load(f)
+            es = yaml.load(f, Loader=LineLoader)
         assert isinstance(es, list)
         rs: List[NativeFunction] = []
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
             funcs = e.get('func')
-            with context(lambda: f'in {path}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e)
+            loc = Location(path, e["__line__"])
+            with context(lambda: f'in {loc}:\n  {funcs}'):
+                func, m = NativeFunction.from_yaml(e, loc, valid_tags)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
@@ -111,7 +118,7 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         f_str = StringIO()
         with open(custom_path, 'r') as f:
             for line in f:
-                if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu',
+                if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu', 'symint',
                                           'supported', 'autograd', 'custom', 'custom_autograd']:
                     continue
                 if ':' not in line:
@@ -119,21 +126,31 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
                 f_str.write(line)
 
         f_str.seek(0)
-        custom_es = yaml.safe_load(f_str)
+        custom_es = yaml.load(f_str, Loader=LineLoader)
         for e in custom_es:
             funcs = e.get('func')
-            with context(lambda: f'in {custom_path}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e)
+            loc = Location(custom_path, e["__line__"])
+            with context(lambda: f'in {loc}:\n  {funcs}'):
+                func, m = NativeFunction.from_yaml(e, loc, valid_tags)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
         error_check_native_functions(rs)
         # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.
         indices: Dict[DispatchKey, BackendIndex] = defaultdict(lambda: BackendIndex(
-            dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, index={}))
+            dispatch_key=DispatchKey.Undefined,
+            use_out_as_primary=True,
+            device_guard=False,
+            external=False,
+            index={}))
+        add_generated_native_functions(rs, bs)
         for k, v in bs.items():
             # All structured in-tree operators are implemented in terms of their out operator.
-            indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, index=v)
+            indices[k] = BackendIndex(dispatch_key=k,
+                                      use_out_as_primary=True,
+                                      external=False,
+                                      device_guard=is_cuda_dispatch_key(k),
+                                      index=v)
         _GLOBAL_PARSE_NATIVE_YAML_CACHE[path] = ParsedYaml(rs, indices)
 
     return _GLOBAL_PARSE_NATIVE_YAML_CACHE[path]
@@ -161,7 +178,7 @@ def parse_backend_yaml(
         yaml_values = yaml.safe_load(f)
     assert isinstance(yaml_values, dict)
 
-    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd']
+    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'PrivateUse1' if yaml_backend == 'NPU' else yaml_backend
@@ -175,6 +192,14 @@ def parse_backend_yaml(
     if supported is None:
         supported = []  # Allow an empty list of supported ops
     assert isinstance(supported, list), f'expected "supported" to be a list, but got type {type(supported)}'
+
+    symint = yaml_values.pop("symint", [])
+    if symint is None:
+        symint = []
+    assert isinstance(
+        symint, list
+    ), f'expected "symint" to be a list, but got: {supported} (of type {type(supported)})'
+    symint_set = set(symint)
 
     supported_autograd = yaml_values.pop('autograd', [])
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
@@ -204,7 +229,7 @@ Only the following keys are supported: {", ".join(valid_keys)}'
         with context(lambda: f'The provided value for "backend" must be a valid DispatchKey, but got {backend}.'):
             backend_key = DispatchKey.parse(backend)
 
-        backend_idx = create_backend_index(supported, backend_key, native_functions_map)
+        backend_idx = create_backend_index(supported, symint_set, backend_key, native_functions_map)
         assert backend_key not in backend_indices
         backend_indices[backend_key] = backend_idx
 
@@ -214,7 +239,7 @@ Only the following keys are supported: {", ".join(valid_keys)}'
 the behavior of autograd for some operators on your backend. However "Autograd{backend}" is not a valid DispatchKey.'):
             autograd_key = DispatchKey.parse(f'Autograd{backend}')
 
-        autograd_idx = create_backend_index(supported_autograd, autograd_key, native_functions_map)
+        autograd_idx = create_backend_index(supported_autograd, symint_set, autograd_key, native_functions_map)
         assert autograd_key not in backend_indices
         backend_indices[autograd_key] = autograd_idx
 
@@ -260,13 +285,19 @@ def error_on_missing_kernels(
             kernel_defn_regex = rf'{class_name}::([\w\d]*)\([^\)]*\)\s*{{'
             actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
 
-    expected_backend_op_names: List[OperatorName] = \
-        list(backend_indices[backend_key].index.keys()) + list(backend_indices[autograd_key].index.keys())
+    expected_backend_op_names: Dict[OperatorName, str] = dict(
+        list(
+            concatMap(
+                lambda index: [(op_name, metadata.kernel) for op_name, metadata in index.items()],
+                [backend_indices[backend_key].index] + [backend_indices[autograd_key].index],
+            )
+        )
+    )
     expected_backend_native_funcs: List[NativeFunction] = \
         [f for f in native_functions if f.func.name in expected_backend_op_names]
     expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
     for native_f in expected_backend_native_funcs:
-        expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
+        expected_backend_kernel_name_counts[expected_backend_op_names[native_f.func.name]].append(native_f)
 
     missing_kernels_err_msg = ""
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
@@ -305,6 +336,7 @@ def main() -> None:
 
 
 def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
+    rename_privateuse1_dispatch_key()
 
     template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
 
@@ -313,8 +345,10 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
 
     fm = make_file_manager(output_dir)
 
-    native_yaml_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'native_functions.yaml')
-    parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, source_yaml)
+    torchgen_path = get_torchgen_dir()
+    tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
+    native_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/native_functions.yaml')
+    parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, tags_yaml_path, source_yaml)
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)

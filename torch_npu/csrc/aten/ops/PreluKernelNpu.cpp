@@ -18,7 +18,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::prelu(const at::Tensor& self, const at::Tensor& weight_) {
+at::Tensor NPUNativeFunctions::_prelu_kernel(const at::Tensor& self, const at::Tensor& weight_) {
   auto input = self.contiguous();
   auto weight = weight_.contiguous();
 

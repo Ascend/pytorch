@@ -93,19 +93,6 @@ at::Tensor& NPUNativeFunctions::upsample_nearest1d_out(
 }
 
 at::Tensor NPUNativeFunctions::upsample_nearest1d(
-    const at::Tensor& input,
-    at::OptionalIntArrayRef output_size,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(input, osize);
-  at::Tensor result = OpPreparation::ApplyTensor(input, outputSize);
-
-  upsample_nearest1d_out_nocheck(input, osize, scales_w, result);
-  return result;
-}
-
-at::Tensor NPUNativeFunctions::upsample_nearest1d(
     const at::Tensor& self,
     at::IntArrayRef output_size,
     c10::optional<double> scales) {

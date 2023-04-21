@@ -19,7 +19,7 @@ import contextlib
 from typing import TypeVar, Union, Iterator, Callable, Dict
 
 from torchgen.utils import S, T, context
-from codegen.model import (NativeFunction, NativeFunctionsGroup, BackendIndex, DispatchKey)
+from torchgen.model import NativeFunction, NativeFunctionsGroup, BackendIndex, DispatchKey
 import torchgen.local as local
 
 

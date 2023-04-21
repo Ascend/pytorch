@@ -49,7 +49,7 @@ at::Tensor& max_unpool3d_backward_out_npu_nocheck(
   return grad_input;
 }
 
-at::Tensor& NPUNativeFunctions::max_unpool3d_backward_out(
+at::Tensor& max_unpool3d_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& indices,
@@ -72,7 +72,7 @@ at::Tensor& NPUNativeFunctions::max_unpool3d_backward_out(
   return grad_input;
 }
 
-at::Tensor NPUNativeFunctions::max_unpool3d_backward(
+at::Tensor max_unpool3d_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& indices,

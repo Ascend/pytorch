@@ -30,6 +30,5 @@ if [[ ${build_libtorch} != "True" ]]; then
   python3 -m codegen.gen_python_functions  \
     --output_dir="$CDIR/torch_npu/csrc/aten/" \
     --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
-    --native_yaml="$CDIR/codegen/native_functions.yaml" \
     --template_path="$CDIR/codegen/templates"
 fi

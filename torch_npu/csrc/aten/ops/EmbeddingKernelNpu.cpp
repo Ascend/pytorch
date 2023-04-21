@@ -41,10 +41,10 @@ return result;
 
 }
 
-at::Tensor NPUNativeFunctions::embedding(
+at::Tensor NPUNativeFunctions::embedding_symint(
     const at::Tensor& weight,
     const at::Tensor& indices,
-    int64_t padding_idx,
+    c10::SymInt padding_idx,
     bool scale_grad_by_freq,
     bool sparse) {
   // calculate the output size

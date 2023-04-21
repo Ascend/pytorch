@@ -24,19 +24,19 @@ from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
 from torchgen.utils import Target, mapMaybe
-from codegen.model import (DispatchKey, NativeFunction,
+from torchgen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
                            TensorOptionsArguments,
                            DeviceCheckType, Argument, assert_never,
                            is_cuda_dispatch_key, BackendIndex)
 from torchgen.api.types import (BaseCType, Binding, ConstRefCType,
                                Expr, MutRefCType, tensorT, NamedCType)
-from codegen.api.signature import (CppSignature, CppSignatureGroup, kernel_signature,
+from torchgen.api.types import (CppSignature, CppSignatureGroup, kernel_signature,
                                    NativeSignature, DispatcherSignature)
 import torchgen.api.meta as meta
-import codegen.api.cpp as cpp
-import codegen.api.structured as structured
-from codegen.api.translate import translate
+import torchgen.api.cpp as cpp
+import torchgen.api.structured as structured
+from torchgen.api.translate import translate
 from codegen.selective_build.selector import SelectiveBuilder
 
 

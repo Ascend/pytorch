@@ -114,20 +114,5 @@ at::Tensor NPUNativeFunctions::upsample_trilinear3d_backward(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_trilinear3d_backward(
-    const at::Tensor& grad_output,
-    at::OptionalIntArrayRef output_size,
-    at::IntArrayRef input_size,
-    bool align_corners,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);
-  auto scales_d = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 1);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 2);
-  at::Tensor grad_input = NPUNativeFunctions::upsample_trilinear3d_backward(
-      grad_output, osize, input_size, align_corners, scales_d, scales_h, scales_w);
-  return grad_input;
-}
-
 } // namespace native
 } // namespace at_npu

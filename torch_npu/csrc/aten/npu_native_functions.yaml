@@ -27,7 +27,6 @@ supported:
  - _aminmax
  - _aminmax.dim
  - aminmax.out
- - _amp_foreach_non_finite_check_
  - _amp_foreach_non_finite_check_and_unscale_
  - _batch_norm_impl_index
  - _batch_norm_impl_index_backward
@@ -63,7 +62,6 @@ supported:
  - _softmax
  - _softmax_backward_data
  - _softmax_backward_data.out
- - _symeig_helper
  - _unique2
  - _reshape_alias
  - abs
@@ -232,8 +230,6 @@ supported:
  - clone
  - col2im
  - col2im.out
- - col2im_backward
- - col2im_backward.grad_input
  - constant_pad_nd
  - contiguous
  - conv_tbc
@@ -394,8 +390,6 @@ supported:
  - hardtanh_backward.grad_input
  - im2col
  - im2col.out
- - im2col_backward
- - im2col_backward.grad_input
  - image_normalize
  - image_normalize_
  - img_to_tensor
@@ -419,16 +413,10 @@ supported:
  - isclose
  - isfinite
  - isnan
- - kl_div
- - kl_div_backward
  - kthvalue
  - kthvalue.dimname
  - kthvalue.dimname_out
  - kthvalue.values
- - l1_loss
- - l1_loss.out
- - l1_loss_backward
- - l1_loss_backward.grad_input
  - le.Scalar
  - le.Scalar_out
  - le.Tensor
@@ -521,12 +509,12 @@ supported:
  - max_pool3d_with_indices_backward.grad_input
  - max_unpool2d
  - max_unpool2d.out
- - max_unpool2d_backward
- - max_unpool2d_backward.grad_input
+# - max_unpool2d_backward
+# - max_unpool2d_backward.grad_input
  - max_unpool3d
  - max_unpool3d.out
- - max_unpool3d_backward
- - max_unpool3d_backward.grad_input
+# - max_unpool3d_backward
+# - max_unpool3d_backward.grad_input
  - maximum
  - maximum.out
  - mean
@@ -628,8 +616,8 @@ supported:
  - pow.Tensor_Tensor_out
  - pow_.Scalar
  - pow_.Tensor
- - prelu
- - prelu_backward
+ - _prelu_kernel
+ - _prelu_kernel_backward
  - prod
  - prod.Dimname_out
  - prod.dim_Dimname
@@ -766,7 +754,7 @@ supported:
  - std
  - std.dim
  - std.names_dim
-# - std.correction
+ - std.correction
  - std.names_out
  - std.out
  - std_mean
@@ -825,45 +813,31 @@ supported:
  - unsqueeze
  - upsample_bicubic2d
  - upsample_bicubic2d.out
- - upsample_bicubic2d.vec
  - upsample_bicubic2d_backward
  - upsample_bicubic2d_backward.grad_input
- - upsample_bicubic2d_backward.vec
  - upsample_bilinear2d
  - upsample_bilinear2d.out
- - upsample_bilinear2d.vec
  - upsample_bilinear2d_backward
  - upsample_bilinear2d_backward.grad_input
- - upsample_bilinear2d_backward.vec
  - upsample_linear1d
  - upsample_linear1d.out
- - upsample_linear1d.vec
  - upsample_linear1d_backward
- - upsample_linear1d_backward.vec
  - upsample_nearest1d
  - upsample_nearest1d.out
- - upsample_nearest1d.vec
  - upsample_nearest1d_backward
  - upsample_nearest1d_backward.grad_input
- - upsample_nearest1d_backward.vec
  - upsample_nearest2d
  - upsample_nearest2d.out
- - upsample_nearest2d.vec
  - upsample_nearest2d_backward
  - upsample_nearest2d_backward.grad_input
- - upsample_nearest2d_backward.vec
  - upsample_nearest3d
  - upsample_nearest3d.out
- - upsample_nearest3d.vec
  - upsample_nearest3d_backward
  - upsample_nearest3d_backward.grad_input
- - upsample_nearest3d_backward.vec
  - upsample_trilinear3d
  - upsample_trilinear3d.out
- - upsample_trilinear3d.vec
  - upsample_trilinear3d_backward
  - upsample_trilinear3d_backward.grad_input
- - upsample_trilinear3d_backward.vec
  - var
  - var.dim
  - var.names_dim
@@ -899,7 +873,7 @@ autograd:
   - silu
   - silu_
   - silu.out
-  - binary_cross_entropy_with_logits_backward
+#  - binary_cross_entropy_with_logits_backward
   - selu
   - selu_
 
@@ -915,6 +889,15 @@ tocpu:
   - view_as_complex
   - view_as_real
 
+symint:
+ - as_strided_
+ - embedding
+ - embedding_backward
+ - _embedding_bag_backward
+ - repeat_interleave.self_int
+ - zeros
+ - new_empty_strided
+
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
   - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
@@ -928,7 +911,7 @@ custom:
   - func: one_(Tensor(a!) self) -> Tensor(a!)
   - func: npu_fast_gelu(Tensor self) -> Tensor
   - func: npu_fast_gelu_backward(Tensor grad, Tensor self) -> Tensor
-  - func: _amp_foreach_non_finite_check_(Tensor[] scaled_grads) -> bool
+  - func: _amp_foreach_non_finite_check(Tensor[] scaled_grads) -> bool
   - func: npu_sign_bits_pack(Tensor self, int size) -> Tensor
   - func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor var, Tensor m, Tensor v)
   - func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
@@ -947,8 +930,14 @@ custom:
   - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
   - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
   - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+    dispatch:
+     CompositeExplicitAutograd: empty_with_format
   - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
+    dispatch:
+     CompositeExplicitAutograd: empty_with_format
   - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+    dispatch:
+     CompositeExplicitAutograd: empty_with_format
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
   - func: npu_stride_add(Tensor self, Tensor other, Scalar offset1, Scalar offset2, Scalar c1_len) -> Tensor
   - func: npu_slice(Tensor self, int[] offsets, int[] size) -> Tensor
@@ -1000,14 +989,19 @@ custom:
   - func: npu_nms_v4(Tensor self, Tensor scores, Scalar max_output_size, Tensor iou_threshold, Tensor scores_threshold, bool pad_to_max_output_size=False) -> (Tensor, Tensor)
   - func: npu_pad(Tensor input, int[] paddings) -> Tensor
   - func: npu_random_choice_with_mask(Tensor x, int count=256, int seed=0, int seed2=0) -> (Tensor, Tensor)
+    tags: nondeterministic_seeded
   - func: npu_normalize_batch(Tensor self, Tensor seq_len, int normalize_type=0) -> Tensor
   - func: npu_ptiou(Tensor bboxes, Tensor gtboxes, int mode=0) -> Tensor
   - func: npu_lstm_backward(Tensor? grady, Tensor? gradh, Tensor? gradc, Tensor input, Tensor weight, Tensor bias, Tensor hx, Tensor cx, Tensor y_output, Tensor h_output, Tensor c_output, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc) -> (Tensor, Tensor, Tensor, Tensor, Tensor)
   - func: _dropout_with_byte_mask_backward(Tensor grad_output, Tensor mask, float p) -> Tensor
   - func: dropout_with_byte_mask(Tensor self, float p, bool train) -> Tensor
+    tags: nondeterministic_seeded
   - func: npu_dropout_with_add_softmax_backward(Tensor grad, Tensor mask, Tensor softmax_out, Scalar alpha, float prob, int dim) -> (Tensor, Tensor)
   - func: npu_multi_head_attention_backward(Tensor query, Tensor key, Tensor value, Tensor query_weight, Tensor key_weight, Tensor value_weight, Tensor out_proj_weight, Tensor? query_bias, Tensor? key_bias, Tensor? value_bias, Tensor? out_proj_bias, Tensor query_res, Tensor key_res, Tensor value_res, Tensor attn_scores, Tensor attn_res, Tensor context, Tensor y_grad, Tensor dropout_mask, int attn_head_num, int attn_dim_per_head, int src_len, int tgt_len, float dropout_prob, bool softmax_use_float) -> Tensor[]
   - func: npu_dropout_gen_mask(int[] size, float p, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+    tags: nondeterministic_seeded
+    dispatch:
+     CompositeExplicitAutograd: npu_dropout_gen_mask
   - func: npu_ciou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, Tensor? atan_sub, bool trans=False, bool is_cross=True, int mode=0) -> (Tensor, Tensor)
   - func: npu_sign_bits_unpack(Tensor input, int size, ScalarType dtype) -> Tensor
   - func: decode_jpeg(Tensor self, int[] image_shape, int channels=3) -> Tensor
@@ -1039,8 +1033,6 @@ custom:
   - func: npu_enque_tensor(Tensor[] tensors, str format_string, int capacity=3) -> ()
   - func: npu_hcom_allgather(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm) -> Tensor
   - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
-  - func: bscpp_add(Tensor self, Tensor other) -> Tensor
-    bscpp_op: True
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
@@ -1050,6 +1042,7 @@ custom_autograd:
   - func: npu_ps_roi_pooling(Tensor self, Tensor rois, float spatial_scale, int group_size, int output_dim) -> Tensor
   - func: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
   - func: _npu_dropout(Tensor self, float p) -> (Tensor, Tensor)
+    tags: nondeterministic_seeded
   - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
   - func: npu_max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   - func: npu_max.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
@@ -1067,10 +1060,13 @@ custom_autograd:
   - func: npu_diou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   - func: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seqMask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flagSeq, bool direction) -> Tensor[]
   - func: _dropout_with_byte_mask(Tensor self, float p) -> (Tensor, Tensor)
+    tags: nondeterministic_seeded
   - func: npu_dropout_with_add_softmax(Tensor self, Tensor x1, Scalar alpha, float prob, int dim) -> (Tensor, Tensor, Tensor)
+    tags: nondeterministic_seeded
   - func: npu_scaled_masked_softmax(Tensor x, Tensor mask, Scalar scale=1, bool fixed_triu_mask=False) -> Tensor
   - func: npu_multi_head_attention(Tensor query, Tensor key, Tensor value, Tensor query_weight, Tensor key_weight, Tensor value_weight, Tensor attn_mask, Tensor out_proj_weight, Tensor? query_bias, Tensor? key_bias, Tensor? value_bias, Tensor? out_proj_bias, Tensor? dropout_mask, int attn_head_num, int attn_dim_per_head, int src_len, int tgt_len, float dropout_prob, bool softmax_use_float) -> Tensor[]
   - func: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
+    tags: nondeterministic_seeded
   - func: npu_ciou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=True, int mode=0, bool atan_sub_flag=False) -> Tensor
   - func: npu_lstm_cell(Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor? b_ih=None, Tensor? b_hh=None) -> Tensor[]
   - func: npu_fused_attention_score(Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor attention_mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool bmm_score_transpose_a=False, bool bmm_score_transpose_b=False, bool value_transpose=False, bool dx_transpose=False) -> Tensor

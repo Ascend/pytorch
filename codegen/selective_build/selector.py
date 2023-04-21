@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 import yaml
 
-from codegen.model import NativeFunction
+from torchgen.model import NativeFunction
 from torchgen.selective_build.operator import (
     SelectiveBuildOperator, merge_debug_info, merge_operator_dicts,
     strip_operator_overload_name)
