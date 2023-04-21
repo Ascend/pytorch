@@ -50,8 +50,8 @@ at::Tensor NPUNativeFunctions::_ctc_loss_backward(
     log_alpha_cast = NPUNativeFunctions::npu_dtype_cast(log_alpha, at::ScalarType::Float);
   }
 
-  auto input_lengths_tensor = at::tensor(input_lengths, targets.options().dtype(at::kInt));
-  auto target_lengths_tensor = at::tensor(target_lengths, targets.options().dtype(at::kInt));
+  auto input_lengths_tensor = at::tensor(input_lengths, targets.options());
+  auto target_lengths_tensor = at::tensor(target_lengths, targets.options());
 
   auto outputSize = input_same_output_size(log_probs);
 
