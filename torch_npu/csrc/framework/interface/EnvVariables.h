@@ -30,11 +30,6 @@ bool CheckProfilingEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
 
-/**
-  get the HF32 for Matmul and Conv.
-  */
-bool allowHF32Matmul();
-bool allowHF32Conv();
 } // namespace env
 } // namespace native
 } // namespace at_npu
