@@ -462,10 +462,6 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_ctc_loss,
         formats=(2, ),
         supports_out=False,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float32]),
-        ),
     ),
     UnaryUfuncInfo(
         'isnan',
