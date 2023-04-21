@@ -46,7 +46,6 @@ at::Tensor linear_npu(
       .Attr("transpose_x1", false)
       .Attr("transpose_x2", true)
       .Attr("offset_x", offset_x)
-      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
       .Run();
 
   return output;
@@ -67,7 +66,6 @@ at::Tensor linear_backward_out_npu(
       .Attr("transpose_x1", transpose_x1)
       .Attr("transpose_x2", transpose_x2)
       .Attr("offset_x", offset_x)
-      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
       .Run();
   return result;
 }

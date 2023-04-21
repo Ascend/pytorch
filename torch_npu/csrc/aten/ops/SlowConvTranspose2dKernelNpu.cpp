@@ -182,7 +182,6 @@ at::Tensor& slow_conv_transpose2d_npu_nocheck(
       .Attr("dilations", dilations)
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
-      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Conv())
       .Run();
   return out;
 }

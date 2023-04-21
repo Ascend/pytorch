@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 namespace at_npu {
 namespace native {
@@ -79,16 +80,15 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
 })
 
 REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
-  aclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str());
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_PRECISION_MODE, result = ", ret, ", set value ", val);
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
-  if (val == "high_precision" || val == "high_performance") {
-    AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
-  } else {
-    TORCH_CHECK(0, "ACL_OP_SELECT_IMPL_MODE only support `high_precision` or "
-        " `high_performance`, but got ", val);
-  }
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_OP_SELECT_IMPL_MODE, result = ", ret, ", set value ", val);
 })
 
 REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val)
@@ -102,11 +102,40 @@ REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDDisable, MM_BMM_ND_ENABLE, "enabl
 REGISTER_OPTION(ALLOW_INTERNAL_FORMAT)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckForbidInternalFormat, ALLOW_INTERNAL_FORMAT, "enable", "disable")
 
-REGISTER_OPTION(ALLOW_MATMUL_HF32)
-REGISTER_OPTION_BOOL_FUNCTION_UNIQ(allowHF32Matmul, ALLOW_MATMUL_HF32, "disable", "enable")
+REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
+  static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
+  auto mm_hf32_val = c10_npu::option::GetOption(mm_hf32_option_name);
+  // default value is True;
+  std::string mm_hf32 = "1";
+  if (mm_hf32_val.has_value() && (mm_hf32_val.value() == "disable")) {
+    mm_hf32 = "0";
+  }
 
-REGISTER_OPTION(ALLOW_CONV_HF32)
-REGISTER_OPTION_BOOL_FUNCTION_UNIQ(allowHF32Conv, ALLOW_CONV_HF32, "disable", "enable")
+  std::string conv_hf32 = (val == "enable") ? "1" : "0";
+  std::string allow_hf32 = conv_hf32 + mm_hf32;
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
+  ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
+})
+
+REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
+  static const std::string conv_hf32_option_name = "ALLOW_CONV_HF32";
+  auto conv_hf32_val = c10_npu::option::GetOption(conv_hf32_option_name);
+  // default value is True;
+  std::string conv_hf32 = "1";
+  if (conv_hf32_val.has_value() && (conv_hf32_val.value() == "disable")) {
+    conv_hf32 = "0";
+  }
+
+  std::string mm_hf32 = (val == "enable") ? "1" : "0";
+  std::string allow_hf32 = conv_hf32 + mm_hf32;
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
+  ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
+})
+
 } // namespace env
 } // namespace native
 } // namespace at_npu

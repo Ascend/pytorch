@@ -112,7 +112,6 @@ at::Tensor pure_bmm_v2_npu(const at::Tensor& self, const at::Tensor& mat2, const
       .Output(result)
       .Attr("adj_x1", is_self_t)
       .Attr("adj_x2", is_mat2_t)
-      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
       .Run();
 
   return result;

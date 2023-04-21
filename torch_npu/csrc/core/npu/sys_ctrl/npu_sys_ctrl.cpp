@@ -83,6 +83,25 @@ void GetAndSetDefaultJitCompileByAcl() {
   c10_npu::option::SetOption("jitCompile", value_str);
   ASCEND_LOGI("Get ACL JitCompile default value %s and set", value_str.c_str());
 }
+
+void SetHF32DefaultValue() {
+  // The default value of the flag used to control whether HF32 is allowed on conv is True.
+  // The default value of the flag used to control whether HF32 is allowed on matmul is True,
+  // but this flag defaults to False in PyTorch 1.12 and later.
+
+  // When the flag of matmul is False, and the flag of conv is True,
+  // the value of option "ACL_ALLOW_HF32" should be set to "10";
+  std::string allow_hf32 = "11";
+  auto ret = at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
+  if (ret == ACL_SUCCESS) {
+    ASCEND_LOGI("Set ACL option ACL_ALLOW_HF32 default value to %s.", allow_hf32.c_str());
+  } else if (ret == ACL_ERROR_INTERNAL_ERROR) {
+    // Used to solve version compatibility issues, when ASCEND have not been updated.
+    ASCEND_LOGW("Failed to set default value of ACL option ACL_ALLOW_HF32, which is unsupported by current version.");
+  } else {
+    TORCH_CHECK(0, "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
+  }
+}
 } // namespace
 
 namespace c10_npu {
@@ -185,6 +204,8 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   MakeCompileCacheDirAndSetOption();
   // set default jit_Compile value from Get acl defalut value
   GetAndSetDefaultJitCompileByAcl();
+
+  SetHF32DefaultValue();
 
   return INIT_SUCC;
 }
