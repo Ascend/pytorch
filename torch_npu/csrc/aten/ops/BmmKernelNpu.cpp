@@ -46,7 +46,6 @@ at::Tensor& NPUNativeFunctions::bmm_out(const at::Tensor& self, const at::Tensor
       .Output(contiguousResult)
       .Attr("adj_x1", isSelfT)
       .Attr("adj_x2", isMat2T)
-      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
       .Run();
 
   if (!result.is_contiguous()) {
