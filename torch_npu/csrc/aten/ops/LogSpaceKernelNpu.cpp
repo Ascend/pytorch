@@ -24,26 +24,31 @@ at::Tensor& logspace_out_npu_nocheck(
     int64_t steps,
     double base,
     at::Tensor& result) {
-  if (steps < 0){
-    TORCH_CHECK("please input steps > 0");
+  TORCH_CHECK(steps >= 0, "logspace requires non-negative steps, given steps is ", steps);
+  if ((base <= 0) && ((!start.isIntegral(false)) || (!end.isIntegral(false)))) {
+    std::cout << "Warning: start and end in logspace should both be int when base <= 0, "
+              << "get type "
+              << start.type()
+              << " and"
+              << end.type()
+              << std::endl;
   }
-  if (base <= 0) {
-    printf("if base<=0, please input intenger start, end, (end-start)/(steps-1)");
-  }
+
   at::Tensor inputs;
-  if (result.scalar_type() == at::ScalarType::Half) {
-    inputs = NPUNativeFunctions::npu_dtype_cast(at::arange(0, steps, at::device(at_npu::key::NativeDeviceType)), at::kHalf);
-  } else if (result.scalar_type() == at::ScalarType::Float) {
-    inputs = at::arange(0, steps, at::device(at_npu::key::NativeDeviceType).dtype(at::kFloat));
-  }
   int64_t dtype = 0;
-  if (result.scalar_type() == at::ScalarType::Half) {
+  auto result_type = result.scalar_type();
+  if (result_type == at::ScalarType::Half) {
+    inputs = NPUNativeFunctions::npu_dtype_cast(
+        at::arange(0, steps, at::device(at_npu::key::NativeDeviceType)),
+        at::kHalf);
     dtype = 0;
-  } else if (result.scalar_type() == at::ScalarType::Float) {
+  } else if (result_type == at::ScalarType::Float) {
+    inputs = at::arange(0, steps, at::device(at_npu::key::NativeDeviceType).dtype(at::kFloat));
     dtype = 1;
   } else {
-    TORCH_CHECK("only support float32 and float16");
+    TORCH_CHECK(false, "logspace only support float32 and float16, given type is ", result_type);
   }
+
   OpCommand cmd;
   cmd.Name("LogSpaceD")
       .Input(inputs)
