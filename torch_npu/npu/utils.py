@@ -166,7 +166,7 @@ def get_device_properties(device_name=None):
     return torch_npu._C._npu_getDeviceProperties(device_id)
 
 
-def get_device_capability(device_name=None):
+def get_device_capability(device=None):
     r"""Query the minor and major data of device. Cann does not 
     have a corresponding concept and is not supported. By default, it returns None
     """
