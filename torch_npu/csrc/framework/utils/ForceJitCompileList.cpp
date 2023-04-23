@@ -79,7 +79,7 @@ namespace at_npu
       {
         for (auto &iter : jit_list_)
         {
-          NPU_LOGI("check op [%s] is in jitcompile list, use just in time compile", iter.c_str());
+          ASCEND_LOGI("check op [%s] is in jitcompile list, use Just-In-Time compile", iter.c_str());
         }
       }
       return;
