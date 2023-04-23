@@ -142,22 +142,22 @@ namespace at_npu
       c10::SmallVector<at::Tensor, N> outputs = {self};
       CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
-      at::Tensor selfDtypeCast = 
+      at::Tensor self_dtype_cast =
           (self.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
-      at::Tensor otherDtypeCast = 
+      at::Tensor other_dtype_cast =
           (other.scalar_type() == at::kBool && other.dim() != 0) ? NPUNativeFunctions::npu_dtype_cast(other, at::kFloat) : other;
-      if (!NpuUtils::check_match(&selfDtypeCast)) {
-        at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfDtypeCast);
-        at::Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, otherDtypeCast);
-        NpuUtils::format_fresh_view(selfDtypeCast, result);
+      if (!NpuUtils::check_match(&self_dtype_cast)) {
+        at::Tensor contiguous_self = NpuUtils::format_contiguous(self_dtype_cast);
+        at::Tensor result = mul_out_npu_nocheck(contiguous_self, contiguous_self, other_dtype_cast);
+        NpuUtils::format_fresh_view(self_dtype_cast, result);
       } else {
-        mul_out_npu_nocheck(selfDtypeCast, selfDtypeCast, otherDtypeCast);
+        mul_out_npu_nocheck(self_dtype_cast, self_dtype_cast, other_dtype_cast);
       }
-      if (self.scalar_type() == at::kBool) {
-        selfDtypeCast = NPUNativeFunctions::npu_dtype_cast(selfDtypeCast, at::kBool);
-        self.copy_(selfDtypeCast);
+      if (self_dtype_cast.scalar_type() != self.scalar_type()) {
+        self_dtype_cast = NPUNativeFunctions::npu_dtype_cast(self_dtype_cast, self.scalar_type());
+        self.copy_(self_dtype_cast);
       } else {
-        self = selfDtypeCast;
+        self = self_dtype_cast;
       }
 
       return self;
@@ -167,8 +167,8 @@ namespace at_npu
     {
       if (!NpuUtils::check_match(&self))
       {
-        at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-        at::Tensor result = muls_out_npu(contiguousSelf, contiguousSelf, other);
+        at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+        at::Tensor result = muls_out_npu(contiguous_self, contiguous_self, other);
         NpuUtils::format_fresh_view(self, result);
       }
       else
