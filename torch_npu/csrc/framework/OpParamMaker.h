@@ -313,6 +313,7 @@ namespace at_npu
         params.paras.output_desc = aclTensorOutputDescArr;
         params.paras.output_data_buf = aclDataOutputBuffArr;
         params.hostMemory = execParam.hostMem;
+        params.pta_correlation_id = ExecuteParas::g_pta_correlation_id++;
 
         if (!ForceJitCompileList::GetInstance().Inlist(opName) && env::CheckJitDisable()) {
           params.isJitDisable = true;
