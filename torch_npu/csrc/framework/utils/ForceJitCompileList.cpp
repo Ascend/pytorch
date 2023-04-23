@@ -22,6 +22,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 
+#include "third_party/acl/inc/acl/acl_base.h"
+
 using std::string;
 using std::vector;
 
@@ -30,16 +32,13 @@ namespace at_npu
   namespace native
   {
 
-    ForceJitCompileList &ForceJitCompileList::GetInstance()
-    {
+    ForceJitCompileList &ForceJitCompileList::GetInstance() {
       static ForceJitCompileList jit_list;
       return jit_list;
     }
 
-    void ForceJitCompileList::RegisterJitlist(const std::string &jitlist)
-    {
-      if (jitlist.empty())
-      {
+    void ForceJitCompileList::RegisterJitlist(const std::string &jitlist) {
+      if (jitlist.empty()) {
         return;
       }
 
@@ -48,8 +47,7 @@ namespace at_npu
       auto start = 0U;
       auto end = value.find(delimiter);
       std::string token;
-      while (end != std::string::npos)
-      {
+      while (end != std::string::npos) {
         token = value.substr(start, end - start);
         if (!token.empty())
           jit_list_.emplace(token);
@@ -64,22 +62,17 @@ namespace at_npu
       return;
     }
 
-    bool ForceJitCompileList::Inlist(const std::string &opName) const
-    {
-      if (jit_list_.find(opName) != jit_list_.end())
-      {
+    bool ForceJitCompileList::Inlist(const std::string &opName) const {
+      if (jit_list_.find(opName) != jit_list_.end()) {
         return true;
       }
       return false;
     }
 
-    void ForceJitCompileList::DisplayJitlist() const
-    {
-      if (!jit_list_.empty())
-      {
-        for (auto &iter : jit_list_)
-        {
-          NPU_LOGI("check op [%s] is in jitcompile list, use just in time compile", iter.c_str());
+    void ForceJitCompileList::DisplayJitlist() const {
+      if (!jit_list_.empty()) {
+        for (auto &iter: jit_list_) {
+          ASCEND_LOGI("check op [%s] is in jitcompile list, use Just-In-Time compile", iter.c_str());
         }
       }
       return;
