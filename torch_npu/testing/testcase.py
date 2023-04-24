@@ -35,6 +35,7 @@ import time
 import warnings
 import random
 import subprocess
+import inspect
 import __main__
 import torch
 import expecttest
@@ -45,9 +46,27 @@ from torch._six import string_classes, inf
 from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices, IS_WINDOWS
 from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
 
+# Environment variables set in ci script.
+IS_IN_CI = os.getenv('IN_CI') == '1'
+TEST_REPORT_PATH = os.getenv("TEST_REPORT_PATH", "test-reports")
+
+
 def run_tests():
-    argv = [sys.argv[0]]
-    unittest.main(argv=argv)
+    argv = sys.argv
+    if IS_IN_CI:
+        # import here so that non-CI doesn't need xmlrunner installed
+        import xmlrunner
+        filename = inspect.getfile(sys._getframe(1))
+        strip_py = re.sub(r'.py$', '', filename)
+        test_filename = re.sub('/', r'.', strip_py)
+        test_report_path = os.path.join(TEST_REPORT_PATH, test_filename)
+        verbose = '--verbose' in argv or '-v' in argv
+        if verbose:
+            print('Test results will be stored in {}'.format(test_report_path))
+        unittest.main(argv=argv, testRunner=xmlrunner.XMLTestRunner(output=test_report_path,
+                                                                    verbosity=2 if verbose else 1))
+    else:
+        unittest.main(argv=argv)
 
 
 class TestCase(expecttest.TestCase):
