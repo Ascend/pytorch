@@ -162,7 +162,7 @@ static void initGlobalStreamState() {
   int device_id = 0;
   auto ret = aclrtGetDevice(&device_id);
   if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE("Device has not been set");
+    ASCEND_LOGE("Device has not been set");
   }
   // Initializes default streams
   default_streams[device_id].device_index = device_id;
@@ -214,7 +214,7 @@ static void initNPUStreamsOnce() {
   current_streams =
       (LeakyStreamInternals**)malloc(num_npus * sizeof(LeakyStreamInternals*));
   if (current_streams == NULL){
-    NPU_LOGE("current_streams malloc failed.");
+    ASCEND_LOGE("current_streams malloc failed.");
     return;
   }
   for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
@@ -278,7 +278,7 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
   if (ptr->repo->CheckInit()) {
     NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
     if (ret != SUCCESS) {
-      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+      ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       return nullptr;
     }
   }
@@ -381,7 +381,7 @@ void npuSynchronizeDevice() {
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {
-      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+      ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       return;
     }
   }

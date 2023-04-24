@@ -255,7 +255,7 @@ struct HostAllocator {
       if (!block.allocated) {
         if (aclrtDestroyEvent(event) != ACL_ERROR_NONE) {
           C10_NPU_SHOW_ERR_MSG();
-          NPU_LOGW("destory acl event fail");
+          ASCEND_LOGW("destory acl event fail");
         }
         block.event_count--;
       }
@@ -271,7 +271,7 @@ struct HostAllocator {
     for (auto it = blocks.begin(); it != blocks.end();) {
       Block& block = it->second;
       if (aclrtFreeHost(block.ptr) != ACL_ERROR_NONE) {
-        NPU_LOGE("free host pin failed!");
+        ASCEND_LOGE("free host pin failed!");
       }
       if (!block.allocated) {
         it = blocks.erase(it);
@@ -375,7 +375,7 @@ struct THNPUCachingHostAllocator final : public at::Allocator {
     AT_ASSERT(size >= 0);
     void* ptr = nullptr;
     if (allocator.malloc(&ptr, size) != ACL_ERROR_NONE) {
-      NPU_LOGE("allocate host pinned memory fail");
+      ASCEND_LOGE("allocate host pinned memory fail");
     }
     return {ptr, ptr, &THNPUCachingHostDeleter, at::DeviceType::CPU};
   }
@@ -394,7 +394,7 @@ c10::Allocator* getPinnedMemoryAllocator(){
   c10_npu::NpuSysCtrl::SysStatus status =
       c10_npu::NpuSysCtrl::GetInstance().Initialize();
   if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
-    NPU_LOGE("Npu init fail.");
+    ASCEND_LOGE("Npu init fail.");
   }
   return getTHNPUCachingHostAllocator();
 }

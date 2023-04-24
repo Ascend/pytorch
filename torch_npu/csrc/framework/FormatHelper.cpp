@@ -198,12 +198,12 @@ namespace at_npu
         res.resize(5);
         if (dims.size() < 4)
         {
-          NPU_LOGD("infershape4to5 but input dim < 4");
+          ASCEND_LOGD("infershape4to5 but input dim < 4");
           return InferShape4To5(InferShapeLessTo4(dims));
         }
         else if (dims.size() > 4)
         {
-          NPU_LOGE("infershape4to5 but input dim > 4");
+          ASCEND_LOGE("infershape4to5 but input dim > 4");
         }
         res[0] = dims[0];
         res[1] = (dims[1] + 15) / 16;

@@ -166,7 +166,7 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(
 at::ScalarType CalcuOpUtil::ConvertToATDataType(const aclDataType &acl_type) {
   auto iter = ACL_SCALAR_TYPE_TO_AT_TYPE_MAP.find(acl_type);
   if (iter == ACL_SCALAR_TYPE_TO_AT_TYPE_MAP.end()) {
-    NPU_LOGE("Unsupport data type: %d.", static_cast<int32_t>(acl_type));
+    ASCEND_LOGE("Unsupport data type: %d.", static_cast<int32_t>(acl_type));
     return at::ScalarType::Undefined;
   }
   return iter->second;
@@ -196,7 +196,7 @@ c10::Scalar CalcuOpUtil::ConvertTensorToScalar(const at::Tensor &tensor) {
     c10::Scalar scalar(value);
     expScalar = scalar;
   } else {
-    NPU_LOGE("unsupport scalar type! ");
+    ASCEND_LOGE("unsupport scalar type! ");
     C10_NPU_CHECK(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
   }
 

@@ -33,7 +33,7 @@ namespace at_npu
       NPUStatus ret = DestroyAclParams(paras);
       if (ret != SUCCESS)
       {
-        NPU_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
+        ASCEND_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
       }
       hostMemory.clear();
       return;

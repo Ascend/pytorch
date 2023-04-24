@@ -74,9 +74,10 @@ void GraphExecutor::RunGraph(
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start_time);
   if (verbose_) {
-    NPU_LOGI("RunGraph Time: duration = %.3f ms",static_cast<double>(duration.count()) *
-                                                 std::chrono::microseconds::period::num /
-                                                 std::chrono::milliseconds::period::den);
+    ASCEND_LOGI("RunGraph Time: duration = %.3f ms",
+                static_cast<double>(duration.count()) *
+                std::chrono::microseconds::period::num /
+                std::chrono::milliseconds::period::den);
   }
 }
 
@@ -102,8 +103,9 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   size_t output_number = outputs.tensors.size();
   if (verbose_) {
     string is_cache = is_cache_hit ? "true" : "false";
-    NPU_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, input number = %zu, output number = %zu",
-             cur_graph_id, is_cache.c_str(), input_number, output_number);
+    ASCEND_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, "
+                "input number = %zu, output number = %zu",
+                cur_graph_id, is_cache.c_str(), input_number, output_number);
   }
 #ifndef BUILD_LIBTORCH
   // Release GIL to avoid deadlocks.

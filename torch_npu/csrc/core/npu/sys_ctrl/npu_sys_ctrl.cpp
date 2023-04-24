@@ -123,27 +123,27 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()){
         C10_NPU_CHECK(aclmdlInitDump());
-        NPU_LOGD("dump init success");
+        ASCEND_LOGD("dump init success");
     }
 
     c10_npu::NPUCachingAllocator::init();
-    NPU_LOGD("Npu caching allocator initialize successfully");
+    ASCEND_LOGD("Npu caching allocator initialize successfully");
 
     auto ret = aclrtGetDevice(&device_id_);
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
         C10_NPU_CHECK(aclrtSetDevice(device_id_));
     }else{
-        NPU_LOGE("Npu device %d has been set before global init.", device_id_);
+        ASCEND_LOGE("Npu device %d has been set before global init.", device_id_);
     }
 
     init_flag_ = true;
-    NPU_LOGD("Npu sys ctrl initialize successfully.");
+    ASCEND_LOGD("Npu sys ctrl initialize successfully.");
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
       C10_NPU_CHECK(aclmdlSetDump(aclConfigPath));
-      NPU_LOGD("set dump config success");
+      ASCEND_LOGD("set dump config success");
     }
 
   auto npu_device_id = std::to_string(device_id_);
@@ -229,7 +229,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
  NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
    if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1){
      c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
-     NPU_LOGI("Npu overflow check switch set successfully.");
+     ASCEND_LOGI("Npu overflow check switch set successfully.");
    }
    return INIT_SUCC;
 }
@@ -264,7 +264,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
     release_fn_.clear();
 
-    NPU_LOGD("Npu sys ctrl finalize successfully.");
+    ASCEND_LOGD("Npu sys ctrl finalize successfully.");
     return FINALIZE_SUCC;
 }
 

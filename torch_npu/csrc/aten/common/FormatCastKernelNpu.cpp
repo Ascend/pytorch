@@ -73,7 +73,7 @@ at::Tensor npu_format_cast_impl(
     int64_t acl_format) {
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   if (src_desc.npu_format_ == acl_format) {
-    NPU_LOGD("no need to do format cast");
+    ASCEND_LOGD("no need to do format cast");
     return src;
   }
   if (FormatHelper::IsBaseFormatType(src) &&

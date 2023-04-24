@@ -28,7 +28,7 @@ inline c10::DeviceIndex device_count() noexcept {
     // Clear out the error state, so we don't spuriously trigger someone else.
     // (This shouldn't really matter, since we won't be running very much CUDA
     // code in this regime.)
-    NPU_LOGE("get device count of NPU failed");
+    ASCEND_LOGE("get device count of NPU failed");
     return 0;
   }
   return static_cast<c10::DeviceIndex>(count);
