@@ -28,7 +28,7 @@ from typing import Dict, Optional, List, Tuple, Set, Sequence, Callable
 
 import yaml
 from torchgen.code_template import CodeTemplate
-from torchgen.gen import parse_tags_yaml, LineLoader
+from torchgen.gen import parse_tags_yaml, LineLoader, cpp_string, FileManager, error_check_native_functions
 from torchgen.api import cpp
 from codegen.api.python import (PythonSignature,
                                 PythonSignatureGroup,
@@ -42,8 +42,7 @@ from codegen.api.python import (PythonSignature,
                                 dispatch_lambda_return_str,
                                 has_tensor_options,
                                 namedtuple_fieldnames, signature)
-from codegen.gen import cpp_string, FileManager, error_check_native_functions
-from codegen.context import with_native_function
+from torchgen.context import with_native_function
 from torchgen.model import (BaseOperatorName, NativeFunction, BackendMetadata,
                            Type, Variant, BackendIndex, Location,
                            DispatchKey, OperatorName)

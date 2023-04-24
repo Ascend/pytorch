@@ -16,7 +16,7 @@
 
 from typing import List, Union, Optional
 
-from codegen.context import with_native_function_and_index
+from torchgen.context import with_native_function_and_index
 from torchgen.utils import mapMaybe
 from torchgen.model import NativeFunction, NativeFunctionsGroup, BackendIndex
 from torchgen.api.types import kernel_signature

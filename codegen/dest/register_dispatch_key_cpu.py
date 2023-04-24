@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Union, Tuple
 from typing_extensions import Literal
 
-from codegen.context import method_with_native_function, native_function_manager
+from torchgen.context import method_with_native_function, native_function_manager
 from torchgen.utils import Target, mapMaybe
 from torchgen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
@@ -37,7 +37,7 @@ import torchgen.api.meta as meta
 import torchgen.api.cpp as cpp
 import torchgen.api.structured as structured
 from torchgen.api.translate import translate
-from codegen.selective_build.selector import SelectiveBuilder
+from torchgen.selective_build.selector import SelectiveBuilder
 from torchgen.api.types import (BaseCType, TupleCType, BaseCppType)
 from .utils import transfer_args_of_wrapper_func_to_cpu, transfer_ret_of_wrapper_func_to_xla
 
