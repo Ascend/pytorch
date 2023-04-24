@@ -138,6 +138,7 @@ class RegisterDispatchKey:
 
     target: Union[
         Literal[Target.ANONYMOUS_DEFINITION],
+        Literal[Target.ANONYMOUS_DEFINITION_UNSUPPORT],
         Literal[Target.NAMESPACED_DEFINITION],
         Literal[Target.NAMESPACED_DECLARATION],
         Literal[Target.REGISTRATION]
@@ -384,6 +385,17 @@ namespace {{
   {device_guard}
   {record_func_def}
   return {impl_name}({args_exprs_str});
+}}
+
+}} // anonymous namespace
+"""
+
+            elif self.target is Target.ANONYMOUS_DEFINITION_UNSUPPORT:
+                return f"""\
+namespace {{
+
+{returns_type} {name}({args_str}) {{
+    TORCH_CHECK(false, "{f.func.name} is unsupported!");
 }}
 
 }} // anonymous namespace

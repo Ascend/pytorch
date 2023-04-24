@@ -60,6 +60,7 @@ Target = Enum('Target', (
     'REGISTRATION',
     # namespace { ... }
     'ANONYMOUS_DEFINITION',
+    'ANONYMOUS_DEFINITION_UNSUPPORT',
     # namespace cpu { ... }
     'NAMESPACED_DEFINITION',
     'NAMESPACED_DECLARATION',
