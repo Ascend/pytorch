@@ -1594,7 +1594,22 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_stack,
-    ), 
+    ),
+    OpInfo(
+        'std',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=partial(common_methods_invocations.sample_inputs_reduction, 
+        supports_multiple_dims=False),
+        supports_out=False,
+        skipSample={
+            'test_correctness' : (0, 1, 2, 12),
+        },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
+            dtypes=[torch.float16, torch.float32]),
+        ),
+    ),
     OpInfo(
         'std_mean',
         dtypes=_dispatch_dtypes((torch.float32, )),
