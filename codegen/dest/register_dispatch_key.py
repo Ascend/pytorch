@@ -19,7 +19,7 @@ import itertools
 import textwrap
 
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
@@ -40,50 +40,62 @@ from codegen.api.translate import translate
 from codegen.selective_build.selector import SelectiveBuilder
 
 
+def gen_empty_impl_names(
+    backend_index: BackendIndex,
+) -> Tuple[Optional[str], Optional[str]]:
+    empty_impl = None
+    empty_strided_impl = None
+
+    if backend_index.dispatch_key == DispatchKey.CPU:
+        dispatch = str(backend_index.dispatch_key).lower()
+        empty_impl = f"at::detail::empty_{dispatch}"
+        empty_strided_impl = f"at::detail::empty_strided_{dispatch}"
+
+    return empty_impl, empty_strided_impl
+
+
 def gen_create_out_helper(backend_index: BackendIndex) -> List[str]:
-    if backend_index.dispatch_key == DispatchKey.Meta:
-        # TODO: dedupe this with below
-        core = """
-if (strides.empty()) {
-    return at::empty(sizes, options.device(at::kMeta));
-} else {
-    return at::empty_strided(sizes, strides, options.device(at::kMeta));
-}
-"""
-    else:
-        expanded_topts = "optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(), " \
-            "options.device_opt(), options.pinned_memory_opt()"
-        empty_init = ""
-        if backend_index.dispatch_key == DispatchKey.CPU:
-            empty_impl = "at::native::empty_cpu"
-            empty_strided_impl = "at::native::empty_strided_cpu"
-        elif backend_index.dispatch_key == DispatchKey.CUDA:
-            empty_init = "globalContext().lazyInitCUDA();"
-            empty_impl = "at::native::empty_cuda"
-            empty_strided_impl = "at::native::empty_strided_cuda"
-        elif backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd:
-            empty_impl = "at::empty"
-            empty_strided_impl = "at::empty_strided"
-        else:
-            return []
-        core = f"""
-  {empty_init}
-  if (strides.empty()) {{
-      return {empty_impl}(sizes, {expanded_topts}, options.memory_format_opt());
-  }} else {{
-      // TODO: assert options.memory_format_opt() is nullopt (debug only?)
-      return {empty_strided_impl}(sizes, strides, {expanded_topts});
-  }}
-"""
-    return [f"""
+
+    empty_impl, empty_strided_impl = gen_empty_impl_names(backend_index)
+    if empty_impl is None:
+        return []
+
+    empty_options = "options"
+    return [
+        f"""
 Tensor create_out(IntArrayRef sizes, IntArrayRef strides, const TensorOptions &options) {{
-{core}
+  if (strides.empty()) {{
+      return {empty_impl}(sizes, {empty_options});
+  }} else {{
+      return {empty_strided_impl}(sizes, strides, {empty_options});
+  }}
 }}
-"""]
+"""
+    ]
+
+
+def gen_maybe_create_proxy_helper(backend_index: BackendIndex) -> List[str]:
+    _, empty_strided_impl = gen_empty_impl_names(backend_index)
+    return (
+        []
+        if empty_strided_impl is None
+        else [
+            f"""
+c10::optional<Tensor> maybe_create_proxy(const Tensor &out, IntArrayRef sizes, 
+    IntArrayRef strides, const TensorOptions &options) {{
+  if (out.strides() != strides) {{
+    return {empty_strided_impl}(sizes, strides, options);
+  }}
+  return c10::nullopt;
+}}
+"""
+        ]
+    )
 
 
 def gen_resize_out_helper(backend_index: BackendIndex) -> List[str]:
-    return ["""
+    return [
+        """
 void resize_out(const Tensor &out, IntArrayRef sizes, IntArrayRef strides, const TensorOptions &options) {
   TORCH_CHECK(options.dtype() == out.dtype(),
       "Expected out tensor to have dtype ", options.dtype(), ", but got ", out.dtype(), " instead");
@@ -96,16 +108,20 @@ void resize_out(const Tensor &out, IntArrayRef sizes, IntArrayRef strides, const
   if (resized) {
     if (!strides.empty()) {
       TORCH_INTERNAL_ASSERT(!options.memory_format_opt().has_value());
-      at::native::as_strided_(out, sizes, strides);
+      // TODO: avoid the redispatch here
+      out.as_strided_(sizes, strides);
     } else if (options.memory_format_opt().has_value()) {
       out.unsafeGetTensorImpl()->empty_tensor_restride(*options.memory_format_opt());
     }
   }
 }
-"""]
+"""
+    ]
+
 
 def gen_check_inplace_helper(backend_index: BackendIndex) -> List[str]:
-    return ["""
+    return [
+        """
 void check_inplace(const Tensor &self, IntArrayRef sizes, const TensorOptions &options) {
   // These checks are needed on those operators that:
   //   1) don't use 'TensorIterator' (e.g. 'addmm' and 'baddbmm')
@@ -122,14 +138,16 @@ void check_inplace(const Tensor &self, IntArrayRef sizes, const TensorOptions &o
       "Bad in-place call: ",
       "input tensor size ", self.sizes(), " and output tensor size ", sizes, " should match");
 }
-"""]
+"""
+    ]
 
 
 def gen_registration_helpers(backend_index: BackendIndex) -> List[str]:
     return [
         *gen_create_out_helper(backend_index),
         *gen_resize_out_helper(backend_index),
-        *gen_check_inplace_helper(backend_index)
+        *gen_check_inplace_helper(backend_index),
+        *gen_maybe_create_proxy_helper(backend_index),
     ]
 
 

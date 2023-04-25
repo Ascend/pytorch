@@ -393,13 +393,9 @@ class NativeFunction:
         category_override = e.pop('category_override', None)
         assert category_override is None or isinstance(category_override, str), f'not a str: {category_override}'
 
-        def parse_precomputed(e, structured):
-            precomputed_dict = e.pop('precomputed', None)
-            assert precomputed_dict is None or structured is True
-            precomputed = Precompute.parse(precomputed_dict) if precomputed_dict else None
-            return precomputed
-
-        precomputed = parse_precomputed(e, structured)
+        precomputed_dict = e.pop("precomputed", None)
+        assert precomputed_dict is None or structured is True
+        precomputed = Precompute.parse(precomputed_dict) if precomputed_dict else None
 
         def parse_tag(e, structured):
             tag_str = e.pop('tags', None)
@@ -1661,32 +1657,56 @@ class Precompute:
     # A map from kernel argument name -> a list of precomputed
     # elements that replaces/supersedes it.
     replace: Dict[str, List[Argument]]
+    # List of precomputed args added without replacement
+    add: List[Argument]
 
     @staticmethod
-    def parse(src: object) -> 'Precompute':
+    def parse(src: object) -> "Precompute":
         assert isinstance(src, list)
 
         # src is a list of strings of the format:
         #   {kernel param name} -> {replacement decl}[, {replacement decl}, ...]
-        # Parse this list to get the names of which precomputed elements
+        #   [{add decl}[, {add decl}, ...]]
+        # The last line is optional and contains the precomputed parameters that are
+        # added without replacement.
+        # The other lines are parsed to get the names of which precomputed elements
         # should replace which kernel arguments.
+        add_args = []
+        if " -> " not in src[-1]:
+            add_list = src[-1].split(",")
+            add_args = [Argument.parse(name.strip()) for name in add_list]
+            src = src[:-1]
+
         replace = {}
         for raw_replace_item in src:
             assert isinstance(raw_replace_item, str)
+            assert " -> " in raw_replace_item, (
+                "precomputed parameters without replacement"
+                " are allowed only in the last line"
+            )
 
-            arg, with_list_raw = raw_replace_item.split(' -> ')
-            with_list = with_list_raw.split(',')
+            arg, with_list_raw = raw_replace_item.split(" -> ")
+            with_list = with_list_raw.split(",")
             with_list_args = [Argument.parse(name.strip()) for name in with_list]
             replace[arg] = with_list_args
 
-        r = Precompute(replace=replace)
-        assert r.to_list() == src, 'r.to_list() != src'
+        r = Precompute(replace=replace, add=add_args)
+        assert r.to_list() == src, "r.to_list() != src"
         return r
+
+    def __post_init__(self) -> None:
+        # the template parameters are upper so if these are the
+        # same then it is ambiguous
+        for a in self.add:
+            assert a.name.upper() != a.name
+        for args in self.replace.values():
+            for a in args:
+                assert a.name.upper() != a.name
 
     def to_list(self) -> List[str]:
         replace_list = []
         for kernel_param, replacement_params in self.replace.items():
-            replacements = ', '.join(str(param) for param in replacement_params)
-            replace_list.append(f'{kernel_param} -> {replacements}')
+            replacements = ", ".join(str(param) for param in replacement_params)
+            replace_list.append(f"{kernel_param} -> {replacements}")
 
         return replace_list
