@@ -43,6 +43,9 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_ctc_loss(
       max_length = i;
     }
   }
+  // add max_length info
+  auto shape = log_probs.sizes();
+  blank = blank + max_length * shape[2];
 
   // calculate the output size
   auto outputSizes = ctc_loss_npu_output_size(log_probs, max_length);
