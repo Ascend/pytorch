@@ -44,7 +44,42 @@
 </th>
 </tr>
 </thead>
-<tbody><tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
+<tbody><tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1</p>
+</td>
+<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC1</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
+<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc1</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
+</td>
+<tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1(适用于昇腾910B处理器)</p>
+</td>
+<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.1.RC1</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
+<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc1</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
+</td>
+</tr>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
 </td>
 <td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.0.1</p>
 </td>
@@ -212,21 +247,21 @@ pip3 install wheel
 
       ```
       # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      wget https://gitee.com/ascend/pytorch/releases/download/v3.0.0-pytorch1.11.0/torch_npu-1.11.0rc2-cp37-cp37m-linux_aarch64.whl
+      wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc1-pytorch1.11.0/torch_npu-1.11.0-cp37-cp37m-linux_aarch64.whl
       ```
       
    2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
    
       ```
       # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      pip3 install torch_npu-1.11.0rc2-cp37-cp37m-linux_aarch64.whl
+      pip3 install torch_npu-1.11.0-cp37-cp37m-linux_aarch64.whl
       ```
    
 3. 安装对应框架版本的torchvision。
 
    ```
    #PyTorch 1.11.0需安装0.12.0版本
-   pip3 install torchvision==0.9.1   
+   pip3 install torchvision==0.12.0   
    ```
 
 **安装APEX混合精度模块<a name="section154215015416"></a>**
@@ -257,11 +292,12 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | ------------ | ------------ | ------------ | -------------------------------------- | ------------ |
 | **v2.0.2**   | EOL          | 2021-07-29   | N/A                                    |              |
 | **v2.0.3**   | EOL          | 2021-10-15   | N/A                                    |              |
-| **v2.0.4**   | Unmaintained | 2022-01-15   | EOL <br> 2023-04-15 estimated          |              |
-| **v3.0.rc1** | Maintained   | 2022-04-10   | Unmaintained <br> 2023-04-10 estimated |              |
+| **v2.0.4**   | EOL          | 2022-01-15   | N/A                                    |              |
+| **v3.0.rc1** | UnMaintained | 2022-04-10   | EOL <br> 2023-07-10 estimated          |              |
 | **v3.0.rc2** | Maintained   | 2022-07-15   | Unmaintained <br> 2023-07-15 estimated |              |
 | **v3.0.rc3** | Maintained   | 2022-10-20   | Unmaintained <br> 2023-10-20 estimated |              |
 | **v3.0.0**   | Maintained   | 2023-1-18    | Unmaintained <br> 2024-1-18 estimated  |              |
+| **v5.0.rc1** | Maintained   | 2023-4-19    | Unmaintained <br/> 2024-4-19 estimated |              |
 
 # FAQ
 
@@ -348,8 +384,8 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 1. 编译生成PyTorch插件的二进制安装包。
 
    ```
-   # 下载对应PyTorch版本分支代码，进入插件根目录，以v1.11.0-3.0.0为例
-   git clone -b  v1.11.0-3.0.0 https://gitee.com/ascend/pytorch.git 
+   # 下载对应PyTorch版本分支代码，进入插件根目录，以v1.11.0为例
+   git clone -b  v1.11.0 https://gitee.com/ascend/pytorch.git 
    cd pytorch    
    # 指定Python版本编包方式，以Python3.7为例，其他Python版本请使用 --python=3.8或--python3.9
    bash ci/build.sh --python=3.7
@@ -366,7 +402,7 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
    ```
    #PyTorch 1.11.0需安装0.12.0版本
-   pip3 install torchvision==0.9.1   
+   pip3 install torchvision==0.12.0   
    ```
 
 4. 配置环境变量，验证是否安装成功。
@@ -414,9 +450,6 @@ pip3 install typing_extensions
 
 ```
 cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64  #{arch}为架构名称
-
-pip3 install --upgrade topi-0.4.0-py3-none-any.whl
-
 pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
@@ -424,9 +457,6 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 ```
 cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64  #{arch}为架构名称
-
-pip3 install --upgrade topi-0.4.0-py3-none-any.whl
-
 pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
