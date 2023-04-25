@@ -49,10 +49,6 @@ graph_printer = _npu_print.GraphPrinter()
 
 _tensor_classes: Set[Type] = set()
 
-NPU_TENSOR = set([
-    "FloatTensor", "IntTensor", "DoubleTensor",
-    "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
-
 
 __all__ = []
 
