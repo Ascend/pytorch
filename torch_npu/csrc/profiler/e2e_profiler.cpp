@@ -43,7 +43,7 @@ bool g_concatenateReport = false;
 void InitRangeStamp() {
   g_rangeStamp.groups = reinterpret_cast<struct StampGroup *>(malloc(sizeof(struct StampGroup) * GROUP_NUM));
   if (g_rangeStamp.groups == nullptr) {
-    NPU_LOGE("InitRangeStamp malloc fail.");
+    ASCEND_LOGE("InitRangeStamp malloc fail.");
     return;
   }
   memset(g_rangeStamp.groups, 0, sizeof(struct StampGroup) * GROUP_NUM);
@@ -66,12 +66,12 @@ void InitRangeStamp() {
 
 struct Stamp *GetRangeStamp() {
   if (g_rangeStamp.groups == nullptr) {
-    NPU_LOGE("GetRangeStamp groups is null.");
+    ASCEND_LOGE("GetRangeStamp groups is null.");
     return nullptr;
   }
   std::lock_guard<std::mutex> lk(g_rangeStampMtx);
   if (g_rangeStamp.curUsedGrpInd < 0) {
-    NPU_LOGE("GetRangeStamp fail, no idle node.");
+    ASCEND_LOGE("GetRangeStamp fail, no idle node.");
     return nullptr;
   }
   int usedGrpInd = g_rangeStamp.curUsedGrpInd;
@@ -90,7 +90,7 @@ struct Stamp *GetRangeStamp() {
 
 void PutRangeStamp(struct Stamp *stamp) {
   if (g_rangeStamp.groups == nullptr || stamp == nullptr) {
-    NPU_LOGE("PutRangeStamp groups/stamp is null.");
+    ASCEND_LOGE("PutRangeStamp groups/stamp is null.");
     return;
   }
   std::lock_guard<std::mutex> lk(g_rangeStampMtx);
@@ -101,7 +101,7 @@ void PutRangeStamp(struct Stamp *stamp) {
       (unsigned char *)g_rangeStamp.groups[grpIdx].nodes,
       sizeof(struct Stamp) * GROUP_CAPACITY);
     if (ret != ACL_ERROR_NONE) {
-      NPU_LOGE("PutRangeStamp report fail, ret=%d.", ret);
+      ASCEND_LOGE("PutRangeStamp report fail, ret=%d.", ret);
     }
     g_rangeStamp.groups[grpIdx].idleNodeInd = 0;
     g_rangeStamp.groups[grpIdx].fillEndNodeCnt = 0;
@@ -115,7 +115,7 @@ void PutRangeStamp(struct Stamp *stamp) {
 
 void FlushRangeStamp() {
   if (g_rangeStamp.groups == nullptr) {
-    NPU_LOGE("FlushRangeStamp groups is null.");
+    ASCEND_LOGE("FlushRangeStamp groups is null.");
     return;
   }
   if (g_rangeStamp.curUsedGrpInd < 0) {
@@ -130,7 +130,7 @@ void FlushRangeStamp() {
     (unsigned char *)g_rangeStamp.groups[grpIdx].nodes,
     sizeof(struct Stamp) * fillEndNodeCnt);
   if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE("FlushRangeStamp report fail, ret=%d.", ret);
+    ASCEND_LOGE("FlushRangeStamp report fail, ret=%d.", ret);
   }
 }
 
@@ -145,7 +145,7 @@ void InitMarkStamp() {
   g_markStamp.idleNodeInd = 0;
   g_markStamp.nodes = reinterpret_cast<struct Stamp *>(malloc(sizeof(struct Stamp) * STAMP_QUEUE_LEN));
   if (g_markStamp.nodes == nullptr) {
-    NPU_LOGE("InitMarkStamp malloc fail.");
+    ASCEND_LOGE("InitMarkStamp malloc fail.");
     return;
   }
   memset(g_markStamp.nodes, 0, sizeof(struct Stamp) * STAMP_QUEUE_LEN);
@@ -178,7 +178,7 @@ void PutMarkStamp(const std::string &opName) {
     at_npu::native::AclprofDestroyStamp(local_stamp);
   } else {
     if (g_markStamp.nodes == nullptr) {
-      NPU_LOGE("PutMarkStamp nodes is null.");
+      ASCEND_LOGE("PutMarkStamp nodes is null.");
       return;
     }
     // get idle node index
@@ -200,7 +200,7 @@ void PutMarkStamp(const std::string &opName) {
         (unsigned char *)&g_markStamp.nodes[index + 1 - ONCE_REPORT_NUM],
         sizeof(struct Stamp) * ONCE_REPORT_NUM);
       if (ret != ACL_ERROR_NONE) {
-        NPU_LOGE("PutMarkStamp report fail, ret=%d.", ret);
+        ASCEND_LOGE("PutMarkStamp report fail, ret=%d.", ret);
       }
     }
   }
@@ -208,7 +208,7 @@ void PutMarkStamp(const std::string &opName) {
 
 void FlushMarkStamp() {
   if (g_markStamp.nodes == nullptr) {
-    NPU_LOGE("FlushMarkStamp nodes is null.");
+    ASCEND_LOGE("FlushMarkStamp nodes is null.");
     return;
   }
   int unReportNum = g_markStamp.idleNodeInd % ONCE_REPORT_NUM;
@@ -219,7 +219,7 @@ void FlushMarkStamp() {
     (unsigned char *)&g_markStamp.nodes[g_markStamp.idleNodeInd - unReportNum],
     sizeof(struct Stamp) * unReportNum);
   if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE("FlushMarkStamp report fail, ret=%d.", ret);
+    ASCEND_LOGE("FlushMarkStamp report fail, ret=%d.", ret);
   }
 }
 
@@ -240,7 +240,7 @@ static void ReportPipelineDataToMsProfiler(uint32_t category, const std::string 
       at_npu::native::AclprofSetStampCategory(stamp, category) != ACL_ERROR_NONE ||
       at_npu::native::AclprofSetStampTraceMessage(stamp, op_name.c_str(), op_name.size()) != ACL_ERROR_NONE ||
       at_npu::native::AclprofMark(stamp) != ACL_ERROR_NONE) {
-    NPU_LOGE("Report Pipeline data to MsProfiler failed.");
+    ASCEND_LOGE("Report Pipeline data to MsProfiler failed.");
   }
   at_npu::native::AclprofDestroyStamp(stamp);
 }
@@ -297,12 +297,12 @@ void CheckProfilerRet(aclError ret, const char* message) {
   if (ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
     if (!checkOnce) {
       checkOnce = true;
-      NPU_LOGW("%s", message);
+      ASCEND_LOGW("%s", message);
     }
     return;
   }
   if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE("%s", message);
+    ASCEND_LOGE("%s", message);
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     return;
@@ -327,7 +327,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
   if(ret){
-    NPU_LOGE("In npu e2e profiling, aclrtGetDevice fail, error code: %d", ret);
+    ASCEND_LOGE("In npu e2e profiling, aclrtGetDevice fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     return;
   }
@@ -340,7 +340,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
         nullptr,
         npu_event);
   if (local_profCfg == nullptr) {
-    NPU_LOGE("In npu e2e profiling, create_config fail, error profCfg is null.");
+    ASCEND_LOGE("In npu e2e profiling, create_config fail, error profCfg is null.");
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     return;
@@ -348,14 +348,14 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
   c10_npu::npuSynchronizeDevice();
   ret  = at_npu::native::AclProfilingInit(dump_path.c_str(), dump_path.length());
   if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE("In npu e2e profiling, AclProfilingInit failed.");
+    ASCEND_LOGE("In npu e2e profiling, AclProfilingInit failed.");
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     return;
   }
   ret = at_npu::native::AclProfilingStart(local_profCfg);
   if(ret){
-    NPU_LOGE("In npu e2e profiling, AclProfStart fail, error code: %d", ret);
+    ASCEND_LOGE("In npu e2e profiling, AclProfStart fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     return;
@@ -370,7 +370,7 @@ void PushStartTime(at::RecordFunction& fn) {
   if (!g_concatenateReport || global_call_stack) {
     auto local_stamp_ = at_npu::native::AclprofCreateStamp();
     if (local_stamp_  == nullptr) {
-      NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
+      ASCEND_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
       return;
     }
     static const std::string tag_name = "torch_op";
@@ -456,7 +456,7 @@ void FinalizeE2eProfiler() {
   global_enable_profiling.store(false);
   auto ret = at_npu::native::AclProfilingStop(local_profCfg);
   if (ret) {
-    NPU_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);
+    ASCEND_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
   if (g_concatenateReport) {

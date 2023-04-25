@@ -75,13 +75,5 @@ uint32_t OptionsManager::GetHCCLExecTimeout() {
   return static_cast<uint32_t>(envFlag);
 }
 
-bool OptionsManager::CheckUseNpuLogEnable() {
-  static int useNpuLog = -1;
-  if (useNpuLog == -1) {
-    useNpuLog = GetBoolTypeOption("NPU_LOG_ENABLE");
-  }
-
-  return (useNpuLog == 1);
-}
 } // namespace option
 } // namespace c10_npu

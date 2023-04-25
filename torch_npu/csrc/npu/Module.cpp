@@ -75,7 +75,7 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid) {
   device_name = c10_npu::acl::AclrtGetSocName();
   if (device_name == nullptr) {
     prop.name = " ";
-    NPU_LOGE("NPU get device name fail.");
+    ASCEND_LOGE("NPU get device name fail.");
   } else {
     prop.name = std::string(device_name);
   }
@@ -145,7 +145,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
     c10_npu::NpuSysCtrl::SysStatus status =
         c10_npu::NpuSysCtrl::GetInstance().Initialize(device);
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
-      NPU_LOGE("Npu init fail.");
+      ASCEND_LOGE("Npu init fail.");
     }
   }
 

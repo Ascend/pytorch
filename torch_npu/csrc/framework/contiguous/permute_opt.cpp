@@ -90,16 +90,16 @@ private:
     auto current_stride = 1;
     for (int64_t i = src_desc.sizes_.size() - 1; i >= 0; i--) {
       if (current_stride != view_strides[i]) {
-        NPU_LOGD("After reordering, shape and stride still do not match, and "
-                 "permute pattern cannot be used.");
+        ASCEND_LOGD("After reordering, shape and stride still do not match, and "
+                    "permute pattern cannot be used.");
         return false;
       }
       current_stride *= view_sizes[i];
     }
     if ((base_sizes.size() - view_sizes.size()) !=
         (base_strides.size() - view_strides.size())) {
-      NPU_LOGD("Reordered shape and base shape do not match, and permute "
-               "pattern cannot be used.");
+      ASCEND_LOGD("Reordered shape and base shape do not match, and permute "
+                  "pattern cannot be used.");
       return false;
     }
 
@@ -115,7 +115,7 @@ private:
           (view_sizes_squeeze.size() == base_sizes_squeeze.size()) &&
           (view_strides_squeeze.size() == base_strides_squeeze.size());
       if (!dim_equal) {
-        NPU_LOGD(
+        ASCEND_LOGD(
             "After squeezing, reordered shape and base shape do not match, "
             "and permute pattern cannot be used.");
         return false;
@@ -123,8 +123,8 @@ private:
       for (auto i = 0; i < view_sizes_squeeze.size(); i++) {
         if ((view_sizes_squeeze[i] != base_sizes_squeeze[i]) ||
             (view_strides_squeeze[i]) != base_strides_squeeze[i]) {
-          NPU_LOGD("After squeezing, reordered shape and base shape do not "
-                   "match, and permute pattern cannot be used.");
+          ASCEND_LOGD("After squeezing, reordered shape and base shape do not "
+                      "match, and permute pattern cannot be used.");
           return false;
         }
       }
@@ -146,7 +146,7 @@ private:
     c10::SmallVector<int64_t, MAX_DIM> optimized_perm;
     c10::SmallVector<int64_t, 5> optimized_sizes;
     if (perm.size() != sizes.size()) {
-      NPU_LOGD("Param perm and sizes do not match.");
+      ASCEND_LOGD("Param perm and sizes do not match.");
       return;
     }
 
@@ -171,7 +171,7 @@ private:
       optimized_sizes.emplace_back(temp_sizes_i);
     }
     if (optimized_perm.size() == perm.size()) {
-      NPU_LOGD("No adjacent axes, cannot be optimized.");
+      ASCEND_LOGD("No adjacent axes, cannot be optimized.");
       return;
     }
 

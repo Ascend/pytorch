@@ -114,7 +114,7 @@ void copy_between_host_and_device(
   if (non_blocking) {
     auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
     C10_NPU_CHECK(ret);
-    NPU_LOGD("non_blocking copy without StreamSynchronize.");
+    ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
     void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
     C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
@@ -308,7 +308,7 @@ void copy_d2d_dtype_baseformat(
     int64_t numel = self.numel();
     if (numel == src.numel()) {
       RECORD_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
-      NPU_LOGD("copy contiguous tensor inside device");
+      ASCEND_LOGD("copy contiguous tensor inside device");
       return copy_d2d_by_memcpy(self, src, numel);
     }
   }

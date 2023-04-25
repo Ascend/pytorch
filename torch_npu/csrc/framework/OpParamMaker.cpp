@@ -127,7 +127,7 @@ namespace at_npu
         bool sync,
         c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
-      NPU_LOGD("Op %s Run.", opName.c_str());
+      ASCEND_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
       if (PyGILState_Check()) {
@@ -264,7 +264,7 @@ namespace at_npu
     int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream)
     {
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
-      NPU_LOGD("Op %s Run.", cur_paras->opType);
+      ASCEND_LOGD("Op %s Run.", cur_paras->opType);
       aclError ret;
 #ifndef BUILD_LIBTORCH
       if (global_enable_profiling.load(std::memory_order_relaxed)) {
@@ -324,15 +324,15 @@ namespace at_npu
     }
 
     int ExecBsFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
-      NPU_LOGD("Op %s Run.", cur_paras->opType);
       auto cur_paras = static_cast<ExecuteBsParas* >(in->paramVal);
+      ASCEND_LOGD("Op %s Run.", cur_paras->opType);
       int ret = 0;
       try {
         cur_paras->paras.func();
       } catch (std::exception& e) {
         // ERROR RESERVED in BiShengCPP
         ret = 152;
-        NPU_LOGE("Run BiShengCPP OP error err%s", e.what());
+        ASCEND_LOGE("Run BiShengCPP OP error err%s", e.what());
       }
       return ret;
     }

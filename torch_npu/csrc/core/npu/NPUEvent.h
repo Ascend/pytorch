@@ -66,7 +66,7 @@ struct NPUEvent {
     }
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {
-      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+      ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
     acl::aclrtEventRecordedStatus currStatus =
         acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
@@ -109,7 +109,7 @@ struct NPUEvent {
     float time_ms = 0;
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {
-      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+      ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
 
     C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
@@ -123,7 +123,7 @@ struct NPUEvent {
     if (is_created_) {
       NPUStatus ret = c10_npu::emptyAllNPUStream();
       if (ret != SUCCESS) {
-        NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+        ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       }
       C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
     }

@@ -29,7 +29,7 @@ void NpuProfiling::Init(const std::string &path) {
   c10_npu::npuSynchronizeDevice();
   auto ret = at_npu::native::AclProfilingInit(path.c_str(), path.length());
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
-    NPU_LOGE("npu AclProfInit fail, error code: %d", ret);
+    ASCEND_LOGE("npu AclProfInit fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     return;
   }
@@ -42,7 +42,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
   if(ret){
-    NPU_LOGE("npu profiling aclrtGetDevice fail, error code: %d", ret);
+    ASCEND_LOGE("npu profiling aclrtGetDevice fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     status = PROFILING_FINALIZE;
@@ -57,7 +57,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
       nullptr,
       npu_event);
   if (profCfg == nullptr) {
-    NPU_LOGE("npu profiling profiling_create_config fail, error  profCfg is null.");
+    ASCEND_LOGE("npu profiling profiling_create_config fail, error  profCfg is null.");
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();
     status = PROFILING_FINALIZE;
@@ -66,7 +66,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   c10_npu::npuSynchronizeDevice();
   ret = at_npu::native::AclProfilingStart(profCfg);
   if(ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)){
-    NPU_LOGE("npu profiling AclProfStart fail, error code: %d", ret);
+    ASCEND_LOGE("npu profiling AclProfStart fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
   status = PROFILING_START;
@@ -77,7 +77,7 @@ void NpuProfiling::Stop() {
   c10_npu::npuSynchronizeDevice();
   auto ret = at_npu::native::AclProfilingStop(profCfg);
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
-    NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
+    ASCEND_LOGE("npu AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
   status = PROFILING_STOP;
@@ -86,23 +86,23 @@ void NpuProfiling::Stop() {
 void NpuProfiling::Finalize() {
   if (profCfg != nullptr) {
     if (status != PROFILING_STOP) {
-      NPU_LOGW("finalize current profile status ( %u ) is not stopped, and call stop now.", status);
+      ASCEND_LOGW("finalize current profile status ( %u ) is not stopped, and call stop now.", status);
       auto ret = at_npu::native::AclProfilingStop(profCfg);
       if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
-        NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
+        ASCEND_LOGE("npu AclProfStop fail, error code: %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
     }
     auto ret = at_npu::native::AclProfilingDestroyConfig(profCfg);
     if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
-      NPU_LOGE("npu AclProfDestoryConfig fail, error code: %d", ret);
+      ASCEND_LOGE("npu AclProfDestoryConfig fail, error code: %d", ret);
       C10_NPU_SHOW_ERR_MSG();
     }
     profCfg = nullptr;
   }
   auto ret = at_npu::native::AclProfilingFinalize();
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
-    NPU_LOGE("npu AclProfFinalize fail, error code: %d", ret);
+    ASCEND_LOGE("npu AclProfFinalize fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
   status = PROFILING_FINALIZE;
@@ -126,7 +126,7 @@ void NpuProfilingDispatch::start(){
       aclprofStepTag::ACL_STEP_START,
       stream);
   if(ret != ACL_ERROR_NONE){
-      NPU_LOGE("npu profiling start fail, error code: %d", ret);
+      ASCEND_LOGE("npu profiling start fail, error code: %d", ret);
       C10_NPU_SHOW_ERR_MSG();
   }
 }
@@ -138,7 +138,7 @@ void NpuProfilingDispatch::stop(){
       aclprofStepTag::ACL_STEP_END,
       stream);
   if(ret != ACL_ERROR_NONE){
-      NPU_LOGE("npu profiling stop fail, error code: %d", ret);
+      ASCEND_LOGE("npu profiling stop fail, error code: %d", ret);
       C10_NPU_SHOW_ERR_MSG();
   }
   this->destroy();
