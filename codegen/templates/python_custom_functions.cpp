@@ -56,7 +56,6 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
-#include "torch_npu/csrc/utils/DeviceParser.h"
 
 using at::Tensor;
 using at::Device;

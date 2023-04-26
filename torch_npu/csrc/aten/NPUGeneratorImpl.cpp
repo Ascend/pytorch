@@ -112,8 +112,8 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
  * NPUGeneratorImpl class implementation
  */
 NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
-  : c10::GeneratorImpl{c10::Device(at_npu::key::NativeDeviceType, device_index),
-              c10::DispatchKeySet(at_npu::key::NativeDispatchKey)} {
+  : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
+              c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)} {
   //at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
 }
 
@@ -342,7 +342,7 @@ std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t in
  * Used for type checking during run time.
  */
 c10::DeviceType NPUGeneratorImpl::device_type() {
-  return at_npu::key::NativeDeviceType;
+  return c10::DeviceType::PrivateUse1;
 }
 
 /**

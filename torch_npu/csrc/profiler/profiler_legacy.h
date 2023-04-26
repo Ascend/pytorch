@@ -242,7 +242,7 @@ struct  LegacyEvent {
   }
 
   void updateMemoryStats(int64_t alloc_size, c10::Device device) {
-    if (device.type() == at_npu::key::NativeDeviceType) {
+    if (device.type() == c10::DeviceType::PrivateUse1) {
         npu_memory_usage_ = alloc_size;
     }else {
       LOG(WARNING) << "Unsupported memory profiling device: " << device;

@@ -14,12 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-#include <torch/csrc/utils/cuda_enabled.h>
 #include <torch/csrc/utils/tensor_new.h>
 
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
-#include "torch_npu/csrc/utils/TensorMethods.h"
 
 namespace torch_npu {
 namespace utils {

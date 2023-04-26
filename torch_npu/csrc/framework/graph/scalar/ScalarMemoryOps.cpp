@@ -41,7 +41,7 @@ void ScalarMemContext::ExecuteH2D(c10_npu::NPUStream stream) {
   C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
   npu_tensor_ = at::empty(
       {host_mem_valid_len_},
-      at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIndex).dtype(at::kByte));
+      at::TensorOptions().device(c10::DeviceType::PrivateUse1, deviceIndex).dtype(at::kByte));
 
   // This aclrtMemcpyAsync is only used for graph mode, and the target device
   // memory is always available. Executing run graph here will result in a

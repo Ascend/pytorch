@@ -11,11 +11,11 @@ void npu_lazy_init();
 void npu_set_run_yet_variable_to_false();
 
 static bool isNPUDevice(const at::TensorOptions& options) {
-    return options.device().type() == at_npu::key::NativeDeviceType;
+    return options.device().type() == c10::DeviceType::PrivateUse1;
 }
 
 static bool isNPUDevice(const at::Device& device) {
-  return device.type() == at_npu::key::NativeDeviceType;
+  return device.type() == c10::DeviceType::PrivateUse1;
 }
 
 static void maybe_initialize_npu(const at::TensorOptions& options) {

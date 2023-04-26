@@ -19,17 +19,17 @@ namespace c10_npu {
 namespace impl {
 
 struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
-  static constexpr c10::DeviceType static_type = at_npu::key::NativeDeviceType;
+  static constexpr c10::DeviceType static_type = c10::DeviceType::PrivateUse1;
 
   NPUGuardImpl() {}
   explicit NPUGuardImpl(c10::DeviceType t) {
-    TORCH_INTERNAL_ASSERT(t == at_npu::key::NativeDeviceType);
+    TORCH_INTERNAL_ASSERT(t == c10::DeviceType::PrivateUse1);
   }
   c10::DeviceType type() const override {
-    return at_npu::key::NativeDeviceType;
+    return c10::DeviceType::PrivateUse1;
   }
   c10::Device exchangeDevice(c10::Device d) const override {
-    TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
+    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1);
     c10::Device old_device = getDevice();
     if (old_device.index() != d.index()) {
       C10_NPU_CHECK(aclrtSetDevice(d.index()));
@@ -38,17 +38,17 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   }
   c10::Device getDevice() const override {
     if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-      auto device = c10::Device(at_npu::key::NativeDeviceType,
+      auto device = c10::Device(c10::DeviceType::PrivateUse1,
           c10_npu::NpuSysCtrl::GetInstance().GetCurrentDeviceIndex());
       setDevice(device);
       return device;
     }
     int device_index = 0;
     C10_NPU_CHECK(aclrtGetDevice(&device_index));
-    return c10::Device(at_npu::key::NativeDeviceType, device_index);
+    return c10::Device(c10::DeviceType::PrivateUse1, device_index);
   }
   void setDevice(c10::Device d) const override {
-    TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
+    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1);
     c10_npu::NpuSysCtrl::GetInstance().BackwardsInit();
   }
   void uncheckedSetDevice(c10::Device d) const noexcept override {

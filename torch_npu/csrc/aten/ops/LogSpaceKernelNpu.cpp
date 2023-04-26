@@ -32,9 +32,9 @@ at::Tensor& logspace_out_npu_nocheck(
   }
   at::Tensor inputs;
   if (result.scalar_type() == at::ScalarType::Half) {
-    inputs = NPUNativeFunctions::npu_dtype_cast(at::arange(0, steps, at::device(at_npu::key::NativeDeviceType)), at::kHalf);
+    inputs = NPUNativeFunctions::npu_dtype_cast(at::arange(0, steps, at::device(c10::DeviceType::PrivateUse1)), at::kHalf);
   } else if (result.scalar_type() == at::ScalarType::Float) {
-    inputs = at::arange(0, steps, at::device(at_npu::key::NativeDeviceType).dtype(at::kFloat));
+    inputs = at::arange(0, steps, at::device(c10::DeviceType::PrivateUse1).dtype(at::kFloat));
   }
   int64_t dtype = 0;
   if (result.scalar_type() == at::ScalarType::Half) {

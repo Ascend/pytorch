@@ -177,7 +177,7 @@ OpCommand &OpCommand::Input(const string &str) {
 
   auto input =
       at::empty({total_length},
-                at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
+                at::dtype(at::kByte).device(c10::DeviceType::PrivateUse1));
   auto cal_stream = c10_npu::getCurrentNPUStream();
   C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(input.data_ptr(), total_length, cpu_ptr,
                                                     total_length, ACL_MEMCPY_HOST_TO_DEVICE));
@@ -349,7 +349,7 @@ at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
   int deviceIndex = 0;
   C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
   auto tensor = cpuPinMemTensor.to(
-      c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
+      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
       cpuPinMemTensor.scalar_type(),
       true,
       true);

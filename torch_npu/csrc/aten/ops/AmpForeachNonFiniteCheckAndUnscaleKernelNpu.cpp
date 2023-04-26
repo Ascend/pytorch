@@ -26,7 +26,7 @@ const int FLOAT_STATUS_OP_DIMS_SIZE = 8;
 bool NPUNativeFunctions::_amp_foreach_non_finite_check(at::TensorList scaled_grads) {
     TORCH_WARN_ONCE("Non finite check on NPU device!");
 
-    auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
+    auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kFloat);
     at::Tensor float_status = at::zeros({FLOAT_STATUS_OP_DIMS_SIZE}, options);
     auto ans = NPUNativeFunctions::npu_get_float_status(float_status);
 

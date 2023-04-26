@@ -25,15 +25,9 @@
 
 namespace at_npu {
 namespace key {
-static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::PrivateUse1;
-static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::PrivateUse1;
-static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradPrivateUse1;
-static constexpr c10::Backend NativeBackend = c10::Backend::PrivateUse1;
-static const std::string npu_device_str = "npu";
-static const std::string default_device_str = "PrivateUse1";
 
 static bool isDeviceTensor(const at::Tensor &tensor) {
-  return tensor.device().type() == NativeDeviceType;
+  return tensor.device().type() == c10::DeviceType::PrivateUse1;
 }
 
 } // namespace key

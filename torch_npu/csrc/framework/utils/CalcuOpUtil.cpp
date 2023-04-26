@@ -214,7 +214,7 @@ at::Tensor CalcuOpUtil::CopyTensorHostToDevice(const at::Tensor &cpu_tensor) {
   int deviceIndex = 0;
   C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
   return cpuPinMemTensor.to(
-      c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
+      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
       cpuPinMemTensor.scalar_type(), true, true);
 }
 
@@ -305,7 +305,7 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
 }
 
 int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor &tensor) {
-  TORCH_CHECK(tensor.device().type() == at_npu::key::NativeDeviceType,
+  TORCH_CHECK(tensor.device().type() == c10::DeviceType::PrivateUse1,
               "Expected all tensors to be on the same device. "
               "Expected NPU tensor, please check whether the input tensor "
               "device is correct.");

@@ -76,7 +76,10 @@ class DirectoryStrategy(AccurateTest):
     """
     def identify(self, modify_file):
         second_dir = modify_file.split("/")[0]
-        return [os.path.join(BASE_DIR, modify_file)] if second_dir == 'test' else []
+        if second_dir == 'test' and modify_file.endswith(".py"):
+            return [os.path.join(BASE_DIR, modify_file)]
+        else:
+            return []
 
 
 class CopyOptStrategy(AccurateTest):

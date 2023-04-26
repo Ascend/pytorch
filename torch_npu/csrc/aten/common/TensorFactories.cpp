@@ -97,7 +97,7 @@ at::Tensor NPUNativeFunctions::scalar_tensor(const c10::Scalar& s, c10::optional
   at::AutoNonVariableTypeMode non_var_type_mode(true);
   auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
   at::native::fill_(result, s);
-  return result.to(at::device(at_npu::key::NativeDeviceType));
+  return result.to(at::device(c10::DeviceType::PrivateUse1));
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,7 +107,7 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                                      c10::optional<c10::Device> device_opt,
                                      c10::optional<bool> pin_memory_opt,
                                      c10::optional<c10::MemoryFormat> memory_format_opt) {
-  AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
+  AT_ASSERT(c10::device_or_default(device_opt).type() == c10::DeviceType::PrivateUse1);
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -248,7 +248,7 @@ at::Tensor empty_like_npu(
   }
   else {
     // See Note [Explicit nullopt c10::MemoryFormat argument]
-    if (!(options.backend() == at_npu::key::NativeBackend)) {
+    if (!(options.backend() == c10::Backend::PrivateUse1)) {
       result = at::empty(
           self.sizes(), options.memory_format(memory_format), c10::nullopt);
     }
@@ -288,7 +288,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<c10::Device> device_opt,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
-  AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
+  AT_ASSERT(c10::device_or_default(device_opt).type() == c10::DeviceType::PrivateUse1);
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -349,8 +349,8 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(c10::IntArrayRef size,
 at::Tensor empty_with_format_npu(c10::IntArrayRef size,
                                  const c10::TensorOptions &options,
                                  int64_t dst_format) {
-  AT_ASSERT(options.device().type() == at_npu::key::NativeDeviceType);
-  AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
+  AT_ASSERT(options.device().type() == c10::DeviceType::PrivateUse1);
+  AT_ASSERT(options.backend() == c10::Backend::PrivateUse1);
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -396,7 +396,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<c10::Device> device_opt,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
-  TORCH_CHECK(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType,
+  TORCH_CHECK(c10::device_or_default(device_opt).type() == c10::DeviceType::PrivateUse1,
       "Expected all tensors to be on the same device. "
       "Expected NPU tensor, please check whether the input tensor device is correct.");
   caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
@@ -682,14 +682,14 @@ at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options
 template <typename T>
 at::Tensor tensor_backend_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options)
 {
-  auto npu_tensor = tensor_npu(values, options.device(at_npu::key::NativeDeviceType));
+  auto npu_tensor = tensor_npu(values, options.device(c10::DeviceType::PrivateUse1));
   return npu_tensor.to(options.device());
 }
 
 #define TENSOR(T, _1)                                                             \
 at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options) \
 {                                                                                 \
-  if (options.device().type() != at_npu::key::NativeDeviceType)                   \
+  if (options.device().type() != c10::DeviceType::PrivateUse1)                   \
   {                                                                               \
     return tensor_backend_npu(values, options);                                   \
   }                                                                               \
