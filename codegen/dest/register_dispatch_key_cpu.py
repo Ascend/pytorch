@@ -109,7 +109,7 @@ class RegisterDispatchKeyCPU:
             # Note: We call gen_structured() if the operator is marked structured, regardless of the backend.
             # gen_structured() has special logic to handle auto-generated kernels.
             if g.structured:
-                return []
+                return self.gen_structured(g)
             else:
                 return list(map_maybe(lambda f: self.gen_unstructured(f, g), g.functions()))
         elif isinstance(f, NativeFunction):
@@ -344,16 +344,22 @@ namespace {{
 class StructuredRegisterDispatchKey(RegisterDispatchKeyCPU):
     g: NativeFunctionsGroup
 
-    def gen_class_set_output(self, k: SchemaKind, parent_class: str, generate_super: bool) -> str:
+    def gen_class_set_output_functions(
+        self, k: SchemaKind, parent_class: str, generate_super: bool
+    ) -> str:
         if generate_super:
-            set_output_super = f"{parent_class}::set_output(output_idx, sizes, strides, options, names);"
+            set_output_super = f"{parent_class}::set_output_raw_strided(output_idx, sizes, strides, options, names);"
         else:
             set_output_super = ""
-        maybe_star = "*" if k is SchemaKind.functional else ""
-        return f"""
-void set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
-                TensorOptions options, DimnameList names) override {{
-{textwrap.indent(self.gen_class_set_output_body(k), "    ")}
+
+        def gen_set_output_function(name: str, maybe_create_proxy: bool) -> str:
+            maybe_star = "*" if k is SchemaKind.functional else ""
+            return f"""
+void set_output_{name}(
+    int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
+    TensorOptions options, DimnameList names
+) override {{
+{textwrap.indent(self.gen_class_set_output_body(k, maybe_create_proxy), "    ")}
     if (!names.empty()) {{
       namedinference::propagate_names({maybe_star}outputs_[output_idx], names);
     }}
@@ -363,38 +369,45 @@ void set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
 }}
 """
 
-    def gen_class_set_output_body(self, k: SchemaKind) -> str:
-        if self.backend_index.dispatch_key in [DispatchKey.CUDA, DispatchKey.CompositeExplicitAutograd]:
-            maybe_set_guard = """
-auto current_device = guard_.current_device();
-if (C10_UNLIKELY(current_device.has_value())) {
-  TORCH_INTERNAL_ASSERT(*current_device == options.device(),
-    "structured kernels don't support multi-device outputs");
-} else {
-  guard_.reset_device(options.device());
+        return f"""
+{gen_set_output_function("strided", maybe_create_proxy=True)}
+{gen_set_output_function("raw_strided", maybe_create_proxy=False)}
+"""
+
+    def gen_class_set_output_body(self, k: SchemaKind, maybe_create_proxy: bool) -> str:
+
+        maybe_set_guard_line = maybe_set_guard = ""
+
+        if maybe_create_proxy:
+            create_proxy = """
+auto maybe_proxy = maybe_create_proxy(out, sizes, strides, options);
+if (C10_UNLIKELY(maybe_proxy.has_value())) {
+    proxy_outputs_[output_idx] = c10::ExclusivelyOwned<Tensor>(std::move(maybe_proxy).value());
 }
 """
-            maybe_set_guard_line = maybe_set_guard + "\n"
         else:
-            maybe_set_guard_line = maybe_set_guard = ''
+            create_proxy = ""
 
         if k is SchemaKind.functional:
-            assert self.backend_index.dispatch_key in (
-                DispatchKey.Meta, DispatchKey.CPU, DispatchKey.CUDA,
-                DispatchKey.CompositeExplicitAutograd)
+            assert self.backend_index.dispatch_key == DispatchKey.CPU
             return f"""{maybe_set_guard_line}
 outputs_[output_idx] = create_out(sizes, strides, options);"""
         elif k is SchemaKind.inplace:
             return f"""{maybe_set_guard_line}
 const auto& out = outputs_[output_idx].get();
-check_inplace(out, sizes, options);"""
+check_inplace(out, sizes, options);
+{create_proxy}"""
         elif k is SchemaKind.out:
             return f"""{maybe_set_guard_line}
 const auto& out = outputs_[output_idx].get();
-resize_out(out, sizes, strides, options);"""
+resize_out(out, sizes, strides, options);
+{create_proxy}"""
+        elif k is SchemaKind.mutable or k is SchemaKind.scratch:
+            raise AssertionError(
+                f"{k} structured operators are currently not supported"
+            )
         else:
             assert_never(k)
-        return ""
 
     # returns the definition of a ctor, as well as how to construct
     # this class to a variable named op
@@ -405,49 +418,62 @@ resize_out(out, sizes, strides, options);"""
             # TODO: Make sure out argument is guaranteed to be self
             return f"{class_name}(Tensor& self) : outputs_{{std::ref(self)}} {{}}"
         elif k is SchemaKind.out:
-            out_args = ', '.join(f"Tensor& out{i}" for i in range(returns))
-            out_refs = ', '.join(f"std::ref(out{i})" for i in range(returns))
+            out_args = ", ".join(f"Tensor& out{i}" for i in range(returns))
+            out_refs = ", ".join(f"std::ref(out{i})" for i in range(returns))
             return f"{class_name}({out_args}) : outputs_{{ {out_refs} }} {{}}"
+        elif k is SchemaKind.mutable or k is SchemaKind.scratch:
+            raise AssertionError(
+                f"{k} structured operators are currently not supported"
+            )
         else:
             assert_never(k)
-        return ""
 
     def gen_class(
-        self, f: NativeFunction, k: SchemaKind, *, class_name: str, parent_class: str, generate_super: bool
+        self,
+        f: NativeFunction,
+        k: SchemaKind,
+        *,
+        class_name: str,
+        parent_class: str,
+        generate_super: bool,
     ) -> str:
-        maybe_star = ''
         if k is SchemaKind.functional:
             output_type = "c10::ExclusivelyOwned<Tensor>"
-            maybe_star = '*'
+            output_value = "*outputs_[output_idx]"
+            proxy_field = ""
         elif k is SchemaKind.inplace:
             output_type = "std::reference_wrapper<Tensor>"
+            output_value = (
+                "proxy_outputs_[output_idx].has_value() ? "
+                + "**proxy_outputs_[output_idx] : outputs_[output_idx].get()"
+            )
+            proxy_field = "std::array<c10::optional<c10::ExclusivelyOwned<Tensor>>, "
+            proxy_field += f"{len(f.func.returns)}> proxy_outputs_;"
         elif k is SchemaKind.out:
             output_type = "std::reference_wrapper<Tensor>"
+            output_value = (
+                "proxy_outputs_[output_idx].has_value() ? "
+                + "**proxy_outputs_[output_idx] : outputs_[output_idx].get()"
+            )
+            proxy_field = "std::array<c10::optional<c10::ExclusivelyOwned<Tensor>>, "
+            proxy_field += f"{len(f.func.returns)}> proxy_outputs_;"
 
-        if self.backend_index.dispatch_key == DispatchKey.CUDA:
-            if self.rocm:
-                guard_field = 'c10::hip::OptionalHIPGuardMasqueradingAsCUDA guard_;'
-            else:
-                guard_field = 'c10::cuda::OptionalCUDAGuard guard_;'
-        elif self.backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd:
-            guard_field = 'c10::OptionalDeviceGuard guard_;'
-        else:
-            guard_field = ''
-
+        guard_field = ""
         indent = " " * 4
         class_ctor_str = self.gen_class_ctor(k, class_name, len(f.func.returns))
         lines = (
             f"struct {class_name} final : public {parent_class} {{",
             f"{textwrap.indent(class_ctor_str, indent)}",
-            f"{textwrap.indent(self.gen_class_set_output(k, parent_class, generate_super), indent)}",
+            f"{textwrap.indent(self.gen_class_set_output_functions(k, parent_class, generate_super), indent)}",
             "    const Tensor& maybe_get_output(int64_t output_idx) override {",
-            f"        return {maybe_star}outputs_[output_idx];",
+            f"      return {output_value};\n",
             "    }",
             f"    std::array<{output_type}, {len(f.func.returns)}> outputs_;",
+            f"{textwrap.indent(proxy_field, indent)}",
             f"{textwrap.indent(guard_field, indent)}",
-            "};"
+            "};",
         )
-        return '\n'.join(line for line in lines if line)
+        return "\n".join(line for line in lines if line)
 
     @method_with_native_function
     def gen_one(self, f: NativeFunction) -> Optional[str]:
@@ -513,18 +539,10 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
 
             # Initialize the class corresponding to this structured
             # operator; feeding it the output argument(s) if it is known
-            if self.backend_index.dispatch_key is DispatchKey.Meta:
-                class_name = f"structured_{meta.name(self.g)}_meta_{k.name}"
-                parent_class = f"at::meta::structured_{meta.name(self.g)}"
-            elif self.backend_index.dispatch_key is DispatchKey.CompositeExplicitAutograd:
-                # TODO: dedup this branch
-                class_name = f"structured_{meta.name(self.g)}_default_backend_{k.name}"
-                parent_class = f"at::meta::structured_{meta.name(self.g)}"
-            else:
-                metadata = self.backend_index.get_kernel(self.g)
-                assert metadata is not None
-                class_name = f"structured_{metadata.kernel}_{k.name}"
-                parent_class = f"{self.cpp_namespace}::structured_{metadata.kernel}"
+            metadata = self.backend_index.get_kernel(self.g)
+            assert metadata is not None
+            class_name = f"structured_{metadata.kernel}_{k.name}"
+            parent_class = f"at::native::structured_{metadata.kernel}"
 
             if is_cuda_dispatch_key(self.backend_index.dispatch_key):
                 device_check_args = itertools.chain(
@@ -534,23 +552,26 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 sig_body.append(
                     RegisterDispatchKeyCPU.gen_device_check(f.device_check, list(device_check_args), sig.name()))
 
+            trans_to_cpu_code, args_name = transfer_args_of_wrapper_func_to_cpu(sig, f)
+            sig_body.append(trans_to_cpu_code)
+
             if k is SchemaKind.functional:
                 sig_body.append(f"{class_name} op;")
             elif k is SchemaKind.inplace:
-                sig_body.append(f"{class_name} op(self);")
+                sig_body.append(f"{class_name} op(self_cpu);")
             elif k is SchemaKind.out:
-                out_args_str = ', '.join(a.name for a in f.func.arguments.out)
+                out_args_arr = []
+                for a in f.func.arguments.out:
+                    out_args_arr.append(f"{a.name}_cpu")
+                for arg in out_args_arr:
+                    if arg in args_name:
+                        args_name.remove(arg)
+                out_args_str = ', '.join(out_args_arr)
                 sig_body.append(f"{class_name} op({out_args_str});")
 
             # Translate the input native arguments into structured
             # arguments for the meta call
-            meta_exprs = ', '.join(
-                e.expr for e in translate(
-                    context,
-                    structured.meta_arguments(self.g),
-                    method=False
-                )
-            )
+            meta_exprs = ', '.join(args_name)
 
             if self.g.out.precomputed:
                 # If this function group has precomputed elements, the meta function
@@ -561,12 +582,18 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 # Put all of the contents of the precompute struct into the context
                 # so that translate will be able to return the correct args for the
                 # call to the impl.
-                for precomputed_elems in self.g.out.precomputed.replace.values():
+                precomputed_values = [
+                    *self.g.out.precomputed.replace.values(),
+                    self.g.out.precomputed.add,
+                ]
+                for precomputed_elems in precomputed_values:
                     for arg in precomputed_elems:
-                        context.append(Expr(
-                            expr=f"precompute.{arg.name}",
-                            type=structured.argument_type(arg, binds=arg.name),
-                        ))
+                        context.append(
+                            Expr(
+                                expr=f"precompute.{arg.name}",
+                                type=structured.argument_type(arg, binds=arg.name),
+                            )
+                        )
 
                 # Add a use of the precompute struct so FB internal compilers don't
                 # complain that there is an unused variable.
@@ -578,16 +605,26 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             # After running meta, op.outputs_ is guaranteed to be valid;
             # add it to the context
             out_args = structured.out_arguments(self.g)
-            maybe_star = '*' if k is SchemaKind.functional else ''
             for i, out_arg in enumerate(out_args):
                 assert ConstRefCType(BaseCType(tensorT)) == out_arg.nctype.type
-                context.append(Expr(
-                    expr=f"{maybe_star}op.outputs_[{i}]",
-                    # TODO: Stop hardcoding that the output type is a Tensor.  Note
-                    # that for the codegen here this is fine because outputs_ is
-                    # hardcoded to be tensor already
-                    type=NamedCType(out_arg.nctype.name, MutRefCType(BaseCType(tensorT)))
-                ))
+
+                if k is SchemaKind.out:
+                    expr = f"op.maybe_get_output({i})"
+                else:
+                    maybe_star = "*" if k is SchemaKind.functional else ""
+                    expr = f"{maybe_star}op.outputs_[{i}]"
+
+                context.append(
+                    Expr(
+                        expr=expr,
+                        # TODO: Stop hardcoding that the output type is a Tensor.  Note
+                        # that for the codegen here this is fine because outputs_ is
+                        # hardcoded to be tensor already
+                        type=NamedCType(
+                            out_arg.nctype.name, MutRefCType(BaseCType(tensorT))
+                        ),
+                    )
+                )
 
             # With the expanded context, do the impl call (if not a meta
             # function)
@@ -616,14 +653,17 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 # I didn't do it for this version
                 sig_body.append(f"at::{api_name}({out_exprs});")
             elif self.backend_index.dispatch_key != DispatchKey.Meta:
-                impl_exprs = ', '.join(
-                    e.expr for e in translate(
-                        context,
-                        structured.impl_arguments(self.g),
-                        method=False
-                    )
-                )
-                sig_body.append(f"op.impl({impl_exprs});")
+                impl_arr = [e.expr for e in translate(context,
+                                                        structured.impl_arguments(self.g),
+                                                        method=False)]
+                tmp_arr = []
+                for x in impl_arr:
+                    if '.' not in x and x not in args_name:
+                        tmp_arr.append(f"{x}_cpu")
+                    else:
+                        tmp_arr.append(f"{x}")
+
+                sig_body.append(f"op.impl({', '.join(tmp_arr)});")
 
             # Destructively return the final tensors
             # TODO: Do this in translate instead
@@ -641,7 +681,9 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     refs = ', '.join(a.name for a in f.func.arguments.out)
                     ret_expr = f"std::forward_as_tuple({refs})"
-            sig_body.append(f"return {ret_expr};")
+
+            ret_code = transfer_ret_of_wrapper_func_to_xla(sig, ret_expr)
+            sig_body.append(f"{ret_code}")
 
             sig_body_str = "\n".join(sig_body)
 
