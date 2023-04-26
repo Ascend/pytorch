@@ -24,7 +24,7 @@
 namespace torch_npu {
 
 bool is_npu_device(const at::Device& device) {
-  return device.type() == at_npu::key::NativeDeviceType;
+  return device.type() == c10::DeviceType::PrivateUse1;
 }
 
 

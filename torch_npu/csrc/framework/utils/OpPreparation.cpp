@@ -229,7 +229,7 @@ namespace at_npu
     at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options,
                                                     int64_t format, bool keep_format)
     {
-      TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
+      TORCH_CHECK(options.device().type() == c10::DeviceType::PrivateUse1,
           "Expected all tensors to be on the same device. "
           "Expected NPU tensor, please check whether the input tensor device is correct.");
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);

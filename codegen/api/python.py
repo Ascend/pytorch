@@ -1046,8 +1046,7 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
     def unpack_base(t, has_default):
         base_dict = {
             BaseTy.ScalarType: 'scalartypeWithDefault' if has_default else 'scalartype',
-            BaseTy.Device: 'at_npu::key::parse_npu_device_with_default' if has_default 
-                            else 'at_npu::key::parse_npu_device',
+            BaseTy.Device: 'deviceWithDefault' if has_default else 'device',
             BaseTy.int: 'toInt64',
             BaseTy.bool: 'toBool',
             BaseTy.float: 'toDouble',
@@ -1132,10 +1131,7 @@ def arg_parser_output_expr(
     has_default = a.default_init is not None
     unpack_method = arg_parser_unpack_method(a.type, has_default)
     default = f', {a.default_init}' if has_default else ''
-    if a.name == "device":
-        expr = f'{unpack_method}(_r.args[{arg_index}]{default})'
-    else:
-        expr = f'_r.{unpack_method}({arg_index}{default})'
+    expr = f'_r.{unpack_method}({arg_index}{default})'
 
     return PythonArgParserOutputExpr(
         name=a.name,
@@ -1177,7 +1173,7 @@ def dispatch_lambda_exprs(
     # 1. special inits/unpacking to provide binding exprs for lambda arguments.
     for a in ps.arguments(skip_tensor_options=not faithful):
         name = a.name
-        arg_parser_expr = arg_parser_outputs[a.name]
+        arg_parser_expr = arg_parser_outputs[a.name].expr
 
         if has_toptions and name == 'self':
             # TODO: why this needs to be special case?
@@ -1187,7 +1183,7 @@ def dispatch_lambda_exprs(
             lambda_args_exprs[name] = name
         elif isinstance(a, PythonOutArgument) and len(a.outputs) > 1 and f.func.is_out_fn():
             inits.extend([
-                f'auto out = {arg_parser_expr.expr};',
+                f'auto out = {arg_parser_expr};',
             ])
             for i, out_arg in enumerate(a.outputs):
                 lambda_args_exprs[out_arg.name] = f'out[{i}]'
@@ -1198,18 +1194,14 @@ def dispatch_lambda_exprs(
             # optional<vector<T>>, which cannot be implicitly converted to
             # optional<ArrayRef<T>>. One needs to unwrap the optional and rewrap.
             inits.extend([
-                f'auto __{name} = {arg_parser_expr.expr};',  
+                f'auto __{name} = {arg_parser_expr};',  
                 (f'c10::optional<DimnameList> {name} = __{name} ?'
                  + f' c10::make_optional(DimnameList(__{name}.value())) : c10::nullopt;'),
             ])
             lambda_args_exprs[name] = name
         else:
             # default case - directly using PythonArgParser output expr
-            if name == "device":
-                lambda_args_exprs[name] = str("at_npu::key::parse_npu_device(_r.args[" + 
-                                                str(arg_parser_expr.index) + "])")
-            else:
-                lambda_args_exprs[name] = arg_parser_expr.expr
+            lambda_args_exprs[name] = arg_parser_expr
 
     # method's self is passed directly to python binding, rather than parsed
     if ps.method:

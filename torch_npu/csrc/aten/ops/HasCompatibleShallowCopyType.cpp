@@ -29,7 +29,7 @@ bool _has_compatible_shallow_copy_type(const at::Tensor &self,
   c10::DispatchKeySet from_key = from.key_set();
   auto is_dense = [](c10::DispatchKeySet ts) {
     return ts.has(c10::DispatchKey::CPU) ||
-           ts.has(at_npu::key::NativeDispatchKey);
+           ts.has(c10::DispatchKey::PrivateUse1);
   };
   return (self_key == from_key) || (is_dense(self_key) && is_dense(from_key));
 }

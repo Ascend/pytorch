@@ -30,7 +30,7 @@ void OverflowUtil::EnableOverflowNpu() {
 }
 
 bool OverflowUtil::CheckOverflowNpu() {
-  auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
+  auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kFloat);
   at::Tensor tmp = at::empty({8}, options);
   auto floatStatus = at_npu::native::NPUNativeFunctions::npu_alloc_float_status(tmp);
   auto result = at_npu::native::NPUNativeFunctions::npu_get_float_status(floatStatus);
@@ -41,7 +41,7 @@ bool OverflowUtil::CheckOverflowNpu() {
 }
 
 void OverflowUtil::ClearOverflowNpu() {
-  auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
+  auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kFloat);
   at::Tensor tmp = at::empty({8}, options);
   auto floatStatus = at_npu::native::NPUNativeFunctions::npu_alloc_float_status(tmp);
   auto result = at_npu::native::NPUNativeFunctions::npu_clear_float_status(floatStatus);

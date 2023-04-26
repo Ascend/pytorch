@@ -28,10 +28,8 @@
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/npu/Module.h"
-#include "torch_npu/csrc/utils/TensorMethods.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
-#include "torch_npu/csrc/utils/Device.h"
 #include "torch_npu/csrc/core/AutocastMode.h"
 
 PyObject* module;
@@ -127,7 +125,6 @@ PyObject* initModule(){
   THNPStream_init(module);
   THNPEvent_init(module);
   THNPReplayGraph_init(module);
-  TNPDevice_init(module);
 
   torch_npu::autograd::initTorchFunctions(module);
 

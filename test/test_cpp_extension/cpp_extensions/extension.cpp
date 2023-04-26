@@ -26,8 +26,8 @@ Tensor tanh_add(Tensor x, Tensor y) {
 }
 
 Tensor npu_add(const Tensor& self_, const Tensor& other_) {
-  TORCH_INTERNAL_ASSERT(self_.device().type() == at_npu::key::NativeDeviceType);
-  TORCH_INTERNAL_ASSERT(other_.device().type() == at_npu::key::NativeDeviceType);
+  TORCH_INTERNAL_ASSERT(self_.device().type() == c10::DeviceType::PrivateUse1);
+  TORCH_INTERNAL_ASSERT(other_.device().type() == c10::DeviceType::PrivateUse1);
   return at_npu::native::NPUNativeFunctions::add(self_, other_, 1);
 }
 

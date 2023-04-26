@@ -111,7 +111,7 @@ bool TransContiguous::ContiguousOptimizeWithAnyFormat(
 
 c10::optional<at::Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
     const at::Tensor &src, const OptimizationCases &opt_cases) {
-  TORCH_CHECK(src.device().type() == at_npu::key::NativeDeviceType,
+  TORCH_CHECK(src.device().type() == c10::DeviceType::PrivateUse1,
       "Expected all tensors to be on the same device. "
       "Expected NPU tensor, please check whether the input tensor device is correct.");
   auto self = OpPreparation::ApplyTensorWithFormat(

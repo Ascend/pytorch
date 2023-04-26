@@ -25,7 +25,7 @@ namespace native {
 const int FLOAT_STATUS_OP_DIMS_SIZE = 8;
 
 at::Tensor NPUNativeFunctions::npu_alloc_float_status(const at::Tensor& self) {
-  auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
+  auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kFloat);
   at::Tensor result = at::empty({FLOAT_STATUS_OP_DIMS_SIZE}, options);
   OpCommand cmd;
   cmd.Name("NPUAllocFloatStatus")

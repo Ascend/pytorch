@@ -104,7 +104,7 @@ at::Tensor index_fill_d_assist_help(
   float value_float = CalcuOpUtil::GetScalarFloatValue(value);
   assist = index_fill_d_assist_help_init(dim, size, index_vector, flag, value_float);
   at::Tensor assistHelp = at::from_blob(assist.data(), size, dtype(at::ScalarType::Float));
-  return assistHelp.to(at::device(at_npu::key::NativeDeviceType));
+  return assistHelp.to(at::device(c10::DeviceType::PrivateUse1));
 }
 
 at::Tensor& index_fill_d_nocheck(

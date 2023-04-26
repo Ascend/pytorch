@@ -132,7 +132,7 @@ Reducer::Reducer(
 
   // For CUDA, record events only for single device module.
   c10::Device device = params_[0].device();
-  if (!(device.type() == at_npu::key::NativeDeviceType && is_multi_device_module_)) {
+  if (!(device.type() == c10::DeviceType::PrivateUse1 && is_multi_device_module_)) {
     timer_ = TimerRegistry()->Create(device.type(), device);
   }
 

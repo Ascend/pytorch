@@ -14,9 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <c10/core/DeviceType.h>
+#include <torch/csrc/autograd/utils/wrap_outputs.h>
 
 #include "torch_npu/csrc/utils/TensorType.h"
-#include "torch_npu/csrc/utils/DeviceParser.h"
 
 namespace torch_npu {
 namespace utils {
@@ -26,19 +27,16 @@ using namespace torch::autograd;
 
 std::vector<std::pair<Backend, ScalarType>> all_declared_types_npu() {
   std::vector<std::pair<Backend, ScalarType>> ret;
-  // can't easily iterate over enum classes
-  std::vector<Backend> backends = { at_npu::key::NativeBackend };
+  // can't easily iterate over enum classes, does not support BFloat16 now
+  std::vector<Backend> backends = { c10::Backend::PrivateUse1 };
   std::vector<ScalarType> scalar_types = {
     ScalarType::Byte, ScalarType::Char, ScalarType::Double, ScalarType::Float,
     ScalarType::Int, ScalarType::Long, ScalarType::Short, ScalarType::Half,
-    ScalarType::Bool, ScalarType::BFloat16
+    ScalarType::Bool
   };
 
   for (auto& backend : backends) {
     for (auto& scalar_type : scalar_types) {
-      if (scalar_type == ScalarType::BFloat16 && backend == at_npu::key::NativeBackend) {
-        continue;
-      }
       ret.emplace_back(std::make_pair(backend, scalar_type));
     }
   }
@@ -184,9 +182,26 @@ static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyOb
   }
 }
 
+static const char* get_module(Backend backend) {
+  switch (backend) {
+    case Backend::CPU:
+      return "torch";
+    case Backend::CUDA:
+      return "torch.cuda";
+    case Backend::SparseCPU:
+      return "torch.sparse";
+    case Backend::SparseCUDA:
+      return "torch.cuda.sparse";
+    case Backend::PrivateUse1:
+      return ("torch." + c10::get_privateuse1_backend()).c_str();
+    default:
+      AT_ERROR("invalid backend: ", c10::toString(backend));
+  }
+}
+
 static std::string get_name(Backend backend, ScalarType scalarType) {
   std::ostringstream ss;
-  ss << _backend_to_string_npu(backend) << "." << toString(scalarType) << "Tensor";
+  ss << get_module(backend) << "." << toString(scalarType) << "Tensor";
   return ss.str();
 }
 
@@ -194,9 +209,9 @@ static void set_type(PyTensorType& type_obj, Backend backend, ScalarType scalarT
   // This field is lazily initialized from backend and scalar_type
   type_obj.backend = static_cast<int>(backend);
   type_obj.scalar_type = static_cast<int>(scalarType);
-  type_obj.layout = torch::getTHPLayout(layout_from_backend(backend));
+  type_obj.layout = torch::getTHPLayout(c10::layout_from_backend(backend));
   type_obj.dtype = torch::getTHPDtype(scalarType);
-  type_obj.is_npu = (backend == at_npu::key::NativeBackend);
+  type_obj.is_npu = (backend == c10::Backend::PrivateUse1);
 }
 
 static void set_name(PyTensorType& type_obj, const std::string& name) {
@@ -272,7 +287,7 @@ void _initialize_python_bindings() {
 }
 
 static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) {
-  auto torch_module = THPObjectPtr(PyImport_ImportModule("torch_npu"));
+  auto torch_module = THPObjectPtr(PyImport_ImportModule("torch"));
   if (!torch_module) throw python_error();
 
   auto tensor_classes = THPObjectPtr(PyObject_GetAttrString(torch_module.get(), "_tensor_classes"));

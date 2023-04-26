@@ -618,7 +618,7 @@ at::native::ConvBackend select_conv_backend(
     TORCH_CHECK(false, "Only zero batch or zero channel inputs are supported, but got input shape: ", input.sizes());
   }
 
-  if (input.device().type() == at_npu::key::NativeDeviceType) {
+  if (input.device().type() == c10::DeviceType::PrivateUse1) {
     // backends without support for groups
     if (params.transposed) {
       if (input.ndimension() == 4) {

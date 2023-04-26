@@ -38,7 +38,7 @@ public:
   enum Unchecked { UNCHECKED };
 
   explicit NPUStream(c10::Stream stream) : stream_(stream) {
-    TORCH_CHECK(stream_.device_type() == at_npu::key::NativeDeviceType);
+    TORCH_CHECK(stream_.device_type() == c10::DeviceType::PrivateUse1);
   }
 
   explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
@@ -65,7 +65,7 @@ public:
 
   /// Used to avoid baking in device type explicitly to Python-side API.
   c10::DeviceType device_type() const {
-    return at_npu::key::NativeDeviceType;
+    return c10::DeviceType::PrivateUse1;
   }
 
   /// Get the NPU device index that this stream is associated with.
@@ -76,7 +76,7 @@ public:
   /// Get the full Device that this stream is associated with.  The Device
   /// is guaranteed to be a NPU device.
   c10::Device device() const {
-    return c10::Device(at_npu::key::NativeDeviceType, device_index());
+    return c10::Device(c10::DeviceType::PrivateUse1, device_index());
   }
 
   c10::StreamId id() const {

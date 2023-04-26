@@ -170,7 +170,7 @@ at::Device getDeviceForRank(int rank) {
   TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
   auto numNPUs = c10_npu::device_count();
   int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
-  return at::Device(at_npu::key::NativeDeviceType, deviceIdx);
+  return at::Device(c10::DeviceType::PrivateUse1, deviceIdx);
 }
 
 // [Sync Streams] Helper that lets the input hcclStreams to wait for the current
@@ -1033,10 +1033,10 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(
   if (usedDeviceIdxs_.empty()) {
     auto numNPUs = c10_npu::device_count();
     int16_t deviceIdx = static_cast<int16_t>(rank_ % std::max(static_cast<int>(numNPUs), 1));
-    devices.push_back(at::Device(at_npu::key::NativeDeviceType));
+    devices.push_back(at::Device(c10::DeviceType::PrivateUse1));
   } else {
     for (auto usedDeviceIdx : usedDeviceIdxs_) {
-      devices.push_back(at::Device(at_npu::key::NativeDeviceType, usedDeviceIdx));
+      devices.push_back(at::Device(c10::DeviceType::PrivateUse1, usedDeviceIdx));
     }
   }
 
@@ -1048,7 +1048,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(
     npuGuard.set_index(device.index());
     barrierTensors.push_back(at::ones(
         {1},
-        at::TensorOptions().device(at_npu::key::NativeDeviceType).dtype(at::kFloat)));
+        at::TensorOptions().device(c10::DeviceType::PrivateUse1).dtype(at::kFloat)));
   }
 
   auto work = allreduce(barrierTensors);

@@ -50,7 +50,7 @@ struct NPUEvent {
 
   c10::optional<at::Device> device() const {
     if (is_created_) {
-      return at::Device(at_npu::key::NativeDeviceType, device_index_);
+      return at::Device(c10::DeviceType::PrivateUse1, device_index_);
     } else {
       return {};
     }

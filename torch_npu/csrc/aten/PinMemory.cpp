@@ -29,13 +29,13 @@ bool is_pinned(const at::Tensor& self, c10::optional<at::Device> device) {
   if (!self.is_cpu()) {
     return false;
   }
-  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(at_npu::key::NativeDeviceType)));
+  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(c10::DeviceType::PrivateUse1)));
   return at::_ops::is_pinned::redispatch(_dk, self, device);
 }
 
 at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {
   TORCH_CHECK(self.device().is_cpu(), "cannot pin '", self.toString(), "' only dense CPU tensors can be pinned");
-  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(at_npu::key::NativeDeviceType)));
+  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(c10::DeviceType::PrivateUse1)));
   return at::_ops::_pin_memory::redispatch(_dk, self, device);
 }
 

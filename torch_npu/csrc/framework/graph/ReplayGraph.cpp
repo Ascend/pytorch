@@ -75,7 +75,7 @@ std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensorAndSetReturnable(Repla
     std::vector<at::Tensor> tmp_outputs;
     for (size_t i = 0; i < build_tensor_struct.at_tensor_info.size(); i++) {
         auto options = at::TensorOptions().dtype(build_tensor_struct.at_tensor_info[i].dtype)
-                        .device(at_npu::key::NativeDeviceType);
+                        .device(c10::DeviceType::PrivateUse1);
         auto tensor = NPUNativeFunctions::empty_with_format(build_tensor_struct.at_tensor_info[i].sizes,
             optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(), options.device_opt(),
             options.pinned_memory_opt(), build_tensor_struct.at_tensor_info[i].storage_desc.npu_format_);
