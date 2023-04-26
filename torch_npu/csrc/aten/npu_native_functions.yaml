@@ -65,6 +65,7 @@ supported:
  - _softmax_backward_data
  - _softmax_backward_data.out
  - _symeig_helper
+ - _trilinear
  - _unique2
  - abs
  - abs.out
@@ -266,6 +267,7 @@ supported:
  - decode_jpeg
  - diag
  - diag.out
+ - diag_embed
  - div.Scalar
  - div.Scalar_mode
  - div.Tensor
@@ -614,6 +616,8 @@ supported:
  - ones.names
  - ones.out
  - ones_like
+ - pixel_shuffle
+ - pixel_unshuffle
  - pdist
  - pow.Scalar
  - pow.Scalar_out

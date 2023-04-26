@@ -503,6 +503,19 @@ op_db: List[OpInfo] = [
             dtypes=[torch.float16, torch.float32]),
         ),
     ),
+    OpInfo(
+        'diag_embed',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        supports_out=False,
+        # Runs very slowly on slow gradcheck - alternatively reduce input sizes
+        gradcheck_fast_mode=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        sample_inputs_func=common_methods_invocations.sample_inputs_diagonal_diag_embed,
+        reference_inputs_func=common_methods_invocations.reference_inputs_diagonal_diag_embed,
+        error_inputs_func=common_methods_invocations.error_inputs_diagonal_diag_embed
+    ),
     BinaryUfuncInfo(
         'div',
         aliases=('divide',),
@@ -810,6 +823,24 @@ op_db: List[OpInfo] = [
         supports_out=False,
     ), 
     OpInfo(
+        "nn.functional.pixel_shuffle",
+        sample_inputs_func=common_methods_invocations.sample_inputs_pixel_shuffle,
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        supports_out=False,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True
+    ),
+    OpInfo(
+        "nn.functional.pixel_unshuffle",
+        sample_inputs_func=common_methods_invocations.sample_inputs_pixel_unshuffle,
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        supports_out=False,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True
+    ),
+    OpInfo(
         'nn.functional.kl_div',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
@@ -904,6 +935,20 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
             dtypes=[torch.float16, torch.float32]),
         ),
+    ),
+    OpInfo(
+        'nn.functional.bilinear',
+        supports_autograd=True,
+        sample_inputs_func=common_methods_invocations.sample_inputs_bilinear,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32,)),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+            dtypes=[torch.float16, torch.float32]),
+        ),
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        supports_out=False
     ),
     UnaryUfuncInfo(
         'log',
