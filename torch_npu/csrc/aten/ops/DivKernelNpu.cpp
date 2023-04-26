@@ -38,7 +38,7 @@ at::Tensor &div_scalar_out_npu(const at::Tensor &self, const at::Scalar other, a
 at::Tensor &div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
 {
   // executing the NPU operator
-  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other))
+  if (other.dim() == 0 && !torch_npu::utils::is_npu(other))
   {
     div_scalar_out_npu(self, other.item(), result);
   }
@@ -76,9 +76,9 @@ at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor
       high_type,
       outputSize);
   at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
-      at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
+      torch_npu::utils::is_npu(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
   at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
-      at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
+      torch_npu::utils::is_npu(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
   div_out_npu_nocheck(selfCopy, otherCopy, result);
 
   return result;
@@ -117,9 +117,9 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &oth
     high_type = at::ScalarType::Float;
   }
   at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
-      at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
+      torch_npu::utils::is_npu(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
   at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
-      at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
+      torch_npu::utils::is_npu(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,

@@ -1,5 +1,21 @@
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #pragma once
 #include <c10/core/TensorOptions.h>
+#include <torch_npu/csrc/utils/Utils.h>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
@@ -10,16 +26,8 @@ void npu_lazy_init();
 
 void npu_set_run_yet_variable_to_false();
 
-static bool isNPUDevice(const at::TensorOptions& options) {
-    return options.device().type() == c10::DeviceType::PrivateUse1;
-}
-
-static bool isNPUDevice(const at::Device& device) {
-  return device.type() == c10::DeviceType::PrivateUse1;
-}
-
 static void maybe_initialize_npu(const at::TensorOptions& options) {
-  if (isNPUDevice(options)) {
+  if (torch_npu::utils::is_npu(options)) {
     {
       pybind11::gil_scoped_release no_gil;
       c10_npu::NpuSysCtrl::SysStatus status =
@@ -34,7 +42,7 @@ static void maybe_initialize_npu(const at::TensorOptions& options) {
 }
 
 static void maybe_initialize_npu(const at::Device& device) {
-  if (isNPUDevice(device)) {
+  if (torch_npu::utils::is_npu(device)) {
     {
       pybind11::gil_scoped_release no_gil;
       c10_npu::NpuSysCtrl::SysStatus status =

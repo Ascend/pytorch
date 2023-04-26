@@ -149,7 +149,7 @@ namespace at_npu
       c10::SmallVector<at::Tensor, N> inputs{input};
       c10::SmallVector<at::Tensor, N> outputs = {output};
       CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
-      TORCH_CHECK(at_npu::key::isDeviceTensor(output), "output with device ",
+      TORCH_CHECK(torch_npu::utils::is_npu(output), "output with device ",
                   output.device(), " doesn't match the desired device NPU");
       TORCH_CHECK(output.scalar_type() == dtype, "expected dtype ",
                   dtype, " but got dtype ", output.scalar_type());

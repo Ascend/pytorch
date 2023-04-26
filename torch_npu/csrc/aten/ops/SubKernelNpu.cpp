@@ -47,7 +47,7 @@ at::Tensor &sub_out_npu_nocheck(
     const at::Tensor &other,
     at::Scalar alpha) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+  if (other.dim() == 0 && !torch_npu::utils::is_npu(other)) {
     sub_scalar_out_npu(result, self, other.item(), alpha);
   } else {
     at::Tensor otherMulResult = other;
