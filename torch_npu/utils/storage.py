@@ -64,13 +64,12 @@ def _reduce_ex(self, proto):
         backward_hooks: Dict[Any, Any] = OrderedDict()
         if self.device.type == 'npu':
             npu_storage_format = torch_npu.get_npu_format(self)
-            storage_info = self.cpu().storage()
-            device_info = 'npu:' + str(self.device.index)
-            arg_npu  = (storage_info,
-                        self.storage_offset(),
-                        tuple(self.size()),
-                        self.stride(),
-                        self.requires_grad,
+            tmp_tensor = self.cpu()
+            arg_npu  = (tmp_tensor.storage(),
+                        tmp_tensor.storage_offset(),
+                        tuple(tmp_tensor.size()),
+                        tmp_tensor.stride(),
+                        tmp_tensor.requires_grad,
                         backward_hooks,
                         npu_storage_format)
             return _rebuild_npu_tensor, arg_npu
