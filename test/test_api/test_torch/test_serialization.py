@@ -24,6 +24,10 @@ from torch_npu.testing.testcase import TestCase, run_tests
 torch_npu.npu.set_device("npu:0")
 
 
+# acl format
+FORMAT_NZ = 29
+
+
 class NpuMNIST(nn.Module):
 
   def __init__(self):
@@ -83,6 +87,36 @@ class TestSerialization(TestCase):
             n_loaded = torch.load(path, map_location=torch.device("cpu"))
             self.assertRtolEqual(x.cpu(), n_loaded)
     
+    def test_save_npu_format(self):
+        x = torch.randn(2, 3, 224, 224).npu()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertEqual(torch_npu.get_npu_format(x),
+                             torch_npu.get_npu_format(x_loaded))
+            x = x.npu_format_cast(FORMAT_NZ)
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertEqual(torch_npu.get_npu_format(x),
+                             torch_npu.get_npu_format(x_loaded))
+
+    def test_save_noncontiguous_tensor(self):
+        x = torch.randn(2, 5, 6).npu()
+        y = x[:, :, :2]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(y, path)
+            y_loaded = torch.load(path)
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
+
+        y = x[:, :2, :]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(y, path)
+            y_loaded = torch.load(path)
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
+
     def test_load_maplocation(self):
         x = torch.randn(2, 3)
         with tempfile.TemporaryDirectory() as tmpdir:
