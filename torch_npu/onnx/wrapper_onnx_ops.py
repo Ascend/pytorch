@@ -525,7 +525,7 @@ class NPUScatterOP(torch.autograd.Function):
 
     @staticmethod
     def symbolic(g, self: Tensor, indices: Tensor, updates: Tensor, dim: int):
-        return g.op("npu::NPUScatterOP", self, indices, updates, dim_i=dim)
+        return g.op("npu::NPUScatter", self, indices, updates, dim_i=dim)
 
 
 class NPULstmOP(torch.autograd.Function):
