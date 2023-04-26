@@ -33,6 +33,11 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'empty_quantized', '_pin_memory', 'device']
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
+torch_cuda_fn_white_list = [
+    'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
+    'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
+    'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
+]
 
 NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
@@ -146,6 +151,7 @@ def init():
 
     # torch.cuda.*
     patch_cuda()
+    device_wrapper(torch.cuda, torch_cuda_fn_white_list)
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
