@@ -122,6 +122,14 @@ namespace at_npu
       }
     }
 
+    void SetDeterministic() {
+      auto deterministicalgorithmsstatus =  at::globalContext().deterministicAlgorithms();
+      if(deterministicaclnn_oldstatus != deterministicalgorithmsstatus){
+        AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicalgorithmsstatus ? "1" : "0");
+        deterministicaclnn_oldstatus = deterministicalgorithmsstatus;
+      }
+    }
+
     void OpCommandImpl::Run(
         bool sync,
         c10::SmallVector<int64_t, N> &sync_index,
@@ -157,6 +165,8 @@ namespace at_npu
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
+       // open the deterministicAlgorithms config
+      SetDeterministic();
       bool reset_flag = false;
       if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable())
       {
@@ -270,6 +280,8 @@ namespace at_npu
         torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
       }
 #endif
+     // open the deterministicAlgorithms config
+      SetDeterministic();
       bool reset_flag = false;
       if (!cur_paras->isJitDisable)
       {
