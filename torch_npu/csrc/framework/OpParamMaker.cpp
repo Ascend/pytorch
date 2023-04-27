@@ -345,6 +345,7 @@ namespace at_npu
                     ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
+      ASCEND_LOGI("aclrtRecordEvent is successfully executed, cur_paras->event=%p.", cur_paras->event);
 
       // Temporary modification to avoid problem that
       // event must be recorded before query
@@ -365,6 +366,7 @@ namespace at_npu
                     ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
+      ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, cur_paras->event=%p.", cur_paras->event);
       return ret;
     }
 

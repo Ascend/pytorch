@@ -1,3 +1,17 @@
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #pragma once
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -113,7 +127,9 @@ struct NPUEvent {
     }
 
     C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
+    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event_=%p.", event_);
     C10_NPU_CHECK(aclrtSynchronizeEvent(other.event_));
+    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, other.event_=%p.", other.event_);
     // raise error if either event is recorded but not yet completed
     C10_NPU_CHECK(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
@@ -126,6 +142,7 @@ struct NPUEvent {
         NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       }
       C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
+      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event_=%p.", event_);
     }
   }
 
@@ -141,6 +158,7 @@ private:
     device_index_ = device_index;
     NPUGuard guard(device_index_);
     C10_NPU_CHECK(aclrtCreateEvent(&event_));
+    ASCEND_LOGI("aclrtCreateEvent is successfully executed, event_=%p.", event_);
     is_created_ = true;
   }
 
