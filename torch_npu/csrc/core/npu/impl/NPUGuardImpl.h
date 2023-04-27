@@ -1,3 +1,17 @@
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #pragma once
 
 #include <c10/core/impl/DeviceGuardImplInterface.h>
@@ -74,6 +88,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   // Event-related functions
   void createEvent(aclrtEvent* acl_event, const c10::EventFlag flag) const {
     C10_NPU_CHECK(aclrtCreateEvent(acl_event));
+    ASCEND_LOGI("aclrtCreateEvent is successfully executed, *acl_event=%p.", *acl_event);
   }
 
   void destroyEvent(void* event, const c10::DeviceIndex device_index)
@@ -83,6 +98,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     auto acl_event = static_cast<aclrtEvent>(event);
     int orig_device;
     C10_NPU_CHECK_WARN(aclrtDestroyEvent(acl_event));
+    ASCEND_LOGI("aclrtDestroyEvent is successfully executed, acl_event=%p.", acl_event);
   }
 
   void record(
@@ -106,9 +122,12 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     setDevice(stream.device());
 
     // Creates the event (lazily)
-    if (!npu_event)
+    if (!npu_event) {
       aclrtCreateEvent(&npu_event);
+      ASCEND_LOGI("aclrtCreateEvent is successfully executed, npu_event=%p.", npu_event);
+    }
     C10_NPU_CHECK(aclrtRecordEvent(npu_event, npu_stream));
+    ASCEND_LOGI("aclrtRecordEvent is successfully executed, npu_event=%p.", npu_event);
     // Makes the void* point to the (possibly just allocated) NPU event
     *event = npu_event;
 
@@ -124,6 +143,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     const auto orig_device = getDevice();
     setDevice(stream.device());
     C10_NPU_CHECK(aclrtStreamWaitEvent(npu_stream, npu_event));
+    ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, npu_event=%p.", npu_event);
     setDevice(orig_device);
   }
 
