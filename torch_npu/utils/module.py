@@ -377,13 +377,13 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
     """
     Sets config variables for internal usage.
     """
-    assert isinstance(ddp, DistributedDataParallel), (
+    assert isinstance(ddp, torch.nn.parallel.DistributedDataParallel), (
         "DDP join hook requires passing in a DistributedDataParallel "
         "instance as the state"
     )
     self.ddp = ddp
     self.ddp._divide_by_initial_world_size = divide_by_initial_world_size
-    super().__init__()
+    super(_DDPJoinHook, self).__init__()
 
 
 def npu_ddp_init_helper(
