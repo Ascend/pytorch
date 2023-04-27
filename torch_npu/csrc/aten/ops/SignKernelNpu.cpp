@@ -65,5 +65,10 @@ at::Tensor& NPUNativeFunctions::sign_(at::Tensor& self) {
 
   return self;
 }
+
+at::Tensor NPUNativeFunctions::sgn(const at::Tensor& self) {
+  return NPUNativeFunctions::sign(self);
+}
+
 } // namespace native
 } // namespace at_npu
