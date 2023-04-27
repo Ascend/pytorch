@@ -17,10 +17,9 @@ int main(int argc, char*argv[]) {
     }
     std::string pt_model_path = argv[1];
 
-    // init device, device_id:0
-    torch_npu::init_npu(0);
-    // now, we must use "xla" not "npu"
-    auto device = at::Device("xla:0");
+    // init device
+    torch_npu::init_npu("npu:0");
+    auto device = at::Device("npu:0");
 
     auto input_tensor = torch::rand({2, 3, 4, 4}).to(device);
     auto result = input_tensor + input_tensor;

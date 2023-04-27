@@ -91,7 +91,6 @@ def apply_class_patches():
     add_tensor_methods()
 
 # rename device name to 'npu' and register funcs
-torch.utils.rename_privateuse1_backend("npu")
 torch._register_device_module('npu', torch_npu.npu)
 torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True)
 

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+CUR_DIR=$(dirname $(readlink -f $0))
+
+cd ${CUR_DIR}/../examples/libtorch_resnet
+
+if [ -f ./resnet_model.pt ]; then
+    rm ./resnet_model.pt
+fi
+
+python3 resnet_trace.py
+
+if [ $? != 0 ]; then
+    echo "Failed to trace resnet model."
+    exit 1
+fi
+
+if [ -d "build" ]; then
+    rm -rf ./build
+fi
+
+mkdir build && cd build && \
+cmake -DCMAKE_PREFIX_PATH=`python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'` .. && \
+make && ./libtorch_resnet ../resnet_model.pt
