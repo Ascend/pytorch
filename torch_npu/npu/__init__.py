@@ -71,3 +71,6 @@ config = npu_frontend_enhance.npuConfig()
 
 matmul = npu_frontend_enhance.allowHF32Matmul()
 conv = npu_frontend_enhance.allowHF32Conv()
+
+# TODO: _npu_isInBadFork is not yet implemented
+_is_in_bad_fork = getattr(torch_npu._C, "_npu_isInBadFork", lambda: False)
