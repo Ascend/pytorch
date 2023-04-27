@@ -464,7 +464,7 @@ class GradScaler(Cuda_GradScaler):
     def get_npu_overflow_flag():
         float_status = torch.zeros(8).pin_memory().to('npu', non_blocking=True)
         result = torch_npu.npu_get_float_status(float_status)
-        if (float_status.cpu()[0] != 0):
+        if (result.cpu()[0] != 0):
             return True
         else:
             return False
