@@ -36,7 +36,7 @@ void GraphCommandImpl::AddInput(
     const string& desc_name,
     const string& real_dtype,
     const c10::optional<aclFormat>& sensitive_format) {
-  if (input.dim() == 0 && !at_npu::key::isDeviceTensor(input)) {
+  if (input.dim() == 0 && !torch_npu::utils::is_npu(input)) {
     return AddZeroDimInput(input, desc_name);
   }
   if (GraphUtils::IsTensorWithoutNode(input)) {

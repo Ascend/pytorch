@@ -279,9 +279,9 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   if (at_npu::native::NpuDataDumpMgr::GetInstance().IsDatadumpEnable()) {
     inputTensor.emplace_back(tensor);
   }
-  // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
+  // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
   if (tensor.dim() == 0) {
-    if (at_npu::key::isDeviceTensor(tensor)) {
+    if (torch_npu::utils::is_npu(tensor)) {
       res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);
     } else {
       res = OpCmdHelper::CovertTensorWithZeroDimToAclInput(tensor, forceScaleType);

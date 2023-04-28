@@ -43,7 +43,7 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
                                                                     at::Tensor& found_inf,
                                                                     const at::Tensor& inv_scale) {
     TORCH_WARN_ONCE("Non finite check and unscale on NPU device!");
-    TORCH_CHECK(at_npu::key::isDeviceTensor(inv_scale), "inv_scale must be NPU-Tensor");
+    TORCH_CHECK(torch_npu::utils::is_npu(inv_scale), "inv_scale must be NPU-Tensor");
     TORCH_CHECK(inv_scale.numel() == 1, "inv_scale must be a 1-element tensor");
     TORCH_CHECK(inv_scale.scalar_type() == at::ScalarType::Float, "inv_scale must be a float tensor");
 
@@ -55,7 +55,7 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
         auto expected_device = scaled_grads[0].device();
         auto expected_dtype = scaled_grads[0].dtype();
         for (auto t : scaled_grads) {
-            TORCH_CHECK(at_npu::key::isDeviceTensor(t), "one of scaled_grads was not a NPU tensor.");
+            TORCH_CHECK(torch_npu::utils::is_npu(t), "one of scaled_grads was not a NPU tensor.");
             TORCH_CHECK(t.device() == expected_device, "scaled_grads must be on the same device.");
             TORCH_CHECK(t.dtype() == expected_dtype, "scaled_grads must have the same dtype.");
             TORCH_CHECK(t.layout() == at::kStrided, "one of scaled_grads was not a strided tensor.");

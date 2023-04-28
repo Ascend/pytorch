@@ -48,9 +48,9 @@ at::Tensor& or___out_tensor_npu(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& other) {
-  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+  if (other.dim() == 0 && !torch_npu::utils::is_npu(other)) {
     or___out_scalar_npu(result, self, other.item());
-  } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
+  } else if (self.dim() == 0 && !torch_npu::utils::is_npu(self)) {
     or___out_scalar_npu(result, other, self.item());
   } else {
 

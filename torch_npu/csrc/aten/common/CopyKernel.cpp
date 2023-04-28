@@ -115,7 +115,7 @@ void copy_between_host_and_device(
     auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
     C10_NPU_CHECK(ret);
     ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
-    void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
+    void* ptr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
     C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = aclrtSynchronizeStream(stream);
@@ -333,14 +333,14 @@ at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, b
     internal_set_names_inplace(self, names);
   }
 
-  if (at_npu::key::isDeviceTensor(self)) {
-    if (at_npu::key::isDeviceTensor(src)) {
+  if (torch_npu::utils::is_npu(self)) {
+    if (torch_npu::utils::is_npu(src)) {
       copy_d2d(self, src, non_blocking);
     } else {
       copy_h2d(self, src, non_blocking);
     }
   } else {
-    if (at_npu::key::isDeviceTensor(src)) {
+    if (torch_npu::utils::is_npu(src)) {
       GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
       copy_d2h(self, src, non_blocking);
     }

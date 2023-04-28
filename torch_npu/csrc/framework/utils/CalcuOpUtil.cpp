@@ -403,7 +403,7 @@ bool CalcuOpUtil::IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat
 
 bool CalcuOpUtil::IsScalarWrappedToTensor(const at::Tensor &tensor) {
   return tensor.unsafeGetTensorImpl()->is_wrapped_number() &&
-         (!at_npu::key::isDeviceTensor(tensor));
+         (!torch_npu::utils::is_npu(tensor));
 }
 
 bool CalcuOpUtil::IsScalarOne(const c10::Scalar &scalar) {

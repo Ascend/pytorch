@@ -23,15 +23,6 @@
 #include <ATen/ATen.h>
 #include <c10/core/Device.h>
 
-namespace at_npu {
-namespace key {
-
-static bool isDeviceTensor(const at::Tensor &tensor) {
-  return tensor.device().type() == c10::DeviceType::PrivateUse1;
-}
-
-} // namespace key
-} // namespace at_npu
 
 // ${generated_comment}
 namespace ${cpp_namespace} {

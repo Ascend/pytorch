@@ -30,8 +30,8 @@ at::Tensor matmul_opt_npu(
   at::NoNamesGuard guard;
   auto has_out = out_opt.has_value();
   at::Tensor out = out_opt.value_or(at::Tensor());
-  if (at_npu::key::isDeviceTensor(tensor1) &&
-      at_npu::key::isDeviceTensor(tensor2) &&
+  if (torch_npu::utils::is_npu(tensor1) &&
+      torch_npu::utils::is_npu(tensor2) &&
       tensor1.scalar_type() == at::kHalf &&
       tensor2.scalar_type() == at::kHalf &&
       at_npu::native::env::CheckBmmV2Enable()) {

@@ -76,9 +76,9 @@ at::Tensor &add_out_npu_nocheck(
     const at::Tensor &other,
     at::Scalar alpha) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+  if (other.dim() == 0 && !torch_npu::utils::is_npu(other)) {
     adds_out_npu_nocheck(result, self, other.item(), alpha);
-  } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
+  } else if (self.dim() == 0 && !torch_npu::utils::is_npu(self)) {
     adds_out_npu_nocheck(result, other, self.item(), alpha);
   } else {
     alpha_check_npu(self.scalar_type(), alpha);
