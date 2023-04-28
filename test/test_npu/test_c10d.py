@@ -137,11 +137,13 @@ class ProcessGroupHCCLTest(TestCase):
 class ComputeBucketAssignmentTest(TestCase):
     def test_single_limit_single_dtype(self):
         tensors = [
-            torch.empty([100], dtype=torch.float).npu().npu_format_cast(Format.NZ),
+            torch.empty([100, 1], dtype=torch.float).npu().npu_format_cast(Format.NZ),
             torch.empty([200], dtype=torch.float).npu(),
             torch.empty([100], dtype=torch.float).npu(),
             torch.empty([50], dtype=torch.float).npu(),
         ]
+        # The size of tensor[100 ,1] of private format.NZ is 1792
+        # 1792*4+1 equals the size of tensor multipy the element_size plus 1
         result = dist._compute_bucket_assignment_by_size(tensors, [1792 * 4 + 1])
         self.assertEqual([[0, 1], [2, 3]], result)
 

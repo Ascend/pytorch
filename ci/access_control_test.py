@@ -19,6 +19,7 @@ import re
 import sys
 import subprocess
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -90,6 +91,43 @@ class CopyOptStrategy(AccurateTest):
             return AccurateTest.find_ut_by_regex(regex)
         return []
 
+class DirectoryMappingStrategy(AccurateTest):
+    """
+    Map the modified files to the corresponding test cases
+    """
+    MappingList = {
+    'contrib':'test/test_contrib',
+    'cpp_extension':'test/test_cpp_extension', 
+    'distributed':'test/test_distributed', 
+    'fx':'test/test_fx',
+    'hooks':'test/test_hooks', 
+    'optim':'test/test_optim',
+    'profiler':'test/test_profiler',
+    'onnx':'test/test_onnx',
+    'utils':'test/test_utils',
+    'testing':'test/test_testing.py',
+    }
+
+    def identify(self, modify_file):
+        current_all_ut_path = []
+        if str(Path(modify_file).parts[0]) == 'torch_npu':
+            CORE_TEST_LIST = [str(i) for i in (Path(BASE_DIR) / 'test/test_npu').rglob('test_*.py')]
+            current_all_ut_path = CORE_TEST_LIST
+
+            mapped_ut_path = []
+            module_name = str(Path(modify_file).parts[1])
+            if module_name in self.MappingList:
+                mapped_ut_path.append(self.MappingList[module_name])
+            file_name = str(Path(modify_file).stem)
+            if file_name in self.MappingList:
+                mapped_ut_path.append(self.MappingList[file_name])
+            
+            for mapped_path in mapped_ut_path:
+                if Path.is_file(Path(BASE_DIR) / mapped_path):
+                    current_all_ut_path.append(str(Path(BASE_DIR) / mapped_path))
+                else:
+                    current_all_ut_path += [str(i) for i in (Path(BASE_DIR) / mapped_path).rglob('test_*.py')]
+        return current_all_ut_path
 
 class TestMgr():
     def __init__(self):
@@ -107,6 +145,7 @@ class TestMgr():
             self.ut_files += DirectoryStrategy().identify(modify_file)
             self.ut_files += OpStrategy().identify(modify_file)
             self.ut_files += CopyOptStrategy().identify(modify_file)
+            self.ut_files += DirectoryMappingStrategy().identify(modify_file)
         unique_files = set(self.ut_files)
 
         exist_ut_file = []
