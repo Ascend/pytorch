@@ -136,6 +136,20 @@ class TestMuls(TestCase):
         # PR: https://gitee.com/ascend/pytorch/pulls/849
         _, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_output2 = self.npu_op_exec(npu_input2, 65536)
+    
+    def test_mul_different_dtype_inputs(self):
+        shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
+        shape_format = [
+            [np.float32, 0, j] for j in shape_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
+            cpu_input2 = cpu_input2.to(torch.float16)
+            npu_input2 = npu_input2.to(torch.float16)
+            cpu_input2.mul_(cpu_input1)
+            npu_input2.mul_(npu_input1)
+            self.assertEqual(cpu_input2, npu_input2.cpu())
 
 
 if __name__ == "__main__":
