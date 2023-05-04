@@ -35,5 +35,8 @@ inline bool is_npu(const at::Device& device) {
   return device.is_privateuseone();
 }
 
+inline c10::DeviceType get_npu_device_type() {
+  return c10::DeviceType::PrivateUse1;
+}
 }
 }
