@@ -750,6 +750,7 @@ supported:
  - softmax.int
  - softplus
  - softplus.out
+ - softplus_backward
  - softplus_backward.grad_input
  - softshrink
  - softshrink.out

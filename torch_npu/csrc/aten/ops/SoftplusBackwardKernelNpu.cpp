@@ -52,5 +52,17 @@ at::Tensor& NPUNativeFunctions::softplus_backward_out(
   return softplus_backward_out_nocheck(grad_input, grad_output, self, beta, threshold);
 }
 
+at::Tensor NPUNativeFunctions::softplus_backward(
+    const at::Tensor& grad_output,
+    const at::Tensor& self,
+    const at::Scalar& beta,
+    const at::Scalar& threshold) {
+  auto outputSize = input_same_output_size(self);
+  at::Tensor result = OpPreparation::ApplyTensor(
+      outputSize, self.options(), self);
+  softplus_backward_out_nocheck(result, grad_output, self, beta, threshold);
+  return result;
+}
+
 } // namespace native
 } // namespace at_npu
