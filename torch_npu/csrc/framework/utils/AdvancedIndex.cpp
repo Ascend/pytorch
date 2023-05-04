@@ -211,5 +211,34 @@ std::vector<at::Tensor> AdvanceIndex::npu_expand_tensors(
   return result;
 }
 
+std::vector<at::Tensor> AdvanceIndex::npu_broadcast_tensors(std::vector<at::Tensor> to_broadcast) {
+  // Broadcast a list of Tensors, ignoring undefined (null) tensors.
+  bool first = true;
+  std::vector<int64_t> sizes;
+  for (int i = 0; i < to_broadcast.size(); ++i) {
+    if (!to_broadcast[i].defined()) {
+      continue;
+    } else if (first) {
+      // The initial value of sizes is the first defined tensor's shape.
+      sizes = to_broadcast[i].sizes().vec();
+      first = false;
+    } else {
+      sizes = at::infer_size(sizes, to_broadcast[i].sizes());
+    }
+  }
+
+  std::vector<at::Tensor> result(to_broadcast.size());
+  for (int i = 0; i < to_broadcast.size(); ++i) {
+    if (!to_broadcast[i].defined()) {
+      continue;
+    } else if (to_broadcast[i].sizes().equals(sizes)) {
+      result[i] = to_broadcast[i];
+    } else {
+      result[i] = NPUNativeFunctions::npu_broadcast(to_broadcast[i], sizes);
+    }
+  }
+  return result;
+}
+
 } // namespace native
 } // namespace at_npu

@@ -4,6 +4,8 @@
 #include <ATen/native/IndexingUtils.h>
 #include <ATen/ExpandUtils.h>
 
+#include "torch_npu/csrc/framework/utils/NpuUtils.h"
+
 namespace at_npu {
 namespace native {
 
@@ -28,6 +30,7 @@ public:
   static std::vector<at::Tensor> npu_expand_tensors(
       const at::Tensor& self,
       const torch::List<c10::optional<at::Tensor>>& indices);
+  static std::vector<at::Tensor> npu_broadcast_tensors(std::vector<at::Tensor> to_broadcast);
 };
 
 } // namespace native
