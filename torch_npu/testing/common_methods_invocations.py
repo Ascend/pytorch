@@ -18,6 +18,7 @@ from typing import List
 from functools import partial
 from itertools import product
 import unittest
+import numpy as np
 
 import torch
 from torch.testing._internal import common_methods_invocations
@@ -1127,6 +1128,18 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_l1_loss,
         formats=(2,),
         supports_out=False,
+    ),
+    UnaryUfuncInfo(
+        "nn.functional.softplus",
+        aten_backward_name='softplus_backward',
+        ref=common_methods_invocations.reference_softplus,
+        sample_kwargs=lambda device, dtype, input: ({'beta': 3, 'threshold': .2}, {'beta': 3, 'threshold': .2}),
+        sample_inputs_func=partial(common_methods_invocations.sample_inputs_elementwise_unary,
+                                   op_kwargs={'beta': 3, 'threshold': .2}),
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
     ),
     OpInfo(
         'nn.functional.mse_loss',
