@@ -21,7 +21,7 @@ namespace at_npu
 {
   namespace native
   {
-
+    std::atomic<uint64_t> ExecuteParas::g_pta_correlation_id{0};
     void ExecuteParas::Release()
     {
       // if useDynamicCompile, this attr will be freed in dynamic compile.
@@ -47,6 +47,7 @@ namespace at_npu
       this->constParams = other.constParams;
       this->hostMemory = other.hostMemory;
       this->isJitDisable = other.isJitDisable;
+      this->pta_correlation_id = other.pta_correlation_id;
     }
 
     void ExecuteParas::CopyEx(ExecuteParas& other)
