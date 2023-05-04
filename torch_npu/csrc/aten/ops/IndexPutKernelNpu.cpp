@@ -53,7 +53,7 @@ bool is_aicpu_valid(const at::Tensor& self,
       is_zero_in_masks = true;
     }
   }
-  // using aicpu when indices num is more than 2000 or the type of self tensor is double.
+  // using aicpu when indices num is more than 20000 or the type of self tensor is double.
   if (self.scalar_type() == at::kDouble || allDefinedIndices[0].numel() > 20000) {
     return true;
   }
