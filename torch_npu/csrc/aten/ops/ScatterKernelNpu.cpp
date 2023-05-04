@@ -98,5 +98,51 @@ at::Tensor& NPUNativeFunctions::scatter_out(
   scatter_npu_src_impl(result, dim, index, srcTensor_broadcast);
   return result;
 }
+
+at::Tensor NPUNativeFunctions::scatter(
+    const at::Tensor & self, 
+    int64_t dim, 
+    const at::Tensor & index, 
+    const at::Tensor & src) {
+
+  auto outputSize = input_same_output_size(self);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  NPUNativeFunctions::scatter_out(self, dim, index, src, result);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::scatter(
+    const at::Tensor & self, 
+    int64_t dim, 
+    const at::Tensor & index, 
+    const at::Scalar & value) {
+
+  auto outputSize = input_same_output_size(self);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  NPUNativeFunctions::scatter_out(self, dim, index, value, result);
+  return result;
+}
+
+at::Tensor& NPUNativeFunctions::scatter_(
+    at::Tensor & self, 
+    int64_t dim, 
+    const at::Tensor & index_ex, 
+    const at::Tensor & src_ex) {
+  at::Tensor src(src_ex);
+  scatter_npu_src_impl(self, dim, index_ex, src);
+  return self;
+}
+
+at::Tensor& NPUNativeFunctions::scatter_(
+    at::Tensor & self, 
+    int64_t dim, 
+    const at::Tensor & index_ex, 
+    const at::Scalar & src) {
+  at::Tensor srcTensor = CalcuOpUtil::CopyScalarToDevice(src, self.scalar_type());
+  at::Tensor srcTensor_broadcast = NPUNativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index_ex.sizes()));
+  scatter_npu_src_impl(self, dim, index_ex, srcTensor_broadcast);
+  return self;
+}
+
 } // namespace native
 } // namespace at_npu

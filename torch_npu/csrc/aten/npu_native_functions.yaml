@@ -695,7 +695,11 @@ supported:
  - rsub.Scalar
  - rsub.Tensor
  - scalar_tensor
+ - scatter.src
+ - scatter_.src
  - scatter.src_out
+ - scatter.value
+ - scatter_.value
  - scatter.value_out
  - scatter_add
  - scatter_add.dimname
