@@ -45,22 +45,19 @@ at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
   outputSize.emplace_back(depth);
   at::Tensor result = OpPreparation::ApplyTensor(
       outputSize,
-      self.options().dtype(at::ScalarType::Int),
+      self.options(),
       self);
   at::Scalar depthCp = depth;
 
-  auto self_copy = (self.scalar_type() != at::kLong) ?
-      self : NPUNativeFunctions::npu_dtype_cast(self, at::kInt);
-
   OpCommand cmd;
   cmd.Name("OneHot")
-      .Input(self_copy)
-      .Input(depthCp, at::ScalarType::Int, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
-      .Input(on_value, at::ScalarType::Int)
-      .Input(off_value, at::ScalarType::Int)
-      .Output(result)
-      .Attr("axis", axis)
-      .Run();
+    .Input(self)
+    .Input(depthCp, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+    .Input(on_value, self.scalar_type())
+    .Input(off_value, self.scalar_type())
+    .Output(result)
+    .Attr("axis", axis)
+    .Run();
   return result;
 }
 } // namespace native
