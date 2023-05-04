@@ -476,6 +476,14 @@ op_db: List[OpInfo] = [
         ),
     ),
     OpInfo(
+        'cumsum',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, torch.float16)),
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        sample_inputs_func=common_methods_invocations.sample_inputs_cumulative_ops
+    ),
+    OpInfo(
         'nn.functional.ctc_loss',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
