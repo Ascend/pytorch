@@ -1391,7 +1391,6 @@ def all_gather_togather(tensor_ouput,
         work.wait()
 
 
-@exception_handler
 def all_gather_into_tensor(output_tensor, input_tensor, group=None, async_op=False):
     """
     Gather tensors from all ranks and put them in a single output tensor.
