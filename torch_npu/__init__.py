@@ -41,7 +41,7 @@ import torch_npu.npu.npu_print as _npu_print
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     serialization_patches, add_storage_methods, add_checkpoint_methods
+     serialization_patches, add_storage_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from .version import __version__ as __version__
 
@@ -110,8 +110,8 @@ def apply_class_patches():
     apply_module_patch()
     add_tensor_methods()
     wrap_dtype_for_hccl()
-    add_checkpoint_methods()
 
+# rename device name to 'npu' and register funcs
 torch.utils.rename_privateuse1_backend("npu")
 torch._register_device_module('npu', torch_npu.npu)
 torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True)
@@ -119,12 +119,13 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 apply_class_patches()
+
+# this must be placed at the end
 torch_npu._C._initExtension()
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
     torch_npu._C._npu_shutdown()
-
 
 #register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
