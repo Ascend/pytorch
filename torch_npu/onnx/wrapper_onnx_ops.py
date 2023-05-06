@@ -318,8 +318,8 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
 
     @staticmethod
     def symbolic(g, input: Tensor, size: int, dtype: torch.dtype):
-        dtype = sym_help.scalar_type_to_pytorch_type.index(dtype)
-        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, dtype_i=dtype)
+        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, 
+                    dtype_i=sym_help.scalar_type_to_onnx[sym_help.scalar_type_to_pytorch_type.index(dtype)])
 
 
 class NPUPtiouOP(torch.autograd.Function):
