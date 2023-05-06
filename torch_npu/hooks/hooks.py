@@ -24,6 +24,7 @@ import numpy
 import torch
 
 import torch_npu
+from torch_npu.utils.device_guard import check_is_valid
 from .initialize import step_schedule
 
 
@@ -204,6 +205,7 @@ def start_datadump_deque_thread(path):
 
 
 def deque_and_dump(device_id, path):
+    check_is_valid(device_id)
     torch_npu._C._npu_setDevice(device_id)
     index = 0
     if not path.endswith("/"):
