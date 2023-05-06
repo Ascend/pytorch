@@ -342,7 +342,7 @@ extra_link_args = []
 DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
 
 extra_compile_args = [
-    '-std=c++14',
+    '-std=c++17',
     '-Wno-sign-compare',
     '-Wno-deprecated-declarations',
     '-Wno-return-type',
