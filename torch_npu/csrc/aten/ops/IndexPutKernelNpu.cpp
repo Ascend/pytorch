@@ -42,7 +42,11 @@ namespace
 }
 bool is_aicpu_valid(const at::Tensor& self,
     const std::vector<at::Tensor>& allDefinedIndices,
-    const at::SmallVector<int64_t, N> masks) {
+    const at::SmallVector<int64_t, N> masks) { 
+  // using aicpu at non-binary scene
+  if (!env::CheckJitDisable()) {
+    return true;
+  }
   // using aicore when index is continous, otherwise aicpu
   bool is_zero_in_masks = false;
   for (int32_t i = 0; i < masks.size(); i++) {
