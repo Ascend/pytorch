@@ -18,10 +18,13 @@ import os
 import traceback
 import contextlib
 import threading
+from typing import Any
+from functools import lru_cache
 from multiprocessing.util import register_after_fork as _register_after_fork
 import warnings
 
 import torch
+from torch._utils import _get_device_index as _torch_get_device_index
 
 import torch_npu
 import torch_npu._C
@@ -135,7 +138,7 @@ def synchronize(device=None):
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_synchronize()
 
-
+@lru_cache(maxsize=1)
 def device_count():
     return torch_npu._C._npu_getDeviceCount()
 
@@ -173,43 +176,6 @@ def get_device_capability(device=None):
     warnings.warn("torch.npu.get_device_capability isn't implemented!")
     return None
 
-
-def _get_device_index(device, optional=False):
-    r"""Gets the device index from :attr:`device`, which can be a torch.device
-    object, a Python integer, or ``None``.
-
-    If :attr:`device` is a torch.device object, returns the device index if it
-    is a CUDA device. Note that for a CUDA device without a specified index,
-    i.e., ``torch.device('cuda')``, this will return the current default CUDA
-    device if :attr:`optional` is ``True``.
-
-    If :attr:`device` is a Python integer, it is returned as is.
-
-    If :attr:`device` is ``None``, this will return the current default CUDA
-    device if :attr:`optional` is ``True``.
-    """
-    if isinstance(device, (str, bytes)):
-            device = torch.device(device)
-    device_idx = None
-    if isinstance(device, (torch.device, torch._C.device)):
-        # _get_device_index could be called from usrs(device="npu") or inner funcs(device="xla").
-        # APIs like torch_npu.npu.synchronize would call torch.device, 
-        # which has already changed the key from npu to xla.
-        if device.type != 'npu':
-            raise ValueError('Expected a npu device, but got: {}'.format(device))
-        device_idx = device.index
-    if isinstance(device, int):
-        device_idx = device
-    if device_idx is None:
-        if optional:
-            # default cuda device index
-            return torch_npu.npu.current_device()
-        else:
-            raise ValueError('Expected a npu device with a specified index '
-                             'or an integer, but got: '.format(device))
-    return device_idx
-
-
 def is_available():
     if (not hasattr(torch_npu._C, '_npu_setDevice')):
         return False
@@ -240,6 +206,38 @@ class device(object):
         if self.prev_idx != self.idx:
             torch_npu._C._npu_setDevice(self.prev_idx)
         return False
+
+
+def _get_device_index(device: Any, optional: bool = False,
+                      allow_cpu: bool = False) -> int:
+    r"""Gets the device index from :attr:`device`, which can be a torch.device
+    object, a Python integer, or ``None``.
+
+    If :attr:`device` is a torch.device object, returns the device index if it
+    is a NPU device. Note that for a NPU device without a specified index,
+    i.e., ``torch.device('npu')``, this will return the current default NPU
+    device if :attr:`optional` is ``True``. If :attr:`allow_cpu` is ``True``,
+    CPU devices will be accepted and ``-1`` will be returned in this case.
+
+    If :attr:`device` is a Python integer, it is returned as is.
+
+    If :attr:`device` is ``None``, this will return the current default NPU
+    device if :attr:`optional` is ``True``.
+    """
+    if isinstance(device, int):
+        return device
+    if isinstance(device, str):
+        device = torch.device(device)
+    if isinstance(device, torch.device):
+        if allow_cpu:
+            if device.type not in ['npu', 'cpu']:
+                raise ValueError('Expected a npu or cpu device, but got: {}'.format(device))
+        elif device.type != 'npu':
+            raise ValueError('Expected a npu device, but got: {}'.format(device))
+    if not torch.jit.is_scripting():
+        if isinstance(device, torch.npu.device):
+            return device.idx
+    return _torch_get_device_index(device, optional, allow_cpu)
 
 
 class device_of(device):

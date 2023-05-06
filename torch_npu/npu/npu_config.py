@@ -19,9 +19,10 @@ import os
 import torch_npu._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
-__all__ = ["set_option", "set_compile_mode", "set_aoe", "profile", "prof_init",
-            "prof_start", "prof_stop", "iteration_start", "iteration_end", "prof_finalize", "profileConfig",
-            "set_mm_bmm_format_nd"]
+__all__ = ["set_option", "set_aoe", "profile", "prof_init", "prof_start", "prof_stop",
+           "prof_finalize", "iteration_start", "iteration_end", "profileConfig",
+           "set_compile_mode", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
+           "is_jit_compile_false"]
 
 def set_option(option):
     if not isinstance(option, dict):

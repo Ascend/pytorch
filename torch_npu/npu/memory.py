@@ -21,6 +21,12 @@ import warnings
 import torch_npu
 from .utils import is_initialized, _get_device_index, _lazy_init
 
+__all__ = ["_free_mutex", "caching_allocator_alloc", "caching_allocator_delete", "empty_cache",
+           "set_per_process_memory_fraction", "memory_stats", "memory_stats_as_nested_dict",
+           "reset_accumulated_memory_stats", "reset_peak_memory_stats", "reset_max_memory_allocated",
+           "reset_max_memory_cached", "memory_allocated", "max_memory_allocated", "memory_reserved",
+           "max_memory_reserved", "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary"]
+
 @contextlib.contextmanager
 def _free_mutex():
     torch_npu._C._npu_lock_mutex()
