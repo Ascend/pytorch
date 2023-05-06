@@ -16,6 +16,7 @@
 
 from typing import cast, Iterable, List, Union
 import torch
+from torch import Tensor
 
 import torch_npu
 from .utils import _lazy_init, _lazy_call, device_count, current_device
