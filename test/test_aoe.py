@@ -74,7 +74,7 @@ class TestAoe(TestCase):
         file_list = os.listdir(TestAoe.results_path)
         if torch.npu.is_available():
             self.assertTrue(len(file_list) > 0)
-        
+        torch.npu.synchronize()
 
 if __name__ == '__main__':
     run_tests()
