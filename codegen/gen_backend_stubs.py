@@ -19,22 +19,26 @@ import argparse
 import os
 import re
 from collections import namedtuple, Counter, defaultdict
-from typing import List, Dict, Union, Sequence, Optional, Set
+from typing import List, Dict, Union, Sequence, Optional, Set, Callable
 import yaml
 
+from torchgen.code_template import CodeTemplate
 from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager,
                           get_grouped_native_functions, error_check_native_functions)
 from torchgen.model import (BackendIndex, DispatchKey, Location,
-                           NativeFunction, NativeFunctionsGroup, OperatorName,
+                            NativeFunction, NativeFunctionsGroup, OperatorName,
                             BackendMetadata, DEFAULT_KERNEL_NAMESPACE, is_cuda_dispatch_key)
 from torchgen.native_function_generation import add_generated_native_functions
 from torchgen.selective_build.selector import SelectiveBuilder
-from torchgen.utils import Target, concatMap, context
+from torchgen.utils import Target, concatMap, context, NamespaceHelper
 from torchgen.context import native_function_manager
-import codegen.dest as dest
-import codegen.dest.utils as utils
+import torchgen.dest as dest
 import torchgen.api.dispatcher as dispatcher
 from torchgen.api.types import DispatcherSignature
+from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
+
+import codegen.dest.utils as utils
+from codegen.dest import RegisterDispatchKeyCPU
 from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key
 
 
@@ -42,7 +46,9 @@ from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key
 def create_backend_index(backend_ops: List[str],
                          symint_ops: Set[str],
                          dispatch_key: DispatchKey,
-                         native_funcs_map: Dict[OperatorName, NativeFunction]) -> BackendIndex:
+                         native_funcs_map: Dict[OperatorName, NativeFunction],
+                         cpp_namespace: str,
+                         ) -> BackendIndex:
     metadata: Dict[OperatorName, BackendMetadata] = {}
     for op in backend_ops:
         op_name = OperatorName.parse(op)
@@ -52,7 +58,7 @@ def create_backend_index(backend_ops: List[str],
         if op in symint_ops:
             kernel_name += "_symint"
         # TODO: allow structured external backends later.
-        m = BackendMetadata(kernel=kernel_name, structured=False, cpp_namespace=DEFAULT_KERNEL_NAMESPACE)
+        m = BackendMetadata(kernel=kernel_name, structured=False, cpp_namespace=cpp_namespace)
         metadata[op_name] = m
     return BackendIndex(
         dispatch_key=dispatch_key,
@@ -229,7 +235,7 @@ Only the following keys are supported: {", ".join(valid_keys)}'
         with context(lambda: f'The provided value for "backend" must be a valid DispatchKey, but got {backend}.'):
             backend_key = DispatchKey.parse(backend)
 
-        backend_idx = create_backend_index(supported, symint_set, backend_key, native_functions_map)
+        backend_idx = create_backend_index(supported, symint_set, backend_key, native_functions_map, cpp_namespace)
         assert backend_key not in backend_indices
         backend_indices[backend_key] = backend_idx
 
@@ -239,7 +245,8 @@ Only the following keys are supported: {", ".join(valid_keys)}'
 the behavior of autograd for some operators on your backend. However "Autograd{backend}" is not a valid DispatchKey.'):
             autograd_key = DispatchKey.parse(f'Autograd{backend}')
 
-        autograd_idx = create_backend_index(supported_autograd, symint_set, autograd_key, native_functions_map)
+        autograd_idx = create_backend_index(supported_autograd, symint_set,
+                                            autograd_key, native_functions_map, cpp_namespace)
         assert autograd_key not in backend_indices
         backend_indices[autograd_key] = autograd_idx
 
@@ -251,7 +258,6 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
 def check_op_on_cpu_kernels(
         expected_to_cpu: List,
         backend_indices: Dict[DispatchKey, BackendIndex]):
-    
     op_names: List[OperatorName] = list(backend_indices[DispatchKey.CPU].index.keys())
 
     for op_name in op_names:
@@ -335,17 +341,92 @@ def main() -> None:
     run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run, options.impl_path)
 
 
+def gen_dispatcher_registrations(
+        fm: FileManager,
+        class_name: str,
+        backend_indices: Dict[DispatchKey, BackendIndex],
+        grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
+        backend_dispatch_key: DispatchKey,
+        dispatch_key: DispatchKey,
+        selector: "SelectiveBuilder",
+        dispatch_key_name: str,
+        register_dispatch_key_func: Callable,
+):
+    backend_index = backend_indices[backend_dispatch_key]
+    ns_helper = NamespaceHelper(namespace_str="at")
+    native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
+    static_template = CodeTemplate(
+        """\
+TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
+$dispatch_registrations_body
+};"""
+    )
+    static_init_dispatch_registrations = static_template.substitute(
+        dispatch_key=dispatch_key_name,
+        dispatch_registrations_body=list(
+            concatMap(
+                register_dispatch_key_func(
+                    backend_index,
+                    Target.REGISTRATION,
+                    selector,
+                    rocm=False,
+                    symint=True,
+                    class_method_name=f"{class_name}",
+                    skip_dispatcher_op_registration=False,
+                ),
+                grouped_native_functions,
+            )
+        ),
+    )
+    fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
+        'extra_cuda_headers': '',
+        'external_backend_headers': native_func_header,
+        'namespaced_headers': '',
+        'DispatchKey': dispatch_key,
+        'dispatch_headers': dest.gen_registration_headers(
+            backend_index, per_operator_headers=False, rocm=False
+        ),
+        'ops_headers': '',
+        'dispatch_definitions': fm.substitute_with_template(
+            'RegisterDispatchDefinitions.ini',
+            lambda: {
+                'ns_prologue': ns_helper.prologue,
+                'ns_epilogue': ns_helper.epilogue,
+                'static_init_dispatch_registrations': static_init_dispatch_registrations,
+                'deferred_dispatch_registrations': '',
+                'dispatch_helpers': dest.gen_registration_helpers(backend_index),
+                'dispatch_namespace': dispatch_key.lower(),
+                'dispatch_namespaced_definitions': '',
+                'dispatch_anonymous_definitions': list(
+                    concatMap(
+                        register_dispatch_key_func(
+                            backend_index,
+                            Target.ANONYMOUS_DEFINITION,
+                            selector,
+                            rocm=False,
+                            symint=True,
+                            class_method_name=f'{class_name}',
+                            skip_dispatcher_op_registration=False,
+                        ),
+                        grouped_native_functions,
+                    )
+                ),
+            },
+        ).split('\n'),
+    })
+
+
 def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
+    torchgen_path = get_torchgen_dir()
 
-    template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
+    template_dir = os.path.join(torchgen_path, "packaged/ATen/templates")
 
     def make_file_manager(install_dir: str) -> FileManager:
         return FileManager(install_dir=install_dir, template_dir=template_dir, dry_run=dry_run)
 
     fm = make_file_manager(output_dir)
 
-    torchgen_path = get_torchgen_dir()
     tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
     native_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/native_functions.yaml')
     parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, tags_yaml_path, source_yaml)
@@ -360,7 +441,6 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
     backend_indices = parsed_backend_yaml.backend_indices
 
     selector = SelectiveBuilder.get_nop_selector()
-
     if backend_key is not None:
         backend_dispatch_key: DispatchKey = backend_key
         autograd_dispatch_key: DispatchKey = autograd_key
@@ -368,112 +448,44 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
 
         if impl_path is not None:
             error_on_missing_kernels(native_functions, backend_indices, backend_key, autograd_key, impl_path)
-
-        assert class_name is not None
-        generated_comment = 'Autogenerated file by gen_backend_stubs.py. Do not edit directly!'
-        fm.write_with_template(f'{backend_dispatch_key}NativeFunctions.h', 'DispatchKeyNativeFunctions.h', lambda: {
-            'generated_comment': generated_comment,
-            'cpp_namespace': cpp_namespace,
-            'class_name': class_name,
-            # Convert to a set first to remove duplicate kernel names.
-            # Backends are allowed to repeat kernel names; only generate the declaration once!
-            'dispatch_declarations': list(set(concatMap(
-                lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
-                grouped_native_functions
-            ))) + list(set(concatMap(
-                lambda f: dest.compute_native_function_declaration(f, backend_indices[autograd_dispatch_key]),
-                grouped_native_functions
-            ))) if autograd_dispatch_key else list(set(concatMap(
-                lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
-                grouped_native_functions
-            ))),
-        })
+        gen_dispatchkey_nativefunc_headers(
+            fm,
+            class_name,
+            cpp_namespace,
+            backend_indices,
+            grouped_native_functions,
+            backend_key,
+            autograd_key,
+        )
 
         for dispatch_key in [backend_dispatch_key, autograd_dispatch_key]:
             if not dispatch_key:
                 continue
-
-            native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
-            fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
-                'external_backend_headers': native_func_header,
-                'namespaced_headers': '',
-                'DispatchKey': dispatch_key.name.replace("NPU", true_backend),
-                'dispatch_namespace': dispatch_key.lower(),
-                'dispatch_helpers': dest.gen_registration_helpers(backend_indices[dispatch_key]),
-                'dispatch_namespaced_definitions': list(concatMap(
-                    dest.RegisterDispatchKey(
-                        backend_indices[dispatch_key],
-                        Target.NAMESPACED_DEFINITION,
-                        selector,
-                        rocm=False,
-                        cpp_namespace=cpp_namespace,
-                        class_method_name=f'{backend_dispatch_key}NativeFunctions'),
-                    grouped_native_functions
-                )),
-                'dispatch_anonymous_definitions': list(concatMap(
-                    dest.RegisterDispatchKey(
-                        backend_indices[dispatch_key],
-                        Target.ANONYMOUS_DEFINITION,
-                        selector,
-                        rocm=False,
-                        cpp_namespace=cpp_namespace,
-                        class_method_name=f'{backend_dispatch_key}NativeFunctions'),
-                    grouped_native_functions
-                )),
-                'dispatch_registrations': list(concatMap(
-                    dest.RegisterDispatchKey(
-                        backend_indices[dispatch_key],
-                        Target.REGISTRATION,
-                        selector,
-                        rocm=False,
-                        cpp_namespace=cpp_namespace,
-                        class_method_name=f'{backend_dispatch_key}NativeFunctions'),
-                    grouped_native_functions
-                )),
-            })
+            gen_dispatcher_registrations(
+                fm,
+                class_name,
+                backend_indices,
+                grouped_native_functions,
+                dispatch_key,
+                dispatch_key,
+                selector,
+                dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
+                register_dispatch_key_func=dest.RegisterDispatchKey,
+            )
 
         if to_cpu.upper() in {'OFF', '0', 'NO', 'FALSE', 'F', 'N'}:
             return
-
-        dispatch_key = true_backend
-        native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"\n'
-        fm.write_with_template(f'RegisterCPU.cpp', 'RegisterDispatchKey.cpp', lambda: {
-            'external_backend_headers': native_func_header,
-            'namespaced_headers': '',
-            'DispatchKey': dispatch_key,
-            'dispatch_namespace': dispatch_key.lower(),
-            'dispatch_helpers': dest.gen_registration_helpers(backend_indices[DispatchKey.CPU]),
-            'dispatch_namespaced_definitions': list(concatMap(
-                dest.RegisterDispatchKeyCPU(
-                    backend_indices[DispatchKey.CPU],
-                    Target.NAMESPACED_DEFINITION,
-                    selector,
-                    rocm=False,
-                    cpp_namespace=cpp_namespace,
-                    class_method_name=f'NPUNativeFunctions'),
-                grouped_native_functions
-            )),
-            'dispatch_anonymous_definitions': list(concatMap(
-                dest.RegisterDispatchKeyCPU(
-                    backend_indices[DispatchKey.CPU],
-                    Target.ANONYMOUS_DEFINITION,
-                    selector,
-                    rocm=False,
-                    cpp_namespace=cpp_namespace,
-                    class_method_name=f'NPUNativeFunctions'),
-                grouped_native_functions
-            )),
-            'dispatch_registrations': list(concatMap(
-                dest.RegisterDispatchKeyCPU(
-                    backend_indices[DispatchKey.CPU],
-                    Target.REGISTRATION,
-                    selector,
-                    rocm=False,
-                    cpp_namespace=cpp_namespace,
-                    class_method_name=f'NPUNativeFunctions'),
-                grouped_native_functions
-            )),
-        })
+        gen_dispatcher_registrations(
+            fm,
+            class_name,
+            backend_indices,
+            grouped_native_functions,
+            DispatchKey.CPU,
+            DispatchKey.CPU,
+            selector,
+            dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
+            register_dispatch_key_func=RegisterDispatchKeyCPU,
+        )
 
 
 if __name__ == '__main__':
