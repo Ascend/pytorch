@@ -190,7 +190,7 @@ pip3 install wheel
 
      若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
 
-     PyTorch 1.8.1版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.8.1+cpu-cp37-cp37m-linux_x86_64.whl)。
+     PyTorch 1.8.1版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.8.1%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
 
    - aarch64
 
