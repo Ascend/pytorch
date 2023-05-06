@@ -13,13 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..prof_common_func.constant import Constant
-from ..prof_view.kernel_view_parser import KernelViewParser
-from ..prof_view.trace_view_parser import TraceViewParser
+from abc import ABCMeta, abstractmethod
 
 
-class ViewParserConfig:
-    CONFIG_DICT = {
-        Constant.TENSORBOARD_TRACE_HABDLER: [TraceViewParser, KernelViewParser],
-        Constant.EXPORT_CHROME_TRACE: [TraceViewParser]
-    }
+class BaseViewParser(metaclass=ABCMeta):
+    """
+    prof_interface for viewer
+    """
+
+    def __init__(self, profiler_path: str):
+        self._profiler_path = profiler_path
+
+    @abstractmethod
+    def generate_view(self: any, output_path: str = None) -> None:
+        """
+        summarize data to generate json or csv files
+        Returns: None
+        """
