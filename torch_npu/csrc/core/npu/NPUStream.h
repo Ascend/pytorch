@@ -89,7 +89,7 @@ public:
   }
 
   /// Explicit conversion to rtStream_t.
-  aclrtStream stream() const;
+  aclrtStream stream(const bool need_empty = true) const;
 
   /// Explicit conversion to Stream.
   c10::Stream unwrap() const {
