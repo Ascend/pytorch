@@ -168,6 +168,16 @@ namespace at_npu
       int index = 0;
       do
       {
+        if (params.customHandler) {
+          ret = params.customHandler();
+          if (ret != ACL_ERROR_NONE) {
+            C10_NPU_SHOW_ERR_MSG();
+            TORCH_CHECK(false, "Custom hand fail!");
+          }
+          index++;
+          continue;
+        }
+
         if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
             at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
           ret = at_npu::native::AclGenGraphAndDumpForOp(
@@ -269,6 +279,20 @@ namespace at_npu
       aclError ret;
       if (global_enable_profiling.load(std::memory_order_relaxed)) {
         torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
+      }
+
+      if (cur_paras->customHandler) {
+        ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
+        try {
+          ret = cur_paras->customHandler();
+        } catch (std::exception& e) {
+          ret = ACL_ERROR_INVALID_PARAM;
+          ASCEND_LOGE("Custom hand error:%s", e.what());
+        }
+        if (ret != ACL_ERROR_NONE) {
+          ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
+        }
+        return ret;
       }
       // open the deterministicAlgorithms config
       SetDeterministic();
