@@ -36,6 +36,7 @@ namespace at_npu
         NPU_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
       }
       hostMemory.clear();
+      customHandler = nullptr;
       return;
     }
 
@@ -48,6 +49,7 @@ namespace at_npu
       this->hostMemory = other.hostMemory;
       this->isJitDisable = other.isJitDisable;
       this->pta_correlation_id = other.pta_correlation_id;
+      this->customHandler = other.customHandler;
     }
 
     void ExecuteParas::CopyEx(ExecuteParas& other)
