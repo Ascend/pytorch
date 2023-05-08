@@ -50,6 +50,11 @@ OpCommand& OpCommand::Name(const string &name) {
     return *this;
 }
 
+OpCommand& OpCommand::SetCustomHandler(PROC_FUNC func) {
+  aclCmd->SetCustomHandler(func);
+  return *this;
+}
+
 OpCommand& OpCommand::DynamicInputReg(
     DynamicInputRegFunc func,
     DyNumAndIndex num_and_index) {
@@ -255,6 +260,12 @@ OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
   if (!index.empty()) {
     sync = true;
   }
+  return *this;
+}
+
+OpCommand& OpCommand::Sync() {
+  c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
+  C10_NPU_CHECK(aclrtSynchronizeStream(stream));
   return *this;
 }
 

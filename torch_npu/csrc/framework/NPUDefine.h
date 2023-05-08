@@ -87,6 +87,7 @@ namespace at_npu
 
     struct ExecuteParas
     {
+      using PROCESS_FUNC = std::function<int()>;
       char opType[50]{};
       bool isJitDisable = false;
       ACL_PARAMS paras;
@@ -98,6 +99,7 @@ namespace at_npu
       void Release();
       void Copy(ExecuteParas &other);
       void CopyEx(ExecuteParas& other);
+      PROCESS_FUNC customHandler;
     };
 
     NPUStatus DestroyAclParams(ACL_PARAMS &params);
