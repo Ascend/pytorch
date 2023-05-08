@@ -80,12 +80,11 @@ namespace at_npu
     at::Tensor &NPUNativeFunctions::mul_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
     {
       // calculate the output size
-      at::Tensor outputTensor = mul_dest_output(self, other);
       auto outputSize = broadcast_ops_npu_output_size(self, other);
       OpPreparation::CheckOut(
           {self},
           result,
-          CalcuOpUtil::GetTensorNpuFormat(outputTensor),
+          CalcuOpUtil::GetTensorNpuFormat(result),
           self.scalar_type(),
           outputSize);
       mul_out_npu_nocheck(result, self, other);

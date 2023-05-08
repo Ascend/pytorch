@@ -329,11 +329,10 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     int rank,
     int size,
     c10::intrusive_ptr<Options> options)
-    : c10d::ProcessGroup(rank, size),
+    : c10d::Backend(rank, size),
       store_(store),
       options_(options),
       hcclCommCounter_(0),
-      opTimeout_(options->opTimeout),
       terminateWatchdog_(false) {
   char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
   try {
@@ -585,8 +584,9 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 }
 
 ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
-    : opTimeout(kProcessGroupHCCLOpTimeoutMillis),
-    is_high_priority_stream(is_high_priority_stream){}
+    : c10d::Backend::Options(HCCL_BACKEND_NAME),
+      opTimeout(kProcessGroupHCCLOpTimeoutMillis),
+      is_high_priority_stream(is_high_priority_stream){}
 
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(

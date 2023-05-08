@@ -42,7 +42,6 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      serialization_patches, add_storage_methods
-from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from .version import __version__ as __version__
 
 graph_printer = _npu_print.GraphPrinter()
@@ -62,10 +61,6 @@ for name in dir(torch_npu._C._VariableFunctions):
 
 all_monkey_patches = [
     ["autograd.profiler", torch_npu.npu.profiler],
-    ["distributed", torch_npu.distributed],
-    ["nn.parallel.distributed._get_device_index", torch_npu.npu._get_device_index],
-    ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
-    ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
 ]
@@ -109,7 +104,6 @@ def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
     add_tensor_methods()
-    wrap_dtype_for_hccl()
 
 # rename device name to 'npu' and register funcs
 torch.utils.rename_privateuse1_backend("npu")
@@ -122,6 +116,11 @@ apply_class_patches()
 
 # this must be placed at the end
 torch_npu._C._initExtension()
+
+# register hccl backend
+torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
+    torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout))
+
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():

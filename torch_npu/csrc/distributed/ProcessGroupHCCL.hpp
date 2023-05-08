@@ -71,14 +71,14 @@ constexpr const char* HCCL_BACKEND_NAME = "hccl";
 //
 //   // Now continue on other work in the current stream.
 
-class ProcessGroupHCCL : public c10d::ProcessGroup {
+class ProcessGroupHCCL : public c10d::Backend {
 public:
   class WorkHCCL : public c10d::Work {
   public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
     explicit WorkHCCL(const std::vector<at::Device>& devices);
-    virtual ~WorkHCCL();
+    ~WorkHCCL() override;
 
     // Checks if request has completed. In this specific case of HCCL, it checks
     // if the HCCL operation has completed on the NPU in its own HCCL stream.
@@ -166,8 +166,7 @@ public:
 
     friend class ProcessGroupHCCL;
   };
-
-  struct Options : torch::CustomClassHolder {
+  struct Options : c10d::Backend::Options {
     explicit Options(bool is_high_priority_stream = false);
 
     // return intrusive_ptr of the object
@@ -212,14 +211,14 @@ public:
       c10::intrusive_ptr<Options> options = Options::create())
       : ProcessGroupHCCL(store, rank, size, options) {}
 
-  virtual ~ProcessGroupHCCL();
+  ~ProcessGroupHCCL() override;
 
   c10::intrusive_ptr<Options> getOptions() {
     return options_;
   }
 
   const std::string getBackendName() const {
-      return "undefined";
+      return std::string(HCCL_BACKEND_NAME);
   }
   c10::intrusive_ptr<c10d::Work> broadcast(
       std::vector<at::Tensor>& tensors,

@@ -1,19 +1,20 @@
+# Copyright (c) 2020 Huawei Technologies Co., Ltd
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 import torch_npu
-
-
-__all__ = [
-    "Backend", "_backend", "group", "GroupMember", "is_hccl_available", "is_initialized",
-    "get_backend", "init_process_group", "destroy_process_group", "get_rank", "get_world_size",
-    "isend", "irecv", "send", "recv", "P2POp", "batch_isend_irecv", "broadcast", "all_reduce",
-    "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
-    "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
-    "Reducer", "_DEFAULT_FIRST_BUCKET_BYTES", "_register_comm_hook", "_register_builtin_comm_hook",
-    "_broadcast_coalesced", "_compute_bucket_assignment_by_size", "_get_global_rank",
-    "_verify_params_across_processes", "DebugLevel", "get_debug_level", "set_debug_level",
-    "_create_process_group_wrapper", "_rank_not_in_group", "Logger", "all_gather_object",
-    "broadcast_object_list", "all_gather_togather", "_reduce_scatter_base"
-]
-
 
 def is_available():
     """
@@ -24,32 +25,8 @@ def is_available():
     Currently, the default value is ``USE_DISTRIBUTED=1`` for Linux and Windows,
     ``USE_DISTRIBUTED=0`` for MacOS.
     """
-    return hasattr(torch_npu._C, "_c10d_init")
+    return hasattr(torch_npu._C, "_c10d_npu_init")
 
 
-if is_available() and not torch_npu._C._c10d_init():
+if is_available() and not torch_npu._C._c10d_npu_init():
     raise RuntimeError("Failed to initialize torch_npu.distributed")
-
-
-from torch_npu._C._distributed_c10d import (
-    Reducer,
-    _DEFAULT_FIRST_BUCKET_BYTES,
-    _register_comm_hook,
-    _register_builtin_comm_hook, 
-    _broadcast_coalesced,
-    _compute_bucket_assignment_by_size,
-    _verify_params_across_processes,
-)
-from .distributed_c10d import Group as group
-from .distributed_c10d import (
-    _backend, Backend, GroupMember, is_hccl_available, is_initialized, get_backend,
-    init_process_group, destroy_process_group, get_rank, get_world_size, isend,
-    irecv, send, recv, P2POp, batch_isend_irecv, broadcast, all_reduce, all_reduce_coalesced,
-    reduce, all_gather, all_gather_coalesced, gather, scatter, reduce_scatter,
-    all_to_all_single, all_to_all, barrier, new_group, ProcessGroupHCCL, _get_global_rank, DebugLevel,
-    get_debug_level, set_debug_level, set_debug_level_from_env, _create_process_group_wrapper,
-    _rank_not_in_group, Logger, all_gather_object, broadcast_object_list, all_gather_togather,
-    _reduce_scatter_base
-)
-
-set_debug_level_from_env()

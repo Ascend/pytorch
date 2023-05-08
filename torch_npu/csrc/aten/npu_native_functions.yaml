@@ -871,6 +871,8 @@ autograd:
   - binary_cross_entropy_with_logits
   - selu
   - selu_
+  - flatten_dense_tensors
+  - unflatten_dense_tensors
 
 tocpu:
   - angle
