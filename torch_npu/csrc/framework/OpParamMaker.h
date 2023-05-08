@@ -32,11 +32,12 @@ namespace at_npu
 {
   namespace native
   {
-    constexpr size_t MAX_PARAS_BYTE_SIZE = (sizeof(ExecuteParas) > sizeof(c10_npu::queue::CopyParas)) ?
-      ((sizeof(ExecuteParas) >  sizeof(c10_npu::queue::EventParas)) ?
-        sizeof(ExecuteParas) : sizeof(c10_npu::queue::EventParas)) :
-      ((sizeof(c10_npu::queue::CopyParas) > sizeof(c10_npu::queue::EventParas)) ?
-        sizeof(c10_npu::queue::CopyParas) : sizeof(c10_npu::queue::EventParas));
+    typedef union {
+      ExecuteParas exeParas;
+      c10_npu::queue::CopyParas copyParas;
+      c10_npu::queue::EventParas eventParas;
+    } TaskParas;
+    constexpr size_t MAX_PARAS_BYTE_SIZE = sizeof(TaskParas);
     // This file is defined wrapper C++ functions of ACL
     //
     class OpAttrMaker
@@ -203,6 +204,8 @@ namespace at_npu
 
     }; // class AclTensorBufferMaker
 
+    using PROC_FUNC = std::function<int()>;
+
     // the member in AclExecParam is create by :
     // aclCreateDataBuffer and aclCreateTensorDesc
     // so aclDestroyTensorDesc and aclDestroyDataBuffer should be called when dtr
@@ -220,6 +223,11 @@ namespace at_npu
       void SetName(const string &name)
       {
         opName = name;
+      }
+
+      void SetCustomHandler(PROC_FUNC func)
+      {
+        execParam.customHandler = func;
       }
 
       const string &GetName() const { return opName; }
@@ -277,6 +285,17 @@ namespace at_npu
 
         size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen + 
                               outputTensorDescArrLen + outputDataBuffArrLen;
+        if (totalMemLen == 0) {
+          params.paras.input_num = inputNum;
+          params.paras.output_num = outputNum;
+          params.paras.input_desc = nullptr;
+          params.paras.input_data_buf = nullptr;
+          params.paras.output_desc = nullptr;
+          params.paras.output_data_buf = nullptr;
+          params.hostMemory = execParam.hostMem;
+          params.customHandler = execParam.customHandler;
+          return;
+        }
 
         char* basePtr = static_cast<char* >(malloc(totalMemLen));
         AT_ASSERT(basePtr != nullptr);
@@ -313,6 +332,7 @@ namespace at_npu
         params.paras.output_desc = aclTensorOutputDescArr;
         params.paras.output_data_buf = aclDataOutputBuffArr;
         params.hostMemory = execParam.hostMem;
+        params.customHandler = execParam.customHandler;
 
         if (!ForceJitCompileList::GetInstance().Inlist(opName) && env::CheckJitDisable()) {
           params.isJitDisable = true;
@@ -361,6 +381,7 @@ namespace at_npu
 
         // recover
         execParam.attr = nullptr;
+        execParam.customHandler = nullptr;
         opName = "";
       }
 
@@ -373,6 +394,7 @@ namespace at_npu
         c10::SmallVector<aclDataBuffer *, N> outBuffer;      // owned
         c10::SmallVector<at::Tensor, N> hostMem;   
         aclopAttr *attr = nullptr;
+        PROC_FUNC customHandler = nullptr;
       };
 
       void InitAttr()

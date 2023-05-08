@@ -55,6 +55,7 @@ public:
     IF_GRAPH_MODE_THEN_RUN(return;)
     aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
     aclCmds->Push(aclCmd);
+    aclCmd->SetCustomHandler(nullptr);
   }
   ~OpCommand() {}
 
@@ -64,6 +65,8 @@ public:
   OpCommand &operator=(OpCommand &&) = delete;
 
   OpCommand& Name(const string &name);
+
+  OpCommand& SetCustomHandler(PROC_FUNC func);
 
   OpCommand& DynamicInputReg(
       DynamicInputRegFunc func,
@@ -160,6 +163,7 @@ public:
 
   OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
 
+  OpCommand& Sync();
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
