@@ -34,11 +34,11 @@ at::Tensor NPUNativeFunctions::argmin(
       outputSize,
       self.options().dtype(at::kInt),
       ACL_FORMAT_ND);
-  c10::SmallVector<int64_t, N> DimVec = {realDim};
+  c10::Scalar DimScalar = realDim;
   OpCommand cmd;
   cmd.Name("ArgMin")
       .Input(input)
-      .Input(DimVec, at::kInt)
+      .Input(DimScalar, at::kInt)
       .Output(result)
       .Attr("keep_dims", realKeepDim)
       .Run();
