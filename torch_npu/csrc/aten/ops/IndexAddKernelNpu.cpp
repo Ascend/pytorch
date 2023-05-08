@@ -40,6 +40,7 @@ at::Tensor& index_add_out_npu(
   at::SmallVector<int64_t, N> pad_size = array_to_small_vector(self.sizes());
   pad_size[dim] = indices.sizes()[0];
   at::Tensor source_broadcast = NPUNativeFunctions::npu_broadcast(source, pad_size);
+  source_broadcast.mul_(alpha);
   OpCommand cmd;
   cmd.Name("InplaceIndexAdd")
       .Input(self)
@@ -74,7 +75,9 @@ at::Tensor NPUNativeFunctions::index_add(
     const at::Tensor& index,
     const at::Tensor& source,
     const at::Scalar& alpha) {
-  return self.clone().index_add_(dim, index, source);
+      at::Tensor result(self.clone());
+      index_add_out_npu(result, result, dim, index, source, alpha);
+      return result;
 }
 
 at::Tensor NPUNativeFunctions::index_add(
@@ -85,5 +88,16 @@ at::Tensor NPUNativeFunctions::index_add(
     const at::Scalar& alpha)  {
   return NPUNativeFunctions::index_add(self, dimname_to_position(self, dim), index, source, alpha);
 }
+
+at::Tensor& NPUNativeFunctions::index_add_(
+    at::Tensor& self,
+    int64_t dim, 
+    const at::Tensor& index,
+    const at::Tensor& source,
+    const at::Scalar& alpha)  {
+  index_add_out_npu(self, self, dim, index, source, alpha);
+  return self;
+}
+
 } // namespace native
 } // namespace at_npu

@@ -403,6 +403,7 @@ supported:
  - img_to_tensor
  - index.Tensor
  - index_add
+ - index_add_
  - index_add.dimname
  - index_add.out
  - index_fill.int_Scalar
