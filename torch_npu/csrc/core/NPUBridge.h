@@ -1,4 +1,3 @@
-
 #pragma once
 #include<c10/core/StorageImpl.h>
 #include"torch_npu/csrc/core/NPUTensorImpl.h"

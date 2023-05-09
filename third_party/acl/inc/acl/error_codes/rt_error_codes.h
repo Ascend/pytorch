@@ -1,13 +1,3 @@
-/**
-* @file rt_error_codes.h
-*
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-*/
-
 #ifndef __INC_EXTERNEL_RT_ERROR_CODES_H__
 #define __INC_EXTERNEL_RT_ERROR_CODES_H__
 
