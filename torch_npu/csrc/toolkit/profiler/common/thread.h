@@ -1,16 +1,3 @@
-// Copyright (c) 2023, Huawei Technologies.All rights reserved.
-//
-// Licensed under the BSD 3-Clause License  (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// https://opensource.org/licenses/BSD-3-Clause
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 #ifndef TORCH_NPU_TOOLKIT_PROFILER_THREAD_INC
 #define TORCH_NPU_TOOLKIT_PROFILER_THREAD_INC
 
@@ -24,29 +11,29 @@ namespace profiler {
 class Thread {
 public:
   Thread()
-    : isAlive_(false),
+    : is_alive_(false),
       pid_(0),
-      threadName_("NPUProfiler") {};
+      thread_name_("NPUProfiler") {};
 
   ~Thread() {
-    if (isAlive_) {
+    if (is_alive_) {
       pthread_kill(pid_, 0);
     }
   }
 
   void SetThreadName(const std::string &name) {
     if (!name.empty()) {
-      threadName_ = name;
+      thread_name_ = name;
     }
   }
 
   std::string GetThreadName() {
-    return threadName_;
+    return thread_name_;
   }
 
   int Start() {
     int ret = pthread_create(&pid_, nullptr, Execute, (void*)this);
-    isAlive_ = (ret == 0) ? true : false;
+    is_alive_ = (ret == 0) ? true : false;
     return ret;
   }
 
@@ -56,7 +43,7 @@ public:
 
   int Join() {
     int ret = pthread_join(pid_, nullptr);
-    isAlive_ = (ret == 0) ? false : true;
+    is_alive_ = (ret == 0) ? false : true;
     return ret;
   }
 
@@ -70,9 +57,9 @@ private:
   virtual void Run() = 0;
 
 private:
-  bool isAlive_;
+  bool is_alive_;
   pthread_t pid_;
-  std::string threadName_;
+  std::string thread_name_;
 };
 } // profiler
 } // toolkit

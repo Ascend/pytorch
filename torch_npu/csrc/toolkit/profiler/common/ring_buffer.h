@@ -1,16 +1,3 @@
-// Copyright (c) 2023, Huawei Technologies.All rights reserved.
-//
-// Licensed under the BSD 3-Clause License  (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// https://opensource.org/licenses/BSD-3-Clause
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 #ifndef TORCH_NPU_TOOLKIT_PROFILER_RING_BUFFER_INC
 #define TORCH_NPU_TOOLKIT_PROFILER_RING_BUFFER_INC
 
@@ -25,123 +12,123 @@ template <typename T>
 class RingBuffer {
 public:
   RingBuffer()
-    : isInited_(false),
-      isQuit_(false),
-      readIndex_(0),
-      writeIndex_(0),
-      idleWriteIndex_(0),
-      useExtendDataQueue_(false),
+    : is_inited_(false),
+      is_quit_(false),
+      read_index_(0),
+      write_index_(0),
+      idle_write_index_(0),
+      use_extend_data_queue_(false),
       capacity_(0),
       mask_(0) {}
 
   ~RingBuffer() {
-    if (isInited_) {
-      isInited_ = true;
-      isQuit_ = true;
-      dataQueue_.clear();
-      extendDataQueue_.clear();
+    if (is_inited_) {
+      is_inited_ = false;
+      is_quit_ = true;
+      data_queue_.clear();
+      extend_data_queue_.clear();
     }
   }
 
   void Init(size_t capacity) {
     capacity_ = capacity;
     mask_ = capacity_ - 1;
-    dataQueue_.resize(capacity);
-    isInited_ = true;
+    data_queue_.resize(capacity);
+    is_inited_ = true;
   }
 
   bool Push(T data) {
-    if (useExtendDataQueue_.load(std::memory_order_relaxed) && isInited_ && !isQuit_) {
+    if (use_extend_data_queue_.load(std::memory_order_relaxed) && is_inited_ && !is_quit_) {
       return PushExtendQueue(std::move(data));
     }
-    size_t currReadIndex = 0;
-    size_t currWriteIndex = 0;
-    size_t nextWriteIndex = 0;
+    size_t curr_read_index = 0;
+    size_t curr_write_index = 0;
+    size_t next_write_index = 0;
     size_t cycles = 0;
     do {
-      if (!isInited_ || isQuit_) {
+      if (!is_inited_ || is_quit_) {
         return false;
       }
       cycles++;
       if (cycles >= 1024) {
         return false;
       }
-      currReadIndex = readIndex_.load(std::memory_order_relaxed);
-      currWriteIndex = idleWriteIndex_.load(std::memory_order_relaxed);
-      nextWriteIndex = currWriteIndex + 1;
-      if ((nextWriteIndex & mask_) == (currReadIndex & mask_)) {
-        useExtendDataQueue_.store(true);
+      curr_read_index = read_index_.load(std::memory_order_relaxed);
+      curr_write_index = idle_write_index_.load(std::memory_order_relaxed);
+      next_write_index = curr_write_index + 1;
+      if ((next_write_index & mask_) == (curr_read_index & mask_)) {
+        use_extend_data_queue_.store(true);
         return PushExtendQueue(std::move(data));
       }
-    } while (!idleWriteIndex_.compare_exchange_weak(currWriteIndex, nextWriteIndex));
-    size_t index = currWriteIndex & mask_;
-    dataQueue_[index] = std::move(data);
-    writeIndex_++;
+    } while (!idle_write_index_.compare_exchange_weak(curr_write_index, next_write_index));
+    size_t index = curr_write_index & mask_;
+    data_queue_[index] = std::move(data);
+    write_index_++;
     return true;
   }
 
   bool Pop(T &data) {
-    if (!isInited_) {
+    if (!is_inited_) {
       return false;
     }
-    size_t currReadIndex = readIndex_.load(std::memory_order_relaxed);
-    size_t currWriteIndex = writeIndex_.load(std::memory_order_relaxed);
-    if ((currReadIndex & mask_) == (currWriteIndex & mask_)) {
-      if (useExtendDataQueue_.load(std::memory_order_relaxed) && !isQuit_) {
+    size_t curr_read_index = read_index_.load(std::memory_order_relaxed);
+    size_t curr_write_index = write_index_.load(std::memory_order_relaxed);
+    if ((curr_read_index & mask_) == (curr_write_index & mask_)) {
+      if (use_extend_data_queue_.load(std::memory_order_relaxed) && !is_quit_) {
         return PopExtendQueue(data);
       }
       return false;
     }
-    size_t index = currReadIndex & mask_;
-    data = std::move(dataQueue_[index]);
-    readIndex_++;
+    size_t index = curr_read_index & mask_;
+    data = std::move(data_queue_[index]);
+    read_index_++;
     return true;
   }
 
   size_t Size() {
-    size_t currReadIndex = readIndex_.load(std::memory_order_relaxed);
-    size_t currWriteIndex = writeIndex_.load(std::memory_order_relaxed);
-    size_t extendQueueSize = (useExtendDataQueue_.load(std::memory_order_relaxed) == true) ? ExtendSize() : 0;
-    if (currReadIndex > currWriteIndex) {
-      return capacity_ - (currReadIndex & mask_) + (currWriteIndex & mask_) + extendQueueSize;
+    size_t curr_read_index = read_index_.load(std::memory_order_relaxed);
+    size_t curr_write_index = write_index_.load(std::memory_order_relaxed);
+    size_t extend_queue_size = (use_extend_data_queue_.load(std::memory_order_relaxed) == true) ? ExtendSize() : 0;
+    if (curr_read_index > curr_write_index) {
+      return capacity_ - (curr_read_index & mask_) + (curr_write_index & mask_) + extend_queue_size;
     }
-    return currWriteIndex - currReadIndex + extendQueueSize;
+    return curr_write_index - curr_read_index + extend_queue_size;
   }
 
 private:
   bool PushExtendQueue(T data) {
-    std::lock_guard<std::mutex> lk(extendQueueMtx_);
-    extendDataQueue_.push_back(std::move(data));
+    std::lock_guard<std::mutex> lk(extend_queue_mtx_);
+    extend_data_queue_.push_back(std::move(data));
     return true;
   }
 
   bool PopExtendQueue(T &data) {
-    std::lock_guard<std::mutex> lk(extendQueueMtx_);
-    if (extendDataQueue_.empty()) {
+    std::lock_guard<std::mutex> lk(extend_queue_mtx_);
+    if (extend_data_queue_.empty()) {
       return false;
     }
-    data = std::move(extendDataQueue_.front());
-    extendDataQueue_.pop_front();
+    data = std::move(extend_data_queue_.front());
+    extend_data_queue_.pop_front();
     return true;
   }
 
   size_t ExtendSize() {
-    std::lock_guard<std::mutex> lk(extendQueueMtx_);
-    return extendDataQueue_.size();
+    std::lock_guard<std::mutex> lk(extend_queue_mtx_);
+    return extend_data_queue_.size();
   }
 
 private:
-  bool isInited_;
-  volatile bool isQuit_;
-  std::atomic<size_t> readIndex_;
-  std::atomic<size_t> writeIndex_;
-  std::atomic<size_t> idleWriteIndex_;
-  std::atomic<bool> useExtendDataQueue_;
+  bool is_inited_;
+  volatile bool is_quit_;
+  std::atomic<size_t> read_index_;
+  std::atomic<size_t> write_index_;
+  std::atomic<size_t> idle_write_index_;
+  std::atomic<bool> use_extend_data_queue_;
   size_t capacity_;
   size_t mask_;
-  std::vector<T> dataQueue_;
-  std::deque<T> extendDataQueue_;
-  std::mutex extendQueueMtx_;
+  std::vector<T> data_queue_;
+  std::deque<T> extend_data_queue_;
+  std::mutex extend_queue_mtx_;
 };
 } // profiler
 } // toolkit

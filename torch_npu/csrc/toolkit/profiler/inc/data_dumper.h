@@ -13,25 +13,25 @@
 namespace torch_npu {
 namespace toolkit {
 namespace profiler {
-constexpr uint32_t DEFAULT_RING_BUFFER = 1024;
-constexpr uint32_t BATCH_MAX_LEN = 5 * 1024 * 1024; // 5 MB
+constexpr uint32_t kDefaultRingBuffer = 1024;
+constexpr uint32_t kBatchMaxLen = 5 * 1024 * 1024; // 5 MB
 
 class DataDumper : public Thread {
 public:
   explicit DataDumper();
   virtual ~DataDumper();
-  void init(const std::string &path, size_t capacity);
-  void flush();
-  void report(std::unique_ptr<BaseReportData> data);
-  void start();
-  void stop();
+  void Init(const std::string &path, size_t capacity);
+  void Flush();
+  void Report(std::unique_ptr<BaseReportData> data);
+  void Start();
+  void Stop();
 
 private:
-  void dump(std::map<std::string, std::string> &dataMap);
-  void run();
-  void dataClassifyGather(std::map<std::string, std::string> &dataMap);
-  void setBufferEmptyEvent();
-  void waitBufferEmptyEvent(uint64_t us);
+  void Dump(std::map<std::string, std::string> &dataMap);
+  void Run();
+  void DataClassifyGather(std::map<std::string, std::string> &dataMap);
+  void SetBufferEmptyEvent();
+  void WaitBufferEmptyEvent(uint64_t us);
 
 private:
   std::string path_;

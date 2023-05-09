@@ -249,3 +249,8 @@ if (NOT DEFINED BUILD_LIBTORCH)
   target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
   install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  add_subdirectory(${TORCHNPU_ROOT}/toolkit)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
+endif()
