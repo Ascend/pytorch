@@ -717,6 +717,7 @@ struct THNCachingAllocator {
       }
 
       C10_NPU_CHECK(aclrtSynchronizeEvent(event));
+      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);

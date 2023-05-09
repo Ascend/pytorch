@@ -232,6 +232,7 @@ struct HostAllocator {
         insertCompleteEvent(event);
         return err;
       }
+      ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
 
       Block& block = blocks.at(e.second);
       block.event_count--;
@@ -255,6 +256,7 @@ struct HostAllocator {
           C10_NPU_SHOW_ERR_MSG();
           NPU_LOGW("destory acl event fail");
         }
+        ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
         block.event_count--;
       }
     }
