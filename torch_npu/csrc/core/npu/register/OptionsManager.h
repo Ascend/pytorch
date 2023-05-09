@@ -34,6 +34,7 @@ public:
   static bool CheckUseNpuLogEnable();
   static uint32_t GetHCCLExecTimeout();
   static std::string CheckDisableDynamicPath();
+  static int32_t GetACLExecTimeout();
 private:
   static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
 };
