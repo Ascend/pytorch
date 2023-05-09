@@ -37,7 +37,7 @@ c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self) {
         scalar_t value = 0;
         c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
         // Synchronous copy after stream synchronization
-        aclError error = aclrtSynchronizeStream(copy_stream);
+        aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream);
         if (error != ACL_ERROR_NONE) {
           C10_NPU_SHOW_ERR_MSG();
           AT_ERROR("ACL stream synchronize failed.");
