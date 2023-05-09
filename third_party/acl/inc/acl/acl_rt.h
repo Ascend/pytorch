@@ -927,6 +927,20 @@ ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStream(aclrtStream stream);
 
 /**
  * @ingroup AscendCL
+ * @brief block the host until all tasks. Support timeout setting by users.
+ * in the specified stream have completed
+ *
+ * @param  stream [IN]   the stream to wait
+ * @param  timeout [IN]   timeout threshold. allow users to set through environment variable.
+ *                       default setting is -1.
+ *
+ * @retval ACL_SUCCESS   function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStreamWithTimeout(aclrtStream stream, int32_t timeout);
+
+/**
+ * @ingroup AscendCL
  * @brief Blocks the operation of the specified Stream until
  * the specified Event is completed.
  * Support for multiple streams waiting for the same event.
