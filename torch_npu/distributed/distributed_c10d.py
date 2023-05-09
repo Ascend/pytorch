@@ -94,7 +94,7 @@ __all__ = [
     "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
     "_get_default_group", "_get_global_rank", "all_gather_object", "all_gather_togather",
-    "_reduce_scatter_base", "_all_gather_base"
+    "_reduce_scatter_base", "_all_gather_base", "all_gather_into_tensor"
 ]
 
 
@@ -1391,6 +1391,82 @@ def all_gather_togather(tensor_ouput,
         work.wait()
 
 
+def all_gather_into_tensor(output_tensor, input_tensor, group=None, async_op=False):
+    """
+    Gather tensors from all ranks and put them in a single output tensor.
+    Args:
+        output_tensor (Tensor): Output tensor to accommodate tensor elements
+            from all ranks. It must be correctly sized to have one of the
+            following forms:
+            (i) a concatenation of all the input tensors along the primary
+            dimension; for definition of "concatenation", see ``torch.cat()``;
+            (ii) a stack of all the input tensors along the primary dimension;
+            for definition of "stack", see ``torch.stack()``.
+            Examples below may better explain the supported output forms.
+        input_tensor (Tensor): Tensor to be gathered from current rank.
+            Different from the ``all_gather`` API, the input tensors in this
+            API must have the same size across all ranks.
+        group (ProcessGroup, optional): The process group to work on. If None,
+            the default process group will be used.
+        async_op (bool, optional): Whether this op should be an async op
+    Returns:
+        Async work handle, if async_op is set to True.
+        None, if not async_op or if not part of the group
+    Examples:
+        >>> # xdoctest: +SKIP("need process group init")
+        >>> # All tensors below are of torch.int64 dtype and on CUDA devices.
+        >>> # We have two ranks.
+        >>> device = torch.device(f'cuda:{rank}')
+        >>> tensor_in = torch.arange(2, dtype=torch.int64, device=device) + 1 + 2 * rank
+        >>> tensor_in
+        tensor([1, 2], device='cuda:0') # Rank 0
+        tensor([3, 4], device='cuda:1') # Rank 1
+        >>> # Output in concatenation form
+        >>> tensor_out = torch.zeros(world_size * 2, dtype=torch.int64, device=device)
+        >>> dist.all_gather_into_tensor(tensor_out, tensor_in)
+        >>> tensor_out
+        tensor([1, 2, 3, 4], device='cuda:0') # Rank 0
+        tensor([1, 2, 3, 4], device='cuda:1') # Rank 1
+        >>> # Output in stack form
+        >>> tensor_out2 = torch.zeros(world_size, 2, dtype=torch.int64, device=device)
+        >>> dist.all_gather_into_tensor(tensor_out2, tensor_in)
+        >>> tensor_out2
+        tensor([[1, 2],
+                [3, 4]], device='cuda:0') # Rank 0
+        tensor([[1, 2],
+                [3, 4]], device='cuda:1') # Rank 1
+    .. warning::
+        The Gloo backend does not support this API.
+    """
+    _check_single_tensor(input_tensor, "input_tensor")
+    _check_single_tensor(output_tensor, "output_tensor")
+    if _rank_not_in_group(group):
+        _warn_not_in_group("all_gather_into_tensor")
+        return
+
+    output_tensor = (
+        output_tensor
+        if not output_tensor.is_complex()
+        else torch.view_as_real(output_tensor)
+    )
+    input_tensor = (
+        input_tensor
+        if not input_tensor.is_complex()
+        else torch.view_as_real(input_tensor)
+    )
+
+    if group is None:
+        default_pg = _get_default_group()
+        work = default_pg._allgather_base(output_tensor, input_tensor)
+    else:
+        work = group._allgather_base(output_tensor, input_tensor)
+
+    if async_op:
+        return work
+    else:
+        work.wait()
+
+
 def _all_gather_base(output_tensor,
                      input_tensor,
                      group=None,
@@ -1428,25 +1504,13 @@ def _all_gather_base(output_tensor,
         tensor([1, 2]) # Rank 0
         tensor([1, 2]) # Rank 1
     """
-    _check_single_tensor(output_tensor, "output_tensor")
-    _check_single_tensor(input_tensor, "input_tensor")
-    if _rank_not_in_group(group):
-        _warn_not_in_group("_all_gather_base")
-        return
 
-    output_tensor = output_tensor if not output_tensor.is_complex() else torch.view_as_real(output_tensor)
-    input_tensor = input_tensor if not input_tensor.is_complex() else torch.view_as_real(input_tensor)
-
-    if group is None:
-        default_pg = _get_default_group()
-        work = default_pg._allgather_base(output_tensor, input_tensor)
-    else:
-        work = group._allgather_base(output_tensor, input_tensor)
-
-    if async_op:
-        return work
-    else:
-        work.wait()
+    warnings.warn(
+        "torch.distributed._all_gather_base is a private function and will be "
+        "deprecated. Please use torch.distributed.all_gather_into_tensor "
+        "instead."
+    )
+    return all_gather_into_tensor(output_tensor, input_tensor, group, async_op)
 
 
 def all_gather_coalesced(output_tensor_lists,
