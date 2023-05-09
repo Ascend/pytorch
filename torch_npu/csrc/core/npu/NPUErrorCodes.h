@@ -209,4 +209,27 @@ namespace  c10_npu::acl {
             Rectify the fault based on the error information in the log or contact Huawei technical support. \
             For details about logs, see the Log Reference."},
     };
-} /* npu_errmsg */
+
+    static std::map<int, std::string> hcclresult_code_map = {
+        {1, "Parameter error. Check whether the parameter values in the file are correct."},
+        {2, "Empty pointer."},
+        {3, "Memory error."},
+        {4, "Internal error."},
+        {5, "Unsupported feature."},
+        {6, "No specific resource was found."},
+        {7, "Resource unavailable."},
+        {8, "Call system interface error."},
+        {9, "Timeout."},
+        {10, "Open file failed."},
+        {11, "Tcp connect failed."},
+        {12, "Roce connect failed."},
+        {13, "Tcp transfer failed"},
+        {14, "Roce transfer failed."},
+        {15, "Call runtime api failed."},
+        {16, "Call driver api failed."},
+        {17, "Call profiling api failed."},
+        {18, "Call cce api failed."},
+        {19, "Call network api failed."},
+        {20, "Reserved."},
+    };
+} /* c10_npu::acl */

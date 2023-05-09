@@ -18,6 +18,7 @@
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/NPUErrorCodes.h"
 #include <memory>
 
 #include "hccl/hccl.h"
@@ -29,6 +30,8 @@
     if (error != HCCL_SUCCESS) {                                    \
       std::string err = "HCCL error in: " + std::string(__FILE__) + \
           ":" + std::to_string(__LINE__) + ".\n" +                  \
+          "[error]: " +                                             \
+          c10_npu::acl::hcclresult_code_map[error] + ".\n" +        \
           "And see details in Ascend logs.\n" +                     \
           c10_npu::acl::AclGetErrMsg();                             \
       throw std::runtime_error(err);                                \
