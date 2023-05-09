@@ -12,7 +12,6 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include <third_party/acl/inc/acl/acl.h>
-#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 namespace c10_npu {
 
@@ -35,9 +34,6 @@ inline c10::DeviceIndex device_count() noexcept {
 }
 
 inline c10::DeviceIndex current_device() {
-  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-    return c10_npu::NpuSysCtrl::GetInstance().GetCurrentDeviceIndex();
-  }
   int cur_device = 0;
   C10_NPU_CHECK(aclrtGetDevice(&cur_device));
   return static_cast<c10::DeviceIndex>(cur_device);

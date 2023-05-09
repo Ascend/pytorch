@@ -212,9 +212,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
 
-    // TODO: not support exchange device now.
-    TORCH_CHECK(false, "NPU device dose not support exchange device.");
-
     C10_NPU_CHECK(aclrtResetDevice(pre_device));
     C10_NPU_CHECK(aclrtSetDevice(device));
     device_id_= device;
