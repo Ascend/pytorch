@@ -118,7 +118,7 @@ void copy_between_host_and_device(
     void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
     C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
-    aclError error = aclrtSynchronizeStream(stream);
+    aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
     auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
         std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
         nbytes,

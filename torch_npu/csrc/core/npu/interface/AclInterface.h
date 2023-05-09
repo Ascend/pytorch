@@ -107,6 +107,8 @@ aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
 aclError AclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag);
 
 aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
-  
+
+aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu

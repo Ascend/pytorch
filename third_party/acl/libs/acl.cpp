@@ -38,6 +38,7 @@ aclError aclrtSetOpWaitTimeout(uint32_t timeout) { return 0; }
 aclError aclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag) { return 0; }
 aclError aclrtDestroyStream(aclrtStream stream){return 0;}
 aclError aclrtSynchronizeStream(aclrtStream stream){return 0;}
+aclError aclrtSynchronizeStreamWithTimeout(aclrtStream stream, int32_t timeout){return 0;}
 
 // Event
 aclError aclrtQueryEvent(aclrtEvent event, aclrtEventStatus *status){return 0;}
