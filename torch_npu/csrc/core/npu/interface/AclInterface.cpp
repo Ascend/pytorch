@@ -2,6 +2,7 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "c10/util/Exception.h"
 
 namespace c10_npu {
@@ -36,6 +37,7 @@ LOAD_FUNCTION(aclrtCreateStreamWithConfig)
 LOAD_FUNCTION(aclrtSetDeviceSatMode)
 LOAD_FUNCTION(aclrtSetStreamOverflowSwitch)
 LOAD_FUNCTION(aclrtGetStreamOverflowSwitch)
+LOAD_FUNCTION(aclrtSynchronizeStreamWithTimeout)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -301,6 +303,28 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
   }
   TORCH_CHECK(func, "Failed to find function ", "aclrtGetStreamOverflowSwitch");
   return func(stream, flag);
+}
+
+aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
+  typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
+  static AclrtSynchronizeStreamWithTimeout func = nullptr;
+  int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
+  if (func == nullptr) {
+    func = (AclrtSynchronizeStreamWithTimeout)GET_FUNC(aclrtSynchronizeStreamWithTimeout);
+  }
+  if (func != nullptr) {
+    return func(stream, timeout);
+  }
+  else {
+    TORCH_WARN(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
+    typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
+    static AclrtSynchronizeStream func_backup = nullptr;
+    if (func_backup == nullptr) {
+      func_backup = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
+    }
+    TORCH_CHECK(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream");
+    return func_backup(stream);
+  }
 }
 
 } // namespace acl

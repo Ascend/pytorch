@@ -30,7 +30,6 @@
 #include "third_party/acl/inc/acl/acl_op.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-
 namespace c10_npu {
 
 class NPUStream {
@@ -80,7 +79,7 @@ public:
 
   void synchronize() const {
     c10::DeviceGuard guard{stream_.device()};
-    C10_NPU_CHECK(aclrtSynchronizeStream(stream()));
+    C10_NPU_CHECK(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
   }
 
   /// Explicit conversion to rtStream_t.
