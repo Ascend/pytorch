@@ -755,14 +755,14 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.int8, torch.float16, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int8, torch.int32, torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_index,
-        formats=(2, 3, 4),
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.int8, torch.int32, torch.float16, torch.float32]),
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.int8, torch.int32, torch.float16, torch.float32]),
-            
-        ),
+        formats=(2, ),
+        skipSample={
+            # Inner Error, op[GatherV2], batch_dims must less than rank(params)0
+            # skip samples of shape=() because of index_select is invoked when backward,
+            # and it cannot be applied to a 0-dim tensor
+            'test_correctness' : (0, 1, 2, ),
+            'test_variant_consistency_eager' : (0, 1, 2, 9, 10, 11, )
+        },
     ),
     OpInfo(
         'index_copy',
