@@ -75,5 +75,11 @@ uint32_t OptionsManager::GetHCCLExecTimeout() {
   return static_cast<uint32_t>(envFlag);
 }
 
+int32_t OptionsManager::GetACLExecTimeout() {
+  char* env_val = std::getenv("ACL_STREAM_TIMEOUT");
+  int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : -1;
+  return static_cast<int32_t>(envFlag);
+}
+
 } // namespace option
 } // namespace c10_npu
