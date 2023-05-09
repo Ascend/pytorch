@@ -77,6 +77,14 @@ static TypeError unavailable_type(const PyTensorType& type) {
 static PyObject * Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
   HANDLE_TH_ERRORS
   auto& tensor_type = *((PyTensorType*)type);
+  if (tensor_type.is_npu) {
+    static auto warn_once = [](){
+        std::cout << "Warning: The torch.npu.*DtypeTensor constructors are no longer recommended. " \
+                     "It's best to use methods such as torch.tensor(data, dtype=*, device='npu') " \
+                     "to create tensors." << std::endl;
+        return true;
+    }();
+  }
   if (tensor_type.is_npu && c10_npu::device_count() == 0) {
     throw unavailable_type(tensor_type);
   }
