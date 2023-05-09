@@ -18,6 +18,7 @@ import json
 import os
 import stat
 import threading
+import warnings
 from datetime import datetime, timezone
 
 import numpy
@@ -110,6 +111,8 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
 
 
 def wrap_acc_cmp_hook(name, **kwargs):
+    warnings.warn("wrap_acc_cmp_hook is not suggested to use,\
+                  please use ptdbg_ascend precision comparison tool instead.")
     sample = kwargs.get('sample', True)
     pid = kwargs.get('pid')
     if not pid:
