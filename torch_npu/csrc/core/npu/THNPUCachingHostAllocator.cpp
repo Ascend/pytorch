@@ -158,7 +158,7 @@ struct HostAllocator {
     auto it = blocks.find(ptr);
     if (it == blocks.end()) {
       // Sync when host memory is allocated by malloc
-      aclError error = aclrtSynchronizeStream(stream);
+      aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
       if (error != ACL_ERROR_NONE) {
         C10_NPU_SHOW_ERR_MSG();
         AT_ERROR("ACL stream synchronize failed.");
