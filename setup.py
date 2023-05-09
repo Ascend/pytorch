@@ -346,6 +346,7 @@ extra_compile_args = [
     '-Wno-sign-compare',
     '-Wno-deprecated-declarations',
     '-Wno-return-type',
+    '-D__FILENAME__=\"$(notdir $(abspath $<))\"'
 ]
 
 if re.match(r'clang', os.getenv('CC', '')):

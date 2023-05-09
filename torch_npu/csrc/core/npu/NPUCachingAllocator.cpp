@@ -958,6 +958,7 @@ class DeviceCachingAllocator {
 
   void free_event_internal(aclrtEvent event) {
     C10_NPU_CHECK(aclrtDestroyEvent(event));
+    ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
   }
 
   void synchronize_and_free_events() {
@@ -975,6 +976,7 @@ class DeviceCachingAllocator {
       Block* block = e.second;
 
       C10_NPU_CHECK(aclrtSynchronizeEvent(event));
+      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
