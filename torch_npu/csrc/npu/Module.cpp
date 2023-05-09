@@ -102,7 +102,7 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
       throw python_error();
     }
   }
-  auto m = THPObjectPtr(PyImport_ImportModule("torch_npu.npu"));
+  auto m = THPObjectPtr(PyImport_ImportModule("torch.npu"));
   if (!m) throw python_error();
 
   auto set_module_attr = [&](const char* name, PyObject* v) {

@@ -26,7 +26,7 @@ __all__ = ['get_rng_state', 'set_rng_state',
            'manual_seed', 'manual_seed_all',
            'seed', 'seed_all', 'initial_seed']
 
-def get_rng_state(device: Union[int, str, torch.device] = 'npu') -> Tensor:
+def get_rng_state(device: Union[int, str, torch.device] = 'npu') -> torch.Tensor:
     r"""Returns the random number generator state of the specified NPU as a ByteTensor.
 
     Args:
@@ -57,7 +57,7 @@ def get_rng_state_all():
     return results
 
 
-def set_rng_state(new_state: Tensor, device: Union[int, str, torch.device] = 'npu') -> None:
+def set_rng_state(new_state: torch.Tensor, device: Union[int, str, torch.device] = 'npu') -> None:
     r"""Sets the random number generator state of the specified NPU.
 
     Args:
