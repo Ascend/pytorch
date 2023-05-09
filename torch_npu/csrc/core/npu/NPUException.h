@@ -5,6 +5,7 @@
 #include <c10/util/Exception.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include"torch_npu/csrc/core/npu/interface/AclInterface.h"
+#include"torch_npu/csrc/core/npu/NPUErrorCodes.h"
 
 #define C10_NPU_SHOW_ERR_MSG()                            \
 do {                                                      \
@@ -22,6 +23,8 @@ do {                                                      \
           ":",                                         \
           __LINE__,                                    \
           " NPU error, error code is ", Error,         \
+          ": ",                                       \
+          (c10_npu::acl::error_code_map[Error]),      \
           "\n", c10_npu::acl::AclGetErrMsg());        \
     }                                                  \
   } while (0)
@@ -38,6 +41,8 @@ do {                                                      \
           ":",                                            \
           __LINE__,                                       \
           " NPU error, error code is ", Error,            \
+          ": ",                                           \
+          (c10_npu::acl::error_code_map[Error]),          \
           "\n", c10_npu::acl::AclGetErrMsg());            \
     }                                                     \
   } while (0)
@@ -46,6 +51,8 @@ do {                                                      \
   do {                                                   \
     if ((Error) != ACL_ERROR_NONE) {                     \
       TORCH_WARN("NPU warning, error code is ", Error,   \
+      ": ",                                             \
+      (c10_npu::acl::error_code_map[Error]),            \
       "\n", c10_npu::acl::AclGetErrMsg());              \
     }                                                    \
   } while (0)
