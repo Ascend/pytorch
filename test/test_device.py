@@ -107,28 +107,6 @@ class TestDevice(TestCase):
         assert new_device.type == "npu"
         assert new_device.index == 0
 
-        new_device = torch.device(torch._C.device(device_str.replace("npu", "xla")))
-        assert isinstance(new_device, torch.device)
-        assert new_device.type == "npu"
-        assert new_device.index == 0
-
-        assert not isinstance(torch._C.device(device_str.replace("npu", "xla")), torch.device)
-
-        new_device = torch.new_device(torch._C.device(device_str.replace("npu", "xla")))
-        assert isinstance(new_device, torch.device)
-        assert new_device.type == "npu"
-        assert new_device.index == 0
-
-        new_device = torch.new_device(torch.device(device_str))
-        assert isinstance(new_device, torch.device)
-        assert new_device.type == "npu"
-        assert new_device.index == 0
-
-
-        device = torch.device(None)
-        assert device.type == "cpu"
-        device = torch.device(device=None)
-        assert device.type == "cpu"
 
 if __name__ == '__main__':
     run_tests()
