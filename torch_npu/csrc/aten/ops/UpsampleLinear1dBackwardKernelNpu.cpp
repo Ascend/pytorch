@@ -121,46 +121,5 @@ at::Tensor NPUNativeFunctions::upsample_linear1d_backward(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_linear1d_backward(
-    const at::Tensor& grad_output,
-    at::OptionalIntArrayRef output_size,
-    at::IntArrayRef input_size,
-    bool align_corners,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-
-  upsample_linear1d_backward_check(grad_output, osize, input_size);
-  at::Tensor _grad_output = grad_output;
-  if(grad_output.scalar_type() != at::ScalarType::Float)
-  {
-    _grad_output = NPUNativeFunctions::npu_dtype_cast(_grad_output, at::ScalarType::Float);
-  }
-
-  // calculate the output size
-  int64_t N = _grad_output.size(0);
-  int64_t C = _grad_output.size(1);
-  int64_t W = input_size[2];
-
-  c10::SmallVector<int64_t, SIZE> outputSize = {N, C, W};
-  
-  // Since only NCHW format input is currently supported, first convert the
-  // input grad_output (3 dimensions) to 4 dimensions as the input of npu
-  auto grad_output_4dim = _grad_output.unsqueeze(2);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(_grad_output, outputSize);
-
-  // calculate the output result of the NPU
-  upsample_linear1d_backward_out(
-      result, grad_output_4dim, input_size, align_corners, scales_w);
-    
-  if (result.dtype() != grad_output.dtype()) {
-    result = result.to(grad_output.dtype());
-  }
-
-  return result;
-}
-
 } // namespace native
 } // namespace at_npu

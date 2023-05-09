@@ -67,18 +67,5 @@ at::Tensor NPUNativeFunctions::upsample_nearest2d(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_nearest2d(
-    const at::Tensor& input,
-    at::OptionalIntArrayRef output_size,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);
-  at::SmallVector<int64_t, SIZE> outputSize = upsample_nearest2d_npu_output_size(input, osize);
-  auto scale_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  auto scale_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
-  at::Tensor result = OpPreparation::ApplyTensor(input, outputSize);
-  NPUNativeFunctions::upsample_nearest2d_out(input, osize, scale_h, scale_w, result);
-  return result;
-}
-
 } // namespace native
 } // namespace at_npu

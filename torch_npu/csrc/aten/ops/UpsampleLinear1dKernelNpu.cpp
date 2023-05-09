@@ -133,26 +133,5 @@ at::Tensor NPUNativeFunctions::upsample_linear1d(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_linear1d(
-    const at::Tensor& self,
-    at::OptionalIntArrayRef output_size,
-    bool align_corners,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(self.sizes(), output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  // calculate the output size
-  auto outputSize = upsample_linear1d_npu_output_size(
-      self, osize, align_corners, scales_w);
-  
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
-
-  // calculate the output result of the NPU
-  upsample_linear1d_out_nocheck(self, osize, align_corners, scales_w, result);
-
-  return result;
-}
-
 } // namespace native
 } // namespace at_npu

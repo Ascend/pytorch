@@ -29,6 +29,7 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 DecorateInfo,
                                                                 SampleInput,
                                                                 wrapper_set_seed,
+                                                                sample_inputs_interpolate,
                                                                 sample_inputs_normal_common,
                                                                 sample_inputs_binary_cross_entropy_with_logits)
 
@@ -750,6 +751,23 @@ op_db: List[OpInfo] = [
         formats=(0, 3, 4, 29),
         supports_out=False,
     ),
+    OpInfo(
+        'nn.functional.interpolate',
+        aten_name="interpolate",
+        variant_test_name='linear',
+        supports_autograd=True,
+        supports_fwgrad_bwgrad=True,
+        supports_forward_ad=True,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=partial(sample_inputs_interpolate, 'linear'),
+        skips=(
+            # RuntimeError: false
+            # INTERNAL ASSERT FAILED at "../torch/csrc/jit/passes/utils/check_alias_annotation.cpp":185,
+            # please report a bug to PyTorch.
+            DecorateInfo(unittest.expectedFailure, 'TestJit', 'test_variant_consistency_jit'),
+        ),
+        supports_out=False),
     OpInfo(
         'index_add',
         dtypes=_dispatch_dtypes((torch.int8, torch.float16, torch.float32)),
