@@ -772,12 +772,13 @@ op_db: List[OpInfo] = [
         formats=(2, ),
         supports_inplace_autograd=False,
         supports_out=False,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float32]),
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32]),
-        ),
+        skipSample={
+            # IndexError: select() cannot be applied to a 0-dim tensor
+            # skip samples of shape=() because of index_select is invoked when backward,
+            # and it cannot be applied to a 0-dim tensor
+            'test_correctness' : (0, ),
+            'test_variant_consistency_eager' : (0, 3, )
+        },
     ),
     OpInfo(
         'index_put',

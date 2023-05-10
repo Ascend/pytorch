@@ -406,6 +406,8 @@ supported:
  - index_add_
  - index_add.dimname
  - index_add.out
+ - index_copy
+ - index_copy_
  - index_fill.int_Scalar
  - index_fill.int_Tensor
  - index_fill_.int_Scalar
