@@ -21,12 +21,12 @@ DataDumper::~DataDumper() {
   start_.store(false);
 }
 
-void DataDumper::Init(const std::string &path, size_t capacity = DEFAULT_RING_BUFFER) {
+void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer) {
   path_ = path;
-  dataChunkBuf_.Init(capacity);
+  data_chunk_buf_.Init(capacity);
 }
 
-void DataDumper::start() {
+void DataDumper::Start() {
   bool ret = Utils::CreateDir(path_);
   if (ret != true) {
     return;
@@ -37,19 +37,19 @@ void DataDumper::start() {
   start_.store(true);
 }
 
-void DataDumper::stop() {
+void DataDumper::Stop() {
   if (start_.load() == true) {
     start_.store(false);
     Thread::Stop();
   }
 }
 
-void DataDumper::setBufferEmptyEvent() {
+void DataDumper::SetBufferEmptyEvent() {
   std::lock_guard<std::mutex> lk(cv_buffer_empty_mtx_);
   cv_buffer_empty_.notify_all();
 }
 
-void DataDumper::waitBufferEmptyEvent(uint64_t us) {
+void DataDumper::WaitBufferEmptyEvent(uint64_t us) {
   std::unique_lock<std::mutex> lk(cv_buffer_empty_mtx_);
   cv_buffer_empty_.wait_for(lk, std::chrono::microseconds(us));
 }
@@ -58,10 +58,10 @@ void DataDumper::Run() {
   std::map<std::string, std::string> dataMap;
   for (;;) {
     dataMap.clear();
-    dataClassifyGather(dataMap);
+    DataClassifyGather(dataMap);
     size_t size = dataMap.size();
     if (size == 0) {
-      setBufferEmptyEvent();
+      SetBufferEmptyEvent();
       if (start_.load() != true) {
         break;
       }
@@ -72,32 +72,32 @@ void DataDumper::Run() {
       }
       continue;
     }
-    dump(dataMap);
+    Dump(dataMap);
   }
 }
 
-void DataDumper::flush() {
+void DataDumper::Flush() {
   if (!start_.load()) {
     return;
   }
-  waitBufferEmptyEvent(5000000);
+  WaitBufferEmptyEvent(5000000);
 }
 
-void DataDumper::report(std::unique_ptr<BaseReportData> data) {
+void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
   if (!start_.load() || data == nullptr) {
     return;
   }
-  if (dataChunkBuf_.Push(std::move(data))) {
+  if (data_chunk_buf_.Push(std::move(data))) {
     entry_nums_++;
   }
 }
 
-void DataDumper::dump(std::map<std::string, std::string> &dataMap) {
+void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
   std::ofstream file;
   for (auto &data : dataMap) {
     std::string dump_file = path_ + "/" + data.first;
     if (!Utils::IsFileExist(dump_file)) {
-      int new_file = creat(dump_file, S_IRUSR|S_IWUSR|S_IROTH);
+      int new_file = creat(dump_file.c_str(), S_IRUSR|S_IWUSR|S_IROTH);
       close(new_file);
     }
     file.open(dump_file, std::ios::out | std::ios::app | std::ios::binary);
@@ -109,11 +109,11 @@ void DataDumper::dump(std::map<std::string, std::string> &dataMap) {
   }
 }
 
-void DataDumper::dataClassifyGather(std::map<std::string, std::string> &dataMap) {
+void DataDumper::DataClassifyGather(std::map<std::string, std::string> &dataMap) {
   uint64_t batchSize = 0;
-  while (batchSize < BATCH_MAX_LEN) {
+  while (batchSize < kBatchMaxLen) {
     std::unique_ptr<BaseReportData> data = nullptr;
-    bool ret = dataChunkBuf_.Pop(data);
+    bool ret = data_chunk_buf_.Pop(data);
     if (!ret) {
       break;
     }
