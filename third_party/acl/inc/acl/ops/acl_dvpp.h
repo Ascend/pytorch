@@ -1,3 +1,13 @@
+/**
+* @file acl_dvpp.h
+*
+* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+*/
+
 #if !defined(ENABLE_DVPP_INTERFACE)
 #if defined(_MSC_VER)
 #error message("if you want to use dvpp funtions ,please use the macro definition (ENABLE_DVPP_INTERFACE).")
