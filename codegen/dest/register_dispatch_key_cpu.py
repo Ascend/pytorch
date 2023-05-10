@@ -77,8 +77,14 @@ class RegisterDispatchKeyCPU:
     # Whether or not we are actually code-genning for ROCm
     rocm: bool
 
-    # The namespace that the kernels are written in. This is just `at::native` for in-tree kernels.
-    cpp_namespace: str
+    # Whether or not to generate symint registrations or not.  External users
+    # of codegen who don't care about symints can set this to false to get
+    # non-SymInt codegen
+    symint: bool
+
+    # Only set to true in lightweight dispatch. If lightweight dispatch is enabled we are registering
+    # operators into JIT op registry, thus we need to avoid generating code to register into the dispatcher.
+    skip_dispatcher_op_registration: bool
 
     # The class that all unstructured native functions live under. This is used to improve
     # compiler error messages when a kernel writer adds a native function with the wrong signature.
@@ -178,7 +184,6 @@ class RegisterDispatchKeyCPU:
             self.target,
             self.selector,
             self.rocm,
-            self.cpp_namespace,
             self.class_method_name,
             g
         )
@@ -524,7 +529,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 metadata = self.backend_index.get_kernel(self.g)
                 assert metadata is not None
                 class_name = f"structured_{metadata.kernel}_{k.name}"
-                parent_class = f"{self.cpp_namespace}::structured_{metadata.kernel}"
+                parent_class = f"at::native::structured_{metadata.kernel}"
 
             if is_cuda_dispatch_key(self.backend_index.dispatch_key):
                 device_check_args = itertools.chain(
