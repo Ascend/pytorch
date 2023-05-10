@@ -17,8 +17,9 @@ import csv
 import json
 import os.path
 import shutil
+from warnings import warn
 
-from ..prof_common_func.constant import Constant, print_warn
+from ..prof_common_func.constant import Constant
 
 
 class FileManager:
@@ -30,8 +31,8 @@ class FileManager:
         if file_size <= 0:
             return ''
         if file_size > Constant.MAX_FILE_SIZE:
-            print_warn(f"The file size exceeds the preset value {Constant.MAX_FILE_SIZE / 1024 / 1024}MB, "
-                       f"please check the file: {file_path}")
+            warn(f"The file size exceeds the preset value {Constant.MAX_FILE_SIZE / 1024 / 1024}MB, "
+                 f"please check the file: {file_path}")
             return ''
         try:
             with open(file_path, mode) as file:
@@ -47,8 +48,8 @@ class FileManager:
         if file_size <= 0:
             return []
         if file_size > Constant.MAX_CSV_SIZE:
-            print_warn(f"The file size exceeds the preset value {Constant.MAX_CSV_SIZE / 1024 / 1024}MB, "
-                       f"please check the file: {file_path}")
+            warn(f"The file size exceeds the preset value {Constant.MAX_CSV_SIZE / 1024 / 1024}MB, "
+                 f"please check the file: {file_path}")
             return []
         result_data = []
         try:

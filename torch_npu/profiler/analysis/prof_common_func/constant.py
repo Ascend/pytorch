@@ -60,13 +60,3 @@ class Constant:
 
     ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute", "AscendCL@aclopCompileAndExecuteV2")
     NPU_PID = "3_0"
-
-
-def print_error(file_name: str, msg: str) -> None:
-    print_msg = time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()) + f"[ERROR] [{os.getpid()}] {file_name}: " + msg
-    print(print_msg)
-
-
-def print_warn(msg: str) -> None:
-    print_msg = time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()) + f"[WARN] [{os.getpid()}] profiler.py: " + msg
-    print(print_msg)

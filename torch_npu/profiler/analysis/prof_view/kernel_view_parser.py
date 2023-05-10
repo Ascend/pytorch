@@ -14,9 +14,8 @@
 # limitations under the License.
 
 import os
-import re
+from warnings import warn
 
-from ..prof_common_func.constant import print_warn
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.file_tag import FileTag
 from ..prof_bean.op_summary_bean import OpSummaryBean
@@ -31,7 +30,7 @@ class KernelViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
-    def generate_view(self: any, output_path: str = None) -> None:
+    def generate_view(self, output_path: str = None) -> None:
         step_id_dict = self._get_step_id_dict()
         op_summary_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.OP_SUMMARY)
         summary_data = []
@@ -49,7 +48,7 @@ class KernelViewParser(BaseViewParser):
                 summary_data.append(step_id + data.row)
         FileManager.create_csv_file(self._profiler_path, summary_data, self.KERNEL_VIEW)
 
-    def _get_step_id_dict(self: any) -> dict:
+    def _get_step_id_dict(self) -> dict:
         step_id_dict = {}
         step_id_list = []
         torch_op_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.TORCH_OP)
@@ -58,7 +57,7 @@ class KernelViewParser(BaseViewParser):
                 try:
                     step_id_list.append(int(torch_op.name.split("#")[-1]))
                 except ValueError:
-                    print_warn("Invalid step id")
+                    warn("Invalid step id")
         step_id_list.sort()
         for key, value in enumerate(step_id_list):
             # cann iteration id start from 1

@@ -14,8 +14,9 @@
 # limitations under the License.
 import collections
 import struct
+from warnings import warn
 
-from ..prof_common_func.constant import Constant, print_warn
+from ..prof_common_func.constant import Constant
 
 
 class TLVDecoder:
@@ -28,7 +29,7 @@ class TLVDecoder:
         records = cls.tlv_list_decode(all_bytes)
         for record in records:
             if constant_struct_size > len(record):
-                print_warn("The collected data has been lost")
+                warn("The collected data has been lost")
                 continue
             constant_bytes = record[0: constant_struct_size]
             tlv_fields = cls.tlv_list_decode(record[constant_struct_size:], is_field=True)
@@ -43,17 +44,17 @@ class TLVDecoder:
         all_bytes_len = len(tlv_bytes)
         while index < all_bytes_len:
             if index + cls.T_LEN > all_bytes_len:
-                print_warn("The collected data has been lost")
+                warn("The collected data has been lost")
                 break
             type_id = struct.unpack("<H", tlv_bytes[index: index + cls.T_LEN])[0]
             index += cls.T_LEN
             if index + cls.L_LEN > all_bytes_len:
-                print_warn("The collected data has been lost")
+                warn("The collected data has been lost")
                 break
             value_len = struct.unpack("<I", tlv_bytes[index: index + cls.L_LEN])[0]
             index += cls.L_LEN
             if index + value_len > all_bytes_len:
-                print_warn("The collected data has been lost")
+                warn("The collected data has been lost")
                 break
             value = tlv_bytes[index: index + value_len]
             index += value_len
