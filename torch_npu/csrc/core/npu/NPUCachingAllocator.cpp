@@ -1209,7 +1209,9 @@ struct NpuCachingAllocator : public c10::Allocator {
   }
 };
 
-NpuCachingAllocator device_allocator;
+static NpuCachingAllocator device_allocator;
+
+REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &device_allocator);
 
 c10::Allocator* get(void) {
   return &device_allocator;
