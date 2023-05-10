@@ -486,6 +486,18 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_cumulative_ops
     ),
     OpInfo(
+        'cumprod',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, torch.float16)),
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=False,
+        supports_autograd=False,
+        sample_inputs_func=common_methods_invocations.sample_inputs_cumprod,
+        skipSample={
+            'test_correctness' : (9, ),
+        }
+    ),
+    OpInfo(
         'nn.functional.ctc_loss',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),

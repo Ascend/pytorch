@@ -261,6 +261,7 @@ supported:
  - crop_and_resize
  - ctc_loss.IntList
  - ctc_loss.Tensor
+ - cumprod
  - cumprod.dimname_out
  - cumprod.out
  - cumprod_

@@ -18,16 +18,17 @@
 namespace at_npu {
 namespace native {
 at::Tensor& _cumprod_out(const at::Tensor& self, int64_t dim, at::Tensor& result) {
+  at::Tensor self_not_0d = (self.dim() == 0) ? self.unsqueeze(0) : self;
   at::Scalar axis= dim;
   OpCommand cmd;
   cmd.Name("Cumprod")
-    .Input(self)
+    .Input(self_not_0d)
     .Input(axis, at::kLong)
     .Attr("exclusive", (bool)false)
     .Attr("reverse", (bool)false)
     .Output(result)
     .Run();
-
+  result = (self.dim() == 0) ? result.squeeze(0) : result;
   return result;
 }
 
@@ -82,6 +83,17 @@ at::Tensor& NPUNativeFunctions::cumprod_(at::Tensor& self, int64_t dim, c10::opt
 
 at::Tensor& NPUNativeFunctions::cumprod_(at::Tensor& self, at::Dimname dim, c10::optional<at::ScalarType> dtype) {
   return NPUNativeFunctions::cumprod_(self, dimname_to_position(self, dim), dtype);
+}
+
+at::Tensor NPUNativeFunctions::cumprod(
+    const at::Tensor& self,
+    int64_t dim,
+    c10::optional<at::ScalarType> dtype) {
+  at::Tensor self_cast = dtype.has_value() ?
+      NPUNativeFunctions::npu_dtype_cast(self, dtype.value()) : self;
+  at::Tensor result = OpPreparation::ApplyTensor(self_cast);
+  _cumprod_out(self, dim, result);
+  return result;
 }
 
 } // namespace native
