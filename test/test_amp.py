@@ -37,7 +37,7 @@ class TestAmp(TestCase):
         self.assertTrue(outputs[0] == 8.0 and outputs[1][0] == 8.0 and outputs[1][1] == 8.0 and
                         outputs[2][0] == 8.0 and outputs[2][1][0] == 8.0 and outputs[2][1][1] == 8.0)
         self.assertTrue(scaler._scale.device == t1.device)
-        
+
     def test_grad_scaling_state_dict(self, device="npu"):
         for lazy_init_scale in True, False:
             s0 = GradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
@@ -58,7 +58,7 @@ class TestAmp(TestCase):
             self.assertTrue(s1.get_backoff_factor() == .5)
             self.assertTrue(s1.get_growth_interval() == 2)
             self.assertTrue(s1._init_growth_tracker == 0)
-            
+
     def _create_scaling_models_optimizers(self, device="npu"):
         # Create a module+optimizer that will use scaling, and a control module+optimizer
         # that will not use scaling, against which the scaling-enabled module+optimizer can be compared.
@@ -114,7 +114,7 @@ class TestAmp(TestCase):
                 c = c.cpu().to(torch.float).detach().numpy()
                 s = s.cpu().to(torch.float).detach().numpy()
                 self.assertRtolEqual(c, s, atol)
-                
+
     # Compares no scaling + no autocasting against scaling + autocasting.
     def test_grad_scaling_autocast(self, device="npu"):
         try_pickle = False
@@ -305,14 +305,14 @@ class TestAmp(TestCase):
             def forward(ctx, a, b):
                 self.assertTrue(a.dtype is torch.float32)
                 self.assertTrue(b.dtype is torch.float32)
-                self.assertTrue(torch.is_autocast_enabled())
+                self.assertTrue(torch.npu.is_autocast_enabled())
                 ctx.save_for_backward(a, b)
                 return a.mm(b)
 
             @staticmethod
             @torch.npu.amp.custom_bwd
             def backward(ctx, grad):
-                self.assertTrue(torch.is_autocast_enabled())
+                self.assertTrue(torch.npu.is_autocast_enabled())
                 a, b = ctx.saved_tensors
                 return grad.mm(b.t()), a.t().mm(grad)
 
@@ -335,7 +335,7 @@ class TestAmp(TestCase):
                 b = container[1][0]
                 self.assertTrue(a.dtype is expect_type)
                 self.assertTrue(b.dtype is expect_type)
-                self.assertFalse(torch.is_autocast_enabled())
+                self.assertFalse(torch.npu.is_autocast_enabled())
                 ctx.save_for_backward(a, b)
                 return a.mm(b)
 
