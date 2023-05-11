@@ -1147,6 +1147,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     const c10d::AllToAllOptions& opts) {
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
+  auto inputTensors_ = cast_to_origin_format(inputTensors);
+  auto outputTensors_ = cast_to_origin_format(outputTensors);
   int ranks = getSize();
   uint64_t index = inputTensor.numel() / ranks;
   if (outputSplitSizes.empty()) {
@@ -1180,8 +1182,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   check_npu_tensors_different_devices(inputTensors);
   check_npu_tensors_different_devices(outputTensors);
   return collective(
-      inputTensors,
-      outputTensors,
+      inputTensors_,
+      outputTensors_,
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
@@ -1198,6 +1200,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             getHcclDataType(output.scalar_type()),
             comm,
             stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>&) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
+        for (size_t i = 0; i < outputTensors_.size(); ++i) {
+          c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+          c10_npu::NPUCachingAllocator::recordStream(outputTensors_[i].storage().data_ptr(), hcclStreams[i]);
+          if (!at_npu::native::FormatHelper::IsBaseFormatType(outputTensors[i])) {
+            outputTensors[i].copy_(outputTensors_[i], true);
+          }
+        }
       });
 }
 
