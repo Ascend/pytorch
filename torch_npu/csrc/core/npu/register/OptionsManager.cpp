@@ -23,6 +23,14 @@ namespace option {
 
 using namespace std;
 
+bool OptionsManager::CheckInfNanModeEnable() {
+  const static bool checkQueueEnable = []() -> bool {
+    int32_t queue_enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 0);
+    return (queue_enable != 0) ? true : false;
+  }();
+  return checkQueueEnable;
+}
+
 bool OptionsManager::CheckQueueEnable() {
   const static bool checkQueueEnable = []() -> bool {
     int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE", 1);

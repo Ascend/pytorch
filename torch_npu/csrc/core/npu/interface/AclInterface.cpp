@@ -1,9 +1,10 @@
 #include "AclInterface.h"
-#include "third_party/acl/inc/acl/acl_rt.h"
-#include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
-#include "torch_npu/csrc/core/npu/NpuVariables.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+
 #include "c10/util/Exception.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace c10_npu {
 
@@ -111,9 +112,10 @@ aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uin
     ret = aclrtCreateStream(stream);
   }
   if (ret == ACL_SUCCESS && stream != nullptr) {
-    if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) {
+    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
+        (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1)) {
       TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.");
-    } 
+    }
     return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
   } else {
     return ret;

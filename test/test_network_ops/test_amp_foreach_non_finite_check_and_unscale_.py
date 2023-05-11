@@ -56,6 +56,7 @@ class Test_AmpForeachNonFiniteCheckAndUnscale_(TestCase):
                   (0, 100, (5, 7), np.float32, 1.9),
                   (0, 100, (2, 8, 1), np.float32, 3.2)
                   ]
+        torch_npu.npu.utils.clear_npu_overflow_flag()
         for param in params:
             input1, input2, input3 = self.generate_data(*param)
             cpu_output = self.cpu_op_exec(input1, input2, input3)
