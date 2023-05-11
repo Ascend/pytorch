@@ -97,30 +97,5 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_bilinear2d(
-    const at::Tensor& self_ex,
-    at::OptionalIntArrayRef output_size,
-    bool align_corners,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  at::Tensor self = self_ex;
-  auto osize = CalcuOpUtil::ComputeOutputSize(self_ex.sizes(), output_size, scale_factors);
-  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
-
-  if (self.scalar_type() != at::ScalarType::Float) {
-    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-  auto outputSize = upsample_bilinear2d_npu_output_size(
-      self, osize, align_corners, scales_h, scales_w);
-  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options(), self);
-
-  upsample_bilinear2d_out_npu_nocheck(
-      result, self, osize, align_corners, scales_h, scales_w);
-  if (result.dtype() != self_ex.dtype()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, self_ex.scalar_type());
-  }
-  return result;
-}
-
 } // namespace native
 } // namespace at_npu

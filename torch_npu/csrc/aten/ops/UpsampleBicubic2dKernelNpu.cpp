@@ -122,30 +122,5 @@ at::Tensor NPUNativeFunctions::upsample_bicubic2d(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_bicubic2d(
-    const at::Tensor& self,
-    at::OptionalIntArrayRef output_size,
-    bool align_corners,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(self.sizes(), output_size, scale_factors);
-  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
-
-  // calculate the output size
-  int64_t N = self.size(0);
-  int64_t C = self.size(1);
-  int64_t H = osize[0];
-  int64_t W = osize[1];
-  c10::SmallVector<int64_t, SIZE> outputSize = {N, C, H, W};
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-
-  // calculate the output result of the NPU
-  upsample_bicubic2d_out_nocheck(result, self, osize, align_corners, scales_h, scales_w);
-  
-  return result;
-}
-
 } // namespace native
 } // namespace at_npu

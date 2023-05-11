@@ -100,29 +100,5 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d_backward(
   return grad_input;
 }
 
-at::Tensor NPUNativeFunctions::upsample_bilinear2d_backward(
-    const at::Tensor& grad_output,
-    at::OptionalIntArrayRef output_size,
-    at::IntArrayRef input_size,
-    bool align_corners,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::ComputeOutputSize(input_size, output_size, scale_factors);
-  auto scales_h = CalcuOpUtil::GetScaleValue(scale_factors, 0);
-  auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 1);
-
-  auto outputSize = upsample_bilinear2d_backward_npu_output_size(
-      grad_output, osize, input_size, align_corners, scales_h, scales_w);
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
-
-  upsample_bilinear2d_backward_out_npu_nocheck(
-      grad_input,
-      grad_output,
-      osize,
-      input_size,
-      align_corners,
-      scales_h,
-      scales_w);
-  return grad_input;
-}
 } // namespace native
 } // namespace at_npu

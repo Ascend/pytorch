@@ -9492,60 +9492,30 @@
   dispatch:
     CompositeExplicitAutograd: upsample_linear1d
 
-- func: upsample_linear1d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, bool align_corners, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: upsample_linear1d_backward
-
 - func: upsample_bilinear2d.vec(Tensor input, int[]? output_size, bool align_corners, float[]? scale_factors) -> Tensor
   python_module: nn
   dispatch:
     CompositeExplicitAutograd: upsample_bilinear2d
-
-- func: upsample_bilinear2d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, bool align_corners, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: upsample_bilinear2d_backward
 
 - func: _upsample_bilinear2d_aa.vec(Tensor input, int[]? output_size, bool align_corners, float[]? scale_factors) -> Tensor
   python_module: nn
   dispatch:
     CompositeExplicitAutograd: _upsample_bilinear2d_aa
 
-- func: _upsample_bilinear2d_aa_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, bool align_corners, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: _upsample_bilinear2d_aa_backward
-
 - func: upsample_trilinear3d.vec(Tensor input, int[]? output_size, bool align_corners, float[]? scale_factors) -> Tensor
   python_module: nn
   dispatch:
     CompositeExplicitAutograd: upsample_trilinear3d
-
-- func: upsample_trilinear3d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, bool align_corners, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: upsample_trilinear3d_backward
 
 - func: upsample_bicubic2d.vec(Tensor input, int[]? output_size, bool align_corners, float[]? scale_factors) -> Tensor
   python_module: nn
   dispatch:
     CompositeExplicitAutograd: upsample_bicubic2d
 
-- func: upsample_bicubic2d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, bool align_corners, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: upsample_bicubic2d_backward
-
 - func: _upsample_bicubic2d_aa.vec(Tensor input, int[]? output_size, bool align_corners, float[]? scale_factors) -> Tensor
   python_module: nn
   dispatch:
     CompositeExplicitAutograd: _upsample_bicubic2d_aa
-
-- func: _upsample_bicubic2d_aa_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, bool align_corners, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: _upsample_bicubic2d_aa_backward
 
 - func: upsample_nearest1d.vec(Tensor input, int[]? output_size, float[]? scale_factors) -> Tensor
   python_module: nn
@@ -9557,16 +9527,6 @@
   dispatch:
     CompositeExplicitAutograd: _upsample_nearest_exact1d
 
-- func: upsample_nearest1d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: upsample_nearest1d_backward
-
-- func: _upsample_nearest_exact1d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: _upsample_nearest_exact1d_backward
-
 - func: upsample_nearest2d.vec(Tensor input, int[]? output_size, float[]? scale_factors) -> Tensor
   python_module: nn
   dispatch:
@@ -9576,11 +9536,6 @@
   python_module: nn
   dispatch:
     CompositeExplicitAutograd: _upsample_nearest_exact2d
-
-- func: upsample_nearest2d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CompositeExplicitAutograd: upsample_nearest2d_backward
 
 - func: _upsample_nearest_exact2d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, float[]? scale_factors) -> Tensor
   python_module: nn
@@ -9600,18 +9555,6 @@
     CPU: _upsample_nearest_exact3d_cpu
     CUDA: _upsample_nearest_exact3d_cuda
     QuantizedCPU: _upsample_nearest_exact3d_quantized_cpu
-
-- func: upsample_nearest3d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CPU: upsample_nearest3d_backward_cpu
-    CUDA: upsample_nearest3d_backward_cuda
-
-- func: _upsample_nearest_exact3d_backward.vec(Tensor grad_output, int[]? output_size, int[] input_size, float[]? scale_factors) -> Tensor
-  python_module: nn
-  dispatch:
-    CPU: _upsample_nearest_exact3d_backward_cpu
-    CUDA: _upsample_nearest_exact3d_backward_cuda
 
 # NOTE: all of the non-"vec" upsample overloads are only kept for backward compatibility.
 - func: upsample_linear1d.out(Tensor self, int[1] output_size, bool align_corners, float? scales=None, *, Tensor(a!) out) -> Tensor(a!)
