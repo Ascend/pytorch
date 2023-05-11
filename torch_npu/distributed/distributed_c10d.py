@@ -94,7 +94,7 @@ __all__ = [
     "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
     "_get_default_group", "_get_global_rank", "all_gather_object", "all_gather_togather",
-    "_reduce_scatter_base", "_all_gather_base", "all_gather_into_tensor"
+    "_reduce_scatter_base", "_all_gather_base", "all_gather_into_tensor", "reduce_scatter_tensor"
 ]
 
 
@@ -1769,7 +1769,7 @@ def reduce_scatter(output,
         work.wait()
 
 
-def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=False):
+def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=False):
     """
     Reduces, then scatters a flattened tensor to all processes in a group.
     Args:
@@ -1786,7 +1786,7 @@ def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=Fa
     _check_single_tensor(input, "input")
 
     if _rank_not_in_group(group):
-        _warn_not_in_group("_reduce_scatter_base")
+        _warn_not_in_group("reduce_scatter_tensor")
         return
 
     opts = ReduceScatterOptions()
@@ -1802,6 +1802,29 @@ def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=Fa
         return work
     else:
         work.wait()
+
+def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=False):
+    """
+    Reduces, then scatters a flattened tensor to all processes in a group.
+    Args:
+        output (Tensor): Output tensor.
+        input (Tensor): Input tensor that is of size output tensor size times world size
+        group (ProcessGroup, optional): The process group to work on. If None,
+            the default process group will be used.
+        async_op (bool, optional): Whether this op should be an async op.
+    Returns:
+        Async work handle, if async_op is set to True.
+        None, if not async_op or if not part of the group.
+    .. warning::
+        `_reduce_scatter_base` is a private function. Users should use
+        `reduce_scatter_tensor` instead.
+    """
+    warnings.warn(
+        "torch.distributed._reduce_scatter_base is a private function and will "
+        "be deprecated. Please use torch.distributed.reduce_scatter_tensor "
+        "instead."
+    )
+    return reduce_scatter_tensor(output, input, op, group, async_op)
 
 
 def all_to_all_single(output_tensor,
