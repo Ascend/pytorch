@@ -190,7 +190,7 @@ static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyOb
   }
 }
 
-static const char* get_module(Backend backend) {
+static std::string get_module(Backend backend) {
   switch (backend) {
     case Backend::CPU:
       return "torch";
@@ -201,7 +201,7 @@ static const char* get_module(Backend backend) {
     case Backend::SparseCUDA:
       return "torch.cuda.sparse";
     case Backend::PrivateUse1:
-      return ("torch." + c10::get_privateuse1_backend()).c_str();
+      return "torch." + c10::get_privateuse1_backend();
     default:
       AT_ERROR("invalid backend: ", c10::toString(backend));
   }
