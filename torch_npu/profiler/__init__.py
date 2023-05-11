@@ -12,3 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from .profiler import profile
+from .msprofiler_c_interface import ProfilerActivity
+from .msprofiler_c_interface import supported_ms_activities as supported_activities
+from .profiler import tensorboard_trace_handler
+from .scheduler import Schedule as schedule
+from .scheduler import ProfilerAction

@@ -28,7 +28,7 @@ class TraceViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
-    def generate_view(self: any, output_path: str = None) -> None:
+    def generate_view(self, output_path: str = None) -> None:
         timeline_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
         timeline_data = self._filter_iteration_id(timeline_data)
         self._add_torch_to_acl_and_npu_line(timeline_data)
@@ -38,14 +38,14 @@ class TraceViewParser(BaseViewParser):
             return
         FileManager.create_json_file(self._profiler_path, timeline_data, self.TRACE_VIEW)
 
-    def _filter_iteration_id(self: any, json_data: list) -> list:
+    def _filter_iteration_id(self, json_data: list) -> list:
         result_json = []
         for data in json_data:
             if data.get("name", "").find("Iteration") == -1:
                 result_json.append(data)
         return result_json
 
-    def _add_fwk_timeline(self: any, json_data: list) -> None:
+    def _add_fwk_timeline(self, json_data: list) -> None:
         torch_op_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.TORCH_OP)
 
         if not torch_op_data:
@@ -77,7 +77,7 @@ class TraceViewParser(BaseViewParser):
                               {"ph": "M", "name": Constant.THREAD_SORT, "pid": f"0_{pid}", "tid": tid,
                                "args": {"sort_index": sort_index}}])
 
-    def _add_torch_to_acl_and_npu_line(self: any, json_data: list) -> None:
+    def _add_torch_to_acl_and_npu_line(self, json_data: list) -> None:
         relation_data_list = FwkCANNRelationParser(self._profiler_path).get_relation_data()
         if not relation_data_list:
             return

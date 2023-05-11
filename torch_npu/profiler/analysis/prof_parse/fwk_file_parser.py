@@ -30,7 +30,7 @@ class FwkFileParser:
         self._file_list = {}
         self._file_dispatch()
 
-    def get_file_data_by_tag(self: any, file_tag: int) -> list:
+    def get_file_data_by_tag(self, file_tag: int) -> list:
         file_path = self._file_list.get(file_tag)
         if not file_path:
             return []
@@ -43,7 +43,7 @@ class FwkFileParser:
         else:
             return BinaryDecoder.decode(all_bytes, file_bean, struct_size)
 
-    def get_task_queue_data(self: any) -> tuple:
+    def get_task_queue_data(self) -> tuple:
         enqueue_data_list, dequeue_data_list = [], []
         op_mark_data = self.get_file_data_by_tag(FileTag.OP_MARK)
         if not op_mark_data:
@@ -69,7 +69,7 @@ class FwkFileParser:
                     dequeue_start = None
         return enqueue_data_list, dequeue_data_list
 
-    def _file_dispatch(self: any):
+    def _file_dispatch(self):
         for file_name in os.listdir(os.path.realpath(self._fwk_path)):
             file_path = os.path.join(self._fwk_path, file_name)
             if not os.path.isfile(file_path):

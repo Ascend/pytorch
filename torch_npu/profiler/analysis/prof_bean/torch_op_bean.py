@@ -67,7 +67,7 @@ class TorchOpBean:
             self._constant_data[TorchOpEnum.START_NS.value])) / 1000.0
 
     @property
-    def args(self: any) -> dict:
+    def args(self) -> dict:
         args = {
             Constant.SEQUENCE_UNMBER: int(self._constant_data[TorchOpEnum.SEQUENCE_UNMBER.value]),
             Constant.FORWORD_THREAD_ID: int(

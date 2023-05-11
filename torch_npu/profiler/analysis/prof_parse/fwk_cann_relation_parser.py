@@ -12,9 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from warnings import warn
 
 from ..prof_bean.event_bean import EventBean
-from ..prof_common_func.constant import print_warn
 from ..prof_common_func.file_tag import FileTag
 from ..prof_bean.torch_acl_bean import TorchAclBean
 from ..prof_parse.cann_file_parser import CANNFileParser
@@ -41,10 +41,10 @@ class FwkCANNRelationParser:
             else:
                 unmatched_num += 1
         if unmatched_num:
-            print_warn(f"The number of unmatched events is: {unmatched_num}")
+            warn(f"The number of unmatched events is: {unmatched_num}")
         return result_dict
 
-    def get_relation_data(self: any) -> list:
+    def get_relation_data(self) -> list:
         relation_data = []
         acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_and_npu_data()
         torch_op_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.TORCH_OP)

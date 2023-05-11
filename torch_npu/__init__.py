@@ -25,6 +25,7 @@ from typing import Set, Type
 
 import torch
 import torch_npu
+
 try:
     import torch_npu.npu
 except ImportError as e:
@@ -41,11 +42,12 @@ import torch_npu.distributed
 import torch_npu._C
 
 import torch_npu.npu.npu_print as _npu_print
+from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
-     serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
-     add_fx_methods, add_checkpoint_methods
+    serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
+    add_fx_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 
@@ -59,11 +61,12 @@ NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
     "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
 
+
 def _isinstance(obj, class_or_tuple):
     try:
         return builtin_isinstance(obj, class_or_tuple)
     except TypeError as e:
-        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
+        class_tuple = (class_or_tuple,) if type(class_or_tuple) != tuple else class_or_tuple
         if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
             type_str = str(obj.type())
             tensor_type = type_str.split('.')[-1]
@@ -74,11 +77,10 @@ def _isinstance(obj, class_or_tuple):
             return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
         raise e
 
+
 builtins.isinstance = _isinstance
 
-
 __all__ = []
-
 
 for name in dir(torch_npu._C._VariableFunctions):
     if name.startswith('__'):
@@ -103,8 +105,8 @@ all_monkey_patches = [
 
 all_monkey_patches += serialization_patches
 
+
 def _apply_patches(monkey_patches):
-    
     def _getattr(module_list, root_module=torch):
         if len(module_list) <= 1:
             return root_module
@@ -160,5 +162,5 @@ def _npu_shutdown():
     torch_npu._C._npu_shutdown()
 
 
-#register npu shutdown hook on exit
+# register npu shutdown hook on exit
 atexit.register(_npu_shutdown)

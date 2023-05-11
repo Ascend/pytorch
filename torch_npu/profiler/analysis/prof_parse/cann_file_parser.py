@@ -109,10 +109,10 @@ class CANNFileParser:
                 acl_and_npu_data.setdefault(data.get("ts"), []).append(data.get("id"))
         return acl_and_npu_data
 
-    def get_file_list_by_type(self: any, file_type: CANNDataEnum) -> set:
+    def get_file_list_by_type(self, file_type: CANNDataEnum) -> set:
         return self._file_dict.get(file_type, set())
 
-    def _file_dispatch(self: any):
+    def _file_dispatch(self):
         all_file_list = PathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
         all_file_list += PathManager.get_device_all_file_list_by_type(self._cann_path, self.TIMELINE)
         for file_path in all_file_list:
