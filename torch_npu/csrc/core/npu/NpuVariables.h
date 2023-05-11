@@ -30,7 +30,7 @@ enum class SocVersion {
   Ascend310P4,
   Ascend910B1 = 220,
   Ascend910B2,
-  Ascend910B3,  
+  Ascend910B3,
   Ascend910B4,
   Ascend310B1 = 240,
   Ascend310B2,
@@ -41,9 +41,11 @@ enum class SocVersion {
   Ascend910C4
 };
 
-void SetSocVersion(const char * const socVersion);
+void SetSocVersion(const char* const socVersion);
 
 const SocVersion& GetSocVersion();
-}  // namespace c10_npu
 
+bool IsSupportInfNan();
+}  // namespace c10_npu
 #endif
+
