@@ -95,17 +95,17 @@ class DirectoryMappingStrategy(AccurateTest):
     """
     Map the modified files to the corresponding test cases
     """
-    MappingList = {
-    'contrib':'test/test_contrib',
-    'cpp_extension':'test/test_cpp_extension', 
-    'distributed':'test/test_distributed', 
-    'fx':'test/test_fx',
-    'hooks':'test/test_hooks', 
-    'optim':'test/test_optim',
-    'profiler':'test/test_profiler',
-    'onnx':'test/test_onnx',
-    'utils':'test/test_utils',
-    'testing':'test/test_testing.py',
+    mapping_list = {
+    'contrib': 'test/test_contrib',
+    'cpp_extension': 'test/test_cpp_extension', 
+    'distributed': 'test/test_distributed', 
+    'fx': 'test/test_fx',
+    'hooks': 'test/test_hooks', 
+    'optim': 'test/test_optim',
+    'profiler': 'test/test_profiler',
+    'onnx': 'test/test_onnx',
+    'utils': 'test/test_utils',
+    'testing': 'test/test_testing.py',
     }
 
     def identify(self, modify_file):
@@ -116,11 +116,11 @@ class DirectoryMappingStrategy(AccurateTest):
 
             mapped_ut_path = []
             module_name = str(Path(modify_file).parts[1])
-            if module_name in self.MappingList:
-                mapped_ut_path.append(self.MappingList[module_name])
+            if module_name in self.mapping_list:
+                mapped_ut_path.append(self.mapping_list[module_name])
             file_name = str(Path(modify_file).stem)
-            if file_name in self.MappingList:
-                mapped_ut_path.append(self.MappingList[file_name])
+            if file_name in self.mapping_list:
+                mapped_ut_path.append(self.mapping_list[file_name])
             
             for mapped_path in mapped_ut_path:
                 if Path.is_file(Path(BASE_DIR) / mapped_path):

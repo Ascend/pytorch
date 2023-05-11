@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import unittest
 import os
 import torch
 import torch.distributed as dist
@@ -19,6 +19,8 @@ import torch.multiprocessing as mp
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
+
 
 class HcclAlltoAllSingleTest(TestCase): 
     world_size_2p = 2
@@ -113,11 +115,13 @@ class HcclAlltoAllSingleTest(TestCase):
         for p in ps:
             p.join(2)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_alltoall_single_2p_dist(self):
         self._test_multiprocess_2p(
             HcclAlltoAllSingleTest._test_alltoall_single_2p,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_alltoall_single_2p_size_dist(self):
         self._test_multiprocess_2p(
             HcclAlltoAllSingleTest._test_alltoall_single_2p_size,
@@ -160,6 +164,7 @@ class HcclAlltoAllSingleTest(TestCase):
         pg.all_to_all_single(output, input1, outsize[rank], inputsize[rank])
         c2p.put((rank, output.cpu(), cout))
 
+    @skipIfUnsupportMultiNPU(4)
     def _test_multiprocess_4p(self, f, init_pg):
         ws = self.world_size_4p
         # file store will delete the test file on destruction
@@ -203,11 +208,13 @@ class HcclAlltoAllSingleTest(TestCase):
         for p in ps:
             p.join(4)
 
+    @skipIfUnsupportMultiNPU(4)
     def test_alltoall_single_4p_dist(self):
         self._test_multiprocess_4p(
             HcclAlltoAllSingleTest._test_alltoall_single_4p,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
+    @skipIfUnsupportMultiNPU(4)
     def test_alltoall_single_4p_size_dist(self):
         self._test_multiprocess_4p(
             HcclAlltoAllSingleTest._test_alltoall_single_4p_size,
