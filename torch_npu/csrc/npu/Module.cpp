@@ -692,7 +692,17 @@ PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
 PyObject* THNPModule_npu_get_soc_version(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return PyLong_FromLong(static_cast<long>(c10_npu::GetSocVersion()));
-    END_HANDLE_TH_ERRORS
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_is_support_inf_nan(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  if (c10_npu::IsSupportInfNan()) {
+    Py_RETURN_TRUE;
+  } else {
+    Py_RETURN_FALSE;
+  }
+  END_HANDLE_TH_ERRORS
 }
 
 PyObject* THNPModule_enable_overflow_npu(
@@ -800,6 +810,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_deque_tensor", (PyCFunction)THNPModule_npu_deque_tensor, METH_VARARGS, nullptr},
     {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
     {"_enable_overflow_npu", (PyCFunction)THNPModule_enable_overflow_npu, METH_NOARGS, nullptr},
+    {"_npu_is_support_inf_nan", (PyCFunction)THNPModule_npu_is_support_inf_nan, METH_NOARGS, nullptr},
     {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_VARARGS, nullptr},
