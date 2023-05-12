@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import os
 
 import numpy as np
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-import torch_npu
-
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class HcclReduceTest(TestCase):
 
@@ -97,6 +98,7 @@ class HcclReduceTest(TestCase):
             ValueError("Unsupported op `{}`"%(str(op)))
         return
 
+    @skipIfUnsupportMultiNPU(2)
     def test_all_gather_dist(self):
         ranks = [2]
         dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool]
@@ -113,6 +115,7 @@ class HcclReduceTest(TestCase):
                 self._test_multiprocess(HcclReduceTest._test_all_gather,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_all_gather_togather_dist(self):
         ranks = [2]
         dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool]
@@ -129,6 +132,7 @@ class HcclReduceTest(TestCase):
                 self._test_multiprocess(HcclReduceTest._test_all_gather_togather,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_all_gather_base_dist(self):
         ranks = [2]
         dtype_list = [np.float32, np.float16, np.int32, np.int8]
