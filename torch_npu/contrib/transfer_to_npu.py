@@ -25,33 +25,6 @@ torch_cuda_fn_white_list = [
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
 ]
 
-NPU_TENSOR = set([
-    "FloatTensor", "IntTensor", "DoubleTensor",
-    "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
-
-def _isinstance(obj, class_or_tuple):
-    try:
-        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
-        class_list = []
-        for type_item in class_tuple:
-            if type_item is torch.device:
-                class_list.append(torch_npu._C.device)
-            else:
-                class_list.append(type_item)
-        return builtin_isinstance(obj, tuple(class_list))
-    except TypeError as e:
-        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
-        if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
-            type_str = str(obj.type())
-            tensor_type = type_str.split('.')[-1]
-            if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
-                return eval(type_str) in class_tuple
-
-        if torch._C.device in class_tuple or torch_npu._C.device in class_tuple:
-            return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
-        raise e
-
-builtins.isinstance = _isinstance
 
 def wrapper_cuda(fn):
     @wraps(fn)
@@ -61,16 +34,16 @@ def wrapper_cuda(fn):
             for idx, arg in enumerate(args_new):
                 if isinstance(arg, str) and 'cuda' in arg:
                     args_new[idx] = arg.replace('cuda', 'npu')
-                if isinstance(arg, torch_npu._C.device) and 'cuda' in arg.type:
-                    device_info = 'npu:{}'.format(arg.index) if arg.index else 'npu'
+                if isinstance(arg, torch.device) and 'cuda' in arg.type:
+                    device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
                     args_new[idx] = torch.device(device_info)
             args = args_new
         if kwargs:
             if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
                 kwargs['device'] = kwargs['device'].replace('cuda', 'npu')
             device = kwargs.get('device', None)
-            if isinstance(device, torch_npu._C.device) and 'cuda' in device.type:
-                device_info = 'npu:{}'.format(device.index) if device.index else 'npu'
+            if isinstance(device, torch.device) and 'cuda' in device.type:
+                device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                 kwargs['device'] = torch.device(device_info)
         return fn(*args, **kwargs)
 
@@ -104,6 +77,7 @@ def wrapper_hccl(fn):
 def patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
+        ['cuda.random', torch_npu.npu.random],
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
         ['cuda.amp.common', torch_npu.npu.amp.common],
         ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
