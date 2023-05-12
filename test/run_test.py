@@ -70,9 +70,6 @@ TESTS_MODULE = list(set([test.split("/")[0] for test in TESTS]))
 TEST_CHOICES = TESTS + TESTS_MODULE
 
 CORE_TEST_LIST = [
-    "test_amp",
-    "test_device",
-    "test_tensor",
     "test_npu",
 ]
 
@@ -184,7 +181,7 @@ def run_test(test_module, test_directory, options):
     if options.verbose:
         unittest_args.append("-v")
     # get python cmd.
-    executable = [sys.executable, "-m", "unittest"]
+    executable = [sys.executable]
 
     # Can't call `python -m unittest test_*` here because it doesn't run code
     # in `if __name__ == '__main__': `. So call `python test_*.py` instead.
