@@ -217,7 +217,8 @@ at::Tensor empty_like_npu(
 
   at::Tensor result;
 
-  if (memory_format == c10::MemoryFormat::Preserve) {
+  if (memory_format == c10::MemoryFormat::Preserve &&
+      !(torch_npu::utils::is_npu(options))) {
     if (self.is_non_overlapping_and_dense()) {
       result = at::empty_strided(
           self.sizes(), self.strides(), options.memory_format(c10::nullopt));
@@ -232,7 +233,7 @@ at::Tensor empty_like_npu(
   }
   else {
     // See Note [Explicit nullopt c10::MemoryFormat argument]
-    if (!(options.backend() == c10::Backend::PrivateUse1)) {
+    if (!(torch_npu::utils::is_npu(options))) {
       result = at::empty(
           self.sizes(), options.memory_format(memory_format), c10::nullopt);
     }
