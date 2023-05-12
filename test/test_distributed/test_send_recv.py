@@ -1,3 +1,4 @@
+import unittest
 import os
 import torch
 import torch.distributed as dist
@@ -5,6 +6,7 @@ import torch.multiprocessing as mp
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class HcclSendRecvDistTest(TestCase): 
     world_size = 2 
@@ -157,12 +159,14 @@ class HcclSendRecvDistTest(TestCase):
         for p in ps:
             p.join(2)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist(self):
          self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist_with_format(self):
          self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist_recv_with_format,
@@ -174,12 +178,14 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)   
 
+    @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_group(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_group,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_pg_hccl)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_group_with_format(self):
         self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_group_recv_with_format,
@@ -191,6 +197,7 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_pg_hccl)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_bool(self):
          self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,

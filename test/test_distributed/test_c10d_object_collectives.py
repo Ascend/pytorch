@@ -7,7 +7,7 @@ import torch.distributed as dist
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class TestObjectCollectives(TestCase):
     MAIN_PROCESS_RANK = -1
@@ -70,6 +70,7 @@ class TestObjectCollectives(TestCase):
         torch.npu.set_device(self.rank)
         dist.init_process_group(backend="hccl", rank=self.rank, world_size=self.world_size)
 
+    @skipIfUnsupportMultiNPU(4)
     def test_all_gather_object(self):
         self.dist_init()
         gather_objects = ["foo", 12, {1: 2}, ["foo", 12, {1:2}]]
@@ -77,6 +78,7 @@ class TestObjectCollectives(TestCase):
         dist.all_gather_object(output, gather_objects[dist.get_rank()])
         self.assertEqual(output, gather_objects)
 
+    @skipIfUnsupportMultiNPU(4)
     def test_broadcast_object_list(self):
         self.dist_init()
         expected_objects = ["foo", 12, {1: 2}, ["foo", 12, {1:2}]]

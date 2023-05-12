@@ -1,3 +1,4 @@
+import unittest
 import os
 
 import numpy as np
@@ -8,7 +9,7 @@ import torch.multiprocessing as mp
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class HcclReduceTest(TestCase):
 
@@ -50,6 +51,7 @@ class HcclReduceTest(TestCase):
         for p in ps:
             p.join()
 
+    @skipIfUnsupportMultiNPU(2)
     def test_reduce_dist(self):
         ranks = [2, 4, 8]
         dtype_list = [np.float32, np.float16, np.int32, np.int8]

@@ -1,14 +1,15 @@
+import unittest
 import os
 
 import numpy as np
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-import torch_npu
-
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class HcclReduceScatterTest(TestCase):
 
@@ -63,6 +64,7 @@ class HcclReduceScatterTest(TestCase):
         return [input.cpu() * world_size for input in inputs]
 
 
+    @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter(self):
         ranks = [2]
         dtype_list = [np.float32, np.float16, np.int32, np.int8]
@@ -83,6 +85,7 @@ class HcclReduceScatterTest(TestCase):
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base(self):
         ranks = [2]
         dtype_list = [np.float32, np.float16, np.int32, np.int8]

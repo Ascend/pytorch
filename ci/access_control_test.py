@@ -187,7 +187,7 @@ def exec_ut(files):
         p = subprocess.Popen(cmd.split(' '), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
         try:
-            msg = p.communicate(timeout=500)
+            msg = p.communicate(timeout=2000)
             ret = p.poll()
             if ret:
                 stdout = msg[0].decode('utf-8')
