@@ -66,8 +66,9 @@ class WrapModule(object):
 
         if self.cur_step < self.warm_up_step or not replay_cache:
             self.cur_step = self.cur_step + 1
-            for p in self.module.parameters():
-                p.grad = torch.zeros_like(p)
+            if self.requires_grad:
+                for p in self.module.parameters():
+                    p.grad = torch.zeros_like(p)
             shallow_args = ()
             fwd_inputs = []
             for arg in args:
