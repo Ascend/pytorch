@@ -205,6 +205,258 @@ For details about logs, see the Log Reference."},
         {500005, "Profiling error.\n\
         Rectify the fault based on the error information in the log or contact Huawei technical support. \
 For details about logs, see the Log Reference."},
+        /* following return codes is for the internal RUNTIME */
+        {107000, "Parameter verification failed.\n\
+        Check whether the input parameters of the interface are correct."},
+        {107001, "Invalid device ID.\n\
+        Check whether the device ID is valid."},
+        {107002, "The context is empty.\n\
+        Check whether acl.rt.set_context or acl.rt.set_device is called."},
+        {107003, "The stream is not in the current context.\n\
+        Check whether the context where the stream is located is the same as the current context."},
+        {107004, "The model is not in the current context.\n\
+        Check whether the loaded model is consistent with the current context."},
+        {107005, "The stream is not in the current model.\n\
+        Check whether the stream has been bound to the model."},
+        {107006, "The event timestamp is invalid.\n\
+        Check whether the event is created."},
+        {107007, "Invert the event timestamp.\n\
+        Check whether the event is created."},
+        {107008, "The memory address is not aligned.\n\
+        Check whether the applied memory addresses are aligned. For details about the restrictions on the memory \
+application interface, see Memory Management."},
+        {107009, "Failed to open the file.\n\
+        Check whether the file exists."},
+        {107010, "Failed to write the file.\n\
+        Check whether the file exists or has the write permission."},
+        {107011, "The stream is not subscribed to or subscribed to repeatedly.\n\
+        Check whether the current stream is subscribed to or repeatedly subscribed to."},
+        {107012, "The thread is not subscribed or subscribed repeatedly.\n\
+        Check whether the current thread subscribes to or subscribes to the thread repeatedly."},
+        {107013, "The group is not set."},
+        {107014, "The corresponding group is not created.\n\
+        Check whether the group ID set when the interface is invoked is within the supported range. The value \
+range of the group ID is [0, (Number of groups - 1)]."},
+        {107015, "The stream corresponding to the callback is not registered with the thread.\n\
+        Check whether the stream has been registered with the thread and whether the acl.rt.subscribe_report \
+interface is invoked."},
+        {107016, "Invalid memory type.\n\
+        Check whether the memory type is valid."},
+        {107017, "Invalid resource handle.\n\
+        Check whether the input and used parameters are correct."},
+        {107018, "The memory type applied for is incorrect.\n\
+        Check whether the input and used memory types are correct."},
+        {107019, "Task execution timed out.\n\
+        Re-execute the interface for delivering the task."},
+        {207000, "This feature is not supported.\n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {207001, "Failed to apply for memory.\n\
+        Check the remaining storage space in the hardware environment."},
+        {207002, "Failed to release the memory.\n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {207003, "The operation of the aicore operator overflows.\n\
+        Check whether the corresponding aicore operator operation overflows."},
+        {207004, "The device is unavailable.\n\
+        Check whether the device is running properly."},
+        {207005, "Failed to apply for memory.\n\
+        Check the remaining storage space in the hardware environment."},
+        {207006, "You do not have the operation permission.\n\
+        Check whether the permission of the user who runs the application is correct."},
+        {207007, "Event resources are insufficient.\n\
+        Check whether the number of events meets the requirements by referring to the description of the \
+acl.rt.create_event interface."},
+        {207008, "Stream resources are insufficient.\n\
+        Check whether the number of streams meets the requirements by referring to the description of the \
+acl.rt.create_stream interface."},
+        {207009, "Notify resources in the system are insufficient.\n\
+        There are too many concurrent data preprocessing tasks or model inference consumes too many resources. \
+You are advised to reduce the number of concurrent tasks or uninstall some models."},
+        {207010, "Insufficient model resources.\n\
+        You are advised to uninstall some models."},
+        {207011, "Runtime internal resources are insufficient.\n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {207012, "The number of queues exceeds the upper limit.\n\
+        Destroy unnecessary queues before creating new queues."},
+        {207013, "The queue is empty.\n\
+        Cannot obtain data from an empty queue. Add data to the queue and then obtain data."},
+        {207014, "The queue is full. \n\
+        You cannot add data to a queue that is full. Obtain data from the queue and then add data."},
+        {207015, "The queue is initialized repeatedly. \n\
+        You are advised to initialize the queue only once."},
+        {207018, "The memory on the device is exhausted. \n\
+        Check the memory usage on the device and properly plan the memory usage based on the memory specifications \
+on the device."},
+        {507000, "An internal error occurs in the runtime module on the host. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507001, "An internal error occurs in the task scheduler module on the device. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507002, "The number of tasks on the stream reaches the maximum. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507003, "The number of tasks on the stream is empty. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507004, "Not all tasks on the stream are executed. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507005, "Task execution on the AI CPU is complete. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507006, "The event is not complete. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507007, "Failed to release the context. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507008, "Failed to obtain the SOC version. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507009, "The task type is not supported. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507010, "The task scheduler loses the heartbeat. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507011, "Model execution failed. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507012, "Failed to obtain the task scheduler message. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507013, "System Direct Memory Access (DMA) hardware execution error. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507014, "The aicore execution times out. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507015, "The aicore execution is abnormal. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507016, "An exception occurs when the aicore trap is executed. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507017, "The aicpu execution times out. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507018, "The aicpu execution is abnormal. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507019, "The AICPU does not send a response to the task scheduler after data dump. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507020, "The AIPPU does not send a response to the task scheduler after executing the model. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507021, "The profiling function is abnormal. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507022, "The communication between processes is abnormal. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507023, "The model exits. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507024, "The operator is being deregistered. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507025, "The ring buffer function is not initialized. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507026, "The ring buffer has no data. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507027, "The kernel in RUNTIME is not registered. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507028, "Repeatedly register the kernel inside the RUNTIME. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507029, "The debug function failed to be registered. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507030, "Deregistration of the debugging function fails. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507031, "The tag is not in the current context. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507032, "The number of registered programs exceeds the upper limit. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507033, "Failed to start the device. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507034, "Vector core execution timed out. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507035, "The vector core execution is abnormal. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507036, "An exception occurs when vector core traps are executed. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507037, "An exception occurred when applying for internal resources of the Runtime. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507038, "An error occurred when modifying the die mode, can not change the die mode. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507039, "The die cannot be specified in single-die mode. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507040, "The specified die ID is incorrect. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507041, "The die mode is not set. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507042, "The aicore trap read out-of-bounds exception. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507043, "The aicore trap write out-of-bounds exception. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507044, "Vector core trap read out-of-bounds exception. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507045, "Vector core trap write out-of-bounds exception. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507046, "In the specified timeout waiting event, all tasks in the specified stream are not completed. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507047, "During the specified event synchronization waiting time, the event is not executed completely. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507048, "The execution of the internal task times out. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507049, "An exception occurs during the execution of an internal task. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507050, "The trap of the internal task is abnormal. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507051, "Messages fail to be sent during data enqueuing. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507052, "Memory copy fails during data enqueuing. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507899, "An internal error occurs in the Driver module. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507900, "An internal error occurs on the AI CPU module. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
+        {507901, "The internal host device communication (HDC) session is disconnected. \n\
+        Rectify the fault based on the error information in the log or contact Huawei technical support. \
+For details about logs, see the Log Reference."},
     }; /* aclError code */
 
     static std::map<int, std::string> hcclresult_code_map = {
