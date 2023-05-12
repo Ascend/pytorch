@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import dis
 import torch
 
 
@@ -77,6 +78,40 @@ def _as_tensor(*args, **kwargs):
     return torch._C._VariableFunctions.as_tensor(*args, **kwargs).to(dst_device)
 
 
+def _eval_no_call(stmt, glob, loc):
+    """Evaluate statement as long as it does not contain any method/function calls"""
+    bytecode = compile(stmt, "", mode="eval")
+    for insn in dis.get_instructions(bytecode):
+        if "CALL" in insn.opname:
+            raise RuntimeError(f"Type annotation should not contain calls, but '{stmt}' does")
+    return eval(bytecode, glob, loc)
+
+
+def _parse_type_line(type_line, rcb, loc):
+    """Parses a type annotation specified as a comment.
+    Example inputs:
+        # type: (Tensor, torch.Tensor) -> Tuple[Tensor]
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tensor
+    """
+    arg_ann_str, ret_ann_str = torch.jit.annotations.split_type_line(type_line)
+
+    try:
+        arg_ann = _eval_no_call(arg_ann_str, {}, torch.jit.annotations.EvalEnv(rcb))
+    except (NameError, SyntaxError) as e:
+        raise RuntimeError("Failed to parse the argument list of a type annotation") from e
+
+    if not isinstance(arg_ann, tuple):
+        arg_ann = (arg_ann,)
+
+    try:
+        ret_ann = _eval_no_call(ret_ann_str, {}, torch.jit.annotations.EvalEnv(rcb))
+    except (NameError, SyntaxError) as e:
+        raise RuntimeError("Failed to parse the return type of a type annotation") from e
+
+    arg_types = [torch.jit.annotations.ann_to_type(ann, loc) for ann in arg_ann]
+    return arg_types, torch.jit.annotations.ann_to_type(ret_ann, loc)
+
+
 ${device_methods_def_py_dispatch}
 
 def add_torch_funcs():
@@ -90,5 +125,6 @@ def add_torch_funcs():
     torch.jit.script = jit_script
     torch.as_tensor = _as_tensor
     torch.new_device = _new_device
+    torch.jit.annotations.parse_type_line = _parse_type_line
 
 ${device_methods_def_py}
