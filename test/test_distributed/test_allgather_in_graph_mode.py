@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import os
 import numpy as np
 import torch
@@ -21,6 +22,7 @@ import torch.multiprocessing as mp
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class HcomAllGatherTest(TestCase):
     @classmethod
@@ -64,6 +66,7 @@ class HcomAllGatherTest(TestCase):
         for p in ps:
             p.join()
 
+    @skipIfUnsupportMultiNPU(2)
     def test_dist_all_gather(self):
         ranks = [4, 8]
         dtype_list = [np.float32, np.int32]
