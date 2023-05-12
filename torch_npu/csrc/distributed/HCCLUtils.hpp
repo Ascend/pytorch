@@ -14,8 +14,13 @@
     if (error != HCCL_SUCCESS) {                                    \
       std::string err = "HCCL error in: " + std::string(__FILE__) + \
           ":" + std::to_string(__LINE__) + ".\n" +                  \
-          "[error]: " +                                             \
-          c10_npu::acl::hcclresult_code_map[error] + ".\n" +        \
+          " HCCL error, error code is " +                           \
+          std::to_string(error) + ". " +                            \
+          (c10_npu::acl::hcclresult_code_map.find(error) !=         \
+          c10_npu::acl::hcclresult_code_map.end() ?                 \
+          " [error]: " +                                            \
+          c10_npu::acl::hcclresult_code_map[error] +                \
+          "\n" : " " )  +                                           \
           "And see details in Ascend logs.\n" +                     \
           c10_npu::acl::AclGetErrMsg();                             \
       throw std::runtime_error(err);                                \
