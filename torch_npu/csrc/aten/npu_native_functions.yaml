@@ -426,8 +426,6 @@ supported:
  - isclose
  - isfinite
  - isnan
- - kl_div
- - kl_div_backward
  - kthvalue
  - kthvalue.dimname
  - kthvalue.dimname_out
@@ -901,6 +899,7 @@ autograd:
   - selu_
   - matmul_backward
   - l1_loss
+  - kl_div
 
 tocpu:
   - _cholesky_helper
