@@ -47,6 +47,7 @@ supported:
  - _embedding_bag_dense_backward
  - _embedding_bag_forward_only
  - _index_put_impl_
+ - _linalg_svd
  - _linalg_svd.U
  - _local_scalar_dense
  - _log_softmax
