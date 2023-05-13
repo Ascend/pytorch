@@ -774,15 +774,14 @@ supported:
  - squeeze.dim
  - stack
  - stack.out
- - std
- - std.dim
- - std.names_dim
  - std.correction
+ - std.correction_out
+ - std.correction_names
+ - std.correction_names_out
  - std.names_out
  - std.out
- - std_mean
- - std_mean.dim
- - std_mean.names_dim
+ - std_mean.correction
+ - std_mean.correction_names
  - sub.Scalar
  - sub.Tensor
  - sub.out
