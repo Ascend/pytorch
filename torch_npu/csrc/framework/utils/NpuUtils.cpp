@@ -265,7 +265,7 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
     // free devcie cached memory when return value of the first op execution is
     // oom
     if (index == 1) {
-      C10_NPU_CHECK(aclrtGetDevice(&deviceId));
+      NPU_CHECK_ERROR(aclrtGetDevice(&deviceId));
       c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
       return true;
     }

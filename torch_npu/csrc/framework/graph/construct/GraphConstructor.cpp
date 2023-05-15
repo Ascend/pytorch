@@ -77,7 +77,7 @@ void GraphCommandImpl::AddInput(
     uint32_t offset;
     ReduceScalarValue(input, type, offset);
     int deviceIndex = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+    NPU_CHECK_ERROR(aclrtGetDevice(&deviceIndex));
     auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at_npu::key::NativeDeviceType, deviceIndex).dtype(type));
     GraphUtils::SetDataOp(npu_scalar_tensor.storage().unsafeGetStorageImpl());
     GraphUtils::RetainGraphDataTensor(npu_scalar_tensor);

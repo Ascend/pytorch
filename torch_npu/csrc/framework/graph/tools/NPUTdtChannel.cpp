@@ -23,7 +23,7 @@ bool NpuTdtChannel::Init() {
   }
   TORCH_CHECK(!channel_name_.empty(), "Name of channel is empty.");
   TORCH_CHECK(capacity_ != 0, "Capacity of cur %s is zero.", channel_name_);
-  C10_NPU_CHECK(aclrtGetDevice(&device_id_));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device_id_));
   channel_handle_ = acl_tdt::AcltdtCreateChannelWithCapacity(
       device_id_, channel_name_.c_str(), capacity_);
   

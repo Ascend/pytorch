@@ -193,7 +193,7 @@ c10::Scalar CalcuOpUtil::ConvertTensorToScalar(const at::Tensor &tensor) {
     expScalar = scalar;
   } else {
     NPU_LOGE("unsupport scalar type! ");
-    C10_NPU_CHECK(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
+    NPU_CHECK_ERROR(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
   }
 
   return expScalar;
@@ -208,7 +208,7 @@ at::Tensor CalcuOpUtil::CopyScalarToDevice(const c10::Scalar &cpu_scalar,
 at::Tensor CalcuOpUtil::CopyTensorHostToDevice(const at::Tensor &cpu_tensor) {
   at::Tensor cpuPinMemTensor = cpu_tensor.pin_memory();
   int deviceIndex = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+  NPU_CHECK_ERROR(aclrtGetDevice(&deviceIndex));
   return cpuPinMemTensor.to(
       c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
       cpuPinMemTensor.scalar_type(), true, true);
@@ -224,7 +224,7 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
                   dst.second * dst.first.itemsize();
   void *src_ptr = reinterpret_cast<uint8_t *>(src.first.data_ptr()) +
                   src.second * src.first.itemsize();
-  C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(
+  NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(
       dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
   return "SUCCESS";
