@@ -68,6 +68,7 @@ supported:
  - _symeig_helper
  - _trilinear
  - _unique2
+ - _weight_norm
  - abs
  - abs.out
  - abs_

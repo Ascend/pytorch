@@ -213,7 +213,41 @@ class TestUtilities(TestCase):
         weight_v_size = m.weight_v.size()
         self.assertExpectedInline(str(weight_g_size), '''torch.Size([40, 1])''')
         self.assertExpectedInline(str(weight_v_size), '''torch.Size([40, 20])''')
-       
+
+    def test_weight_norm_orig(self):
+        for dtype in [torch.float, torch.float16]:
+            input1 = torch.randn(3, 4, dtype=dtype).npu()
+            m = nn.Linear(4, 5).to(dtype=dtype).npu()
+            expected_output = m(input1)
+
+            # add weight normalization
+            m = torch.nn.utils.weight_norm(m)
+            self.assertEqual(m.weight_v.size(), m.weight.size())
+            self.assertEqual(m.weight_g.size(), (5, 1))
+            self.assertEqual(m(input1).cpu(), expected_output.cpu())
+
+            # remove weight norm
+            m = torch.nn.utils.remove_weight_norm(m)
+            self.assertFalse(hasattr(m, 'weight_g'))
+            self.assertFalse(hasattr(m, 'weight_v'))
+            self.assertEqual(m(input1).cpu(), expected_output.cpu())
+
+            # test with dim=1
+            m = torch.nn.utils.weight_norm(m, dim=1)
+            self.assertEqual(m.weight_v.size(), m.weight.size())
+            self.assertEqual(m.weight_g.size(), (1, 4))
+            self.assertEqual(m(input1).cpu(), expected_output.cpu())
+
+            # test with dim=None
+            m = nn.Linear(4, 5).to(dtype=dtype).npu()
+            expected_output = m(input1)
+            m = torch.nn.utils.weight_norm(m, dim=None)
+            self.assertEqual(m(input1).cpu(), expected_output.cpu())
+
+            with self.assertRaisesRegex(RuntimeError, 'register two weight_norm hooks'):
+                m = torch.nn.utils.weight_norm(m)
+                m = torch.nn.utils.weight_norm(m)
+
     def test_remove_weight_norm(self):
         m = torch.nn.utils.weight_norm(nn.Linear(20, 40).npu())
         output = torch.nn.utils.remove_weight_norm(m)
