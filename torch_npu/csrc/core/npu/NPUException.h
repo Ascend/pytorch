@@ -12,7 +12,7 @@ do {                                                      \
   std::cout<<c10_npu::acl::AclGetErrMsg()<<std::endl;    \
 } while (0)
 
-#define C10_NPU_CHECK(Error)                                         \
+#define NPU_CHECK_ERROR(Error)                                       \
   do {                                                               \
     if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_CHECK(                                                   \
@@ -49,7 +49,7 @@ do {                                                      \
     }                                                                \
   } while (0)
 
-#define C10_NPU_CHECK_WARN(Error)                                    \
+#define NPU_CHECK_WARN(Error)                                        \
   do {                                                               \
     if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_WARN("NPU warning, error code is ", Error,               \

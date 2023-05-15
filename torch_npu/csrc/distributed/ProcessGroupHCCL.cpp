@@ -424,7 +424,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
 
   HcclRootInfo hcclID;
   if (rank_ == 0) {
-    C10D_HCCL_CHECK(HcclGetRootInfo(&hcclID));
+    HCCL_CHECK_ERROR(HcclGetRootInfo(&hcclID));
   }
   broadcastMasterID(&hcclID);
 
@@ -626,7 +626,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       // insert sync point fluxLimit(key, i)
       c10_npu::NPUStream& hcclStream = hcclStreams[i];
       hcclUs startut = TIME_NOW();
-      C10D_HCCL_CHECK(
+      HCCL_CHECK_ERROR(
           fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream));
     }
   }

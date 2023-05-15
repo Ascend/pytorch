@@ -66,10 +66,10 @@ void GraphExecutor::RunGraph(
       const_cast<aclrtStream>(c10_npu::getCurrentNPUStream().stream());
 
   auto start_time = std::chrono::steady_clock::now();
-  C10_NPU_CHECK(session_->RunGraphWithStreamAsync(graph_id,
-                                                  cal_stream,
-                                                  inputs,
-                                                  outputs));
+  NPU_CHECK_ERROR(session_->RunGraphWithStreamAsync(graph_id,
+                                                    cal_stream,
+                                                    inputs,
+                                                    outputs));
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start_time);
   if (verbose_) {
@@ -151,7 +151,7 @@ uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo
                      const_input_ops.end());
     graph.SetInputs(input_ops).SetOutputs(GetOutputOps());
 
-    C10_NPU_CHECK(session_->AddGraph(cur_graph_id, graph));
+    NPU_CHECK_ERROR(session_->AddGraph(cur_graph_id, graph));
     graph_id = cur_graph_id;
   } else {
     cur_graph_id = cached_graph_id.value();
@@ -201,7 +201,7 @@ void GraphExecutor::Init() {
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
   config["GE_USE_STATIC_MEMORY"] = ge::AscendString("2");
   session_ = std::make_unique<ge::Session>(config);
-  C10_NPU_CHECK(aclrtSetDevice(init_device_id_));
+  NPU_CHECK_ERROR(aclrtSetDevice(init_device_id_));
   if (session_ == nullptr) {
     AT_ERROR("Create session failed!");
   }
