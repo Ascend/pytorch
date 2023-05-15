@@ -27,6 +27,7 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      serialization_patches, add_storage_methods
+from torch_npu.distributed.distributed_c10d import apply_c10d_patch
 from .version import __version__ as __version__
 
 graph_printer = _npu_print.GraphPrinter()
@@ -97,13 +98,14 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 apply_class_patches()
+apply_c10d_patch()
 
 # this must be placed at the end
 torch_npu._C._initExtension()
 
 # register hccl backend
 torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
-    torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout))
+    torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
 
 # NPU exit, need to synchronize devices
