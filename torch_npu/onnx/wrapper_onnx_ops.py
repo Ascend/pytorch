@@ -318,8 +318,13 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
 
     @staticmethod
     def symbolic(g, input: Tensor, size: int, dtype: torch.dtype):
-        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, 
-                    dtype_i=sym_help.scalar_type_to_onnx[sym_help.scalar_type_to_pytorch_type.index(dtype)])
+        if dtype == torch.float32:
+            dtype = 0
+        elif dtype == torch.float16:
+            dtype = 1
+        else:
+            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")    
+        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, dtype_i=dtype)
 
 
 class NPUPtiouOP(torch.autograd.Function):
