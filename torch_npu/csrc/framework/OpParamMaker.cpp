@@ -27,7 +27,6 @@
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
-#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include <Python.h>
 
 extern std::atomic<bool> global_enable_profiling;
@@ -151,9 +150,7 @@ namespace at_npu
         c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       aclError ret;
-      if (global_enable_profiling.load(std::memory_order_relaxed)) {
-        torch_npu::profiler::PutMarkStamp(name);
-      }
+      at_npu::native::NpuUtils::ProfReportMarkData(name);
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -277,9 +274,7 @@ namespace at_npu
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType);
       aclError ret;
-      if (global_enable_profiling.load(std::memory_order_relaxed)) {
-        torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
-      }
+      at_npu::native::NpuUtils::ProfReportMarkData(std::string(cur_paras->opType));
 
       if (cur_paras->customHandler) {
         ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);

@@ -22,7 +22,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
-#include "torch_npu/csrc/profiler/e2e_profiler.h"
+
 namespace {
 const uint64_t kStringOffset = 16UL;
 const std::string kStringDType = "string";
@@ -240,13 +240,13 @@ void OpCommand::Run() {
   string op_name = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
-    torch_npu::profiler::MarkQueueStamp(0, op_name);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
-    torch_npu::profiler::MarkQueueStamp(0, op_name);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, execParams.pta_correlation_id);
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();

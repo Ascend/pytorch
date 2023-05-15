@@ -94,6 +94,8 @@ namespace at_npu
       CONST_PARAMS constParams;
       const aclopAttr *attr;
       int64_t constIdx = -1;
+      static std::atomic<uint64_t> g_pta_correlation_id;
+      uint64_t pta_correlation_id = 0;
       c10::SmallVector<at::Tensor, N> hostMemory;
       ExecuteParas() = default;
       void Release();
