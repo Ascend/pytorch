@@ -1136,6 +1136,72 @@ tocpu:
   - orgqr
   - _lu_with_info
 
+unsupported:
+  - _conj
+  - conj
+  - bitwise_left_shift.Tensor
+  - bitwise_left_shift_.Tensor
+  - bitwise_left_shift.Tensor_out
+  - bitwise_left_shift.Tensor_Scalar
+  - bitwise_left_shift_.Tensor_Scalar
+  - bitwise_left_shift.Tensor_Scalar_out
+  - bitwise_left_shift.Scalar_Tensor
+  - bitwise_right_shift.Tensor
+  - bitwise_right_shift_.Tensor
+  - bitwise_right_shift.Tensor_out
+  - bitwise_right_shift.Tensor_Scalar
+  - bitwise_right_shift_.Tensor_Scalar
+  - bitwise_right_shift.Tensor_Scalar_out
+  - bitwise_right_shift.Scalar_Tensor
+  - _conj_physical
+  - conj_physical
+  - conj_physical.out
+  - conj_physical_
+  - frexp.Tensor
+  - frexp.Tensor_out
+  - isin.Tensor_Tensor_out
+  - isin.Tensor_Tensor
+  - isin.Tensor_Scalar_out
+  - isin.Tensor_Scalar
+  - isin.Scalar_Tensor_out
+  - isin.Scalar_Tensor
+  - cholesky.out
+  - cholesky
+  - geqrf.a
+  - geqrf
+  - logdet
+  - linalg_lu_factor_ex
+  - linalg_lu_factor_ex.out
+  - lu_solve.out
+  - lu_solve
+  - lu_unpack
+  - lu_unpack.out
+  - _det_lu_based_helper
+  - linalg_det
+  - linalg_det.out
+  - linalg_cholesky_ex
+  - linalg_cholesky_ex.L
+  - linalg_eig
+  - linalg_eig.out
+  - linalg_eigh
+  - linalg_eigh.eigvals
+  - linalg_eigvalsh
+  - linalg_eigvalsh.out
+  - linalg_solve_triangular.out
+  - linalg_solve_triangular
+  - linalg_lstsq
+  - linalg_lstsq.out
+  - special_entr
+  - special_entr.out
+  - special_erfcx
+  - special_erfcx.out
+  - special_zeta
+  - special_zeta.self_scalar
+  - special_zeta.other_scalar
+  - special_zeta.out
+  - special_zeta.self_scalar_out
+  - special_zeta.other_scalar_out
+
 custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
   - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
