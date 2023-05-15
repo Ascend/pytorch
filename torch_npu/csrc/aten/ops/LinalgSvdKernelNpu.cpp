@@ -130,6 +130,10 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _svd_helper(const at::Tensor& sel
   } else {
     U_working_copy.zero_();
     VT_working_copy.zero_();
+    if (compute_uv && !some) {
+      U_working_copy.diagonal(0, -2, -1).fill_(1.);
+      VT_working_copy.diagonal(0, -2, -1).fill_(1.);
+    }
   }
 
   return std::make_tuple(U_working_copy, S_working_copy, VT_working_copy);
@@ -181,7 +185,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::_linalg_sv
   const auto Vh_ = borrow_else_clone(Vh_ready, Vh, Vh, use_cusolver);
 
   at::Tensor U_tmp, S_tmp, V_tmp;
-  std::tie(U_tmp, S_tmp, V_tmp) = _svd_helper(A, full_matrices, compute_uv);
+  std::tie(U_tmp, S_tmp, V_tmp) = _svd_helper(A, !full_matrices, compute_uv);
 
   if (!U_ready) {
     U.copy_(U_tmp);
@@ -194,6 +198,14 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::_linalg_sv
   }
 
   at::_linalg_check_errors(info, "linalg.svd", A.dim() == 2);
+}
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_linalg_svd(
+    const at::Tensor& A,
+    const bool full_matrices,
+    const bool compute_uv,
+    c10::optional<c10::string_view> driver) {
+  return _svd_helper(A, !full_matrices, compute_uv);
 }
 
 } // namespace native
