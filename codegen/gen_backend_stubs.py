@@ -109,7 +109,7 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         with open(custom_path, 'r') as f:
             for line in f:
                 if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu',
-                                          'supported', 'autograd', 'custom', 'custom_autograd']:
+                                          'supported', 'autograd', 'custom', 'custom_autograd', 'unsupported']:
                     continue
                 if ':' not in line:
                     continue
@@ -139,7 +139,7 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
 # Parses the external backend's yaml, and adds a new BackendIndex for the backend's dispatch key.
 # Returns a Tuple of (true_backend, backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
 ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
-    'true_backend', 'backend_key', 'autograd_key', 'cpp_namespace', 'backend_indices'])
+    'true_backend', 'backend_key', 'autograd_key', 'unsupport_key', 'cpp_namespace', 'backend_indices'])
 def parse_backend_yaml(
         backend_yaml_path: str,
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
@@ -156,7 +156,8 @@ def parse_backend_yaml(
         yaml_values = yaml.safe_load(f)
     assert isinstance(yaml_values, dict)
 
-    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd']
+    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd',
+                  'custom', 'custom_autograd', 'unsupported']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'XLA' if yaml_backend=='NPU' else yaml_backend
@@ -190,6 +191,9 @@ def parse_backend_yaml(
     for item in custom_autograd:
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
+    unsupported = yaml_values.pop('unsupported', [])
+    assert isinstance(unsupported, list), f'expected "unsupported" to be a list, but got: {unsupported}'
+
     assert len(yaml_values.keys()) == 0, \
         f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
 Only the following keys are supported: {", ".join(valid_keys)}'
@@ -212,10 +216,19 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         autograd_idx = create_backend_index(supported_autograd, autograd_key, native_functions_map)
         assert autograd_key not in backend_indices
         backend_indices[autograd_key] = autograd_idx
+    
+    unsupported_key: Optional[DispatchKey] = None
+    if len(unsupported) > 0:
+        with context(lambda: f'"Unsupport" is not a valid DispatchKey.'):
+            unsupport_key = DispatchKey.parse('Unsupport')
+
+        unsupported_idx = create_backend_index(unsupported, unsupported_key, native_functions_map)
+        assert unsupport_key not in backend_indices
+        backend_indices[unsupported_key] = unsupported_idx
 
     check_op_on_cpu_kernels(supported_tocpu, backend_indices)
     check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
-    return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
+    return ParsedExternalYaml(true_backend, backend_key, autograd_key, unsupported_key, cpp_namespace, backend_indices)
 
 
 def check_op_on_cpu_kernels(
@@ -317,6 +330,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
     utils.backend = true_backend
     backend_key = parsed_backend_yaml.backend_key
     autograd_key = parsed_backend_yaml.autograd_key
+    unsupport_key = parsed_backend_yaml.unsupport_key
     cpp_namespace = parsed_backend_yaml.cpp_namespace
     backend_indices = parsed_backend_yaml.backend_indices
 
@@ -393,6 +407,46 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                     grouped_native_functions
                 )),
             })
+        
+        dispatch_key = backend_dispatch_key
+        native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
+        fm.write_with_template(f'RegisterUnsupport{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
+            'external_backend_headers': native_func_header,
+            'namespaced_headers': '',
+            'DispatchKey': dispatch_key.name.replace("NPU", true_backend),
+            'dispatch_namespace': dispatch_key.lower(),
+            'dispatch_helpers': dest.gen_registration_helpers(backend_indices[unsupport_key]),
+            'dispatch_namespaced_definitions': list(concat_map(
+                dest.RegisterDispatchKey(
+                    backend_indices[unsupport_key],
+                    Target.NAMESPACED_DEFINITION,
+                    selector,
+                    rocm=False,
+                    cpp_namespace=cpp_namespace,
+                    class_method_name=f'{backend_dispatch_key}NativeFunctions'),
+                grouped_native_functions
+            )),
+            'dispatch_anonymous_definitions': list(concat_map(
+                dest.RegisterDispatchKey(
+                    backend_indices[unsupport_key],
+                    Target.ANONYMOUS_DEFINITION_UNSUPPORT,
+                    selector,
+                    rocm=False,
+                    cpp_namespace=cpp_namespace,
+                    class_method_name=f'{backend_dispatch_key}NativeFunctions'),
+                grouped_native_functions
+            )),
+            'dispatch_registrations': list(concat_map(
+                dest.RegisterDispatchKey(
+                    backend_indices[unsupport_key],
+                    Target.REGISTRATION,
+                    selector,
+                    rocm=False,
+                    cpp_namespace=cpp_namespace,
+                    class_method_name=f'{backend_dispatch_key}NativeFunctions'),
+                grouped_native_functions
+            )),
+        })
 
         if to_cpu.upper() in {'OFF', '0', 'NO', 'FALSE', 'F', 'N'}:
             return
