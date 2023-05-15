@@ -162,6 +162,12 @@ def _device(self):
         return torch_npu._C.device("cpu")
     return torch_npu._C.device(type="npu", index=self.get_device())
 
+def _pin_memory(self):
+    return torch._C._TensorBase.pin_memory(self, device=torch_npu.npu.native_device)
+
+def _is_pinned(self):
+    return torch._C._TensorBase.is_pinned(self, device=torch_npu.npu.native_device)
+
 
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
@@ -185,3 +191,5 @@ def add_tensor_methods():
     torch.Tensor.new_tensor = _new_tensor
     torch.Tensor.new_zeros = _new_zeros
     torch.Tensor.__reduce_ex__ = _reduce_ex
+    torch.Tensor.pin_memory = _pin_memory
+    torch.Tensor.is_pinned = _is_pinned
