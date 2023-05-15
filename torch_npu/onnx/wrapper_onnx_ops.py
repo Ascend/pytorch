@@ -318,9 +318,13 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
 
     @staticmethod
     def symbolic(g, input: Tensor, size: int, dtype: torch.dtype):
-        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, 
-                    dtype_i=sym_help.scalar_type_to_onnx[sym_help.scalar_type_to_pytorch_type.index(dtype)])
-
+        if dtype == torch.float32:
+            dtype = 0
+        elif dtype == torch.float16:
+            dtype = 1
+        else:
+            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")    
+        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, dtype_i=dtype)
 
 class NPUPtiouOP(torch.autograd.Function):
 
@@ -843,7 +847,6 @@ def add_onnx_ops():
     torch_npu.npu_iou = wrapper_npu_iou
     torch_npu.npu_batch_nms = wrapper_npu_batch_nms
     torch_npu.fast_gelu = wrapper_npu_fast_gelu
-    torch_npu.npu_fast_gelu = wrapper_npu_fast_gelu
     torch_npu.npu_fused_attention_score = wrapper_npu_fused_attention_score
     torch_npu.npu_ciou = wrapper_npu_ciou
     torch_npu.npu_multi_head_attention = wrapper_npu_multi_head_attention
