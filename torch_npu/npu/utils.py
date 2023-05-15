@@ -19,6 +19,7 @@ import traceback
 import contextlib
 import threading
 from multiprocessing.util import register_after_fork as _register_after_fork
+import warnings
 
 import torch
 
@@ -167,6 +168,15 @@ def get_device_name(device_name=None):
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceProperties(device_id)
     return device_prop.name
+
+
+def get_device_capability(device=None):
+    r"""Query the minor and major data of device. Cann does not 
+    have a corresponding concept and is not supported. By default, it returns None
+    """
+    warnings.warn("torch_npu.npu.get_device_capability isn't implemented!")
+    return None
+
 
 def get_device_properties(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
