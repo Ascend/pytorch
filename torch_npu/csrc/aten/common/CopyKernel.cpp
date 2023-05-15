@@ -97,10 +97,10 @@ void copy_between_host_and_device(
 
   if (non_blocking) {
     auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(dst, nbytes, src, nbytes, kind);
-    C10_NPU_CHECK(ret);
+    NPU_CHECK_ERROR(ret);
     ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
     void* ptr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
-    C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
+    NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
     auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
@@ -109,7 +109,7 @@ void copy_between_host_and_device(
         std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
         nbytes,
         kind);
-    C10_NPU_CHECK(ret);
+    NPU_CHECK_ERROR(ret);
     if (error != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();
       AT_ERROR("ACL stream synchronize failed, error code:", error);

@@ -322,7 +322,7 @@ class DeviceCachingAllocator {
     std::unique_lock<std::recursive_mutex> lock(mutex);
 
     if (device == -1) {
-        C10_NPU_CHECK(aclrtGetDevice(&device));
+        NPU_CHECK_ERROR(aclrtGetDevice(&device));
     }
 
     // process outstanding npuEvents
@@ -351,7 +351,7 @@ class DeviceCachingAllocator {
       if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
         size_t device_free;
         size_t device_total;
-        C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+        NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
         
         std::string allowed_info;
         if (set_fraction) {
@@ -391,7 +391,7 @@ class DeviceCachingAllocator {
             " reserved in total by PyTorch)",
             " If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.");
       } else {
-        C10_NPU_CHECK(params.err);
+        NPU_CHECK_ERROR(params.err);
       }
     }
     Block* block = params.block;
@@ -519,7 +519,7 @@ class DeviceCachingAllocator {
   void setMemoryFraction(double fraction) {
     size_t device_free;
     size_t device_total;
-    C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
     allowed_memory_maximum = static_cast<size_t>(fraction * device_total);
     set_fraction = true;
   }
@@ -920,12 +920,12 @@ class DeviceCachingAllocator {
 
   aclrtEvent create_event_internal() {
     aclrtEvent event = nullptr;
-    C10_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
     return event;
   }
 
   void free_event_internal(aclrtEvent event) {
-    C10_NPU_CHECK(aclrtDestroyEvent(event));
+    NPU_CHECK_ERROR(aclrtDestroyEvent(event));
     ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
   }
 
@@ -943,7 +943,7 @@ class DeviceCachingAllocator {
       }
       Block* block = e.second;
 
-      C10_NPU_CHECK(aclrtSynchronizeEvent(event));
+      NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));
       ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
@@ -965,7 +965,7 @@ class DeviceCachingAllocator {
 
   void insert_events(Block* block) {
     int prev_device = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&prev_device));
+    NPU_CHECK_ERROR(aclrtGetDevice(&prev_device));
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
@@ -973,9 +973,9 @@ class DeviceCachingAllocator {
       int pre_device = 0;
       aclError ret = aclrtGetDevice(&pre_device);
       if (ret != ACL_ERROR_NONE) {
-        C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
+        NPU_CHECK_ERROR(aclrtSetDevice(it->device_index()));
       } else if (pre_device != it->device_index()) {
-        C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
+        NPU_CHECK_ERROR(aclrtSetDevice(it->device_index()));
       }
 
       aclrtEvent event = create_event_internal();
@@ -988,9 +988,9 @@ class DeviceCachingAllocator {
     int cur_device = 0;
     aclError ret = aclrtGetDevice(&cur_device);
     if (ret != ACL_ERROR_NONE) {
-      C10_NPU_CHECK(aclrtSetDevice(prev_device));
+      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
     } else if (cur_device != prev_device) {
-      C10_NPU_CHECK(aclrtSetDevice(prev_device));
+      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
     }
   }
 
@@ -1018,7 +1018,7 @@ class DeviceCachingAllocator {
       aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
 
       if (err != ACL_ERROR_NONE) {
-        C10_NPU_CHECK(err);
+        NPU_CHECK_ERROR(err);
       }
       if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         break;
@@ -1197,7 +1197,7 @@ static void NPUCachingDeleter(void* ptr) {
 struct NpuCachingAllocator : public c10::Allocator {
   c10::DataPtr allocate(size_t size) const override {
     int device = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(aclrtGetDevice(&device));
     void* r = nullptr;
     if (size != 0) {
       caching_allocator.malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
@@ -1217,7 +1217,7 @@ c10::Allocator* get(void) {
 
 void init() {
   uint32_t device_count = 0;
-  C10_NPU_CHECK(aclrtGetDeviceCount(&device_count));
+  NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count));
   caching_allocator.init(device_count);
 }
 
@@ -1274,7 +1274,7 @@ void* raw_alloc(size_t nbytes) {
     return nullptr;
   }
   int device = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   void* r = nullptr;
   caching_allocator.malloc(&r, device, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
   return r;
@@ -1285,7 +1285,7 @@ void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) {
     return nullptr;
   }
   int device;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   void* r = nullptr;
   caching_allocator.malloc(&r, device, nbytes, stream);
   return r;
@@ -1301,7 +1301,7 @@ void FreeDeviceCachedMemory(int device) {
 
 void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
   int device = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
 }
 

@@ -66,7 +66,7 @@ void AsyncCopyTask::LaunchCopyTask() {
     c10_npu::enCurrentNPUStream(&params);
   } else {
     c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-    C10_NPU_CHECK(aclrtMemcpyAsync(
+    NPU_CHECK_ERROR(aclrtMemcpyAsync(
         copyParam_.dst,
         copyParam_.dstLen,
         copyParam_.src,
@@ -96,7 +96,7 @@ void EventTask::LaunchRecordTask(
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
   } else {
-    C10_NPU_CHECK(aclrtRecordEvent(eventParam_.event, npuStream));
+    NPU_CHECK_ERROR(aclrtRecordEvent(eventParam_.event, npuStream));
     ASCEND_LOGI("aclrtRecordEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
   }
 }
@@ -132,7 +132,7 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
   } else {
-    C10_NPU_CHECK(aclrtStreamWaitEvent(npuStream, eventParam_.event));
+    NPU_CHECK_ERROR(aclrtStreamWaitEvent(npuStream, eventParam_.event));
     ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
   }
 }
@@ -148,7 +148,7 @@ void EventTask::LaunchLazyDestroyTask() {
     QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params);
   } else {
-    C10_NPU_CHECK(c10_npu::NPUEventManager::GetInstance().LazyDestroy(
+    NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().LazyDestroy(
         eventParam_.event));
   }
 }

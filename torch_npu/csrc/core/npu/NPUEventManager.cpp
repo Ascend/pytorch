@@ -70,7 +70,7 @@ aclError NPUEventManager::ClearEvent() {
 
   while(!npu_events_.empty()) {
     aclrtEvent event = npu_events_.front();
-    C10_NPU_CHECK(aclrtDestroyEvent(event));
+    NPU_CHECK_ERROR(aclrtDestroyEvent(event));
     ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
     npu_events_.pop_front();
   }
