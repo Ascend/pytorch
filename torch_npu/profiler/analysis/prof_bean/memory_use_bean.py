@@ -33,6 +33,8 @@ class MemoryEnum(Enum):
 
 class MemoryUseBean:
     CONSTANT_STRUCT = "<5qbB2Q"
+    NPU_ID = 9
+    CPU_ID = 0
 
     def __init__(self, data: dict):
         self._origin_data = data
@@ -73,3 +75,6 @@ class MemoryUseBean:
     @property
     def pid(self) -> int:
         return int(self._constant_data[MemoryEnum.PROCESS_ID.value])
+
+    def is_npu(self) -> bool:
+        return self.device_type == self.NPU_ID
