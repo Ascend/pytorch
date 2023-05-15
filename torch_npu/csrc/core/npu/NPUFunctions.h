@@ -35,7 +35,7 @@ inline c10::DeviceIndex device_count() noexcept {
 
 inline c10::DeviceIndex current_device() {
   int cur_device = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&cur_device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&cur_device));
   return static_cast<c10::DeviceIndex>(cur_device);
 }
 
