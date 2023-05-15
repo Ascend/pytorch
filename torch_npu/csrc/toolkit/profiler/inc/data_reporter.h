@@ -111,7 +111,7 @@ struct OpRangeData : BaseReportData{
   uint64_t start_thread_id{0};
   uint64_t end_thread_id{0};
   uint64_t forward_thread_id{0};
-  bool is_async{0};
+  bool is_async{false};
   std::string name;
   std::vector<std::string> input_dtypes;
   std::vector<std::vector<int64_t>> input_shapes;
@@ -154,11 +154,11 @@ enum class OpMarkDataType {
 };
 
 struct OpMarkData : BaseReportData {
-  int64_t time_ns;
-  uint64_t category;
-  uint64_t correlation_id;
-  uint64_t thread_id;
-  uint64_t process_id;
+  int64_t time_ns{0};
+  uint64_t category{0};
+  uint64_t correlation_id{0};
+  uint64_t thread_id{0};
+  uint64_t process_id{0};
   std::string name;
   OpMarkData(int32_t device_id, std::string tag,
              int64_t time_ns, uint64_t category,
@@ -182,15 +182,15 @@ enum class MemoryDataType {
 };
 
 struct MemoryData : BaseReportData {
-  int64_t ptr;
-  int64_t time_ns;
-  int64_t alloc_size;
-  int64_t total_allocated;
-  int64_t total_reserved;
-  int8_t device_type;
-  uint8_t device_index;
-  uint64_t thread_id;
-  uint64_t process_id;
+  int64_t ptr{0};
+  int64_t time_ns{0};
+  int64_t alloc_size{0};
+  int64_t total_allocated{0};
+  int64_t total_reserved{0};
+  int8_t device_type{0};
+  uint8_t device_index{0};
+  uint64_t thread_id{0};
+  uint64_t process_id{0};
   MemoryData(int32_t device_id, std::string tag,
              int64_t ptr, int64_t time_ns, int64_t alloc_size,
              int64_t total_allocated, int64_t total_reserved,
@@ -213,4 +213,3 @@ struct MemoryData : BaseReportData {
 } // profiler
 } // toolkit
 } // torch_npu
-#endif

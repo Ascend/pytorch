@@ -12,8 +12,8 @@
 namespace torch_npu {
 namespace toolkit {
 namespace profiler {
-constexpr uint32_t KDefaultRingBuffer = 1024;
-constexpr uint32_t KBatchMaxLen = 5 * 1024 * 1024; // 5 MB
+constexpr uint32_t kDefaultRingBuffer = 1024;
+constexpr uint32_t kBatchMaxLen = 5 * 1024 * 1024; // 5 MB
 
 class DataDumper : public Thread {
 public:
@@ -43,5 +43,3 @@ private:
 } // profiler
 } // toolkit
 } // torch_npu
-
-#endif

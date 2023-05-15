@@ -14,9 +14,7 @@
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 
 #ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include <Python.h>
-extern std::atomic<bool> global_enable_profiling;
 #endif
 
 namespace at_npu
@@ -144,9 +142,7 @@ namespace at_npu
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       aclError ret;
 #ifndef BUILD_LIBTORCH
-      if (global_enable_profiling.load(std::memory_order_relaxed)) {
-        torch_npu::profiler::PutMarkStamp(name);
-      }
+      at_npu::native::NpuUtils::ProfReportMarkData(name);
 #endif
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
@@ -272,9 +268,7 @@ namespace at_npu
       ASCEND_LOGD("Op %s Run.", cur_paras->opType);
       aclError ret;
 #ifndef BUILD_LIBTORCH
-      if (global_enable_profiling.load(std::memory_order_relaxed)) {
-        torch_npu::profiler::PutMarkStamp(std::string(cur_paras->opType));
-      }
+      at_npu::native::NpuUtils::ProfReportMarkData(std::string(cur_paras->opType));
 #endif
       if (cur_paras->customHandler) {
         ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
