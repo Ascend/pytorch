@@ -122,6 +122,11 @@ def build_stub(base_dir):
         sys.exit(1)
 
 
+def check_opplugin_valid(base_dir):
+    # build with submodule of op_plugin, if path of op-plugin is valid
+    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -212,6 +217,9 @@ class CPPLibBuild(build_clib, object):
             '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
+
+        if check_opplugin_valid(BASE_DIR):
+            cmake_args.append('-DBUILD_OPPLUGIN')
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 

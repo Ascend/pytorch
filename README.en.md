@@ -59,7 +59,7 @@ Download code of the corresponding branch and go to the root directory of the pl
 ```
 # 
 git clone -b master https://gitee.com/ascend/pytorch.git 
-cd pytorch    
+cd pytorch
 # Specify the Python version packaging mode:
 bash ci/build.sh --python=3.8
 # or
