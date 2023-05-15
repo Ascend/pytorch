@@ -54,3 +54,4 @@ def barrier(group=GroupMember.WORLD, async_op=False, device_ids=None):
 
 def apply_c10d_patch():
     torch.distributed.barrier = barrier
+    torch.distributed.is_hccl_available = lambda : True
