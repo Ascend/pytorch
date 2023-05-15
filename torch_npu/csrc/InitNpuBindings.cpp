@@ -15,7 +15,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
-#include "torch_npu/csrc/core/AutocastMode.h"
+#include "torch_npu/csrc/utils/AutocastMode.h"
 
 PyObject* module;
 

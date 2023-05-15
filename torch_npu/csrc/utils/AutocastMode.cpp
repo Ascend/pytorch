@@ -3,7 +3,7 @@
 #include <ATen/autocast_mode.h>
 #include <torch/csrc/Dtype.h>
 
-#include "torch_npu/csrc/core/AutocastMode.h"
+#include "torch_npu/csrc/utils/AutocastMode.h"
 
 namespace torch_npu {
 namespace autocast {
