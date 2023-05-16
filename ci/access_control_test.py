@@ -22,13 +22,13 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-TEST_DIR = os.path.join(BASE_DIR, 'test')
+BASE_DIR = Path(__file__).absolute().parent.parent
+TEST_DIR = BASE_DIR / 'test'
 
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
-    def identify(self, modify_files):
+    def identify(self, modify_file):
         """
         该接口提供代码对应的UT的路径信息
         """
@@ -37,7 +37,7 @@ class AccurateTest(metaclass=ABCMeta):
     @staticmethod
     def find_ut_by_regex(regex):
         ut_files = []
-        cmd = "find {} -name {}".format(os.path.join(BASE_DIR, 'test'), regex)
+        cmd = "find {} -name {}".format(str(TEST_DIR), regex)
         status, output = subprocess.getstatusoutput(cmd)
         if status or not output:
             pass # 对于找不到的暂时不作处理
@@ -61,7 +61,7 @@ class OpStrategy(AccurateTest):
         然后，获取其正则表达式*binary*cross*entropy*with*logits*backward*识别到符合要求的测试用例
         具体方法：通过大写字母切分关键字，再识别包含所有这些关键字的测试文件名。
         """
-        filename = os.path.basename(modify_file)
+        filename = Path(modify_file).name
         if filename.find('KernelNpu') >= 0: 
             feature_line = filename.split('KernelNpu')[0]
             features = re.findall('[A-Z][^A-Z]*', feature_line)
@@ -72,13 +72,24 @@ class OpStrategy(AccurateTest):
 
 class DirectoryStrategy(AccurateTest):
     """
-    通过识别测试文件的目录确认需要进行UT的文件
+    Determine whether the modified files are test cases
     """
     def identify(self, modify_file):
-        is_test_file = modify_file.split("/")[0] == "test" \
-                and re.match("test_(.+).py", os.path.basename(modify_file))
-        return [os.path.join(BASE_DIR, modify_file)] if is_test_file else []
+        is_test_file = str(Path(modify_file).parts[0]) == "test" \
+            and re.match("test_(.+).py", Path(modify_file).name)
+        return [(str(BASE_DIR / modify_file))] if is_test_file else []
 
+class CoreTestStrategy(AccurateTest):
+    """
+    Determine whether the core tests should be runned
+    """
+    block_list = ['test', 'docs']
+    core_test_cases = [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+    def identify(self, modify_file):
+        modified_module = str(Path(modify_file).parts[0])
+        if modified_module not in self.block_list:
+            return self.core_test_cases
+        return []
 
 class CopyOptStrategy(AccurateTest):
     """
@@ -110,9 +121,6 @@ class DirectoryMappingStrategy(AccurateTest):
     def identify(self, modify_file):
         current_all_ut_path = []
         if str(Path(modify_file).parts[0]) == 'torch_npu':
-            CORE_TEST_LIST = [str(i) for i in (Path(BASE_DIR) / 'test/test_npu').rglob('test_*.py')]
-            current_all_ut_path = CORE_TEST_LIST
-
             mapped_ut_path = []
             module_name = str(Path(modify_file).parts[1])
             if module_name in self.mapping_list:
@@ -122,10 +130,10 @@ class DirectoryMappingStrategy(AccurateTest):
                 mapped_ut_path.append(self.mapping_list[file_name])
             
             for mapped_path in mapped_ut_path:
-                if Path.is_file(Path(BASE_DIR) / mapped_path):
-                    current_all_ut_path.append(str(Path(BASE_DIR) / mapped_path))
+                if Path.is_file(BASE_DIR / mapped_path):
+                    current_all_ut_path.append(str(BASE_DIR / mapped_path))
                 else:
-                    current_all_ut_path += [str(i) for i in (Path(BASE_DIR) / mapped_path).rglob('test_*.py')]
+                    current_all_ut_path += [str(i) for i in (BASE_DIR / mapped_path).rglob('test_*.py')]
         return current_all_ut_path
 
 class TestMgr():
@@ -145,12 +153,13 @@ class TestMgr():
             self.test_files += CopyOptStrategy().identify(modify_file)
             self.test_files += OpStrategy().identify(modify_file)
             self.test_files += DirectoryMappingStrategy().identify(modify_file)
+            self.test_files += CoreTestStrategy().identify(modify_file)
         unique_files = set(self.test_files)
 
         exist_ut_file = [
             changed_file
             for changed_file in unique_files
-            if os.path.exists(changed_file)
+            if Path(changed_file).exists()
         ]
         self.test_files = exist_ut_file
 
@@ -173,13 +182,13 @@ def exec_ut(ut_files):
     执行单元测试文件，其中存在失败，则标识异常并打印相关信息
     """
     def get_ut_name(ut_file):
-        return os.path.relpath(ut_file, TEST_DIR)[:-3]
+        return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 
     def get_ut_cmd(ut_file):
         return [sys.executable, "run_test.py", "-v", "-i", get_ut_name(ut_file)]
 
     def run_cmd_with_timeout(cmd):
-        os.chdir(TEST_DIR)
+        os.chdir(str(TEST_DIR))
         p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
         try:
@@ -221,7 +230,7 @@ def exec_ut(ut_files):
 
 
 if __name__ == "__main__":
-    cur_modify_files = os.path.join(BASE_DIR, 'modify_files.txt')
+    cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
     test_mgr.load(cur_modify_files)
     test_mgr.analyze()
