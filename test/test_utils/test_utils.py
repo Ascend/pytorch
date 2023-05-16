@@ -260,4 +260,5 @@ class TestCheckpoint(TestCase):
 
 
 if __name__ == '__main__':
+    torch.npu.set_device(0)
     run_tests()

@@ -3,7 +3,7 @@ import contextlib
 import warnings
 
 import torch_npu
-from .utils import is_initialized, _get_device_index, _lazy_init
+from . import is_initialized, _get_device_index, _lazy_init
 
 __all__ = ["_free_mutex", "caching_allocator_alloc", "caching_allocator_delete", "empty_cache",
            "set_per_process_memory_fraction", "memory_stats", "memory_stats_as_nested_dict",

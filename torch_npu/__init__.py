@@ -31,9 +31,6 @@ from .version import __version__ as __version__
 
 graph_printer = _npu_print.GraphPrinter()
 
-_tensor_classes: Set[Type] = set()
-
-
 __all__ = []
 
 
@@ -105,6 +102,10 @@ torch_npu._C._initExtension()
 torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout))
 
+# set default device type for gradient checkpointing
+from torch.utils.checkpoint import DefaultDeviceType
+DefaultDeviceType.set_device_type("npu")
+del DefaultDeviceType
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():

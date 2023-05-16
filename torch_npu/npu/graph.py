@@ -1,5 +1,5 @@
 import torch_npu
-from .utils import _lazy_init
+from . import _lazy_init
 
 
 def enable_graph_mode(verbose=False):
