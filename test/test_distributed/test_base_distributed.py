@@ -51,9 +51,11 @@ class DistributedApiTestCase(TestCase):
 
     def test_distributed_new_group(self):
         new_group = dist.new_group(ranks=list(range(self.world_size)), backend="hccl")
-        self.assertIsInstance(new_group, dist.ProcessGroupHCCL)
+        self.assertIsInstance(new_group, dist.ProcessGroup)
+        self.assertIsInstance(new_group._get_backend(torch.device("npu")),
+            torch_npu._C._distributed_c10d.ProcessGroupHCCL)
         dist.destroy_process_group(new_group)
+
 
 if __name__ == "__main__":
     run_tests()
-
