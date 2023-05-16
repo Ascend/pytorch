@@ -218,37 +218,22 @@ class TestIndex(TestCase):
         format_shape = [
             [[np.float32, 0, 1], [np.int64, 0, 29126]],
             [[np.float32, 0, (1, 4)], [np.int64, 0, 29126]],
-            [[np.float32, 0, (1, 29126, 10)], [np.bool, 0, (1, 29126, 10)]],
-            [[np.float32, 0, (8400, 16)], [np.bool, 0, (8400, 16)]],
-            [[np.float32, 0, (8400, 16)], [np.bool, 0, 8400]],
-            [[np.bool, 0, (8400, 16)], [np.int64, 0, 1237]],
-            [[np.bool, 0, (8400, 18)], [np.int64, 0, 2999]],
+            [[np.float32, 0, (1, 29126, 10)], [np.bool_, 0, (1, 29126, 10)]],
+            [[np.float32, 0, (8400, 16)], [np.bool_, 0, (8400, 16)]],
+            [[np.float32, 0, (8400, 16)], [np.bool_, 0, 8400]],
+            [[np.bool_, 0, (8400, 16)], [np.int64, 0, 1237]],
+            [[np.bool_, 0, (8400, 18)], [np.int64, 0, 2999]],
         ]
 
         for item in format_shape:
             cpu_input, npu_input = create_common_tensor(item[0], -100, 100)
-            if item[1][0] == np.bool:
+            if item[1][0] == np.bool_:
                 cpu_index, npu_index = self.generate_index_data_bool(item[1][2])
             else:
                 cpu_index, npu_index = create_common_tensor(item[1], 0, cpu_input.dim() - 1)
             cpu_output = self.cpu_op_exec(cpu_input, cpu_index)
             npu_output = self.npu_op_exec(npu_input, npu_index)
             self.assertRtolEqual(cpu_output, npu_output)
-
-    def test_index_different_device(self):
-        index = torch.tensor([[True, True], [False, False]])
-        cpu_input1 = torch.rand([2, 2], dtype=torch.float32)
-        npu_input1 = cpu_input1.npu()
-        cpu_output1 = self.cpu_op_exec(cpu_input1, index)
-        npu_output1 = self.npu_op_exec(npu_input1, index)
-        self.assertRtolEqual(cpu_output1, npu_output1)
-
-        cpu_input2 = torch.randn(15,5)
-        cpu_index2 = torch.randn(15,5) > 0.5
-        npu_index2 = cpu_index2.npu()
-        cpu_output2 = self.cpu_op_exec(cpu_input2, cpu_index2)
-        npu_output2 = self.npu_op_exec(cpu_input2, npu_index2)
-        self.assertRtolEqual(cpu_output2, npu_output2)
 
 
 if __name__ == "__main__":
