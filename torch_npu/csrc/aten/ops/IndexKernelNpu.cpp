@@ -175,9 +175,10 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
 
   at::native::checkIndexTensorTypes(orig);
   auto indices = AdvanceIndex::npu_expand_tensors(self, orig);
+  auto broadcast_indices = AdvanceIndex::npu_broadcast_tensors(indices);
 
   // not to transpose at all scene
-  return index_high_dims(self, indices);
+  return index_high_dims(self, broadcast_indices);
 }
 
 } // namespace native
