@@ -48,9 +48,11 @@ def torch_device_guard(func):
 
 def check_is_valid(arg):
     env_device_cnt = torch_npu.npu.device_count()
+    # When env_device_cnt equals to 0, the error message is stored in NPU LOG.
+    if env_device_cnt == 0:
+        return
     device_str_pattern = "^npu:([1-9]\d*|0)$"
-    device_ofr_info = "Invalid NPU device ordinal. Valid device ordinal ranges from 0-{}.".format(env_device_cnt - 1)
-
+    device_ofr_info = "Invalid NPU device ordinal. Valid device ordinal ranges from 0 - {}.".format(env_device_cnt - 1)
     if isinstance(arg, torch_npu._C.device):
         device_index = arg.index
         if device_index is not None:
