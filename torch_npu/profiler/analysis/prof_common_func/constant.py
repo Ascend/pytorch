@@ -60,3 +60,8 @@ class Constant:
 
     ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute", "AscendCL@aclopCompileAndExecuteV2")
     NPU_PID = "3_0"
+
+    # memory
+    PTA = "PTA"
+    GE = "GE"
+    B_TO_KB = 1024.0

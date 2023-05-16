@@ -13,14 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..prof_common_func.constant import Constant
-from ..prof_view.kernel_view_parser import KernelViewParser
-from ..prof_view.trace_view_parser import TraceViewParser
-from ..prof_view.memory_view_parser import MemoryViewParser
+class NpuMemoryBean:
+    SHOW_HEADERS = ["event", "timestamp(us)", "memory(KB)"]
 
+    def __init__(self, data: list):
+        self._data = data
 
-class ViewParserConfig:
-    CONFIG_DICT = {
-        Constant.TENSORBOARD_TRACE_HABDLER: [TraceViewParser, KernelViewParser, MemoryViewParser],
-        Constant.EXPORT_CHROME_TRACE: [TraceViewParser]
-    }
+    @property
+    def row(self) -> list:
+        row = []
+        for field_name in self.SHOW_HEADERS:
+            row.append(self._data.get(field_name, ""))
+        return row
+

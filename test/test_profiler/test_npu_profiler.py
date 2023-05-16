@@ -59,6 +59,8 @@ class TrainModel:
 class TestNpuProfiler(TestCase):
     TRACE_FILE_NAME = "trace_view.json"
     KERNEL_FILE_NAME = "kernel_details.csv"
+    MEMORY_FORM_NAME = "memory_view_form.csv"
+    MEMORY_LINE_CHART_NAME = "memory_view_line_chart.csv"
     results_path = "./results"
     model_train = TrainModel()
     small_steps = 1
@@ -158,6 +160,17 @@ class TestNpuProfiler(TestCase):
         prof.export_chrome_trace(trace_path)
         self.assertEqual(True, os.path.isfile(trace_path))
 
+    def test_memory_view(self):
+        worker_name = self.worker_name
+        with torch_npu.profiler.profile(
+                profile_memory=True,
+                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+        ) as prof:
+            for step in range(self.small_steps):
+                self.model_train.train_one_step()
+        self.assertEqual(True, self._has_memory_view_form(worker_name))
+        self.assertEqual(True, self._has_memory_view_line_chart(worker_name))
+
     def _get_tensorboard_output(self, worker_name: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(self.results_path))
         for sub_dir in sub_dirs:
@@ -175,6 +188,18 @@ class TestNpuProfiler(TestCase):
         output_path = self._get_tensorboard_output(worker_name)
         if os.path.isdir(output_path):
             return os.path.isfile(os.path.join(output_path, self.KERNEL_FILE_NAME))
+        return False
+
+    def _has_memory_view_form(self, worker_name: str) -> bool:
+        output_path = self._get_tensorboard_output(worker_name)
+        if os.path.isdir(output_path):
+            return os.path.isfile(os.path.join(output_path, self.MEMORY_FORM_NAME))
+        return False
+
+    def _has_memory_view_line_chart(self, worker_name: str) -> bool:
+        output_path = self._get_tensorboard_output(worker_name)
+        if os.path.isdir(output_path):
+            return os.path.isfile(os.path.join(output_path, self.MEMORY_LINE_CHART_NAME))
         return False
 
     def _check_trace_view_keywords(self, worker_name: str, keywords: list) -> bool:
