@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 
 namespace at_npu {
 namespace native {
@@ -32,7 +33,7 @@ bool NPUNativeFunctions::_amp_foreach_non_finite_check_(at::TensorList scaled_gr
 
     auto result = ans[0].item().to<bool>();
 
-    if(result == true) {
+    if(result) {
         auto ans_clear = NPUNativeFunctions::npu_clear_float_status(float_status);
     }
     
@@ -47,11 +48,24 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
     TORCH_CHECK(inv_scale.numel() == 1, "inv_scale must be a 1-element tensor");
     TORCH_CHECK(inv_scale.scalar_type() == at::ScalarType::Float, "inv_scale must be a float tensor");
 
-    if (scaled_grads.size() == 0) {
+    if (scaled_grads.empty()) {
         return;
     }
 
-    if (NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads) == 0) {
+    bool is_finite = true;
+    if (c10_npu::IsSupportInfNan()) {
+        for (auto scaled_grad : scaled_grads) {
+          auto res = NPUNativeFunctions::isfinite(scaled_grad);
+          if (!NPUNativeFunctions::all(res).item().toBool()) {
+            is_finite = false;
+            break;
+          }
+        }
+    } else {
+        is_finite = !NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads);
+    }
+
+    if (is_finite) {
         auto expected_device = scaled_grads[0].device();
         auto expected_dtype = scaled_grads[0].dtype();
         for (auto t : scaled_grads) {
@@ -68,3 +82,4 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
 }
 }
 }
+

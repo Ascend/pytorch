@@ -380,10 +380,19 @@ def finalize_dump():
     return torch_npu._C._npu_finalizeDump()
 
 def get_soc_version():
+    torch_npu.npu._lazy_init()
     soc_version = torch_npu._C._npu_get_soc_version()
     return soc_version
 
+
+def is_support_inf_nan():
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_is_support_inf_nan()
+
+
 def get_npu_overflow_flag():
+    if is_support_inf_nan():
+        raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_get_float_status(float_status)
     if (result.cpu()[0] != 0):
@@ -391,19 +400,30 @@ def get_npu_overflow_flag():
     else:
         return False
 
-def npu_check_over_flow(grad):
-    soc_version = get_soc_version()
 
-    if (soc_version >= 220):
-        cpu_sum = float(grad.float().sum())
+def npu_check_overflow(grad):
+    if is_support_inf_nan():
+        if isinstance(grad, float):
+            cpu_sum = grad
+        elif isinstance(grad, torch.Tensor):
+            cpu_sum = float(grad.float().sum())
+        else:
+            raise RuntimeError("Unsupport type.")
+
         if cpu_sum == float('inf') or cpu_sum == -float('inf') or cpu_sum != cpu_sum:
             return True
         else:
             return False
     else:
-        return get_npu_overflow_flag()
+        ret = get_npu_overflow_flag()
+        if ret:
+            clear_npu_overflow_flag()
+        return ret
+
 
 def clear_npu_overflow_flag():
-    soc_version = get_soc_version()
+    if is_support_inf_nan():
+        raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
-    result = torch_npu.npu_clear_float_status(float_status)
+    torch_npu.npu_clear_float_status(float_status)
+
