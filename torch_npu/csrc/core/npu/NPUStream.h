@@ -79,7 +79,7 @@ public:
 
   void synchronize() const {
     c10::DeviceGuard guard{stream_.device()};
-    C10_NPU_CHECK(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
   }
 
   /// Explicit conversion to rtStream_t.

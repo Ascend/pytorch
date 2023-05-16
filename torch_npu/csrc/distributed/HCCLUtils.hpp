@@ -24,7 +24,7 @@
 #include "hccl/hccl.h"
 #include "hccl/hccl_types.h"
 
-#define C10D_HCCL_CHECK(cmd)                                        \
+#define HCCL_CHECK_ERROR(cmd)                                       \
   do {                                                              \
     HcclResult error = cmd;                                         \
     if (error != HCCL_SUCCESS) {                                    \
@@ -61,7 +61,7 @@ public:
       int rank,
       HcclRootInfo& rootInfo) {
     auto comm = std::make_shared<HCCLComm>();
-    C10D_HCCL_CHECK(
+    HCCL_CHECK_ERROR(
         HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
     c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
           comm->destropyHcclComm();

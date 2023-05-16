@@ -235,7 +235,7 @@ namespace at_npu
           for (size_t i = 0; i < sync_index.size(); i++) {
             c10::SmallVector<int64_t, N> real_shape;
             for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
-              C10_NPU_CHECK(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
+              NPU_CHECK_ERROR(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
               real_shape.emplace_back(dimSize);
             }
             outputTensor[sync_index[i]].resize_(real_shape);

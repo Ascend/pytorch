@@ -78,7 +78,7 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid) {
   } else {
     prop.name = std::string(device_name);
   }
-  C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+  NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
   prop.totalGlobalMem = device_total;
   return &prop;
 }
@@ -133,7 +133,7 @@ PyObject* THNPModule_npuSynchronize(PyObject* _unused, PyObject* noargs) {
 }
 
 void THNPModule_setDevice(int device) {
-  C10_NPU_CHECK(aclrtSetDevice(device));
+  NPU_CHECK_ERROR(aclrtSetDevice(device));
 }
 
 PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
@@ -151,7 +151,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
   int pre_device = 0;
   auto ret = aclrtGetDevice(&pre_device);
   if (ret != ACL_ERROR_NONE){
-      C10_NPU_CHECK(aclrtSetDevice(device));
+      NPU_CHECK_ERROR(aclrtSetDevice(device));
   } else if (pre_device != device) {
       c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
   }
@@ -164,7 +164,7 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   int device;
   torch_npu::utils::npu_lazy_init();
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   return PyLong_FromLong(device);
   END_HANDLE_TH_ERRORS
 }
@@ -204,7 +204,7 @@ PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
   }
   auto stream = c10_npu::NPUStream::unpack(bits);
   int device;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   if (device != stream.device_index()) {
     THNPModule_setDevice(stream.device_index());
   }
@@ -493,7 +493,7 @@ PyObject * THNPModule_npuUnlockMutex(PyObject *module, PyObject *noargs)
 PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
-  C10_NPU_CHECK(aclmdlInitDump());
+  NPU_CHECK_ERROR(aclmdlInitDump());
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -506,7 +506,7 @@ PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg) {
   std::string cfg_file = THPUtils_unpackString(arg);
   {
     pybind11::gil_scoped_release no_gil;
-    C10_NPU_CHECK(aclmdlSetDump(cfg_file.c_str()));
+    NPU_CHECK_ERROR(aclmdlSetDump(cfg_file.c_str()));
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -515,7 +515,7 @@ PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg) {
 PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
-  C10_NPU_CHECK(aclmdlFinalizeDump());
+  NPU_CHECK_ERROR(aclmdlFinalizeDump());
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
