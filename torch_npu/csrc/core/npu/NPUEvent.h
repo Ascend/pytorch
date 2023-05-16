@@ -43,8 +43,8 @@ struct NPUEvent {
   ~NPUEvent() {
     try {
       if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
-        C10_NPU_CHECK(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
-        C10_NPU_CHECK(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
+        NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
+        NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
     } catch (...) {}   // No throw.
   }
@@ -84,7 +84,7 @@ struct NPUEvent {
     }
     acl::aclrtEventRecordedStatus currStatus =
         acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    C10_NPU_CHECK(acl::AclQueryEventRecordedStatus(event_, &currStatus));
+    NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(event_, &currStatus));
 
     if (currStatus == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
       return true;
@@ -106,14 +106,14 @@ struct NPUEvent {
     TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
         " does not match recording stream's device ", stream.device_index(), ".");
     NPUGuard guard(device_index_);
-    C10_NPU_CHECK(c10_npu::queue::LaunchRecordEventTask(event_, stream));
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchRecordEventTask(event_, stream));
     was_recorded_ = true;
   }
 
   void block(const NPUStream& stream) {
     if (is_created_) {
       NPUGuard guard(stream.device_index());
-      C10_NPU_CHECK(c10_npu::queue::LaunchWaitEventTask(event_, stream));
+      NPU_CHECK_ERROR(c10_npu::queue::LaunchWaitEventTask(event_, stream));
     }
   }
 
@@ -126,12 +126,12 @@ struct NPUEvent {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
 
-    C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
     ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event_=%p.", event_);
-    C10_NPU_CHECK(aclrtSynchronizeEvent(other.event_));
+    NPU_CHECK_ERROR(aclrtSynchronizeEvent(other.event_));
     ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, other.event_=%p.", other.event_);
     // raise error if either event is recorded but not yet completed
-    C10_NPU_CHECK(aclrtEventElapsedTime(&time_ms, event_, other.event_));
+    NPU_CHECK_ERROR(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
   }
 
@@ -141,7 +141,7 @@ struct NPUEvent {
       if (ret != SUCCESS) {
         NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       }
-      C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
+      NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
       ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event_=%p.", event_);
     }
   }
@@ -157,7 +157,7 @@ private:
   void createEvent(c10::DeviceIndex device_index) {
     device_index_ = device_index;
     NPUGuard guard(device_index_);
-    C10_NPU_CHECK(aclrtCreateEvent(&event_));
+    NPU_CHECK_ERROR(aclrtCreateEvent(&event_));
     ASCEND_LOGI("aclrtCreateEvent is successfully executed, event_=%p.", event_);
     is_created_ = true;
   }

@@ -716,7 +716,7 @@ struct THNCachingAllocator {
         continue;
       }
 
-      C10_NPU_CHECK(aclrtSynchronizeEvent(event));
+      NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));
       ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
@@ -725,7 +725,7 @@ struct THNCachingAllocator {
           recorded_events.erase(it);
         }
       }
-      C10_NPU_CHECK(aclrtDestroyEvent(event));
+      NPU_CHECK_ERROR(aclrtDestroyEvent(event));
       block->event_count--;
       if (block->event_count == 0) {
         free_block(block);
@@ -750,7 +750,7 @@ struct THNCachingAllocator {
 
   void insert_events(Block* block) {
     int prev_device = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&prev_device));
+    NPU_CHECK_ERROR(aclrtGetDevice(&prev_device));
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
@@ -758,13 +758,13 @@ struct THNCachingAllocator {
       int pre_device = 0;
       aclError ret = aclrtGetDevice(&pre_device);
       if (ret != ACL_ERROR_NONE) {
-        C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
+        NPU_CHECK_ERROR(aclrtSetDevice(it->device_index()));
       } else if (pre_device != it->device_index()) {
-        C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
+        NPU_CHECK_ERROR(aclrtSetDevice(it->device_index()));
       }
 
       aclrtEvent event = nullptr;
-      C10_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
       c10_npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
 
       block->event_count++;
@@ -774,9 +774,9 @@ struct THNCachingAllocator {
     int cur_device = 0;
     aclError ret = aclrtGetDevice(&cur_device);
     if (ret != ACL_ERROR_NONE) {
-      C10_NPU_CHECK(aclrtSetDevice(prev_device));
+      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
     } else if (cur_device != prev_device) {
-      C10_NPU_CHECK(aclrtSetDevice(prev_device));
+      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
     }
   }
 
@@ -805,7 +805,7 @@ struct THNCachingAllocator {
           c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
       aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
       if (err != ACL_ERROR_NONE) {
-           C10_NPU_CHECK(err);
+           NPU_CHECK_ERROR(err);
       }
       if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         break;
@@ -818,7 +818,7 @@ struct THNCachingAllocator {
           recorded_events.erase(it);
         }
       }
-      C10_NPU_CHECK(aclrtDestroyEvent(event));
+      NPU_CHECK_ERROR(aclrtDestroyEvent(event));
 
       block->event_count--;
       if (block->event_count == 0) {
@@ -904,7 +904,7 @@ struct THNCachingAllocator {
 void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream, int device) {
   std::lock_guard<std::recursive_mutex> lock(mutex);
   if (device == -1) {
-    C10_NPU_CHECK(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(aclrtGetDevice(&device));
   }
   // process outstanding npuEvents
   process_events();
@@ -951,7 +951,7 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
       if (err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
         size_t device_free;
         size_t device_total;
-        C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+        NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
 
         const auto& stats = get_stats_for_device(device);
 
@@ -988,7 +988,7 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
             format_size(stats.amount_cached - stats.amount_allocated),
             " cached)");
       } else {
-        C10_NPU_CHECK(err);
+        NPU_CHECK_ERROR(err);
       }
     }
     stats.increaseCached(alloc_size);
@@ -1059,7 +1059,7 @@ static void NPUCachingDeleter(void* ptr) {
 struct NPUCachingAllocator : public c10::Allocator {
   c10::DataPtr allocate(size_t size) const override {
     int device = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(aclrtGetDevice(&device));
     void* r = nullptr;
     if (size != 0) {
       caching_allocator.malloc(
@@ -1074,7 +1074,7 @@ struct NPUCachingAllocator : public c10::Allocator {
 
 std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t size2) {
   int device = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   void* ptr_pre = nullptr;
   void* ptr_next = nullptr;
   caching_allocator.allocate_adjacent_ptr(
@@ -1207,7 +1207,7 @@ void* raw_alloc(size_t nbytes) {
     return nullptr;
   }
   int device = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
   void* r = nullptr;
   caching_allocator.malloc(&r, nbytes, c10_npu::getCurrentNPUStreamNoWait(device), device);
   return r;

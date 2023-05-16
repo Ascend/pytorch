@@ -70,11 +70,11 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
       src,
       dst_size * self.itemsize(),
       ACL_MEMCPY_DEVICE_TO_DEVICE);
-  C10_NPU_CHECK(ret);
+  NPU_CHECK_ERROR(ret);
 
   if (!non_blocking) {
     c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-    C10_NPU_CHECK(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream));
   }
   return self;
 }

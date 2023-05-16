@@ -386,7 +386,7 @@ void npuSynchronizeDevice() {
       return;
     }
   }
-  C10_NPU_CHECK(aclrtSynchronizeDevice());
+  NPU_CHECK_ERROR(aclrtSynchronizeDevice());
 }
 
 void enCurrentNPUStream(

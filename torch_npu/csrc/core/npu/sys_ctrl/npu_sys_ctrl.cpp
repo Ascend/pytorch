@@ -119,17 +119,17 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (init_flag_) {
         return INIT_SUCC;
     }
-    C10_NPU_CHECK(aclInit(nullptr));
+    NPU_CHECK_ERROR(aclInit(nullptr));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()){
-        C10_NPU_CHECK(aclmdlInitDump());
+        NPU_CHECK_ERROR(aclmdlInitDump());
         NPU_LOGD("dump init success");
     }
 
     auto ret = aclrtGetDevice(&device_id_);
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
-        C10_NPU_CHECK(aclrtSetDevice(device_id_));
+        NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
     }else{
         NPU_LOGE("Npu device %d has been set before global init.", device_id_);
     }
@@ -139,7 +139,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
-      C10_NPU_CHECK(aclmdlSetDump(aclConfigPath));
+      NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
       NPU_LOGD("set dump config success");
     }
 
@@ -194,7 +194,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     config.emplace(HCOM_OPTIONS.data(), "1");
   }
 
-  C10_NPU_CHECK(ge::GEInitialize(config));
+  NPU_CHECK_ERROR(ge::GEInitialize(config));
 
   // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
   auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
@@ -212,14 +212,14 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-    C10_NPU_CHECK(aclrtResetDevice(pre_device));
-    C10_NPU_CHECK(aclrtSetDevice(device));
+    NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
+    NPU_CHECK_ERROR(aclrtSetDevice(device));
     device_id_= device;
     return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
-    C10_NPU_CHECK(aclrtSetDevice(device_id_));
+    NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
     return INIT_SUCC;
 }
 
@@ -242,15 +242,15 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
           c10_npu::NPUEventManager::GetInstance().ClearEvent();
           auto stream = c10_npu::getCurrentNPUStream();
           (void)aclrtDestroyStream(stream);
-          C10_NPU_CHECK(ge::GEFinalize());
-          C10_NPU_CHECK(aclrtResetDevice(device_id_));
-          C10_NPU_CHECK(aclFinalize());
+          NPU_CHECK_ERROR(ge::GEFinalize());
+          NPU_CHECK_ERROR(aclrtResetDevice(device_id_));
+          NPU_CHECK_ERROR(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-        C10_NPU_CHECK(aclmdlFinalizeDump());
+        NPU_CHECK_ERROR(aclmdlFinalizeDump());
     }
 
     // call release fn by priotity

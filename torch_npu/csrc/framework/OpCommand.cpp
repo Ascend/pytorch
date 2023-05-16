@@ -167,22 +167,19 @@ OpCommand &OpCommand::Input(const string &str) {
       at::empty({total_length}, at::dtype(at::kByte)).pin_memory();
   uint8_t *cpu_ptr = cpu_str_tensor.data_ptr<uint8_t>();
   const size_t head_size = sizeof(kStringOffset);
-  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr, head_size, &kStringOffset, head_size,
-                            ACL_MEMCPY_HOST_TO_HOST));
-  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + head_size, head_size, &length, head_size,
-                            ACL_MEMCPY_HOST_TO_HOST));
-  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + kStringOffset, length, str.c_str(),
-                            length, ACL_MEMCPY_HOST_TO_HOST));
+  NPU_CHECK_ERROR(aclrtMemcpy(cpu_ptr, head_size, &kStringOffset, head_size, ACL_MEMCPY_HOST_TO_HOST));
+  NPU_CHECK_ERROR(aclrtMemcpy(cpu_ptr + head_size, head_size, &length, head_size, ACL_MEMCPY_HOST_TO_HOST));
+  NPU_CHECK_ERROR(aclrtMemcpy(cpu_ptr + kStringOffset, length, str.c_str(), length, ACL_MEMCPY_HOST_TO_HOST));
 
   auto input =
       at::empty({total_length},
                 at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
   auto cal_stream = c10_npu::getCurrentNPUStream();
-  C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(input.data_ptr(), total_length, cpu_ptr,
-                                                    total_length, ACL_MEMCPY_HOST_TO_DEVICE));
+  NPU_CHECK_ERROR(c10_npu::queue::LaunchAsyncCopyTask(input.data_ptr(), total_length, cpu_ptr,
+                                                      total_length, ACL_MEMCPY_HOST_TO_DEVICE));
 
-  C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
-                                                      cal_stream));
+  NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
+                                                        cal_stream));
 
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(input, "", kStringDType, c10::nullopt);)
@@ -265,7 +262,7 @@ OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
 
 OpCommand& OpCommand::Sync() {
   c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-  C10_NPU_CHECK(aclrtSynchronizeStream(stream));
+  NPU_CHECK_ERROR(aclrtSynchronizeStream(stream));
   return *this;
 }
 
@@ -348,7 +345,7 @@ at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType
 at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
   at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
   int deviceIndex = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+  NPU_CHECK_ERROR(aclrtGetDevice(&deviceIndex));
   auto tensor = cpuPinMemTensor.to(
       c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
       cpuPinMemTensor.scalar_type(),
