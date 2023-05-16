@@ -38,7 +38,7 @@ void ScalarMemContext::ExecuteH2D(c10_npu::NPUStream stream) {
     return;
   }
   int deviceIndex = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+  NPU_CHECK_ERROR(aclrtGetDevice(&deviceIndex));
   npu_tensor_ = at::empty(
       {host_mem_valid_len_},
       at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIndex).dtype(at::kByte));
@@ -46,7 +46,7 @@ void ScalarMemContext::ExecuteH2D(c10_npu::NPUStream stream) {
   // This aclrtMemcpyAsync is only used for graph mode, and the target device
   // memory is always available. Executing run graph here will result in a
   // circular call to the run graph interface.
-  C10_NPU_CHECK(
+  NPU_CHECK_ERROR(
       aclrtMemcpyAsync(
           npu_tensor_.data_ptr(),
           host_mem_valid_len_,
@@ -54,7 +54,7 @@ void ScalarMemContext::ExecuteH2D(c10_npu::NPUStream stream) {
           host_mem_valid_len_,
           ACL_MEMCPY_HOST_TO_DEVICE,
           stream));
-  C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_tensor_.data_ptr(), stream));
+  NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(cpu_tensor_.data_ptr(), stream));
 
   // reset pin memory
   cpu_tensor_.reset();
@@ -71,7 +71,7 @@ void ScalarMemContext::CheckForExpand(uint32_t input_valid_len) {
       {expand_tensor_size},
       at::TensorOptions().pinned_memory(false).device(at::kCPU).dtype(at::kByte)).pin_memory();
 
-  C10_NPU_CHECK(
+  NPU_CHECK_ERROR(
       aclrtMemcpy(
           cpu_tensor_.data_ptr(),
           host_mem_valid_len_,
