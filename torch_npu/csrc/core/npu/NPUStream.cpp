@@ -125,7 +125,7 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
       "Could not compute stream ID for ",
       ptr,
       " on device ",
-      device_index,
+      +device_index,
       " (something has gone horribly wrong!)");
 }
 

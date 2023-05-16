@@ -168,9 +168,12 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   // set global soc name
   c10_npu::SetSocVersion(soc_name);
 
-  if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1){
-    auto init_mode = aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION;
-    c10_npu::acl::AclrtSetDeviceSatMode(init_mode);
+  if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) {
+    if (c10_npu::IsSupportInfNan()) {
+      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    } else {
+      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    }
   }
 
   if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
@@ -209,7 +212,8 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
-   if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1){
+   if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
+      (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1)){
      c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
      ASCEND_LOGI("Npu overflow check switch set successfully.");
    }

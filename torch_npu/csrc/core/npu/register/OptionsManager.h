@@ -10,6 +10,7 @@ namespace option {
 
 class OptionsManager {
 public:
+  static bool CheckInfNanModeEnable();
   static bool CheckQueueEnable();
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();

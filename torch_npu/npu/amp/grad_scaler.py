@@ -162,7 +162,8 @@ class GradScaler(Cuda_GradScaler):
             assert self._dist_overflow_count is not None
 
         if self._dynamic and not self._clear_overflow_flag:
-            GradScaler.clear_npu_overflow_flag()
+            if not torch_npu.npu.utils.is_support_inf_nan():
+                GradScaler.clear_npu_overflow_flag()
             self._clear_overflow_flag = True
 
         # Short-circuit for the common case.
@@ -459,6 +460,8 @@ class GradScaler(Cuda_GradScaler):
         result = torch_npu.npu_clear_float_status(float_status)
 
     def _sync_dist_overflow_count(self):
+        if torch_npu.npu.utils.is_support_inf_nan():
+            return
         if self._dynamic and self._dist_initialized:
             if self._has_overflow:
                 self._dist_overflow_count.add_(1)

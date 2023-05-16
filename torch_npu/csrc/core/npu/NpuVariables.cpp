@@ -6,6 +6,8 @@
 #include <map>
 #include <string>
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+
 namespace c10_npu {
 static SocVersion g_curSocVersion = SocVersion::UnsupportedSocVersion;
 
@@ -29,8 +31,7 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910C1", SocVersion::Ascend910C1},
     {"Ascend910C2", SocVersion::Ascend910C2},
     {"Ascend910C3", SocVersion::Ascend910C3},
-    {"Ascend910C4", SocVersion::Ascend910C4}
-    };
+    {"Ascend910C4", SocVersion::Ascend910C4}};
 
 void SetSocVersion(const char* const socVersion) {
   if (socVersion == nullptr ||
@@ -45,14 +46,16 @@ void SetSocVersion(const char* const socVersion) {
     curSocVersion = iter->second;
   } else {
     AT_ERROR("Unsupported soc version: ", socVersion);
-    return;
   }
 
   g_curSocVersion = curSocVersion;
-  return;
 }
 
-const SocVersion& GetSocVersion() {
-  return g_curSocVersion;
+const SocVersion& GetSocVersion() { return g_curSocVersion; }
+
+bool IsSupportInfNan() {
+  return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
+         (GetSocVersion() >= SocVersion::Ascend910B1);
 }
 }  // namespace c10_npu
+
