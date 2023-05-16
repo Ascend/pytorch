@@ -394,6 +394,8 @@ supported:
  - hardtanh_
  - hardtanh_backward
  - hardtanh_backward.grad_input
+ - histc
+ - histc.out
  - im2col
  - im2col.out
  - im2col_backward
