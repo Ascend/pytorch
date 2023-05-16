@@ -27,7 +27,7 @@ error_device_input = map(lambda x: torch.device("npu:{}".format(x)),
 
 error_input_list = ["npu1", "1npu", "npu::1"]
 error_index_list = list(error_index_list_str) + error_index_legacy + list(error_device_input)
-device_ofr_info = "Invalid NPU device ordinal. Valid device ordinal ranges from 0-{}.".format(env_device_cnt - 1)
+device_ofr_info = "Invalid NPU device ordinal. Valid device ordinal ranges from 0 - {}.".format(env_device_cnt - 1)
 
 
 class TestPtaErrorInterception(TestCase):
