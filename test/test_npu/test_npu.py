@@ -372,6 +372,17 @@ class TestNpu(TestCase):
         self.assertEqual(src, dst)
         self.assertFalse(dst.is_pinned())
 
+    def test_pin_memory(self):
+        x = torch.randn(10, 20)
+        self.assertFalse(x.is_pinned())
+        pinned = x.pin_memory()
+        self.assertTrue(pinned.is_pinned())
+        self.assertEqual(pinned, x)
+        self.assertNotEqual(pinned.data_ptr(), x.data_ptr())
+        # test that pin_memory on already pinned tensor has no effect
+        self.assertIs(pinned, pinned.pin_memory())
+        self.assertEqual(pinned.data_ptr(), pinned.pin_memory().data_ptr())
+
     def test_torch_manual_seed_seeds_npu_devices(self):
         with freeze_rng_state():
             x = torch.zeros(4, 4).float()  # Not support device RNG (.npu()).
