@@ -39,7 +39,7 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 import codegen.dest.utils as utils
 from codegen.dest import RegisterDispatchKeyCPU
-from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key
+from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
@@ -354,7 +354,13 @@ def gen_dispatcher_registrations(
 ):
     backend_index = backend_indices[backend_dispatch_key]
     ns_helper = NamespaceHelper(namespace_str="at")
-    native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
+    native_func_header = """\
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/profiler/utils.h"
+#endif
+
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+"""
     static_template = CodeTemplate(
         """\
 TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
@@ -416,6 +422,21 @@ $dispatch_registrations_body
     })
 
 
+def get_supported_grouped_native_functions(
+        grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
+        backend_index: BackendIndex,
+        ) -> Sequence[Union[NativeFunction, NativeFunctionsGroup]]:
+    supported_grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]] = []
+    for funcs in grouped_native_functions:
+        if isinstance(funcs, NativeFunctionsGroup) and not backend_index.has_kernel(funcs.out):
+            for f in funcs.functions():
+                if backend_index.has_kernel(f):
+                    supported_grouped_native_functions.append(f)
+            continue
+        supported_grouped_native_functions.append(funcs)
+    return supported_grouped_native_functions
+
+
 def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
     torchgen_path = get_torchgen_dir()
@@ -465,7 +486,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                 fm,
                 class_name,
                 backend_indices,
-                grouped_native_functions,
+                get_supported_grouped_native_functions(grouped_native_functions, backend_indices[dispatch_key]),
                 dispatch_key,
                 dispatch_key,
                 selector,
@@ -488,5 +509,10 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
         )
 
 
+def apply_torchgen_patch():
+    dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
+
+
 if __name__ == '__main__':
+    apply_torchgen_patch()
     main()
