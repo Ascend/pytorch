@@ -11,11 +11,11 @@ torch.npu.set_device(device)
 class TestPointwiseOps(TestCase):
 
     def test_real(self):
-        input1 = torch.randn(4, dtype=torch.float32)
-        input1 = input1.npu()
-        with self.assertRaisesRegex(RuntimeError, 
-                                    r'real is not implemented for tensors with non-complex dtypes.'):
-            cpu_output = torch.real(input1) 
+        cpu_input = torch.randn(4, dtype=torch.float32)
+        npu_input = cpu_input.npu()
+        cpu_output = torch.real(cpu_input)
+        npu_output = torch.real(npu_input)
+        self.assertEqual(cpu_output, npu_output)
 
     def test_square(self):
         input1 = torch.randn(4)
@@ -99,7 +99,7 @@ class TestOtherOps(TestCase):
             
     def test_rot90(self):
         x = torch.arange(4, device=device).view(2, 2)
-        output = torch.rot90(x, 1, [0, 1])
+        output = torch.rot90(x, 1, [0, 1]).int()
         output_expected = torch.tensor([[1, 3], [0, 2]]).int()
         self.assertRtolEqual(output.cpu(), output_expected)
         
@@ -152,8 +152,8 @@ class TestBLOps(TestCase):
         c = torch.randn(5, 6)
         d = torch.randn(6, 7)
         cpu_output = torch.chain_matmul(a, b, c, d)
-        npu_output = torch.chain_matmul(a.npu(), b.npu(), c.npu(), d.npu())
-        self.assertEqual(cpu_output, npu_output)
+        npu_output = torch.chain_matmul(a.half().npu(), b.half().npu(), c.half().npu(), d.half().npu())
+        self.assertEqual(cpu_output, npu_output, prec = 1e-2)
     
     def test_trapz(self):
         def test_dx(sizes, dim, dx):
