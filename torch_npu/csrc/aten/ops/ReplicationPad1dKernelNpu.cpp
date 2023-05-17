@@ -18,68 +18,23 @@
 namespace at_npu {
 namespace native {
 
-c10::SmallVector<int64_t, SIZE> replication_pad1d_npu_output_size(const at::Tensor& self, at::IntArrayRef padding) {
-  int64_t N = self.size(0);
-  int64_t C = self.size(1);
-  int64_t H = self.size(2);
-  int64_t W = self.size(3);
-  int64_t padding_l = padding[0];
-  int64_t padding_r = padding[1];
-
-  int64_t Wo = W + padding_l + padding_r;
-
-  c10::SmallVector<int64_t, SIZE> outputSize = {N, C, H, Wo};
-  return outputSize;
-}
-
-at::Tensor& replication_pad1d_out_npu_nocheck(at::Tensor& out, const at::Tensor& self, at::IntArrayRef padding) {
-  TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * self.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
-  }
-  c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
-  OpCommand cmd;
-  cmd.Name("PadV3")
-      .Input(self)
-      .Input(vectorInt, at::kInt)
-      .Input(value_tensor, self.scalar_type())
-      .Output(out)
-      .Attr("mode", (string)"edge")
-      .Attr("paddings_contiguous", true)
-      .Run();
-  return out;
-}
-
 at::Tensor& NPUNativeFunctions::replication_pad1d_out(
     const at::Tensor& self,
     at::IntArrayRef padding,
-    at::Tensor& out) {
+    at::Tensor& result) {
   c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
-  at::Tensor selfCopy = self.unsqueeze(0);
-  auto outputSize = replication_pad1d_npu_output_size(selfCopy, paddings);
-  OpPreparation::CheckOut(
-      {selfCopy},
-      out,
-      selfCopy,
-      outputSize);
-  replication_pad1d_out_npu_nocheck(out, selfCopy, paddings);
-  out = out.squeeze(0);
-  return out;
+  at::Tensor self_cp = self.unsqueeze(0);
+  NPUNativeFunctions::replication_pad2d_out(self_cp, paddings, result);
+  result.squeeze_(0);
+  return result;
 }
 
 at::Tensor NPUNativeFunctions::replication_pad1d(const at::Tensor& self, at::IntArrayRef padding) {
   c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
-  at::Tensor selfCopy = self.unsqueeze(0);
-
-  auto outputSize = replication_pad1d_npu_output_size(selfCopy, paddings);
-  at::Tensor out = OpPreparation::ApplyTensor(selfCopy, outputSize);
-  replication_pad1d_out_npu_nocheck(out, selfCopy, paddings);
-  out = out.squeeze(0);
-  return out;
+  at::Tensor self_cp = self.unsqueeze(0);
+  at::Tensor result = NPUNativeFunctions::replication_pad2d(self_cp, paddings);
+  result.squeeze_(0);
+  return result;
 }
 } // namespace native
 } // namespace at_npu

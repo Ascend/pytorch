@@ -19,61 +19,75 @@
 
 namespace at_npu {
 namespace native {
+namespace {
+bool check_padding(at::IntArrayRef padding) {
+  for (int64_t i = 0; i < padding.size(); i++) {
+    if (padding[i] != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+} // namespace
 
 at::Tensor& reflection_pad2d_backward_out_npu_nocheck(
-    const at::Tensor& gradOutput,
+    const at::Tensor& grad_output,
     const at::Tensor& input,
     at::IntArrayRef padding,
-    at::Tensor& gradInput) {
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * input.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
+    at::Tensor& grad_input) {
+  c10::SmallVector<int64_t, N> vector_int;
+  c10::SmallVector<int64_t, N> paddings_vector = array_to_small_vector(padding);
+  paddings_vector.resize(2 * input.dim(), 0);
+  for (int64_t i = paddings_vector.size(); i > 0; i -= 2) {
+    vector_int.emplace_back(paddings_vector[i - 2]);
+    vector_int.emplace_back(paddings_vector[i - 1]);
   }
   OpCommand cmd;
   cmd.Name("PadV3Grad")
-      .Input(gradOutput)
-      .Input(vectorInt, at::kInt)
-      .Output(gradInput)
+      .Input(grad_output)
+      .Input(vector_int, at::kInt)
+      .Output(grad_input)
       .Attr("mode", (string)"reflect")
       .Attr("paddings_contiguous", true)
       .Run();
-  return gradInput;
+  return grad_input;
 }
 
 at::Tensor& NPUNativeFunctions::reflection_pad2d_backward_out(
-    const at::Tensor& gradOutput,
+    const at::Tensor& grad_output,
     const at::Tensor& input,
     at::IntArrayRef padding,
-    at::Tensor& gradInput) {
+    at::Tensor& grad_input) {
+  if (check_padding(padding)) {
+    grad_input.copy_(grad_output);
+    return grad_input;
+  }
   OpPreparation::CheckOut(
-      {input, gradOutput},
-      gradInput,
+      {input, grad_output},
+      grad_input,
       input);
   OpPipeWithDefinedOut pipe;
-  return pipe.CheckMemory({input, gradOutput}, {gradInput})
-    .Func([&gradOutput, &input, &padding](at::Tensor& gradInput)
+  return pipe.CheckMemory({input, grad_output}, {grad_input})
+    .Func([&grad_output, &input, &padding](at::Tensor& grad_input)
     {reflection_pad2d_backward_out_npu_nocheck(
-        gradOutput,
+        grad_output,
         input,
         padding,
-        gradInput);})
-    .Call(gradInput);
+        grad_input);})
+    .Call(grad_input);
 }
 
 at::Tensor NPUNativeFunctions::reflection_pad2d_backward(
-    const at::Tensor& gradOutput,
+    const at::Tensor& grad_output,
     const at::Tensor& input,
     at::IntArrayRef padding) {
-  at::Tensor gradInput = OpPreparation::ApplyTensor(input);
-  reflection_pad2d_backward_out_npu_nocheck(
-      gradOutput,
-      input,
-      padding,
-      gradInput);
-  return gradInput;
+  at::Tensor grad_input = OpPreparation::ApplyTensor(input);
+  if (check_padding(padding)) {
+    grad_input.copy_(grad_output);
+    return grad_input;
+  }
+  reflection_pad2d_backward_out_npu_nocheck(grad_output, input, padding, grad_input);
+  return grad_input;
 }
 } // namespace native
 } // namespace at_npu

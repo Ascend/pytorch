@@ -17,52 +17,70 @@
 
 namespace at_npu {
 namespace native {
+namespace {
+bool check_padding(at::IntArrayRef padding) {
+  for (int64_t i = 0; i < padding.size(); i++) {
+    if (padding[i] != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+} // namespace
 
 at::Tensor& replication_pad2d_backward_out_npu_nocheck(
-    at::Tensor& gradInput,
-    const at::Tensor& gradOutput,
+    at::Tensor& grad_input,
+    const at::Tensor& grad_output,
     const at::Tensor& input,
     at::IntArrayRef padding) {
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * input.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
+  c10::SmallVector<int64_t, N> vector_int;
+  c10::SmallVector<int64_t, N> paddings_vector = array_to_small_vector(padding);
+  paddings_vector.resize(2 * input.dim(), 0);
+  for (int64_t i = paddings_vector.size(); i > 1; i -= 2) {
+    vector_int.emplace_back(paddings_vector[i - 2]);
+    vector_int.emplace_back(paddings_vector[i - 1]);
   }
 
   OpCommand cmd;
   cmd.Name("PadV3Grad")
-      .Input(gradOutput)
-      .Input(vectorInt, at::kInt)
-      .Output(gradInput)
+      .Input(grad_output)
+      .Input(vector_int, at::kInt)
+      .Output(grad_input)
       .Attr("mode", (string)"edge")
       .Attr("paddings_contiguous", true)
       .Run();
 
-  return gradInput;
+  return grad_input;
 }
 
 at::Tensor& NPUNativeFunctions::replication_pad2d_backward_out(
-    const at::Tensor& gradOutput,
+    const at::Tensor& grad_output,
     const at::Tensor& input,
     at::IntArrayRef padding,
-    at::Tensor& gradInput) {
+    at::Tensor& grad_input) {
+  if (check_padding(padding)) {
+    grad_input.copy_(grad_output);
+    return grad_input;
+  }
   OpPreparation::CheckOut(
-      {input, gradOutput},
-      gradInput,
+      {input, grad_output},
+      grad_input,
       input);
-  return replication_pad2d_backward_out_npu_nocheck(gradInput, gradOutput, input, padding);
+  return replication_pad2d_backward_out_npu_nocheck(grad_input, grad_output, input, padding);
 }
 
 at::Tensor NPUNativeFunctions::replication_pad2d_backward(
-    const at::Tensor& gradOutput,
+    const at::Tensor& grad_output,
     const at::Tensor& input,
     at::IntArrayRef padding) {
-  at::Tensor gradInput = OpPreparation::ApplyTensor(input);
-  replication_pad2d_backward_out(gradOutput, input, padding, gradInput);
+  at::Tensor grad_input = OpPreparation::ApplyTensor(input);
+  if (check_padding(padding)) {
+    grad_input.copy_(grad_output);
+    return grad_input;
+  }
+  replication_pad2d_backward_out(grad_output, input, padding, grad_input);
 
-  return gradInput;
+  return grad_input;
 }
 } // namespace native
 } // namespace at_npu
