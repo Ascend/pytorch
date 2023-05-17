@@ -1,114 +1,15 @@
 import os
-import traceback
-import contextlib
-import threading
+
 from typing import Any
 from functools import lru_cache
-from multiprocessing.util import register_after_fork as _register_after_fork
 import warnings
+import contextlib
 
 import torch
 from torch._utils import _get_device_index as _torch_get_device_index
 
 import torch_npu
 import torch_npu._C
-
-_initialized = False
-_tls = threading.local()
-_initialization_lock = threading.Lock()
-_queued_calls = []  # don't invoke these until initialization occurs
-_in_bad_fork = False  # this global is also used in torch.manual_seed
-_original_pid = False
-
-
-def is_initialized():
-    r"""Returns whether PyTorch's NPU state has been initialized."""
-    return _initialized and not _in_bad_fork
-
-
-def _lazy_call(callable):
-    if _initialized:
-        callable()
-    else:
-        # Don't store the actual traceback to avoid memory cycle
-        _queued_calls.append((callable, traceback.format_stack()))
-
-
-class DeferredNpuCallError(Exception):
-    pass
-
-
-def init():
-    r"""Initialize PyTorch's NPU state.  You may need to call
-    this explicitly if you are interacting with PyTorch via
-    its C API, as Python bindings for NPU functionality will not
-    be until this initialization takes place.  Ordinary users
-    should not need this, as all of PyTorch's NPU methods
-    automatically initialize NPU state on-demand.
-
-    Does nothing if the NPU state is already initialized.
-    """
-    torch_npu.npu._lazy_init()
-
-
-def _lazy_init():
-    def _queue_call(queued_calls):
-        for queued_call, orig_traceback in queued_calls:
-            try:
-                queued_call()
-            except Exception as e:
-                msg = (f"NPU call failed lazily at initialization with error: {str(e)}\n\n"
-                        f"NPU call was originally invoked at:\n\n{orig_traceback}")
-                raise DeferredNpuCallError(msg) from e
-
-    global _initialized, _original_pid, _queued_calls
-    if _initialized or hasattr(_tls, 'is_initializing'):
-        return
-    with _initialization_lock:
-        # We be double-checked locking, boys!  This is OK because
-        # the above test was GIL protected anyway.  The inner test
-        # is for when a thread blocked on some other thread which was
-        # doing the initialization; when they get the lock, they will
-        # find there is nothing left to do.
-        if _initialized:
-            return
-        # It is important to prevent other threads from entering _lazy_init
-        # immediately, while we are still guaranteed to have the GIL, because some
-        # of the C calls we make below will release the GIL
-        if _in_bad_fork:
-            from sys import version_info
-            if version_info < (3, 4):
-                msg = ("To use NPU with multiprocessing, you must use Python "
-                       "3.4+ and the 'spawn' start method")
-            else:
-                msg = ("To use NPU with multiprocessing, you must use the "
-                       "'spawn' start method")
-            raise RuntimeError(
-                "Cannot re-initialize NPU in forked subprocess. " + msg)
-
-        torch_npu._C._npu_init()
-
-        _original_pid = os.getpid()
-        # Some of the queued calls may reentrantly call _lazy_init();
-        # we need to just return without initializing in that case.
-        # However, we must not let any *other* threads in!
-        _tls.is_initializing = True
-        try:
-            _queue_call(_queued_calls)
-        finally:
-            delattr(_tls, 'is_initializing')
-        _initialized = True
-
-
-def _after_fork(arg):
-    global _initialized, _in_bad_fork
-    if _initialized and _original_pid != os.getpid():
-        _initialized = False
-        _in_bad_fork = True
-        torch._C._npu_set_run_yet_variable_to_false()
-
-_register_after_fork(_after_fork, _after_fork)
-
 
 def synchronize(device=None):
     r"""Waits for all kernels in all streams on a NPU device to complete.
@@ -159,11 +60,6 @@ def get_device_capability(device=None):
     """
     warnings.warn("torch.npu.get_device_capability isn't implemented!")
     return None
-
-def is_available():
-    if (not hasattr(torch_npu._C, '_npu_setDevice')):
-        return False
-    return device_count() > 0
 
 
 class device(object):
