@@ -1324,8 +1324,6 @@ supported:
   - lerp.Tensor_out
   - lerp.Scalar
   - lerp.Tensor
-  - histc.out
-  - histc
   - fmod.Scalar_out
   - fmod.Scalar
   - fmod.Tensor_out
@@ -1574,6 +1572,8 @@ supported:
   - hardswish
   - hardswish_
   - hardswish_backward
+  - histc
+  - histc.out
   - leaky_relu.out
   - leaky_relu
   - leaky_relu_backward
