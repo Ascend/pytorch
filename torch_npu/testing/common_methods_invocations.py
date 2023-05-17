@@ -761,6 +761,17 @@ op_db: List[OpInfo] = [
         formats=(0, 2),
     ),
     OpInfo(
+        'histc',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_histc,
+        supports_autograd=False,
+        formats=(2, ),
+        skipSample={
+            'test_correctness' : (0, ),
+        },
+    ),
+    OpInfo(
         'nn.functional.hardshrink',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
