@@ -22,6 +22,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/OverrideOperators.h"
 
 namespace at_npu {
 namespace native {
@@ -212,9 +213,6 @@ at::Tensor _to_copy(
   return r;
 }
 
-TORCH_LIBRARY_IMPL(aten, BackendSelect, m){
-  m.impl(TORCH_SELECTIVE_NAME("aten::_to_copy"), TORCH_FN(_to_copy));
-}
 
 } // namespace native
 } // namespace at_npu
