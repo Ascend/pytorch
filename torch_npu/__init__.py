@@ -32,7 +32,7 @@ import torch_npu.npu.npu_print as _npu_print
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     serialization_patches, add_storage_methods
+     add_storage_methods
 from torch_npu.distributed.distributed_c10d import apply_c10d_patch
 from .version import __version__ as __version__
 
@@ -108,8 +108,6 @@ all_monkey_patches = [
     ["nn", npu_modules],
 ]
 
-all_monkey_patches += serialization_patches
-
 def _apply_patches(monkey_patches):
     
     def _getattr(module_list, root_module=torch):
@@ -150,7 +148,9 @@ def apply_class_patches():
 
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
-torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True)
+unsupported_dtype = [torch.quint8, torch.quint4x2, torch.quint2x4, torch.qint32, torch.qint8]
+torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True,
+                                                     unsupported_dtype=unsupported_dtype)
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
