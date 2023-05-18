@@ -1,42 +1,29 @@
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict
 from collections import OrderedDict
-import torch 
-import torch._C as _C
-from torch import _storage_classes
-from torch.cuda import _CudaBase
+import torch
 from torch.overrides import has_torch_function_unary, handle_torch_function, has_torch_function
 from torch._namedtensor_internals import check_serializing_named_tensor
 
 import torch_npu
-from . import serialization
 
 
 def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_storage_info):
     tensor = _rebuild_tensor(storage, storage_offset, size, stride)
     tensor.requires_grad = requires_grad
     tensor._backward_hooks = backward_hooks
-    if not serialization.RE_MAP_CPU:
-        if isinstance(npu_storage_info, bool):
-            tensor = tensor.npu()
-        else:
-            tensor = torch_npu.npu_format_cast(tensor.npu(), npu_storage_info)
+    if tensor.is_cpu:
+        return tensor
+    
+    torch_npu._C._npu_storage_set_desc(tensor, size, stride)
+    if isinstance(npu_storage_info, bool):
+        return tensor    
+    tensor = torch_npu.npu_format_cast(tensor, npu_storage_info)
     return tensor
-
-
-def normalize_storage_type(storage):
-    if isinstance(storage, torch.storage.TypedStorage):
-        npu_flag = storage._untyped_storage.is_npu
-    else:
-        npu_flag = storage.is_npu
-    return npu_flag
 
 
 def _rebuild_tensor(storage, storage_offset, size, stride):
     tensor = torch.tensor([], dtype=storage.dtype, device=storage.device)
     tensor.set_(storage, storage_offset, size, stride)
-    npu_flag = normalize_storage_type(storage)
-    if npu_flag:
-        tensor = tensor.npu()
     return tensor
 
 
@@ -49,7 +36,8 @@ def _reduce_ex(self, proto):
         backward_hooks: Dict[Any, Any] = OrderedDict()
         if self.device.type == 'npu':
             npu_storage_format = torch_npu.get_npu_format(self)
-            tmp_tensor = self.cpu()
+            npu_origin_format = torch_npu._C._get_npu_origin_format(self)
+            tmp_tensor = torch_npu.npu_format_cast(self, npu_origin_format).contiguous()
             arg_npu  = (tmp_tensor.storage(),
                         tmp_tensor.storage_offset(),
                         tuple(tmp_tensor.size()),

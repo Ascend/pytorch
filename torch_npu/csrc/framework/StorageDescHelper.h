@@ -35,6 +35,7 @@ namespace at_npu
       static void SetDesc(at::Tensor &dst);
       static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
       static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
+      static bool CheckDescInit(const c10::Storage &storage);
 
       static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
       static void CopyDesc(at::Tensor &dst, const c10::Storage &src);

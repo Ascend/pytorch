@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_npu
+import io
 
 from torch_npu.testing.testcase import TestCase, run_tests
 torch_npu.npu.set_device("npu:0")
@@ -61,7 +62,7 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
-            self.assertExpectedInline(f'{x.device.type}:{x.device.index}', f'{torch_npu.npu.npu_device}:0')
+            self.assertExpectedInline(f'{x.device.type}:{x.device.index}', 'npu:0')
             x_loaded = torch.load(path, map_location="npu:0")
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             y_loaded = torch.load(path, map_location="npu")
@@ -109,10 +110,10 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
             x_loaded = torch.load(path, map_location="npu:0")
-            self.assertExpectedInline(f'{x_loaded.device.type}', f'{torch_npu.npu.npu_device}')
+            self.assertExpectedInline(f'{x_loaded.device.type}', 'npu')
             self.assertRtolEqual(x, x_loaded.cpu())
             x_loaded = torch.load(path, map_location=torch.device("npu:0"))
-            self.assertExpectedInline(f'{x_loaded.device.type}', f'{torch_npu.npu.npu_device}')
+            self.assertExpectedInline(f'{x_loaded.device.type}', 'npu')
             self.assertRtolEqual(x, x_loaded.cpu())
 
     def test_save_string(self):
@@ -208,6 +209,26 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(before_save['conv2.bias'].cpu(), after_load['conv2.bias'].cpu())
             self.assertRtolEqual(before_save['fc1.bias'].cpu(), after_load['fc1.bias'].cpu())
             self.assertRtolEqual(before_save['fc2.bias'].cpu(), after_load['fc2.bias'].cpu())
+
+    def test_save_different_dtype_unallocated(self):
+
+        def save_load_check():
+            with io.BytesIO() as f:
+                torch.save([a, b], f)
+                f.seek(0)
+                a_loaded, b_loaded = torch.load(f)
+            self.assertEqual(a, a_loaded)
+            self.assertEqual(b, b_loaded)
+        
+        dtypes = []
+        for dtype in dtypes:
+            a = torch.tensor([], dtype=dtype, device='npu')
+            for other_dtype in dtypes:
+                s = torch.TypedStorage(wrap_storage=a.storage().untyped(), dtype=other_dtype)
+                save_load_check(a, s)
+                save_load_check(a.storage(), s)
+                b = torch.tensor([], dtype=other_dtype, device='npu')
+                save_load_check(a, b)
             
 
 if __name__ == "__main__":
