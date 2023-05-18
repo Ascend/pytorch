@@ -7,6 +7,7 @@ import traceback
 import warnings
 
 from typing import Set, Type
+from functools import wraps
 
 import torch
 import torch_npu
@@ -96,12 +97,19 @@ graph_printer = _npu_print.GraphPrinter()
 __all__ = []
 
 
+def wrap_torch_error_func(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        raise RuntimeError(f"torch.{func.__name__} is deprecated and will be removed in future version. "
+                           f"Use torch_npu.{func.__name__} instead.")
+    return wrapper
+
 for name in dir(torch_npu._C._VariableFunctions):
     if name.startswith('__'):
         continue
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
     __all__.append(name)
-    setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
+    setattr(torch, name, wrap_torch_error_func(getattr(torch_npu._C._VariableFunctions, name)))
 
 all_monkey_patches = [
     ["autograd.profiler", torch_npu.npu.profiler],
