@@ -59,6 +59,7 @@ supported:
  - _pad_packed_sequence
  - _pdist_forward
  - _pin_memory
+ - _reshape_alias
  - _slow_conv2d_backward.output_mask
  - _slow_conv2d_forward
  - _slow_conv2d_forward.output
@@ -448,6 +449,7 @@ supported:
  - lerp.Tensor_out
  - lerp_.Scalar
  - lerp_.Tensor
+ - lift_fresh_copy
  - linalg_cross
  - linalg_cross.out
  - linspace
