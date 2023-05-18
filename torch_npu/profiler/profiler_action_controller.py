@@ -1,0 +1,140 @@
+import os
+import socket
+import time
+from warnings import warn
+
+import torch.autograd.profiler as prof
+
+from torch_npu.npu import iteration_start, iteration_end
+from .analysis.npu_profiler import NpuProfiler
+from .scheduler import default_schedule_fn, ProfilerAction
+
+
+class NpuProfCreator:
+    DEFAULT_PROF_SUFFIX = "./profiler"
+
+    def __init__(self, worker_name: str = None, dir_name: str = "./") -> None:
+        self._worker_name = worker_name
+        self._dir_name = dir_name
+
+    @classmethod
+    def __call__(cls, instance: any) -> None:
+        NpuProfiler.analyse((instance._msprofiler_interface.path))
+
+    @classmethod
+    def make_dir(cls, target_path: str) -> any:
+        if not os.path.isdir(target_path):
+            try:
+                os.makedirs(target_path, exist_ok=True)
+            except Exception:
+                raise RuntimeError("Can't create directory: " + target_path)
+
+    def create_prof_dir(self) -> str:
+        if not self._worker_name:
+            self._worker_name = "{}_{}".format(socket.gethostbyname(socket.gethostname()), str(os.getpid()))
+        worker_span_name = "{}_{}_ascend_pt".format(self._worker_name, int(time.time() * 1000))
+
+        total_path = os.path.join(self._dir_name, worker_span_name)
+        self.make_dir(total_path)
+        return total_path
+
+    def create_default_prof_dir(self) -> str:
+        target_path = self.DEFAULT_PROF_SUFFIX + "_" + str(time.time() * 1000) + "_ascend_pt"
+        self.make_dir(target_path)
+        return target_path
+
+
+class ActionController:
+    def __init__(self, msprofiler_interface: any, schedule: any, instance: any, on_trace_ready: any) -> None:
+        self._msprofiler_interface = msprofiler_interface
+        self._current_action = ProfilerAction.NONE
+        self._record_steps = True if schedule else False
+        self._schedule = schedule if schedule else default_schedule_fn
+        self._action_map = self._init_action_map()
+        self._prev_action = ProfilerAction.NONE
+        self._instance = instance
+        self._on_trace_ready = on_trace_ready
+        self.next_step = 0
+        self.step_rec_fc = None
+
+    @classmethod
+    def _warn_none_follow_record(cls) -> None:
+        warn("Incorrect schedule: RECORD followed by NONE")
+
+    @classmethod
+    def _warn_warmup_follow_record(cls) -> None:
+        warn("Incorrect schedule: RECORD followed by WARMUP")
+
+    @classmethod
+    def _warn_warmup_follow_none(cls) -> None:
+        warn("Incorrect schedule: WARMUP followed by NONE")
+
+    def transit_action(self):
+        self._prev_action = self._current_action
+        self._current_action = self._schedule(self.next_step)
+
+        action_list = self._action_map.get((self._prev_action, self._current_action), [])
+        if action_list:
+            for action in action_list:
+                action()
+
+        self.next_step += 1
+
+    def _init_action_map(self) -> dict:
+        return {
+            (ProfilerAction.NONE, ProfilerAction.NONE): [],
+            (ProfilerAction.NONE, ProfilerAction.WARMUP): [self._init],
+            (ProfilerAction.NONE, ProfilerAction.RECORD): [self._init, self._start_prof],
+            (ProfilerAction.NONE, ProfilerAction.RECORD_AND_SAVE): [self._init, self._start_prof],
+
+            (ProfilerAction.WARMUP, ProfilerAction.NONE): [self._warn_warmup_follow_none, self._start_prof,
+                                                           self._stop_prof],
+            (ProfilerAction.WARMUP, ProfilerAction.WARMUP): [],
+            (ProfilerAction.WARMUP, ProfilerAction.RECORD): [self._start_prof],
+            (ProfilerAction.WARMUP, ProfilerAction.RECORD_AND_SAVE): [self._start_prof],
+
+            (ProfilerAction.RECORD, ProfilerAction.NONE): [self._warn_none_follow_record, self._stop_prof],
+            (ProfilerAction.RECORD, ProfilerAction.WARMUP): [self._warn_warmup_follow_record, self._stop_prof],
+            (ProfilerAction.RECORD, ProfilerAction.RECORD): [self._iteration_end, self._iteration_start],
+            (ProfilerAction.RECORD, ProfilerAction.RECORD_AND_SAVE): [self._iteration_end, self._iteration_start],
+
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.NONE): [self._stop_prof, self._trace_ready],
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.WARMUP): [self._stop_prof, self._trace_ready, self._init],
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD): [self._stop_prof, self._trace_ready, self._init,
+                                                                      self._start_prof],
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD_AND_SAVE): [self._stop_prof, self._trace_ready,
+                                                                               self._init, self._start_prof]
+        }
+
+    def _init(self) -> None:
+        if isinstance(self._on_trace_ready, NpuProfCreator):
+            path = self._on_trace_ready.create_prof_dir()
+        else:
+            path = NpuProfCreator().create_default_prof_dir()
+        self._msprofiler_interface.set_config(path)
+        self._msprofiler_interface.init_profiler()
+
+    def _start_prof(self) -> None:
+        self._msprofiler_interface.start_profiler()
+        self._iteration_start()
+
+    def _stop_prof(self) -> None:
+        self._iteration_end()
+        self._msprofiler_interface.stop_profiler()
+        self._msprofiler_interface.finalize_profiler()
+
+    def _trace_ready(self) -> None:
+        if isinstance(self._on_trace_ready, NpuProfCreator):
+            self._on_trace_ready(self._instance)
+
+    def _iteration_start(self) -> None:
+        if self._record_steps:
+            self.step_rec_fc = prof.record_function("ProfilerStep#" + str(self.next_step))
+            self.step_rec_fc.__enter__()
+            iteration_start()
+
+    def _iteration_end(self) -> None:
+        if self._record_steps:
+            iteration_end()
+            if self.step_rec_fc:
+                self.step_rec_fc.__exit__(None, None, None)
