@@ -21,9 +21,9 @@ DataDumper::~DataDumper() {
   start_.store(false);
 }
 
-void DataDumper::Init(const std::string &path, size_t capacity = KDefaultRingBuffer) {
+void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer) {
   path_ = path;
-  dataChunkBuf_.Init(capacity);
+  data_chunk_buf_.Init(capacity);
 }
 
 void DataDumper::Start() {
@@ -87,7 +87,7 @@ void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
   if (!start_.load() || data == nullptr) {
     return;
   }
-  if (dataChunkBuf_.Push(std::move(data))) {
+  if (data_chunk_buf_.Push(std::move(data))) {
     entry_nums_++;
   }
 }
@@ -97,7 +97,7 @@ void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
   for (auto &data : dataMap) {
     std::string dump_file = path_ + "/" + data.first;
     if (!Utils::IsFileExist(dump_file)) {
-      int new_file = creat(dump_file, S_IRUSR|S_IWUSR|S_IROTH);
+      int new_file = creat(dump_file.c_str(), S_IRUSR|S_IWUSR|S_IROTH);
       close(new_file);
     }
     file.open(dump_file, std::ios::out | std::ios::app | std::ios::binary);
@@ -111,9 +111,9 @@ void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
 
 void DataDumper::DataClassifyGather(std::map<std::string, std::string> &dataMap) {
   uint64_t batchSize = 0;
-  while (batchSize < KBatchMaxLen) {
+  while (batchSize < kBatchMaxLen) {
     std::unique_ptr<BaseReportData> data = nullptr;
-    bool ret = dataChunkBuf_.Pop(data);
+    bool ret = data_chunk_buf_.Pop(data);
     if (!ret) {
       break;
     }
