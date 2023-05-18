@@ -454,6 +454,31 @@ class TestNpu(TestCase):
         self.assertTrue(event.query())
         self.assertGreater(start_event.elapsed_time(event), 0)
 
+    def test_record_stream(self):
+        t = torch.FloatTensor([1, 2, 3, 4]).pin_memory()
+        result = torch_npu.npu.FloatTensor(t.size())
+        stream = torch_npu.npu.Stream() # stream to record tensor copy
+        alrm_stream = torch_npu.npu.Stream() # alarm stream as npu not support stream._sleep
+        event = torch_npu.npu.Event() # alarm event
+        ptr = [None]
+
+        # Performs the CPU->NPU copy in a background stream
+        with torch_npu.npu.stream(stream):
+            tmp = t.npu(non_blocking=True)
+            ptr[0] = tmp.data_ptr()
+        torch_npu.npu.current_stream().wait_stream(stream) # wait for copy to complete
+        torch_npu.npu.current_stream().wait_event(event) # wait for alarm event to be recorded for mocking of cuda delay
+        tmp.record_stream(torch_npu.npu.current_stream())
+        result.copy_(tmp)
+        with torch_npu.npu.stream(stream):
+            tmp2 = torch_npu.npu.FloatTensor(t.size())
+            tmp2.zero_()
+            # ptr of tmp will not be re-used util alarm event is recorded
+            self.assertNotEqual(tmp2.data_ptr(), ptr[0], message='allocation re-used to soon')
+        alrm_stream.record_event(event)
+
+        self.assertEqual(result.tolist(), [1, 2, 3, 4])
+
     @staticmethod
     def _stream_synchronize(self, spin_time_cycles):
         s = torch_npu.npu.current_stream()
