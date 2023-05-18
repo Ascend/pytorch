@@ -52,5 +52,16 @@ at::Tensor NPUNativeFunctions::pixel_unshuffle(
   return at::native::math_pixel_unshuffle(self, downscale_factor);
 }
 
+at::Tensor NPUNativeFunctions::lift_fresh_copy(const at::Tensor& self) {
+  return at::native::lift_fresh_copy(self);
+}
+
+at::Tensor NPUNativeFunctions::_reshape_alias(
+    const at::Tensor& self,
+    at::IntArrayRef size, 
+    at::IntArrayRef stride) {
+  return at::native::_reshape_alias(self, size, stride);
+}
+
 } // namespace native
 } // namespace at_npu

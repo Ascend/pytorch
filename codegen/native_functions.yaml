@@ -5826,6 +5826,20 @@
     CPU: set_cpu_
     CUDA: set_cuda_
 
+# lift_fresh is called with an argument that is guaranteed to be
+# fresh (i.e., newly allocated).  This is ONLY called from a
+# torch.tensor call; if you FX trace a lift_fresh, you are obligated
+# to convert this into a lift_fresh_copy (because FX will violate the
+# freshness invariant when tracing).
+- func: lift_fresh(Tensor(a) self) -> Tensor(a)
+  dispatch:
+    CompositeExplicitAutograd: lift_fresh
+
+# Like lift, but it clones the input.
+- func: lift_fresh_copy(Tensor self) -> Tensor
+  dispatch:
+    CompositeExplicitAutogradNonFunctional: lift_fresh_copy
+
 - func: is_set_to(Tensor self, Tensor tensor) -> bool
   variants: method
   device_check: NoCheck
