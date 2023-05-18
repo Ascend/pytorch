@@ -41,27 +41,6 @@ namespace
         };
 }
 
-void check_size(const at::Tensor& value, const at::Tensor& self, const at::TensorList& indices) {
-  auto value_shape = array_to_small_vector(value.sizes());
-  auto index_output_size = index_npu_output_size(self, indices);
-  size_t dims_a = value_shape.size();
-  size_t dims_b = index_output_size.size();
-  size_t ndim = dims_a > dims_b ? dims_a : dims_b;
-
-  // Use ptrdiff_t to ensure signed comparison.
-  for (ptrdiff_t i = (ptrdiff_t)ndim - 1; i >= 0; --i) {
-    ptrdiff_t offset = ndim - 1 - i;
-    ptrdiff_t dim_a = dims_a - 1 - offset;
-    ptrdiff_t dim_b = dims_b - 1 - offset;
-    auto size_a = (dim_a >= 0) ? value_shape[dim_a] : 1;
-    auto size_b = (dim_b >= 0) ? index_output_size[dim_b] : 1;
-
-    TORCH_CHECK(size_a == size_b || size_a == 1 || size_b == 1,
-        "shape mismatch: value tensor of shape ", value.sizes(),
-        " cannot be broadcast to indexing result of shape ", self.sizes());
-  }
-}
-
 bool is_aicpu_valid(const at::Tensor& self,
     const std::vector<at::Tensor>& all_defined_indices,
     const at::SmallVector<int64_t, N> masks) { 
@@ -347,7 +326,6 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
       masks.emplace_back(0);
     }
   }
-  check_size(value, self, all_defined_indices);
   for (auto &all_defined_indice : all_defined_indices) {
     if (all_defined_indice.device() != self.device()) {
       all_defined_indice = all_defined_indice.to(self.device());
