@@ -16,7 +16,8 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include <torch/library.h>
+#include "torch_npu/csrc/aten/OverrideOperators.h"
+
 
 namespace at_npu {
 namespace native {
@@ -34,9 +35,5 @@ bool _has_compatible_shallow_copy_type(const at::Tensor &self,
   return (self_key == from_key) || (is_dense(self_key) && is_dense(from_key));
 }
 
-TORCH_LIBRARY_IMPL(aten, CatchAll, m) {
-  m.impl("_has_compatible_shallow_copy_type",
-         TORCH_FN(_has_compatible_shallow_copy_type));
-}
 } // namespace native
 } // namespace at_npu

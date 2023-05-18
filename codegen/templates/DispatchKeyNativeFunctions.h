@@ -44,6 +44,20 @@ namespace ${cpp_namespace} {
 
 struct ${class_name} {
 
+static at::Tensor argmax(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim);
+static at::Tensor argmin(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim);
+static at::Tensor _embedding_bag_dense_backward(
+    const at::Tensor& grad,
+    const at::Tensor& indices,
+    const at::Tensor& offset2bag,
+    const at::Tensor& bag_size,
+    const at::Tensor & maximum_indices,
+    int64_t num_weights,
+    bool scale_grad_by_freq,
+    int64_t mode,
+    const c10::optional<at::Tensor> & per_sample_weights,
+    int64_t padding_idx);
+
 ${dispatch_declarations}
 
 };

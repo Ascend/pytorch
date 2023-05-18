@@ -44,7 +44,6 @@ supported:
  - _dim_arange
  - _embedding_bag
  - _embedding_bag_backward
- - _embedding_bag_dense_backward
  - _embedding_bag_forward_only
  - _index_put_impl_
  - _linalg_svd
@@ -129,8 +128,6 @@ supported:
  - arange.start
  - arange.start_out
  - arange.start_step
- - argmax
- - argmin
  - argsort
  - argsort.dimname
  - as_strided
@@ -913,7 +910,6 @@ tocpu:
   - _compute_linear_combination
   - _compute_linear_combination.out
   - _dirichlet_grad
-  - _embedding_bag_dense_backward
   - _embedding_bag_per_sample_weights_backward
   - _fft_r2c
   - _fft_r2c.out
@@ -1081,9 +1077,7 @@ tocpu:
   - view_as_real
   - sinc.out
   - gcd.out
-  - lcm.out 
-  - argmax.out
-  - argmin.out
+  - lcm.out
   - isposinf.out
   - isneginf.out
   - fmin
