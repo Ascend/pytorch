@@ -13,51 +13,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import wraps
 
-import warnings
 import torch
 
 import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard
 from .storage import _reduce_ex
 
-warnings.filterwarnings(action="once")
-warning_str = "The tensor methods of custom operators would cause performance drop." + \
-              " Suggest to use torch.{0} or torch_npu.{0} instead."
+
+def wrap_tensor_warning_func(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f"Warning: torch.Tensor.{func.__name__} is deprecated and "
+              f"will be removed in future version. Use torch_npu.{func.__name__} instead.")
+        return func(*args, **kwargs)
+    return wrapper
 
 
+@wrap_tensor_warning_func
 def npu_format_cast_(self, format_or_tensor):
-    warnings.warn(warning_str.format("npu_format_cast_"))
     return torch_npu.npu_format_cast_(self, format_or_tensor)
 
 
+@wrap_tensor_warning_func
 def npu_format_cast(self, format_or_tensor):
-    warnings.warn(warning_str.format("npu_format_cast"))
     return torch_npu.npu_format_cast(self, format_or_tensor)
 
 
+@wrap_tensor_warning_func
 def npu_dtype_cast(self, dtype):
-    warnings.warn(warning_str.format("npu_dtype_cast"))
     return torch_npu.npu_dtype_cast(self, dtype)
 
 
+@wrap_tensor_warning_func
 def npu_dtype_cast_(self, other):
-    warnings.warn(warning_str.format("npu_dtype_cast_"))
     return torch_npu.npu_dtype_cast_(self, other)
 
 
+@wrap_tensor_warning_func
 def copy_memory_(self, src, non_blocking=False):
-    warnings.warn(warning_str.format("copy_memory_"))
     return torch_npu.copy_memory_(self, src, non_blocking)
 
 
+@wrap_tensor_warning_func
 def one_(self):
-    warnings.warn(warning_str.format("one_"))
     return torch_npu.one_(self)
 
 
+@wrap_tensor_warning_func
 def npu_confusion_transpose(self, perm, shape, transpose_first):
-    warnings.warn(warning_str.format("npu_confusion_transpose"))
     return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
 
