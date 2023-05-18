@@ -112,7 +112,11 @@ at::Tensor& NPUNativeFunctions::set_(
   if (CheckStorageDesc(self, src)) {
     StorageDescHelper::SetDesc(self, size, stride);
   } else {
-    // check input size stride, if not contiguous or size nots same, desc change to 1D.
+    // Check input tensor propertys. If conditions are not met, NPUStorageDesc base_sizes_ change to 1D.
+    // Conditions:
+    // 1. Tensor storage_offset == 0
+    // 2. Tnput tensor is contiguous
+    // 3. Storage element size same to Tensor
     int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
     StorageDescHelper::SetDesc(self, {new_size}, {1});
   }
