@@ -53,6 +53,7 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
      serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
      add_fx_methods, add_checkpoint_methods, add_dynamo_patch
+from torch_npu.utils.torch_funcs import wrap_torch_error_func
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 
@@ -146,7 +147,7 @@ for name in dir(torch_npu._C._VariableFunctions):
         continue
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
     __all__.append(name)
-    setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
+    setattr(torch, name, wrap_torch_error_func(getattr(torch_npu._C._VariableFunctions, name)))
 
 all_monkey_patches = [
     ["npu", torch_npu.npu],

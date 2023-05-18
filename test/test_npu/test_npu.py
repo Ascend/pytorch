@@ -564,7 +564,7 @@ class TestNpu(TestCase):
         res = x_npu + 1
 
     def test_function_torch_empty_with_format(self):
-        x = torch.empty_with_format((2, 3), dtype=torch.float32, device='npu')
+        x = torch_npu.empty_with_format((2, 3), dtype=torch.float32, device='npu')
         res = x + 1
     
     def test_function_torch_empty_like(self):

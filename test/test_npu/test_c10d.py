@@ -137,7 +137,7 @@ class ProcessGroupHCCLTest(TestCase):
 class ComputeBucketAssignmentTest(TestCase):
     def test_single_limit_single_dtype(self):
         tensors = [
-            torch.empty([100, 1], dtype=torch.float).npu().npu_format_cast(Format.NZ),
+            torch_npu.npu_format_cast(torch.empty([100, 1], dtype=torch.float).npu(), Format.NZ),
             torch.empty([200], dtype=torch.float).npu(),
             torch.empty([100], dtype=torch.float).npu(),
             torch.empty([50], dtype=torch.float).npu(),
