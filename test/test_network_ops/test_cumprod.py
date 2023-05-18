@@ -15,8 +15,8 @@
 
 import numpy as np
 import torch
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -30,14 +30,12 @@ class TestCumprod(TestCase):
 
     def npu_op_exec(self, input1, dim):
         output = torch.cumprod(input1, dim)
-        output = output.to("cpu")
-        output = output.numpy()
+        output = output.to("cpu").numpy()
         return output
 
-    def npu_op_exec_out(self, input1, input2, dim):
-        torch.cumprod(input1, dim, out=input2)
-        output = input2.to("cpu")
-        output = output.numpy()
+    def npu_op_out_exec(self, input1, output, dim):
+        torch.cumprod(input1, dim, out=output)
+        output = output.to("cpu").numpy()
         return output
 
     def cpu_op_exec_inp(self, input1, dim):
@@ -67,13 +65,16 @@ class TestCumprod(TestCase):
     def test_cumprod_out_common_shape_format(self):
         shape_format = [
             [[np.float32, 0, (4, 3)], [np.float32, 0, (4, 3)]],
+            [[np.float32, 0, (4, 3)], [np.float32, 0, (4, 4)]],
+            [[np.float32, 0, (4, 3)], [np.float32, 0, (4, 4, 1)]],
         ]
+        dim = 0
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 10)
-            dim = 0
+            _, npu_input2 = create_common_tensor(item[1], 1, 10)
             cpu_output = self.cpu_op_exec(cpu_input1, dim)
-            npu_output = self.npu_op_exec_out(npu_input1, npu_input2, dim)
+            npu_output = self.npu_op_out_exec(npu_input1, npu_input2, dim)
+            self.assertEqual(cpu_output.shape, npu_output.shape)
             self.assertRtolEqual(cpu_output, npu_output)
 
 
