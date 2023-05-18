@@ -894,6 +894,8 @@ supported:
  - zeros.names
  - zeros.out
  - zeros_like
+ - bucketize.Tensor
+ - bucketize.Tensor_out
 
 autograd:
   - celu
@@ -1035,6 +1037,8 @@ tocpu:
   - exponential_
   - geometric_
   - is_set_to
+  - linalg_qr
+  - linalg_qr.out
   - linalg_vector_norm
   - linalg_vector_norm.out
   - linalg_slogdet
