@@ -95,10 +95,19 @@ def cann_package_check():
             raise Exception(f"ASCEND_OPP_PATH environment variable is not set." \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
-
         ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
         if not os.path.exists(ascend_opp_path):
             raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist." \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+
+        ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
+        if not os.path.exists(ascend_runtime_path):
+            raise Exception(f"{ascend_runtime_path} does not exist, " \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+
+        ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
+        if not os.path.exists(ascend_compiler_path):
+            raise Exception(f"{ascend_compiler_path} does not exist, " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         # get the cann version
