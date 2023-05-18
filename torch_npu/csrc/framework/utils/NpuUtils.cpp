@@ -33,6 +33,8 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
 
 namespace at_npu {
 namespace native {
@@ -277,6 +279,47 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
 void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
   TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ",
               t.dim(), "-D");
+}
+
+void NpuUtils::ProfReportMarkData(const std::string &msg) {
+  if (msg.empty()) {
+    return;
+  }
+  if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
+    torch_npu::profiler::PutMarkStamp(msg);
+  }
+}
+
+void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id) {
+  if (data.empty()) {
+    return;
+  }
+  if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
+    uint32_t e2e_category = (category == 0 || category == 1) ? 0 : 1;
+    torch_npu::profiler::MarkQueueStamp(e2e_category, data);
+  }
+  if (torch_npu::profiler::profDataReportEnable()) {
+    torch_npu::profiler::reportMarkDataToNpuProfiler(category, data, correlation_id);
+  }
+}
+
+void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
+  if (!data) {
+    return;
+  }
+  if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
+    uint32_t e2e_category = (category == 2 || category == 3) ? 1 : 0;
+    torch_npu::profiler::MarkQueueStamp(e2e_category, data, offset);
+  }
+  if (torch_npu::profiler::profDataReportEnable()) {
+    void *cur_addr = (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
+    auto cur_param = static_cast<c10_npu::queue::QueueParas *>(cur_addr);
+    if (cur_param->paramType != c10_npu::queue::COMPILE_AND_EXECUTE) {
+      return;
+    }
+    auto param_val = static_cast<at_npu::native::ExecuteParas *>(cur_param->paramVal);
+    torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), param_val->pta_correlation_id);
+  }
 }
 
 const std::string AclDateTypeToString(aclDataType descDType)

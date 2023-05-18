@@ -26,7 +26,7 @@
 #include <functional>
 #include <ATen/record_function.h>
 
-
+std::atomic<bool>& get_global_enable_profiling();
 namespace torch_npu {
 namespace profiler {
 #define OP_NAME_LEN 128

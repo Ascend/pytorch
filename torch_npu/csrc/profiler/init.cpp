@@ -28,6 +28,7 @@
 #include <torch/csrc/autograd/utils/python_arg_parsing.h>
 #include <torch/csrc/utils/pycfunction_helpers.h>
 #include "torch_npu/csrc/profiler/profiler.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
 
 namespace torch_npu {
 namespace profiler{
@@ -50,6 +51,13 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
 
   py::class_<ProfilerConfig>(m, "ProfilerConfig")
       .def(py::init<ProfilerState, bool, bool, bool, bool, bool>());
+  
+  py::enum_<NpuActivityType>(m, "ProfilerActivity")
+      .value("CPU", NpuActivityType::CPU)
+      .value("NPU", NpuActivityType::NPU);
+
+  py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
+      .def(py::init<std::string, bool, bool, bool, bool, bool>());
 
   py::class_<LegacyEvent>(m, "ProfilerEvent")
       .def("kind", &LegacyEvent::kindStr)
@@ -104,6 +112,22 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
   m.def("_clear_callbacks", []() {
     at::clearCallbacks();
   });
+
+  m.def("_supported_npu_activities", [](){
+    std::set<NpuActivityType> activities {
+      NpuActivityType::CPU,
+      NpuActivityType::NPU
+    };
+    return activities;
+  });
+  m.def("_init_profiler", initNpuProfiler);
+  m.def("_start_profiler",
+      &startNpuProfiler,
+      py::arg("config"),
+      py::arg("activities"),
+      py::arg("scopes") = std::unordered_set<at::RecordScope>());
+  m.def("_stop_profiler", stopNpuProfiler);
+  m.def("_finalize_profiler", finalizeNpuProfiler);
 
   Py_RETURN_TRUE;
 }
