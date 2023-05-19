@@ -374,11 +374,20 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID) {
   // may create multiple HCCL communicators, so we use a sequence
   // number to differentiate between them.
   std::string storeKey = std::to_string(hcclCommCounter_++);
+  std::string ver_key = "version_key";
+  auto date_list = __DATE__ != nullptr ? __DATE__ : "";
+  std::vector<uint8_t> ver_list;
+#ifdef  PYTORCH_NPU_VERSION
+  auto py_list = PYTORCH_NPU_VERSION != nullptr ? PYTORCH_NPU_VERSION : "";
+  ver_list.insert(ver_list.end(), py_list, py_list + strlen(py_list));
+#endif
+  ver_list.insert(ver_list.end(), date_list, date_list + strlen(date_list));
   if (rank_ == 0) {
     auto vec = std::vector<uint8_t>(
         reinterpret_cast<uint8_t*>(hcclID),
         reinterpret_cast<uint8_t*>(hcclID) + HCCL_ROOT_INFO_BYTES);
     store_->set(storeKey, vec);
+    store_->set(ver_key, ver_list);
   } else {
     try {
       auto vec = store_->get(storeKey);
@@ -392,6 +401,10 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID) {
       throw std::runtime_error(
           "Unknown exception: " +
           std::string(HCCL_BLOCKING_WAIT));
+    }
+    auto main_list = store_->get(ver_key);
+    if (main_list != ver_list) {
+      TORCH_WARN("PTA version mismatch");
     }
   }
 }
