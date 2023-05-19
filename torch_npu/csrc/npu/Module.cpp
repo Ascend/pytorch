@@ -2,6 +2,7 @@
 
 #include <ATen/ATen.h>
 #include <torch/csrc/autograd/utils/wrap_outputs.h>
+#include <torch/csrc/utils/python_arg_parser.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -33,6 +34,7 @@
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
 
 struct NPUDeviceProp {
   std::string name;
@@ -757,6 +759,40 @@ PyObject* THNPModule_npu_datadump_disable(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_storage_set_desc(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+  torch::PythonArgParser parser(
+    {"_npu_storage_set_desc(Tensor input, IntArrayRef size, IntArrayRef stride)"}, true
+  );
+  torch::ParsedArgs<3> parsed_args;
+  auto _r = parser.parse(nullptr, args, {}, parsed_args);
+
+  auto func = [](at::Tensor self, at::IntArrayRef size, at::IntArrayRef stride) -> void {
+    pybind11::gil_scoped_release no_gil;
+    at_npu::native::StorageDescHelper::SetDesc(self, size, stride);
+  };
+  func(_r.tensor(0), _r.intlist(1), _r.intlist(2));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_get_npu_origin_format(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+  torch::PythonArgParser parser(
+    {"_get_npu_origin_format(Tensor input)"}, false
+  );
+  torch::ParsedArgs<1> parsed_args;
+  auto _r = parser.parse(nullptr, args, {}, parsed_args);
+
+  auto func = [](const at::Tensor self) -> int {
+    pybind11::gil_scoped_release no_gil;
+    auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+    return src_desc.origin_format_;
+  };
+  return PyLong_FromLong(func(_r.tensor(0)));
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -799,6 +835,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_VARARGS, nullptr},
     {"_npu_datadump_disable", (PyCFunction)THNPModule_npu_datadump_disable, METH_NOARGS, nullptr},
+    {"_npu_storage_set_desc", (PyCFunction)THNPModule_npu_storage_set_desc, METH_VARARGS, nullptr},
+    {"_get_npu_origin_format", (PyCFunction)THNPModule_get_npu_origin_format, METH_VARARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {

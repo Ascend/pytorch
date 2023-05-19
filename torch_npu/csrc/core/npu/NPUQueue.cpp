@@ -1,10 +1,10 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/framework/utils/NpuUtils.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
-#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #endif
 
 #include <unistd.h>
@@ -243,9 +243,9 @@ bool Repository::ReadQueue() {
 
   __sync_synchronize();
 #ifndef BUILD_LIBTORCH
-  torch_npu::profiler::MarkQueueStamp(1, datas, read_idx.idx);
+  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, datas, read_idx.idx);
   auto ret = manager().Call(datas, read_idx.idx);
-  torch_npu::profiler::MarkQueueStamp(1, datas, read_idx.idx);
+  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, datas, read_idx.idx);
 #else
   auto ret = manager().Call(datas, read_idx.idx);
 #endif

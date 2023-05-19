@@ -67,8 +67,29 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
       0,
       {new_size},
       {});
-  StorageDescHelper::CopyDesc(self, src);
+  if (StorageDescHelper::CheckDescInit(src)) {
+    StorageDescHelper::CopyDesc(self, src);
+    return self;
+  }
+  // NPUStorageImpl create by constructor, NPUStorageDesc is not initialized by SetDesc.
+  StorageDescHelper::SetDesc(self, self.unsafeGetTensorImpl()->sizes(),
+                             self.unsafeGetTensorImpl()->strides());
   return self;
+}
+
+bool CheckStorageDesc(const at::Tensor& self, const c10::Storage src) {
+  if (self.unsafeGetTensorImpl()->storage_offset() != 0) {
+    return false;
+  }
+  if (!self.is_contiguous()) {
+    return false;
+  }
+  int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
+  int64_t nelements = c10::multiply_integers(self.unsafeGetTensorImpl()->sizes());
+  if (new_size != nelements) {
+    return false;
+  }
+  return true;
 }
 
 at::Tensor& NPUNativeFunctions::set_(
@@ -83,7 +104,22 @@ at::Tensor& NPUNativeFunctions::set_(
       storage_offset,
       size,
       stride);
-  StorageDescHelper::CopyDesc(self, src);
+  if (StorageDescHelper::CheckDescInit(src)) {
+    StorageDescHelper::CopyDesc(self, src);
+    return self;
+  }
+  // NPUStorageImpl create by constructor, NPUStorageDesc is not initialized by SetDesc.
+  if (CheckStorageDesc(self, src)) {
+    StorageDescHelper::SetDesc(self, size, stride);
+  } else {
+    // Check input tensor propertys. If conditions are not met, NPUStorageDesc base_sizes_ change to 1D.
+    // Conditions:
+    // 1. Tensor storage_offset == 0
+    // 2. Tnput tensor is contiguous
+    // 3. Storage element size same to Tensor
+    int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
+    StorageDescHelper::SetDesc(self, {new_size}, {1});
+  }
   return self;
 }
 

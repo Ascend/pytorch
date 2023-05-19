@@ -446,10 +446,18 @@ class DeviceCachingAllocator {
       update_stat(stats.oversize_allocations, 1);
 
     ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, address = %lu, cached = %lu, allocated = %lu",
-        size,
+        block->size,
         block->ptr,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
+
+    c10::reportMemoryUsageToProfiler(
+        block->ptr,
+        block->size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        c10::Device(c10::DeviceType::PrivateUse1, block->device)
+    );
 
     return block;
   }
@@ -486,6 +494,13 @@ class DeviceCachingAllocator {
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
+    c10::reportMemoryUsageToProfiler(
+        orig_block_ptr,
+        -orig_block_size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        c10::Device(c10::DeviceType::PrivateUse1, block->device)
+    );
   }
 
   void* getBaseAllocation(Block* block, size_t* outSize) {
@@ -1209,7 +1224,9 @@ struct NpuCachingAllocator : public c10::Allocator {
   }
 };
 
-NpuCachingAllocator device_allocator;
+static NpuCachingAllocator device_allocator;
+
+REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &device_allocator);
 
 c10::Allocator* get(void) {
   return &device_allocator;

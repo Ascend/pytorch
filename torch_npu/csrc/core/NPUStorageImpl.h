@@ -22,7 +22,7 @@ public:
   c10::SmallVector<int64_t,5> storage_sizes_;
   int64_t base_offset_ = 0; // no use
   use_byte_size_t base_dtype_; // no use
-  aclFormat origin_format_;
+  aclFormat origin_format_ = ACL_FORMAT_UNDEFINED;
   aclFormat npu_format_ = ACL_FORMAT_ND;
   // used to make CANN GE tensor from storagImpl
   caffe2::TypeMeta data_type_;
@@ -73,4 +73,11 @@ struct NPUStorageImpl : public c10::StorageImpl {
   }
 };
 
+c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
+    c10::StorageImpl::use_byte_size_t,
+    c10::SymInt size_bytes,
+    c10::Allocator* allocator,
+    bool resizable);
+
 }
+

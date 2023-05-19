@@ -7,6 +7,10 @@ set(CMAKE_INSTALL_MESSAGE NEVER)
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(DEFINED TORCH_VERSION)
+  add_definitions(-DPYTORCH_NPU_VERSION="${TORCH_VERSION}")
+endif()
+
 set(PLUGIN_NAME torch_npu)
 
 set(RPATH_VALUE $ORIGIN)
@@ -240,4 +244,9 @@ if (NOT DEFINED BUILD_LIBTORCH)
   include(GNUInstallDirs)
   target_compile_options(${PLUGIN_NAME} PRIVATE "-DC10_BUILD_MAIN_LIB")
   install(TARGETS ${PLUGIN_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
+
+if (NOT DEFINED BUILD_LIBTORCH)
+  add_subdirectory(${TORCHNPU_ROOT}/toolkit)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
 endif()

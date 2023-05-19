@@ -7,6 +7,7 @@ import traceback
 import warnings
 
 from typing import Set, Type
+from functools import wraps
 
 import torch
 import torch_npu
@@ -29,10 +30,11 @@ import torch_npu.distributed
 import torch_npu._C
 
 import torch_npu.npu.npu_print as _npu_print
+from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     serialization_patches, add_storage_methods
+     add_storage_methods
 from torch_npu.distributed.distributed_c10d import apply_c10d_patch
 from .version import __version__ as __version__
 
@@ -71,10 +73,19 @@ def cann_package_check():
             raise Exception(f"ASCEND_OPP_PATH environment variable is not set." \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
-
         ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
         if not os.path.exists(ascend_opp_path):
             raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist." \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+
+        ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
+        if not os.path.exists(ascend_runtime_path):
+            raise Exception(f"{ascend_runtime_path} does not exist, " \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+
+        ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
+        if not os.path.exists(ascend_compiler_path):
+            raise Exception(f"{ascend_compiler_path} does not exist, " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         # get the cann version
@@ -95,20 +106,25 @@ graph_printer = _npu_print.GraphPrinter()
 __all__ = []
 
 
+def wrap_torch_error_func(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        raise RuntimeError(f"torch.{func.__name__} is deprecated and will be removed in future version. "
+                           f"Use torch_npu.{func.__name__} instead.")
+    return wrapper
+
 for name in dir(torch_npu._C._VariableFunctions):
     if name.startswith('__'):
         continue
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
     __all__.append(name)
-    setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
+    setattr(torch, name, wrap_torch_error_func(getattr(torch_npu._C._VariableFunctions, name)))
 
 all_monkey_patches = [
     ["autograd.profiler", torch_npu.npu.profiler],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
 ]
-
-all_monkey_patches += serialization_patches
 
 def _apply_patches(monkey_patches):
     
@@ -150,7 +166,9 @@ def apply_class_patches():
 
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
-torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True)
+unsupported_dtype = [torch.quint8, torch.quint4x2, torch.quint2x4, torch.qint32, torch.qint8]
+torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module=True, for_storage=True,
+                                                     unsupported_dtype=unsupported_dtype)
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)

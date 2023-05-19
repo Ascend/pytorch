@@ -101,6 +101,10 @@ namespace at_npu
       torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides, format);
     }
 
+    bool StorageDescHelper::CheckDescInit(const c10::Storage &storage) {
+      return ACL_FORMAT_UNDEFINED != torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_;
+    }
+
     void StorageDescHelper::CopyDesc(at::Tensor &dst, const at::Tensor &src)
     {
       CopyDesc(dst, src.storage());
