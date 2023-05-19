@@ -294,6 +294,10 @@ void ATenGeBridge::CheckAndBuildGeOpForNode(
     ge_op = std::make_shared<ge::Operator>(
         ge::OperatorFactory::CreateOperator(op_name.c_str(), op_type.c_str()));
   }
+  // Avoid operator(MM\BMM) infershape error, will be deleted after (MM|BMM) fixed
+  if ((op_type == "MatMul") || (op_type == "BatchMatMul")) {
+    ge_op->SetAttr("update_dst_dtype", true);
+  }
   AddNodeExtInfoIntoGeOp(node->GetExtInfo(), ge_op, const_input_ops);
   node->SetGeOp(ge_op);
   return;
