@@ -22,14 +22,14 @@ import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard
 
 
-def wrap_torch_warning_func(func):
+def wrap_ewf_warning_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not wrapper.warned:
-            print(f"Warning: torch.{func.__name__} is deprecated and will be removed in future version. "
-                  f"Use torch_npu.{func.__name__} instead.")
+            print(f"Warning: torch.empty_with_format is deprecated and will be removed in future version. "
+                  f"Use torch_npu.empty_with_format instead.")
             wrapper.warned = True
-            return func(*args, **kwargs)
+        return func(*args, **kwargs)
     wrapper.warned = False
     return wrapper
 
@@ -59,7 +59,7 @@ def _arange(*args, **kwargs):
     return torch_npu.arange(*args, **kwargs)
 
 
-@wrap_torch_warning_func
+@wrap_ewf_warning_func
 @torch_device_guard
 def _empty_with_format(*args, **kwargs):
     return torch_npu.empty_with_format(*args, **kwargs)
