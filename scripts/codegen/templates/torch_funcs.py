@@ -25,9 +25,12 @@ from torch_npu.utils.device_guard import torch_device_guard
 def wrap_torch_warning_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        print(f"Warning: torch.{func.__name__} is deprecated and will be removed in future version. "
-              f"Use torch_npu.{func.__name__} instead.")
-        return func(*args, **kwargs)
+        if not wrapper.warned:
+            print(f"Warning: torch.{func.__name__} is deprecated and will be removed in future version. "
+                  f"Use torch_npu.{func.__name__} instead.")
+            wrapper.warned = True
+            return func(*args, **kwargs)
+    wrapper.warned = False
     return wrapper
 
 
