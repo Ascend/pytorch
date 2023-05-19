@@ -8,6 +8,7 @@
 #include <torch/library.h>
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/aten/OverrideOperators.h"
 
 namespace at_npu {
 namespace native {
@@ -37,10 +38,6 @@ at::Tensor pin_memory(const at::Tensor& self) {
   auto tensor = at::empty({0}, self.options()).set_(storage, 0, self.sizes(), self.strides());
   tensor.copy_(self);
   return tensor;
-}
-
-TORCH_LIBRARY_IMPL(aten, CPU, m){
-  m.impl("pin_memory", TORCH_FN(pin_memory));
 }
 
 }
