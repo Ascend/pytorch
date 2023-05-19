@@ -29,7 +29,7 @@ def wrap_tensor_warning_func(func):
             print(f"Warning: torch.Tensor.{func.__name__} is deprecated and "
                   f"will be removed in future version. Use torch_npu.{func.__name__} instead.")
             wrapper.warned = True
-            return func(*args, **kwargs)
+        return func(*args, **kwargs)
     wrapper.warned = False
     return wrapper
 
