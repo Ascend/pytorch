@@ -636,6 +636,7 @@ supported:
  - reciprocal
  - reciprocal.out
  - reciprocal_
+ - record_stream
  - reflection_pad1d
  - reflection_pad1d.out
  - reflection_pad2d
