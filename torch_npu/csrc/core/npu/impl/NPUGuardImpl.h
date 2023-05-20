@@ -60,6 +60,11 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   c10::Stream getDefaultStream(c10::Device d) const override {
     return c10_npu::getDefaultNPUStream(d.index());
   }
+  c10::Stream getStreamFromGlobalPool(
+      c10::Device d,
+      bool isHighPriority = false) const override {
+    return c10_npu::getStreamFromPool(isHighPriority, d.index());
+  }
   // NB: These do NOT set the current device
   c10::Stream exchangeStream(c10::Stream s) const noexcept override {
     NPUStream cs(s);

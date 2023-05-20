@@ -104,6 +104,10 @@ NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
 NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
+NPUStream getStreamFromPool(
+    const bool isHighPriority,
+    c10::DeviceIndex device_index);
+
 NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
