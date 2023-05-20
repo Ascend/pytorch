@@ -72,6 +72,10 @@ const char *const OPTION_EXEC_ENABLE_COPY_OUTPUT_ADDR = "ge.exec.enableCopyOutpu
 // Option key: memory init
 const char *const GRAPH_MEMORY_MAX_SIZE = "ge.graphMemoryMaxSize";
 const char *const VARIABLE_MEMORY_MAX_SIZE = "ge.variableMemoryMaxSize";
+
+// Topological Sorting Mode
+const char *const OPTION_TOPOSORTING_MODE = "ge.topoSortingMode";
+
 namespace configure_option {
 const char *const STREAM_NUM = "ge.streamNum";
 const char *const HEAD_STREAM = "ge.headStream";
