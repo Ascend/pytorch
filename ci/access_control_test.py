@@ -23,7 +23,7 @@ from pathlib import Path
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-DEFAULT_UT_FILE = os.path.join(BASE_DIR, 'ci/pytorch_resnet.py')
+TEST_DIR = os.path.join(BASE_DIR, 'test')
 
 
 class AccurateTest(metaclass=ABCMeta):
@@ -75,10 +75,9 @@ class DirectoryStrategy(AccurateTest):
     通过识别测试文件的目录确认需要进行UT的文件
     """
     def identify(self, modify_file):
-        second_dir = modify_file.split("/")[0]
-        if second_dir == 'test':
-            return [os.path.join(BASE_DIR, modify_file)]
-        return []
+        is_test_file = modify_file.split("/")[0] == "test" \
+                and re.match("test_(.+).py", os.path.basename(modify_file))
+        return [os.path.join(BASE_DIR, modify_file)] if is_test_file else []
 
 
 class CopyOptStrategy(AccurateTest):
@@ -132,7 +131,7 @@ class DirectoryMappingStrategy(AccurateTest):
 class TestMgr():
     def __init__(self):
         self.modify_files = []
-        self.ut_files = []
+        self.test_files = []
 
     def load(self, modify_files):
         with open(modify_files) as f:
@@ -142,21 +141,21 @@ class TestMgr():
 
     def analyze(self):
         for modify_file in self.modify_files:
-            self.ut_files += DirectoryStrategy().identify(modify_file)
-            self.ut_files += OpStrategy().identify(modify_file)
-            self.ut_files += CopyOptStrategy().identify(modify_file)
-            self.ut_files += DirectoryMappingStrategy().identify(modify_file)
-        unique_files = set(self.ut_files)
+            self.test_files += DirectoryStrategy().identify(modify_file)
+            self.test_files += CopyOptStrategy().identify(modify_file)
+            self.test_files += OpStrategy().identify(modify_file)
+            self.test_files += DirectoryMappingStrategy().identify(modify_file)
+        unique_files = set(self.test_files)
 
-        exist_ut_file = []
-        for changed_file in unique_files:
-            if os.path.exists(changed_file):
-                exist_ut_file.append(changed_file)
-        self.ut_files = exist_ut_file
-        self.ut_files.append(DEFAULT_UT_FILE)
+        exist_ut_file = [
+            changed_file
+            for changed_file in unique_files
+            if os.path.exists(changed_file)
+        ]
+        self.test_files = exist_ut_file
 
-    def get_ut_files(self):
-        return self.ut_files
+    def get_test_files(self):
+        return self.test_files
 
     def print_modify_files(self):
         print("modify files:")
@@ -165,7 +164,7 @@ class TestMgr():
 
     def print_ut_files(self):
         print("ut files:")
-        for ut_file in self.ut_files:
+        for ut_file in self.test_files:
             print(ut_file)
 
 
@@ -173,18 +172,23 @@ def exec_ut(ut_files):
     """
     执行单元测试文件，其中存在失败，则标识异常并打印相关信息
     """
-    def change_dir_and_exec(ut_path):
-        ut_dir = os.path.dirname(ut_path)
-        ut_file = os.path.basename(ut_path)
-        os.chdir(ut_dir)
-        cmd = "python3 {}".format(ut_file)
-        p = subprocess.Popen(['python3', ut_file], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    def get_ut_name(ut_file):
+        return os.path.relpath(ut_file, TEST_DIR)[:-3]
+
+    def get_ut_cmd(ut_file):
+        return [sys.executable, "run_test.py", "-v", "-i", get_ut_name(ut_file)]
+
+    def run_cmd_with_timeout(cmd):
+        os.chdir(TEST_DIR)
+        p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+
         try:
             msg = p.communicate(timeout=300)
             ret = p.poll()
             if ret:
-                print(msg)
-
+                stdout = msg[0].decode('utf-8')
+                stderr = msg[1].decode('utf-8') if msg[1] else msg[1]
+                print(stdout, stderr)
         except subprocess.TimeoutExpired:
             p.kill()
             p.terminate()
@@ -195,16 +199,21 @@ def exec_ut(ut_files):
             print(err)
         return ret
 
-    ret_status = 0
-    exec_infos = []
-    for ut_file in ut_files:
-        temp_ret = change_dir_and_exec(ut_file)
-        if temp_ret:
-            ret_status = temp_ret
-            exec_infos.append("exec ut {} failed.".format(ut_file))
-        else:
-            exec_infos.append("exec ut {} success.".format(ut_file))
-    
+    def run_tests(ut_files):
+        exec_infos = []
+        has_failed = 0
+        for ut_file in ut_files:
+            cmd = get_ut_cmd(ut_file)
+            ret = run_cmd_with_timeout(cmd)
+            if ret:
+                has_failed = ret
+                exec_infos.append("exec ut {} failed.".format(cmd[-1]))
+            else:
+                exec_infos.append("exec ut {} success.".format(cmd[-1]))
+        return has_failed, exec_infos
+
+    ret_status, exec_infos = run_tests(ut_files)
+
     print("***** Total result:")
     for exec_info in exec_infos:
         print(exec_info)
@@ -216,7 +225,7 @@ if __name__ == "__main__":
     test_mgr = TestMgr()
     test_mgr.load(cur_modify_files)
     test_mgr.analyze()
-    cur_ut_files = test_mgr.get_ut_files()
+    cur_ut_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
     test_mgr.print_ut_files()
