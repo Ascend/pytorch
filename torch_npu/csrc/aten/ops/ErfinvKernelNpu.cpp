@@ -1,4 +1,6 @@
-// Copyright (c) 2020, Huawei Technologies.All rights reserved.
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION. 
+// All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,37 +23,42 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::erfinv_out(const at::Tensor& self, at::Tensor& result)
-{
-    OpCommand cmd;
-    cmd.Name("Erfinv")
-       .Input(self)
-       .Output(result)
-       .Run();
+at::Tensor& erfinv_out_nocheck(at::Tensor& result, const at::Tensor& self) {
+  OpCommand cmd;
+  cmd.Name("Erfinv")
+      .Input(self)
+      .Output(result)
+      .Run();
+  return result;
+}
 
+at::Tensor& NPUNativeFunctions::erfinv_out(const at::Tensor& self, at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      CalcuOpUtil::GetTensorNpuFormat(result),
+      self.scalar_type(),
+      self.sizes());
+
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguous_result = NpuUtils::format_contiguous(result);
+    erfinv_out_nocheck(contiguous_result, self);
+    NpuUtils::format_fresh_view(result, contiguous_result);
+  } else {
+    erfinv_out_nocheck(result, self);
+  }
   return result;
 }
 
 at::Tensor NPUNativeFunctions::erfinv(const at::Tensor &self) {
-  auto output_size = self.sizes();
-  auto output_t = OpPreparation::ApplyTensor(self, output_size);
-  NPUNativeFunctions::erfinv_out(self, output_t);
-
-  return output_t;
+  auto result = OpPreparation::ApplyTensor(self);
+  erfinv_out_nocheck(result, self);
+  return result;
 }
 
-
-at::Tensor& NPUNativeFunctions::erfinv_(at::Tensor& self)
-{
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = NPUNativeFunctions::erfinv_out(contiguousSelf, contiguousSelf);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    NPUNativeFunctions::erfinv_out(self, self);
-  }
-  return self;
+at::Tensor& NPUNativeFunctions::erfinv_(at::Tensor& self) {
+  return NPUNativeFunctions::erfinv_out(self, self);
 }
 
-}  // namespace native
-}  // namespace at_npu
+} // namespace native
+} // namespace at_npu
