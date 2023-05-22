@@ -93,6 +93,20 @@ public:
 
   static void SetAttr(
       const string& attr_name,
+      at::ArrayRef<c10::IntArrayRef> value,
+      NodePtr node) {
+    vector<vector<int64_t>> val;
+    for (size_t i = 0; i < value.size(); ++i) {
+      val.emplace_back(vector<int64_t>(value[i].begin(), value[i].end()));
+    };
+    node->AddExtInfo(
+        NodeExtInfoType::ATTR_TYPE_LIST_LIST_LONG,
+        std::make_pair(attr_name, std::move(val)));
+    node->UpdateNodeHash(val);
+  }
+
+  static void SetAttr(
+      const string& attr_name,
       const c10::Scalar& value,
       NodePtr node) {
     float val = CalcuOpUtil::GetScalarFloatValue(value);
