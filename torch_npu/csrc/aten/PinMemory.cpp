@@ -39,17 +39,41 @@ at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device)
   return at::_ops::_pin_memory::redispatch(_dk, self, device);
 }
 
-/*
-  The community already supports the following interfaces on NPU,
-  but requires an additional parameter 'device' to be passed in when calling the following interfaces.
-  So this patch cannot be directly deleted until we provide a new capability
-  to set the default value of the parameter 'device' to npu, for those interfaces.
-*/
+class IgnoreWarningHandler: public c10::WarningHandler {
+public:
 
-TORCH_LIBRARY_IMPL(aten, BackendSelect, m) {
-  m.impl(TORCH_SELECTIVE_NAME("aten::is_pinned"), TORCH_FN(is_pinned));
-  m.impl(TORCH_SELECTIVE_NAME("aten::_pin_memory"), TORCH_FN(_pin_memory));
-}
+  void process(const c10::Warning& warning) {
+    ;
+  }
+};
+
+c10::WarningHandler* getIgnoreHandler() {
+  static IgnoreWarningHandler handler_ = IgnoreWarningHandler();
+  return &handler_;
+};
+
+// use to ignore the warning info when overriding operator for CPU-implement
+#define WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(enable)                         \
+  int enter_warning() {                                                       \
+    if(enable) {                                                              \
+      c10::WarningUtils::set_warning_handler(getIgnoreHandler());             \
+    }                                                                         \
+    return 1;                                                                 \
+  }                                                                           \
+  static int _temp_enter_warning = enter_warning();                           \
+  TORCH_LIBRARY_IMPL(aten, BackendSelect, m) {                                \
+    m.impl(TORCH_SELECTIVE_NAME("aten::is_pinned"), TORCH_FN(is_pinned));     \
+    m.impl(TORCH_SELECTIVE_NAME("aten::_pin_memory"), TORCH_FN(_pin_memory)); \
+  }                                                                           \
+  int exit_warning() {                                                        \
+    if(enable) {                                                              \
+      c10::WarningUtils::set_warning_handler(nullptr);                        \
+    }                                                                         \
+    return 1;                                                                 \
+  }                                                                           \
+  static int _temp_exit_warning = exit_warning();
+
+WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(true)
 
 }
 }
