@@ -31,7 +31,7 @@ at::Tensor& gather_out_npu_nocheck(
   at::Tensor dtypeCastOfResult = result;
   if (self.scalar_type() == at::ScalarType::Half) {
     dtypeCastOfSelf = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-    dtypeCastOfResult = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfResult, at::ScalarType::Float);
+    dtypeCastOfResult = OpPreparation::ApplyTensor(result, result.options().dtype(at::kFloat));
   }
 
   if (self.scalar_type() == at::kLong) {
