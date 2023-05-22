@@ -38,7 +38,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.11.0'
+VERSION = '1.11.0.post1'
 
 
 def generate_torch_npu_version():
@@ -188,6 +188,7 @@ class Clean(distutils.command.clean.clean):
             'torch_npu/csrc/aten/RegisterCPU.cpp',
             'torch_npu/csrc/aten/RegisterNPU.cpp',
             'torch_npu/csrc/aten/RegisterAutogradNPU.cpp',
+            'torch_npu/csrc/aten/RegisterUnsupprotNPU.cpp',
             'torch_npu/csrc/aten/NPUNativeFunctions.h',
             'torch_npu/csrc/aten/python_custom_functions.cpp',
             'torch_npu/utils/torch_funcs.py',
