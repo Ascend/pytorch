@@ -48,6 +48,8 @@ from torch._C._distributed_c10d import (
     set_debug_level_from_env,
 )
 
+import torch_npu
+
 
 # This module is wildcard imported from torch.distributed.
 # TODO: specify __all__
@@ -1911,8 +1913,8 @@ def all_to_all_single(output_tensor,
     _check_single_tensor(input_tensor, "input")
     output_split_sizes = [] if output_split_sizes is None else output_split_sizes
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
-    input_format = torch.get_npu_format(input_tensor)
-    output_format = torch.get_npu_format(output_tensor)
+    input_format = torch_npu.get_npu_format(input_tensor)
+    output_format = torch_npu.get_npu_format(output_tensor)
     judge_format = input_format != 0 and  input_format != 2
 
     if input_format != output_format:
@@ -1920,8 +1922,8 @@ def all_to_all_single(output_tensor,
     in_tensor = input_tensor
     out_tensor = output_tensor
     if judge_format:
-        in_tensor = torch.npu_format_cast(input_tensor, 2)
-        out_tensor = torch.npu_format_cast(output_tensor, 2)
+        in_tensor = torch_npu.npu_format_cast(input_tensor, 2)
+        out_tensor = torch_npu.npu_format_cast(output_tensor, 2)
 
     if group is None:
         default_pg = _get_default_group()

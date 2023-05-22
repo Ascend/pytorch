@@ -44,7 +44,7 @@ class TestNormalizeBatch(TestCase):
         return result.numpy()
 
     def npu_op_exec(self, input1, seq_len, normalize_type):
-        out = torch.npu_normalize_batch(input1, seq_len, normalize_type)
+        out = torch_npu.npu_normalize_batch(input1, seq_len, normalize_type)
         out = out.to("cpu")
         return out.detach().numpy()
 

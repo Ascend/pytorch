@@ -42,7 +42,7 @@ class TestNpuSlice(TestCase):
         return out
 
     def npu_op_exec(self, input1, offset, sizes):
-        output = torch.npu_slice(input1, offset, sizes)
+        output = torch_npu.npu_slice(input1, offset, sizes)
         return output
 
     def split_op_exec(self, input1, offset, sizes):

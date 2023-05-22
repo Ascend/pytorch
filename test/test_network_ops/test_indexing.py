@@ -26,7 +26,7 @@ class TestIndexing(TestCase):
     def test_indexing(self, device, dtype):
         input1 = torch.tensor([[1, 2, 3, 4],[5, 6, 7, 8]], dtype=dtype).to("npu")
         expect_output = torch.tensor([[1, 2],[5, 6]], dtype=dtype)
-        output = torch.npu_indexing(input1, [0, 0], [2, 2], [1, 1])
+        output = torch_npu.npu_indexing(input1, [0, 0], [2, 2], [1, 1])
         self.assertRtolEqual(expect_output, output.cpu())
 
 

@@ -28,7 +28,7 @@ class TestDeformableConv2dBackward(TestCase):
         input1 = np.random.uniform(minvalue, maxvalue, shape).astype(dtype)
         npu_input = torch.from_numpy(input1).to("npu")
         if format1 != -1:
-            npu_input = npu_input.npu_format_cast(format1)
+            npu_input = torch_npu.npu_format_cast(npu_input, format1)
         return npu_input
 
     def test_deformable_conv2d_backward_fp32(self):

@@ -35,8 +35,8 @@ class MatmulApply(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad):
         mat1, mat2 = ctx.saved_tensors
-        mat1_grad = torch.npu_bmmV2(grad, mat2, [])
-        mat2_grad = torch.npu_bmmV2(grad.transpose(-2, -1), mat1, [])
+        mat1_grad = torch_npu.npu_bmmV2(grad, mat2, [])
+        mat2_grad = torch_npu.npu_bmmV2(grad.transpose(-2, -1), mat1, [])
         return mat1_grad, mat2_grad
 
 
@@ -52,8 +52,8 @@ def create_common_tensor(item, minValue, maxValue, need_grad=True):
     cpu_input = torch.from_numpy(input1).to(npu_device)
     npu_input = torch.from_numpy(input1).to(npu_device)
     if format1 != -1:
-        cpu_input = cpu_input.npu_format_cast(format1)
-        npu_input = npu_input.npu_format_cast(format1)
+        cpu_input = torch_npu.npu_format_cast(cpu_input, format1)
+        npu_input = torch_npu.npu_format_cast(npu_input, format1)
     cpu_input.requires_grad = need_grad
     npu_input.requires_grad = need_grad
     return cpu_input, npu_input
@@ -72,11 +72,11 @@ class TestMultiHeadAttention(TestCase):
         perm = (0, 2, 1, 3)
         if k is not None:
             key_shape = (batch, src_len, attn_head_num, attn_dim_per_head)
-        q = q.npu_confusion_transpose(perm, new_shape, False)
+        q = torch_npu.npu_confusion_transpose(q, perm, new_shape, False)
         if k is not None:
-            k = k.npu_confusion_transpose(perm, key_shape, False)
+            k = torch_npu.npu_confusion_transpose(k, perm, new_shape, False)
         if v is not None:
-            v = v.npu_confusion_transpose(perm, key_shape, False)
+            v = torch_npu.npu_confusion_transpose(v, perm, new_shape, False)
         attn_batch1 = Matmul_transpose(q, k)
 
         attn_weights = attn_batch1.view(batch, attn_head_num, tgt_len, src_len)
@@ -85,8 +85,10 @@ class TestMultiHeadAttention(TestCase):
         attn_softmax = attn_weights_float.to(attn_weights.dtype)
         attn_probs, dropout_mask = torch_npu._npu_dropout(attn_softmax, p=dropout_prob)
         attn_batch2 = torch.matmul(attn_probs, v)
-        context = attn_batch2.npu_confusion_transpose(perm, (attn_batch2.size()[0] * attn_batch2.size()[2], embed_dim),
-                                                      True)
+        context = torch_npu.npu_confusion_transpose(attn_batch2, 
+                                                    perm, 
+                                                    (attn_batch2.size()[0] * attn_batch2.size()[2], embed_dim), 
+                                                    True)
         attn = torch_npu.npu_linear(context, out_proj_weight, out_proj_bias)
 
         return attn, dropout_mask, q, k, v, attn_weights_float, attn_probs, context

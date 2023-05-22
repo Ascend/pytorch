@@ -24,7 +24,7 @@ from torch_npu.testing.decorator import graph_mode
 
 class TestStrideAdd(TestCase):
      def npu_op_exec(self, input1, input2, offset1, offset2, c1_len):
-        output = torch.npu_stride_add(input1, input2, offset1, offset2, c1_len)
+        output = torch_npu.npu_stride_add(input1, input2, offset1, offset2, c1_len)
         output = output.to("cpu")
         output = output.numpy()
 

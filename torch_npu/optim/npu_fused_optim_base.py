@@ -17,6 +17,8 @@
 import torch
 from torch import inf
 from torch.optim.optimizer import Optimizer
+
+import torch_npu
 from torch_npu.utils import npu_combine_tensors, get_part_combined_tensor
 
 
@@ -56,9 +58,9 @@ class NpuFusedOptimizerBase(Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
-                if torch.get_npu_format(p) != torch.get_npu_format(p.grad):
-                    p.grad = torch.npu_format_cast(
-                        p.grad, torch.get_npu_format(p)).contiguous()
+                if torch_npu.get_npu_format(p) != torch_npu.get_npu_format(p.grad):
+                    p.grad = torch_npu.npu_format_cast(
+                        p.grad, torch_npu.get_npu_format(p)).contiguous()
                 param_size = p.storage().size()
                 grad_size = p.grad.storage().size()
                 if p.dtype == torch.float32:
@@ -197,8 +199,8 @@ class NpuFusedOptimizerBase(Optimizer):
         for param in list_of_params:
             if param.requires_grad:
                 grad_size = param.grad.size()
-                grad_format = torch.get_npu_format(param)
-                list_of_grads_masks.append(torch.npu_format_cast(torch.ones(grad_size).npu(), grad_format))
+                grad_format = torch_npu.get_npu_format(param)
+                list_of_grads_masks.append(torch_npu.npu_format_cast(torch.ones(grad_size).npu(), grad_format))
         grad_mask_combined = npu_combine_tensors(list_of_grads_masks)
 
         return grad_mask_combined

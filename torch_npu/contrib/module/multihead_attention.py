@@ -16,10 +16,13 @@
 
 from typing import Dict, Optional, Tuple, List
 import math
+
 import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import Parameter
+
 import torch_npu
 from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout, DropOutTask
 from ..function import matmul_transpose
@@ -130,11 +133,11 @@ class NpuLinear(nn.Linear):
         input_shape = input2.size()
         if input2.dim() == 3:
             input2 = input2.view(-1, self.in_features)
-            return torch.npu_linear(input2,self.weight, self.bias).view(input_shape[0],
+            return torch_npu.npu_linear(input2,self.weight, self.bias).view(input_shape[0],
                                                                        input_shape[1],
                                                                        self.out_features)
         elif input2.dim() == 2:
-            return torch.npu_linear(input2, self.weight,self.bias)
+            return torch_npu.npu_linear(input2, self.weight,self.bias)
         else:
             raise RuntimeError('not support this dim')
 
@@ -278,7 +281,7 @@ class MultiheadAttention(nn.Module):
 
     def transpose_for_scores(self, x):
         new_x_shape = (self.batch_size, self.squence_length) + (self.num_attention_heads, self.attention_head_size)
-        return torch.npu_confusion_transpose(x, (0, 2, 1, 3), new_x_shape, False)
+        return torch_npu.npu_confusion_transpose(x, (0, 2, 1, 3), new_x_shape, False)
 
     def forward(
         self,

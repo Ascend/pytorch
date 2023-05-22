@@ -26,7 +26,7 @@ from torch_npu.testing.decorator import graph_mode
 class TestMishBackward(TestCase):
     def npu_op_exec(self, input1):
         input1.requires_grad = True
-        output = torch.npu_mish(input1)
+        output = torch_npu.npu_mish(input1)
         output.backward(torch.ones_like(output))
         output_grad = input1.grad
         output_grad = output_grad.to("cpu")

@@ -32,8 +32,8 @@ class TestBroadCastTensors(TestCase):
         input1 =input1.npu()
         input2 =input2.npu()
         if npu_format is not None:
-            input1 = torch.npu_format_cast(input1,npu_format)
-            input2 = torch.npu_format_cast(input2,npu_format)
+            input1 = torch_npu.npu_format_cast(input1,npu_format)
+            input2 = torch_npu.npu_format_cast(input2,npu_format)
         output1, output2 = torch.broadcast_tensors(input1,input2);
         return output1.cpu().numpy(), output2.cpu().numpy()
 

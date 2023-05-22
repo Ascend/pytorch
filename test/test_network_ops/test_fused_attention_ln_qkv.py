@@ -22,7 +22,9 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestFusedAttentionQKV(TestCase):
     def transpose_new(self, x, new_shape):
-        return x.npu_confusion_transpose((0, 2, 1, 3), new_shape, False).npu_format_cast(29)
+        return torch_npu.npu_format_cast(torch_npu.npu_confusion_transpose(x,
+                                                                           (0, 2, 1, 3),
+                                                                           new_shape, False), 29)
 
     def npu_op_exec_ori(self, ln_input, q_kernel, k_kernel, v_kernel, gamma, beta, q_bias, k_bias, v_bias):
         norm_shape = (1024,)
@@ -50,20 +52,21 @@ class TestFusedAttentionQKV(TestCase):
         k_bias = torch.rand(1024).half()
         v_bias = torch.rand(1024).half()
 
-        ori_ln_input = ln_input.npu().npu_format_cast(29)
-        ori_q_w = q_weight.npu().npu_format_cast(29)
-        ori_k_w = k_weight.npu().npu_format_cast(29)
-        ori_v_w = v_weight.npu().npu_format_cast(29)
+        ori_ln_input = torch_npu.npu_format_cast(ln_input.npu(), 29)
+        ori_q_w = torch_npu.npu_format_cast(q_weight.npu(), 29)
+        ori_k_w = torch_npu.npu_format_cast(k_weight.npu(), 29)
+        ori_v_w = torch_npu.npu_format_cast(v_weight.npu(), 29)
         ori_gamma = gamma.npu()
         ori_beta = beta.npu()
         ori_q_b = q_bias.npu()
         ori_k_b = k_bias.npu()
         ori_v_b = v_bias.npu()
 
-        fused_ln_input = ln_input.npu().npu_format_cast(29)
-        fused_q_w = q_weight.npu().t().contiguous().npu_format_cast(29)
-        fused_k_w = k_weight.npu().t().contiguous().npu_format_cast(29)
-        fused_v_w = v_weight.npu().t().contiguous().npu_format_cast(29)
+        fused_ln_input = torch_npu.npu_format_cast(ln_input.npu(), 29)
+        fused_q_w = torch_npu.npu_format_cast(q_weight.npu().t().contiguous(), 29)
+        fused_k_w = torch_npu.npu_format_cast(k_weight.npu().t().contiguous(), 29)
+        fused_v_w = torch_npu.npu_format_cast(v_weight.npu().t().contiguous(), 29)
+        ori_gamma = gamma.npu()
         fused_gamma = gamma.npu()
         fused_beta = beta.npu()
         fused_q_b = q_bias.npu()

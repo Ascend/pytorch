@@ -95,7 +95,7 @@ class TestSerialization(TestCase):
             x_loaded = torch.load(path)
             self.assertEqual(torch_npu.get_npu_format(x),
                              torch_npu.get_npu_format(x_loaded))
-            x = x.npu_format_cast(FORMAT_NZ)
+            x = torch_npu.npu_format_cast(x, FORMAT_NZ)
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertEqual(torch_npu.get_npu_format(x),

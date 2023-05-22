@@ -29,18 +29,18 @@ class TestSortWithoutIndices(TestCase):
         return output
     
     def npu_dim_op_exec(self, input1, dim, descending):
-        output = torch.npu_sort_v2(input1, dim=dim, descending=descending)
+        output = torch_npu.npu_sort_v2(input1, dim=dim, descending=descending)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def cpu_default_op_exec(self, input1):
-        output, _ = torch.sort(input1)
+        output, _ = torch_npu.sort(input1)
         output = output.to(torch.float16).numpy()
         return output
     
     def npu_default_op_exec(self, input1):
-        output = torch.npu_sort_v2(input1)
+        output = torch_npu.npu_sort_v2(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -51,7 +51,7 @@ class TestSortWithoutIndices(TestCase):
         return output
     
     def npu_op_exec(self, input1, descending):
-        output = torch.npu_sort_v2(input1, descending=descending)
+        output = torch_npu.npu_sort_v2(input1, descending=descending)
         output = output.to("cpu")
         output = output.numpy()
         return output

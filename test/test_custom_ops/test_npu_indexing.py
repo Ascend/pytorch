@@ -67,7 +67,7 @@ class TestNpuIndexing(TestCase):
           return out
 
     def npu_op_exec(self, mat, begin, end, strides):
-        output = torch.npu_indexing(mat, begin, end, strides)
+        output = torch_npu.npu_indexing(mat, begin, end, strides)
         return output
 
     def split_op_exec(self, mat, begin, end, strides):

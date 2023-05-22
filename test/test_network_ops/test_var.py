@@ -140,7 +140,7 @@ class TestVar(TestCase):
         cpu_input = torch.from_numpy(input1)
         npu_input = torch.from_numpy(input1).npu()
         if npuformat != -1:
-            npu_input = npu_input.npu_format_cast(npuformat)
+            npu_input = torch_npu.npu_format_cast(npu_input, npuformat)
         return cpu_input, npu_input
         
     def test_var_shape_format_fp16(self):

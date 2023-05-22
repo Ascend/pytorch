@@ -55,8 +55,8 @@ class MatmulApply(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad):
         self, mat2 = ctx.saved_tensors
-        self_grad = torch.npu_bmmV2(grad, mat2, [])
-        mat2_grad = torch.npu_bmmV2(grad.transpose(-2, -1), self, [])
+        self_grad = torch_npu.npu_bmmV2(grad, mat2, [])
+        mat2_grad = torch_npu.npu_bmmV2(grad.transpose(-2, -1), self, [])
         return self_grad, mat2_grad
 
 matmul_transpose = MatmulApply.apply

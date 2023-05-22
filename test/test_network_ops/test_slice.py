@@ -23,7 +23,7 @@ from torch_npu.testing.decorator import Dtypes, instantiate_tests
 @instantiate_tests
 class TestSlice(TestCase):
     def npu_op_exec(self, input1, offset, sizes):
-        output = torch.npu_slice(input1, offset, sizes)
+        output = torch_npu.npu_slice(input1, offset, sizes)
         output = output.to("cpu")
         output = output.numpy()
         return output

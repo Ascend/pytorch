@@ -40,13 +40,13 @@ class FusedAttentionQKV(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output_q, grad_output_k, grad_output_v):
         hidden_states, q_kernel, k_kernel, v_kernel = ctx.saved_tensors
-        grad_output_q = grad_output_q.permute(0, 2, 1, 3).contiguous().view(12288, 1024).npu_format_cast(29)
-        grad_output_k = grad_output_k.permute(0, 2, 1, 3).contiguous().view(12288, 1024).npu_format_cast(29)
-        grad_output_v = grad_output_v.permute(0, 2, 1, 3).contiguous().view(12288, 1024).npu_format_cast(29)
+        grad_output_q = torch_npu.npu_format_cast(grad_output_q.permute(0, 2, 1, 3).contiguous().view(12288, 1024), 29)
+        grad_output_k = torch_npu.npu_format_cast(grad_output_k.permute(0, 2, 1, 3).contiguous().view(12288, 1024), 29)
+        grad_output_v = torch_npu.npu_format_cast(grad_output_v.permute(0, 2, 1, 3).contiguous().view(12288, 1024), 29)
         grad_hidden_states, grad_w_q, grad_w_k, grad_w_v, grad_b_q, grad_b_k, grad_b_v = \
             torch_npu.npu_fused_attention_qkv_grad(grad_output_q, grad_output_k, grad_output_v,
                                                    q_kernel, k_kernel, v_kernel, hidden_states,
-                                                   torch.zeros_like(hidden_states).npu_format_cast(29))
+                                                   torch_npu.npu_format_cast(torch.zeros_like(hidden_states), 29))
 
         return grad_hidden_states, grad_w_q, grad_w_k, grad_w_v, grad_b_q, grad_b_k, grad_b_v
 
@@ -97,18 +97,18 @@ class TestFusedAttentionQKV(TestCase):
         k_bias = torch.rand(1024).half()
         v_bias = torch.rand(1024).half()
 
-        ori_h = hidden_states.npu().view(12288, 1024).npu_format_cast(29)
-        ori_q_w = q_weight.npu().npu_format_cast(29)
-        ori_k_w = k_weight.npu().npu_format_cast(29)
-        ori_v_w = v_weight.npu().npu_format_cast(29)
+        ori_h = torch_npu.npu_format_cast(hidden_states.npu().view(12288, 1024), 29)
+        ori_q_w = torch_npu.npu_format_cast(q_weight.npu(), 29)
+        ori_k_w = torch_npu.npu_format_cast(k_weight.npu(), 29)
+        ori_v_w = torch_npu.npu_format_cast(v_weight.npu(), 29)
         ori_q_b = q_bias.npu()
         ori_k_b = k_bias.npu()
         ori_v_b = v_bias.npu()
 
-        fused_h = hidden_states.npu().view(12288, 1024).npu_format_cast(29)
-        fused_q_w = q_weight.npu().npu_format_cast(29)
-        fused_k_w = k_weight.npu().npu_format_cast(29)
-        fused_v_w = v_weight.npu().npu_format_cast(29)
+        fused_h = torch_npu.npu_format_cast(hidden_states.npu().view(12288, 1024), 29)
+        fused_q_w = torch_npu.npu_format_cast(q_weight.npu(), 29)
+        fused_k_w = torch_npu.npu_format_cast(k_weight.npu(), 29)
+        fused_v_w = torch_npu.npu_format_cast(v_weight.npu(), 29)
         fused_q_b = q_bias.npu()
         fused_k_b = k_bias.npu()
         fused_v_b = v_bias.npu()

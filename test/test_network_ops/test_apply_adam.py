@@ -54,7 +54,7 @@ class TestApplyAdam(TestCase):
         ep = 0.2
         ul = False
         un = False
-        var_o, m_o, v_o = torch.npu_apply_adam(bt1p, bt2p, lr, bt1, bt2, ep, grad, ul, un, out = (var, m, v))
+        var_o, m_o, v_o = torch_npu.npu_apply_adam(bt1p, bt2p, lr, bt1, bt2, ep, grad, ul, un, out = (var, m, v))
         expect_varo = torch.tensor([[[[-0.1842,  0.6028],
                                       [ 0.4803, -0.3156]],
                                      [[ 0.9466, -0.9984],
