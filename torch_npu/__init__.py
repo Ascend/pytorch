@@ -21,7 +21,6 @@ import inspect
 import types
 import atexit
 import traceback
-import warnings
 
 from builtins import isinstance as builtin_isinstance
 from typing import Set, Type
@@ -33,8 +32,12 @@ try:
     import torch_npu.npu
 except ImportError as e:
     if "libhccl.so" in str(e):
-        raise Exception(f"Please check that the cann package is installed, " \
-                        "Please run 'source set_env.sh' in the CANN installation path.")
+        if ("ASCEND_OPP_PATH" in os.environ):
+            raise Exception(f"Please check that the compiler package is installed, " \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
+        else:
+            raise Exception(f"Please check that the cann package is installed, " \
+                            "Please run 'source set_env.sh' in the CANN installation path.")
     
     if "libascendcl.so" in str(e):
         raise Exception(f"Please check that the runtime package is installed, " \
@@ -62,9 +65,10 @@ from .version import __version__ as __version__
 
 
 cann_pytorch_version_map = {
+    "6.3.RC2" : ["1.8.1.post2", "1.11.0.post1", "2.0.0.rc1"],
     "6.3.RC1" : ["1.8.1.post1", "1.11.0"],
     "6.1.RC1" : ["1.8.1.post1", "1.11.0"],
-    "6.0.1" : ["1.5.0.post8", "1.8.1", "1.11.0.rc2"],
+    "6.0.1" : ["1.8.1", "1.11.0.rc2"],
     "6.0.RC1" : ["1.8.1", "1.11.0.rc1"]
 }
 
@@ -116,10 +120,10 @@ def cann_package_check():
         # check whether the CANN package version matches the pytorch version
         if cann_version in cann_pytorch_version_map and \
             torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
-            warnings.warn(f"CANN package version {cann_version} and PyTorch version {torch_npu.__version__}" \
-                          "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
+            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} " \
+                  "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
     else:
-        warnings.warn(f"ASCEND_HOME_PATH environment variable is not set.")
+        print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
 
 cann_package_check()
 
