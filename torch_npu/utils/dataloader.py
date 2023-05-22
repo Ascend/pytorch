@@ -17,13 +17,15 @@ import os
 import threading
 import itertools
 import queue
+import functools
 import torch
 import torch.distributed as dist
-from torch.utils.data import _utils, IterDataPipe
+from torch.utils.data import _utils, IterDataPipe, MapDataPipe
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter as SrcSingleProcessDataLoaderIter
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter as SrcMultiProcessingDataLoaderIter
 from torch.utils.data.dataloader import DataLoader as SrcDataLoader
-from torch.utils.data.dataloader import _DatasetKind, _share_dist_seed
+from torch.utils.data.dataloader import (_DatasetKind, _share_dist_seed, _sharding_worker_init_fn,
+                                         _get_distributed_settings)
 from torch._utils import ExceptionWrapper
 import torch.multiprocessing as multiprocessing
 import torch_npu
@@ -124,6 +126,9 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
         self._persistent_workers = loader.persistent_workers
         self._num_yielded = 0
         self._profile_name = "enumerate(DataLoader)#{}.__next__".format(self.__class__.__name__)
+        ws, rank = _get_distributed_settings()
+        self._world_size = ws
+        self._rank = rank
 
         assert self._num_workers > 0
         assert self._prefetch_factor > 0
@@ -141,6 +146,11 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
             multiprocessing_context = loader.multiprocessing_context
 
         self._worker_init_fn = loader.worker_init_fn
+        # Adds forward compatibilities so classic DataLoader can work with DataPipes:
+        #   Additional worker init function will take care of sharding in MP and Distributed
+        if isinstance(self._dataset, (IterDataPipe, MapDataPipe)):
+            self._worker_init_fn = functools.partial(
+                _sharding_worker_init_fn, self._worker_init_fn, self._world_size, self._rank)
         self._worker_queue_idx_cycle = itertools.cycle(range(self._num_workers))
         self._worker_result_queue = multiprocessing_context.Queue()  # type: ignore
         self._worker_pids_set = False
