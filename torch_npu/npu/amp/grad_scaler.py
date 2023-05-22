@@ -225,7 +225,7 @@ class GradScaler(Cuda_GradScaler):
         # Google says mypy struggles with defaultdicts type annotations.
         per_device_and_dtype_grads = defaultdict(lambda: defaultdict(list))
         with torch.no_grad():
-            if hasattr(optimizer, 'is_fused_optimizer'):
+            if hasattr(optimizer, 'is_npu_fused_optimizer') and optimizer.is_npu_fused_optimizer:
                 if not optimizer.is_params_grads_combined:
                     optimizer._maybe_init_combined_params_and_grads()
 
