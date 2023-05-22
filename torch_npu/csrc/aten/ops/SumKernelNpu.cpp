@@ -99,7 +99,7 @@ at::Tensor NPUNativeFunctions::sum(
 
   for (int64_t i = 0; i < selfSize.size(); i++) {
     if (selfSize[i] == 0) {
-      return at::zeros(outputSize, self_cp.options());
+      return at::zeros(outputSize, self_cp.options().dtype(out_type));
     }
   }
 
