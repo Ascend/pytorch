@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-DEFAULT_UT_FILE = os.path.join(BASE_DIR, 'ci/pytorch_resnet.py')
+TEST_DIR = os.path.join(BASE_DIR, 'test')
 TEST_OPS = os.path.join(BASE_DIR, 'test/test_ops.py')
 
 
@@ -62,11 +62,9 @@ class DirectoryStrategy(AccurateTest):
     通过识别测试文件的目录确认需要进行UT的文件
     """
     def identify(self, modify_file):
-        second_dir = modify_file.split("/")[0]
-        if second_dir == 'test' and modify_file.endswith(".py"):
-            return [os.path.join(BASE_DIR, modify_file)]
-        else:
-            return []
+        is_test_file = modify_file.split("/")[0] == "test" \
+                and re.match("test_(.+).py", os.path.basename(modify_file))
+        return [os.path.join(BASE_DIR, modify_file)] if is_test_file else []
 
 
 class CopyOptStrategy(AccurateTest):
@@ -133,7 +131,7 @@ class TestMgr():
 
     def analyze(self):
         for modify_file in self.modify_files:
-            self.test_files['ut_files'] += DirectoryStrategy().identify(modify_file)          
+            self.test_files['ut_files'] += DirectoryStrategy().identify(modify_file)
             self.test_files['ut_files'] += CopyOptStrategy().identify(modify_file)
             self.test_files['ut_files'] += OpStrategy().identify(modify_file)
             self.test_files['ut_files'] += DirectoryMappingStrategy().identify(modify_file)
@@ -146,7 +144,6 @@ class TestMgr():
             if os.path.exists(changed_file)
         ]
         self.test_files['ut_files'] = exist_ut_file
-        self.test_files['ut_files'].append(DEFAULT_UT_FILE)
 
     def get_test_files(self):
         return self.test_files
@@ -171,20 +168,21 @@ def exec_ut(files):
     """
     执行单元测试文件，其中存在失败，则标识异常并打印相关信息
     """
-    def get_ut_name(ut_file):
+    def get_op_name(ut_file):
         return ut_file.split('/')[-1].split('.')[0].lstrip('test_')
+    
+    def get_ut_name(ut_file):
+        return os.path.relpath(ut_file, TEST_DIR)[:-3]
 
-    def change_dir_and_exec(ut_path, is_op_ut=False):
-        if is_op_ut:
-            ut_dir = os.path.dirname(TEST_OPS)
-            cmd = f'python3.8 -m unittest test_ops.py -v -k {ut_path}_'
-        else:
-            ut_dir = os.path.dirname(ut_path)
-            ut_file = os.path.basename(ut_path)
-            cmd = f'python3.8 {ut_file}'
+    def get_ut_cmd(ut_type, ut_file):
+        cmd = [sys.executable, "run_test.py", "-v", "-i"]
+        if ut_type == "op_ut_files":
+            return cmd + ["test_ops", "--", "-k", get_op_name(ut_file)]
+        return cmd + [get_ut_name(ut_file)]
 
-        os.chdir(ut_dir)
-        p = subprocess.Popen(cmd.split(' '), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    def run_cmd_with_timeout(cmd):
+        os.chdir(TEST_DIR)
+        p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
         try:
             msg = p.communicate(timeout=2000)
@@ -203,28 +201,22 @@ def exec_ut(files):
             print(err)
         return ret
 
-    ut_files = files['ut_files']
-    op_ut_files = files['op_ut_files']
-    ret_status = 0
-    exec_infos = []
-    for ut_file in ut_files:
-        temp_ret = change_dir_and_exec(ut_file)
+    def run_tests(files):
+        exec_infos = []
+        has_failed = 0
+        for ut_type, ut_files in files.items():
+            for ut_file in ut_files:
+                cmd = get_ut_cmd(ut_type, ut_file)
+                ut_info = " ".join(cmd[4:]).replace(" -- -k", "")
+                ret = run_cmd_with_timeout(cmd)
+                if ret:
+                    has_failed = ret
+                    exec_infos.append("exec ut {} failed.".format(ut_info))
+                else:
+                    exec_infos.append("exec ut {} success.".format(ut_info))
+        return has_failed, exec_infos
 
-        if temp_ret:
-            ret_status = temp_ret
-            exec_infos.append("exec ut {} failed.".format(ut_file))
-        else:
-            exec_infos.append("exec ut {} success.".format(ut_file))
-
-    for op_ut_file in op_ut_files:
-        ut_name = get_ut_name(op_ut_file)
-        op_ut_ret = change_dir_and_exec(ut_name, True)
-
-        if op_ut_ret:
-            ret_status = op_ut_ret
-            exec_infos.append("exec ut test_ops.py {} failed.".format(ut_name))
-        else:
-            exec_infos.append("exec ut test_ops.py {} success.".format(ut_name))
+    ret_status, exec_infos = run_tests(files)
 
     print("***** Total result:")
     for exec_info in exec_infos:

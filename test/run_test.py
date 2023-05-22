@@ -210,16 +210,17 @@ def main():
 
     for test in selected_tests:
         err_msg = run_test_module(test, test_directory, options)
-        
+
         if err_msg is None:
             continue
         has_failed = True
         failure_msgs.append(err_msg)
         print_to_stderr(err_msg)
-    
+
     if has_failed:
         for err in failure_msgs:
-            print_to_stderr("exec ut " + err)
+            print_to_stderr(err)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

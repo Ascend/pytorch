@@ -20,7 +20,6 @@ import warnings
 import random
 import subprocess
 import inspect
-import __main__
 import torch
 import expecttest
 import numpy as np

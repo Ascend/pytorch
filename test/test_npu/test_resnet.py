@@ -19,6 +19,7 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 import torch_npu
+from torch_npu.testing.testcase import TestCase, run_tests
 
 SOURCE_DIR = os.environ.get('SOURCE_DIR')
 BATCH_SIZE = 128
@@ -89,8 +90,8 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 best_acc1 = 0
 
 
-def main():
-    args = parser.parse_args()
+def run_resnet():
+    args, _ = parser.parse_known_args()
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -141,8 +142,6 @@ def main_worker(npu, args):
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
-
-    cudnn.benchmark = True
 
     # Data loading code
     traindir = os.path.join(args.data, 'train')
@@ -361,7 +360,11 @@ def accuracy(output, target, topk=(1,)):
         return res
 
 
+class TestResnet(TestCase):
+    def test_resnet(self):
+        if 'npu' in CALCULATE_DEVICE:
+            torch.npu.set_device(CALCULATE_DEVICE)
+        run_resnet()
+
 if __name__ == '__main__':
-    if 'npu' in CALCULATE_DEVICE:
-        torch.npu.set_device(CALCULATE_DEVICE)
-    main()
+    run_tests()
