@@ -46,6 +46,7 @@ except ImportError as e:
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
 import torch_npu.distributed
+import torch_npu.optim
 import torch_npu._C
 
 import torch_npu.npu.npu_print as _npu_print
