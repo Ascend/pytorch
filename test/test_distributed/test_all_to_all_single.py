@@ -39,9 +39,9 @@ class HcclAlltoAllSingleTest(TestCase):
             cls, rank, data, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         input1 = data.float().npu()
-        input1 = input1.npu_format_cast(29)
+        input1 = torch_npu.npu_format_cast(input1, 29)
         output = torch.empty(200, 1).float().npu()
-        output = output.npu_format_cast(29)
+        output = torch_npu.npu_format_cast(output, 29)
         inputsize1 = [100, 100]
         inputsize2 = [100, 100]
         outsize1 = [100, 100]
@@ -50,7 +50,7 @@ class HcclAlltoAllSingleTest(TestCase):
         outsize = [outsize1, outsize2]
         cout = 1
         pg.all_to_all_single(output, input1, outsize[rank], inputsize[rank])
-        if torch.get_npu_format(output.npu()) != 29:
+        if torch_npu.get_npu_format(output.npu()) != 29:
             raise RuntimeError("format error!")
         c2p.put((rank, output.cpu(), cout))
 

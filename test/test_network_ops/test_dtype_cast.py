@@ -1,3 +1,5 @@
+import sys
+
 import torch
 import numpy as np
 import torch_npu
@@ -20,7 +22,7 @@ class TestDtypeCast(TestCase):
         input1_grad = input1.grad
         return output.cpu().detach(), input1_grad.cpu()
 
-    def test_dtype_base(self, device="npu"):
+    def test_dtype_base(self):
         a = torch.rand(2).npu()
         a.requires_grad = True
         b = torch_npu.npu_dtype_cast(a, torch.half)
@@ -28,7 +30,7 @@ class TestDtypeCast(TestCase):
             print("the output.requires_grad of npu_dtype_cast should be same with input, but not so.")
             sys.exit(-1)
 
-    def test_dtype_cast_shape_format(self, device="npu"):    
+    def test_dtype_cast_shape_format(self):    
         shape_format = [
                 [np.float32, 0, 1],
                 [np.float32, 0, (64, 10)],
@@ -43,7 +45,7 @@ class TestDtypeCast(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
     
-    def test_dtype_cast_shape_format_fp16(self, device="npu"):    
+    def test_dtype_cast_shape_format_fp16(self):    
         shape_format = [
                 [np.float16, 0, 1],
                 [np.float16, 0, (64, 10)],

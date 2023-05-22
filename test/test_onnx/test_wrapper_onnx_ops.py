@@ -223,27 +223,38 @@ class TestOnnxOps(TestCase):
                 self.tgt_len = tgt_len
                 self.dropout_prob = dropout_prob
                 self.softmax_use_float = softmax_use_float
-                self.query_weight = torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(
-                                                torch.half).npu().npu_format_cast(FORMAT_NZ)
-                self.key_weight = torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(
-                                                torch.half).npu().npu_format_cast(FORMAT_NZ)
-                self.value_weight = torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(
-                                                torch.half).npu().npu_format_cast(FORMAT_NZ)
-                self.out_proj_weight = torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(
-                                                torch.half).npu().npu_format_cast(FORMAT_NZ)
-                self.attn_mask = torch.randn((batch, attn_head_num, tgt_len, src_len)).uniform_(
-                                                -1, 1).to(torch.half).npu().npu_format_cast(FORMAT_ND)
-                self.query_bias = torch.randn((weight_col,)).uniform_(-1, 1).to(torch.half).npu(
-                                                ).npu_format_cast(FORMAT_ND)
-                self.key_bias = torch.randn((weight_col,)).uniform_(-1, 1).to(torch.half).npu(
-                                                ).npu_format_cast(FORMAT_ND)
-                self.value_bias = torch.randn((weight_col,)).uniform_(-1, 1).to(torch.half).npu(
-                                                ).npu_format_cast(FORMAT_ND)
-                self.out_proj_bias = torch.randn((weight_col,)).uniform_(-1, 1).to(torch.half).npu(
-                                                ).npu_format_cast(FORMAT_ND)
-                self.grad = torch.randn((batch * tgt_len, attn_dim_per_head * attn_head_num
-                                                )).uniform_(-1, 1).to(torch.half).npu(
-                                                ).npu_format_cast(FORMAT_NZ)
+                self.query_weight = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+                )
+                self.key_weight = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+                )
+                self.value_weight = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+                )
+                self.out_proj_weight = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+                )
+                self.attn_mask = torch_npu.npu_format_cast(
+                    torch.randn((batch, attn_head_num,
+                                 tgt_len, src_len)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_ND
+                )
+                self.query_bias = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_ND
+                )
+                self.key_bias = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_ND
+                )
+                self.value_bias = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_ND
+                )
+                self.out_proj_bias = torch_npu.npu_format_cast(
+                    torch.randn((weight_col, )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_ND
+                )
+                self.grad = torch_npu.npu_format_cast(
+                    torch.randn((batch * tgt_len, 
+                                 attn_dim_per_head * attn_head_num )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+                )
                 self.mask = (torch.randn((src_len * tgt_len * attn_head_num)).uniform_(-1,
                                                 1).npu() > 0).to(torch.uint8)
 
@@ -263,12 +274,15 @@ class TestOnnxOps(TestCase):
             tgt_len = 64
             weight_col = attn_head_num * attn_dim_per_head
 
-            query = torch.randn((batch * tgt_len, weight_col)).uniform_(-1, 1).to(
-                                torch.half).npu().npu_format_cast(FORMAT_NZ)
-            key = torch.randn((batch * src_len, weight_col)).uniform_(-1, 1).to(
-                                torch.half).npu().npu_format_cast(FORMAT_NZ)
-            value = torch.randn((batch * src_len, weight_col)).uniform_(-1, 1).to(
-                                torch.half).npu().npu_format_cast(FORMAT_NZ)
+            query = torch_npu.npu_format_cast(
+                torch.randn((batch * tgt_len, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+            )
+            key = torch_npu.npu_format_cast(
+                torch.randn((batch * src_len, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+            )
+            value = torch_npu.npu_format_cast(
+                torch.randn((batch * src_len, weight_col)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+            )
 
             model = Model().to("npu")
             model(query, key, value)
@@ -505,9 +519,9 @@ class TestOnnxOps(TestCase):
                 q_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half()
                 k_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half()
                 v_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half()
-                self.fused_q_w = q_weight.npu().t().contiguous().npu_format_cast(29)
-                self.fused_k_w = k_weight.npu().t().contiguous().npu_format_cast(29)
-                self.fused_v_w = v_weight.npu().t().contiguous().npu_format_cast(29)
+                self.fused_q_w = torch_npu.npu_format_cast(q_weight.npu().t().contiguous(), 29)
+                self.fused_k_w = torch_npu.npu_format_cast(k_weight.npu().t().contiguous(), 29)
+                self.fused_v_w = torch_npu.npu_format_cast(v_weight.npu().t().contiguous(), 29)
                 self.q_bias = torch.rand(1024).half().npu()
                 self.k_bias = torch.rand(1024).half().npu()
                 self.v_bias = torch.rand(1024).half().npu()
@@ -519,7 +533,7 @@ class TestOnnxOps(TestCase):
 
         def export_onnx(onnx_model_name):
             ln_input = torch.rand(12288, 1024).uniform_(-6, 6).half()
-            input_ = ln_input.npu().npu_format_cast(29)
+            input_ = torch_npu.npu_format_cast(ln_input.npu(), 29)
             gamma = torch.rand(1024).half().npu()
             beta = torch.rand(1024).half().npu()
 
@@ -983,14 +997,18 @@ class TestOnnxOps(TestCase):
                 super().__init__()
                 input_size = 8
                 hidden_size = 7
-                self.weight_ih = torch.rand((input_size, 4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
-                self.weight_hh = torch.rand((hidden_size, 4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
-                self.bias_ih = torch.rand((4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
-                self.bias_hh = torch.rand((4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
+                self.weight_ih = torch_npu.npu_format_cast(
+                    torch.rand((input_size, 4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
+                self.weight_hh = torch_npu.npu_format_cast(
+                    torch.rand((hidden_size, 4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
+                self.bias_ih = torch_npu.npu_format_cast(
+                    torch.rand((4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
+                self.bias_hh = torch_npu.npu_format_cast(
+                    torch.rand((4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
             def forward(self, input_data, h0_data, c0_data):
                 return torch_npu.npu_lstm_cell(input_data, self.weight_ih, self.weight_hh,
                         h0_data, c0_data, self.bias_ih, self.bias_hh)
@@ -1004,12 +1022,15 @@ class TestOnnxOps(TestCase):
             h0_shape = (batch_size, hidden_size)
             c0_shape = (batch_size, hidden_size)
 
-            input_data = torch.rand(input_shape).uniform_(
-                                -1, 1).npu().to(torch.float16).npu_format_cast(29)
-            h0_data = torch.rand(h0_shape).uniform_(
-                                -1, 1).npu().to(torch.float16).npu_format_cast(29)
-            c0_data = torch.rand(c0_shape).uniform_(
-                                -1, 1).npu().to(torch.float16).npu_format_cast(29)
+            input_data = torch_npu.npu_format_cast(
+                torch.rand(input_shape).uniform_(-1, 1).npu().to(torch.float16), 29
+            )
+            h0_data = torch_npu.npu_format_cast(
+                torch.rand(h0_shape).uniform_(-1, 1).npu().to(torch.float16), 29
+            )
+            c0_data = torch_npu.npu_format_cast(
+                torch.rand(c0_shape).uniform_(-1, 1).npu().to(torch.float16), 29
+            )
             model = Model().to("npu")
             model(input_data, h0_data, c0_data)
             self.onnx_export(model, (input_data, h0_data, c0_data), onnx_model_name,
@@ -1029,12 +1050,15 @@ class TestOnnxOps(TestCase):
                 seq_length = 5
                 self.seq_length_t = torch.Tensor((seq_length)).int().npu()
 
-                self.weight_ih = torch.rand((input_size, 4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
-                self.weight_hh = torch.rand((hidden_size, 4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
-                self.bias = torch.rand((4 * hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(2)
+                self.weight_ih = torch_npu.npu_format_cast(
+                    torch.rand((input_size, 4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
+                self.weight_hh = torch_npu.npu_format_cast(
+                    torch.rand((hidden_size, 4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
+                self.bias = torch_npu.npu_format_cast(
+                    torch.rand((4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
                 self.weight = torch.cat((self.weight_ih, self.weight_hh), dim=0)
 
             def forward(self, input_data, h0_data, c0_data):
@@ -1053,12 +1077,15 @@ class TestOnnxOps(TestCase):
             h0_shape = (d * num_layers, batch_szie, hidden_size)
             c0_shape = (d * num_layers, batch_szie, hidden_size)
 
-            input_data = torch.rand(input_shape).uniform_(
-                                -1, 1).npu().to(torch.float16).npu_format_cast(29)
-            h0_data = torch.rand(h0_shape).uniform_(
-                                -1, 1).npu().to(torch.float16).npu_format_cast(29)
-            c0_data = torch.rand(c0_shape).uniform_(
-                                -1, 1).npu().to(torch.float16).npu_format_cast(29)
+            input_data = torch_npu.npu_format_cast(
+                torch.rand(input_shape).uniform_(-1, 1).npu().to(torch.float16), 29
+            )
+            h0_data = torch_npu.npu_format_cast(
+                torch.rand(h0_shape).uniform_(-1, 1).npu().to(torch.float16), 29
+            )
+            c0_data = torch_npu.npu_format_cast(
+                torch.rand(c0_shape).uniform_(-1, 1).npu().to(torch.float16), 29
+            )
 
             model = Model().to("npu")
             model(input_data, h0_data, c0_data)
@@ -1082,14 +1109,18 @@ class TestOnnxOps(TestCase):
                 self.has_biases = True
                 self.seq_length_t = torch.Tensor([self.seq_length]).int().npu()
 
-                self.weight_ih = torch.rand((self.input_size, 3 * self.hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(4)
-                self.weight_hh = torch.rand((self.hidden_size, 3 * self.hidden_size)).uniform_(
-                                    -1, 1).npu().to(torch.float16).npu_format_cast(4)
-                self.bias_ih = torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(
-                                    torch.float16).npu_format_cast(2)
-                self.bias_hh = torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(
-                                    torch.float16).npu_format_cast(2)
+                self.weight_ih = torch_npu.npu_format_cast(
+                    torch.rand((self.input_size, 3 * self.hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 4
+                )
+                self.weight_hh = torch_npu.npu_format_cast(
+                    torch.rand((self.hidden_size, 3 * self.hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 4
+                )
+                self.bias_ih = torch_npu.npu_format_cast(
+                    torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
+                self.bias_hh = torch_npu.npu_format_cast(
+                    torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
+                )
 
             def forward(self, input, hx):
                 return torch_npu.npu_gru(input, hx, self.weight_ih, self.weight_hh,
@@ -1104,10 +1135,8 @@ class TestOnnxOps(TestCase):
             seq_length = 6
             input_shape = [seq_length, batch_size, input_size]
             h_0_shape = [num_layers, batch_size, hidden_size]
-            input_ = torch.rand(input_shape).uniform_(-1, 1).npu().to(
-                                torch.float16).npu_format_cast(29)
-            hx = torch.rand(h_0_shape).uniform_(-1, 1).npu().to(
-                                torch.float16).npu_format_cast(29)
+            input_ = torch_npu.npu_format_cast(torch.rand(input_shape).uniform_(-1, 1).npu().to(torch.float16), 29)
+            hx = torch_npu.npu_format_cast(torch.rand(h_0_shape).uniform_(-1, 1).npu().to(torch.float16), 29)
             model = Model().to("npu")
             model(input_, hx)
             self.onnx_export(model, (input_, hx), onnx_model_name,

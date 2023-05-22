@@ -58,9 +58,9 @@ def npu_iou(boxes1,
         boxes2 = boxes2 * normalized_scale
 
     if mode == "iou":
-        out = torch.npu_iou(boxes2, boxes1)
+        out = torch_npu.npu_iou(boxes2, boxes1)
     elif mode == "ptiou":
-        out = torch.npu_ptiou(boxes2, boxes1)
+        out = torch_npu.npu_ptiou(boxes2, boxes1)
 
     return out
 
@@ -121,7 +121,7 @@ def npu_giou(boxes1,
         boxes1 = boxes1.permute(1, 0)
         boxes2 = boxes2.permute(1, 0)
 
-    out = torch.npu_giou(boxes1, boxes2, trans=True, is_cross=False)
+    out = torch_npu.npu_giou(boxes1, boxes2, trans=True, is_cross=False)
 
     return out
 

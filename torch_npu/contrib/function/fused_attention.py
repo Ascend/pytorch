@@ -61,8 +61,9 @@ def check_compatibility_once(hidden_states,
 
 
 def permute_with_reshape(x, new_shape):
-    return x.npu_confusion_transpose((0, 2, 1, 3), new_shape,
-                                     False).npu_format_cast(29)
+    return torch_npu.npu_format_cast(torch_npu.npu_confusion_transpose(x,
+                                                                       (0, 2, 1, 3),
+                                                                       new_shape, False), 29)
 
 
 class FusedAttentionWithLayerNorm(torch.autograd.Function):
@@ -114,7 +115,7 @@ class FusedAttentionWithLayerNorm(torch.autograd.Function):
 
         g_h_s, g_w_q, g_w_k, g_w_v, g_b_q, g_b_k, g_b_v = torch_npu.npu_fused_attention_qkv_grad(
             query_grad, key_grad, value_grad, q_w, k_w, v_w, norm,
-            grad_norm.npu_format_cast(29))
+            torch_npu.npu_format_cast(grad_norm, 29))
 
         g_h_s, g_gamma, g_beta = torch_npu.npu_layernorm_grad(
             g_h_s, h_s, (g_h_s.shape[1],), mean, variance, gamma, beta)
@@ -151,13 +152,13 @@ class FusedAttention(torch.autograd.Function):
 
         with torch.no_grad():
             query_layer = permute_with_reshape(
-                torch.npu_linear(hidden_states, query_kernel.t(), query_bias),
+                torch_npu.npu_linear(hidden_states, query_kernel.t(), query_bias),
                 (ctx.bsnc[0], ctx.bsnc[1], ctx.bsnc[2], ctx.bsnc[3]))
             key_layer = permute_with_reshape(
-                torch.npu_linear(hidden_states, key_kernel.t(), key_bias),
+                torch_npu.npu_linear(hidden_states, key_kernel.t(), key_bias),
                 (ctx.bsnc[0], ctx.bsnc[1], ctx.bsnc[2], ctx.bsnc[3]))
             value_layer = permute_with_reshape(
-                torch.npu_linear(hidden_states, value_kernel.t(), value_bias),
+                torch_npu.npu_linear(hidden_states, value_kernel.t(), value_bias),
                 (ctx.bsnc[0], ctx.bsnc[1], ctx.bsnc[2], ctx.bsnc[3]))
 
         context_layer, softmax_output, dropout_mask = torch_npu.npu_fused_attention_score_fwd(
@@ -178,7 +179,7 @@ class FusedAttention(torch.autograd.Function):
 
         g_h_s, g_w_q, g_w_k, g_w_v, g_b_q, g_b_k, g_b_v = torch_npu.npu_fused_attention_qkv_grad(
             query_grad, key_grad, value_grad, q_w, k_w, v_w, h_s,
-            torch.zeros_like(h_s).npu_format_cast(29))
+            torch_npu.npu_format_cast(torch.zeros_like(h_s), 29))
 
         return g_h_s, None, g_w_q, g_w_k, g_w_v, g_b_q, g_b_k, g_b_v, None, None
 

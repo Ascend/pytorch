@@ -20,7 +20,7 @@ class TestMemcpy(TestCase):
         def npu_op_exec(input1, input2):    
             out_mul = torch.mul(input1, input2)
             out_add = torch.add(input1, input2)
-            out_mul.copy_memory_(out_add)
+            torch_npu.copy_memory_(out_mul, out_add)
             out = torch.sub(out_mul, input2)
             return out.to("cpu").numpy()
         

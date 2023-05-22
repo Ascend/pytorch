@@ -12,11 +12,11 @@ class TestAmpForeachNonFiniteCheckAndUnscale(TestCase):
 
         def _clear_float_status():
             float_status = torch.zeros(8).npu()
-            result = torch.npu_clear_float_status(float_status)
+            result = torch_npu.npu_clear_float_status(float_status)
 
         def _get_float_status():
             float_status = torch.zeros(8).npu()
-            result = torch.npu_get_float_status(float_status)
+            result = torch_npu.npu_get_float_status(float_status)
 
         inv_scale = torch.full((1,), 0.25, dtype=torch.float, device=device)
         found_inf = torch.full((1,), 0.0, dtype=torch.float, device=device)

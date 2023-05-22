@@ -9,7 +9,7 @@ from torch_npu.testing.decorator import graph_mode
 
 class TestFloatStatus(TestCase):
      def npu_op_exec(self, input1):
-        output = torch.npu_alloc_float_status(input1)
+        output = torch_npu.npu_alloc_float_status(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output

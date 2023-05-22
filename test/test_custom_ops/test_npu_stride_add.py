@@ -19,7 +19,7 @@ class TestNpuStrideAdd(TestCase):
         return torch.add(x1_pad, x2_pad)
 
     def npu_op_exec(self, input1, input2, offset1, offset2, c1_len):
-        output = torch.npu_stride_add(input1, input2, offset1, offset2, c1_len)
+        output = torch_npu.npu_stride_add(input1, input2, offset1, offset2, c1_len)
         output = output.to("cpu")
         output = output.numpy()
         return output

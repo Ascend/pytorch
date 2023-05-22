@@ -11,12 +11,12 @@ from torch_npu.testing.common_utils import create_common_tensor
 class TestFusedAttentionQKV(TestCase):
     
     def confusion_transpose(self, x, new_shape):
-        return x.view(new_shape).permute(0, 2, 1, 3).npu_format_cast(29)
+        return torch_npu.npu_format_cast(x.view(new_shape).permute(0, 2, 1, 3), 29)
 
     def supported_op_exec(self, ln_input, q_kernel, k_kernel, v_kernel, gamma, beta, q_bias, k_bias, v_bias):
-        q_kernel = q_kernel.t().contiguous().npu_format_cast(29)
-        k_kernel = k_kernel.t().contiguous().npu_format_cast(29)
-        v_kernel = v_kernel.t().contiguous().npu_format_cast(29)
+        q_kernel = torch_npu.npu_format_cast(q_kernel.t().contiguous(), 29)
+        k_kernel = torch_npu.npu_format_cast(k_kernel.t().contiguous(), 29)
+        v_kernel = torch_npu.npu_format_cast(v_kernel.t().contiguous(), 29)
 
         norm_shape = (1024,)
         norm, mean, variance = torch.native_layer_norm(ln_input, norm_shape, gamma, beta, eps=1e-05)
@@ -26,12 +26,12 @@ class TestFusedAttentionQKV(TestCase):
         return norm.cpu(), mean.cpu(), variance.cpu(), q_layer.cpu(), k_layer.cpu(), v_layer.cpu()
 
     def custom_op_exec(self, hidden_states, q_kernel, k_kernel, v_kernel, gamma, beta, q_bias, k_bias, v_bias):
-        hidden_states = hidden_states.npu_format_cast(29)
-        q_kernel = q_kernel.npu_format_cast(29)
-        k_kernel = k_kernel.npu_format_cast(29)
-        v_kernel = v_kernel.npu_format_cast(29)
-        gamma = gamma.npu_format_cast(1)
-        beta = beta.npu_format_cast(1)
+        hidden_states = torch_npu.npu_format_cast(hidden_states, 29)
+        q_kernel = torch_npu.npu_format_cast(q_kernel, 29)
+        k_kernel = torch_npu.npu_format_cast(k_kernel, 29)
+        v_kernel = torch_npu.npu_format_cast(v_kernel, 29)
+        gamma = torch_npu.npu_format_cast(gamma, 1)
+        beta = torch_npu.npu_format_cast(beta, 1)
 
         seq_len = 512
         num_heads = 16

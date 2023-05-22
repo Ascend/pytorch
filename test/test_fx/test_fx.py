@@ -275,7 +275,7 @@ class TestFX(TestCase):
     def test_npu_custom_op_trace(self):
         class MyModule(torch.nn.Module):
             def forward(self, x):
-                return torch.npu_format_cast(x, 2)
+                return torch_npu.npu_format_cast(x, 2)
         
         module = MyModule()
         traced = symbolic_trace(module)
