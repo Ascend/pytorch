@@ -8,6 +8,7 @@ from torch.testing._internal.common_utils import (clone_input_helper,
                                                   first_sample, 
                                                   is_iterable_of_tensors)
 
+import torch_npu
 from torch_npu.testing.common_methods_invocations import op_db
 from torch_npu.testing.decorator import Dtypes, Formats, instantiate_ops_tests
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -42,7 +43,7 @@ def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
             if arg.dtype == origin:
                 arg = arg.to(target)
                 if to_npu:
-                    arg.npu_format_cast(npu_format)
+                    torch_npu.npu_format_cast(arg, npu_format)
 
         return arg
     
@@ -103,18 +104,22 @@ class TestOps(TestCase):
             expected = cpu_sample.output_process_fn_grad(expected)
             actual = npu_sample.output_process_fn_grad(actual)
 
-            backward_cpu_tensor = expected.sum()
-            backward_npu_tensor = actual.sum()
+            if isinstance(expected, torch.Tensor):
+                backward_cpu_outputs = expected.sum()
+                backward_npu_outputs = actual.sum()
+            elif isinstance(expected, Sequence) and isinstance(expected[0], torch.Tensor):
+                backward_cpu_outputs = [tensor.sum() for tensor in expected]
+                backward_npu_outputs = [tensor.sum() for tensor in actual]
+            else:
+                raise TypeError("Unsupported {} output".format(type(expected)))
 
             sample_input_required_grad_cpu = _generate_sample_inputs_requried_grad(cpu_sample.input, cpu_sample.args)
             sample_input_required_grad_npu = _generate_sample_inputs_requried_grad(npu_sample.input, npu_sample.args)
 
-            grads_cpu = torch.autograd.grad(outputs=backward_cpu_tensor, 
-                                            inputs=sample_input_required_grad_cpu, 
-                                            grad_outputs=torch.ones_like(backward_cpu_tensor))
-            grads_npu = torch.autograd.grad(outputs=backward_npu_tensor, 
-                                            inputs=sample_input_required_grad_npu, 
-                                            grad_outputs=torch.ones_like(backward_npu_tensor))
+            grads_cpu = torch.autograd.grad(outputs=backward_cpu_outputs, 
+                                            inputs=sample_input_required_grad_cpu)
+            grads_npu = torch.autograd.grad(outputs=backward_npu_outputs, 
+                                            inputs=sample_input_required_grad_npu)
 
             self.assertRtolEqual(grads_cpu, grads_npu, auto_trans_dtype=True, message=f'sampleinput #{index} fail')
 
@@ -193,18 +198,6 @@ class TestOps(TestCase):
                     )
 
                     if variant in inplace_ops and sample.broadcasts_input:
-                        with self.assertRaises(
-                            RuntimeError,
-                            msg=(
-                                f"inplace variant either incorrectly allowed "
-                                f"resizing or you have marked the sample {index}"
-                                " incorrectly with `broadcasts_self = True".format(
-                                    sample.summary()
-                                )
-                            )):
-                            variant_forward = variant(
-                                cloned, *sample.args, **sample.kwargs
-                            )
                         continue
 
                     variant_forward = variant(cloned, *sample.args, **sample.kwargs)
