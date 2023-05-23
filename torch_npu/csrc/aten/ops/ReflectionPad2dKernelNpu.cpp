@@ -34,23 +34,13 @@ at::Tensor& reflection_pad2d_out_npu_nocheck(
   }
   c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
   OpCommand cmd;
-  if(self.dtype() == at::kHalf) {
-    cmd.Name("PadV3")
-        .Input(self_cp)
-        .Input(vector_int, at::kInt)
-        .Input(value_tensor, self.scalar_type())
-        .Output(result)
-        .Attr("mode", (string)"reflect")
-        .Attr("paddings_contiguous", true)
-        .Run();
-  } else {
-    cmd.Name("MirrorPad")
-        .Input(self_cp)
-        .Input(vector_int, at::kInt)
-        .Output(result)
-        .Attr("mode", (string)"REFLECT")
-        .Run();
-  }
+  cmd.Name("MirrorPad")
+      .Input(self_cp)
+      .Input(vector_int, at::kInt)
+      .Output(result)
+      .Attr("mode", (string)"REFLECT")
+      .Run();
+
   if (self.dim() == 3) {
     result.squeeze_(0);
   }
