@@ -18,6 +18,7 @@ from typing import List
 from functools import partial
 import unittest
 from torch.testing import make_tensor
+import numpy as np
 
 import torch
 from torch.testing import make_tensor
@@ -31,6 +32,7 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 DecorateInfo,
                                                                 wrapper_set_seed,
                                                                 sample_inputs_normal_common,
+                                                                reference_reduction_numpy,
                                                                 S,
                                                                 SampleInput)
 
@@ -363,6 +365,28 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness' : (0, 2, ),
         },
+    ),
+    ReductionOpInfo(
+        'all',
+        identity=True,
+        supports_multiple_dims=False,
+        supports_autograd=False,
+        result_dtype=torch.bool,
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16, torch.float32,\
+                                 torch.float64, torch.int16, torch.int32, torch.uint8, torch.int64)),
+        dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.float16, torch.float32,\
+                                      torch.float64, torch.int16, torch.int32, torch.uint8, torch.int64)),
+        ref=reference_reduction_numpy(np.all),
+        skipSample={
+            # cpu dim value is error
+            'test_variant_consistency_eager' : (1, 2, 14, 15),
+            # cpu dim value is error
+            'test_correctness' : (1, 2),
+        },
+        skips=(
+            # all.all_out is not supported
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_out'),
+        ),
     ),
     OpInfo(
         'baddbmm',
