@@ -12,13 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import shutil
 
 import torch
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase
+from torch_npu.testing.testcase import TestCase, run_tests
 
 worker_id = 1
 
@@ -59,6 +60,7 @@ class TrainModel:
 class TestNpuProfiler(TestCase):
     TRACE_FILE_NAME = "trace_view.json"
     KERNEL_FILE_NAME = "kernel_details.csv"
+    OPERATOR_FILE_NAME = "operator_details.csv"
     MEMORY_FORM_NAME = "memory_view_form.csv"
     MEMORY_LINE_CHART_NAME = "memory_view_line_chart.csv"
     results_path = "./results"
@@ -85,8 +87,9 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_trace_view(worker_name))
-        self.assertEqual(True, self._has_kernel_details(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(True,
                          self._check_trace_view_keywords(worker_name, ["torch_to_acl", "torch_to_npu", "acl_to_npu"]))
 
@@ -98,8 +101,9 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_trace_view(worker_name))
-        self.assertEqual(False, self._has_kernel_details(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(False, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(False,
                          self._check_trace_view_keywords(worker_name, ["torch_to_acl", "torch_to_npu", "acl_to_npu"]))
 
@@ -111,8 +115,9 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_trace_view(worker_name))
-        self.assertEqual(True, self._has_kernel_details(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(False, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["acl_to_npu"]))
         self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["torch_to_acl", "torch_to_npu"]))
 
@@ -124,8 +129,9 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_trace_view(worker_name))
-        self.assertEqual(True, self._has_kernel_details(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["Input Dims", "Input type"]))
 
     def test_with_stack(self):
@@ -136,8 +142,9 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_trace_view(worker_name))
-        self.assertEqual(True, self._has_kernel_details(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["Call stack"]))
 
     def test_schedule(self):
@@ -149,8 +156,9 @@ class TestNpuProfiler(TestCase):
             for step in range(self.large_steps):
                 self.model_train.train_one_step()
                 prof.step()
-        self.assertEqual(True, self._has_trace_view(worker_name))
-        self.assertEqual(True, self._has_kernel_details(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
 
     def test_export_chrome_trace(self):
         trace_path = f"{self.results_path}/chrome_trace.json"
@@ -168,8 +176,8 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_memory_view_form(worker_name))
-        self.assertEqual(True, self._has_memory_view_line_chart(worker_name))
+        self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_FORM_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_LINE_CHART_NAME))
 
     def _get_tensorboard_output(self, worker_name: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(self.results_path))
@@ -178,32 +186,14 @@ class TestNpuProfiler(TestCase):
                 return os.path.join(self.results_path, sub_dir, "ASCEND_PROFILER_OUTPUT")
         return ""
 
-    def _has_trace_view(self, worker_name: str) -> bool:
+    def _has_view_result(self, worker_name: str, view_name: str) -> bool:
         output_path = self._get_tensorboard_output(worker_name)
         if os.path.isdir(output_path):
-            return os.path.isfile(os.path.join(output_path, self.TRACE_FILE_NAME))
-        return False
-
-    def _has_kernel_details(self, worker_name: str) -> bool:
-        output_path = self._get_tensorboard_output(worker_name)
-        if os.path.isdir(output_path):
-            return os.path.isfile(os.path.join(output_path, self.KERNEL_FILE_NAME))
-        return False
-
-    def _has_memory_view_form(self, worker_name: str) -> bool:
-        output_path = self._get_tensorboard_output(worker_name)
-        if os.path.isdir(output_path):
-            return os.path.isfile(os.path.join(output_path, self.MEMORY_FORM_NAME))
-        return False
-
-    def _has_memory_view_line_chart(self, worker_name: str) -> bool:
-        output_path = self._get_tensorboard_output(worker_name)
-        if os.path.isdir(output_path):
-            return os.path.isfile(os.path.join(output_path, self.MEMORY_LINE_CHART_NAME))
+            return os.path.isfile(os.path.join(output_path, view_name))
         return False
 
     def _check_trace_view_keywords(self, worker_name: str, keywords: list) -> bool:
-        if not self._has_trace_view(worker_name):
+        if not self._has_view_result(worker_name, self.TRACE_FILE_NAME):
             return False
         trace_path = os.path.join(self._get_tensorboard_output(worker_name), self.TRACE_FILE_NAME)
         file_size = os.path.getsize(trace_path)
@@ -212,3 +202,8 @@ class TestNpuProfiler(TestCase):
         with open(trace_path, "rt") as file:
             all_data = file.read()
             return all(all_data.find(keyword) != -1 for keyword in keywords)
+        return False
+
+
+if __name__ == "__main__":
+    run_tests()
