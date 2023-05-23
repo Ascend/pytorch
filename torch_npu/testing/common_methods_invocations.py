@@ -1,6 +1,7 @@
 from typing import List
 from functools import partial
 import unittest
+import numpy as np
 
 import torch
 from torch.testing._internal import common_methods_invocations
@@ -8,8 +9,10 @@ from torch.testing._internal.common_dtype import _dispatch_dtypes, floating_and_
 from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpInfo,
                                                                 UnaryUfuncInfo as Of_UnaryUfuncInfo,
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
+                                                                ReductionOpInfo as Of_ReductionOpInfo,
                                                                 DecorateInfo,
                                                                 wrapper_set_seed,
+                                                                reference_reduction_numpy,
                                                                 sample_inputs_normal_common,
                                                                 sample_inputs_binary_cross_entropy_with_logits)
 
@@ -82,6 +85,9 @@ class BinaryUfuncInfo(OpInfo, Of_BinaryUfuncInfo):
                  **kwargs):
         super().__init__(name,sample_inputs_func=sample_inputs_func, **kwargs)
 
+class ReductionOpInfo(OpInfo, Of_ReductionOpInfo):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
 
 def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwargs):
     cases = [
@@ -288,6 +294,28 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness' : (0, 2, ),
         },
+    ),
+    ReductionOpInfo(
+        'all',
+        identity=True,
+        supports_multiple_dims=False,
+        supports_autograd=False,
+        result_dtype=torch.bool,
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16, torch.float32,\
+                                 torch.float64, torch.int16, torch.int32, torch.uint8, torch.int64)),
+        dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.float16, torch.float32,\
+                                      torch.float64, torch.int16, torch.int32, torch.uint8, torch.int64)),
+        ref=reference_reduction_numpy(np.all),
+        skipSample={
+            # cpu dim value is error
+            'test_variant_consistency_eager' : (1, 2, 14, 15),
+            # cpu dim value is error
+            'test_correctness' : (1, 2),
+        },
+        skips=(
+            # all.all_out is not supported
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_out'),
+        ),
     ),
     OpInfo(
         'baddbmm',

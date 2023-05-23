@@ -1,11 +1,14 @@
+import itertools
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestAll(TestCase):
+
     def create_bool_tensor(self, shape, minValue, maxValue):
         input1 = np.random.uniform(minValue, maxValue, shape)
         input1 = input1 > 0.5
@@ -20,8 +23,7 @@ class TestAll(TestCase):
 
     def npu_op_exec(self, input1):
         output = input1.all()
-        output = output.to("cpu")
-        output = output.numpy()
+        output = output.to("cpu").numpy()
         return output
 
     def test_all_shape_format(self):
@@ -35,39 +37,37 @@ class TestAll(TestCase):
                     np.int32), npu_output.astype(
                     np.int32))
 
-    def cpu_op_exec1(self, input1, dim):
+    def cpu_op_dim_exec(self, input1, dim):
         output = input1.all(dim=dim)
         output = output.numpy()
         return output
 
-    def npu_op_exec1(self, input1, dim):
+    def npu_op_dim_exec(self, input1, dim):
         output = input1.all(dim=dim)
-        output = output.to("cpu")
-        output = output.numpy()
+        output = output.to("cpu").numpy()
         return output
     
-    def npu_op_out_exec1(self, input1, dim):
-        shape = list(input1.shape)
-        output0 = torch.randn(shape) > 0
-        output1 = torch.randn(shape.pop()) > 0
-        output0 = output0.npu()
-        output1 = output1.npu()
-        torch.all(input1, dim=dim, keepdim = False, out = output0)
-        torch.all(input1, dim=dim, keepdim = False, out = output1)
-        output0 = output0.to("cpu").numpy()
-        output1 = output1.to("cpu").numpy()
-        return output0, output1
+    def npu_op_out_exec(self, input1, dim, output):
+        torch.all(input1, dim=dim, keepdim=False, out=output)
+        output = output.to("cpu").numpy()
+        return output
 
     def test_alld_shape_format(self):
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024]]
-        for item in shape_list:
-            cpu_input, npu_input = self.create_bool_tensor(item, 0, 1)
-            cpu_output = self.cpu_op_exec1(cpu_input, 0)
-            npu_output = self.npu_op_exec1(npu_input, 0)
-            npu_out0, npu_out1 = self.npu_op_out_exec1(npu_input, 0)
-            self.assertRtolEqual(cpu_output.astype(np.int32), npu_output.astype(np.int32))
-            self.assertRtolEqual(cpu_output.astype(np.int32), npu_out0.astype(np.int32))
-            self.assertRtolEqual(cpu_output.astype(np.int32), npu_out1.astype(np.int32))
+        dtype_list = [np.float16, np.float32, np.float64, np.uint8, np.int16, np.int32, np.int64, np.bool_]
+        format_list = [-1]
+        for item in itertools.product(dtype_list, format_list, shape_list):
+            cpu_input, npu_input = create_common_tensor(item, 0, 1)
+            _, npu_output1 = create_common_tensor(item, 0, 1)
+            if item[0] == np.float16:
+                cpu_input = cpu_input.to(torch.float32)
+            cpu_output = self.cpu_op_dim_exec(cpu_input, 0)
+            if item[0] == np.float16:
+                cpu_output = cpu_output.astype(np.float16)
+            npu_output0 = self.npu_op_dim_exec(npu_input, 0)
+            npu_output1 = self.npu_op_out_exec(npu_input, 0, npu_output1)
+            self.assertRtolEqual(cpu_output.astype(np.int32), npu_output0.astype(np.int32))
+            self.assertRtolEqual(cpu_output.astype(np.int32), npu_output1.astype(np.int32))
 
     def test_all_tensor_numel_0(self):
         ca = torch.rand(1, 2, 0, 3, 4).bool()
