@@ -1374,6 +1374,19 @@ op_db: List[OpInfo] = [
             dtypes=[torch.float32]),
         )
     ),
+    OpInfo(
+        'pinverse',
+        op=torch.pinverse,
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
+        sample_inputs_func=common_methods_invocations.sample_inputs_linalg_invertible
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        supports_out=False,
+        skipSample={
+            'test_correctness': (0, 4, 6),
+        },
+    ),
     BinaryUfuncInfo(
         'pow',
         dtypes=_dispatch_dtypes((torch.float32, )),

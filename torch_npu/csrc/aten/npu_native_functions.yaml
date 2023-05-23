@@ -450,6 +450,7 @@ supported:
  - lift_fresh_copy
  - linalg_cross
  - linalg_cross.out
+ - linalg_pinv.atol_rtol_tensor
  - linspace
  - linspace.out
  - log

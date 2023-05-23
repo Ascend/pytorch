@@ -63,5 +63,13 @@ at::Tensor NPUNativeFunctions::_reshape_alias(
   return at::native::_reshape_alias(self, size, stride);
 }
 
+at::Tensor NPUNativeFunctions::linalg_pinv(
+    const at::Tensor& input,
+    const c10::optional<at::Tensor>& atol_opt,
+    const c10::optional<at::Tensor>& rtol_opt,
+    bool hermitian) {
+   return at::native::linalg_pinv(input, atol_opt, rtol_opt, hermitian);
+}
+
 } // namespace native
 } // namespace at_npu

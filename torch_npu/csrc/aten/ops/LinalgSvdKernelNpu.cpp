@@ -136,7 +136,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _svd_helper(const at::Tensor& sel
     }
   }
 
-  return std::make_tuple(U_working_copy, S_working_copy, VT_working_copy);
+  return std::make_tuple(U_working_copy, S_working_copy, VT_working_copy.mH());
 }
 
 std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::_linalg_svd_out(
