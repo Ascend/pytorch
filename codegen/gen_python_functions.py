@@ -47,7 +47,7 @@ from codegen.model import (BaseOperatorName, NativeFunction,
                            Type, Variant, BackendIndex,
                            BackendMetadata, DispatchKey, OperatorName)
 from codegen.utils import context
-
+from codegen.autograd.gen_variable_type import NPU_AUTOGRAD_FUNCTION
 
 # These functions require manual Python bindings or are not exposed to Python
 _SKIP_PYTHON_BINDINGS = [
@@ -86,7 +86,6 @@ SKIP_PYTHON_BINDINGS_SIGNATURES = []
 
 DONT_RECORD_TRACE = []
 
-NPU_AUTOGRAD_FUNCTION = []
 
 def should_trace(f: NativeFunction) -> bool:
     # Operations involving Storage or Type are not traceable at the moment

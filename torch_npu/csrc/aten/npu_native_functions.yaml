@@ -1220,7 +1220,7 @@ custom:
   - func: npu_get_float_status(Tensor self) -> Tensor
   - func: npu_clear_float_status(Tensor self) -> Tensor
   - func: one_(Tensor(a!) self) -> Tensor(a!)
-  - func: npu_fast_gelu(Tensor self) -> Tensor
+  - func: fast_gelu(Tensor self) -> Tensor
   - func: npu_fast_gelu_backward(Tensor grad, Tensor self) -> Tensor
   - func: _amp_foreach_non_finite_check_(Tensor[] scaled_grads) -> bool
   - func: npu_sign_bits_pack(Tensor self, int size) -> Tensor
@@ -1339,7 +1339,6 @@ custom:
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
-  - func: fast_gelu(Tensor self) -> Tensor
   - func: npu_confusion_transpose(Tensor self, int[] perm, int[] shape, bool transpose_first) -> Tensor
   - func: npu_ps_roi_pooling(Tensor self, Tensor rois, float spatial_scale, int group_size, int output_dim) -> Tensor
   - func: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
