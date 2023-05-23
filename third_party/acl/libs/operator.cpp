@@ -146,6 +146,12 @@ Operator& Operator::SetAttr(
   return op;
 }
 
+Operator& Operator::SetAttr(
+    const char* name,
+    const std::vector<std::vector<int64_t>>& attr_value) {
+  return op;
+}
+
 Operator& Operator::SetAttr(const char* name, AttrValue&& attr_value) {
   return op;
 }
