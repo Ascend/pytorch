@@ -24,6 +24,7 @@ from torch.testing._internal.common_utils import (clone_input_helper,
                                                   first_sample, 
                                                   is_iterable_of_tensors)
 
+import torch_npu
 from torch_npu.testing.common_methods_invocations import op_db, tocpu_db
 from torch_npu.testing.decorator import Dtypes, Formats, instantiate_ops_tests
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -38,7 +39,7 @@ def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
             if arg.dtype == origin:
                 arg = arg.to(target)
                 if to_npu:
-                    arg.npu_format_cast(npu_format)
+                    torch_npu.npu_format_cast(arg, npu_format)
 
         return arg
     
@@ -103,7 +104,7 @@ class TestOps(TestCase):
             if isinstance(expected, torch.Tensor):
                 backward_cpu_outputs = expected.sum()
                 backward_npu_outputs = actual.sum()
-            elif isinstance(expected, Sequence) and isinstance(expected[0], torch.Tenser):
+            elif isinstance(expected, Sequence) and isinstance(expected[0], torch.Tensor):
                 backward_cpu_outputs = [tensor.sum() for tensor in expected]
                 backward_npu_outputs = [tensor.sum() for tensor in actual]
             else:
