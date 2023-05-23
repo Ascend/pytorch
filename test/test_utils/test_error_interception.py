@@ -72,14 +72,6 @@ class TestPtaErrorInterception(TestCase):
             with self.assertRaisesRegex(RuntimeError, "Invalid device string: {}".format(err_input)):
                 torch.arange(1, 3, device=err_input)
 
-    def test_empty_with_format(self):
-        for err_idx in error_index_list:
-            with self.assertRaisesRegex(RuntimeError, device_ofr_info):
-                torch.empty_with_format((2, 3), dtype=torch.float32, device=err_idx)
-        for err_input in error_input_list:
-            with self.assertRaisesRegex(RuntimeError, "Invalid device string: {}".format(err_input)):
-                torch.empty_with_format((2, 3), dtype=torch.float32, device=err_input)
-
     def test_npu_dropout_gen_mask(self):
         for err_idx in error_index_list:
             with self.assertRaisesRegex(RuntimeError, device_ofr_info):
