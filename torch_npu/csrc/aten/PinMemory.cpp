@@ -6,6 +6,7 @@
 #include <c10/core/Storage.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/aten/OverrideOperators.h"
 
 #define TORCH_ASSERT_ONLY_METHOD_OPERATORS
 #include <ATen/core/Tensor.h>
@@ -37,11 +38,6 @@ at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device)
   TORCH_CHECK(self.device().is_cpu(), "cannot pin '", self.toString(), "' only dense CPU tensors can be pinned");
   c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(at_npu::key::NativeDeviceType)));
   return at::_ops::_pin_memory::redispatch(_dk, self, device);
-}
-
-TORCH_LIBRARY_IMPL(aten, BackendSelect, m) {
-  m.impl(TORCH_SELECTIVE_NAME("aten::is_pinned"), TORCH_FN(is_pinned));
-  m.impl(TORCH_SELECTIVE_NAME("aten::_pin_memory"), TORCH_FN(_pin_memory));
 }
 
 }
