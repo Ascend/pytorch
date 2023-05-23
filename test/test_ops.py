@@ -123,7 +123,7 @@ class TestOps(TestCase):
             if isinstance(expected, torch.Tensor):
                 backward_cpu_outputs = expected.sum()
                 backward_npu_outputs = actual.sum()
-            elif isinstance(expected, Sequence) and isinstance(expected[0], torch.Tenser):
+            elif isinstance(expected, Sequence) and isinstance(expected[0], torch.Tensor):
                 backward_cpu_outputs = [tensor.sum() for tensor in expected]
                 backward_npu_outputs = [tensor.sum() for tensor in actual]
             else:
