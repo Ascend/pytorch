@@ -1285,7 +1285,9 @@ void Reducer::search_unused_parameters(
       if (!ddp_graph_static_) {
         // Log graph is not static. Logger takes care of ensuring this is done
         // only once to avoid overhead.
-        logger_.lock()->log_if_graph_static(false);
+        if (!logger_.expired()) {
+          logger_.lock()->log_if_graph_static(false);
+        }
       }
     }
     prev_iteration_unused_parameters_ = unused_parameters_;
