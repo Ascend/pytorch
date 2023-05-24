@@ -28,15 +28,11 @@ at::Tensor &NPUNativeFunctions::bucketize_out(
     bool out_int32, 
     bool right, 
     at::Tensor& result) {
-    TORCH_CHECK(boundaries.dim() == 1, "boundaries tensor must be 1 dimension, but got dim(", boundaries.dim(), ")");
     const auto self_cpu = self.cpu();
     const auto boundaries_cpu = boundaries.cpu();
-    OpPreparation::CheckOut(
-        {self},
-        result,
-        self);
     auto out_cpu = result.cpu();
     at::cpu::bucketize_out(out_cpu, self_cpu, boundaries_cpu, out_int32, right);
+    result.resize_(out_cpu.sizes());
     result.copy_(out_cpu);
     return result;
 }
