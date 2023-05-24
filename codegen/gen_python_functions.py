@@ -30,24 +30,22 @@ import yaml
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import parse_tags_yaml, LineLoader, cpp_string, FileManager, error_check_native_functions
 from torchgen.api import cpp
-from codegen.api.python import (PythonSignature,
-                                PythonSignatureGroup,
-                                PythonSignatureNativeFunctionPair,
-                                arg_parser_output_exprs,
-                                cpp_dispatch_exprs,
-                                cpp_record_func,
-                                cpp_dispatch_target,
-                                dispatch_lambda_args,
-                                dispatch_lambda_exprs,
-                                dispatch_lambda_return_str,
-                                has_tensor_options,
-                                namedtuple_fieldnames, signature)
+from torchgen.api.python import (PythonSignature,
+                                 PythonSignatureGroup,
+                                 PythonSignatureNativeFunctionPair,
+                                 arg_parser_output_exprs,
+                                 cpp_dispatch_exprs,
+                                 dispatch_lambda_args,
+                                 dispatch_lambda_exprs,
+                                 dispatch_lambda_return_str,
+                                 has_tensor_options,
+                                 namedtuple_fieldnames, signature)
 from torchgen.context import with_native_function
 from torchgen.model import (BaseOperatorName, NativeFunction, BackendMetadata,
                            Type, Variant, BackendIndex, Location,
                            DispatchKey, OperatorName)
 from torchgen.utils import context
-from codegen.utils import get_torchgen_dir
+from codegen.utils import arguments, cpp_dispatch_target, cpp_record_func, get_torchgen_dir
 
 # These functions require manual Python bindings or are not exposed to Python
 _SKIP_PYTHON_BINDINGS = [
@@ -605,13 +603,22 @@ def emit_single_dispatch(
         dispatch_key_set = '' if not is_npu_autograd else 'auto ks_set = ' \
             'c10::DispatchKeySet().add(c10::DispatchKey::AutogradPrivateUse1).add(c10::DispatchKey::PrivateUse1);'
         dispatch_callee = cpp_dispatch_target(f, custom=custom, is_npu_autograd=is_npu_autograd)
-        dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=custom))
+        cpp_operator_exprs: Listp[str] = []
+        for cpp_operator_expr in cpp_dispatch_exprs(f, python_signature=ps):
+            if cpp_operator_expr == "options":
+                cpp_operator_exprs.append("c10::optTypeMetaToScalarType(options.dtype_opt())")
+                cpp_operator_exprs.append("options.layout_opt()")
+                cpp_operator_exprs.append("options.device_opt()")
+                cpp_operator_exprs.append("options.pinned_memory_opt()")
+            else:
+                cpp_operator_exprs.append(cpp_operator_expr)
+        dispatch_args = ', '.join(cpp_operator_exprs)
         if is_npu_autograd:
             dispatch_args = 'ks_set, ' + dispatch_args
 
         # from arg parser outputs to dispatch lambda arguments
         parser_outputs = arg_parser_output_exprs(ps, f)
-        lambda_arg_exprs = dispatch_lambda_exprs(ps, f, custom)
+        lambda_arg_exprs = dispatch_lambda_exprs(ps, f)
         inits = '\n'.join(lambda_arg_exprs.inits)
         lambda_args = ', '.join(lambda_arg_exprs.exprs)
 
@@ -650,6 +657,9 @@ return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad
 
     return go(f)
 
+def apply_torchgen_patch():
+    cpp.arguments = arguments
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate functions binding files')
@@ -663,6 +673,7 @@ if __name__ == "__main__":
         '-t', '--template_path', type=str, default=None, help='path of the templates')
     options = parser.parse_args()
 
+    apply_torchgen_patch()
     torchgen_path = get_torchgen_dir()
     tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
 
@@ -673,4 +684,3 @@ if __name__ == "__main__":
     functions = load_signatures(valid_native_functions, method=False)
     create_python_bindings(file_manager, functions, lambda f: Variant.function in f.variants,
                            'torch_npu', 'python_custom_functions.cpp', method=False)
-   
