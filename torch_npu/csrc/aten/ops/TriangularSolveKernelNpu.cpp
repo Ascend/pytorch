@@ -59,5 +59,12 @@ std::tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::triangular_solve_out(co
   clone_A.resize_as_(clone_A_tmp).copy_(clone_A_tmp);
   return std::tuple<at::Tensor&, at::Tensor&>(result, clone_A);
 }
+
+std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::triangular_solve(const at::Tensor& self, const at::Tensor& A, bool upper,
+                                                                        bool transpose, bool unitriangular) {
+  at::Tensor result_tmp, clone_A_tmp;
+  std::tie(result_tmp, clone_A_tmp) = npu_triangular_solve_helper(self, A, upper, transpose, unitriangular);
+  return std::tuple<at::Tensor, at::Tensor>(result_tmp, clone_A_tmp);
+}
 } // namespace native
 } // namespace at_npu

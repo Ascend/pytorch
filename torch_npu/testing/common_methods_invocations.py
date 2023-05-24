@@ -1379,7 +1379,7 @@ op_db: List[OpInfo] = [
         op=torch.pinverse,
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
-        sample_inputs_func=common_methods_invocations.sample_inputs_linalg_invertible
+        sample_inputs_func=common_methods_invocations.sample_inputs_linalg_invertible,
         supports_forward_ad=True,
         supports_fwgrad_bwgrad=True,
         supports_out=False,
@@ -1776,12 +1776,11 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
         sample_inputs_func=common_methods_invocations.sample_inputs_legacy_solve,
-        skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
-            dtypes=[torch.float32]),
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32]),
-        ),
+        skipSample={
+            # skip samples because of the precision of the operator,
+            # the second tensor returned has an accuracy of only two decimal places
+            'test_correctness' : (0, 1, 4, 5,), 
+        },
     ),  
     OpInfo(
         'tril',
