@@ -171,6 +171,9 @@ uint32_t GraphExecutor::GetGraphIdWithoutCache(const CombinedInfo &inputs,
   ConstructOpsAndAddEdge(outputs, const_input_ops);
   ge::Graph graph("PytorchGraph");
   std::vector <ge::Operator> input_ops = GetInputOps();
+  TORCH_CHECK(inputs.tensors.size() >= input_ops.size(),
+              "replay input size can not less than replay graph input size,"
+              "maybe op create data input, such as viewcopy.");
   input_ops.insert(input_ops.end(),
                    const_input_ops.begin(),
                    const_input_ops.end());

@@ -303,6 +303,9 @@ void copy_d2d_dtype_baseformat(
       if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src, contiguous_opt_cases)) {
         return;
       }
+      // General trans-contiguous method
+      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+      return;
     }
     // Contiguous source tensor copy to contiguous self tensor
     int64_t numel = self.numel();
