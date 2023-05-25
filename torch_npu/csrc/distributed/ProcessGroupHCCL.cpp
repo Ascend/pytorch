@@ -198,6 +198,7 @@ void syncStreams(
     c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
     hcclEvent.record(c10_npu::getCurrentNPUStream(devices[i].index()));
     hcclEvent.block(hcclStream);
+    hcclEvent.reset(hcclStream);
   }
 }
 
