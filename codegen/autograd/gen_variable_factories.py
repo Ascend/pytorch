@@ -29,7 +29,7 @@ from codegen.context import with_native_function
 from codegen.gen import FileManager
 from codegen.utils import map_maybe
 from codegen.model import NativeFunction, TensorOptionsArguments, Variant
-from codegen.gen_python_functions import NPU_AUTOGRAD_FUNCTION
+from .gen_variable_type import NPU_AUTOGRAD_FUNCTION
 
 OPTIONAL_TYPE_PATTERN = re.compile(r"c10::optional<(.+)>")
 TYPE_PATTERN = re.compile(r"(?:const\s+)?([A-Z]\w+)")

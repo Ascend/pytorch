@@ -123,6 +123,9 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason) {
   return not_implemented_base<std::vector<Tensor>>(name, reason);
 }
 
+Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self) {
+  return at_npu::native::NPUNativeFunctions::npu_fast_gelu_backward(grad, self);
+}
 
 } // namespace details
 } // namespace generated

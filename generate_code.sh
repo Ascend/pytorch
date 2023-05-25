@@ -26,6 +26,13 @@ python3 -m codegen.gen_backend_stubs  \
   --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
   --impl_path="$CDIR/torch_npu/csrc/aten"  # Used to double-check the yaml file definitions.
 
+  
+python3 -m codegen.autograd.gen_autograd \
+  --native_functions_dir="$CDIR/codegen/native_functions.yaml" \
+  --out_dir="$CDIR/torch_npu/csrc/aten/" \
+  --autograd_dir="$CDIR/codegen/autograd/" \
+  --npu_native_function_dir="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
+
 if [[ ${build_libtorch} != "True" ]]; then
   python3 -m codegen.gen_python_functions  \
     --output_dir="$CDIR/torch_npu/csrc/aten/" \
