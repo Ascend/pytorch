@@ -162,18 +162,6 @@ at::Tensor index_high_dims(const at::Tensor& self, std::vector<at::Tensor> indic
 }
 
 at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {
-  /**
-   * In the cann framework, index operator belongs to the fourth type of
-   * operator, which means that the execution of the index operator must go
-   * through the dynamic shape execution framework. In this case, constructing
-   * a large dynamic shape graph is not beneficial to the overall execution
-   * performance, because more dynamic shape operators are introduced.
-   * Therefore, when the fourth type of operator is encountered in graph
-   * mode, the single op mode is switched to execute by default.
-   */
-
-  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
-
   at::native::checkIndexTensorTypes(orig);
   auto indices = AdvanceIndex::npu_expand_tensors(self, orig);
   auto broadcast_indices = AdvanceIndex::npu_broadcast_tensors(indices);
