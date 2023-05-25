@@ -504,7 +504,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
             DispatchKey.CPU,
             DispatchKey.CPU,
             selector,
-            dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
+            dispatch_key_name=backend_dispatch_key.name.replace("NPU", true_backend),
             register_dispatch_key_func=RegisterDispatchKeyCPU,
         )
 
