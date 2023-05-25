@@ -87,11 +87,11 @@ void GetAndSetDefaultJitCompileByAcl() {
 void SetHF32DefaultValue() {
   // The default value of the flag used to control whether HF32 is allowed on conv is True.
   // The default value of the flag used to control whether HF32 is allowed on matmul is True,
-  // but this flag defaults to False in PyTorch 1.12 and later.
+  // and this flag defaults to False in all PyTorch versions.
 
   // When the flag of matmul is False, and the flag of conv is True,
   // the value of option "ACL_ALLOW_HF32" should be set to "10";
-  std::string allow_hf32 = "11";
+  std::string allow_hf32 = "10";
   auto ret = at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
   if (ret == ACL_SUCCESS) {
     ASCEND_LOGI("Set ACL option ACL_ALLOW_HF32 default value to %s.", allow_hf32.c_str());
