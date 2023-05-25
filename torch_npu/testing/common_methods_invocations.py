@@ -1126,6 +1126,15 @@ op_db: List[OpInfo] = [
         },
     ),
     OpInfo(
+        'nn.functional.max_pool2d',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_max_pool,
+        supports_autograd=False,
+        supports_out=False,
+        formats=(0, 2),
+    ),
+    OpInfo(
         'median',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
