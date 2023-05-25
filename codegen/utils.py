@@ -16,18 +16,22 @@
 import os
 import sys
 import traceback
-from typing import Optional
+from typing import List, Optional, Set
 
 from torchgen.context import native_function_manager
 from torchgen.model import (
+    Arguments,
     DispatchKey,
     is_cuda_dispatch_key,
     NativeFunction,
     NativeFunctionsGroup,
+    Variant,
 )
+from torchgen.api import cpp
 from torchgen.api.translate import translate
-from torchgen.api.types import CppSignatureGroup, kernel_signature
+from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
 from torchgen.utils import Target
+
 
 def rename_privateuse1_dispatch_key():
     # rename DispatcherKey about PrivateUse1
@@ -44,6 +48,7 @@ def rename_privateuse1_dispatch_key():
 
     DispatchKey.__str__ = PrivateUse1Str
     DispatchKey.parse = parse
+
 
 def get_torchgen_dir():
     # get path of torchgen, then get tags.yaml and native_functions.yaml
@@ -220,3 +225,59 @@ return {impl_name}({args_exprs_str});
                 return f'm.impl("{f.func.name}",\n{payload});\n'
         else:
             assert_never(self.target)
+
+
+
+def cpp_record_func(f: NativeFunction, custom=False) -> str:
+    name = cpp.name(f.func)
+
+    if Variant.function in f.variants:
+        if custom:
+            record_func = f'RECORD_FUNCTION("{name}", std::vector<c10::IValue>({{}}));'
+        else:
+            record_func = f'// RECORD_FUNCTION("{name}")'
+        return record_func
+    raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
+
+
+def cpp_dispatch_target(f: NativeFunction, custom=False, is_npu_autograd=False) -> str:
+    name = cpp.name(f.func)
+    if Variant.method in f.variants and not custom:
+        return f'self.{name}'
+    if Variant.function in f.variants:
+        if custom:
+            if is_npu_autograd:
+                namespace = 'at_npu::autograd::VariableType'
+            else:
+                namespace = 'at_npu::native::NPUNativeFunctions'
+        elif has_tensor_options(f) or f.func.name.name.base.endswith('_like'):
+            namespace = 'torch'
+        else:
+            namespace = 'at'
+        return f'{namespace}::{name}'
+    raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
+
+
+def arguments(
+    arguments: Arguments,
+    *,
+    faithful: bool,
+    symint: bool = False,
+    method: bool,
+    cpp_no_default_args: Set[str],
+) -> List[Binding]:
+    args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
+    args.extend(arguments.non_out)
+    args.extend(arguments.out)
+    return [
+        r.no_default() if faithful else r
+        for a in args
+        for r in cpp.argument(
+            a,
+            faithful=faithful,
+            symint=symint,
+            method=method,
+            has_tensor_options=arguments.tensor_options is not None,
+            cpp_no_default_args=cpp_no_default_args,
+        )
+    ]
