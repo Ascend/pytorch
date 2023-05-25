@@ -105,10 +105,10 @@ REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckForbidInternalFormat, ALLOW_INTERNAL_FOR
 REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
   static const std::string mm_hf32_option_name = "ALLOW_MATMUL_HF32";
   auto mm_hf32_val = c10_npu::option::GetOption(mm_hf32_option_name);
-  // default value is True;
-  std::string mm_hf32 = "1";
-  if (mm_hf32_val.has_value() && (mm_hf32_val.value() == "disable")) {
-    mm_hf32 = "0";
+  // default value is False;
+  std::string mm_hf32 = "0";
+  if (mm_hf32_val.has_value() && (mm_hf32_val.value() == "enable")) {
+    mm_hf32 = "1";
   }
 
   std::string conv_hf32 = (val == "enable") ? "1" : "0";
