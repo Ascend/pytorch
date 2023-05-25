@@ -36,6 +36,7 @@ enum QueueParamType {
   RECORD_EVENT = 3,
   WAIT_EVENT = 4,
   LAZY_DESTROY_EVENT = 5,
+  RESET_EVENT = 7,
 };
 
 struct QueueParas {
@@ -57,6 +58,8 @@ aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
 aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
+
+aclError LaunchResetEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchLazyDestroyEventTask(aclrtEvent event);
 } // namespace queue

@@ -389,6 +389,18 @@ namespace at_npu
       return ret;
     }
 
+    int ResetEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
+      auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
+      aclError ret = aclrtResetEvent(cur_paras->event, stream);
+      if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtResetEvent error! ret = %d, event = %p, eventAllocatorType = %d",
+                    ret, cur_paras->event, cur_paras->eventAllocatorType);
+        C10_NPU_SHOW_ERR_MSG();
+      }
+      ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      return ret;
+    }
+
     int LazyDestroyEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
@@ -453,6 +465,7 @@ namespace at_npu
       {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
       {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
       {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
+      {c10_npu::queue::RESET_EVENT, ResetEventFunc},
     };
 
     int AsncExecFunc(void* data) {
