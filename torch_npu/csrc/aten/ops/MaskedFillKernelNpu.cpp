@@ -80,7 +80,10 @@ at::Tensor& masked_fill_out_npu_nocheck(const at::Tensor& self, const at::Tensor
 }
 
 at::Tensor& NPUNativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, const at::Tensor& value) {
-  // OpPreparation::CheckMemory({self, mask, value}, {self});
+  //Handle the situation when the second input is a scalar and placed on cpu.
+  if (value.dim() == 0 && !at_npu::key::isDeviceTensor(value)) {
+    return NPUNativeFunctions::masked_fill_(self, mask, value.item());
+  }
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = masked_fill_out_npu_nocheck(contiguousSelf, mask, value, contiguousSelf);
