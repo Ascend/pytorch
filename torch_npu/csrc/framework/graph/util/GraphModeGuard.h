@@ -18,6 +18,7 @@
 
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include <c10/util/Exception.h>
 
 namespace at_npu {
 namespace native {
@@ -30,6 +31,9 @@ public:
   GraphModeGuard& operator=(GraphModeGuard&& other) = delete;
 
   explicit GraphModeGuard(c10_npu::ModeKind mode) : mode_(mode) {
+    TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() != c10_npu::ModeKind::REPLAY_MODE,
+                "Replay mode construct graph failed due to ModeGuard, maybe because of H2D memcpyAsync, ",
+                "D2H memcpyAsync, synchronize stream.");
     ori_mode_ = c10_npu::NpuRunMode::IsGraphMode()
         ? c10_npu::ModeKind::GRAPH_MODE
         : c10_npu::ModeKind::SINGLE_OP_MODE;

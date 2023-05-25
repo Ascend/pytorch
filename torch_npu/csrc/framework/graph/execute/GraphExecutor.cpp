@@ -584,6 +584,10 @@ GeOutPutOpType GraphExecutor::GetAllOutputOps(at::TensorList returnable_outputs)
     ops_and_idx.emplace_back(
         *op_ptr, std::vector < size_t > {graph_value.GetValueIndex()});
   }
+
+  if (ops_and_idx.size() > returnable_outputs.size()) {
+    TORCH_WARN_ONCE("Graph output size > user output size, graph create inner output in replay mode");
+  }
   return ops_and_idx;
 }
 
