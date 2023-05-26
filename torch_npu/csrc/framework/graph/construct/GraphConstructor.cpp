@@ -41,6 +41,8 @@ void GraphCommandImpl::AddInput(
   }
   if (GraphUtils::IsTensorWithoutNode(input)) {
     if (!input.storage().data()) {
+      TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() == c10_npu::ModeKind::GRAPH_MODE,
+                  "only recapture mode can create data op in graph.");
       auto storage_impl = input.storage().unsafeGetStorageImpl();
       size_t n_bytes = GraphUtils::GetTensorCapacity(storage_impl);
       GraphUtils::SetDataPtrAndNbytes(storage_impl, n_bytes);

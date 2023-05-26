@@ -119,7 +119,8 @@ at::Tensor NPUNativeFunctions::empty(
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
   int64_t nelements = c10::multiply_integers(unsymbolic_size);
   auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-  int64_t size_bytes = nelements * dtype.itemsize();
+  int64_t size_bytes =
+      (c10_npu::NpuRunMode::CurRunMode() == c10_npu::ModeKind::REPLAY_MODE) ? 0 : nelements * dtype.itemsize();
   c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
       c10::StorageImpl::use_byte_size_t(),
       size_bytes,

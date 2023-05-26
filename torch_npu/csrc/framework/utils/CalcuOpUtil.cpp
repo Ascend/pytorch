@@ -234,6 +234,8 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     size_t dstMax,
     const StorageAndOffsetMemSizePair &src,
     size_t count, aclrtMemcpyKind kind) {
+  TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() != c10_npu::ModeKind::REPLAY_MODE,
+              "Replay mode construct graph failed because of memcopy.");
   if (c10_npu::NpuRunMode::IsGraphMode()) {
     GraphExecutor::GetInstance().ConstructAndExecuteGraph();
   }
@@ -250,6 +252,8 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     const StorageAndOffsetMemSizePair &dst,
     size_t dstMax, const void *src,
     size_t count, aclrtMemcpyKind kind) {
+  TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() != c10_npu::ModeKind::REPLAY_MODE,
+              "Replay mode construct graph failed because of memcopy.");
   if (c10_npu::NpuRunMode::IsGraphMode()) {
     GraphExecutor::GetInstance().ConstructAndExecuteGraph();
   }
@@ -263,6 +267,8 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     void *dst, size_t dstMax,
     const StorageAndOffsetMemSizePair &src,
     size_t count, aclrtMemcpyKind kind) {
+  TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() != c10_npu::ModeKind::REPLAY_MODE,
+              "Replay mode construct graph failed because of memcopy.");
   if (c10_npu::NpuRunMode::IsGraphMode()) {
     GraphExecutor::GetInstance().ConstructAndExecuteGraph();
   }
@@ -278,6 +284,8 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(const at::Tensor &dst,
                                                         const at::Tensor &src,
                                                         size_t count,
                                                         aclrtMemcpyKind kind) {
+  TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() != c10_npu::ModeKind::REPLAY_MODE,
+              "Replay mode construct graph failed because of memcopy.");
   if (c10_npu::NpuRunMode::IsGraphMode()) {
     GraphExecutor::GetInstance().ConstructAndExecuteGraph();
   }
@@ -290,6 +298,8 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(const at::Tensor &dst,
 aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
     const c10::StorageImpl &dst, size_t dstMax, void *src, size_t count,
     aclrtMemcpyKind kind) {
+  TORCH_CHECK(c10_npu::NpuRunMode::CurRunMode() != c10_npu::ModeKind::REPLAY_MODE,
+              "Replay mode construct graph failed because of memcopy.");
   if (c10_npu::NpuRunMode::IsGraphMode()) {
     GraphExecutor::GetInstance().ConstructAndExecuteGraph();
   }

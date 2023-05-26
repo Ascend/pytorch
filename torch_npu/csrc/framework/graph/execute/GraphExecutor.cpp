@@ -171,6 +171,9 @@ uint32_t GraphExecutor::GetGraphIdWithoutCache(const CombinedInfo &inputs,
   ConstructOpsAndAddEdge(outputs, const_input_ops);
   ge::Graph graph("PytorchGraph");
   std::vector <ge::Operator> input_ops = GetInputOps();
+  TORCH_CHECK(inputs.tensors.size() >= input_ops.size(),
+              "replay input size can not less than replay graph input size,"
+              "maybe op create data input, such as viewcopy.");
   input_ops.insert(input_ops.end(),
                    const_input_ops.begin(),
                    const_input_ops.end());
@@ -584,6 +587,10 @@ GeOutPutOpType GraphExecutor::GetAllOutputOps(at::TensorList returnable_outputs)
     auto op_ptr = graph_value.GetCurNode()->GetGeOp();
     ops_and_idx.emplace_back(
         *op_ptr, std::vector < size_t > {graph_value.GetValueIndex()});
+  }
+
+  if (ops_and_idx.size() > returnable_outputs.size()) {
+    TORCH_WARN_ONCE("Graph output size > user output size, graph create inner output in replay mode");
   }
   return ops_and_idx;
 }
