@@ -383,7 +383,7 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
     )
     self.ddp = ddp
     self.ddp._divide_by_initial_world_size = divide_by_initial_world_size
-    super(_DDPJoinHook, self).__init__()
+    super(torch.nn.parallel.distributed._DDPJoinHook, self).__init__()
 
 
 def npu_ddp_init_helper(
