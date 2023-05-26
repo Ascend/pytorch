@@ -97,7 +97,8 @@ at::Tensor NPUNativeFunctions::npu_conv2d(
   int64_t Wo = (W + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1;
   c10::SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NC1HWC0);
+  int64_t result_format = input.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, result_format);
   // calculate the output result of the NPU
   NPUNativeFunctions::npu_conv2d_out(input, weight, bias, stride, padding, dilation, groups, result);
   return result;

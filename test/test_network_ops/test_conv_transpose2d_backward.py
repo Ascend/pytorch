@@ -78,4 +78,5 @@ class TestConvTranspose2dBackward(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(1234)
     run_tests()

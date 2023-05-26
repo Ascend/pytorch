@@ -197,8 +197,9 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backwar
   at::Tensor gradBias;
   // construct the output tensor of the NPU
   if (grad_input_mask[0]) {
+    int64_t grad_input_format = input.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
     gradInput = OpPreparation::ApplyTensorWithFormat(
-        std::get<0>(outputSizes), input.options(), ACL_FORMAT_NC1HWC0);
+        std::get<0>(outputSizes), input.options(), grad_input_format);
   }
 
   if (grad_input_mask[1]) {
