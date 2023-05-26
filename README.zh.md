@@ -340,7 +340,7 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
    ```
    # 下载对应PyTorch版本分支代码，进入插件根目录
    git clone https://gitee.com/ascend/pytorch.git 
-   cd pytorch    
+   cd pytorch
    # 指定Python版本编包方式，以Python3.8为例，其他Python版本请使用 --python=3.9
    bash ci/build.sh --python=3.8
    ```
