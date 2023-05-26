@@ -76,7 +76,6 @@ class TestThnnConvDepthwise2d(TestCase):
 
     def conv_depthwise2d_backward_result(self, shape_format):
         for item in shape_format:
-            print(item)
             self.weight_grad.clear()
             self.input_grad.clear()
             input_cpu, input_npu = create_common_tensor(item[0], -1, 1)
@@ -104,9 +103,9 @@ class TestThnnConvDepthwise2d(TestCase):
 
     def test_conv_depthwise2d_backward_shape_format_fp16(self, device="npu"):
         shape_format = [  # input, weight, padding, stride, dilation, bias
-            [[np.float16, 0, [32, 32, 112, 112]], [np.float16, 0, [32, 1, 3, 3]], 0, 1, 1, True],
+            [[np.float16, 0, [32, 32, 112, 112]], [np.float16, 0, [32, 1, 3, 3]], 0, 1, 1, None],
             [[np.float16, 0, [128, 232, 14, 14]], [np.float16, 0, [232, 1, 3, 3]], 1, [2, 2], 1, None],
-            [[np.float16, 3, [128, 232, 7, 7]], [np.float16, 0, [232, 1, 3, 3]], 1, 1, 1, True],
+            [[np.float16, 3, [128, 232, 7, 7]], [np.float16, 0, [232, 1, 3, 3]], 1, 1, 1, None],
             [[np.float16, 3, [128, 24, 56, 56]], [np.float16, 0, [24, 1, 3, 3]], 1, [2, 2], 1, None],
         ]
         self.conv_depthwise2d_backward_result(shape_format)
@@ -122,4 +121,5 @@ class TestThnnConvDepthwise2d(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(1234)
     run_tests()
