@@ -35,7 +35,8 @@ at::Tensor NPUNativeFunctions::slow_conv_dilated2d(
   }
   auto outputSize = slow_conv_dilated2d_npu_output_size(
       self, weight, stride, padding, dilation);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_NC1HWC0);
+  int64_t result_format = self.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), result_format);
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   int64_t groups = 1;
   c10::SmallVector<int64_t,N> stridesSize = {1,1,stride[0],stride[1]};

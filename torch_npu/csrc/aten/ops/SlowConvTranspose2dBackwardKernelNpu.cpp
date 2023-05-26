@@ -160,9 +160,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpos
   at::Tensor grad_input;
   at::Tensor grad_weight;
   at::Tensor grad_bias;
-  
+
+  int64_t grad_format = self.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
   if (output_mask[0]) {
-    grad_input = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSizes), ACL_FORMAT_NC1HWC0);
+    grad_input = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSizes), grad_format);
   }
 
   if (output_mask[1]) {
