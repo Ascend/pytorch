@@ -39,7 +39,7 @@ def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
             if arg.dtype == origin:
                 arg = arg.to(target)
                 if to_npu:
-                    torch_npu.npu_format_cast(arg, npu_format)
+                    torch_npu.npu_format_cast_(arg, npu_format)
 
         return arg
     

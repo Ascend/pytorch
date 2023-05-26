@@ -301,6 +301,8 @@ class NativeFunction:
     # Whether or not the NativeFunction is bishengcpp kernel
     bscpp_op: bool
 
+    op_api: bool
+
     # NB: The benefit of defining a dataclass is that we automatically get
     # a constructor defined for all the fields we specify.  No need
     # to explicitly write it out.
@@ -396,6 +398,7 @@ class NativeFunction:
         
         tag = parse_tag(e, structured)
         bscpp_op = e.pop("bscpp_op", False)
+        op_api = e.pop("op_api", False)
 
         from codegen.api import cpp
 
@@ -465,7 +468,7 @@ class NativeFunction:
             device_check=device_check, cpp_no_default_args=cpp_no_default_args, is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
             has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel, tag=tag,
-            bscpp_op=bscpp_op), backend_metadata
+            bscpp_op=bscpp_op, op_api=op_api), backend_metadata
 
     def validate_unstructured(self) -> None:
         # TODO: probably better to accumulate these errors and report them all

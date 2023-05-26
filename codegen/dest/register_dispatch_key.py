@@ -337,6 +337,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     impl_name = f"{self.cpp_namespace}::{self.class_method_name}::{metadata.kernel}"
 
+                op_api_impl_name = f"{self.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"
+
                 args_exprs_str = ', '.join(a.name for a in args)
 
                 device_check = '  // No device check\n'
@@ -376,6 +378,17 @@ torch_npu::profiler::NPURecordFunction guard;
                         if device_of is not None:
                             device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
 
+                if not f.op_api:
+                    op_api_impl_name = impl_name
+
+                return_code = f"""\
+if (c10_npu::NpuRunMode::IsGraphMode() || !at_npu::native::env::CheckForbidInternalFormat()) {{
+        return {impl_name}({args_exprs_str});
+    }} else {{
+        return {op_api_impl_name}({args_exprs_str});
+    }}
+"""
+
                 return f"""\
 namespace {{
 
@@ -384,7 +397,7 @@ namespace {{
 
   {device_guard}
   {record_func_def}
-  return {impl_name}({args_exprs_str});
+  {return_code}
 }}
 
 }} // anonymous namespace

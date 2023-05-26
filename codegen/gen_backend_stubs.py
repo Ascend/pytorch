@@ -91,6 +91,20 @@ ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
+
+        # Filter the custom native yaml file, and extract the functions we defined.
+        from io import StringIO
+        f_str = StringIO()
+        with open(custom_path, 'r') as f:
+            for line in f:
+                if ':' not in line:
+                    continue
+                f_str.write(line)
+
+        f_str.seek(0)
+        custom_data = yaml.safe_load(f_str)
+        custom_es = custom_data['custom'] + custom_data['custom_autograd']
+
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
         assert isinstance(es, list)
@@ -98,25 +112,16 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
             funcs = e.get('func')
+            if custom_data['supported']:
+                for op in custom_data['supported']:
+                    if op['func'] == funcs.split('(')[0]:
+                        op['func'] = funcs
+                        e.update(op)
             with context(lambda: f'in {path}:\n  {funcs}'):
                 func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
-        # Filter the custom native yaml file, and extract the functions we defined.
-        from io import StringIO
-        f_str = StringIO()
-        with open(custom_path, 'r') as f:
-            for line in f:
-                if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu',
-                                          'supported', 'autograd', 'custom', 'custom_autograd', 'unsupported']:
-                    continue
-                if ':' not in line:
-                    continue
-                f_str.write(line)
-
-        f_str.seek(0)
-        custom_es = yaml.safe_load(f_str)
         for e in custom_es:
             funcs = e.get('func')
             with context(lambda: f'in {custom_path}:\n  {funcs}'):
@@ -185,6 +190,8 @@ def parse_backend_yaml(
             supported.append(item['func'][:item['func'].index('(')])
         except ValueError:
             raise Exception(f'Wrong format for function: {item["func"]}')
+        
+    supported = [op['func'] if isinstance(op, Dict) else op for op in supported]
 
     custom_autograd = yaml_values.pop('custom_autograd', [])
     assert isinstance(custom_autograd, list), f'expected "autograd" to be a list, but got: {custom_autograd}'
@@ -351,6 +358,49 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
             'generated_comment': generated_comment,
             'cpp_namespace': cpp_namespace,
             'class_name': class_name,
+            'macro': '__SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTIONS__',
+            'include_npu_native_functions': '',
+            'static_define': '''
+namespace at_npu {
+namespace key {
+static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::XLA;
+static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::XLA;
+static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradXLA;
+static constexpr c10::Backend NativeBackend = c10::Backend::XLA;
+static const std::string npu_device_str = "npu";
+static const std::string default_device_str = "xla";
+
+static bool isDeviceTensor(const at::Tensor &tensor) {
+  return tensor.is_xla();
+}
+
+} // namespace key
+} // namespace at_npu
+''',
+            # Convert to a set first to remove duplicate kernel names.
+            # Backends are allowed to repeat kernel names; only generate the declaration once!
+            'dispatch_declarations': list(set(concat_map(
+                lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
+                grouped_native_functions
+            ))) + list(set(concat_map(
+                lambda f: dest.compute_native_function_declaration(f, backend_indices[autograd_dispatch_key]),
+                grouped_native_functions
+            ))) if autograd_dispatch_key else list(set(concat_map(
+                lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
+                grouped_native_functions
+            ))),
+        })
+
+        fm.write_with_template(f'{backend_dispatch_key}NativeOpApiFunctions.h', 
+            'DispatchKeyNativeFunctions.h', lambda: {
+            'generated_comment': generated_comment,
+            'cpp_namespace': cpp_namespace,
+            'class_name': 'NPUNativeOpApiFunctions',
+            'macro': '__SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTIONS_OPAPI__',
+            'include_npu_native_functions': '''
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+''',
+            'static_define': '',
             # Convert to a set first to remove duplicate kernel names.
             # Backends are allowed to repeat kernel names; only generate the declaration once!
             'dispatch_declarations': list(set(concat_map(
@@ -369,7 +419,12 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
             if not dispatch_key:
                 continue
 
-            native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
+            native_func_header = """
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+"""
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,
                 'namespaced_headers': '',
