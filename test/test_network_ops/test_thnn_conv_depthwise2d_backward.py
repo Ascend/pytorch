@@ -122,4 +122,5 @@ class TestThnnConvDepthwise2d(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(1234)
     run_tests()

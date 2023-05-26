@@ -156,8 +156,9 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv_transpose
 
   // construct the output tensor of the NPU
   if (output_mask[0]) {
+    int64_t grad_input_format = input.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
     gradInput = OpPreparation::ApplyTensorWithFormat(
-        input, ACL_FORMAT_NC1HWC0);
+        input, grad_input_format);
   }
 
   if (output_mask[1]) {
