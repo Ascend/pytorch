@@ -15,29 +15,16 @@
 // limitations under the License.
 
 #pragma once
-#ifndef __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTIONS__
-#define __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTIONS__
+#ifndef ${macro}
+#define ${macro}
 
 
 #include <ATen/Tensor.h>
 #include <ATen/ATen.h>
 #include <c10/core/Device.h>
+${include_npu_native_functions}
 
-namespace at_npu {
-namespace key {
-static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::XLA;
-static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::XLA;
-static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradXLA;
-static constexpr c10::Backend NativeBackend = c10::Backend::XLA;
-static const std::string npu_device_str = "npu";
-static const std::string default_device_str = "xla";
-
-static bool isDeviceTensor(const at::Tensor &tensor) {
-  return tensor.is_xla();
-}
-
-} // namespace key
-} // namespace at_npu
+${static_define}
 
 // ${generated_comment}
 namespace ${cpp_namespace} {
