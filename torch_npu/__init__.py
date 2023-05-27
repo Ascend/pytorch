@@ -16,16 +16,22 @@ try:
     import torch_npu.npu
 except ImportError as e:
     if "libhccl.so" in str(e):
+        ei = sys.exc_info()
         if ("ASCEND_OPP_PATH" in os.environ):
-            raise Exception(f"Please check that the compiler package is installed, " \
-                            "Please run 'source set_env.sh' in the CANN installation path.")
-        else:
-            raise Exception(f"Please check that the cann package is installed, " \
-                            "Please run 'source set_env.sh' in the CANN installation path.")
-    
+            newErr = ImportError(str(ei[1]) + ". Please check that the compiler package is installed. " \
+                                 "Please run 'source set_env.sh' in the CANN installation path.")
+        else :
+            newErr = ImportError(str(ei[1]) + ". Please check that the cann package is installed. " \
+                                 "Please run 'source set_env.sh' in the CANN installation path.")
+        traceback.print_exception(ei[0], newErr, ei[2])
+        sys.exit()
+
     if "libascendcl.so" in str(e):
-        raise Exception(f"Please check that the runtime package is installed, " \
-                        "Please run 'source set_env.sh' in the CANN installation path.")
+        ei = sys.exc_info()
+        newErr = ImportError(str(ei[1]) + ". Please check that the runtime package is installed. " \
+                             "Please run 'source set_env.sh' in the CANN installation path.")
+        traceback.print_exception(ei[0], newErr, ei[2])
+        sys.exit()
 
     else:
         traceback.print_exc()
@@ -70,27 +76,27 @@ def cann_package_check():
     if "ASCEND_HOME_PATH" in os.environ:
         ascend_home_path = os.environ["ASCEND_HOME_PATH"]
         if not os.path.exists(ascend_home_path):
-            raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist." \
+            raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist. " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
         
         # check whether environment variables are correctly configured
         if "ASCEND_OPP_PATH" not in os.environ:
-            raise Exception(f"ASCEND_OPP_PATH environment variable is not set." \
+            raise Exception(f"ASCEND_OPP_PATH environment variable is not set. " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
         if not os.path.exists(ascend_opp_path):
-            raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist." \
+            raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist. " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
         if not os.path.exists(ascend_runtime_path):
-            raise Exception(f"{ascend_runtime_path} does not exist, " \
+            raise Exception(f"{ascend_runtime_path} does not exist. " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
         if not os.path.exists(ascend_compiler_path):
-            raise Exception(f"{ascend_compiler_path} does not exist, " \
+            raise Exception(f"{ascend_compiler_path} does not exist. " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         # get the cann version
@@ -99,7 +105,7 @@ def cann_package_check():
         # check whether the CANN package version matches the pytorch version
         if cann_version in cann_pytorch_version_map and \
             torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
-            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__}" \
+            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} " \
                   "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
     else:
         print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")

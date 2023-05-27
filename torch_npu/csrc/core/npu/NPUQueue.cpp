@@ -260,9 +260,9 @@ bool Repository::ReadQueue() {
       read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
     }
     ReleaseResource();
-    std::stringstream msg;
-    msg << __func__ << ":" << __FILE__ << ":" << __LINE__;
-    TORCH_CHECK(0, msg.str());
+    throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
+                             "so the stacktrace below is not the root cause of the problem.\n" \
+                             "For getting the stacktrace of OP in PyTorch, consider passing TASK_QUEUE_ENABLE=0.");
   }
 
   manager().Release(datas, read_idx.idx, releaseQueue);
