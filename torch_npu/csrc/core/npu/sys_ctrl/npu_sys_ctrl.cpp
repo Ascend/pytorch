@@ -229,16 +229,16 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     this->RegisterReleaseFn([=]() ->void {
           c10_npu::NPUEventManager::GetInstance().ClearEvent();
           auto stream = c10_npu::getCurrentNPUStream();
-          (void)aclrtDestroyStream(stream);
-          NPU_CHECK_ERROR(ge::GEFinalize());
-          NPU_CHECK_ERROR(aclrtResetDevice(device_id_));
-          NPU_CHECK_ERROR(aclFinalize());
+          NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+          NPU_CHECK_WARN(ge::GEFinalize());
+          NPU_CHECK_WARN(aclrtResetDevice(device_id_));
+          NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-        NPU_CHECK_ERROR(aclmdlFinalizeDump());
+        NPU_CHECK_WARN(aclmdlFinalizeDump());
     }
 
     // call release fn by priotity

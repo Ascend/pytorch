@@ -41,27 +41,44 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   // on the current device, while aclrtFree Free device memory immediately.
   // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
   // all of op tasks completed before device memory free.
-  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-    try {
-      c10_npu::npuSynchronizeDevice();
-    } catch (std::exception& e) {
-      ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
-    }
-    at_npu::native::GraphExecutor::GetInstance().Finalize();
-    at_npu::native::TdtChannelForPrint::GetInstance().Finalize();
-    THNPUCachingHostAllocator_emptyCache();
-    try {
-      c10_npu::NPUCachingAllocator::emptyCache();
-    } catch (std::exception& e) {
-      ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
-    }
-    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
-    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
-      fprintf(stdout, "THPModule_npu_shutdown failed.\n");
-    } else {
-      fprintf(stdout, "THPModule_npu_shutdown success.\n");
-    }
+  ASCEND_LOGI("NPU shutdown begin.");
+  if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    Py_RETURN_NONE;
   }
+  
+  // Return aclrtSynchronizeDevice result. If sync device fails, release host
+  // resources forcibly, only record WARN logs when acl interface of stream
+  // or event fails.
+  bool success = true;
+  try {
+    ASCEND_LOGI("NPU shutdown synchronize device.");
+    success = c10_npu::npuSynchronizeDevice(false);
+  } catch (std::exception& e) {
+    ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
+    success = false;
+  }
+  if (!success) {
+    ASCEND_LOGE("NPU shutdown synchronize device failed.");
+  }
+  ASCEND_LOGI("NPU shutdown GraphExecutor Finalize.");
+  at_npu::native::GraphExecutor::GetInstance().Finalize();
+  ASCEND_LOGI("NPU shutdown TdtChannelForPrint Finalize.");
+  at_npu::native::TdtChannelForPrint::GetInstance().Finalize();
+  THNPUCachingHostAllocator_emptyCache();
+  try {
+    ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
+    c10_npu::NPUCachingAllocator::emptyCache(success);
+  } catch (std::exception& e) {
+    ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
+  }
+  ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
+  c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
+  if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
+    ASCEND_LOGE("NPU shutdown failed.");
+  } else {
+    ASCEND_LOGI("NPU shutdown success.");
+  }
+  
   Py_RETURN_NONE;
 }
 

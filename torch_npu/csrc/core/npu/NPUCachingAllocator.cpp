@@ -345,7 +345,7 @@ class DeviceCachingAllocator {
       // Free enough available cached blocks to satisfy alloc and retry alloc.
       || (release_available_cached_blocks(params) && alloc_block(params, false))
       // Free all non-split cached blocks and retry alloc.
-      || (release_cached_blocks() && alloc_block(params, true));
+      || (release_cached_blocks(true) && alloc_block(params, true));
 
     if (!block_found) {
       if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
@@ -540,9 +540,9 @@ class DeviceCachingAllocator {
   }
 
   /** returns cached blocks to the system allocator **/
-  void emptyCache() {
+  void emptyCache(bool check_error) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    release_cached_blocks();
+    release_cached_blocks(check_error);
   }
 
   /** Retrieves info (total size + largest block) of the memory cache **/
@@ -864,13 +864,13 @@ class DeviceCachingAllocator {
     return true;
   }
 
-  bool release_cached_blocks() {
+  bool release_cached_blocks(bool check_error) {
     // First ensure that all blocks that can't currently be allocated due to
     // outstanding events are returned to the pool.
-    synchronize_and_free_events();
+    synchronize_and_free_events(check_error);
 
     // Free all non-split cached blocks
-    c10_npu::npuSynchronizeDevice();
+    c10_npu::npuSynchronizeDevice(check_error);
     release_blocks(large_blocks);
     release_blocks(small_blocks);
 
@@ -944,7 +944,7 @@ class DeviceCachingAllocator {
     ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
   }
 
-  void synchronize_and_free_events() {
+  void synchronize_and_free_events(bool check_error) {
     // Synchronize on outstanding events and then free associated blocks.
 
     for (auto& e : npu_events) {
@@ -958,8 +958,13 @@ class DeviceCachingAllocator {
       }
       Block* block = e.second;
 
-      NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));
+      if (check_error) {
+        NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));        
+      } else {
+        NPU_CHECK_WARN(aclrtSynchronizeEvent(event));
+      }
       ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
+
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
@@ -967,8 +972,13 @@ class DeviceCachingAllocator {
           recorded_events.erase(it);
         }
       }
-      free_event_internal(event);
 
+      if (check_error) {
+        free_event_internal(event);        
+      } else {
+        NPU_CHECK_WARN(aclrtDestroyEvent(event));
+      }
+      
       block->event_count--;
       if (block->event_count == 0) {
         free_block(block);
@@ -1154,10 +1164,10 @@ class THNCachingAllocator {
     device_allocator[device]->setMemoryFraction(fraction);
   }
 
-  void emptyCache() {
+  void emptyCache(bool check_error) {
     int count = device_allocator.size();
     for (int i = 0; i < count; i++)
-      device_allocator[i]->emptyCache();
+      device_allocator[i]->emptyCache(check_error);
   }
 
   void* getBaseAllocation(void* ptr, size_t* outSize) {
@@ -1238,8 +1248,8 @@ void setMemoryFraction(double fraction, int device) {
   caching_allocator.setMemoryFraction(fraction, device);
 }
 
-void emptyCache(void) {
-  caching_allocator.emptyCache();
+void emptyCache(bool check_error) {
+  caching_allocator.emptyCache(check_error);
 }
 
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {
@@ -1309,7 +1319,7 @@ void raw_delete(void* ptr) {
 }
 
 void FreeDeviceCachedMemory(int device) {
-  caching_allocator.device_allocator[device]->emptyCache();
+  caching_allocator.device_allocator[device]->emptyCache(true);
 }
 
 void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
