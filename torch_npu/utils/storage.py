@@ -50,8 +50,9 @@ def _reduce_ex(self, proto):
     relevant_args = (self,)
     if type(self) is not torch.Tensor and has_torch_function(relevant_args):
         return handle_torch_function(torch.Tensor.__reduce_ex__, relevant_args, self, proto)
+    state = torch._utils._get_obj_state(self)
     func, args = self._reduce_ex_internal(proto)
-    return torch._rebuild_from_type, (func, type(self), args, self.__dict__)
+    return torch._tensor._rebuild_from_type_v2, (func, type(self), args, state)
 
 
 '''
