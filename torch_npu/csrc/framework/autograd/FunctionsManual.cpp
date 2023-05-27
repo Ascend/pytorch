@@ -21,27 +21,30 @@
 
 #include <ATen/ATen.h>
 #include <ATen/AccumulateType.h>
-#include <ATen/BatchedTensorImpl.h>
-#include <ATen/core/grad_mode.h>
-#include <ATen/core/Reduction.h>
 #include <ATen/Dispatch.h>
 #include <ATen/ExpandUtils.h>
-#include <ATen/native/IndexingUtils.h>
-#include <ATen/native/LinearAlgebraUtils.h>
+#include <ATen/LegacyBatchedTensorImpl.h>
 #include <ATen/ScalarOps.h>
+#include <ATen/SparseCsrTensorUtils.h>
 #include <ATen/SparseTensorUtils.h>
+#include <ATen/TensorSubclassLikeUtils.h>
 #include <ATen/Utils.h>
 #include <ATen/WrapDimUtils.h>
 #include <ATen/WrapDimUtilsMulti.h>
+#include <ATen/core/Reduction.h>
 #include <ATen/core/grad_mode.h>
+#include <ATen/native/Activation.h>
+#include <ATen/native/IndexingUtils.h>
+#include <ATen/native/LinearAlgebraUtils.h>
 #include <c10/core/TensorOptions.h>
+#include <c10/util/OptionalArrayRef.h>
+#include <c10/util/SmallBuffer.h>
 #include <c10/util/accumulate.h>
 #include <c10/util/irange.h>
-#include <ATen/TensorSubclassLikeUtils.h>
-#include <c10/util/SmallBuffer.h>
 
 #include <torch/csrc/autograd/variable.h>
 #include <torch/csrc/autograd/functions/utils.h>
+#include <torch/csrc/autograd/functions/basic_ops.h>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "FunctionsManual.h"
@@ -123,6 +126,9 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason) {
   return not_implemented_base<std::vector<Tensor>>(name, reason);
 }
 
+Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self) {
+  return at_npu::native::NPUNativeFunctions::npu_fast_gelu_backward(grad, self);
+}
 
 } // namespace details
 } // namespace generated

@@ -54,7 +54,7 @@ def load_derivatives(
     if key not in _GLOBAL_LOAD_DERIVATIVE_CACHE:
 
         with open(derivatives_yaml_path, 'r') as f:
-            definitions = yaml.safe_load(f, Loader=YamlLoader)
+            definitions = yaml.load(f, Loader=YamlLoader)
 
         functions = parse_native_and_custom_yaml(native_yaml_path, npu_native_yaml_path).native_functions
 

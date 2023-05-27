@@ -48,7 +48,12 @@ from codegen.api.autograd import (
 )
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 from codegen.model import NativeFunction
-from codegen.gen_python_functions import NPU_AUTOGRAD_FUNCTION
+from .gen_autograd_functions import gen_autograd_functions_lib
+from .gen_variable_type import (
+    gen_variable_type, gen_npu_variable_type, 
+    NPU_AUTOGRAD_FUNCTION, gen_variable_type_head
+)
+from .gen_inplace_or_view_type import gen_inplace_or_view_type
 from .gen_variable_factories import gen_variable_factories
 from .load_derivatives import load_derivatives
 
@@ -78,6 +83,18 @@ def gen_autograd(
             npu_funcs_with_diff_infos.append(func)
         else:
             torch_funcs_with_diff_infos.append(func)
+
+    # Generate VariableType.h/cpp
+    gen_variable_type(out, torch_funcs_with_diff_infos, template_path)
+    
+    gen_npu_variable_type(out, npu_funcs_with_diff_infos, template_path)
+    
+    gen_variable_type_head(out, funcs_with_diff_infos, template_path)
+
+    gen_inplace_or_view_type(out, funcs_with_diff_infos, template_path)
+    
+    # Generate Functions.h/cpp
+    gen_autograd_functions_lib(out, differentiability_infos, template_path)
 
     # Generate variable_factories.h
     gen_variable_factories(out, native_functions_path, npu_native_functions_path, template_path)
