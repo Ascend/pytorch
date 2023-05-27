@@ -102,6 +102,34 @@ supported:
  - addcmul
  - addcmul.out
  - addcmul_
+ - _foreach_add.Scalar
+ - _foreach_add_.Scalar
+ - _foreach_mul.Scalar
+ - _foreach_mul_.Scalar
+ - _foreach_div.Scalar
+ - _foreach_div_.Scalar
+ - _foreach_add.List
+ - _foreach_add_.List
+ - _foreach_mul.List
+ - _foreach_mul_.List
+ - _foreach_div.List
+ - _foreach_div_.List
+ - _foreach_add.ScalarList
+ - _foreach_add_.ScalarList
+ - _foreach_div.ScalarList
+ - _foreach_div_.ScalarList
+ - _foreach_mul.ScalarList
+ - _foreach_mul_.ScalarList
+ - _foreach_sqrt
+ - _foreach_sqrt_
+ - _foreach_addcdiv_.Scalar
+ - _foreach_addcmul_.Scalar
+ - _foreach_addcdiv_.ScalarList
+ - _foreach_addcmul_.ScalarList
+ - _foreach_addcdiv.Scalar
+ - _foreach_addcmul.Scalar
+ - _foreach_addcdiv.ScalarList
+ - _foreach_addcmul.ScalarList
  - addmm
  - addmm.out
  - addmm_
@@ -919,35 +947,15 @@ tocpu:
   - _fft_c2r.out
   - _fft_c2c
   - _fft_c2c.out
-  - _foreach_add.Scalar
-  - _foreach_add_.Scalar
   - _foreach_sub.Scalar
   - _foreach_sub_.Scalar
-  - _foreach_mul.Scalar
-  - _foreach_mul_.Scalar
-  - _foreach_div.Scalar
-  - _foreach_div_.Scalar
-  - _foreach_add.List
-  - _foreach_add_.List
   - _foreach_sub.List
   - _foreach_sub_.List
-  - _foreach_mul.List
-  - _foreach_mul_.List
-  - _foreach_div.List
-  - _foreach_div_.List
-  - _foreach_add.ScalarList
-  - _foreach_add_.ScalarList
   - _foreach_sub.ScalarList
   - _foreach_sub_.ScalarList
-  - _foreach_div.ScalarList
-  - _foreach_div_.ScalarList
-  - _foreach_mul.ScalarList
-  - _foreach_mul_.ScalarList
   - _foreach_exp
   - _foreach_zero_
   - _foreach_exp_
-  - _foreach_sqrt
-  - _foreach_sqrt_
   - _foreach_abs
   - _foreach_abs_
   - _foreach_acos
@@ -1000,14 +1008,6 @@ tocpu:
   - _foreach_sigmoid_
   - _foreach_trunc
   - _foreach_trunc_
-  - _foreach_addcdiv_.Scalar
-  - _foreach_addcmul_.Scalar
-  - _foreach_addcdiv_.ScalarList
-  - _foreach_addcmul_.ScalarList
-  - _foreach_addcdiv.Scalar
-  - _foreach_addcmul.Scalar
-  - _foreach_addcdiv.ScalarList
-  - _foreach_addcmul.ScalarList
   - _foreach_maximum.List
   - _foreach_minimum.List
   - _logcumsumexp
