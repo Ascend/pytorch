@@ -160,7 +160,7 @@ class NpuPreGenDropout(torch.nn.Dropout):
             return return_obj
 
         if self.p not in NpuPreGenDropout.task_dict:
-            raise RuntimeError("NpuPreGenDropout input  prob error! "
+            raise RuntimeError(f"NpuPreGenDropout input  prob error! "
                                "You Only Register prob:{NpuPreGenDropout.task_dict.keys()}")
 
         tmp_len = reduce(lambda a, b: a * b, x.shape)

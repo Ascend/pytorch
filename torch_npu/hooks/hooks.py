@@ -110,8 +110,8 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
 
 
 def wrap_acc_cmp_hook(name, **kwargs):
-    print("Warning : wrap_acc_cmp_hook is not suggested to use, \
-          please use ptdbg_ascend precision comparison tool instead.")
+    print("Warning : wrap_acc_cmp_hook is not suggested to use," \
+          "please use ptdbg_ascend precision comparison tool instead.")
     sample = kwargs.get('sample', True)
     pid = kwargs.get('pid')
     if not pid:
