@@ -20,7 +20,7 @@ bool NPUNativeFunctions::is_pinned(const at::Tensor& self, c10::optional<at::Dev
     return false;
   }
 
-  return false;
+  return THNPUCachingHostAllocator_isPinndPtr(self.storage().data());
 }
 
 at::Tensor NPUNativeFunctions::_pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {
