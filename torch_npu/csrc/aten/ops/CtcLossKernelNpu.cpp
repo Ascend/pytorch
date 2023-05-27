@@ -90,9 +90,14 @@ at::Tensor NPUNativeFunctions::ctc_loss(
     int64_t blank,
     int64_t reduction,
     bool zero_infinity) {
+  // Implementation of synchronous logic reference CUDA.
+  auto executed_targets = targets;
+  if (targets.device() != log_probs.device()) {
+    executed_targets = targets.to(log_probs.device());
+  }
   at::Tensor res = std::get<0>(at::_ctc_loss(
       log_probs, 
-      targets, 
+      executed_targets, 
       input_lengths_list, 
       target_lengths_list, 
       blank, 
