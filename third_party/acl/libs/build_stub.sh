@@ -32,3 +32,4 @@ gcc -fPIC -shared -o libgraph.so -I../inc graph.cpp operator_factory.cpp operato
 
 gcc -fPIC -shared -o libacl_tdt_channel.so -I../inc acl_tdt.cpp
 
+gcc -fPIC -shared -o libopapi.so -I../inc aclnn_op.cpp
