@@ -12,10 +12,10 @@ do {                                                      \
   std::cout<<c10_npu::acl::AclGetErrMsg()<<std::endl;    \
 } while (0)
 
-#define NPU_CHECK_ERROR(Error)                                       \
+#define NPU_CHECK_ERROR(err_code)                                    \
   do {                                                               \
-    auto err_code = Error;                                           \
-    if ((err_code) != ACL_ERROR_NONE) {                              \
+    auto Error = err_code;                                           \
+    if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_CHECK(                                                   \
         false,                                                       \
         __func__,                                                    \
@@ -23,19 +23,19 @@ do {                                                      \
         __FILE__,                                                    \
         ":",                                                         \
         __LINE__,                                                    \
-        " NPU error, error code is ", err_code,                      \
-        (c10_npu::acl::error_code_map.find(err_code) !=              \
+        " NPU error, error code is ", Error,                         \
+        (c10_npu::acl::error_code_map.find(Error) !=                 \
         c10_npu::acl::error_code_map.end() ?                         \
-        "\n[Error]: " + c10_npu::acl::error_code_map[err_code] : ".") ,   \
+        "\n[Error]: " + c10_npu::acl::error_code_map[Error] : ".") , \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
 
-#define NPU_CHECK_SUPPORTED_OR_ERROR(Error)                          \
+#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                       \
   do {                                                               \
-    auto err_code = Error;                                           \
-    if ((err_code) != ACL_ERROR_NONE                                 \
-        && (err_code) != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {         \
+    auto Error = err_code;                                           \
+    if ((Error) != ACL_ERROR_NONE                                    \
+        && (Error) != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {            \
       TORCH_CHECK(                                                   \
         false,                                                       \
         __func__,                                                    \
@@ -43,23 +43,23 @@ do {                                                      \
         __FILE__,                                                    \
         ":",                                                         \
         __LINE__,                                                    \
-        " NPU error, error code is ", err_code,                      \
-        (c10_npu::acl::error_code_map.find(err_code) !=              \
+        " NPU error, error code is ", Error,                         \
+        (c10_npu::acl::error_code_map.find(Error) !=                 \
         c10_npu::acl::error_code_map.end() ?                         \
-      "\n[Error]: " + c10_npu::acl::error_code_map[err_code] : ".") ,     \
+      "\n[Error]: " + c10_npu::acl::error_code_map[Error] : ".") ,   \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
 
-#define NPU_CHECK_WARN(Error)                                        \
+#define NPU_CHECK_WARN(err_code)                                     \
   do {                                                               \
-    auto err_code = Error;                                           \
-    if ((err_code) != ACL_ERROR_NONE) {                              \
-      TORCH_WARN("NPU warning, error code is ", err_code,            \
+    auto Error = err_code;                                           \
+    if ((Error) != ACL_ERROR_NONE) {                                 \
+      TORCH_WARN("NPU warning, error code is ", Error,               \
         "[Error]: ",                                                 \
-        (c10_npu::acl::error_code_map.find(err_code) !=              \
+        (c10_npu::acl::error_code_map.find(Error) !=                 \
         c10_npu::acl::error_code_map.end() ?                         \
-        "\n[Error]: " + c10_npu::acl::error_code_map[err_code] : ".") ,   \
+        "\n[Error]: " + c10_npu::acl::error_code_map[Error] : ".") , \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
