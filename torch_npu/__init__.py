@@ -31,7 +31,6 @@ except ImportError as e:
         traceback.print_exc()
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
-import torch_npu.distributed
 import torch_npu._C
 
 import torch_npu.npu.npu_print as _npu_print
@@ -183,7 +182,8 @@ torch.distributed.is_hccl_available = lambda : True
 # this must be placed at the end
 torch_npu._C._initExtension()
 
-# register hccl backend
+# init and register hccl backend
+torch_npu._C._c10d_npu_init()
 torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 

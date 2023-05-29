@@ -13,7 +13,6 @@ from torch.nn.modules.module import Module
 from torch.nn.parallel._functions import _streams
 
 import torch_npu
-import torch_npu.distributed as dist
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 
 
