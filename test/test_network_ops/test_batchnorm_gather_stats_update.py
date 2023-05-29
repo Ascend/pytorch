@@ -32,7 +32,7 @@ class TestBatchNormGatherStatsUpdate(TestCase):
         return cpu_mean, cpu_invstd, cpu_running_mean, cpu_running_var
 
     def npu_op_exec(self, *args):
-        npu_mean, npu_invstd = torch.batch_norm_gather_stats_update(*args)
+        npu_mean, npu_invstd = torch_npu.batch_norm_gather_stats_update(*args)
         out_mean = npu_mean.cpu().numpy()
         out_invstd = npu_invstd.cpu().numpy()
         return out_mean, out_invstd
