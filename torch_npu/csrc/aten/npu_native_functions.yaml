@@ -825,9 +825,12 @@ supported:
  - round
  - round.out
  - round_
- - rrelu_with_noise
- - rrelu_with_noise.out
- - rrelu_with_noise_
+ - func: rrelu_with_noise
+   op_api: True
+ - func: rrelu_with_noise.out
+   op_api: True
+ - func: rrelu_with_noise_
+   op_api: True
  - rrelu_with_noise_backward
  - rsqrt
  - rsqrt.out
