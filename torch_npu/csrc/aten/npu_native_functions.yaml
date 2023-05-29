@@ -863,11 +863,14 @@ supported:
  - upsample_trilinear3d_backward
  - upsample_trilinear3d_backward.grad_input
  - var
+ - var.correction
+ - var.correction_out
  - var.dim
  - var.names_dim
  - var.names_out
  - var.out
  - var_mean
+ - var_mean.correction
  - var_mean.dim
  - var_mean.names_dim
  - view
