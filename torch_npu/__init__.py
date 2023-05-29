@@ -8,6 +8,8 @@ import traceback
 from typing import Set, Type
 from functools import wraps
 
+from . import _ld_preload  # noqa: F401
+
 import torch
 import torch_npu
 try:
