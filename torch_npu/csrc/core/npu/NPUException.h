@@ -12,8 +12,9 @@ do {                                                      \
   std::cout<<c10_npu::acl::AclGetErrMsg()<<std::endl;    \
 } while (0)
 
-#define NPU_CHECK_ERROR(Error)                                       \
+#define NPU_CHECK_ERROR(err_code)                                    \
   do {                                                               \
+    auto Error = err_code;                                           \
     if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_CHECK(                                                   \
         false,                                                       \
@@ -30,8 +31,9 @@ do {                                                      \
     }                                                                \
   } while (0)
 
-#define NPU_CHECK_SUPPORTED_OR_ERROR(Error)                          \
+#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                       \
   do {                                                               \
+    auto Error = err_code;                                           \
     if ((Error) != ACL_ERROR_NONE                                    \
         && (Error) != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {            \
       TORCH_CHECK(                                                   \
@@ -49,8 +51,9 @@ do {                                                      \
     }                                                                \
   } while (0)
 
-#define NPU_CHECK_WARN(Error)                                        \
+#define NPU_CHECK_WARN(err_code)                                     \
   do {                                                               \
+    auto Error = err_code;                                           \
     if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_WARN("NPU warning, error code is ", Error,               \
         "[Error]: ",                                                 \
