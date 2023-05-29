@@ -67,8 +67,10 @@ supported:
  - _softmax_backward_data.out
  - _symeig_helper
  - _unique2
- - abs
- - abs.out
+ - func: abs
+   op_api: True
+ - func: abs.out
+   op_api: True
  - abs_
  - acos
  - acos.out
