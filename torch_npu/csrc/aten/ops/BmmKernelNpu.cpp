@@ -26,6 +26,11 @@ at::Tensor& bmm_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, cons
 }
 
 at::Tensor& NPUNativeFunctions::bmm_out(const at::Tensor& self, const at::Tensor& mat2, at::Tensor& result) {
+  TORCH_CHECK(self.device() == mat2.device(), 
+              "Expected all tensors to be on the same device, but found at least two devices, ", 
+              (torch_npu::utils::is_npu(self) ? "npu" : "cpu"),
+              " and ", 
+              (torch_npu::utils::is_npu(mat2) ? "npu! " : "cpu! "));
   auto output_size = {self.size(0), self.size(1), mat2.size(2)};
 
   OpPreparation::CheckOut(
@@ -46,6 +51,11 @@ at::Tensor& NPUNativeFunctions::bmm_out(const at::Tensor& self, const at::Tensor
 }
 
 at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat2) {
+  TORCH_CHECK(self.device() == mat2.device(), 
+              "Expected all tensors to be on the same device, but found at least two devices, ", 
+              (torch_npu::utils::is_npu(self) ? "npu" : "cpu"),
+              " and ", 
+              (torch_npu::utils::is_npu(mat2) ? "npu! " : "cpu! "));
   auto output_size = {self.size(0), self.size(1), mat2.size(2)};
 
   at::Tensor result;
