@@ -27,13 +27,6 @@ at::Tensor& gather_out_npu_nocheck(
     const at::Tensor& index,
     bool sparse_grad,
     at::Tensor& result) {
-  at::Tensor dtypeCastOfSelf = self;
-  at::Tensor dtypeCastOfResult = result;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-    dtypeCastOfResult = OpPreparation::ApplyTensor(result, result.options().dtype(at::kFloat));
-  }
-
   if (self.scalar_type() == at::kLong) {
     TORCH_WARN_ONCE("The oprator of gather is executed, Currently High Accuracy but Low Performance OP"
       "with 64-bit has been used,Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
@@ -41,12 +34,11 @@ at::Tensor& gather_out_npu_nocheck(
 
   OpCommand cmd;
   cmd.Name("GatherElements")
-      .Input(dtypeCastOfSelf)
+      .Input(self)
       .Input(index)
       .Attr("dim", dim)
-      .Output(dtypeCastOfResult)
+      .Output(result)
       .Run();
-  result.copy_(dtypeCastOfResult);
   return result;
 }
 
