@@ -128,7 +128,8 @@ supported:
    op_api: True
  - addcmul_
  - addmm
- - addmm.out
+ - func: addmm.out
+   op_api: True
  - addmm_
  - addmv
  - addmv.out
@@ -212,8 +213,10 @@ supported:
    op_api: True
  - func: bernoulli_.float
    op_api: True
- - binary_cross_entropy
- - binary_cross_entropy.out
+ - func: binary_cross_entropy
+   op_api: True
+ - func: binary_cross_entropy.out
+   op_api: True
  - binary_cross_entropy_backward
  - binary_cross_entropy_backward.grad_input
  - binary_cross_entropy_with_logits
