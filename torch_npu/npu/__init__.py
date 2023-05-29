@@ -1,24 +1,95 @@
 __all__ = [
-    "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
-    "synchronize", "device_count", "set_device", "current_device", "get_device_name",
-    "get_device_properties", "get_device_capability", "_get_device_index", "is_available", "device", "device_of",
-    "stream", "set_stream", "current_stream", "default_stream", "init_dump",
-    "finalize_dump", "manual_seed", "manual_seed_all",
-    "seed", "seed_all", "initial_seed", "_free_mutex", "caching_allocator_alloc",
-    "caching_allocator_delete", "set_per_process_memory_fraction", "empty_cache", "memory_stats",
-    "memory_stats_as_nested_dict", "reset_accumulated_memory_stats",
-    "reset_peak_memory_stats", "reset_max_memory_allocated", "reset_max_memory_cached",
-    "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
-    "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
-    "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
-    "prof_start", "prof_stop", "prof_finalize", "iteration_start", "iteration_end",
-    "profileConfig", "_is_in_bad_fork", "set_compile_mode",
-    "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor", 
-    "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
-    "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
-    "get_rng_state_all", "set_rng_state_all", "make_replay_graph", "is_jit_compile_false",
-    "dump_enable", "dump_disable", "get_amp_supported_dtype", "is_autocast_enabled", "set_autocast_enabled",
-    "get_autocast_dtype", "set_autocast_dtype"
+    "is_initialized",
+    "init",
+    "set_dump",
+    "synchronize",
+    "device_count",
+    "set_device",
+    "current_device",
+    "get_device_name",
+    "get_device_properties",
+    "get_device_capability",
+    "is_available",
+    "device",
+    "device_of",
+    "stream",
+    "set_stream",
+    "current_stream",
+    "default_stream",
+    "init_dump",
+    "finalize_dump",
+    "manual_seed",
+    "manual_seed_all",
+    "seed",
+    "seed_all",
+    "initial_seed",
+    "caching_allocator_alloc",
+    "caching_allocator_delete",
+    "set_per_process_memory_fraction",
+    "empty_cache",
+    "memory_stats",
+    "memory_stats_as_nested_dict",
+    "reset_accumulated_memory_stats",
+    "reset_peak_memory_stats",
+    "reset_max_memory_allocated",
+    "reset_max_memory_cached",
+    "memory_allocated",
+    "max_memory_allocated",
+    "memory_reserved",
+    "max_memory_reserved",
+    "memory_cached",
+    "max_memory_cached",
+    "memory_snapshot",
+    "memory_summary",
+    "Stream",
+    "Event",
+    "profiler",
+    "set_option",
+    "set_aoe",
+    "profile",
+    "prof_init",
+    "prof_start",
+    "prof_stop",
+    "prof_finalize",
+    "iteration_start",
+    "iteration_end",
+    "profileConfig",
+    "set_compile_mode",
+    "set_mm_bmm_format_nd",
+    "get_mm_bmm_format_nd",
+    "get_npu_overflow_flag",
+    "clear_npu_overflow_flag",
+    "get_rng_state",
+    "set_rng_state",
+    "get_rng_state_all",
+    "set_rng_state_all",
+    "make_replay_graph",
+    "is_jit_compile_false",
+    "dump_enable",
+    "dump_disable",
+    "get_amp_supported_dtype",
+    "is_autocast_enabled",
+    "set_autocast_enabled",
+    "get_autocast_dtype",
+    "set_autocast_dtype",
+    "BoolStorage",
+    "ByteStorage",
+    "ShortStorage",
+    "LongStorage",
+    "IntStorage",
+    "HalfStorage",
+    "CharStorage",
+    "DoubleStorage",
+    "FloatStorage",
+    "BoolTensor",
+    "ByteTensor",
+    "CharTensor",
+    "DoubleTensor",
+    "FloatTensor",
+    "HalfTensor",
+    "IntTensor",
+    "LongTensor",
+    "ShortTensor",
 ]
 
 from typing import Tuple, Union
@@ -27,6 +98,9 @@ import traceback
 import threading
 import os
 import torch
+from torch.storage import _LegacyStorage, _warn_typed_storage_removal
+from torch._utils import classproperty
+
 import torch_npu
 from .utils import (synchronize, device_count, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index,
@@ -204,3 +278,139 @@ def is_available():
 
 from .random import *  # noqa: F403
 from .memory import *  # noqa: F403
+
+
+@staticmethod
+def _lazy_new(cls, *args, **kwargs):
+    _lazy_init()
+    # We may need to call lazy init again if we are a forked child
+    # del _NPUBase.__new__
+    return super(_NPUBase, cls).__new__(cls, *args, **kwargs)
+
+class _NPUBase:
+    is_npu = True
+    is_sparse = False
+
+    def type(self, *args, **kwargs):
+        with device(self.get_device()):
+            return super().type(*args, **kwargs)
+
+    __new__ = _lazy_new
+
+class _NPULegacyStorage(_LegacyStorage):
+    @classmethod
+    def from_buffer(cls, *args, **kwargs):
+        _warn_typed_storage_removal()
+        raise RuntimeError('from_buffer: Not available for NPU storage')
+
+    @classmethod
+    def _new_with_weak_ptr(cls, *args, **kwargs):
+        raise RuntimeError('_new_with_weak_ptr: Not available for NPU storage')
+
+    @classmethod
+    def _new_shared_filename(cls, manager, obj, size, *, device=None, dtype=None):
+        raise RuntimeError('_new_shared_filename: Not available for NPU storage')
+
+class ByteStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.uint8
+
+class DoubleStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.double
+
+class FloatStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.float
+
+class HalfStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.half
+
+class LongStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.long
+
+class IntStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.int
+
+class ShortStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.short
+
+class CharStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.int8
+
+class BoolStorage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.bool
+
+
+del _LegacyStorage
+del _NPULegacyStorage
+
+torch._storage_classes.add(DoubleStorage)
+torch._storage_classes.add(FloatStorage)
+torch._storage_classes.add(LongStorage)
+torch._storage_classes.add(IntStorage)
+torch._storage_classes.add(ShortStorage)
+torch._storage_classes.add(CharStorage)
+torch._storage_classes.add(ByteStorage)
+torch._storage_classes.add(HalfStorage)
+torch._storage_classes.add(BoolStorage)
