@@ -603,6 +603,8 @@ supported:
  - mv.out
  - native_batch_norm
  - native_batch_norm_backward
+ - native_dropout
+ - native_dropout_backward
  - native_layer_norm
  - native_layer_norm_backward
  - ne.Scalar
@@ -1056,8 +1058,6 @@ tocpu:
   - nansum
   - nansum.dim_IntList
   - nansum.IntList_out
-  - native_dropout
-  - native_dropout_backward
   - native_group_norm_backward
   - narrow_copy.out
   - poisson
