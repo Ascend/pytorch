@@ -1202,10 +1202,6 @@ class THNCachingAllocator {
 
 THNCachingAllocator caching_allocator;
 
-static void NPUCachingDeleter(void* ptr) {
-  caching_allocator.free(ptr);
-}
-
 // NB: I decided not to fold this into THNCachingAllocator, because the latter
 // has a lot more methods and it wasn't altogether clear that they should
 // actually be publically exposed
@@ -1217,10 +1213,10 @@ struct NpuCachingAllocator : public c10::Allocator {
     if (size != 0) {
       caching_allocator.malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
     }
-    return {r, r, &NPUCachingDeleter, c10::Device(c10::DeviceType::PrivateUse1, device)};
+    return {r, r, &raw_delete, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
-    return &NPUCachingDeleter;
+    return &raw_delete;
   }
 };
 
