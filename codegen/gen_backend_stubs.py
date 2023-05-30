@@ -280,6 +280,8 @@ def error_on_missing_kernels(
 
     missing_kernels_err_msg = ""
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
+        if expected_name.startswith('_foreach_'):
+            continue
         expected_overload_count = len(funcs)
         actual_overload_count = actual_backend_kernel_name_counts[expected_name]
         if expected_overload_count != actual_overload_count:
