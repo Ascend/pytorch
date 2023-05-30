@@ -938,6 +938,7 @@ autograd:
   - matmul_backward
   - l1_loss
   - kl_div
+  - native_group_norm
 
 tocpu:
   - _cholesky_helper
@@ -1058,7 +1059,6 @@ tocpu:
   - nansum
   - nansum.dim_IntList
   - nansum.IntList_out
-  - native_group_norm_backward
   - narrow_copy.out
   - poisson
   - polar.out

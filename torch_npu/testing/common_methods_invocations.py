@@ -958,6 +958,20 @@ op_db: List[OpInfo] = [
         ),
     ),
     OpInfo(
+        'nn.functional.group_norm',
+        aliases=('group_norm',),
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_layer_norm,
+        formats=(0, 2, 3, 29),
+        supports_out=False,
+        skips=(
+            # Precision issue caused by different implementation on CPU (native_group_norm) and XLA (math_group_norm)
+            # torch_npu continues to use the one of XLA backend
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.float16,]),
+        ),
+    ),
+    OpInfo(
         'nn.functional.leaky_relu',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),

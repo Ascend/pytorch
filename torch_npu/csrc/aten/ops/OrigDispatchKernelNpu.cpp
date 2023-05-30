@@ -71,5 +71,14 @@ at::Tensor NPUNativeFunctions::linalg_pinv(
    return at::native::linalg_pinv(input, atol_opt, rtol_opt, hermitian);
 }
 
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_group_norm(
+    const at::Tensor& input,
+    const c10::optional<at::Tensor>& weight,
+    const c10::optional<at::Tensor>& bias,
+    int64_t N, int64_t C, int64_t HxW,
+    int64_t group, double eps) {
+  return at::native::math_group_norm(input, weight, bias, N, C, HxW, group, eps);
+}
+
 } // namespace native
 } // namespace at_npu
