@@ -163,6 +163,7 @@ T ConvertType(T value) {
 inline void Release(aclTensor *p) { aclDestroyTensor(p); }
 inline void Release(aclScalar *p) { aclDestroyScalar(p); }
 inline void Release(aclIntArray *p) { aclDestroyIntArray(p); }
+inline void Release(aclBoolArray *p) { aclDestroyBoolArray(p); }
 inline void Release(aclTensorList *p) { aclDestroyTensorList(p); }
 
 template<typename T>
