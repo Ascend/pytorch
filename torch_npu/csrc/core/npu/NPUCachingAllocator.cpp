@@ -1049,10 +1049,6 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
 
 THNCachingAllocator caching_allocator;
 
-static void NPUCachingDeleter(void* ptr) {
-  caching_allocator.free(ptr);
-}
-
 // NB: I decided not to fold this into THNCachingAllocator, because the latter
 // has a lot more methods and it wasn't altogether clear that they should
 // actually be publically exposed
@@ -1065,34 +1061,12 @@ struct NPUCachingAllocator : public c10::Allocator {
       caching_allocator.malloc(
           &r, size, c10_npu::getCurrentNPUStreamNoWait(device), device);
     }
-    return {r, r, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
+    return {r, r, &raw_delete, c10::Device(at_npu::key::NativeDeviceType, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
-    return &NPUCachingDeleter;
+    return &raw_delete;
   }
 };
-
-std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t size2) {
-  int device = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&device));
-  void* ptr_pre = nullptr;
-  void* ptr_next = nullptr;
-  caching_allocator.allocate_adjacent_ptr(
-      size1,
-      size2,
-      &ptr_pre,
-      &ptr_next,
-      c10_npu::getCurrentNPUStreamNoWait(device));
-
-  c10::DataPtr data_pre = {
-      ptr_pre, ptr_pre, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
-  c10::DataPtr data_next = {
-      ptr_next, ptr_next, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
-  std::tuple<c10::DataPtr, c10::DataPtr> adjacent_dataptr =
-      std::make_tuple(std::move(data_pre), std::move(data_next));
-
-  return adjacent_dataptr;
-}
 
 NPUCachingAllocator device_allocator;
 
