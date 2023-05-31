@@ -861,6 +861,7 @@ supported:
  - zeros.names
  - zeros.out
  - zeros_like
+ - _copy_from_and_resize
 
 autograd:
   - celu
@@ -876,16 +877,6 @@ autograd:
   - selu_
   - flatten_dense_tensors
   - unflatten_dense_tensors
-
-tocpu:
-  - angle
-  - mode
-  - nanmedian.dim_values
-  - nansum
-  - poisson
-  - vdot
-  - view_as_complex
-  - view_as_real
 
 symint:
  - as_strided_

@@ -1,5 +1,6 @@
 #include <ATen/core/dispatch/Dispatcher.h>
 #include <ATen/core/LegacyTypeDispatch.h>
+#include <ATen/native/CPUFallback.h>
 #include <torch/library.h>
 
 /*
@@ -32,6 +33,21 @@ namespace {
 // (Ascend) TORCH_LIBRARY_IMPL
 TORCH_LIBRARY_IMPL(_, AutogradPrivateUse1, m){
   m.fallback(torch::CppFunction::makeFallthrough());
+}
+
+void npu_cpu_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  TORCH_WARN_ONCE("The operator '",
+                  op.schema().operator_name(),
+                  "' is not currently supported ",
+                  "on the NPU backend and will fall back to run on the CPU.",
+                  " This may have performance implications.");
+
+  at::native::cpu_fallback(op, stack);
+
+}
+
+TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
+  m.fallback(torch::CppFunction::makeFromBoxedFunction<&npu_cpu_fallback>());
 }
 
 }
