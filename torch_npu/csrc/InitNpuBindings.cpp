@@ -85,7 +85,7 @@ static std::vector<PyMethodDef> methods;
 
 extern "C"
 
-PyObject* initModule(){
+PyObject* initNpuModule(){
   at::internal::lazy_init_num_threads();
 
   AddPyMethodDefs(methods, TorchNpuMethods);
@@ -119,5 +119,5 @@ PyObject* initModule(){
 }
 
 PyMODINIT_FUNC PyInit__C(void){
-  return initModule();
+  return initNpuModule();
 }

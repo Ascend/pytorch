@@ -4,7 +4,7 @@ import multiprocessing.pool
 import os
 import re
 import shutil
-import stat 
+import stat
 import subprocess
 import sys
 import traceback
@@ -21,6 +21,7 @@ from setuptools.command.install import install
 from setuptools import setup, distutils, Extension
 from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
+from wheel.bdist_wheel import bdist_wheel
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '2.1.0'
@@ -189,7 +190,6 @@ class Clean(distutils.command.clean.clean):
                 os.remove(file_path)
 
 
-
 class CPPLibBuild(build_clib, object):
     def run(self):
         cmake = get_cmake_command()
@@ -316,6 +316,66 @@ class PythonPackageBuild(build_py, object):
         super(PythonPackageBuild, self).finalize_options()
 
 
+class BdistWheelBuild(bdist_wheel):
+    def finalize_options(self):
+        bdist_wheel.finalize_options(self)
+
+    def _rewrite_ld_preload(self, to_preload):
+        flags = os.O_WRONLY | os.O_CREAT
+        mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
+        preload_path = os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "_ld_preload.py")
+        with os.fdopen(os.open(preload_path, flags, mode), 'w') as f:
+            if len(to_preload) > 0:
+                f.write("from ctypes import CDLL, RTLD_GLOBAL\n")
+                for library in to_preload:
+                    f.write('_{} = CDLL("{}", mode=RTLD_GLOBAL)\n'.format(library.split(".")[0], library))
+
+    def run(self):
+        to_preload = []
+        dependencies = ["libascendcl.so", "libacl_op_compiler.so", "libhccl.so", "libge_runner.so",
+                        "libgraph.so", "libacl_tdt_channel.so", "libtorch_python", "libtorch_cpu.so",
+                        "libtorch.so", "libc10.so", "libgomp.so"]
+
+        libs = glob.glob(os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "**", "*.so"), recursive=True)
+        for lib in libs:
+            if os.path.isfile(lib):
+                result = subprocess.run(
+                    ["patchelf", "--print-needed", lib],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    text=True
+                )
+
+                args = ["patchelf", "--debug"]
+                for line in result.stdout.split("\n"):
+                    for dependency in dependencies:
+                        if dependency in line:
+                            if dependency not in to_preload:
+                                to_preload.append(line)
+                            args.extend(["--remove-needed", line])
+                args.append(lib)
+                if len(args) > 3:
+                    subprocess.run(args, check=True, stdout=subprocess.PIPE)
+
+        self._rewrite_ld_preload(to_preload)
+
+        self.run_command('egg_info')
+        bdist_wheel.run(self)
+
+        if is_manylinux:
+            assert self.dist_dir is not None
+            file = glob.glob(os.path.join(self.dist_dir, "*linux*.whl"))[0]
+
+            try:
+                subprocess.run(
+                    ["auditwheel", "repair", "-w", self.dist_dir, file],
+                    check=True,
+                    stdout=subprocess.PIPE
+                )
+            finally:
+                os.remove(file)
+
+
 to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
@@ -356,12 +416,65 @@ else:
     extra_compile_args += ['-DNDEBUG']
     extra_link_args += ['-Wl,-z,now,-s']
 
+# valid manylinux tags
+manylinux_tags = [
+    "manylinux1_x86_64",
+    "manylinux2010_x86_64",
+    "manylinux2014_x86_64",
+    "manylinux2014_aarch64",
+    "manylinux_2_5_x86_64",
+    "manylinux_2_12_x86_64",
+    "manylinux_2_17_x86_64",
+    "manylinux_2_17_aarch64",
+    "manylinux_2_24_x86_64",
+    "manylinux_2_24_aarch64",
+    "manylinux_2_27_x86_64",
+    "manylinux_2_27_aarch64",
+    "manylinux_2_28_x86_64",
+    "manylinux_2_28_aarch64",
+    "manylinux_2_31_x86_64",
+    "manylinux_2_31_aarch64",
+    "manylinux_2_34_x86_64",
+    "manylinux_2_34_aarch64",
+    "manylinux_2_35_x86_64"
+    "manylinux_2_35_aarch64",
+]
+is_manylinux = os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
+
+readme = os.path.join(BASE_DIR, "README.en.md")
+if not os.path.exists(readme):
+    raise FileNotFoundError("Unable to find 'README.en.md'")
+with open(readme, encoding="utf-8") as fdesc:
+    long_description = fdesc.read()
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
 
 setup(
         name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
         version=VERSION,
         description='NPU bridge for PyTorch',
+        long_description=long_description,
+        long_description_content_type="text/markdown",
         url='https://gitee.com/ascend/pytorch',
+        download_url="https://gitee.com/ascend/pytorch/tags",
+        license="BSD License",
+        classifiers=classifiers,
         packages=["torch_npu"],
         libraries=[('torch_npu', {'sources': list()})],
         package_dir={'': os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))},
@@ -387,7 +500,8 @@ setup(
             'build_clib': CPPLibBuild,
             'build_ext': Build,
             'build_py': PythonPackageBuild,
+            'bdist_wheel': BdistWheelBuild,
             'egg_info': EggInfoBuild,
-            'clean': Clean,
-            'install': InstallCmd
+            'install': InstallCmd,
+            'clean': Clean
         })
