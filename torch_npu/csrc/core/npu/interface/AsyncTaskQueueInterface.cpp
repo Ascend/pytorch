@@ -56,6 +56,7 @@ public:
   void LaunchRecordTask(
       c10_npu::NPUStream npuStream);
   void LaunchWaitTask(c10_npu::NPUStream npuStream);
+  void LaunchResetTask(c10_npu::NPUStream npuStream);
   void LaunchLazyDestroyTask();
 
 private:
@@ -155,6 +156,25 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
   EventTask waitTask(event);
   waitTask.LaunchWaitTask(npuStream);
+  return ACL_ERROR_NONE;
+}
+
+void EventTask::LaunchResetTask(c10_npu::NPUStream npuStream) {
+  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+    c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
+    c10_npu::setCurrentNPUStream(npuStream);
+    QueueParas params(RESET_EVENT, sizeof(EventParas), &eventParam_);
+    c10_npu::enCurrentNPUStream(&params);
+    c10_npu::setCurrentNPUStream(currentStream);
+  } else {
+    NPU_CHECK_ERROR(aclrtResetEvent(eventParam_.event, npuStream));
+    ASCEND_LOGI("aclrtResetEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
+  }
+}
+
+aclError LaunchResetEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
+  EventTask resetTask(event);
+  resetTask.LaunchResetTask(npuStream);
   return ACL_ERROR_NONE;
 }
 

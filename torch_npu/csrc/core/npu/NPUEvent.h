@@ -110,6 +110,13 @@ struct NPUEvent {
     was_recorded_ = true;
   }
 
+  void reset(const NPUStream& stream) {
+    if (is_created_) {
+      NPUGuard guard(stream.device_index());
+      NPU_CHECK_ERROR(c10_npu::queue::LaunchResetEventTask(event_, stream));
+    }
+  }
+
   void block(const NPUStream& stream) {
     if (is_created_) {
       NPUGuard guard(stream.device_index());
