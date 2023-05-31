@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu {
 namespace native {
@@ -36,7 +37,7 @@ void GraphCommandImpl::AddInput(
     const string& desc_name,
     const string& real_dtype,
     const c10::optional<aclFormat>& sensitive_format) {
-  if (input.dim() == 0 && !at_npu::key::isDeviceTensor(input)) {
+  if (OpPreparation::IsCPUScalar(input)) {
     return AddZeroDimInput(input, desc_name);
   }
   if (GraphUtils::IsTensorWithoutNode(input)) {
