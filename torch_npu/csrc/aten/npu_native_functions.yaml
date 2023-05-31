@@ -659,10 +659,8 @@ supported:
  - reflection_pad2d.out
  - reflection_pad2d_backward
  - reflection_pad2d_backward.grad_input
- - func: relu
-   op_api: False
- - func: relu_
-   op_api: False
+ - relu
+ - relu_
  - remainder.Scalar
  - remainder.Scalar_out
  - remainder.Tensor
