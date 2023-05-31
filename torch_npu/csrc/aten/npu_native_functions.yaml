@@ -555,6 +555,8 @@ supported:
  - mv.out
  - native_batch_norm
  - native_batch_norm_backward
+ - native_dropout
+ - native_dropout_backward
  - native_layer_norm
  - native_layer_norm_backward
  - ne.Scalar
@@ -880,8 +882,6 @@ tocpu:
   - mode
   - nanmedian.dim_values
   - nansum
-  - native_dropout
-  - native_dropout_backward
   - poisson
   - vdot
   - view_as_complex
