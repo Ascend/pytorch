@@ -175,9 +175,28 @@ at::Tensor& NPUNativeFunctions::maximum_out(
   return result;
 }
 
+at::Tensor& max_out_npu_nocheck(
+    const at::Tensor& self,
+    const at::Scalar& other,
+    at::Tensor& result) {
+  OpCommand cmd;
+  cmd.Name("Maximum")
+      .Input(self)
+      .Input(other, self.scalar_type())
+      .Output(result)
+      .Run();
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::maximum(
     const at::Tensor& self,
     const at::Tensor& other) {
+  auto output_size_diff = self.sizes();
+  at::Tensor result_diff = OpPreparation::ApplyTensor(self, output_size_diff);
+  if (OpPreparation::IsCPUScalar(other)) {
+    max_out_npu_nocheck(self, other.item(), result_diff);
+    return result_diff;
+  }
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
   at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self)) ?

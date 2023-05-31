@@ -82,6 +82,7 @@ namespace at_npu
             // check memory
             static void CheckMemory(const std::initializer_list<at::Tensor> &inputs,
                                     const std::initializer_list<at::Tensor> &outputs);
+            static bool IsCPUScalar(const at::Tensor &tensor);
         }; // namespace OpPreparation
 
     } // namespace native
