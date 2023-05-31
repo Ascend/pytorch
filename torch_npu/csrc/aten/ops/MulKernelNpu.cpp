@@ -32,9 +32,9 @@ at::Tensor& muls_out_npu(at::Tensor& result, const at::Tensor& self, const at::S
 }
 
 at::Tensor& mul_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, const at::Tensor& other) {
-  if (other.dim() == 0 && !torch_npu::utils::is_npu(other)) {
+  if (OpPreparation::IsCPUScalar(other)) {
     muls_out_npu(result, self, other.item());
-  } else if (self.dim() == 0 && !torch_npu::utils::is_npu(self)) {
+  } else if (OpPreparation::IsCPUScalar(self)) {
     muls_out_npu(result, other, self.item());
   } else {
     auto unified_result = OpPreparation::binary_op_check(result, self, other, true);

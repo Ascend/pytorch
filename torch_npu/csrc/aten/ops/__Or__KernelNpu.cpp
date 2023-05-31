@@ -32,9 +32,9 @@ at::Tensor& or___out_tensor_npu(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& other) {
-  if (other.dim() == 0 && !torch_npu::utils::is_npu(other)) {
+  if (OpPreparation::IsCPUScalar(other)) {
     or___out_scalar_npu(result, self, other.item());
-  } else if (self.dim() == 0 && !torch_npu::utils::is_npu(self)) {
+  } else if (OpPreparation::IsCPUScalar(self)) {
     or___out_scalar_npu(result, other, self.item());
   } else {
 

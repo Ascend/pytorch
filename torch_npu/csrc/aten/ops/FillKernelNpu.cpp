@@ -39,7 +39,7 @@ at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other)
   auto other_dim = other.dim();
   TORCH_CHECK(other_dim <= 1, "fill_ only supports 0 or 1 dimension value tensor but got tensor with ",
       other_dim, " dimension.");
-  if (other_dim == 0 && !torch_npu::utils::is_npu(other)) {
+  if (OpPreparation::IsCPUScalar(other)) {
     fill_out_npu(self, self, other.item());
   } else {
     fill_out_npu(self, self, other);

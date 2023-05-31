@@ -22,7 +22,7 @@ at::Tensor &div_scalar_out_npu(const at::Tensor &self, const at::Scalar other, a
 at::Tensor &div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
 {
   // executing the NPU operator
-  if (other.dim() == 0 && !torch_npu::utils::is_npu(other))
+  if (OpPreparation::IsCPUScalar(other))
   {
     div_scalar_out_npu(self, other.item(), result);
   }

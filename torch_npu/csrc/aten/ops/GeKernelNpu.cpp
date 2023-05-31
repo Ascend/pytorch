@@ -70,10 +70,10 @@ at::Tensor& NPUNativeFunctions::ge_out(const at::Tensor& self, const at::Scalar&
 }
 
 at::Tensor NPUNativeFunctions::ge(const at::Tensor& self, const at::Tensor& other) {
-  if (other.dim() == 0 && !torch_npu::utils::is_npu(other)) {
+  if (OpPreparation::IsCPUScalar(other)) {
     return NPUNativeFunctions::ge(self, other.item());
   }
-  else if (self.dim() == 0 && !torch_npu::utils::is_npu(self)) {
+  else if (OpPreparation::IsCPUScalar(self)) {
     return NPUNativeFunctions::lt(other, self.item());
   }
   else {
