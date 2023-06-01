@@ -1,5 +1,5 @@
 from typing import List
-from functools import partial
+from functools import wraps, partial
 import unittest
 import numpy as np
 
@@ -15,6 +15,8 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 wrapper_set_seed,
                                                                 reference_reduction_numpy,
                                                                 sample_inputs_normal_common,
+                                                                reference_std_var,
+                                                                generate_std_var_kwargs,
                                                                 sample_inputs_binary_cross_entropy_with_logits)
 
 
@@ -86,9 +88,11 @@ class BinaryUfuncInfo(OpInfo, Of_BinaryUfuncInfo):
                  **kwargs):
         super().__init__(name,sample_inputs_func=sample_inputs_func, **kwargs)
 
+
 class ReductionOpInfo(OpInfo, Of_ReductionOpInfo):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
+
 
 def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwargs):
     cases = [
@@ -1689,6 +1693,91 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness'),
         ),
     ),
+    ReductionOpInfo(
+        'var',
+        nan_policy='propagate',
+        supports_out=True,
+        assert_autodiffed=True,
+        promotes_int_to_float=True,
+        complex_to_real=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        check_batched_forward_grad=False,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_std_var,
+        ref=reference_std_var(np.var),
+        generate_args_kwargs=generate_std_var_kwargs,
+        skipSample={
+            # not support correction=2
+            "test_correctness" : (5,),
+        },
+        skips=(
+            # FIXME: cannot specify keepdim without dim
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_dim_default_keepdim'),
+            # FIXME: dim=[] reduces all dimensions
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_dim_empty'),
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_dim_empty_keepdim'),
+            # FIXME: improve precision
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_ref_small_input'),
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_ref_duplicate_values'),
+            # NumPy is giving NaN for this
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_ref_large_input'),
+        ),
+    ),
+    ReductionOpInfo(
+        'var',
+        variant_test_name='unbiased',
+        nan_policy='propagate',
+        supports_out=False,
+        complex_to_real=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        assert_autodiffed=True,
+        promotes_int_to_float=True,
+        check_batched_forward_grad=False,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_std_var_unbiased,
+        skipSample={
+            # not support correction=2
+            "test_correctness" : (5,),
+        },
+        skips=(
+            # FIXME: dim=[] reduces all dimensions
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_dim_empty'),
+            DecorateInfo(unittest.skip("Skipped!"), 'TestReductions', 'test_dim_empty_keepdim'),
+        ),
+    ),
+    OpInfo(
+        'var_mean',
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_std_var,
+        # TODO: some signatures of var_mean do support out
+        supports_out=False,
+        supports_forward_ad=True,
+        check_batched_forward_grad=False,
+        supports_fwgrad_bwgrad=True,
+        skipSample={
+            # not support correction=2
+            "test_correctness" : (5,),
+        }),
+    OpInfo(
+        'var_mean',
+        variant_test_name='unbiased',
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_std_var_unbiased,
+        # TODO: some signatures of var_mean do support out
+        supports_out=False,
+        supports_forward_ad=True,
+        check_batched_forward_grad=False,
+        supports_fwgrad_bwgrad=True,
+        skipSample={
+            # not support correction=2
+            "test_correctness" : (5,),
+        }),
     OpInfo(
         'where',
         dtypes=_dispatch_dtypes((torch.float32, )),

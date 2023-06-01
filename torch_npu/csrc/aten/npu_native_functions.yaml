@@ -843,9 +843,15 @@ supported:
  - var.names_dim
  - var.names_out
  - var.out
+ - var.correction
+ - var.correction_names
+ - var.correction_out
+ - var.correction_names_out
  - var_mean
  - var_mean.dim
  - var_mean.names_dim
+ - var_mean.correction
+ - var_mean.correction_names
  - view
  - where
  - where.self
