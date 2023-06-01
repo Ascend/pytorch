@@ -1,0 +1,67 @@
+# Copyright (c) 2023, Huawei Technologies.
+# All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from queue import Queue
+
+from ..prof_bean.node_info_bean import NodeInfoBean
+from ..prof_bean.torch_op_node import TorchOpNode
+
+
+class TreeBuilder:
+    @classmethod
+    def build_tree(cls, event_list: list) -> TorchOpNode:
+        root_node = TorchOpNode(all_node_num=len(event_list))
+        event_list.sort(key=lambda x: x.ts)
+        last_node = root_node
+        for event in event_list:
+            node_queue = Queue()
+            node_queue.put(last_node)
+            while not node_queue.empty():
+                compare_node = node_queue.get()
+                if compare_node == root_node or event.ts < compare_node.end_time:
+                    tree_node = TorchOpNode(event, compare_node)
+                    compare_node.add_child_node(tree_node)
+                    last_node = tree_node
+                    break
+                node_queue.put(compare_node.parent_node)
+        return root_node
+
+    @classmethod
+    def find_call_node(cls, enqueue_ts: float, node_info_bean: NodeInfoBean, tree_node: TorchOpNode):
+        matched_child_node = tree_node.match_child_node(enqueue_ts)
+        if matched_child_node is None:
+            tree_node.add_device_self_dur(node_info_bean.device_dur)
+            tree_node.add_device_self_dur_with_ai_core(node_info_bean.device_dur_with_ai_core)
+            tree_node.add_acl_ts(node_info_bean.acl_start_time)
+            return
+        matched_child_node.add_device_total_dur(node_info_bean.device_dur)
+        matched_child_node.add_device_total_dur_with_ai_core(node_info_bean.device_dur_with_ai_core)
+        matched_child_node.update_first_kernel_ts(node_info_bean.kernel_min_ts)
+        matched_child_node.update_end_kernel_ts(node_info_bean.kernel_max_ts)
+        cls.find_call_node(enqueue_ts, node_info_bean, matched_child_node)
+
+    @classmethod
+    def go_through_tree(cls, root_node: TorchOpNode) -> list:
+        result_list = [None] * root_node.all_node_num
+        node_queue = Queue()
+        for child_node in root_node.child_node_list:
+            node_queue.put(child_node)
+        index = 0
+        while not node_queue.empty():
+            result_list[index] = node_queue.get()
+            for child_node in result_list[index].child_node_list:
+                node_queue.put(child_node)
+            index += 1
+        return result_list
