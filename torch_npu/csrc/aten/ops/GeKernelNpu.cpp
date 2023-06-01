@@ -85,10 +85,10 @@ at::Tensor& NPUNativeFunctions::ge_out(const at::Tensor& self, at::Scalar other,
 }
 
 at::Tensor NPUNativeFunctions::ge(const at::Tensor& self, const at::Tensor& other) {
-  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+  if (OpPreparation::IsCPUScalar(other)) {
     return NPUNativeFunctions::ge(self, other.item());
   }
-  else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
+  else if (OpPreparation::IsCPUScalar(self)) {
     return NPUNativeFunctions::lt(other, self.item());
   }
   else {

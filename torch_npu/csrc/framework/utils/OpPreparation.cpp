@@ -253,5 +253,12 @@ namespace at_npu
       CalcuOpUtil::CheckMemoryOverLaps(in, out);
     }
 
+    bool OpPreparation::IsCPUScalar(const at::Tensor &tensor) {
+      if (tensor.dim() == 0 && !at_npu::key::isDeviceTensor(tensor)) {
+        return true;
+      }
+      return false;
+    }
+
   } // namespace native
 } // namespace at_npu
