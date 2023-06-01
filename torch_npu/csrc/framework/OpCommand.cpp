@@ -243,7 +243,7 @@ void OpCommand::Run() {
     return;
   }
   aclCmd->SetEnginePriority();
-  string op_name = aclCmd->GetName();
+  const string &op_name = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
