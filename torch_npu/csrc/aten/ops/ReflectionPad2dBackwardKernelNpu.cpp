@@ -3,6 +3,16 @@
 
 namespace at_npu {
 namespace native {
+namespace {
+bool check_padding(at::IntArrayRef padding) {
+  for (int64_t i = 0; i < padding.size(); i++) {
+    if (padding[i] != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+} // namespace
 
 at::Tensor& reflection_pad2d_backward_out_npu_nocheck(
     const at::Tensor& grad_output,
@@ -43,6 +53,11 @@ at::Tensor& NPUNativeFunctions::reflection_pad2d_backward_out(
     const at::Tensor& input,
     at::IntArrayRef padding,
     at::Tensor& grad_input) {
+  if (check_padding(padding)) {
+    grad_input.copy_(grad_output);
+    return grad_input;
+  }
+
   OpPreparation::CheckOut(
       {input, grad_output},
       grad_input,
@@ -59,6 +74,11 @@ at::Tensor NPUNativeFunctions::reflection_pad2d_backward(
     const at::Tensor& input,
     at::IntArrayRef padding) {
   at::Tensor grad_input = OpPreparation::ApplyTensor(input);
+  if (check_padding(padding)) {
+    grad_input.copy_(grad_output);
+    return grad_input;
+  }
+
   reflection_pad2d_backward_out_npu_nocheck(grad_output, input, padding, grad_input);
   return grad_input;
 }
