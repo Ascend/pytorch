@@ -12,7 +12,7 @@ public:
   static NPUEventManager& GetInstance();
   aclError QueryAndDestroyEvent();
   aclError LazyDestroy(aclrtEvent npu_event);
-  aclError ClearEvent();
+  void ClearEvent();
   ~NPUEventManager(){}
 
 private:
