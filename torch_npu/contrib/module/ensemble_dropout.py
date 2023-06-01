@@ -70,7 +70,7 @@ class NpuCachedDropout(torch.nn.Dropout):
         else:
             mask, event = NpuCachedDropout.task_dict[key].mask_queue.pop(0)
             if do_mask_flag:
-                return torch.npu_dropout_do_mask(x, mask, self.p)[0]
+                return torch_npu.npu_dropout_do_mask(x, mask, self.p)[0]
             else:
                 return mask
 
@@ -90,8 +90,8 @@ class NpuCachedDropout(torch.nn.Dropout):
                 for _, task in cls.task_dict.items():
                     if len(task.mask_queue) < task.request_count:
                         for j in range(task.request_count - len(task.mask_queue)):
-                            mask = torch.npu_dropout_gen_mask(task.shape, p=task.p, dtype=task.dtype,
-                                                                device=task.device)
+                            mask = torch_npu.npu_dropout_gen_mask(task.shape, p=task.p, dtype=task.dtype,
+                                                                  device=task.device)
                             event = None
                             task.mask_queue.append((mask, event))
             return hook_function
@@ -159,7 +159,7 @@ class NpuPreGenDropout(torch.nn.Dropout):
                 task.max_mb = max((task.idx * 8 // 1048576) + 1, task.max_mb)
                 mask = task.mask[0:mask_len]
 
-            return torch.npu_dropout_do_mask(x, mask, self.p)[0]
+            return torch_npu.npu_dropout_do_mask(x, mask, self.p)[0]
         else:
             return mask
 
@@ -180,15 +180,15 @@ class NpuPreGenDropout(torch.nn.Dropout):
         for p in cls.prob:
             init_task = PreGenDropoutTask(model_device, p)
 
-            init_task.mask = torch.npu_dropout_gen_mask([init_task.max_mb, 1024, 1024], p=p, dtype=torch.float32
-                                                        , device=model_device)
+            init_task.mask = torch_npu.npu_dropout_gen_mask([init_task.max_mb, 1024, 1024], p=p, 
+                                                            dtype=torch.float32, device=model_device)
             cls.task_dict[p] = init_task
 
         def mask_gen_hook_func():
             def hook_function(module, inputs, outputs):
                 for task in cls.task_dict.values():
-                    task.mask = torch.npu_dropout_gen_mask([task.max_mb, 1024, 1024], p=task.p, dtype=torch.float32
-                                                           , device=task.device)
+                    task.mask = torch_npu.npu_dropout_gen_mask([task.max_mb, 1024, 1024], p=task.p, 
+                                                               dtype=torch.float32, device=task.device)
                     task.idx = 0
 
             return hook_function

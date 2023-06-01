@@ -13,7 +13,7 @@ class TestBatchNormReduce(TestCase):
         return cpu_sum.numpy(), cpu_square_sum.numpy()
 
     def npu_op_exec(self, *args):
-        npu_sum, npu_square_sum = torch.batch_norm_reduce(*args)
+        npu_sum, npu_square_sum = torch_npu.batch_norm_reduce(*args)
         out_sum = npu_sum.cpu().numpy()
         out_square_sum = npu_square_sum.cpu().numpy()
         return out_sum, out_square_sum

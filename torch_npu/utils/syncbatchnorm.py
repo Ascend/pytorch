@@ -2,6 +2,8 @@ import torch
 import torch.distributed as dist
 from torch.autograd.function import Function
 
+import torch_npu
+
 class SyncBatchNorm(Function):
 
     @staticmethod
@@ -10,7 +12,7 @@ class SyncBatchNorm(Function):
         input_shape = input_tensor.shape
         input_tensor_ = input_tensor.reshape(input_shape[0], input_shape[1], 1, -1)
         # calculate sum/sum_square for input.
-        sum_val, sum_square_val = torch.batch_norm_reduce(input_tensor_, eps)
+        sum_val, sum_square_val = torch_npu.batch_norm_reduce(input_tensor_, eps)
 
         count = torch.full((1,), 
                            input_tensor.numel() // input_tensor.size(1),
@@ -32,14 +34,14 @@ class SyncBatchNorm(Function):
             raise ValueError('Expected more than 1 value per channel when training, got input size {}'.format(size))
 
         # calculate global mean & invstd
-        mean, invstd = torch.batch_norm_gather_stats_update(input_tensor,
-                                                            sum_all,
-                                                            square_sum_all,
-                                                            running_mean,
-                                                            running_var,
-                                                            momentum,
-                                                            eps,
-                                                            count_all.view(-1))
+        mean, invstd = torch_npu.batch_norm_gather_stats_update(input_tensor,
+                                                                sum_all,
+                                                                square_sum_all,
+                                                                running_mean,
+                                                                running_var,
+                                                                momentum,
+                                                                eps,
+                                                                count_all.view(-1))
 
         self.save_for_backward(input_tensor, weight, mean, invstd, count_all)
         self.process_group = process_group

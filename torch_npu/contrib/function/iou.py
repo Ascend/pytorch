@@ -90,7 +90,7 @@ def npu_giou(boxes1,
 
         Util now, only trans=True(only support xywh, not support xyxy),
         is_cross=False(only support boxes1.shape == boxes2.shape -- One-to-one calculation, not support ((n,4), (m,4)))
-        in torch.npu_giou is supported, please don't use other pram.
+        in torch_npu.npu_giou is supported, please don't use other pram.
 
     Examples::
     >>> box1 = torch.randn(32, 4)

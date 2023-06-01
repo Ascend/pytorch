@@ -131,7 +131,7 @@ class MHAConfig:
 
     @classmethod
     def set_fussion(cls):
-        from torch import npu_multi_head_attention
+        from torch_npu import npu_multi_head_attention
         cls.use_fussion_mha = True
 
 def Matmul_transpose(tensor1, tensor2):
@@ -311,7 +311,7 @@ class MultiheadAttention(nn.Module):
             dropout_mask = self.dropout_module([(bsz, self.num_heads, tgt_len, src_len), query.dtype, query.device])
         else:
             dropout_mask = None
-        attn = torch.npu_multi_head_attention(query, key, value, self.q_proj.weight,
+        attn = torch_npu.npu_multi_head_attention(query, key, value, self.q_proj.weight,
                                                  self.k_proj.weight, self.v_proj.weight,
                                                  key_padding_mask, self.out_proj.weight,
                                                  self.q_proj.bias, self.k_proj.bias, self.v_proj.bias,
