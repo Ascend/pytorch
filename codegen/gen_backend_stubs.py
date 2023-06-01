@@ -37,8 +37,6 @@ import torchgen.api.dispatcher as dispatcher
 from torchgen.api.types import DispatcherSignature
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
-import codegen.dest.utils as utils
-from codegen.dest import RegisterDispatchKeyCPU
 from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured
 
 
@@ -455,7 +453,6 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
     true_backend = parsed_backend_yaml.true_backend
-    utils.backend = true_backend
     backend_key = parsed_backend_yaml.backend_key
     autograd_key = parsed_backend_yaml.autograd_key
     cpp_namespace = parsed_backend_yaml.cpp_namespace
@@ -493,20 +490,6 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                 dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
-
-        if to_cpu.upper() in {'OFF', '0', 'NO', 'FALSE', 'F', 'N'}:
-            return
-        gen_dispatcher_registrations(
-            fm,
-            class_name,
-            backend_indices,
-            grouped_native_functions,
-            DispatchKey.CPU,
-            DispatchKey.CPU,
-            selector,
-            dispatch_key_name=backend_dispatch_key.name.replace("NPU", true_backend),
-            register_dispatch_key_func=RegisterDispatchKeyCPU,
-        )
 
 
 def apply_torchgen_patch():
