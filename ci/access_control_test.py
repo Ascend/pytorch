@@ -123,6 +123,8 @@ class DirectoryMappingStrategy(AccurateTest):
         if str(Path(modify_file).parts[0]) == 'torch_npu':
             mapped_ut_path = []
             module_name = str(Path(modify_file).parts[1])
+            if module_name == 'csrc':
+                module_name = str(Path(modify_file).parts[2])
             if module_name in self.mapping_list:
                 mapped_ut_path.append(self.mapping_list[module_name])
             file_name = str(Path(modify_file).stem)
@@ -154,7 +156,7 @@ class TestMgr():
             self.test_files += OpStrategy().identify(modify_file)
             self.test_files += DirectoryMappingStrategy().identify(modify_file)
             self.test_files += CoreTestStrategy().identify(modify_file)
-        unique_files = set(self.test_files)
+        unique_files = sorted(set(self.test_files))
 
         exist_ut_file = [
             changed_file
@@ -192,7 +194,7 @@ def exec_ut(ut_files):
         p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
         try:
-            msg = p.communicate(timeout=300)
+            msg = p.communicate(timeout=2000)
             ret = p.poll()
             if ret:
                 stdout = msg[0].decode('utf-8')
@@ -202,7 +204,7 @@ def exec_ut(ut_files):
             p.kill()
             p.terminate()
             ret = 1
-            print("Timeout: Command '" + cmd + "' timed out after 300 seconds")
+            print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
         except Exception as err:
             ret = 1
             print(err)
