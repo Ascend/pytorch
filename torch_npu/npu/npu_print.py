@@ -18,6 +18,9 @@ import threading
 import torch
 import torch._C
 import torch._tensor_str
+
+import torch_npu
+
 global print_holder
 print_holder = '{}'
 
@@ -69,14 +72,14 @@ def npu_lazy_print(args):
     if not torch.npu.is_graph_mode():
         print(args)
     elif isinstance(args, torch.Tensor):
-        torch.npu_enque_tensor([args], str(args))
+        torch_npu.npu_enque_tensor([args], str(args))
     elif isinstance(args, list):
         for t in args:
             if not isinstance(t, torch.Tensor):
                 raise RuntimeError("npu lazy_print only support tensor, "
                                    "tensor list or format string, while"
                                    "not support list of ", t.__class__.__name__)
-        torch.npu_enque_tensor(args, str(args))
+        torch_npu.npu_enque_tensor(args, str(args))
     elif isinstance(args, str):
         tm = NpuTensorManager()
         tensor_list = tm.get_npu_tensor_to_print()
@@ -85,7 +88,7 @@ def npu_lazy_print(args):
         if not len(tensor_list) == args.count(print_holder):
             raise RuntimeError("num of input npu tensor must be equal with"
                                "count of print holder")
-        torch.npu_enque_tensor(tensor_list, args)
+        torch_npu.npu_enque_tensor(tensor_list, args)
     else:
         raise RuntimeError("npu lazy_print only support tensor, "
                            "tensor list or format string, while"

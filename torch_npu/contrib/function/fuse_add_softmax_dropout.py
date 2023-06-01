@@ -14,6 +14,8 @@
 
 import math
 import torch
+import torch.nn.functional as F
+
 import torch_npu
 
 def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
@@ -52,7 +54,7 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
             drop_p = p
         else:
             drop_p = 0
-        _, _, attn_probs = torch.npu_dropout_with_add_softmax(attn_scores, attn_mask,
+        _, _, attn_probs = torch_npu.npu_dropout_with_add_softmax(attn_scores, attn_mask,
                                                                 1 / math.sqrt(attn_head_size), drop_p, -1)
     else:                  
         # Apply the attention mask is (precomputed for all layers in BertModel forward() function)

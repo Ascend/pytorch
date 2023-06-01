@@ -75,10 +75,10 @@ class TestPtaErrorInterception(TestCase):
     def test_npu_dropout_gen_mask(self):
         for err_idx in error_index_list:
             with self.assertRaisesRegex(RuntimeError, device_ofr_info):
-                torch.npu_dropout_gen_mask([1, 1], p=1.0, dtype=torch.float, device=err_idx)
+                torch_npu.npu_dropout_gen_mask([1, 1], p=1.0, dtype=torch.float, device=err_idx)
         for err_input in error_input_list:
             with self.assertRaisesRegex(RuntimeError, "Invalid device string: {}".format(err_input)):
-                torch.npu_dropout_gen_mask([1, 1], p=1.0, dtype=torch.float, device=err_input)
+                torch_npu.npu_dropout_gen_mask([1, 1], p=1.0, dtype=torch.float, device=err_input)
 
     def test_bartlett_window(self):
         for err_idx in error_index_list:
