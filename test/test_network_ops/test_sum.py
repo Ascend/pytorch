@@ -112,7 +112,7 @@ class TestSum(TestCase):
         self.sum_result(shape_format)
 
     def test_sum_shape_format_fp32_2d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list
         ]
@@ -126,14 +126,14 @@ class TestSum(TestCase):
         self.sum_result(shape_format)
 
     def test_sum_shape_format_fp32_3d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [32, 48, 64]] for i in format_list
         ]
         self.sum_result(shape_format)
 
     def test_sum_shape_format_fp16_4d(self):
-        format_list = [0,  4, 29]
+        format_list = [0, 4, 29]
         shape_format = [
             [np.float16, i, [32, 24, 18, 18]] for i in format_list
         ]
@@ -185,14 +185,14 @@ class TestSum(TestCase):
         self.sum_dim_result(shape_format)
 
     def test_sum_dim_shape_format_fp16_2d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [256, 1000]] for i in format_list
         ]
         self.sum_dim_result(shape_format)
 
     def test_sum_dim_shape_format_fp32_2d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list
         ]
@@ -208,7 +208,7 @@ class TestSum(TestCase):
         self.sum_dim_result(shape_format)
 
     def test_sum_dim_shape_format_fp32_3d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [32, 48, 64]] for i in format_list
         ]
@@ -267,6 +267,17 @@ class TestSum(TestCase):
             torch.sum(npu_input, dim=dim)
         except RuntimeError as e:
             self.assertRegex(str(e), "dim 1 appears multiple times in the list of dims")
+
+    def test_empty_tensor_with_bool(self):
+        format_list = [0, 3, 4]
+        for item in format_list:
+            cpu_input, npu_input = create_common_tensor([np.bool, item, [2, 0, 3]], -1, 1)
+            cpu_output = self.cpu_op_exec(cpu_input)
+            npu_output = self.npu_op_exec(npu_input)
+            self.assertRtolEqual(cpu_output, npu_output)
+            cpu_out_dim = self.cpu_op_dim_exec_out(cpu_input, dim=[0], keepdim=True)
+            npu_out_dim, _ = self.npu_op_dim_exec_out(npu_input, dim=[0], keepdim=True)
+            self.assertRtolEqual(npu_out_dim, cpu_out_dim)
 
 
 if __name__ == "__main__":
