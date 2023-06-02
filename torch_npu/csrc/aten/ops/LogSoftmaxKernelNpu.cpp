@@ -22,7 +22,6 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-
 namespace at_npu {
 namespace native {
 namespace {
@@ -61,7 +60,7 @@ at::Tensor log_softmax_nocheck(
   log_softmax_nocheck(result, self.toType(dstType), dim);
   return result;
 }
-} // namespace
+}  // namespace
 
 at::Tensor NPUNativeFunctions::log_softmax(
     const at::Tensor& self,
@@ -98,6 +97,22 @@ at::Tensor NPUNativeFunctions::_log_softmax(const at::Tensor& self, int64_t dim,
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::_log_softmax_out(
+    const at::Tensor& self,
+    int64_t dim,
+    bool half_to_float,
+    at::Tensor& out) {
+  // calculate the output result of the NPU
+  c10::ScalarType outType = out.scalar_type();
 
-} // namespace native
-} // namespace at_npu
+  if (half_to_float) {
+    log_softmax_nocheck(out, self, dim, c10::ScalarType::Float);
+  } else {
+    log_softmax_nocheck(out, self, dim, outType);
+  }
+
+  return out;
+}
+
+}  // namespace native
+}  // namespace at_npu

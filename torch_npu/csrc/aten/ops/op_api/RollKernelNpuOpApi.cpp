@@ -12,32 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::gelu_out(const at::Tensor& self, at::Tensor& result) {
-  OpPreparation::CheckOut({self}, result, self);
+at::Tensor NPUNativeOpApiFunctions::roll(const at::Tensor& self, at::IntArrayRef shifts, at::IntArrayRef dims) {
+  DO_COMPATIBILITY(aclnnRoll, NPUNativeFunctions::roll(self, shifts, dims));
 
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-  return result;
-}
-
-at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
-  // calculate the output result of the NPU
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-
+  EXEC_NPU_CMD(aclnnRoll, self, shifts, dims, result);
   return result;
 }
 }  // namespace native

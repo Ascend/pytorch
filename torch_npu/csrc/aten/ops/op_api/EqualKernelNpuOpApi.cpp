@@ -1,4 +1,6 @@
-// Copyright (c) 2020, Huawei Technologies.All rights reserved.
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION.
+// All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,33 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::gelu_out(const at::Tensor& self, at::Tensor& result) {
-  OpPreparation::CheckOut({self}, result, self);
-
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-  return result;
-}
-
-at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
-  // calculate the output result of the NPU
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-
-  return result;
+bool NPUNativeOpApiFunctions::equal(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnEqual, NPUNativeFunctions::equal(self, other));
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat({1}, self.options().dtype(at::kBool), ACL_FORMAT_ND);
+  EXEC_NPU_CMD(aclnnEqual, self, other, result);
+  return result.item().to<bool>();
 }
 }  // namespace native
 }  // namespace at_npu

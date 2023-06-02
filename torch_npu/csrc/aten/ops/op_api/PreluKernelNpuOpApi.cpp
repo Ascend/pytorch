@@ -14,30 +14,19 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::gelu_out(const at::Tensor& self, at::Tensor& result) {
-  OpPreparation::CheckOut({self}, result, self);
+at::Tensor NPUNativeOpApiFunctions::prelu(const at::Tensor& self, const at::Tensor& weight_) {
+  DO_COMPATIBILITY(aclnnPrelu, NPUNativeFunctions::prelu(self, weight_));
+  // calculate the output size
+  auto outputSize = input_same_output_size(self);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-  return result;
-}
-
-at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
-  // calculate the output result of the NPU
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-
+  EXEC_NPU_CMD(aclnnPrelu, self, weight_, result);
   return result;
 }
 }  // namespace native
