@@ -35,6 +35,8 @@ class Schedule:
         self._skip_first = skip_first
 
     def __call__(self, step: int) -> ProfilerAction:
+        if step == CLOSE_STEP:
+            return ProfilerAction.NONE
         if step < self._skip_first:
             return ProfilerAction.NONE
         else:
