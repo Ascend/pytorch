@@ -15,6 +15,11 @@ DynamicInputRegFunc index_func =
         num_and_index.front().first, num_and_index.front().second);
     return ge_op;
   };
+
+  const std::string x_str = "x";
+  const std::string indexed_sizes_str = "indexed_sizes";
+  const std::string indexed_strides_str = "indexed_strides";
+  const std::string aicore_str = "AiCore";
 }
 
 // Limitations of the aicore branch
@@ -57,44 +62,22 @@ at::Tensor& index_out_nocheck_npu(
     const at::TensorList& indices,
     at::Tensor& result,
     bool is_aicore) {
+  at::IntArrayRef indexed_strides = result.sizes();
   OpCommand cmd;
-  if (!is_aicore) {
-    cmd.Name("Index")
-        .Input(self)
-        .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-        .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
-    for (int i = 0; i < indices.size(); i++) {
-      std::string name = "indices" + std::to_string(i);
-      cmd.Input(indices[i], name);
-    }
-    cmd.Output(result)
-       .Attr("_exclude_engines", (string)"AiCore")
-       .Run();
-  } else {
-    if (indices.size() > 1) {
-      at::Tensor make_sizes_tensor = at::tensor(masks, self.options().dtype(at::kLong));
-      at::Tensor make_strides_tensor = at::tensor(result.sizes(), self.options().dtype(at::kLong));
-      cmd.Name("Index")
-         .Input(self, (string)"x")
-         .Input(make_sizes_tensor, (string)"indexed_sizes")
-         .Input(make_strides_tensor, (string)"indexed_strides");
-      for (int i = 0; i < indices.size(); i++) {
-        std::string name = "indices" + std::to_string(i);
-        cmd.Input(indices[i], name);
-      }
-      cmd.DynamicInputReg(index_func, {{indices.size(), 3}})
-         .Output(result)
-         .Run();
-    } else {
-      cmd.Name("Index")
-         .Input(self)
-         .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-         .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-         .Input(indices[0], "indices0")
-         .Output(result)
-         .Run();
-    }
+  cmd.Name("Index")
+      .Input(self, x_str)
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT, "", indexed_sizes_str)
+      .Input(indexed_strides, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT, "", indexed_strides_str);
+  for (int i = 0; i < indices.size(); i++) {
+    std::string name = "indices" + std::to_string(i);
+    cmd.Input(indices[i], name);
   }
+  cmd.DynamicInputReg(index_func, {{indices.size(), 3}});
+  cmd.Output(result);
+  if (!is_aicore) {
+    cmd.Attr("_exclude_engines", aicore_str);
+  }
+  cmd.Run();
   return result;
 }
 
