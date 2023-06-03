@@ -1,4 +1,5 @@
-// Copyright (c) 2020, Huawei Technologies.All rights reserved.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,31 +15,20 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::gelu_out(const at::Tensor& self, at::Tensor& result) {
-  OpPreparation::CheckOut({self}, result, self);
-
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
+at::Tensor NPUNativeOpApiFunctions::hardswish_backward(const at::Tensor& gradOutput, const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnHardswishBackward, NPUNativeFunctions::hardswish_backward(gradOutput, self));
+  auto result =
+      OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  EXEC_NPU_CMD(aclnnHardswishBackward, gradOutput, self, result);
   return result;
 }
 
-at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
-  // calculate the output result of the NPU
-  OpCommand cmd;
-  cmd.Name("Gelu")
-      .Input(self)
-      .Output(result)
-      .Run();
-
-  return result;
-}
 }  // namespace native
 }  // namespace at_npu

@@ -56,5 +56,15 @@ at::Tensor& NPUNativeFunctions::_log_softmax_backward_data_out(
   return result;
 }
 
-} // namespace native
-} // namespace at_npu
+at::Tensor NPUNativeFunctions::_log_softmax_backward_data(
+    const at::Tensor& grad_output,
+    const at::Tensor& output,
+    int64_t dim,
+    c10::ScalarType input_dtype) {
+  at::Tensor result = OpPreparation::ApplyTensor(grad_output);
+  log_softmax_backward_data_out_npu_nocheck(result, grad_output, output, dim, input_dtype);
+
+  return result;
+}
+}  // namespace native
+}  // namespace at_npu
