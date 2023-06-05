@@ -646,8 +646,10 @@ supported:
  - mish.out
  - mish_
  - mish_backward
- - mm
- - mm.out
+ - func: mm
+   op_api: True
+ - func: mm.out
+   op_api: True
  - mse_loss
  - mse_loss.out
  - mse_loss_backward
