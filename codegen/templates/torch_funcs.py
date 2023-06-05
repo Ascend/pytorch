@@ -22,12 +22,13 @@ import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard
 
 
-def wrap_ewf_warning_func(func):
+def wrap_torch_warning_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not wrapper.warned:
-            print(f"Warning: torch.empty_with_format is deprecated and will be removed in future version. "
-                  f"Use torch_npu.empty_with_format instead.")
+            func_name = func.__name__[1:]
+            print(f"Warning: torch.{func_name} is deprecated and will be removed in future version. "
+                  f"Use torch_npu.{func_name} instead.")
             wrapper.warned = True
         return func(*args, **kwargs)
     wrapper.warned = False
@@ -59,15 +60,26 @@ def _arange(*args, **kwargs):
     return torch_npu.arange(*args, **kwargs)
 
 
-@wrap_ewf_warning_func
 @torch_device_guard
+@wrap_torch_warning_func
 def _empty_with_format(*args, **kwargs):
     return torch_npu.empty_with_format(*args, **kwargs)
 
 
 @torch_device_guard
+def _custom_empty_with_format(*args, **kwargs):
+    return torch_npu._C._VariableFunctions.empty_with_format(*args, **kwargs)
+
+
+@torch_device_guard
+@wrap_torch_warning_func
 def _npu_dropout_gen_mask(*args, **kwargs):
     return torch_npu.npu_dropout_gen_mask(*args, **kwargs)
+
+
+@torch_device_guard
+def _custom_npu_dropout_gen_mask(*args, **kwargs):
+    return torch_npu._C._VariableFunctions.npu_dropout_gen_mask(*args, **kwargs)
 
 
 @torch_device_guard
@@ -135,7 +147,9 @@ def add_torch_funcs():
     torch.range = _range
     torch.arange = _arange
     torch.empty_with_format = _empty_with_format
+    torch_npu.empty_with_format = _custom_empty_with_format
     torch.npu_dropout_gen_mask = _npu_dropout_gen_mask
+    torch_npu.npu_dropout_gen_mask = _custom_npu_dropout_gen_mask
     torch.jit.script = jit_script
     torch.as_tensor = _as_tensor
     torch.new_device = _new_device
