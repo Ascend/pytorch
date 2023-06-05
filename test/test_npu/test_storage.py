@@ -140,10 +140,6 @@ class TestStorage(TestCase):
                 npu_res = npu_storage.tolist()
                 self.assertEqual(cpu_res, npu_res)
 
-            def _test_type(cpu_storage, npu_storage):
-                npu_res = npu_storage.type()
-                self.assertEqual(npu_res, "torch.storage.TypedStorage")
-
             def _test_resize_(cpu_storage, npu_storage):
                 cpu_ori_ptr = cpu_storage.data_ptr()
                 npu_ori_ptr = npu_storage.data_ptr()
@@ -250,7 +246,6 @@ class TestStorage(TestCase):
             _test_pickle_storage_type(cpu_storage, npu_storage)
             _test_size(cpu_storage, npu_storage)
             _test_tolist(cpu_storage, npu_storage)
-            _test_type(cpu_storage, npu_storage)
             _test_resize_(cpu_storage, npu_storage)
             _test_is_shared(cpu_storage, npu_storage)
             _test_share_memory_(cpu_storage, npu_storage)
@@ -318,6 +313,19 @@ class TestStorage(TestCase):
                 _test_from_buffer(cpu_storage, npu_storage)
                 with self.assertRaisesRegex(RuntimeError, "Storage device not recognized: mps"):
                     _test_mps(cpu_storage, npu_storage)
+
+    def test_type_conversions(self):
+        x = torch.randn(5, 5)
+        supported_dtypes = ["float", "half", "long", "short", "int", "bool", "char", "byte"]
+        
+        for dtype in supported_dtypes:
+            self.assertIsInstance(getattr(x.npu(), dtype)(), getattr(torch.npu, dtype.title() + "Tensor"))
+            self.assertIsInstance(getattr(x.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Tensor"))
+
+        y = x.storage()
+        for dtype in supported_dtypes:
+            self.assertIsInstance(getattr(y.npu(), dtype)(), getattr(torch.npu, dtype.title() + "Storage"))
+            self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
 
 if __name__ == '__main__':
     run_tests()
