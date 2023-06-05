@@ -18,6 +18,13 @@ import torch
 import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard
 
+def raise_error_empty_with_format(*args, **kwargs):
+    raise RuntimeError(f"torch.empty_with_format is deprecated and will be removed in future version. "
+                       f"Use torch_npu.empty_with_format instead.")
+
+def raise_error_npu_dropout_gen_mask(*args, **kwargs):
+    raise RuntimeError(f"torch.npu_dropout_gen_mask is deprecated and will be removed in future version. "
+                       f"Use torch_npu.npu_dropout_gen_mask instead.")
 
 @torch_device_guard
 def _tensor(*args, **kwargs):
@@ -46,14 +53,12 @@ def _arange(*args, **kwargs):
 
 @torch_device_guard
 def _empty_with_format(*args, **kwargs):
-    raise RuntimeError(f"torch.empty_with_format is deprecated and will be removed in future version. "
-                       f"Use torch_npu.empty_with_format instead.")
-    return torch_npu.empty_with_format(*args, **kwargs)
+    return torch_npu._C._VariableFunctions.empty_with_format(*args, **kwargs)
 
 
 @torch_device_guard
 def _npu_dropout_gen_mask(*args, **kwargs):
-    return torch_npu.npu_dropout_gen_mask(*args, **kwargs)
+    return torch_npu._C._VariableFunctions.npu_dropout_gen_mask(*args, **kwargs)
 
 
 @torch_device_guard
@@ -86,8 +91,10 @@ def add_torch_funcs():
     torch.randint = _randint
     torch.range = _range
     torch.arange = _arange
-    torch.empty_with_format = _empty_with_format
-    torch.npu_dropout_gen_mask = _npu_dropout_gen_mask
+    torch.empty_with_format = raise_error_empty_with_format
+    torch_npu.empty_with_format = _empty_with_format
+    torch.npu_dropout_gen_mask = raise_error_npu_dropout_gen_mask
+    torch_npu.npu_dropout_gen_mask = _npu_dropout_gen_mask
     torch.jit.script = jit_script
     torch.as_tensor = _as_tensor
     torch.new_device = _new_device
