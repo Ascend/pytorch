@@ -10,13 +10,15 @@ at::Tensor& scatter_add_out_npu_nocheck(
     int64_t dim,
     const at::Tensor& index,
     const at::Tensor& src) {
+  std::string reduction = "add";
   OpCommand cmd;
-  cmd.Name("ScatterAddWithAxis")
+  cmd.Name("ScatterElements")
       .Input(self)
       .Input(index)
       .Input(src)
       .Output(result)
       .Attr("axis", dim)
+      .Attr("reduction", reduction)
       .Run();
   return result;
 }
