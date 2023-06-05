@@ -22,8 +22,7 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::sigmoid_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnSigmoid, NPUNativeFunctions::sigmoid_out(self, result));
-  OpPreparation::CheckOut({self}, result, self);
-
+  TORCH_CHECK(!isIntegralType(result.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
   EXEC_NPU_CMD(aclnnSigmoid, self, result);
   return result;
 }
@@ -37,7 +36,11 @@ at::Tensor& NPUNativeOpApiFunctions::sigmoid_(at::Tensor& self) {
 
 at::Tensor NPUNativeOpApiFunctions::sigmoid(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnSigmoid, NPUNativeFunctions::sigmoid(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  auto outDtype = self.dtype();
+  if (isIntegralType(self.scalar_type(), true)) {
+    outDtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(outDtype));
   EXEC_NPU_CMD(aclnnSigmoid, self, result);
 
   return result;
