@@ -1,6 +1,7 @@
 import shutil
 from warnings import warn
 
+from torch_npu.npu import _lazy_init
 from .analysis.npu_profiler import NpuProfiler
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
@@ -37,6 +38,7 @@ class profile:
         self._check_params()
 
     def __enter__(self):
+        _lazy_init()
         self._action_controller.transit_action()
         return self
 
