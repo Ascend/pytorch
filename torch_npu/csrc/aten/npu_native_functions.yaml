@@ -1095,12 +1095,18 @@ supported:
    op_api: True
  - func: stack.out
    op_api: True
- - std.correction
- - std.correction_out
- - std.correction_names
- - std.correction_names_out
- - std.names_out
- - std.out
+ - func: std.correction
+   op_api: False
+ - func: std.correction_out
+   op_api: False
+ - func: std.correction_names
+   op_api: False
+ - func: std.correction_names_out
+   op_api: False
+ - func: std.names_out
+   op_api: False
+ - func: std.out
+   op_api: False
  - std_mean.correction
  - std_mean.correction_names
  - func: sub.Scalar
