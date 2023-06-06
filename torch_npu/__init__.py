@@ -172,13 +172,26 @@ def wrap_torch_warning_func(func):
     wrapper.warned = False
     return wrapper
 
+npu_functions = {
+    "one_", "fast_gelu", "fast_gelu_backward", "_amp_foreach_non_finite_check_",
+    "empty_with_format", "unsafe_empty_with_format", "empty_with_format", "copy_memory_", 
+    "_dropout_with_byte_mask_backward", "dropout_with_byte_mask", "decode_jpeg", "crop_and_resize",
+    "reverse", "image_normalize", "image_normalize_", "img_to_tensor", "slow_conv_dilated2d_backward", 
+    "slow_conv_transpose2d_backward", "batch_norm_reduce", "batch_norm_gather_stats_update",
+    "get_storage_size", "_dropout_with_byte_mask", "empty_with_format"
+}
+
+
 
 for name in dir(torch_npu._C._VariableFunctions):
     if name.startswith('__'):
         continue
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
     __all__.append(name)
-    setattr(torch, name, wrap_torch_warning_func(getattr(torch_npu._C._VariableFunctions, name)))
+    if (name in npu_functions) or (name.find("npu") != -1):
+        setattr(torch, name, wrap_torch_warning_func(getattr(torch_npu._C._VariableFunctions, name)))
+    else:
+        setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
 
 all_monkey_patches = [
     ["npu", torch_npu.npu],
