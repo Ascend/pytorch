@@ -312,8 +312,12 @@ supported:
  - cumprod.out
  - cumprod_
  - cumprod_.dimname
- - cumsum.dimname_out
- - cumsum.out
+ - func: cumsum.dimname_out
+   op_api: True
+ - func: cumsum.out
+   op_api: True
+ - func: cumsum
+   op_api: True
  - decode_jpeg
  - diag
  - diag.out
