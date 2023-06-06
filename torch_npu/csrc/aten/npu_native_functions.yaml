@@ -677,8 +677,10 @@ supported:
  - lstm.data
  - lstm.input
  - lstm_cell
- - lt.Scalar
- - lt.Scalar_out
+ - func: lt.Scalar
+   op_api: False
+ - func: lt.Scalar_out
+   op_api: False
  - func: lt.Tensor
    op_api: True
  - func: lt.Tensor_out
@@ -696,8 +698,10 @@ supported:
  - matmul.out
  - func: max
    op_api: False
- - max.dim
- - max.dim_max
+ - func: max.dim
+   op_api: False
+ - func: max.dim_max
+   op_api: False
  - max.names_dim
  - max.names_dim_max
  - max.out
@@ -738,8 +742,10 @@ supported:
  - median.names_dim_values
  - func: min
    op_api: False
- - min.dim
- - min.dim_min
+ - func: min.dim
+   op_api: False
+ - func: min.dim_min
+   op_api: False
  - min.names_dim
  - min.names_dim_min
  - min.out

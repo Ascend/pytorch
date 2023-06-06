@@ -47,5 +47,30 @@ at::Tensor NPUNativeOpApiFunctions::min(const at::Tensor& self) {
   EXEC_NPU_CMD(aclnnMin, self, result);
 }
 
-}  // namespace native
-}  // namespace at_npu
+tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::min_out(
+    const at::Tensor& self,
+    int64_t dim,
+    bool keepdim,
+    at::Tensor& output,
+    at::Tensor& indices) {
+  DO_COMPATIBILITY(aclnnMinDim, NPUNativeFunctions::min_out(self, dim, keepdim, output, indices));
+  at::SmallVector<int64_t, SIZE> dims = {dim};
+  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
+  OpPreparation::CheckOut({self}, output, self.scalar_type(), outputSize);
+  OpPreparation::CheckOut({self}, indices, at::ScalarType::Long, outputSize);
+  EXEC_NPU_CMD(aclnnMinDim, self, dim, keepdim, output, indices);
+  return std::tie(output, indices);
+}
+
+tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::min(const at::Tensor& self, int64_t dim, bool keepdim) {
+  DO_COMPATIBILITY(aclnnMinDim, NPUNativeFunctions::min(self, dim, keepdim));
+  at::SmallVector<int64_t, SIZE> dims = {dim};
+  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
+  at::Tensor outputs = OpPreparation::ApplyTensor(outputSize, self.options(), self);
+  at::Tensor indices = OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::ScalarType::Long), self);
+  EXEC_NPU_CMD(aclnnMinDim, self, dim, keepdim, outputs, indices);
+  return std::tie(outputs, indices);
+}
+
+} // namespace native
+} // namespace at_npu
