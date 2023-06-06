@@ -679,9 +679,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
     std::vector<at::Tensor>& tensors,
     const c10d::AllreduceOptions& opts) {
   check_npu_tensors_different_devices(tensors);
+  bool is_int64_scalar = tensors[0].dim() == 1 && tensors[0].size(0) == 1 &&
+                         tensors[0].scalar_type() == at::kLong;
+  auto input_tensors = tensors;
+  if (is_int64_scalar) {
+    input_tensors[0] = at_npu::native::NPUNativeFunctions::npu_dtype_cast(tensors[0], at::kInt);
+  }
   return collective(
-      tensors,
-      tensors,
+      input_tensors,
+      input_tensors,
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
@@ -719,6 +725,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             getHcclReduceOp(opts.reduceOp, input),
             comm,
             stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>&) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
+        for (size_t i = 0; i < input_tensors.size(); ++i) {
+          c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+          c10_npu::NPUCachingAllocator::recordStream(input_tensors[i].storage().data_ptr(), hcclStreams[i]);
+          if (is_int64_scalar) {
+            tensors[i].copy_(input_tensors[i], true);
+          }
+        }
       });
 }
 
