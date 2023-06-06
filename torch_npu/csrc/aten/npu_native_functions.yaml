@@ -733,12 +733,17 @@ supported:
  - normal.float_float_out
  - func: normal_
    op_api: True
- - one_
+ - func: one_
+   op_api: False
  - one_hot
- - ones
- - ones.names
- - ones.out
- - ones_like
+ - func: ones
+   op_api: False
+ - func: ones.names
+   op_api: False
+ - func: ones.out
+   op_api: False
+ - func: ones_like
+   op_api: False
  - pdist
  - pow.Scalar
  - pow.Scalar_out
