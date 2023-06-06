@@ -967,8 +967,10 @@ supported:
  - soft_margin_loss_backward.grad_input
  - softmax.Dimname
  - softmax.int
- - softplus
- - softplus.out
+ - func: softplus
+   op_api: False
+ - func: softplus.out
+   op_api: False
  - softplus_backward.grad_input
  - softshrink
  - softshrink.out
