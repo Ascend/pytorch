@@ -372,6 +372,11 @@ c10::SmallVector<int64_t, SIZE> decode_jpeg_npu_output_size(
     at::IntArrayRef image_shape,
     int64_t channels);
 
+c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
+    const at::Tensor& self,
+    const c10::optional<at::Tensor>& min,
+    const c10::optional<at::Tensor>& max);
+
 } // namespace native
 } // namespace at_npu
 

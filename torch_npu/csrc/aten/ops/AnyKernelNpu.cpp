@@ -84,6 +84,40 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self, int64_t dim, bool kee
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::any_out(
+    const at::Tensor& self,
+    at::Tensor& result) {
+  // when self's dim = 0, convert [1] tensor and reduce it
+  if (self.dim() == 0) {
+      at::Tensor self_tmp = self;
+      c10::IntArrayRef input_size_for_one_scalar = {1};
+      self_tmp = OpPreparation::ApplyTensorWithFormat(
+          input_size_for_one_scalar,
+          self.options().dtype(at::ScalarType::Bool),
+          CalcuOpUtil::GetTensorNpuFormat(self))
+          .fill_(self.item());
+      return NPUNativeFunctions::any_out(self_tmp, 0, false, result);
+  }
+  at::SmallVector<int64_t, N> dim_list = CalcuOpUtil::GetDimlistForTensor(self);
+  bool keep_dim = false;
+  // check result for return
+  auto output_size = reduce_ops_npu_output_size(self, dim_list, keep_dim);
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self,
+      output_size);
+
+  if (self.numel() == 0) {
+    result.fill_(false);
+    return result;
+  }
+  // calculate the output result of the NPU
+  any_out_npu_nocheck(result, self, dim_list, keep_dim);
+
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::any(const at::Tensor& self) { 
   // when self's dim = 0, convert [1] tensor and reduce it
   if (self.dim() == 0) {

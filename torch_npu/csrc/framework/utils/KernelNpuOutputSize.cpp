@@ -1171,5 +1171,28 @@ namespace native {
       return outputSize;
     }
 
+    c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
+        const at::Tensor& self,
+        const c10::optional<at::Tensor>& min,
+        const c10::optional<at::Tensor>& max)
+    {
+      TORCH_CHECK(min.has_value() || max.has_value(), "torch.clamp: At least one of 'min' or 'max' must not be None");
+      if (self.numel() == 0) {
+        c10::SmallVector<int64_t, SIZE> empty_sizes;
+        for (int64_t i = 0; i < self.dim(); ++i) {
+          empty_sizes.push_back(self.size(i));
+        }
+        return empty_sizes;
+      }
+      if (min.has_value() && max.has_value()) {
+        auto brc_shape_min = broadcast_ops_npu_output_size(self.sizes(), min.value().sizes());
+        return broadcast_ops_npu_output_size(brc_shape_min, max.value().sizes());
+      }
+      if (min.has_value()) {
+        return broadcast_ops_npu_output_size(self.sizes(), min.value().sizes());
+      }
+      return broadcast_ops_npu_output_size(self.sizes(), max.value().sizes());
+    }
+
 } // namespace native
 } // namespace at_npu

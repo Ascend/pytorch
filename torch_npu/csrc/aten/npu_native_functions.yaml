@@ -152,7 +152,10 @@ supported:
  - amax.out
  - amin
  - amin.out
- - any
+ - func: any
+   op_api: False
+ - func: any.all_out
+   op_api: False
  - any.dim
  - any.out
  - func: arange
@@ -283,9 +286,12 @@ supported:
    op_api: True
  - func: clamp_min_
    op_api: True
- - clamp.Tensor
- - clamp.Tensor_out
- - clamp_.Tensor
+ - func: clamp.Tensor
+   op_api: False
+ - func: clamp.Tensor_out
+   op_api: False
+ - func: clamp_.Tensor
+   op_api: False
  - clamp_max.Tensor
  - clamp_max.Tensor_out
  - clamp_max_.Tensor
