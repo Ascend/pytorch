@@ -206,9 +206,12 @@ supported:
  - avg_pool3d.out
  - avg_pool3d_backward
  - avg_pool3d_backward.grad_input
- - baddbmm
- - baddbmm.out
- - baddbmm_
+ - func: baddbmm
+   op_api: False
+ - func: baddbmm.out
+   op_api: False
+ - func: baddbmm_
+   op_api: False
  - bartlett_window
  - bartlett_window.periodic
  - batch_norm
