@@ -1,4 +1,8 @@
 #include "torch_npu/csrc/aten/OverrideOperators.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
@@ -42,7 +46,11 @@ at::Tensor wrapper__argmax(const at::Tensor & self, c10::optional<int64_t> dim, 
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
 #endif
-  return at_npu::native::NPUNativeFunctions::argmax(self, dim, keepdim);
+  if (c10_npu::NpuRunMode::IsGraphMode() || !at_npu::native::env::CheckForbidInternalFormat()) {
+    return at_npu::native::NPUNativeFunctions::argmax(self, dim, keepdim);
+  } else {
+    return at_npu::native::NPUNativeOpApiFunctions::argmax(self, dim, keepdim);
+  }
 }
 
 

@@ -1,5 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -42,7 +41,7 @@ at::Tensor NPUNativeOpApiFunctions::argmax(const at::Tensor& self, at::optional<
   auto outputSize = reduce_ops_npu_output_size(input, realDim, realKeepDim);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(at::kInt));
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(at::kLong));
 
   EXEC_NPU_CMD(aclnnArgMax, input, realDim, realKeepDim, result);
   return result;
