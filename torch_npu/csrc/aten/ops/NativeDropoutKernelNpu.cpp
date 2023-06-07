@@ -40,12 +40,7 @@ at::Tensor NPUNativeFunctions::native_dropout_backward(
   double p = (scale == 0.0) ? 1 : (1 - 1 / scale);
   at::TensorOptions options = grad_output.options();
   if (p == 0) {
-    return NPUNativeFunctions::ones(
-        grad_output.sizes(),
-        optTypeMetaToScalarType(options.dtype_opt()),
-        options.layout(),
-        options.device(),
-        options.pinned_memory());
+    return grad_output;
   }
   if (p == 1) {
     return at::zeros(grad_output.sizes(), options);
