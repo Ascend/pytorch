@@ -15,11 +15,16 @@ enum class ProfLevel {
   MSPROF_TRACE_NPU,
 };
 
+struct NpuTraceConfig {
+  bool npu_memory;
+  ProfLevel level;
+};
+
 class ProfilerMgr : public torch_npu::toolkit::profiler::Singleton<ProfilerMgr> {
 friend class torch_npu::toolkit::profiler::Singleton<ProfilerMgr>;
 public:
   void Init(const std::string &path, bool npu_trace);
-  void Start(ProfLevel level, bool cpu_trace);
+  void Start(const NpuTraceConfig &npu_config, bool cpu_trace);
   void Stop();
   void Finalize();
   void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);

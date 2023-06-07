@@ -61,8 +61,8 @@ class TestNpuProfiler(TestCase):
     TRACE_FILE_NAME = "trace_view.json"
     KERNEL_FILE_NAME = "kernel_details.csv"
     OPERATOR_FILE_NAME = "operator_details.csv"
-    MEMORY_FORM_NAME = "memory_view_form.csv"
-    MEMORY_LINE_CHART_NAME = "memory_view_line_chart.csv"
+    OPERATOR_MEMORY = "operator_memory.csv"
+    MEMORY_RECORD = "memory_record.csv"
     results_path = "./results"
     model_train = TrainModel()
     small_steps = 1
@@ -176,8 +176,8 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_FORM_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_LINE_CHART_NAME))
+        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_MEMORY))
+        self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_RECORD))
 
     def _get_tensorboard_output(self, worker_name: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(self.results_path))

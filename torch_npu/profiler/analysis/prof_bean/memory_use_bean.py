@@ -50,15 +50,15 @@ class MemoryUseBean:
 
     @property
     def alloc_size(self) -> int:
-        return int(self._constant_data[MemoryEnum.ALLOC_SIZE.value])
+        return int(self._constant_data[MemoryEnum.ALLOC_SIZE.value]) / Constant.B_TO_KB
 
     @property
     def total_allocated(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value])
+        return int(self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value]) / Constant.B_TO_MB
 
     @property
     def total_reserved(self) -> int:
-        return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value])
+        return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value]) / Constant.B_TO_MB
 
     @property
     def device_type(self) -> int:
@@ -78,3 +78,14 @@ class MemoryUseBean:
 
     def is_npu(self) -> bool:
         return self.device_type == self.NPU_ID
+
+    @property
+    def device_tag(self) -> str:
+        if self.is_npu():
+            return f"NPU:{self.device_index}"
+        else:
+            return f"CPU"
+
+    @property
+    def row(self) -> list:
+        return [Constant.PTA, self.time_us, self.total_allocated, self.total_reserved, self.device_tag]

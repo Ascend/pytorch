@@ -37,7 +37,7 @@ void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
   }
 }
 
-void ProfilerMgr::Start(ProfLevel level, bool cpu_trace) {
+void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
   if (npu_trace_.load() == true) {
     aclprofAicoreMetrics aicMetrics = ACL_AICORE_PIPE_UTILIZATION;
     int32_t deviceId = 0;
@@ -48,12 +48,13 @@ void ProfilerMgr::Start(ProfLevel level, bool cpu_trace) {
     }
     const uint32_t deviceNum = 1;
     uint32_t deviceIdList[deviceNum] = {deviceId};
-    switch (level) {
-      case ProfLevel::MSPROF_TRACE_NPU:
-        EnableMsProfiler(deviceIdList, deviceNum, aicMetrics, dataTypeConfigMap_[static_cast<int32_t>(level)]);
-        break;
-      default:
-        break;
+    ProfLevel level = npu_config.level;
+    if (level == ProfLevel::MSPROF_TRACE_NPU) {
+      uint64_t datatype_config = dataTypeConfigMap_[static_cast<int32_t>(level)];
+      if (npu_config.npu_memory) {
+        datatype_config |= ACL_PROF_TASK_MEMORY;
+      }
+      EnableMsProfiler(deviceIdList, deviceNum, aicMetrics, datatype_config);
     }
   }
 
