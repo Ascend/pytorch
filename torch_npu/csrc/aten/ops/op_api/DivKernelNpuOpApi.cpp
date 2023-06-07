@@ -40,16 +40,8 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
   DO_COMPATIBILITY(aclnnDivs, NPUNativeFunctions::div_out(self, other, result));
   DO_COMPATIBILITY(aclnnDiv, NPUNativeFunctions::div_out(self, other, result));
   // calculate the output size
-  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::ScalarType high_type = at::native::result_type(self, other);
-  if (isIntegralType(high_type, true)) {
-    high_type = at::ScalarType::Float;
-  }
-  if (isFloatingType(result.scalar_type())) {
-    high_type = result.scalar_type();
-  }
-  OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(outputTensor), high_type, outputSize);
+  auto output_size = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self}, result, result, output_size);
 
   // calculate the output result of the NPU
   div_out_npu_opapi_nocheck(self, other, result);
@@ -67,10 +59,8 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
                 *rounding_mode, "'");
   }
 
-  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(outputTensor), result.scalar_type(),
-                          outputSize);
+  OpPreparation::CheckOut({self}, result, result, outputSize);
 
   int mode = 0;
   if (*rounding_mode == "floor") {
@@ -101,8 +91,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
     high_type = at::ScalarType::Float;
   }
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, outputTensor.options().dtype(high_type),
-                                                           CalcuOpUtil::GetTensorNpuFormat(outputTensor));
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, outputTensor.options().dtype(high_type));
 
   // calculate the output result of the NPU
   div_out_npu_opapi_nocheck(self, other, result);
@@ -126,19 +115,20 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
 
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
-  if (isIntegralType(high_type, true)) {
-    high_type = at::ScalarType::Float;
-  }
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, outputTensor.options().dtype(high_type),
-                                                           CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
+  // construct the output tensor of the NPU
   int mode = 0;
   if (*rounding_mode == "floor") {
     mode = 2;
   } else if (*rounding_mode == "trunc") {
     mode = 1;
+  } else {
+    if (isIntegralType(high_type, true)) {
+      high_type = at::ScalarType::Float;
+    }
   }
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, outputTensor.options().dtype(high_type));
+
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
     c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
@@ -152,9 +142,6 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
 at::Tensor& NPUNativeOpApiFunctions::div_(at::Tensor& self, const at::Tensor& other) {
   DO_COMPATIBILITY(aclnnDivs, NPUNativeFunctions::div_(self, other));
   DO_COMPATIBILITY(aclnnDiv, NPUNativeFunctions::div_(self, other));
-  c10::SmallVector<at::Tensor, N> inputs = {self, other};
-  c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   NPUNativeOpApiFunctions::div_out(self, other, self);
   return self;

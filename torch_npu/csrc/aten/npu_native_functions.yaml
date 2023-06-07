@@ -130,9 +130,12 @@ supported:
  - addmm
  - addmm.out
  - addmm_
- - addmv
- - addmv.out
- - addmv_
+ - func: addmv
+   op_api: True
+ - func: addmv.out
+   op_api: True
+ - func: addmv_
+   op_api: True
  - addr
  - addr.out
  - addr_
@@ -227,9 +230,12 @@ supported:
  - bitwise_and_.Scalar
  - func: bitwise_and_.Tensor
    op_api: True
- - bitwise_not
- - bitwise_not.out
- - bitwise_not_
+ - func: bitwise_not
+   op_api: True
+ - func: bitwise_not.out
+   op_api: True
+ - func: bitwise_not_
+   op_api: True
  - bitwise_or.Scalar
  - bitwise_or.Scalar_out
  - bitwise_or.Tensor
@@ -263,7 +269,8 @@ supported:
    op_api: True
  - func: clamp.out
    op_api: True
- - clamp_
+ - func: clamp_
+   op_api: True
  - clamp_max
  - clamp_max.out
  - clamp_max_
@@ -271,7 +278,8 @@ supported:
    op_api: True
  - func: clamp_min.out
    op_api: True
- - clamp_min_
+ - func: clamp_min_
+   op_api: True
  - clamp.Tensor
  - clamp.Tensor_out
  - clamp_.Tensor
@@ -333,7 +341,8 @@ supported:
    op_api: True
  - div_.Scalar
  - div_.Scalar_mode
- - div_.Tensor
+ - func: div_.Tensor
+   op_api: True
  - div_.Tensor_mode
  - func: dot
    op_api: True
@@ -958,9 +967,12 @@ supported:
  - topk
  - topk.values
  - triangular_solve.X
- - tril
- - tril.out
- - tril_
+ - func: tril
+   op_api: True
+ - func: tril.out
+   op_api: True
+ - func: tril_
+   op_api: True
  - tril_indices
  - triu
  - triu.out

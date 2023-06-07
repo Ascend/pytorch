@@ -18,27 +18,20 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include <ATen/native/TypeProperties.h>
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
 namespace native {
 c10::SmallVector<at::Tensor, N> cat_dest_tensor_list_opapi(at::TensorList tensors) {
-  at::ScalarType high_type = at::native::result_type(tensors);
-  c10::SmallVector<at::Tensor, N> dstTensorList;
+  c10::SmallVector<at::Tensor, N> dst_tensor_list;
   // pytorch supports empty tensors, which needs to be removed from the NPU.
   for (at::Tensor tensor : tensors) {
     if (tensor.dim() == 1 && tensor.sizes()[0] == 0) {
       continue;
     }
-    if (tensor.scalar_type() != high_type) {
-      tensor = NPUNativeFunctions::npu_dtype_cast(tensor, high_type);
-    }
-
-    dstTensorList.emplace_back(tensor);
+    dst_tensor_list.emplace_back(tensor);
   }
-
-  return dstTensorList;
+  return dst_tensor_list;
 }
 
 c10::SmallVector<int64_t, SIZE> cat_npu_output_size_opapi(c10::SmallVector<at::Tensor, N_SIZE>& tensors,
@@ -130,30 +123,9 @@ at::Tensor NPUNativeOpApiFunctions::_cat(at::TensorList tensors, int64_t dim) {
 
   // calculate the output size
   auto outputSize = cat_npu_output_size_opapi(inputTensors, dim);
-
-  // check tensors_dim for output format setting
-  bool tensors_dim_check = true;
-  for (at::Tensor t : tensors) {
-    if (t.sizes().size() != 4) {
-      break;
-    }
-    int64_t C = t.size(1);
-    if (C % 16 != 0) {
-      tensors_dim_check = false;
-      break;
-    }
-  }
-
-  // construct the output tensor of the NPU
-  if (tensors_dim_check == true) {
-    at::Tensor result = OpPreparation::ApplyTensor(inputTensors[0], outputSize);
-    NPUNativeOpApiFunctions::_cat_out(tensors, dim, result);
-    return result;
-  } else {
-    at::Tensor result = OpPreparation::ApplyTensorWithFormat(inputTensors[0], outputSize, ACL_FORMAT_ND);
-    NPUNativeOpApiFunctions::_cat_out(tensors, dim, result);
-    return result;
-  }
+  at::Tensor result = OpPreparation::ApplyTensor(inputTensors[0], outputSize);
+  NPUNativeOpApiFunctions::_cat_out(tensors, dim, result);
+  return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::cat(at::TensorList tensors, int64_t dim) {

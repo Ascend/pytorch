@@ -22,7 +22,7 @@ namespace native {
 at::Tensor& NPUNativeOpApiFunctions::clamp_out(const at::Tensor& self, const c10::optional<at::Scalar>& min,
                                                const c10::optional<at::Scalar>& max, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnClamp, NPUNativeFunctions::clamp_out(self, min, max, result));
-  TORCH_CHECK(min.has_value() || max.has_value(), "torch.clamp: At least one of 'min' or 'max' must not be None");
+  OpPreparation::CheckOut({self}, result, self);
   EXEC_NPU_CMD(aclnnClamp, self, min, max, result);
   return result;
 }
@@ -34,10 +34,17 @@ at::Tensor NPUNativeOpApiFunctions::clamp(const at::Tensor& self, const c10::opt
   return NPUNativeOpApiFunctions::clamp_out(self, min, max, result);
 }
 
+at::Tensor& NPUNativeOpApiFunctions::clamp_(
+    at::Tensor& self,
+    const c10::optional<at::Scalar>& min,
+    const c10::optional<at::Scalar>& max) {
+  DO_COMPATIBILITY(aclnnClamp, NPUNativeFunctions::clamp_(self, min, max));
+  return NPUNativeOpApiFunctions::clamp_out(self, min, max, self);
+}
+
 at::Tensor& NPUNativeOpApiFunctions::clamp_out(const at::Tensor& self, const c10::optional<at::Tensor>& min,
                                                const c10::optional<at::Tensor>& max, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnClampTensor, NPUNativeFunctions::clamp_out(self, min, max, result));
-  TORCH_CHECK(min.has_value() || max.has_value(), "torch.clamp: At least one of 'min' or 'max' must not be None");
   EXEC_NPU_CMD(aclnnClampTensor, self, min, max, result);
   return result;
 }
@@ -60,6 +67,11 @@ at::Tensor NPUNativeOpApiFunctions::clamp_min(const at::Tensor& self, const at::
   DO_COMPATIBILITY(aclnnClampMin, NPUNativeFunctions::clamp_min(self, min));
   at::Tensor result = OpPreparation::ApplyTensor(self);
   return NPUNativeOpApiFunctions::clamp_min_out(self, min, result);
+}
+
+at::Tensor& NPUNativeOpApiFunctions::clamp_min_(at::Tensor& self, const at::Scalar& min) {
+  DO_COMPATIBILITY(aclnnClampMin, NPUNativeFunctions::clamp_min_(self, min));
+  return NPUNativeOpApiFunctions::clamp_min_out(self, min, self);
 }
 
 }  // namespace native
