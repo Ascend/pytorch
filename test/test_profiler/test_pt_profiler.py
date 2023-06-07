@@ -25,7 +25,7 @@ class TestProfiler(TestCase):
         c = torch.mm(a, b)
 
     def test_cpu_op_profiler(self):
-        with torch.autograd.profiler.profile(use_npu=False) as prof:
+        with torch.autograd.profiler.profile(use_device=None) as prof:
             self.mm_op()
         found_mm = False 
 
@@ -40,7 +40,7 @@ class TestProfiler(TestCase):
             device = "npu:0"
         else:
             return
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
+        with torch.autograd.profiler.profile(use_device='npu') as prof:
             self.mm_op(device)
         found_mm = False 
 
@@ -84,24 +84,13 @@ class TestProfiler(TestCase):
             for key, count in expected_event_count.items():
                 self.assertTrue((key in actual_event_count.keys()) and (count == actual_event_count.get(key,0)))
 
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
+        with torch.autograd.profiler.profile(use_device='npu') as prof:
             self.train(steps)
         expected_event_count = {
             "Optimizer.step#SGD.step": steps,
             "Optimizer.zero_grad#SGD.zero_grad": steps
         }
         judge(expected_event_count, prof)
-
-
-    def test_npu_simple_profiler(self):
-        steps = 5
-        try:
-            self.train(steps)
-        except Exception:
-            self.assertTrue(False, "Expected no exception in profiling.")
-        with torch.autograd.profiler.profile(use_npu=True, use_npu_simple=True) as prof:
-            self.train(steps)
-        prof.export_chrome_trace("./test_trace.prof")
 
 
 if __name__ == '__main__':

@@ -11,7 +11,6 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
-#include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
@@ -90,7 +89,6 @@ PyObject* initNpuModule(){
 
   AddPyMethodDefs(methods, TorchNpuMethods);
   AddPyMethodDefs(methods, THNPModule_get_methods());
-  AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
   AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
   AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());

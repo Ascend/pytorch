@@ -32,13 +32,13 @@ except ImportError as e:
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
 import torch_npu._C
-
 import torch_npu.npu.npu_print as _npu_print
-from torch_npu import profiler
+
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      add_storage_methods
+from torch_npu.npu.profiler import add_profiler_methods
 from .version import __version__ as __version__
 
 
@@ -125,7 +125,6 @@ for name in dir(torch_npu._C._VariableFunctions):
     setattr(torch, name, wrap_torch_error_func(getattr(torch_npu._C._VariableFunctions, name)))
 
 all_monkey_patches = [
-    ["autograd.profiler", torch_npu.npu.profiler],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
 ]
@@ -167,6 +166,7 @@ def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
     add_tensor_methods()
+    add_profiler_methods()
 
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)

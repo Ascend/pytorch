@@ -6,7 +6,6 @@
 #include <torch/csrc/jit/runtime/interpreter.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
-#include "torch_npu/csrc/profiler/profiler_legacy.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"

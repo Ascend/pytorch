@@ -113,7 +113,6 @@ from .npu_config import *  # noqa: F403
 from .datadump import dump_enable, dump_disable
 from .autocast_utils import *  # noqa: F403
 
-torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
 config = npu_config.npuConfig()
 
 matmul = npu_config.allowHF32Matmul()
