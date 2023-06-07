@@ -417,10 +417,14 @@ supported:
  - gather.dimname
  - gather.dimname_out
  - gather.out
- - ge.Scalar
- - ge.Scalar_out
- - ge.Tensor
- - ge.Tensor_out
+ - func: ge.Scalar
+   op_api: True
+ - func: ge.Scalar_out
+   op_api: True
+ - func: ge.Tensor
+   op_api: True
+ - func: ge.Tensor_out
+   op_api: True
  - ge_.Scalar
  - ge_.Tensor
  - func: gelu
