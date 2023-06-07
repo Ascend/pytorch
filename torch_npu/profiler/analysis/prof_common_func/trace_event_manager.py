@@ -49,6 +49,6 @@ class TraceEventManager:
                  "tid": end_event.tid, "ts": end_event.ts, "cat": "async_npu"}]
 
     @classmethod
-    def create_torch_to_acl_flow_start(cls, flow_id: float, event: any) -> dict:
-        return {"ph": "s", "bp": "e", "name": "torch_to_acl", "id": flow_id, "pid": f"0_{event.pid}", "tid": event.tid,
-                "ts": event.ts, "cat": "async_acl_npu"}
+    def create_task_queue_flow(cls, ph: str, event: any) -> dict:
+        return {"ph": ph, "bp": "e", "name": "enqueue_to_dequeue", "id": event.corr_id, "pid": f"0_{event.pid}",
+                "tid": event.tid, "ts": event.ts, "cat": "async_task_queue"}

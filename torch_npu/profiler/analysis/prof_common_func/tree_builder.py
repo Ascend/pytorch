@@ -26,31 +26,32 @@ class TreeBuilder:
         event_list.sort(key=lambda x: x.ts)
         last_node = root_node
         for event in event_list:
-            node_queue = Queue()
-            node_queue.put(last_node)
-            while not node_queue.empty():
-                compare_node = node_queue.get()
-                if compare_node == root_node or event.ts < compare_node.end_time:
-                    tree_node = TorchOpNode(event, compare_node)
-                    compare_node.add_child_node(tree_node)
+            while last_node:
+                if last_node == root_node or event.ts < last_node.end_time:
+                    tree_node = TorchOpNode(event, last_node)
+                    last_node.add_child_node(tree_node)
                     last_node = tree_node
                     break
-                node_queue.put(compare_node.parent_node)
+                last_node = last_node.parent_node
         return root_node
 
     @classmethod
-    def find_call_node(cls, enqueue_ts: float, node_info_bean: NodeInfoBean, tree_node: TorchOpNode):
-        matched_child_node = tree_node.match_child_node(enqueue_ts)
-        if matched_child_node is None:
-            tree_node.add_device_self_dur(node_info_bean.device_dur)
-            tree_node.add_device_self_dur_with_ai_core(node_info_bean.device_dur_with_ai_core)
-            tree_node.add_acl_ts(node_info_bean.acl_start_time)
+    def find_call_node(cls, enqueue_ts: float, node_info_bean: NodeInfoBean, root_node: TorchOpNode):
+        matched_child_node = root_node.match_child_node(enqueue_ts)
+        if not matched_child_node:
             return
-        matched_child_node.add_device_total_dur(node_info_bean.device_dur)
-        matched_child_node.add_device_total_dur_with_ai_core(node_info_bean.device_dur_with_ai_core)
         matched_child_node.update_first_kernel_ts(node_info_bean.kernel_min_ts)
         matched_child_node.update_end_kernel_ts(node_info_bean.kernel_max_ts)
-        cls.find_call_node(enqueue_ts, node_info_bean, matched_child_node)
+        node_queue = Queue()
+        node_queue.put(matched_child_node)
+        while not node_queue.empty():
+            tree_node = node_queue.get()
+            tree_node.update_device_total(node_info_bean)
+            matched_child_node = tree_node.match_child_node(enqueue_ts)
+            if matched_child_node:
+                node_queue.put(matched_child_node)
+            else:
+                tree_node.update_device_self(node_info_bean)
 
     @classmethod
     def go_through_tree(cls, root_node: TorchOpNode) -> list:
