@@ -488,12 +488,14 @@ supported:
  - index_fill.int_Tensor
  - index_fill_.int_Scalar
  - index_fill_.int_Tensor
- - index_select
+ - func: index_select
+   op_api: True
  - index_put
  - index_put_
  - index_select.dimname
  - index_select.dimname_out
- - index_select.out
+ - func: index_select.out
+   op_api: True
  - inverse
  - inverse.out
  - is_pinned
