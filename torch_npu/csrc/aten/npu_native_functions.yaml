@@ -478,9 +478,12 @@ supported:
  - hardsigmoid.out
  - hardsigmoid_
  - hardsigmoid_backward
- - hardswish
- - hardswish.out
- - hardswish_
+ - func: hardswish
+   op_api: True
+ - func: hardswish.out
+   op_api: True
+ - func: hardswish_
+   op_api: True
  - func: hardswish_backward
    op_api: True
  - hardtanh
@@ -941,8 +944,10 @@ supported:
    op_api: True
  - squeeze
  - squeeze.dim
- - stack
- - stack.out
+ - func: stack
+   op_api: True
+ - func: stack.out
+   op_api: True
  - std.correction
  - std.correction_out
  - std.correction_names
@@ -951,16 +956,24 @@ supported:
  - std.out
  - std_mean.correction
  - std_mean.correction_names
- - sub.Scalar
- - sub.Tensor
- - sub.out
+ - func: sub.Scalar
+   op_api: True
+ - func: sub.Tensor
+   op_api: True
+ - func: sub.out
+   op_api: True
  - sub_.Scalar
  - sub_.Tensor
- - sum
- - sum.DimnameList_out
- - sum.IntList_out
- - sum.dim_DimnameList
- - sum.dim_IntList
+ - func: sum
+   op_api: True
+ - func: sum.DimnameList_out
+   op_api: True
+ - func: sum.IntList_out
+   op_api: True
+ - func: sum.dim_DimnameList
+   op_api: True
+ - func: sum.dim_IntList
+   op_api: True
  - take
  - take.out
  - tan
@@ -980,8 +993,10 @@ supported:
    op_api: True
  - to.dtype_layout
  - to.other
- - topk
- - topk.values
+ - func: topk
+   op_api: True
+ - func: topk.values
+   op_api: True
  - triangular_solve.X
  - func: tril
    op_api: True
