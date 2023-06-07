@@ -26,12 +26,8 @@ at::Tensor& NPUNativeOpApiFunctions::all_out(const at::Tensor& self, int64_t dim
   c10::SmallVector<int64_t, N> dimList = {dim};
 
   // check result for return
-  auto outputSize = reduce_ops_npu_output_size(self, dimList, keepdim);
-  OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(self), self.scalar_type(), outputSize);
-  if (self.numel() == 0) {
-    result.fill_(true);
-    return result;
-  }
+  auto output_size = reduce_ops_npu_output_size(self, dimList, keepdim);
+  OpPreparation::CheckOut({self}, result, result, output_size);
   // calculate the output result of the NPU
   at::IntArrayRef dims(dim);
   EXEC_NPU_CMD(aclnnAll, self, dims, keepdim, result);
@@ -41,24 +37,14 @@ at::Tensor& NPUNativeOpApiFunctions::all_out(const at::Tensor& self, int64_t dim
 
 at::Tensor NPUNativeOpApiFunctions::all(const at::Tensor& self, int64_t dim, bool keepdim) {
   DO_COMPATIBILITY(aclnnAll, NPUNativeFunctions::all(self, dim, keepdim));
-  if (self.dim() == 0) {
-    TORCH_CHECK(dim != 0 || dim != -1,
-                "The value of dim must be greater than or equal to -self.dim() and less than self.dim()");
-  } else {
-    TORCH_CHECK(dim >= -(self.dim()) && dim < self.dim(),
-                "The value of dim must be greater than or equal to -self.dim() and less than self.dim()");
-  }
 
   // calculate the output size
   at::IntArrayRef dims(dim);
-  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
-
+  auto output_size = reduce_ops_npu_output_size(self, dims, keepdim);
+  auto output_dtype = self.scalar_type() == at::ScalarType::Byte ? at::ScalarType::Byte : at::ScalarType::Bool;
+  auto options = self.options().dtype(output_dtype);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  if (self.numel() == 0) {
-    result.fill_(true);
-    return result;
-  }
+  at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAll, self, dims, keepdim, result);
 
@@ -69,15 +55,12 @@ at::Tensor NPUNativeOpApiFunctions::all(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnAll, NPUNativeFunctions::all(self));
   // calculate the output size
   at::IntArrayRef dims;
-  auto outputSize = reduce_ops_npu_output_size(self, dims, false);
-
+  auto output_size = reduce_ops_npu_output_size(self, dims, false);
+  auto output_dtype = self.scalar_type() == at::ScalarType::Byte ? at::ScalarType::Byte : at::ScalarType::Bool;
+  auto options = self.options().dtype(output_dtype);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
 
-  if (self.numel() == 0) {
-    result.fill_(true);
-    return result;
-  }
   at::IntArrayRef dimList(CalcuOpUtil::GetDimlistForTensor(self));
   bool keepdim = false;
   // calculate the output result of the NPU

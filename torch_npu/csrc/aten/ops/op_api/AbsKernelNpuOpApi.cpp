@@ -32,12 +32,9 @@ at::Tensor& NPUNativeOpApiFunctions::abs_out(const at::Tensor& self, at::Tensor&
 
 at::Tensor NPUNativeOpApiFunctions::abs(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnAbs, NPUNativeFunctions::abs(self));
-  // calculate the output size
-  auto output_size = input_same_output_size(self);
 
   // construct the output tensor of the NPU
-  at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(output_size, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAbs, self, result);

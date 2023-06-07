@@ -37,19 +37,11 @@ static at::Tensor& ArangeOutOpApi(at::Scalar start, at::Scalar end, at::Scalar s
   return result;
 }
 
-static bool IsTensorFloat(at::Tensor& result) {
-  if (isFloatingType(result.scalar_type())) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 static int64_t GetResultSize(const at::Scalar& start, const at::Scalar& end, const at::Scalar& step,
-                             at::Tensor& result) {
+                             at::ScalarType resultType) {
   double size_arange = 0;
   // calculate the output size
-  if (IsTensorFloat(result)) {
+  if (isFloatingType(resultType)) {
     if (step.toDouble() != 0) {
       size_arange = std::ceil(static_cast<double>(end.toDouble() - start.toDouble()) / step.toDouble());
     }
@@ -75,25 +67,15 @@ at::Tensor NPUNativeOpApiFunctions::arange(const at::Scalar& start, const at::Sc
   at::Scalar step_opt = step;
   bool set_to_integral_dtype = !option.has_dtype() && allIntegral({start_opt, end_opt, step_opt});
 
-  // check start == end
   if (set_to_integral_dtype) {
     option = option.dtype(at::ScalarType::Long);
   }
-  at::Tensor result_check = OpPreparation::ApplyTensorWithFormat({0}, option, ACL_FORMAT_ND);
 
-  int64_t size_value = GetResultSize(start, end, step, result_check);
+  int64_t size_value = GetResultSize(start, end, step, c10::typeMetaToScalarType(option.dtype()));
   at::SmallVector<int64_t, SIZE> outputSize = {size_value};
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, option, ACL_FORMAT_ND);
-
-  if (option.dtype() == at::kHalf) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::kFloat);
-  }
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, option);
 
   ArangeOutOpApi(start, end, step, result);
-
-  if (option.dtype() == at::kHalf) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::kHalf);
-  }
 
   return result;
 }
@@ -118,7 +100,7 @@ at::Tensor& NPUNativeOpApiFunctions::arange_out(const at::Scalar& start, const a
                                                 at::Tensor& result) {
   DO_COMPATIBILITY(aclnnArange, NPUNativeFunctions::arange_out(start, end, step, result));
 
-  int64_t size_value = GetResultSize(start, end, step, result);
+  int64_t size_value = GetResultSize(start, end, step, result.scalar_type());
   at::SmallVector<int64_t, SIZE> outputSize = {size_value};
   result.resize_(outputSize);
 
