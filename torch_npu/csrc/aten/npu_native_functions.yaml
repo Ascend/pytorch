@@ -856,8 +856,14 @@ supported:
  - rsub.Scalar
  - rsub.Tensor
  - scalar_tensor
- - scatter.src_out
- - scatter.value_out
+ - func: scatter.src_out
+   op_api: True
+ - func: scatter.value_out
+   op_api: True
+ - func: scatter.reduce_out
+   op_api: True
+ - func: scatter.value_reduce_out
+   op_api: True
  - scatter_add
  - scatter_add.dimname
  - scatter_add_
@@ -915,10 +921,18 @@ supported:
  - softshrink.out
  - softshrink_backward
  - softshrink_backward.grad_input
- - sort
- - sort.dimname
- - sort.dimname_values
- - sort.values
+ - func: sort
+   op_api: True
+ - func: sort.stable
+   op_api: True
+ - func: sort.dimname
+   op_api: True
+ - func: sort.dimname_values
+   op_api: True
+ - func: sort.values
+   op_api: True
+ - func: sort.values_stable
+   op_api: True
  - func: sqrt
    op_api: True
  - func: sqrt.out

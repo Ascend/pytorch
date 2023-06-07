@@ -98,5 +98,28 @@ at::Tensor& NPUNativeFunctions::scatter_out(
   scatter_npu_src_impl(result, dim, index, srcTensor_broadcast);
   return result;
 }
+
+at::Tensor& NPUNativeFunctions::scatter_out(
+    const at::Tensor& self,
+    int64_t dim,
+    const at::Tensor& index,
+    const at::Tensor& src,
+    c10::string_view reduce,
+    at::Tensor& result) {
+    TORCH_CHECK(false, "scatter.reduce_out is not supported.");
+    return result;
+}
+
+at::Tensor& NPUNativeFunctions::scatter_out(
+    const at::Tensor& self,
+    int64_t dim,
+    const at::Tensor& index,
+    const at::Scalar& value,
+    c10::string_view reduce,
+    at::Tensor& result) {
+    TORCH_CHECK(false, "scatter.value_reduce_out is not supported.");
+    return result;
+}
+
 } // namespace native
 } // namespace at_npu

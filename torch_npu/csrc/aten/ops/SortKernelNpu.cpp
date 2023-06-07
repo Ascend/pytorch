@@ -106,5 +106,30 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::sort(
   return NPUNativeFunctions::sort(self, dimname_to_position(self, dim), descending);
 }
 
+tuple<at::Tensor, at::Tensor> NPUNativeFunctions::sort(
+    const at::Tensor& self,
+    c10::optional<bool> stable,
+    int64_t dim,
+    bool descending) {
+    TORCH_CHECK(false, "sort.stable is not supported.");
+    auto outputSize = input_same_output_size(self);
+    auto format = CalcuOpUtil::GetTensorNpuFormat(self);
+    at::Tensor values = OpPreparation::ApplyTensor(self);
+    at::Tensor indices = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::kLong), format);
+
+    return std::tie(values, indices);
+}
+
+tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::sort_out(
+    const at::Tensor& self,
+    c10::optional<bool> stable,
+    int64_t dim,
+    bool descending,
+    at::Tensor& values,
+    at::Tensor& indices) {
+    TORCH_CHECK(false, "sort.stable is not supported.");
+    return std::tie(values, indices);
+}
+
 } // namespace native
 } // namespace at_npu
