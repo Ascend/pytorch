@@ -834,8 +834,10 @@ supported:
  - replication_pad1d_backward.grad_input
  - replication_pad2d
  - replication_pad2d.out
- - replication_pad2d_backward
- - replication_pad2d_backward.grad_input
+ - func: replication_pad2d_backward
+   op_api: True
+ - func: replication_pad2d_backward.grad_input
+   op_api: True
  - resize_
  - resize_as_
  - reverse
