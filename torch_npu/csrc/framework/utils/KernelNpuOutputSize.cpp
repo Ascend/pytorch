@@ -18,10 +18,8 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
     int64_t CeilDiv(int64_t value, int64_t factor)
     {
@@ -591,7 +589,11 @@ namespace at_npu
         int64_t dim,
         const at::Tensor &index)
     {
-      int64_t indexSize = index.size(0);
+      at::Tensor indexTmp(index);
+      if (indexTmp.ndimension() == 0) {
+        indexTmp = index.unsqueeze(0);
+      }
+      int64_t indexSize = indexTmp.size(0);
 
       c10::SmallVector<int64_t, SIZE> outputSize;
       for (int64_t i = 0; i < self.sizes().size(); ++i)
@@ -1169,5 +1171,5 @@ namespace at_npu
       return outputSize;
     }
 
-  } // namespace native
+} // namespace native
 } // namespace at_npu
