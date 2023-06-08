@@ -58,4 +58,8 @@ class Constant:
     # memory
     PTA = "PTA"
     GE = "GE"
+    PTA_GE = "PTA+GE"
+    APP = "APP"
     B_TO_KB = 1024.0
+    KB_TO_MB = 1024.0
+    B_TO_MB = 1024.0 ** 2

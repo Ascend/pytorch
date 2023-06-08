@@ -13,11 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..prof_common_func.constant import Constant
-
-
-class NpuMemoryBean:
-    SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)"]
+class GeMemoryRecordBean:
+    HEADERS = ["Component", "Timestamp(us)", "Total Allocated(MB)", "Total Reserved(MB)", "Device Type"]
 
     def __init__(self, data: list):
         self._data = data
@@ -25,11 +22,22 @@ class NpuMemoryBean:
     @property
     def row(self) -> list:
         row = []
-        if self._data.get("event") != Constant.APP:
-            return row
-        for field_name in self.SHOW_HEADERS:
-            if field_name == "memory(KB)":
-                row.append(float(self._data.get(field_name, 0)) / Constant.KB_TO_MB)
-            else:
-                row.append(self._data.get(field_name, ""))
+        for field_name in self.HEADERS:
+            row.append(self._data.get(field_name, ""))
         return row
+
+    @property
+    def time_us(self) -> int:
+        return int(self._data.get("Timestamp(us)"))
+
+    @property
+    def total_allocated(self) -> float:
+        return float(self._data.get("Total Allocated(MB)", 0))
+
+    @property
+    def total_reserved(self) -> float:
+        return float(self._data.get("Total Reserved(MB)", 0))
+
+    @property
+    def device_tag(self) -> float:
+        return self._data.get("Device Type", "")

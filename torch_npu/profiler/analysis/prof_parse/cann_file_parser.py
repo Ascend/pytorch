@@ -32,6 +32,8 @@ class CANNDataEnum(Enum):
     NPU_MEMORY = 1
     MSPROF_TIMELINE = 2
     STEP_TRACE = 3
+    GE_MEMORY_RECORD = 4
+    GE_OPERATOR_MEMORY = 5
 
 
 class CANNFileParser:
@@ -45,7 +47,9 @@ class CANNFileParser:
         CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv"],
         CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv"],
         CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d_\d+\.json", r"^msprof_\d_\d+_\d+\.json"],
-        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv"]
+        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv"],
+        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d_\d+\.csv", r"^ge_memory_record_\d_\d+_\d+\.csv"],
+        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d_\d+\.csv", r"^ge_operator_memory_\d_\d+_\d+\.csv"]
     }
 
     def __init__(self, profiler_path: str):
