@@ -1285,6 +1285,8 @@ supported:
  - var_mean.correction
  - var_mean.correction_names
  - view
+ - view_as_complex
+ - view_as_real
  - where
  - func: where.self
    op_api: False
@@ -1495,8 +1497,6 @@ tocpu:
   - unique_dim
   - unique_dim_consecutive
   - vdot
-  - view_as_complex
-  - view_as_real
   - sinc.out
   - gcd.out
   - lcm.out
