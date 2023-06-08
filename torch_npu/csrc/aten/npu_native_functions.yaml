@@ -375,9 +375,12 @@ supported:
  - eq_.Tensor
  - func: equal
    op_api: True
- - erf
- - erf.out
- - erf_
+ - func: erf
+   op_api: True
+ - func: erf.out
+   op_api: True
+ - func: erf_
+   op_api: True
  - erfc
  - erfc.out
  - erfc_
