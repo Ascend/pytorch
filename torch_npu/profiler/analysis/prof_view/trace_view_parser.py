@@ -40,31 +40,33 @@ class TraceViewParser(BaseViewParser):
     def _add_fwk_trace_data(self, json_data: list):
         if not GlobalVar.torch_op_tree_node:
             return
-        acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data()
         pid = GlobalVar.torch_op_tree_node[0].event.pid
         tid_dict = {}
-        fwk_json_data = []
-
+        enqueue_data_list, dequeue_data_list = FwkFileParser(self._profiler_path).get_task_queue_data()
+        fwk_x_event_list = [None] * (
+                len(GlobalVar.torch_op_tree_node) + len(enqueue_data_list) * 2 + len(dequeue_data_list) * 2)
+        fwk_other_event_list = []
+        index = 0
         for torch_op_node in GlobalVar.torch_op_tree_node:
             tid_dict[torch_op_node.event.tid] = False
-            fwk_json_data.append(TraceEventManager.create_x_event(torch_op_node.event, "cpu_op"))
-            if torch_op_node.acl_ts is not None:
-                fwk_json_data.append(
-                    TraceEventManager.create_torch_to_acl_flow_start(torch_op_node.acl_ts, torch_op_node.event))
-                kernel_list = acl_to_npu_dict.get(torch_op_node.acl_ts, [])
-                for kernel in kernel_list:
-                    fwk_json_data.extend(TraceEventManager.create_torch_to_npu_flow(torch_op_node.event, kernel))
+            fwk_x_event_list[index] = TraceEventManager.create_x_event(torch_op_node.event, "cpu_op")
+            index += 1
+            if torch_op_node.kernel_list:
+                for kernel in torch_op_node.kernel_list:
+                    fwk_other_event_list.extend(TraceEventManager.create_torch_to_npu_flow(torch_op_node.event, kernel))
 
-        enqueue_data_list, dequeue_data_list = FwkFileParser(self._profiler_path).get_task_queue_data()
-        for queue_data in enqueue_data_list + dequeue_data_list:
-            tid_dict[queue_data.tid] = queue_data.is_dequeue
-            fwk_json_data.append(TraceEventManager.create_x_event(queue_data, "task_queue"))
-        fwk_json_data.extend(TraceEventManager.create_m_event(pid, tid_dict))
+        for enqueue_data in enqueue_data_list:
+            tid_dict[enqueue_data.tid] = False
+            fwk_x_event_list[index] = TraceEventManager.create_x_event(enqueue_data, "enqueue")
+            index += 1
+            fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_START_PH, enqueue_data)
+            index += 1
+        for dequeue_data in dequeue_data_list:
+            tid_dict[dequeue_data.tid] = True
+            fwk_x_event_list[index] = TraceEventManager.create_x_event(dequeue_data, "dequeue")
+            index += 1
+            fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_END_PH, dequeue_data)
+            index += 1
+        fwk_other_event_list.extend(TraceEventManager.create_m_event(pid, tid_dict))
 
-        for data in json_data:
-            if data.get("name", "").lower() in Constant.ACL_OP_EXE_NAME:
-                fwk_json_data.append(
-                    {"ph": "f", "bp": "e", "name": "torch_to_acl", "id": data.get("ts"), "pid": data.get("pid"),
-                     "tid": data.get("tid"), "ts": data.get("ts"), "cat": "async_acl_npu"})
-
-        json_data.extend(fwk_json_data)
+        json_data.extend(fwk_x_event_list + fwk_other_event_list)

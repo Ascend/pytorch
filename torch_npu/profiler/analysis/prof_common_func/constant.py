@@ -47,6 +47,8 @@ class Constant:
     PROCESS_SORT = "process_sort_index"
     THREAD_NAME = "thread_name"
     THREAD_SORT = "thread_sort_index"
+    FLOW_START_PH = "s"
+    FLOW_END_PH = "f"
 
     # framework
     TENSORBOARD_TRACE_HABDLER = "tensorboard_trace_handler"

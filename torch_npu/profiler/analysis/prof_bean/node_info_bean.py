@@ -30,8 +30,8 @@ class NodeInfoBean:
         self._kernel_max_ts = max([kernel.ts for kernel in self._kernel_list])
 
     @property
-    def acl_start_time(self) -> float:
-        return self._acl_start_time
+    def kernel_list(self) -> float:
+        return self._kernel_list
 
     @property
     def device_dur(self) -> float:

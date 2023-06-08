@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from math import ceil
+
+from .node_info_bean import NodeInfoBean
 from ..prof_common_func.constant import Constant
 
 
@@ -22,13 +25,10 @@ class TorchOpNode:
         self._parent_node = parent_node
         self._all_node_num = all_node_num
         self._child_list = []
-        self._device_self_dur = 0
-        self._device_self_dur_with_ai_core = 0
-        self._device_total_dur = 0
-        self._device_total_dur_with_ai_core = 0
+        self._device_dur_list = [0, 0, 0, 0]
         self._first_kernel_ts = 0
         self._end_kernel_ts = 0
-        self._acl_ts = None
+        self._kernel_list = []
 
     @property
     def event(self):
@@ -47,8 +47,8 @@ class TorchOpNode:
         return self._event.args.get(Constant.CALL_STACK, "")
 
     @property
-    def acl_ts(self):
-        return self._acl_ts
+    def kernel_list(self):
+        return self._kernel_list
 
     @property
     def start_time(self) -> float:
@@ -68,19 +68,19 @@ class TorchOpNode:
 
     @property
     def device_self_dur(self):
-        return self._device_self_dur
+        return self._device_dur_list[0]
 
     @property
     def device_self_dur_with_ai_core(self):
-        return self._device_self_dur_with_ai_core
+        return self._device_dur_list[1]
 
     @property
     def device_total_dur(self):
-        return self._device_total_dur
+        return self._device_dur_list[2]
 
     @property
     def device_total_dur_with_ai_core(self):
-        return self._device_total_dur_with_ai_core
+        return self._device_dur_list[3]
 
     @property
     def child_node_list(self) -> list:
@@ -105,24 +105,26 @@ class TorchOpNode:
         self._child_list.append(child_node)
 
     def match_child_node(self, ts_time: float) -> any:
-        matched_node = None
-        for child_node in self._child_list:
-            if child_node.start_time <= ts_time <= child_node.end_time:
-                matched_node = child_node
-                break
-        return matched_node
+        if not self._child_list:
+            return None
+        right = len(self._child_list) - 1
+        left = 0
+        while right > left:
+            mid = left + ceil((right - left) / 2)
+            if ts_time >= self._child_list[mid].start_time:
+                left = mid
+            else:
+                right = mid - 1
+        return self._child_list[left] if self._child_list[left].end_time > ts_time else None
 
-    def add_device_self_dur(self, dur: float):
-        self._device_self_dur += dur
+    def update_device_self(self, node_info_bean: NodeInfoBean):
+        self._device_dur_list[0] += node_info_bean.device_dur
+        self._device_dur_list[1] += node_info_bean.device_dur_with_ai_core
+        self._kernel_list = node_info_bean.kernel_list
 
-    def add_device_self_dur_with_ai_core(self, dur: float):
-        self._device_self_dur_with_ai_core += dur
-
-    def add_device_total_dur(self, dur: float):
-        self._device_total_dur += dur
-
-    def add_device_total_dur_with_ai_core(self, dur: float):
-        self._device_total_dur_with_ai_core += dur
+    def update_device_total(self, node_info_bean: NodeInfoBean):
+        self._device_dur_list[2] += node_info_bean.device_dur
+        self._device_dur_list[3] += node_info_bean.device_dur_with_ai_core
 
     def update_first_kernel_ts(self, ts: float):
         if self._first_kernel_ts == 0:
@@ -132,6 +134,3 @@ class TorchOpNode:
 
     def update_end_kernel_ts(self, ts: float):
         self._end_kernel_ts = max(self._end_kernel_ts, ts)
-
-    def add_acl_ts(self, acl_ts: float):
-        self._acl_ts = acl_ts

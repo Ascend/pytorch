@@ -90,8 +90,7 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
         self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
         self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True,
-                         self._check_trace_view_keywords(worker_name, ["torch_to_acl", "torch_to_npu", "acl_to_npu"]))
+        self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["torch_to_npu", "acl_to_npu"]))
 
     def test_activities_cpu(self):
         worker_name = self.worker_name
@@ -105,7 +104,7 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(False, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
         self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(False,
-                         self._check_trace_view_keywords(worker_name, ["torch_to_acl", "torch_to_npu", "acl_to_npu"]))
+                         self._check_trace_view_keywords(worker_name, ["torch_to_npu", "acl_to_npu"]))
 
     def test_activities_npu(self):
         worker_name = self.worker_name
@@ -119,7 +118,7 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
         self.assertEqual(False, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
         self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["acl_to_npu"]))
-        self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["torch_to_acl", "torch_to_npu"]))
+        self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["torch_to_npu"]))
 
     def test_record_shapes(self):
         worker_name = self.worker_name
