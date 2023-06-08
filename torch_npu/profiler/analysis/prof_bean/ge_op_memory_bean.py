@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class OpSummaryBean:
-    SHOW_HEADERS = ["Op Name", "OP Type", "Task Type", "Task Start Time", "Task Duration(us)", "Task Wait Time(us)",
-                    "Block Dim", "Input Shapes", "Input Data Types", "Input Formats", "Output Shapes",
-                    "Output Data Types", "Output Formats"]
-    TASK_START_TIME = "Task Start Time"
+
+class GeOpMemoryBean:
+    HEADERS = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Duration(us)", "Device Type",
+               "Allocation Total Allocated(MB)", "Allocation Total Reserved(MB)",
+               "Release Total Allocated(MB)", "Release Total Reserved(MB)"]
 
     def __init__(self, data: list):
         self._data = data
@@ -25,13 +25,6 @@ class OpSummaryBean:
     @property
     def row(self) -> list:
         row = []
-        for field_name in self.SHOW_HEADERS:
-            if field_name == self.TASK_START_TIME:
-                row.append(float(self._data.get(field_name, 0)) / 1000)
-            else:
-                row.append(self._data.get(field_name, ""))
+        for field_name in self.HEADERS:
+            row.append(self._data.get(field_name, ""))
         return row
-
-    @property
-    def ts(self) -> float:
-        return float(self._data.get(self.TASK_START_TIME, 0)) / 1000

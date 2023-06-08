@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class OpSummaryBean:
-    SHOW_HEADERS = ["Op Name", "OP Type", "Task Type", "Task Start Time", "Task Duration(us)", "Task Wait Time(us)",
-                    "Block Dim", "Input Shapes", "Input Data Types", "Input Formats", "Output Shapes",
-                    "Output Data Types", "Output Formats"]
-    TASK_START_TIME = "Task Start Time"
+from ..prof_common_func.constant import Constant
+
+
+class NpuMemoryBean:
+    SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)"]
 
     def __init__(self, data: list):
         self._data = data
@@ -25,13 +25,11 @@ class OpSummaryBean:
     @property
     def row(self) -> list:
         row = []
+        if self._data.get("event") != Constant.APP:
+            return row
         for field_name in self.SHOW_HEADERS:
-            if field_name == self.TASK_START_TIME:
-                row.append(float(self._data.get(field_name, 0)) / 1000)
+            if field_name == "memory(KB)":
+                row.append(float(self._data.get(field_name, 0)) / Constant.KB_TO_MB)
             else:
                 row.append(self._data.get(field_name, ""))
         return row
-
-    @property
-    def ts(self) -> float:
-        return float(self._data.get(self.TASK_START_TIME, 0)) / 1000
