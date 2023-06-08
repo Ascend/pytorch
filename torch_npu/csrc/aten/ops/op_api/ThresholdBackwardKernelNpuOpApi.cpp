@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
@@ -23,7 +22,7 @@ namespace at_npu {
 namespace native {
 at::Tensor NPUNativeOpApiFunctions::threshold_backward(const at::Tensor &gradOutput, const at::Tensor &self, const at::Scalar &threshold) {
   DO_COMPATIBILITY(aclnnThresholdBackward, NPUNativeFunctions::threshold_backward(gradOutput, self, threshold));
-  auto result = OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  auto result = OpPreparation::ApplyTensor(self);
   EXEC_NPU_CMD(aclnnThresholdBackward, gradOutput, self, threshold, result);
   return result;
 }
