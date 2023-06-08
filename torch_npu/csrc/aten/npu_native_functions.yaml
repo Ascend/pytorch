@@ -873,9 +873,12 @@ supported:
    op_api: True
  - func: scatter.value_reduce_out
    op_api: True
- - scatter_add
- - scatter_add.dimname
- - scatter_add_
+ - func: scatter_add
+   op_api: True
+ - func: scatter_add.dimname
+   op_api: True
+ - func: scatter_add_
+   op_api: True
  - searchsorted.Scalar
  - searchsorted.Tensor
  - searchsorted.Tensor_out
