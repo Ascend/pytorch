@@ -524,7 +524,8 @@ supported:
  - isfinite
  - isnan
  - kl_div
- - kl_div_backward
+ - func: kl_div_backward
+   op_api: False
  - kthvalue
  - kthvalue.dimname
  - kthvalue.dimname_out
