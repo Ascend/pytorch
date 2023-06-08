@@ -491,11 +491,6 @@ struct THNCachingAllocator {
     // block could be nullptr in some cases, e.g., tensor loaded from blob, or
     // shared from another process, or not pointing to a NPU tensor.
     if (block) {
-      if (stream.stream() == block->stream) {
-        // ignore uses on the allocation stream, since those don't require any
-        // special synchronization
-        return;
-      }
       block->stream_uses.insert(stream);
     }
   }
