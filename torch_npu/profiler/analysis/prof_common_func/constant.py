@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import time
-
 
 class Constant:
     INVALID_VALUE = -1
@@ -44,19 +41,27 @@ class Constant:
     FLOPS = "flops"
     NAME = "name"
 
-    # torch op acl relation field name
-    ACL_START_TIME = "acl_start_time"
-
     # trace constant
     PROCESS_NAME = "process_name"
     PROCESS_LABEL = "process_labels"
     PROCESS_SORT = "process_sort_index"
     THREAD_NAME = "thread_name"
     THREAD_SORT = "thread_sort_index"
+    FLOW_START_PH = "s"
+    FLOW_END_PH = "f"
 
     # framework
     TENSORBOARD_TRACE_HABDLER = "tensorboard_trace_handler"
     EXPORT_CHROME_TRACE = "export_chrome_trace"
 
-    ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute", "AscendCL@aclopCompileAndExecuteV2")
-    NPU_PID = "3_0"
+    ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute".lower(), "AscendCL@aclopCompileAndExecuteV2".lower())
+    AI_CORE = "AI_CORE"
+
+    # memory
+    PTA = "PTA"
+    GE = "GE"
+    PTA_GE = "PTA+GE"
+    APP = "APP"
+    B_TO_KB = 1024.0
+    KB_TO_MB = 1024.0
+    B_TO_MB = 1024.0 ** 2

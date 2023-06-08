@@ -246,10 +246,10 @@ void OpCommand::Run() {
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
-    aclCmd->releaseSource(false);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, execParams.pta_correlation_id);
 #endif
+    aclCmd->releaseSource(false);
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
