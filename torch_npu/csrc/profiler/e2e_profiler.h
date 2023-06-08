@@ -1,9 +1,9 @@
 #ifndef __TORCH_NPU_TOOLS_E2EPROFILER__
 #define __TORCH_NPU_TOOLS_E2EPROFILER__
 
+#include <torch/csrc/profiler/util.h>
 #include <third_party/acl/inc/acl/acl.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/profiler/profiler_legacy.h"
 #include <list>
 #include <chrono>
 #include <sstream>
@@ -11,6 +11,7 @@
 #include <functional>
 #include <ATen/record_function.h>
 
+using torch::profiler::impl::FileLineFunc;
 std::atomic<bool>& get_global_enable_profiling();
 
 namespace torch_npu {

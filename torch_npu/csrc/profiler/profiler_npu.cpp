@@ -1,14 +1,19 @@
+#include <sstream>
+
+#include <torch/csrc/profiler/stubs/base.h>
+#include <torch/csrc/profiler/util.h>
+
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
-#include "torch_npu/csrc/profiler/profiler.h"
-#include <sstream>
 
 namespace torch_npu {
 namespace profiler{
-
 namespace {
+
+using torch::profiler::impl::ProfilerStubs;
+using torch::profiler::impl::ProfilerVoidEventStub;
 
 static inline void npuCheck(aclError result, const char * file, int line) {
   if(result != ACL_ERROR_NONE) {
@@ -19,33 +24,36 @@ static inline void npuCheck(aclError result, const char * file, int line) {
 }
 #define TORCH_NPU_CHECK(result) npuCheck(result,__FILE__,__LINE__);
 
-struct NPUMethods : public DeviceStubs {
-  void npu_destropy_event(aclrtEvent event) const override {
-    c10_npu::acl::aclrtEventRecordedStatus status =
-        c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    TORCH_NPU_CHECK(c10_npu::acl::AclQueryEventRecordedStatus(event, &status));
-    if (status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-        TORCH_NPU_CHECK(aclrtDestroyEvent(event));
-        ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
-    } else {
-        TORCH_WARN_ONCE("Warning! NPU destroy event error, status is not completed.");
-    }
-  }
-  void record(int& device, aclrtEvent* event1, int64_t* cpu_ns) const override {
+struct NPUMethods : public ProfilerStubs {
+  void record(int* device, ProfilerVoidEventStub* event, int64_t* cpu_ns)
+      const override {
     static int local_device = -1;
     static bool init_flag = false;
     if (!init_flag) {
       TORCH_NPU_CHECK(aclrtGetDevice(&local_device));
       init_flag = true;
     }
-    device = local_device;
-    TORCH_NPU_CHECK(aclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
+    if (device) {
+      *device = local_device;
+    }
+    aclrtEvent npu_event = nullptr;
+    TORCH_NPU_CHECK(aclrtCreateEventWithFlag(&npu_event, ACL_EVENT_TIME_LINE));
+    *event = std::shared_ptr<void>(npu_event, [](aclrtEvent ptr) {
+      TORCH_NPU_CHECK(aclrtDestroyEvent(ptr));
+    });
     static auto stream = c10_npu::getCurrentNPUStream();
-    *cpu_ns = getTime();
-    TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));
-    ASCEND_LOGI("aclrtRecordEvent is successfully executed, *event1=%p.", *event1);
+    if (cpu_ns) {
+      *cpu_ns = torch::profiler::impl::getTime();
+    }
+    TORCH_NPU_CHECK(aclrtRecordEvent(npu_event, stream));
+    ASCEND_LOGI("aclrtRecordEvent is successfully executed, *event1=%p.", npu_event);
   }
-  float elapsed(const aclrtEvent& event1, const aclrtEvent& event2) const override {
+
+  float elapsed(
+      const ProfilerVoidEventStub* event1_,
+      const ProfilerVoidEventStub* event2_) const override {
+    auto event1 = event1_->get();
+    auto event2 = event2_->get();
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event1));
     ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event1=%p.", event1);
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event2));
@@ -54,6 +62,7 @@ struct NPUMethods : public DeviceStubs {
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
     return ms*1000.0;
   }
+
   void onEachDevice(std::function<void(int)> op) const override {
     c10_npu::OptionalNPUGuard device_guard;
     int dev = -1;
@@ -68,16 +77,22 @@ struct NPUMethods : public DeviceStubs {
   void synchronize() const override {
     c10_npu::npuSynchronizeDevice();
   }
+
   bool enabled() const override {
     return true;
   }
 
+  void mark(const char*) const override {}
+
+  void rangePush(const char*) const override {}
+
+  void rangePop() const override {}
 };
 
 struct RegisterNPUMethods {
   RegisterNPUMethods() {
     static NPUMethods methods;
-    registerDeviceMethods(&methods);
+    torch::profiler::impl::registerPrivateUse1Methods(&methods);
   }
 };
 RegisterNPUMethods reg;
