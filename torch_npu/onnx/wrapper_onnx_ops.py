@@ -267,31 +267,6 @@ class NPUIfmrOP(torch.autograd.Function):
                     search_step_f=search_step, with_offset_i=with_offset, outputs=2)
 
 
-class NPUFusedAttentionLayernormQkvFwdOP(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_fused_attention_layernorm_qkv_fwd(
-            *args, **kwargs)
-
-    @staticmethod
-    def symbolic(g, x: Tensor, kernel_query: Tensor, kernel_key: Tensor, kernel_value: Tensor,
-                 gamma: Tensor, beta: Tensor, bias_query: Tensor = None, bias_key: Tensor = None,
-                 bias_value: Tensor = None, seq_len: int = -1, num_heads: int = -1, eps: float = 1e-05):
-        assert seq_len != -1 and num_heads != -1
-        dtype = torch.float
-        if bias_query is None:
-            bias_query = g.op("Constant", value_t=torch.tensor([]).to(dtype))
-        if bias_key is None:
-            bias_key = g.op("Constant", value_t=torch.tensor([]).to(dtype))
-        if bias_value is None:
-            bias_value = g.op("Constant", value_t=torch.tensor([]).to(dtype))
-
-        return g.op("npu::NPUFusedAttentionLayernormQkvFwd", x, kernel_query, kernel_key, kernel_value,
-                    gamma, beta, bias_query, bias_key, bias_value, seq_len_i=seq_len,
-                    num_heads_i=num_heads, eps_f=eps, outputs=6)
-
-
 class NPUFusedAttentionScoreFwdOP(torch.autograd.Function):
 
     @staticmethod
@@ -711,16 +686,6 @@ def wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_perce
                            search_start, search_end, search_step, with_offset)
 
 
-def wrapper_npu_fused_attention_layernorm_qkv_fwd(x, kernel_query, kernel_key, kernel_value,
-                                                  gamma, beta, bias_query=None, bias_key=None,
-                                                  bias_value=None, seq_len=-1,
-                                                  num_heads=-1, eps=1e-05):
-    assert seq_len != -1 and num_heads != -1
-    return NPUFusedAttentionLayernormQkvFwdOP.apply(x, kernel_query, kernel_key, kernel_value,
-                                                    gamma, beta, bias_query, bias_key, bias_value,
-                                                    seq_len, num_heads, eps)
-
-
 def wrapper_npu_fused_attention_score_fwd(query_layer, key_layer, value_layer, attention_mask,
                                           scale, keep_prob,  query_transpose=False, key_transpose=False,
                                           bmm_score_transpose_a=False, bmm_score_transpose_b=False,
@@ -860,7 +825,6 @@ def add_onnx_ops():
     torch_npu.npu_ps_roi_pooling = wrapper_npu_ps_roi_pooling
     torch_npu.npu_grid_assign_positive = wrapper_npu_grid_assign_positive
     torch_npu.npu_ifmr = wrapper_npu_ifmr
-    torch_npu.npu_fused_attention_layernorm_qkv_fwd = wrapper_npu_fused_attention_layernorm_qkv_fwd
     torch_npu.npu_fused_attention_score_fwd = wrapper_npu_fused_attention_score_fwd
     torch_npu.npu_sign_bits_unpack = wrapper_npu_sign_bits_unpack
     torch_npu.npu_ptiou = wrapper_npu_ptiou
