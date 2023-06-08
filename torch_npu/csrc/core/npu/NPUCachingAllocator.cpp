@@ -539,11 +539,6 @@ class DeviceCachingAllocator {
 
   void recordStream(Block* block, c10_npu::NPUStream stream) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    if (stream.stream() == block->stream) {
-      // ignore uses on the allocation stream, since those don't require any
-      // special synchronization
-      return;
-    }
     block->stream_uses.insert(stream);
   }
 
