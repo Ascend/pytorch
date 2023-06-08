@@ -454,6 +454,28 @@ op_db: List[OpInfo] = [
         formats=(2, ),
     ),
     OpInfo(
+        'nn.functional.avg_pool2d',
+        aten_name='avg_pool2d',
+        supports_autograd=False,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_avgpool2d,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=False,
+        skipSample={
+            'test_correctness': (4, 5),
+            'test_variant_consistency_eager': (4, 11,),
+        },
+        skips=(
+            DecorateInfo(unittest.expectedFailure,
+                         'TestCommon',
+                         'test_out',
+                         device_type='npu'),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float32]),
+        ),
+    ),
+    OpInfo(
         'nn.functional.conv_transpose2d',
         aten_name='conv_transpose2d',
         aliases=('conv_transpose2d',),

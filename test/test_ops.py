@@ -215,7 +215,9 @@ class TestOps(TestCase):
         _test_consistency_helper(samples, variants)
 
         def _test_inplace_preserve_storage(samples, variants):
-            for sample in samples:
+            for index, sample in enumerate(samples):
+                if op.skipSample and index in op.skipSample.get('test_variant_consistency_eager', {}):
+                    continue
 
                 sample = trans_device_and_dtype(sample, dtype, dtype, npu_format, to_npu=True)
                 # Skips inplace variants if the output dtype is not the same as
