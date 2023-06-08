@@ -175,12 +175,15 @@ supported:
  - asinh
  - asinh.out
  - asinh_
- - atan
- - atan.out
+ - func: atan
+   op_api: True
+ - func: atan.out
+   op_api: True
+ - func: atan_
+   op_api: True
  - atan2
  - atan2.out
  - atan2_
- - atan_
  - atanh
  - atanh.out
  - atanh_
@@ -310,9 +313,12 @@ supported:
  - count_nonzero.dim_IntList
  - copy_
  - copy_memory_
- - cos
- - cos.out
- - cos_
+ - func: cos
+   op_api: True
+ - func: cos.out
+   op_api: True
+ - func: cos_
+   op_api: True
  - cosh
  - cosh.out
  - cosh_
