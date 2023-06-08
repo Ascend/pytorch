@@ -21,6 +21,8 @@ supported:
    op_api: False
  - func: _adaptive_avg_pool2d_backward
    op_api: False
+ - func: argmin.out
+   op_api: False
  - _adaptive_avg_pool3d
  - _adaptive_avg_pool3d_backward
  - _add_relu.Tensor
