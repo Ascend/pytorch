@@ -87,9 +87,12 @@ supported:
  - func: abs.out
    op_api: True
  - abs_
- - acos
- - acos.out
- - acos_
+ - func: acos
+   op_api: False
+ - func: acos.out
+   op_api: False
+ - func: acos_
+   op_api: False
  - acosh
  - acosh.out
  - acosh_
