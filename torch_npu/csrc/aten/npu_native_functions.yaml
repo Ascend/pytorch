@@ -18,9 +18,9 @@ supported:
  - __xor__.Scalar
  - __xor__.Tensor
  - func: _adaptive_avg_pool2d
-   op_api: True
+   op_api: False
  - func: _adaptive_avg_pool2d_backward
-   op_api: True
+   op_api: False
  - _adaptive_avg_pool3d
  - _adaptive_avg_pool3d_backward
  - _add_relu.Tensor
@@ -95,9 +95,9 @@ supported:
  - acosh_
  - adaptive_avg_pool1d
  - func: adaptive_avg_pool2d
-   op_api: True
+   op_api: False
  - func: adaptive_avg_pool2d.out
-   op_api: True
+   op_api: False
  - adaptive_avg_pool3d
  - adaptive_avg_pool3d.out
  - adaptive_avg_pool3d_backward.grad_input
@@ -945,17 +945,17 @@ supported:
  - softshrink_backward
  - softshrink_backward.grad_input
  - func: sort
-   op_api: True
+   op_api: False
  - func: sort.stable
-   op_api: True
+   op_api: False
  - func: sort.dimname
-   op_api: True
+   op_api: False
  - func: sort.dimname_values
-   op_api: True
+   op_api: False
  - func: sort.values
-   op_api: True
+   op_api: False
  - func: sort.values_stable
-   op_api: True
+   op_api: False
  - func: sqrt
    op_api: True
  - func: sqrt.out
@@ -985,15 +985,15 @@ supported:
  - sub_.Scalar
  - sub_.Tensor
  - func: sum
-   op_api: True
+   op_api: False
  - func: sum.DimnameList_out
-   op_api: True
+   op_api: False
  - func: sum.IntList_out
-   op_api: True
+   op_api: False
  - func: sum.dim_DimnameList
-   op_api: True
+   op_api: False
  - func: sum.dim_IntList
-   op_api: True
+   op_api: False
  - take
  - take.out
  - tan
@@ -1014,9 +1014,9 @@ supported:
  - to.dtype_layout
  - to.other
  - func: topk
-   op_api: True
+   op_api: False
  - func: topk.values
-   op_api: True
+   op_api: False
  - triangular_solve.X
  - func: tril
    op_api: True
