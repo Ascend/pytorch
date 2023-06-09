@@ -8,6 +8,7 @@
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
+#include "torch_npu/csrc/profiler/profiler_mgr.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -17,6 +18,18 @@ enum class NpuActivityType {
   NPU,
 };
 
+struct ExperimentalConfig {
+  ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE", bool l2_cache = false)
+    : trace_level(level),
+      metrics(metrics),
+      l2_cache(l2_cache) {}
+  ~ExperimentalConfig() = default;
+
+  std::string trace_level;
+  std::string metrics;
+  bool l2_cache;
+};
+
 struct NpuProfilerConfig {
   explicit NpuProfilerConfig(
     std::string path,
@@ -24,13 +37,15 @@ struct NpuProfilerConfig {
     bool profile_memory = false,
     bool with_stack = false,
     bool with_flops = false,
-    bool with_modules = false)
+    bool with_modules = false,
+    ExperimentalConfig experimental_config = ExperimentalConfig())
     : path(path),
       record_shapes(record_shapes),
       profile_memory(profile_memory),
       with_stack(with_stack),
       with_flops(with_flops),
-      with_modules(with_modules) {}
+      with_modules(with_modules),
+      experimental_config(experimental_config) {}
 
     ~NpuProfilerConfig() = default;
     std::string path;
@@ -39,6 +54,7 @@ struct NpuProfilerConfig {
     bool with_stack;
     bool with_flops;
     bool with_modules;
+    ExperimentalConfig experimental_config;
 };
 
 bool profDataReportEnable();
