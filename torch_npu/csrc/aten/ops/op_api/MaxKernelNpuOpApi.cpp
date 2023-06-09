@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
@@ -35,14 +34,8 @@ at::Tensor NPUNativeOpApiFunctions::maximum(const at::Tensor& self, const at::Te
   DO_COMPATIBILITY(aclnnMaximum, NPUNativeFunctions::maximum(self, other));
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
-  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self))
-                             ? NPUNativeFunctions::npu_dtype_cast(self, high_type)
-                             : self;
-  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other))
-                              ? NPUNativeFunctions::npu_dtype_cast(other, high_type)
-                              : other;
-  at::Tensor result = OpPreparation::ApplyTensor(self_copy, outputSize);
-  EXEC_NPU_CMD(aclnnMaximum, self_copy, other_copy, result);
+  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(high_type), self);
+  EXEC_NPU_CMD(aclnnMaximum, self, other, result);
   return result;
 }
 
