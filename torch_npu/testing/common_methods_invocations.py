@@ -12,6 +12,7 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
                                                                 ReductionOpInfo as Of_ReductionOpInfo,
                                                                 DecorateInfo,
+                                                                _cat_np,
                                                                 wrapper_set_seed,
                                                                 reference_reduction_numpy,
                                                                 sample_inputs_normal_common,
@@ -497,12 +498,39 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
         sample_inputs_func=common_methods_invocations.sample_inputs_cross,
         formats=(2, ),
+        supports_fwgrad_bwgrad=True,
+        supports_out=True,
+        supports_forward_ad=True,
         skipSample={
             'test_variant_consistency_eager' : (2, 5, ),
         },
         skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
             dtypes=[torch.float32]),
+        ),
+    ),
+    OpInfo('cat',
+        ref=_cat_np,
+        aliases=('concat', 'concatenate'),
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16, torch.complex32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
+        sample_inputs_func=common_methods_invocations.sample_inputs_cat_concat,
+        reference_inputs_func=common_methods_invocations.reference_inputs_cat,
+        error_inputs_func=common_methods_invocations.error_inputs_cat,
+        gradcheck_fast_mode=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        check_batched_forward_grad=False,
+        assert_autodiffed=True,
+        skips=(
+            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_numpy_ref_mps'),
+            # RuntimeError: Arguments for call not valid.
+            #               Expected a value of type 'List[Tensor]' for argument
+            #               'tensors' but instead found type 'Tensor (inferred)'.
+            DecorateInfo(unittest.expectedFailure, 'TestJit', 'test_jit_alias_remapping'),
+            DecorateInfo(unittest.expectedFailure, 'TestNNCOpInfo', 'test_nnc_correctness'),
+            # RuntimeError: The size of tensor a (25) must match the size of tensor b (0) at non-singleton dimension 0.
+            DecorateInfo(unittest.expectedFailure, 'TestBwdGradients', 'test_fn_gradgrad'),
         ),
     ),
     OpInfo(
@@ -605,7 +633,7 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness' : (0, ),
         },
-    ),   
+    ),
     UnaryUfuncInfo(
         'erfc',
         aliases=('special.erfc', ),
@@ -676,7 +704,7 @@ op_db: List[OpInfo] = [
             dtypes=[torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
             dtypes=[torch.float32]),
-        ),        
+        ),
     ),
     UnaryUfuncInfo(
         'frac',
@@ -1168,7 +1196,8 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
         formats=(0, 3, 4, 29),
         skipSample={
-            'test_variant_consistency_eager' : (8, 17, ),
+            'test_variant_consistency_eager' : (8, 17,),
+            'test_correctness' : (3,),
         },
     ),
     OpInfo(

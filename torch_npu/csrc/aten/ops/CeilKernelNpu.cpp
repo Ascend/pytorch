@@ -18,7 +18,15 @@ at::Tensor& NPUNativeFunctions::ceil_out(const at::Tensor& self, at::Tensor& res
       {self},
       result,
       self);
-  return ceil_out_npu_nocheck(result, self);
+
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguous_result = NpuUtils::format_contiguous(result);
+    ceil_out_npu_nocheck(contiguous_result, self);
+    NpuUtils::format_fresh_view(result, contiguous_result);
+  } else {
+    ceil_out_npu_nocheck(result, self);
+  }
+  return result;
 }
 
 at::Tensor NPUNativeFunctions::ceil(const at::Tensor& self) {
