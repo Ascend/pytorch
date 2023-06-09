@@ -17,6 +17,7 @@
 #define __PLUGIN_NATIVE_NPU_COMMON_INNER_NATIVE_FUNCTION__
 
 #include <ATen/ATen.h>
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
 namespace native {
@@ -27,6 +28,9 @@ void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking);
 void copy_d2d_dtype_baseformat(at::Tensor& self, const at::Tensor& src, bool non_blocking);
 bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src);
 at::Tensor matmul_by_bmmV2(const at::Tensor& tensor1, const at::Tensor& tensor2);
+c10::SmallVector<at::Tensor, N> complex_compute_pre_check_split(const at::Tensor& input);
+c10::SmallVector<at::Tensor, N> complex_compute_split(const at::Tensor& input);
+at::Tensor complex_compute(const at::Tensor& input);
 
 /**
   Refresh base tensor's metadata of an unmatch tensor to obtain matched tensor

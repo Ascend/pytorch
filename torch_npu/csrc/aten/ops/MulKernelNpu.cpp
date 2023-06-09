@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 
 namespace at_npu {
 namespace native {
@@ -28,7 +29,7 @@ at::Tensor mul_dest_output(const at::Tensor& self, const at::Tensor& other) {
   return is_self_wrapped ? other : self;
 }
 
-at::Tensor& muls_out_nocheck(at::Tensor& result, const at::Tensor& self, const at::Scalar other) {
+at::Tensor& muls_out_npu_compute(at::Tensor& result, const at::Tensor& self, const at::Scalar other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   if (!other.isFloatingPoint()) {
     unified_result.common_type = self.scalar_type();
@@ -47,20 +48,88 @@ at::Tensor& muls_out_nocheck(at::Tensor& result, const at::Tensor& self, const a
   return result;
 }
 
+at::Tensor& muls_out_nocheck(at::Tensor& result, const at::Tensor& self, const at::Scalar other) {
+  if (!self.is_complex()){
+    muls_out_npu_compute(result, self, other);
+  } else if (self.scalar_type() == c10::ScalarType::ComplexDouble) {
+    muls_out_npu_compute(result, self, other);
+    return result;
+  } else {
+    c10::SmallVector<at::Tensor, N> self_split = complex_compute_split(self);
+    std::vector<at::Tensor> final_result;
+    at::Tensor real_other = OpPreparation::ApplyTensorWithFormat(
+        result.sizes(),
+        self_split[0].options(),
+        CalcuOpUtil::GetTensorNpuFormat(result));
+    muls_out_npu_compute(real_other, self_split[0], other);
+    at::Tensor complex_other = OpPreparation::ApplyTensorWithFormat(
+        result.sizes(),
+        self_split[0].options(),
+        CalcuOpUtil::GetTensorNpuFormat(result));
+    muls_out_npu_compute(complex_other, self_split[1], other);
+    final_result.push_back(real_other);
+    final_result.push_back(complex_other);
+    auto result_complex = NPUNativeFunctions::stack(final_result, -1);
+    result = at::native::view_as_complex(result_complex);
+  }
+  return result;
+}
+
+at::Tensor& mul_out_npu_nocheck_compute(at::Tensor &result, const at::Tensor& self, const at::Tensor& other) {
+  auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
+  OpCommand cmd;
+  cmd.Name("Mul")
+      .Expect(unified_result)
+      .Input(self)
+      .Input(other)
+      .Output(result)
+      .Run();
+  return result;
+}
+
 at::Tensor& mul_out_nocheck(at::Tensor& result, const at::Tensor& self, const at::Tensor& other) {
   if (OpPreparation::IsCPUScalar(other)) {
     muls_out_nocheck(result, self, other.item());
   } else if (OpPreparation::IsCPUScalar(self)) {
     muls_out_nocheck(result, other, self.item());
   } else {
-    auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-    OpCommand cmd;
-    cmd.Name("Mul")
-        .Expect(unified_result)
-        .Input(self)
-        .Input(other)
-        .Output(result)
-        .Run();
+    // self dtype or other dtype is complex128 use aicpu mul
+    if ((!self.is_complex()) && (!other.is_complex())) {
+      mul_out_npu_nocheck_compute(result, self, other);
+    }
+    else if (self.scalar_type() == c10::ScalarType::ComplexDouble ||
+        other.scalar_type() == c10::ScalarType::ComplexDouble) {
+      mul_out_npu_nocheck_compute(result, self, other);
+    } else {
+      c10::SmallVector<at::Tensor, N> self_split = complex_compute_pre_check_split(self);
+      c10::SmallVector<at::Tensor, N> other_split = complex_compute_pre_check_split(other);
+      std::vector<at::Tensor> final_result;
+      auto output_size = broadcast_ops_npu_output_size(self_split[0], other_split[0]);
+      // (a + bj)*(c + dj) = (ac - bd)+(ad + bc)j
+      at::Tensor ac = OpPreparation::ApplyTensorWithFormat(
+          result.sizes(),
+          self_split[0].options(),
+          CalcuOpUtil::GetTensorNpuFormat(result));
+      mul_out_npu_nocheck_compute(ac, self_split[0], other_split[0]);
+      at::Tensor bd = OpPreparation::ApplyTensorWithFormat(
+          result.sizes(),
+          self_split[0].options(),
+          CalcuOpUtil::GetTensorNpuFormat(result));
+      mul_out_npu_nocheck_compute(bd, self_split[1], other_split[1]);
+      at::Tensor ad = OpPreparation::ApplyTensorWithFormat(
+          result.sizes(),
+          self_split[0].options(),
+          CalcuOpUtil::GetTensorNpuFormat(result));
+      mul_out_npu_nocheck_compute(ad, self_split[0], other_split[1]);
+      at::Tensor bc = OpPreparation::ApplyTensorWithFormat(
+          result.sizes(),
+          self_split[0].options(),
+          CalcuOpUtil::GetTensorNpuFormat(result));
+      mul_out_npu_nocheck_compute(bc, self_split[1], other_split[0]);
+      auto result_complex = NPUNativeFunctions::stack({ac.sub(bd), ad.add(bc)}, -1);
+      at::Tensor result_new = at::native::view_as_complex(result_complex);
+      result.copy_(result_new);
+    }
   }
   return result;
 }
@@ -71,7 +140,6 @@ at::Tensor& NPUNativeFunctions::mul_out(const at::Tensor& self, const at::Tensor
   auto result_type = result.scalar_type();
   TORCH_CHECK(canCast(high_type, result_type), "result type ", high_type,
       " can't be cast to the desired output type ", result_type);
-
   auto output_size = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
       {self, other},
@@ -88,7 +156,9 @@ at::Tensor& NPUNativeFunctions::mul_out(const at::Tensor& self, const at::Tensor
 
   bool result_is_cast = (result_type != self.scalar_type());
   at::Tensor result_cast = result_is_cast ? NPUNativeFunctions::npu_dtype_cast(result, self.scalar_type()) : result;
-
+  if (self.is_complex() || other.is_complex()) {
+    result_cast = result;
+  }
   if (!NpuUtils::check_match(&result_cast)) {
     at::Tensor contiguous_result_cast = NpuUtils::format_contiguous(result_cast);
     mul_out_nocheck(contiguous_result_cast, self_cast, other_cast);
@@ -114,12 +184,17 @@ at::Tensor NPUNativeFunctions::mul(const at::Tensor& self, const at::Tensor& oth
   }
 
   at::Tensor output_tensor = mul_dest_output(self_cast, other_cast);
+  if (self_cast.is_complex() && (!output_tensor.is_complex())) {
+    output_tensor = self_cast; 
+  } else if (other_cast.is_complex() && (!output_tensor.is_complex())) {
+    output_tensor = other_cast;
+  }
   auto output_size = broadcast_ops_npu_output_size(self_cast, other_cast);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       output_size,
       output_tensor.options(),
       CalcuOpUtil::GetTensorNpuFormat(output_tensor));
-
+  
   mul_out_nocheck(result, self_cast, other_cast);
 
   if (self_other_is_bool) {
