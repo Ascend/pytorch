@@ -17,11 +17,16 @@ import pathlib
 import os
 import sys
 import signal
+import tempfile
+import shutil
+import math
 from datetime import datetime
 from typing import Optional, List
 
 import torch
 from torch.testing._internal.common_utils import shell
+
+import torch_npu
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -59,19 +64,34 @@ def discover_tests(
         rc += extra_tests
     return sorted(rc)
 
+
+def parse_test_module(test):
+    return pathlib.Path(test).parts[0]
+
+
 TESTS = discover_tests(
     blocklisted_patterns=[],
     blocklisted_tests=[],
     extra_tests=[]
 )
 
-TESTS_MODULE = list(set([test.split("/")[0] for test in TESTS]))
+TESTS_MODULE = list(set([parse_test_module(test) for test in TESTS]))
 
 TEST_CHOICES = TESTS + TESTS_MODULE
 
 CORE_TEST_LIST = [
     "test_npu",
 ]
+
+
+DISTRIBUTED_TESTS_CONFIG = {}
+
+
+if torch_npu.distributed.is_available():
+    if torch_npu.distributed.is_hccl_available():
+        DISTRIBUTED_TESTS_CONFIG['hccl'] = {
+            'WORLD_SIZE': str(2**math.floor(math.log2(torch.npu.device_count()))),
+        }
 
 
 def parse_args():
@@ -154,7 +174,8 @@ def get_selected_tests(options):
     selected_tests = []
     if options.include:
         for item in options.include:
-            selected_tests.extend(list(filter(lambda test_name: test_name.startswith(item), TESTS)))
+            selected_tests.extend(list(filter(lambda test_name: item == test_name \
+                    or (item in TESTS_MODULE and test_name.startswith(item)), TESTS)))
     else:
         selected_tests = TESTS
     
@@ -175,7 +196,7 @@ def get_selected_tests(options):
     return selected_tests
 
 
-def run_test(test_module, test_directory, options):
+def run_test(test, test_directory, options):
     unittest_args = options.additional_unittest_args.copy()
 
     if options.verbose:
@@ -185,19 +206,53 @@ def run_test(test_module, test_directory, options):
 
     # Can't call `python -m unittest test_*` here because it doesn't run code
     # in `if __name__ == '__main__': `. So call `python test_*.py` instead.
-    argv = [test_module + ".py"] + unittest_args
+    argv = [test + ".py"] + unittest_args
 
     command = executable + argv
     print_to_stderr("Executing {} ... [{}]".format(command, datetime.now()))
     return shell(command, test_directory)
 
 
+def run_distributed_test(test, test_directory, options):
+    config = DISTRIBUTED_TESTS_CONFIG
+    for backend, env_vars in config.items():
+        for with_init_file in {True, False}:
+            tmp_dir = tempfile.mkdtemp()
+            if options.verbose:
+                with_init = ' with file init_method' if with_init_file else ''
+                print_to_stderr(
+                    'Running distributed tests for the {} backend{}'.format(
+                        backend, with_init))
+            os.environ['TEMP_DIR'] = tmp_dir
+            os.environ['BACKEND'] = backend
+            os.environ['INIT_METHOD'] = 'env://'
+            os.environ.update(env_vars)
+            if with_init_file:
+                init_method = 'file://{}/shared_init_file'.format(tmp_dir)
+                os.environ['INIT_METHOD'] = init_method
+            try:
+                os.mkdir(os.path.join(tmp_dir, 'barrier'))
+                os.mkdir(os.path.join(tmp_dir, 'test_dir'))
+                return_code = run_test(test, test_directory, options)
+                if return_code != 0:
+                    return return_code
+            finally:
+                shutil.rmtree(tmp_dir)
+    return 0
+
+
+CUSTOM_HANDLERS = {
+    "test_distributed": run_distributed_test,
+}
+
+
 def run_test_module(test: str, test_directory: str, options) -> Optional[str]:
-    test_module = test.split(".")[0]
+    test_module = parse_test_module(test)
 
     print_to_stderr("Running {} ... [{}]".format(test, datetime.now()))
+    handler = CUSTOM_HANDLERS.get(test_module, run_test)
 
-    return_code = run_test(test_module, test_directory, options)
+    return_code = handler(test, test_directory, options)
     assert isinstance(return_code, int) and not isinstance(return_code, bool), "Return code should be an integer"
     if return_code == 0:
         return None
