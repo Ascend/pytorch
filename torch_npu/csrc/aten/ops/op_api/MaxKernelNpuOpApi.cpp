@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -19,34 +19,32 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::maximum_out(
-    const at::Tensor& self,
-    const at::Tensor& other,
-    at::Tensor& result) {
+at::Tensor& NPUNativeOpApiFunctions::maximum_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnMaximum, NPUNativeFunctions::maximum_out(self, other, result));
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut({self, other}, result, result, outputSize);
   EXEC_NPU_CMD(aclnnMaximum, self, other, result);
   return result;
 }
 
-at::Tensor NPUNativeOpApiFunctions::maximum(
-    const at::Tensor& self,
-    const at::Tensor& other) {
+at::Tensor NPUNativeOpApiFunctions::maximum(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnMaximum, NPUNativeFunctions::maximum(self, other));
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
-  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self)) ?
-      NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other)) ?
-      NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
+  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self))
+                             ? NPUNativeFunctions::npu_dtype_cast(self, high_type)
+                             : self;
+  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other))
+                              ? NPUNativeFunctions::npu_dtype_cast(other, high_type)
+                              : other;
   at::Tensor result = OpPreparation::ApplyTensor(self_copy, outputSize);
   EXEC_NPU_CMD(aclnnMaximum, self_copy, other_copy, result);
   return result;
 }
 
-} // namespace native
-} // namespace at_npu 
+}  // namespace native
+}  // namespace at_npu

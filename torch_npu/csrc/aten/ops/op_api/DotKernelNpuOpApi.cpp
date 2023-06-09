@@ -15,18 +15,20 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::dot_out(const at::Tensor& self, const at::Tensor& tensor, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnDot, NPUNativeFunctions::dot_out(self, tensor, result));
   c10::SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
-  OpPreparation::CheckOut({self, tensor}, result, CalcuOpUtil::GetTensorNpuFormat(self), self.scalar_type(), outputSize);
-             
+  OpPreparation::CheckOut({self, tensor}, result, CalcuOpUtil::GetTensorNpuFormat(self), self.scalar_type(),
+                          outputSize);
+
   EXEC_NPU_CMD(aclnnDot, self, tensor, result);
 
   c10::SmallVector<int64_t, N> shape = {};
@@ -35,10 +37,11 @@ at::Tensor& NPUNativeOpApiFunctions::dot_out(const at::Tensor& self, const at::T
 }
 
 at::Tensor NPUNativeOpApiFunctions::dot(const at::Tensor& self, const at::Tensor& tensor) {
+  DO_COMPATIBILITY(aclnnDot, NPUNativeFunctions::dot(self, tensor));
   c10::SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   NPUNativeOpApiFunctions::dot_out(self, tensor, result);
   return result;
 }
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

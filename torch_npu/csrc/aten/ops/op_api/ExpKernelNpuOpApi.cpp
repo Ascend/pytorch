@@ -16,8 +16,8 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
@@ -26,23 +26,31 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::exp_out(const at::Tensor& self, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnExp, NPUNativeFunctions::exp_out(self, result));
   OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(self), result.scalar_type(), self.sizes());
   CalcuOpUtil::CheckMemoryOverLaps({self}, {result});
-  
+
   EXEC_NPU_CMD(aclnnExp, self, result);
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::exp_(at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnInplaceExp, NPUNativeFunctions::exp_(self));
   EXEC_NPU_CMD(aclnnInplaceExp, self);
   return self;
 }
 
 at::Tensor NPUNativeOpApiFunctions::exp(const at::Tensor& self) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  DO_COMPATIBILITY(aclnnExp, NPUNativeFunctions::exp(self));
+  at::Tensor result;
+  if (self.scalar_type() == at::ScalarType::Bool) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kFloat));
+  } else {
+    result = OpPreparation::ApplyTensor(self);
+  }
   EXEC_NPU_CMD(aclnnExp, self, result);
   return result;
 }
 
-} // namespace native
-} // namespace at
+}  // namespace native
+}  // namespace at_npu

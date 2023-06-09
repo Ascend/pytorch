@@ -1,5 +1,5 @@
 // Copyright (c) 2020-2023 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -16,18 +16,15 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::embedding_renorm_(
-    at::Tensor& self,
-    const at::Tensor& indices,
-    double max_norm,
-    double norm_type) {
-
+at::Tensor& NPUNativeOpApiFunctions::embedding_renorm_(at::Tensor& self, const at::Tensor& indices, double max_norm,
+                                                       double norm_type) {
+  DO_COMPATIBILITY(aclnnEmbeddingRenorm, NPUNativeFunctions::embedding_renorm_(self, indices, max_norm, norm_type));
   auto self_arg = at::TensorArg(self, "self", 1);
   auto indices_arg = at::TensorArg(indices, "indices", 2);
   at::checkDim("embedding_renorm_", self_arg, 2);

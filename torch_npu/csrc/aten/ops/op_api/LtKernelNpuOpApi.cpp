@@ -16,50 +16,39 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
-
 
 namespace at_npu {
 namespace native {
 
-
-at::Tensor &NPUNativeOpApiFunctions::lt_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-{
+at::Tensor& NPUNativeOpApiFunctions::lt_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnLessTensor, NPUNativeFunctions::lt_out(self, other, result));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
 
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      ACL_FORMAT_ND,
-      at::kBool,
-      outputSize);
+  OpPreparation::CheckOut({self}, result, ACL_FORMAT_ND, at::kBool, outputSize);
 
   EXEC_NPU_CMD(aclnnLessTensor, formatCastOfSelf, formatCastOfOther, result);
   return result;
 }
 
-
-at::Tensor NPUNativeOpApiFunctions::lt(const at::Tensor &self, const at::Tensor &other)
-{
+at::Tensor NPUNativeOpApiFunctions::lt(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnLessTensor, NPUNativeFunctions::lt(self, other));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize,
-      formatCastOfSelf.options().dtype(at::kBool));
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, formatCastOfSelf.options().dtype(at::kBool));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnLessTensor, formatCastOfSelf, formatCastOfOther, result);
   return result;
 }
 
-
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

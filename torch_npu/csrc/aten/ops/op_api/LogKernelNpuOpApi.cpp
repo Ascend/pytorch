@@ -15,22 +15,18 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::log_out(const at::Tensor& self, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnLog, NPUNativeFunctions::log_out(self, result));
   if (!result.is_same(self)) {
-    OpPreparation::CheckOut(
-        {self},
-        result,
-        ACL_FORMAT_ND,
-        self.scalar_type(),
-        self.sizes());
+    OpPreparation::CheckOut({self}, result, ACL_FORMAT_ND, self.scalar_type(), self.sizes());
   }
 
   OpPreparation::CheckMemory({self}, {result});
@@ -39,6 +35,7 @@ at::Tensor& NPUNativeOpApiFunctions::log_out(const at::Tensor& self, at::Tensor&
 }
 
 at::Tensor NPUNativeOpApiFunctions::log(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnLog, NPUNativeFunctions::log(self));
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
@@ -48,5 +45,5 @@ at::Tensor NPUNativeOpApiFunctions::log(const at::Tensor& self) {
   return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

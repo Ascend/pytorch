@@ -1161,6 +1161,15 @@ op_db: List[OpInfo] = [
         },
     ),
     OpInfo(
+        'nn.functional.max_pool2d',
+        dtypes=_dispatch_dtypes((torch.float32, )),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_max_pool,
+        supports_autograd=False,
+        supports_out=False,
+        formats=(0, 2),
+    ),
+    OpInfo(
         'median',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
@@ -1837,7 +1846,23 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
             dtypes=[torch.float32]),
         ),
-    ), 
+    ),
+    ReductionOpInfo(
+        'sum',
+        supports_out=False,
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16, torch.float32, torch.int32, torch.int64)),
+        dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.float16, torch.float32, torch.int32, torch.int64)),
+        skipSample={
+            # input.shape is [] and dim specifies the value
+            # these kinds of cases are not supported
+            'test_correctness': (1, 2, 18),
+        },
+        skips=(
+            # input.shape is [] and dim specifies the value
+            # these kinds of cases are not supported
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager'),
+        ),
+    ),
 ]
 
 

@@ -1,5 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -18,24 +17,33 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeOpApiFunctions::argmax(const at::Tensor& self, at::optional<int64_t> dim, bool keepdim) {
-  at::Tensor input = dim.has_value() ? self : self.reshape({-1});
-  int64_t realDim = dim.has_value() ? dim.value() : 0;
-  bool realKeepDim = dim.has_value() ? keepdim : false;
+  DO_COMPATIBILITY(aclnnArgMax, NPUNativeFunctions::argmax(self, dim, keepdim));
+
+  if (self.numel() == 0) {
+    return self;
+  }
+
+  at::Tensor input = self.reshape({-1});
+  int64_t realDim = 0;
+  bool realKeepDim = false;
+  if (dim.has_value()) {
+    input = self;
+    realDim = dim.value();
+    realKeepDim = keepdim;
+  }
 
   // calculate the output size
   auto outputSize = reduce_ops_npu_output_size(input, realDim, realKeepDim);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(at::kInt));
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(at::kLong));
 
   EXEC_NPU_CMD(aclnnArgMax, input, realDim, realKeepDim, result);
-  result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Long);
   return result;
 }
 

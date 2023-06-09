@@ -1,26 +1,12 @@
-# Copyright (c) 2023, Huawei Technologies.
-# All rights reserved.
-#
-# Licensed under the BSD 3-Clause License  (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# https://opensource.org/licenses/BSD-3-Clause
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import shutil
 from warnings import warn
 
+from torch_npu.npu.utils import _lazy_init
 from .analysis.npu_profiler import NpuProfiler
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
 from .msprofiler_c_interface import MsProfilerInterface, supported_ms_activities
-from .scheduler import CLOSE_STEP
+from .scheduler import CLOSE_STEP, ProfilerAction
 
 
 def tensorboard_trace_handler(dir_name: str, worker_name: str = None, use_gzip: bool = False):
@@ -52,12 +38,22 @@ class profile:
         self._check_params()
 
     def __enter__(self):
+        _lazy_init()
         self._action_controller.transit_action()
         return self
 
     def __exit__(self, exe_type, exe_val, exc_tb):
+        prev_step = self._action_controller.next_step - 1
         self._action_controller.next_step = CLOSE_STEP
         self._action_controller.transit_action()
+        if self._schedule and prev_step > 0:
+            prev_action = self._schedule(prev_step)
+            if prev_action == ProfilerAction.NONE:
+                return
+            try:
+                shutil.rmtree(self._msprofiler_interface.path)
+            except Exception:
+                warn(f"Can't remove directory: {self._msprofiler_interface.path}")
 
     def step(self):
         if self._schedule:

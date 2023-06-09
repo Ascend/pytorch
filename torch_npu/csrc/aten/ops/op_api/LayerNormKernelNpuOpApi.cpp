@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,26 +15,25 @@
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_layer_norm(
-    const at::Tensor& input,
-    at::IntArrayRef normalized_shape,
-    const c10::optional<at::Tensor>& weight_ex,
-    const c10::optional<at::Tensor>& bias_ex,
-    double eps) {
-  const at::Tensor& weight_op = c10::value_or_else(weight_ex, [] {return at::Tensor();});
-  const at::Tensor& bias_op = c10::value_or_else(bias_ex, [] {return at::Tensor();});
+    const at::Tensor& input, at::IntArrayRef normalized_shape, const c10::optional<at::Tensor>& weight_ex,
+    const c10::optional<at::Tensor>& bias_ex, double eps) {
+  DO_COMPATIBILITY(aclnnLayerNorm,
+                   NPUNativeFunctions::native_layer_norm(input, normalized_shape, weight_ex, bias_ex, eps));
+  const at::Tensor& weight_op = c10::value_or_else(weight_ex, [] { return at::Tensor(); });
+  const at::Tensor& bias_op = c10::value_or_else(bias_ex, [] { return at::Tensor(); });
   at::Tensor weight =
-    weight_op.defined() ? weight_op.resize_(normalized_shape) : at::ones(normalized_shape, input.options());
+      weight_op.defined() ? weight_op.resize_(normalized_shape) : at::ones(normalized_shape, input.options());
   at::Tensor bias =
-    bias_op.defined() ? bias_op.resize_(normalized_shape) : at::zeros(normalized_shape, input.options());
+      bias_op.defined() ? bias_op.resize_(normalized_shape) : at::zeros(normalized_shape, input.options());
 
   // 构造HostApi接口所需的输出
   auto output = OpPreparation::ApplyTensor(input);
@@ -47,10 +46,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_l
 
   const auto input_shape = input.sizes();
 
-  const int64_t M = std::accumulate(input_shape.cbegin(),
-                                    input_shape.cbegin() + begin_axis,
-                                    1LL,
-                                    std::multiplies<int64_t>());
+  const int64_t M =
+      std::accumulate(input_shape.cbegin(), input_shape.cbegin() + begin_axis, 1LL, std::multiplies<int64_t>());
   // 根据M是否大于0，决定输出shape的大小
   if (M <= 0) {
     mean_out = OpPreparation::ApplyTensorWithFormat({M}, input.options(), ACL_FORMAT_ND);
@@ -71,5 +68,5 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_l
   return std::tie(output, mean_out, rstd_out);
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

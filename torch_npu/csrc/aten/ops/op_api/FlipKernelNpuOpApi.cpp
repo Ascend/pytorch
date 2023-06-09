@@ -15,17 +15,18 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeOpApiFunctions::flip(const at::Tensor& self, at::IntArrayRef dims){
-    at::Tensor result = OpPreparation::ApplyTensor(self);
-    EXEC_NPU_CMD(aclnnFlip, self, dims, result);
-    return result;
+at::Tensor NPUNativeOpApiFunctions::flip(const at::Tensor& self, at::IntArrayRef dims) {
+  DO_COMPATIBILITY(aclnnFlip, NPUNativeFunctions::flip(self, dims));
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  EXEC_NPU_CMD(aclnnFlip, self, dims, result);
+  return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

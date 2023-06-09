@@ -17,20 +17,20 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-
-at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d_backward(
-    const at::Tensor& grad_output,
-    const at::Tensor& self) {
+at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d_backward(const at::Tensor& grad_output,
+                                                                  const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnAdaptiveAvgPool2dBackward,
+                   NPUNativeFunctions::_adaptive_avg_pool2d_backward(grad_output, self));
   at::Tensor result = OpPreparation::ApplyTensor(self);
   EXEC_NPU_CMD(aclnnAdaptiveAvgPool2dBackward, grad_output, self, result);
   return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

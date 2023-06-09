@@ -14,22 +14,33 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-static at::Tensor wrapper_tensor_cast(const at::Tensor &tensor, const at::ScalarType resultType) {
-  if (tensor.scalar_type() != resultType && tensor.unsafeGetTensorImpl()->is_wrapped_number()) {
-    auto tensor_npu = tensor;
-    if(!at_npu::key::isDeviceTensor(tensor)) {
-      tensor_npu = CalcuOpUtil::CopyTensorHostToDevice(tensor);
-    }
-    return NPUNativeFunctions::npu_dtype_cast(tensor_npu, resultType);
+at::Tensor &sub_out_npu_nocheck(
+    const at::Tensor &self,
+    const at::Tensor &other,
+    const at::Scalar alpha,
+    at::Tensor &result) {
+  // executing the NPU operator
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
+    EXEC_NPU_CMD(aclnnSubs, self, others, alpha, result);
+  } else {
+    EXEC_NPU_CMD(aclnnSub, self, other, alpha, result);
+  }
+  return result;
+}
+
+static at::Tensor self_tensor_to_device(const at::Tensor &tensor, const at::ScalarType resultType) {
+  if (at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(tensor)) {
+    at::Scalar scalar = CalcuOpUtil::ConvertTensorToScalar(tensor);
+    return CalcuOpUtil::CopyScalarToDevice(scalar, resultType);
   }
   return tensor;
 }
@@ -39,55 +50,42 @@ at::Tensor &NPUNativeOpApiFunctions::sub_out(
     const at::Tensor &other,
     const at::Scalar &alpha,
     at::Tensor &result) {
-  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
-  at::Tensor outputTensor = isSelfWrapped ? other : self;
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::ScalarType resultType = at::native::result_type(self, other);
-  at::Tensor selfCasted = wrapper_tensor_cast(self, resultType);
-  at::Tensor otherCasted = wrapper_tensor_cast(other, resultType);
+  DO_COMPATIBILITY(aclnnSub, NPUNativeFunctions::sub_out(self, other, alpha, result));
+  DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub_out(self, other, alpha, result));
+  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
+  at::Tensor output_tensor = is_self_wrapped ? other : self;
+  auto output_size = broadcast_ops_npu_output_size(self, other);
+  at::ScalarType result_type = at::native::result_type(self, other);
+  at::Tensor self_converted = self_tensor_to_device(self, result_type);
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(output_tensor),
       result.scalar_type(),
-      outputSize);
+      output_size);
 
-  EXEC_NPU_CMD(aclnnSub, selfCasted, otherCasted, alpha, result);
+  sub_out_npu_nocheck(self_converted, other, alpha, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha) {
-  auto outSize = broadcast_ops_npu_output_size(self, other);
-  at::ScalarType resultType = at::native::result_type(self, other);
-  at::Tensor selfCasted = wrapper_tensor_cast(self, resultType);
-  at::Tensor otherCasted = wrapper_tensor_cast(other, resultType);
+  DO_COMPATIBILITY(aclnnSub, NPUNativeFunctions::sub(self, other, alpha));
+  DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub(self, other, alpha));
+  auto output_size = broadcast_ops_npu_output_size(self, other);
+  at::ScalarType result_type = at::native::result_type(self, other);
+  at::Tensor self_converted = self_tensor_to_device(self, result_type);
 
-  auto result = OpPreparation::ApplyTensorWithFormat(outSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
-  EXEC_NPU_CMD(aclnnSub, selfCasted, otherCasted, alpha, result);
+  auto result = OpPreparation::ApplyTensor(output_size, self.options(), self);
+  sub_out_npu_nocheck(self_converted, other, alpha, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha) {
-  auto outSize = input_same_output_size(self);
-  auto result = OpPreparation::ApplyTensorWithFormat(outSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
-  auto otherTensor = CalcuOpUtil::CopyScalarToDevice(other, self.scalar_type());
-  EXEC_NPU_CMD(aclnnSub, self, otherTensor, alpha, result);
+  DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub(self, other, alpha));
+  auto output_size = input_same_output_size(self);
+  auto result = OpPreparation::ApplyTensor(output_size, self.options(), self);
+  EXEC_NPU_CMD(aclnnSubs, self, other, alpha, result);
   return result;
-}
-
-at::Tensor &NPUNativeOpApiFunctions::sub_(at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha) {
-  at::ScalarType resultType = at::native::result_type(self, other);
-  at::Tensor selfCasted = wrapper_tensor_cast(self, resultType);
-  at::Tensor otherCasted = wrapper_tensor_cast(other, resultType);
-
-  EXEC_NPU_CMD(aclnnInplaceSub, selfCasted, otherCasted, alpha);
-  return self;
-}
-
-at::Tensor &NPUNativeOpApiFunctions::sub_(at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha) {
-  auto otherTensor = CalcuOpUtil::CopyScalarToDevice(other, self.scalar_type());
-  EXEC_NPU_CMD(aclnnInplaceSub, self, otherTensor, alpha);
-  return self;
 }
 
 } // namespace native

@@ -14,33 +14,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::floor_out(const at::Tensor& self, at::Tensor& result) {
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      self);
+  DO_COMPATIBILITY(aclnnFloor, NPUNativeFunctions::floor_out(self, result));
+  OpPreparation::CheckOut({self}, result, self);
 
   EXEC_NPU_CMD(aclnnFloor, self, result);
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::floor_(at::Tensor& self) {
-  NPUNativeFunctions::floor_out(self, self);
+  DO_COMPATIBILITY(aclnnFloor, NPUNativeFunctions::floor_(self));
+  NPUNativeOpApiFunctions::floor_out(self, self);
 
   return self;
 }
 
 at::Tensor NPUNativeOpApiFunctions::floor(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnFloor, NPUNativeFunctions::floor(self));
   at::Tensor result = OpPreparation::ApplyTensor(self);
   EXEC_NPU_CMD(aclnnFloor, self, result);
   return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

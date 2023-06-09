@@ -539,11 +539,6 @@ class DeviceCachingAllocator {
 
   void recordStream(Block* block, c10_npu::NPUStream stream) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    if (stream.stream() == block->stream) {
-      // ignore uses on the allocation stream, since those don't require any
-      // special synchronization
-      return;
-    }
     block->stream_uses.insert(stream);
   }
 
@@ -1219,10 +1214,6 @@ class THNCachingAllocator {
 
 THNCachingAllocator caching_allocator;
 
-static void NPUCachingDeleter(void* ptr) {
-  caching_allocator.free(ptr);
-}
-
 // NB: I decided not to fold this into THNCachingAllocator, because the latter
 // has a lot more methods and it wasn't altogether clear that they should
 // actually be publically exposed
@@ -1234,10 +1225,10 @@ struct NpuCachingAllocator : public c10::Allocator {
     if (size != 0) {
       caching_allocator.malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
     }
-    return {r, r, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
+    return {r, r, &raw_delete, c10::Device(at_npu::key::NativeDeviceType, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
-    return &NPUCachingDeleter;
+    return &raw_delete;
   }
 };
 

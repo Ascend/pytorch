@@ -15,20 +15,18 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
-    at::Tensor &NPUNativeOpApiFunctions::zero_(at::Tensor &self)
-    {
-      EXEC_NPU_CMD(aclnnInplaceZero, self);
-      return self;
-    }
+at::Tensor& NPUNativeOpApiFunctions::zero_(at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnInplaceZero, NPUNativeFunctions::zero_(self));
+  EXEC_NPU_CMD(aclnnInplaceZero, self);
+  return self;
+}
 
-  } // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

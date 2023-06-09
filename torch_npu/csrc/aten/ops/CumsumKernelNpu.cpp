@@ -85,5 +85,13 @@ at::Tensor& NPUNativeFunctions::cumsum_out(const at::Tensor& self, at::Dimname d
   return NPUNativeFunctions::cumsum_out(self, dimname_to_position(self, dim), dtype, result);
 }
 
+at::Tensor NPUNativeFunctions::cumsum(const at::Tensor& self, int64_t dim,
+                                            c10::optional<at::ScalarType> dtype) {
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+
+  NPUNativeFunctions::cumsum_out(self, dim, dtype, result);
+  return result;
+}
+
 } // namespace native
 } // namespace at_npu

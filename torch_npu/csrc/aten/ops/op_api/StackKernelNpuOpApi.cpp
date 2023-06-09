@@ -1,5 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -13,12 +12,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include <third_party/acl/inc/op_proto/split_combination_ops.h>
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
@@ -40,14 +39,15 @@ at::SmallVector<int64_t, SIZE> stack_output_size(
 }
 
 at::Tensor& NPUNativeOpApiFunctions::stack_out(at::TensorList tensors, int64_t dim, at::Tensor& result) {
-  auto outputSize = stack_output_size(tensors, dim);
+  DO_COMPATIBILITY(aclnnStack, NPUNativeFunctions::stack_out(tensors, dim, result));
+  auto output_size = stack_output_size(tensors, dim);
 
   OpPreparation::CheckOut(
       {tensors[0]}, 
       result, 
       ACL_FORMAT_ND, 
       tensors[0].scalar_type(), 
-      outputSize); 
+      output_size); 
 
   EXEC_NPU_CMD(aclnnStack, tensors, dim, result);
 
@@ -55,10 +55,11 @@ at::Tensor& NPUNativeOpApiFunctions::stack_out(at::TensorList tensors, int64_t d
 }
 
 at::Tensor NPUNativeOpApiFunctions::stack(at::TensorList tensors, int64_t dim) {
-  auto outputSize = stack_output_size(tensors, dim);
+  DO_COMPATIBILITY(aclnnStack, NPUNativeFunctions::stack(tensors, dim));
+  auto output_size = stack_output_size(tensors, dim);
 
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
+      output_size,
       tensors[0].options(),
       ACL_FORMAT_ND);
 

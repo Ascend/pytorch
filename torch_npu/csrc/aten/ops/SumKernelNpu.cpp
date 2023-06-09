@@ -60,7 +60,7 @@ at::Tensor &NPUNativeFunctions::sum_out(
   auto selfSize = self.sizes();
   for (int64_t i = 0; i < selfSize.size(); i++) {
     if (selfSize[i] == 0) {
-      at::Tensor result_cast = at::empty(outputSize);
+      at::Tensor result_cast = at::empty(outputSize, self.options().dtype(res_type));
       result.copy_(result_cast);
       return result;
     }
@@ -109,7 +109,7 @@ at::Tensor NPUNativeFunctions::sum(
 
   for (int64_t i = 0; i < selfSize.size(); i++) {
     if (selfSize[i] == 0) {
-      return at::zeros(outputSize, self_cp.options());
+      return at::zeros(outputSize, self_cp.options().dtype(out_type));
     }
   }
 

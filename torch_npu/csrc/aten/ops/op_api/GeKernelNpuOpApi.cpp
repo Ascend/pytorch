@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION. 
 // All rights reserved.
 //
@@ -15,36 +15,74 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
-  namespace native {
+namespace native {
 
-    at::Tensor& NPUNativeOpApiFunctions::ge_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
-      at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-      auto outputSize = formatCastOfSelf.sizes(); 
-      OpPreparation::CheckOut(
-          {self},
-          result,
-          ACL_FORMAT_ND,
-          result.scalar_type(),
-          outputSize);
+at::Tensor& NPUNativeOpApiFunctions::ge_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnGeScalar, NPUNativeFunctions::ge_out(self, other, result));
+  auto outputSize = self.sizes(); 
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      ACL_FORMAT_ND,
+      result.scalar_type(),
+      outputSize);
 
-      EXEC_NPU_CMD(aclnnGeScalar, formatCastOfSelf, other, result);
-      return result;
-    }
+  EXEC_NPU_CMD(aclnnGeScalar, self, other, result);
+  return result;
+}
 
-    at::Tensor NPUNativeOpApiFunctions::ge(const at::Tensor& self, const at::Scalar& other) {
-      at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          formatCastOfSelf.sizes(),
-          formatCastOfSelf.options().dtype(at::kBool),
-          ACL_FORMAT_ND);
-      EXEC_NPU_CMD(aclnnGeScalar, formatCastOfSelf, other, result);
-      return result;
-    }
+at::Tensor NPUNativeOpApiFunctions::ge(const at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnGeScalar, NPUNativeFunctions::ge(self, other));
+  auto options = at::TensorOptions().device(self.device());
+  at::Tensor result = NPUNativeFunctions::empty(self.sizes(), at::kBool, options.layout_opt(), options.device_opt());
+  EXEC_NPU_CMD(aclnnGeScalar, self, other, result);
+  return result;
+}
 
-  } // namespace native
+at::Tensor& NPUNativeOpApiFunctions::ge_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnGeTensor, NPUNativeFunctions::ge_out(self, other, result));
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      ACL_FORMAT_ND,
+      result.scalar_type(),
+      outputSize);
+
+  EXEC_NPU_CMD(aclnnGeTensor, self, other, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::ge(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnGeTensor, NPUNativeFunctions::ge(self, other));
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+    DO_COMPATIBILITY(aclnnGeScalar, NPUNativeFunctions::ge(self, other));
+    auto options = at::TensorOptions().device(self.device());
+    at::Tensor result = NPUNativeFunctions::empty(self.sizes(), at::kBool, options.layout_opt(), options.device_opt());
+    const at::Scalar tmpItem = other.item();
+    EXEC_NPU_CMD(aclnnGeScalar, self, tmpItem, result);
+    return result;
+  } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
+    DO_COMPATIBILITY(aclnnLessScalar, NPUNativeFunctions::ge(self, other));
+    auto options = at::TensorOptions().device(other.device());
+    at::Tensor result = NPUNativeFunctions::empty(other.sizes(), at::kBool, options.layout_opt(), options.device_opt());
+    const at::Scalar tmpItem = self.item();
+    EXEC_NPU_CMD(aclnnLessScalar, other, tmpItem, result);
+    return result;
+  } else {
+    auto options = at::TensorOptions().device(self.device());
+    auto outputSize = broadcast_ops_npu_output_size(self, other);
+    at::Tensor result = NPUNativeFunctions::empty(outputSize, at::kBool, options.layout_opt(), options.device_opt());
+    EXEC_NPU_CMD(aclnnGeTensor, self, other, result);
+    return result;
+  }
+}
+
+} // namespace native
 } // namespace at_npu

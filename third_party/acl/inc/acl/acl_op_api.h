@@ -31,10 +31,8 @@ typedef struct aclFloatArray aclFloatArray;
 typedef struct aclBoolArray aclBoolArray;
 typedef struct aclTensorList aclTensorList;
 
-typedef int aclnnStatus;
-
-constexpr aclnnStatus OK = 0;
-constexpr aclnnStatus ERROR = 1;
+constexpr int OK = 0;
+constexpr int ERROR = 1;
 
 enum aclnnTensorPlacement {
     ACLNN_MEMTYPE_DEVICE,                   ///< Tensor位于Device上的HBM内存
@@ -79,12 +77,12 @@ ACL_FUNC_VISIBILITY aclFloatArray *aclCreateFloatArray(const float *value, uint6
 ACL_FUNC_VISIBILITY aclBoolArray *aclCreateBoolArray(const bool *value, uint64_t size);
 ACL_FUNC_VISIBILITY aclTensorList *aclCreateTensorList(const aclTensor *const *value, uint64_t size);
 
-ACL_FUNC_VISIBILITY aclnnStatus aclDestroyTensor(const aclTensor *tensor);
-ACL_FUNC_VISIBILITY aclnnStatus aclDestroyScalar(const aclScalar *scalar);
-ACL_FUNC_VISIBILITY aclnnStatus aclDestroyIntArray(const aclIntArray *array);
-ACL_FUNC_VISIBILITY aclnnStatus aclDestroyFloatArray(const aclFloatArray *array);
-ACL_FUNC_VISIBILITY aclnnStatus aclDestroyBoolArray(const aclBoolArray *array);
-ACL_FUNC_VISIBILITY aclnnStatus aclDestroyTensorList(const aclTensorList *array);
+ACL_FUNC_VISIBILITY int aclDestroyTensor(const aclTensor *tensor);
+ACL_FUNC_VISIBILITY int aclDestroyScalar(const aclScalar *scalar);
+ACL_FUNC_VISIBILITY int aclDestroyIntArray(const aclIntArray *array);
+ACL_FUNC_VISIBILITY int aclDestroyFloatArray(const aclFloatArray *array);
+ACL_FUNC_VISIBILITY int aclDestroyBoolArray(const aclBoolArray *array);
+ACL_FUNC_VISIBILITY int aclDestroyTensorList(const aclTensorList *array);
 
 #ifdef __cplusplus
 }

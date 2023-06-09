@@ -14,19 +14,17 @@
 
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-namespace at_npu { 
+namespace at_npu {
 namespace native {
 
+at::Tensor NPUNativeOpApiFunctions::roll(const at::Tensor& self, at::IntArrayRef shifts, at::IntArrayRef dims) {
+  DO_COMPATIBILITY(aclnnRoll, NPUNativeFunctions::roll(self, shifts, dims));
 
-at::Tensor NPUNativeOpApiFunctions::roll(
-    const at::Tensor& self, 
-    at::IntArrayRef shifts, 
-    at::IntArrayRef dims) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   EXEC_NPU_CMD(aclnnRoll, self, shifts, dims, result);
   return result;
 }
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

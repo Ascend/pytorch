@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -16,29 +16,25 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::abs_out(const at::Tensor& self, at::Tensor& result) {
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      self);
-  
+  DO_COMPATIBILITY(aclnnAbs, NPUNativeFunctions::abs_out(self, result));
+  OpPreparation::CheckOut({self}, result, self);
+
   EXEC_NPU_CMD(aclnnAbs, self, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::abs(const at::Tensor& self) {
-  // calculate the output size
-  auto output_size = input_same_output_size(self);
+  DO_COMPATIBILITY(aclnnAbs, NPUNativeFunctions::abs(self));
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      output_size, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAbs, self, result);
@@ -46,9 +42,10 @@ at::Tensor NPUNativeOpApiFunctions::abs(const at::Tensor& self) {
 }
 
 at::Tensor& NPUNativeOpApiFunctions::abs_(at::Tensor& self) {
-  NPUNativeFunctions::abs_out(self, self);
+  DO_COMPATIBILITY(aclnnAbs, NPUNativeFunctions::abs_(self));
+  NPUNativeOpApiFunctions::abs_out(self, self);
   return self;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

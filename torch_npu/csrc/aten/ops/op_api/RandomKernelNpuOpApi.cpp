@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Huawei Technologies Co., Ltd
-// Copyright (c) 2022, Facebook CORPORATION. 
+// Copyright (c) 2022, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -16,12 +16,12 @@
 #include <limits.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
@@ -33,7 +33,7 @@ const int64_t RANDOM_DOUBLE_MAX = 9007199254740992;
 const int64_t RANDOM_HALF_MAX = 1 << 11;
 const int64_t RANDOM_FLOAT_MAX = 1 << 24;
 
-}
+}  // namespace
 
 at::Tensor& random_op_api_(at::Tensor& self, int64_t from, int64_t to, c10::optional<at::Generator> gen_) {
   auto gen = at::get_generator_or_default<NPUGeneratorImpl>(gen_, at_npu::detail::getDefaultNPUGenerator());
@@ -42,25 +42,26 @@ at::Tensor& random_op_api_(at::Tensor& self, int64_t from, int64_t to, c10::opti
   return self;
 }
 
-at::Tensor& NPUNativeOpApiFunctions::random_(
-    at::Tensor& self, int64_t from,
-    c10::optional<int64_t> to,
-    c10::optional<at::Generator> gen_) {
+at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, int64_t from, c10::optional<int64_t> to,
+                                             c10::optional<at::Generator> gen_) {
+  DO_COMPATIBILITY(aclnnInplaceRandom, NPUNativeFunctions::random_(self, from, to, gen_));
   int64_t to_ = to.value();
   random_op_api_(self, from, to_, gen_);
   return self;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, int64_t to, c10::optional<at::Generator> gen_) {
+  DO_COMPATIBILITY(aclnnInplaceRandom, NPUNativeFunctions::random_(self, to, gen_));
   int64_t from = 0;
   random_op_api_(self, from, to, gen_);
   return self;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, c10::optional<at::Generator> gen_) {
+  DO_COMPATIBILITY(aclnnInplaceRandom, NPUNativeFunctions::random_(self, gen_));
   int64_t from = 0;
   int64_t to = 1;
-  
+
   if (self.dtype() == at::kHalf) {
     to = RANDOM_HALF_MAX + 1;
   } else if (self.dtype() == at::kFloat) {
@@ -77,9 +78,9 @@ at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, c10::optional<at:
     to = UCHAR_MAX + 1;
   } else if (self.dtype() == at::kLong) {
     to = LONG_MAX;
-  } 
+  }
   random_op_api_(self, from, to, gen_);
   return self;
 }
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

@@ -15,63 +15,55 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::ne_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnNeTensor, NPUNativeFunctions::ne_out(self, other, result));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  OpPreparation::CheckOut(
-      {self, other},
-      result,
-      CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf),
-      result.scalar_type(),
-      at::IntArrayRef(outputSize));
+  OpPreparation::CheckOut({self, other}, result, CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf),
+                          result.scalar_type(), at::IntArrayRef(outputSize));
   EXEC_NPU_CMD(aclnnNeTensor, formatCastOfSelf, formatCastOfOther, result);
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::ne_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnNeScalar, NPUNativeFunctions::ne_out(self, other, result));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf),
-      result.scalar_type(),
-      formatCastOfSelf.sizes());
+  OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(formatCastOfSelf), result.scalar_type(),
+                          formatCastOfSelf.sizes());
   EXEC_NPU_CMD(aclnnNeScalar, formatCastOfSelf, other, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::ne(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnNeTensor, NPUNativeFunctions::ne(self, other));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
 
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
-  at::Tensor result = OpPreparation::ApplyTensor(
-      outputSize,
-      formatCastOfSelf.options().dtype(at::kBool),
-      formatCastOfSelf);
+  at::Tensor result =
+      OpPreparation::ApplyTensor(outputSize, formatCastOfSelf.options().dtype(at::kBool), formatCastOfSelf);
 
   EXEC_NPU_CMD(aclnnNeTensor, formatCastOfSelf, formatCastOfOther, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::ne(const at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnNeScalar, NPUNativeFunctions::ne(self, other));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
 
-  at::Tensor result = OpPreparation::ApplyTensor(
-      formatCastOfSelf,
-      formatCastOfSelf.options().dtype(at::kBool));
+  at::Tensor result = OpPreparation::ApplyTensor(formatCastOfSelf, formatCastOfSelf.options().dtype(at::kBool));
 
   EXEC_NPU_CMD(aclnnNeScalar, formatCastOfSelf, other, result);
   return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

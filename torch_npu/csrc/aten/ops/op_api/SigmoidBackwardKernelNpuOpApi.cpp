@@ -14,32 +14,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::sigmoid_backward_out(
-    const at::Tensor& grad_output,
-    const at::Tensor& output,
-    at::Tensor& result) {
-    OpPreparation::CheckOut({grad_output, output}, result, grad_output);
+at::Tensor& NPUNativeOpApiFunctions::sigmoid_backward_out(const at::Tensor& grad_output, const at::Tensor& output,
+                                                          at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnSigmoidBackward, NPUNativeFunctions::sigmoid_backward_out(grad_output, output, result));
+  OpPreparation::CheckOut({grad_output, output}, result, grad_output);
 
-    EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, result);
-    return result;
+  EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, result);
+  return result;
 }
 
-at::Tensor NPUNativeOpApiFunctions::sigmoid_backward(
-    const at::Tensor& grad_output,
-    const at::Tensor& output) {
-    at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+at::Tensor NPUNativeOpApiFunctions::sigmoid_backward(const at::Tensor& grad_output, const at::Tensor& output) {
+  DO_COMPATIBILITY(aclnnSigmoidBackward, NPUNativeFunctions::sigmoid_backward(grad_output, output));
+  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
 
-    EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, grad_input);
-    return grad_input;
+  EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, grad_input);
+  return grad_input;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

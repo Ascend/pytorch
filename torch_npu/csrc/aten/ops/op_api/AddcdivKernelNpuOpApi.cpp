@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,28 +15,24 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::addcdiv_out(
-    const at::Tensor& self,
-    const at::Tensor& tensor1,
-    const at::Tensor& tensor2,
-    const at::Scalar& value,
-    at::Tensor& result) {
+at::Tensor& NPUNativeOpApiFunctions::addcdiv_out(const at::Tensor& self, const at::Tensor& tensor1,
+                                                 const at::Tensor& tensor2, const at::Scalar& value,
+                                                 at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnAddcdiv, NPUNativeFunctions::addcdiv_out(self, tensor1, tensor2, value, result));
   EXEC_NPU_CMD(aclnnAddcdiv, self, tensor1, tensor2, value, result);
   return result;
 }
 
-at::Tensor NPUNativeOpApiFunctions::addcdiv(
-    const at::Tensor& self,
-    const at::Tensor& tensor1,
-    const at::Tensor& tensor2,
-    const at::Scalar& value) {
+at::Tensor NPUNativeOpApiFunctions::addcdiv(const at::Tensor& self, const at::Tensor& tensor1,
+                                            const at::Tensor& tensor2, const at::Scalar& value) {
+  DO_COMPATIBILITY(aclnnAddcdiv, NPUNativeFunctions::addcdiv(self, tensor1, tensor2, value));
   auto divOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), divOutputSize);
 
@@ -46,14 +42,12 @@ at::Tensor NPUNativeOpApiFunctions::addcdiv(
   return result;
 }
 
-at::Tensor& NPUNativeOpApiFunctions::addcdiv_(
-    at::Tensor& self,
-    const at::Tensor& tensor1,
-    const at::Tensor& tensor2,
-    const at::Scalar& value) {
+at::Tensor& NPUNativeOpApiFunctions::addcdiv_(at::Tensor& self, const at::Tensor& tensor1, const at::Tensor& tensor2,
+                                              const at::Scalar& value) {
+  DO_COMPATIBILITY(aclnnInplaceAddcdiv, NPUNativeFunctions::addcdiv_(self, tensor1, tensor2, value));
   EXEC_NPU_CMD(aclnnInplaceAddcdiv, self, tensor1, tensor2, value);
   return self;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

@@ -17,24 +17,79 @@
 #ifndef TORCHNPU_TORCH_NPU_CSRC_ATEN_OPS_OP_API_PTA_COMMON_H_
 #define TORCHNPU_TORCH_NPU_CSRC_ATEN_OPS_OP_API_PTA_COMMON_H_
 
+#include <dlfcn.h>
 #include <vector>
 #include <functional>
+#include <type_traits>
 #include <ATen/Tensor.h>
 #include <acl/acl_base.h>
-#include <chrono>
-#include <iostream>
-#include <third_party/acl/inc/acl/acl_op_api.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
+typedef struct aclOpExecutor aclOpExecutor;
+typedef struct aclTensor aclTensor;
+typedef struct aclScalar aclScalar;
+typedef struct aclIntArray aclIntArray;
+typedef struct aclFloatArray aclFloatArray;
+typedef struct aclBoolArray aclBoolArray;
+typedef struct aclTensorList aclTensorList;
+
+typedef aclTensor *(*_aclCreateTensor)(const int64_t *view_dims, uint64_t view_dims_num, aclDataType data_type,
+                                       const int64_t *stride, int64_t offset, aclFormat format,
+                                       const int64_t *storage_dims, uint64_t storage_dims_num,
+                                       void *tensor_data);
+typedef aclScalar *(*_aclCreateScalar)(void *value, aclDataType data_type);
+typedef aclIntArray *(*_aclCreateIntArray)(const int64_t *value, uint64_t size);
+typedef aclFloatArray *(*_aclCreateFloatArray)(const float *value, uint64_t size);
+typedef aclBoolArray *(*_aclCreateBoolArray)(const bool *value, uint64_t size);
+typedef aclTensorList *(*_aclCreateTensorList)(const aclTensor *const *value, uint64_t size);
+
+typedef int (*_aclDestroyTensor)(const aclTensor *tensor);
+typedef int (*_aclDestroyScalar)(const aclScalar *scalar);
+typedef int (*_aclDestroyIntArray)(const aclIntArray *array);
+typedef int (*_aclDestroyFloatArray)(const aclFloatArray *array);
+typedef int (*_aclDestroyBoolArray)(const aclBoolArray *array);
+typedef int (*_aclDestroyTensorList)(const aclTensorList *array);
+
+#define GET_OP_API_FUNC(apiName)                                                             \
+reinterpret_cast<_##apiName>(GetOpApiFuncAddr(#apiName))
+
+inline const char *GetOpApiLibName(void) {
+  return "libopapi.so";
+}
+
+inline void *GetOpApiFuncAddr(const char *apiName) {
+  static auto handler = dlopen(GetOpApiLibName(), RTLD_LAZY);
+  if (handler == nullptr) {
+    static bool firstOpen = true;
+    if (firstOpen) {
+      ASCEND_LOGW("dlopen %s failed, error:%s.", GetOpApiLibName(), dlerror());
+      firstOpen = false;
+    }
+    return nullptr;
+  }
+
+  auto funcAddr = dlsym(handler, apiName);
+  if (funcAddr == nullptr) {
+    ASCEND_LOGW("dlsym %s from %s failed, error:%s.", apiName, GetOpApiLibName(), dlerror());
+  }
+  return funcAddr;
+}
 
 inline aclTensor *ConvertType(const at::Tensor &at_tensor) {
+  static const auto aclCreateTensor = GET_OP_API_FUNC(aclCreateTensor);
+  if (aclCreateTensor == nullptr) {
+    return nullptr;
+  }
+
   if (!at_tensor.defined()) {
     return nullptr;
   }
-  TORCH_CHECK(!at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(at_tensor), "scalar wrapped tensor is unsupported");
+  TORCH_CHECK(at_npu::key::isDeviceTensor(at_tensor), "only npu tensor is supported");
   at::ScalarType scalar_data_type = at_tensor.scalar_type();
   aclDataType acl_data_type = at_npu::native::CalcuOpUtil::ConvertToAclDataType(scalar_data_type);
   c10::SmallVector<int64_t, 5> storageDims;
@@ -43,17 +98,16 @@ inline aclTensor *ConvertType(const at::Tensor &at_tensor) {
     storageDims.push_back(at_tensor.storage().nbytes() / at_tensor.itemsize());
   }
 
+  const auto dimNum = at_tensor.sizes().size();
   aclFormat format = ACL_FORMAT_ND;
-  if (at_tensor.sizes().size() == 3) {
-    format = ACL_FORMAT_NCL;
-  }
-
-  if (at_tensor.sizes().size() == 4) {
-    format = ACL_FORMAT_NCHW;
-  }
-
-  if (at_tensor.sizes().size() == 5) {
-    format = ACL_FORMAT_NCDHW;
+  switch (dimNum) {
+    case 3:format = ACL_FORMAT_NCL;
+      break;
+    case 4:format = ACL_FORMAT_NCHW;
+      break;
+    case 5:format = ACL_FORMAT_NCDHW;
+      break;
+    default:format = ACL_FORMAT_ND;
   }
 
   if (at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(at_tensor)) {
@@ -71,6 +125,11 @@ inline aclTensor *ConvertType(const at::Tensor &at_tensor) {
 }
 
 inline aclScalar *ConvertType(const at::Scalar &at_scalar) {
+  static const auto aclCreateScalar = GET_OP_API_FUNC(aclCreateScalar);
+  if (aclCreateScalar == nullptr) {
+    return nullptr;
+  }
+
   at::ScalarType scalar_data_type = at_scalar.type();
   aclDataType acl_data_type = at_npu::native::CalcuOpUtil::ConvertToAclDataType(scalar_data_type);
   aclScalar *acl_scalar = nullptr;
@@ -103,22 +162,41 @@ inline aclScalar *ConvertType(const at::Scalar &at_scalar) {
 }
 
 inline aclIntArray *ConvertType(const at::IntArrayRef &at_array) {
+  static const auto aclCreateIntArray = GET_OP_API_FUNC(aclCreateIntArray);
+  if (aclCreateIntArray == nullptr) {
+    return nullptr;
+  }
   auto array = aclCreateIntArray(at_array.data(), at_array.size());
   return array;
 }
 
 template<std::size_t N>
-inline aclBoolArray *ConvertType(const std::array<bool, N>& value) {
+inline aclBoolArray *ConvertType(const std::array<bool, N> &value) {
+  static const auto aclCreateBoolArray = GET_OP_API_FUNC(aclCreateBoolArray);
+  if (aclCreateBoolArray == nullptr) {
+    return nullptr;
+  }
+
   auto array = aclCreateBoolArray(value.data(), value.size());
   return array;
 }
 
-inline aclBoolArray *ConvertType(const at::ArrayRef<bool>& value) {
+inline aclBoolArray *ConvertType(const at::ArrayRef<bool> &value) {
+  static const auto aclCreateBoolArray = GET_OP_API_FUNC(aclCreateBoolArray);
+  if (aclCreateBoolArray == nullptr) {
+    return nullptr;
+  }
+
   auto array = aclCreateBoolArray(value.data(), value.size());
   return array;
 }
 
 inline aclTensorList *ConvertType(const at::TensorList &at_tensor_list) {
+  static const auto aclCreateTensorList = GET_OP_API_FUNC(aclCreateTensorList);
+  if (aclCreateTensorList == nullptr) {
+    return nullptr;
+  }
+
   std::vector<const aclTensor *> tensor_list(at_tensor_list.size());
   for (size_t i = 0; i < at_tensor_list.size(); i++) {
     tensor_list[i] = ConvertType(at_tensor_list[i]);
@@ -151,7 +229,7 @@ inline aclScalar *ConvertType(const c10::optional<at::Scalar> &opt_scalar) {
   return nullptr;
 }
 
-inline aclDataType ConvertType(at::ScalarType scalarType) {
+inline aclDataType ConvertType(const at::ScalarType scalarType) {
   return at_npu::native::CalcuOpUtil::ConvertToAclDataType(scalarType);
 }
 
@@ -160,10 +238,48 @@ T ConvertType(T value) {
   return value;
 }
 
-inline void Release(aclTensor *p) { aclDestroyTensor(p); }
-inline void Release(aclScalar *p) { aclDestroyScalar(p); }
-inline void Release(aclIntArray *p) { aclDestroyIntArray(p); }
-inline void Release(aclTensorList *p) { aclDestroyTensorList(p); }
+inline void Release(aclTensor *p) {
+  static const auto aclDestroyTensor = GET_OP_API_FUNC(aclDestroyTensor);
+  if (aclDestroyTensor == nullptr) {
+    return;
+  }
+  aclDestroyTensor(p);
+}
+
+inline void Release(aclScalar *p) {
+  static const auto aclDestroyScalar = GET_OP_API_FUNC(aclDestroyScalar);
+  if (aclDestroyScalar == nullptr) {
+    return;
+  }
+  aclDestroyScalar(p);
+}
+
+inline void Release(aclIntArray *p) {
+  static const auto aclDestroyIntArray = GET_OP_API_FUNC(aclDestroyIntArray);
+  if (aclDestroyIntArray == nullptr) {
+    return;
+  }
+
+  aclDestroyIntArray(p);
+}
+
+inline void Release(aclBoolArray *p) {
+  static const auto aclDestroyBoolArray = GET_OP_API_FUNC(aclDestroyBoolArray);
+  if (aclDestroyBoolArray == nullptr) {
+    return;
+  }
+
+  aclDestroyBoolArray(p);
+}
+
+inline void Release(aclTensorList *p) {
+  static const auto aclDestroyTensorList = GET_OP_API_FUNC(aclDestroyTensorList);
+  if (aclDestroyTensorList == nullptr) {
+    return;
+  }
+
+  aclDestroyTensorList(p);
+}
 
 template<typename T>
 void Release(T value) {
@@ -197,57 +313,160 @@ auto call(Function f, Tuple t) {
   return call(f, t, std::make_index_sequence<size>{});
 }
 
-inline float duration(const std::chrono::steady_clock::time_point &end,
-                      const std::chrono::steady_clock::time_point &begin) {
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1000.0;
+template<typename Tuple, size_t... I>
+auto ConvertToOpApiFunc(const Tuple &params, void *opApiAddr, std::index_sequence<I...>) {
+  typedef int(*OpApiFunc)(typename std::decay<decltype(std::get<I>(params))>::type...);
+  auto func = reinterpret_cast<OpApiFunc>(opApiAddr);
+  return func;
 }
 
+template<typename Tuple>
+auto ConvertToOpApiFunc(const Tuple &params, void *opApiAddr) {
+  static constexpr auto size = std::tuple_size<Tuple>::value;
+  return ConvertToOpApiFunc(params, opApiAddr, std::make_index_sequence<size>{});
+}
+
+#define DO_COMPATIBILITY(aclnn_api, originCallExpression)                                                    \
+  do {                                                                                                       \
+    static const auto getWorkspaceSizeFuncAddr = GetOpApiFuncAddr(#aclnn_api "GetWorkspaceSize");            \
+    static const auto opApiFuncAddr = GetOpApiFuncAddr(#aclnn_api);                                          \
+    if (getWorkspaceSizeFuncAddr == nullptr || opApiFuncAddr == nullptr) {                                   \
+      ASCEND_LOGW("%s or %sGetWorkspaceSize not in %s, or %s not found. Will call %s",                       \
+                  #aclnn_api, #aclnn_api, GetOpApiLibName(), GetOpApiLibName(), #originCallExpression);      \
+      return originCallExpression;                                                                           \
+    }                                                                                                        \
+} while(0)
+
 /**
- *
+ * 异步调用npu执行, 无返回值.
  */
 #define EXEC_NPU_CMD(aclnn_api, ...)                                                                         \
   do {                                                                                                       \
+    static const auto getWorkspaceSizeFuncAddr = GetOpApiFuncAddr(#aclnn_api "GetWorkspaceSize");            \
+    static const auto opApiFuncAddr = GetOpApiFuncAddr(#aclnn_api);                                          \
+    TORCH_CHECK(getWorkspaceSizeFuncAddr != nullptr && opApiFuncAddr != nullptr,                             \
+                #aclnn_api, " or ", #aclnn_api "GetWorkspaceSize", " not in ", GetOpApiLibName(), ", or ",   \
+                GetOpApiLibName(), "not found.");                                                            \
     TORCH_CHECK(at_npu::native::env::CheckForbidInternalFormat(), #aclnn_api ": Internal format not support,"\
                 " please set 'torch.npu.config.allow_internal_format=False'");                               \
-    auto acl_stream = c10_npu::getCurrentNPUStream().stream();                                               \
+    auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);                                          \
     uint64_t workspace_size = 0;                                                                             \
     uint64_t *workspace_size_addr = &workspace_size;                                                         \
     aclOpExecutor *executor = nullptr;                                                                       \
     aclOpExecutor **executor_addr = &executor;                                                               \
-    auto begin = std::chrono::steady_clock::now();                                                           \
     auto converted_params = ConvertTypes(__VA_ARGS__, workspace_size_addr, executor_addr);                   \
-    auto end = std::chrono::steady_clock::now();                                                             \
-    begin = std::chrono::steady_clock::now();                                                                \
-    auto workspace_status = call(aclnn_api##GetWorkspaceSize, converted_params);                             \
-    end = std::chrono::steady_clock::now();                                                                  \
-    begin = std::chrono::steady_clock::now();                                                                \
-    TORCH_CHECK(workspace_status == OK, #aclnn_api, " Get workspace size failed, errno:", workspace_status); \
+    static auto getWorkspaceSizeFunc = ConvertToOpApiFunc(converted_params, getWorkspaceSizeFuncAddr);       \
+    auto workspace_status = call(getWorkspaceSizeFunc, converted_params);                                    \
+    TORCH_CHECK(workspace_status == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());         \
     void *workspace_addr = nullptr;                                                                          \
     if (workspace_size != 0) {                                                                               \
+      int deviceIdx = 0;                                                                                     \
+      NPU_CHECK_ERROR(aclrtGetDevice(&deviceIdx));                                                           \
       auto workspace_tensor =                                                                                \
           at::empty({static_cast<int64_t>(workspace_size)},                                                  \
-                    at::TensorOptions().device(at_npu::key::NativeDeviceType, -1).dtype(at::kByte));         \
+                    at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte));  \
       workspace_addr = workspace_tensor.storage().data();                                                    \
     }                                                                                                        \
     auto acl_call = [converted_params, workspace_addr, workspace_size, acl_stream, executor]() -> int {      \
-      auto begin_2 = std::chrono::steady_clock::now();                                                       \
-      auto api_ret = aclnn_api(workspace_addr, workspace_size, executor, acl_stream);                        \
-      TORCH_CHECK(api_ret == OK, #aclnn_api, " run failed, errno:", api_ret);                                \
+      typedef int(*OpApiFunc)(void*, uint64_t, aclOpExecutor*, const aclrtStream);                           \
+      OpApiFunc opApiFunc = reinterpret_cast<OpApiFunc>(opApiFuncAddr);                                      \
+      auto api_ret = opApiFunc(workspace_addr, workspace_size, executor, acl_stream);                        \
+      TORCH_CHECK(api_ret == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());                \
       ReleaseConvertTypes(converted_params);                                                                 \
-      auto end_2 = std::chrono::steady_clock::now();                                                         \
       return api_ret;                                                                                        \
     };                                                                                                       \
-    end = std::chrono::steady_clock::now();                                                                  \
-    begin = std::chrono::steady_clock::now();                                                                \
     at_npu::native::OpCommand cmd;                                                                           \
     cmd.Name(#aclnn_api);                                                                                    \
-    end = std::chrono::steady_clock::now();                                                                  \
-    begin = std::chrono::steady_clock::now();                                                                \
     cmd.SetCustomHandler(acl_call);                                                                          \
-    end = std::chrono::steady_clock::now();                                                                  \
-    begin = std::chrono::steady_clock::now();                                                                \
     cmd.Run();                                                                                               \
-    end = std::chrono::steady_clock::now();                                                                  \
   } while (false)
+
+template<typename Tuple>
+class ConvertedParams {
+public:
+  ConvertedParams(Tuple &&convertedParams) : convertedParams_(std::move(convertedParams)) {};
+  ConvertedParams(ConvertedParams &&other) : convertedParams_(std::move(other.convertedParams_)) {
+    other.validParams_ = false;
+  };
+  ConvertedParams &operator=(ConvertedParams &&other) {
+    if (this == &other) {
+      return *this;
+    }
+
+    convertedParams_ = std::move(other.convertedParams_);
+    validParams_ = true;
+    other.validParams_ = false;
+    return *this;
+  }
+
+  ConvertedParams() = delete;
+  ConvertedParams(const ConvertedParams &other) = delete;
+  ConvertedParams &operator=(const ConvertedParams &other) = delete;
+
+  ~ConvertedParams() {
+    if (validParams_) {
+      ReleaseConvertTypes(convertedParams_);
+    }
+  }
+
+  const Tuple &GetConvertedParams() const {
+    return convertedParams_;
+  }
+
+  template<size_t i>
+  auto Get() {
+    return std::get<i>(convertedParams_);
+  }
+private:
+  Tuple convertedParams_;
+  bool validParams_{true};
+};
+
+/**
+ * 同步调用npu执行，返回把aten的tensor, scalar, array等转换后的参数,
+ */
+#define EXEC_NPU_CMD_SYNC(aclnn_api, ...)                                                                   \
+  [](const char *apiName, const char *workspaceSizeApiName, auto&...args)->auto  {                          \
+    static const auto getWorkspaceSizeFuncAddr = GetOpApiFuncAddr(workspaceSizeApiName);                    \
+    static const auto opApiFuncAddr = GetOpApiFuncAddr(apiName);                                            \
+    TORCH_CHECK(getWorkspaceSizeFuncAddr != nullptr && opApiFuncAddr != nullptr,                            \
+                #aclnn_api, " and ", #aclnn_api "GetWorkspaceSize", " not in ", GetOpApiLibName(), ", or ", \
+                GetOpApiLibName(), "not found.");                                                           \
+    TORCH_CHECK(at_npu::native::env::CheckForbidInternalFormat(),                                           \
+                apiName, ": Internal format not support,"                                                   \
+                         " please set 'torch.npu.config.allow_internal_format=False'");                     \
+    auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);                                         \
+    uint64_t workspace_size = 0;                                                                            \
+    uint64_t *workspace_size_addr = &workspace_size;                                                        \
+    aclOpExecutor *executor = nullptr;                                                                      \
+    aclOpExecutor **executor_addr = &executor;                                                              \
+    auto converted_params = ConvertTypes(args..., workspace_size_addr, executor_addr);                      \
+    static auto getWorkspaceSizeFunc = ConvertToOpApiFunc(converted_params, getWorkspaceSizeFuncAddr);      \
+    auto workspace_status = call(getWorkspaceSizeFunc, converted_params);                                   \
+    TORCH_CHECK(workspace_status == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());        \
+    void *workspace_addr = nullptr;                                                                         \
+    if (workspace_size != 0) {                                                                              \
+      int deviceIdx = 0;                                                                                    \
+      NPU_CHECK_ERROR(aclrtGetDevice(&deviceIdx));                                                          \
+      auto workspace_tensor =                                                                               \
+          at::empty({static_cast<int64_t>(workspace_size)},                                                 \
+                    at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte)); \
+      workspace_addr = workspace_tensor.storage().data();                                                   \
+    }                                                                                                       \
+    auto acl_call =                                                                                         \
+        [converted_params, workspace_addr, workspace_size, acl_stream, executor, apiName]() -> int {        \
+          typedef int(*OpApiFunc)(void *, uint64_t, aclOpExecutor *, const aclrtStream);                    \
+          OpApiFunc opApiFunc = reinterpret_cast<OpApiFunc>(opApiFuncAddr);                                 \
+          auto api_ret = opApiFunc(workspace_addr, workspace_size, executor, acl_stream);                   \
+          TORCH_CHECK(api_ret == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());           \
+          return api_ret;                                                                                   \
+        };                                                                                                  \
+    at_npu::native::OpCommand cmd;                                                                          \
+    cmd.Name(apiName);                                                                                      \
+    cmd.SetCustomHandler(acl_call);                                                                         \
+    cmd.Run();                                                                                              \
+    cmd.Sync();                                                                                             \
+    return ConvertedParams<decltype(converted_params)>(std::move(converted_params));                        \
+  }(#aclnn_api, #aclnn_api "GetWorkspaceSize", __VA_ARGS__)
 
 #endif //  TORCHNPU_TORCH_NPU_CSRC_ATEN_OPS_OP_API_PTA_COMMON_H_

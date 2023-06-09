@@ -15,22 +15,31 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::fill_(at::Tensor& self, const at::Scalar& value) {
+  DO_COMPATIBILITY(aclnnInplaceFillScalar, NPUNativeFunctions::fill_(self, value));
   EXEC_NPU_CMD(aclnnInplaceFillScalar, self, value);
   return self;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::fill_(at::Tensor& self, const at::Tensor& other) {
-  EXEC_NPU_CMD(aclnnInplaceFillTensor, self, other);
+  DO_COMPATIBILITY(aclnnInplaceFillScalar, NPUNativeFunctions::fill_(self, other));
+  DO_COMPATIBILITY(aclnnInplaceFillTensor, NPUNativeFunctions::fill_(self, other));
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+    const at::Scalar other_value = other.item();
+    EXEC_NPU_CMD(aclnnInplaceFillScalar, self, other_value);
+  } else {
+    EXEC_NPU_CMD(aclnnInplaceFillTensor, self, other);
+  }
   return self;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

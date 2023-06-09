@@ -16,45 +16,32 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-
-at::Tensor& NPUNativeOpApiFunctions::adaptive_avg_pool2d_out(
-    const at::Tensor& self,
-    at::IntArrayRef output_size,
-    at::Tensor& result) {
+at::Tensor& NPUNativeOpApiFunctions::adaptive_avg_pool2d_out(const at::Tensor& self, at::IntArrayRef output_size,
+                                                             at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnAdaptiveAvgPool2d, NPUNativeFunctions::adaptive_avg_pool2d_out(self, output_size, result));
   EXEC_NPU_CMD(aclnnAdaptiveAvgPool2d, self, output_size, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
+  DO_COMPATIBILITY(aclnnAdaptiveAvgPool2d, NPUNativeFunctions::adaptive_avg_pool2d(self, output_size));
   // The logic is a little different from CPU_impl
-  return at::_adaptive_avg_pool2d(self, output_size);
+  return NPUNativeOpApiFunctions::_adaptive_avg_pool2d(self, output_size);
 }
 
 at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
-  for (int64_t i = 0; i < self.dim(); i++) {
-    TORCH_CHECK(
-        self.size(i) > 0,
-        "adaptive_avg_pooling2d(): expected input to have non-empty spatial dimensions, "
-        "but input has sizes ",
-        self.sizes(),
-        " with dimension ",
-        i,
-        " being "
-        "empty");
-  }
-  TORCH_CHECK(
-      (self.dim() == 3 || self.dim() == 4),
-      "non-empty 3D or 4D (batch mode) tensor expected for input");
+  DO_COMPATIBILITY(aclnnAdaptiveAvgPool2d, NPUNativeFunctions::_adaptive_avg_pool2d(self, output_size));
 
+  TORCH_CHECK((self.dim() == 3 || self.dim() == 4), "non-empty 3D or 4D (batch mode) tensor expected for input");
   auto outputSize = array_to_small_vector(self.sizes());
-  outputSize[self.dim()-1] = output_size[1];
-  outputSize[self.dim()-2] = output_size[0];
+  outputSize[self.dim() - 1] = output_size[1];
+  outputSize[self.dim() - 2] = output_size[0];
 
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
@@ -63,6 +50,5 @@ at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d(const at::Tensor& self,
   return result;
 }
 
-
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

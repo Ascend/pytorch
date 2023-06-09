@@ -18,16 +18,17 @@
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeOpApiFunctions::hardswish_backward(const at::Tensor& gradOutput, const at::Tensor& self) {
-  auto result = OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  DO_COMPATIBILITY(aclnnHardswishBackward, NPUNativeFunctions::hardswish_backward(gradOutput, self));
+  auto result =
+      OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
   EXEC_NPU_CMD(aclnnHardswishBackward, gradOutput, self, result);
   return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

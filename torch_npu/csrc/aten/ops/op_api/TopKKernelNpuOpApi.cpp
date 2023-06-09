@@ -1,5 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,10 +14,10 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -31,22 +30,26 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::topk_out(
     bool sorted,
     at::Tensor& values,
     at::Tensor& indices) {
-  at::Tensor selfCp = OpPreparation::CastBackToOriFormat(self);
-  auto outputSize = topk_npu_output_size(selfCp, k, dim, largest, sorted);
+  DO_COMPATIBILITY(aclnnTopk, NPUNativeFunctions::topk_out(self, k, dim, largest, sorted, values, indices));
+  at::Tensor self_cp = OpPreparation::CastBackToOriFormat(self);
+  auto output_size = topk_npu_output_size(self_cp, k, dim, largest, sorted);
+  
+  OpPreparation::CheckOut(
+    {self_cp},
+    values,
+    self_cp,
+    output_size);
+  
+  OpPreparation::CheckOut(
+    {self_cp},
+    indices,
+    CalcuOpUtil::GetTensorNpuFormat(self_cp),
+    at::ScalarType::Long,
+    output_size);
 
-  c10::SmallVector<int64_t, SIZE> indicesSize = outputSize;
-  at::Tensor indices_tmp;
+  EXEC_NPU_CMD(aclnnTopk, self, k, dim, largest, sorted, values, indices);
 
-  OpPipeWithMultiOut<at::Tensor&, at::Tensor&> pipe(values, indices_tmp);
-  pipe.FixOutputSizeAndFormat<0>({selfCp}, selfCp, CalcuOpUtil::GetTensorNpuFormat(selfCp), outputSize)
-      .ApplyOutputWithSpecailParams<1>(indicesSize, selfCp.options().dtype(at::kLong), ACL_FORMAT_ND);
-
-  EXEC_NPU_CMD(aclnnTopk, self, k, dim, largest, sorted, values, indices_tmp);
-
-  return pipe.ReflushOutputDtype<1>(at::ScalarType::Long)
-             .FixOutputExceptDtype<1>({selfCp}, ACL_FORMAT_ND, at::ScalarType::Long, indicesSize)
-             .FixOutputWithReplace<1>(indices)
-             .ReturnRef<at::Tensor&, at::Tensor&>();
+  return tuple<at::Tensor&, at::Tensor&>(values, indices);
 }
 
 tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::topk(
@@ -55,15 +58,14 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::topk(
     int64_t dim,
     bool largest,
     bool sorted) {
-  at::Tensor selfCp = OpPreparation::CastBackToOriFormat(self);
-  auto outputSize = topk_npu_output_size(selfCp, k, dim, largest, sorted);
+  DO_COMPATIBILITY(aclnnTopk, NPUNativeFunctions::topk(self, k, dim, largest, sorted));
+  at::Tensor self_cp = OpPreparation::CastBackToOriFormat(self);
+  auto output_size = topk_npu_output_size(self_cp, k, dim, largest, sorted);
 
-  at::Tensor values = OpPreparation::ApplyTensorWithFormat(
-      outputSize, selfCp.options(), CalcuOpUtil::GetTensorNpuFormat(selfCp));
-  at::Tensor indices = OpPreparation::ApplyTensorWithFormat(
-      outputSize, selfCp.options().dtype(at::kLong), CalcuOpUtil::GetTensorNpuFormat(selfCp));
+  at::Tensor values = OpPreparation::ApplyTensor(output_size, self_cp.options(), self_cp);
+  at::Tensor indices = OpPreparation::ApplyTensor(output_size, self_cp.options().dtype(at::kLong), self_cp);
 
-  EXEC_NPU_CMD(aclnnTopk, selfCp, k, dim, largest, sorted, values, indices);
+  EXEC_NPU_CMD(aclnnTopk, self_cp, k, dim, largest, sorted, values, indices);
   return tuple<at::Tensor, at::Tensor>(values, indices);
 }
 } // namespace native

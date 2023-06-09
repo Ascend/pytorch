@@ -15,84 +15,68 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-    at::Tensor &NPUNativeOpApiFunctions::eq_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-    {
-      auto outputSize = broadcast_ops_npu_output_size(self, other);
-      OpPreparation::CheckOut(
-          {self, other},
-          result,
-          ACL_FORMAT_ND,
-          result.scalar_type(),
-          at::IntArrayRef(outputSize));
-      EXEC_NPU_CMD(aclnnEqTensor, self, other, result);
-      return result;
-    }
+at::Tensor& NPUNativeOpApiFunctions::eq_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnEqTensor, NPUNativeFunctions::eq_out(self, other, result));
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self, other}, result, ACL_FORMAT_ND, result.scalar_type(), at::IntArrayRef(outputSize));
+  EXEC_NPU_CMD(aclnnEqTensor, self, other, result);
+  return result;
+}
 
-    at::Tensor NPUNativeOpApiFunctions::eq(const at::Tensor &self, const at::Tensor &other)
-    {
-      at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-      at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
+at::Tensor NPUNativeOpApiFunctions::eq(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnEqTensor, NPUNativeFunctions::eq(self, other));
+  at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
+  at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
 
-      // calculate the output size
-      auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
+  // calculate the output size
+  auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
 
-      // construct the output tensor of the NPU
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize,
-          formatCastOfSelf.options().dtype(at::kBool),
-          ACL_FORMAT_ND);
+  // construct the output tensor of the NPU
+  at::Tensor result =
+      OpPreparation::ApplyTensorWithFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool), ACL_FORMAT_ND);
 
-      // calculate the output result of the NPU
-      EXEC_NPU_CMD(aclnnEqTensor, formatCastOfSelf, formatCastOfOther, result);
-      return result;
-    }
+  // calculate the output result of the NPU
+  EXEC_NPU_CMD(aclnnEqTensor, formatCastOfSelf, formatCastOfOther, result);
+  return result;
+}
 
-    at::Tensor &eq_out_npu_scalar(at::Tensor &result, const at::Tensor &self, at::Scalar other)
-    {
-      EXEC_NPU_CMD(aclnnEqScalar, self, other, result);
-      return result;
-    }
+at::Tensor& eq_out_npu_scalar(at::Tensor& result, const at::Tensor& self, at::Scalar other) {
+  EXEC_NPU_CMD(aclnnEqScalar, self, other, result);
+  return result;
+}
 
-    at::Tensor NPUNativeOpApiFunctions::eq(const at::Tensor &self, const at::Scalar& other)
-    {
-      at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
+at::Tensor NPUNativeOpApiFunctions::eq(const at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnEqScalar, NPUNativeFunctions::eq(self, other));
+  at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
 
-      // calculate the output size
-      auto outputSize = input_same_output_size(formatCastOfSelf);
+  // calculate the output size
+  auto outputSize = input_same_output_size(formatCastOfSelf);
 
-      // construct the output tensor of the NPU
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize,
-          formatCastOfSelf.options().dtype(at::kBool),
-          ACL_FORMAT_ND);
+  // construct the output tensor of the NPU
+  at::Tensor result =
+      OpPreparation::ApplyTensorWithFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool), ACL_FORMAT_ND);
 
-      // calculate the output result of the NPU
-      eq_out_npu_scalar(result, formatCastOfSelf, other);
-      return result;
-    }
+  // calculate the output result of the NPU
+  eq_out_npu_scalar(result, formatCastOfSelf, other);
+  return result;
+}
 
-    at::Tensor &NPUNativeOpApiFunctions::eq_out(const at::Tensor &self, const at::Scalar& other, at::Tensor &result)
-    {
-      OpPreparation::CheckOut(
-          {self},
-          result,
-          ACL_FORMAT_ND,
-          result.scalar_type(),
-          self.sizes());
-          
-      eq_out_npu_scalar(result, self, other);
+at::Tensor& NPUNativeOpApiFunctions::eq_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnEqScalar, NPUNativeFunctions::eq_out(self, other, result));
+  OpPreparation::CheckOut({self}, result, ACL_FORMAT_ND, result.scalar_type(), self.sizes());
 
-      return result;
-    }
+  eq_out_npu_scalar(result, self, other);
 
+  return result;
+}
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

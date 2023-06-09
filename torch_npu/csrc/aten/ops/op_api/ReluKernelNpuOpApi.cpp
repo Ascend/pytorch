@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
@@ -24,26 +23,26 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeOpApiFunctions::relu(const at::Tensor &self)
-{
+at::Tensor NPUNativeOpApiFunctions::relu(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnRelu, NPUNativeFunctions::relu(self));
   // return at::threshold(self, 0, 0);
   // calculate the output size
   auto outputSize = input_same_output_size(self);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result =
+      OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnRelu, self, result);
   return result;
 }
 
-at::Tensor &NPUNativeOpApiFunctions::relu_(at::Tensor &self)
-{
+at::Tensor& NPUNativeOpApiFunctions::relu_(at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnInplaceRelu, NPUNativeFunctions::relu_(self));
   EXEC_NPU_CMD(aclnnInplaceRelu, self);
   return self;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

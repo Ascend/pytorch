@@ -14,28 +14,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::ceil_out(const at::Tensor& self, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnCeil, NPUNativeFunctions::ceil_out(self, result));
   EXEC_NPU_CMD(aclnnCeil, self, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::ceil(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnCeil, NPUNativeFunctions::ceil(self));
   at::Tensor result = OpPreparation::ApplyTensor(self);
   EXEC_NPU_CMD(aclnnCeil, self, result);
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::ceil_(at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnCeil, NPUNativeFunctions::ceil_(self));
   NPUNativeOpApiFunctions::ceil_out(self, self);
   return self;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

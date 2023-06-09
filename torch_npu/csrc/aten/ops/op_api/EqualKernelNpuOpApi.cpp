@@ -15,19 +15,17 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 bool NPUNativeOpApiFunctions::equal(const at::Tensor& self, const at::Tensor& other) {
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      {1},
-      self.options().dtype(at::kBool),
-      ACL_FORMAT_ND);
+  DO_COMPATIBILITY(aclnnEqual, NPUNativeFunctions::equal(self, other));
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat({1}, self.options().dtype(at::kBool), ACL_FORMAT_ND);
   EXEC_NPU_CMD(aclnnEqual, self, other, result);
   return result.item().to<bool>();
 }
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

@@ -14,36 +14,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::sigmoid_out(const at::Tensor& self, at::Tensor& result) {
-    OpPreparation::CheckOut(
-        {self},
-        result,
-        self);
-
-    EXEC_NPU_CMD(aclnnSigmoid, self, result);
-    return result;
+  DO_COMPATIBILITY(aclnnSigmoid, NPUNativeFunctions::sigmoid_out(self, result));
+  TORCH_CHECK(!isIntegralType(result.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
+  EXEC_NPU_CMD(aclnnSigmoid, self, result);
+  return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::sigmoid_(at::Tensor& self) {
-    NPUNativeOpApiFunctions::sigmoid_out(self, self);
+  DO_COMPATIBILITY(aclnnSigmoid, NPUNativeFunctions::sigmoid_(self));
+  NPUNativeOpApiFunctions::sigmoid_out(self, self);
 
-    return self;
+  return self;
 }
 
 at::Tensor NPUNativeOpApiFunctions::sigmoid(const at::Tensor& self) {
-    at::Tensor result = OpPreparation::ApplyTensor(self);
-    EXEC_NPU_CMD(aclnnSigmoid, self, result);
-    
-    return result;
+  DO_COMPATIBILITY(aclnnSigmoid, NPUNativeFunctions::sigmoid(self));
+  auto outDtype = self.dtype();
+  if (isIntegralType(self.scalar_type(), true)) {
+    outDtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(outDtype));
+  EXEC_NPU_CMD(aclnnSigmoid, self, result);
+
+  return result;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

@@ -259,7 +259,7 @@ bool Repository::ReadQueue() {
     ReleaseResource();
     throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
                              "so the stacktrace below might be incorrect.\n" \
-                             "For getting the the stacktrace of OP in PyTorch, consider passing TASK_QUEUE_ENABLE=0.");
+                             "For getting the stacktrace of OP in PyTorch, consider passing TASK_QUEUE_ENABLE=0.");
   }
 
   manager().Release(datas, read_idx.idx, releaseQueue);

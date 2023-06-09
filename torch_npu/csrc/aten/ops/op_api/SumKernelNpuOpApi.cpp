@@ -21,7 +21,6 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu{
 namespace native{
@@ -32,6 +31,7 @@ at::Tensor &NPUNativeOpApiFunctions::sum_out(
     bool keepdim,
     c10::optional<c10::ScalarType> dtype,
     at::Tensor &result) {
+  DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum_out(self, dim, keepdim, dtype, result));
   auto outputSize = sum_npu_output_size(self, dim, keepdim);
   auto res_type = dtype.has_value() ? dtype.value() : result.scalar_type();
 
@@ -52,14 +52,14 @@ at::Tensor &NPUNativeOpApiFunctions::sum_out(
   }
 
   at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
-      NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+      NPUNativeOpApiFunctions::npu_dtype_cast(self, at::kFloat) : self;
   at::Tensor result_cp = result.scalar_type() == self_cp.scalar_type() ? result :
-      NPUNativeFunctions::npu_dtype_cast(result, self_cp.scalar_type());
+      NPUNativeOpApiFunctions::npu_dtype_cast(result, self_cp.scalar_type());
 
   auto des_dim = ConvertType(dim);
   EXEC_NPU_CMD(aclnnReduceSum, self_cp, des_dim, keepdim, result_cp);
   if (result_cp.scalar_type() != res_type) {
-    result_cp = NPUNativeFunctions::npu_dtype_cast(result_cp, res_type);
+    result_cp = NPUNativeOpApiFunctions::npu_dtype_cast(result_cp, res_type);
     result.copy_(result_cp);
   } else {
     result = result_cp;
@@ -73,6 +73,7 @@ at::Tensor &NPUNativeOpApiFunctions::sum_out(
     bool keepdim,
     c10::optional<c10::ScalarType> dtype,
     at::Tensor &result) {
+  DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum_out(self, dim, keepdim, dtype, result));
   return NPUNativeOpApiFunctions::sum_out(self, dimnames_to_positions(self, dim), keepdim, dtype, result);
 }
 
@@ -81,8 +82,9 @@ at::Tensor NPUNativeOpApiFunctions::sum(
     at::IntArrayRef dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
+  DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum(self, dim, keepdim, dtype));
   at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
-      NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+      NPUNativeOpApiFunctions::npu_dtype_cast(self, at::kFloat) : self;
   auto outputSize = reduce_ops_npu_output_size(self_cp, dim, keepdim);
   auto selfSize = self_cp.sizes();
   auto out_type = self.scalar_type();
@@ -105,7 +107,7 @@ at::Tensor NPUNativeOpApiFunctions::sum(
   EXEC_NPU_CMD(aclnnReduceSum, self_cp, des_dim, keepdim, result);
 
   if (result.scalar_type() != out_type) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, out_type);
+    result = NPUNativeOpApiFunctions::npu_dtype_cast(result, out_type);
   }
   return result;
 }
@@ -115,10 +117,12 @@ at::Tensor NPUNativeOpApiFunctions::sum(
     at::DimnameList dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
+  DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum(self, dim, keepdim, dtype));
   return NPUNativeOpApiFunctions::sum(self, dimnames_to_positions(self, dim), keepdim, dtype);
 }
 
 at::Tensor NPUNativeOpApiFunctions::sum(const at::Tensor &self, c10::optional<c10::ScalarType> dtype) {
+  DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum(self, dtype));
   return NPUNativeOpApiFunctions::sum(self, c10::SmallVector<int64_t, N>{}, false, dtype);
 }
 

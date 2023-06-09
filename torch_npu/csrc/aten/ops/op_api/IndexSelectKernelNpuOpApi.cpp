@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -15,7 +15,6 @@
 // limitations under the License.
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -27,59 +26,25 @@ at::Tensor& NPUNativeOpApiFunctions::index_select_out(const at::Tensor& self,
                                                       int64_t dim, 
                                                       const at::Tensor& index,
                                                       at::Tensor& result) {
-  at::Tensor indexTmp(index);
-  if (indexTmp.ndimension() == 0) {
-    indexTmp = index.unsqueeze(0);
-  }
-  auto outputSize = index_select_npu_output_size(self, dim, indexTmp);
-  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
-  if (outputSize.empty()) {
-    npu_format = ACL_FORMAT_ND;
-  }
-  at::Tensor input = self;
-  if (self.dtype() == at::kBool) {
-    input = NPUNativeFunctions::npu_dtype_cast(input, at::kInt);
-  }
+  DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select_out(self, dim, index, result));
+  auto outputSize = index_select_npu_output_size(self, dim, index);
   OpPreparation::CheckOut(
-      {input},
+      {self},
       result,
-      npu_format,
-      input.scalar_type(),
+      self,
       outputSize);
-  OpPipeWithDefinedOut pipe;
-  result = pipe.CheckMemory({input, indexTmp}, {result})
-      .Func([&input, &dim, &indexTmp](at::Tensor& result)
-      {EXEC_NPU_CMD(aclnnIndexSelect, input, dim, indexTmp, result);})
-      .Call(result);
-  if (self.dtype() == at::kBool) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
-  }
+  EXEC_NPU_CMD(aclnnIndexSelect, self, dim, index, result);
   return result;
 }
-
 
 
 at::Tensor NPUNativeOpApiFunctions::index_select(const at::Tensor& self,
                                                  int64_t dim, 
                                                  const at::Tensor& index) {
-  at::Tensor indexTmp(index);
-  if (indexTmp.ndimension() == 0) {
-    indexTmp = index.unsqueeze(0);
-  }
-  auto outputSize = index_select_npu_output_size(self, dim, indexTmp);
-  int64_t npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
-  if (outputSize.empty()) {
-    npu_format = ACL_FORMAT_ND;
-  }
-  at::Tensor input = self;
-  if (self.dtype() == at::kBool) {
-    input = NPUNativeFunctions::npu_dtype_cast(input, at::kInt);
-  }
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, npu_format);
-  EXEC_NPU_CMD(aclnnIndexSelect, input, dim, indexTmp, result);
-  if (self.dtype() == at::kBool) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
-  }
+  DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select(self, dim, index));
+  auto outputSize = index_select_npu_output_size(self, dim, index);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  EXEC_NPU_CMD(aclnnIndexSelect, self, dim, index, result);
   return result;
 }
 

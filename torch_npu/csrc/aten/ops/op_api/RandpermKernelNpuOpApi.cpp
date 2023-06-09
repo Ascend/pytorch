@@ -15,11 +15,11 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
@@ -31,7 +31,9 @@ at::Tensor& randperm_op_api(int64_t n, c10::optional<at::Generator> gen_, at::Te
   return result;
 }
 
-at::Tensor& NPUNativeOpApiFunctions::randperm_out(int64_t n, c10::optional<at::Generator> generator, at::Tensor& result) {
+at::Tensor& NPUNativeOpApiFunctions::randperm_out(int64_t n, c10::optional<at::Generator> generator,
+                                                  at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnRandperm, NPUNativeFunctions::randperm_out(n, generator, result));
   TORCH_CHECK(n >= 0, "n must be non-negative, got", n);
   OpPreparation::CheckOut({}, result, result, {n});
   randperm_op_api(n, generator, result);
@@ -39,42 +41,33 @@ at::Tensor& NPUNativeOpApiFunctions::randperm_out(int64_t n, c10::optional<at::G
 }
 
 at::Tensor& NPUNativeOpApiFunctions::randperm_out(int64_t n, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnRandperm, NPUNativeFunctions::randperm_out(n, result));
   OpPreparation::CheckOut({}, result, result, {n});
   c10::optional<at::Generator> generator = static_cast<c10::optional<at::Generator>>(c10::nullopt);
   randperm_op_api(n, generator, result);
   return result;
 }
 
-at::Tensor NPUNativeOpApiFunctions::randperm(
-    int64_t n,
-    c10::optional<at::Generator> generator,
-    c10::optional<at::ScalarType> dtype,
-    c10::optional<at::Layout> layout,
-    c10::optional<at::Device> device,
-    c10::optional<bool> pin_memory) {
+at::Tensor NPUNativeOpApiFunctions::randperm(int64_t n, c10::optional<at::Generator> generator,
+                                             c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
+                                             c10::optional<at::Device> device, c10::optional<bool> pin_memory) {
+  DO_COMPATIBILITY(aclnnRandperm, NPUNativeFunctions::randperm(n, generator, dtype, layout, device, pin_memory));
   TORCH_CHECK(n >= 0, "n must be non-negative, got", n);
   at::TensorOptions options;
-  options = options.dtype(dtype)
-                   .layout(layout)
-                   .device(device)
-                   .pinned_memory(pin_memory);
+  options = options.dtype(dtype).layout(layout).device(device).pinned_memory(pin_memory);
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      {n},
-      options,
-      ACL_FORMAT_ND);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat({n}, options, ACL_FORMAT_ND);
 
   randperm_op_api(n, generator, result);
   return result;
 }
 
-at::Tensor NPUNativeOpApiFunctions::randperm(
-    int64_t n,
-    c10::optional<at::ScalarType> dtype,
-    c10::optional<at::Layout> layout,
-    c10::optional<at::Device> device,
-    c10::optional<bool> pin_memory) {
-  return NPUNativeOpApiFunctions::randperm(n, static_cast<c10::optional<at::Generator>>(c10::nullopt), dtype, layout, device, pin_memory);
+at::Tensor NPUNativeOpApiFunctions::randperm(int64_t n, c10::optional<at::ScalarType> dtype,
+                                             c10::optional<at::Layout> layout, c10::optional<at::Device> device,
+                                             c10::optional<bool> pin_memory) {
+  DO_COMPATIBILITY(aclnnRandperm, NPUNativeFunctions::randperm(n, dtype, layout, device, pin_memory));
+  return NPUNativeOpApiFunctions::randperm(n, static_cast<c10::optional<at::Generator>>(c10::nullopt), dtype, layout,
+                                           device, pin_memory);
 }
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

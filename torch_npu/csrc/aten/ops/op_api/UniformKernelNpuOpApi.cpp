@@ -17,12 +17,13 @@
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::uniform_(at::Tensor& self, double from, double to, c10::optional<at::Generator> gen_) {
+at::Tensor& NPUNativeOpApiFunctions::uniform_(at::Tensor& self, double from, double to,
+                                              c10::optional<at::Generator> gen_) {
+  DO_COMPATIBILITY(aclnnInplaceUniform, NPUNativeFunctions::uniform_(self, from, to, gen_));
   auto gen = at::get_generator_or_default<NPUGeneratorImpl>(gen_, at_npu::detail::getDefaultNPUGenerator());
   auto pair = gen->philox_engine_inputs(10);
   int64_t seed = pair.first;
@@ -31,5 +32,5 @@ at::Tensor& NPUNativeOpApiFunctions::uniform_(at::Tensor& self, double from, dou
   return self;
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

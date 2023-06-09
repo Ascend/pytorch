@@ -17,24 +17,22 @@
 #include <ATen/ATen.h>
 #include <torch/library.h>
 #include <ATen/NativeFunctions.h>
-
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeOpApiFunctions::to(
-    const at::Tensor& self,
-    at::ScalarType dtype,
-    bool non_blocking,
-    bool copy,
-    c10::optional<c10::MemoryFormat> optional_memory_format) {
+at::Tensor NPUNativeOpApiFunctions::to(const at::Tensor& self, at::ScalarType dtype, bool non_blocking, bool copy,
+                                       c10::optional<c10::MemoryFormat> optional_memory_format) {
+  DO_COMPATIBILITY(aclnnCast, NPUNativeFunctions::to(self, dtype, non_blocking, copy, optional_memory_format));
   if (self.dtype() == dtype) {
     return self;
   }
-  
+
   return NPUNativeOpApiFunctions::npu_dtype_cast(self, dtype);
 }
 
-} // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu

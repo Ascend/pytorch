@@ -18,16 +18,27 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
-    at::Tensor result = OpPreparation::ApplyTensor(self);
-  // calculate the output result of the NPU
-    OpCommand cmd;
-    cmd.Name("Gelu")
-        .Input(self)
-        .Output(result)
-        .Run();
-    
-    return result;
+at::Tensor& NPUNativeFunctions::gelu_out(const at::Tensor& self, at::Tensor& result) {
+  OpPreparation::CheckOut({self}, result, self);
+
+  OpCommand cmd;
+  cmd.Name("Gelu")
+      .Input(self)
+      .Output(result)
+      .Run();
+  return result;
 }
-} // namespace native
-} // namespace at_npu 
+
+at::Tensor NPUNativeFunctions::gelu(const at::Tensor& self) {
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  // calculate the output result of the NPU
+  OpCommand cmd;
+  cmd.Name("Gelu")
+      .Input(self)
+      .Output(result)
+      .Run();
+
+  return result;
+}
+}  // namespace native
+}  // namespace at_npu

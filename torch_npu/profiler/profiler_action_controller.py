@@ -21,7 +21,6 @@ from warnings import warn
 
 import torch.autograd.profiler as prof
 
-from torch_npu.npu import iteration_start, iteration_end
 from .analysis.npu_profiler import NpuProfiler
 from .scheduler import default_schedule_fn, ProfilerAction
 
@@ -47,15 +46,17 @@ class NpuProfCreator:
 
     def create_prof_dir(self) -> str:
         if not self._worker_name:
-            self._worker_name = "{}_{}".format(socket.gethostbyname(socket.gethostname()), str(os.getpid()))
-        worker_span_name = "{}_{}_ascend_pt".format(self._worker_name, int(time.time() * 1000))
+            self._worker_name = "{}_{}".format(socket.gethostname(), str(os.getpid()))
+        worker_span_name = "{}_{}_ascend_pt".format(self._worker_name,
+                                                    time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
 
         total_path = os.path.join(self._dir_name, worker_span_name)
         self.make_dir(total_path)
         return total_path
 
     def create_default_prof_dir(self) -> str:
-        target_path = self.DEFAULT_PROF_SUFFIX + "_" + str(time.time() * 1000) + "_ascend_pt"
+        target_path = "{}_{}_ascend_pt".format(self.DEFAULT_PROF_SUFFIX,
+                                               time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
         self.make_dir(target_path)
         return target_path
 
@@ -147,10 +148,8 @@ class ActionController:
         if self._record_steps:
             self.step_rec_fc = prof.record_function("ProfilerStep#" + str(self.next_step))
             self.step_rec_fc.__enter__()
-            iteration_start()
 
     def _iteration_end(self) -> None:
         if self._record_steps:
-            iteration_end()
             if self.step_rec_fc:
                 self.step_rec_fc.__exit__(None, None, None)

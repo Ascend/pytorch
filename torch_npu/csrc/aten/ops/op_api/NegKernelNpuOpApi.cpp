@@ -15,36 +15,29 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include <third_party/acl/inc/acl/op_api/aclnn_op.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
-    at::Tensor &NPUNativeOpApiFunctions::neg_out(const at::Tensor &self, at::Tensor &result)
-    {
-      OpPreparation::CheckOut(
-          {self},
-          result,
-          ACL_FORMAT_ND,
-          self.scalar_type(),
-          self.sizes());
-      EXEC_NPU_CMD(aclnnNeg, self, result);
-      return result;
-    }
+at::Tensor& NPUNativeOpApiFunctions::neg_out(const at::Tensor& self, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnNeg, NPUNativeFunctions::neg_out(self, result));
+  OpPreparation::CheckOut({self}, result, ACL_FORMAT_ND, self.scalar_type(), self.sizes());
+  EXEC_NPU_CMD(aclnnNeg, self, result);
+  return result;
+}
 
-    at::Tensor NPUNativeOpApiFunctions::neg(const at::Tensor &self)
-    {
-      // construct the output tensor of the NPU
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+at::Tensor NPUNativeOpApiFunctions::neg(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnNeg, NPUNativeFunctions::neg(self));
+  // construct the output tensor of the NPU
+  at::Tensor result =
+      OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
 
-      EXEC_NPU_CMD(aclnnNeg, self, result);
-      return result;
-    }
-  } // namespace native
-} // namespace at_npu
+  EXEC_NPU_CMD(aclnnNeg, self, result);
+  return result;
+}
+}  // namespace native
+}  // namespace at_npu
