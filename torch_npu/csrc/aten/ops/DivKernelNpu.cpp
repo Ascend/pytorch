@@ -2,11 +2,10 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-namespace at_npu{
-namespace native{
+namespace at_npu {
+namespace native {
 
-at::Tensor &div_scalar_out_npu(const at::Tensor &self, const at::Scalar other, at::Tensor &result)
-{
+at::Tensor& div_scalar_out_npu(const at::Tensor& self, const at::Scalar other, at::Tensor& result) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
   cmd.Name("RealDiv")
@@ -19,15 +18,11 @@ at::Tensor &div_scalar_out_npu(const at::Tensor &self, const at::Scalar other, a
   return result;
 }
 
-at::Tensor &div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-{
+at::Tensor& div_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   // executing the NPU operator
-  if (OpPreparation::IsCPUScalar(other))
-  {
+  if (OpPreparation::IsCPUScalar(other)) {
     div_scalar_out_npu(self, other.item(), result);
-  }
-  else
-  {
+  } else {
     auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
     OpCommand cmd;
     cmd.Name("RealDiv")
@@ -41,17 +36,16 @@ at::Tensor &div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &other,
   return result;
 }
 
-at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-{
+at::Tensor& NPUNativeFunctions::div_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   // calculate the output size
   at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
   if (isIntegralType(high_type, true)) {
-      high_type = at::ScalarType::Float;
+    high_type = at::ScalarType::Float;
   }
   if (isFloatingType(result.scalar_type())) {
-      high_type = result.scalar_type();
+    high_type = result.scalar_type();
   }
   OpPreparation::CheckOut(
       {self},
@@ -68,12 +62,12 @@ at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor
   return result;
 }
 
-at::Tensor &NPUNativeFunctions::div_out(
-    const at::Tensor &self,
-    const at::Tensor &other,
-    c10::optional<c10::string_view> rounding_mode, at::Tensor &result)
-{
-  if (*rounding_mode == "floor") {
+at::Tensor& NPUNativeFunctions::div_out(
+    const at::Tensor& self,
+    const at::Tensor& other,
+    c10::optional<c10::string_view> rounding_mode,
+    at::Tensor& result) {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     NPUNativeFunctions::floor_divide_out(self, other, result);
     return result;
   }
@@ -89,8 +83,7 @@ at::Tensor &NPUNativeFunctions::div_out(
       "but found '", *rounding_mode, "'");
 }
 
-at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &other)
-{
+at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
   bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
   at::Tensor outputTensor = isSelfWrapped ? other : self;
@@ -116,8 +109,7 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &oth
   return result;
 }
 
-at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Scalar& other)
-{
+at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Scalar& other) {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
 
@@ -137,7 +129,7 @@ at::Tensor NPUNativeFunctions::div(
     const at::Tensor& self,
     const at::Scalar& other,
     c10::optional<c10::string_view> rounding_mode) {
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
   at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
@@ -155,7 +147,7 @@ at::Tensor NPUNativeFunctions::div(
     const at::Tensor& self,
     const at::Tensor& other,
     c10::optional<c10::string_view> rounding_mode) {
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
   at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
@@ -170,47 +162,37 @@ at::Tensor NPUNativeFunctions::div(
       "but found '", *rounding_mode, "'");
 }
 
-at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Tensor &other)
-{
+at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Tensor& other) {
   c10::SmallVector<at::Tensor, N> inputs = {self, other};
   c10::SmallVector<at::Tensor, N> outputs = {self};
   CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
-  if (!NpuUtils::check_match(&self))
-  {
+  if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     NPUNativeFunctions::div_out(contiguousSelf, other, contiguousSelf);
     NpuUtils::format_fresh_view(self, contiguousSelf);
-  }
-  else
-  {
+  } else {
     div_out_npu_nocheck(self, other, self);
   }
   return self;
 }
 
-at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Scalar& other)
-{
-  if (!NpuUtils::check_match(&self))
-  {
+at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Scalar& other) {
+  if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-
     div_scalar_out_npu(contiguousSelf, other, contiguousSelf);
-
     NpuUtils::format_fresh_view(self, contiguousSelf);
-  }
-  else
-  {
+  } else {
     div_scalar_out_npu(self, other, self);
   }
   return self;
 }
 
-at::Tensor &NPUNativeFunctions::div_(
-    at::Tensor &self,
+at::Tensor& NPUNativeFunctions::div_(
+    at::Tensor& self,
     const at::Scalar& other,
     c10::optional<c10::string_view> rounding_mode) {
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide_(self, other);
   }
   NPUNativeFunctions::div_(self, other);
@@ -224,11 +206,11 @@ at::Tensor &NPUNativeFunctions::div_(
       "but found '", *rounding_mode, "'");
 }
 
-at::Tensor &NPUNativeFunctions::div_(
-    at::Tensor &self,
-    const at::Tensor &other,
+at::Tensor& NPUNativeFunctions::div_(
+    at::Tensor& self,
+    const at::Tensor& other,
     c10::optional<c10::string_view> rounding_mode) {
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide_(self, other);
   }
   NPUNativeFunctions::div_(self, other);

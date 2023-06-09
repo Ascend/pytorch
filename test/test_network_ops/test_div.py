@@ -44,7 +44,7 @@ class TestDiv(TestCase):
         cpu_input2, npu_input2 = create_dtype_tensor((2, 3, 4, 5), dtype, no_zero=True)
         cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], dtype)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     @graph_mode
     def test_div_shape_format_fp16(self):
         format_list = [0, 3, 29]
@@ -141,7 +141,7 @@ class TestDiv(TestCase):
             [[np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (16)], [np.float16, 0, (2, 20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (2, 20, 16)], 'floor'],
-            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], 'true'],
+            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], None],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -157,7 +157,7 @@ class TestDiv(TestCase):
             # div_
             npu_output_inp = self.npu_op_exec_mode_inp(npu_input1, npu_input2, item[3])
             self.assertRtolEqual(cpu_output, npu_output_inp)
-    
+
     @graph_mode
     def test_div_scalar_mode(self):
         shape_format = [
@@ -165,7 +165,7 @@ class TestDiv(TestCase):
             [[np.float32, 0, (20, 16)], 17.2, 'trunc'],
             [[np.float16, 0, (2, 20, 16)], 72.2, 'floor'],
             [[np.float16, 0, (2, 20, 16)], -5.4, 'trunc'],
-            [[np.float16, 0, (3, 20, 16)], -45.3, 'true'],
+            [[np.float16, 0, (3, 20, 16)], -45.3, None],
             [[np.int32, 0, (2, 20, 16)], 15.9, 'floor'],
             [[np.int32, 0, (3, 20, 16)], 17.2, 'trunc'],
         ]
