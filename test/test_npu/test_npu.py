@@ -626,6 +626,10 @@ class TestNpu(TestCase):
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output4.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output5.cpu().numpy())
+        
+        cpu_out = x_cpu.new_ones(2)
+        npu_output6 = x.new_ones(torch.tensor(2), device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output6.cpu().numpy())
 
     def test_function_tensor_new_tensor(self):
         x_cpu = torch.tensor((), dtype=torch.float32)
