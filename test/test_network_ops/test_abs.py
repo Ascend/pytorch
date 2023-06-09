@@ -57,6 +57,22 @@ class TestAbs(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_abs_shape_format_complex(self, device="npu"):
+        format_list = [0]
+        shape_list = [[5], [5, 10], [1, 3, 2], [52, 15, 15, 20]]
+        dtype_list = [np.complex64]
+        shape_format = [
+            [i, j, k]
+            for i in dtype_list
+            for j in format_list
+            for k in shape_list
+        ]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item, -10, 10)
+            cpu_output = self.cpu_op_exec(cpu_input)
+            npu_output = self.npu_op_exec(npu_input)
+            self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()
