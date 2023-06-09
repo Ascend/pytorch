@@ -891,7 +891,10 @@ supported:
  - set_.source_Storage
  - set_.source_Storage_storage_offset
  - set_.source_Tensor
- - sgn.out
+ - func: sgn
+   op_api: True
+ - func: sgn.out
+   op_api: True
  - func: sigmoid
    op_api: True
  - func: sigmoid.out
@@ -902,9 +905,12 @@ supported:
    op_api: True
  - func: sigmoid_backward.grad_input
    op_api: True
- - sign
- - sign.out
- - sign_
+ - func: sign
+   op_api: True
+ - func: sign.out
+   op_api: True
+ - func: sign_
+   op_api: True
  - sin
  - sin.out
  - sin_

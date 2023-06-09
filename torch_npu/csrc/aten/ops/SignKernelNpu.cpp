@@ -45,6 +45,10 @@ at::Tensor& NPUNativeFunctions::sgn_out(const at::Tensor& self, at::Tensor& resu
   return NPUNativeFunctions::sign_out(self, result);
 }
 
+at::Tensor NPUNativeFunctions::sgn(const at::Tensor& self) {
+  return NPUNativeFunctions::sign(self);
+}
+
 at::Tensor NPUNativeFunctions::sign(const at::Tensor& self) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
