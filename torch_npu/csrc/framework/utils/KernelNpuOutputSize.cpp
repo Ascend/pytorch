@@ -281,6 +281,66 @@ namespace native {
           input.sizes(), weight.sizes(), gradBiasSize);
     }
 
+    c10::SmallVector<int64_t, SIZE> conv1d_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation)
+        {
+            int64_t N = input.size(0);
+            int64_t L = input.size(2);
+            int64_t C_out = weight.size(0);
+
+            auto kernel_size = weight.sizes().slice(2);
+
+            int64_t L_out = (L + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0]  + 1;
+            c10::SmallVector<int64_t, SIZE> output_size = {N, C_out, L_out};
+            return output_size;
+        }
+
+    c10::SmallVector<int64_t, SIZE> conv2d_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation)
+        {
+            int64_t N = input.size(0);
+            int64_t H = input.size(2);
+            int64_t W = input.size(3);
+            int64_t C_out = weight.size(0);
+
+            auto kernel_size = weight.sizes().slice(2);
+
+            int64_t H_out = (H + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0]  + 1;
+            int64_t W_out = (W + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1]  + 1;
+            c10::SmallVector<int64_t, SIZE> output_size = {N, C_out, H_out, W_out};
+            return output_size;
+        }
+
+    c10::SmallVector<int64_t, SIZE> conv_transpose1d_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        const at::Tensor &bias,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef output_padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation,
+        int64_t groups)
+        {
+            int64_t N = input.size(0);
+            int64_t L = input.size(2);
+            int64_t C_out = weight.size(1) * groups;
+
+            auto kernel_size = weight.sizes().slice(2);
+
+            int64_t L_out = (L - 1) * stride[0] - 2 * padding[0] +
+                        dilation[0] * (kernel_size[0] - 1) + output_padding[0] + 1;
+            c10::SmallVector<int64_t, SIZE> output_size = {N, C_out, L_out};
+            return output_size;
+        }
+
     c10::SmallVector<int64_t, SIZE> conv_transpose2d_npu_output_size(
         const at::Tensor &input,
         const at::Tensor &weight,
@@ -294,15 +354,15 @@ namespace native {
       int64_t N = input.size(0);
       int64_t H = input.size(2);
       int64_t W = input.size(3);
-      int64_t Co = weight.size(1) * groups;
+      int64_t C_out = weight.size(1) * groups;
       auto kernel_size = weight.sizes().slice(2);
 
-      int64_t Ho = (H - 1) * stride[0] - 2 * padding[0] +
+      int64_t H_out = (H - 1) * stride[0] - 2 * padding[0] +
                    dilation[0] * (kernel_size[0] - 1) + output_padding[0] + 1;
-      int64_t Wo = (W - 1) * stride[1] - 2 * padding[1] +
+      int64_t W_out = (W - 1) * stride[1] - 2 * padding[1] +
                    dilation[1] * (kernel_size[1] - 1) + output_padding[1] + 1;
 
-      c10::SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
+      c10::SmallVector<int64_t, SIZE> outputSize = {N, C_out, H_out, W_out};
 
       return outputSize;
     }
@@ -1167,7 +1227,7 @@ namespace native {
       } else {
         outputSize = {channels, H, W};
       }
-      
+
       return outputSize;
     }
 

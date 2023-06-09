@@ -133,10 +133,34 @@ tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>> conv_
     c10::IntArrayRef dilation,
     int64_t groups);
 
+c10::SmallVector<int64_t, SIZE> conv1d_npu_output_size(
+    const at::Tensor &input,
+    const at::Tensor &weight,
+    c10::IntArrayRef padding,
+    c10::IntArrayRef stride,
+    c10::IntArrayRef dilation);
+
+c10::SmallVector<int64_t, SIZE> conv_transpose1d_npu_output_size(
+    const at::Tensor &input,
+    const at::Tensor &weight,
+    const at::Tensor &bias,
+    c10::IntArrayRef padding,
+    c10::IntArrayRef output_padding,
+    c10::IntArrayRef stride,
+    c10::IntArrayRef dilation,
+    int64_t groups);
+
+c10::SmallVector<int64_t, SIZE> conv2d_npu_output_size(
+    const at::Tensor &input,
+    const at::Tensor &weight,
+    c10::IntArrayRef padding,
+    c10::IntArrayRef stride,
+    c10::IntArrayRef dilation);
+
 c10::SmallVector<int64_t, SIZE> conv_transpose2d_npu_output_size(
-    const at::Tensor& input,
-    const at::Tensor& weight,
-    const at::Tensor& bias,
+    const at::Tensor &input,
+    const at::Tensor &weight,
+    const at::Tensor &bias,
     c10::IntArrayRef padding,
     c10::IntArrayRef output_padding,
     c10::IntArrayRef stride,
