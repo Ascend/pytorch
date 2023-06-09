@@ -502,7 +502,8 @@ supported:
    op_api: True
  - func: gelu.out
    op_api: True
- - gelu_backward
+ - func: gelu_backward
+   op_api: False
  - ger
  - ger.out
  - glu
