@@ -13,11 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class OpSummaryBean:
-    SHOW_HEADERS = ["Op Name", "OP Type", "Task Type", "Task Start Time", "Task Duration(us)", "Task Wait Time(us)",
-                    "Block Dim", "Input Shapes", "Input Data Types", "Input Formats", "Output Shapes",
-                    "Output Data Types", "Output Formats"]
-    TASK_START_TIME = "Task Start Time"
+class GeMemoryRecordBean:
+    HEADERS = ["Component", "Timestamp(us)", "Total Allocated(MB)", "Total Reserved(MB)", "Device Type"]
 
     def __init__(self, data: list):
         self._data = data
@@ -25,13 +22,22 @@ class OpSummaryBean:
     @property
     def row(self) -> list:
         row = []
-        for field_name in self.SHOW_HEADERS:
-            if field_name == self.TASK_START_TIME:
-                row.append(float(self._data.get(field_name, 0)) / 1000)
-            else:
-                row.append(self._data.get(field_name, ""))
+        for field_name in self.HEADERS:
+            row.append(self._data.get(field_name, ""))
         return row
 
     @property
-    def ts(self) -> float:
-        return float(self._data.get(self.TASK_START_TIME, 0)) / 1000
+    def time_us(self) -> float:
+        return float(self._data.get("Timestamp(us)"))
+
+    @property
+    def total_allocated(self) -> float:
+        return float(self._data.get("Total Allocated(MB)", 0))
+
+    @property
+    def total_reserved(self) -> float:
+        return float(self._data.get("Total Reserved(MB)", 0))
+
+    @property
+    def device_tag(self) -> float:
+        return self._data.get("Device Type", "")

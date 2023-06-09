@@ -6,7 +6,7 @@ from .analysis.npu_profiler import NpuProfiler
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
 from .msprofiler_c_interface import MsProfilerInterface, supported_ms_activities
-from .scheduler import CLOSE_STEP
+from .scheduler import CLOSE_STEP, ProfilerAction
 
 
 def tensorboard_trace_handler(dir_name: str, worker_name: str = None, use_gzip: bool = False):
@@ -43,8 +43,17 @@ class profile:
         return self
 
     def __exit__(self, exe_type, exe_val, exc_tb):
+        prev_step = self._action_controller.next_step - 1
         self._action_controller.next_step = CLOSE_STEP
         self._action_controller.transit_action()
+        if self._schedule and prev_step > 0:
+            prev_action = self._schedule(prev_step)
+            if prev_action == ProfilerAction.NONE:
+                return
+            try:
+                shutil.rmtree(self._msprofiler_interface.path)
+            except Exception:
+                warn(f"Can't remove directory: {self._msprofiler_interface.path}")
 
     def step(self):
         if self._schedule:

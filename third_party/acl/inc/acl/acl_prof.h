@@ -32,6 +32,7 @@ extern "C" {
 #define ACL_PROF_TRAINING_TRACE         0x0040ULL
 #define ACL_PROF_MSPROFTX               0x0080ULL
 #define ACL_PROF_RUNTIME_API            0x0100ULL
+#define ACL_PROF_TASK_MEMORY            0x1000ULL
 
 /**
  * @deprecated please use aclprofGetOpTypeLen and aclprofGetOpTNameLen instead
