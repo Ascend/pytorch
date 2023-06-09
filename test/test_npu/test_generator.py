@@ -30,6 +30,28 @@ class GeneratorTest(TestCase):
         gen.manual_seed(1234)
         self.assertEqual(gen.initial_seed(), 1234)
 
+    def test_generator_device(self):
+        gen = torch_npu._C.Generator()
+        self.assertEqual(gen.device.type, "cpu")
+
+        device_id = 0
+        torch.npu.set_device(device_id)
+        npu_device = torch.randn(2).npu(device_id).device
+        device_types = [
+                        "npu",
+                        "npu:"+str(device_id),
+                        torch.device("npu:"+str(device_id)),
+                        torch.device("npu:"+str(device_id)).type,
+                        npu_device,
+                        0
+                        ]
+        for device_type in device_types:
+            gen = torch_npu._C.Generator(device_type)
+            self.assertEqual(gen.device.type, "npu")
+
+            gen = torch_npu._C.Generator(device=device_type)
+            self.assertEqual(gen.device.type, "npu")
+
 
 if __name__ == '__main__':
     run_tests()

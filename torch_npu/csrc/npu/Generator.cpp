@@ -47,6 +47,16 @@ static void THPGenerator_dealloc(PyObject* _self)
 static PyObject * THPGenerator_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
   HANDLE_TH_ERRORS
+  if (PyTuple_Check(args) && PyTuple_Size(args)) {
+    PyObject* obj = PyTuple_GetItem(args, 0);
+    auto device = at_npu::key::parse_npu_device(obj);
+    PyTuple_SetItem(args, 0, THPDevice_New(device));
+  }
+  else if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
+    PyObject* obj = PyDict_GetItem(kwargs, THPUtils_internString("device"));
+    auto device = at_npu::key::parse_npu_device(obj);
+    PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
+  }
   static torch::PythonArgParser parser({
     "Generator(Device device=None)"
   });
@@ -155,7 +165,7 @@ static PyObject * THPGenerator_initialSeed(PyObject *_self, PyObject *noargs)
 
 static PyObject * THPGenerator_get_device(THPGenerator *self, void *unused) {
   HANDLE_TH_ERRORS
-  return THPDevice_New(self->cdata.device());
+  return TNPDevice_New(self->cdata.device());
   END_HANDLE_TH_ERRORS
 }
 
