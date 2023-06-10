@@ -110,5 +110,7 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
 
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream);
 
+aclError AclrtDestroyStreamForce(aclrtStream stream);
+
 } // namespace acl
 } // namespace c10_npu
