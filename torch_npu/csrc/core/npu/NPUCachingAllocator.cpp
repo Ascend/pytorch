@@ -311,10 +311,10 @@ struct THNCachingAllocator {
   }
 
   /** returns cached blocks to the system allocator */
-  void emptyCache() {
+  void emptyCache(bool check_error) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
-    synchronize_and_free_events(c10::nullopt);
-    c10_npu::npuSynchronizeDevice();
+    synchronize_and_free_events(c10::nullopt, check_error);
+    c10_npu::npuSynchronizeDevice(check_error);
     free_blocks(large_blocks, large_blocks.begin(), large_blocks.end());
     free_blocks(small_blocks, small_blocks.begin(), small_blocks.end());
   }
@@ -642,7 +642,7 @@ struct THNCachingAllocator {
   void free_cached_blocks(int device) {
     // First ensure that all blocks that can't currently be allocated due to
     // outstanding events are returned to the pool.
-    synchronize_and_free_events(device);
+    synchronize_and_free_events(device, true);
 
     // Free all non-split cached blocks on device
     Block lower_bound(device, nullptr, 0);
@@ -690,7 +690,7 @@ struct THNCachingAllocator {
     }
   }
 
-  void synchronize_and_free_events(c10::optional<int> device) {
+  void synchronize_and_free_events(c10::optional<int> device, bool check_error) {
     // Synchronize on outstanding events and then free associated blocks.
     // Limited to blocks on the given device if specified.
     auto remaining_events = decltype(npu_events)();
@@ -711,8 +711,13 @@ struct THNCachingAllocator {
         continue;
       }
 
-      NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));
+      if (check_error) {
+        NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));        
+      } else {
+        NPU_CHECK_WARN(aclrtSynchronizeEvent(event));
+      }
       ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
+
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
@@ -720,7 +725,13 @@ struct THNCachingAllocator {
           recorded_events.erase(it);
         }
       }
-      NPU_CHECK_ERROR(aclrtDestroyEvent(event));
+
+      if (check_error) {
+        NPU_CHECK_ERROR(aclrtDestroyEvent(event));        
+      } else {
+        NPU_CHECK_WARN(aclrtDestroyEvent(event));
+      }
+      
       block->event_count--;
       if (block->event_count == 0) {
         free_block(block);
@@ -1069,8 +1080,8 @@ c10::Allocator* get(void) {
   return &device_allocator;
 }
 
-void emptyCache(void) {
-  caching_allocator.emptyCache();
+void emptyCache(bool check_error) {
+  caching_allocator.emptyCache(check_error);
 }
 
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {

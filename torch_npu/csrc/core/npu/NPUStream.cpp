@@ -378,15 +378,21 @@ NPUStatus emptyAllNPUStream() {
   return SUCCESS;
 }
 
-void npuSynchronizeDevice() {
+bool npuSynchronizeDevice(bool check_error) {
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
-      return;
     }
   }
-  NPU_CHECK_ERROR(aclrtSynchronizeDevice());
+
+  auto acl_ret = aclrtSynchronizeDevice();
+  if (check_error) {
+    NPU_CHECK_ERROR(acl_ret);
+  } else {
+    NPU_CHECK_WARN(acl_ret);
+  }
+  return acl_ret == ACL_ERROR_NONE;
 }
 
 void enCurrentNPUStream(

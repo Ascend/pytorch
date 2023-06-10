@@ -120,7 +120,7 @@ void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
 void raw_delete(void* ptr);
 
 c10::Allocator* get();
-void emptyCache();
+void emptyCache(bool check_error = true);
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
 void* getBaseAllocation(void* ptr, size_t* size);
 void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
