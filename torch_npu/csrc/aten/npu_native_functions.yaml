@@ -303,7 +303,8 @@ supported:
  - conv_tbc_backward
  - conv_transpose2d.input
  - conv_transpose3d.input
- - convolution_backward
+ - func: convolution_backward
+   op_api: True
  - convolution_backward_overrideable
  - convolution_overrideable
  - count_nonzero
