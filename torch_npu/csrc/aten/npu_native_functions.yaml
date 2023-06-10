@@ -43,8 +43,10 @@ supported:
  - func: convolution
    op_api: True
  - _convolution
- - _ctc_loss
- - _ctc_loss_backward
+ - func: _ctc_loss
+   op_api: False
+ - func: _ctc_loss_backward
+   op_api: False
  - _cummax_helper
  - _cummin_helper
  - _dim_arange
@@ -346,8 +348,10 @@ supported:
  - cosh.out
  - cosh_
  - crop_and_resize
- - ctc_loss.IntList
- - ctc_loss.Tensor
+ - func: ctc_loss.IntList
+   op_api: False
+ - func: ctc_loss.Tensor
+   op_api: False
  - cumprod.dimname_out
  - cumprod.out
  - cumprod_
