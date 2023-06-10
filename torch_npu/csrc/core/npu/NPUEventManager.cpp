@@ -62,7 +62,7 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
   return ACL_ERROR_NONE;
 }
 
-aclError NPUEventManager::ClearEvent() {
+void NPUEventManager::ClearEvent() {
 
   if (thread_pool_ != nullptr) {
     thread_pool_->waitWorkComplete();
@@ -70,12 +70,14 @@ aclError NPUEventManager::ClearEvent() {
 
   while(!npu_events_.empty()) {
     aclrtEvent event = npu_events_.front();
-    NPU_CHECK_ERROR(aclrtDestroyEvent(event));
-    ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
+    auto err = aclrtDestroyEvent(event);
+    if (err != ACL_ERROR_NONE) {
+      NPU_CHECK_WARN(err);
+    } else {
+      ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
+    }    
     npu_events_.pop_front();
   }
-
-  return ACL_ERROR_NONE;
 }
 
 } // namespace c10_npu
