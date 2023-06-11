@@ -112,11 +112,10 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
             funcs = e.get('func')
-            if custom_data['supported']:
-                for op in custom_data['supported']:
-                    if op['func'] == funcs.split('(')[0]:
-                        op['func'] = funcs
-                        e.update(op)
+            for op in custom_data['supported'] or custom_data['custom'] or custom_data['custom_autograd']:
+                if op['func'] == funcs.split('(')[0]:
+                    op['func'] = funcs
+                    e.update(op)
             with context(lambda: f'in {path}:\n  {funcs}'):
                 func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
