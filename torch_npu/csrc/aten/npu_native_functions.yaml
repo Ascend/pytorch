@@ -197,7 +197,8 @@ supported:
  - bartlett_window
  - bartlett_window.periodic
  - batch_norm
- - batch_norm_backward_elemt
+ - func: batch_norm_backward_elemt
+   op_api: True
  - batch_norm_backward_reduce
  - batch_norm_elemt
  - batch_norm_elemt.out
