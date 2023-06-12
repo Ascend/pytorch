@@ -15,6 +15,7 @@
 
 import os
 import sys
+import stat
 import traceback
 from typing import List, Optional, Set
 
@@ -281,3 +282,15 @@ def arguments(
             cpp_no_default_args=cpp_no_default_args,
         )
     ]
+
+
+def add_header_to_template_file():
+    torchgen_path = get_torchgen_dir()
+    template_dir = os.path.join(torchgen_path, "packaged/ATen/templates/DispatchKeyNativeFunctions.h")
+    with open(template_dir, "r") as file:
+        template_content = file.read()
+    if "#include <ATen/ATen.h>" not in template_content:
+        template_content = template_content.replace("#include <ATen/Tensor.h>",
+                                                    "#include <ATen/Tensor.h>\n#include <ATen/ATen.h>")
+        with os.fdopen(os.open(template_dir, os.O_WRONLY, stat.S_IWUSR | stat.S_IRUSR), "w") as file:
+            file.write(template_content)

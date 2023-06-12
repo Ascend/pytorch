@@ -35,9 +35,12 @@ from torchgen.context import native_function_manager
 import torchgen.dest as dest
 import torchgen.api.dispatcher as dispatcher
 from torchgen.api.types import DispatcherSignature
+import torchgen.api.native as native
+from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
-from codegen.utils import get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured
+from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
+                           add_header_to_template_file)
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
@@ -494,6 +497,10 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
 
 def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
+    # generate default arguments
+    JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
+    add_header_to_template_file()
+    dispatcher.arguments = native.arguments
 
 
 if __name__ == '__main__':
