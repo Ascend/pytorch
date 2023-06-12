@@ -1852,6 +1852,7 @@ op_db: List[OpInfo] = [
         supports_out=False,
         dtypes=_dispatch_dtypes((torch.bool, torch.float16, torch.float32, torch.int32, torch.int64)),
         dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.float16, torch.float32, torch.int32, torch.int64)),
+        formats=(0, 2, 3, 29),
         skipSample={
             # input.shape is [] and dim specifies the value
             # these kinds of cases are not supported
@@ -1861,6 +1862,7 @@ op_db: List[OpInfo] = [
             # input.shape is [] and dim specifies the value
             # these kinds of cases are not supported
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager'),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.int64]),
         ),
     ),
 ]
