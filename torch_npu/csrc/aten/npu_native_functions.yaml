@@ -183,8 +183,10 @@ supported:
  - atanh
  - atanh.out
  - atanh_
- - avg_pool2d
- - avg_pool2d.out
+ - func: avg_pool2d
+   op_api: True
+ - func: avg_pool2d.out
+   op_api: True
  - avg_pool2d_backward
  - avg_pool2d_backward.grad_input
  - avg_pool3d

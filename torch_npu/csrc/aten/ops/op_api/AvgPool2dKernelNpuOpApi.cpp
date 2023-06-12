@@ -1,0 +1,155 @@
+// Copyright (c) 2023, Huawei Technologies.All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
+namespace at_npu {
+namespace native {
+
+at::Tensor& avg_pool2d_out_npu_nocheck_opapi(at::Tensor& result,
+                                             const at::Tensor& self,
+                                             at::IntArrayRef kernel,
+                                             at::IntArrayRef stride,
+                                             at::IntArrayRef padding,
+                                             bool ceil_mode,
+                                             bool count_include_pad,
+                                             c10::optional<int64_t> divisor_override)
+{
+  uint64_t s_divisor_override = 0;
+  if (divisor_override.has_value()) {
+    s_divisor_override = divisor_override.value();
+  } 
+
+  const int8_t cube_math_type = 1;
+  EXEC_NPU_CMD(aclnnAvgPool2d, self, kernel, stride, padding, ceil_mode, count_include_pad, s_divisor_override,
+      cube_math_type, result);
+
+  return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::avg_pool2d_out(const at::Tensor& self,
+                                                    at::IntArrayRef kernel_size,
+                                                    at::IntArrayRef stride,
+                                                    at::IntArrayRef padding,
+                                                    bool ceil_mode,
+                                                    bool count_include_pad,
+                                                    c10::optional<int64_t> divisor_override,
+                                                    at::Tensor& result)
+{
+  at::Tensor self_cp = self;
+  if (self.dim() == 3) { // unsqueeze 3D to 4D
+    self_cp = self_cp.unsqueeze(0);
+  }
+
+  auto output_size = avg_pool2d_npu_output_size(
+      self_cp,
+      kernel_size,
+      stride,
+      padding,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
+
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self_cp,
+      output_size);
+    
+  DO_COMPATIBILITY(aclnnAvgPool2d,
+      NPUNativeFunctions::avg_pool2d_out(self, kernel_size, stride, padding, ceil_mode, count_include_pad,
+          divisor_override, result));
+
+  avg_pool2d_out_npu_nocheck_opapi(
+      result,
+      self_cp,
+      kernel_size,
+      stride,
+      padding,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
+  if (self.dim() == 3) { // squeeze 3D to 2D
+      result = result.squeeze(0);
+  }
+
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::avg_pool2d(const at::Tensor& self,
+                                               at::IntArrayRef kernel_size,
+                                               at::IntArrayRef stride,
+                                               at::IntArrayRef padding,
+                                               bool ceil_mode,
+                                               bool count_include_pad,
+                                               c10::optional<int64_t> divisor_override)
+{
+  at::Tensor self_cp = self;
+  if (self.dim() == 3) { // unsqueeze 3D to 4D
+      self_cp = self_cp.unsqueeze(0);
+  }
+
+  // generalize kernels, strides and paddings to 2D-shape
+  const int64_t k_h = kernel_size[0];
+  const int64_t k_w = kernel_size.size() == 1 ? k_h : kernel_size[1];
+  c10::SmallVector<int64_t, SIZE> kernel_sizes = {k_h, k_w};
+  at::IntArrayRef kernels = at::IntArrayRef(kernel_sizes);
+
+  const int64_t s_h = stride.empty() ? k_h : stride[0];
+  const int64_t s_w = stride.empty() ? k_w : stride.size() == 1 ? s_h : stride[1];
+  c10::SmallVector<int64_t, SIZE> stride_sizes = {s_h, s_w};
+  at::IntArrayRef strides = at::IntArrayRef(stride_sizes);
+
+  const int64_t pad_h = padding[0];
+  const int64_t pad_w = padding.size() == 1 ? pad_h : padding[1];
+  c10::SmallVector<int64_t, SIZE> padding_sizes = {pad_h, pad_w};
+  at::IntArrayRef paddings = at::IntArrayRef(padding_sizes);
+
+  // calculate the output shape. input is 4D, kernels, strides and paddings are 2D
+  auto output_size = avg_pool2d_npu_output_size(
+      self_cp,
+      kernels,
+      strides,
+      paddings,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
+
+  at::Tensor result = OpPreparation::ApplyTensor(self_cp, output_size);
+
+  DO_COMPATIBILITY(aclnnAvgPool2d,
+      NPUNativeFunctions::avg_pool2d(self, kernel_size, stride, padding, ceil_mode, count_include_pad,
+          divisor_override));
+
+  avg_pool2d_out_npu_nocheck_opapi(
+      result,
+      self_cp,
+      kernels,
+      strides,
+      paddings,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
+  if (self.dim() == 3) { // squeeze 3D to 2D
+      result = result.squeeze(0);
+  }
+
+  return result;
+}
+
+} // namespace native
+} // namespace at_npu
