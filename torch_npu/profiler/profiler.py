@@ -26,8 +26,9 @@ class profile:
             with_stack=False,
             with_flops=False,
             with_modules=False,
-            use_cuda=None,
-            experimental_config=None):
+            experimental_config=None,
+            use_cuda=None
+            ):
         self._activities = set(activities) if activities else supported_ms_activities()
         self._schedule = schedule
         self._record_shapes = record_shapes
