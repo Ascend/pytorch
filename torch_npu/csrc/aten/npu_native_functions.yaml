@@ -11,8 +11,6 @@ supported:
  - __irshift__.Tensor
  - __lshift__.Scalar
  - __lshift__.Tensor
- - __or__.Scalar
- - __or__.Tensor
  - __rshift__.Scalar
  - __rshift__.Tensor
  - __xor__.Scalar
@@ -239,10 +237,14 @@ supported:
    op_api: True
  - func: bitwise_not_
    op_api: True
- - bitwise_or.Scalar
- - bitwise_or.Scalar_out
- - bitwise_or.Tensor
- - bitwise_or.Tensor_out
+ - func: bitwise_or.Scalar
+   op_api: True
+ - func: bitwise_or.Scalar_out
+   op_api: True
+ - func: bitwise_or.Tensor
+   op_api: True
+ - func: bitwise_or.Tensor_out
+   op_api: True
  - bitwise_xor.Scalar
  - bitwise_xor.Scalar_out
  - bitwise_xor.Tensor
