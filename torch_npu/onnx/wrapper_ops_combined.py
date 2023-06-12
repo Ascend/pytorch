@@ -249,6 +249,40 @@ class NPUMinOP(object):
         return torch_npu._C._VariableFunctionsClass.npu_min(self, dim, keepdim)
 
 
+class NPUFusedAttentionLayernormQkvFwdOP(object):
+
+    @staticmethod
+    def confusion_transpose(x, new_shape):
+        perm = (0, 2, 1, 3)
+        return torch_npu.npu_confusion_transpose(x, perm, new_shape, False).contiguous()
+
+    @staticmethod
+    def forward(x, kernel_query, kernel_key, kernel_value, gamma, beta, 
+                bias_query=None, bias_key=None, bias_value=None, seq_len=128, num_heads=12, eps=1e-05):
+        if torch.onnx.is_in_onnx_export():
+            kernel_query = kernel_query.t().contiguous()
+            kernel_key = kernel_key.t().contiguous()
+            kernel_value = kernel_value.t().contiguous()
+
+            norm_shape = [x.shape[-1]]
+            new_shape = (int(x.shape[0]/seq_len), seq_len, num_heads, int(x.shape[1]/num_heads))
+
+            norm, mean, variance = torch.native_layer_norm(x, norm_shape, gamma, beta, eps=1e-05)
+            q_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
+                    torch.nn.functional.linear(norm, kernel_query, bias_query), new_shape)
+            k_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
+                    torch.nn.functional.linear(norm, kernel_key, bias_key), new_shape)
+            v_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
+                    torch.nn.functional.linear(norm, kernel_value, bias_value), new_shape)
+
+            return norm, mean, variance, q_layer, k_layer, v_layer
+        
+        return torch_npu._C._VariableFunctionsClass.npu_fused_attention_layernorm_qkv_fwd(
+                                x, kernel_query, kernel_key, kernel_value, gamma, beta, 
+                                bias_query=bias_query, bias_key=bias_key, bias_value=bias_value, 
+                                seq_len=seq_len, num_heads=num_heads, eps=eps)
+
+
 def add_ops_combined_for_onnx():
     torch_npu.npu_linear = NPULinearOP.forward
     torch_npu.npu_transpose = NPUTransposeOP.forward
@@ -269,4 +303,4 @@ def add_ops_combined_for_onnx():
     torch_npu.npu_dtype_cast = NPUDtypeCastOP.forward
     torch_npu.npu_silu = NPUSiluOP.forward
     torch_npu.npu_min = NPUMinOP.forward
-
+    torch_npu.npu_fused_attention_layernorm_qkv_fwd = NPUFusedAttentionLayernormQkvFwdOP.forward

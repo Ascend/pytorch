@@ -527,42 +527,6 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    def test_wrapper_npu_fused_attention_layernorm_qkv_fwd(self):
-        class Model(torch.nn.Module):
-            def __init__(self):
-                super(Model, self).__init__()
-                q_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half()
-                k_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half()
-                v_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).half()
-                self.fused_q_w = torch_npu.npu_format_cast(q_weight.npu().t().contiguous(), 29)
-                self.fused_k_w = torch_npu.npu_format_cast(k_weight.npu().t().contiguous(), 29)
-                self.fused_v_w = torch_npu.npu_format_cast(v_weight.npu().t().contiguous(), 29)
-                self.q_bias = torch.rand(1024).half().npu()
-                self.k_bias = torch.rand(1024).half().npu()
-                self.v_bias = torch.rand(1024).half().npu()
-
-            def forward(self, input_, gamma, beta):
-                return torch_npu.npu_fused_attention_layernorm_qkv_fwd(input_,
-                        self.fused_q_w, self.fused_k_w, self.fused_v_w, gamma, beta, 
-                        self.q_bias, self.k_bias, self.v_bias, 512, 16)
-
-        def export_onnx(onnx_model_name):
-            ln_input = torch.rand(12288, 1024).uniform_(-6, 6).half()
-            input_ = torch_npu.npu_format_cast(ln_input.npu(), 29)
-            gamma = torch.rand(1024).half().npu()
-            beta = torch.rand(1024).half().npu()
-
-            model = Model().to("npu")
-            model(input_, gamma, beta)
-            self.onnx_export(model, (input_, gamma, beta), onnx_model_name,
-                            ["input_", "gamma", "beta"], ["o_1", "o_2", "o_3",
-                            "o_4", "o_5", "o_6"])
-
-        onnx_model_name = "model_npu_fused_attention_layernorm_qkv_fwd.onnx"
-        export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))
-
     def test_wrapper_npu_fused_attention_score_fwd(self):
         class Model(torch.nn.Module):
             def __init__(self):

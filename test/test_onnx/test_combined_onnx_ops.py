@@ -544,6 +544,38 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    def test_wrapper_npu_fused_attention_layernorm_qkv_fwd(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.q_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).to(dtype=to_dtype).npu()
+                self.k_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).to(dtype=to_dtype).npu()
+                self.v_weight = torch.rand(1024, 1024).uniform_(-0.1, 0.1).to(dtype=to_dtype).npu()
+                self.q_bias = torch.rand(1024).to(dtype=to_dtype).npu()
+                self.k_bias = torch.rand(1024).to(dtype=to_dtype).npu()
+                self.v_bias = torch.rand(1024).to(dtype=to_dtype).npu()
+
+            def forward(self, input_, gamma, beta):
+                return torch_npu.npu_fused_attention_layernorm_qkv_fwd(input_, 
+                                                                       self.q_weight, self.k_weight, self.v_weight,
+                                                                       gamma, beta,
+                                                                       self.q_bias, self.k_bias, self.v_bias,
+                                                                       seq_len=512, num_heads=16, eps=1e-05)
+
+        def export_onnx(onnx_model_name):
+            input_ = torch.rand(12288, 1024).uniform_(-6, 6).to(dtype=to_dtype).npu()
+            gamma = torch.rand(1024).to(dtype=to_dtype).npu()
+            beta = torch.rand(1024).to(dtype=to_dtype).npu()
+            model = Model().to("npu")
+            self.onnx_export(model, (input_, gamma, beta), onnx_model_name, 
+                             ["input_", "gamma", "beta"], ["o_1", "o_2", "o_3", "o_4", "o_5", "o_6"])
+
+        to_dtype = torch.float16
+        onnx_model_name = "model_npu_fused_attention_layernorm_qkv_fwd.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
 
 if __name__ == "__main__":
     run_tests()
