@@ -47,11 +47,14 @@ from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
 
 # Environment variables set in ci script.
 IS_IN_CI = os.getenv('IN_CI') == '1'
+IS_HOSTAPI_ENABLED = os.getenv('HOSTAPI_ENABLED') == 'ON'
 TEST_REPORT_PATH = os.getenv("TEST_REPORT_PATH", "test-reports")
 
 
 def run_tests():
     argv = sys.argv
+    if IS_HOSTAPI_ENABLED:
+        torch.npu.config.allow_internal_format = False
     if IS_IN_CI:
         # import here so that non-CI doesn't need xmlrunner installed
         import xmlrunner
