@@ -41,6 +41,23 @@ at::Tensor &sub_scalar_out_npu(
   return result;
 }
 
+at::Tensor &sub_self_scalar_out_npu(
+    at::Tensor &result,
+    at::Scalar self,
+    const at::Tensor &other,
+    at::Scalar alpha) {
+  at::Tensor other_mul_alpha = CalcuOpUtil::IsScalarOne(alpha) ? other : NPUNativeFunctions::mul(other, alpha);
+
+  OpCommand cmd;
+  cmd.Name("Sub")
+      .Input(self, other_mul_alpha.scalar_type())
+      .Input(other_mul_alpha)
+      .Output(result)
+      .Run();
+
+  return result;
+}
+
 at::Tensor &sub_out_npu_nocheck(
     at::Tensor &result,
     const at::Tensor &self,
@@ -49,6 +66,8 @@ at::Tensor &sub_out_npu_nocheck(
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   if (OpPreparation::IsCPUScalar(other)) {
     sub_scalar_out_npu(result, self, other.item(), alpha);
+  } else if (OpPreparation::IsCPUScalar(self)) {
+    sub_self_scalar_out_npu(result, self.item(), other, alpha);
   } else {
     at::Tensor otherMulResult = other;
     if (!CalcuOpUtil::IsScalarOne(alpha)) {
