@@ -353,9 +353,12 @@ supported:
    op_api: True
  - dropout
  - dropout_with_byte_mask
- - embedding
- - embedding_backward
- - embedding_dense_backward
+ - func: embedding
+   op_api: True
+ - func: embedding_backward
+   op_api: True
+ - func: embedding_dense_backward
+   op_api: True
  - func: embedding_renorm_
    op_api: True
  - empty.memory_format
