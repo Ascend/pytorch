@@ -39,6 +39,7 @@
 #include <utility>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomTraceFunctions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 
 using at::Tensor;

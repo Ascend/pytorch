@@ -181,6 +181,9 @@ class Clean(distutils.command.clean.clean):
             'torch_npu/csrc/aten/RegisterAutogradNPU.cpp',
             'torch_npu/csrc/aten/NPUNativeFunctions.h',
             'torch_npu/csrc/aten/python_custom_functions.cpp',
+            'torch_npu/csrc/aten/CustomTraceFunctions.cpp',
+            'torch_npu/csrc/aten/CustomTraceFunctions.h',
+            'torch_npu/utils/custom_ops.py',
             'torch_npu/utils/torch_funcs.py',
             'torch_npu/version.py',
         ]

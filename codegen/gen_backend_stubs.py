@@ -41,6 +41,9 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file)
+from codegen.trace_functions import compute_trace_method_declaration, compute_trace_method_definition, \
+    compute_register_symbol
+from codegen.gen_python_functions import parse_custom_yaml
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
@@ -423,6 +426,33 @@ $dispatch_registrations_body
     })
 
 
+def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
+    fm.write_with_template(f'CustomTraceFunctions.h', 'CustomTraceFunctions.h', lambda: {
+        'custom_trace_declarations': list(concatMap(
+            lambda f: compute_trace_method_declaration(f),
+            custom_trace_functions
+        )),
+    })
+
+    fm.write_with_template(f'CustomTraceFunctions.cpp', 'CustomTraceFunctions.cpp', lambda: {
+        'custom_trace_definitions': list(concatMap(
+            lambda f: compute_trace_method_definition(f),
+            custom_trace_functions
+        )),
+        'custom_trace_registrations': list(concatMap(
+            lambda f: compute_register_symbol(f),
+            custom_trace_functions
+        )),
+    })
+
+
+def gen_custom_ops_patch(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
+    fm.write_with_template(f'custom_ops.py', 'custom_ops.py', lambda: {
+        'custom_ops': [f'torch_npu.{ops} = torch.ops.npu.{ops}'
+                       for ops in set([f.func.name.name for f in custom_trace_functions])],
+    })
+
+
 def get_supported_grouped_native_functions(
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
         backend_index: BackendIndex,
@@ -493,6 +523,14 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                 dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
+
+        template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
+        fm = FileManager(install_dir=output_dir, template_dir=template_dir, dry_run=dry_run)
+        custom_trace_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
+        gen_custom_trace(fm, custom_trace_functions)
+
+        fm = FileManager(install_dir=output_dir+"../../../utils/", template_dir=template_dir, dry_run=dry_run)
+        gen_custom_ops_patch(fm, custom_trace_functions)
 
 
 def apply_torchgen_patch():

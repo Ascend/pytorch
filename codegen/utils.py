@@ -30,7 +30,7 @@ from torchgen.model import (
 )
 from torchgen.api import cpp
 from torchgen.api.translate import translate
-from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
+from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature, DispatcherSignature
 from torchgen.utils import Target
 
 
@@ -250,7 +250,8 @@ def cpp_dispatch_target(f: NativeFunction, custom=False, is_npu_autograd=False) 
             if is_npu_autograd:
                 namespace = 'at_npu::autograd::VariableType'
             else:
-                namespace = 'at_npu::native::NPUNativeFunctions'
+                namespace = 'at_npu::native'
+                name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
         elif has_tensor_options(f) or f.func.name.name.base.endswith('_like'):
             namespace = 'torch'
         else:
