@@ -27,8 +27,8 @@ class GeMemoryRecordBean:
         return row
 
     @property
-    def time_us(self) -> int:
-        return int(self._data.get("Timestamp(us)"))
+    def time_us(self) -> float:
+        return float(self._data.get("Timestamp(us)"))
 
     @property
     def total_allocated(self) -> float:
