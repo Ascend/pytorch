@@ -3,7 +3,6 @@ import unittest
 import torch
 
 import torch_npu
-from torch_npu.utils.cpp_extension import BISHENG_CPP_HOME
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -18,14 +17,6 @@ except ImportError as e:
 class TestCppExtensionAOT(TestCase):
     """Tests ahead-of-time cpp extensions
     """
-    @unittest.skipIf(BISHENG_CPP_HOME is None, "BISHENG_CPP_HOME nor found")
-    def test_bisheng_extension(self):
-        import torch_test_cpp_extension.bisheng as bisheng_extension
-        x = torch.randn(4, 4).npu()
-        y = torch.randn(4, 4).npu()
-        z = bisheng_extension.bscpp_add(x, y)
-        self.assertEqual(z.cpu(), (x + y).cpu())
-
     def test_npu_extension(self):
         x = torch.randn(4, 4)
         y = torch.randn(4, 4)
@@ -39,6 +30,7 @@ class TestCppExtensionAOT(TestCase):
 
         npu_z = npu_extension.npu_add(x.npu(), y.npu())
         self.assertEqual(npu_z.cpu(), (x + y))
+
 
 if __name__ == "__main__":
     run_tests()

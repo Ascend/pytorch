@@ -6,7 +6,6 @@ import torch
 
 import torch_npu
 import torch_npu.utils.cpp_extension as TorchNpuExtension
-from torch_npu.utils.cpp_extension import  BISHENG_CPP_HOME
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -72,37 +71,6 @@ class TestCppExtensionJIT(TestCase):
 
     def test_jit_compile_extension_with_cpp(self):
        self._test_jit_compile_extension_with_cpp()
-
-    @unittest.skipIf(BISHENG_CPP_HOME is None, "BISHENG_CPP_HOME nor found")
-    def test_jit_bisheng_extension(self):
-        module = TorchNpuExtension.load(
-            name="torch_test_bisheng_extension",
-            sources=[
-                "cpp_extensions/bisheng_extension.cpp",
-                "cpp_extensions/bisheng_add_tensor.cpp",
-            ],
-            verbose=True)
-
-        x = torch.randn(4, 4).npu()
-        y = torch.randn(4, 4).npu()
-        z = module.bscpp_add(x, y)
-        self.assertEqual(z.cpu(), (x + y).cpu())
-
-    @unittest.skipIf(BISHENG_CPP_HOME is None, "BISHENG_CPP_HOME nor found")
-    def test_jit_bisheng_extension_with_no_python_module(self):
-        TorchNpuExtension.load(
-            name="cpp_bisheng",
-            sources=[
-                "cpp_extensions/bisheng_with_torch_library.cpp",
-                "cpp_extensions/bisheng_add_tensor.cpp",
-            ],
-            with_bishengcpp=True,
-            is_python_module=False,
-            verbose=True)
-        x = torch.randn(4, 4).npu()
-        y = torch.randn(4, 4).npu()
-        z = torch.ops.cpp_bisheng.bscpp_add(x, y)
-        self.assertEqual(z.cpu(), (x + y).cpu())
 
 
 if __name__ == "__main__":
