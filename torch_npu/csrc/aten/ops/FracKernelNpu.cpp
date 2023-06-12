@@ -21,14 +21,21 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::frac_out(const at::Tensor& self, at::Tensor& out) {
+at::Tensor& NPUNativeFunctions::frac_out(const at::Tensor& self, at::Tensor& result) {
   OpPreparation::CheckOut(
-      {self}, 
-      out,
+      {self},
+      result,
       self);
   at::Tensor cast_return_Tensor = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Int);
-  at::sub_out(out, self, cast_return_Tensor);
-  return out;
+
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguous_result = NpuUtils::format_contiguous(result);
+    at::sub_out(result, self, cast_return_Tensor);
+    NpuUtils::format_fresh_view(result, contiguous_result);
+  } else {
+    at::sub_out(result, self, cast_return_Tensor);
+  }
+  return result;
 }
 
 at::Tensor NPUNativeFunctions::frac(const at::Tensor& self) {
@@ -39,14 +46,9 @@ at::Tensor NPUNativeFunctions::frac(const at::Tensor& self) {
 }
 
 at::Tensor& NPUNativeFunctions::frac_(at::Tensor& self) {
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = NPUNativeFunctions::frac_out(contiguousSelf, contiguousSelf);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    NPUNativeFunctions::frac_out(self, self);
-  }
+  NPUNativeFunctions::frac_out(self, self);
   return self;
 }
+
 } // namespace native
 } // namespace at_npu

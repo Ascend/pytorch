@@ -29,6 +29,7 @@ from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpI
                                                                 ReductionOpInfo as Of_ReductionOpInfo,
                                                                 DecorateInfo,
                                                                 SampleInput,
+                                                                _cat_np,
                                                                 wrapper_set_seed,
                                                                 reference_reduction_numpy,
                                                                 sample_inputs_interpolate,
@@ -536,6 +537,28 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float32]),
+        ),
+    ),
+    OpInfo(
+        'cat',
+        ref=_cat_np,
+        aliases=('concat', 'concatenate'),
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32,)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_cat_concat,
+        reference_inputs_func=common_methods_invocations.reference_inputs_cat,
+        error_inputs_func=common_methods_invocations.error_inputs_cat,
+        gradcheck_fast_mode=True,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        assert_autodiffed=True,
+        skips=(
+            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_numpy_ref_mps'),
+            # RuntimeError: Arguments for call not valid.
+            #               Expected a value of type 'List[Tensor]' for argument
+            #               'tensors' but instead found type 'Tensor (inferred)'.
+            DecorateInfo(unittest.expectedFailure, 'TestJit', 'test_jit_alias_remapping'),
+            DecorateInfo(unittest.expectedFailure, 'TestNNCOpInfo', 'test_nnc_correctness')
         ),
     ),
     OpInfo(
