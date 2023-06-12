@@ -223,7 +223,8 @@ supported:
  - binary_cross_entropy_backward
  - binary_cross_entropy_backward.grad_input
  - binary_cross_entropy_with_logits
- - bincount
+ - func: bincount
+   op_api: False
  - bitwise_and.Scalar
  - bitwise_and.Scalar_out
  - func: bitwise_and.Tensor
