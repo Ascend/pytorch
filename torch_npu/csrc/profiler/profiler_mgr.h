@@ -9,15 +9,15 @@
 #include "torch_npu/csrc/toolkit/profiler/inc/data_dumper.h"
 namespace torch_npu {
 namespace profiler {
-
-enum class ProfLevel {
-  MSPROF_TRACE_NONE,
-  MSPROF_TRACE_NPU,
-};
+constexpr uint64_t Level0 = ACL_PROF_TASK_TIME_L0 | ACL_PROF_ACL_API;
+constexpr uint64_t Level1 = Level0 | ACL_PROF_TASK_TIME | ACL_PROF_HCCL_TRACE | ACL_PROF_AICORE_METRICS;
+constexpr uint64_t Level2 = Level1 | ACL_PROF_AICPU | ACL_PROF_HCCL_TRACE | ACL_PROF_RUNTIME_API;
 
 struct NpuTraceConfig {
+  std::string trace_level;
+  std::string metrics;
   bool npu_memory;
-  ProfLevel level;
+  bool l2_cache;
 };
 
 class ProfilerMgr : public torch_npu::toolkit::profiler::Singleton<ProfilerMgr> {
@@ -45,7 +45,8 @@ private:
   void EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
 
 private:
-  static std::map<int32_t, uint64_t> dataTypeConfigMap_;
+  static std::map<std::string, aclprofAicoreMetrics> npu_metrics_map_;
+  static std::map<std::string, uint64_t> trace_level_map_;
   std::atomic<bool> report_enable_;
   std::atomic<bool> npu_trace_;
   std::string path_;

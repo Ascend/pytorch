@@ -4,10 +4,21 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 namespace torch_npu {
 namespace profiler {
+std::map<std::string, aclprofAicoreMetrics> ProfilerMgr::npu_metrics_map_ = {
+  {"ACL_AICORE_PIPE_UTILIZATION", ACL_AICORE_PIPE_UTILIZATION},
+  {"ACL_AICORE_ARITHMETIC_UTILIZATION", ACL_AICORE_ARITHMETIC_UTILIZATION},
+  {"ACL_AICORE_MEMORY_BANDWIDTH", ACL_AICORE_MEMORY_BANDWIDTH},
+  {"ACL_AICORE_L0B_AND_WIDTH", ACL_AICORE_L0B_AND_WIDTH},
+  {"ACL_AICORE_RESOURCE_CONFLICT_RATIO", ACL_AICORE_RESOURCE_CONFLICT_RATIO},
+  {"ACL_AICORE_MEMORY_UB", ACL_AICORE_MEMORY_UB},
+  {"ACL_AICORE_L2_CACHE", ACL_AICORE_L2_CACHE},
+  {"ACL_AICORE_NONE", ACL_AICORE_NONE},
+};
 
-uint64_t dataTypeConfigCann = ACL_PROF_ACL_API | ACL_PROF_TASK_TIME | ACL_PROF_HCCL_TRACE | ACL_PROF_TRAINING_TRACE | ACL_PROF_RUNTIME_API;
-std::map<int32_t, uint64_t> ProfilerMgr::dataTypeConfigMap_ = {
-  {static_cast<int32_t>(ProfLevel::MSPROF_TRACE_NPU), dataTypeConfigCann},
+std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
+  {"Level0", Level0},
+  {"Level1", Level1},
+  {"Level2", Level2},
 };
 
 ProfilerMgr::ProfilerMgr()
@@ -39,7 +50,21 @@ void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
 
 void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
   if (npu_trace_.load() == true) {
-    aclprofAicoreMetrics aicMetrics = ACL_AICORE_PIPE_UTILIZATION;
+    aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
+    auto level_iter = trace_level_map_.find(npu_config.trace_level);
+    uint64_t datatype_config = (level_iter == trace_level_map_.end()) ?
+      Level0 : trace_level_map_[npu_config.trace_level];
+    auto metrics_iter = npu_metrics_map_.find(npu_config.metrics);
+    if (metrics_iter != npu_metrics_map_.end() && npu_config.metrics.compare("ACL_AICORE_NONE") != 0) {
+      datatype_config |= ACL_PROF_AICORE_METRICS;
+      aic_metrics = npu_metrics_map_[npu_config.metrics];
+    }
+    if (npu_config.l2_cache) {
+      datatype_config |= ACL_PROF_L2CACHE;
+    }
+    if (npu_config.npu_memory) {
+      datatype_config |= ACL_PROF_TASK_MEMORY;
+    }
     int32_t deviceId = 0;
     auto ret = aclrtGetDevice(&deviceId);
     if (ret != ACL_ERROR_NONE) {
@@ -48,14 +73,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
     }
     const uint32_t deviceNum = 1;
     uint32_t deviceIdList[deviceNum] = {deviceId};
-    ProfLevel level = npu_config.level;
-    if (level == ProfLevel::MSPROF_TRACE_NPU) {
-      uint64_t datatype_config = dataTypeConfigMap_[static_cast<int32_t>(level)];
-      if (npu_config.npu_memory) {
-        datatype_config |= ACL_PROF_TASK_MEMORY;
-      }
-      EnableMsProfiler(deviceIdList, deviceNum, aicMetrics, datatype_config);
-    }
+    EnableMsProfiler(deviceIdList, deviceNum, aic_metrics, datatype_config);
   }
 
   if (cpu_trace == true) {

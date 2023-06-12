@@ -56,8 +56,31 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
       .value("CPU", NpuActivityType::CPU)
       .value("NPU", NpuActivityType::NPU);
 
+  py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
+      .def(
+          py::init<std::string, std::string, bool>(),
+          py::arg("trace_level") = "Level0",
+          py::arg("metrics") = "ACL_AICORE_NONE",
+          py::arg("l2_cache") = false
+      )
+      .def(py::pickle(
+          [](const ExperimentalConfig& p) {
+              return py::make_tuple(p.trace_level, p.metrics, p.l2_cache);
+          },
+          [](py::tuple t) {
+              if (t.size() < 3) {
+                  throw std::runtime_error("Expected atleast 3 values in state");
+              }
+              return ExperimentalConfig(
+                  t[0].cast<std::string>(),
+                  t[1].cast<std::string>(),
+                  t[2].cast<bool>()
+              );
+          }
+      ));
+
   py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
-      .def(py::init<std::string, bool, bool, bool, bool, bool>());
+      .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
 
   py::class_<LegacyEvent>(m, "ProfilerEvent")
       .def("kind", &LegacyEvent::kindStr)
