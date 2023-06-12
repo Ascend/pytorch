@@ -365,6 +365,12 @@ class TestAmp(TestCase):
         loss = output.sum()
         loss.backward()
 
+    def test_autocast_enabled(self):
+        output1 = torch.npu.amp.autocast()
+        self.assertTrue(output1._enabled)
+        output2 = torch.npu.amp.autocast(False)
+        self.assertFalse(output2._enabled)
+
 
 if __name__ == "__main__":
     run_tests()
