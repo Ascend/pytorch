@@ -15,26 +15,22 @@
 // limitations under the License.
 
 #include <ATen/Tensor.h>
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
 namespace native {
 
-tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_batch_norm_backward(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_batch_norm_backward(
     const at::Tensor& grad_out, const at::Tensor& self, const c10::optional<at::Tensor>& weight_opt,
     const c10::optional<at::Tensor>& running_mean_opt, const c10::optional<at::Tensor>& running_var_opt,
     const c10::optional<at::Tensor>& save_mean_opt, const c10::optional<at::Tensor>& save_invstd_opt, bool train,
     double eps, std::array<bool, 3> grad_input_mask) {
-  if (self.dim() == 5) {
-    return NPUNativeFunctions::native_batch_norm_backward(grad_out, self, weight_opt, running_mean_opt, running_var_opt,
-                                                          save_mean_opt, save_invstd_opt, train, eps, grad_input_mask);
-  }
-  DO_COMPATIBILITY(aclnnBatchNormBackward, NPUNativeFunctions::native_batch_norm_backward(grad_out, self, weight_opt, running_mean_opt, running_var_opt, save_mean_opt, save_invstd_opt, train, eps, grad_input_mask));
+  DO_COMPATIBILITY(
+      aclnnBatchNormBackward,
+      NPUNativeFunctions::native_batch_norm_backward(grad_out, self, weight_opt, running_mean_opt, running_var_opt,
+                                                     save_mean_opt, save_invstd_opt, train, eps, grad_input_mask));
   // grad_input_mask
   at::Tensor grad_input;
   at::Tensor grad_weight;
