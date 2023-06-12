@@ -67,7 +67,7 @@ inline const char *GetCustOpApiLibName(void) {
 }
 
 inline void *GetOpApiFuncAddrInLib(const char *libName, const char *apiName) {
-  static auto handler = dlopen(libName, RTLD_LAZY);
+  auto handler = dlopen(libName, RTLD_LAZY);
   if (handler == nullptr) {
     static bool firstOpen = true;
     if (firstOpen) {

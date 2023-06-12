@@ -102,26 +102,12 @@ public:
     auto atten_mask = saved[9];
     auto attention_score = saved[10];
 
-    at::Tensor dq;
-    at::Tensor dk;
-    at::Tensor dv;
-    if (is_transpose_out) {
-      c10::SmallVector<int64_t, SIZE> output_size = {query.size(0), query.size(2), query.size(1) * query.size(3)};
-      dq = OpPreparation::ApplyTensor(query, output_size);
-      dk = OpPreparation::ApplyTensor(query, output_size);
-      dv = OpPreparation::ApplyTensor(query, output_size);
-    } else {
-      dq = OpPreparation::ApplyTensor(query);
-      dk = OpPreparation::ApplyTensor(query);
-      dv = OpPreparation::ApplyTensor(query);
-    }
     bool dy_transpose = false;
-    EXEC_NPU_CMD(aclnnFlashAttentionScoreGrad, query, key, value, grad_outputs[0],
-                 pse, drop_mask, padding_mask, atten_mask, softmax_max, softmax_sum, softmax_out, attention_score,
-                 scale, keep_prob,
-                 query_transpose, key_transpose, value_transpose, dy_transpose,
-                 is_transpose_out, pre_tockens, next_tockens, is_flash, dq, dk, dv);
-    return {dq, dk, dv};
+    return NPUNativeOpApiFunctions::npu_flash_attention_score_grad(query,
+        key, value, grad_outputs[0], pse, drop_mask, padding_mask, atten_mask,
+        softmax_max, softmax_sum, softmax_out, attention_score, scale,
+        keep_prob, query_transpose, key_transpose, value_transpose,
+        dy_transpose, is_transpose_out, pre_tockens, next_tockens);
   }
 };
 
