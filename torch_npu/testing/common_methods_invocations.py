@@ -1744,7 +1744,7 @@ op_db: List[OpInfo] = [
     BinaryUfuncInfo(
         'sub',
         aliases=('subtract',),
-        dtypes=_dispatch_dtypes((torch.int32, torch.float32)),
+        dtypes=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float16, torch.float32)),
         sample_inputs_func=partial(common_methods_invocations.sample_inputs_add_sub, 
         alpha=2, other_scalar=True),
