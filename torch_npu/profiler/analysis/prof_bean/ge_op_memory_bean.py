@@ -15,9 +15,9 @@
 
 
 class GeOpMemoryBean:
-    HEADERS = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Duration(us)", "Device Type",
+    HEADERS = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Duration(us)",
                "Allocation Total Allocated(MB)", "Allocation Total Reserved(MB)",
-               "Release Total Allocated(MB)", "Release Total Reserved(MB)"]
+               "Release Total Allocated(MB)", "Release Total Reserved(MB)", "Device Type"]
 
     def __init__(self, data: list):
         self._data = data
