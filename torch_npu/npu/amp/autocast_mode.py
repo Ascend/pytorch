@@ -27,11 +27,10 @@ except ModuleNotFoundError:
 from torch.types import _dtype
 
 import torch
-from torch.cuda.amp import autocast as cuda_autocast
 from torch._six import string_classes
 from .common import amp_definitely_not_available
 
-class autocast(torch.autocast_mode.autocast):
+class npu_autocast(torch.autocast_mode.autocast):
     r"""
     Instances of :class:`autocast` serve as context managers or decorators that
     allow regions of your script to run in mixed precision.
@@ -157,7 +156,7 @@ class autocast(torch.autocast_mode.autocast):
         dtype(torch_dtype, optional):  Whether to use torch.float16 or torch.bfloat16.
         cache_enabled(bool, optional, default=True):  Whether the weight cache inside autocast should be enabled.
     """
-    def __init__(self, device_type = "npu",
+    def __init__(self, device_type : str,
                  dtype : Optional[_dtype] = None,
                  enabled : bool = True,
                  cache_enabled : Optional[bool] = None):
@@ -168,7 +167,7 @@ class autocast(torch.autocast_mode.autocast):
             assert dtype is not None
             return
         self.device = device_type
-        if self.device == 'npu' or 'xla':
+        if self.device == 'npu':
             self.fast_dtype = torch.get_autocast_gpu_dtype()
         elif self.device == 'cpu':
             self.fast_dtype = torch.get_autocast_cpu_dtype()
@@ -190,7 +189,7 @@ class autocast(torch.autocast_mode.autocast):
                 error_message += 'CPU Autocast only supports dtype of torch.bfloat16 currently.'
                 warnings.warn(error_message)
                 enabled = False
-        if self.device == 'npu' or 'xla':
+        if self.device == 'npu':
             if self.fast_dtype == torch.bfloat16 and not torch.cuda.is_bf16_supported():
                 raise RuntimeError('Current NPU Device does not support bfloat16. Please switch dtype to float16.')
         self._enabled = enabled
@@ -210,6 +209,34 @@ class autocast(torch.autocast_mode.autocast):
             return func
         return super().__call__(func)
 
+class autocast(npu_autocast):
+    r"""
+    See :class:`torch.autocast`.
+    ``torch.npu.amp.autocast(args...)`` is equivalent to ``torch.autocast("npu", args...)``
+    """
+
+    def __init__(self, enabled : bool = True, dtype : torch.dtype = torch.float16, cache_enabled : bool = True):
+        if torch._jit_internal.is_scripting():
+            self._enabled = enabled
+            self.device = "npu"
+            self.fast_dtype = dtype
+            return
+        super().__init__("npu", enabled=enabled, dtype=dtype, cache_enabled=cache_enabled)
+
+    def __enter__(self):
+        if torch._jit_internal.is_scripting():
+            return self
+        return super().__enter__()
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        if torch._jit_internal.is_scripting():
+            return
+        return super().__exit__(exc_type, exc_val, exc_tb)
+
+    def __call__(self, func):
+        if torch._jit_internal.is_scripting():
+            return func
+        return super().__call__(func)
 
 # Casts Tensors and containers of Tensors.  Special-cases passthroughs for strings and np.ndarrays, which
 # may be falsely detected as "Iterables."
@@ -305,4 +332,4 @@ def custom_bwd(bwd):
     return decorate_bwd
 
 def apply_autocast_patch():
-    torch.autocast = autocast
+    torch.autocast = npu_autocast
