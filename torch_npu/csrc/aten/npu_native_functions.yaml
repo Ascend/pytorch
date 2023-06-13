@@ -1119,6 +1119,7 @@ tocpu:
   - _compute_linear_combination.out
   - _dirichlet_grad
   - _embedding_bag_per_sample_weights_backward
+  - _efficientzerotensor
   - _fft_r2c
   - _fft_r2c.out
   - _fft_c2r
