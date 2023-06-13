@@ -153,7 +153,13 @@ class TestMgr():
                 self.modify_files.append(line)
 
     def analyze(self):
+        # determine whether the modification is about hostapi
+        def is_hostapi_enabled(self, modify_file):
+            if str(Path(modify_file).parent.name) == 'op_api':
+                os.environ['HOSTAPI_ENABLED'] = 'ON'
+
         for modify_file in self.modify_files:
+            is_hostapi_enabled(modify_file)
             self.test_files['ut_files'] += DirectoryStrategy().identify(modify_file)
             self.test_files['ut_files'] += CopyOptStrategy().identify(modify_file)
             self.test_files['ut_files'] += OpStrategy().identify(modify_file)
