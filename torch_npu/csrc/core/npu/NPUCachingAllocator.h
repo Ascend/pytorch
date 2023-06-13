@@ -92,6 +92,7 @@ struct DeviceStats {
 // Struct containing info of an allocation block (i.e. a fractional part of a cudaMalloc)..
 struct BlockInfo {
   int64_t size = 0;
+  int32_t gc_counter = 0;
   bool allocated = false;
   bool active = false;
 };

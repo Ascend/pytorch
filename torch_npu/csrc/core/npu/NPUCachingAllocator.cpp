@@ -129,6 +129,8 @@ struct Block {
   Block* prev; // prev block if split from a larger allocation
   Block* next; // next block if split from a larger allocation
   int event_count; // number of outstanding NPU events
+  int gc_count{0}; // counter for prioritizing older / less useful blocks for
+                   // garbage collection
 
   Block(int device, aclrtStream stream, size_t size, BlockPool* pool, void* ptr)
       : device(device),
@@ -140,7 +142,8 @@ struct Block {
         allocated(0),
         prev(nullptr),
         next(nullptr),
-        event_count(0) {}
+        event_count(0),
+        gc_count(0) {}
 
   // constructor for search key
   Block(int device, aclrtStream stream, size_t size)
@@ -153,7 +156,8 @@ struct Block {
         allocated(0),
         prev(nullptr),
         next(nullptr),
-        event_count(0) {}
+        event_count(0),
+        gc_count(0) {}
 
   bool is_split() const {
     return (prev != nullptr) || (next != nullptr);
@@ -221,10 +225,14 @@ class CachingAllocatorConfig {
   static size_t max_split_size() {
     return instance().m_max_split_size;
   }
+  static double garbage_collection_threshold() {
+    return instance().m_garbage_collection_threshold;
+  }
 
  private:
 
   size_t m_max_split_size;
+  double m_garbage_collection_threshold;
 
   static CachingAllocatorConfig &instance() {
     static CachingAllocatorConfig *s_instance = ([]() {
@@ -235,7 +243,9 @@ class CachingAllocatorConfig {
     return *s_instance;
   }
 
-  CachingAllocatorConfig() : m_max_split_size(std::numeric_limits<size_t>::max()) {}
+  CachingAllocatorConfig() 
+      : m_max_split_size(std::numeric_limits<size_t>::max()),
+        m_garbage_collection_threshold(0) {}
 
   void parseArgs() {
       const char *val = getenv("PYTORCH_NPU_ALLOC_CONF");
@@ -262,6 +272,23 @@ class CachingAllocatorConfig {
               val2 = std::max(val2, kLargeBuffer / (1024 * 1024));
               val2 = std::min(val2, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
               m_max_split_size = val2 * 1024 * 1024;
+            } else if (kv[0].compare("garbage_collection_threshold") == 0) {
+              /*
+              * Perform garbage collection of NPU memory blocks to avoid
+              * triggering expensive sync-and-reclaim-all operation. Upon setting
+              * the threshold (e.g., 0.8), the allocator will start reclaiming
+              * blocks if NPU memory capacity usage exceeds the threshold (i.e.,
+              * 80% of total memory).
+              * Values 0.0 and 1.0 are not allowed as they are less meaningful.
+              */
+              double val2 = stod(kv[1]);
+              TORCH_CHECK(
+                  val2 > 0,
+                  "garbage_collect_threshold too small, set it 0.0~1.0");
+              TORCH_CHECK(
+                  val2 < 1.0,
+                  "garbage_collect_threshold too big, set it 0.0~1.0");
+              m_garbage_collection_threshold = val2;
             } else {
               TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", kv[0]);
             }
@@ -338,17 +365,28 @@ class DeviceCachingAllocator {
     params.stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
     params.stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
 
+    // First, try to get a block from the existing pool.
     bool block_found =
       // Search pool
       get_free_block(params)
       // Trigger callbacks and retry search
-      || (trigger_free_memory_callbacks(params) && get_free_block(params))
+      || (trigger_free_memory_callbacks(params) && get_free_block(params));
+
+    // Can't reuse an existing block; try to get a new one.
+    if (!block_found) {
+      // Do garbage collection if the flag is set.
+      if (C10_UNLIKELY(CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+        garbage_collect_cached_blocks();
+      }
       // Attempt allocate
-      || alloc_block(params, false)
-      // Free enough available cached blocks to satisfy alloc and retry alloc.
-      || (release_available_cached_blocks(params) && alloc_block(params, false))
-      // Free all non-split cached blocks and retry alloc.
-      || (release_cached_blocks(true) && alloc_block(params, true));
+      block_found = alloc_block(params, false)
+          // Free enough available cached blocks to satisfy alloc and retry
+          // alloc.
+          || (release_available_cached_blocks(params) &&
+              alloc_block(params, false))
+          // Free all non-split cached blocks and retry alloc.
+          || (release_cached_blocks(true) && alloc_block(params, true));
+    }
 
     if (!block_found) {
       if (params.err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
@@ -771,6 +809,13 @@ class DeviceCachingAllocator {
 
   bool get_free_block(AllocParams& p) {
     BlockPool& pool = *p.pool;
+
+    if (C10_UNLIKELY(CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+      // Track block reuse interval only when garbage collection is enabled.
+      for (auto& b : pool.blocks) {
+        ++b->gc_count;
+      }
+    }
     auto it = pool.blocks.lower_bound(&p.search_key);
     if (it == pool.blocks.end() || (*it)->stream != p.stream())
       return false;
@@ -782,6 +827,7 @@ class DeviceCachingAllocator {
     if ((p.size() >= CachingAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer))
         return false;
     p.block = *it;
+    (*it)->gc_count = 0; // Denote this block has been used
     pool.blocks.erase(it);
     return true;
   }
@@ -793,6 +839,71 @@ class DeviceCachingAllocator {
         FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
     }
     return freed_memory;
+  }
+
+  void garbage_collect_cached_blocks() {
+    // Free unused cached blocks to reclaim NPU memory.
+    // Unlike release_cached_blocks(), this does not enforce synchronization and
+    // therefore should be of less overheads.
+    TORCH_CHECK(allowed_memory_maximum, 
+        "Please first use the `torch_npu.npu.set_per_process_memory_fraction` function, "
+        "so that `allowed_memory_maximum` is not 0")
+
+    size_t gc_threshold = static_cast<size_t>(
+        CachingAllocatorConfig::garbage_collection_threshold() *
+        allowed_memory_maximum);
+    // No need to trigger GC yet
+    if (total_allocated_memory <= gc_threshold) {
+      return;
+    }
+    const auto target_size = total_allocated_memory - gc_threshold;
+    size_t gc_reclaimed = 0;
+
+    // Calculate the total age of the free-able blocks. We'll use it later to
+    // get "avg age" threshold.
+    double total_age = 0.0;
+    int freeable_block_count = 0;
+    for (auto& b : large_blocks.blocks) {
+      if (!b->is_split()) {
+        total_age += b->gc_count;
+        ++freeable_block_count;
+      }
+    }
+    // No free-able blocks?
+    if (freeable_block_count == 0) {
+      return;
+    }
+
+    // Repeat GC until we reach reclaim > target size.
+    bool block_freed = true;
+    while (gc_reclaimed < target_size && block_freed == true &&
+           freeable_block_count > 0) {
+      // Free blocks exceeding this age threshold first.
+      double age_threshold = total_age / freeable_block_count;
+      // Stop iteration if we can no longer free a block.
+      block_freed = false;
+
+      // Free blocks of > avg age. Don't stop upon reaching the target_size,
+      // we don't want this GC to be triggered frequently.
+      auto it = large_blocks.blocks.begin();
+      while (it != large_blocks.blocks.end()) {
+        Block* block = *it;
+        ++it;
+        if (!block->is_split() && block->gc_count >= age_threshold) {
+          block_freed = true;
+          gc_reclaimed += block->size;
+          total_age -= block->gc_count; // Decrement the age
+          freeable_block_count--; // One less block that can be freed
+          release_block(block);
+
+          ASCEND_LOGD("PTA CachingAllocator gc: free = %zu, address = %lu, cached = %lu, allocated = %lu",
+              block->size,
+              block->ptr,
+              stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+              stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
+        }
+      }
+    }
   }
 
   bool alloc_block(AllocParams& p, bool isRetry) {
@@ -893,6 +1004,8 @@ class DeviceCachingAllocator {
     });
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_segments, -1);
+
+    ASCEND_LOGD("pta_memory acl_free: free_size = %zu", block->size);
 
     pool->blocks.erase(block);
     delete block;
