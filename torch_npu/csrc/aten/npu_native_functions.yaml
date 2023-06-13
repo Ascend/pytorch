@@ -1124,9 +1124,12 @@ supported:
  - xlogy_.Tensor
  - func: zero_
    op_api: True
- - zeros
- - zeros.names
- - zeros.out
+ - func: zeros
+   op_api: False
+ - func: zeros.names
+   op_api: False
+ - func: zeros.out
+   op_api: False
  - zeros_like
 
 autograd:
