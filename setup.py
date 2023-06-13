@@ -10,6 +10,7 @@ import sys
 import traceback
 import platform
 from pathlib import Path
+from typing import Union
 
 import distutils.ccompiler
 import distutils.command.clean
@@ -26,6 +27,15 @@ from wheel.bdist_wheel import bdist_wheel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '2.1.0'
 
+def get_sha(pytorch_root: Union[str, Path]) -> str:
+    try:
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=pytorch_root)
+            .decode("ascii")
+            .strip()
+        )
+    except Exception:
+        return UNKNOWN
 
 def generate_torch_npu_version():
     torch_npu_root = Path(__file__).parent
@@ -34,8 +44,10 @@ def generate_torch_npu_version():
         version_path.unlink()
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     modes = stat.S_IWUSR | stat.S_IRUSR
+    sha = get_sha(torch_npu_root)
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
+        f.write("git_version = {}\n".format(repr(sha)))
 
 
 generate_torch_npu_version()
