@@ -10,7 +10,7 @@ class NPULinearOP(object):
     def forward(input_, weight, bias=None):
         if torch.onnx.is_in_onnx_export():
             return torch._C._nn.linear(input_, weight, bias)
-        return torch_npu._C._VariableFunctionsClass.npu_linear(input_, weight, bias)
+        return torch.ops.npu.npu_linear(input_, weight, bias)
 
 
 class NPUTransposeOP(object):
@@ -23,7 +23,7 @@ class NPUTransposeOP(object):
             else:
                 out = torch.permute(self, perm)
             return out
-        out = torch_npu._C._VariableFunctionsClass.npu_transpose(
+        out = torch.ops.npu.npu_transpose(
             self, perm, require_contiguous)
         return out
 
@@ -35,7 +35,7 @@ class NPUBroadcastOP(object):
         if torch.onnx.is_in_onnx_export():
             out = self.expand(size)
             return out
-        out = torch_npu._C._VariableFunctionsClass.npu_broadcast(self, size)
+        out = torch.ops.npu.npu_broadcast(self, size)
         return out
 
 
@@ -46,7 +46,7 @@ class NPUConvTranspose2dOP(object):
         if torch.onnx.is_in_onnx_export():
             return torch.conv_transpose2d(input_, weight, bias, stride, padding,
                                           output_padding, groups, dilation)
-        return torch_npu._C._VariableFunctionsClass.npu_conv_transpose2d(input_, weight, bias,
+        return torch.ops.npu.npu_conv_transpose2d(input_, weight, bias,
                                                                          padding, output_padding,
                                                                          stride, dilation, groups)
 
@@ -57,7 +57,7 @@ class NPUConv2dOP(object):
     def forward(input_, weight, bias, stride, padding, dilation, groups):
         if torch.onnx.is_in_onnx_export():
             return torch.conv2d(input_, weight, bias, stride, padding, dilation, groups)
-        return torch_npu._C._VariableFunctionsClass.npu_conv2d(input_, weight, bias, stride,
+        return torch.ops.npu.npu_conv2d(input_, weight, bias, stride,
                                                                padding, dilation, groups)
 
 
@@ -67,7 +67,7 @@ class NPUConv3dOP(object):
     def forward(input_, weight, bias, stride, padding, dilation, groups):
         if torch.onnx.is_in_onnx_export():
             return torch.conv3d(input_, weight, bias, stride, padding, dilation, groups)
-        return torch_npu._C._VariableFunctionsClass.npu_conv3d(input_, weight, bias, stride,
+        return torch.ops.npu.npu_conv3d(input_, weight, bias, stride,
                                                                padding, dilation, groups)
 
 
@@ -78,7 +78,7 @@ class NPUStrideCopyOP(object):
         if torch.onnx.is_in_onnx_export():
             out = torch.as_strided(self, shape, stride, 0).clone()
             return out
-        out = torch_npu._C._VariableFunctionsClass.npu_stride_copy(self, shape, stride, storage_offset)
+        out = torch.ops.npu.npu_stride_copy(self, shape, stride, storage_offset)
         return out
 
 
@@ -89,7 +89,7 @@ class NPUSortV2OP(object):
         if torch.onnx.is_in_onnx_export():
             out, indices = torch.sort(self, dim, descending)
             return out
-        out = torch_npu._C._VariableFunctionsClass.npu_sort_v2(self, dim, descending)
+        out = torch.ops.npu.npu_sort_v2(self, dim, descending)
         return out
 
 
@@ -99,7 +99,7 @@ class NPULayerNormEvalOP(object):
     def forward(input_, normalized_shape, weight=None, bias=None, eps=1e-05):
         if torch.onnx.is_in_onnx_export():
             return torch.layer_norm(input_, normalized_shape, weight, bias, eps, False)
-        return torch_npu._C._VariableFunctionsClass.npu_layer_norm_eval(input_, normalized_shape, 
+        return torch.ops.npu.npu_layer_norm_eval(input_, normalized_shape, 
                                                                    weight, bias, eps)
 
 
@@ -113,7 +113,7 @@ class NPUReshapeOP(object):
             else:
                 out = torch.reshape(self, shape)
             return out
-        out = torch_npu._C._VariableFunctionsClass.npu_reshape(self, shape, can_refresh)
+        out = torch.ops.npu.npu_reshape(self, shape, can_refresh)
         return out
 
 
@@ -123,7 +123,7 @@ class NPUPadOP(object):
     def forward(input_, paddings):
         if torch.onnx.is_in_onnx_export():
             return torch.nn.functional.pad(input_, paddings[2:] + paddings[:2], "constant", 0)
-        return torch_npu._C._VariableFunctionsClass.npu_pad(input_, paddings)
+        return torch.ops.npu.npu_pad(input_, paddings)
 
 
 class NPUConvolutionOP(object):
@@ -149,7 +149,7 @@ class NPUConvolutionOP(object):
                 raise ValueError("input dim must be 4 or 5, but got ", dim)
             return output
         else:
-            return torch_npu._C._VariableFunctionsClass.npu_convolution(input_, weight, bias,
+            return torch.ops.npu.npu_convolution(input_, weight, bias,
                                                                    stride, padding, dilation, groups)
 
 
@@ -169,7 +169,7 @@ class NPUConvolutionTransposeOP(object):
                 raise ValueError("input dim must be 4 or 5, but got ", dim)
             return output
         else:
-            return torch_npu._C._VariableFunctionsClass.npu_convolution_transpose(
+            return torch.ops.npu.npu_convolution_transpose(
                 input_, weight, bias, padding, output_padding, stride, dilation, groups)
 
 
@@ -182,7 +182,7 @@ class NPUConfusionTransposeOP(object):
                 return self.permute(*perm).contiguous().view(shape)
             else:
                 return self.view(shape).permute(*perm)
-        return torch_npu._C._VariableFunctionsClass.npu_confusion_transpose(self, perm, shape, transpose_first)
+        return torch.ops.npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
 
 class NPUMaxOP(object):
@@ -193,7 +193,7 @@ class NPUMaxOP(object):
             values, indices = torch.max(self, dim, keepdim)
             indices = indices.to(torch.int32)
             return values, indices
-        return torch_npu._C._VariableFunctionsClass.npu_max(self, dim, keepdim)
+        return torch.ops.npu.npu_max(self, dim, keepdim)
 
 
 class NPUBmmV2OP(object):
@@ -202,7 +202,7 @@ class NPUBmmV2OP(object):
     def forward(self, mat2, output_sizes):
         if torch.onnx.is_in_onnx_export():
             return torch.matmul(self, mat2)
-        return torch_npu._C._VariableFunctionsClass.npu_bmmV2(self, mat2, output_sizes)
+        return torch.ops.npu.npu_bmmV2(self, mat2, output_sizes)
 
 
 class NPUDtypeCastOP(object):
@@ -211,7 +211,7 @@ class NPUDtypeCastOP(object):
     def forward(self, dtype):
         if torch.onnx.is_in_onnx_export():
             return self.to(dtype)
-        return torch_npu._C._VariableFunctionsClass.npu_dtype_cast(self, dtype)
+        return torch.ops.npu.npu_dtype_cast(self, dtype)
 
 
 class NPUSiluOP(object):
@@ -220,7 +220,7 @@ class NPUSiluOP(object):
     def forward(self):
         if torch.onnx.is_in_onnx_export():
             return self * torch.sigmoid(self)
-        return torch_npu._C._VariableFunctionsClass.npu_silu(self)
+        return torch.ops.npu.npu_silu(self)
 
 
 class NPUMinOP(object):
@@ -231,7 +231,7 @@ class NPUMinOP(object):
             outputs, indices = torch.min(self, dim, keepdim)
             indices = indices.to(torch.int32)
             return outputs, indices
-        return torch_npu._C._VariableFunctionsClass.npu_min(self, dim, keepdim)
+        return torch.ops.npu.npu_min(self, dim, keepdim)
 
 
 class NPUFusedAttentionLayernormQkvFwdOP(object):
@@ -262,7 +262,7 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
 
             return norm, mean, variance, q_layer, k_layer, v_layer
         
-        return torch_npu._C._VariableFunctionsClass.npu_fused_attention_layernorm_qkv_fwd(
+        return torch.ops.npu.npu_fused_attention_layernorm_qkv_fwd(
                                 x, kernel_query, kernel_key, kernel_value, gamma, beta, 
                                 bias_query=bias_query, bias_key=bias_key, bias_value=bias_value, 
                                 seq_len=seq_len, num_heads=num_heads, eps=eps)

@@ -38,6 +38,7 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      add_storage_methods
+import torch_npu.utils.custom_ops
 from torch_npu.npu.profiler import add_profiler_methods
 from .version import __version__ as __version__
 
@@ -117,12 +118,12 @@ def wrap_torch_error_func(func):
                            f"Use torch_npu.{func.__name__} instead.")
     return wrapper
 
-for name in dir(torch_npu._C._VariableFunctions):
-    if name.startswith('__'):
+for name in dir(torch.ops.npu):
+    if name.startswith('__') or name in ['_dir', 'name']:
         continue
-    globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
+    globals()[name] = getattr(torch.ops.npu, name)
     __all__.append(name)
-    setattr(torch, name, wrap_torch_error_func(getattr(torch_npu._C._VariableFunctions, name)))
+    setattr(torch, name, wrap_torch_error_func(getattr(torch.ops.npu, name)))
 
 all_monkey_patches = [
     ["nn.functional", npu_functional],

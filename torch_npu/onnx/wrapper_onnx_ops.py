@@ -11,7 +11,7 @@ class NPUOneHotOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_one_hot(*args, **kwargs)
+        return torch.ops.npu.npu_one_hot(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: torch.Tensor, num_classes: int = -1, depth: int = 1,
@@ -24,7 +24,7 @@ class NPUSliceOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_slice(*args, **kwargs)
+        return torch.ops.npu.npu_slice(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: torch.Tensor, offsets: List[int], size: List[int]):
@@ -35,7 +35,7 @@ class NPURoiAlignOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_roi_align(*args, **kwargs)
+        return torch.ops.npu.npu_roi_align(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: torch.Tensor, rois: torch.Tensor, spatial_scale: float,
@@ -49,7 +49,7 @@ class NPUIouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_iou(*args, **kwargs)
+        return torch.ops.npu.npu_iou(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, bboxes: torch.Tensor, gtboxes: torch.Tensor, mode: int = 0):
@@ -60,7 +60,7 @@ class NPUBatchNmsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_batch_nms(*args, **kwargs)
+        return torch.ops.npu.npu_batch_nms(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: torch.Tensor, scores: torch.Tensor, score_threshold: float,
@@ -76,7 +76,7 @@ class NPUFastGeluOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.fast_gelu(*args, **kwargs)
+        return torch.ops.npu.fast_gelu(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: torch.Tensor):
@@ -87,7 +87,7 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_fused_attention_score(*args, **kwargs)
+        return torch.ops.npu.npu_fused_attention_score(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, query_layer: Tensor, key_layer: Tensor, value_layer: Tensor, attention_mask: Tensor,
@@ -105,7 +105,7 @@ class NPUCiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_ciou(*args, **kwargs)
+        return torch.ops.npu.npu_ciou(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, gtboxes: Tensor, trans: bool = False, is_cross: bool = True,
@@ -118,7 +118,7 @@ class NPUMultiHeadAttentionOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_multi_head_attention(*args, **kwargs)
+        return tuple(torch.ops.npu.npu_multi_head_attention(*args, **kwargs))
 
     @staticmethod
     def symbolic(g, query: Tensor, key: Tensor, value: Tensor, query_weight: Tensor,  key_weight: Tensor,
@@ -147,7 +147,7 @@ class NPUDiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_diou(*args, **kwargs)
+        return torch.ops.npu.npu_diou(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, gtboxes: Tensor, trans: bool = False, is_cross: bool = False,
@@ -159,7 +159,7 @@ class NPUGiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_giou(*args, **kwargs)
+        return torch.ops.npu.npu_giou(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, gtboxes: Tensor, trans: bool = False, is_cross: bool = False,
@@ -171,7 +171,7 @@ class NPUDeformableConv2dOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_deformable_conv2d(*args, **kwargs)
+        return torch.ops.npu.npu_deformable_conv2d(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, input: Tensor, weight: Tensor, offset: Tensor, bias: Optional[Tensor], kernel_size: List[int],
@@ -188,7 +188,7 @@ class NPUFormatCastOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_format_cast(*args, **kwargs)
+        return torch.ops.npu.npu_format_cast(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, acl_format: int):
@@ -199,7 +199,7 @@ class NPUSoftmaxCrossEntropyWithLogitsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_softmax_cross_entropy_with_logits(
+        return torch.ops.npu.npu_softmax_cross_entropy_with_logits(
             *args, **kwargs)
 
     @staticmethod
@@ -211,7 +211,7 @@ class NPUPsRoiPoolingOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_ps_roi_pooling(*args, **kwargs)
+        return torch.ops.npu.npu_ps_roi_pooling(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, rois: Tensor, spatial_scale: float, group_size: int,
@@ -224,7 +224,7 @@ class NPUGridAssignPositiveOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_grid_assign_positive(*args, **kwargs)
+        return torch.ops.npu.npu_grid_assign_positive(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, overlaps: Tensor, box_responsible_flags: Tensor,
@@ -241,7 +241,7 @@ class NPUIfmrOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_ifmr(*args, **kwargs)
+        return torch.ops.npu.npu_ifmr(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, data: Tensor, data_min: Tensor, data_max: Tensor, cumsum: Tensor,
@@ -256,7 +256,7 @@ class NPUFusedAttentionScoreFwdOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_fused_attention_score_fwd(*args, **kwargs)
+        return torch.ops.npu.npu_fused_attention_score_fwd(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, query_layer: Tensor, key_layer: Tensor, value_layer: Tensor, attention_mask: Tensor,
@@ -274,7 +274,7 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_sign_bits_unpack(*args, **kwargs)
+        return torch.ops.npu.npu_sign_bits_unpack(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, input: Tensor, size: int, dtype: torch.dtype):
@@ -291,7 +291,7 @@ class NPUPtiouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_ptiou(*args, **kwargs)
+        return torch.ops.npu.npu_ptiou(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, bboxes: Tensor, gtboxes: Tensor, mode: int = 0):
@@ -302,7 +302,7 @@ class NPUNormalizeBatchOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_normalize_batch(*args, **kwargs)
+        return torch.ops.npu.npu_normalize_batch(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, seq_len: Tensor, normalize_type: int = 0):
@@ -313,7 +313,7 @@ class NPUNmsV4OP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_nms_v4(*args, **kwargs)
+        return torch.ops.npu.npu_nms_v4(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, scores: Tensor, max_output_size: int, iou_threshold: Tensor,
@@ -326,7 +326,7 @@ class NPUBoundingBoxDecodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_bounding_box_decode(*args, **kwargs)
+        return torch.ops.npu.npu_bounding_box_decode(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, rois: Tensor, deltas: Tensor, means0: float, means1: float, means2: float,
@@ -341,7 +341,7 @@ class NPUBoundingBoxEncodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_bounding_box_encode(*args, **kwargs)
+        return torch.ops.npu.npu_bounding_box_encode(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, anchor_box: Tensor, ground_truth_box: Tensor, means0: float, means1: float,
@@ -355,7 +355,7 @@ class NPUNmsWithMaskOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_nms_with_mask(*args, **kwargs)
+        return torch.ops.npu.npu_nms_with_mask(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, input: Tensor, iou_threshold: float):
@@ -366,7 +366,7 @@ class NPURotatedIouOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_rotated_iou(*args, **kwargs)
+        return torch.ops.npu.npu_rotated_iou(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, query_boxes: Tensor, trans: bool = False, mode: int = 0,
@@ -379,7 +379,7 @@ class NPURotatedOverlapsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_rotated_overlaps(*args, **kwargs)
+        return torch.ops.npu.npu_rotated_overlaps(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, query_boxes: Tensor, trans: bool = False):
@@ -390,7 +390,7 @@ class NPURotatedBoxDecodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_rotated_box_decode(*args, **kwargs)
+        return torch.ops.npu.npu_rotated_box_decode(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, deltas: Tensor, weight: Tensor):
@@ -401,7 +401,7 @@ class NPURotatedBoxEncodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_rotated_box_encode(*args, **kwargs)
+        return torch.ops.npu.npu_rotated_box_encode(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, gt_bboxes: Tensor, weight: Tensor):
@@ -412,7 +412,7 @@ class NPUYoloBoxesEncodeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_yolo_boxes_encode(*args, **kwargs)
+        return torch.ops.npu.npu_yolo_boxes_encode(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, gt_bboxes: Tensor, stride: Tensor, performance_mode: bool = False):
@@ -424,7 +424,7 @@ class NPUMaskedFillRangeOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_masked_fill_range(*args, **kwargs)
+        return torch.ops.npu.npu_masked_fill_range(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, start: Tensor, end: Tensor, value: Tensor, axis: int = -1):
@@ -435,7 +435,7 @@ class NPUAnchorResponseFlagsOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_anchor_response_flags(*args, **kwargs)
+        return torch.ops.npu.npu_anchor_response_flags(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, featmap_size: List[int], stride: List[int], num_base_anchors: int):
@@ -447,7 +447,7 @@ class NPUIndexingOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_indexing(*args, **kwargs)
+        return torch.ops.npu.npu_indexing(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, begin: List[int], end: List[int], stride: List[int],
@@ -463,7 +463,7 @@ class NPUSignBitsPackOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_sign_bits_pack(*args, **kwargs)
+        return torch.ops.npu.npu_sign_bits_pack(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, size: int):
@@ -474,7 +474,7 @@ class NPUStrideAddOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_stride_add(*args, **kwargs)
+        return torch.ops.npu.npu_stride_add(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, other: Tensor, offset1: float, offset2: float, c1_len: int):
@@ -486,7 +486,7 @@ class NPUScatterOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_scatter(*args, **kwargs)
+        return torch.ops.npu.npu_scatter(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, indices: Tensor, updates: Tensor, dim: int):
@@ -497,7 +497,7 @@ class NPULstmOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_lstm(*args, **kwargs)
+        return tuple(torch.ops.npu.npu_lstm(*args, **kwargs))
 
     @staticmethod
     def symbolic(g, input: Tensor, weight: Tensor, bias: Tensor, seqMask: Tensor, h: Tensor,
@@ -513,7 +513,7 @@ class NPULstmCellOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_lstm_cell(*args, **kwargs)
+        return tuple(torch.ops.npu.npu_lstm_cell(*args, **kwargs))
 
     @staticmethod
     def symbolic(g, input: Tensor, w_ih: Tensor, w_hh: Tensor, h: Tensor, c: Tensor,
@@ -530,7 +530,7 @@ class NPUGruOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_gru(*args, **kwargs)
+        return tuple(torch.ops.npu.npu_gru(*args, **kwargs))
 
     @staticmethod
     def symbolic(g, input: Tensor, hx: Tensor, weight_input: Tensor, weight_hidden: Tensor,
@@ -546,7 +546,7 @@ class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
     
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_dropout_with_add_softmax(*args, **kwargs)
+        return torch.ops.npu.npu_dropout_with_add_softmax(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor, x1: Tensor, alpha: float, prob: float, dim: int):
@@ -558,7 +558,7 @@ class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_scaled_masked_softmax(*args, **kwargs)
+        return torch.ops.npu.npu_scaled_masked_softmax(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, x: Tensor, mask: Tensor, scale: float = 1, fixed_triu_mask: bool = False):
@@ -569,7 +569,7 @@ class NPUMishOP(torch.autograd.Function):
     
     @staticmethod
     def forward(ctx, *args, **kwargs):
-        return torch_npu._C._VariableFunctionsClass.npu_mish(*args, **kwargs)
+        return torch.ops.npu.npu_mish(*args, **kwargs)
 
     @staticmethod
     def symbolic(g, self: Tensor):

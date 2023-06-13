@@ -92,11 +92,6 @@ void THNPEvent_init(PyObject *module);
 void THNPReplayGraph_init(PyObject *module);
 PyMethodDef* THNPModule_get_methods();
 
-namespace torch_npu { namespace autograd {
-  void initTorchFunctions(PyObject *module);
-}
-}
-
 static std::vector<PyMethodDef> methods;
 
 extern "C"
@@ -125,8 +120,6 @@ PyObject* initNpuModule(){
   THNPStream_init(module);
   THNPEvent_init(module);
   THNPReplayGraph_init(module);
-
-  torch_npu::autograd::initTorchFunctions(module);
 
   RegisterNPUDeviceProperties(module);
   BindGetDeviceProperties(module);
