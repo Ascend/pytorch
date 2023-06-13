@@ -188,7 +188,6 @@ supported:
  - baddbmm_
  - bartlett_window
  - bartlett_window.periodic
- - batch_norm
  - batch_norm_backward_elemt
  - batch_norm_backward_reduce
  - batch_norm_elemt
@@ -534,8 +533,6 @@ supported:
  - masked_scatter_
  - masked_select
  - masked_select.out
- - matmul
- - matmul.out
  - max
  - max.dim
  - max.dim_max
@@ -786,8 +783,6 @@ supported:
  - soft_margin_loss.out
  - soft_margin_loss_backward
  - soft_margin_loss_backward.grad_input
- - softmax.Dimname
- - softmax.int
  - softplus
  - softplus.out
  - softplus_backward
@@ -937,10 +932,14 @@ autograd:
   - binary_cross_entropy_with_logits_backward
   - selu
   - selu_
-  - matmul_backward
   - l1_loss
   - kl_div
   - native_group_norm
+  - matmul
+  - matmul.out
+  - batch_norm
+  - softmax.Dimname
+  - softmax.int
 
 tocpu:
   - _cholesky_helper
