@@ -154,7 +154,7 @@ class TestMgr():
 
     def analyze(self):
         # determine whether the modification is about hostapi
-        def is_hostapi_enabled(self, modify_file):
+        def is_hostapi_enabled(modify_file):
             if str(Path(modify_file).parent.name) == 'op_api':
                 os.environ['HOSTAPI_ENABLED'] = 'ON'
 
