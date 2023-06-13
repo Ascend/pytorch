@@ -17,16 +17,11 @@
 #include <ATen/Tensor.h>
 #include <c10/util/SmallVector.h>
 
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/core/NPUBridge.h"
-
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu {
@@ -48,6 +43,17 @@ static at::Tensor& add_out_npu_nocheck(const at::Tensor& self, const at::Tensor&
     EXEC_NPU_CMD(aclnnAdd, self, other, alpha, result);
   }
   return result;
+}
+
+static at::Tensor& inplace_add_out_npu_no_check(at::Tensor& self, const at::Tensor& other, const at::Scalar& alpha) {
+  // check if other scalar tensor
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+    c10::Scalar other_scalar = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
+    EXEC_NPU_CMD(aclnnInplaceAdds, self, other_scalar, alpha);
+  } else {
+    EXEC_NPU_CMD(aclnnInplaceAdd, self, other, alpha);
+  }
+  return self;
 }
 
 static at::Tensor self_tensor_to_device(const at::Tensor& tensor, const at::ScalarType result_type) {
@@ -74,9 +80,8 @@ at::Tensor NPUNativeOpApiFunctions::add(const at::Tensor& self, const at::Tensor
   at::Tensor self_cp = self_tensor_to_device(self, result_type);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(output_size, output_tensor.options().dtype(result_type),
-                                                           CalcuOpUtil::GetTensorNpuFormat(output_tensor));
-
+  at::Tensor result =
+      OpPreparation::ApplyTensor(output_size, output_tensor.options().dtype(result_type), output_tensor);
   // calculate the output result of the NPU
   add_out_npu_nocheck(self_cp, other, alpha, result);
   return result;
@@ -89,8 +94,7 @@ at::Tensor NPUNativeOpApiFunctions::add(const at::Tensor& self, const at::Scalar
   auto output_size = input_same_output_size(self);
   at::ScalarType result_type = at::native::result_type(self, other);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(output_size, self.options().dtype(result_type),
-                                                           CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAdds, self, other, alpha, result);
   return result;
@@ -106,12 +110,28 @@ at::Tensor& NPUNativeOpApiFunctions::add_out(const at::Tensor& self, const at::T
   at::ScalarType result_type = at::native::result_type(self, other);
   at::Tensor self_cp = self_tensor_to_device(self, result_type);
 
-  OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(output_tensor), result.scalar_type(),
-                          output_size);
+  OpPreparation::CheckOut({self}, result, result, output_size);
 
   CalcuOpUtil::CheckMemoryOverLaps({self, other}, {result});
   add_out_npu_nocheck(self_cp, other, alpha, result);
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::add_(at::Tensor& self, const at::Tensor& other, const at::Scalar& alpha) {
+  DO_COMPATIBILITY(aclnnInplaceAdd, NPUNativeFunctions::add_(self, other, alpha));
+  DO_COMPATIBILITY(aclnnInplaceAdds, NPUNativeFunctions::add_(self, other, alpha));
+
+  c10::SmallVector<at::Tensor, N> inputs = {self, other};
+  c10::SmallVector<at::Tensor, N> outputs = {self};
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+  inplace_add_out_npu_no_check(self, other, alpha);
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::add_(at::Tensor& self, const at::Scalar& other, const at::Scalar& alpha) {
+  DO_COMPATIBILITY(aclnnInplaceAdds, NPUNativeFunctions::add_(self, other, alpha));
+  EXEC_NPU_CMD(aclnnInplaceAdds, self, other, alpha);
+  return self;
 }
 
 }  // namespace native
