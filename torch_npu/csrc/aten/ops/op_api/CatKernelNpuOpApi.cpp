@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
+#include <ATen/native/TypeProperties.h>
 
 namespace at_npu {
 namespace native {
@@ -111,6 +112,7 @@ at::Tensor& NPUNativeOpApiFunctions::cat_out(at::TensorList tensors, at::Dimname
 at::Tensor NPUNativeOpApiFunctions::_cat(at::TensorList tensors, int64_t dim) {
   DO_COMPATIBILITY(aclnnCat, NPUNativeFunctions::_cat(tensors, dim));
   c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list_opapi(tensors);
+  at::ScalarType high_type = at::native::result_type(tensors);
 
   int64_t dim_post_expr = 0;
   if (inputTensors.size() > 0) {
@@ -123,7 +125,8 @@ at::Tensor NPUNativeOpApiFunctions::_cat(at::TensorList tensors, int64_t dim) {
 
   // calculate the output size
   auto outputSize = cat_npu_output_size_opapi(inputTensors, dim);
-  at::Tensor result = OpPreparation::ApplyTensor(inputTensors[0], outputSize);
+  at::Tensor result =
+      OpPreparation::ApplyTensor(outputSize, inputTensors[0].options().dtype(high_type), inputTensors[0]);
   NPUNativeOpApiFunctions::_cat_out(tensors, dim, result);
   return result;
 }
