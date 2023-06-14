@@ -837,9 +837,12 @@ supported:
  - range
  - range.out
  - range.step
- - reciprocal
- - reciprocal.out
- - reciprocal_
+ - func: reciprocal
+   op_api: False
+ - func: reciprocal.out
+   op_api: False
+ - func: reciprocal_
+   op_api: False
  - reflection_pad1d
  - reflection_pad1d.out
  - reflection_pad1d_backward
