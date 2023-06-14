@@ -211,10 +211,13 @@ supported:
  - func: batch_norm_backward_elemt
    op_api: False
  - batch_norm_backward_reduce
- - batch_norm_elemt
- - batch_norm_elemt.out
+ - func: batch_norm_elemt
+   op_api: False
+ - func: batch_norm_elemt.out
+   op_api: False
  - batch_norm_gather_stats_update
- - batch_norm_gather_stats_with_counts
+ - func: batch_norm_gather_stats_with_counts
+   op_api: False
  - batch_norm_reduce
  - batch_norm_stats
  - func: bernoulli
