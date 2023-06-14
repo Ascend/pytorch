@@ -45,6 +45,11 @@ static at::Tensor self_tensor_to_device(const at::Tensor &tensor, const at::Scal
   return tensor;
 }
 
+at::Tensor sub_dest_output(const at::Tensor& self, const at::Tensor& other) {
+  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
+  return is_self_wrapped ? other : self;
+}
+
 at::Tensor &NPUNativeOpApiFunctions::sub_out(
     const at::Tensor &self,
     const at::Tensor &other,
@@ -52,8 +57,7 @@ at::Tensor &NPUNativeOpApiFunctions::sub_out(
     at::Tensor &result) {
   DO_COMPATIBILITY(aclnnSub, NPUNativeFunctions::sub_out(self, other, alpha, result));
   DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub_out(self, other, alpha, result));
-  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
-  at::Tensor output_tensor = is_self_wrapped ? other : self;
+  at::Tensor output_tensor = sub_dest_output(self, other);
   auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType result_type = at::native::result_type(self, other);
   at::Tensor self_converted = self_tensor_to_device(self, result_type);
@@ -71,11 +75,13 @@ at::Tensor &NPUNativeOpApiFunctions::sub_out(
 at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha) {
   DO_COMPATIBILITY(aclnnSub, NPUNativeFunctions::sub(self, other, alpha));
   DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub(self, other, alpha));
+  at::Tensor output_tensor = sub_dest_output(self, other);
   auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType result_type = at::native::result_type(self, other);
   at::Tensor self_converted = self_tensor_to_device(self, result_type);
 
-  auto result = OpPreparation::ApplyTensor(output_size, self.options(), self);
+  auto result = OpPreparation::ApplyTensor(output_size, output_tensor.options().dtype(result_type),
+                                           output_tensor);
   sub_out_npu_nocheck(self_converted, other, alpha, result);
   return result;
 }
@@ -83,7 +89,8 @@ at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Tensor
 at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha) {
   DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub(self, other, alpha));
   auto output_size = input_same_output_size(self);
-  auto result = OpPreparation::ApplyTensor(output_size, self.options(), self);
+  at::ScalarType result_type = at::native::result_type(self, other);
+  auto result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
   EXEC_NPU_CMD(aclnnSubs, self, other, alpha, result);
   return result;
 }
