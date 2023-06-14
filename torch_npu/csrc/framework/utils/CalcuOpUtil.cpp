@@ -190,6 +190,22 @@ c10::Scalar CalcuOpUtil::ConvertTensorToScalar(const at::Tensor &tensor) {
     c10::Half value = *(c10::Half *)aclInput->data_ptr();
     c10::Scalar scalar(value);
     expScalar = scalar;
+  } else if (aclInput->scalar_type() == at::ScalarType::Bool) {
+    int8_t value = *(int8_t *)aclInput->data_ptr();
+    c10::Scalar scalar(value);
+    expScalar = scalar;
+  } else if (aclInput->scalar_type() == at::ScalarType::ComplexDouble) {
+    c10::complex<double> value = *(c10::complex<double> *)aclInput->data_ptr();
+    c10::Scalar scalar(value);
+    expScalar = scalar;
+  } else if (aclInput->scalar_type() == at::ScalarType::ComplexFloat) {
+    c10::complex<float> value = *(c10::complex<float> *)aclInput->data_ptr();
+    c10::Scalar scalar(value);
+    expScalar = scalar;
+  } else if (aclInput->scalar_type() == at::ScalarType::BFloat16) {
+    c10::BFloat16 value = *(c10::BFloat16 *)aclInput->data_ptr();
+    c10::Scalar scalar(value);
+    expScalar = scalar;
   } else {
     NPU_LOGE("unsupport scalar type! ");
     NPU_CHECK_ERROR(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
