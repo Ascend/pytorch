@@ -150,6 +150,8 @@ supported:
    op_api: True
  - func: all.out
    op_api: True
+ - func: all.all_out
+   op_api: False
  - amax
  - amax.out
  - amin
@@ -158,8 +160,10 @@ supported:
    op_api: False
  - func: any.all_out
    op_api: False
- - any.dim
- - any.out
+ - func: any.dim
+   op_api: False
+ - func: any.out
+   op_api: False
  - func: arange
    op_api: True
  - func: arange.out

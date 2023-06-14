@@ -72,6 +72,36 @@ at::Tensor& NPUNativeFunctions::all_out(
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::all_out(const at::Tensor& self, at::Tensor& result) {
+  at::IntArrayRef dims;
+  auto output_size = reduce_ops_npu_output_size(self, dims, false);
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      CalcuOpUtil::GetTensorNpuFormat(result),
+      self.scalar_type(),
+      output_size);
+
+  bool self_is_bool = (self.scalar_type() == at::ScalarType::Bool) ? true : false;
+  at::Tensor self_cast = self_is_bool ? self : NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
+  at::Tensor result_cast = self_is_bool ? result : NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Bool);
+
+  if (!NpuUtils::check_match(&result_cast)) {
+    at::Tensor contiguous_result_cast = NpuUtils::format_contiguous(result_cast);
+    all_out_npu_nocheck(contiguous_result_cast, self_cast, CalcuOpUtil::GetDimlistForTensor(self), false);
+    NpuUtils::format_fresh_view(result_cast, contiguous_result_cast);
+  } else {
+    all_out_npu_nocheck(result_cast, self_cast, CalcuOpUtil::GetDimlistForTensor(self), false);
+  }
+
+  if (!self_is_bool) {
+    result_cast = NPUNativeFunctions::npu_dtype_cast(result_cast, result.scalar_type());
+    result.copy_(result_cast);
+  }
+
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::all(const at::Tensor& self, int64_t dim, bool keepdim) {
   at::Tensor self_cast = self.scalar_type() == at::ScalarType::Bool ?
       self : NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
