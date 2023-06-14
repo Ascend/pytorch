@@ -219,10 +219,6 @@ if (NOT DEFINED BUILD_LIBTORCH)
   target_link_libraries(${PLUGIN_NAME} PUBLIC ${PYTORCH_INSTALL_DIR}/lib/libtorch_python.so)
 endif()
 
-file(TOUCH ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/cust_opapi.c)
-add_library(cust_opapi SHARED ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/cust_opapi.c)
-target_link_libraries(${PLUGIN_NAME} PUBLIC -Wl,--no-as-needed cust_opapi -Wl,-as-needed)
-
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libascendcl.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
