@@ -30,12 +30,12 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_score(
     const at::Tensor &value_layer, const c10::optional<at::Tensor> &pse,
     const c10::optional<at::Tensor> &drop_mask, const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask, bool query_transpose, bool key_transpose, bool value_transpose,
-    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool is_transpose_out)
+    double scale, double keep_prob, bool is_transpose_out, int64_t pre_tockens, int64_t next_tockens)
 {
   return NPUNativeOpApiFunctions::npu_flash_attention_score(
       query_layer, key_layer, value_layer, pse, drop_mask, padding_mask,
       atten_mask, query_transpose, key_transpose, value_transpose, scale, keep_prob,
-      pre_tockens, next_tockens, is_transpose_out);
+      is_transpose_out, pre_tockens, next_tockens);
 }
 } // namespace native
 } // namespace at_npu

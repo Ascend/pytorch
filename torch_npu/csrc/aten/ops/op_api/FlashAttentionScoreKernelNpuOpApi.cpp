@@ -31,7 +31,7 @@ public:
       const at::Tensor &value_layer, const c10::optional<at::Tensor> &pse_opt,
       const c10::optional<at::Tensor> &drop_mask_opt, const c10::optional<at::Tensor> &padding_mask_opt,
       const c10::optional<at::Tensor> &atten_mask_opt, bool query_transpose, bool key_transpose, bool value_transpose,
-      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool is_transpose_out)
+      double scale, double keep_prob, bool is_transpose_out, int64_t pre_tockens, int64_t next_tockens)
   {
     const at::Tensor &pse = pse_opt.value_or(at::Tensor());
     const at::Tensor &padding_mask = padding_mask_opt.value_or(at::Tensor());
@@ -56,7 +56,7 @@ public:
     EXEC_NPU_CMD_CLEAR_WORKSPACE(aclnnFlashAttentionScore, query_layer, key_layer, value_layer,
         pse_opt, drop_mask_opt, padding_mask_opt, atten_mask_opt,
         query_transpose, key_transpose, value_transpose,
-        scale, keep_prob, is_transpose_out, is_flash,
+        scale, keep_prob, is_transpose_out, pre_tockens, next_tockens, is_flash,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
     at::AutoNonVariableTypeMode g;
@@ -116,11 +116,11 @@ std::vector<at::Tensor> NPUNativeOpApiFunctions::npu_flash_attention_score(
     const at::Tensor &value_layer, const c10::optional<at::Tensor> &pse,
     const c10::optional<at::Tensor> &drop_mask, const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask, bool query_transpose, bool key_transpose, bool value_transpose,
-    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool is_transpose_out)
+    double scale, double keep_prob, bool is_transpose_out, int64_t pre_tockens, int64_t next_tockens)
 {
   return NPUFlashAttentionScoreFunction::apply(query_layer, key_layer, value_layer, pse, drop_mask, padding_mask,
       atten_mask, query_transpose, key_transpose, value_transpose, scale, keep_prob,
-      pre_tockens, next_tockens, is_transpose_out);
+      is_transpose_out, pre_tockens, next_tockens);
 }
 } // namespace native
 } // namespace at_npu
