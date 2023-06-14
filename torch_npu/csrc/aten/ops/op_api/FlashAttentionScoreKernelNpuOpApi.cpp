@@ -53,11 +53,11 @@ public:
 
     bool is_flash = true;
     at::Tensor softmax_out;
-    EXEC_NPU_CMD(aclnnFlashAttentionScore, query_layer, key_layer, value_layer,
-                 pse_opt, drop_mask_opt, padding_mask_opt, atten_mask_opt,
-                 query_transpose, key_transpose, value_transpose,
-                 scale, keep_prob, is_transpose_out, is_flash,
-                 softmax_max, softmax_sum, softmax_out, attention_score);
+    EXEC_NPU_CMD_CLEAR_WORKSPACE(aclnnFlashAttentionScore, query_layer, key_layer, value_layer,
+        pse_opt, drop_mask_opt, padding_mask_opt, atten_mask_opt,
+        query_transpose, key_transpose, value_transpose,
+        scale, keep_prob, is_transpose_out, is_flash,
+        softmax_max, softmax_sum, softmax_out, attention_score);
 
     at::AutoNonVariableTypeMode g;
 

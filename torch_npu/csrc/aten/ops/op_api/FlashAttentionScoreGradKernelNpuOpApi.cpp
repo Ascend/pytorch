@@ -53,10 +53,11 @@ std::vector<at::Tensor> NPUNativeOpApiFunctions::npu_flash_attention_score_grad(
   dk = OpPreparation::ApplyTensor(key);
   dv = OpPreparation::ApplyTensor(value);
 
-  EXEC_NPU_CMD(aclnnFlashAttentionScoreGrad, query, key, value, dy, pse, drop_mask, padding_mask, atten_mask,
-               softmax_max, softmax_sum, softmax_in, attention_in, scale_value, keep_prob, query_transpose,
-               key_transpose, value_transpose, dy_transpose, is_transpose_attention, pre_tockens, next_tockens,
-               is_flash, dq, dk, dv);
+  EXEC_NPU_CMD_CLEAR_WORKSPACE(
+      aclnnFlashAttentionScoreGrad, query, key, value, dy, pse, drop_mask, padding_mask, atten_mask,
+      softmax_max, softmax_sum, softmax_in, attention_in, scale_value, keep_prob, query_transpose,
+      key_transpose, value_transpose, dy_transpose, is_transpose_attention, pre_tockens, next_tockens,
+      is_flash, dq, dk, dv);
 
   return {dq, dk, dv,
           at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(),
