@@ -102,8 +102,13 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
                 f_str.write(line)
 
         f_str.seek(0)
-        custom_data = yaml.safe_load(f_str)
-        custom_es = custom_data['custom'] + custom_data['custom_autograd']
+        source_data = yaml.safe_load(f_str)
+        custom_es = source_data['custom'] + source_data['custom_autograd']
+        all_data = []
+        if source_data['supported']:
+            all_data += source_data['supported']
+        if source_data['autograd']:
+            all_data += source_data['autograd']
 
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
@@ -112,11 +117,10 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
             funcs = e.get('func')
-            if custom_data['supported']:
-                for op in custom_data['supported']:
-                    if op['func'] == funcs.split('(')[0]:
-                        op['func'] = funcs
-                        e.update(op)
+            for op in all_data:
+                if op['func'] == funcs.split('(')[0]:
+                    op['func'] = funcs
+                    e.update(op)
             with context(lambda: f'in {path}:\n  {funcs}'):
                 func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
@@ -192,6 +196,7 @@ def parse_backend_yaml(
             raise Exception(f'Wrong format for function: {item["func"]}')
         
     supported = [op['func'] if isinstance(op, Dict) else op for op in supported]
+    supported_autograd = [op['func'] if isinstance(op, Dict) else op for op in supported_autograd]
 
     custom_autograd = yaml_values.pop('custom_autograd', [])
     assert isinstance(custom_autograd, list), f'expected "autograd" to be a list, but got: {custom_autograd}'
@@ -261,6 +266,7 @@ def error_on_missing_kernels(
     assert class_name is not None
 
     actual_backend_kernel_name_counts = Counter()
+    opapi_actual_backend_kernel_name_counts = Counter()
     for cur_dir, _, filenames in os.walk(kernel_def_file_path):
         for filename in filenames:
             if not filename.endswith('.cpp'):
@@ -274,6 +280,8 @@ def error_on_missing_kernels(
 
             kernel_defn_regex = rf'{class_name}::([\w\d]*)\([^\)]*\)\s*{{'
             actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
+            opapi_kernel_defn_regex = rf'NPUNativeOpApiFunctions::([\w\d]*)\([^\)]*\)\s*{{'
+            opapi_actual_backend_kernel_name_counts += Counter(re.findall(opapi_kernel_defn_regex, backend_defns))
 
     expected_backend_op_names: List[OperatorName] = \
         list(backend_indices[backend_key].index.keys()) + list(backend_indices[autograd_key].index.keys())
@@ -287,7 +295,11 @@ def error_on_missing_kernels(
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
         expected_overload_count = len(funcs)
         actual_overload_count = actual_backend_kernel_name_counts[expected_name]
-        if expected_overload_count != actual_overload_count:
+        opapi_actual_overload_count = opapi_actual_backend_kernel_name_counts[expected_name]
+        if expected_overload_count not in [
+            actual_overload_count,
+            opapi_actual_overload_count,
+        ]:
             def create_decl(f: NativeFunction) -> str:
                 with native_function_manager(f):
                     return DispatcherSignature.from_schema(f.func).decl()
