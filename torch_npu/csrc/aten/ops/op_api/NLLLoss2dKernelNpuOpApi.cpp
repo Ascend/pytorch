@@ -38,7 +38,7 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> nll_loss
 tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::nll_loss2d_forward_out(
     const at::Tensor& self, const at::Tensor& target, const c10::optional<at::Tensor>& weight_opt, int64_t reduction,
     int64_t ignore_index, at::Tensor& result, at::Tensor& total_weight) {
-  DO_COMPATIBILITY(aclnnNllLoss2d, NPUNativeFunctions::nll_loss2d_forward_out(self, target, weight_opt, reduction,
+  DO_COMPATIBILITY(aclnnNLLLoss2d, NPUNativeFunctions::nll_loss2d_forward_out(self, target, weight_opt, reduction,
                                                                               ignore_index, result, total_weight));
   at::Tensor weight_tensor = c10::value_or_else(weight_opt, [] { return at::Tensor(); });
   if (!weight_tensor.defined()) {
@@ -46,7 +46,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::nll_loss2d_forward_out(
   }
 
   OpPreparation::CheckMemory({self, target, weight_tensor}, {result, total_weight});
-  EXEC_NPU_CMD(aclnnNllLoss2d, self, target, weight_tensor, reduction, ignore_index, result, total_weight);
+  EXEC_NPU_CMD(aclnnNLLLoss2d, self, target, weight_tensor, reduction, ignore_index, result, total_weight);
   return tuple<at::Tensor&, at::Tensor&>(result, total_weight);
 }
 
@@ -54,7 +54,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::nll_loss2d_forward(const 
                                                                           const at::Tensor& target,
                                                                           const c10::optional<at::Tensor>& weight_opt,
                                                                           int64_t reduction, int64_t ignore_index) {
-  DO_COMPATIBILITY(aclnnNllLoss2d,
+  DO_COMPATIBILITY(aclnnNLLLoss2d,
                    NPUNativeFunctions::nll_loss2d_forward(self, target, weight_opt, reduction, ignore_index));
   // calculate the output size
   auto outputSizes = nll_loss2d_npu_output_size(self, target, reduction, ignore_index);
