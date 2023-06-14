@@ -1034,9 +1034,12 @@ supported:
  - tanh_
  - tanh_backward
  - tanh_backward.grad_input
- - threshold
- - threshold.out
- - threshold_
+ - func: threshold
+   op_api: False
+ - func: threshold.out
+   op_api: False
+ - func: threshold_
+   op_api: False
  - threshold_backward
  - to.device
  - func: to.dtype
