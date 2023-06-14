@@ -223,9 +223,7 @@ class RegisterDispatchKeyCPU:
             name = sig.name()
             returns_type = sig.returns_type().cpp_type()
             args = sig.arguments()
-
-            if True not in ['Tensor' in str(arg.type) for arg in args]:
-                return None
+            
             if 'quant' in current_backend_index.get_kernel(f).kernel:
                 return None
             if '_th_' in current_backend_index.get_kernel(f).kernel:
