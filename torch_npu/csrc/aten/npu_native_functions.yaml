@@ -731,6 +731,8 @@ supported:
  - mv.out
  - func: native_batch_norm
    op_api: True
+ - func: native_batch_norm.out
+   op_api: True
  - func: native_batch_norm_backward
    op_api: True
  - native_dropout
