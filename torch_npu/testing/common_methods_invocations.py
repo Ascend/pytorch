@@ -23,8 +23,7 @@ import numpy as np
 import torch
 from torch.testing import make_tensor
 from torch.testing._internal import common_methods_invocations
-from torch.testing._internal.common_dtype import (_dispatch_dtypes, floating_and_complex_types_and,
-                                                  floating_types, floating_types_and, complex_types)
+from torch.testing._internal.common_dtype import _dispatch_dtypes, floating_and_complex_types_and
 from torch.testing._internal.common_methods_invocations import (OpInfo as Of_OpInfo,
                                                                 UnaryUfuncInfo as Of_UnaryUfuncInfo,
                                                                 BinaryUfuncInfo as Of_BinaryUfuncInfo,
@@ -569,8 +568,35 @@ op_db: List[OpInfo] = [
             'test_variant_consistency_eager' : (2, 5, ),
         },
         skips=(
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
             dtypes=[torch.float32]),
+        ),
+    ),
+    OpInfo('linalg.cross',
+        ref=lambda x, y, dim=-1: np.cross(x, y, axis=dim),
+        op=torch.linalg.cross,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32,)),
+        aten_name='linalg_cross',
+        sample_inputs_func=common_methods_invocations.sample_inputs_cross,
+        supports_fwgrad_bwgrad=True,
+        supports_forward_ad=True,
+    ),
+    OpInfo('cat',
+        ref=lambda input_seq, dim=0, **kwargs: np.concatenate(input_seq, axis=dim, **kwargs),
+        aliases=('concat',),
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32,)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_cat_concat,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        assert_autodiffed=True,
+        skips=(
+            DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_out_warning'),
+            # RuntimeError: Arguments for call not valid.
+            #               Expected a value of type 'List[Tensor]' for argument
+            #               'tensors' but instead found type 'Tensor (inferred)'.
+            DecorateInfo(unittest.expectedFailure, 'TestJit', 'test_jit_alias_remapping'),
         ),
     ),
     OpInfo(
