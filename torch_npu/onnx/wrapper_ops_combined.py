@@ -275,7 +275,7 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
             v_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
                     torch.nn.functional.linear(norm, kernel_value, bias_value), new_shape)
 
-            return norm, mean, variance, q_layer, k_layer, v_layer
+            return [norm, q_layer, k_layer, v_layer, mean, variance]
         
         return torch_npu._C._VariableFunctionsClass.npu_fused_attention_layernorm_qkv_fwd(
                                 x, kernel_query, kernel_key, kernel_value, gamma, beta, 
