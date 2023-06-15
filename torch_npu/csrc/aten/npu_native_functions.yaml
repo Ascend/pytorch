@@ -52,7 +52,8 @@ supported:
  - _embedding_bag_backward
  - _embedding_bag_forward_only
  - _index_copy_
- - _index_put_impl_
+ - func: _index_put_impl_
+   op_api: False
  - _linalg_svd.U
  - _local_scalar_dense
  - func: _log_softmax
@@ -334,7 +335,8 @@ supported:
  - convolution_overrideable
  - count_nonzero
  - count_nonzero.dim_IntList
- - copy_
+ - func: copy_
+   op_api: False
  - copy_memory_
  - func: cos
    op_api: True
@@ -538,7 +540,8 @@ supported:
  - image_normalize
  - image_normalize_
  - img_to_tensor
- - index.Tensor
+ - func: index.Tensor
+   op_api: False
  - index_add
  - index_add.dimname
  - index_add.out
@@ -548,8 +551,10 @@ supported:
  - index_fill_.int_Tensor
  - func: index_select
    op_api: True
- - index_put
- - index_put_
+ - func: index_put
+   op_api: False
+ - func: index_put_
+   op_api: False
  - index_select.dimname
  - index_select.dimname_out
  - func: index_select.out
@@ -1047,7 +1052,8 @@ supported:
    op_api: False
  - func: threshold_
    op_api: False
- - threshold_backward
+ - func: threshold_backward
+   op_api: True
  - to.device
  - func: to.dtype
    op_api: True
