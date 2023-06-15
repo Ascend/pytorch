@@ -24,7 +24,6 @@ namespace at_npu
           .Output(result)
           .Run();
 
-      result = at::squeeze(result, 1);
       npu_fast_reshape_(result);
       return result;
     }
@@ -38,12 +37,16 @@ namespace at_npu
           self.scalar_type(),
           {self.size(0)});
 
-      result = at::unsqueeze(result, 1);
-      OpPipeWithDefinedOut pipe;
-      return pipe.CheckMemory({self, vec}, {result})
-          .Func([&self, &vec](at::Tensor &result)
-                { mv_out_npu_nocheck(self, vec, result); })
-          .Call(result);
+      result.unsqueeze_(1);
+      if (!NpuUtils::check_match(&result)) {
+        at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
+        mv_out_npu_nocheck(self, vec, contiguousResult);
+        NpuUtils::format_fresh_view(result, contiguousResult);
+      } else {
+        mv_out_npu_nocheck(self, vec, result);
+      }
+      result.squeeze_(1);
+      return result;
     }
 
     at::Tensor NPUNativeFunctions::mv(const at::Tensor &self, const at::Tensor &vec)
@@ -52,6 +55,7 @@ namespace at_npu
       at::Tensor result = OpPreparation::ApplyTensor(self, {self.size(0), 1});
 
       mv_out_npu_nocheck(self, vec, result);
+      result.squeeze_(1);
 
       return result;
     }
