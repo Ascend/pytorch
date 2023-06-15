@@ -133,6 +133,22 @@ namespace native {
       return shape;
     }
 
+    c10::SmallVector<int64_t, SIZE> mse_loss_npu_output_size(
+        const at::Tensor& self,
+        const at::Tensor& target,
+        int64_t reduction) {
+      auto shape = broadcast_ops_npu_output_size(self, target);
+      if (reduction == at::Reduction::None) {
+        return shape;
+      } else {
+        c10::SmallVector<int64_t, SIZE> output_size;
+        for (int i = 1; i < shape.size(); i++) {
+          output_size.emplace_back(shape[i]);
+        }
+        return output_size;
+      }
+    }
+    
     c10::SmallVector<int64_t, SIZE> adaptive_avg_pool3d_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef output_size)
