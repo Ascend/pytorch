@@ -273,8 +273,10 @@ supported:
  - bitwise_xor_.Tensor
  - blackman_window
  - blackman_window.periodic
- - bmm
- - bmm.out
+ - func: bmm
+   op_api: False
+ - func: bmm.out
+   op_api: False
  - func: cat
    op_api: True
  - func: cat.names
