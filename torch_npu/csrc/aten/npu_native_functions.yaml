@@ -1067,9 +1067,12 @@ supported:
  - func: tril_
    op_api: True
  - tril_indices
- - triu
- - triu.out
- - triu_
+ - func: triu
+   op_api: False
+ - func: triu.out
+   op_api: False
+ - func: triu_
+   op_api: False
  - triu_indices
  - true_divide.Scalar
  - true_divide.Tensor
