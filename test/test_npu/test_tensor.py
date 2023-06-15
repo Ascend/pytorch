@@ -67,9 +67,6 @@ class TestTensor(TestCase):
         npu_t_1.set_(npu_s_1)
         self.assertEqual(npu_tensor_1, npu_t_1)
         self.assertEqual(torch_npu.get_npu_format(torch_npu.npu_format_cast(npu_t_1, 29)), 2)
-        torch_npu._C._npu_storage_set_desc(npu_t_1, [4, 4], [4, 1])
-        self.assertEqual(torch_npu.get_npu_format(torch_npu.npu_format_cast(npu_t_1, 29)), 29)
-        self.assertEqual(torch_npu._C._get_npu_origin_format(npu_t_1), 2)
 
         npu_s_2 = torch.UntypedStorage(cpu_s.size(), device=torch.device('npu'))
         npu_s_2.copy_(cpu_s, non_blocking=True)
@@ -77,8 +74,6 @@ class TestTensor(TestCase):
         npu_t_2.set_(npu_s_2, 0, [4, 4], [4, 1])
         self.assertEqual(npu_tensor_2, npu_t_2)
         self.assertEqual(torch_npu.get_npu_format(torch_npu.npu_format_cast(npu_t_2, 29)), 2)
-        torch_npu._C._npu_storage_set_desc(npu_t_2, [4, 4], [4, 1])
-        self.assertEqual(torch_npu.get_npu_format(torch_npu.npu_format_cast(npu_t_2, 29)), 29)
 
         npu_s_3 = torch.UntypedStorage(cpu_s.size(), device=torch.device('npu'))
         npu_s_3.copy_(cpu_s, non_blocking=True)

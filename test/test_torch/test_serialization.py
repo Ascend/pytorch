@@ -12,6 +12,9 @@ torch_npu.npu.set_device("npu:0")
 
 
 # acl format
+FORMAT_NCHW = 0
+FORMAT_ND =2
+FORMAT_NC1HWC0 = 3
 FORMAT_NZ = 29
 
 
@@ -73,16 +76,26 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), m_loaded)
             n_loaded = torch.load(path, map_location=torch.device("cpu"))
             self.assertRtolEqual(x.cpu(), n_loaded)
-    
+
     def test_save_npu_format(self):
-        x = torch.randn(2, 3, 224, 224).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
+            x = torch_npu.npu_format_cast(torch.randn(2, 3, 224, 224).npu(), FORMAT_NCHW)
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertRtolEqual(torch_npu.get_npu_format(x),
                                  torch_npu.get_npu_format(x_loaded))
-            x = torch_npu.npu_format_cast(x, FORMAT_NZ)
+            x = torch_npu.npu_format_cast(torch.randn(2, 3, 224, 224).npu(), FORMAT_ND)
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertRtolEqual(torch_npu.get_npu_format(x),
+                                 torch_npu.get_npu_format(x_loaded))            
+            x = torch_npu.npu_format_cast(torch.randn(2, 3, 224, 224).npu(), FORMAT_NC1HWC0)
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertRtolEqual(torch_npu.get_npu_format(x),
+                                 torch_npu.get_npu_format(x_loaded))
+            x = torch_npu.npu_format_cast(torch.randn(2, 3, 224, 224).npu(), FORMAT_NZ)
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertRtolEqual(torch_npu.get_npu_format(x),
@@ -103,6 +116,13 @@ class TestSerialization(TestCase):
             torch.save(y, path)
             y_loaded = torch.load(path)
             self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
+        
+        y = x[:1, :, :]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(y, path)
+            y_loaded = torch.load(path)
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu())
 
     def test_load_maplocation(self):
         x = torch.randn(2, 3)

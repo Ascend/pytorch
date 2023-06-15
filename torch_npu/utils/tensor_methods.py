@@ -3,8 +3,6 @@ from functools import wraps
 import torch
 
 import torch_npu
-from .storage import _reduce_ex
-
 
 
 def wrap_tensor_error_func(func):
@@ -67,4 +65,3 @@ def add_tensor_methods():
     torch.Tensor.copy_memory_ = copy_memory_
     torch.Tensor.one_ = one_
     torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
-    torch.Tensor.__reduce_ex__ = _reduce_ex
