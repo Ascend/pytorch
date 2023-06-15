@@ -948,9 +948,12 @@ supported:
    op_api: True
  - func: sign_
    op_api: True
- - sin
- - sin.out
- - sin_
+ - func: sin
+   op_api: False
+ - func: sin.out
+   op_api: False
+ - func: sin_
+   op_api: False
  - sinh
  - sinh.out
  - sinh_
