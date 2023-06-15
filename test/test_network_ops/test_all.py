@@ -73,7 +73,7 @@ class TestAll(TestCase):
         format_list = [-1]
         for item in itertools.product(dtype_list, format_list, shape_list):
             cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            _, npu_output1 = create_common_tensor(item, 0, 1)
+            _, npu_output1 = self.create_bool_tensor(item[2], 0, 1)
             if item[0] == np.float16:
                 cpu_input = cpu_input.to(torch.float32)
             cpu_output = self.cpu_op_dim_exec(cpu_input, 0)
