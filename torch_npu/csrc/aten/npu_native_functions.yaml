@@ -1031,8 +1031,10 @@ supported:
    op_api: False
  - func: sum.dim_IntList
    op_api: False
- - take
- - take.out
+ - func: take
+   op_api: False
+ - func: take.out
+   op_api: False
  - tan
  - tan.out
  - tan_
