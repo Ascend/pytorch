@@ -265,6 +265,19 @@ class TestLt(TestCase):
         npu_output = self.npu_op_exec(npu_input2, npu_input4)
         self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_lt_diff_device(self):
+        input1 = cmp1 = torch.randn(5, 5)
+        input2 = cmp2 = torch.tensor(1)
+        diff_device_out = torch.lt(input1.npu(), input2)
+        diff_device_cmp = torch.lt(cmp1, cmp2)
+        self.assertRtolEqual(diff_device_out, diff_device_cmp)
+
+        input1 = cmp1 = torch.tensor(1)
+        input2 = cmp2 = torch.tensor(2)
+        diff_device_out = torch.lt(input1, input2.npu())
+        diff_device_cmp = torch.lt(cmp1, cmp2)
+        self.assertRtolEqual(diff_device_out, diff_device_cmp)
+
 
 if __name__ == "__main__":
     run_tests()
