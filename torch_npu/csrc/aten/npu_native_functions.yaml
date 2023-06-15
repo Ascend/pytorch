@@ -223,7 +223,8 @@ supported:
  - func: batch_norm_gather_stats_with_counts
    op_api: False
  - batch_norm_reduce
- - batch_norm_stats
+ - func: batch_norm_stats
+   op_api: False
  - func: bernoulli
    op_api: True
  - func: bernoulli.out
@@ -238,8 +239,10 @@ supported:
    op_api: True
  - func: binary_cross_entropy.out
    op_api: True
- - binary_cross_entropy_backward
- - binary_cross_entropy_backward.grad_input
+ - func: binary_cross_entropy_backward
+   op_api: False
+ - func: binary_cross_entropy_backward.grad_input
+   op_api: False
  - binary_cross_entropy_with_logits
  - bincount
  - bitwise_and.Scalar
