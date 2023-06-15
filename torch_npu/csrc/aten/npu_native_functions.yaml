@@ -847,12 +847,16 @@ supported:
    op_api: False
  - func: reciprocal_
    op_api: False
- - reflection_pad1d
- - reflection_pad1d.out
+ - func: reflection_pad1d
+   op_api: False
+ - func: reflection_pad1d.out
+   op_api: False
  - reflection_pad1d_backward
  - reflection_pad1d_backward.grad_input
- - reflection_pad2d
- - reflection_pad2d.out
+ - func: reflection_pad2d
+   op_api: False
+ - func: reflection_pad2d.out
+   op_api: False
  - func: reflection_pad2d_backward
    op_api: True
  - func: reflection_pad2d_backward.grad_input
