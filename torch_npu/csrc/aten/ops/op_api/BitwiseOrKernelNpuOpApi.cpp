@@ -36,7 +36,12 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_or_out(
 at::Tensor NPUNativeOpApiFunctions::bitwise_or(const at::Tensor& self, const at::Scalar& other) {
   DO_COMPATIBILITY(aclnnBitwiseOrScalar, NPUNativeFunctions::bitwise_or(self, other));
 
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result;
+  if ((self.scalar_type() == at::ScalarType::Bool) && (!other.isBoolean())) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+  } else {
+    result = OpPreparation::ApplyTensor(self);
+  }
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnBitwiseOrScalar, self, other, result);

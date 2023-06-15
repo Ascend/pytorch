@@ -27,8 +27,11 @@ class TestCumsum(TestCase):
         output = output.numpy()
         return output
 
-    def npu_op_exec(self, input1, dim):
-        output = torch.cumsum(input1, dim)
+    def npu_op_exec(self, input1, dim, dtype):
+        if dtype is None:
+            output = torch.cumsum(input1, dim)
+        else:
+            output = torch.cumsum(input1, dim, dtype=dtype)
         output = output.to("cpu").numpy()
         return output
 
@@ -45,15 +48,15 @@ class TestCumsum(TestCase):
 
     def test_cumsum_common_shape_format(self):
         shape_format = [
-            [[np.float32, 0, (1, 2, 3, 4)]],
-            [[np.float32, 0, (2, 3, 4)]],
-            [[np.float32, 0, (3, 4)]],
-            [[np.float16, 0, (1, 2, 3, 4)]],
-            [[np.float16, 0, (2, 3, 4)]],
-            [[np.float16, 0, (3, 4)]],
-            [[np.int32, 0, (1, 2, 3, 4)]],
-            [[np.int32, 0, (2, 3, 4)]],
-            [[np.int32, 0, (3, 4)]],
+            [[np.float32, 0, (1, 2, 3, 4)], torch.float32],
+            [[np.float32, 0, (2, 3, 4)], None],
+            [[np.float32, 0, (3, 4)], None],
+            [[np.float16, 0, (1, 2, 3, 4)], torch.float16],
+            [[np.float16, 0, (2, 3, 4)], None],
+            [[np.float16, 0, (3, 4)], None],
+            [[np.int32, 0, (1, 2, 3, 4)], torch.int32],
+            [[np.int32, 0, (2, 3, 4)], None],
+            [[np.int32, 0, (3, 4)], None],
         ]
         dim = 0
         for item in shape_format:
@@ -62,7 +65,7 @@ class TestCumsum(TestCase):
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, dim)
-            npu_output = self.npu_op_exec(npu_input1, dim)
+            npu_output = self.npu_op_exec(npu_input1, dim, item[1])
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
