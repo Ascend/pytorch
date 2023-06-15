@@ -42,13 +42,14 @@
 namespace c10d_npu {
 namespace {
 
-int64_t physical_numel(at::Tensor self){
-  auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
-  int64_t n = 1;
-  for (auto s : sizes) {
-    n *= s;
+int64_t physical_numel(const at::Tensor& self) {
+  if (!self.is_contiguous()) {
+    TORCH_WARN(
+        "Found dis-contiguous tensor and using dis-contiguous tensor in Reducer "
+        "to build buckets may result in undefined behavior.");
   }
-  return n;
+  return at_npu::native::FormatHelper::IsBaseFormatType(self) ?
+      self.numel() : at_npu::native::NPUNativeFunctions::get_storage_size(self);
 }
 
 constexpr int kUnsetDivFactor = -1;
