@@ -65,7 +65,8 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
                                                                      transposed, output_padding, groups));
 
   int64_t k = weight.ndimension();
-  int64_t dim = k - 2;
+  int64_t inputK = input.ndimension();
+  int64_t dim = k - 2; // Subtract nonspatial dimensions: 2
   bool unBatch = false;
 
   // Groups > 1 and 3D scenes are currently not supported (binary operator problem), and path 3 implementation is
@@ -73,6 +74,10 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
   if (dim == 3 || groups > 1) {
     return at_npu::native::NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation, transposed,
                                                             output_padding, groups, false, false, false, false);
+  }
+  // Conv1D: 1, Conv2D: 2
+  if (dim != 1 && dim != 2) {
+    return at::Tensor();
   }
 
   c10::SmallVector<int64_t, N> stride_expand = expand_dim(stride, "stride", dim);
@@ -89,44 +94,19 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
 
   c10::SmallVector<int64_t, SIZE> out_size;
 
-  if (!transposed) {
-    if (dim == 1) {
-      out_size = conv1d_npu_output_size(input, weight, padding, stride, dilation);
-    } else if (dim == 2) {
-      out_size = conv2d_npu_output_size(input, weight, padding, stride, dilation);
-    } else {
-      return at::Tensor();
-    }
+  out_size = conv_npu_output_size(input, weight, bias, padding, output_padding, stride, dilation, groups, transposed);
 
-  } else {
-    const at::Tensor &bias_tensor = c10::value_or_else(bias, [] { return at::Tensor(); });
-    if (dim == 1) {
-      out_size = conv_transpose1d_npu_output_size(input, weight, bias_tensor, padding, output_padding, stride, dilation,
-                                                  groups);
-    } else if (dim == 2) {
-      if (input.ndimension() == 3) {
-        unBatch = true;
-        c10::SmallVector<int64_t, SIZE> unsqueeze_size = {1, input.size(0), input.size(1), input.size(2)};
-        input.resize_(unsqueeze_size);
-      }
-
-      out_size = conv_transpose2d_npu_output_size(input, weight, bias_tensor, padding, output_padding, stride, dilation,
-                                                  groups);
-    } else {
-      return at::Tensor();
-    }
-  }
   auto promotedDtype = promote_dtype(input, weight);
   auto output = OpPreparation::ApplyTensorWithSizes(out_size, input.options().dtype(promotedDtype));
   int8_t cube_math_dtype = 1; // ALLOW_FP32_DOWN_PRECISION Use reduced-precision operations
   EXEC_NPU_CMD(aclnnConvolution, input, weight, bias, stride, padding, dilation, transposed, output_padding, groups,
                output, cube_math_dtype);
 
-  if (unBatch) {
+  // input dim = 3 while conv2D: 2
+  if (dim == 2 && inputK == 3) {
     c10::SmallVector<int64_t, SIZE> squeeze_size = {output.size(1), output.size(2), output.size(3)};
     output.resize_(squeeze_size);
   }
-
   return output;
 }
 }  // namespace native

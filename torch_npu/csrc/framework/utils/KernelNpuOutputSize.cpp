@@ -128,7 +128,7 @@ namespace native {
         return output_size;
       }
     }
-    
+
     c10::SmallVector<int64_t, SIZE> adaptive_avg_pool3d_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef output_size) {
@@ -272,6 +272,40 @@ namespace native {
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>>(
           input.sizes(), weight.sizes(), gradBiasSize);
     }
+
+    c10::SmallVector<int64_t, SIZE> conv_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        const c10::optional<at::Tensor> &bias,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef output_padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation,
+        int64_t groups, bool transposed)
+        {
+            int64_t dim = weight.ndimension() - 2; // Subtract nonspatial dimensions: 2
+            if (!transposed) {
+              if (dim == 1) {
+                return conv1d_npu_output_size(input, weight, padding, stride, dilation);
+              } else {
+                return conv2d_npu_output_size(input, weight, padding, stride, dilation);
+              }
+            } else {
+                const at::Tensor &bias_tensor = c10::value_or_else(bias, [] { return at::Tensor(); });
+                if (dim == 1) {
+                  return conv_transpose1d_npu_output_size(input, weight, bias_tensor, padding, output_padding, stride,
+                                                          dilation, groups);
+                } else {
+                  // input dim = 3
+                  if (input.ndimension() == 3) {
+                    c10::SmallVector<int64_t, SIZE> unsqueeze_size = {1, input.size(0), input.size(1), input.size(2)};
+                    input.resize_(unsqueeze_size);
+                  }
+                  return conv_transpose2d_npu_output_size(input, weight, bias_tensor, padding, output_padding, stride,
+                                                          dilation, groups);
+                }
+            }
+        }
 
     c10::SmallVector<int64_t, SIZE> conv1d_npu_output_size(
         const at::Tensor &input,
@@ -892,7 +926,7 @@ namespace native {
                     shape.emplace_back(self.size(i));
             }
         }
-        // without dim, need flatten 
+        // without dim, need flatten
         else {
             // if repeats only has one element, size will be sum(repeats) * self.numel(). Otherwise is sum(repeats)
             int64_t base = repeats.sum().item().toLong();

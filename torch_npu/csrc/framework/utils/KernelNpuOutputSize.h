@@ -138,6 +138,17 @@ tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>> conv_
     c10::IntArrayRef dilation,
     int64_t groups);
 
+c10::SmallVector<int64_t, SIZE> conv_npu_output_size(
+    const at::Tensor &input,
+    const at::Tensor &weight,
+    const c10::optional<at::Tensor> &bias,
+    c10::IntArrayRef padding,
+    c10::IntArrayRef output_padding,
+    c10::IntArrayRef stride,
+    c10::IntArrayRef dilation,
+    int64_t groups,
+    bool transposed);
+
 c10::SmallVector<int64_t, SIZE> conv1d_npu_output_size(
     const at::Tensor &input,
     const at::Tensor &weight,
