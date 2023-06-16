@@ -121,7 +121,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_conv_depthwise2d_backward(
   at::Tensor grad_weight;
   // construct the output tensor of
   if (output_mask[0]) {
-    grad_input = OpPreparation::ApplyTensorWithFormat(self, ACL_FORMAT_NC1HWC0);
+    int64_t grad_input_format = self.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
+    grad_input = OpPreparation::ApplyTensorWithFormat(self, grad_input_format);
   }
 
   if (output_mask[1]) {
