@@ -576,10 +576,13 @@ supported:
  - le.Tensor_out
  - le_.Scalar
  - le_.Tensor
- - leaky_relu
- - leaky_relu.out
+ - func: leaky_relu
+   op_api: False
+ - func: leaky_relu.out
+   op_api: False
  - leaky_relu_
- - leaky_relu_backward
+ - func: leaky_relu_backward
+   op_api: False
  - lerp.Scalar
  - lerp.Scalar_out
  - lerp.Tensor
@@ -817,11 +820,14 @@ supported:
  - func: prelu
    op_api: True
  - prelu_backward
- - prod
+ - func: prod
+   op_api: False
  - prod.Dimname_out
  - prod.dim_Dimname
- - prod.dim_int
- - prod.int_out
+ - func: prod.dim_int
+   op_api: False
+ - func: prod.int_out
+   op_api: False
  - put_
  - qr
  - qr.Q
