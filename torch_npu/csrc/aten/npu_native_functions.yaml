@@ -495,8 +495,10 @@ supported:
  - glu.out
  - glu_backward
  - glu_backward.grad_input
- - grid_sampler_2d
- - grid_sampler_2d_backward
+ - func: grid_sampler_2d
+   op_api: False
+ - func: grid_sampler_2d_backward
+   op_api: False
  - grid_sampler_3d
  - grid_sampler_3d_backward
  - gru.input
