@@ -118,7 +118,8 @@ at::Tensor NPUNativeFunctions::normal(
     const at::Tensor &mean,
     const at::Tensor &std,
     c10::optional<at::Generator> generator) {
-  at::Tensor result = OpPreparation::ApplyTensor(mean);
+  at::SmallVector<int64_t, SIZE> output_size = broadcast_ops_npu_output_size(mean, std);
+  at::Tensor result = OpPreparation::ApplyTensor(mean, output_size);
   normal_out_npu_nocheck(result, generator);
   result.mul_(std).add_(mean);
 
