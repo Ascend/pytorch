@@ -309,11 +309,11 @@ supported:
  - func: clamp_min_
    op_api: True
  - func: clamp.Tensor
-   op_api: False
+   op_api: True
  - func: clamp.Tensor_out
-   op_api: False
+   op_api: True
  - func: clamp_.Tensor
-   op_api: False
+   op_api: True
  - clamp_max.Tensor
  - clamp_max.Tensor_out
  - clamp_max_.Tensor
