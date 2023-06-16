@@ -1120,14 +1120,17 @@ supported:
    op_api: False
  - func: take.out
    op_api: False
- - tan
- - tan.out
- - tan_
  - func: tanh
    op_api: False
  - func: tanh.out
    op_api: False
  - func: tanh_
+   op_api: False
+ - func: tan
+   op_api: False
+ - func: tan.out
+   op_api: False
+ - func: tan_
    op_api: False
  - tanh_backward
  - tanh_backward.grad_input
@@ -1201,9 +1204,12 @@ supported:
  - upsample_nearest1d_backward
  - upsample_nearest1d_backward.grad_input
  - upsample_nearest1d_backward.vec
- - upsample_nearest2d
- - upsample_nearest2d.out
- - upsample_nearest2d.vec
+ - func: upsample_nearest2d
+   op_api: False
+ - func: upsample_nearest2d.out
+   op_api: False
+ - func: upsample_nearest2d.vec
+   op_api: False
  - upsample_nearest2d_backward
  - upsample_nearest2d_backward.grad_input
  - upsample_nearest2d_backward.vec
