@@ -231,7 +231,7 @@ class CPPLibBuild(build_clib, object):
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
 
         if check_opplugin_valid(BASE_DIR):
-            cmake_args.append('-DBUILD_OPPLUGIN')
+            cmake_args.append('-DBUILD_OPPLUGIN=on')
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
