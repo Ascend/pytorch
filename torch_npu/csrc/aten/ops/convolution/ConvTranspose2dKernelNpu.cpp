@@ -80,8 +80,9 @@ at::Tensor NPUNativeFunctions::npu_conv_transpose2d(
       input, weight, bias, padding, output_padding, stride, dilation, groups);
 
   // construct the output tensor of the NPU
+  int64_t result_format = input.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, input.options(), ACL_FORMAT_NC1HWC0);
+      OpPreparation::ApplyTensorWithFormat(outputSize, input.options(), result_format);
 
   // calculate the output result of the NPU
   conv_transpose2d_out_npu(

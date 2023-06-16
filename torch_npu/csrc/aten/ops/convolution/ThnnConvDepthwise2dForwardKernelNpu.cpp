@@ -75,7 +75,8 @@ at::Tensor NPUNativeFunctions::thnn_conv_depthwise2d_forward(
   int64_t Wo = (W + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) /
           stride[1] + 1;
   c10::SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
+  int64_t result_format = self.dtype() == at::kHalf ? ACL_FORMAT_NC1HWC0 : ACL_FORMAT_ND;
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, result_format);
 
   NPUNativeFunctions::thnn_conv_depthwise2d_forward_out(
       self, weight, kernel_size, bias_opt, stride, padding, dilation, result);
