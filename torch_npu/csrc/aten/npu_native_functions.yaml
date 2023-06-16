@@ -335,8 +335,10 @@ supported:
    op_api: True
  - convolution_backward_overrideable
  - convolution_overrideable
- - count_nonzero
- - count_nonzero.dim_IntList
+ - func: count_nonzero
+   op_api: False
+ - func: count_nonzero.dim_IntList
+   op_api: False
  - func: copy_
    op_api: False
  - copy_memory_
