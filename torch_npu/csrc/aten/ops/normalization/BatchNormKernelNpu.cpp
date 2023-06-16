@@ -221,59 +221,14 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
     bool train,
     double momentum,
     double eps) {
-
-  const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
-  const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
+  int64_t dim_c = self.size(1);
+  at::TensorOptions options = self.options().dtype(at::ScalarType::Float);
   const at::Tensor& running_mean = c10::value_or_else(running_mean_opt, [] {return at::Tensor();});
   const at::Tensor& running_var = c10::value_or_else(running_var_opt, [] {return at::Tensor();});
-
-  at::Tensor self_reshape;
-  c10::SmallVector<int64_t, N> self_shape = array_to_small_vector(self.sizes());
-
-  int64_t self_npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
-  // BatchNorm is axis sensitive, the size of mean/var depends on dim_c.
-  if (self_npu_format == ACL_FORMAT_NDHWC ||
-      self_npu_format == ACL_FORMAT_NHWC) {
-    AT_ERROR(
-        "at::Tensor with channel last format (",
-        self_npu_format,
-        ") is not supported in BatchNorm.");
-  }
-
-  if (self.dim() <= 4) {
-    c10::SmallVector<int64_t, N> nchw_shape(self_shape);
-    nchw_shape.resize(4, 1);
-    self_reshape = self.reshape(nchw_shape);
-  } else if (train && self.dim() == 5) {
-    // Use 3D BN ops for training, merging axes is not required.
-    self_reshape = self;
-  } else {
-    // Infering uses 2dInfer Op, case no matched 3DInfer Op
-    // ncdhw -> ndchw
-    self_reshape = self.permute({0, 2, 1, 3, 4});
-    // nchw=(n*d, c, h, w)
-    c10::SmallVector<int64_t, N> nchw_shape = {self_shape[0] * self_shape[2], self_shape[1], self_shape[3], self_shape[4]};
-    // ndchw -> nchw
-    self_reshape = self_reshape.reshape(nchw_shape);
-  }
-
-  // process when affine=Flase and track_running_stats=False
-  int64_t dim_c = self_reshape.size(1);
-  at::TensorOptions options = self.options().dtype(at::ScalarType::Float);
-
-  at::Tensor weight_cp = weight;
-  at::Tensor bias_cp = bias;
-  at::Tensor running_mean_cp = running_mean;
-  at::Tensor running_var_cp = running_var;
-
-  // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format tensor(1D).
-  at::Tensor running_mean_tensor = running_mean.defined() ? running_mean_cp : at::zeros({dim_c}, options);
-  at::Tensor running_var_tensor = running_var.defined() ? running_var_cp : at::ones({dim_c}, options);
-  at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
-  at::Tensor bias_tensor = bias.defined() ? bias_cp : at::zeros({dim_c}, options);
-
+  const at::Tensor running_mean_tensor = running_mean.defined() ? running_mean : at::zeros({dim_c}, options);
+  const at::Tensor running_var_tensor = running_var.defined() ? running_var : at::ones({dim_c}, options);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
+  at::Tensor result = OpPreparation::ApplyTensor(self.sizes(), self.options(), self);
 
   at::Tensor save_mean;
   at::Tensor save_invstd;
@@ -292,10 +247,80 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
     save_mean = at::empty({0}, self.options());
     save_invstd = at::empty({0}, self.options());
   }
+  
+  NPUNativeFunctions::native_batch_norm_out(self, weight_opt, bias_opt, running_mean_opt, running_var_opt, train,
+                                            momentum, eps, result, save_mean, save_invstd);
+  return std::tie(result, save_mean, save_invstd);
+}
+
+tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch_norm_out(
+    const at::Tensor& self,
+    const c10::optional<at::Tensor>& weight_opt,
+    const c10::optional<at::Tensor>& bias_opt,
+    const c10::optional<at::Tensor>& running_mean_opt,
+    const c10::optional<at::Tensor>& running_var_opt,
+    bool train,
+    double momentum,
+    double eps,
+    at::Tensor& out,
+    at::Tensor& save_mean,
+    at::Tensor& save_invstd) {
+  const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
+  const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
+  const at::Tensor& running_mean = c10::value_or_else(running_mean_opt, [] {return at::Tensor();});
+  const at::Tensor& running_var = c10::value_or_else(running_var_opt, [] {return at::Tensor();});
+
+  at::Tensor self_reshape;
+  at::Tensor out_reshape = out;
+  c10::SmallVector<int64_t, N> self_shape = array_to_small_vector(self.sizes());
+
+  int64_t self_npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
+  // BatchNorm is axis sensitive, the size of mean/var depends on dim_c.
+  if (self_npu_format == ACL_FORMAT_NDHWC ||
+      self_npu_format == ACL_FORMAT_NHWC) {
+    AT_ERROR(
+        "at::Tensor with channel last format (",
+        self_npu_format,
+        ") is not supported in BatchNorm.");
+  }
+
+  if (self.dim() <= 4) {
+    c10::SmallVector<int64_t, N> nchw_shape(self_shape);
+    nchw_shape.resize(4, 1);
+    self_reshape = self.reshape(nchw_shape);
+    out = out.reshape(nchw_shape);
+  } else if (train && self.dim() == 5) {
+    // Use 3D BN ops for training, merging axes is not required.
+    self_reshape = self;
+  } else {
+    // Infering uses 2dInfer Op, case no matched 3DInfer Op
+    // ncdhw -> ndchw
+    self_reshape = self.permute({0, 2, 1, 3, 4});
+    // nchw=(n*d, c, h, w)
+    c10::SmallVector<int64_t, N> nchw_shape = {self_shape[0] * self_shape[2], self_shape[1], self_shape[3], self_shape[4]};
+    // ndchw -> nchw
+    self_reshape = self_reshape.reshape(nchw_shape);
+    out_reshape = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
+  }
+
+  // process when affine=Flase and track_running_stats=False
+  int64_t dim_c = self_reshape.size(1);
+  at::TensorOptions options = self.options().dtype(at::ScalarType::Float);
+
+  at::Tensor weight_cp = weight;
+  at::Tensor bias_cp = bias;
+  at::Tensor running_mean_cp = running_mean;
+  at::Tensor running_var_cp = running_var;
+
+  // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format tensor(1D).
+  at::Tensor running_mean_tensor = running_mean.defined() ? running_mean_cp : at::zeros({dim_c}, options);
+  at::Tensor running_var_tensor = running_var.defined() ? running_var_cp : at::ones({dim_c}, options);
+  at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
+  at::Tensor bias_tensor = bias.defined() ? bias_cp : at::zeros({dim_c}, options);
 
   // calculate the output result of the NPU
   batch_norm_impl(
-      result,
+      out_reshape,
       save_mean,
       save_invstd,
       self_reshape,
@@ -311,15 +336,15 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   if (!train && self.dim() == 5) {
     // NCHW -> NDCHW -> NCDHW
     std::swap(self_shape[1], self_shape[2]);
-    result = result.view(self_shape);
-    result = NpuUtils::format_contiguous(result);
-    result = result.permute({0, 2, 1, 3, 4}).clone();
+    out_reshape = out_reshape.view(self_shape);
+    out_reshape = NpuUtils::format_contiguous(out_reshape);
+    out = out_reshape.permute({0, 2, 1, 3, 4}).clone();
   } else if (self.dim() < 5) {
-    result = result.view(self_shape);
-    result = NpuUtils::format_contiguous(result);
+    out_reshape = out_reshape.view(self_shape);
+    out = NpuUtils::format_contiguous(out_reshape);
   }
 
-  return std::tie(result, save_mean, save_invstd);
+  return std::tie(out, save_mean, save_invstd);
 }
 
 } // namespace native
