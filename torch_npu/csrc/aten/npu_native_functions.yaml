@@ -131,7 +131,8 @@ supported:
    op_api: True
  - func: addcmul.out
    op_api: True
- - addcmul_
+ - func: addcmul_
+   op_api: False
  - addmm
  - func: addmm.out
    op_api: True
