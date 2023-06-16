@@ -913,9 +913,12 @@ supported:
  - reverse
  - func: roll
    op_api: True
- - round
- - round.out
- - round_
+ - func: round
+   op_api: False
+ - func: round.out
+   op_api: False
+ - func: round_
+   op_api: False
  - func: rrelu_with_noise
    op_api: True
  - func: rrelu_with_noise.out
