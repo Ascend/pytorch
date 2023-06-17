@@ -119,8 +119,10 @@ supported:
    op_api: True
  - func: add.out
    op_api: True
- - add_.Scalar
- - add_.Tensor
+ - func: add_.Scalar
+   op_api: False
+ - func: add_.Tensor
+   op_api: False
  - addbmm
  - addbmm.out
  - addbmm_
@@ -397,7 +399,8 @@ supported:
    op_api: True
  - func: dot.out
    op_api: True
- - dropout
+ - func: dropout
+   op_api: False
  - dropout_with_byte_mask
  - func: embedding
    op_api: True
@@ -697,8 +700,10 @@ supported:
  - max_pool3d_with_indices_backward.grad_input
  - max_unpool2d
  - max_unpool2d.out
- - max_unpool2d_backward
- - max_unpool2d_backward.grad_input
+ - func: max_unpool2d_backward
+   op_api: False
+ - func: max_unpool2d_backward.grad_input
+   op_api: False
  - max_unpool3d
  - max_unpool3d.out
  - max_unpool3d_backward
@@ -769,8 +774,10 @@ supported:
    op_api: True
  - func: native_batch_norm_backward
    op_api: True
- - native_dropout
- - native_dropout_backward
+ - func: native_dropout
+   op_api: False
+ - func: native_dropout_backward
+   op_api: False
  - func: native_layer_norm
    op_api: True
  - func: native_layer_norm_backward
