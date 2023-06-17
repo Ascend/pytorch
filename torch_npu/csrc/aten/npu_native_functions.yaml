@@ -91,7 +91,8 @@ supported:
    op_api: True
  - func: abs.out
    op_api: True
- - abs_
+ - func: abs_
+   op_api: False
  - func: acos
    op_api: False
  - func: acos.out
@@ -223,7 +224,8 @@ supported:
  - batch_norm
  - func: batch_norm_backward_elemt
    op_api: False
- - batch_norm_backward_reduce
+ - func: batch_norm_backward_reduce
+   op_api: False
  - func: batch_norm_elemt
    op_api: False
  - func: batch_norm_elemt.out
