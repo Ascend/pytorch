@@ -63,6 +63,10 @@ namespace at_npu
                 const std::initializer_list<at::Tensor> &input,
                 at::Tensor &output, int64_t format,
                 at::ScalarType dtype, c10::IntArrayRef shape);
+            static void CheckOut(
+                const std::initializer_list<at::Tensor> &inputs, 
+                at::Tensor &output, at::ScalarType expect_dtype,
+                c10::IntArrayRef expect_size);
 
             static at::Tensor CastBackToOriFormat(const at::Tensor &tensor);
             static at::Tensor &CastBackToOriFormat(at::Tensor &tensor);

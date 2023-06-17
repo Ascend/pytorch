@@ -95,7 +95,7 @@ __all__ = [
     "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
     "_get_default_group", "_get_global_rank", "all_gather_object", "all_gather_togather",
-    "_reduce_scatter_base", "_all_gather_base"
+    "_reduce_scatter_base", "_all_gather_base", "_pg_map", "_pg_names", "_pg_group_ranks", "_new_process_group_helper"
 ]
 
 # Some reduce ops are not supported by complex numbers and will result in an error.
@@ -2145,6 +2145,18 @@ def _tensor_to_object(tensor, tensor_size):
     buf = tensor.numpy().tobytes()[:tensor_size]
     return _unpickler(io.BytesIO(buf)).load()
 
+
+def _check_for_hccl_backend(group):
+    pg = group or _get_default_group()
+    while isinstance(pg, _ProcessGroupWrapper):
+        pg = pg.wrapped_pg
+
+    return (
+        is_hccl_available() and
+        isinstance(pg, ProcessGroupHCCL)
+    )
+
+
 def all_gather_object(object_list, obj, group=None):
     """
     Gathers picklable objects from the whole group into a list. Similar to
@@ -2192,11 +2204,13 @@ def all_gather_object(object_list, obj, group=None):
     input_tensor, local_size = _object_to_tensor(obj)
     current_device = torch.device("cpu")
     # only support hccl backend
-    current_device = torch.device("npu", torch.npu.current_device())
-    input_tensor = input_tensor.to(current_device)
-    # warnning: HCCL does not support torch.long, change the dtype
-    # from torch.long(torch.int64) to torch.int32
-    local_size = local_size.to(current_device).to(dtype=torch.int32)
+    is_hccl_backend = _check_for_hccl_backend(group)
+    if is_hccl_backend:
+        current_device = torch.device("npu", torch.npu.current_device())
+        input_tensor = input_tensor.to(current_device)
+        # warnning: HCCL does not support torch.long, change the dtype
+        # from torch.long(torch.int64) to torch.int32
+        local_size = local_size.to(current_device).to(dtype=torch.int32)
 
     # Gather all local sizes. This is so that we can find the max size, and index
     # until the correct size when deserializing the tensors.
@@ -2204,7 +2218,9 @@ def all_gather_object(object_list, obj, group=None):
     # warnning: HCCL does not support torch.long, change the dtype
     # from torch.long(torch.int64) to torch.int32
     object_sizes_tensor = torch.zeros(
-        group_size, dtype=torch.int32, device=current_device
+        group_size,
+        dtype=torch.int32 if is_hccl_backend else torch.long,
+        device=current_device
     )
     object_size_list = [
         object_sizes_tensor[i].unsqueeze(dim=0) for i in range(group_size)
@@ -2213,11 +2229,17 @@ def all_gather_object(object_list, obj, group=None):
     all_gather(object_size_list, local_size, group=group)
     max_object_size = int(max(object_size_list).item())  # type: ignore[type-var]
     # Resize tensor to max size across all ranks.
-    # Change the dtype from torch.uint8 to torch.int16
-    input_tensor = input_tensor.resize_(max_object_size).to(dtype=torch.int16)
-    coalesced_output_tensor = torch.empty(
-        max_object_size * group_size, dtype=torch.int16, device=current_device
-    )
+    input_tensor = input_tensor.resize_(max_object_size)
+    if is_hccl_backend:
+        # Change the dtype from torch.uint8 to torch.int16
+        input_tensor = input_tensor.to(dtype=torch.int16)
+        coalesced_output_tensor = torch.empty(
+            max_object_size * group_size, dtype=torch.int16, device=current_device
+        )
+    else:
+        coalesced_output_tensor = torch.empty(
+            max_object_size * group_size, dtype=torch.uint8, device=current_device
+        )
     # Output tensors are nonoverlapping views of coalesced_output_tensor
     output_tensors = [
         coalesced_output_tensor[max_object_size * i : max_object_size * (i + 1)]

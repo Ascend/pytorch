@@ -412,30 +412,32 @@ static PyObject * THPVariable_new_ones(PyObject* self, PyObject* args, PyObject*
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {
-          "new_ones(Tensor self, IntArrayRef size, *, ScalarType dtype=None, "
+          "new_ones(IntArrayRef size, *, ScalarType dtype=None, "
           "Layout layout=torch.strided, Device device=None, bool "
           "pin_memory=False, bool requires_grad=False)",
       },
       true);
-  torch::ParsedArgs<7> parsed_args;
-  auto r = parser.parse(args, kwargs, parsed_args);
-  auto self_ = r.tensor(0);
+  PyObject* self_obj = PyTuple_GetItem(args, 0);
+  PyObject* new_args = PyTuple_GetSlice(args, 1 ,PyTuple_GET_SIZE(args));
+  torch::ParsedArgs<6> parsed_args;
+  auto r = parser.parse(new_args, kwargs, parsed_args);
+  auto self_ = THPVariable_Unpack(self_obj);
   if (r.has_torch_function()) {
-    return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
+    return torch::handle_torch_function(r, new_args, kwargs, THPVariableClass, "torch.Tensor");
   }
-  auto device = at_npu::key::parse_npu_device_with_default(r.args[4], self_.device());
+  auto device = at_npu::key::parse_npu_device_with_default(r.args[3], self_.device());
   maybe_initialize_npu(device);
   const auto options = at::TensorOptions()
-      .dtype(r.scalartypeWithDefault(2, self_.scalar_type()))
+      .dtype(r.scalartypeWithDefault(1, self_.scalar_type()))
       .device(device)
-      .layout(r.layoutWithDefault(3, c10::layout_from_backend(self_.options().backend())))
-      .requires_grad(r.toBool(6))
-      .pinned_memory(r.toBool(5));
+      .layout(r.layoutWithDefault(2, c10::layout_from_backend(self_.options().backend())))
+      .requires_grad(r.toBool(5))
+      .pinned_memory(r.toBool(4));
   auto dispatch_new_ones = [](at::Tensor & self, c10::IntArrayRef size, at::TensorOptions options) -> at::Tensor {
     pybind11::gil_scoped_release no_gil;
     return self.new_ones(size, options);
   };
-  return torch::autograd::utils::wrap(dispatch_new_ones(self_, r.intlist(1), options).set_requires_grad(r.toBool(6)));
+  return torch::autograd::utils::wrap(dispatch_new_ones(self_, r.intlist(0), options).set_requires_grad(r.toBool(5)));
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

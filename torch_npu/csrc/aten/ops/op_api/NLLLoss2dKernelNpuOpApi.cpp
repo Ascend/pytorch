@@ -14,9 +14,8 @@
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 
 namespace at_npu {
 namespace native {
@@ -39,24 +38,15 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> nll_loss
 tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::nll_loss2d_forward_out(
     const at::Tensor& self, const at::Tensor& target, const c10::optional<at::Tensor>& weight_opt, int64_t reduction,
     int64_t ignore_index, at::Tensor& result, at::Tensor& total_weight) {
-  DO_COMPATIBILITY(aclnnNllLoss2d, NPUNativeFunctions::nll_loss2d_forward_out(self, target, weight_opt, reduction,
+  DO_COMPATIBILITY(aclnnNLLLoss2d, NPUNativeFunctions::nll_loss2d_forward_out(self, target, weight_opt, reduction,
                                                                               ignore_index, result, total_weight));
-  at::Tensor weight = c10::value_or_else(weight_opt, [] { return at::Tensor(); });
-  at::Tensor weight_tensor;
-  if (weight.defined()) {
-    weight_tensor = NpuUtils::format_contiguous(weight);
-  } else {
+  at::Tensor weight_tensor = c10::value_or_else(weight_opt, [] { return at::Tensor(); });
+  if (!weight_tensor.defined()) {
     weight_tensor = at::ones(self.size(1), self.options());
   }
 
-  if (ignore_index >= 0 && ignore_index < self.size(-1)) {
-    at::Tensor zero = at::zeros(1, self.options());
-    CalcuOpUtil::AclrtMemcpyAsync({weight_tensor, ignore_index}, weight_tensor.itemsize(), {zero, 0},
-                                  weight_tensor.itemsize(), ACL_MEMCPY_DEVICE_TO_DEVICE);
-  }
-
   OpPreparation::CheckMemory({self, target, weight_tensor}, {result, total_weight});
-  EXEC_NPU_CMD(aclnnNllLoss2d, self, target, weight_tensor, reduction, ignore_index, result, total_weight);
+  EXEC_NPU_CMD(aclnnNLLLoss2d, self, target, weight_tensor, reduction, ignore_index, result, total_weight);
   return tuple<at::Tensor&, at::Tensor&>(result, total_weight);
 }
 
@@ -64,13 +54,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::nll_loss2d_forward(const 
                                                                           const at::Tensor& target,
                                                                           const c10::optional<at::Tensor>& weight_opt,
                                                                           int64_t reduction, int64_t ignore_index) {
-  DO_COMPATIBILITY(aclnnNllLoss2d,
+  DO_COMPATIBILITY(aclnnNLLLoss2d,
                    NPUNativeFunctions::nll_loss2d_forward(self, target, weight_opt, reduction, ignore_index));
-  // Check Target Dtype
-  auto scalar_type = target.scalar_type();
-  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, "Expected object of scalar type ", at::kLong, " or ",
-              at::kInt, " but got scalar type ", scalar_type, " for argument 'target'  in call to nll_loss2d_forward");
-
   // calculate the output size
   auto outputSizes = nll_loss2d_npu_output_size(self, target, reduction, ignore_index);
 

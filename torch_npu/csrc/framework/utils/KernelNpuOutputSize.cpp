@@ -281,6 +281,66 @@ namespace native {
           input.sizes(), weight.sizes(), gradBiasSize);
     }
 
+    c10::SmallVector<int64_t, SIZE> conv1d_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation)
+        {
+            int64_t N = input.size(0);
+            int64_t L = input.size(2);
+            int64_t C_out = weight.size(0);
+
+            auto kernel_size = weight.sizes().slice(2);
+
+            int64_t L_out = (L + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0]  + 1;
+            c10::SmallVector<int64_t, SIZE> output_size = {N, C_out, L_out};
+            return output_size;
+        }
+
+    c10::SmallVector<int64_t, SIZE> conv2d_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation)
+        {
+            int64_t N = input.size(0);
+            int64_t H = input.size(2);
+            int64_t W = input.size(3);
+            int64_t C_out = weight.size(0);
+
+            auto kernel_size = weight.sizes().slice(2);
+
+            int64_t H_out = (H + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0]  + 1;
+            int64_t W_out = (W + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1]  + 1;
+            c10::SmallVector<int64_t, SIZE> output_size = {N, C_out, H_out, W_out};
+            return output_size;
+        }
+
+    c10::SmallVector<int64_t, SIZE> conv_transpose1d_npu_output_size(
+        const at::Tensor &input,
+        const at::Tensor &weight,
+        const at::Tensor &bias,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef output_padding,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef dilation,
+        int64_t groups)
+        {
+            int64_t N = input.size(0);
+            int64_t L = input.size(2);
+            int64_t C_out = weight.size(1) * groups;
+
+            auto kernel_size = weight.sizes().slice(2);
+
+            int64_t L_out = (L - 1) * stride[0] - 2 * padding[0] +
+                        dilation[0] * (kernel_size[0] - 1) + output_padding[0] + 1;
+            c10::SmallVector<int64_t, SIZE> output_size = {N, C_out, L_out};
+            return output_size;
+        }
+
     c10::SmallVector<int64_t, SIZE> conv_transpose2d_npu_output_size(
         const at::Tensor &input,
         const at::Tensor &weight,
@@ -294,15 +354,15 @@ namespace native {
       int64_t N = input.size(0);
       int64_t H = input.size(2);
       int64_t W = input.size(3);
-      int64_t Co = weight.size(1) * groups;
+      int64_t C_out = weight.size(1) * groups;
       auto kernel_size = weight.sizes().slice(2);
 
-      int64_t Ho = (H - 1) * stride[0] - 2 * padding[0] +
+      int64_t H_out = (H - 1) * stride[0] - 2 * padding[0] +
                    dilation[0] * (kernel_size[0] - 1) + output_padding[0] + 1;
-      int64_t Wo = (W - 1) * stride[1] - 2 * padding[1] +
+      int64_t W_out = (W - 1) * stride[1] - 2 * padding[1] +
                    dilation[1] * (kernel_size[1] - 1) + output_padding[1] + 1;
 
-      c10::SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
+      c10::SmallVector<int64_t, SIZE> outputSize = {N, C_out, H_out, W_out};
 
       return outputSize;
     }
@@ -1167,8 +1227,79 @@ namespace native {
       } else {
         outputSize = {channels, H, W};
       }
-      
+
       return outputSize;
+    }
+
+    c10::SmallVector<int64_t, SIZE> reflection_pad1d_npu_out_size(
+        const at::Tensor& self, at::IntArrayRef padding) {
+      int64_t padding_num = padding.size();
+      int64_t self_num = self.dim();
+      TORCH_CHECK(padding_num == 2, "padding length should be 2");
+      TORCH_CHECK(self_num == 2 || self_num == 3, "self should be 2D or 3D");
+      // 0, 1, -2, -1 are indexes
+      int64_t padding_l = padding[0];
+      int64_t padding_r = padding[1];
+      int64_t C = self.size(-2);
+      int64_t W = self.size(-1);
+      int64_t Wo = W + padding_l + padding_r;
+      c10::SmallVector<int64_t, SIZE> output_size = {C, Wo};
+      // 3 is dim
+      if (self_num == 3) {
+        // -3 is index
+        int64_t N = self.size(-3);
+        output_size = {N, C, Wo};
+      }
+      return output_size;
+    }
+
+    c10::SmallVector<int64_t, SIZE> reflection_pad2d_npu_out_size(
+        const at::Tensor& self, at::IntArrayRef padding) {
+      int64_t padding_num = padding.size();
+      int64_t self_num = self.dim();
+      TORCH_CHECK(padding_num == 4, "padding length should be 4");
+      TORCH_CHECK(self_num == 3 || self_num == 4, "self should be 3D or 4D");
+      // -3, -2, -1, 0, 1, 2, 3 are indexes
+      int64_t padding_l = padding[0];
+      int64_t padding_r = padding[1];
+      int64_t padding_t = padding[2];
+      int64_t padding_b = padding[3];
+      int64_t C = self.size(-3);
+      int64_t H = self.size(-2);
+      int64_t W = self.size(-1);
+      int64_t Ho = H + padding_t + padding_b;
+      int64_t Wo = W + padding_l + padding_r;
+      c10::SmallVector<int64_t, SIZE> output_size = {C, Ho, Wo};
+      // 4 is dim
+      if (self_num == 4) {
+        // -4 is index
+        int64_t N = self.size(-4);
+        output_size = {N, C, Ho, Wo};
+      }
+      return output_size;
+    }
+
+    c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
+        const at::Tensor& self,
+        const c10::optional<at::Tensor>& min,
+        const c10::optional<at::Tensor>& max)
+    {
+      TORCH_CHECK(min.has_value() || max.has_value(), "torch.clamp: At least one of 'min' or 'max' must not be None");
+      if (self.numel() == 0) {
+        c10::SmallVector<int64_t, SIZE> empty_sizes;
+        for (int64_t i = 0; i < self.dim(); ++i) {
+          empty_sizes.push_back(self.size(i));
+        }
+        return empty_sizes;
+      }
+      if (min.has_value() && max.has_value()) {
+        auto brc_shape_min = broadcast_ops_npu_output_size(self.sizes(), min.value().sizes());
+        return broadcast_ops_npu_output_size(brc_shape_min, max.value().sizes());
+      }
+      if (min.has_value()) {
+        return broadcast_ops_npu_output_size(self.sizes(), min.value().sizes());
+      }
+      return broadcast_ops_npu_output_size(self.sizes(), max.value().sizes());
     }
 
 } // namespace native

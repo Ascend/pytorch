@@ -26,13 +26,18 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::tanh_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnTanh, NPUNativeFunctions::tanh_out(self, result));
+  TORCH_CHECK(!isIntegralType(result.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
   EXEC_NPU_CMD(aclnnTanh, self, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::tanh(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnTanh, NPUNativeFunctions::tanh(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  auto output_dtype = self.dtype();
+  if(isIntegralType(self.scalar_type(), true)) {
+    output_dtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(output_dtype));
   EXEC_NPU_CMD(aclnnTanh, self, result);
   return result;
 }

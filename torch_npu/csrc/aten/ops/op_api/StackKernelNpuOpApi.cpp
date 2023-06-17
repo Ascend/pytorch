@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include <ATen/native/TypeProperties.h>
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
@@ -41,27 +41,20 @@ at::SmallVector<int64_t, SIZE> stack_output_size(
 at::Tensor& NPUNativeOpApiFunctions::stack_out(at::TensorList tensors, int64_t dim, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnStack, NPUNativeFunctions::stack_out(tensors, dim, result));
   auto output_size = stack_output_size(tensors, dim);
-
-  OpPreparation::CheckOut(
-      {tensors[0]}, 
-      result, 
-      ACL_FORMAT_ND, 
-      tensors[0].scalar_type(), 
-      output_size); 
+  OpPreparation::CheckOut({tensors[0]}, result, tensors[0], output_size); 
 
   EXEC_NPU_CMD(aclnnStack, tensors, dim, result);
-
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::stack(at::TensorList tensors, int64_t dim) {
   DO_COMPATIBILITY(aclnnStack, NPUNativeFunctions::stack(tensors, dim));
   auto output_size = stack_output_size(tensors, dim);
-
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+  at::ScalarType result_type = at::native::result_type(tensors);
+  at::Tensor result = OpPreparation::ApplyTensor(
       output_size,
-      tensors[0].options(),
-      ACL_FORMAT_ND);
+      tensors[0].options().dtype(result_type),
+      tensors[0]);
 
   EXEC_NPU_CMD(aclnnStack, tensors, dim, result);
 

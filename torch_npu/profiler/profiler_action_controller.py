@@ -23,7 +23,7 @@ import torch.autograd.profiler as prof
 
 from .analysis.npu_profiler import NpuProfiler
 from .scheduler import default_schedule_fn, ProfilerAction
-
+from .analysis.prof_common_func.constant import Constant
 
 class NpuProfCreator:
     DEFAULT_PROF_SUFFIX = "./profiler"
@@ -34,7 +34,12 @@ class NpuProfCreator:
 
     @classmethod
     def __call__(cls, instance: any) -> None:
-        NpuProfiler.analyse((instance._msprofiler_interface.path))
+        level_config = {
+            Constant.PROFILER_LEVEL: instance._experimental_config.profiler_level(),
+            Constant.AI_CORE_METRICS: instance._experimental_config.aic_metrics(),
+            Constant.L2_CACHE: instance._experimental_config.l2_cache()
+        }
+        NpuProfiler.analyse(instance._msprofiler_interface.path, level_config)
 
     @classmethod
     def make_dir(cls, target_path: str) -> any:

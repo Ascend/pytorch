@@ -35,6 +35,21 @@ at::Tensor& NPUNativeOpApiFunctions::all_out(const at::Tensor& self, int64_t dim
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::all_out(const at::Tensor& self, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnAll, NPUNativeFunctions::all_out(self, result));
+  at::IntArrayRef dims;
+
+  // check result for return
+  auto output_size = reduce_ops_npu_output_size(self, dims, false);
+  OpPreparation::CheckOut({self}, result, result, output_size);
+  
+  // calculate the output result of the NPU
+  bool keepdim = false;
+  EXEC_NPU_CMD(aclnnAll, self, dims, keepdim, result);
+  
+  return result;
+}
+
 at::Tensor NPUNativeOpApiFunctions::all(const at::Tensor& self, int64_t dim, bool keepdim) {
   DO_COMPATIBILITY(aclnnAll, NPUNativeFunctions::all(self, dim, keepdim));
 

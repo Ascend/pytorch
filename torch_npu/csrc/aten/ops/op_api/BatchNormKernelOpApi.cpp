@@ -15,24 +15,17 @@
 // limitations under the License.
 
 #include <ATen/Tensor.h>
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
 namespace native {
 
-tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_batch_norm(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_batch_norm(
     const at::Tensor& self, const c10::optional<at::Tensor>& weight_opt, const c10::optional<at::Tensor>& bias_opt,
     const c10::optional<at::Tensor>& running_mean_opt, const c10::optional<at::Tensor>& running_var_opt, bool train,
     double momentum, double eps) {
-  if (self.dim() == 5) {
-    return NPUNativeFunctions::native_batch_norm(self, weight_opt, bias_opt, running_mean_opt, running_var_opt, train,
-                                                 momentum, eps);
-  }
   DO_COMPATIBILITY(aclnnBatchNorm, NPUNativeFunctions::native_batch_norm(self, weight_opt, bias_opt, running_mean_opt,
                                                                          running_var_opt, train, momentum, eps));
   // construct the output tensor of the NPU
@@ -51,6 +44,21 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_batch_
                result, save_mean, save_invstd);
 
   return std::tie(result, save_mean, save_invstd);
+}
+
+std::tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::native_batch_norm_out(
+    const at::Tensor& self, const c10::optional<at::Tensor>& weight_opt, const c10::optional<at::Tensor>& bias_opt,
+    const c10::optional<at::Tensor>& running_mean_opt, const c10::optional<at::Tensor>& running_var_opt, bool train,
+    double momentum, double eps, at::Tensor& out, at::Tensor& save_mean, at::Tensor& save_invstd) {
+  DO_COMPATIBILITY(
+      aclnnBatchNorm,
+      NPUNativeFunctions::native_batch_norm_out(self, weight_opt, bias_opt, running_mean_opt, running_var_opt, train,
+                                                momentum, eps, out, save_mean, save_invstd));
+
+  EXEC_NPU_CMD(aclnnBatchNorm, self, weight_opt, bias_opt, running_mean_opt, running_var_opt, train, momentum, eps,
+               out, save_mean, save_invstd);
+
+  return std::tie(out, save_mean, save_invstd);
 }
 }  // namespace native
 }  // namespace at_npu

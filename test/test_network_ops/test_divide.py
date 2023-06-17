@@ -26,8 +26,11 @@ from torch_npu.testing.decorator import Dtypes, instantiate_tests
 class TestDivide(TestCase):
     def get_outputs(self, cpu_args, npu_args, dtype):
         # cpu not support fp16 div
-        cpu_args = [i.float() if dtype == torch.half else i for i in cpu_args]
-        cpu_output = torch.divide(cpu_args[0], cpu_args[1]).to(dtype).numpy()
+        if dtype == torch.half:
+            cpu_args = [i.float() for i in cpu_args]
+            cpu_output = torch.divide(cpu_args[0], cpu_args[1]).to(dtype).numpy()
+        else:
+            cpu_output = torch.divide(cpu_args[0], cpu_args[1]).numpy()
         npu_output = torch.divide(npu_args[0], npu_args[1]).to("cpu").numpy()
         return cpu_output, npu_output
 
@@ -139,7 +142,7 @@ class TestDivide(TestCase):
             [[np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (16)], [np.float16, 0, (2, 20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (2, 20, 16)], 'floor'],
-            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], 'true'],
+            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], None],
         ]
         for item in shape_format1:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -162,7 +165,7 @@ class TestDivide(TestCase):
             [[np.float32, 0, (20, 16)], 17.2, 'trunc'],
             [[np.float16, 0, (2, 20, 16)], 72.2, 'floor'],
             [[np.float16, 0, (2, 20, 16)], -5.4, 'trunc'],
-            [[np.float16, 0, (3, 20, 16)], -45.3, 'true'],
+            [[np.float16, 0, (3, 20, 16)], -45.3, None],
             [[np.int32, 0, (20, 16)], 15.9, 'floor'],
             [[np.int32, 0, (20, 16)], 17.2, 'trunc'],
         ]

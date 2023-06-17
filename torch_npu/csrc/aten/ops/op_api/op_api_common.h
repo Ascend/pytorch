@@ -62,22 +62,40 @@ inline const char *GetOpApiLibName(void) {
   return "libopapi.so";
 }
 
-inline void *GetOpApiFuncAddr(const char *apiName) {
-  static auto handler = dlopen(GetOpApiLibName(), RTLD_LAZY);
-  if (handler == nullptr) {
-    static bool firstOpen = true;
-    if (firstOpen) {
-      ASCEND_LOGW("dlopen %s failed, error:%s.", GetOpApiLibName(), dlerror());
-      firstOpen = false;
-    }
-    return nullptr;
-  }
+inline const char *GetCustOpApiLibName(void) {
+  return "libcust_opapi.so";
+}
 
+inline void *GetOpApiFuncAddrInLib(void *handler, const char *libName, const char *apiName) {
   auto funcAddr = dlsym(handler, apiName);
   if (funcAddr == nullptr) {
-    ASCEND_LOGW("dlsym %s from %s failed, error:%s.", apiName, GetOpApiLibName(), dlerror());
+    ASCEND_LOGW("dlsym %s from %s failed, error:%s.", apiName, libName, dlerror());
   }
   return funcAddr;
+}
+
+inline void *GetOpApiLibHandler(const char *libName) {
+  auto handler = dlopen(libName, RTLD_LAZY);
+  if (handler == nullptr) {
+      ASCEND_LOGW("dlopen %s failed, error:%s.", libName, dlerror());
+  }
+  return handler;
+}
+
+inline void *GetOpApiFuncAddr(const char *apiName) {
+  static auto custOpApiHandler = GetOpApiLibHandler(GetCustOpApiLibName());
+  if (custOpApiHandler != nullptr) {
+    auto funcAddr = GetOpApiFuncAddrInLib(custOpApiHandler, GetCustOpApiLibName(), apiName);
+    if (funcAddr != nullptr) {
+      return funcAddr;
+    }
+  }
+
+  static auto opApiHandler = GetOpApiLibHandler(GetOpApiLibName());
+  if (opApiHandler == nullptr) {
+    return nullptr;
+  }
+  return GetOpApiFuncAddrInLib(opApiHandler, GetOpApiLibName(), apiName);
 }
 
 inline aclTensor *ConvertType(const at::Tensor &at_tensor) {

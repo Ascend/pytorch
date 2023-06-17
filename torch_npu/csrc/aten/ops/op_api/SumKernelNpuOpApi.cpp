@@ -1,5 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,10 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/WrapDimUtilsMulti.h>
-
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
@@ -32,38 +28,16 @@ at::Tensor &NPUNativeOpApiFunctions::sum_out(
     c10::optional<c10::ScalarType> dtype,
     at::Tensor &result) {
   DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum_out(self, dim, keepdim, dtype, result));
-  auto outputSize = sum_npu_output_size(self, dim, keepdim);
+  auto output_size = sum_npu_output_size(self, dim, keepdim);
   auto res_type = dtype.has_value() ? dtype.value() : result.scalar_type();
-
   OpPreparation::CheckOut(
       {self},
       result,
-      ACL_FORMAT_ND,
-      res_type,
-      outputSize);
-
-  auto selfSize = self.sizes();
-  for (int64_t i = 0; i < selfSize.size(); i++) {
-    if (selfSize[i] == 0) {
-      at::Tensor result_cast = at::empty(outputSize);
-      result.copy_(result_cast);
-      return result;
-    }
-  }
-
-  at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
-      NPUNativeOpApiFunctions::npu_dtype_cast(self, at::kFloat) : self;
-  at::Tensor result_cp = result.scalar_type() == self_cp.scalar_type() ? result :
-      NPUNativeOpApiFunctions::npu_dtype_cast(result, self_cp.scalar_type());
+      self,
+      output_size);
 
   auto des_dim = ConvertType(dim);
-  EXEC_NPU_CMD(aclnnReduceSum, self_cp, des_dim, keepdim, result_cp);
-  if (result_cp.scalar_type() != res_type) {
-    result_cp = NPUNativeOpApiFunctions::npu_dtype_cast(result_cp, res_type);
-    result.copy_(result_cp);
-  } else {
-    result = result_cp;
-  }
+  EXEC_NPU_CMD(aclnnReduceSum, self, des_dim, keepdim, res_type, result);
   return result;
 }
 
@@ -83,10 +57,8 @@ at::Tensor NPUNativeOpApiFunctions::sum(
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
   DO_COMPATIBILITY(aclnnReduceSum, NPUNativeFunctions::sum(self, dim, keepdim, dtype));
-  at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
-      NPUNativeOpApiFunctions::npu_dtype_cast(self, at::kFloat) : self;
-  auto outputSize = reduce_ops_npu_output_size(self_cp, dim, keepdim);
-  auto selfSize = self_cp.sizes();
+  auto output_size = reduce_ops_npu_output_size(self, dim, keepdim);
+  auto self_size = self.sizes();
   auto out_type = self.scalar_type();
 
   if (dtype.has_value()) {
@@ -95,20 +67,15 @@ at::Tensor NPUNativeOpApiFunctions::sum(
     out_type = at::kLong;
   }
 
-  for (int64_t i = 0; i < selfSize.size(); i++) {
-    if (selfSize[i] == 0) {
-      return at::zeros(outputSize, self_cp.options());
+  for (int64_t i = 0; i < self_size.size(); i++) {
+    if (self_size[i] == 0) {
+      return at::zeros(output_size, self.options().dtype(out_type));
     }
   }
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self_cp.options(), ACL_FORMAT_ND);
+  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(out_type), self);
   auto des_dim = ConvertType(dim);
-  EXEC_NPU_CMD(aclnnReduceSum, self_cp, des_dim, keepdim, result);
-
-  if (result.scalar_type() != out_type) {
-    result = NPUNativeOpApiFunctions::npu_dtype_cast(result, out_type);
-  }
+  EXEC_NPU_CMD(aclnnReduceSum, self, des_dim, keepdim, out_type, result);
   return result;
 }
 

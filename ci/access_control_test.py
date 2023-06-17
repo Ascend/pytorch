@@ -123,6 +123,8 @@ class DirectoryMappingStrategy(AccurateTest):
         if str(Path(modify_file).parts[0]) == 'torch_npu':
             mapped_ut_path = []
             module_name = str(Path(modify_file).parts[1])
+            if module_name == 'csrc':
+                module_name = str(Path(modify_file).parts[2])
             if module_name in self.mapping_list:
                 mapped_ut_path.append(self.mapping_list[module_name])
             file_name = str(Path(modify_file).stem)
@@ -151,14 +153,20 @@ class TestMgr():
                 self.modify_files.append(line)
 
     def analyze(self):
+        # determine whether the modification is about hostapi
+        def is_hostapi_enabled(modify_file):
+            if str(Path(modify_file).parent.name) == 'op_api':
+                os.environ['HOSTAPI_ENABLED'] = 'ON'
+
         for modify_file in self.modify_files:
+            is_hostapi_enabled(modify_file)
             self.test_files['ut_files'] += DirectoryStrategy().identify(modify_file)
             self.test_files['ut_files'] += CopyOptStrategy().identify(modify_file)
             self.test_files['ut_files'] += OpStrategy().identify(modify_file)
             self.test_files['op_ut_files'] += OpStrategy().identify(modify_file)
             self.test_files['ut_files'] += DirectoryMappingStrategy().identify(modify_file)
             self.test_files['ut_files'] += CoreTestStrategy().identify(modify_file)
-        unique_files = set(self.test_files['ut_files'])
+        unique_files = sorted(set(self.test_files['ut_files']))
 
         exist_ut_file = [
             changed_file
@@ -217,7 +225,7 @@ def exec_ut(files):
             p.kill()
             p.terminate()
             ret = 1
-            print(f"Timeout: Command '{cmd}' timed out after 2000 seconds")
+            print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
         except Exception as err:
             ret = 1
             print(err)
