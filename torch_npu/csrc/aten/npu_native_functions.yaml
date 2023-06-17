@@ -1217,9 +1217,12 @@ supported:
 autograd:
   - celu
   - celu_
-  - elu.out
-  - elu
-  - elu_
+  - func: elu.out
+    op_api: False
+  - func: elu
+    op_api: False
+  - func: elu_
+    op_api: False
   - silu
   - silu_
   - func: silu.out
