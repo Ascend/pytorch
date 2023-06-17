@@ -38,9 +38,10 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
 
     bool is_finite = true;
     if (c10_npu::IsSupportInfNan()) {
-        for (auto scaled_grad : scaled_grads) {
-          auto res = NPUNativeFunctions::isfinite(scaled_grad);
-          if (!NPUNativeFunctions::all(res).item().toBool()) {
+        for (const auto& scaled_grad : scaled_grads) {
+          auto res = NPUNativeFunctions::sum(scaled_grad, at::ScalarType::Float);
+          float cpu_sum = res.item().toFloat();
+          if (!std::isfinite(cpu_sum)) {
             is_finite = false;
             break;
           }
@@ -52,7 +53,7 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
     if (is_finite) {
         auto expected_device = scaled_grads[0].device();
         auto expected_dtype = scaled_grads[0].dtype();
-        for (auto t : scaled_grads) {
+        for (const auto& t : scaled_grads) {
             TORCH_CHECK(torch_npu::utils::is_npu(t), "one of scaled_grads was not a NPU tensor.");
             TORCH_CHECK(t.device() == expected_device, "scaled_grads must be on the same device.");
             TORCH_CHECK(t.dtype() == expected_dtype, "scaled_grads must have the same dtype.");
