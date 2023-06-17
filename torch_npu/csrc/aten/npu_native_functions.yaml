@@ -617,8 +617,10 @@ supported:
  - log1p
  - log1p.out
  - log1p_
- - log2
- - log2.out
+ - func: log2
+   op_api: False
+ - func: log2.out
+   op_api: False
  - log2_
  - log_
  - log_sigmoid
