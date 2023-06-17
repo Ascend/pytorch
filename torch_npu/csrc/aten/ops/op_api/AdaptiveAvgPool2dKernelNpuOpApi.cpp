@@ -32,7 +32,8 @@ at::Tensor& NPUNativeOpApiFunctions::adaptive_avg_pool2d_out(const at::Tensor& s
 at::Tensor NPUNativeOpApiFunctions::adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
   DO_COMPATIBILITY(aclnnAdaptiveAvgPool2d, NPUNativeFunctions::adaptive_avg_pool2d(self, output_size));
   // The logic is a little different from CPU_impl
-  return NPUNativeOpApiFunctions::_adaptive_avg_pool2d(self, output_size);
+  // can't use "NPUNativeOpApiFunctions::_adaptive_avg_pool2d(self, output_size)", this will resnet50 accuracy error
+  return at::_adaptive_avg_pool2d(self, output_size);
 }
 
 at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
