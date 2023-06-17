@@ -73,7 +73,8 @@ supported:
  - _pad_packed_sequence
  - _pdist_forward
  - _pin_memory
- - _s_where
+ - func: _s_where
+   op_api: False
  - _slow_conv2d_backward.output_mask
  - _slow_conv2d_forward
  - _slow_conv2d_forward.output
@@ -1181,7 +1182,8 @@ supported:
  - var_mean.correction_names
  - view
  - where
- - where.self
+ - func: where.self
+   op_api: False
  - xlogy.OutScalar_Other
  - xlogy.OutScalar_Self
  - xlogy.OutTensor
