@@ -725,8 +725,10 @@ supported:
  - min.names_dim
  - min.names_dim_min
  - min.out
- - minimum
- - minimum.out
+ - func: minimum
+   op_api: False
+ - func: minimum.out
+   op_api: False
  - mish
  - mish.out
  - mish_
@@ -735,10 +737,14 @@ supported:
    op_api: True
  - func: mm.out
    op_api: True
- - mse_loss
- - mse_loss.out
- - mse_loss_backward
- - mse_loss_backward.grad_input
+ - func: mse_loss
+   op_api: False
+ - func: mse_loss.out
+   op_api: False
+ - func: mse_loss_backward
+   op_api: False
+ - func: mse_loss_backward.grad_input
+   op_api: False
  - func: mul.Scalar
    op_api: True
  - func: mul.Tensor
