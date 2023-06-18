@@ -9,10 +9,10 @@ import traceback
 from typing import Set, Type
 from functools import wraps
 
-from . import _ld_preload  # noqa: F401
-
 import torch
+from . import _ld_preload  # noqa: F401
 import torch_npu
+
 try:
     import torch_npu.npu
 except ImportError as e:
