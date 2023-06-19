@@ -21,6 +21,19 @@
 
 namespace at_npu {
 namespace native {
+at::Tensor& NPUNativeOpApiFunctions::leaky_relu_backward_out(const at::Tensor& grad_output, const at::Tensor& self,
+                                                             const at::Scalar& negval, bool is_result,
+                                                             at::Tensor& grad_input) {
+  DO_COMPATIBILITY(aclnnLeakyReluBackward,
+                   NPUNativeFunctions::leaky_relu_backward_out(grad_output, self, negval, is_result, grad_input));
+
+  OpPreparation::CheckOut({self, grad_output}, grad_input, grad_input.scalar_type(), self.sizes());
+  // calculate the output result of the NPU
+  EXEC_NPU_CMD(aclnnLeakyReluBackward, grad_output, self, negval, is_result, grad_input);
+
+  return grad_input;
+}
+
 at::Tensor NPUNativeOpApiFunctions::leaky_relu_backward(const at::Tensor& grad_output, const at::Tensor& self,
                                                         const at::Scalar& negval, bool is_result) {
   DO_COMPATIBILITY(aclnnLeakyReluBackward,
