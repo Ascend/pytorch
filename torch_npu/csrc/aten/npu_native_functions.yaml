@@ -698,8 +698,10 @@ supported:
  - masked_scatter_
  - masked_select
  - masked_select.out
- - matmul
- - matmul.out
+ - func: matmul
+   op_api: False
+ - func: matmul.out
+   op_api: False
  - func: max
    op_api: False
  - func: max.dim
