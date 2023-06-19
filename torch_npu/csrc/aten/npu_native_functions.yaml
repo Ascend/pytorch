@@ -689,8 +689,10 @@ supported:
    op_api: True
  - func: lt.Tensor_out
    op_api: True
- - lt_.Scalar
- - lt_.Tensor
+ - func: lt_.Scalar
+   op_api: False
+ - func: lt_.Tensor
+   op_api: False
  - func: masked_fill_.Scalar
    op_api: True
  - func: masked_fill_.Tensor
