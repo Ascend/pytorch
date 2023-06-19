@@ -24,6 +24,12 @@ namespace
               num_and_index.front().first, num_and_index.front().second);
           return ge_op;
         };
+
+  const std::string x_str = "x";
+  const std::string value_str = "value";
+  const std::string indexed_sizes_str = "indexed_sizes";
+  const std::string indexed_strides_str = "indexed_strides";
+  const std::string aicore_str = "AiCore";
 }
 
 bool is_aicpu_valid(const at::Tensor& self,
@@ -97,20 +103,19 @@ at::Tensor& index_put_aicore_nocheck(
       all_defined_indices[0].sizes()[0] != value.sizes()[0]) {
         temp_value_broadcast = NPUNativeFunctions::npu_broadcast(temp_value, all_defined_indices[0].sizes());
   }
-  auto masks_tensors = at::tensor(masks, self.options().dtype(at::kLong));
-  auto expand_masks_tensors = at::tensor(expand_masks, self.options().dtype(at::kLong));
+
   OpCommand cmd;
   cmd.Name("IndexPutV2")
-      .Input(temp_self, (string)"x")
-      .Input(temp_value_broadcast, (string)"value")
-      .Input(masks_tensors, (string)"indexed_sizes")
-      .Input(expand_masks_tensors, (string)"indexed_strides");
+      .Input(temp_self, x_str)
+      .Input(temp_value_broadcast, value_str)
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, "", indexed_sizes_str)
+      .Input(expand_masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, "", indexed_strides_str);
   for (int i = 0; i < all_defined_indices.size(); i++) {
     string input_name = "indices" +std::to_string(i);
     cmd.Input(all_defined_indices[i], input_name);
   }
   cmd.DynamicInputReg(indexput_func<ge::op::IndexPutV2>, {{all_defined_indices.size(), 4}})
-      .Output(temp_self, (string)"x")
+      .Output(temp_self, x_str)
       .Attr("accumulate", accumulate)
       .Run();
   if (self.scalar_type() == at::ScalarType::Half) {
@@ -161,20 +166,20 @@ at::Tensor& index_put_aicpu_nocheck(
     temp_value = NPUNativeFunctions::npu_dtype_cast(value, at::ScalarType::Float);
     result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
   }
-  auto masks_tensors = at::tensor(masks, self.options().dtype(at::kLong));
+
   OpCommand cmd;
   cmd.Name("IndexPutV2")
-      .Input(temp_self, (string)"x")
-      .Input(temp_value, (string)"value")
-      .Input(masks_tensors, (string)"indexed_sizes")
-      .Input(masks_tensors, (string)"indexed_strides");
+      .Input(temp_self, x_str)
+      .Input(temp_value, value_str)
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, "", indexed_sizes_str)
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, "", indexed_strides_str);
   for (int i = 0; i < all_defined_indices.size(); i++) {
     string input_name = "indices" +std::to_string(i);
     cmd.Input(all_defined_indices[i], input_name);
   }
   cmd.DynamicInputReg(indexput_func<ge::op::IndexPutV2>, {{all_defined_indices.size(), 4}})
-      .Output(result, (string)"x")
-      .Attr("_exclude_engines", (string)"AiCore")
+      .Output(result, x_str)
+      .Attr("_exclude_engines", aicore_str)
       .Attr("accumulate", accumulate)
       .Run();
 
