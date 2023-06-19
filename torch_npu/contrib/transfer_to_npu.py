@@ -38,6 +38,7 @@ torch_cuda_fn_white_list = [
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
 ]
+torch_profiler_fn_white_list = ['profile']
 
 NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
@@ -86,6 +87,8 @@ def wrapper_cuda(fn):
             if isinstance(device, torch_npu._C.device) and 'cuda' in device.type:
                 device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                 kwargs['device'] = torch.device(device_info)
+            if 'experimental_config' in kwargs.keys():
+                del kwargs['experimental_config']
         return fn(*args, **kwargs)
 
     return decorated
@@ -126,6 +129,18 @@ def patch_cuda():
     torch_npu._apply_patches(patchs)
 
 
+def patch_profiler():
+    patchs = [
+        ['profiler.profile', torch_npu.profiler.profile], 
+        ['profiler.schedule', torch_npu.profiler.schedule],
+        ['profiler.tensorboard_trace_handler', torch_npu.profiler.tensorboard_trace_handler],
+        ['profiler.ProfilerAction', torch_npu.profiler.ProfilerAction],
+        ['profiler.ProfilerActivity.CUDA', torch_npu.profiler.ProfilerActivity.NPU],
+        ['profiler.ProfilerActivity.CPU', torch_npu.profiler.ProfilerActivity.CPU]
+    ]
+    torch_npu._apply_patches(patchs)
+
+
 def warning_fn(msg, rank0=True):
     is_distributed = torch.distributed.is_available() and \
                      torch.distributed.is_initialized() and \
@@ -160,6 +175,10 @@ def init():
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+
+    # torch.profiler.*
+    patch_profiler()
+    device_wrapper(torch.profiler, torch_profiler_fn_white_list)
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
