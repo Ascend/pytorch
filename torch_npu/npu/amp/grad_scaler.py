@@ -136,14 +136,6 @@ class GradScaler(Cuda_GradScaler):
             self._dist_initialized = False
             self._dist_overflow_count = None
 
-        print("GradScaler options are:")
-        print("{:22} : {}".format("init_scale", init_scale))
-        print("{:22} : {}".format("growth_factor", growth_factor))
-        print("{:22} : {}".format("backoff_factor", backoff_factor))
-        print("{:22} : {}".format("growth_interval", growth_interval))
-        print("{:22} : {}".format("dynamic", dynamic))
-        print("{:22} : {}".format("enabled", enabled))
-
     def _lazy_init_scale_growth_tracker(self, dev):
         assert self._growth_tracker is None, "_growth_tracker initialized before _scale"
         self._scale = torch.full((1,), self._init_scale, dtype=torch.float32).pin_memory().to(dev, non_blocking=True)
