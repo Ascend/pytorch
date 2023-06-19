@@ -228,37 +228,6 @@ return {impl_name}({args_exprs_str});
             assert_never(self.target)
 
 
-
-def cpp_record_func(f: NativeFunction, custom=False) -> str:
-    name = cpp.name(f.func)
-
-    if Variant.function in f.variants:
-        if custom:
-            record_func = f'RECORD_FUNCTION("{name}", std::vector<c10::IValue>({{}}));'
-        else:
-            record_func = f'// RECORD_FUNCTION("{name}")'
-        return record_func
-    raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
-
-
-def cpp_dispatch_target(f: NativeFunction, custom=False, is_npu_autograd=False) -> str:
-    name = cpp.name(f.func)
-    if Variant.method in f.variants and not custom:
-        return f'self.{name}'
-    if Variant.function in f.variants:
-        if custom:
-            if is_npu_autograd:
-                namespace = 'at_npu::autograd::VariableType'
-            else:
-                namespace = 'at_npu::native::NPUNativeFunctions'
-        elif has_tensor_options(f) or f.func.name.name.base.endswith('_like'):
-            namespace = 'torch'
-        else:
-            namespace = 'at'
-        return f'{namespace}::{name}'
-    raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
-
-
 def arguments(
     arguments: Arguments,
     *,

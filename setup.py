@@ -192,8 +192,8 @@ class Clean(distutils.command.clean.clean):
             'torch_npu/csrc/aten/RegisterNPU.cpp',
             'torch_npu/csrc/aten/RegisterAutogradNPU.cpp',
             'torch_npu/csrc/aten/NPUNativeFunctions.h',
-            'torch_npu/csrc/aten/python_custom_functions.cpp',
-            'torch_npu/utils/torch_funcs.py',
+            'torch_npu/csrc/aten/CustomRegisterSchema.cpp',
+            'torch_npu/utils/custom_ops.py',
             'torch_npu/version.py',
         ]
         for remove_file in remove_files:

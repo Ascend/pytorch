@@ -23,7 +23,7 @@ class TestMax(TestCase):
     def test_npu_max(self, device="npu"):
         item = [np.float32, 0, (2, 2, 2, 2)]
         _, npu_input = create_common_tensor(item, -1, 1)
-        dims = (2, 'H')
+        dims = (2,)
         keepdim = False
 
         for dim in dims:

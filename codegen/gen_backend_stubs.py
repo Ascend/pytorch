@@ -41,6 +41,7 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file)
+from codegen.custom_functions import parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
@@ -493,6 +494,14 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                 dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
+
+        template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
+        fm = FileManager(install_dir=output_dir, template_dir=template_dir, dry_run=dry_run)
+        custom_trace_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
+        gen_custom_trace(fm, custom_trace_functions)
+
+        fm = FileManager(install_dir=output_dir+"../../../utils/", template_dir=template_dir, dry_run=dry_run)
+        gen_custom_ops_patch(fm, custom_trace_functions)
 
 
 def apply_torchgen_patch():
