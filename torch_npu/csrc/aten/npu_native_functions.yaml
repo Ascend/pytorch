@@ -399,7 +399,8 @@ supported:
  - div_.Scalar_mode
  - func: div_.Tensor
    op_api: True
- - div_.Tensor_mode
+ - func: div_.Tensor_mode
+   op_api: False
  - func: dot
    op_api: True
  - func: dot.out

@@ -63,9 +63,9 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
   OpPreparation::CheckOut({self}, result, result, outputSize);
 
   int mode = 0;
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     mode = 2;
-  } else if (*rounding_mode == "trunc") {
+  } else if (rounding_mode.has_value() && *rounding_mode == "trunc") {
     mode = 1;
   }
   // calculate the output result of the NPU
@@ -118,9 +118,9 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
 
   // construct the output tensor of the NPU
   int mode = 0;
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     mode = 2;
-  } else if (*rounding_mode == "trunc") {
+  } else if (rounding_mode.has_value() && *rounding_mode == "trunc") {
     mode = 1;
   } else {
     if (isIntegralType(high_type, true)) {
@@ -144,6 +144,15 @@ at::Tensor& NPUNativeOpApiFunctions::div_(at::Tensor& self, const at::Tensor& ot
   DO_COMPATIBILITY(aclnnDiv, NPUNativeFunctions::div_(self, other));
 
   NPUNativeOpApiFunctions::div_out(self, other, self);
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::div_(at::Tensor& self, const at::Tensor& other,
+                                          c10::optional<c10::string_view> rounding_mode) {
+  DO_COMPATIBILITY(aclnnDivMods, NPUNativeFunctions::div_(self, other, rounding_mode));
+  DO_COMPATIBILITY(aclnnDivMod, NPUNativeFunctions::div_(self, other, rounding_mode));
+
+  NPUNativeOpApiFunctions::div_out(self, other, rounding_mode, self);
   return self;
 }
 
