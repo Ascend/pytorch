@@ -336,7 +336,8 @@ supported:
  - clamp_min.Tensor
  - clamp_min.Tensor_out
  - clamp_min_.Tensor
- - clone
+ - func: clone
+   op_api: False
  - col2im
  - col2im.out
  - col2im_backward
