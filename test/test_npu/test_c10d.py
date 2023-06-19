@@ -135,6 +135,7 @@ class ProcessGroupHCCLTest(TestCase):
 
 
 class ComputeBucketAssignmentTest(TestCase):
+    @unittest.skipIf(os.getenv('HOSTAPI_ENABLED') == 'ON', 'Private format is forbiddened')
     def test_single_limit_single_dtype(self):
         tensors = [
             torch.empty([100, 1], dtype=torch.float).npu().npu_format_cast(Format.NZ),
