@@ -153,6 +153,7 @@ class TestDiv(TestCase):
         shape_format = [
             [[np.float32, 0, (20, 16)], [np.float32, 0, (16)], [np.float32, 0, (20, 16)], 'floor'],
             [[np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], 'trunc'],
+            [[np.int32, 0, (20, 16)], [np.int32, 0, (20, 16)], [np.int32, 0, (20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (16)], [np.float16, 0, (2, 20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (2, 20, 16)], 'floor'],
             [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], None],
@@ -165,7 +166,7 @@ class TestDiv(TestCase):
             npu_output = self.npu_op_exec_mode(npu_input1, npu_input2, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
             # div_out
-            cpu_out, npu_out = create_common_tensor(item[2], 1, 100)
+            _, npu_out = create_common_tensor(item[2], 1, 100)
             npu_output_out = self.npu_op_exec_mode_out(npu_input1, npu_input2, npu_out, item[3])
             self.assertRtolEqual(cpu_output, npu_output_out)
             # div_
@@ -182,6 +183,7 @@ class TestDiv(TestCase):
             [[np.float16, 0, (3, 20, 16)], -45.3, None],
             [[np.int32, 0, (2, 20, 16)], 15.9, 'floor'],
             [[np.int32, 0, (3, 20, 16)], 17.2, 'trunc'],
+            [[np.int32, 0, (3, 20, 16)], 7, 'trunc'],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
