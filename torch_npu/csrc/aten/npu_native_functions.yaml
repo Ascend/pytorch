@@ -619,8 +619,10 @@ supported:
  - lerp.Tensor_out
  - lerp_.Scalar
  - lerp_.Tensor
- - linalg_cross
- - linalg_cross.out
+ - func: linalg_cross
+   op_api: False
+ - func: linalg_cross.out
+   op_api: False
  - linspace
  - linspace.out
  - func: log
