@@ -556,8 +556,10 @@ supported:
  - hardtanh_
  - hardtanh_backward
  - hardtanh_backward.grad_input
- - histc
- - histc.out
+ - func: histc
+   op_api: False
+ - func: histc.out
+   op_api: False
  - im2col
  - im2col.out
  - im2col_backward
@@ -692,7 +694,8 @@ supported:
  - masked_select.out
  - matmul
  - matmul.out
- - max
+ - func: max
+   op_api: False
  - max.dim
  - max.dim_max
  - max.names_dim
@@ -733,7 +736,8 @@ supported:
  - median.dim_values
  - median.names_dim
  - median.names_dim_values
- - min
+ - func: min
+   op_api: False
  - min.dim
  - min.dim_min
  - min.names_dim
