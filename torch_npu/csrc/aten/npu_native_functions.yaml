@@ -551,10 +551,13 @@ supported:
    op_api: True
  - func: hardswish_backward
    op_api: True
- - hardtanh
+ - func: hardtanh
+   op_api: False
  - hardtanh.out
- - hardtanh_
- - hardtanh_backward
+ - func: hardtanh_
+   op_api: False
+ - func: hardtanh_backward
+   op_api: False
  - hardtanh_backward.grad_input
  - func: histc
    op_api: False
