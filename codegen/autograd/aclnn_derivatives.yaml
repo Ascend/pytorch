@@ -1,0 +1,7 @@
+# Defines derivative formulas and Python signatures of methods on Variable
+#
+#If you need any guidance, please refer to the comments in derivatives.yaml in PyTorch.
+
+- name: matmul(Tensor self, Tensor other) -> Tensor
+  self, other: matmul_backward(grad, self, other, grad_input_mask)
+
