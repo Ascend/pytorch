@@ -67,7 +67,7 @@ namespace at_npu
       }
       aclDataType aclDataType =
           CalcuOpUtil::ConvertToAclDataType(scalarDataType);
-      c10::Scalar expScalar = CalcuOpUtil::ConvertTensorToScalar(tensor);
+      c10::Scalar expScalar = tensor.item();
       at::Tensor aclInput =
           CalcuOpUtil::CopyScalarToDevice(expScalar, scalarDataType);
 
