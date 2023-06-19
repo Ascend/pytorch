@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -36,6 +36,15 @@ at::Tensor NPUNativeOpApiFunctions::maximum(const at::Tensor& self, const at::Te
   at::ScalarType high_type = at::native::result_type(self, other);
   at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(high_type), self);
   EXEC_NPU_CMD(aclnnMaximum, self, other, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::max(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnMax, NPUNativeFunctions::max(self));
+  at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
+  auto output_size = reduce_ops_npu_output_size(self, dims, false);
+  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  EXEC_NPU_CMD(aclnnMax, self, result);
   return result;
 }
 
