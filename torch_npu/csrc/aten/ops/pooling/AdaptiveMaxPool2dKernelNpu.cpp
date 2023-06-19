@@ -18,7 +18,6 @@
 namespace at_npu {
 namespace native {
 
-
 tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::adaptive_max_pool2d_out(
     const at::Tensor& self,
     at::IntArrayRef output_size,
@@ -28,48 +27,48 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::adaptive_max_pool2d_out(
   auto inputsize = self.sizes();
   c10::SmallVector<int64_t, N> input_size;
   if (inputsize.size() == 3) {
-      c10::SmallVector<int64_t, N> size = { inputsize[1], inputsize[2] };
-      input_size = at::IntArrayRef(size);
+    c10::SmallVector<int64_t, N> size = {inputsize[1], inputsize[2]};
+    input_size = at::IntArrayRef(size);
   } else if (inputsize.size() == 4) {
-      c10::SmallVector<int64_t, N> size = { inputsize[2], inputsize[3] };
-      input_size = at::IntArrayRef(size);
+    c10::SmallVector<int64_t, N> size = {inputsize[2], inputsize[3]};
+    input_size = at::IntArrayRef(size);
   }
-  if (input_size[0] % output_size[0] == 0 && input_size[1] % output_size[1] == 0) {
-      int64_t kernel_size[2];
-      int64_t stride[2];
-      int64_t padding[2];
-      int64_t strideH = input_size[0] / output_size[0];
-      int64_t strideW = input_size[1] / output_size[1];
-      int64_t kernel_sizeH = input_size[0] - (output_size[0] - 1) * strideH;
-      int64_t kernel_sizeW = input_size[1] - (output_size[1] - 1) * strideW;
-      stride[0] = strideH;
-      stride[1] = strideW;
-      kernel_size[0] = kernel_sizeH;
-      kernel_size[1] = kernel_sizeW;
-      padding[0] = padding[1] = 0;
-      c10::SmallVector<int64_t, N> kernelSize = {1, kernel_size[0], kernel_size[1], 1};
-      c10::SmallVector<int64_t, N> stridesSize = {1, stride[0], stride[1], 1};
-      c10::SmallVector<int64_t, N> paddings = {1, padding[0], padding[1], 1};
-      c10::SmallVector<int64_t, N> dilations = {1, 1, 1, 1};
-      bool ceil_mode = false;
 
-      OpCommand cmd;
-      cmd.Name("MaxPoolWithArgmaxV1")
-          .Input(self, "x", ACL_FORMAT_NCHW)
-          .Output(output, "y", ACL_FORMAT_NCHW)
-          .Output(indices, "argmax", ACL_FORMAT_NCHW, "uint16")
-          .Attr("ksize", kernelSize)
-          .Attr("strides", stridesSize)
-          .Attr("pads", paddings)
-          .Attr("dilation", dilations)
-          .Attr("ceil_mode", ceil_mode)
-          .Run();
+  // H and W can not be divided, temporarily reported error processing
+  TORCH_CHECK((input_size[0] % output_size[0] == 0 && input_size[1] % output_size[1] == 0),
+      "H and W must be divisible");
+ 
+  int64_t kernel_size[2];
+  int64_t stride[2];
+  int64_t padding[2];
+  int64_t stride_h = input_size[0] / output_size[0];
+  int64_t stride_w = input_size[1] / output_size[1];
+  int64_t kernel_size_h = input_size[0] - (output_size[0] - 1) * stride_h;
+  int64_t kernel_size_w = input_size[1] - (output_size[1] - 1) * stride_w;
+  stride[0] = stride_h;
+  stride[1] = stride_w;
+  kernel_size[0] = kernel_size_h;
+  kernel_size[1] = kernel_size_w;
+  padding[0] = padding[1] = 0;
+  c10::SmallVector<int64_t, N> kernel_sizes = {1, kernel_size[0], kernel_size[1], 1};
+  c10::SmallVector<int64_t, N> strides_size = {1, stride[0], stride[1], 1};
+  c10::SmallVector<int64_t, N> paddings = {1, padding[0], padding[1], 1};
+  c10::SmallVector<int64_t, N> dilations = {1, 1, 1, 1};
+  bool ceil_mode = false;
 
-    } else {
-        // H and W can not be divided, temporarily reported error processing
-        AT_ERROR("H and W must be divisible");
-    }
-    return tuple<at::Tensor&, at::Tensor&>(output, indices);
+  OpCommand cmd;
+  cmd.Name("MaxPoolWithArgmaxV1")
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Output(output, "y", ACL_FORMAT_NCHW)
+      .Output(indices, "argmax", ACL_FORMAT_NCHW, "uint16")
+      .Attr("ksize", kernel_sizes)
+      .Attr("strides", strides_size)
+      .Attr("pads", paddings)
+      .Attr("dilation", dilations)
+      .Attr("ceil_mode", ceil_mode)
+      .Run();
+  
+  return tuple<at::Tensor&, at::Tensor&>(output, indices);
 }
 
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::adaptive_max_pool2d(
@@ -96,19 +95,20 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::adaptive_max_pool2d(
   int64_t c = self.size(1);
   int64_t h = self.size(2);
   int64_t w = self.size(3);
-  int64_t strideH = h / output_size[0];
-  int64_t strideW = w / output_size[1];
-  int64_t kernel_sizeH = h - (output_size[0] - 1) * strideH;
-  int64_t kernel_sizeW = w - (output_size[1] - 1) * strideW;
-  int64_t Ho = output_size[0];
-  int64_t Wo = output_size[1];
-  c10::SmallVector<int64_t, SIZE> outputSize = {n, c, Ho, Wo};
+  int64_t stride_h = h / output_size[0];
+  int64_t stride_w = w / output_size[1];
+  int64_t kernel_size_h = h - (output_size[0] - 1) * stride_h;
+  int64_t kernel_size_w = w - (output_size[1] - 1) * stride_w;
+  int64_t output_h = output_size[0];
+  int64_t output_w = output_size[1];
+  c10::SmallVector<int64_t, SIZE> output_sizes = {n, c, output_h, output_w};
   const int64_t BLOCKSIZE = 16;
-  int64_t maskH = kernel_sizeH * kernel_sizeW;
-  int64_t maskW = (CeilDiv(Ho * Wo, BLOCKSIZE) + 1);
-  c10::SmallVector<int64_t, SIZE> indicesSize = {n, c, maskH, maskW};
-  at::Tensor output = OpPreparation::ApplyTensor(self, outputSize);
-  at::Tensor indices = OpPreparation::ApplyTensorWithFormat(indicesSize, self.options().dtype(at::kLong), ACL_FORMAT_NC1HWC0);
+  int64_t mask_h = kernel_size_h * kernel_size_w;
+  int64_t mask_w = (CeilDiv(output_h * output_w, BLOCKSIZE) + 1);
+  c10::SmallVector<int64_t, SIZE> indices_size = {n, c, mask_h, mask_w};
+  at::Tensor output = OpPreparation::ApplyTensor(self, output_sizes);
+  at::Tensor indices =
+      OpPreparation::ApplyTensorWithFormat(indices_size, self.options().dtype(at::kShort), ACL_FORMAT_NC1HWC0);
 
   NPUNativeFunctions::adaptive_max_pool2d_out(self, output_size, output, indices);
   return tuple<at::Tensor, at::Tensor>(output, indices);
