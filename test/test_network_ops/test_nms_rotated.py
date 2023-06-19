@@ -178,7 +178,7 @@ class TestNpuNmsRotated(TestCase):
 
         # Step 2:
         # Subtract starting point from every points (for sorting in the next step)
-        ordered_pts = torch.zeros(TOTAL_INTER_POINTS, LENS_TWO)
+        ordered_pts = torch.zeros(num, LENS_TWO)
         for i in range(num):
             ordered_pts[i] = inter_pts[i] - s
 
@@ -190,7 +190,9 @@ class TestNpuNmsRotated(TestCase):
         # Step 3:
         # Sort point 1 ~ num according to their relative cross-product values
         # (essentially sorting according to angles)
-        ordered_pts = sorted(ordered_pts[1:num + 1], key=functools.cmp_to_key(self.tcmp))
+        ordered_pts = ordered_pts.tolist() 
+        ordered_pts[1:] = sorted(ordered_pts[1:], key=functools.cmp_to_key(self.tcmp))
+        ordered_pts = torch.tensor(ordered_pts)
 
         # Step 4:
         # Make sure there are at least 2 points (that don't overlap with each other)
@@ -203,7 +205,7 @@ class TestNpuNmsRotated(TestCase):
         if k == num:
             # We reach the end, which means the convex hull is just one point
             ordered_pts[0] = inter_pts[t]
-            return 1
+            return 1, ordered_pts
         ordered_pts[1] = ordered_pts[k]
 
         # Step 5:
@@ -213,14 +215,12 @@ class TestNpuNmsRotated(TestCase):
         # points, or the 3-point relationship is convex again
         m = 2  # 2 elements in the stack
         previous_index = 2
-        i = k + 1
         for i in range(k + 1, num):
             while m > 1 and self.triangle_area(ordered_pts[i], ordered_pts[m - 1],
                                                ordered_pts[m - previous_index]) >= 0:
                 m -= 1
             ordered_pts[m] = ordered_pts[i]
             m += 1
-            i += 1
 
         # Step 6 (Optional):
         # In general sense we need the original coordinates, so we
@@ -252,6 +252,10 @@ class TestNpuNmsRotated(TestCase):
         pts1 = self.rect_to_points(shifted_a)
         pts2 = self.rect_to_points(shifted_b)
 
+        # Special case of overlap = 0
+        if shifted_a.size < EPS or shifted_b.size < EPS:
+            return 0.
+        
         # Specical case of rect1 == rect2
         if self.is_same_rect(pts1, pts2):
             return 1.0
@@ -276,8 +280,9 @@ class TestNpuNmsRotated(TestCase):
         return score_index_vec
 
     def compute(self, boxes_tensor, scores_tensor, iou_threshold, mode):
+        boxes_tensor = boxes_tensor.float()
+        scores_tensor = scores_tensor.float()
         score_index_vec = self.get_sorted_index_by_core(scores_tensor)
-        bboxes = boxes_tensor
         indices = []
         selected_box = []
         total_num = 0
@@ -289,13 +294,13 @@ class TestNpuNmsRotated(TestCase):
 
             while (k < total_num) and keep:
                 kept_idx = indices[k]
-                overlap = self.rotated_rect_iou(bboxes[idx], bboxes[kept_idx], mode)
+                overlap = self.rotated_rect_iou(boxes_tensor[idx], boxes_tensor[kept_idx], mode)
                 keep = (overlap <= iou_threshold)
                 k += 1
 
             if keep:
                 indices.append(idx)
-                selected_box.append(bboxes[idx])
+                selected_box.append(boxes_tensor[idx])
                 total_num += 1
 
         return indices, total_num
