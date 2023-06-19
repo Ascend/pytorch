@@ -107,7 +107,6 @@ at::Tensor& NPUNativeFunctions::scatter_out(
     c10::string_view reduce,
     at::Tensor& result) {
     TORCH_CHECK(false, "scatter.reduce_out is not supported.");
-    return result;
 }
 
 at::Tensor& NPUNativeFunctions::scatter_out(
@@ -118,7 +117,6 @@ at::Tensor& NPUNativeFunctions::scatter_out(
     c10::string_view reduce,
     at::Tensor& result) {
     TORCH_CHECK(false, "scatter.value_reduce_out is not supported.");
-    return result;
 }
 
 } // namespace native

@@ -874,8 +874,10 @@ supported:
  - renorm.out
  - renorm_
  - repeat
- - repeat_interleave.self_Tensor
- - repeat_interleave.self_int
+ - func: repeat_interleave.self_Tensor
+   op_api: False
+ - func: repeat_interleave.self_int
+   op_api: False
  - replication_pad1d
  - replication_pad1d.out
  - replication_pad1d_backward

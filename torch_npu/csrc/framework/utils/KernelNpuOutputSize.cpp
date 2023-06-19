@@ -894,6 +894,28 @@ namespace native {
       return outputSize;
     }
 
+    // infer output shape for int repeats case
+    c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size_opapi(const at::Tensor &self,
+        int64_t repeats, c10::optional<int64_t> dim) {
+        c10::SmallVector<int64_t, SIZE> shape;
+        if (dim.has_value()) {
+            int64_t real_dim = dim.value_or(0);
+            real_dim = (real_dim < 0) ? (real_dim + self.dim()) : real_dim;
+            for (int64_t i = 0; i < self.dim(); i++) {
+                if (i == real_dim) {
+                    shape.emplace_back(repeats * self.size(i));
+                }
+                else {
+                    shape.emplace_back(self.size(i));
+                }
+            }
+        } else {
+            shape.emplace_back(repeats * self.numel());
+        }
+        return shape;
+    }
+
+
     c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
         const at::Tensor &self,
         int64_t repeats,
@@ -916,6 +938,38 @@ namespace native {
         }
       }
       return shape;
+    }
+
+    // infer output shape for tensor repeats case
+    c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size_opapi(const at::Tensor &self,
+        const at::Tensor &repeats, c10::optional<int64_t> dim) {
+        c10::SmallVector<int64_t, SIZE> shape;
+        if (dim.has_value()) {
+            int64_t real_dim = dim.value_or(0);
+            real_dim = (real_dim < 0) ? (real_dim + self.dim()) : real_dim;
+            for (int64_t i = 0; i < self.dim(); i++) {
+                if (i == real_dim) {
+                    // if repeats only has one element, size will be sum(repeats)*self.size(dim). Otherwise is sum(repeats)
+                    int64_t arg = 1;
+                    if (repeats.numel() == 1) {
+                        arg = self.size(real_dim);
+                    }
+                    shape.emplace_back(arg * (repeats.sum().item()).toLong());
+                }
+                else
+                    shape.emplace_back(self.size(i));
+            }
+        }
+        // without dim, need flatten 
+        else {
+            // if repeats only has one element, size will be sum(repeats) * self.numel(). Otherwise is sum(repeats)
+            int64_t base = repeats.sum().item().toLong();
+            if (repeats.numel() == 1) {
+                base *= self.numel();
+            }
+            shape.emplace_back(base);
+        }
+        return shape;
     }
 
     c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(

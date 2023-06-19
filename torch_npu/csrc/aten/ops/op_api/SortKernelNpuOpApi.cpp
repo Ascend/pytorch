@@ -60,6 +60,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::sort(const at::Tenso
 std::tuple<at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::sort_out(const at::Tensor &self, int64_t dim,
     bool descending, at::Tensor &values, at::Tensor &indices) {
     DO_COMPATIBILITY(aclnnSort, NPUNativeFunctions::sort_out(self, dim, descending, values, indices));
+    OpPreparation::CheckOut({self}, values, values.scalar_type(), self.sizes());
+    OpPreparation::CheckOut({self}, indices, indices.scalar_type(), self.sizes());
     bool stable = false;
 
     return sort_output(self, stable, dim, descending, values, indices);
@@ -68,6 +70,8 @@ std::tuple<at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::sort_out(const a
 std::tuple<at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::sort_out(const at::Tensor &self,
     c10::optional<bool> stable, int64_t dim, bool descending, at::Tensor &values, at::Tensor &indices) {
     DO_COMPATIBILITY(aclnnSort, NPUNativeFunctions::sort_out(self, stable, dim, descending, values, indices));
+    OpPreparation::CheckOut({self}, values, values.scalar_type(), self.sizes());
+    OpPreparation::CheckOut({self}, indices, indices.scalar_type(), self.sizes());
     bool argStable = c10::value_or_else(stable, [] { return false; });
 
     return sort_output(self, argStable, dim, descending, values, indices);
@@ -76,6 +80,8 @@ std::tuple<at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::sort_out(const a
 std::tuple<at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::sort_out(const at::Tensor &self, at::Dimname dim,
     bool descending, at::Tensor &values, at::Tensor &indices) {
     DO_COMPATIBILITY(aclnnSort, NPUNativeFunctions::sort_out(self, dim, descending, values, indices));
+    OpPreparation::CheckOut({self}, values, values.scalar_type(), self.sizes());
+    OpPreparation::CheckOut({self}, indices, indices.scalar_type(), self.sizes());
     bool stable = false;
     
     return sort_output(self, stable, dimname_to_position(self, dim), descending, values, indices);
@@ -83,3 +89,4 @@ std::tuple<at::Tensor &, at::Tensor &> NPUNativeOpApiFunctions::sort_out(const a
 
 } // namespace native
 } // namespace at_npu
+
