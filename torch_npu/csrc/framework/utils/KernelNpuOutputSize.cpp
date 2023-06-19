@@ -213,27 +213,34 @@ namespace native {
         bool count_include_pad,
         c10::optional<int64_t> divisor_override)
     {
-      int H = self.size(-2);
-      int W = self.size(-1);
+      int self_h = self.size(-2);
+      int self_w = self.size(-1);
 
-      int64_t kH = ceil_mode
-                       ? (CeilDiv(H + 2 * padding[0] - kernel_size[0], stride[0]) + 1)
-                       : ((H + 2 * padding[0] - kernel_size[0]) / stride[0] + 1);
-      int64_t kW = ceil_mode
-                       ? (CeilDiv(W + 2 * padding[1] - kernel_size[1], stride[1]) + 1)
-                       : ((W + 2 * padding[1] - kernel_size[1]) / stride[1] + 1);
+      int64_t kernel_h = ceil_mode
+                       ? (CeilDiv(self_h + 2 * padding[0] - kernel_size[0], stride[0]) + 1)
+                       : ((self_h + 2 * padding[0] - kernel_size[0]) / stride[0] + 1);
+      int64_t kernel_w = ceil_mode
+                       ? (CeilDiv(self_w + 2 * padding[1] - kernel_size[1], stride[1]) + 1)
+                       : ((self_w + 2 * padding[1] - kernel_size[1]) / stride[1] + 1);
+
       if (ceil_mode) {
-        if ((kH - 1) * stride[0] >= H + padding[0]) {
-          --kH;
+        if ((kernel_h - 1) * stride[0] >= self_h + padding[0]) {
+          --kernel_h;
+        }
+
+        if ((kernel_w - 1) * stride[1] >= self_w + padding[1]) {
+          --kernel_w;
         }
       }
-      if (ceil_mode) {
-        if ((kW - 1) * stride[1] >= W + padding[1]) {
-          --kW;
-        }
+
+      c10::SmallVector<int64_t, SIZE> output_size;
+      if (self.dim() == 3) {
+        output_size = {self.size(0), kernel_h, kernel_w};
+      } else {
+        output_size = {self.size(0), self.size(1), kernel_h, kernel_w};
       }
-      c10::SmallVector<int64_t, SIZE> outputSize = {self.size(0), self.size(1), kH, kW};
-      return outputSize;
+
+      return output_size;
     }
 
     c10::SmallVector<int64_t, SIZE> baddbmm_npu_output_size(
