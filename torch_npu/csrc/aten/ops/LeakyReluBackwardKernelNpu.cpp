@@ -36,6 +36,17 @@ at::Tensor leaky_relu_backward_out_npu(
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::leaky_relu_backward_out(
+    const at::Tensor& grad_output,
+    const at::Tensor& self,
+    const at::Scalar& negval,
+    bool is_result,
+    at::Tensor& grad_input) {
+  OpPreparation::CheckOut({self, grad_output}, grad_input, grad_input.scalar_type(), self.sizes());
+  leaky_relu_backward_out_npu(grad_input, grad_output, self, negval, is_result);
+  return grad_input;
+}
+
 at::Tensor NPUNativeFunctions::leaky_relu_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,

@@ -583,6 +583,8 @@ supported:
  - leaky_relu_
  - func: leaky_relu_backward
    op_api: False
+ - func: leaky_relu_backward.grad_input
+   op_api: False
  - lerp.Scalar
  - lerp.Scalar_out
  - lerp.Tensor
