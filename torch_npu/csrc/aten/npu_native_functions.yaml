@@ -784,7 +784,8 @@ supported:
  - norm.ScalarOpt_dim_dtype
  - norm.ScalarOpt_dtype
  - norm.dtype_out
- - norm.out
+ - func: norm.out
+   op_api: False
  - normal.Tensor_Tensor
  - normal.Tensor_Tensor_out
  - normal.Tensor_float
