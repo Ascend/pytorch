@@ -10,11 +10,18 @@ from datetime import datetime
 from typing import Optional, List
 
 import torch
+from torch.utils import cpp_extension
 from torch.testing._internal.common_utils import shell
 
 import torch_npu
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+CPP_EXTENSIONS_ERROR = """
+Ninja (https://ninja-build.org) is required for some of the C++ extensions
+tests, but it could not be found. Install ninja with `pip install ninja`
+or `conda install ninja`.
+"""
 
 # https://stackoverflow.com/questions/2549939/get-signal-names-from-numbers-in-python
 SIGNALS_TO_NAMES_DICT = {
@@ -227,8 +234,71 @@ def run_distributed_test(test, test_directory, options):
     return 0
 
 
+def _test_cpp_extensions_aot(test_directory, options, use_ninja):
+    if use_ninja:
+        try:
+            cpp_extension.verify_ninja_availability()
+        except RuntimeError:
+            print(CPP_EXTENSIONS_ERROR)
+            return 1
+
+    # Wipe the build folder, if it exists already
+    test_cpp_extensions_directory = os.path.join(test_directory, "test_cpp_extension")
+    cpp_extensions_src_dir = os.path.join(test_cpp_extensions_directory, "cpp_extensions")
+    cpp_extensions_test_build_dir = os.path.join(cpp_extensions_src_dir, "build")
+    if os.path.exists(cpp_extensions_test_build_dir):
+        shutil.rmtree(cpp_extensions_test_build_dir)
+
+    # Build the test cpp extensions modules
+    shell_env = os.environ.copy()
+    shell_env["USE_NINJA"] = str(1 if use_ninja else 0)
+    cmd = [sys.executable, "setup.py", "install", "--root", "./install"]
+    return_code = shell(cmd, cwd=cpp_extensions_src_dir, env=shell_env)
+    return_code = 0
+    if return_code != 0:
+        return return_code
+
+    python_path = os.environ.get("PYTHONPATH", "")
+    from shutil import copyfile
+
+    test_module = "test_cpp_extensions_aot" + ("_ninja" if use_ninja else "_no_ninja")
+    copyfile(
+        test_cpp_extensions_directory + "/test_cpp_extensions_aot.py",
+        test_cpp_extensions_directory + "/" + test_module + ".py",
+    )
+    try:
+        install_directory = ""
+        # install directory is the one that is named site-packages
+        for root, directories, _ in os.walk(os.path.join(cpp_extensions_src_dir, "install")):
+            for directory in directories:
+                if "-packages" in directory:
+                    install_directory = os.path.join(root, directory)
+
+        assert install_directory, "install_directory must not be empty"
+        os.environ["PYTHONPATH"] = os.pathsep.join([install_directory, python_path])
+        return run_test(test_module, test_cpp_extensions_directory, options)
+    finally:
+        os.environ["PYTHONPATH"] = python_path
+        if os.path.exists(test_cpp_extensions_directory + "/" + test_module + ".py"):
+            os.remove(test_cpp_extensions_directory + "/" + test_module + ".py")
+
+
+def run_cpp_extensions(test, test_directory, options):
+    if "test_cpp_extensions_aot" not in test:
+        return run_test(test, test_directory, options)
+
+    for use_ninja in [True, False]:
+        return_code = _test_cpp_extensions_aot(test_directory, options, use_ninja)
+        assert isinstance(return_code, int) and not isinstance(return_code, bool), "Return code should be an integer"
+        if return_code != 0:
+            return return_code
+
+    return 0
+
+
 CUSTOM_HANDLERS = {
     "test_distributed": run_distributed_test,
+    "test_cpp_extension": run_cpp_extensions,
 }
 
 
