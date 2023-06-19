@@ -1114,9 +1114,12 @@ supported:
  - tan
  - tan.out
  - tan_
- - tanh
- - tanh.out
- - tanh_
+ - func: tanh
+   op_api: False
+ - func: tanh.out
+   op_api: False
+ - func: tanh_
+   op_api: False
  - tanh_backward
  - tanh_backward.grad_input
  - func: threshold
