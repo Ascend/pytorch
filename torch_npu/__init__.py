@@ -1,6 +1,5 @@
 import os
 import re
-import gc
 import sys
 import types
 import atexit
@@ -196,7 +195,6 @@ del DefaultDeviceType
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
-    gc.collect()
     torch_npu._C._npu_shutdown()
 
 #register npu shutdown hook on exit
