@@ -13,6 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -33,7 +34,15 @@ at::Tensor& NPUNativeFunctions::ceil_out(const at::Tensor& self, at::Tensor& res
       {self},
       result,
       self);
-  return ceil_out_npu_nocheck(result, self);
+
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguous_result = NpuUtils::format_contiguous(result);
+    ceil_out_npu_nocheck(contiguous_result, self);
+    NpuUtils::format_fresh_view(result, contiguous_result);
+  } else {
+    ceil_out_npu_nocheck(result, self);
+  }
+  return result;
 }
 
 at::Tensor NPUNativeFunctions::ceil(const at::Tensor& self) {
