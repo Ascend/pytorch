@@ -73,13 +73,14 @@ class TestAll(TestCase):
         format_list = [-1]
         for item in itertools.product(dtype_list, format_list, shape_list):
             cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            _, npu_output1 = create_common_tensor(item, 0, 1)
+            _, npu_output1 = self.create_bool_tensor(item[2], 0, 1)
             if item[0] == np.float16:
                 cpu_input = cpu_input.to(torch.float32)
             cpu_output = self.cpu_op_dim_exec(cpu_input, 0)
             if item[0] == np.float16:
                 cpu_output = cpu_output.astype(np.float16)
             npu_output0 = self.npu_op_dim_exec(npu_input, 0)
+            
             npu_output1 = self.npu_op_out_exec(npu_input, 0, npu_output1)
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_output0.astype(np.int32))
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_output1.astype(np.int32))
