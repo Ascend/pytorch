@@ -1106,17 +1106,17 @@ supported:
  - softshrink_backward
  - softshrink_backward.grad_input
  - func: sort
-   op_api: False
+   op_api: True
  - func: sort.stable
-   op_api: False
+   op_api: True
  - func: sort.dimname
-   op_api: False
+   op_api: True
  - func: sort.dimname_values
-   op_api: False
+   op_api: True
  - func: sort.values
-   op_api: False
+   op_api: True
  - func: sort.values_stable
-   op_api: False
+   op_api: True
  - func: sqrt
    op_api: True
  - func: sqrt.out
