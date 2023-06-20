@@ -45,6 +45,7 @@ at::Tensor NPUNativeOpApiFunctions::min(const at::Tensor& self) {
   auto output_size = reduce_ops_npu_output_size(self, dims, false);
   at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
   EXEC_NPU_CMD(aclnnMin, self, result);
+  return result;
 }
 
 tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::min_out(
