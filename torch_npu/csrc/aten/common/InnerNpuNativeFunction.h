@@ -31,6 +31,7 @@ at::Tensor matmul_by_bmmV2(const at::Tensor& tensor1, const at::Tensor& tensor2)
 c10::SmallVector<at::Tensor, N> complex_compute_pre_check_split(const at::Tensor& input);
 c10::SmallVector<at::Tensor, N> complex_compute_split(const at::Tensor& input);
 at::Tensor complex_compute(const at::Tensor& input);
+void change_base_sizes_and_base_strides(const at::Tensor& input);
 
 /**
   Refresh base tensor's metadata of an unmatch tensor to obtain matched tensor

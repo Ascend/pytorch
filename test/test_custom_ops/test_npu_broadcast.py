@@ -42,7 +42,17 @@ class TestNpuBroadcast(TestCase):
             npu_output = self.npu_op_exec(item, (3, 3))
             self.assertRtolEqual(custom_output, npu_output)
 
+    def test_npu_broadcast_format_complex(self):
+        input1 = [
+            torch.randn([1, 3], dtype=torch.cfloat).npu(),
+            torch.randn([3, 1], dtype=torch.cfloat).npu(),
+            torch.randn([1], dtype=torch.cfloat).npu(),
+        ]
+        for item in input1:
+            custom_output = self.custom_op_exec(item.cpu(), (3, 3))
+            npu_output = self.npu_op_exec(item, (3, 3))
+            self.assertRtolEqual(custom_output.astype(np.float), npu_output.astype(np.float))
+
 
 if __name__ == "__main__":
     run_tests()
-    
