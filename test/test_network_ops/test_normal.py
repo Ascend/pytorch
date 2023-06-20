@@ -12,21 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 
-import numpy as np
 import torch
-import torch_npu
-import torch.nn as nn
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
 
 @instantiate_tests
 class TestNormal(TestCase):
-    @Dtypes(torch.float) # torch.float16
+
+    @Dtypes(torch.float)
     def test_normal(self, dtype=torch.float16):
         q = torch.empty(100, 100, dtype=dtype, device="cpu").to("npu")
         q.normal_()
@@ -99,7 +96,7 @@ class TestNormal(TestCase):
         torch.normal(mean=mean, std=std, out=out)
         self.assertEqual(out.to(torch.float32).to("cpu").mean(), 2.0, 0.2)
         self.assertEqual(out.to(torch.float32).to("cpu").std(), 2.0, 0.2)
-        
+
     def test_normal_dtype_float32(self):
         size = [25, 25]
         mean = 5.0
@@ -184,19 +181,29 @@ class TestNormal(TestCase):
         torch.manual_seed(123)
         mean = torch.rand(2, 3).npu()
         std = torch.rand(2, 1).npu()
-        input1 = torch.normal(mean, std).npu()
+        output1 = torch.normal(mean, std)
         torch.manual_seed(123)
-        input2 = torch.normal(mean, std).npu()
-        self.assertRtolEqual(input1.cpu(), input2.cpu())
+        output2 = torch.normal(mean, std)
+        self.assertRtolEqual(output1.cpu(), output2.cpu())
 
     def test_normal_seed_fp16(self):
         torch.manual_seed(23)
         mean = torch.rand(2, 3).half().npu()
         std = torch.rand(2, 1).half().npu()
-        input1 = torch.normal(mean, std).npu()
+        output1 = torch.normal(mean, std)
         torch.manual_seed(23)
-        input2 = torch.normal(mean, std).npu()
-        self.assertRtolEqual(input1.cpu(), input2.cpu())
+        output2 = torch.normal(mean, std)
+        self.assertRtolEqual(output1.cpu(), output2.cpu())
+
+    def test_normal_broadcast(self):
+        torch.manual_seed(23)
+        mean = torch.randn(2, 1, 4, 5).npu()
+        std = torch.randn(2, 3, 4, 5).npu()
+        output1 = torch.normal(mean, std)
+        torch.manual_seed(23)
+        output2 = torch.normal(mean, std)
+        self.assertRtolEqual(output1.cpu(), output2.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
