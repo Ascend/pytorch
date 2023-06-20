@@ -17,6 +17,7 @@ __all__ = [
     "current_stream",
     "default_stream",
     "init_dump",
+    "utilization",
     "finalize_dump",
     "manual_seed",
     "manual_seed_all",
@@ -105,7 +106,7 @@ import torch_npu
 from .utils import (synchronize, device_count, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index,
                     device, device_of, stream, set_stream, current_stream, default_stream, init_dump,
-                    finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag)
+                    utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag)
 from .streams import Stream, Event
 
 from . import profiler
