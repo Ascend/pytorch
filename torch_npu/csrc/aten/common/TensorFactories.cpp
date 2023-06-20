@@ -689,7 +689,7 @@ at::Tensor tensor_backend_npu(c10::ArrayRef<T> values, const c10::TensorOptions 
 at::Tensor NPUNativeFunctions::clone(
     const at::Tensor &src,
     c10::optional<c10::MemoryFormat> format) {
-  OptimizationCases opt_cases{"reshape", "slice"};
+  OptimizationCases opt_cases{"reshape", "slice", "reshapeV2"};
   if (TransContiguous::CanOptimize(src, opt_cases)) {
     // clone with any npu formats
     auto formatTempTensor =
