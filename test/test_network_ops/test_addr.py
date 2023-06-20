@@ -21,27 +21,37 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestAddr(TestCase):
-    def cpu_op_exec(self,input1, vec1, vec2, beta, alpha):
-        output = torch.addr(beta, input1, alpha, vec1, vec2)
+    def cpu_op_exec(self, input1, vec1, vec2, beta, alpha):
+        output = torch.addr(input1, vec1, vec2, beta=beta, alpha=alpha)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self,input1, vec1, vec2, beta, alpha):
-        output = torch.addr(beta, input1, alpha, vec1, vec2)
+    def npu_op_exec(self, input1, vec1, vec2, beta, alpha):
+        output = torch.addr(input1, vec1, vec2, beta=beta, alpha=alpha)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def npu_op_exec_out(self,input1, input2, vec1, vec2, beta, alpha):
-        torch.addr(beta, input1, alpha, vec1, vec2, out=input2)
+    def npu_op_exec_out(self, input1, input2, vec1, vec2, beta, alpha):
+        torch.addr(input1, vec1, vec2, beta=beta, alpha=alpha, out=input2)
         output = input2.to("cpu")
         output = output.numpy()
         return output
 
-    def test_addr_common_shape_format(self, device="npu"):
+    def test_addr_common_shape_format(self):
         shape_format = [
-                [[np.float32, 0, (5,3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
-                [[np.int32, 0, (5,3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
+            [[np.bool, 0, (5, 3)], [np.bool, 0, (5)], [np.bool, 0, (3)]],
+            [[np.bool, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
+            [[np.bool, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.bool, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.int32, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
+            [[np.int32, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.int32, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.int32, 0, (5, 3)], [np.bool, 0, (5)], [np.float32, 0, (3)]],
+            [[np.float32, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
+            [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.bool, 0, (3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -53,10 +63,10 @@ class TestAddr(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_vec1, npu_vec2, beta, alpha)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_addr_out_common_shape_format(self, device="npu"):
+    def test_addr_out_common_shape_format(self):
         shape_format = [
-                [[np.float32, 0, (5,3)], [np.float32, 0, (5,3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
-                [[np.int32, 0, (5,3)], [np.int32, 0, (5,3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
+            [[np.float32, 0, (5, 3)], [np.float32, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.int32, 0, (5, 3)], [np.int32, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
