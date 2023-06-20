@@ -40,6 +40,7 @@ LOAD_FUNCTION(aclrtSetStreamOverflowSwitch)
 LOAD_FUNCTION(aclrtGetStreamOverflowSwitch)
 LOAD_FUNCTION(aclrtSynchronizeStreamWithTimeout)
 LOAD_FUNCTION(aclrtDestroyStreamForce)
+LOAD_FUNCTION(aclrtGetDeviceUtilizationRate)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -341,6 +342,16 @@ aclError AclrtDestroyStreamForce(aclrtStream stream) {
   }
   TORCH_WARN(func, "Failed to find function ", "aclrtDestroyStreamForce");
   return aclrtDestroyStream(stream);
+}
+
+aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo) {
+  typedef aclError (*AclrtGetDeviceUtilizationRate)(int32_t, aclrtUtilizationInfo*);
+  static AclrtGetDeviceUtilizationRate func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetDeviceUtilizationRate)GET_FUNC(aclrtGetDeviceUtilizationRate);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetDeviceUtilizationRate");
+  return func(deviceId, utilizationInfo);
 }
 
 } // namespace acl

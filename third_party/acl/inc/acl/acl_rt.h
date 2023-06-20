@@ -28,6 +28,8 @@ extern "C" {
 #define ACL_CONTINUE_ON_FAILURE 0x00000000u
 #define ACL_STOP_ON_FAILURE     0x00000001u
 
+constexpr int32_t DEVICE_UTILIZATION_NOT_SUPPORT = -1;
+
 typedef enum aclrtRunMode {
     ACL_DEVICE,
     ACL_HOST,
@@ -104,6 +106,13 @@ typedef enum aclrtFloatOverflowMode {
   ACL_RT_OVERFLOW_MODE_INFNAN,
   ACL_RT_OVERFLOW_MODE_UNDEF,
 } aclrtFloatOverflowMode;
+
+typedef struct aclrtUtilizationInfo {
+  int32_t cube;
+  int32_t vector;
+  int32_t aicpu;
+  int32_t memory;
+} aclrtUtilizationInfo;
 
 typedef struct tagRtGroupInfo aclrtGroupInfo;
 
@@ -1159,6 +1168,18 @@ ACL_FUNC_VISIBILITY aclError aclrtSetStreamOverflowSwitch(aclrtStream stream, ui
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
+
+/**
+ * @ingroup AscendCL
+ * @brief Query the comprehensive usage rate of device
+ * @param deviceId [IN] the need query's deviceId
+ * @param utilizationInfo [IN] the need query's device unit switch
+ * @param utilizationInfo [OUT] the usage rate of device
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
 
 #ifdef __cplusplus
 }

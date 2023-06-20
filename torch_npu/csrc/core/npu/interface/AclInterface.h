@@ -112,5 +112,7 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream);
 
 aclError AclrtDestroyStreamForce(aclrtStream stream);
 
+aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
+
 } // namespace acl
 } // namespace c10_npu
