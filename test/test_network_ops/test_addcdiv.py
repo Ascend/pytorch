@@ -161,7 +161,7 @@ class TestAddcdiv(TestCase):
         """
         dtype_list = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64,
                       torch.float64, torch.complex64, torch.complex128]
-        for dtype in torch.testing.get_all_math_dtypes(device):
+        for dtype in torch.testing._internal.common_dtype.get_all_math_dtypes(device):
             if dtype in dtype_list:
                 continue
             self._test_addcdiv(
