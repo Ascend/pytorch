@@ -490,10 +490,14 @@ supported:
  - full
  - full.names
  - full.out
- - gather
- - gather.dimname
- - gather.dimname_out
- - gather.out
+ - func: gather
+   op_api: False
+ - func: gather.dimname
+   op_api: False
+ - func: gather.dimname_out
+   op_api: False
+ - func: gather.out
+   op_api: False
  - func: ge.Scalar
    op_api: True
  - func: ge.Scalar_out
