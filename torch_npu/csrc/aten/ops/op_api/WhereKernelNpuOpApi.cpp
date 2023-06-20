@@ -18,8 +18,6 @@
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/core/NPUBridge.h"
 namespace at_npu {
 namespace native {
 
@@ -42,7 +40,7 @@ at::Tensor NPUNativeOpApiFunctions::where(
     const at::Tensor& self,
     const at::Tensor& other) {
   DO_COMPATIBILITY(aclnnSWhere, NPUNativeFunctions::where(condition, self, other));
-  return NPUNativeOpApiFunctions::_s_where(condition, self, other);
+  return at::_s_where(condition, self, other);
 }
 
 } // namespace native
