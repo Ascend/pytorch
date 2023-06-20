@@ -6,7 +6,6 @@
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
-#include "torch_npu/csrc/profiler/profiler_mgr.h"
 
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
@@ -112,7 +111,6 @@ protected:
   std::set<NpuActivityType> activities_;
   std::deque<torch_npu::toolkit::profiler::OpRangeData> op_events_;
   std::mutex state_mutex_;
-  int64_t tid_ = syscall(SYS_gettid);
   at::CallbackHandle handle_ = 0;
 };
 
@@ -155,7 +153,8 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             auto data_ptr = ctx_ptr->data_;
             data_ptr->process_id = g_pid;
             data_ptr->start_ns = Utils::GetClockMonotonicRawNs();
-            data_ptr->start_thread_id = syscall(SYS_gettid);
+            static thread_local uint64_t tid = syscall(SYS_gettid);
+            data_ptr->start_thread_id = tid;
             data_ptr->sequence_number = fn.seqNr();
             data_ptr->forward_thread_id = fn.forwardThreadId();
             data_ptr->is_async = fn.isAsync();
@@ -186,7 +185,8 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             TORCH_INTERNAL_ASSERT(npu_profiler_ctx_ptr != nullptr);
             auto data_ptr = npu_profiler_ctx_ptr->data_;
             data_ptr->end_ns = Utils::GetClockMonotonicRawNs();
-            data_ptr->end_thread_id = syscall(SYS_gettid);
+            static thread_local uint64_t tid = syscall(SYS_gettid);
+            data_ptr->end_thread_id = tid;
             std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data = std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(
               0, "torch.op_range",
               data_ptr->start_ns, data_ptr->end_ns, data_ptr->sequence_number,
@@ -205,21 +205,14 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
   registeration_state_ptr->setCallbackHandle(handle);
 }
 
-static ProfLevel getNPUTraceLevel(const std::set<NpuActivityType> &activities) {
-  if (activities.count(NpuActivityType::NPU)) {
-    return ProfLevel::MSPROF_TRACE_NPU;
-  }
-  return ProfLevel::MSPROF_TRACE_NONE;
-}
-
 void startNpuProfiler(const NpuProfilerConfig &config,
-    const std::set<NpuActivityType> &activities,
-    const std::unordered_set<at::RecordScope> &scopes) {
+  const std::set<NpuActivityType> &activities,
+  const std::unordered_set<at::RecordScope> &scopes) {
   auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
   c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
-  ProfLevel level = getNPUTraceLevel(activities);
   bool cpu_trace = activities.count(NpuActivityType::CPU);
-  NpuTraceConfig npu_config = {config.profile_memory, level};
+  ExperimentalConfig experimental_config = config.experimental_config;
+  NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics, config.profile_memory, experimental_config.l2_cache};
   ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
   if (cpu_trace) {
     registerCallback(scopes);
@@ -251,12 +244,13 @@ void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint
   if (!ProfilerMgr::GetInstance()->ReportEnable()) {
     return;
   }
+  static thread_local uint64_t tid = syscall(SYS_gettid);
   std::unique_ptr<torch_npu::toolkit::profiler::OpMarkData> data = std::make_unique<torch_npu::toolkit::profiler::OpMarkData>(
     0, "torch.op_mark",
     Utils::GetClockMonotonicRawNs(),
     category,
     correlation_id,
-    syscall(SYS_gettid),
+    tid,
     g_pid,
     msg
   );

@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .profiler import profile
-from .msprofiler_c_interface import ProfilerActivity
-from .msprofiler_c_interface import supported_ms_activities as supported_activities
-from .profiler import tensorboard_trace_handler
-from .scheduler import Schedule as schedule
-from .scheduler import ProfilerAction
-from .experimental_config import _ExperimentalConfig, supported_profiler_level, supported_ai_core_metrics, \
-                                  ProfilerLevel, AiCMetrics
+
+class Singleton(object):
+    def __init__(self, cls):
+        self._cls = cls
+        self._instance = {}
+
+    def __call__(self):
+        if self._cls not in self._instance:
+            self._instance[self._cls] = self._cls()
+        return self._instance[self._cls]
+    

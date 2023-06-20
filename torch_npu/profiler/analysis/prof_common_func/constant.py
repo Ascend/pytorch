@@ -65,3 +65,19 @@ class Constant:
     B_TO_KB = 1024.0
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
+
+    # experimentalconfig
+    PROFILER_LEVEL = 'profiler_level'
+    AI_CORE_METRICS = 'ai_core_metrics'
+    L2_CACHE = 'l2_cache'
+    LEVEL0 = "Level0"
+    LEVEL1 = "Level1"
+    LEVEL2 = "Level2"
+    AicPipeUtilization = "ACL_AICORE_PIPE_UTILIZATION"
+    AicArithmeticUtilization = "ACL_AICORE_ARITHMETIC_UTILIZATION"
+    AicMemory = "ACL_AICORE_MEMORY_BANDWIDTH"
+    AicMemoryL0 = "ACL_AICORE_L0B_AND_WIDTH"
+    AicMemoryUB = "ACL_AICORE_MEMORY_UB"
+    AicResourceConflictRatio = "ACL_AICORE_RESOURCE_CONFLICT_RATIO"
+    AicL2Cache = "ACL_AICORE_L2_CACHE"
+    AicMetricsNone = "ACL_AICORE_NONE"
