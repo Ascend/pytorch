@@ -143,8 +143,6 @@ at::Tensor& NPUNativeFunctions::_cat_out(at::TensorList tensors, int64_t dim, at
     return result.copy_(tensors[0]);
   }
 
- 
-
   if (!NpuUtils::check_match(&result)) {
     at::Tensor contiguous_result = NpuUtils::format_contiguous(result);
     cat_out_nocheck(contiguous_result, tensors, dim);
