@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -76,6 +76,24 @@ at::Tensor& NPUNativeOpApiFunctions::eq_out(const at::Tensor& self, const at::Sc
   eq_out_npu_scalar(result, self, other);
 
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::eq_(at::Tensor &self, const at::Tensor &other) {
+  DO_COMPATIBILITY(aclnnInplaceEqTensor, NPUNativeFunctions::eq_(self, other));
+
+  c10::SmallVector<at::Tensor, N> inputs = {self, other};
+  c10::SmallVector<at::Tensor, N> outputs = {self};
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+
+  EXEC_NPU_CMD(aclnnInplaceEqTensor, self, other);
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::eq_(at::Tensor &self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceEqScalar, NPUNativeFunctions::eq_(self, other));
+
+  EXEC_NPU_CMD(aclnnInplaceEqScalar, self, other);
+  return self;
 }
 
 }  // namespace native

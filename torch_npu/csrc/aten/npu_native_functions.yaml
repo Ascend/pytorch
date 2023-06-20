@@ -429,8 +429,10 @@ supported:
    op_api: True
  - func: eq.Tensor_out
    op_api: True
- - eq_.Scalar
- - eq_.Tensor
+ - func: eq_.Scalar
+   op_api: False
+ - func: eq_.Tensor
+   op_api: False
  - func: equal
    op_api: True
  - func: erf
@@ -933,7 +935,8 @@ supported:
  - func: randperm.out
    op_api: True
  - range
- - range.out
+ - func: range.out
+   op_api: False
  - range.step
  - func: reciprocal
    op_api: False
