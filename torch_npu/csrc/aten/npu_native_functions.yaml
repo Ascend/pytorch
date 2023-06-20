@@ -44,7 +44,8 @@ supported:
  - _conv_depthwise2d_backward
  - func: convolution
    op_api: True
- - _convolution
+ - func: _convolution
+   op_api: False
  - func: _ctc_loss
    op_api: False
  - func: _ctc_loss_backward

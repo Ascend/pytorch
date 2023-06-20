@@ -21,7 +21,6 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -39,12 +38,31 @@ static inline c10::SmallVector<int64_t, N> expand_dim(at::IntArrayRef list_param
   }
 }
 
+static inline at::ScalarType promote_dtype(const at::Tensor& input_t, const at::Tensor& weight_t) {
+  if (input_t.dtype() == at::ScalarType::Float || weight_t.dtype() == at::ScalarType::Float) {
+    return at::ScalarType::Float;
+  }
+  return at::ScalarType::Half;
+}
+
+at::Tensor NPUNativeOpApiFunctions::_convolution(const at::Tensor &input, const at::Tensor &weight,
+                                                 const c10::optional<at::Tensor> &bias, at::IntArrayRef stride,
+                                                 at::IntArrayRef padding, at::IntArrayRef dilation, bool transposed,
+                                                 at::IntArrayRef output_padding, int64_t groups, bool benchmark,
+                                                 bool deterministic, bool cudnn_enabled, bool allow_tf32) {
+  DO_COMPATIBILITY(aclnnConvolution, NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation,
+                                                                      transposed, output_padding, groups, benchmark,
+                                                                      deterministic, cudnn_enabled, allow_tf32));
+  return at_npu::native::NPUNativeOpApiFunctions::convolution(input, weight, bias, stride, padding, dilation,
+                                                              transposed, output_padding, groups);
+}
+
 at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const at::Tensor &weight,
                                                 const c10::optional<at::Tensor> &bias, at::IntArrayRef stride,
                                                 at::IntArrayRef padding, at::IntArrayRef dilation, bool transposed,
                                                 at::IntArrayRef output_padding, int64_t groups) {
-  DO_COMPATIBILITY(aclnnAdd, NPUNativeFunctions::convolution(input, weight, bias, stride, padding, dilation, transposed,
-                                                             output_padding, groups));
+  DO_COMPATIBILITY(aclnnConvolution, NPUNativeFunctions::convolution(input, weight, bias, stride, padding, dilation,
+                                                                     transposed, output_padding, groups));
 
   int64_t k = weight.ndimension();
   int64_t dim = k - 2;
@@ -53,8 +71,8 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
   // Groups > 1 and 3D scenes are currently not supported (binary operator problem), and path 3 implementation is
   // temporarily called
   if (dim == 3 || groups > 1) {
-    return at::_convolution(input, weight, bias, stride, padding, dilation, transposed, output_padding, groups, false,
-                            false, false);
+    return at_npu::native::NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation, transposed,
+                                                            output_padding, groups, false, false, false, false);
   }
 
   c10::SmallVector<int64_t, N> stride_expand = expand_dim(stride, "stride", dim);
@@ -98,9 +116,11 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
       return at::Tensor();
     }
   }
-  auto output = OpPreparation::ApplyTensorWithSizes(out_size, input.options());
+  auto promotedDtype = promote_dtype(input, weight);
+  auto output = OpPreparation::ApplyTensorWithSizes(out_size, input.options().dtype(promotedDtype));
+  int8_t cube_math_dtype = 1; // ALLOW_FP32_DOWN_PRECISION Use reduced-precision operations
   EXEC_NPU_CMD(aclnnConvolution, input, weight, bias, stride, padding, dilation, transposed, output_padding, groups,
-               output);
+               output, cube_math_dtype);
 
   if (unBatch) {
     c10::SmallVector<int64_t, SIZE> squeeze_size = {output.size(1), output.size(2), output.size(3)};
