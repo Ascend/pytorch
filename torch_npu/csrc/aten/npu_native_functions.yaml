@@ -798,8 +798,10 @@ supported:
  - multilabel_margin_loss.out
  - multilabel_margin_loss_forward
  - multilabel_margin_loss_forward.output
- - multinomial
- - multinomial.out
+ - func: multinomial
+   op_api: False
+ - func: multinomial.out
+   op_api: False
  - mv
  - mv.out
  - func: native_batch_norm
@@ -881,8 +883,10 @@ supported:
  - func: ones_like
    op_api: False
  - pdist
- - pow.Scalar
- - pow.Scalar_out
+ - func: pow.Scalar
+   op_api: False
+ - func: pow.Scalar_out
+   op_api: False
  - func: pow.Tensor_Scalar
    op_api: True
  - func: pow.Tensor_Scalar_out
