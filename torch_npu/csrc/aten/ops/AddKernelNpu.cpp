@@ -193,7 +193,7 @@ at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, 
   c10::SmallVector<at::Tensor, N> outputs = {self_cp};
   CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
   if (!NpuUtils::check_match(&self_cp)) {
-    at::Tensor contiguous_self = NpuUtils::format_contiguous(self_cp);
+    at::Tensor contiguous_self = NpuUtils::format_contiguous_add_copy_optimize(self_cp);
     at::Tensor result = add_out_npu_nocheck(contiguous_self, contiguous_self, other_cp, alpha);
     NpuUtils::format_fresh_view(self_cp, result);
   } else {
@@ -210,7 +210,7 @@ at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, 
 
 at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha) {
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+    at::Tensor contiguous_self = NpuUtils::format_contiguous_add_copy_optimize(self);
     at::Tensor result = adds_out_npu_nocheck(contiguous_self, contiguous_self, other, alpha);
     NpuUtils::format_fresh_view(self, result);
   } else {
