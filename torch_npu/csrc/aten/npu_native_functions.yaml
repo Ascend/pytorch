@@ -83,8 +83,10 @@ supported:
    op_api: True
  - func: _softmax.out
    op_api: True
- - _softmax_backward_data
- - _softmax_backward_data.out
+ - func: _softmax_backward_data
+   op_api: False
+ - func: _softmax_backward_data.out
+   op_api: False
  - _symeig_helper
  - _unique2
  - _reshape_alias
