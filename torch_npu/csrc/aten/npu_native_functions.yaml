@@ -434,11 +434,11 @@ supported:
  - func: equal
    op_api: True
  - func: erf
-   op_api: True
+   op_api: False
  - func: erf.out
-   op_api: True
+   op_api: False
  - func: erf_
-   op_api: True
+   op_api: False
  - erfc
  - erfc.out
  - erfc_
