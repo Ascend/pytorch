@@ -611,10 +611,14 @@ supported:
  - l1_loss.out
  - l1_loss_backward
  - l1_loss_backward.grad_input
- - le.Scalar
- - le.Scalar_out
- - le.Tensor
- - le.Tensor_out
+ - func: le.Scalar
+   op_api: False
+ - func: le.Scalar_out
+   op_api: False
+ - func: le.Tensor
+   op_api: False
+ - func: le.Tensor_out
+   op_api: False
  - le_.Scalar
  - le_.Tensor
  - func: leaky_relu
