@@ -182,6 +182,14 @@ def get_device_capability(device=None):
     warnings.warn("torch_npu.npu.get_device_capability isn't implemented!")
     return None
 
+def utilization(device=None):
+    r"""Query the comprehensive utilization rate of device
+    """
+    device_id = _get_device_index(device, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id")
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
 
 def _get_device_index(device, optional=False):
     r"""Gets the device index from :attr:`device`, which can be a torch.device

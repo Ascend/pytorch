@@ -175,6 +175,30 @@ PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index) {
+  HANDLE_TH_ERRORS
+  THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate");
+  int32_t device = THPUtils_unpackUInt32(device_index);
+  aclrtUtilizationInfo util_info;
+  util_info.cube = 0;
+  util_info.vector = 0;
+  NPU_CHECK_ERROR(c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
+  int32_t cube = util_info.cube;
+  int32_t vector = util_info.vector;
+  int32_t util_rate = 0;
+  // 如果vector和cube谁支持,就返回谁的使用率，如果都支持计算(vector*1+cube*1)/2
+  if (cube == DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
+    util_rate = vector;
+  } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector == DEVICE_UTILIZATION_NOT_SUPPORT) {
+    util_rate = cube;
+  } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
+    util_rate = (cube + vector) / 2;
+  }
+  THPUtils_assert(util_rate <=100 && util_rate >= 0, "invalid result to util_rate");
+  return PyLong_FromLong(util_rate);
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject * THNPModule_getCurrentStream_wrap(
     PyObject * /* unused */, PyObject *device_index) {
   HANDLE_TH_ERRORS
@@ -740,6 +764,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
+    {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
