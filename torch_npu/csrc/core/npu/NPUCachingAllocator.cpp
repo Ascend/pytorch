@@ -254,6 +254,9 @@ struct THNCachingAllocator {
 
   std::set<aclrtEvent> recorded_events;
 
+  // whether shutdown.
+  bool shutdown_stats = false;
+
   THNCachingAllocator()
       : large_blocks(BlockComparator), small_blocks(BlockComparator) {}
 
@@ -303,7 +306,8 @@ struct THNCachingAllocator {
     update_stat_array(stats_.allocated_bytes, -block->size, {stat_types});
     get_stats_for_device(block->device).decreaseAllocated(block->size);
 
-    if (!block->stream_uses.empty()) {
+    // "shutdown_stats" will be set to "true" after shutdown, and will not enter "insert_events"
+    if (!block->stream_uses.empty() && !shutdown_stats) {
       insert_events(block);
     } else {
       free_block(block);
@@ -317,6 +321,10 @@ struct THNCachingAllocator {
     c10_npu::npuSynchronizeDevice(check_error);
     free_blocks(large_blocks, large_blocks.begin(), large_blocks.end());
     free_blocks(small_blocks, small_blocks.begin(), small_blocks.end());
+  }
+
+  void THNSetShutdownStats() {
+    shutdown_stats = true;
   }
 
   void* getBaseAllocation(void* ptr, size_t* outSize) {
@@ -1082,6 +1090,10 @@ c10::Allocator* get(void) {
 
 void emptyCache(bool check_error) {
   caching_allocator.emptyCache(check_error);
+}
+
+void setShutdownStats() {
+  caching_allocator.THNSetShutdownStats();
 }
 
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {
