@@ -25,6 +25,7 @@ import torch
 
 import torch_npu
 import torch_npu._C
+from torch_npu.utils.device_guard import check_is_valid_ordinal
 
 _initialized = False
 _tls = threading.local()
@@ -141,6 +142,7 @@ def device_count():
 
 
 def set_device(device):
+    check_is_valid_ordinal(device)
     if isinstance(device, str) and device.startswith("npu"):
         device = device.replace('npu', torch_npu.npu.native_device)
     if isinstance(device, (torch_npu._C.device, torch._C.device)):
@@ -149,6 +151,7 @@ def set_device(device):
         torch_npu._C._npu_setDevice(device)
     elif torch.device(str(device)):
         device_index = torch.device(str(device)).index
+        check_is_valid_ordinal(device_index)
         torch_npu._C._npu_setDevice(device_index)
     else:
         raise AssertionError("input can not convert to torch.device")
