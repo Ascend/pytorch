@@ -13,8 +13,8 @@ class LevelConfig:
         Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean)]
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
-        Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'acl_to_npu'],
-        Constant.LEVEL1: ['Runtime', 'GE'],
+        Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu'],
+        Constant.LEVEL1: ['Runtime', 'GE', 'Node', 'Model', 'Hccl'],
         Constant.LEVEL2: []
     }
 
