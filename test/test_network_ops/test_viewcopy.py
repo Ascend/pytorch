@@ -132,7 +132,7 @@ class TestViewCopy(TestCase):
         npu_other = cpu_other.npu()
         cpu_slice = cpu_x[:, 1:2]
         cpu_slice.copy_(cpu_other)
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
+        with torch.autograd.profiler.profile(use_device='npu') as prof:
             npu_slice = npu_x[:, 1:2]
             npu_slice.copy_(npu_other)
         self.assertEqual(check_operators_in_prof(['ViewCopy'], prof), True, "Error operators called!")
@@ -146,7 +146,7 @@ class TestViewCopy(TestCase):
         npu_other = cpu_other.npu()
         cpu_t = cpu_x.t()
         cpu_t.copy_(cpu_other)
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
+        with torch.autograd.profiler.profile(use_device='npu') as prof:
             npu_t = npu_x.t()
             npu_t.copy_(npu_other)
         self.assertEqual(check_operators_in_prof(['ViewCopy'], prof), True, "Error operators called!")
