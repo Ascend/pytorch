@@ -15,7 +15,6 @@
 
 import os
 import re
-import gc
 import sys
 import builtins
 import inspect
@@ -266,7 +265,6 @@ torch_npu._C._initExtension()
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
-    gc.collect()
     torch_npu._C._npu_shutdown()
 
 
