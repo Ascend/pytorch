@@ -20,6 +20,11 @@
 namespace at_npu {
 namespace native {
 
+// reduce value must be "add" or "multiply"
+inline bool reduce_valid(c10::string_view reduce) {
+    return (reduce == "add" || reduce == "multiply");
+}
+
 int64_t get_reduce(c10::string_view reduce) {
     if (reduce == "add") {
         return 1;
@@ -43,6 +48,7 @@ at::Tensor& NPUNativeOpApiFunctions::scatter_out(const at::Tensor& self, int64_t
     const at::Tensor& src, c10::string_view reduce, at::Tensor& result) {
     DO_COMPATIBILITY(aclnnScatter, NPUNativeFunctions::scatter_out(self, dim, index, src, reduce, result));
     OpPreparation::CheckOut({self, src, index}, result, self);
+    TORCH_CHECK(reduce_valid(reduce), "Reduce should be either add or multiply");
     int64_t reduction = get_reduce(reduce);
     EXEC_NPU_CMD(aclnnScatter, self, dim, index, src, reduction, result);
     return result;
@@ -61,6 +67,7 @@ at::Tensor& NPUNativeOpApiFunctions::scatter_out(const at::Tensor& self, int64_t
     const at::Scalar& value, c10::string_view reduce, at::Tensor& result) {
     DO_COMPATIBILITY(aclnnScatterValue, NPUNativeFunctions::scatter_out(self, dim, index, value, reduce, result));
     OpPreparation::CheckOut({self, index}, result, self);
+    TORCH_CHECK(reduce_valid(reduce), "Reduce should be either add or multiply");
     int64_t reduction = get_reduce(reduce);
     EXEC_NPU_CMD(aclnnScatterValue, self, dim, index, value, reduction, result);
     return result;
