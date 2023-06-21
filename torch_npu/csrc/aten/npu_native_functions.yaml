@@ -714,12 +714,15 @@ supported:
    op_api: True
  - func: masked_fill_.Tensor
    op_api: True
- - masked_scatter_
- - masked_select
- - masked_select.out
  - func: matmul
    op_api: False
  - func: matmul.out
+   op_api: False
+ - func: masked_scatter_
+   op_api: False
+ - func: masked_select
+   op_api: False
+ - func: masked_select.out
    op_api: False
  - func: max
    op_api: False
@@ -919,7 +922,8 @@ supported:
    op_api: False
  - func: prod.int_out
    op_api: False
- - put_
+ - func: put_
+   op_api: False
  - qr
  - qr.Q
  - quantize_per_channel
