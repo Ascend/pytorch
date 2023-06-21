@@ -735,10 +735,14 @@ supported:
  - max.names_dim_max
  - max.out
  - max_pool2d
- - max_pool2d_with_indices
- - max_pool2d_with_indices.out
- - max_pool2d_with_indices_backward
- - max_pool2d_with_indices_backward.grad_input
+ - func: max_pool2d_with_indices
+   op_api: False
+ - func: max_pool2d_with_indices.out
+   op_api: False
+ - func: max_pool2d_with_indices_backward
+   op_api: False
+ - func: max_pool2d_with_indices_backward.grad_input
+   op_api: False
  - max_pool3d_with_indices
  - max_pool3d_with_indices.out
  - max_pool3d_with_indices_backward
