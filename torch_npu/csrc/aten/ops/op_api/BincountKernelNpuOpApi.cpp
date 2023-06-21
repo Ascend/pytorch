@@ -54,7 +54,7 @@ at::Tensor NPUNativeOpApiFunctions::bincount(
       result = OpPreparation::ApplyTensorWithSizes({sizes}, weights.options().dtype(at::ScalarType::Float));
   }
   
-  EXEC_NPU_CMD(aclnnBincount, self, weight, result);
+  EXEC_NPU_CMD(aclnnBincount, self, weight, minlength, result);
 
   return result;
 }
