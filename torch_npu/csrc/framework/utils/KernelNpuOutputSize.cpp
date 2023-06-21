@@ -1325,5 +1325,14 @@ namespace native {
       return broadcast_ops_npu_output_size(self.sizes(), max.value().sizes());
     }
 
+    c10::SmallVector<int64_t, SIZE> smooth_l1_loss_backward_npu_output_size(
+        const at::Tensor &self,
+        const at::Tensor &target,
+        const at::Tensor &grad_output)
+    {
+      auto mid_shape = broadcast_ops_npu_output_size(self.sizes(), target.sizes());
+      return broadcast_ops_npu_output_size(mid_shape, grad_output.sizes());
+    }
+
 } // namespace native
 } // namespace at_npu
