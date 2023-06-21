@@ -24,7 +24,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: unsqueeze+permute ==> can be optimized as single permute
             # (contiguous_h_combined should not be called)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.unsqueeze(1).transpose(2,3).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
@@ -33,7 +33,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
 
             # case 2: permute+unsqueeze ==> can be optimized as single permute
             # (contiguous_h_combined should not be called)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.permute(1,0,2,3).unsqueeze(0).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
@@ -58,14 +58,14 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
         for item in shape_format2: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: unsqueeze+narrow
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.unsqueeze(0)[:,:,1:10].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
             cpu_out1 = cpu_input.unsqueeze(0)[:,:,1:10].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: narrow+unsqueeze
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input[:,1:10].unsqueeze(2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
@@ -87,14 +87,14 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
         for item in shape_format3: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: unsqueeze+select
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.unsqueeze(0).select(2,1).contiguous()
             cpu_out1 = cpu_input.unsqueeze(0).select(2,1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: select+unsqueeze
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.select(1,1).unsqueeze(0).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
@@ -114,7 +114,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: unsqueeze+unfold:size==step ==> can be optimized as reshape+permute
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.unsqueeze(1).unfold(0,2,2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof),\
                 True, "Error operators called!")
@@ -123,7 +123,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_out1 = cpu_input.unsqueeze(1).unfold(0,2,2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: unfold+unsqueeze: size!=step ==> cannot be optimized
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.unfold(2,2,3).unsqueeze(1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']),\
                 True, "Error operators called!") 
@@ -144,14 +144,14 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
         for item in shape_format5: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze + strideslice ==> cannot be optimized(contiguous_h_combined should not be called)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!") 
             cpu_out1 = cpu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: strideslice + squeeze ==> cannot be optimized(contiguous_h_combined should not be called)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input[:,:,10:19:3].unsqueeze(0).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!") 

@@ -28,7 +28,7 @@ class SingleViewCopyToContiguous(TestCase):
             # Directly using d2dcopy without transdata(contiguous_d_Reshape)
             # case1. base format
             match_case1 = (item[1] == 0)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.view(1, 6, npu_input.size(2), npu_input.size(3)).clone()
             # case2. The key axis remains unchanged for NZ format
             match_case2 = (item[1] == 29)
@@ -42,7 +42,7 @@ class SingleViewCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy()) 
 
             # The key axis changes for NZ format
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.view(1, 6, npu_input.size(2)*npu_input.size(3), 1).clone()
             if match_case1:
                 self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
@@ -72,7 +72,7 @@ class SingleViewCopyToContiguous(TestCase):
                 match_case1 = (item[1] == 2)
                 # case2. The key axis remains unchanged for NZ format
                 match_case2 = (item[1] == 29 and i < 2)
-                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                with torch.autograd.profiler.profile(use_device='npu') as prof:
                     npu_out = npu_input.unsqueeze(i).clone()
                 if match_case1 or match_case2:
                     self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
@@ -96,7 +96,7 @@ class SingleViewCopyToContiguous(TestCase):
 
         for item in shape_format3: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out = torch.flatten(npu_input, 0, 1).clone()
             if item[1] == 3:
                 # Using d2dcopy with transdata(d2dCopyAsync)
@@ -132,7 +132,7 @@ class SingleViewCopyToContiguous(TestCase):
             match_case2 = (item[1] == 29 and item[2] == [20, 16, 16])
 
             # contiguous and no offset
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input[:10,:,:].clone()
             # case3. NZ format with padding but no offset
             match_case3 = (item[1] == 29 and True)
@@ -146,7 +146,7 @@ class SingleViewCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())  
             
             # contiguous but has offset
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input[1:10,:,:].clone()
             match_case3 = False
             if match_case1 or match_case2 or match_case3:
@@ -170,7 +170,7 @@ class SingleViewCopyToContiguous(TestCase):
             npu_input = torch_npu.npu_format_cast(cpu_input.npu(), item[1])
 
             match_case = (item[1] == 2 or item[1] == 29)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input[0].clone()
             if match_case:
                 self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
@@ -181,7 +181,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out1 = cpu_input[0].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input[0] + 1
             if match_case:
                 self.assertEqual(check_operators_in_prof(['contiguous_h_memRepoint'], prof), \

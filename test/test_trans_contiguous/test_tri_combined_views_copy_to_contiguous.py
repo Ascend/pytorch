@@ -22,7 +22,7 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view+narrow+permute ==> cannot be optimized
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)) \
                     [:,1:10].transpose(0, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
@@ -32,7 +32,7 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+view+narrow ==> cannot be optimized
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.permute(1, 0, 2, 3). \
                     view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)) \
                     [:,:,1:10].contiguous()
@@ -56,7 +56,7 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view+select+permute ==> cannot be optimized
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)) \
                     [:,1].transpose(0, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
@@ -66,7 +66,7 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+view+select ==> cannot be optimized
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.permute(1, 0, 2, 3). \
                     view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)) \
                     [:,:,2].contiguous()

@@ -23,14 +23,14 @@ class CombinedFlattenXCopyToContiguous(TestCase):
         for item in shape_format1: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: flatten+select
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.flatten(2).select(1,1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_StridedSlice'], prof), \
                 True, "Error operators called!")
             cpu_out1 = cpu_input.flatten(2).select(1,1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: select+flatten == can be optimized as single select(contiguous_h_combined should not be called)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input.select(2,1).flatten(1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
@@ -50,7 +50,7 @@ class CombinedFlattenXCopyToContiguous(TestCase):
         for item in shape_format2: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: flatten+strideslice ==> can be optimized as slice(contiguous with offset) + select
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.flatten()[2:100:10].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape', 'contiguous_d_StridedSlice'], prof), \
                 True, "Error operators called!")
@@ -58,7 +58,7 @@ class CombinedFlattenXCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: strideslice+flatten==> can be optimized as single strideslice
             # (contiguous_h_combined should not be called)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out2 = npu_input[:,2:20:3].flatten().contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")

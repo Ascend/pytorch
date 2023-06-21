@@ -31,7 +31,7 @@ class SingleViewCopyToContiguous(TestCase):
         for item in shape_format:
             item_broadcast = [item[0], item[1], item[2][0]]
             cpu_input, npu_input = create_common_tensor(item_broadcast, 0, 100)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
+            with torch.autograd.profiler.profile(use_device='npu') as prof:
                 npu_out1 = npu_input.expand(item[2][1]).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_BroadcastTo'], prof), \
                 True, "contiguous_d_BroadcastTo is not called!")
