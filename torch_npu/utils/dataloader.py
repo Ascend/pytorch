@@ -294,3 +294,4 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
 
 def add_dataloader_method():
     torch.utils.data.DataLoader = DataLoader
+    torch.utils.data.dataloader.DataLoader = DataLoader
