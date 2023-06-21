@@ -288,6 +288,11 @@ public:
       std::vector<int64_t>& inputSplitSizes,
       const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
 
+  c10::intrusive_ptr<c10d::Work> alltoall(
+      std::vector<at::Tensor>& output_tensors,
+      std::vector<at::Tensor>& input_tensors,
+      const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
+
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
   // Agrees on an initial sequence number for the whole group by having rank 0
