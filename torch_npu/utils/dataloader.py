@@ -81,6 +81,14 @@ class DataLoader(SrcDataLoader):
         else:
             self.check_worker_number_rationality()
             return _MultiProcessingDataLoaderIter(self)
+        
+    def __setattr__(self, attr, val):
+        if self.__initialized and attr in (
+                'batch_size', 'batch_sampler', 'sampler', 'drop_last', 'dataset', 'persistent_workers'):
+            raise ValueError('{} attribute should not be set after {} is '
+                             'initialized'.format(attr, self.__class__.__name__))
+
+        object.__setattr__(self, attr, val)
 
 class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
     def __init__(self, loader):
@@ -247,3 +255,4 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
 
 def add_dataloader_method():
     torch.utils.data.DataLoader = DataLoader
+    torch.utils.data.dataloader.DataLoader = DataLoader
