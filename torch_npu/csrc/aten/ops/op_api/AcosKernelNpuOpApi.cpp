@@ -21,18 +21,22 @@ namespace at_npu {
 namespace native {
 at::Tensor& NPUNativeOpApiFunctions::acos_out(const at::Tensor& self, at::Tensor& result) { 
   DO_COMPATIBILITY(aclnnAcos, NPUNativeFunctions::acos_out(self, result));
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      self);
+  auto outputSize = self.sizes();
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
   EXEC_NPU_CMD(aclnnAcos, self, result);
   return result;  
 }
  
 at::Tensor NPUNativeOpApiFunctions::acos(const at::Tensor& self) { 
   DO_COMPATIBILITY(aclnnAcos, NPUNativeFunctions::acos(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  auto outputSize = self.sizes();
+  auto outDtype = self.dtype();
+  if (isIntegralType(self.scalar_type(), true)) {
+    outDtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(outDtype));
   EXEC_NPU_CMD(aclnnAcos, self, result);
+
   return result;
 } 
  
