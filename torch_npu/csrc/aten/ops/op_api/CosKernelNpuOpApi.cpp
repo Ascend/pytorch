@@ -15,27 +15,32 @@
 // limitations under the License.
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu { 
 namespace native {
-
-at::Tensor& NPUNativeOpApiFunctions::cos_out(const at::Tensor& self, at::Tensor& result) { 
+at::Tensor& NPUNativeOpApiFunctions::cos_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnCos, NPUNativeFunctions::cos_out(self, result));
-  OpPreparation::CheckOut({self}, result, self);
-  EXEC_NPU_CMD(aclnnCos, self, result);
-  return result;  
-}
- 
-at::Tensor NPUNativeOpApiFunctions::cos(const at::Tensor& self) { 
-  DO_COMPATIBILITY(aclnnCos, NPUNativeFunctions::cos(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  auto outputSize = self.sizes();
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
   EXEC_NPU_CMD(aclnnCos, self, result);
   return result;
-} 
- 
-at::Tensor& NPUNativeOpApiFunctions::cos_(at::Tensor& self) { 
+}
+
+at::Tensor NPUNativeOpApiFunctions::cos(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnCos, NPUNativeFunctions::cos(self));
+  auto outputSize = self.sizes();
+  auto outDtype = self.dtype();
+  if (isIntegralType(self.scalar_type(), true)) {
+    outDtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(outDtype));
+  EXEC_NPU_CMD(aclnnCos, self, result);
+
+  return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::cos_(at::Tensor& self) {
   DO_COMPATIBILITY(aclnnCos, NPUNativeFunctions::cos_(self));
   EXEC_NPU_CMD(aclnnCos, self, self);
   return self;

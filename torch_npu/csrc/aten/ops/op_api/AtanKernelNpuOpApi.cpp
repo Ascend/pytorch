@@ -15,24 +15,27 @@
 // limitations under the License.
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 namespace at_npu { 
 namespace native {
 at::Tensor& NPUNativeOpApiFunctions::atan_out(const at::Tensor& self, at::Tensor& result) { 
   DO_COMPATIBILITY(aclnnAtan, NPUNativeFunctions::atan_out(self, result));
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      self);
+  auto outputSize = self.sizes();
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
   EXEC_NPU_CMD(aclnnAtan, self, result);
   return result;  
 }
  
 at::Tensor NPUNativeOpApiFunctions::atan(const at::Tensor& self) { 
   DO_COMPATIBILITY(aclnnAtan, NPUNativeFunctions::atan(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  auto outputSize = self.sizes();
+  auto outDtype = self.dtype();
+  if (isIntegralType(self.scalar_type(), true)) {
+    outDtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(outDtype));
   EXEC_NPU_CMD(aclnnAtan, self, result);
+
   return result;
 } 
  
