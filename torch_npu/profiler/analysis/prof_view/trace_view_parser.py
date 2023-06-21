@@ -17,6 +17,7 @@ from ..prof_common_func.constant import Constant
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_common_func.trace_event_manager import TraceEventManager
+from ..level_config import LevelConfig
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_view.base_view_parser import BaseViewParser
@@ -28,8 +29,24 @@ class TraceViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
+    @staticmethod
+    def _prune_trace_by_level(json_data: list) -> list:
+        prune_config = LevelConfig().get_prune_config()
+        if not prune_config or not json_data:
+            return json_data
+        result = []
+        for data in json_data:
+            prune_flag = False
+            for prune_key in prune_config:
+                if data.get("name", "").startswith(prune_key) or data.get("args", {}).get("name", "") == prune_key:
+                    prune_flag = True
+                    continue
+            if not prune_flag:
+                result.append(data)
+        return result
+
     def generate_view(self, output_path: str = None) -> None:
-        trace_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
+        trace_data = self._prune_trace_by_level(CANNFileParser(self._profiler_path).get_timeline_all_data())
         self._add_fwk_trace_data(trace_data)
         GlobalVar.torch_op_tree_node = []
         if output_path:
