@@ -428,8 +428,6 @@ typedef void(*ReleaseHugeMem)(void*, bool);
     TORCH_CHECK(getWorkspaceSizeFuncAddr != nullptr && opApiFuncAddr != nullptr,                             \
                 #aclnn_api, " or ", #aclnn_api "GetWorkspaceSize", " not in ", GetOpApiLibName(), ", or ",   \
                 GetOpApiLibName(), "not found.");                                                            \
-    TORCH_CHECK(at_npu::native::env::CheckForbidInternalFormat(), #aclnn_api ": Internal format not support,"\
-                " please set 'torch.npu.config.allow_internal_format=False'");                               \
     auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);                                          \
     uint64_t workspace_size = 0;                                                                             \
     uint64_t *workspace_size_addr = &workspace_size;                                                         \
