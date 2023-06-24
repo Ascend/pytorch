@@ -16,7 +16,7 @@
 
 #include <torch/csrc/autograd/custom_function.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
@@ -31,7 +31,7 @@ public:
       const at::Tensor &value_layer, const c10::optional<at::Tensor> &pse_opt,
       const c10::optional<at::Tensor> &drop_mask_opt, const c10::optional<at::Tensor> &padding_mask_opt,
       const c10::optional<at::Tensor> &atten_mask_opt, bool query_transpose, bool key_transpose, bool value_transpose,
-      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool is_transpose_out)
+      double scale, double keep_prob, bool is_transpose_out, int64_t pre_tockens, int64_t next_tockens)
   {
     const at::Tensor &pse = pse_opt.value_or(at::Tensor());
     const at::Tensor &padding_mask = padding_mask_opt.value_or(at::Tensor());
@@ -45,6 +45,18 @@ public:
       attention_score = OpPreparation::ApplyTensor(query_layer);
     }
 
+    at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query_layer, ACL_FORMAT_ND);
+    at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key_layer, ACL_FORMAT_ND);
+    at::Tensor format_value = NPUNativeFunctions::npu_format_cast(value_layer, ACL_FORMAT_ND);
+
+    at::Tensor format_pse = pse.defined() ? NPUNativeFunctions::npu_format_cast(pse, ACL_FORMAT_ND) : pse;
+    at::Tensor format_padding_mask =
+        padding_mask.defined() ? NPUNativeFunctions::npu_format_cast(padding_mask, ACL_FORMAT_ND) : padding_mask;
+    at::Tensor format_atten_mask =
+        atten_mask.defined() ? NPUNativeFunctions::npu_format_cast(atten_mask, ACL_FORMAT_ND) : atten_mask;
+    at::Tensor format_drop_mask =
+        drop_mask.defined() ? NPUNativeFunctions::npu_format_cast(drop_mask, ACL_FORMAT_ND) : drop_mask;
+
     size_t dim = (query_layer.scalar_type() == at::ScalarType::Float) ? 8 : 16;
     at::Tensor softmax_max = OpPreparation::ApplyTensor(query_layer,
         {query_layer.size(0), query_layer.size(1), query_layer.size(2), dim});
@@ -53,16 +65,17 @@ public:
 
     bool is_flash = true;
     at::Tensor softmax_out;
-    EXEC_NPU_CMD(aclnnFlashAttentionScore, query_layer, key_layer, value_layer,
-        pse_opt, drop_mask_opt, padding_mask_opt, atten_mask_opt,
+
+    EXEC_NPU_CMD_CLEAR_WORKSPACE(aclnnFlashAttentionScore, format_query, format_key, format_value,
+        format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
         query_transpose, key_transpose, value_transpose,
         scale, keep_prob, is_transpose_out, pre_tockens, next_tockens, is_flash,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
     at::AutoNonVariableTypeMode g;
 
-    ctx->save_for_backward({query_layer, key_layer, value_layer, softmax_max, softmax_sum, softmax_out,
-                            pse, drop_mask, padding_mask, atten_mask, attention_score});
+    ctx->save_for_backward({format_query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
+                            format_pse, format_drop_mask, format_padding_mask, format_atten_mask, attention_score});
 
     ctx->saved_data["is_flash"] = is_flash;
     ctx->saved_data["scale"] = scale;
@@ -103,7 +116,7 @@ public:
     auto attention_score = saved[10];
 
     bool dy_transpose = false;
-    return NPUNativeOpApiFunctions::npu_flash_attention_grad(query,
+    return NPUNativeFunctions::npu_flash_attention_grad(query,
         key, value, grad_outputs[0], pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
         keep_prob, query_transpose, key_transpose, value_transpose,
@@ -111,16 +124,16 @@ public:
   }
 };
 
-std::vector<at::Tensor> NPUNativeOpApiFunctions::npu_flash_attention(
+std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention(
     const at::Tensor &query_layer, const at::Tensor &key_layer,
     const at::Tensor &value_layer, const c10::optional<at::Tensor> &pse,
     const c10::optional<at::Tensor> &drop_mask, const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask, bool query_transpose, bool key_transpose, bool value_transpose,
-    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool is_transpose_out)
+    double scale, double keep_prob, bool is_transpose_out, int64_t pre_tockens, int64_t next_tockens)
 {
   return NPUFlashAttentionFunction::apply(query_layer, key_layer, value_layer, pse, drop_mask, padding_mask,
       atten_mask, query_transpose, key_transpose, value_transpose, scale, keep_prob,
-      pre_tockens, next_tockens, is_transpose_out);
+      is_transpose_out, pre_tockens, next_tockens);
 }
 } // namespace native
 } // namespace at_npu
