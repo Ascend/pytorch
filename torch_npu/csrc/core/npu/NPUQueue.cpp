@@ -17,7 +17,7 @@ namespace c10_npu {
 
 struct timeval delay = {0, 1};
 #define MAX_TTL_TIME 10  // 10ms
-#define GET_MSEC(sec, nsec) ((sec) * 1000 + (nsec) / 1000)
+#define GET_MSEC(sec, nsec) ((sec) * 1000 + (nsec) / 1000000)
 
 namespace {
 
@@ -439,10 +439,10 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
       continue;
     }
 
+    repo->Dequeue();
+    
     clock_gettime(CLOCK_MONOTONIC, &lastWorkTime);
     ttl = MAX_TTL_TIME;
-
-    repo->Dequeue();
   }
   return;
 }
