@@ -113,8 +113,10 @@ supported:
  - adaptive_avg_pool3d
  - adaptive_avg_pool3d.out
  - adaptive_avg_pool3d_backward.grad_input
- - adaptive_max_pool2d
- - adaptive_max_pool2d.out
+ - func: adaptive_max_pool2d
+   op_api: False
+ - func: adaptive_max_pool2d.out
+   op_api: False
  - adaptive_max_pool2d_backward
  - adaptive_max_pool2d_backward.grad_input
  - func: add.Scalar
@@ -751,8 +753,10 @@ supported:
  - max_pool3d_with_indices.out
  - max_pool3d_with_indices_backward
  - max_pool3d_with_indices_backward.grad_input
- - max_unpool2d
- - max_unpool2d.out
+ - func: max_unpool2d
+   op_api: False
+ - func: max_unpool2d.out
+   op_api: False
  - func: max_unpool2d_backward
    op_api: False
  - func: max_unpool2d_backward.grad_input
