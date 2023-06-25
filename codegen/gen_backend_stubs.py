@@ -40,7 +40,7 @@ from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
-                           add_header_to_template_file)
+                           add_header_to_template_file, parse_npu_yaml)
 from codegen.custom_functions import parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch
 
 
@@ -121,21 +121,12 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
-        # Filter the custom native yaml file, and extract the functions we defined.
-        from io import StringIO
-        f_str = StringIO()
-        with open(custom_path, 'r') as f:
-            for line in f:
-                if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu', 'symint',
-                                          'supported', 'autograd', 'custom', 'custom_autograd']:
-                    continue
-                if ':' not in line:
-                    continue
-                f_str.write(line)
+        source_es = parse_npu_yaml(custom_path)
+        custom_es = source_es['custom'] + source_es['custom_autograd']
 
-        f_str.seek(0)
-        custom_es = yaml.load(f_str, Loader=LineLoader)
         for e in custom_es:
+            if e.get('wrap_impl'):
+                del e['wrap_impl']
             funcs = e.get('func')
             loc = Location(custom_path, e["__line__"])
             with context(lambda: f'in {loc}:\n  {funcs}'):
@@ -207,10 +198,14 @@ def parse_backend_yaml(
     assert isinstance(
         symint, list
     ), f'expected "symint" to be a list, but got: {supported} (of type {type(supported)})'
+    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]  
     symint_set = set(symint)
 
     supported_autograd = yaml_values.pop('autograd', [])
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
+
+    supported = [op['func'] if isinstance(op, Dict) else op for op in supported]
+    supported_autograd = [op['func'] if isinstance(op, Dict) else op for op in supported_autograd]
 
     supported_tocpu = yaml_values.pop('tocpu', [])
     assert isinstance(supported_tocpu, list), f'expected "tocpu" to be a list, but got: {supported_tocpu}'
@@ -362,6 +357,9 @@ def gen_dispatcher_registrations(
 #endif
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#ifdef USE_OPPLUGIN
+#include "op_plugin/ops/OpInterface.h"
+#endif
 """
     static_template = CodeTemplate(
         """\

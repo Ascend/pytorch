@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import defaultdict
 import os
 import sys
 import stat
 import traceback
 from typing import List, Optional, Set
+import yaml
 
 from torchgen.context import native_function_manager
 from torchgen.model import (
@@ -32,6 +34,35 @@ from torchgen.api import cpp
 from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
 from torchgen.utils import Target
+from torchgen.gen import LineLoader
+
+GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
+
+def parse_npu_yaml(custom_path: str) -> List:
+    from io import StringIO
+    f_str = StringIO()
+    with open(custom_path, 'r') as f:
+        for line in f:
+            if ':' not in line:
+                continue
+            f_str.write(line)
+
+    f_str.seek(0)
+    global GLOBAL_STRUCTURED_OP_INFO_CACHE
+    source_es = yaml.load(f_str, Loader=LineLoader)
+
+    wrap_impl_keys = ['supported', 'autograd', 'symint', 'custom', 'custom_autograd']
+
+    def _set_wrap_impl_state(key: str):
+        if source_es[key]:
+            for x in source_es[key]:
+                if 'wrap_impl' in x:
+                    GLOBAL_STRUCTURED_OP_INFO_CACHE[x['func'].split('(')[0]] = x['wrap_impl']
+
+    for x in wrap_impl_keys:
+        _set_wrap_impl_state(x)
+
+    return source_es
 
 
 def rename_privateuse1_dispatch_key():
@@ -203,6 +234,10 @@ const DeviceGuard device_guard(device_or_default(device));"""
                     )
                     if device_of is not None:
                         device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
+
+            op_key = str(f.func.name)
+            if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
+                impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
 
             return f"""\
 namespace {{

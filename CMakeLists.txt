@@ -199,6 +199,7 @@ endif()
 
 set(OPS_PLUGIN_SRCS)
 if (DEFINED BUILD_OPPLUGIN)
+  add_definitions(-DUSE_OPPLUGIN)
   # Add subdirectory of op-plugin
   include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)

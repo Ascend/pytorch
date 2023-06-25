@@ -38,6 +38,8 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
     f_str.seek(0)
     custom_es = yaml.load(f_str, Loader=LineLoader)
     for e_with_vars in custom_es:
+        if e_with_vars.get('wrap_impl'):
+            del e_with_vars['wrap_impl']
         funcs = e_with_vars.get('func')
         loc = Location(custom_path, e_with_vars["__line__"])
         with context(lambda: f'in {loc}:\n  {funcs}'):
