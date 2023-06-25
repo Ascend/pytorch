@@ -445,7 +445,7 @@ typedef void(*ReleaseHugeMem)(void*, bool);
           at::empty({static_cast<int64_t>(workspace_size)},                                                  \
                     at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte));  \
       workspace_addr = workspace_tensor.storage().data();                                                    \
-      aclrtMemset(workspace_addr, workspace_size, 0, workspace_size);                                        \
+      aclrtMemsetAsync(workspace_addr, workspace_size, 0, workspace_size, acl_stream);                       \
     }                                                                                                        \
     auto acl_call = [converted_params, workspace_addr, workspace_size, acl_stream, executor]() -> int {      \
       typedef int(*OpApiFunc)(void*, uint64_t, aclOpExecutor*, const aclrtStream);                           \
