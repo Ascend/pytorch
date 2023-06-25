@@ -588,9 +588,11 @@ supported:
  - img_to_tensor
  - func: index.Tensor
    op_api: False
- - index_add
+ - func: index_add
+   op_api: False
  - index_add.dimname
- - index_add.out
+ - func: index_add.out
+   op_api: False
  - index_fill.int_Scalar
  - index_fill.int_Tensor
  - index_fill_.int_Scalar
