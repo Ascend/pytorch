@@ -9,6 +9,7 @@ at::Tensor& eye_out_npu_nocheck(at::Tensor& result, int64_t n, int64_t m) {
     .Output(result)
     .Attr("num_rows", n)
     .Attr("num_columns", m)
+    .Attr("dtype", result.scalar_type())
     .Run();
     
   return result;
