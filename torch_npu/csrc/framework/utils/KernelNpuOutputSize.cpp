@@ -1407,5 +1407,18 @@ namespace native {
       return broadcast_ops_npu_output_size(mid_shape, grad_output.sizes());
     }
 
+    c10::SmallVector<int64_t, SIZE> max_pool2d_out_size(
+        const at::Tensor &self,
+        at::IntArrayRef output_size)
+    {
+      auto shape = array_to_small_vector(self.sizes());
+      if ((self.dim() == 3 || self.dim() == 4) && output_size.size() == 2)
+      {
+        shape[shape.size() - 2] = output_size[0];
+        shape[shape.size() - 1] = output_size[1];
+      }
+      return shape;
+    }
+
 } // namespace native
 } // namespace at_npu
