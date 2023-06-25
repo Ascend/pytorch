@@ -1086,8 +1086,10 @@ supported:
  - slow_conv_transpose2d
  - slow_conv_transpose2d.out
  - slow_conv_transpose2d_backward
- - smooth_l1_loss
- - smooth_l1_loss.out
+ - func: smooth_l1_loss
+   op_api: False
+ - func: smooth_l1_loss.out
+   op_api: False
  - func: smooth_l1_loss_backward
    op_api: False
  - func: smooth_l1_loss_backward.grad_input
