@@ -97,19 +97,30 @@ at::Tensor &NPUNativeFunctions::lt_out(const at::Tensor &self, at::Scalar other,
 
 at::Tensor NPUNativeFunctions::lt(const at::Tensor &self, const at::Tensor &other)
 {
-  at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-  at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
-  // calculate the output size
-  auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
+  if (OpPreparation::IsCPUScalar(other)) {
+    return NPUNativeFunctions::lt(self, other.item());
+  } else if (OpPreparation::IsCPUScalar(self)) {
+    return NPUNativeFunctions::gt(other, self.item());
+  } else {
+    TORCH_CHECK(self.device() == other.device(),
+        "Expected all tensors to be on the same device, but found at least two devices, ",
+        (self.device().type() == at_npu::key::NativeDeviceType ? "npu" : "cpu"),
+        " and ",
+        (other.device().type() == at_npu::key::NativeDeviceType ? "npu! " : "cpu! "));
+    at::Tensor format_cast_of_self = OpPreparation::CastBackToOriFormat(self);
+    at::Tensor format_cast_of_other = OpPreparation::CastBackToOriFormat(other);
+    // calculate the output size
+    auto output_size = broadcast_ops_npu_output_size(format_cast_of_self, format_cast_of_other);
 
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize,
-      formatCastOfSelf.options().dtype(at::kBool));
+    // construct the output tensor of the NPU
+    at::Tensor result = OpPreparation::ApplyTensorWithSizes(
+        output_size,
+        format_cast_of_self.options().dtype(at::kBool));
 
-  // calculate the output result of the NPU
-  lt_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
-  return result;
+    // calculate the output result of the NPU
+    lt_out_npu_nocheck(result, format_cast_of_self, format_cast_of_other);
+    return result;
+  }
 }
 
 at::Tensor NPUNativeFunctions::lt(const at::Tensor &self, at::Scalar other)
@@ -130,31 +141,35 @@ at::Tensor NPUNativeFunctions::lt(const at::Tensor &self, at::Scalar other)
 
 at::Tensor &NPUNativeFunctions::lt_(at::Tensor &self, const at::Tensor &other)
 {
-  OpPreparation::CastBackToOriFormat(self);
-  OpPreparation::CastBackToOriFormat(other);
-  c10::SmallVector<at::Tensor, N> inputs = {self, other};
-  c10::SmallVector<at::Tensor, N> outputs = {self};
-  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+  if (OpPreparation::IsCPUScalar(other)) {
+    return NPUNativeFunctions::lt_(self, other.item());
+  } else {
+    TORCH_CHECK(self.device() == other.device(),
+        "Expected all tensors to be on the same device, but found at least two devices, ",
+        (self.device().type() == at_npu::key::NativeDeviceType ? "npu" : "cpu"),
+        " and ",
+        (other.device().type() == at_npu::key::NativeDeviceType ? "npu! " : "cpu! "));
+    OpPreparation::CastBackToOriFormat(self);
+    OpPreparation::CastBackToOriFormat(other);
+    OpPreparation::CheckMemory({self, other}, {self});
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      self.sizes(),
-      self.options().dtype(at::ScalarType::Byte),
-      CalcuOpUtil::GetTensorNpuFormat(self));
+    at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+        self.sizes(),
+        self.options().dtype(at::ScalarType::Byte),
+        CalcuOpUtil::GetTensorNpuFormat(self));
 
-  if (!NpuUtils::check_match(&self))
-  {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    lt_out_npu_nocheck(result, contiguousSelf, other);
+    if (!NpuUtils::check_match(&self)) {
+      at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+      lt_out_npu_nocheck(result, contiguous_self, other);
+    } else {
+      lt_out_npu_nocheck(result, self, other);
+    }
+
+    // uint8 to self dtype
+    self.copy_(result);
+
+    return self;
   }
-  else
-  {
-    lt_out_npu_nocheck(result, self, other);
-  }
-
-  // uint8 to self dtype
-  self.copy_(result);
-
-  return self;
 }
 
 at::Tensor &NPUNativeFunctions::lt_(at::Tensor &self, at::Scalar other)
