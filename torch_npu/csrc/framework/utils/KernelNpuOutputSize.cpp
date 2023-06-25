@@ -477,6 +477,25 @@ namespace native {
       return it == stop.base();
     }
 
+    c10::SmallVector<int64_t, SIZE> im2col_backward_npu_output_size(
+        const at::Tensor& grad_output,
+        const at::IntArrayRef& input_size,
+        const at::IntArrayRef& kernel_size)
+    {
+      TORCH_CHECK((grad_output.dim() == 2 && grad_output.size(0) != 0 && grad_output.size(1) != 0) ||
+                  (grad_output.dim() == 3 && grad_output.size(1) != 0 && grad_output.size(2) != 0),
+                  "Expected 2D or 3D (batch mode) tensor for gradOutput with possibly 0 batch size and non-zero "
+                  "dimensions for gradOutput, but got: ", grad_output.sizes());
+      c10::SmallVector<int64_t, SIZE> outputSize;
+      if (grad_output.dim() == 2) {
+        outputSize = {grad_output.size(0) / (kernel_size[0] * kernel_size[1]), input_size[0], input_size[1]};
+      } else {
+        outputSize = {grad_output.size(0), grad_output.size(1) / (kernel_size[0] * kernel_size[1]),
+            input_size[0], input_size[1]};
+      }
+      return outputSize;
+    }
+
     c10::SmallVector<int64_t, SIZE> index_npu_output_size(
         const at::Tensor &self,
         at::TensorList indices)
