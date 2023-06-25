@@ -28,12 +28,30 @@ namespace native {
 
 namespace {
 
-// RANDOM_DOUBLE_MAX = 1 << 53
-const int64_t RANDOM_DOUBLE_MAX = 9007199254740992;
-const int64_t RANDOM_HALF_MAX = 1 << 11;
-const int64_t RANDOM_FLOAT_MAX = 1 << 24;
+const int64_t RANDOM_DOUBLE_MAX = 1LL << 53 + 1;
+const int64_t RANDOM_HALF_MAX = 1LL << 11 + 1;
+const int64_t RANDOM_FLOAT_MAX = 1LL << 24 + 1;
+const int64_t RANDOM_BFLOAT16_MAX = 1LL << 8 + 1;
 
 }  // namespace
+static std::map<at::ScalarType, int64_t> DTYPE_MAX_VALUE_MAP = {
+  {at::kHalf, RANDOM_HALF_MAX},
+  {at::kFloat, RANDOM_FLOAT_MAX},
+  {at::kDouble, RANDOM_DOUBLE_MAX},
+  {at::kInt, std::numeric_limits<int>::max()},
+  {at::kShort, std::numeric_limits<int16_t>::max()},
+  {at::kChar, std::numeric_limits<int8_t>::max()},
+  {at::kByte, std::numeric_limits<uint8_t>::max()},
+  {at::kLong, std::numeric_limits<long>::max()},
+  {at::kBFloat16, RANDOM_BFLOAT16_MAX},
+  {at::kBool, 1}
+};
+
+int64_t get_dtype_max_value(at::ScalarType dtype) {
+  auto iter = DTYPE_MAX_VALUE_MAP.find(dtype);
+  TORCH_CHECK(iter != DTYPE_MAX_VALUE_MAP.end(), "self scalar_type:", dtype, "is not surpported.");
+  return iter->second;
+}
 
 at::Tensor& random_op_api_(at::Tensor& self, int64_t from, int64_t to, c10::optional<at::Generator> gen_) {
   auto gen = at::get_generator_or_default<NPUGeneratorImpl>(gen_, at_npu::detail::getDefaultNPUGenerator());
@@ -45,7 +63,7 @@ at::Tensor& random_op_api_(at::Tensor& self, int64_t from, int64_t to, c10::opti
 at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, int64_t from, c10::optional<int64_t> to,
                                              c10::optional<at::Generator> gen_) {
   DO_COMPATIBILITY(aclnnInplaceRandom, NPUNativeFunctions::random_(self, from, to, gen_));
-  int64_t to_ = to.value();
+  int64_t to_ = to.value_or(get_dtype_max_value(self.scalar_type()));
   random_op_api_(self, from, to_, gen_);
   return self;
 }
@@ -60,25 +78,7 @@ at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, int64_t to, c10::
 at::Tensor& NPUNativeOpApiFunctions::random_(at::Tensor& self, c10::optional<at::Generator> gen_) {
   DO_COMPATIBILITY(aclnnInplaceRandom, NPUNativeFunctions::random_(self, gen_));
   int64_t from = 0;
-  int64_t to = 1;
-
-  if (self.dtype() == at::kHalf) {
-    to = RANDOM_HALF_MAX + 1;
-  } else if (self.dtype() == at::kFloat) {
-    to = RANDOM_FLOAT_MAX + 1;
-  } else if (self.dtype() == at::kDouble) {
-    to = RANDOM_DOUBLE_MAX + 1;
-  } else if (self.dtype() == at::kInt) {
-    to = INT_MAX;
-  } else if (self.dtype() == at::kShort) {
-    to = SHRT_MAX + 1;
-  } else if (self.dtype() == at::kChar) {
-    to = SCHAR_MAX + 1;
-  } else if (self.dtype() == at::kByte) {
-    to = UCHAR_MAX + 1;
-  } else if (self.dtype() == at::kLong) {
-    to = LONG_MAX;
-  }
+  int64_t to = get_dtype_max_value(self.scalar_type());
   random_op_api_(self, from, to, gen_);
   return self;
 }
