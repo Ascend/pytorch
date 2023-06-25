@@ -85,10 +85,10 @@ public:
   NPUStatus MakeSureQueueEmpty() override;
   void InitRepo(c10::DeviceIndex device_id) override;
   bool CheckInit() const override;
+  inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
 
 private:
   void ReleaseResource();
-  inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
   bool IsFullQueue() const;
   void SetWriteWorking(bool isWorking) {write_idx.working = isWorking;};
   void SetReadWorking(bool isWorking) {read_idx.working = isWorking;};
