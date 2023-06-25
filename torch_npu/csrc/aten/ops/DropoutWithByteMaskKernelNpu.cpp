@@ -184,6 +184,34 @@ at::Tensor NPUNativeFunctions::dropout_with_byte_mask(const at::Tensor& self, do
   return std::get<0>(NPUNativeFunctions::_dropout_with_byte_mask(self, p));
 }
 
+at::Tensor NPUNativeFunctions::npu_dropout_gen_byte_mask(const at::Tensor& self, double p, bool train) {
+  at::IntArrayRef selfShape = self.sizes();
+  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(
+      selfShape,
+      self.options().dtype(at::kByte),
+      ACL_FORMAT_ND);
+  OpCommand cmd;
+  // If either seed or seed2 are set to be non-zero, the random number generator
+  // is seeded by the given seed. Otherwise, it is seeded by a random seed.
+  // DropOutGenMaskV3 use seed and seed2 to generator a seed, like this:
+  //  seed2   seed
+  // 127~64   63~0
+  // so, we set seed2 = 0 to ensure the seed which user set is equal to the seed
+  // used by the operator DropOutGenMaskV3
+  double retain = 1. - p;
+  at::Scalar prob = at::Scalar(retain);
+  const auto gen = at_npu::detail::getDefaultNPUGenerator();
+  const int64_t seed = static_cast<int64_t>(gen.current_seed());
+  const int64_t seed2 = 0;
+  cmd.Name("DropOutGenMaskV3")
+      .Input(selfShape)
+      .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Output(mask)
+      .Attr("seed", seed)
+      .Attr("seed2", seed2)
+      .Run();
+  return mask;
+}
 
 } // namespace native
 } // namespace at
