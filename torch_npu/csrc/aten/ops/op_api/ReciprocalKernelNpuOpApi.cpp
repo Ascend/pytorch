@@ -54,8 +54,8 @@ at::Tensor NPUNativeOpApiFunctions::reciprocal(const at::Tensor& self) {
 }
 
 at::Tensor& NPUNativeOpApiFunctions::reciprocal_(at::Tensor& self) {
-  DO_COMPATIBILITY(aclnnReciprocal, NPUNativeFunctions::reciprocal_(self));
-  NPUNativeOpApiFunctions::reciprocal_out(self, self);
+  DO_COMPATIBILITY(aclnnInplaceReciprocal, NPUNativeFunctions::reciprocal_(self));
+  EXEC_NPU_CMD(aclnnInplaceReciprocal, self);
   return self;
 }
 
