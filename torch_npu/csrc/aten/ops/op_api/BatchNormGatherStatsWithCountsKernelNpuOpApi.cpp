@@ -28,8 +28,12 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::batch_norm_gather_st
   DO_COMPATIBILITY(aclnnBatchNormGatherStatsWithCounts,
                    NPUNativeFunctions::batch_norm_gather_stats_with_counts(self, mean, invstd, running_mean_opt,
                                                                            running_var_opt, momentum, eps, counts));
-  at::Tensor mean_all = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
-  at::Tensor invstd_all = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
+  auto data_type = at::kFloat;
+  if (self.scalar_type() == mean.scalar_type() && self.scalar_type() == at::kHalf) {
+    data_type = at::kHalf;
+  }
+  at::Tensor mean_all = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(data_type), self);
+  at::Tensor invstd_all = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(data_type), self);
   EXEC_NPU_CMD(aclnnBatchNormGatherStatsWithCounts, self, mean, invstd, running_mean_opt, running_var_opt, momentum,
                eps, counts, mean_all, invstd_all);
   return std::make_tuple(mean_all, invstd_all);
