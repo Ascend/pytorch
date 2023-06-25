@@ -144,10 +144,12 @@ supported:
    op_api: True
  - func: addcmul_
    op_api: False
- - addmm
+ - func: addmm
+   op_api: True
  - func: addmm.out
    op_api: True
- - addmm_
+ - func: addmm_
+   op_api: True
  - func: addmv
    op_api: True
  - func: addmv.out
