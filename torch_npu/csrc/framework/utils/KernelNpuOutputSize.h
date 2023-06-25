@@ -205,6 +205,11 @@ c10::SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
     int64_t padding_idx,
     bool scale_grad_by_freq);
 
+c10::SmallVector<int64_t, SIZE> im2col_backward_npu_output_size(
+    const at::Tensor& grad_output,
+    const at::IntArrayRef& input_size,
+    const at::IntArrayRef& kernel_size);
+
 c10::SmallVector<int64_t, SIZE> index_npu_output_size(
     const at::Tensor& self,
     at::TensorList indices);

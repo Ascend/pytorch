@@ -581,8 +581,10 @@ supported:
    op_api: False
  - im2col
  - im2col.out
- - im2col_backward
- - im2col_backward.grad_input
+ - func: im2col_backward
+   op_api: False
+ - func: im2col_backward.grad_input
+   op_api: False
  - image_normalize
  - image_normalize_
  - img_to_tensor
