@@ -118,5 +118,15 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
   return result;
 }
 
+at::Tensor NPUNativeFunctions::repeat_interleave(const at::Tensor& repeats, c10::optional<int64_t> output_size) {
+    std::vector<int64_t> self_data;
+    for (int64_t i = 0; i < repeats.numel(); i++) {
+        self_data.emplace_back(i);
+    }
+    at::Tensor self = CalcuOpUtil::CopyTensorHostToDevice(at::from_blob(self_data.data(), self_data.size(),
+        dtype(at::kLong)));
+    return NPUNativeFunctions::repeat_interleave(self, repeats, c10::nullopt, output_size);
+}
+
 } // namespace native
 } // namespace at_npu
