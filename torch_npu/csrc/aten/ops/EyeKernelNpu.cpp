@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Huawei Technologies.All rights reserved.
+// Copyright (c) 2023, Huawei Technologies.All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -23,6 +22,7 @@ at::Tensor& eye_out_npu_nocheck(at::Tensor& result, int64_t n, int64_t m) {
     .Output(result)
     .Attr("num_rows", n)
     .Attr("num_columns", m)
+    .Attr("dtype", result.scalar_type())
     .Run();
     
   return result;
