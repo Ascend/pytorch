@@ -293,7 +293,6 @@ namespace at_npu
           params.paras.output_desc = nullptr;
           params.paras.output_data_buf = nullptr;
           params.hostMemory = execParam.hostMem;
-          params.pta_correlation_id = ExecuteParas::g_pta_correlation_id++;
           params.customHandler = execParam.customHandler;
           return;
         }
@@ -333,7 +332,6 @@ namespace at_npu
         params.paras.output_desc = aclTensorOutputDescArr;
         params.paras.output_data_buf = aclDataOutputBuffArr;
         params.hostMemory = execParam.hostMem;
-        params.pta_correlation_id = ExecuteParas::g_pta_correlation_id++;
         params.customHandler = execParam.customHandler;
 
         if (!ForceJitCompileList::GetInstance().Inlist(opName) && env::CheckJitDisable()) {

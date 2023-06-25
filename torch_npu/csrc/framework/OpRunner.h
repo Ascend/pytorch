@@ -41,12 +41,18 @@ public:
   void Run() {
     RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
     if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+#ifndef BUILD_LIBTORCH
+      at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
+#endif
       at_npu::native::ExecuteBsParas execParams;
       ExportParams(execParams);
       c10_npu::queue::QueueParas params(c10_npu::queue::LAMBDA_EXECUTE,
                                         sizeof(at_npu::native::ExecuteBsParas),
                                         &execParams);
       c10_npu::enCurrentNPUStream(&params);
+#ifndef BUILD_LIBTORCH
+      at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
+#endif
     } else {
       this->func();
     }
