@@ -1168,15 +1168,15 @@ supported:
  - sub_.Scalar
  - sub_.Tensor
  - func: sum
-   op_api: False
+   op_api: True
  - func: sum.DimnameList_out
-   op_api: False
+   op_api: True
  - func: sum.IntList_out
-   op_api: False
+   op_api: True
  - func: sum.dim_DimnameList
-   op_api: False
+   op_api: True
  - func: sum.dim_IntList
-   op_api: False
+   op_api: True
  - func: take
    op_api: False
  - func: take.out
@@ -1209,9 +1209,9 @@ supported:
  - to.dtype_layout
  - to.other
  - func: topk
-   op_api: False
+   op_api: True
  - func: topk.values
-   op_api: False
+   op_api: True
  - triangular_solve.X
  - func: tril
    op_api: True
@@ -1250,7 +1250,8 @@ supported:
    op_api: True
  - func: upsample_bilinear2d.out
    op_api: True
- - upsample_bilinear2d.vec
+ - func: upsample_bilinear2d.vec
+   op_api: True
  - upsample_bilinear2d_backward
  - upsample_bilinear2d_backward.grad_input
  - upsample_bilinear2d_backward.vec
@@ -1312,11 +1313,11 @@ supported:
  - func: zero_
    op_api: True
  - func: zeros
-   op_api: False
+   op_api: True
  - func: zeros.names
-   op_api: False
+   op_api: True
  - func: zeros.out
-   op_api: False
+   op_api: True
  - zeros_like
 
 autograd:
