@@ -22,10 +22,13 @@
 
 #include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
@@ -33,7 +36,6 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -350,19 +352,79 @@ bool CalcuOpUtil::IsTransposeLastTwoDims(const at::Tensor &tensor) {
 }
 
 bool CalcuOpUtil::IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2) {
-  const static size_t kInnerAxisMinLimit = 128U;
-  const static size_t kInnerAxisMaxLimit = 65535U;
+  const static int64_t kInnerAxisMinLimit = 128;
+  const static int64_t kInnerAxisMaxLimit = 65535;
   if (self.dim() < 2 || mat2.dim() < 2) {
     return false;
   }
   // get inner axis of input after transpose.
-  auto self_inner_axis = IsTransposeLastTwoDims(self) ? self.size(self.dim() - 2) : self.size(self.dim() - 1);
-  auto mat2_inner_axis = IsTransposeLastTwoDims(mat2) ? mat2.size(mat2.dim() - 2) : mat2.size(mat2.dim() - 1);
+  int64_t self_inner_axis = self.size(self.dim() - 1);
+  int64_t self_outer_axis = self.size(self.dim() - 2);
+  int64_t mat2_inner_axis = mat2.size(mat2.dim() - 1);
+  int64_t mat2_outer_axis = mat2.size(mat2.dim() - 2);
+  if (IsTransposeLastTwoDims(self)) {
+    self_inner_axis = self.size(self.dim() - 2);
+    self_outer_axis = self.size(self.dim() - 1);
+  }
+  if (IsTransposeLastTwoDims(mat2)) {
+    mat2_inner_axis = mat2.size(mat2.dim() - 2);
+    mat2_outer_axis = mat2.size(mat2.dim() - 1);
+  }
+  if (self_inner_axis * self_outer_axis <= kInnerAxisMaxLimit &&
+      mat2_inner_axis * mat2_outer_axis <= kInnerAxisMaxLimit) {
+    // too small tensor size
+    return true;
+  }
   // self inner_axis and mat2_inner_axis both in [128, 65535] or in (0, 128) and is multi of 16
   return ((self_inner_axis >= kInnerAxisMinLimit && self_inner_axis <= kInnerAxisMaxLimit) ||
-          (self_inner_axis < kInnerAxisMinLimit && !(self_inner_axis & 0x0000000F))) &&
+          (self_inner_axis < kInnerAxisMinLimit && !(self_inner_axis & 0xF))) &&
          ((mat2_inner_axis >= kInnerAxisMinLimit && mat2_inner_axis <= kInnerAxisMaxLimit) ||
-          (mat2_inner_axis < kInnerAxisMinLimit && !(mat2_inner_axis & 0x0000000F)));
+          (mat2_inner_axis < kInnerAxisMinLimit && !(mat2_inner_axis & 0xF)));
+}
+
+bool CalcuOpUtil::IsTransposeInnerAxis(const at::Tensor &self) {
+  const static int64_t kInnerAxisMinBytes = 256;
+  const static int64_t kInnerAxisMaxLimit = 65535;
+  if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1 || self.dim() < 2 ||
+      (self.scalar_type() != at::ScalarType::Half && self.scalar_type() != at::ScalarType::Float)) {
+    return false;
+  }
+  int64_t data_type = elementSize(self.scalar_type());
+  int64_t self_inner_axis = self.size(self.dim() - 1);
+  int64_t self_outer_axis = self.size(self.dim() - 2);
+  if (IsTransposeLastTwoDims(self)) {
+    self_inner_axis = self.size(self.dim() - 2);
+    self_outer_axis = self.size(self.dim() - 1);
+  }
+  if (self_inner_axis == 1 && self_outer_axis > kInnerAxisMaxLimit) {
+    return true;
+  }
+  if (self_inner_axis * self_outer_axis <= kInnerAxisMaxLimit) {
+    // too small tensor size
+    return false;
+  }
+  return ((self_inner_axis > kInnerAxisMaxLimit) ||
+          (self_inner_axis * data_type < kInnerAxisMinBytes && bool((self_inner_axis * data_type) & 0x1F))) &&
+         ((self_outer_axis * data_type >= kInnerAxisMinBytes && self_outer_axis <= kInnerAxisMaxLimit) ||
+          (self_outer_axis * data_type < kInnerAxisMinBytes && !((self_outer_axis * data_type) & 0x1F)));
+}
+
+bool CalcuOpUtil::IsTransposeBothInnerAxis(const at::Tensor &self, const at::Tensor &mat2) {
+  const static int64_t kInnerAxisMaxLimit = 65535;
+  int64_t self_inner_axis = self.size(self.dim() - 1);
+  int64_t self_outer_axis = self.size(self.dim() - 2);
+  int64_t mat2_inner_axis = mat2.size(mat2.dim() - 1);
+  int64_t mat2_outer_axis = mat2.size(mat2.dim() - 2);
+  if (IsTransposeLastTwoDims(self)) {
+    self_inner_axis = self.size(self.dim() - 2);
+    self_outer_axis = self.size(self.dim() - 1);
+  }
+  if (IsTransposeLastTwoDims(mat2)) {
+    mat2_inner_axis = mat2.size(mat2.dim() - 2);
+    mat2_outer_axis = mat2.size(mat2.dim() - 1);
+  }
+  return self_inner_axis > kInnerAxisMaxLimit && self_outer_axis <= kInnerAxisMaxLimit &&
+         mat2_inner_axis > kInnerAxisMaxLimit && mat2_outer_axis <= kInnerAxisMaxLimit;
 }
 
 bool CalcuOpUtil::IsScalarWrappedToTensor(const at::Tensor &tensor) {
