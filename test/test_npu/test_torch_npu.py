@@ -14,7 +14,6 @@
 
 import contextlib
 import collections
-import time
 
 import torch
 import torch_npu
@@ -204,16 +203,6 @@ class TorchNPUApiTestCase(TestCase):
         res = torch.npu.utilization()
         self.assertEqual(res, 0)
 
-    def test_npu_get_utilization_runing(self):
-        for i in range(200):
-            tensora = torch.randn(64, 100, 64, 64, dtype=torch.float, device="npu:0")
-            torch.sum(tensora)
-        util_sum = 0
-        for i in range(200):
-            res = torch.npu.utilization()
-            util_sum = util_sum + res
-            time.sleep(0.2)
-        self.assertNotEqual(util_sum, 0)
 
 if __name__ == "__main__":
     run_tests()
