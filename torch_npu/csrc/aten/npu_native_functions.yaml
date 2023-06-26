@@ -600,7 +600,8 @@ supported:
  - index_fill.int_Scalar
  - index_fill.int_Tensor
  - index_fill_.int_Scalar
- - index_fill_.int_Tensor
+ - func: index_fill_.int_Tensor
+   op_api: False
  - func: index_select
    op_api: True
  - func: index_put
