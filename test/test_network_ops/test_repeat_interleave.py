@@ -130,6 +130,25 @@ class TestRepeatInterleave(TestCase):
         npu_output = self.npu_op_exec_without_dim(cpu_input1.npu(), input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_repeat_interleave_repeats_contains_one_ele(self):
+        format_list = [2]
+        shape_list = [[2, 7, 3]]
+        repeats_list = [4]
+        dim_list = [2]
+        shape_format = [
+            [[np.int64, i, j], p, v]
+            for i in format_list
+            for j in shape_list
+            for p in repeats_list
+            for v in dim_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
+            cpu_repeat = torch.tensor(item[1])
+            npu_repeat = cpu_repeat.npu()
+            cpu_output = self.cpu_op_exec_tensor(cpu_input1, cpu_repeat, item[2])
+            npu_output = self.npu_op_exec_tensor(npu_input1, npu_repeat, item[2])
+            self.assertRtolEqual(cpu_output, npu_output)
 
 if __name__ == '__main__':
     run_tests()
