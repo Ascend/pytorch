@@ -49,31 +49,31 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     int64_t repeats,
     c10::optional<int64_t> dim,
     c10::optional<int64_t> output_size) {
-  int64_t realDim = dim.value_or(0);
+  int64_t real_dim = dim.value_or(0);
   int64_t self_dim = self.dim();
   TORCH_CHECK(
-      (realDim >= -self_dim) && (realDim <= self_dim - 1),
+      (real_dim >= -self_dim) && (real_dim <= self_dim - 1),
       "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
   TORCH_CHECK(
       repeats >= 1,
       "repeats can not be negative.");
-  at::Tensor selfTensor = self;
+  at::Tensor self_tensor = self;
   if (!dim.has_value()) {
-    selfTensor = at::flatten(selfTensor);
+    self_tensor = at::flatten(self_tensor);
   }
   if (repeats == 1) {
-    return selfTensor;
+    return self_tensor;
   }
 
-  if (self_dim > 1 && realDim != 0) {
-    selfTensor = selfTensor.transpose(0, realDim);
+  if (self_dim > 1 && real_dim != 0) {
+    self_tensor = self_tensor.transpose(0, real_dim);
   }
 
-  auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeats, 0);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(selfTensor, outputSize, ACL_FORMAT_ND);
-  repeat_interleave_out_npu(result, selfTensor, repeats);
-  if (self_dim > 1 && realDim != 0) {
-    result = result.transpose(0, realDim);
+  auto result_size = repeat_interleave_npu_output_size(self_tensor, repeats, 0);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self_tensor, result_size, ACL_FORMAT_ND);
+  repeat_interleave_out_npu(result, self_tensor, repeats);
+  if (self_dim > 1 && real_dim != 0) {
+    result = result.transpose(0, real_dim);
   }
   return result;
 }
@@ -83,37 +83,37 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     const at::Tensor& repeats,
     c10::optional<int64_t> dim,
     c10::optional<int64_t> output_size) {
-  int64_t realDim = dim.value_or(0);
+  int64_t real_dim = dim.value_or(0);
   int64_t self_dim = self.dim();
   TORCH_CHECK(
-      (realDim >= -self_dim) && (realDim <= self_dim - 1),
+      (real_dim >= -self_dim) && (real_dim <= self_dim - 1),
       "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
 
-  at::Tensor selfTensor = self;
-  at::Tensor repeatsTensor = repeats;
-  if (!dim.has_value()) {
-    selfTensor = at::flatten(selfTensor);
+  at::Tensor self_tensor = self;
+  at::Tensor repeats_tensor = repeats;
+  if (repeats.dim() == 0) {
+    repeats_tensor.unsqueeze_(0);
   }
-  if (repeats.dim() == 1 && repeats.size(0) == 1) {
-    return selfTensor;
+  if (!dim.has_value()) {
+    self_tensor = at::flatten(self_tensor);
   }
 
   TORCH_CHECK(
-      repeats.size(0) == selfTensor.size(realDim),
+      repeats.size(0) == self_tensor.size(real_dim),
       "repeats must have the same size as input along dim.");
 
-  if (self_dim > 1 && realDim != 0) {
-    selfTensor = selfTensor.transpose(0, realDim);
+  if (self_dim > 1 && real_dim != 0) {
+    self_tensor = self_tensor.transpose(0, real_dim);
   }
 
-  repeatsTensor = NPUNativeFunctions::npu_dtype_cast(repeatsTensor, at::ScalarType::Int);
-  repeatsTensor = NPUNativeFunctions::npu_dtype_cast(repeatsTensor, at::ScalarType::Float);
-  auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeatsTensor, 0);
+  repeats_tensor = NPUNativeFunctions::npu_dtype_cast(repeats_tensor, at::ScalarType::Int);
+  repeats_tensor = NPUNativeFunctions::npu_dtype_cast(repeats_tensor, at::ScalarType::Float);
+  auto result_size = repeat_interleave_npu_output_size(self_tensor, repeats_tensor, 0);
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(selfTensor, outputSize, ACL_FORMAT_ND);
-  repeat_interleave_out_npu(result, selfTensor, repeats);
-  if (self_dim > 1 && realDim != 0) {
-    result = result.transpose(0, realDim);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self_tensor, result_size, ACL_FORMAT_ND);
+  repeat_interleave_out_npu(result, self_tensor, repeats);
+  if (self_dim > 1 && real_dim != 0) {
+    result = result.transpose(0, real_dim);
   }
   return result;
 }
