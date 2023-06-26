@@ -26,7 +26,7 @@ at::Tensor &argmin_exec(
     at::optional<int64_t> dim, 
     bool keepdim,
     at::Tensor& result, bool out_mode) {
-
+  TORCH_CHECK(!(self.numel()==0 && !(dim.has_value())), "Expected reduction dim to be specified for input.numl()==0")
   at::Tensor input;
   int64_t real_dim = 0;
   bool real_keep_dim = false;
@@ -45,7 +45,7 @@ at::Tensor &argmin_exec(
     OpPreparation::CheckOut({self}, result, result, output_size);
   } else {
     // construct the output tensor of the NPU
-    result = OpPreparation::ApplyTensorWithSizes(self.sizes(), self.options().dtype(at::kLong));
+    result = OpPreparation::ApplyTensorWithSizes(output_size, self.options().dtype(at::kLong));
   }
 
   EXEC_NPU_CMD(aclnnArgMin, input, real_dim, real_keep_dim, result);
