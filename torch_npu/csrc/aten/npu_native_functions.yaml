@@ -1637,6 +1637,7 @@ unsupported:
   - special_zeta.other_scalar_out
 
 custom:
+  - func: _npu_storage_resize(Tensor self, int size) -> Tensor
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
   - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
   - func: npu_transpose.out(Tensor self, int[] perm, bool require_contiguous=True, *, Tensor(a!) out) -> Tensor(a!)
