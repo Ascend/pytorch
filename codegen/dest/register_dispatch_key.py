@@ -382,7 +382,7 @@ torch_npu::profiler::NPURecordFunction guard;
                     op_api_impl_name = impl_name
 
                 return_code = f"""\
-if (c10_npu::NpuRunMode::IsGraphMode() || !at_npu::native::env::CheckForbidInternalFormat()) {{
+if (c10_npu::NpuRunMode::IsGraphMode() || !(at_npu::native::env::CheckForbidInternalFormat() && at_npu::native::env::CheckJitDisable())) {{
         return {impl_name}({args_exprs_str});
     }} else {{
         return {op_api_impl_name}({args_exprs_str});
