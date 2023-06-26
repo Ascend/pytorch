@@ -16,9 +16,9 @@ supported:
  - __xor__.Scalar
  - __xor__.Tensor
  - func: _adaptive_avg_pool2d
-   op_api: False
+   op_api: True
  - func: _adaptive_avg_pool2d_backward
-   op_api: False
+   op_api: True
  - func: argmin.out
    op_api: False
  - _adaptive_avg_pool3d
@@ -107,9 +107,9 @@ supported:
  - acosh_
  - adaptive_avg_pool1d
  - func: adaptive_avg_pool2d
-   op_api: False
+   op_api: True
  - func: adaptive_avg_pool2d.out
-   op_api: False
+   op_api: True
  - adaptive_avg_pool3d
  - adaptive_avg_pool3d.out
  - adaptive_avg_pool3d_backward.grad_input
