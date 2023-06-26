@@ -22,6 +22,51 @@ class TestJitTrace(TestCase):
         output2 = script_model(example_input)
         self.assertRtolEqual(output1, output2)
 
+    def test_script_npu_bert_apply_adam_out(self):
+        class NpuModel(torch.nn.Module):
+            def __init__(self):
+                super(NpuModel, self).__init__()
+
+            def forward(self, grad, var_in, m_in, v_in):
+                max_grad_norm = -1.
+                beta1 = 0.9
+                beta2 = 0.99
+                weight_decay = 0.
+                lr = 0.
+                epsilon = 1e-06
+                global_grad_norm = 0.
+
+                var_out, m_out, v_out = torch_npu.npu_bert_apply_adam(
+                    lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay,
+                    out=(var_in, m_in, v_in))
+                return var_out, m_out, v_out
+
+        seed = 3
+        torch.manual_seed(seed)
+        torch.npu.manual_seed(seed)
+        torch.npu.manual_seed_all(seed)
+
+        var_in = torch.rand(321538).uniform_(-32., 21.).npu()
+        m_in = torch.zeros(321538).npu()
+        v_in = torch.zeros(321538).npu()
+        grad = torch.rand(321538).uniform_(-0.05, 0.03).npu()
+        model = NpuModel().to("npu")
+        output1 = model(grad, var_in, m_in, v_in)
+
+        script_model = torch.jit.script(model)
+
+        seed = 3
+        torch.manual_seed(seed)
+        torch.npu.manual_seed(seed)
+        torch.npu.manual_seed_all(seed)
+
+        var_in = torch.rand(321538).uniform_(-32., 21.).npu()
+        m_in = torch.zeros(321538).npu()
+        v_in = torch.zeros(321538).npu()
+        grad = torch.rand(321538).uniform_(-0.05, 0.03).npu()
+        output2 = script_model(grad, var_in, m_in, v_in)
+        self.assertRtolEqual(output1, output2)
+
 
 if __name__ == '__main__':
     run_tests()
