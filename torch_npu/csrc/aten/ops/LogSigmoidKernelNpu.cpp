@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -39,6 +40,13 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::log_sigmoid_forward(const at::
 }
 
 at::Tensor& NPUNativeFunctions::log_sigmoid_out(const at::Tensor& self, at::Tensor& result) {
+  auto outputSize = self.sizes();
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self.scalar_type(),
+      outputSize);
+
   at::Tensor buffer = OpPreparation::ApplyTensorWithSizes({0}, self.options());
   return std::get<0>(at::log_sigmoid_forward_out(result, buffer, self));
 }
