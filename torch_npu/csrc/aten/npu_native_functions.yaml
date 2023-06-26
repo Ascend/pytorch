@@ -58,7 +58,7 @@ supported:
  - _embedding_bag_forward_only
  - _index_copy_
  - func: _index_put_impl_
-   op_api: False
+   op_api: True
  - _linalg_svd.U
  - _local_scalar_dense
  - func: _log_softmax
@@ -591,7 +591,7 @@ supported:
  - image_normalize_
  - img_to_tensor
  - func: index.Tensor
-   op_api: False
+   op_api: True
  - func: index_add
    op_api: False
  - index_add.dimname
@@ -604,9 +604,9 @@ supported:
  - func: index_select
    op_api: True
  - func: index_put
-   op_api: False
+   op_api: True
  - func: index_put_
-   op_api: False
+   op_api: True
  - index_select.dimname
  - index_select.dimname_out
  - func: index_select.out
