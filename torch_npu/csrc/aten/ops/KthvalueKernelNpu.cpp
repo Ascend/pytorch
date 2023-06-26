@@ -23,14 +23,6 @@
 namespace at_npu {
 namespace native {
 
-c10::SmallVector<int64_t, SIZE> kthvalue_npu_output_size(
-    const at::Tensor& self,
-    int64_t dim,
-    bool keepdim) {
-  at::IntArrayRef dims(dim);
-  return reduce_ops_npu_output_size(self, dims, keepdim);
-}
-
 void kthvalue_shape_modify(
     at::Tensor& values, 
     at::Tensor& indices, 

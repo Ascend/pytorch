@@ -701,6 +701,15 @@ namespace native {
       return {gtboxes.size(0), bboxes.size(0)};
     }
 
+    c10::SmallVector<int64_t, SIZE> kthvalue_npu_output_size(
+        const at::Tensor& self,
+        int64_t dim,
+        bool keepdim)
+    {
+      at::IntArrayRef dims(dim);
+      return reduce_ops_npu_output_size(self, dims, keepdim);
+    }
+
     c10::SmallVector<int64_t, SIZE> lstm_npu_output_size(
         const at::Tensor &input,
         const at::Tensor &weight,

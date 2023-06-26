@@ -616,10 +616,14 @@ supported:
  - kl_div
  - func: kl_div_backward
    op_api: False
- - kthvalue
- - kthvalue.dimname
- - kthvalue.dimname_out
- - kthvalue.values
+ - func: kthvalue
+   op_api: False
+ - func: kthvalue.dimname
+   op_api: False
+ - func: kthvalue.dimname_out
+   op_api: False
+ - func: kthvalue.values
+   op_api: False
  - l1_loss
  - l1_loss.out
  - l1_loss_backward
