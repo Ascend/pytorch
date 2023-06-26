@@ -82,18 +82,21 @@ static PyObject * THNPStream_get_npu_stream(THNPStream *self, void *unused) {
 }
 
 static PyObject * THNPStream_get_priority(THNPStream *self, void *unused) {
-  std::cout<<__FILE__<<":"<<__LINE__<<":not support\r\n";
-  return nullptr;
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.");
+  END_HANDLE_TH_ERRORS
 }
 
 static PyObject * THNPStream_priority_range() {
-  std::cout<<__FILE__<<":"<<__LINE__<<":not support\r\n";
-  return nullptr;
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.");
+  END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_query(THNPStream *self, PyObject *noargs) {
-  std::cout<<__FILE__<<":"<<__LINE__<<":not support\r\n";
-  return nullptr;
+static PyObject * THNPStream_query(THNPStream *self, PyObject *noargs) {\
+  HANDLE_TH_ERRORS
+  TORCH_CHECK(false, "NPU does not support Stream.query() currently.");
+  END_HANDLE_TH_ERRORS
 }
 
 static PyObject * THNPStream_synchronize(THNPStream *self, PyObject *noargs) {
