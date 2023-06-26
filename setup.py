@@ -38,7 +38,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '2.0.0.rc1'
+VERSION = '2.0.1.rc1'
 
 
 def generate_torch_npu_version():
