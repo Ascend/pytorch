@@ -774,9 +774,11 @@ supported:
  - mean.names_out
  - func: mean.out
    op_api: True
- - median
+ - func: median
+   op_api: False
  - median.dim
- - median.dim_values
+ - func: median.dim_values
+   op_api: False
  - median.names_dim
  - median.names_dim_values
  - func: min
