@@ -22,29 +22,28 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::bitwise_and_out(const at::Tensor& self, const at::Scalar& other,
                                                      at::Tensor& result) {
-  DO_COMPATIBILITY(aclnnBitwiseAndTensorOut, NPUNativeFunctions::bitwise_and_out(self, other, result));
-  OpPreparation::CheckOut({self}, result, self);
+  DO_COMPATIBILITY(aclnnBitwiseAndScalar, NPUNativeFunctions::bitwise_and_out(self, other, result));
+  OpPreparation::CheckOut({self}, result, result, self.sizes());
 
-  auto other_tensor = CalcuOpUtil::CopyScalarToDevice(other, self.scalar_type());
-  EXEC_NPU_CMD(aclnnBitwiseAndTensorOut, self, other_tensor, result);
+  EXEC_NPU_CMD(aclnnBitwiseAndScalar, self, other, result);
 
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::bitwise_and_out(const at::Tensor& self, const at::Tensor& other,
                                                      at::Tensor& result) {
-  DO_COMPATIBILITY(aclnnBitwiseAndTensorOut, NPUNativeFunctions::bitwise_and_out(self, other, result));
+  DO_COMPATIBILITY(aclnnBitwiseAndTensor, NPUNativeFunctions::bitwise_and_out(self, other, result));
   auto output_size = broadcast_ops_npu_output_size(self, other);
 
   OpPreparation::CheckOut({self}, result, result, output_size);
 
-  EXEC_NPU_CMD(aclnnBitwiseAndTensorOut, self, other, result);
+  EXEC_NPU_CMD(aclnnBitwiseAndTensor, self, other, result);
 
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at::Tensor& other) {
-  DO_COMPATIBILITY(aclnnBitwiseAndTensorOut, NPUNativeFunctions::bitwise_and(self, other));
+  DO_COMPATIBILITY(aclnnBitwiseAndTensor, NPUNativeFunctions::bitwise_and(self, other));
   // calculate the output size
   bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
@@ -61,22 +60,21 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at
   at::Tensor result = OpPreparation::ApplyTensor(ref_tensor, output_size);
 
   // calculate the output result of the NPU
-  EXEC_NPU_CMD(aclnnBitwiseAndTensorOut, self, other, result);
+  EXEC_NPU_CMD(aclnnBitwiseAndTensor, self, other, result);
 
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at::Scalar& other) {
-  DO_COMPATIBILITY(aclnnBitwiseAndTensorOut, NPUNativeFunctions::bitwise_and(self, other));
+  DO_COMPATIBILITY(aclnnBitwiseAndScalar, NPUNativeFunctions::bitwise_and(self, other));
   // calculate the output size
   auto output_size = input_same_output_size(self);
 
   // construct the output at::Tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
 
-  auto other_tensor = CalcuOpUtil::CopyScalarToDevice(other, self.scalar_type());
   // calculate the output result of the NPU
-  EXEC_NPU_CMD(aclnnBitwiseAndTensorOut, self, other_tensor, result);
+  EXEC_NPU_CMD(aclnnBitwiseAndScalar, self, other, result);
 
   return result;
 }
@@ -88,9 +86,8 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_and_(at::Tensor& self, const at::Te
 }
 
 at::Tensor& NPUNativeOpApiFunctions::bitwise_and_(at::Tensor& self, const at::Scalar& other) {
-  DO_COMPATIBILITY(aclnnInplaceBitwiseAndTensorOut, NPUNativeFunctions::bitwise_and_(self, other));
-  auto other_tensor = CalcuOpUtil::CopyScalarToDevice(other, self.scalar_type());
-  EXEC_NPU_CMD(aclnnInplaceBitwiseAndTensorOut, self, other_tensor);
+  DO_COMPATIBILITY(aclnnInplaceBitwiseAndScalar, NPUNativeFunctions::bitwise_and_(self, other));
+  EXEC_NPU_CMD(aclnnInplaceBitwiseAndScalar, self, other);
   return self;
 }
 }  // namespace native
