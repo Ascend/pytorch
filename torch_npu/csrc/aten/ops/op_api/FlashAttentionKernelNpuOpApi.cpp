@@ -34,21 +34,13 @@ at::Tensor format_trans(const at::Tensor &at_tensor) {
 
 at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &prob, const at::Scalar &seed,
     const int64_t &offset, const int64_t &length) {
-  at::Tensor mask;
-  auto original_stream = c10_npu::getCurrentNPUStream();
-  {
-    // During the life cycle of this raii instance, the calcu stream is set as the
-    // secondary stream, and tasks are distributed to the secondary stream. At the
-    // same time, according to the one-stream-one-pool principle, memory is also
-    // alloced from the pool of the secondary stream.
-    c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
-    c10::TensorOptions options = self.options();
-    mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length}, options.dtype(at::kByte),
-                                                ACL_FORMAT_ND);
-    at::SmallVector<int64_t, N> offsetList = {0, offset};
-    const int64_t seed1 = 0;
-    OpCommand cmd;
-    cmd.Name("StatelessDropOutGenMask")
+  c10::TensorOptions options = self.options();
+  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length}, options.dtype(at::kByte),
+                                                        ACL_FORMAT_ND);
+  at::SmallVector<int64_t, N> offsetList = {0, offset};
+  const int64_t seed1 = 0;
+  OpCommand cmd;
+  cmd.Name("StatelessDropOutGenMask")
       .Input(at::IntArrayRef{length})
       .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(seed, at::ScalarType::Int)
@@ -56,14 +48,35 @@ at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &prob,
       .Input(offsetList, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(mask)
       .Run();
-  }
-  // When tasks on multiple streams read and write the same block of memory,
-  // recordStream needs to be called to ensure the correctness of memory reuse.
-  c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   return mask;
 }
 
-at::Tensor dropout_gen_mask(const at::Tensor &self, double p, int64_t head_num,
+at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &prob, const at::Scalar &seed,
+    const int64_t &offset, const int64_t &length, const bool gen_mask_parallel, const bool sync) {
+  at::Tensor mask;
+  if (gen_mask_parallel) {
+    auto original_stream = c10_npu::getCurrentNPUStream();
+    {
+      // During the life cycle of this raii instance, the calcu stream is set as the
+      // secondary stream, and tasks are distributed to the secondary stream. At the
+      // same time, according to the one-stream-one-pool principle, memory is also
+      // alloced from the pool of the secondary stream.
+      c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
+      mask = dropout_gen_mask_impl(self, prob, seed, offset, length);
+      if (sync) {
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(original_stream));
+      }
+    }
+    // When tasks on multiple streams read and write the same block of memory,
+    // recordStream needs to be called to ensure the correctness of memory reuse.
+    c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
+  } else {
+    mask = dropout_gen_mask_impl(self, prob, seed, offset, length);
+  }
+  return mask;
+}
+
+at::Tensor dropout_gen_mask(const at::Tensor &self, double p, int64_t head_num, bool gen_mask_parallel, bool sync,
     int64_t &seed, int64_t &offset, int64_t &length) {
   const auto gen = at_npu::detail::getDefaultNPUGenerator();
   auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
@@ -73,7 +86,7 @@ at::Tensor dropout_gen_mask(const at::Tensor &self, double p, int64_t head_num,
   length = (numels + 128 - 1) / 128 * 16; // 先对齐到128，然后按Byte缩放8倍
   length += 32;
   at::Scalar prob = at::Scalar(1. - p);
-  return dropout_gen_mask_impl(self, prob, at::Scalar(seed), offset, length);
+  return dropout_gen_mask_dispatch(self, prob, at::Scalar(seed), offset, length, gen_mask_parallel, sync);
 }
 
 std::vector<at::Tensor> npu_flash_attention_backward(
@@ -130,8 +143,8 @@ std::vector<at::Tensor> npu_flash_attention_backward(
       pre_tockens, next_tockens, is_flash, head_num, dq, dk, dv);
 
   return {dq, dk, dv,
-          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(),
-          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
+          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(),
+          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
 }
 
 class NPUFlashAttentionFunction : public torch::autograd::Function<NPUFlashAttentionFunction> {
@@ -140,7 +153,7 @@ public:
       AutogradContext *ctx, const at::Tensor &query, const at::Tensor &key,
       const at::Tensor &value, int64_t head_num, const c10::optional<at::Tensor> &pse_opt,
       const c10::optional<at::Tensor> &padding_mask_opt, const c10::optional<at::Tensor> &atten_mask_opt,
-      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens)
+      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
   {
     const at::Tensor &pse = pse_opt.value_or(at::Tensor());
     const at::Tensor &padding_mask = padding_mask_opt.value_or(at::Tensor());
@@ -162,7 +175,8 @@ public:
     int64_t seed;
     int64_t offset;
     int64_t length;
-    at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, seed, offset, length);
+    at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, gen_mask_parallel, sync,
+      seed, offset, length);
 
     size_t dim = (query.scalar_type() == at::ScalarType::Float) ? 8 : 16;
     at::Tensor softmax_max = OpPreparation::ApplyTensor(query,
@@ -183,30 +197,34 @@ public:
     ctx->save_for_backward({format_query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
                             format_pse, format_padding_mask, format_atten_mask, attention_score});
 
-    ctx->saved_data["head_num"] = head_num;
     ctx->saved_data["scale"] = scale;
     ctx->saved_data["keep_prob"] = keep_prob;
     ctx->saved_data["pre_tockens"] = pre_tockens;
     ctx->saved_data["next_tockens"] = next_tockens;
     ctx->saved_data["is_flash"] = is_flash;
-    ctx->saved_data["length"] = length;
+    ctx->saved_data["head_num"] = head_num;
+    ctx->saved_data["gen_mask_parallel"] = gen_mask_parallel;
+    ctx->saved_data["sync"] = sync;
     ctx->saved_data["seed"] = seed;
     ctx->saved_data["offset"] = offset;
+    ctx->saved_data["length"] = length;
 
     return {attention_score};
   }
 
   static std::vector<at::Tensor> backward(AutogradContext *ctx, std::vector<at::Tensor> grad_outputs)
   {
-    auto head_num = ctx->saved_data["head_num"].toInt();
     auto scale = ctx->saved_data["scale"].toDouble();
     auto keep_prob = ctx->saved_data["keep_prob"].toDouble();
     auto pre_tockens = ctx->saved_data["pre_tockens"].toInt();
     auto next_tockens = ctx->saved_data["next_tockens"].toInt();
     auto is_flash = ctx->saved_data["is_flash"].toBool();
-    auto length = ctx->saved_data["length"].toInt();
-    auto offset = ctx->saved_data["offset"].toInt();
+    auto head_num = ctx->saved_data["head_num"].toInt();
+    auto gen_mask_parallel = ctx->saved_data["gen_mask_parallel"].toBool();
+    auto sync = ctx->saved_data["sync"].toBool();
     auto seed = ctx->saved_data["seed"].toInt();
+    auto offset = ctx->saved_data["offset"].toInt();
+    auto length = ctx->saved_data["length"].toInt();
     auto saved = ctx->get_saved_variables();
 
     auto query = saved[0];
@@ -221,7 +239,7 @@ public:
     auto attention_score = saved[9];
 
     at::Scalar prob = at::Scalar(1. - keep_prob);
-    at::Tensor drop_mask = dropout_gen_mask_impl(query, prob, at::Scalar(seed), offset, length);
+    at::Tensor drop_mask = dropout_gen_mask_dispatch(query, prob, at::Scalar(seed), offset, length, gen_mask_parallel, sync);
 
     return npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, pse, drop_mask, padding_mask, atten_mask,
@@ -246,7 +264,9 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
     double scale_value,
     double keep_prob,
     int64_t pre_tockens,
-    int64_t next_tockens)
+    int64_t next_tockens,
+    bool gen_mask_parallel,
+    bool sync)
 {
   TORCH_CHECK(query.dim() == 3, "The shapes of the input query should be 3-dimensional, but got ", query.dim(), "-dimensional");
   TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
@@ -255,7 +275,7 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   int64_t seed;
   int64_t offset;
   int64_t length;
-  at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, seed, offset, length);
+  at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, gen_mask_parallel, sync, seed, offset, length);
 
   return npu_flash_attention_backward(query,
       key, value, dy, head_num, pse, drop_mask, padding_mask, atten_mask,
@@ -268,10 +288,10 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention(
     const at::Tensor &value, int64_t head_num,
     const c10::optional<at::Tensor> &pse, const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask,
-    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens)
+    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
 {
   return NPUFlashAttentionFunction::apply(query, key, value, head_num, pse, padding_mask,
-      atten_mask, scale, keep_prob, pre_tockens, next_tockens);
+      atten_mask, scale, keep_prob, pre_tockens, next_tockens, gen_mask_parallel, sync);
 }
 } // namespace native
 } // namespace at_npu
