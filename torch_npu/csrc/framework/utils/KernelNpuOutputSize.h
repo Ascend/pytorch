@@ -60,6 +60,11 @@ c10::SmallVector<int64_t, SIZE> reduce_ops_npu_output_size(
     c10::IntArrayRef dim,
     bool keepdim);
 
+c10::SmallVector<int64_t, SIZE> mse_loss_npu_output_size(
+    const at::Tensor& self,
+    const at::Tensor& target,
+    int64_t reduction);
+
 c10::SmallVector<int64_t, SIZE> adaptive_avg_pool3d_npu_output_size(
     const at::Tensor& self,
     c10::IntArrayRef output_size);
@@ -199,6 +204,11 @@ c10::SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
     int64_t num_weights,
     int64_t padding_idx,
     bool scale_grad_by_freq);
+
+c10::SmallVector<int64_t, SIZE> im2col_backward_npu_output_size(
+    const at::Tensor& grad_output,
+    const at::IntArrayRef& input_size,
+    const at::IntArrayRef& kernel_size);
 
 c10::SmallVector<int64_t, SIZE> index_npu_output_size(
     const at::Tensor& self,
@@ -409,10 +419,27 @@ c10::SmallVector<int64_t, SIZE> decode_jpeg_npu_output_size(
     at::IntArrayRef image_shape,
     int64_t channels);
 
+c10::SmallVector<int64_t, SIZE> reflection_pad1d_npu_out_size(
+    const at::Tensor& self,
+    at::IntArrayRef padding);
+
+c10::SmallVector<int64_t, SIZE> reflection_pad2d_npu_out_size(
+    const at::Tensor& self,
+    at::IntArrayRef padding);
+
 c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
     const at::Tensor& self,
     const c10::optional<at::Tensor>& min,
     const c10::optional<at::Tensor>& max);
+
+c10::SmallVector<int64_t, SIZE> smooth_l1_loss_backward_npu_output_size(
+    const at::Tensor &self,
+    const at::Tensor &target,
+    const at::Tensor &grad_output);
+
+c10::SmallVector<int64_t, SIZE> max_pool2d_out_size(
+    const at::Tensor &self,
+    at::IntArrayRef output_size);
 
 } // namespace native
 } // namespace at_npu

@@ -108,6 +108,7 @@ struct DeviceStats {
 // Struct containing info of an allocation block (i.e. a fractional part of a cudaMalloc)..
 struct BlockInfo {
   int64_t size = 0;
+  int32_t gc_counter = 0;
   bool allocated = false;
   bool active = false;
 };
@@ -132,6 +133,7 @@ c10::Allocator* get();
 void init();
 void setMemoryFraction(double fraction, int device);
 void emptyCache(bool check_error = true);
+void setShutdownStats();
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
 void* getBaseAllocation(void* ptr, size_t* size);
 void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);

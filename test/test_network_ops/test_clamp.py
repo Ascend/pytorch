@@ -109,7 +109,11 @@ class TestClamp(TestCase):
             [[np.float32, 0, (4, 3)], [np.float32, 0, (4, 3)], [np.float32, 0, (4, 3)]], 
             [[np.int32, 0, (24, 13)], [np.int32, 0, (24, 1)], [np.int32, 0, (1, 13)]],
             [[np.int64, 0, (41, 32, 23)], [np.int32, 0, (41, 32, 23)], [np.int32, 0, (41, 32, 23)]],
-            [[np.float16, 0, (14, 3)], [np.float32, 0, (14, 3)], [np.float32, 0, (14, 3)]]
+            [[np.float16, 0, (14, 3)], [np.float32, 0, (14, 3)], [np.float32, 0, (14, 3)]],
+            [[np.float64, 0, (14, 3)], [np.float64, 0, (14, 1)], [np.float64, 0, (1, 3)]],
+            [[np.int16, 0, (14, 3)], [np.int16, 0, (14, 1)], [np.int16, 0, (1, 3)]],
+            [[np.int8, 0, (14, 3)], [np.int8, 0, (14, 1)], [np.int8, 0, (1, 3)]],
+            [[np.uint8, 0, (14, 3)], [np.uint8, 0, (14, 1)], [np.uint8, 0, (1, 3)]]
         ]
         for item in shape_format:
             input_cpu, input_npu = create_common_tensor(item[0], 1, 100)

@@ -15,7 +15,6 @@
 
 import os
 import re
-import gc
 import sys
 import builtins
 import inspect
@@ -68,6 +67,7 @@ from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_fu
     add_fx_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
+from torch_npu.distributed import fsdp_patches
 
 from .version import __version__ as __version__
 
@@ -211,6 +211,7 @@ all_monkey_patches = [
 ]
 
 all_monkey_patches += serialization_patches
+all_monkey_patches += fsdp_patches
 
 
 def _apply_patches(monkey_patches):
@@ -266,7 +267,6 @@ torch_npu._C._initExtension()
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
-    gc.collect()
     torch_npu._C._npu_shutdown()
 
 

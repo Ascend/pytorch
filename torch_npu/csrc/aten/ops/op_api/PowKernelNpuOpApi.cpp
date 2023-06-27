@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -38,9 +38,18 @@ at::Tensor& NPUNativeOpApiFunctions::pow_out(const at::Tensor& self, const at::T
 // pow.Tensor_Scalar_out
 at::Tensor& NPUNativeOpApiFunctions::pow_out(const at::Tensor& self, const at::Scalar& exp, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnPowTensorScalar, NPUNativeFunctions::pow_out(self, exp, result));
-  OpPreparation::CheckOut({self}, result, self);
+  auto resultType = at::result_type(self, exp);
+  OpPreparation::CheckOut({self}, result, resultType, self.sizes());
   CalcuOpUtil::CheckMemoryOverLaps({self}, {result});
   EXEC_NPU_CMD(aclnnPowTensorScalar, self, exp, result);
+  return result;
+}
+
+// pow.Scalar_out
+at::Tensor &NPUNativeOpApiFunctions::pow_out(const at::Scalar& self, const at::Tensor &exp, at::Tensor &result) {
+  DO_COMPATIBILITY(aclnnPowScalarTensor, NPUNativeFunctions::pow_out(self, exp, result));
+  OpPreparation::CheckOut({exp}, result, result.scalar_type(), exp.sizes());
+  EXEC_NPU_CMD(aclnnPowScalarTensor, self, exp, result);
   return result;
 }
 
@@ -56,9 +65,17 @@ at::Tensor NPUNativeOpApiFunctions::pow(const at::Tensor& self, const at::Tensor
 at::Tensor NPUNativeOpApiFunctions::pow(const at::Tensor& self, const at::Scalar& exp) {
   DO_COMPATIBILITY(aclnnPowTensorScalar, NPUNativeFunctions::pow(self, exp));
   auto outputSize = input_same_output_size(self);
-  at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  auto resultType = at::result_type(self, exp);
+  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(resultType), self);
   EXEC_NPU_CMD(aclnnPowTensorScalar, self, exp, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::pow(const at::Scalar& self, const at::Tensor& exp) {
+  DO_COMPATIBILITY(aclnnPowScalarTensor, NPUNativeFunctions::pow(self, exp));
+  at::ScalarType result_type = at::result_type(self, exp);
+  at::Tensor result = OpPreparation::ApplyTensor(exp, exp.options().dtype(result_type));
+  EXEC_NPU_CMD(aclnnPowScalarTensor, self, exp, result);
   return result;
 }
 

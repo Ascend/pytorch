@@ -24,51 +24,41 @@ namespace native {
     int64_t CeilDiv(int64_t value, int64_t factor)
     {
       int64_t value_num = 0;
-      if (factor == 0)
-      {
+      if (factor == 0) {
         return value_num;
       }
-      if (value % factor == 0)
-      {
+      if (value % factor == 0) {
         value_num = value / factor;
       }
-      else
-      {
+      else {
         value_num = value / factor + 1;
       }
 
       return value_num;
     }
 
-    int64_t make_wrap_dim(int64_t dim, int64_t dim_post_expr)
-    {
+    int64_t make_wrap_dim(int64_t dim, int64_t dim_post_expr) {
       // this will make range [-1, 0]
-      if (dim_post_expr <= 0)
-      {
+      if (dim_post_expr <= 0) {
         dim_post_expr = 1;
       }
 
       int64_t min = -dim_post_expr;
       int64_t max = dim_post_expr - 1;
-      if (dim < 0)
-      {
+      if (dim < 0) {
         dim += dim_post_expr;
       }
 
       return dim;
     }
 
-    bitset<64> make_dim_mask(c10::IntArrayRef dims, int64_t ndim)
-    {
+    bitset<64> make_dim_mask(c10::IntArrayRef dims, int64_t ndim) {
       bitset<64> mask = bitset<64>();
-      if (dims.empty())
-      {
+      if (dims.empty()) {
         mask.flip();
       }
-      else
-      {
-        for (int64_t dim : dims)
-        {
+      else {
+        for (int64_t dim : dims) {
           mask.set(make_wrap_dim(dim, ndim));
         }
       }
@@ -76,55 +66,45 @@ namespace native {
       return mask;
     }
 
-    c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape)
-    {
+    c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape) {
       c10::SmallVector<int64_t, SIZE> shape_small_vec;
-      for (int i = 0; i < shape.size(); i++)
-      {
+      for (int i = 0; i < shape.size(); i++) {
         shape_small_vec.emplace_back(shape[i]);
       }
 
       return shape_small_vec;
     }
 
-    c10::IntArrayRef input_same_output_size(const at::Tensor &input)
-    {
+    c10::IntArrayRef input_same_output_size(const at::Tensor &input) {
       return input.sizes();
     }
 
     c10::SmallVector<int64_t, SIZE> broadcast_ops_npu_output_size(
         c10::IntArrayRef shape1_,
-        c10::IntArrayRef shape2_)
-    {
+        c10::IntArrayRef shape2_) {
 
       return c10::SmallVector<int64_t, SIZE>(at::infer_size(shape1_, shape2_));
     }
 
     c10::SmallVector<int64_t, SIZE> broadcast_ops_npu_output_size(
         const at::Tensor &self,
-        const at::Tensor &other)
-    {
+        const at::Tensor &other) {
       return broadcast_ops_npu_output_size(self.sizes(), other.sizes());
     }
 
     c10::SmallVector<int64_t, SIZE> reduce_ops_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef dim,
-        bool keepdim)
-    {
+        bool keepdim) {
       int64_t ndim = self.dim();
       bitset<64> mask = make_dim_mask(dim, ndim);
       auto shape = array_to_small_vector(self.sizes());
-      for (int dim = shape.size() - 1; dim >= 0; dim--)
-      {
-        if (mask[dim])
-        {
-          if (keepdim)
-          {
+      for (int dim = shape.size() - 1; dim >= 0; dim--) {
+        if (mask[dim]) {
+          if (keepdim) {
             shape[dim] = 1;
           }
-          else
-          {
+          else {
             shape.erase(shape.begin() + dim);
           }
         }
@@ -133,10 +113,25 @@ namespace native {
       return shape;
     }
 
+    c10::SmallVector<int64_t, SIZE> mse_loss_npu_output_size(
+        const at::Tensor& self,
+        const at::Tensor& target,
+        int64_t reduction) {
+      auto shape = broadcast_ops_npu_output_size(self, target);
+      if (reduction == at::Reduction::None) {
+        return shape;
+      } else {
+        c10::SmallVector<int64_t, SIZE> output_size;
+        for (int i = 1; i < shape.size(); i++) {
+          output_size.emplace_back(shape[i]);
+        }
+        return output_size;
+      }
+    }
+    
     c10::SmallVector<int64_t, SIZE> adaptive_avg_pool3d_npu_output_size(
         const at::Tensor &self,
-        c10::IntArrayRef output_size)
-    {
+        c10::IntArrayRef output_size) {
       auto shape = array_to_small_vector(self.sizes());
       auto iter = shape.rbegin();
       *iter = output_size[2];
@@ -150,8 +145,7 @@ namespace native {
         const at::Tensor &mat1,
         const at::Tensor &mat2,
         c10::Scalar beta,
-        c10::Scalar alpha)
-    {
+        c10::Scalar alpha) {
       return broadcast_ops_npu_output_size(
           self.sizes(), {mat1.size(0), mat2.size(1)});
     }
@@ -161,8 +155,7 @@ namespace native {
         const at::Tensor &batch1,
         const at::Tensor &batch2,
         c10::Scalar beta,
-        c10::Scalar alpha)
-    {
+        c10::Scalar alpha) {
       return {self.size(0), self.size(1)};
     }
 
@@ -171,8 +164,7 @@ namespace native {
         const at::Tensor &mat,
         const at::Tensor &vec,
         c10::Scalar beta,
-        c10::Scalar alpha)
-    {
+        c10::Scalar alpha) {
       return broadcast_ops_npu_output_size(
           self.sizes(), {mat.size(0)});
     }
@@ -182,8 +174,7 @@ namespace native {
         const at::Tensor &vec1,
         const at::Tensor &vec2,
         c10::Scalar beta,
-        c10::Scalar alpha)
-    {
+        c10::Scalar alpha) {
       return broadcast_ops_npu_output_size(
           self.sizes(), {vec1.size(0), vec2.size(0)});
     }
@@ -195,42 +186,46 @@ namespace native {
         c10::IntArrayRef padding,
         bool ceil_mode,
         bool count_include_pad,
-        c10::optional<int64_t> divisor_override)
-    {
-      int H = self.size(-2);
-      int W = self.size(-1);
+        c10::optional<int64_t> divisor_override) {
+      int self_h = self.size(-2);
+      int self_w = self.size(-1);
 
-      int64_t kH = ceil_mode
-                       ? (CeilDiv(H + 2 * padding[0] - kernel_size[0], stride[0]) + 1)
-                       : ((H + 2 * padding[0] - kernel_size[0]) / stride[0] + 1);
-      int64_t kW = ceil_mode
-                       ? (CeilDiv(W + 2 * padding[1] - kernel_size[1], stride[1]) + 1)
-                       : ((W + 2 * padding[1] - kernel_size[1]) / stride[1] + 1);
+      int64_t kernel_h = ceil_mode
+                       ? (CeilDiv(self_h + 2 * padding[0] - kernel_size[0], stride[0]) + 1)
+                       : ((self_h + 2 * padding[0] - kernel_size[0]) / stride[0] + 1);
+      int64_t kernel_w = ceil_mode
+                       ? (CeilDiv(self_w + 2 * padding[1] - kernel_size[1], stride[1]) + 1)
+                       : ((self_w + 2 * padding[1] - kernel_size[1]) / stride[1] + 1);
+
       if (ceil_mode) {
-        if ((kH - 1) * stride[0] >= H + padding[0]) {
-          --kH;
+        if ((kernel_h - 1) * stride[0] >= self_h + padding[0]) {
+          --kernel_h;
+        }
+
+        if ((kernel_w - 1) * stride[1] >= self_w + padding[1]) {
+          --kernel_w;
         }
       }
-      if (ceil_mode) {
-        if ((kW - 1) * stride[1] >= W + padding[1]) {
-          --kW;
-        }
+
+      c10::SmallVector<int64_t, SIZE> output_size;
+      if (self.dim() == 3) {
+        output_size = {self.size(0), kernel_h, kernel_w};
+      } else {
+        output_size = {self.size(0), self.size(1), kernel_h, kernel_w};
       }
-      c10::SmallVector<int64_t, SIZE> outputSize = {self.size(0), self.size(1), kH, kW};
-      return outputSize;
+
+      return output_size;
     }
 
     c10::SmallVector<int64_t, SIZE> baddbmm_npu_output_size(
         const at::Tensor &self,
-        const at::Tensor &mat2)
-    {
+        const at::Tensor &mat2) {
       return {self.size(0), self.size(1), mat2.size(2)};
     }
 
     c10::SmallVector<int64_t, SIZE> cdist_npu_output_size(
         const at::Tensor &x1,
-        const at::Tensor &x2)
-    {
+        const at::Tensor &x2) {
       int64_t r1 = x1.size(-2);
       int64_t r2 = x2.size(-2);
       auto dim1 = x1.dim();
@@ -250,8 +245,7 @@ namespace native {
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
         c10::IntArrayRef dilation,
-        int64_t groups)
-    {
+        int64_t groups) {
       c10::SmallVector<int64_t, SIZE> gradBiasSize = {grad.size(1)};
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>>(
           input.sizes(), weight.sizes(), gradBiasSize);
@@ -260,8 +254,7 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
         const at::Tensor &x1,
         int64_t dim,
-        bool keepdim)
-    {
+        bool keepdim) {
       c10::IntArrayRef dims(dim);
       return reduce_ops_npu_output_size(x1, dims, keepdim);
     }
@@ -274,8 +267,7 @@ namespace native {
         c10::IntArrayRef output_padding,
         c10::IntArrayRef stride,
         c10::IntArrayRef dilation,
-        int64_t groups)
-    {
+        int64_t groups) {
       c10::SmallVector<int64_t, SIZE> gradBiasSize = {grad_output.size(1)};
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>>(
           input.sizes(), weight.sizes(), gradBiasSize);
@@ -286,8 +278,7 @@ namespace native {
         const at::Tensor &weight,
         c10::IntArrayRef padding,
         c10::IntArrayRef stride,
-        c10::IntArrayRef dilation)
-        {
+        c10::IntArrayRef dilation) {
             int64_t N = input.size(0);
             int64_t L = input.size(2);
             int64_t C_out = weight.size(0);
@@ -304,8 +295,7 @@ namespace native {
         const at::Tensor &weight,
         c10::IntArrayRef padding,
         c10::IntArrayRef stride,
-        c10::IntArrayRef dilation)
-        {
+        c10::IntArrayRef dilation) {
             int64_t N = input.size(0);
             int64_t H = input.size(2);
             int64_t W = input.size(3);
@@ -327,8 +317,7 @@ namespace native {
         c10::IntArrayRef output_padding,
         c10::IntArrayRef stride,
         c10::IntArrayRef dilation,
-        int64_t groups)
-        {
+        int64_t groups) {
             int64_t N = input.size(0);
             int64_t L = input.size(2);
             int64_t C_out = weight.size(1) * groups;
@@ -349,8 +338,7 @@ namespace native {
         c10::IntArrayRef output_padding,
         c10::IntArrayRef stride,
         c10::IntArrayRef dilation,
-        int64_t groups)
-    {
+        int64_t groups) {
       int64_t N = input.size(0);
       int64_t H = input.size(2);
       int64_t W = input.size(3);
@@ -378,8 +366,7 @@ namespace native {
         c10::IntArrayRef dilation,
         int64_t groups,
         int64_t deformable_groups,
-        bool modulated)
-    {
+        bool modulated) {
       int64_t No = input.size(0);
       int64_t Co = input.size(1);
       int64_t Ho = offset.size(2) * kernel_size[0];
@@ -390,19 +377,15 @@ namespace native {
       return outputSize;
     }
 
-    c10::SmallVector<int64_t, SIZE> det_npu_output_size(const at::Tensor &self)
-    {
+    c10::SmallVector<int64_t, SIZE> det_npu_output_size(const at::Tensor &self) {
       c10::SmallVector<long int, SIZE> dimVec;
       auto InputSize = array_to_small_vector(self.sizes());
-      if (InputSize.size() > 2)
-      {
-        for (int i = 0; i < InputSize.size() - 2; i++)
-        {
+      if (InputSize.size() > 2) {
+        for (int i = 0; i < InputSize.size() - 2; i++) {
           dimVec.push_back(self.size(i));
         }
       }
-      else
-      {
+      else {
         return dimVec;
       }
       return dimVec;
@@ -410,8 +393,7 @@ namespace native {
 
     tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
         const at::Tensor &log_probs,
-        int64_t max_length)
-    {
+        int64_t max_length) {
       int64_t time_size = log_probs.size(0);
       int64_t batch_size = log_probs.size(1);
 
@@ -428,8 +410,7 @@ namespace native {
 
     c10::SmallVector<int64_t, SIZE> dot_npu_output_size(
         const at::Tensor &self,
-        const at::Tensor &other)
-    {
+        const at::Tensor &other) {
       c10::SmallVector<int64_t, SIZE> outputSize = {1};
       return outputSize;
     }
@@ -439,13 +420,11 @@ namespace native {
         const at::Tensor &indices,
         int64_t num_weights,
         int64_t padding_idx,
-        bool scale_grad_by_freq)
-    {
+        bool scale_grad_by_freq) {
       return {num_weights, grad_output.size(-1)};
     }
 
-    c10::SmallVector<int64_t, SIZE> equal_npu_output_size(void)
-    {
+    c10::SmallVector<int64_t, SIZE> equal_npu_output_size(void) {
       int64_t outputshape = 1;
       c10::SmallVector<int64_t, SIZE> outputSize = {outputshape};
       return outputSize;
@@ -458,14 +437,12 @@ namespace native {
         const at::Tensor &rstd,
         const at::Tensor &gamma,
         int64_t M,
-        int64_t N)
-    {
+        int64_t N) {
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::IntArrayRef>(
           X.sizes(), gamma.sizes(), gamma.sizes());
     }
 
-    static bool hasContiguousSubspace(at::TensorList tl)
-    {
+    static bool hasContiguousSubspace(at::TensorList tl) {
       // true if all the non-null tensors are adjacent
       auto isDefined = [](const at::Tensor &tensor)
       { return tensor.defined(); };
@@ -477,15 +454,31 @@ namespace native {
       return it == stop.base();
     }
 
+    c10::SmallVector<int64_t, SIZE> im2col_backward_npu_output_size(
+        const at::Tensor& grad_output,
+        const at::IntArrayRef& input_size,
+        const at::IntArrayRef& kernel_size)
+    {
+      TORCH_CHECK((grad_output.dim() == 2 && grad_output.size(0) != 0 && grad_output.size(1) != 0) ||
+                  (grad_output.dim() == 3 && grad_output.size(1) != 0 && grad_output.size(2) != 0),
+                  "Expected 2D or 3D (batch mode) tensor for gradOutput with possibly 0 batch size and non-zero "
+                  "dimensions for gradOutput, but got: ", grad_output.sizes());
+      c10::SmallVector<int64_t, SIZE> outputSize;
+      if (grad_output.dim() == 2) {
+        outputSize = {grad_output.size(0) / (kernel_size[0] * kernel_size[1]), input_size[0], input_size[1]};
+      } else {
+        outputSize = {grad_output.size(0), grad_output.size(1) / (kernel_size[0] * kernel_size[1]),
+            input_size[0], input_size[1]};
+      }
+      return outputSize;
+    }
+
     c10::SmallVector<int64_t, SIZE> index_npu_output_size(
         const at::Tensor &self,
-        at::TensorList indices)
-    {
+        at::TensorList indices) {
       std::vector<at::Tensor> new_indices;
-      for (const auto &index : indices)
-      {
-        if (index.scalar_type() == at::kBool)
-        {
+      for (const auto &index : indices) {
+        if (index.scalar_type() == at::kBool) {
           /**
            * In the cann framework, index operator belongs to the fourth type of
            * operator, which means that the execution of the index operator must go
@@ -497,84 +490,66 @@ namespace native {
            */
           GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
 
-          for (int64_t j = 0; j < index.dim(); j++)
-          {
+          for (int64_t j = 0; j < index.dim(); j++) {
             int64_t srcIdx = new_indices.size() + j;
-            if (index.size(j) != self.size(srcIdx))
-            {
+            if (index.size(j) != self.size(srcIdx)) {
               TORCH_CHECK_INDEX(false, "The shape of boolTensorIndex does not match the self");
             }
           }
           // Replace with nonzeros
           auto nonzero = index.nonzero();
-          for (int64_t j = 0; j < index.dim(); j++)
-          {
+          for (int64_t j = 0; j < index.dim(); j++) {
             new_indices.emplace_back(nonzero.select(1, j));
           }
         }
-        else
-        {
+        else {
           new_indices.emplace_back(index);
         }
       }
 
       c10::SmallVector<int64_t, SIZE> inferShape;
-      for (size_t i = 0; i < new_indices.size(); ++i)
-      {
-        if (!new_indices[i].defined())
-        {
+      for (size_t i = 0; i < new_indices.size(); ++i) {
+        if (!new_indices[i].defined()) {
           continue;
         }
-        else if (inferShape.empty())
-        {
+        else if (inferShape.empty()) {
           inferShape = new_indices[i].sizes();
         }
-        else
-        {
+        else {
           inferShape = at::infer_size(inferShape, new_indices[i].sizes());
         }
       }
 
       std::vector<at::Tensor> mid_indices(new_indices.size());
-      for (size_t i = 0; i < new_indices.size(); ++i)
-      {
-        if (!new_indices[i].defined())
-        {
+      for (size_t i = 0; i < new_indices.size(); ++i) {
+        if (!new_indices[i].defined()) {
           continue;
         }
-        else if (new_indices[i].sizes().equals(inferShape))
-        {
+        else if (new_indices[i].sizes().equals(inferShape)) {
           mid_indices[i] = new_indices[i];
         }
-        else
-        {
+        else {
           mid_indices[i] = new_indices[i].expand(inferShape, true);
         }
       }
 
-      while (mid_indices.size() < (size_t)self.dim())
-      {
+      while (mid_indices.size() < (size_t)self.dim()) {
         mid_indices.emplace_back();
       }
       at::Tensor src = self;
       std::vector<at::Tensor> end_indices = mid_indices;
-      if (!hasContiguousSubspace(mid_indices))
-      {
+      if (!hasContiguousSubspace(mid_indices)) {
         end_indices.clear();
         std::vector<int64_t> dims;
         dims.reserve(self.dim());
-        for (int64_t i = 0; i < self.dim(); i++)
-        {
-          if (mid_indices[i].defined())
-          {
+        for (int64_t i = 0; i < self.dim(); i++) {
+          if (mid_indices[i].defined()) {
             dims.push_back(i);
             end_indices.emplace_back(mid_indices[i]);
           }
         }
-        for (int64_t i = 0; i < self.dim(); i++)
-        {
-          if (!mid_indices[i].defined())
-          {
+        for (int64_t i = 0; i < self.dim(); i++) {
+          if (!mid_indices[i].defined()) {
             dims.push_back(i);
             end_indices.emplace_back();
           }
@@ -585,29 +560,23 @@ namespace native {
       int64_t dims_before = 0, dims_after = 0, dims_indexed = 0;
       c10::SmallVector<int64_t, SIZE> replacement_shape;
       at::DimVector indexed_sizes;
-      for (size_t dim = 0; dim < end_indices.size(); dim++)
-      {
-        if (!end_indices[dim].defined())
-        {
-          if (dims_indexed == 0)
-          {
+      for (size_t dim = 0; dim < end_indices.size(); dim++) {
+        if (!end_indices[dim].defined()) {
+          if (dims_indexed == 0) {
             dims_before++;
           }
-          else
-          {
+          else {
             dims_after++;
           }
         }
-        else
-        {
+        else {
           dims_indexed++;
           replacement_shape = end_indices[dim].sizes();
           indexed_sizes.push_back(src.size(dim));
         }
       }
       if (std::find(indexed_sizes.begin(), indexed_sizes.end(), 0) != indexed_sizes.end() &&
-          std::find(replacement_shape.begin(), replacement_shape.end(), 0) == replacement_shape.end())
-      {
+          std::find(replacement_shape.begin(), replacement_shape.end(), 0) == replacement_shape.end()) {
         TORCH_CHECK_INDEX(false, "index is out of bounds for dimension with size 0");
       }
       auto self_shape = at::DimVector(src.sizes());
@@ -616,28 +585,23 @@ namespace native {
       self_shape.insert(self_shape.begin() + dims_before, replacement_shape.begin(), replacement_shape.end());
 
       c10::SmallVector<int64_t, SIZE> index_shape;
-      for (auto &index : end_indices)
-      {
-        if (index.defined())
-        {
+      for (auto &index : end_indices) {
+        if (index.defined()) {
           auto shape = at::DimVector();
           shape.append(dims_before, 1);
           shape.append(index.sizes().begin(), index.sizes().end());
           shape.append(dims_after, 1);
-          if (index_shape.empty())
-          {
+          if (index_shape.empty()) {
             index_shape = shape;
           }
-          else if (index_shape != shape)
-          {
+          else if (index_shape != shape) {
             index_shape = at::infer_size(index_shape, shape);
           }
         }
       }
 
       c10::SmallVector<int64_t, SIZE> outputSize = index_shape;
-      if (index_shape != self_shape)
-      {
+      if (index_shape != self_shape) {
         outputSize = at::infer_size(index_shape, self_shape);
       }
 
@@ -647,8 +611,7 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> index_select_npu_output_size(
         const at::Tensor &self,
         int64_t dim,
-        const at::Tensor &index)
-    {
+        const at::Tensor &index) {
       at::Tensor indexTmp(index);
       if (indexTmp.ndimension() == 0) {
         indexTmp = index.unsqueeze(0);
@@ -656,14 +619,11 @@ namespace native {
       int64_t indexSize = indexTmp.size(0);
 
       c10::SmallVector<int64_t, SIZE> outputSize;
-      for (int64_t i = 0; i < self.sizes().size(); ++i)
-      {
-        if (i == dim)
-        {
+      for (int64_t i = 0; i < self.sizes().size(); ++i) {
+        if (i == dim) {
           outputSize.push_back(indexSize);
         }
-        else
-        {
+        else {
           outputSize.push_back(self.size(i));
         }
       }
@@ -673,8 +633,7 @@ namespace native {
 
     c10::SmallVector<int64_t, SIZE> iou_npu_output_size(
         const at::Tensor &bboxes,
-        const at::Tensor &gtboxes)
-    {
+        const at::Tensor &gtboxes) {
       return {gtboxes.size(0), bboxes.size(0)};
     }
 
@@ -689,8 +648,7 @@ namespace native {
         double dropout,
         bool train,
         bool bidirectional,
-        bool batch_first)
-    {
+        bool batch_first) {
       int64_t numStep = input.size(0);
       int64_t batchSize = input.size(1);
       int64_t hiddenSize = bias.size(0) / 4;
@@ -704,8 +662,7 @@ namespace native {
         const at::Tensor &input,
         const at::Tensor &weight,
         c10::IntArrayRef padding,
-        c10::IntArrayRef stride)
-    {
+        c10::IntArrayRef stride) {
       int64_t N = input.size(0);
       int64_t H = input.size(2);
       int64_t W = input.size(3);
@@ -714,8 +671,7 @@ namespace native {
 
       int64_t Ho = 0;
       int64_t Wo = 0;
-      if (padding.size() == 1 && stride.size() == 1)
-      {
+      if (padding.size() == 1 && stride.size() == 1) {
         Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) /
                  stride[0] +
              1;
@@ -723,8 +679,7 @@ namespace native {
                  stride[0] +
              1;
       }
-      if (padding.size() != 1 && stride.size() == 1)
-      {
+      if (padding.size() != 1 && stride.size() == 1) {
         Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) /
                  stride[0] +
              1;
@@ -732,8 +687,7 @@ namespace native {
                  stride[0] +
              1;
       }
-      if (padding.size() != 1 && stride.size() != 1)
-      {
+      if (padding.size() != 1 && stride.size() != 1) {
         Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) /
                  stride[0] +
              1;
@@ -746,8 +700,7 @@ namespace native {
     }
 
     tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(
-        const at::Tensor &input)
-    {
+        const at::Tensor &input) {
       c10::SmallVector<int64_t, SIZE> boxesSize = {input.size(0), 5};
       c10::SmallVector<int64_t, SIZE> idxSize = {
           input.size(0),
@@ -762,20 +715,17 @@ namespace native {
           c10::SmallVector<int64_t, SIZE>>(boxesSize, idxSize, maskSize);
     };
 
-    c10::SmallVector<int64_t, SIZE> nonzero_npu_output_size(const at::Tensor &self)
-    {
+    c10::SmallVector<int64_t, SIZE> nonzero_npu_output_size(const at::Tensor &self) {
       int64_t dim = self.dim();
       at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
       at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
 
       at::Tensor coutNonzeroSelf = intSelf;
-      if (self.numel() > 10000000)
-      {
+      if (self.numel() > 10000000) {
         // Ensure outputsize correctly in large shape case
         coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Long);
       }
-      else
-      {
+      else {
         coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Int);
       }
 
@@ -793,29 +743,23 @@ namespace native {
 
     c10::SmallVector<int64_t, SIZE> pad_npu_output_size(
         const at::Tensor &input,
-        c10::IntArrayRef paddings)
-    {
+        c10::IntArrayRef paddings) {
       c10::SmallVector<int64_t, SIZE> outputSize;
-      for (int i = 0; i < input.dim(); i++)
-      {
-        if (i * 2 + 1 < paddings.size())
-        {
+      for (int i = 0; i < input.dim(); i++) {
+        if (i * 2 + 1 < paddings.size()) {
           outputSize.emplace_back(input.size(i) + paddings[i * 2] + paddings[i * 2 + 1]);
         }
-        else if (i * 2 < paddings.size())
-        {
+        else if (i * 2 < paddings.size()) {
           outputSize.emplace_back(input.size(i) + paddings[i * 2]);
         }
-        else
-        {
+        else {
           outputSize.emplace_back(input.size(i));
         }
       }
       return outputSize;
     }
 
-    c10::SmallVector<int64_t, SIZE> pdist_npu_output_size(const at::Tensor &self, float p)
-    {
+    c10::SmallVector<int64_t, SIZE> pdist_npu_output_size(const at::Tensor &self, float p) {
       c10::SmallVector<int64_t, SIZE> outputSize;
       int64_t n = self.size(0);
       int64_t resultSize = n * (n - 1) / 2;
@@ -826,16 +770,14 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> prod_npu_output_size(
         const at::Tensor &self,
         int64_t dim,
-        bool keepdim)
-    {
+        bool keepdim) {
       c10::IntArrayRef dims(dim);
       return reduce_ops_npu_output_size(self, dims, keepdim);
     }
 
     c10::SmallVector<int64_t, SIZE> prod_npu_output_size(
         const at::Tensor &self,
-        bool keepdim)
-    {
+        bool keepdim) {
       c10::IntArrayRef dims;
       return reduce_ops_npu_output_size(self, dims, keepdim);
     }
@@ -846,17 +788,14 @@ namespace native {
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
         c10::IntArrayRef dilation,
-        bool ceil_mode)
-    {
+        bool ceil_mode) {
       int64_t strideH = 1;
       int64_t strideW = 1;
-      if (stride.empty())
-      {
+      if (stride.empty()) {
         strideH = kernel_size[0];
         strideW = kernel_size[1];
       }
-      else
-      {
+      else {
         strideH = stride[0];
         strideW = stride[1];
       }
@@ -882,10 +821,8 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> range_npu_output_size(
         float start,
         float end,
-        float step)
-    {
-      if (step == 0)
-      {
+        float step) {
+      if (step == 0) {
         AT_ERROR("range_npu_output_size step is zero!");
       }
       int64_t size_value = std::floor((end - start) / step);
@@ -919,21 +856,16 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
         const at::Tensor &self,
         int64_t repeats,
-        int64_t dim)
-    {
+        int64_t dim) {
       c10::SmallVector<int64_t, SIZE> shape;
-      if (dim < 0)
-      {
+      if (dim < 0) {
         dim = dim + self.dim();
       }
-      for (int64_t i = 0; i < self.dim(); i++)
-      {
-        if (i == dim)
-        {
+      for (int64_t i = 0; i < self.dim(); i++) {
+        if (i == dim) {
           shape.emplace_back(self.size(i) * repeats);
         }
-        else
-        {
+        else {
           shape.emplace_back(self.size(i));
         }
       }
@@ -975,32 +907,33 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
         const at::Tensor &self,
         const at::Tensor &repeats,
-        int64_t dim)
-    {
+        int64_t dim) {
       c10::SmallVector<int64_t, SIZE> shape;
-      for (int64_t i = 0; i < self.dim(); i++)
-      {
-        if (i == dim)
-        {
-          shape.emplace_back(repeats.sum().item().toLong());
+      for (int64_t i = 0; i < self.dim(); i++) {
+        if (i == dim) {
+          if (repeats.numel() == 1) {
+            shape.emplace_back(repeats.item().toLong() * self.size(i));
+          }
+          else {
+            shape.emplace_back(repeats.sum().item().toLong());
+          }
         }
-        else
-        {
+        else {
           shape.emplace_back(self.size(i));
         }
       }
       return shape;
     }
 
-    c10::SmallVector<int64_t, SIZE> repeat_interleave_tensor_npu_output_size(const at::Tensor &repeats)
-    {
+    c10::SmallVector<int64_t, SIZE> repeat_interleave_tensor_npu_output_size(const at::Tensor &repeats) {
       c10::SmallVector<int64_t, SIZE> shape;
       shape.emplace_back(repeats.sum().item().toLong());
       return shape;
     }
 
-    c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor &self, c10::IntArrayRef padding)
-    {
+    c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(
+        const at::Tensor &self,
+        c10::IntArrayRef padding) {
       int64_t N = self.dim() == 3 ? 1 : self.size(-4);
       int64_t C = self.size(-3);
       int64_t H = self.size(-2);
@@ -1009,15 +942,13 @@ namespace native {
       int64_t padding_r = 0;
       int64_t padding_t = 0;
       int64_t padding_b = 0;
-      if (!padding.empty() && padding.size() == 1)
-      {
+      if (!padding.empty() && padding.size() == 1) {
         padding_l = padding[0];
         padding_r = padding[0];
         padding_t = padding[0];
         padding_b = padding[0];
       }
-      else if (!padding.empty() && 4 == padding.size())
-      {
+      else if (!padding.empty() && 4 == padding.size()) {
         padding_l = padding[0];
         padding_r = padding[1];
         padding_t = padding[2];
@@ -1031,8 +962,7 @@ namespace native {
     }
 
     tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> nms_v4_npu_output_size(
-        c10::Scalar max_output_size)
-    {
+        c10::Scalar max_output_size) {
       c10::SmallVector<int64_t, SIZE> selected_indices = {max_output_size.toInt()};
       c10::SmallVector<int64_t, SIZE> valid_outputs = {};
       return std::tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>>(
@@ -1041,16 +971,14 @@ namespace native {
 
     c10::SmallVector<int64_t, SIZE> repeat_npu_output_size(
         const at::Tensor &self,
-        c10::IntArrayRef repeats)
-    {
+        c10::IntArrayRef repeats) {
       int64_t num_new_dimensions = repeats.size() - self.dim();
       // Fill num_ new_ Dimensions elements with a value of 1
       c10::SmallVector<int64_t, SIZE> padded_size(num_new_dimensions, 1);
       padded_size.insert(
           padded_size.end(), self.sizes().begin(), self.sizes().end());
       c10::SmallVector<int64_t, SIZE> target_size(repeats.size());
-      for (int64_t idx = 0; idx < repeats.size(); ++idx)
-      {
+      for (int64_t idx = 0; idx < repeats.size(); ++idx) {
         target_size[idx] = padded_size[idx] * repeats[idx];
       }
       return target_size;
@@ -1059,15 +987,12 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> soft_margin_loss_npu_output_size(
         const at::Tensor &self,
         const at::Tensor &target,
-        int64_t reduction)
-    {
+        int64_t reduction) {
       c10::SmallVector<int64_t, SIZE> outputSize;
-      if (reduction == at::Reduction::None)
-      {
+      if (reduction == at::Reduction::None) {
         outputSize = input_same_output_size(self);
       }
-      else
-      {
+      else {
         outputSize = {1};
       }
       return outputSize;
@@ -1078,8 +1003,7 @@ namespace native {
         const at::Tensor &weight,
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
-        c10::IntArrayRef dilation)
-    {
+        c10::IntArrayRef dilation) {
       int64_t N = input.size(0);
       int64_t H = input.size(2);
       int64_t W = input.size(3);
@@ -1105,8 +1029,7 @@ namespace native {
         c10::IntArrayRef kernel_size,
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
-        c10::IntArrayRef dilation)
-    {
+        c10::IntArrayRef dilation) {
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::IntArrayRef>(grad_output.sizes(), self.sizes(), weight.sizes());
     }
 
@@ -1118,27 +1041,23 @@ namespace native {
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
         c10::IntArrayRef output_padding,
-        c10::IntArrayRef dilation)
-    {
+        c10::IntArrayRef dilation) {
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::IntArrayRef>(self.sizes(), weight.sizes(), grad_output.sizes());
     }
 
     c10::IntArrayRef smooth_l1_loss_npu_output_size(
         const at::Tensor &self,
         const at::Tensor &target,
-        int64_t reduction)
-    {
+        int64_t reduction) {
       c10::IntArrayRef outputSize;
-      if (reduction == at::Reduction::None)
-      {
+      if (reduction == at::Reduction::None) {
         outputSize = input_same_output_size(self);
       }
       return outputSize;
     }
 
     tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> softmax_cross_entropy_with_logits_impl_npu_output_size(
-        const at::Tensor &self)
-    {
+        const at::Tensor &self) {
       c10::SmallVector<int64_t, SIZE> resultSize = array_to_small_vector(self.size(0));
       c10::SmallVector<int64_t, SIZE> backpropSize = array_to_small_vector(self.sizes());
 
@@ -1149,8 +1068,7 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> sum_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef dim,
-        bool keepdim)
-    {
+        bool keepdim) {
       return reduce_ops_npu_output_size(self, dim, keepdim);
     }
 
@@ -1159,12 +1077,10 @@ namespace native {
         int64_t k,
         int64_t dim,
         bool largest,
-        bool sorted)
-    {
+        bool sorted) {
       int64_t wrap_dim = make_wrap_dim(dim, self.dim());
       auto shape = array_to_small_vector(self.sizes());
-      if (shape.size() > 0)
-      {
+      if (shape.size() > 0) {
         shape[wrap_dim] = k;
       }
       return shape;
@@ -1172,26 +1088,22 @@ namespace native {
 
     c10::SmallVector<int64_t, SIZE> transpose_npu_output_size(
         const at::Tensor &self,
-        c10::IntArrayRef perm)
-    {
+        c10::IntArrayRef perm) {
       auto sizes = self.sizes();
       c10::SmallVector<int64_t, SIZE> shape;
-      for (int64_t i = 0; i < perm.size(); i++)
-      {
+      for (int64_t i = 0; i < perm.size(); i++) {
         shape.emplace_back(sizes[perm[i]]);
       }
 
       return shape;
     }
 
-    c10::SmallVector<int64_t, SIZE> trace_npu_output_size(const at::Tensor &self)
-    {
+    c10::SmallVector<int64_t, SIZE> trace_npu_output_size(const at::Tensor &self) {
       c10::SmallVector<int64_t, SIZE> shape = {1};
       return shape;
     }
 
-    c10::IntArrayRef upsample_bicubic2d_backward_npu_output_size(c10::IntArrayRef input_size)
-    {
+    c10::IntArrayRef upsample_bicubic2d_backward_npu_output_size(c10::IntArrayRef input_size) {
       return input_size;
     }
 
@@ -1200,8 +1112,7 @@ namespace native {
         c10::IntArrayRef output_size,
         bool align_corners,
         c10::optional<double> scales_h,
-        c10::optional<double> scales_w)
-    {
+        c10::optional<double> scales_w) {
       // the input's dim of upsample_bilinear2d
       int64_t N = self.size(0);
       int64_t C = self.size(1);
@@ -1218,8 +1129,7 @@ namespace native {
         c10::IntArrayRef input_size,
         bool align_corners,
         c10::optional<double> scales_h,
-        c10::optional<double> scales_w)
-    {
+        c10::optional<double> scales_w) {
       return input_size;
     }
 
@@ -1227,8 +1137,7 @@ namespace native {
         const at::Tensor &self,
         c10::IntArrayRef output_size,
         bool align_corners,
-        c10::optional<double> scales)
-    {
+        c10::optional<double> scales) {
       int64_t N = self.size(0);
       int64_t C = self.size(1);
       int64_t W = output_size[0];
@@ -1240,16 +1149,14 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> var_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef dim,
-        bool keepdim)
-    {
+        bool keepdim) {
       c10::SmallVector<int64_t, SIZE> outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
       return outputSize;
     }
 
     c10::SmallVector<int64_t, SIZE> glu_npu_output_size(
         const at::Tensor &self,
-        int64_t dim)
-    {
+        int64_t dim) {
       dim = make_wrap_dim(dim, self.dim());
       auto shape = array_to_small_vector(self.sizes());
       shape[dim] = shape[dim] / 2;
@@ -1260,8 +1167,7 @@ namespace native {
     c10::SmallVector<int64_t, SIZE> crop_and_resize_npu_output_size(
         const at::Tensor &self,
         at::IntArrayRef box_index,
-        at::IntArrayRef crop_size)
-    {
+        at::IntArrayRef crop_size) {
       TORCH_CHECK(self.dim() == 4, "input x dim must be 4");
       TORCH_CHECK(crop_size.size() == 2, "crop_size size must be 2");
       int64_t N = box_index.size();
@@ -1275,8 +1181,7 @@ namespace native {
 
     c10::SmallVector<int64_t, SIZE> decode_jpeg_npu_output_size(
         at::IntArrayRef image_shape,
-        int64_t channels)
-    {
+        int64_t channels) {
       TORCH_CHECK(image_shape.size() == 3, "image_shape size must be 3");
       int64_t H = image_shape[0];
       int64_t W = image_shape[1];
@@ -1292,11 +1197,58 @@ namespace native {
       return outputSize;
     }
 
+    c10::SmallVector<int64_t, SIZE> reflection_pad1d_npu_out_size(
+        const at::Tensor& self, at::IntArrayRef padding) {
+      int64_t padding_num = padding.size();
+      int64_t self_num = self.dim();
+      TORCH_CHECK(padding_num == 2, "padding length should be 2");
+      TORCH_CHECK(self_num == 2 || self_num == 3, "self should be 2D or 3D");
+      // 0, 1, -2, -1 are indexes
+      int64_t padding_l = padding[0];
+      int64_t padding_r = padding[1];
+      int64_t C = self.size(-2);
+      int64_t W = self.size(-1);
+      int64_t Wo = W + padding_l + padding_r;
+      c10::SmallVector<int64_t, SIZE> output_size = {C, Wo};
+      // 3 is dim
+      if (self_num == 3) {
+        // -3 is index
+        int64_t N = self.size(-3);
+        output_size = {N, C, Wo};
+      }
+      return output_size;
+    }
+
+    c10::SmallVector<int64_t, SIZE> reflection_pad2d_npu_out_size(
+        const at::Tensor& self, at::IntArrayRef padding) {
+      int64_t padding_num = padding.size();
+      int64_t self_num = self.dim();
+      TORCH_CHECK(padding_num == 4, "padding length should be 4");
+      TORCH_CHECK(self_num == 3 || self_num == 4, "self should be 3D or 4D");
+      // -3, -2, -1, 0, 1, 2, 3 are indexes
+      int64_t padding_l = padding[0];
+      int64_t padding_r = padding[1];
+      int64_t padding_t = padding[2];
+      int64_t padding_b = padding[3];
+      int64_t C = self.size(-3);
+      int64_t H = self.size(-2);
+      int64_t W = self.size(-1);
+      int64_t Ho = H + padding_t + padding_b;
+      int64_t Wo = W + padding_l + padding_r;
+      c10::SmallVector<int64_t, SIZE> output_size = {C, Ho, Wo};
+      // 4 is dim
+      if (self_num == 4) {
+        // -4 is index
+        int64_t N = self.size(-4);
+        output_size = {N, C, Ho, Wo};
+      }
+      return output_size;
+    }
+
     c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
         const at::Tensor& self,
         const c10::optional<at::Tensor>& min,
-        const c10::optional<at::Tensor>& max)
-    {
+        const c10::optional<at::Tensor>& max) {
       TORCH_CHECK(min.has_value() || max.has_value(), "torch.clamp: At least one of 'min' or 'max' must not be None");
       if (self.numel() == 0) {
         c10::SmallVector<int64_t, SIZE> empty_sizes;
@@ -1313,6 +1265,25 @@ namespace native {
         return broadcast_ops_npu_output_size(self.sizes(), min.value().sizes());
       }
       return broadcast_ops_npu_output_size(self.sizes(), max.value().sizes());
+    }
+
+    c10::SmallVector<int64_t, SIZE> smooth_l1_loss_backward_npu_output_size(
+        const at::Tensor &self,
+        const at::Tensor &target,
+        const at::Tensor &grad_output) {
+      auto mid_shape = broadcast_ops_npu_output_size(self.sizes(), target.sizes());
+      return broadcast_ops_npu_output_size(mid_shape, grad_output.sizes());
+    }
+
+    c10::SmallVector<int64_t, SIZE> max_pool2d_out_size(
+        const at::Tensor &self,
+        at::IntArrayRef output_size) {
+      auto shape = array_to_small_vector(self.sizes());
+      if ((self.dim() == 3 || self.dim() == 4) && output_size.size() == 2) {
+        shape[shape.size() - 2] = output_size[0];
+        shape[shape.size() - 1] = output_size[1];
+      }
+      return shape;
     }
 
 } // namespace native

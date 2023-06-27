@@ -44,15 +44,20 @@ at::Tensor& NPUNativeFunctions::addcdiv_out(
     const at::Tensor& tensor2,
     const at::Scalar& value,
     at::Tensor& result) {
-  auto divOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
-  auto outputSize = broadcast_ops_npu_output_size(self.sizes(), divOutputSize);
-  at::Tensor temp = OpPreparation::ApplyTensor(self, outputSize);
-  addcdiv_npu_nocheck(self, tensor1, tensor2, value, temp);
+  auto div_output_size = broadcast_ops_npu_output_size(tensor1, tensor2);
+  auto output_size = broadcast_ops_npu_output_size(self.sizes(), div_output_size);
   OpPreparation::CheckOut(
-      {temp},
+      {self, tensor1, tensor2},
       result,
-      temp);
-  result.copy_(temp);
+      self,
+      output_size);
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguous_result = NpuUtils::format_contiguous(result);
+    addcdiv_npu_nocheck(self, tensor1, tensor2, value, contiguous_result);
+    NpuUtils::format_fresh_view(result, contiguous_result);
+  } else {
+    addcdiv_npu_nocheck(self, tensor1, tensor2, value, result);
+  }
   return result;
 }
 
@@ -73,15 +78,7 @@ at::Tensor& NPUNativeFunctions::addcdiv_(
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
     const at::Scalar& value) {
-  OpPreparation::CheckMemory({self, tensor1, tensor2}, {self});
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = NPUNativeFunctions::addcdiv_out(contiguousSelf, tensor1, tensor2, value, contiguousSelf);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    NPUNativeFunctions::addcdiv_out(self, tensor1, tensor2, value, self);
-  }
-  return self;
+  return NPUNativeFunctions::addcdiv_out(self, tensor1, tensor2, value, self);
 }
 
 } // namespace native

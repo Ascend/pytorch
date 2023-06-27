@@ -50,13 +50,18 @@ at::Tensor& NPUNativeOpApiFunctions::cumsum_out(const at::Tensor& self, at::Dimn
 }
 
 at::Tensor NPUNativeOpApiFunctions::cumsum(const at::Tensor& self, int64_t dim,
-                                            c10::optional<at::ScalarType> dtype) {
+                                           c10::optional<at::ScalarType> dtype) {
   DO_COMPATIBILITY(aclnnCumsum, NPUNativeFunctions::cumsum(self, dim, dtype));
+
   at::Tensor result;
-  if (self.scalar_type() == at::ScalarType::Bool) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+  if (dtype.has_value()) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(dtype.value()));
   } else {
-    result = OpPreparation::ApplyTensor(self);
+    if (self.scalar_type() == at::ScalarType::Bool) {
+      result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+    } else {
+      result = OpPreparation::ApplyTensor(self);
+    }
   }
 
   NPUNativeOpApiFunctions::cumsum_out(self, dim, dtype, result);

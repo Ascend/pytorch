@@ -36,7 +36,12 @@ at::Tensor& NPUNativeOpApiFunctions::erf_(at::Tensor& self) {
 
 at::Tensor NPUNativeOpApiFunctions::erf(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnErf, NPUNativeFunctions::erf(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result;
+  if (self.scalar_type() == at::ScalarType::Bool) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kFloat));
+  } else {
+    result = OpPreparation::ApplyTensor(self);
+  }
   EXEC_NPU_CMD(aclnnErf, self, result);
   return result;
 }

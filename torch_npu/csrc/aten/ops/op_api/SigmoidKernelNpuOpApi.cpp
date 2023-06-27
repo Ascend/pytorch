@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
 namespace at_npu {
 namespace native {
 
@@ -28,8 +29,9 @@ at::Tensor& NPUNativeOpApiFunctions::sigmoid_out(const at::Tensor& self, at::Ten
 }
 
 at::Tensor& NPUNativeOpApiFunctions::sigmoid_(at::Tensor& self) {
-  DO_COMPATIBILITY(aclnnSigmoid, NPUNativeFunctions::sigmoid_(self));
-  NPUNativeOpApiFunctions::sigmoid_out(self, self);
+  DO_COMPATIBILITY(aclnnInplaceSigmoid, NPUNativeFunctions::sigmoid_(self));
+  TORCH_CHECK(!isIntegralType(self.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
+  EXEC_NPU_CMD(aclnnInplaceSigmoid, self);
 
   return self;
 }

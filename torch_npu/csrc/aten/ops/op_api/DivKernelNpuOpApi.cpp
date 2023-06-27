@@ -28,7 +28,7 @@ namespace native {
 at::Tensor& div_out_npu_opapi_nocheck(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
+    c10::Scalar others = other.item();
     EXEC_NPU_CMD(aclnnDivs, self, others, result);
   } else {
     EXEC_NPU_CMD(aclnnDiv, self, other, result);
@@ -63,14 +63,14 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
   OpPreparation::CheckOut({self}, result, result, outputSize);
 
   int mode = 0;
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     mode = 2;
-  } else if (*rounding_mode == "trunc") {
+  } else if (rounding_mode.has_value() && *rounding_mode == "trunc") {
     mode = 1;
   }
   // calculate the output result of the NPU
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
+    c10::Scalar others = other.item();
     EXEC_NPU_CMD(aclnnDivMods, self, others, mode, result);
   } else {
     EXEC_NPU_CMD(aclnnDivMod, self, other, mode, result);
@@ -118,9 +118,9 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
 
   // construct the output tensor of the NPU
   int mode = 0;
-  if (*rounding_mode == "floor") {
+  if (rounding_mode.has_value() && *rounding_mode == "floor") {
     mode = 2;
-  } else if (*rounding_mode == "trunc") {
+  } else if (rounding_mode.has_value() && *rounding_mode == "trunc") {
     mode = 1;
   } else {
     if (isIntegralType(high_type, true)) {
@@ -131,7 +131,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
 
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
+    c10::Scalar others = other.item();
     EXEC_NPU_CMD(aclnnDivMods, self, others, mode, result);
   } else {
     EXEC_NPU_CMD(aclnnDivMod, self, other, mode, result);
@@ -144,6 +144,15 @@ at::Tensor& NPUNativeOpApiFunctions::div_(at::Tensor& self, const at::Tensor& ot
   DO_COMPATIBILITY(aclnnDiv, NPUNativeFunctions::div_(self, other));
 
   NPUNativeOpApiFunctions::div_out(self, other, self);
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::div_(at::Tensor& self, const at::Tensor& other,
+                                          c10::optional<c10::string_view> rounding_mode) {
+  DO_COMPATIBILITY(aclnnDivMods, NPUNativeFunctions::div_(self, other, rounding_mode));
+  DO_COMPATIBILITY(aclnnDivMod, NPUNativeFunctions::div_(self, other, rounding_mode));
+
+  NPUNativeOpApiFunctions::div_out(self, other, rounding_mode, self);
   return self;
 }
 

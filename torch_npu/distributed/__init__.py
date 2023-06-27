@@ -52,4 +52,14 @@ from .distributed_c10d import (
     _reduce_scatter_base
 )
 
+from . import fsdp, algorithms
+from .fsdp import sharded_grad_scaler, wrap, fully_sharded_data_parallel
+fsdp_patches = [
+    ["distributed.fsdp.sharded_grad_scaler", sharded_grad_scaler],
+    ["distributed.fsdp.wrap", wrap],
+    ["distributed.fsdp.fully_sharded_data_parallel", fully_sharded_data_parallel],
+    ["distributed.fsdp", fsdp],
+    ["distributed.algorithms", algorithms]
+]
+
 set_debug_level_from_env()

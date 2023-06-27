@@ -41,7 +41,7 @@ at::Tensor NPUNativeOpApiFunctions::any(const at::Tensor& self, int64_t dim, boo
   // calculate the output size
   at::IntArrayRef dims(dim);
   auto output_size = reduce_ops_npu_output_size(self, dims, keepdim);
-  auto output_dtype = self.scalar_type() == at::ScalarType::Byte ? at::ScalarType::Byte : at::ScalarType::Bool;
+  auto output_dtype = (self.scalar_type() == at::ScalarType::Byte) ? at::ScalarType::Byte : at::ScalarType::Bool;
   auto options = self.options().dtype(output_dtype);
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
@@ -73,7 +73,7 @@ at::Tensor NPUNativeOpApiFunctions::any(const at::Tensor& self) {
   at::SmallVector<int64_t, N> dim_list = CalcuOpUtil::GetDimlistForTensor(self);
   bool keep_dim = false;
   auto output_size = reduce_ops_npu_output_size(self, dim_list, keep_dim);
-  auto output_dtype = self.scalar_type() == at::ScalarType::Byte ? at::ScalarType::Byte : at::ScalarType::Bool;
+  auto output_dtype = (self.scalar_type() == at::ScalarType::Byte) ? at::ScalarType::Byte : at::ScalarType::Bool;
   auto options = self.options().dtype(output_dtype);
   
   // construct the output tensor of the NPU

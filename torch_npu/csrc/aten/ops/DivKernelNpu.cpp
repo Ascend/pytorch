@@ -30,12 +30,10 @@ at::Tensor& div_scalar_out_npu(const at::Tensor& self, const at::Scalar other, a
       .Input(other, self.scalar_type())
       .Output(result)
       .Run();
-
   return result;
 }
 
 at::Tensor& div_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
-  // executing the NPU operator
   if (OpPreparation::IsCPUScalar(other)) {
     div_scalar_out_npu(self, other.item(), result);
   } else {
@@ -48,14 +46,12 @@ at::Tensor& div_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other,
         .Output(result)
         .Run();
   }
-
   return result;
 }
 
 at::Tensor& NPUNativeFunctions::div_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
-  // calculate the output size
-  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  at::Tensor output_tensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
+  auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
   if (isIntegralType(high_type, true)) {
     high_type = at::ScalarType::Float;
@@ -63,17 +59,21 @@ at::Tensor& NPUNativeFunctions::div_out(const at::Tensor& self, const at::Tensor
   if (isFloatingType(result.scalar_type())) {
     high_type = result.scalar_type();
   }
+
+  TORCH_CHECK(canCast(high_type, result.scalar_type()),
+      "result type ", high_type, " can't be cast to the desired output type ", result.scalar_type());
+
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
+      CalcuOpUtil::GetTensorNpuFormat(output_tensor),
       high_type,
-      outputSize);
-  at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
+      output_size);
+  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
       at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
+  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
       at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
-  div_out_npu_nocheck(selfCopy, otherCopy, result);
+  div_out_npu_nocheck(self_copy, other_copy, result);
 
   return result;
 }
@@ -87,11 +87,28 @@ at::Tensor& NPUNativeFunctions::div_out(
     NPUNativeFunctions::floor_divide_out(self, other, result);
     return result;
   }
-  NPUNativeFunctions::div_out(self, other, result);
+
   if (!rounding_mode.has_value()) {
+    NPUNativeFunctions::div_out(self, other, result);
     return result;
   } else if (*rounding_mode == "trunc") {
-    NPUNativeFunctions::trunc_(result);
+    at::ScalarType high_dtype = at::native::result_type(self, other);
+    at::ScalarType result_dtype = result.scalar_type();
+
+    TORCH_CHECK(canCast(high_dtype, result_dtype),
+        "result type ", high_dtype, " can't be cast to the desired output type ", result_dtype);
+
+    if (isFloatingType(result_dtype)) {
+      NPUNativeFunctions::div_out(self, other, result);
+      NPUNativeFunctions::trunc_(result);
+    } else {
+      at::Tensor result_cast = NPUNativeFunctions::div(self, other);
+      NPUNativeFunctions::trunc_(result_cast);
+      if (result_cast.scalar_type() != result_dtype) {
+        result_cast = NPUNativeFunctions::npu_dtype_cast(result_cast, result_dtype);
+      }
+      result.copy_(result_cast);
+    }
     return result;
   }
   TORCH_CHECK(false,
@@ -100,44 +117,31 @@ at::Tensor& NPUNativeFunctions::div_out(
 }
 
 at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Tensor& other) {
-  // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
-  at::Tensor outputTensor = isSelfWrapped ? other : self;
+  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
+  at::Tensor output_tensor = is_self_wrapped ? other : self;
 
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
   if (isIntegralType(high_type, true)) {
     high_type = at::ScalarType::Float;
   }
-  at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
+  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(self) &&
       at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
-  at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
+  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::IsScalarWrappedToTensor(other) &&
       at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
-  // construct the output tensor of the NPU
+
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
-      outputTensor.options().dtype(high_type),
-      CalcuOpUtil::GetTensorNpuFormat(outputTensor));
+      output_size,
+      output_tensor.options().dtype(high_type),
+      CalcuOpUtil::GetTensorNpuFormat(output_tensor));
 
-  // calculate the output result of the NPU
-  div_out_npu_nocheck(selfCopy, otherCopy, result);
-
+  div_out_npu_nocheck(self_copy, other_copy, result);
   return result;
 }
 
 at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Scalar& other) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
-      self.options(),
-      CalcuOpUtil::GetTensorNpuFormat(self));
-
-  // calculate the output result of the NPU
+  at::Tensor result = OpPreparation::ApplyTensor(self);
   div_scalar_out_npu(self, other, result);
-
   return result;
 }
 
@@ -148,6 +152,7 @@ at::Tensor NPUNativeFunctions::div(
   if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
+
   at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
   if (!rounding_mode.has_value()) {
     return true_div_res;
@@ -166,11 +171,16 @@ at::Tensor NPUNativeFunctions::div(
   if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
-  at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
+  at::Tensor div_res = NPUNativeFunctions::div(self, other);
   if (!rounding_mode.has_value()) {
-    return true_div_res;
+    return div_res;
   } else if (*rounding_mode == "trunc") {
-    return NPUNativeFunctions::trunc(true_div_res);
+    at::Tensor trunc_div_res = NPUNativeFunctions::trunc(div_res);
+    at::ScalarType high_dtype = at::native::result_type(self, other);
+    if (trunc_div_res.scalar_type() != high_dtype) {
+      trunc_div_res = NPUNativeFunctions::npu_dtype_cast(trunc_div_res, high_dtype);
+    }
+    return trunc_div_res;
   }
 
   TORCH_CHECK(false,
@@ -184,9 +194,9 @@ at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Tensor& other) 
   CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
 
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    NPUNativeFunctions::div_out(contiguousSelf, other, contiguousSelf);
-    NpuUtils::format_fresh_view(self, contiguousSelf);
+    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+    NPUNativeFunctions::div_out(contiguous_self, other, contiguous_self);
+    NpuUtils::format_fresh_view(self, contiguous_self);
   } else {
     div_out_npu_nocheck(self, other, self);
   }
@@ -195,11 +205,9 @@ at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Tensor& other) 
 
 at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-
-    div_scalar_out_npu(contiguousSelf, other, contiguousSelf);
-
-    NpuUtils::format_fresh_view(self, contiguousSelf);
+    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+    div_scalar_out_npu(contiguous_self, other, contiguous_self);
+    NpuUtils::format_fresh_view(self, contiguous_self);
   } else {
     div_scalar_out_npu(self, other, self);
   }

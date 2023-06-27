@@ -15,35 +15,21 @@
 
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
-namespace{
-  static const std::initializer_list<at::ScalarType> DTYPE_CAST_LIST = {
-    at::kInt, at::kLong, at::kShort, at::kChar, at::kBool, at::kBFloat16, at::kByte
-  };
-  bool check_dtype_npu(const at::Tensor& self, const std::initializer_list<at::ScalarType> &dtype_list){
-    return std::find(dtype_list.begin(),
-                     dtype_list.end(),
-                     self.dtype()) != dtype_list.end();
-  }
-}
 
 at::Tensor NPUNativeOpApiFunctions::sqrt(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnSqrt, NPUNativeFunctions::sqrt(self));
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-  
-  auto outputOptions=(check_dtype_npu(self, DTYPE_CAST_LIST)) ? 
-                      self.options().dtype(at::kFloat) : self.options();
+
+  auto outDtype=(isIntegralType(self.scalar_type(), true)) ? 
+                at::kFloat : self.scalar_type();
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-    outputSize, outputOptions, CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(outDtype));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnSqrt, self, result);

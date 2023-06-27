@@ -135,6 +135,7 @@ class ProcessGroupHCCLTest(TestCase):
 
 
 class ComputeBucketAssignmentTest(TestCase):
+    @unittest.skipIf(os.getenv('HOSTAPI_ENABLED') == 'ON', 'Private format is forbiddened')
     def test_single_limit_single_dtype(self):
         tensors = [
             torch.empty([100, 1], dtype=torch.float).npu().npu_format_cast(Format.NZ),
@@ -189,6 +190,17 @@ class ComputeBucketAssignmentTest(TestCase):
         ]
         result = dist._compute_bucket_assignment_by_size(tensors, [200, 400])
         expec_result = ([[0], [1], [2, 4], [3, 5], [6, 8], [7, 9]], [200, 200, 400, 400, 400, 400])
+        self.assertEqual(expec_result, result)
+
+    def test_multi_limit_single_dtype_with_value(self):
+        tensors = [
+            torch.empty([10], dtype=torch.float).npu(),
+            torch.empty([20], dtype=torch.float).npu()[:10],
+            torch.empty([10], dtype=torch.float).npu(),
+            torch.empty([10], dtype=torch.float).npu(),
+        ]
+        result = dist._compute_bucket_assignment_by_size(tensors, [40, 80])
+        expec_result = ([[0], [1, 2], [3]], [40, 80, 80])
         self.assertEqual(expec_result, result)
 
 

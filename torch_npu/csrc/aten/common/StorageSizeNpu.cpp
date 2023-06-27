@@ -14,9 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/ATen.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -28,6 +33,71 @@ namespace native {
         n *= s;
     }
     return n;
+  }
+
+  static void _npu_storage_resize_only(torch_npu::NPUStorageImpl& storage, ptrdiff_t size)
+  {
+    if (!storage.resizable()) {
+    AT_ERROR("Trying to resize storage that is not resizable");
+    return;
+    }
+    auto storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_;
+    size_t itemsize = storage_desc.data_type_.itemsize();
+
+    at::DataPtr new_data;
+    new_data = storage.allocator()->allocate(size);
+    at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
+    ptrdiff_t old_size = storage.nbytes();
+    storage.set_nbytes(size);
+
+    if (itemsize == 0) {
+      AT_ERROR("When resizing, item size of storage cannot be zero.");
+      return;
+    }
+    if ((size % itemsize) != 0) {
+      AT_ERROR("The storage nbytes cannot be divided by item size, please check the specified size.");
+      return;
+    }
+    std::vector<int64_t> resize_shape = {size/itemsize};
+    // It is necessary to properly refresh the storage according to sizes and strides,
+    // not just new sizes.
+    at_npu::native::StorageDescHelper::UpdateDesc(
+        torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, resize_shape, resize_shape);
+    
+    if (old_data != nullptr) {
+      ptrdiff_t copy_size = old_size;
+      if (storage.nbytes() < copy_size) {
+        copy_size = storage.nbytes();
+      }
+      if (copy_size > 0) {
+        aclError error = at_npu::native::CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+            storage,
+            copy_size,
+            old_data.get(),
+            copy_size,
+            ACL_MEMCPY_DEVICE_TO_DEVICE);
+        if (error != ACL_ERROR_NONE) {
+          AT_ERROR("ACL_Memcpy device to device error.");
+          return;
+        }
+      }
+    }
+  }
+
+  static void _maybe_npu_storage_resize(at::TensorImpl* self, ptrdiff_t size)
+  {
+    if (!self->storage().unsafeGetStorageImpl()){
+      AT_ERROR("Try to resize a tensor with null storage");
+      return;
+    }
+    _npu_storage_resize_only(*torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()), size);
+  }
+
+  at::Tensor NPUNativeFunctions::_npu_storage_resize(const at::Tensor& self, int64_t size){
+    int64_t new_size_bytes = (size + self.storage_offset()) * self.dtype().itemsize();
+    auto* self_impl = self.unsafeGetTensorImpl();
+    _maybe_npu_storage_resize(self_impl, new_size_bytes);
+    return self;
   }
 
 } // namespace native

@@ -521,10 +521,6 @@ class _DistTestBase(object):
         )
         self._barrier()
 
-    def test_DistributedDataParallel_requires_grad(self):
-        # a module without gradients shouldn't be accepted
-        self.assertRaises(AssertionError, lambda: nn.parallel.DistributedDataParallel(nn.Module()))
-
     def test_DistributedDataParallel(self):
         group, group_id, rank = self._init_global_test()
         rank_to_NPU = self._init_multinpu_helper()
