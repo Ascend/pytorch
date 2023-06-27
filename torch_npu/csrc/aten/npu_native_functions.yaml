@@ -392,8 +392,10 @@ supported:
  - decode_jpeg
  - diag
  - diag.out
- - div.Scalar
- - div.Scalar_mode
+ - func: div.Scalar
+   op_api: False
+ - func: div.Scalar_mode
+   op_api: False
  - func: div.Tensor
    op_api: True
  - func: div.Tensor_mode
@@ -402,8 +404,10 @@ supported:
    op_api: True
  - func: div.out_mode
    op_api: True
- - div_.Scalar
- - div_.Scalar_mode
+ - func: div_.Scalar
+   op_api: False
+ - func: div_.Scalar_mode
+   op_api: False
  - func: div_.Tensor
    op_api: True
  - func: div_.Tensor_mode
