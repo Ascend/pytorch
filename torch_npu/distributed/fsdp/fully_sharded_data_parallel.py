@@ -392,9 +392,9 @@ class _ExecOrderData:
 
     def __init__(
         self,
-        debug_level: dist.DebugLevel,
-        backward_prefetch_limit: int,
-        forward_prefetch_limit: int,
+        debug_level,
+        backward_prefetch_limit,
+        forward_prefetch_limit,
     ) -> None:
         # Tracks the (static) pre-forward order for execution order validation
         # and forward prefetching
@@ -413,9 +413,7 @@ class _ExecOrderData:
         self._forward_prefetch_limit = forward_prefetch_limit
 
         # Data structures for execution order validation
-        self._checking_order: bool = (
-            debug_level in [dist.DebugLevel.INFO, dist.DebugLevel.DETAIL]
-        )
+        self._checking_order = False if debug_level is None else True
         self.process_group: Optional[dist.ProcessGroup] = None
         self.world_size: Optional[int] = None
         self.all_handles: List[FlatParamHandle] = []
@@ -1113,7 +1111,7 @@ class FullyShardedDataParallel(nn.Module):
         # shared with non-root FSDP instances
         self._streams: Dict[str, torch_npu.npu.Stream] = {}
         self._free_event_queue = _FreeEventQueue()
-        self._debug_level = dist.get_debug_level()
+        self._debug_level = None
         self._exec_order_data = _ExecOrderData(
             self._debug_level,
             backward_prefetch_limit,
@@ -2149,7 +2147,7 @@ class FullyShardedDataParallel(nn.Module):
                 prev_state_dict_config = submodule._state_dict_config
             if prev_state_dict_type != submodule._state_dict_type:
                 raise RuntimeError("All FSDP module should the same state_dict_type.")
-                
+
             expected_state_dict_config_type = _state_dict_type_to_config[state_dict_type]
             if expected_state_dict_config_type != type(state_dict_config):
                 raise RuntimeError(
