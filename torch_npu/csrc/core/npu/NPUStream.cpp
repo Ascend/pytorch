@@ -273,10 +273,10 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
 }
 } // namespace
 
- aclrtStream NPUStream::stream(const bool need_empty) const {
+ aclrtStream NPUStream::stream() const {
   auto ptr = NPUStream_internals(getDefaultNPUStream());
   AT_ASSERT(ptr);
-  if (ptr->repo->CheckInit() && need_empty) {
+  if (ptr->repo->CheckInit()) {
     NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
     if (ret != SUCCESS) {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
@@ -433,6 +433,15 @@ bool NPUStream::isDataPreprocessStream() {
   auto ptr = NPUStream_internals(getCurrentNPUStream());
   AT_ASSERT(ptr);
   return ptr->is_data_preprocess_stream;
+}
+
+aclrtStream NPUStream::stream(const bool need_empty) const {
+  if (!need_empty) {
+    auto cur_ptr = NPUStream_internals(*this);
+    AT_ASSERT(cur_ptr);
+    return cur_ptr->stream;
+  }
+  return stream();
 }
 
 } // namespace c10_npu
