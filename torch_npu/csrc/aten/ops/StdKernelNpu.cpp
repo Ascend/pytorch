@@ -21,6 +21,22 @@
 namespace at_npu {
 namespace native {
 
+int64_t calc_shape_prod(const at::Tensor& self, at::IntArrayRef dim) {
+  int64_t shape_prod = 1;
+  if (self.dim() == 0) {
+    shape_prod = 1;
+  } else if (dim.size() == 0) {
+    for (auto i = 0; i < self.dim(); i++) {
+      shape_prod *= self.size(i);
+    }
+  } else {
+    for(auto i = 0; i < dim.size(); i++) {
+      shape_prod *= self.size(dim[i]);
+    }
+  }
+  return shape_prod;
+}
+
 tuple<at::Tensor&, at::Tensor&> std_mean_out_npu_nocheck(
     at::Tensor& result_std,
     at::Tensor& result_mean,
@@ -36,6 +52,16 @@ tuple<at::Tensor&, at::Tensor&> std_mean_out_npu_nocheck(
       .Attr("axes", dim)
       .Attr("keep_dims", keepdim)
       .Run();
+
+  auto shape_prod = calc_shape_prod(self, dim);
+  if (shape_prod == 1 && shape_prod <= correction) {
+    result_std.fill_(NAN);
+    return std::tie(result_std, result_mean);
+  }
+  if (correction > 1 && shape_prod <= correction) {
+    result_std.fill_(INFINITY);
+    return std::tie(result_std, result_mean);
+  }
 
   at::Tensor result_mean_copy = result_mean;
   if (result_mean.dim() != 0 && keepdim == false) {
@@ -106,7 +132,7 @@ at::Tensor& NPUNativeFunctions::std_out(
   } else {
     std_mean_out_npu_nocheck(result, mean_result, self, dims, correction.has_value() ? true : false, keepdim, real_correction);
   }
-  
+
   return result;
 }
 
