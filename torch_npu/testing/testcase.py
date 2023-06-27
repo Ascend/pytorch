@@ -55,6 +55,7 @@ def run_tests():
     argv = sys.argv
     if IS_HOSTAPI_ENABLED:
         torch.npu.config.allow_internal_format = False
+        torch.npu.set_compile_mode(jit_compile=False)
     if IS_IN_CI:
         # import here so that non-CI doesn't need xmlrunner installed
         import xmlrunner
