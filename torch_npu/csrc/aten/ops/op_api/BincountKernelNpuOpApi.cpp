@@ -44,17 +44,16 @@ at::Tensor NPUNativeOpApiFunctions::bincount(
   sizes = (sizes < minlength) ? minlength : (sizes + 1);
 
   // weight convert dtype as same as output defined by torch
-  auto weight = weights;
   at::Tensor result;
   if (!weights.defined()) {
       result = OpPreparation::ApplyTensorWithSizes({sizes}, self.options().dtype(at::ScalarType::Long));
-  } else if (!(weights.dtype() == at::ScalarType::Float)) {
-      result = OpPreparation::ApplyTensorWithSizes({sizes}, weights.options().dtype(at::ScalarType::Double));
-  } else {
+  } else if (weights.dtype() == at::ScalarType::Float) {
       result = OpPreparation::ApplyTensorWithSizes({sizes}, weights.options().dtype(at::ScalarType::Float));
+  } else {
+      result = OpPreparation::ApplyTensorWithSizes({sizes}, weights.options().dtype(at::ScalarType::Double));
   }
   
-  EXEC_NPU_CMD(aclnnBincount, self, weight, minlength, result);
+  EXEC_NPU_CMD(aclnnBincount, self, weights, minlength, result);
 
   return result;
 }
