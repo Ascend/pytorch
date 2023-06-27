@@ -40,3 +40,7 @@ def native_layer_norm(
 
 def register_aten_ops_symbolic():
     sym_registry.register_op("native_layer_norm", op=native_layer_norm, domain="", version=11)
+    sym_registry.register_op("native_layer_norm", op=native_layer_norm, domain="", version=12)
+    sym_registry.register_op("native_layer_norm", op=native_layer_norm, domain="", version=13)
+    sym_registry.register_op("native_layer_norm", op=native_layer_norm, domain="", version=14)
+    sym_registry.register_op("native_layer_norm", op=native_layer_norm, domain="", version=15)
