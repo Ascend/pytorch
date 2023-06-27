@@ -88,7 +88,7 @@ class DataLoader(SrcDataLoader):
             raise ValueError('{} attribute should not be set after {} is '
                              'initialized'.format(attr, self.__class__.__name__))
 
-        object.__setattr__(self, attr, val)
+        super(SrcDataLoader, self).__setattr__(attr, val)
 
 class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
     def __init__(self, loader):
@@ -256,3 +256,4 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
 def add_dataloader_method():
     torch.utils.data.DataLoader = DataLoader
     torch.utils.data.dataloader.DataLoader = DataLoader
+    SrcDataLoader.__setattr__ = DataLoader.__setattr__
