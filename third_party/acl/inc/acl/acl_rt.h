@@ -108,10 +108,10 @@ typedef enum aclrtFloatOverflowMode {
 } aclrtFloatOverflowMode;
 
 typedef struct aclrtUtilizationInfo {
-  int32_t cube;
-  int32_t vector;
-  int32_t aicpu;
-  int32_t memory;
+  int32_t cubeUtilization;
+  int32_t vectorUtilization;
+  int32_t aicpuUtilization;
+  int32_t memoryUtilization;
 } aclrtUtilizationInfo;
 
 typedef struct tagRtGroupInfo aclrtGroupInfo;
