@@ -68,6 +68,22 @@ at::Tensor& var_after_npu_nocheck(
   return var;
 }
 
+int64_t get_shape_prod(const at::Tensor& self, at::IntArrayRef dim) {
+  int64_t shape_prod = 1;
+  if (self.dim() == 0) {
+    shape_prod = 1;
+  } else if (dim.size() == 0) {
+    for (auto i = 0; i < self.dim(); i++) {
+      shape_prod *= self.size(i);
+    }
+  } else {
+    for(auto i = 0; i < dim.size(); i++) {
+      shape_prod *= self.size(dim[i]);
+    }
+  }
+  return shape_prod;
+}
+
 tuple<at::Tensor&, at::Tensor&> var_mean_compute(
     at::Tensor& variance,
     at::Tensor& mean,
@@ -83,6 +99,15 @@ tuple<at::Tensor&, at::Tensor&> var_mean_compute(
   if (!keepdim) {
     mean.resize_(mean_output_size_not_keepdim);
   }
+
+  if (unbiased) {
+    auto shape_prod = get_shape_prod(self, dim);
+    if (shape_prod <= 1) {
+      variance.fill_(NAN);
+      return tuple<at::Tensor&, at::Tensor&>(variance, mean);
+    }
+  }
+
   var_after_npu_nocheck(variance, self, mean_broadcast, dim, unbiased, keepdim);
   return tuple<at::Tensor&, at::Tensor&>(variance, mean);
 }
