@@ -210,7 +210,15 @@ def _get_device_index(device, optional=False):
     """
     if isinstance(device, torch._six.string_classes):
         if "npu" not in device:
-            return int(device)
+            output = None
+            try:
+                output = int(device)
+                print(f"Warning: Expected an NPU device, but got {device}. "
+                      f"Input in this format will be deprecated in future version.")
+            except ValueError:
+                device = torch.device(device)
+            if output is not None:
+                return output
         else:
             device = torch.device(device)
     device_idx = None

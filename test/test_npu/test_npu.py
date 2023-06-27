@@ -449,8 +449,7 @@ class TestNpu(TestCase):
         with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
             torch_npu.npu.synchronize(torch.device("cpu"))
 
-        with self.assertRaisesRegex(AssertionError, "Expected a npu device, but"):
-            with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
+        with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
                 torch_npu.npu.synchronize("cpu")
 
     def test_streams(self):
