@@ -468,10 +468,7 @@ def ddp__setstate__(self, state):
     self.__dict__.setdefault("require_backward_grad_sync", True)
     parameters, expect_sparse_gradient = self._build_params_for_reducer()
     # In debug mode, build a mapping of parameter index -> parameter.
-    if dist.get_debug_level() != dist.DebugLevel.OFF:
-        param_to_name_mapping = self._build_param_to_name_mapping(parameters)
-    else:
-        param_to_name_mapping = {}
+    param_to_name_mapping = {}
     # Builds reducer
     self._ddp_init_helper(parameters, expect_sparse_gradient, param_to_name_mapping)
     if self.static_graph:
