@@ -45,11 +45,11 @@ at::Tensor& NPUNativeFunctions::logical_not_out(const at::Tensor& self, at::Tens
       CalcuOpUtil::GetTensorNpuFormat(self),
       resultDtype,
       self.sizes());
-  OpPipeWithDefinedOut pipe;
-  result = pipe.CheckMemory({self}, {result})
-    .Func([&self](at::Tensor& result){logical_not_out_npu_nocheck(self, result);})
-    .Call(result);
-  result = NPUNativeFunctions::npu_dtype_cast(result, resultDtype);
+  auto resultCopy = OpPreparation::ApplyTensorWithSizes(
+      self.sizes(), self.options().dtype(at::kBool));
+  logical_not_out_npu_nocheck(self, resultCopy);
+  resultCopy = NPUNativeFunctions::npu_dtype_cast(resultCopy, resultDtype);
+  NpuUtils::format_fresh_view(result, resultCopy);
   return result;
 }
 
