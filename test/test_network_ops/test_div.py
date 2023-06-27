@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import unittest
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, test_2args_broadcast, create_dtype_tensor
 from torch_npu.testing.decorator import Dtypes, instantiate_tests, graph_mode
@@ -24,6 +25,7 @@ from torch_npu.testing.decorator import Dtypes, instantiate_tests, graph_mode
 
 @instantiate_tests
 class TestDiv(TestCase):
+
     def get_outputs(self, cpu_args, npu_args, dtype):
         # cpu not support fp16 div
         cpu_args = [i.float() if dtype == torch.half else i for i in cpu_args]
@@ -126,8 +128,25 @@ class TestDiv(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
             cpu_output, npu_output = self.get_outputs_chk([cpu_input1, cpu_input2],
-                                                          [npu_input1, npu_input2], torch.float)
+                                                          [npu_input1, npu_input2],
+                                                          torch.float)
             self.assertRtolEqual(cpu_output, npu_output)
+
+    def cpu_op_exec(self, input1, input2):
+        output = torch.div(input1, input2)
+        return output
+
+    def npu_op_exec(self, input1, input2):
+        output = torch.div(input1, input2)
+        return output.cpu()
+
+    def npu_op_exec_inp(self, input1, input2):
+        input1.div_(input2)
+        return input1.cpu()
+
+    def npu_op_exec_out(self, input1, input2, output):
+        torch.div(input1, input2, out=output)
+        return output.cpu()
 
     def cpu_op_exec_mode(self, input1, input2, mode):
         output = torch.div(input1, input2, rounding_mode=mode)
@@ -206,6 +225,76 @@ class TestDiv(TestCase):
         cpu_out = cpu_x / 10
         npu_out = npu_x / 10
         self.assertRtolEqual(cpu_out, npu_out.cpu())
+
+    def test_div_tensor_mode_complex(self):
+        shape_format = [
+            [[torch.cfloat, 0, (20, 16)], [torch.cfloat, 0, (16)], [torch.cfloat, 0, (20, 16)], None],
+            [[torch.cfloat, 0, (3, 20, 16)], [torch.cfloat, 0, (20, 16)], [torch.cfloat, 0, (3, 20, 16)], None],
+        ]
+        for item in shape_format:
+            cpu_input1 = torch.randn(item[0][2], dtype=item[0][0])
+            npu_input1 = cpu_input1.npu()
+            cpu_input2 = torch.randn(item[1][2], dtype=item[1][0])
+            npu_input2 = cpu_input2.npu()
+            # div
+            cpu_output = self.cpu_op_exec_mode(cpu_input1, cpu_input2, item[3])
+            npu_output = self.npu_op_exec_mode(npu_input1, npu_input2, item[3])
+            self.assertRtolEqual(cpu_output.float(), npu_output.float())
+            # div_out
+            npu_out = torch.randn(item[2][2], dtype=item[2][0]).npu()
+            npu_output_out = self.npu_op_exec_mode_out(npu_input1, npu_input2, npu_out, item[3])
+            self.assertRtolEqual(cpu_output.float(), npu_output_out.float())
+            # div_
+            npu_output_inp = self.npu_op_exec_mode_inp(npu_input1, npu_input2, item[3])
+            self.assertRtolEqual(cpu_output.float(), npu_output_inp.float())
+
+    def test_div_scalar_mode(self):
+        shape_format = [
+            [[torch.cfloat, 0, (20, 16)], 15.9, None],
+            [[torch.cfloat, 0, (20, 16)], 17.2, None],
+            [[torch.cfloat, 0, (2, 20, 16)], 72.2, None],
+            [[torch.cfloat, 0, (2, 20, 16)], -5, None],
+            [[torch.cfloat, 0, (3, 20, 16)], -45.3, None],
+            [[torch.cfloat, 0, (2, 20, 16)], 15.9, None],
+            [[torch.cfloat, 0, (3, 20, 16)], 17.2, None],
+        ]
+        for item in shape_format:
+            cpu_input = torch.randn(item[0][2], dtype=item[0][0])
+            npu_input = cpu_input.npu()
+            # div
+            cpu_output = self.cpu_op_exec_mode(cpu_input, item[1], item[2])
+            npu_output = self.npu_op_exec_mode(npu_input, item[1], item[2])
+            self.assertRtolEqual(cpu_output.float(), npu_output.float())
+            # div_
+            try:
+                cpu_output_inp = self.cpu_op_exec_mode_inp(cpu_input, item[1], item[2])
+            except RuntimeError as e:
+                print("Warning: invaild input")
+                continue
+            npu_output_inp = self.npu_op_exec_mode_inp(npu_input, item[1], item[2])
+            self.assertRtolEqual(cpu_output_inp.float(), npu_output_inp.float())
+
+    def test_div_complex(self):
+        shape_format = [
+            [[torch.cfloat, 0, (20, 16)], [torch.cfloat, 0, (16)], [torch.cfloat, 0, (20, 16)], None],
+            [[torch.cfloat, 0, (3, 20, 16)], [torch.cfloat, 0, (20, 16)], [torch.cfloat, 0, (3, 20, 16)], None],
+        ]
+        for item in shape_format:
+            cpu_input1 = torch.randn(item[0][2], dtype=item[0][0])
+            npu_input1 = cpu_input1.npu()
+            cpu_input2 = torch.randn(item[1][2], dtype=item[1][0])
+            npu_input2 = cpu_input2.npu()
+            # div
+            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
+            self.assertRtolEqual(cpu_output.float(), npu_output.float())
+            # div_out
+            npu_out = torch.randn(item[2][2], dtype=item[2][0]).npu()
+            npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2, npu_out)
+            self.assertRtolEqual(cpu_output.float(), npu_output_out.float())
+            # div_
+            npu_output_inp = self.npu_op_exec_inp(npu_input1, npu_input2)
+            self.assertRtolEqual(cpu_output.float(), npu_output_inp.float())
 
 
 if __name__ == "__main__":

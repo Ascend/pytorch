@@ -16,10 +16,37 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
+
+void check_rounding_mode(c10::optional<c10::string_view> rounding_mode) {
+  TORCH_CHECK((!rounding_mode.has_value() || *rounding_mode == "trunc" || *rounding_mode == "floor"),
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
+}
+
+std::vector<at::Tensor> compute_complex_coefficient(const at::Tensor& self, const at::Tensor& other) {
+  at::Tensor other_copy = other.sizes() == at::IntArrayRef{} ?
+      CalcuOpUtil::CopyScalarToDevice(other.item(), other.scalar_type()) : other;
+
+  c10::SmallVector<at::Tensor, N> self_splite = complex_compute_pre_check_split(self);
+  c10::SmallVector<at::Tensor, N> other_splite = complex_compute_pre_check_split(other_copy);
+
+  auto ac = self_splite[0].mul(other_splite[0]);
+  auto bc = self_splite[1].mul(other_splite[0]);
+  auto ad = self_splite[0].mul(other_splite[1]);
+  auto bd = self_splite[1].mul(other_splite[1]);
+  auto down = other_splite[0].mul(other_splite[0]).add(other_splite[1].mul(other_splite[1]));
+
+  std::vector<at::Tensor> final_coeffs;
+  final_coeffs.push_back(ac.add(bd));
+  final_coeffs.push_back(bc.sub(ad));
+  final_coeffs.push_back(down);
+  return final_coeffs;
+}
 
 at::Tensor& div_scalar_out_npu(const at::Tensor& self, const at::Scalar other, at::Tensor& result) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
@@ -49,7 +76,7 @@ at::Tensor& div_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other,
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::div_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+at::Tensor& compute_div_out_nocheck(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   at::Tensor output_tensor = CalcuOpUtil::IsScalarWrappedToTensor(self) ? other : self;
   auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
@@ -78,7 +105,25 @@ at::Tensor& NPUNativeFunctions::div_out(const at::Tensor& self, const at::Tensor
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::div_out(
+at::Tensor& NPUNativeFunctions::div_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  if (self.is_complex() || other.is_complex()) {
+    if (self.scalar_type() != c10::ScalarType::ComplexDouble &&
+        other.scalar_type() != c10::ScalarType::ComplexDouble) {
+      std::vector<at::Tensor> coeffs = compute_complex_coefficient(self, other);
+      at::Tensor left_result = OpPreparation::ApplyTensor(result, coeffs[0].options());
+      at::Tensor right_result = OpPreparation::ApplyTensor(result, coeffs[1].options());
+      compute_div_out_nocheck(coeffs[0], coeffs[2], left_result);
+      compute_div_out_nocheck(coeffs[1], coeffs[2], right_result);
+      auto final_result = NPUNativeFunctions::stack({left_result, right_result}, -1);
+      result.copy_(at::native::view_as_complex(final_result));
+      return result;
+    }
+  }
+  compute_div_out_nocheck(self, other, result);
+  return result;
+}
+
+at::Tensor& compute_div_out_mode_nocheck(
     const at::Tensor& self,
     const at::Tensor& other,
     c10::optional<c10::string_view> rounding_mode,
@@ -111,12 +156,45 @@ at::Tensor& NPUNativeFunctions::div_out(
     }
     return result;
   }
-  TORCH_CHECK(false,
-      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-      "but found '", *rounding_mode, "'");
 }
 
-at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor& NPUNativeFunctions::div_out(
+    const at::Tensor& self,
+    const at::Tensor& other,
+    c10::optional<c10::string_view> rounding_mode,
+    at::Tensor& result) {
+  check_rounding_mode(rounding_mode);
+  if (self.is_complex() || other.is_complex()) {
+    if (self.scalar_type() != c10::ScalarType::ComplexDouble &&
+        other.scalar_type() != c10::ScalarType::ComplexDouble) {
+      std::vector<at::Tensor> coeffs = compute_complex_coefficient(self, other);
+      at::Tensor output_tensor =
+          CalcuOpUtil::IsScalarWrappedToTensor(coeffs[0]) ? coeffs[2] : coeffs[0];
+      auto output_size = broadcast_ops_npu_output_size(coeffs[0], coeffs[2]);
+      at::ScalarType high_type = at::native::result_type(coeffs[0], coeffs[2]);
+      if (isIntegralType(high_type, true)) {
+        high_type = at::ScalarType::Float;
+      }
+      at::Tensor left_result = OpPreparation::ApplyTensorWithFormat(
+          output_size,
+          output_tensor.options().dtype(high_type),
+          CalcuOpUtil::GetTensorNpuFormat(output_tensor));
+      at::Tensor right_result = OpPreparation::ApplyTensorWithFormat(
+          output_size,
+          output_tensor.options().dtype(high_type),
+          CalcuOpUtil::GetTensorNpuFormat(output_tensor));
+      compute_div_out_mode_nocheck(coeffs[0], coeffs[2], rounding_mode, left_result);
+      compute_div_out_mode_nocheck(coeffs[1], coeffs[2], rounding_mode, right_result);
+      auto final_result = NPUNativeFunctions::stack({left_result, right_result}, -1);
+      result.copy_(at::native::view_as_complex(final_result));
+      return result;
+    }
+  }
+  compute_div_out_mode_nocheck(self, other, rounding_mode, result);
+  return result;
+}
+
+at::Tensor compute_div_nocheck(const at::Tensor& self, const at::Tensor& other) {
   bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
   at::Tensor output_tensor = is_self_wrapped ? other : self;
 
@@ -139,6 +217,25 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Tensor& oth
   return result;
 }
 
+at::Tensor compute_div_complex_nocheck(const at::Tensor& self, const at::Tensor& other) {
+  std::vector<at::Tensor> coeffs = compute_complex_coefficient(self, other);
+  at::Tensor left_result = compute_div_nocheck(coeffs[0], coeffs[2]);
+  at::Tensor right_result = compute_div_nocheck(coeffs[1], coeffs[2]);
+  auto final_result = NPUNativeFunctions::stack({left_result, right_result}, -1);
+  auto complex_result = at::native::view_as_complex(final_result);
+  return complex_result;
+}
+
+at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Tensor& other) {
+  if (self.is_complex() || other.is_complex()) {
+    if (self.scalar_type() != c10::ScalarType::ComplexDouble &&
+        other.scalar_type() != c10::ScalarType::ComplexDouble) {
+      return compute_div_complex_nocheck(self, other);
+    }
+  }
+  return compute_div_nocheck(self, other);
+}
+
 at::Tensor NPUNativeFunctions::div(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   div_scalar_out_npu(self, other, result);
@@ -149,6 +246,7 @@ at::Tensor NPUNativeFunctions::div(
     const at::Tensor& self,
     const at::Scalar& other,
     c10::optional<c10::string_view> rounding_mode) {
+  check_rounding_mode(rounding_mode);
   if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
@@ -159,12 +257,9 @@ at::Tensor NPUNativeFunctions::div(
   } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc(true_div_res);
   }
-  TORCH_CHECK(false,
-      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-      "but found '", *rounding_mode, "'");
 }
 
-at::Tensor NPUNativeFunctions::div(
+at::Tensor compute_div_mode_nocheck(
     const at::Tensor& self,
     const at::Tensor& other,
     c10::optional<c10::string_view> rounding_mode) {
@@ -182,13 +277,35 @@ at::Tensor NPUNativeFunctions::div(
     }
     return trunc_div_res;
   }
-
-  TORCH_CHECK(false,
-      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-      "but found '", *rounding_mode, "'");
 }
 
-at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Tensor& other) {
+at::Tensor compute_div_mode_complex_nocheck(
+    const at::Tensor& self,
+    const at::Tensor& other,
+    c10::optional<c10::string_view> rounding_mode) {
+  std::vector<at::Tensor> coeffs = compute_complex_coefficient(self, other);
+  at::Tensor left_result = compute_div_mode_nocheck(coeffs[0], coeffs[2], rounding_mode);
+  at::Tensor right_result = compute_div_mode_nocheck(coeffs[1], coeffs[2], rounding_mode);
+  auto final_result = NPUNativeFunctions::stack({left_result, right_result}, -1);
+  auto complex_result = at::native::view_as_complex(final_result);
+  return complex_result;
+}
+
+at::Tensor NPUNativeFunctions::div(
+    const at::Tensor& self,
+    const at::Tensor& other,
+    c10::optional<c10::string_view> rounding_mode) {
+  check_rounding_mode(rounding_mode);
+  if (self.is_complex() || other.is_complex()) {
+    if (self.scalar_type() != c10::ScalarType::ComplexDouble &&
+        other.scalar_type() != c10::ScalarType::ComplexDouble) {
+      return compute_div_mode_complex_nocheck(self, other, rounding_mode);
+    }
+  }
+  return compute_div_mode_nocheck(self, other, rounding_mode);
+}
+
+at::Tensor& compute_div__nocheck(at::Tensor& self, const at::Tensor& other) {
   c10::SmallVector<at::Tensor, N> inputs = {self, other};
   c10::SmallVector<at::Tensor, N> outputs = {self};
   CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
@@ -201,6 +318,25 @@ at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Tensor& other) 
     div_out_npu_nocheck(self, other, self);
   }
   return self;
+}
+
+at::Tensor& compute_div__complex_nocheck(at::Tensor& self, const at::Tensor& other) {
+  std::vector<at::Tensor> coeffs = compute_complex_coefficient(self, other);
+  at::Tensor& left_result = compute_div__nocheck(coeffs[0], coeffs[2]);
+  at::Tensor& right_result = compute_div__nocheck(coeffs[1], coeffs[2]);
+  auto final_result = NPUNativeFunctions::stack({left_result, right_result}, -1);
+  self = at::native::view_as_complex(final_result);
+  return self;
+}
+
+at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Tensor& other) {
+  if (self.is_complex() || other.is_complex()) {
+    if (self.scalar_type() != c10::ScalarType::ComplexDouble &&
+        other.scalar_type() != c10::ScalarType::ComplexDouble) {
+      return compute_div__complex_nocheck(self, other);
+    }
+  }
+  return compute_div__nocheck(self, other);
 }
 
 at::Tensor& NPUNativeFunctions::div_(at::Tensor& self, const at::Scalar& other) {
@@ -218,6 +354,7 @@ at::Tensor& NPUNativeFunctions::div_(
     at::Tensor& self,
     const at::Scalar& other,
     c10::optional<c10::string_view> rounding_mode) {
+  check_rounding_mode(rounding_mode);
   if (rounding_mode.has_value() && *rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide_(self, other);
   }
@@ -227,12 +364,9 @@ at::Tensor& NPUNativeFunctions::div_(
   } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc_(self);
   }
-  TORCH_CHECK(false,
-      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-      "but found '", *rounding_mode, "'");
 }
 
-at::Tensor& NPUNativeFunctions::div_(
+at::Tensor& compute_div__mode_nocheck(
     at::Tensor& self,
     const at::Tensor& other,
     c10::optional<c10::string_view> rounding_mode) {
@@ -245,9 +379,32 @@ at::Tensor& NPUNativeFunctions::div_(
   } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc_(self);
   }
-  TORCH_CHECK(false,
-      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-      "but found '", *rounding_mode, "'");
+}
+
+at::Tensor& compute_div__mode_complex_nocheck(
+    at::Tensor& self,
+    const at::Tensor& other,
+    c10::optional<c10::string_view> rounding_mode) {
+  std::vector<at::Tensor> coeffs = compute_complex_coefficient(self, other);
+  at::Tensor& left_result = compute_div__mode_nocheck(coeffs[0], coeffs[2], rounding_mode);
+  at::Tensor& right_result = compute_div__mode_nocheck(coeffs[1], coeffs[2], rounding_mode);
+  auto final_result = NPUNativeFunctions::stack({left_result, right_result}, -1);
+  self = at::native::view_as_complex(final_result);
+  return self;
+}
+
+at::Tensor& NPUNativeFunctions::div_(
+    at::Tensor& self,
+    const at::Tensor& other,
+    c10::optional<c10::string_view> rounding_mode) {
+  check_rounding_mode(rounding_mode);
+  if (self.is_complex() || other.is_complex()) {
+    if (self.scalar_type() != c10::ScalarType::ComplexDouble &&
+        other.scalar_type() != c10::ScalarType::ComplexDouble) {
+      return compute_div__mode_complex_nocheck(self, other, rounding_mode);
+    }
+  }
+  return compute_div__mode_nocheck(self, other, rounding_mode);
 }
 
 } // namespace native
