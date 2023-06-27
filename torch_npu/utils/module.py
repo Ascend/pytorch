@@ -199,9 +199,77 @@ def lstm_forward(self, input, hx=None):
         return output, self.permute_hidden(hidden, unsorted_indices)
 
 
+def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
+    # currently only NPU or GPU input is supported
+    if (not input1.is_cuda) and (not input1.is_npu):
+        raise ValueError('SyncBatchNorm expected input tensor to be on NPU or GPU')
+
+    self._check_input_dim(input1)
+    self._check_non_zero_input_channels(input1)
+
+    # exponential_average_factor is set to self.momentum
+    # (when it is available) only so that it gets updated
+    # in ONNX graph when this node is exported to ONNX.
+    if self.momentum is None:
+        exponential_average_factor = 0.0
+    else:
+        exponential_average_factor = self.momentum
+
+    if self.training and self.track_running_stats:
+        assert self.num_batches_tracked is not None
+        self.num_batches_tracked.add_(1)
+        if self.momentum is None:  # use cumulative moving average
+            exponential_average_factor = 1.0 / self.num_batches_tracked.item()
+        else:  # use exponential moving average
+            exponential_average_factor = self.momentum
+
+    r"""
+    Decide whether the mini-batch stats should be used for normalization rather than the buffers.
+    Mini-batch stats are used in training mode, and in eval mode when buffers are None.
+    """
+    if self.training:
+        bn_training = True
+    else:
+        bn_training = (self.running_mean is None) and (self.running_var is None)
+
+    r"""
+    Buffers are only updated if they are to be tracked and we are in training mode. Thus they only need to be
+    passed when the update should occur (i.e. in training mode when they are tracked), or when buffer stats are
+    used for normalization (i.e. in eval mode when buffers are not None).
+    """
+    # If buffers are not to be tracked, ensure that they won't be updated
+    running_mean = (
+        self.running_mean if not self.training or self.track_running_stats else None
+    )
+    running_var = (
+        self.running_var if not self.training or self.track_running_stats else None
+    )
+
+    # Don't sync batchnorm stats in inference mode (model.eval()).
+    need_sync = (bn_training and self.training)
+    if need_sync:
+        process_group = torch.distributed.group.WORLD
+        if self.process_group:
+            process_group = self.process_group
+        world_size = torch.distributed.get_world_size(process_group)
+        need_sync = world_size > 1
+
+    # fallback to framework BN when synchronization is not necessary
+    if not need_sync:
+        return F.batch_norm(
+            input1, running_mean, running_var, self.weight, self.bias,
+            bn_training, exponential_average_factor, self.eps)
+    else:
+        assert bn_training
+        return sync_batch_norm.apply(
+            input1, self.weight, self.bias, running_mean, running_var,
+            self.eps, exponential_average_factor, process_group, world_size)
+
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.LayerNorm.forward = layernorm_forward
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
+    torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
