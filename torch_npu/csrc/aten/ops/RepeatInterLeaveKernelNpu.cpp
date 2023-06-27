@@ -99,7 +99,7 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
   }
 
   TORCH_CHECK(
-      repeats.size(0) == self_tensor.size(real_dim),
+      (repeats.size(0) == self_tensor.size(real_dim)) || (repeats.size(0) == 1),
       "repeats must have the same size as input along dim.");
 
   if (self_dim > 1 && real_dim != 0) {
