@@ -27,7 +27,7 @@ from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager,
                           get_grouped_native_functions, error_check_native_functions)
 from torchgen.model import (BackendIndex, DispatchKey, Location,
                             NativeFunction, NativeFunctionsGroup, OperatorName,
-                            BackendMetadata, DEFAULT_KERNEL_NAMESPACE, is_cuda_dispatch_key)
+                            BackendMetadata, is_cuda_dispatch_key)
 from torchgen.native_function_generation import add_generated_native_functions
 from torchgen.selective_build.selector import SelectiveBuilder
 from torchgen.utils import Target, concatMap, context, NamespaceHelper

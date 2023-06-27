@@ -28,7 +28,6 @@ from torchgen.model import (
     is_cuda_dispatch_key,
     NativeFunction,
     NativeFunctionsGroup,
-    Variant,
 )
 from torchgen.api import cpp
 from torchgen.api.translate import translate
