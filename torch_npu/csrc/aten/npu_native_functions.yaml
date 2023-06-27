@@ -1233,6 +1233,8 @@ supported:
  - true_divide.out
  - true_divide_.Scalar
  - true_divide_.Tensor
+ - func: trace
+   op_api: False
  - trunc
  - trunc.out
  - trunc_
@@ -1503,7 +1505,6 @@ tocpu:
   - slow_conv_transpose3d
   - sspaddmm.out
   - tensordot.out
-  - trace
   - to_sparse.sparse_dim
   - to_sparse
   - to_mkldnn
