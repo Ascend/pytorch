@@ -14,6 +14,7 @@
 
 import torch
 import torch_npu
+import numpy as np
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -28,11 +29,15 @@ class TestSlice(TestCase):
         output = output.numpy()
         return output
 
-    @Dtypes(torch.float, torch.half, torch.int32, torch.uint8, torch.int8, torch.int16, torch.long)
+    @Dtypes(torch.float, torch.half, torch.int32, torch.uint8, torch.int8, torch.int16, torch.long,
+            torch.cfloat)
     def test_slice(self, device, dtype):
         input_data = torch.tensor([[1,2,3,4,5], [6,7,8,9,10]]).npu().to(dtype)
         exoutput = torch.tensor([[1,2],[6,7]]).to(dtype)
         output   = self.npu_op_exec(input_data, [0, 0], [2, 2])
+        if dtype == torch.cfloat:
+            exoutput = exoutput.to(torch.float)
+            output = output.astype(np.float32)
         self.assertRtolEqual(exoutput.numpy(), output) 
 
 
