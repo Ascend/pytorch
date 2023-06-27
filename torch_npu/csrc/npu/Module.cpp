@@ -180,13 +180,14 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
   THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate");
   int32_t device = THPUtils_unpackUInt32(device_index);
   aclrtUtilizationInfo util_info;
-  util_info.cube = 0;
-  util_info.vector = 0;
+  util_info.cubeUtilization = 0;
+  util_info.vectorUtilization = 0;
   NPU_CHECK_ERROR(c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
-  int32_t cube = util_info.cube;
-  int32_t vector = util_info.vector;
+  int32_t cube = util_info.cubeUtilization;
+  int32_t vector = util_info.vectorUtilization;
   int32_t util_rate = 0;
-  // 如果vector和cube谁支持,就返回谁的使用率，如果都支持计算(vector*1+cube*1)/2
+  // whoever supports vector or cube will return their usage rate,
+  // If both support calculation (vector * 1+cube * 1)/2.
   if (cube == DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
     util_rate = vector;
   } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector == DEVICE_UTILIZATION_NOT_SUPPORT) {
