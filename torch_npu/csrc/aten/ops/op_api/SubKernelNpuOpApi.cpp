@@ -29,7 +29,7 @@ at::Tensor &sub_out_npu_nocheck(
     at::Tensor &result) {
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = other.item();
+    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
     EXEC_NPU_CMD(aclnnSubs, self, others, alpha, result);
   } else {
     EXEC_NPU_CMD(aclnnSub, self, other, alpha, result);
@@ -39,7 +39,7 @@ at::Tensor &sub_out_npu_nocheck(
 
 static at::Tensor self_tensor_to_device(const at::Tensor &tensor, const at::ScalarType resultType) {
   if (at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(tensor)) {
-    at::Scalar scalar = tensor.item();
+    at::Scalar scalar = CalcuOpUtil::ConvertTensorToScalar(tensor);
     return CalcuOpUtil::CopyScalarToDevice(scalar, resultType);
   }
   return tensor;

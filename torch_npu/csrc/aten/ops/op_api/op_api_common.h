@@ -129,7 +129,7 @@ inline aclTensor *ConvertType(const at::Tensor &at_tensor) {
   }
 
   if (at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(at_tensor)) {
-    c10::Scalar expScalar = at_tensor.item();
+    c10::Scalar expScalar = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(at_tensor);
     at::Tensor aclInput = at_npu::native::CalcuOpUtil::CopyScalarToDevice(expScalar, scalar_data_type);
     return aclCreateTensor(aclInput.sizes().data(), aclInput.sizes().size(), acl_data_type,
                            aclInput.strides().data(), aclInput.storage_offset(), format, storageDims.data(),
