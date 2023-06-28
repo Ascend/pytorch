@@ -323,10 +323,7 @@ bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& sr
   return TransContiguous::ContiguousOptimizeWithAnyFormat(self, src);
 }
 
-at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  if (self.numel() == 0) {
-    return self;
-  }
+at::Tensor& copy_real_number_nocheck(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   // save tensor dim name
   c10::optional<at::DimnameList> names = src.opt_names();
   if (names.has_value()) {
@@ -346,6 +343,32 @@ at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, b
     }
   }
   return self;
+}
+
+at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+  if (self.numel() == 0) {
+    return self;
+  }
+
+  bool src_is_complex = src.is_complex();
+  at::Tensor src_real = src;
+  if (!self.is_complex()) {
+    if (src_is_complex) {
+      src_real = complex_compute_split(src)[0].squeeze(-1);
+    }
+    return copy_real_number_nocheck(self, src_real, non_blocking);
+  } else {
+    self = at::native::view_as_real(self);
+    if (src_is_complex) {
+      src_real = at::native::view_as_real(src);
+    } else {
+      at::Tensor zeros_real = at::zeros(src_real.sizes(), src_real.options());
+      src_real = at::stack({src_real, zeros_real}, -1);
+    }
+    copy_real_number_nocheck(self, src_real, non_blocking);
+    self = at::native::view_as_complex(self);
+    return self;
+  }
 }
 
 } // namespace native
