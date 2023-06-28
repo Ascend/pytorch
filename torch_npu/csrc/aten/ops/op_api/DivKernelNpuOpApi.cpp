@@ -28,7 +28,7 @@ namespace native {
 at::Tensor& div_out_npu_opapi_nocheck(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = other.item();
+    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
     EXEC_NPU_CMD(aclnnDivs, self, others, result);
   } else {
     EXEC_NPU_CMD(aclnnDiv, self, other, result);
@@ -38,7 +38,7 @@ at::Tensor& div_out_npu_opapi_nocheck(const at::Tensor& self, const at::Tensor& 
 
 static at::Tensor self_tensor_to_device(const at::Tensor& tensor, const at::ScalarType result_type) {
   if (at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(tensor)) {
-    at::Scalar scalar = tensor.item();
+    at::Scalar scalar = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(tensor);
     return CalcuOpUtil::CopyScalarToDevice(scalar, result_type);
   }
   return tensor;
@@ -82,7 +82,7 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
   }
   // calculate the output result of the NPU
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = other.item();
+    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
     EXEC_NPU_CMD(aclnnDivMods, self_cp, others, mode, result);
   } else {
     EXEC_NPU_CMD(aclnnDivMod, self_cp, other, mode, result);
@@ -147,7 +147,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
 
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar others = other.item();
+    c10::Scalar others = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
     EXEC_NPU_CMD(aclnnDivMods, self_cp, others, mode, result);
   } else {
     EXEC_NPU_CMD(aclnnDivMod, self_cp, other, mode, result);

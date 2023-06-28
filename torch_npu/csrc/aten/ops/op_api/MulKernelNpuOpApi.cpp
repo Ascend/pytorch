@@ -27,7 +27,7 @@ namespace native {
 
 static at::Tensor self_tensor_to_device(const at::Tensor& tensor, const at::ScalarType result_type) {
   if (at_npu::native::CalcuOpUtil::IsScalarWrappedToTensor(tensor)) {
-    at::Scalar scalar = tensor.item();
+    at::Scalar scalar = CalcuOpUtil::ConvertTensorToScalar(tensor);
     return CalcuOpUtil::CopyScalarToDevice(scalar, result_type);
   }
   return tensor;
@@ -36,7 +36,7 @@ static at::Tensor self_tensor_to_device(const at::Tensor& tensor, const at::Scal
 at::Tensor& inplace_mul_out_npu_no_check(at::Tensor& self, const at::Tensor& other) {
   // check if other scalar tensor
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar other_scalar = other.item();
+    c10::Scalar other_scalar = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
     EXEC_NPU_CMD(aclnnInplaceMuls, self, other_scalar);
   } else {
     EXEC_NPU_CMD(aclnnInplaceMul, self, other);
@@ -47,7 +47,7 @@ at::Tensor& inplace_mul_out_npu_no_check(at::Tensor& self, const at::Tensor& oth
 at::Tensor& mul_out_npu_no_check(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   // check if other scalar tensor
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    c10::Scalar other_scalar = other.item();
+    c10::Scalar other_scalar = at_npu::native::CalcuOpUtil::ConvertTensorToScalar(other);
     EXEC_NPU_CMD(aclnnMuls, self, other_scalar, result);
   } else {
     EXEC_NPU_CMD(aclnnMul, self, other, result);

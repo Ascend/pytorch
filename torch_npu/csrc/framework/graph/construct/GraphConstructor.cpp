@@ -212,7 +212,7 @@ void GraphCommandImpl::AddZeroDimInput(
   }
   TORCH_CHECK(
       dtype != at::ScalarType::Undefined, "Cpu tensor scalar type is undefined");
-  at::Scalar expect_scalar = input.item();
+  at::Scalar expect_scalar = CalcuOpUtil::ConvertTensorToScalar(input);
   ir_node_->AddExtInfo(
       NodeExtInfoType::INPUT_TYPE_SCALAR,
       std::make_tuple(input_index_++, expect_scalar, dtype));
