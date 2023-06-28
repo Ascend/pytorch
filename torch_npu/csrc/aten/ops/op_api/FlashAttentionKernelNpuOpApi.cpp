@@ -28,21 +28,37 @@ namespace native {
 using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 
+enum class DropOutStatus{
+  DROPOUT_NORMAL = 0,
+  DROPOUT_NONE,
+  DROPOUT_ALL
+};
+
+DropOutStatus get_dropout_status(double keep_prob) {
+  if (keep_prob == 0) {
+    return DropOutStatus::DROPOUT_ALL;
+  }
+  if (keep_prob == 1.) {
+    return DropOutStatus::DROPOUT_NONE;
+  }
+  return DropOutStatus::DROPOUT_NORMAL;
+}
+
 at::Tensor format_trans(const at::Tensor &at_tensor) {
     return at_tensor.defined() ? NPUNativeFunctions::npu_format_cast(at_tensor, ACL_FORMAT_ND) : at_tensor;
 }
 
-at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &prob, const at::Scalar &seed,
+at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &keep_prob, const at::Scalar &seed,
     const int64_t &offset, const int64_t &length) {
   c10::TensorOptions options = self.options();
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length}, options.dtype(at::kByte),
-                                                        ACL_FORMAT_ND);
+                                                         ACL_FORMAT_ND);
   at::SmallVector<int64_t, N> offsetList = {0, offset};
   const int64_t seed1 = 0;
   OpCommand cmd;
   cmd.Name("StatelessDropOutGenMask")
       .Input(at::IntArrayRef{length})
-      .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(keep_prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(seed, at::ScalarType::Int)
       .Input(at::Scalar(seed1), at::ScalarType::Int)
       .Input(offsetList, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
@@ -51,9 +67,10 @@ at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &prob,
   return mask;
 }
 
-at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &prob, const at::Scalar &seed,
+at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &keep_prob, const at::Scalar &seed,
     const int64_t &offset, const int64_t &length, const bool gen_mask_parallel, const bool sync) {
   at::Tensor mask;
+
   if (gen_mask_parallel) {
     auto original_stream = c10_npu::getCurrentNPUStream();
     {
@@ -62,7 +79,7 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &p
       // same time, according to the one-stream-one-pool principle, memory is also
       // alloced from the pool of the secondary stream.
       c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
-      mask = dropout_gen_mask_impl(self, prob, seed, offset, length);
+      mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, length);
       if (sync) {
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(original_stream));
       }
@@ -71,22 +88,29 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &p
     // recordStream needs to be called to ensure the correctness of memory reuse.
     c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   } else {
-    mask = dropout_gen_mask_impl(self, prob, seed, offset, length);
+    mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, length);
   }
   return mask;
 }
 
-at::Tensor dropout_gen_mask(const at::Tensor &self, double p, int64_t head_num, bool gen_mask_parallel, bool sync,
-    int64_t &seed, int64_t &offset, int64_t &length) {
-  const auto gen = at_npu::detail::getDefaultNPUGenerator();
-  auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
-  seed = pair.first;
-  offset = pair.second;
+at::Tensor dropout_gen_mask(const at::Tensor &self, double keep_prob, int64_t head_num, bool gen_mask_parallel, bool sync,
+  int64_t &seed, int64_t &offset, int64_t &length) {
+  at::Tensor drop_mask;
   int64_t numels = self.size(0) * head_num * self.size(1) * self.size(1); // [B,N,S,S]
   length = (numels + 128 - 1) / 128 * 16; // 先对齐到128，然后按Byte缩放8倍
   length += 32;
-  at::Scalar prob = at::Scalar(1. - p);
-  return dropout_gen_mask_dispatch(self, prob, at::Scalar(seed), offset, length, gen_mask_parallel, sync);
+  if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_NORMAL) {
+    const auto gen = at_npu::detail::getDefaultNPUGenerator();
+    auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
+    seed = pair.first;
+    offset = pair.second;
+    drop_mask = dropout_gen_mask_dispatch(self, at::Scalar(keep_prob), at::Scalar(seed), offset, length, gen_mask_parallel, sync);
+  } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
+    drop_mask = at::zeros(at::IntArrayRef{length}, self.options().dtype(at::kByte));
+  } else {
+    drop_mask = at::full(at::IntArrayRef{length}, 255, self.options().dtype(at::kByte));
+  }
+  return drop_mask;
 }
 
 std::vector<at::Tensor> npu_flash_attention_backward(
@@ -162,6 +186,7 @@ public:
     TORCH_CHECK(query.dim() == 3, "The shapes of the input query should be 3-dimensional, but got ", query.dim(), "-dimensional");
     TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
     TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
+    TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
     at::Tensor attention_score = OpPreparation::ApplyTensor(query);
 
     at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
@@ -238,8 +263,14 @@ public:
     auto atten_mask = saved[8];
     auto attention_score = saved[9];
 
-    at::Scalar prob = at::Scalar(1. - keep_prob);
-    at::Tensor drop_mask = dropout_gen_mask_dispatch(query, prob, at::Scalar(seed), offset, length, gen_mask_parallel, sync);
+    at::Tensor drop_mask;
+    if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_NORMAL) {
+      drop_mask = dropout_gen_mask_dispatch(query, at::Scalar(keep_prob), at::Scalar(seed), offset, length, gen_mask_parallel, sync);
+    } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
+      drop_mask = at::zeros(at::IntArrayRef{length}, query.options().dtype(at::kByte));
+    } else {
+      drop_mask = at::full(at::IntArrayRef{length}, 255, query.options().dtype(at::kByte));
+    }
 
     return npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, pse, drop_mask, padding_mask, atten_mask,
@@ -272,10 +303,12 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
   TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
   TORCH_CHECK(dy.dim() == 3, "The shapes of the input dy should be 3-dimensional, but got ", dy.dim(), "-dimensional");
+  TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
   int64_t seed;
   int64_t offset;
   int64_t length;
-  at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, gen_mask_parallel, sync, seed, offset, length);
+  at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, gen_mask_parallel, sync,
+    seed, offset, length);
 
   return npu_flash_attention_backward(query,
       key, value, dy, head_num, pse, drop_mask, padding_mask, atten_mask,
