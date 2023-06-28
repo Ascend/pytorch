@@ -4,7 +4,9 @@
 
 namespace  c10_npu::acl {
     
-    static std::unordered_map<int, std::string> error_code_map = {
+class AclErrorCode {
+public:
+    std::unordered_map<int, std::string> error_code_map = {
         {100000, "Parameter verification failed.\n\
         Check whether the input parameter value of the interface is correct."},
         {100001, "ACL uninitialized.\n\
@@ -458,4 +460,5 @@ by issues: https://gitee.com/ascend/pytorch/issue"},
         Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
 by issues: https://gitee.com/ascend/pytorch/issue"},
     }; /* aclError code */
+};
 } /* c10_npu::acl */
