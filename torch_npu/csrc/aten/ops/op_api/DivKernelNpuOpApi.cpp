@@ -15,11 +15,9 @@
 // limitations under the License.
 
 #include <ATen/Tensor.h>
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
@@ -50,8 +48,14 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
   // calculate the output size
   auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType result_type = at::native::result_type(self, other);
+  if (isIntegralType(result_type, true)) {
+    result_type = at::ScalarType::Float;
+  }
+  if (isFloatingType(result.scalar_type())) {
+    result_type = result.scalar_type();
+  }
   at::Tensor self_cp = self_tensor_to_device(self, result_type);
-  OpPreparation::CheckOut({self}, result, result, output_size);
+  OpPreparation::CheckOut({self}, result, result_type, output_size);
 
   // calculate the output result of the NPU
   div_out_npu_opapi_nocheck(self_cp, other, result);
@@ -72,7 +76,7 @@ at::Tensor& NPUNativeOpApiFunctions::div_out(const at::Tensor& self, const at::T
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType result_type = at::native::result_type(self, other);
   at::Tensor self_cp = self_tensor_to_device(self, result_type);
-  OpPreparation::CheckOut({self}, result, result, outputSize);
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
 
   int mode = 0;
   if (rounding_mode.has_value() && *rounding_mode == "floor") {
