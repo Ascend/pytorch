@@ -26,19 +26,18 @@ class NpuNullBackendCtx:
         self.enter_result = enter_result
         self.torch_func_names = [
             "tensor", "full", "randint", "range", "arange", "as_tensor",
-            "empty", "empty_like", "empty_strided", "eye", "ones", "ones_like",
+            "empty_like", "empty_strided", "eye", "ones", "ones_like",
             "rand", "rand_like", "randint_like", "randn", "randn_like",
             "randperm", "scalar_tensor", "zeros", "zeros_like"
         ]
         self.tensor_method_names = [
-            "device", "new_full", "new_zeros", "new_ones", "new_tensor"
+            "device", "new_full", "new_zeros", "new_ones", "new_tensor", "new_empty"
         ]
 
     def __enter__(self):
         # pylint: disable=expression-not-assigned
         # pylint: disable=attribute-defined-outside-init
         self.prior_isinstance = builtins.isinstance
-        self.prior_tensor_device = torch.Tensor.device
         self.prior_device = torch.device
         self.prior_torch_funcs = [[name, getattr(torch, name)]
                                   for name in self.torch_func_names]
