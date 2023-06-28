@@ -24,7 +24,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::npu_reshape_out(
+at::Tensor& npu_reshape_out_nocheck(
     const at::Tensor& src,
     at::IntArrayRef shape,
     bool can_refresh,
@@ -55,6 +55,41 @@ at::Tensor& NPUNativeFunctions::npu_reshape_out(
         result,
         src,
         c10::multiply_integers(torch_npu::NPUBridge::GetNpuStorageImpl(result)->get_npu_desc().storage_sizes_));
+  }
+  return result;
+}
+
+at::Tensor complex_reshape(
+    const at::Tensor& src,
+    at::IntArrayRef shape,
+    bool can_refresh) {
+  auto split_src = complex_compute_split(src);
+  at::Tensor real = split_src[0].squeeze(-1);
+  at::Tensor imag = split_src[1].squeeze(-1);
+
+  at::Tensor real_reshape = OpPreparation::ApplyTensor(real, shape);
+  at::Tensor imag_reshape = OpPreparation::ApplyTensor(imag, shape);
+
+  at::Tensor real_contiguous = real.is_contiguous() ? real : real.contiguous();
+  at::Tensor imag_contiguous = imag.is_contiguous() ? imag : imag.contiguous();
+
+  npu_reshape_out_nocheck(real_contiguous, shape, can_refresh, real_reshape);
+  npu_reshape_out_nocheck(imag_contiguous, shape, can_refresh, imag_reshape);
+
+  auto stack_res = NPUNativeFunctions::stack({real_reshape, imag_reshape}, -1);
+  return at::native::view_as_complex(stack_res);
+}
+
+at::Tensor& NPUNativeFunctions::npu_reshape_out(
+    const at::Tensor& src,
+    at::IntArrayRef shape,
+    bool can_refresh,
+    at::Tensor& result) {
+  if (!src.is_complex()) {
+    npu_reshape_out_nocheck(src, shape, can_refresh, result);
+  } else {
+    at::Tensor result_cp = complex_reshape(src, shape, can_refresh);
+    result.copy_(result_cp);
   }
   return result;
 }
