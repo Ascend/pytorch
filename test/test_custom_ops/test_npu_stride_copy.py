@@ -47,6 +47,20 @@ class TestNpuStrideCopy(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1], item[2], item[3])
             self.assertRtolEqual(custom_output, npu_output)
 
+    def test_npu_stride_copy_complex(self):
+        shape_format = [
+            [[np.complex64, 0, [3, 3]], (2, 2), (1, 2), 0],
+            [[np.complex64, 0, [13, 23]], (10, 15), (1, 2), 1],
+            [[np.complex64, 0, [5, 5]], (3, 3), (1, 2), 1],
+            [[np.complex64, 2, [32, 8, 2]], (8, 6, 2), (5, 4, 1), 1],
+        ]
+
+        for item in shape_format:
+            _, npu_input1 = create_common_tensor(item[0], -100, 100)
+            custom_output = self.custom_op_exec(npu_input1, item[1], item[2], item[3])
+            npu_output = self.npu_op_exec(npu_input1, item[1], item[2], item[3])
+            self.assertRtolEqual(custom_output.astype(np.float), npu_output.astype(np.float))
+
 
 if __name__ == "__main__":
     run_tests()
