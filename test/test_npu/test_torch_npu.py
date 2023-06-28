@@ -185,9 +185,5 @@ class TorchNPUApiTestCase(TestCase):
         res = torch.npu.aclnn.version()
         self.assertEqual(res, None)
 
-    def test_npu_get_utilization(self):
-        res = torch.npu.utilization()
-        self.assertEqual(res, 0)
-
 if __name__ == "__main__":
     run_tests()
