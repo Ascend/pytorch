@@ -28,7 +28,7 @@ namespace native {
 at::Tensor& NPUNativeOpApiFunctions::pow_out(const at::Tensor& self, const at::Tensor& exp, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnPowTensorTensor, NPUNativeFunctions::pow_out(self, exp, result));
   auto outputSize = broadcast_ops_npu_output_size(self, exp);
-  OpPreparation::CheckOut({self, exp}, result, self, outputSize);
+  OpPreparation::CheckOut({self, exp}, result, result, outputSize);
 
   CalcuOpUtil::CheckMemoryOverLaps({self, exp}, {result});
   EXEC_NPU_CMD(aclnnPowTensorTensor, self, exp, result);
@@ -56,8 +56,9 @@ at::Tensor &NPUNativeOpApiFunctions::pow_out(const at::Scalar& self, const at::T
 at::Tensor NPUNativeOpApiFunctions::pow(const at::Tensor& self, const at::Tensor& exp) {
   DO_COMPATIBILITY(aclnnPowTensorTensor, NPUNativeFunctions::pow(self, exp));
   // calculate the output size
-  auto outputSize = broadcast_ops_npu_output_size(self, exp);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  auto output_size = broadcast_ops_npu_output_size(self, exp);
+  at::ScalarType result_type = at::result_type(self, exp);
+  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
   EXEC_NPU_CMD(aclnnPowTensorTensor, self, exp, result);
   return result;
 }
