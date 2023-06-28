@@ -32,13 +32,14 @@ at::Tensor& range_out_nocheck(
   for (int i = 0; i < value; i++) {
     tmp_vector.emplace_back(i);
   }
+  at::Scalar limit = CalcuOpUtil::GetScalarFloatValue(end) + CalcuOpUtil::GetScalarFloatValue(step);
 
   OpCommand cmd;
   cmd.Name("RangeD")
      .Input(tmp_vector, result.scalar_type())
      .Output(result)
      .Attr("start", start)
-     .Attr("limit", end)
+     .Attr("limit", limit)
      .Attr("delta", step)
      .Run();
 
