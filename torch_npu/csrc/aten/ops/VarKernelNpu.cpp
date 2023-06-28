@@ -71,6 +71,22 @@ at::Tensor& var_after_npu_nocheckout(
   return var;
 }
 
+int64_t get_shape_prod(const at::Tensor& self, at::IntArrayRef dim) {
+  int64_t shape_prod = 1;
+  if (self.dim() == 0) {
+    shape_prod = 1;
+  } else if (dim.size() == 0) {
+    for (auto i = 0; i < self.dim(); i++) {
+      shape_prod *= self.size(i);
+    }
+  } else {
+    for(auto i = 0; i < dim.size(); i++) {
+      shape_prod *= self.size(dim[i]);
+    }
+  }
+  return shape_prod;
+}
+
 tuple<at::Tensor&, at::Tensor&> var_mean_compute(
     at::Tensor& variance,
     at::Tensor& mean,
@@ -85,6 +101,13 @@ tuple<at::Tensor&, at::Tensor&> var_mean_compute(
   at::Tensor mean_broadcast = NPUNativeFunctions::npu_broadcast(mean, self.sizes());
   if(!keepdim){
     NPUNativeFunctions::resize_(mean, meanOutputSizeNotKeepDim, c10::nullopt);
+  }
+  if (unbiased) {
+    auto shape_prod = get_shape_prod(self, dim);
+    if (shape_prod <= 1) {
+      variance.fill_(NAN);
+      return tuple<at::Tensor&, at::Tensor&>(variance, mean);
+    }
   }
   var_after_npu_nocheckout(variance, self, mean_broadcast, dim, unbiased, keepdim);
   return tuple<at::Tensor&, at::Tensor&>(variance, mean);
@@ -114,7 +137,7 @@ tuple<at::Tensor&, at::Tensor&> var_mean_out_npu(
         dim_now,
         unbiased,
         keepdim);
- 
+
   return tuple<at::Tensor&, at::Tensor&>(variance, mean);
 }
 
@@ -132,7 +155,7 @@ at::Tensor& NPUNativeFunctions::var_out(
   // construct the output mean tensor of the NPU
   at::Tensor mean = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor var_ = OpPreparation::ApplyTensor(self, outputSize);
-  
+
   var_mean_out_npu(var_, mean, self, dim.value_or(at::IntArrayRef{}), unbiased, keepdim);
   OpPreparation::CheckOut(
       {var_},
@@ -148,7 +171,7 @@ at::Tensor& NPUNativeFunctions::var_out(
     bool unbiased,
     bool keepdim,
     at::Tensor& var) {
-  return at::var_out(var, self, dimnames_to_positions(self, dim), 
+  return at::var_out(var, self, dimnames_to_positions(self, dim),
       c10::make_optional<int64_t>({unbiased ? 1 : 0}), keepdim);
 }
 
@@ -158,7 +181,7 @@ at::Tensor& NPUNativeFunctions::var_out(
     bool unbiased,
     bool keepdim,
     at::Tensor& var) {
-  return at::var_out(var, self, dim, 
+  return at::var_out(var, self, dim,
       c10::make_optional<int64_t>({unbiased ? 1 : 0}), keepdim);
 }
 
@@ -201,7 +224,7 @@ at::Tensor NPUNativeFunctions::var(
     at::DimnameList dim,
     bool unbiased,
     bool keepdim) {
-  return at::var(self, dimnames_to_positions(self, dim), 
+  return at::var(self, dimnames_to_positions(self, dim),
       c10::make_optional<int64_t>({unbiased ? 1 : 0}), keepdim);
 }
 
@@ -217,9 +240,9 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
 
   // construct the output tensor of the NPU
   at::Tensor variance = OpPreparation::ApplyTensor(self, outputSize);
- 
+
   at::Tensor mean = OpPreparation::ApplyTensor(self, outputSize);
-  
+
   // calculate the output result of the NPU
   var_mean_out_npu(variance, mean, self, dim.value_or(at::IntArrayRef{}), unbiased, keepdim);
 
@@ -245,7 +268,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
     at::DimnameList dim,
     bool unbiased,
     bool keepdim) {
-  return at::var_mean(self, dimnames_to_positions(self, dim), 
+  return at::var_mean(self, dimnames_to_positions(self, dim),
       c10::make_optional<int64_t>({unbiased ? 1 : 0}), keepdim);
 }
 
