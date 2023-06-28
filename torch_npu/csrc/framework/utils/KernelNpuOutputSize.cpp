@@ -925,6 +925,12 @@ namespace native {
       return shape;
     }
 
+    c10::SmallVector<int64_t, SIZE> repeat_interleave_tensor_npu_output_size(const at::Tensor &repeats) {
+      c10::SmallVector<int64_t, SIZE> shape;
+      shape.emplace_back(repeats.sum().item().toLong());
+      return shape;
+    }
+
     c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef padding) {

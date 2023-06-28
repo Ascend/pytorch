@@ -44,6 +44,14 @@ at::Tensor& repeat_interleave_out_npu(at::Tensor& result, const at::Tensor& self
   return result;
 }
 
+void check_dim_valid(int64_t real_dim, int64_t self_dim) {
+    int64_t dim_min = std::min(-self_dim, self_dim-1);
+    int64_t dim_max = std::max(-self_dim, self_dim-1);
+    TORCH_CHECK(
+      (real_dim >= dim_min) && (real_dim <= dim_max),
+      "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
+}
+
 at::Tensor NPUNativeFunctions::repeat_interleave(
     const at::Tensor& self,
     int64_t repeats,
@@ -51,9 +59,8 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     c10::optional<int64_t> output_size) {
   int64_t real_dim = dim.value_or(0);
   int64_t self_dim = self.dim();
-  TORCH_CHECK(
-      (real_dim >= -self_dim) && (real_dim <= self_dim - 1),
-      "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
+  check_dim_valid(real_dim, self_dim);
+  
   TORCH_CHECK(
       repeats >= 1,
       "repeats can not be negative.");
@@ -85,9 +92,7 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     c10::optional<int64_t> output_size) {
   int64_t real_dim = dim.value_or(0);
   int64_t self_dim = self.dim();
-  TORCH_CHECK(
-      (real_dim >= -self_dim) && (real_dim <= self_dim - 1),
-      "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
+  check_dim_valid(real_dim, self_dim);
 
   at::Tensor self_tensor = self;
   at::Tensor repeats_tensor = repeats;
@@ -116,6 +121,44 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     result = result.transpose(0, real_dim);
   }
   return result;
+}
+
+// repeat_interleave.Tensor
+at::Tensor NPUNativeFunctions::repeat_interleave(const at::Tensor& repeats, c10::optional<int64_t> output_size) {
+    // only support int32 and int64
+    TORCH_CHECK((repeats.scalar_type() == at::kLong || repeats.scalar_type() == at::kInt),
+        '"repeat_interleave" is only implemented for int32 and int64');
+    
+    // check output_size value is valid
+    int64_t output_size_expected = repeats.sum().item().toLong();
+    if (output_size.has_value() && repeats.numel() != 0) {
+        TORCH_CHECK(output_size_expected == output_size, "Allocated size does not match required size.");
+    }
+
+    // check repeats is 1d
+    TORCH_CHECK(repeats.dim() == 1, "repeat_interleave only accept 1D vector as repeat");
+
+    at::Tensor repeats_tensor = repeats;
+
+    // if int32, need to cast to int64 for calculation
+    bool need_cast = repeats.scalar_type() == at::kInt; 
+    if (need_cast) {
+        repeats_tensor =  NPUNativeFunctions::npu_dtype_cast(repeats_tensor, at::kLong);
+    }
+
+    std::vector<int64_t> self_data;
+    for (int64_t i = 0; i < repeats.numel(); i++) {
+        self_data.emplace_back(i);
+    }
+    at::Tensor self = CalcuOpUtil::CopyTensorHostToDevice(at::from_blob(self_data.data(), self_data.size(),
+        dtype(at::kLong)));
+    
+    auto result = NPUNativeFunctions::repeat_interleave(self, repeats_tensor, c10::nullopt, output_size);
+    if (need_cast) {
+        result = NPUNativeFunctions::npu_dtype_cast(result, at::kInt);
+    }
+
+    return result;
 }
 
 } // namespace native
