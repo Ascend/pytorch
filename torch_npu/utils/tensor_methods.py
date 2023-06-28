@@ -165,7 +165,10 @@ def _new_zeros(self, *args, **kwargs):
 @property
 def _device(self):
     if self.get_device() == -1:
-        return torch_npu._C.device("cpu")
+        if self.is_meta:
+            return torch._C.device("meta")
+        else:
+            return torch_npu._C.device("cpu")
     return torch_npu._C.device(type="npu", index=self.get_device())
 
 

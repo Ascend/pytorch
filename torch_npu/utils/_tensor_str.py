@@ -80,7 +80,9 @@ def _str_intern(inp):
     suffixes = []
     self, tangent = torch.autograd.forward_ad.unpack_dual(inp)
 
-    if self.device.type != torch._C._get_default_device()\
+    if self.device.type == 'meta':
+        suffixes.append('device=\'' + str(self.device.type) +'\'')
+    elif self.device.type != torch._C._get_default_device()\
             or (self.device.type == torch_npu.npu.native_device and torch.npu.current_device() != self.device.index):
         suffixes.append('device=\'' + str(torch_npu.npu.npu_device) + ':'+ str(torch.npu.current_device())+'\'')
 
