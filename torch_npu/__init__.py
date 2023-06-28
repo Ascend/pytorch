@@ -82,22 +82,26 @@ def cann_package_check():
         # check whether environment variables are correctly configured
         if "ASCEND_OPP_PATH" not in os.environ:
             raise Exception(f"ASCEND_OPP_PATH environment variable is not set. " \
-                            "Please run 'source set_env.sh' in the CANN installation path.")
+                            "Please check whether the opp package has been installed. If exist, please run "\
+                            "'source set_env.sh' in the CANN installation path.")
 
         ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
         if not os.path.exists(ascend_opp_path):
             raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist. " \
-                            "Please run 'source set_env.sh' in the CANN installation path.")
+                            "Please check whether the opp package has been installed. If exist, please run "\
+                            "'source set_env.sh' in the CANN installation path.")
 
         ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
         if not os.path.exists(ascend_runtime_path):
-            raise Exception(f"{ascend_runtime_path} does not exist. " \
-                            "Please run 'source set_env.sh' in the CANN installation path.")
+            raise Exception(f"ASCEND_RUNTIME_PATH : {ascend_runtime_path} does not exist. " \
+                            "Please check whether the runtime package has been installed. If exist, please run "\
+                            "'source set_env.sh' in the CANN installation path.")
 
         ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
         if not os.path.exists(ascend_compiler_path):
-            raise Exception(f"{ascend_compiler_path} does not exist. " \
-                            "Please run 'source set_env.sh' in the CANN installation path.")
+            raise Exception(f"ASCEND_COMPILER_PATH : {ascend_compiler_path} does not exist. " \
+                            "Please check whether the compiler package has been installed. If exist, please run "\
+                            "'source set_env.sh' in the CANN installation path.")
 
         # get the cann version
         cann_version = get_cann_version(ascend_home_path)

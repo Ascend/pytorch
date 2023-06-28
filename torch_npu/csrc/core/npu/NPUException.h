@@ -15,6 +15,7 @@ do {                                                      \
 #define NPU_CHECK_ERROR(err_code)                                    \
   do {                                                               \
     auto Error = err_code;                                           \
+    static c10_npu::acl::AclErrorCode err_map;                       \
     if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_CHECK(                                                   \
         false,                                                       \
@@ -24,9 +25,9 @@ do {                                                      \
         ":",                                                         \
         __LINE__,                                                    \
         " NPU error, error code is ", Error,                         \
-        (c10_npu::acl::error_code_map.find(Error) !=                 \
-        c10_npu::acl::error_code_map.end() ?                         \
-        "\n[Error]: "+ c10_npu::acl::error_code_map[Error] : ".") ,  \
+        (err_map.error_code_map.find(Error) !=                       \
+        err_map.error_code_map.end() ?                               \
+        "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
@@ -34,6 +35,7 @@ do {                                                      \
 #define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                       \
   do {                                                               \
     auto Error = err_code;                                           \
+    static c10_npu::acl::AclErrorCode err_map;                       \
     if ((Error) != ACL_ERROR_NONE                                    \
         && (Error) != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {            \
       TORCH_CHECK(                                                   \
@@ -44,9 +46,9 @@ do {                                                      \
         ":",                                                         \
         __LINE__,                                                    \
         " NPU error, error code is ", Error,                         \
-        (c10_npu::acl::error_code_map.find(Error) !=                 \
-        c10_npu::acl::error_code_map.end() ?                         \
-        "\n[Error]: "+ c10_npu::acl::error_code_map[Error] : ".") ,  \
+        (err_map.error_code_map.find(Error) !=                       \
+        err_map.error_code_map.end() ?                               \
+      "\n[Error]: " + err_map.error_code_map[Error] : ".") ,         \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
@@ -54,12 +56,13 @@ do {                                                      \
 #define NPU_CHECK_WARN(err_code)                                     \
   do {                                                               \
     auto Error = err_code;                                           \
+    static c10_npu::acl::AclErrorCode err_map;                       \
     if ((Error) != ACL_ERROR_NONE) {                                 \
       TORCH_WARN("NPU warning, error code is ", Error,               \
         "[Error]: ",                                                 \
-        (c10_npu::acl::error_code_map.find(Error) !=                 \
-        c10_npu::acl::error_code_map.end() ?                         \
-        "\n[Error]: "+ c10_npu::acl::error_code_map[Error] : ".") ,  \
+        (err_map.error_code_map.find(Error) !=                       \
+        err_map.error_code_map.end() ?                               \
+        "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
