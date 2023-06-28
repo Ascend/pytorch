@@ -265,13 +265,16 @@ supported:
  - binary_cross_entropy_with_logits
  - func: bincount
    op_api: False
- - bitwise_and.Scalar
- - bitwise_and.Scalar_out
+ - func: bitwise_and.Scalar
+   op_api: False
+ - func: bitwise_and.Scalar_out
+   op_api: False
  - func: bitwise_and.Tensor
    op_api: True
  - func: bitwise_and.Tensor_out
    op_api: True
- - bitwise_and_.Scalar
+ - func: bitwise_and_.Scalar
+   op_api: False
  - func: bitwise_and_.Tensor
    op_api: True
  - func: bitwise_not
