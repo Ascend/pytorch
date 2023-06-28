@@ -890,8 +890,10 @@ supported:
    op_api: True
  - func: nll_loss_forward.output
    op_api: True
- - nonzero
- - nonzero.out
+ - func: nonzero
+   op_api: False
+ - func: nonzero.out
+   op_api: False
  - norm.Scalar
  - norm.ScalarOpt_dim
  - norm.ScalarOpt_dim_dtype
