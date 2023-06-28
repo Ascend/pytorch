@@ -150,10 +150,19 @@ def run_cmake():
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
         '-DBUILD_LIBTORCH=' + "ON"]
 
+    if check_opplugin_valid(BASE_DIR):
+        cmake_args.append('-DBUILD_OPPLUGIN=on')
+
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
     subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+
+
+def check_opplugin_valid(base_dir):
+    # build with submodule of op_plugin, if path of op-plugin is valid
+    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
 
 
 def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, level=1):

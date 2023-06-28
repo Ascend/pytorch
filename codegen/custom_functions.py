@@ -11,6 +11,7 @@ from torchgen.utils import concatMap, context
 from torchgen.context import with_native_function
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
+from codegen.utils import (enable_opplugin, is_op_valid)
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
@@ -86,6 +87,9 @@ def compute_trace_method_definition(f: NativeFunction):
 
     args_exprs_str = ', '.join(a.name for a in args)
     impl_name = f"at_npu::native::NPUNativeFunctions::{cpp.name(f.func)}"
+
+    if enable_opplugin() and is_op_valid(str(f.func.name)):
+        impl_name = f"op_plugin::{cpp.name(f.func)}"
 
     check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
     unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \

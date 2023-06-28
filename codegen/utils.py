@@ -234,9 +234,10 @@ const DeviceGuard device_guard(device_or_default(device));"""
                     if device_of is not None:
                         device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
 
-            op_key = str(f.func.name)
-            if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
-                impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
+            if enable_opplugin():
+                op_key = str(f.func.name)
+                if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
+                    impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
 
             return f"""\
 namespace {{
@@ -297,3 +298,14 @@ def add_header_to_template_file():
                                                     "#include <ATen/Tensor.h>\n#include <ATen/ATen.h>")
         with os.fdopen(os.open(template_dir, os.O_WRONLY, stat.S_IWUSR | stat.S_IRUSR), "w") as file:
             file.write(template_content)
+
+
+def enable_opplugin() -> bool:
+    # enable op_plugin, if path of third_party/op-plugin is valid.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    op_plugin_path = os.path.join(base_dir, '../third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
+
+
+def is_op_valid(op_key: str) -> bool:
+    return True if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE else False
