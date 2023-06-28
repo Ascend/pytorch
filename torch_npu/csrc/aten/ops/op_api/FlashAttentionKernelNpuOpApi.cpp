@@ -49,15 +49,16 @@ at::Tensor format_trans(const at::Tensor &at_tensor) {
 }
 
 at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &keep_prob, const at::Scalar &seed,
-    const int64_t &offset, const int64_t &length) {
+    const int64_t offset, const int64_t numels) {
+  int64_t length = (numels + 128 - 1) / 128 * 16; // 先对齐到128，然后按Byte缩放8倍
   c10::TensorOptions options = self.options();
-  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length}, options.dtype(at::kByte),
+  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length + 32}, options.dtype(at::kByte),
                                                          ACL_FORMAT_ND);
   at::SmallVector<int64_t, N> offsetList = {0, offset};
   const int64_t seed1 = 0;
   OpCommand cmd;
   cmd.Name("StatelessDropOutGenMask")
-      .Input(at::IntArrayRef{length})
+      .Input(at::IntArrayRef{numels})
       .Input(keep_prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(seed, at::ScalarType::Int)
       .Input(at::Scalar(seed1), at::ScalarType::Int)
@@ -68,7 +69,7 @@ at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &keep_
 }
 
 at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &keep_prob, const at::Scalar &seed,
-    const int64_t &offset, const int64_t &length, const bool gen_mask_parallel, const bool sync) {
+    const int64_t offset, const int64_t numels, const bool gen_mask_parallel, const bool sync) {
   at::Tensor mask;
 
   if (gen_mask_parallel) {
@@ -79,7 +80,7 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &k
       // same time, according to the one-stream-one-pool principle, memory is also
       // alloced from the pool of the secondary stream.
       c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
-      mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, length);
+      mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, numels);
       if (sync) {
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(original_stream));
       }
@@ -88,23 +89,23 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &k
     // recordStream needs to be called to ensure the correctness of memory reuse.
     c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   } else {
-    mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, length);
+    mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, numels);
   }
   return mask;
 }
 
 at::Tensor dropout_gen_mask(const at::Tensor &self, double keep_prob, int64_t head_num, bool gen_mask_parallel, bool sync,
-  int64_t &seed, int64_t &offset, int64_t &length) {
+  int64_t &seed, int64_t &offset, int64_t &numels) {
   at::Tensor drop_mask;
-  int64_t numels = self.size(0) * head_num * self.size(1) * self.size(1); // [B,N,S,S]
-  length = (numels + 128 - 1) / 128 * 16; // 先对齐到128，然后按Byte缩放8倍
+  numels = self.size(0) * head_num * self.size(1) * self.size(1); // [B,N,S,S]
+  int64_t length = (numels + 128 - 1) / 128 * 16; // 先对齐到128，然后按Byte缩放8倍
   length += 32;
   if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_NORMAL) {
     const auto gen = at_npu::detail::getDefaultNPUGenerator();
     auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
     seed = pair.first;
     offset = pair.second;
-    drop_mask = dropout_gen_mask_dispatch(self, at::Scalar(keep_prob), at::Scalar(seed), offset, length, gen_mask_parallel, sync);
+    drop_mask = dropout_gen_mask_dispatch(self, at::Scalar(keep_prob), at::Scalar(seed), offset, numels, gen_mask_parallel, sync);
   } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
     drop_mask = at::zeros(at::IntArrayRef{length}, self.options().dtype(at::kByte));
   } else {
@@ -199,9 +200,9 @@ public:
 
     int64_t seed;
     int64_t offset;
-    int64_t length;
+    int64_t numels;
     at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, gen_mask_parallel, sync,
-      seed, offset, length);
+      seed, offset, numels);
 
     size_t dim = (query.scalar_type() == at::ScalarType::Float) ? 8 : 16;
     at::Tensor softmax_max = OpPreparation::ApplyTensor(query,
@@ -232,7 +233,7 @@ public:
     ctx->saved_data["sync"] = sync;
     ctx->saved_data["seed"] = seed;
     ctx->saved_data["offset"] = offset;
-    ctx->saved_data["length"] = length;
+    ctx->saved_data["numels"] = numels;
 
     return {attention_score};
   }
@@ -249,7 +250,7 @@ public:
     auto sync = ctx->saved_data["sync"].toBool();
     auto seed = ctx->saved_data["seed"].toInt();
     auto offset = ctx->saved_data["offset"].toInt();
-    auto length = ctx->saved_data["length"].toInt();
+    auto numels = ctx->saved_data["numels"].toInt();
     auto saved = ctx->get_saved_variables();
 
     auto query = saved[0];
@@ -263,9 +264,11 @@ public:
     auto atten_mask = saved[8];
     auto attention_score = saved[9];
 
+    int64_t length = (numels + 128 - 1) / 128 * 16; // 先对齐到128，然后按Byte缩放8倍
+    length += 32;
     at::Tensor drop_mask;
     if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_NORMAL) {
-      drop_mask = dropout_gen_mask_dispatch(query, at::Scalar(keep_prob), at::Scalar(seed), offset, length, gen_mask_parallel, sync);
+      drop_mask = dropout_gen_mask_dispatch(query, at::Scalar(keep_prob), at::Scalar(seed), offset, numels, gen_mask_parallel, sync);
     } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
       drop_mask = at::zeros(at::IntArrayRef{length}, query.options().dtype(at::kByte));
     } else {
@@ -306,9 +309,9 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
   int64_t seed;
   int64_t offset;
-  int64_t length;
+  int64_t numels;
   at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, gen_mask_parallel, sync,
-    seed, offset, length);
+    seed, offset, numels);
 
   return npu_flash_attention_backward(query,
       key, value, dy, head_num, pse, drop_mask, padding_mask, atten_mask,
