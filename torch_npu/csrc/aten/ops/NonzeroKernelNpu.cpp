@@ -51,6 +51,14 @@ at::Tensor NPUNativeFunctions::nonzero(const at::Tensor& self) {
   // calculate the output size
   auto outputSize = nonzero_npu_max_output_size(self);
 
+  if (self.numel() == 1 && self.dim() == 0) {
+    if (self.is_nonzero()) {
+      outputSize = {1, 0};
+    } else {
+      outputSize = {0, 0};
+    }
+  }
+
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(
       outputSize, self.options().dtype(at::kLong), self);
