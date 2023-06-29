@@ -30,7 +30,7 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory']
+                       'empty_quantized', '_pin_memory', 'autocast']
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
 torch_cuda_fn_white_list = [
@@ -40,6 +40,7 @@ torch_cuda_fn_white_list = [
 ]
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
+device_kwargs_list = ['device', 'device_type']
 
 NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
@@ -76,12 +77,13 @@ def wrapper_cuda(fn):
             args_new = list(args)
             args = replace_cuda_to_npu_in_list(args_new)
         if kwargs:
-            if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
-                kwargs['device'] = kwargs['device'].replace('cuda', 'npu')
-            device = kwargs.get('device', None)
-            if isinstance(device, torch_npu._C.device) and 'cuda' in device.type:
-                device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
-                kwargs['device'] = torch.device(device_info)
+            for device_arg in device_kwargs_list: 
+                device = kwargs.get(device_arg, None)
+                if isinstance(device, str) and 'cuda' in device:
+                    kwargs[device_arg] = device.replace('cuda', 'npu')
+                if isinstance(device, torch.device) and 'cuda' in device.type:
+                    device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
+                    kwargs[device_arg] = torch.device(device_info)
             if 'experimental_config' in kwargs.keys():
                 del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
