@@ -243,6 +243,11 @@ tuple<c10::IntArrayRef, c10::IntArrayRef, c10::IntArrayRef> layer_norm_backward_
     int64_t M,
     int64_t N);
 
+c10::SmallVector<int64_t, SIZE> kthvalue_npu_output_size(
+    const at::Tensor& self,
+    int64_t dim,
+    bool keepdim);
+
 c10::SmallVector<int64_t, SIZE> lstm_npu_output_size(
     const at::Tensor& input,
     const at::Tensor& weight,
