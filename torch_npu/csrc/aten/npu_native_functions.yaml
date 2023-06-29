@@ -300,9 +300,9 @@ supported:
  - blackman_window
  - blackman_window.periodic
  - func: bmm
-   op_api: False
+   op_api: True
  - func: bmm.out
-   op_api: False
+   op_api: True
  - func: cat
    op_api: True
  - func: cat.names
