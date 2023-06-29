@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple, defaultdict
 from typing import List, Dict, Sequence
 import yaml
@@ -64,6 +65,7 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
 
 METHOD_DEFINITION = CodeTemplate("""\
 ${return_type} ${name}(${args_str}) {
+  ${unpack_out}
   ${type_definition_body}
 }
 
@@ -76,6 +78,7 @@ return ${impl_name}(${args_exprs_str});""")
 
 @with_native_function
 def compute_trace_method_definition(f: NativeFunction):
+    out_num = len(f.func.arguments.out)
     sig = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_')
     name = sig.name()
     args = sig.arguments()
@@ -84,10 +87,15 @@ def compute_trace_method_definition(f: NativeFunction):
     args_exprs_str = ', '.join(a.name for a in args)
     impl_name = f"at_npu::native::NPUNativeFunctions::{cpp.name(f.func)}"
 
+    check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
+    unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \
+        if out_num > 1 else ''
+
     return [METHOD_DEFINITION.substitute(
         return_type=cpp.returns_type(f.func.returns).cpp_type(),
         name=name,
-        args_str=args_str,
+        args_str=','.join(a.defn() for a in args[:-out_num]) + ', at::TensorList out' if out_num > 1 else args_str,
+        unpack_out=unpack_out,
         type_definition_body=[TRACE_DISPATCH.substitute(impl_name=impl_name, args_exprs_str=args_exprs_str)]
     )]
 
@@ -95,7 +103,13 @@ def compute_trace_method_definition(f: NativeFunction):
 @with_native_function
 def compute_register_symbol(f: NativeFunction):
     name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
-    return [f'm.def({cpp_string(str(f.func))}, TORCH_FN(at_npu::native::{name}));\n']
+    out_num = len(f.func.arguments.out)
+    if out_num > 1:
+        decl = re.compile(r"(?P<name>[^\(]+)\((?P<args>.*)\) -> (?P<returns>.*)").findall(str(f.func))[0]
+        func_schema = decl[0] + '(' + ','.join(decl[1].split(',')[:-out_num]) + ', Tensor[] out) -> ' + decl[2]
+    else:
+        func_schema = str(f.func)
+    return [f'm.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}));\n']
 
 
 def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
@@ -112,57 +126,8 @@ def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFun
     })
 
 
-MULTI_OUT = CodeTemplate("""\
-def ${name}(${args_all}):
-    warnings.warn('out=() will be replaced var=,m=,v=')
-    if out is None:
-        return torch.ops.npu.${ops}(${args})
-    else:
-        return torch.ops.npu.${ops}(${args_out})
-
-
-""")
-
-
-def warp_multi_out(f: NativeFunction):
-    name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
-    args_real = list(f.func.schema_order_arguments())
-    out_num = len(f.func.arguments.out)
-    args_all = ', '.join([arg.name if arg.default is None else f'{arg.name}={arg.default}'
-                          for arg in args_real[:-out_num]]) + ', out=None'
-    args = ', '.join([arg.name for arg in args_real[:-out_num]])
-    ops = f.func.name.name
-    args_out = args + ', ' + ', '.join([f'{arg.name}=out[{i}]' for i, arg in enumerate(args_real[-out_num:])])
-
-    return [MULTI_OUT.substitute(
-        name=name,
-        args_all=args_all,
-        ops=ops,
-        args=args,
-        args_out=args_out
-    )]
-
-
-def patch_multi_out(f: NativeFunction):
-    ops = f.func.name.name
-    name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
-
-    return [f'torch_npu.{ops} = {name}']
-
-
 def gen_custom_ops_patch(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
-    multi_out_functions = [f for f in custom_trace_functions if len(f.func.arguments.out) > 1]
-    general_functions = [f for f in custom_trace_functions if f.func.name.name not in
-                         set([f.func.name.name for f in multi_out_functions])]
     fm.write_with_template(f'custom_ops.py', 'custom_ops.py', lambda: {
         'custom_ops': [f'torch_npu.{ops} = torch.ops.npu.{ops}'
-                       for ops in set([f.func.name.name for f in general_functions])],
-        'warp_multi_out': list(concatMap(
-            lambda f: warp_multi_out(f),
-            multi_out_functions
-        )),
-        'patch_multi_out': list(concatMap(
-            lambda f: patch_multi_out(f),
-            multi_out_functions
-        )),
+                       for ops in set([f.func.name.name for f in custom_trace_functions])],
     })
