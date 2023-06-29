@@ -6,6 +6,7 @@
 #include <third_party/acl/inc/acl/acl_base.h>
 #include"torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include"torch_npu/csrc/core/npu/NPUErrorCodes.h"
+#include"torch_npu/csrc/core/npu/npu_log.h"
 
 #define C10_NPU_SHOW_ERR_MSG()                            \
 do {                                                      \
@@ -38,8 +39,8 @@ do {                                                      \
     static c10_npu::acl::AclErrorCode err_map;                         \
     if ((Error) != ACL_ERROR_NONE) {                                   \
       if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {               \
-        ASCEND_LOGW("Feature is not supportted, the possible cause is  \
-                    that CANN packages do not match.");                \
+        NPU_LOGW(Feature is not supportted and the possible cause is   \
+                    that CANN packages do not match.);                 \
       } else {                                                         \
         TORCH_CHECK(                                                   \
           false,                                                       \
