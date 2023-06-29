@@ -475,8 +475,10 @@ supported:
  - expm1_
  - eye
  - eye.m
- - eye.m_out
- - eye.out
+ - func: eye.m_out
+   op_api: False
+ - func: eye.out
+   op_api: False
  - func: fill_.Tensor
    op_api: True
  - func: fill_.Scalar
