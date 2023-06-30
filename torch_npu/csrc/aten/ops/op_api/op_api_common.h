@@ -418,6 +418,60 @@ typedef void(*ReleaseHugeMem)(void*, bool);
     }                                                                                                        \
   } while (false)
 
+#define EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnn_api, ...)                                                         \
+  do {                                                                                                       \
+    static const auto getWorkspaceSizeFuncAddr = GetOpApiFuncAddr(#aclnn_api "GetWorkspaceSize");            \
+    static const auto opApiFuncAddr = GetOpApiFuncAddr(#aclnn_api);                                          \
+    static const auto initMemAddr = GetOpApiFuncAddr("InitHugeMemThreadLocal");                              \
+    static const auto unInitMemAddr = GetOpApiFuncAddr("UnInitHugeMemThreadLocal");                          \
+    static const auto releaseMemAddr = GetOpApiFuncAddr("ReleaseHugeMem");                                   \
+    TORCH_CHECK(getWorkspaceSizeFuncAddr != nullptr && opApiFuncAddr != nullptr,                             \
+                #aclnn_api, " or ", #aclnn_api "GetWorkspaceSize", " not in ", GetOpApiLibName(), ", or ",   \
+                GetOpApiLibName(), "not found.");                                                            \
+    auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);                                          \
+    uint64_t workspace_size = 0;                                                                             \
+    uint64_t *workspace_size_addr = &workspace_size;                                                         \
+    aclOpExecutor *executor = nullptr;                                                                       \
+    aclOpExecutor **executor_addr = &executor;                                                               \
+    InitHugeMemThreadLocal initMemFunc = reinterpret_cast<InitHugeMemThreadLocal>(initMemAddr);              \
+    UnInitHugeMemThreadLocal unInitMemFunc = reinterpret_cast<UnInitHugeMemThreadLocal>(unInitMemAddr);      \
+    if (initMemFunc) {                                                                                       \
+      initMemFunc(nullptr, false);                                                                           \
+    }                                                                                                        \
+    auto converted_params = ConvertTypes(__VA_ARGS__, workspace_size_addr, executor_addr);                   \
+    static auto getWorkspaceSizeFunc = ConvertToOpApiFunc(converted_params, getWorkspaceSizeFuncAddr);       \
+    auto workspace_status = call(getWorkspaceSizeFunc, converted_params);                                    \
+    TORCH_CHECK(workspace_status == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());         \
+    void *workspace_addr = nullptr;                                                                          \
+    if (workspace_size != 0) {                                                                               \
+      int deviceIdx = 0;                                                                                     \
+      NPU_CHECK_ERROR(aclrtGetDevice(&deviceIdx));                                                           \
+      auto workspace_tensor =                                                                                \
+          at::empty({static_cast<int64_t>(workspace_size)},                                                  \
+                    at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte));  \
+      workspace_addr = workspace_tensor.storage().data();                                                    \
+    }                                                                                                        \
+    auto acl_call = [converted_params, workspace_addr, workspace_size, acl_stream, executor]() -> int {      \
+      typedef int(*OpApiFunc)(void*, uint64_t, aclOpExecutor*, const aclrtStream);                           \
+      OpApiFunc opApiFunc = reinterpret_cast<OpApiFunc>(opApiFuncAddr);                                      \
+      auto api_ret = opApiFunc(workspace_addr, workspace_size, executor, acl_stream);                        \
+      TORCH_CHECK(api_ret == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());                \
+      ReleaseConvertTypes(converted_params);                                                                 \
+      ReleaseHugeMem releaseMemFunc = reinterpret_cast<ReleaseHugeMem>(releaseMemAddr);                      \
+      if (releaseMemFunc) {                                                                                  \
+        releaseMemFunc(nullptr, false);                                                                      \
+      }                                                                                                      \
+      return api_ret;                                                                                        \
+    };                                                                                                       \
+    at_npu::native::OpCommand cmd;                                                                           \
+    cmd.Name(#aclnn_api);                                                                                    \
+    cmd.SetCustomHandler(acl_call);                                                                          \
+    cmd.Run();                                                                                               \
+    if (unInitMemFunc) {                                                                                     \
+        unInitMemFunc(nullptr, false);                                                                       \
+    }                                                                                                        \
+  } while (false)
+
 template<typename Tuple>
 class ConvertedParams {
 public:
