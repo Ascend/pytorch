@@ -34,7 +34,11 @@ at::Tensor& NPUNativeOpApiFunctions::range_out(const at::Scalar& start, const at
       "upper bound and larger bound inconsistent with step sign");
 
   auto outputSize = range_npu_output_size(start_value, end_value, step_value);
-  OpPreparation::CheckOut({ }, result, result.scalar_type(), outputSize);
+  OpPreparation::CheckOut({ }, result, result.scalar_type(), result.sizes());
+
+  if (result.numel() != outputSize[0]) {
+    result.resize_({outputSize[0]});
+  }
 
   EXEC_NPU_CMD(aclnnRange, start, end, step, result);
   return result;
