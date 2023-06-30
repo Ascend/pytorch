@@ -16,6 +16,7 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 
 namespace at_npu {
 namespace native {
@@ -30,10 +31,45 @@ at::Tensor &NPUNativeOpApiFunctions::addmm_out(
 {
   DO_COMPATIBILITY(aclnnAddmm,
       NPUNativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, result));
-  int8_t cubeMathType = 1;
-  EXEC_NPU_CMD(aclnnAddmm, self, mat1, mat2, beta, alpha, result, cubeMathType);
+  int8_t cube_math_type = 1;
+  EXEC_NPU_CMD(aclnnAddmm, self, mat1, mat2, beta, alpha, result, cube_math_type);
 
   return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::addmm(
+    const at::Tensor &self,
+    const at::Tensor &mat1,
+    const at::Tensor &mat2,
+    const at::Scalar &beta,
+    const at::Scalar &alpha)
+{
+  DO_COMPATIBILITY(aclnnAddmm,
+      NPUNativeFunctions::addmm(self, mat1, mat2, beta, alpha));
+  auto output_size = addmm_npu_output_size(self, mat1, mat2, beta, alpha);
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(output_size, self.options());
+  int8_t cube_math_type = 1;
+  EXEC_NPU_CMD(aclnnAddmm, self, mat1, mat2, beta, alpha, result, cube_math_type);
+
+  return result;
+}
+
+at::Tensor &NPUNativeOpApiFunctions::addmm_(
+    at::Tensor &self,
+    const at::Tensor &mat1,
+    const at::Tensor &mat2,
+    const at::Scalar &beta,
+    const at::Scalar &alpha)
+{
+  DO_COMPATIBILITY(aclnnInplaceAddmm,
+      NPUNativeFunctions::addmm_(self, mat1, mat2, beta, alpha));
+  c10::SmallVector<at::Tensor, N> inputs = {self, mat1, mat2};
+  c10::SmallVector<at::Tensor, N> outputs = {self};
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+  int8_t cube_math_type = 1;
+  EXEC_NPU_CMD(aclnnInplaceAddmm, self, mat1, mat2, beta, alpha, cube_math_type);
+
+  return self;
 }
 
 } // namespace native

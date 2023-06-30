@@ -15,6 +15,8 @@
 import torch
 import numpy as np
 import torch_npu
+import unittest
+import os
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -111,6 +113,7 @@ class TestAddmm(TestCase):
         output = output.numpy()
         return output
 
+    @unittest.skipIf(os.getenv('HOSTAPI_ENABLED') == 'ON', "aclnnAddmm not support int")
     def test_addmm_shape_format_int(self, device="npu"):
         format_list = [0]
         shape_list = [(3, 3), (3, 5), (5, 3)]
@@ -227,6 +230,7 @@ class TestAddmm(TestCase):
             self.assertRtolEqual(cpu_output, npu_output1)
             self.assertRtolEqual(cpu_output, npu_output2)
 
+    @unittest.skipIf(os.getenv('HOSTAPI_ENABLED') == 'ON', "aclnnAddmm not support int")
     def test_addmm_transpose_shape_format_int(self, device="npu"):
         format_list = [0]
         shape_list = [(4, 5), (4, 7), (5, 7)]
