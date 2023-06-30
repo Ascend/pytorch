@@ -47,39 +47,11 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item_broadcast, 0, 100)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input.expand(item[2][1]).contiguous()
-            self.assertEqual(check_operators_in_prof(['contiguous_d_BroadcastTo'], prof),
-                True, "contiguous_d_BroadcastTo is not called!")
-            cpu_out1 = cpu_input.expand(item[2][1]).contiguous()
-            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-
-    def test_broadcast_copy_contiguous_complex(self):
-        dtype_list = [np.complex64]
-        format_list = [-1]
-        shape_list = [
-            [[1], [5]],
-            [[1, 2], [3, 2]],
-            [[1, 2, 1], [1, 2, 3]],
-            [[1, 2, 1, 3], [4, 2, 5, 3]],
-            [[1, 3], [1, 1, 4, 3]],
-            [[1, 3], [2, 1, 4, 3]],
-            [[1, 3], [1, 2, 4, 3]],
-            [[3, 1], [2, 1, 3, 1]],
-            [[3, 1], [1, 2, 3, 1]],
-        ]
-        shape_format = [
-            [i, j, k] for i in dtype_list for j in format_list for k in shape_list
-        ]
-
-        for item in shape_format:
-            item_broadcast = [item[0], item[1], item[2][0]]
-            cpu_input, npu_input = create_common_tensor(item_broadcast, 0, 100)
-            with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.expand(item[2][1]).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_BroadcastTo'], prof), \
                 True, "contiguous_d_BroadcastTo is not called!")
             cpu_out1 = cpu_input.expand(item[2][1]).contiguous()
-            self.assertRtolEqual(npu_out1.to("cpu").float(), cpu_out1.float())
-
+            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())                
+                
 
 if __name__ == "__main__":
     run_tests()

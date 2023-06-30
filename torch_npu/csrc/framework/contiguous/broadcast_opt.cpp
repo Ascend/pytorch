@@ -33,7 +33,12 @@ public:
       RECORD_FUNCTION("contiguous_d_BroadcastTo", std::vector<c10::IValue>({src}));
       IF_GRAPH_MODE_THEN_RUN(
         at::IntArrayRef target_shape = self.sizes();
-        NPUNativeFunctions::npu_broadcast_out(src, target_shape, self);
+        OpCommand cmd;
+        cmd.Name("BroadcastTo")
+            .InputWithoutContiguous(src)
+            .Input(target_shape, at::kLong)
+            .Output(self)
+            .Run();
         return true;
       )
       bool can_contiguous = broadcast_to_contiguous(self, src, src_desc);

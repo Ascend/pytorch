@@ -99,41 +99,13 @@ at::Tensor& stride_copy_out_npu_nocheck(
   }
 }
 
-at::Tensor npu_stride_copy_complex(
-    const at::Tensor& self,
-    c10::IntArrayRef shape,
-    c10::IntArrayRef stride,
-    const c10::Scalar& storage_offset) {
-  c10::SmallVector<at::Tensor, N> real_and_complex = complex_compute_split(self);
-  at::Tensor self_real = real_and_complex[0].squeeze(-1);
-  at::Tensor self_complex = real_and_complex[1].squeeze(-1);
-
-  at::Tensor result_real = OpPreparation::ApplyTensorWithFormat(
-      shape, self_real.options(), ACL_FORMAT_ND);
-  at::Tensor result_complex = OpPreparation::ApplyTensorWithFormat(
-      shape, self_complex.options(), ACL_FORMAT_ND);
-  stride_copy_out_npu_nocheck(result_real, self_real, shape, stride, storage_offset);
-  stride_copy_out_npu_nocheck(result_complex, self_complex, shape, stride, storage_offset);
-
-  at::Tensor result_cat = NPUNativeFunctions::stack({result_real, result_complex}, -1);
-  at::Tensor result = at::native::view_as_complex(result_cat);
-  return result;
-}
-
 at::Tensor& NPUNativeFunctions::npu_stride_copy_out(
     const at::Tensor& self,
     c10::IntArrayRef shape,
     c10::IntArrayRef stride,
     const c10::Scalar& storage_offset,
     at::Tensor& result) {
-  TORCH_CHECK((self.scalar_type() != at::ScalarType::Double && self.scalar_type() != at::ScalarType::ComplexDouble),
-      "data type ", self.scalar_type(), " of input is not supported.");
-  if (!self.is_complex()) {
-    stride_copy_out_npu_nocheck(result, self, shape, stride, storage_offset);
-  } else {
-    at::Tensor result_cp = npu_stride_copy_complex(self, shape, stride, storage_offset);
-    result.copy_(result_cp);
-  }
+  stride_copy_out_npu_nocheck(result, self, shape, stride, storage_offset);
   return result;
 }
 
@@ -142,18 +114,11 @@ at::Tensor NPUNativeFunctions::npu_stride_copy(
     c10::IntArrayRef shape,
     c10::IntArrayRef stride,
     const c10::Scalar& storage_offset) {
-  TORCH_CHECK((self.scalar_type() != at::ScalarType::Double && self.scalar_type() != at::ScalarType::ComplexDouble),
-      "data type ", self.scalar_type(), " of input is not supported.");
-  if (!self.is_complex()) {
-    // AsStrided OP only supports ND input
-    at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-        shape, self.options(), ACL_FORMAT_ND);
-    stride_copy_out_npu_nocheck(result, self, shape, stride, storage_offset);
-    return result;
-  } else {
-    at::Tensor result = npu_stride_copy_complex(self, shape, stride, storage_offset);
-    return result;
-  }
+  // AsStrided OP only supports ND input
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      shape, self.options(), ACL_FORMAT_ND);
+  stride_copy_out_npu_nocheck(result, self, shape, stride, storage_offset);
+  return result;
 }
 
 } // namespace native
