@@ -25,21 +25,17 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::dot_out(const at::Tensor& self, const at::Tensor& tensor, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnDot, NPUNativeFunctions::dot_out(self, tensor, result));
-  c10::SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
+  c10::SmallVector<int64_t, N> output_size = {};
   OpPreparation::CheckOut({self, tensor}, result, CalcuOpUtil::GetTensorNpuFormat(self), self.scalar_type(),
-                          outputSize);
-
+                          output_size);
   EXEC_NPU_CMD(aclnnDot, self, tensor, result);
-
-  c10::SmallVector<int64_t, N> shape = {};
-  result.resize_(shape);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::dot(const at::Tensor& self, const at::Tensor& tensor) {
   DO_COMPATIBILITY(aclnnDot, NPUNativeFunctions::dot(self, tensor));
-  c10::SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  c10::SmallVector<int64_t, N> output_size = {};
+  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
   NPUNativeOpApiFunctions::dot_out(self, tensor, result);
   return result;
 }
