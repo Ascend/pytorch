@@ -1594,6 +1594,7 @@ tocpu:
   - orgqr.out
   - orgqr
   - _lu_with_info
+  - nan_to_num.out
 
 unsupported:
   - _conj
