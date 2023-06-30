@@ -46,14 +46,10 @@ c10::SmallVector<at::Tensor, N> complex_compute_split(const at::Tensor& input) {
 at::Tensor complex_compute(const at::Tensor& input) {
   c10::SmallVector<at::Tensor, N> input_split;
   auto input_r = at::native::view_as_real(input);
-  change_base_sizes_and_base_strides(input_r);
+  torch_npu::NPUStorageDesc &input_r_desc = torch_npu::NPUBridge::GetNpuStorageImpl(input_r)->npu_desc_;
+  input_r_desc.base_sizes_ = input_r.sizes();
+  input_r_desc.base_strides_ = input_r.strides();
   return input_r;
-}
-
-void change_base_sizes_and_base_strides(const at::Tensor& input) {
-  torch_npu::NPUStorageDesc& input_desc = torch_npu::NPUBridge::GetNpuStorageImpl(input)->npu_desc_;
-  input_desc.base_sizes_ = input.sizes();
-  input_desc.base_strides_ = input.strides();
 }
 
 } // namespace native
