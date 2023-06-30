@@ -48,7 +48,7 @@ def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeF
         elif arg_type == 'at::TensorList':
             convert += f"""\
 ::std::vector<at::Tensor> {cpu_arg_name}({arg.nctype.name}.size());
-  ::std::transform({arg.nctype.name}.begin(), {arg.nctype.name}.end(), {cpu_arg_name}.rbegin(),
+  ::std::transform({arg.nctype.name}.begin(), {arg.nctype.name}.end(), {cpu_arg_name}.begin(),
                    [](const Tensor & temp) {{ return temp.cpu(); }});
 """
         else:
@@ -66,7 +66,7 @@ def transfer_ret_of_wrapper_func_to_xla(sig: DispatcherSignature, func_call: str
             ret_code += f"""\
 auto cpu_ret = {func_call};
   ::std::vector<at::Tensor> ret_xla(cpu_ret.size());
-  ::std::transform(cpu_ret.begin(), cpu_ret.end(), ret_xla.rbegin(),
+  ::std::transform(cpu_ret.begin(), cpu_ret.end(), ret_xla.begin(),
                  [](const Tensor & temp) {{return temp.toBackend(Backend::{backend}); }});
   return ret_xla;
             """
