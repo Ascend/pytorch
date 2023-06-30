@@ -37,23 +37,21 @@ at::Tensor NPUNativeOpApiFunctions::bincount(
   auto min_value = NPUNativeOpApiFunctions::min(self).item().toLong();
   TORCH_CHECK(min_value >= 0, "bincount only support 1-d non-negative integral inputs.");
 
-  const at::Tensor& weights = c10::value_or_else(weight_opt, [] {return at::Tensor();});
-
   // calculate output size
   auto sizes = NPUNativeOpApiFunctions::max(self).item().toLong();
   sizes = (sizes < minlength) ? minlength : (sizes + 1);
 
   // weight convert dtype as same as output defined by torch
   at::Tensor result;
-  if (!weights.defined()) {
+  if (!weight_opt.has_value()) {
       result = OpPreparation::ApplyTensorWithSizes({sizes}, self.options().dtype(at::ScalarType::Long));
-  } else if (weights.dtype() == at::ScalarType::Float) {
-      result = OpPreparation::ApplyTensorWithSizes({sizes}, weights.options().dtype(at::ScalarType::Float));
+  } else if (weight_opt->dtype() == at::ScalarType::Float) {
+      result = OpPreparation::ApplyTensorWithSizes({sizes}, weight_opt->options().dtype(at::ScalarType::Float));
   } else {
-      result = OpPreparation::ApplyTensorWithSizes({sizes}, weights.options().dtype(at::ScalarType::Double));
+      result = OpPreparation::ApplyTensorWithSizes({sizes}, weight_opt->options().dtype(at::ScalarType::Double));
   }
   
-  EXEC_NPU_CMD(aclnnBincount, self, weights, minlength, result);
+  EXEC_NPU_CMD(aclnnBincount, self, weight_opt, minlength, result);
 
   return result;
 }
