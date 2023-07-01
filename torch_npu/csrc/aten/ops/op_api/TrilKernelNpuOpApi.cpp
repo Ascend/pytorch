@@ -40,8 +40,8 @@ at::Tensor NPUNativeOpApiFunctions::tril(const at::Tensor& self, int64_t diagona
 }
 
 at::Tensor& NPUNativeOpApiFunctions::tril_(at::Tensor& self, int64_t diagonal) {
-  DO_COMPATIBILITY(aclnnTril, NPUNativeFunctions::tril_(self, diagonal));
-  NPUNativeOpApiFunctions::tril_out(self, diagonal, self);
+  DO_COMPATIBILITY(aclnnInplaceTril, NPUNativeFunctions::tril_(self, diagonal));
+  EXEC_NPU_CMD(aclnnInplaceTril, self, diagonal);
 
   return self;
 }
