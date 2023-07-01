@@ -284,7 +284,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
     inputTensor.emplace_back(tensor);
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
-  if (tensor.dim() == 0) {
+  if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
     if (at_npu::key::isDeviceTensor(tensor)) {
       res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);
     } else {
