@@ -269,7 +269,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
     inputTensor.emplace_back(tensor);
   }
   // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
-  if (tensor.dim() == 0) {
+  if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
     if (torch_npu::utils::is_npu(tensor)) {
       res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);
     } else {
