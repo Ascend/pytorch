@@ -117,8 +117,9 @@ def get_pytorch_dir():
         return os.path.dirname(frame_summary.filename)
 
 
-def generate_bindings_code(base_dir, verbose):
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose]
+def generate_bindings_code(base_dir):
+    python_execute = sys.executable
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -387,12 +388,10 @@ class BdistWheelBuild(bdist_wheel):
             finally:
                 os.remove(file)
 
-
-to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
-    generate_bindings_code(BASE_DIR, to_cpu)
+    generate_bindings_code(BASE_DIR)
     build_stub(BASE_DIR)
 
 # Setup include directories folders.

@@ -91,7 +91,9 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                                      c10::optional<c10::Device> device_opt,
                                      c10::optional<bool> pin_memory_opt,
                                      c10::optional<c10::MemoryFormat> memory_format_opt) {
-  AT_ASSERT(c10::device_or_default(device_opt).type() == c10::DeviceType::PrivateUse1);
+  auto device_ = c10::device_or_default(device_opt);
+  AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1);
+  torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -273,7 +275,9 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<c10::Device> device_opt,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
-  AT_ASSERT(c10::device_or_default(device_opt).type() == c10::DeviceType::PrivateUse1);
+  auto device_ = c10::device_or_default(device_opt);
+  AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1);
+  torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -336,6 +340,7 @@ at::Tensor empty_with_format_npu(c10::IntArrayRef size,
                                  int64_t dst_format) {
   AT_ASSERT(options.device().type() == c10::DeviceType::PrivateUse1);
   AT_ASSERT(options.backend() == c10::Backend::PrivateUse1);
+  torch_npu::utils::maybe_initialize_npu(options);
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
