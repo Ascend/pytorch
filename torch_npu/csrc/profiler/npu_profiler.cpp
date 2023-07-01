@@ -14,10 +14,6 @@ namespace profiler {
 using torch_npu::toolkit::profiler::Utils;
 
 static const int64_t g_pid = getpid();
-struct NpuObserverContext : public at::ObserverContext {
-  explicit NpuObserverContext(torch_npu::toolkit::profiler::OpRangeData *data) : data_(data) {}
-  torch_npu::toolkit::profiler::OpRangeData *data_;
-};
 
 struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
   explicit NpuProfilerThreadLocalState(
@@ -41,15 +37,15 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
     return activities_;
   }
 
-  std::unique_ptr<NpuObserverContext> newOpEvent() {
+  torch_npu::toolkit::profiler::OpRangeData& newOpEvent() {
     std::lock_guard<std::mutex> guard(state_mutex_);
-    op_events_.emplace_back();
-    return std::make_unique<NpuObserverContext>(&op_events_.back());
+    op_events_.emplace_back(torch_npu::toolkit::profiler::OpRangeData(0, "torch.op_range"));
+    return op_events_.back();
   }
 
-  std::unique_ptr<NpuObserverContext> getOpEvent() {
+  torch_npu::toolkit::profiler::OpRangeData& getOpEvent() {
     std::lock_guard<std::mutex> guard(state_mutex_);
-    return std::make_unique<NpuObserverContext>(&op_events_.back());
+    return op_events_.back();
   }
 
   void removeOpEvent() {
@@ -149,8 +145,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
           return nullptr;
         }
         const auto &config = state_ptr->config();
-        auto ctx_ptr = state_ptr->newOpEvent();
-        auto data_ptr = ctx_ptr->data_;
+        auto data_ptr = &state_ptr->newOpEvent();
         data_ptr->process_id = g_pid;
         data_ptr->start_ns = Utils::GetClockMonotonicRawNs();
         static thread_local uint64_t tid = syscall(SYS_gettid);
@@ -174,27 +169,19 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
         if (config.with_flops) {
           data_ptr->extra_args = torch::profiler::impl::saveExtraArgs(fn);
         }
-        return ctx_ptr;
+        return nullptr;
       },
-      [](const at::RecordFunction &fn, at::ObserverContext *ctx_ptr) {
+      [](const at::RecordFunction &fn, at::ObserverContext *) {
         auto state_ptr = NpuProfilerThreadLocalState::getTLS();
         if (!state_ptr) {
           return;
         }
-        auto *npu_profiler_ctx_ptr = static_cast<NpuObserverContext *>(ctx_ptr);
-        TORCH_INTERNAL_ASSERT(npu_profiler_ctx_ptr != nullptr);
-        auto data_ptr = npu_profiler_ctx_ptr->data_;
+        auto data_ptr = &state_ptr->getOpEvent();
         data_ptr->end_ns = Utils::GetClockMonotonicRawNs();
         static thread_local uint64_t tid = syscall(SYS_gettid);
         data_ptr->end_thread_id = tid;
-        std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data = std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(
-          0, "torch.op_range",
-          data_ptr->start_ns, data_ptr->end_ns, data_ptr->sequence_number,
-          data_ptr->process_id, data_ptr->start_thread_id, data_ptr->end_thread_id,
-          data_ptr->forward_thread_id, data_ptr->is_async,
-          data_ptr->name, data_ptr->input_dtypes, data_ptr->input_shapes,
-          data_ptr->stack, data_ptr->module_hierarchy, data_ptr->extra_args
-        );
+        std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data =
+          std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(*data_ptr);
         reportData(std::move(data));
         state_ptr->removeOpEvent();
       }
