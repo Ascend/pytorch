@@ -26,15 +26,15 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> nll_loss
     const at::Tensor& target,
     int64_t reduction,
     int64_t ignore_index) {
-  c10::SmallVector<int64_t, SIZE> outputSize;
-  c10::SmallVector<int64_t, SIZE> totalWeightSize;
+  c10::SmallVector<int64_t, SIZE> output_size;
+  c10::SmallVector<int64_t, SIZE> total_weight_size;
 
   if (reduction == at::Reduction::None) {
-    outputSize = {self.size(0), self.size(2), self.size(3)};
+    output_size = {self.size(0)};
   }
 
   return tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>>(
-      outputSize, totalWeightSize);
+      output_size, total_weight_size);
 }
 } // namespace
 
@@ -93,7 +93,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
   TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
       "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
       " for argument 'target'  in call to nll_loss2d_forward");
-  at::Tensor targetCast = (scalar_type == at::kLong) ?
+  at::Tensor target_cast = (scalar_type == at::kLong) ?
       NPUNativeFunctions::npu_dtype_cast(target, at::kInt) : target;
 
   auto self_input = self.contiguous();
@@ -101,18 +101,18 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
-  auto target_input = targetCast.contiguous();
-  target_input = targetCast.reshape({-1});
+  auto target_input = target_cast.contiguous();
+  target_input = target_cast.reshape({-1});
 
   // calculate the output size
-  auto outputSizes =
-      nll_loss2d_npu_output_size(self, target, reduction, ignore_index);
+  auto output_sizes =
+      nll_loss2d_npu_output_size(self_input, target, reduction, ignore_index);
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensor(self_input, std::get<0>(outputSizes));
+      OpPreparation::ApplyTensor(self_input, std::get<0>(output_sizes));
   at::Tensor total_weight =
-      OpPreparation::ApplyTensor(self_input, std::get<1>(outputSizes));
+      OpPreparation::ApplyTensor(self_input, std::get<1>(output_sizes));
 
   // calculate the output result of the NPU
   NPUNativeFunctions::nll_loss2d_forward_out(
@@ -124,6 +124,9 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
       result,
       total_weight);
 
+  if (reduction == at::Reduction::None) {
+    result.resize_({self.size(0), self.size(2), self.size(3)});
+  }
   return tuple<at::Tensor, at::Tensor>(result, total_weight);
 }
 
