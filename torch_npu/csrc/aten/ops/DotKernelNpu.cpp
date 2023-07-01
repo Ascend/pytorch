@@ -20,27 +20,26 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeFunctions::dot_out(const at::Tensor& self, const at::Tensor& tensor, at::Tensor& result) {
-  c10::SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
+  c10::SmallVector<int64_t, N> output_size = {};
   OpPreparation::CheckOut(
-      {self, tensor}, 
-      result, 
+      {self, tensor},
+      result,
       CalcuOpUtil::GetTensorNpuFormat(self),
-      self.scalar_type(), 
-      outputSize);
-             
+      self.scalar_type(),
+      output_size);
+
   OpCommand cmd;
   cmd.Name("Dot")
       .Input(self)
       .Input(tensor)
       .Output(result)
       .Run();
-  c10::SmallVector<int64_t, N> shape = {};
-  result.resize_(shape);
+
   return result;
 }
 at::Tensor NPUNativeFunctions::dot(const at::Tensor& self, const at::Tensor& tensor) {
-  c10::SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  c10::SmallVector<int64_t, N> output_size = {};
+  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
   dot_out(self, tensor, result);
   return result;
 }
