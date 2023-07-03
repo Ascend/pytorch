@@ -86,8 +86,9 @@ def get_pytorch_dir():
         return os.path.dirname(frame_summary.filename)
 
 
-def generate_bindings_code(base_dir, verbose):
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose]
+def generate_bindings_code(base_dir):
+    python_execute = sys.executable
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -225,7 +226,7 @@ def copy_lib():
 
 def build_libtorch_npu():
     clean_generated_files()
-    generate_bindings_code(BASE_DIR, "True")
+    generate_bindings_code(BASE_DIR)
     build_stub(BASE_DIR)
     run_cmake()
     copy_hpp()
