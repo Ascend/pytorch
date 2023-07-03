@@ -711,7 +711,8 @@ supported:
    op_api: True
  - func: logical_and.out
    op_api: True
- - logical_and_
+ - func: logical_and_
+   op_api: False
  - logical_not
  - logical_not.out
  - logical_not_
