@@ -236,7 +236,7 @@ def _get_device_index(device, optional=False):
             return torch_npu.npu.current_device()
         else:
             raise ValueError('Expected a npu device with a specified index '
-                             'or an integer, but got: '.format(device))
+                             'or an integer, but got: {}'.format(device))
     return device_idx
 
 
@@ -332,7 +332,9 @@ def set_stream(stream):
     """
     if stream is None:
         return
-    torch_npu._C._npu_setStream(stream_id=stream.stream_id, device_index=stream.device_index, device_type=stream.device_type)
+    torch_npu._C._npu_setStream(stream_id=stream.stream_id,
+                                device_index=stream.device_index,
+                                device_type=stream.device_type)
 
 
 def current_stream(device=None):

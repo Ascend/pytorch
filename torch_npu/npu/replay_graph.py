@@ -96,13 +96,13 @@ class WrapModule(object):
 
                 shallow_fwd_output_tmp = shallow_fwd_output
                 shallow_fwd_output = []
-                id = 0
-                for iter in shallow_fwd_output_tmp:
-                    if iter is None:
-                        self.none_output_idx.append(id)
+                current_id = 0
+                for iteration in shallow_fwd_output_tmp:
+                    if iteration is None:
+                        self.none_output_idx.append(current_id)
                     else:
-                        shallow_fwd_output.append(iter)
-                    id = id + 1
+                        shallow_fwd_output.append(iteration)
+                    current_id = current_id + 1
 
                 fwd_graph_info = [fwd_inputs, self.module.parameters(), self.module.buffers()]
                 fwd_graph_inputs = []
