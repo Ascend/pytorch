@@ -345,13 +345,8 @@ at::Tensor NPUNativeFunctions::convolution(
     bool transposed,
     at::IntArrayRef output_padding,
     int64_t groups) {
-  if (at_npu::native::env::CheckForbidInternalFormat() == true || at_npu::native::env::CheckJitDisable() == false) {
-    return at_npu::native::NPUNativeOpApiFunctions::convolution(input, weight, bias, stride, padding, dilation,
-                                                                transposed, output_padding, groups);
-  } else {
-    return at::_convolution(input, weight, bias, stride, padding, dilation, transposed, output_padding, groups, false,
-                            false, false);
-  }
+  return at::_convolution(input, weight, bias, stride, padding, dilation, transposed, output_padding, groups, false,
+                          false, false);
 }
 
 at::Tensor NPUNativeFunctions::_convolution(

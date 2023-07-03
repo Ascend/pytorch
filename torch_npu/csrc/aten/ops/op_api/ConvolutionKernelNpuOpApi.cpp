@@ -71,7 +71,7 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
 
   // Groups > 1 and 3D scenes are currently not supported (binary operator problem), and path 3 implementation is
   // temporarily called
-  if (dim == 3 || groups > 1) {
+  if (dim == 3 || groups > 1 || (!at_npu::native::env::CheckForbidInternalFormat() && at_npu::native::env::CheckJitDisable())) {
     return at_npu::native::NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation, transposed,
                                                             output_padding, groups, false, false, false, false);
   }
