@@ -194,7 +194,7 @@ def parse_backend_yaml(
             supported.append(item['func'][:item['func'].index('(')])
         except ValueError:
             raise Exception(f'Wrong format for function: {item["func"]}')
-        
+
     supported = [op['func'] if isinstance(op, Dict) else op for op in supported]
     supported_autograd = [op['func'] if isinstance(op, Dict) else op for op in supported_autograd]
 
@@ -228,7 +228,7 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         autograd_idx = create_backend_index(supported_autograd, autograd_key, native_functions_map)
         assert autograd_key not in backend_indices
         backend_indices[autograd_key] = autograd_idx
-    
+
     unsupported_key: Optional[DispatchKey] = None
     if len(unsupported) > 0:
         with context(lambda: f'"Unsupport" is not a valid DispatchKey.'):
@@ -246,7 +246,7 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
 def check_op_on_cpu_kernels(
         expected_to_cpu: List,
         backend_indices: Dict[DispatchKey, BackendIndex]):
-    
+
     op_names: List[OperatorName] = list(backend_indices[DispatchKey.CPU].index.keys())
 
     for op_name in op_names:
@@ -403,7 +403,7 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
             ))),
         })
 
-        fm.write_with_template(f'{backend_dispatch_key}NativeOpApiFunctions.h', 
+        fm.write_with_template(f'{backend_dispatch_key}NativeOpApiFunctions.h',
             'DispatchKeyNativeFunctions.h', lambda: {
             'generated_comment': generated_comment,
             'cpp_namespace': cpp_namespace,
@@ -436,6 +436,7 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
 """
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,
@@ -474,7 +475,7 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
                     grouped_native_functions
                 )),
             })
-        
+
         dispatch_key = backend_dispatch_key
         native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
         fm.write_with_template(f'RegisterUnsupport{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {

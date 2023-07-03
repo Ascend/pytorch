@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -344,19 +345,13 @@ at::Tensor NPUNativeFunctions::convolution(
     bool transposed,
     at::IntArrayRef output_padding,
     int64_t groups) {
-  return at::_convolution(
-      input,
-      weight,
-      bias,
-      stride,
-      padding,
-      dilation,
-      transposed,
-      output_padding,
-      groups,
-      false,
-      false,
-      false);
+  if (at_npu::native::env::CheckForbidInternalFormat() == true || at_npu::native::env::CheckJitDisable() == false) {
+    return at_npu::native::NPUNativeOpApiFunctions::convolution(input, weight, bias, stride, padding, dilation,
+                                                                transposed, output_padding, groups);
+  } else {
+    return at::_convolution(input, weight, bias, stride, padding, dilation, transposed, output_padding, groups, false,
+                            false, false);
+  }
 }
 
 at::Tensor NPUNativeFunctions::_convolution(
