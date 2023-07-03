@@ -32,25 +32,31 @@ do {                                                      \
     }                                                                \
   } while (0)
 
-#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                       \
-  do {                                                               \
-    auto Error = err_code;                                           \
-    static c10_npu::acl::AclErrorCode err_map;                       \
-    if ((Error) != ACL_ERROR_NONE                                    \
-        && (Error) != ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {            \
-      TORCH_CHECK(                                                   \
-        false,                                                       \
-        __func__,                                                    \
-        ":",                                                         \
-        __FILE__,                                                    \
-        ":",                                                         \
-        __LINE__,                                                    \
-        " NPU error, error code is ", Error,                         \
-        (err_map.error_code_map.find(Error) !=                       \
-        err_map.error_code_map.end() ?                               \
-      "\n[Error]: " + err_map.error_code_map[Error] : ".") ,         \
-        "\n", c10_npu::acl::AclGetErrMsg());                         \
-    }                                                                \
+#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                         \
+  do {                                                                 \
+    auto Error = err_code;                                             \
+    static c10_npu::acl::AclErrorCode err_map;                         \
+    if ((Error) != ACL_ERROR_NONE) {                                   \
+      if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {               \
+          printf("[WARN]%s,%s:%u:%s\n",                                \
+                 __FUNCTION__, __FILENAME__, __LINE__,                 \
+                 "Feature is not supportted and the possible cause is" \
+                 " that CANN packages do not match.");                 \
+      } else {                                                         \
+        TORCH_CHECK(                                                   \
+          false,                                                       \
+          __func__,                                                    \
+          ":",                                                         \
+          __FILE__,                                                    \
+          ":",                                                         \
+          __LINE__,                                                    \
+          " NPU error, error code is ", Error,                         \
+          (err_map.error_code_map.find(Error) !=                       \
+          err_map.error_code_map.end() ?                               \
+          "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+          "\n", c10_npu::acl::AclGetErrMsg());                         \
+      }                                                                \
+    }                                                                  \
   } while (0)
 
 #define NPU_CHECK_WARN(err_code)                                     \
