@@ -498,7 +498,8 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
         custom_trace_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
         gen_custom_trace(fm, custom_trace_functions)
 
-        fm = FileManager(install_dir=output_dir+"../../../utils/", template_dir=template_dir, dry_run=dry_run)
+        custom_ops_patch_dir = os.path.join(output_dir, "../../utils/")
+        fm = FileManager(install_dir=custom_ops_patch_dir, template_dir=template_dir, dry_run=dry_run)
         gen_custom_ops_patch(fm, custom_trace_functions)
 
 
