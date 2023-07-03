@@ -585,6 +585,18 @@ ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
       opTimeout(kProcessGroupHCCLOpTimeoutMillis),
       is_high_priority_stream(is_high_priority_stream){}
 
+int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
+  at::Device device = getDeviceForRank(rankid);
+  std::vector<at::Device> devices = {device};
+  const auto key = getKeyFromDevices(devices);
+  auto& hcclComms = getHCCLComm(key, devices);
+  TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+      hcclComms.size());
+  auto ret_hcom = hcclComms[0]->getHcclComm();
+  int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
+  return hccl_comm; 
+}
+
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
