@@ -398,6 +398,20 @@ bool CalcuOpUtil::IsTransposeLastTwoDims(const at::Tensor &tensor) {
   }
 }
 
+bool CalcuOpUtil::IsMmTranspose(const at::Tensor &tensor) {
+  if (tensor.dim() < 2 || tensor.dim() > 3) {
+    return false;
+  }
+  int64_t dim1 = tensor.dim() - 1;
+  int64_t dim2 = tensor.dim() - 2;
+
+  if (tensor.stride(dim2) == 1 && tensor.stride(dim1) == tensor.size(dim2)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool CalcuOpUtil::IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2) {
   const static int64_t kInnerAxisMinLimit = 128;
   const static int64_t kInnerAxisMaxLimit = 65535;
@@ -439,7 +453,7 @@ bool CalcuOpUtil::IsTransposeInnerAxis(const at::Tensor &self) {
   int64_t data_type = elementSize(self.scalar_type());
   int64_t self_inner_axis = self.size(self.dim() - 1);
   int64_t self_outer_axis = self.size(self.dim() - 2);
-  if (IsTransposeLastTwoDims(self)) {
+  if (IsMmTranspose(self)) {
     self_inner_axis = self.size(self.dim() - 2);
     self_outer_axis = self.size(self.dim() - 1);
   }
