@@ -268,6 +268,13 @@ class TestSum(TestCase):
         except RuntimeError as e:
             self.assertRegex(str(e), "dim 1 appears multiple times in the list of dims")
 
+    def test_sum_dtype(self):
+        cpu_input = torch.tensor([60000, 60000]).half()
+        npu_input = cpu_input.npu()
+        cpu_output = self.cpu_op_exec_dim(cpu_input, 0, torch.float32)
+        npu_output = self.npu_op_exec_dim(npu_input, 0, torch.float32)
+        self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -1799,6 +1799,24 @@ op_db: List[OpInfo] = [
             'test_variant_consistency_eager' : (8, 18),
         },
     ),    
+    ReductionOpInfo(
+        'sum',
+        supports_out=False,
+        dtypes=_dispatch_dtypes((torch.bool, torch.float16, torch.float32, torch.int32, torch.int64)),
+        dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.float16, torch.float32, torch.int32, torch.int64)),
+        formats=(0, 2, 3, 29),
+        skipSample={
+            # input.shape is [] and dim specifies the value
+            # these kinds of cases are not supported
+            'test_correctness': (1, 2, 18),
+        },
+        skips=(
+            # input.shape is [] and dim specifies the value
+            # these kinds of cases are not supported
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager'),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.int64]),
+        ),
+    ),
     OpInfo(
         'take',
         dtypes=_dispatch_dtypes((torch.int8, torch.int16, torch.int64, torch.float32, )),
