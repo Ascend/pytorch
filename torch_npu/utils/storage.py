@@ -47,6 +47,11 @@ def _cpu(self):
         return self
 
 
+def _deepcopy(self, memo):
+    tmp_tensor = torch.tensor([], dtype=self.dtype, device=self._untyped_storage.device).set_(self)
+    return tmp_tensor._typed_storage()
+
 def add_storage_methods():
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.UntypedStorage.share_memory_ = npu_share_memory_
+    torch.storage.TypedStorage._deepcopy = _deepcopy
