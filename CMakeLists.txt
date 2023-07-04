@@ -253,3 +253,17 @@ if (NOT DEFINED BUILD_LIBTORCH)
   add_subdirectory(${TORCHNPU_ROOT}/toolkit)
   target_link_libraries(${PLUGIN_NAME} PUBLIC npu_profiler)
 endif()
+
+if (DEFINED BUILD_GTEST)
+  enable_testing()
+  SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/gtest)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/googletest)
+  include_directories(${PROJECT_SOURCE_DIR}/third_party/googletest/googletest/include)
+
+  set(TORCH_API_TEST_SOURCES)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/test/cpp/api)
+  add_executable(test_api ${TORCH_API_TEST_SOURCES})
+
+  target_link_libraries(test_api PUBLIC torch_npu)
+  target_link_libraries(test_api PUBLIC gtest_main gtest)
+endif()

@@ -1,3 +1,6 @@
 [submodule "third_party/op-plugin"]
 	path = third_party/op-plugin
 	url = https://gitee.com/ascend/op-plugin.git
+[submodule "third_party/googletest"]
+	path = third_party/googletest
+	url = https://gitee.com/mirrors/googletest.git

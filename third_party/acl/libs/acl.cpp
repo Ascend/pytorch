@@ -77,4 +77,9 @@ const char *aclGetTensorDescName(aclTensorDesc *desc) {return NULL;}
 aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type) {return 0;};
 aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {return 0;};
 aclError aclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo) {return 0;};
+
+void aclAppLog(aclLogLevel logLevel, const char *func, const char *file, uint32_t line, const char *fmt, ...) {}
+aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallback callback) {return 0;}
+aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {return 0;}
+aclError aclrtResetEvent(aclrtEvent event, aclrtStream stream){return 0;}
 }
