@@ -31,12 +31,13 @@ at::Tensor& baddbmm_nocheck(
 
   bool isSelfT = CalcuOpUtil::IsTransposeLastTwoDims(tensor1);
   bool isMat2T = CalcuOpUtil::IsTransposeLastTwoDims(tensor2);
-
+  at::Tensor contiguous_self = isSelfT ? tensor1 : NpuUtils::format_contiguous(tensor1);
+  at::Tensor contiguous_mat2 = isMat2T ? tensor2 : NpuUtils::format_contiguous(tensor2);
 
   OpCommand cmd;
   cmd.Name("BatchMatMul")
-     .Input(tensor1)
-     .Input(tensor2) 
+     .InputWithoutContiguous(contiguous_self)
+     .InputWithoutContiguous(contiguous_mat2)
      .Output(BatchMatMulTensor)
      .Attr("adj_x1", isSelfT)
      .Attr("adj_x2", isMat2T)
