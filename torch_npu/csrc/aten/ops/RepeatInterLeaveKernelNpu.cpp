@@ -48,8 +48,8 @@ void check_dim_valid(int64_t real_dim, int64_t self_dim) {
     int64_t dim_min = std::min(-self_dim, self_dim-1);
     int64_t dim_max = std::max(-self_dim, self_dim-1);
     TORCH_CHECK(
-      (real_dim >= dim_min) && (real_dim <= dim_max),
-      "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
+        (real_dim >= dim_min) && (real_dim <= dim_max),
+        "dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");
 }
 
 at::Tensor NPUNativeFunctions::repeat_interleave(

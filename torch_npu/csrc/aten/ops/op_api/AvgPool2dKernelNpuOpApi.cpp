@@ -66,7 +66,7 @@ at::Tensor& NPUNativeOpApiFunctions::avg_pool2d_out(const at::Tensor& self,
   at::IntArrayRef paddings = at::IntArrayRef(padding_sizes);
 
   auto output_size = avg_pool2d_npu_output_size(self, kernels, strides, paddings, ceil_mode, count_include_pad,
-    divisor_override);
+      divisor_override);
 
   OpPreparation::CheckOut({self}, result, self, output_size);
     
@@ -75,7 +75,7 @@ at::Tensor& NPUNativeOpApiFunctions::avg_pool2d_out(const at::Tensor& self,
           divisor_override, result));
 
   avg_pool2d_out_npu_nocheck_opapi(result, self, kernel_size, stride, padding, ceil_mode, count_include_pad,
-    divisor_override);
+      divisor_override);
 
   return result;
 }
@@ -106,7 +106,7 @@ at::Tensor NPUNativeOpApiFunctions::avg_pool2d(const at::Tensor& self,
 
   // calculate the output shape. input is 4D; kernels, strides and paddings are 2D
   auto output_size = avg_pool2d_npu_output_size(self, kernels, strides, paddings, ceil_mode, count_include_pad,
-    divisor_override);
+                                                divisor_override);
 
   at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
 
@@ -115,7 +115,7 @@ at::Tensor NPUNativeOpApiFunctions::avg_pool2d(const at::Tensor& self,
           divisor_override));
 
   avg_pool2d_out_npu_nocheck_opapi(result, self, kernels, strides, paddings, ceil_mode, count_include_pad,
-    divisor_override);
+                                   divisor_override);
 
   return result;
 }

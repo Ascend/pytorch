@@ -145,10 +145,10 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
   });
   m.def("_init_profiler", initNpuProfiler);
   m.def("_start_profiler",
-    &startNpuProfiler,
-    py::arg("config"),
-    py::arg("activities"),
-    py::arg("scopes") = std::unordered_set<at::RecordScope>());
+        &startNpuProfiler,
+        py::arg("config"),
+        py::arg("activities"),
+        py::arg("scopes") = std::unordered_set<at::RecordScope>());
   m.def("_stop_profiler", stopNpuProfiler);
   m.def("_finalize_profiler", finalizeNpuProfiler);
 
