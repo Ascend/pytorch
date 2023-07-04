@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import torch
 import torch_npu
@@ -116,6 +117,14 @@ class TestTensor(TestCase):
         cpu_output2 = torch.tensor([1e-42], dtype=torch.float32)
         npu_output2 = torch.tensor([1e-42], dtype=torch.float32, device=device)
         self.assertEqual(cpu_output2, npu_output2)
+
+
+    def test_deepcopy(self):
+        input1 = torch.randn(1, 2, 3, 4, 5).npu()
+        copy_tensor = deepcopy(input1)
+        input1_storage_size = torch_npu.get_storage_size(input1)
+        copy_tensor_storage_size = torch_npu.get_storage_size(copy_tensor)
+        self.assertEqual(input1_storage_size, copy_tensor_storage_size)
 
 
 class TestCreationOps(TestCase):
