@@ -86,10 +86,19 @@ def compute_trace_method_definition(f: NativeFunction):
     args_str = ', '.join(a.defn() for a in args)
 
     args_exprs_str = ', '.join(a.name for a in args)
+    
     impl_name = f"at_npu::native::NPUNativeFunctions::{cpp.name(f.func)}"
 
     if enable_opplugin() and is_op_valid(str(f.func.name)):
         impl_name = f"op_plugin::{cpp.name(f.func)}"
+
+    from codegen.autograd.gen_variable_type import NPU_AUTOGRAD_FUNCTION
+    is_npu_autograd = str(f.func.name) in NPU_AUTOGRAD_FUNCTION
+    if is_npu_autograd:
+        dispatch_key_set = \
+            'c10::DispatchKeySet().add(c10::DispatchKey::AutogradPrivateUse1).add(c10::DispatchKey::PrivateUse1), '
+        args_exprs_str = dispatch_key_set + args_exprs_str
+        impl_name = f"at_npu::autograd::VariableType::{cpp.name(f.func)}"
 
     check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
     unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \
