@@ -174,7 +174,6 @@ std::vector<at::Tensor> ReplayGraphImpl::Replay(const at::TensorList& inputs) {
 
     for (const auto & iter:result_fresh_by_input_map){
       for (const auto &iter_out_tensor:graphinfo.graph_outputs_ge_tensors){
-        // TODO: do some check, and copy_ just for which is needed.
         inputs[iter.first].copy_(iter.second);
         break;
       }
@@ -237,7 +236,6 @@ void ReplayGraphImpl::SetLiveTensorOutput(CombinedInfo& input_infos, CombinedInf
             if (graph_desc.unique_id == live_tensor_output_unique_id) {
                 const auto& storage_desc = torch_npu::NPUBridge::
                                 GetNpuStorageImpl(output_storages[storage_idx])->get_npu_desc();
-                //TODO: small vector
                 std::vector<int64_t> sizes;
                 for (const auto& size : storage_desc.base_sizes_) {
                     sizes.emplace_back(size);
@@ -246,7 +244,6 @@ void ReplayGraphImpl::SetLiveTensorOutput(CombinedInfo& input_infos, CombinedInf
                 for (const auto& stride : storage_desc.base_strides_) {
                     strides.emplace_back(stride);
                 }
-                // graphinfo.live_tensor_outputs.mapping.emplace_back(i);
                 graphinfo.live_tensor_outputs.graph_desc_info.emplace_back(graph_desc);
                 graphinfo.live_tensor_outputs.at_tensor_info.emplace_back(TensorInfo(sizes, strides,
                     storage_desc.base_offset_, storage_desc.data_type_, storage_desc));
@@ -300,7 +297,6 @@ void ReplayGraphImpl::GenerateGraph(const at::TensorList& inputs,
     auto& graphinfo = replay_graph_cache_[key];
 
     GraphExecutor::GetInstance().CheckDeviceIdAndInit();
-    // TODO: some unused processes, to be deleted
     ScalarMemContext::GetContext().ExecuteH2D(c10_npu::getCurrentNPUStream());
     auto input_info = GraphExecutor::GetInstance().GetInputCombinedInfo();
     auto output_info = GraphExecutor::GetInstance().GetAllOutputCombinedInfo(returnable_outputs);
@@ -316,7 +312,6 @@ void ReplayGraphImpl::GenerateGraph(const at::TensorList& inputs,
                 " input_info.unique_ids.size(): ", input_info.unique_ids.size(),
                 " graphinfo.graph_inputs_ge_tensors.size(): ", graphinfo.graph_inputs_ge_tensors.size());
 
-    // TODO: add more check
     BuildReplayGraphInfoAll(inputs, returnable_outputs, input_info, output_info, graphinfo);
 
 

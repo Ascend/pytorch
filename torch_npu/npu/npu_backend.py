@@ -17,13 +17,13 @@ import copy
 import contextlib
 import functools
 import sympy
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 import torch._functorch.config as functor_config
 from torch._functorch.aot_autograd import aot_module_simplified
 from torch.fx.node import Argument, Target
 from torch.fx import Interpreter
-from typing import Any, Dict, List, Tuple, Union
 from torch.utils._mode_utils import no_dispatch
 from torch._tensor import Tensor
 from torch.fx.experimental.symbolic_shapes import ShapeEnv
@@ -98,7 +98,6 @@ class StaticNpuGraphMeta:
 class NpuTracingMetaInterpreter(Interpreter):
     """
     Interpreter for collect npu graph meta from fx graph, such as sym of output, input shape ranges, etc.
-    TODO: Add doc here
     """
 
     def __init__(self, *args, **kwargs):
@@ -115,7 +114,9 @@ class NpuTracingMetaInterpreter(Interpreter):
             else:
                 try:
                     shape_range.append(int(str(dim)))
-                except:
+                except ValueError:
+                    shape_range.append(-1)
+                except Exception:
                     shape_range.append(-1)
         return shape_range
 
@@ -138,7 +139,7 @@ class NpuTracingMetaInterpreter(Interpreter):
             if isinstance(v, torch.Tensor) and not is_zero_tensor(v):
                 self.output_sym_shapes.append(v.size())
             else:
-                pass  # TODO: maybe log something here
+                pass
         return v_tuple
 
 
@@ -161,7 +162,6 @@ class OutputBindings(object):
 class NpuTracingGraphInterpreter(Interpreter):
     """
     Interpreter for trans fx graph to npu graph
-    TODO: Add doc here
     """
 
     def __init__(self, *args, **kwargs):
@@ -186,12 +186,9 @@ class NpuTracingGraphInterpreter(Interpreter):
     def placeholder(self, target: 'Target', args: Tuple[Argument, ...], kwargs: Dict[str, Any]) -> Any:
         v = super().placeholder(target, args=args, kwargs=kwargs)
         if isinstance(v, torch.Tensor):
-            # TODO: We should support zero-tensor(tensor with 0 dim size) output
             assert not is_zero_tensor(v), f'Unsupported zero-tensor input {v}'
             self.graph_inputs.append(v)
-            # print(f'Collect fx graph input {len(self.graph_inputs)}: {str(v)}')
         else:
-            # print(f'Skip non-tensor input {v}')
             pass
         return v
 
@@ -200,28 +197,18 @@ class NpuTracingGraphInterpreter(Interpreter):
         for v in v_tuple:
             if isinstance(v, torch.Tensor):
                 if is_zero_tensor(v):
-                    # TODO: We should support zero-tensor(tensor with 0 dim size) output
-                    # print(f'Bypass zero-tensor fx graph output {v}')
                     self.output_bindings.append(v)
                 else:
-                    # print(f'Collect fx graph output {len(self.graph_outputs)}: {str(v)}')
                     self.graph_outputs.append(v)
                     self.output_bindings.append(self.next_graph_output())
             else:
-                # print(f'Bypass non-tensor fx graph output {v}')
                 self.output_bindings.append(v)
         return v_tuple
 
 
 def npu_fx_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
-    # TODO: Using logger instead of print
-    # print(f'Npu fx compiler compiling graph module:')
-    # gm.graph.print_tabular()
-
     with no_dispatch():
         real_inputs = [real_tensor_like(example, device=example.device) for example in example_inputs]
-        # print('Tracing npu graph with tensor:')
-        # print('\n'.join([f'tensor({i.size()}, {i.dtype}, {i.device})' for i in real_inputs]))
 
         real_inputs_device = []
         for arg in real_inputs:
@@ -229,14 +216,7 @@ def npu_fx_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]
 
         replay_graph, output_bindings = NpuTracingGraphInterpreter(gm).run(*real_inputs_device)
 
-    # print('Tracing npu graph meta with tensor:')
-    # print('\n'.join([f'fake tensor({i.size()}, {i.dtype}, {i.device})' for i in example_inputs]))
     graph_meta = NpuTracingMetaInterpreter(gm).run(*example_inputs)
-
-    # print('Compiling npu graph with shape range:')
-    # print('\n'.join([f'input {i} shape range: {v}' for i, v in enumerate(graph_meta.input_shape_ranges)]))
-
-    # TODO: compiling npu graph here
 
     def call_graph_replay(*args, replay_graph: ReplayGraph, graph_meta: [NpuGraphMeta, StaticNpuGraphMeta],
                           output_bindings: OutputBindings):
@@ -245,11 +225,9 @@ def npu_fx_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]
         for arg in args:
             args_device.append(arg.npu())
 
-        # TODO: replay graph should be public in the future
         return_output = replay_graph._ReplayGraph__replay(args_device, [])
 
         for i in range(len(args)):
-            # TODO: just copy_ when needed
             args[i].copy_(args_device[i])
 
         return output_bindings.bind(return_output)
