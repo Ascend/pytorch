@@ -23,7 +23,7 @@ from ..level_config import LevelConfig
 
 class ViewParserFactory:
     @classmethod
-    def create_view_parser_and_run(cls, profiler_path: str, output_path: str, level_config: dict = {}):
+    def create_view_parser_and_run(cls, profiler_path: str, output_path: str, level_config: dict = None):
         CANNFileParser(profiler_path).export_cann_profiling()
         GlobalVar.init(profiler_path)
         LevelConfig().load_info(level_config)

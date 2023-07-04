@@ -22,7 +22,7 @@ from .prof_common_func.path_manager import PathManager
 class NpuProfiler:
 
     @classmethod
-    def analyse(cls, input_path: str, level_config: dict = {}, output_path: str = None):
+    def analyse(cls, input_path: str, level_config: dict = None, output_path: str = None):
         profiler_path_list = PathManager.get_profiler_path_list(input_path)
         if not profiler_path_list:
             return
