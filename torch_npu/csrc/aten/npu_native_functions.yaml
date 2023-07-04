@@ -880,7 +880,8 @@ supported:
    op_api: True
  - func: neg.out
    op_api: True
- - neg_
+ - func: neg_
+   op_api: False
  - nll_loss
  - nll_loss.out
  - nll_loss2d
