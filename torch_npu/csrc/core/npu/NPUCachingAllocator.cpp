@@ -324,6 +324,9 @@ class DeviceCachingAllocator {
 
   bool set_fraction = false;
 
+  // whether shutdown.
+  bool shutdown_stats = false;
+
  public:
 
   DeviceCachingAllocator() :
@@ -499,7 +502,7 @@ class DeviceCachingAllocator {
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_allocations, -1);
 
-    if (!block->stream_uses.empty()) {
+    if (!block->stream_uses.empty() && !shutdown_stats) {
       insert_events(block);
     } else {
       free_block(block);
@@ -560,6 +563,10 @@ class DeviceCachingAllocator {
   void emptyCache() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     release_cached_blocks();
+  }
+
+  void devSetShutdownStats() {
+    shutdown_stats = true;
   }
 
   /** Retrieves info (total size + largest block) of the memory cache **/
@@ -1177,6 +1184,12 @@ class THNCachingAllocator {
       device_allocator[i]->emptyCache();
   }
 
+  void THNSetShutdownStats() {
+    int count = device_allocator.size();
+    for (int i = 0; i < count; i++)
+      device_allocator[i]->devSetShutdownStats();
+  }
+
   void* getBaseAllocation(void* ptr, size_t* outSize) {
     Block* block = get_allocated_block(ptr);
     if (!block) {
@@ -1255,6 +1268,10 @@ void setMemoryFraction(double fraction, int device) {
 
 void emptyCache(void) {
   caching_allocator.emptyCache();
+}
+
+void setShutdownStats() {
+  caching_allocator.THNSetShutdownStats();
 }
 
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {

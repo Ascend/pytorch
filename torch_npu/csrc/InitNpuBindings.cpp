@@ -72,6 +72,11 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
     } catch (std::exception& e) {
       NPU_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
     }
+
+    // To prevent entering the insert_events method of tensor destruction after the device has been released,
+    // a state variable called "shutdown_stats" is set during the shutdown process.
+    ASCEND_LOGI("NPU shutdown NPUCachingAllocator setShutdownStats.");
+    c10_npu::NPUCachingAllocator::setShutdownStats();
     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
     if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
       fprintf(stdout, "THPModule_npu_shutdown failed.\n");
