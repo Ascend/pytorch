@@ -54,7 +54,7 @@ tuple<at::Tensor&, at::Tensor&> std_mean_out_npu_nocheck(
       .Run();
 
   auto shape_prod = calc_shape_prod(self, dim);
-  if (shape_prod == 1 && shape_prod <= correction) {
+  if (shape_prod == 0 || (shape_prod == 1 && shape_prod <= correction)) {
     result_std.fill_(NAN);
     return std::tie(result_std, result_mean);
   }
