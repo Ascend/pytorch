@@ -71,7 +71,6 @@ ${return_type} ${name}(${args_str}) {
 
 """)
 
-
 TRACE_DISPATCH = CodeTemplate("""\
 return ${impl_name}(${args_exprs_str});""")
 
@@ -90,9 +89,10 @@ def compute_trace_method_definition(f: NativeFunction):
     check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
     unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \
         if out_num > 1 else ''
+    out_return_type = '::std::tuple<{}>'.format(', '.join(['at::Tensor'] * out_num))
 
     return [METHOD_DEFINITION.substitute(
-        return_type=cpp.returns_type(f.func.returns).cpp_type(),
+        return_type=out_return_type if out_num > 1 else cpp.returns_type(f.func.returns).cpp_type(),
         name=name,
         args_str=','.join(a.defn() for a in args[:-out_num]) + ', at::TensorList out' if out_num > 1 else args_str,
         unpack_out=unpack_out,
@@ -106,7 +106,8 @@ def compute_register_symbol(f: NativeFunction):
     out_num = len(f.func.arguments.out)
     if out_num > 1:
         decl = re.compile(r"(?P<name>[^\(]+)\((?P<args>.*)\) -> (?P<returns>.*)").findall(str(f.func))[0]
-        func_schema = decl[0] + '(' + ','.join(decl[1].split(',')[:-out_num]) + ', Tensor[] out) -> ' + decl[2]
+        func_schema = decl[0] + '(' + ','.join(decl[1].split(',')[:-out_num]) + ', Tensor[] out) -> (' + ', '.join(
+            ['Tensor'] * out_num) + ')'
     else:
         func_schema = str(f.func)
     return [f'm.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}));\n']
