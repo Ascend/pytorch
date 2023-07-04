@@ -57,7 +57,8 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at
   auto output_size = broadcast_ops_npu_output_size(self, other);
 
   // construct the output at::Tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(ref_tensor, output_size);
+  at::ScalarType result_type = at::native::result_type(self, other);
+  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), ref_tensor);
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnBitwiseAndTensor, self, other, result);
@@ -71,7 +72,12 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at
   auto output_size = input_same_output_size(self);
 
   // construct the output at::Tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result;
+  if ((self.scalar_type() == at::ScalarType::Bool) && (!other.isBoolean())) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+  } else {
+    result = OpPreparation::ApplyTensor(self);
+  }
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnBitwiseAndScalar, self, other, result);
