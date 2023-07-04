@@ -26,6 +26,10 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
+#ifdef USE_OPPLUGIN
+#include "op_plugin/ops/OpInterface.h"
+#endif
+
 namespace at_npu {
 
 namespace native {

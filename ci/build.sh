@@ -93,9 +93,7 @@ function main()
     fi
     check_python_version
 
-    if [ "$UPDATE_SUBMODULE" ]; then
-        update_submodule
-    fi
+    update_submodule
 
     cd ${CUR_DIR}/..
     # if you add or delete file/files in the project, you need to remove the following comment
