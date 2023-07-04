@@ -75,8 +75,6 @@ class CANNFileParser:
             return []
         if data and not isinstance(data[0], dict):
             return []
-        if data and "ph" not in data[0].keys():
-            return []
         return data
 
     def export_cann_profiling(self):
