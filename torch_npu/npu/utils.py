@@ -121,6 +121,7 @@ def _after_fork(arg):
         _in_bad_fork = True
         torch._C._npu_set_run_yet_variable_to_false()
 
+
 _register_after_fork(_after_fork, _after_fork)
 
 
@@ -161,6 +162,7 @@ def current_device():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDevice()
 
+
 def get_device_name(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
@@ -177,6 +179,7 @@ def get_device_capability(device=None):
     warnings.warn("torch_npu.npu.get_device_capability isn't implemented!")
     return None
 
+
 def utilization(device=None):
     r"""Query the comprehensive utilization rate of device
     """
@@ -186,12 +189,14 @@ def utilization(device=None):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
 
+
 def get_device_properties(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceProperties(device_id)
+
 
 def _get_device_index(device, optional=False):
     r"""Gets the device index from :attr:`device`, which can be a torch.device
@@ -241,7 +246,7 @@ def _get_device_index(device, optional=False):
 
 
 def is_available():
-    if (not hasattr(torch_npu._C, '_npu_setDevice')):
+    if not hasattr(torch_npu._C, '_npu_setDevice'):
         return False
     return device_count() > 0
 
@@ -389,13 +394,16 @@ def init_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_initDump()
 
+
 def set_dump(cfg_file):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_setDump(cfg_file)
 
+
 def finalize_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_finalizeDump()
+
 
 def get_soc_version():
     torch_npu.npu._lazy_init()
@@ -413,7 +421,7 @@ def get_npu_overflow_flag():
         raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_get_float_status(float_status)
-    if (result.cpu()[0] != 0):
+    if result.cpu()[0] != 0:
         return True
     else:
         return False
@@ -444,4 +452,3 @@ def clear_npu_overflow_flag():
         raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)
-
