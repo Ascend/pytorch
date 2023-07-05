@@ -1,8 +1,6 @@
 backend: NPU
 cpp_namespace: at_npu::native
 supported:
- - __and__.Scalar
- - __and__.Tensor
  - __ilshift__.Scalar
  - __ilshift__.Tensor
  - __ior__.Scalar
@@ -20,7 +18,7 @@ supported:
  - func: _adaptive_avg_pool2d_backward
    op_api: True
  - func: argmin.out
-   op_api: False
+   op_api: True
  - _adaptive_avg_pool3d
  - _adaptive_avg_pool3d_backward
  - _add_relu.Tensor
@@ -47,11 +45,12 @@ supported:
  - func: _convolution
    op_api: False
  - func: _ctc_loss
-   op_api: False
+   op_api: True
  - func: _ctc_loss_backward
-   op_api: False
+   op_api: True
  - _cummax_helper
- - _cummin_helper
+ - func: _cummin_helper
+   op_api: False
  - _dim_arange
  - _embedding_bag
  - _embedding_bag_backward
@@ -84,9 +83,9 @@ supported:
  - func: _softmax.out
    op_api: True
  - func: _softmax_backward_data
-   op_api: False
+   op_api: True
  - func: _softmax_backward_data.out
-   op_api: False
+   op_api: True
  - _symeig_helper
  - func: _unique2
    op_api: False
@@ -96,16 +95,19 @@ supported:
  - func: abs.out
    op_api: True
  - func: abs_
-   op_api: False
+   op_api: True
  - func: acos
-   op_api: False
+   op_api: True
  - func: acos.out
-   op_api: False
+   op_api: True
  - func: acos_
+   op_api: True
+ - func: acosh
    op_api: False
- - acosh
- - acosh.out
- - acosh_
+ - func: acosh.out
+   op_api: False
+ - func: acosh_
+   op_api: False
  - adaptive_avg_pool1d
  - func: adaptive_avg_pool2d
    op_api: True
@@ -127,9 +129,9 @@ supported:
  - func: add.out
    op_api: True
  - func: add_.Scalar
-   op_api: False
+   op_api: True
  - func: add_.Tensor
-   op_api: False
+   op_api: True
  - addbmm
  - addbmm.out
  - addbmm_
@@ -144,7 +146,7 @@ supported:
  - func: addcmul.out
    op_api: True
  - func: addcmul_
-   op_api: False
+   op_api: True
  - func: addmm
    op_api: True
  - func: addmm.out
@@ -157,9 +159,12 @@ supported:
    op_api: True
  - func: addmv_
    op_api: True
- - addr
- - addr.out
- - addr_
+ - func: addr
+   op_api: False
+ - func: addr.out
+   op_api: False
+ - func: addr_
+   op_api: False
  - affine_grid_generator
  - affine_grid_generator_backward
  - func: all
@@ -169,19 +174,19 @@ supported:
  - func: all.out
    op_api: True
  - func: all.all_out
-   op_api: False
+   op_api: True
  - amax
  - amax.out
  - amin
  - amin.out
  - func: any
-   op_api: False
+   op_api: True
  - func: any.all_out
-   op_api: False
+   op_api: True
  - func: any.dim
-   op_api: False
+   op_api: True
  - func: any.out
-   op_api: False
+   op_api: True
  - func: arange
    op_api: True
  - func: arange.out
@@ -192,16 +197,21 @@ supported:
    op_api: True
  - func: arange.start_step
    op_api: True
- - argsort
- - argsort.dimname
+ - func: argsort
+   op_api: False
+ - func: argsort.dimname
+   op_api: False
  - as_strided
  - as_strided_
  - asin
  - asin.out
  - asin_
- - asinh
- - asinh.out
- - asinh_
+ - func: asinh
+   op_api: False
+ - func: asinh.out
+   op_api: False
+ - func: asinh_
+   op_api: False
  - func: atan
    op_api: True
  - func: atan.out
@@ -225,28 +235,28 @@ supported:
  - avg_pool3d_backward
  - avg_pool3d_backward.grad_input
  - func: baddbmm
-   op_api: False
+   op_api: True
  - func: baddbmm.out
-   op_api: False
+   op_api: True
  - func: baddbmm_
-   op_api: False
+   op_api: True
  - bartlett_window
  - bartlett_window.periodic
  - batch_norm
  - func: batch_norm_backward_elemt
-   op_api: False
+   op_api: True
  - func: batch_norm_backward_reduce
-   op_api: False
+   op_api: True
  - func: batch_norm_elemt
-   op_api: False
+   op_api: True
  - func: batch_norm_elemt.out
-   op_api: False
+   op_api: True
  - batch_norm_gather_stats_update
  - func: batch_norm_gather_stats_with_counts
-   op_api: False
+   op_api: True
  - batch_norm_reduce
  - func: batch_norm_stats
-   op_api: False
+   op_api: True
  - func: bernoulli
    op_api: True
  - func: bernoulli.out
@@ -262,22 +272,22 @@ supported:
  - func: binary_cross_entropy.out
    op_api: True
  - func: binary_cross_entropy_backward
-   op_api: False
+   op_api: True
  - func: binary_cross_entropy_backward.grad_input
-   op_api: False
+   op_api: True
  - binary_cross_entropy_with_logits
  - func: bincount
-   op_api: False
+   op_api: True
  - func: bitwise_and.Scalar
-   op_api: False
+   op_api: True
  - func: bitwise_and.Scalar_out
-   op_api: False
+   op_api: True
  - func: bitwise_and.Tensor
    op_api: True
  - func: bitwise_and.Tensor_out
    op_api: True
  - func: bitwise_and_.Scalar
-   op_api: False
+   op_api: True
  - func: bitwise_and_.Tensor
    op_api: True
  - func: bitwise_not
@@ -294,10 +304,14 @@ supported:
    op_api: True
  - func: bitwise_or.Tensor_out
    op_api: True
- - bitwise_xor.Scalar
- - bitwise_xor.Scalar_out
- - bitwise_xor.Tensor
- - bitwise_xor.Tensor_out
+ - func: bitwise_xor.Scalar
+   op_api: False
+ - func: bitwise_xor.Scalar_out
+   op_api: False
+ - func: bitwise_xor.Tensor
+   op_api: False
+ - func: bitwise_xor.Tensor_out
+   op_api: False
  - bitwise_xor_.Scalar
  - bitwise_xor_.Tensor
  - blackman_window
@@ -349,7 +363,7 @@ supported:
  - clamp_min.Tensor_out
  - clamp_min_.Tensor
  - func: clone
-   op_api: False
+   op_api: True
  - col2im
  - col2im.out
  - col2im_backward
@@ -365,11 +379,11 @@ supported:
  - convolution_backward_overrideable
  - convolution_overrideable
  - func: count_nonzero
-   op_api: False
+   op_api: True
  - func: count_nonzero.dim_IntList
-   op_api: False
+   op_api: True
  - func: copy_
-   op_api: False
+   op_api: True
  - copy_memory_
  - func: cos
    op_api: True
@@ -382,9 +396,9 @@ supported:
  - cosh_
  - crop_and_resize
  - func: ctc_loss.IntList
-   op_api: False
+   op_api: True
  - func: ctc_loss.Tensor
-   op_api: False
+   op_api: True
  - cumprod.dimname_out
  - cumprod.out
  - cumprod_
@@ -399,9 +413,9 @@ supported:
  - diag
  - diag.out
  - func: div.Scalar
-   op_api: False
+   op_api: True
  - func: div.Scalar_mode
-   op_api: False
+   op_api: True
  - func: div.Tensor
    op_api: True
  - func: div.Tensor_mode
@@ -411,9 +425,9 @@ supported:
  - func: div.out_mode
    op_api: True
  - func: div_.Scalar
-   op_api: False
+   op_api: True
  - func: div_.Scalar_mode
-   op_api: False
+   op_api: True
  - func: div_.Tensor
    op_api: True
  - func: div_.Tensor_mode
@@ -423,7 +437,7 @@ supported:
  - func: dot.out
    op_api: True
  - func: dropout
-   op_api: False
+   op_api: True
  - dropout_with_byte_mask
  - func: embedding
    op_api: True
@@ -447,20 +461,23 @@ supported:
  - func: eq.Tensor_out
    op_api: True
  - func: eq_.Scalar
-   op_api: False
+   op_api: True
  - func: eq_.Tensor
-   op_api: False
+   op_api: True
  - func: equal
    op_api: True
  - func: erf
-   op_api: False
+   op_api: True
  - func: erf.out
-   op_api: False
+   op_api: True
  - func: erf_
+   op_api: True
+ - func: erfc
    op_api: False
- - erfc
- - erfc.out
- - erfc_
+ - func: erfc.out
+   op_api: False
+ - func: erfc_
+   op_api: False
  - erfinv
  - erfinv.out
  - erfinv_
@@ -476,12 +493,14 @@ supported:
  - expm1
  - expm1.out
  - expm1_
- - eye
- - eye.m
+ - func: eye
+   op_api: True
+ - func: eye.m
+   op_api: True
  - func: eye.m_out
-   op_api: False
+   op_api: True
  - func: eye.out
-   op_api: False
+   op_api: True
  - func: fill_.Tensor
    op_api: True
  - func: fill_.Scalar
@@ -493,12 +512,18 @@ supported:
    op_api: True
  - func: floor.out
    op_api: True
- - floor_
- - floor_divide
- - floor_divide.Scalar
- - floor_divide.out
- - floor_divide_.Scalar
- - floor_divide_.Tensor
+ - func: floor_
+   op_api: False
+ - func: floor_divide
+   op_api: False
+ - func: floor_divide.Scalar
+   op_api: False
+ - func: floor_divide.out
+   op_api: False
+ - func: floor_divide_.Scalar
+   op_api: False
+ - func: floor_divide_.Tensor
+   op_api: False
  - fmod.Scalar
  - fmod.Scalar_out
  - fmod.Tensor
@@ -512,13 +537,13 @@ supported:
  - full.names
  - full.out
  - func: gather
-   op_api: False
+   op_api: True
  - func: gather.dimname
-   op_api: False
+   op_api: True
  - func: gather.dimname_out
-   op_api: False
+   op_api: True
  - func: gather.out
-   op_api: False
+   op_api: True
  - func: ge.Scalar
    op_api: True
  - func: ge.Scalar_out
@@ -534,17 +559,21 @@ supported:
  - func: gelu.out
    op_api: True
  - func: gelu_backward
-   op_api: False
+   op_api: True
  - ger
  - ger.out
- - glu
- - glu.out
- - glu_backward
- - glu_backward.grad_input
+ - func: glu
+   op_api: False
+ - func: glu.out
+   op_api: False
+ - func: glu_backward
+   op_api: False
+ - func: glu_backward.grad_input
+   op_api: False
  - func: grid_sampler_2d
-   op_api: False
+   op_api: True
  - func: grid_sampler_2d_backward
-   op_api: False
+   op_api: True
  - grid_sampler_3d
  - grid_sampler_3d_backward
  - gru.input
@@ -556,8 +585,10 @@ supported:
    op_api: True
  - func: gt.Tensor_out
    op_api: True
- - gt_.Scalar
- - gt_.Tensor
+ - func: gt_.Scalar
+   op_api: False
+ - func: gt_.Tensor
+   op_api: False
  - hamming_window
  - hamming_window.periodic
  - hamming_window.periodic_alpha
@@ -582,38 +613,41 @@ supported:
  - func: hardswish_backward
    op_api: True
  - func: hardtanh
-   op_api: False
+   op_api: True
  - hardtanh.out
  - func: hardtanh_
-   op_api: False
+   op_api: True
  - func: hardtanh_backward
-   op_api: False
+   op_api: True
  - hardtanh_backward.grad_input
  - func: histc
-   op_api: False
+   op_api: True
  - func: histc.out
-   op_api: False
+   op_api: True
  - im2col
  - im2col.out
  - func: im2col_backward
-   op_api: False
+   op_api: True
  - func: im2col_backward.grad_input
-   op_api: False
+   op_api: True
  - image_normalize
  - image_normalize_
  - img_to_tensor
  - func: index.Tensor
    op_api: True
  - func: index_add
-   op_api: False
+   op_api: True
  - index_add.dimname
  - func: index_add.out
+   op_api: True
+ - func: index_fill.int_Scalar
    op_api: False
- - index_fill.int_Scalar
- - index_fill.int_Tensor
- - index_fill_.int_Scalar
+ - func: index_fill.int_Tensor
+   op_api: False
+ - func: index_fill_.int_Scalar
+   op_api: False
  - func: index_fill_.int_Tensor
-   op_api: False
+   op_api: True
  - func: index_select
    op_api: True
  - func: index_put
@@ -624,15 +658,18 @@ supported:
  - index_select.dimname_out
  - func: index_select.out
    op_api: True
- - inverse
- - inverse.out
+ - func: inverse
+   op_api: False
+ - func: inverse.out
+   op_api: False
  - is_pinned
+ - is_set_to
  - isclose
  - isfinite
  - isnan
  - kl_div
  - func: kl_div_backward
-   op_api: False
+   op_api: True
  - func: kthvalue
    op_api: False
  - func: kthvalue.dimname
@@ -646,24 +683,25 @@ supported:
  - l1_loss_backward
  - l1_loss_backward.grad_input
  - func: le.Scalar
-   op_api: False
+   op_api: True
  - func: le.Scalar_out
-   op_api: False
+   op_api: True
  - func: le.Tensor
-   op_api: False
+   op_api: True
  - func: le.Tensor_out
-   op_api: False
+   op_api: True
  - le_.Scalar
  - le_.Tensor
  - func: leaky_relu
-   op_api: False
+   op_api: True
  - func: leaky_relu.out
+   op_api: True
+ - func: leaky_relu_
    op_api: False
- - leaky_relu_
  - func: leaky_relu_backward
-   op_api: False
+   op_api: True
  - func: leaky_relu_backward.grad_input
-   op_api: False
+   op_api: True
  - lerp.Scalar
  - lerp.Scalar_out
  - lerp.Tensor
@@ -686,15 +724,19 @@ supported:
    op_api: False
  - func: log10_
    op_api: False
- - log1p
- - log1p.out
- - log1p_
+ - func: log1p
+   op_api: False
+ - func: log1p.out
+   op_api: False
+ - func: log1p_
+   op_api: False
  - func: log2
-   op_api: False
+   op_api: True
  - func: log2.out
-   op_api: False
+   op_api: True
  - log2_
- - log_
+ - func: log_
+   op_api: False
  - log_sigmoid
  - log_sigmoid.out
  - log_sigmoid_backward
@@ -703,19 +745,26 @@ supported:
  - log_sigmoid_forward.output
  - log_softmax.Dimname
  - log_softmax.int
- - logaddexp
- - logaddexp.out
- - logaddexp2
- - logaddexp2.out
+ - func: logaddexp
+   op_api: False
+ - func: logaddexp.out
+   op_api: False
+ - func: logaddexp2
+   op_api: False
+ - func: logaddexp2.out
+   op_api: False
  - func: logical_and
    op_api: True
  - func: logical_and.out
    op_api: True
  - func: logical_and_
    op_api: False
- - logical_not
- - logical_not.out
- - logical_not_
+ - func: logical_not
+   op_api: False
+ - func: logical_not.out
+   op_api: False
+ - func: logical_not_
+   op_api: False
  - func: logical_or
    op_api: True
  - func: logical_or.out
@@ -731,37 +780,33 @@ supported:
  - lstm.input
  - lstm_cell
  - func: lt.Scalar
-   op_api: False
+   op_api: True
  - func: lt.Scalar_out
-   op_api: False
+   op_api: True
  - func: lt.Tensor
    op_api: True
  - func: lt.Tensor_out
    op_api: True
  - func: lt_.Scalar
-   op_api: False
+   op_api: True
  - func: lt_.Tensor
-   op_api: False
+   op_api: True
  - func: masked_fill_.Scalar
    op_api: True
  - func: masked_fill_.Tensor
    op_api: True
- - func: matmul
-   op_api: False
- - func: matmul.out
-   op_api: False
  - func: masked_scatter_
-   op_api: False
+   op_api: True
  - func: masked_select
-   op_api: False
+   op_api: True
  - func: masked_select.out
-   op_api: False
+   op_api: True
  - func: max
-   op_api: False
+   op_api: True
  - func: max.dim
-   op_api: False
+   op_api: True
  - func: max.dim_max
-   op_api: False
+   op_api: True
  - max.names_dim
  - max.names_dim_max
  - max.out
@@ -779,9 +824,9 @@ supported:
  - func: max_unpool2d.out
    op_api: False
  - func: max_unpool2d_backward
-   op_api: False
+   op_api: True
  - func: max_unpool2d_backward.grad_input
-   op_api: False
+   op_api: True
  - max_unpool3d
  - max_unpool3d.out
  - max_unpool3d_backward
@@ -805,18 +850,18 @@ supported:
  - median.names_dim
  - median.names_dim_values
  - func: min
-   op_api: False
+   op_api: True
  - func: min.dim
-   op_api: False
+   op_api: True
  - func: min.dim_min
-   op_api: False
+   op_api: True
  - min.names_dim
  - min.names_dim_min
  - min.out
  - func: minimum
-   op_api: False
+   op_api: True
  - func: minimum.out
-   op_api: False
+   op_api: True
  - mish
  - mish.out
  - mish_
@@ -826,13 +871,13 @@ supported:
  - func: mm.out
    op_api: True
  - func: mse_loss
-   op_api: False
+   op_api: True
  - func: mse_loss.out
-   op_api: False
+   op_api: True
  - func: mse_loss_backward
-   op_api: False
+   op_api: True
  - func: mse_loss_backward.grad_input
-   op_api: False
+   op_api: True
  - func: mul.Scalar
    op_api: True
  - func: mul.Tensor
@@ -848,9 +893,9 @@ supported:
  - multilabel_margin_loss_forward
  - multilabel_margin_loss_forward.output
  - func: multinomial
-   op_api: False
+   op_api: True
  - func: multinomial.out
-   op_api: False
+   op_api: True
  - mv
  - mv.out
  - func: native_batch_norm
@@ -860,9 +905,9 @@ supported:
  - func: native_batch_norm_backward
    op_api: True
  - func: native_dropout
-   op_api: False
+   op_api: True
  - func: native_dropout_backward
-   op_api: False
+   op_api: True
  - func: native_layer_norm
    op_api: True
  - func: native_layer_norm_backward
@@ -881,7 +926,8 @@ supported:
    op_api: True
  - func: neg.out
    op_api: True
- - neg_
+ - func: neg_
+   op_api: False
  - nll_loss
  - nll_loss.out
  - nll_loss2d
@@ -903,16 +949,16 @@ supported:
  - func: nll_loss_forward.output
    op_api: True
  - func: nonzero
-   op_api: False
+   op_api: True
  - func: nonzero.out
-   op_api: False
+   op_api: True
  - norm.Scalar
  - norm.ScalarOpt_dim
  - norm.ScalarOpt_dim_dtype
  - norm.ScalarOpt_dtype
  - norm.dtype_out
  - func: norm.out
-   op_api: False
+   op_api: True
  - normal.Tensor_Tensor
  - normal.Tensor_Tensor_out
  - normal.Tensor_float
@@ -936,9 +982,9 @@ supported:
    op_api: False
  - pdist
  - func: pow.Scalar
-   op_api: False
+   op_api: True
  - func: pow.Scalar_out
-   op_api: False
+   op_api: True
  - func: pow.Tensor_Scalar
    op_api: True
  - func: pow.Tensor_Scalar_out
@@ -953,15 +999,15 @@ supported:
    op_api: True
  - prelu_backward
  - func: prod
-   op_api: False
+   op_api: True
  - prod.Dimname_out
  - prod.dim_Dimname
  - func: prod.dim_int
-   op_api: False
+   op_api: True
  - func: prod.int_out
-   op_api: False
+   op_api: True
  - func: put_
-   op_api: False
+   op_api: True
  - qr
  - qr.Q
  - quantize_per_channel
@@ -982,24 +1028,26 @@ supported:
    op_api: True
  - range
  - func: range.out
-   op_api: False
+   op_api: True
  - range.step
  - func: reciprocal
-   op_api: False
+   op_api: True
  - func: reciprocal.out
-   op_api: False
+   op_api: True
  - func: reciprocal_
-   op_api: False
+   op_api: True
  - func: reflection_pad1d
-   op_api: False
+   op_api: True
  - func: reflection_pad1d.out
+   op_api: True
+ - func: reflection_pad1d_backward
    op_api: False
- - reflection_pad1d_backward
- - reflection_pad1d_backward.grad_input
+ - func: reflection_pad1d_backward.grad_input
+   op_api: False
  - func: reflection_pad2d
-   op_api: False
+   op_api: True
  - func: reflection_pad2d.out
-   op_api: False
+   op_api: True
  - func: reflection_pad2d_backward
    op_api: True
  - func: reflection_pad2d_backward.grad_input
@@ -1018,16 +1066,16 @@ supported:
  - renorm.out
  - renorm_
  - repeat
- - func: repeat_interleave.Tensor
-   op_api: False
  - func: repeat_interleave.self_Tensor
-   op_api: False
+   op_api: True
  - func: repeat_interleave.self_int
-   op_api: False
+   op_api: True
  - replication_pad1d
  - replication_pad1d.out
- - replication_pad1d_backward
- - replication_pad1d_backward.grad_input
+ - func: replication_pad1d_backward
+   op_api: False
+ - func: replication_pad1d_backward.grad_input
+   op_api: False
  - replication_pad2d
  - replication_pad2d.out
  - func: replication_pad2d_backward
@@ -1040,11 +1088,11 @@ supported:
  - func: roll
    op_api: True
  - func: round
-   op_api: False
+   op_api: True
  - func: round.out
-   op_api: False
+   op_api: True
  - func: round_
-   op_api: False
+   op_api: True
  - func: rrelu_with_noise
    op_api: True
  - func: rrelu_with_noise.out
@@ -1053,9 +1101,12 @@ supported:
    op_api: True
  - rrelu_with_noise_backward
  - square.out
- - rsqrt
- - rsqrt.out
- - rsqrt_
+ - func: rsqrt
+   op_api: False
+ - func: rsqrt.out
+   op_api: False
+ - func: rsqrt_
+   op_api: False
  - rsub.Scalar
  - rsub.Tensor
  - scalar_tensor
@@ -1109,9 +1160,12 @@ supported:
    op_api: False
  - func: sin_
    op_api: False
- - sinh
- - sinh.out
- - sinh_
+ - func: sinh
+   op_api: False
+ - func: sinh.out
+   op_api: False
+ - func: sinh_
+   op_api: False
  - slogdet
  - slow_conv3d
  - slow_conv3d.out
@@ -1123,13 +1177,13 @@ supported:
  - slow_conv_transpose2d.out
  - slow_conv_transpose2d_backward
  - func: smooth_l1_loss
-   op_api: False
+   op_api: True
  - func: smooth_l1_loss.out
-   op_api: False
+   op_api: True
  - func: smooth_l1_loss_backward
-   op_api: False
+   op_api: True
  - func: smooth_l1_loss_backward.grad_input
-   op_api: False
+   op_api: True
  - soft_margin_loss
  - soft_margin_loss.out
  - soft_margin_loss_backward
@@ -1189,8 +1243,10 @@ supported:
    op_api: True
  - func: sub.out
    op_api: True
- - sub_.Scalar
- - sub_.Tensor
+ - func: sub_.Scalar
+   op_api: False
+ - func: sub_.Tensor
+   op_api: False
  - func: sum
    op_api: True
  - func: sum.DimnameList_out
@@ -1202,9 +1258,9 @@ supported:
  - func: sum.dim_IntList
    op_api: True
  - func: take
-   op_api: False
+   op_api: True
  - func: take.out
-   op_api: False
+   op_api: True
  - func: tanh
    op_api: False
  - func: tanh.out
@@ -1247,11 +1303,11 @@ supported:
    op_api: True
  - tril_indices
  - func: triu
-   op_api: False
+   op_api: True
  - func: triu.out
-   op_api: False
+   op_api: True
  - func: triu_
-   op_api: False
+   op_api: True
  - triu_indices
  - true_divide.Scalar
  - true_divide.Tensor
@@ -1260,13 +1316,17 @@ supported:
  - true_divide_.Tensor
  - func: trace
    op_api: False
- - trunc
- - trunc.out
- - trunc_
+ - func: trunc
+   op_api: False
+ - func: trunc.out
+   op_api: False
+ - func: trunc_
+   op_api: False
  - unfold
  - func: uniform_
    op_api: True
- - unique_consecutive
+ - func: unique_consecutive
+   op_api: False
  - unsqueeze
  - upsample_bicubic2d
  - upsample_bicubic2d.out
@@ -1351,6 +1411,10 @@ supported:
  - zeros_like
 
 autograd:
+  - func: matmul
+    op_api: True
+  - func: matmul.out
+    op_api: True
   - celu
   - celu_
   - func: elu.out
@@ -1361,11 +1425,12 @@ autograd:
     op_api: False
   - silu
   - silu_
-  - func: silu.out
-    op_api: False
+  - silu.out
   - binary_cross_entropy_with_logits_backward
-  - selu
-  - selu_
+  - func: selu
+    op_api: False
+  - func: selu_
+    op_api: False
 
 tocpu:
   - _cholesky_helper
@@ -1497,7 +1562,6 @@ tocpu:
   - complex.out
   - exponential_
   - geometric_
-  - is_set_to
   - linalg_vector_norm
   - linalg_vector_norm.out
   - linalg_slogdet
@@ -1525,6 +1589,7 @@ tocpu:
   - polar.out
   - replication_pad3d_backward.grad_input
   - replication_pad3d_backward
+  - repeat_interleave.Tensor
   - slow_conv_dilated3d
   - slow_conv_transpose3d.out
   - slow_conv_transpose3d
@@ -1792,6 +1857,8 @@ custom:
   - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
   - func: bscpp_add(Tensor self, Tensor other) -> Tensor
     bscpp_op: True
+  - func: npu_rotary_mul(Tensor self, Tensor r1, Tensor r2) -> Tensor
+  - func: npu_rotary_mul_backward(Tensor grad, Tensor self, Tensor r1, Tensor r2) -> (Tensor, Tensor, Tensor)
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor

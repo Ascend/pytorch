@@ -21,13 +21,9 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::index_fill_(at::Tensor& self, int64_t dim, const at::Tensor& index,
-                                                 const at::Tensor& value) {
-  DO_COMPATIBILITY(aclnnInplaceIndexFillTensor, NPUNativeFunctions::index_fill_(self, dim, index, value));
-  TORCH_CHECK(value.dim() == 0, "Value should be a 0-dimensional tensor, but got ", value.dim());
-  TORCH_CHECK(index.dim() < 2, "Index dim can not greater than 2, but got ", index.dim());
-  TORCH_CHECK(!((index.dim() == 1) && (index.sizes()[0] == 0)), "Index can not be empty tensor.");
-  at::Scalar value_scalar = value.item();
+constexpr int MAX_DIM = 1;
+
+static std::vector<int64_t> GetIndexVector(const at::Tensor& index) {
   std::vector<int64_t> idx_vec;
   if (index.dim() == 0) {
     idx_vec.emplace_back(static_cast<int64_t>(index.item().to<int>()));
@@ -37,10 +33,66 @@ at::Tensor& NPUNativeOpApiFunctions::index_fill_(at::Tensor& self, int64_t dim, 
       idx_vec.emplace_back(idx);
     }
   }
-  at::IntArrayRef index_array = at::IntArrayRef(idx_vec);
+  return idx_vec;
+}
 
+at::Tensor& NPUNativeOpApiFunctions::index_fill_(at::Tensor& self, int64_t dim, const at::Tensor& index,
+                                                 const at::Tensor& value) {
+  DO_COMPATIBILITY(aclnnInplaceIndexFillTensor, NPUNativeFunctions::index_fill_(self, dim, index, value));
+  TORCH_CHECK(value.dim() == 0, "Value should be a 0-dimensional tensor, but got ", value.dim());
+  TORCH_CHECK(index.dim() <= MAX_DIM, "Index has to be a vector/scalar.");
+
+  at::Scalar value_scalar = value.item();
+  std::vector<int64_t> idx_vec = GetIndexVector(index);
+  at::IntArrayRef index_array = at::IntArrayRef(idx_vec);
+  
   EXEC_NPU_CMD(aclnnInplaceIndexFillTensor, self, dim, index_array, value_scalar);
   return self;
 }
+
+at::Tensor NPUNativeOpApiFunctions::index_fill(const at::Tensor& self, int64_t dim, const at::Tensor& index,
+                                               const at::Tensor& value) {
+  DO_COMPATIBILITY(aclnnIndexFillTensor, NPUNativeFunctions::index_fill(self, dim, index, value));
+  TORCH_CHECK(value.dim() == 0, "Value should be a 0-dimensional tensor, but got ", value.dim());
+  TORCH_CHECK(index.dim() <= MAX_DIM, "Index has to be a vector/scalar.");
+
+  at::Scalar value_scalar = value.item();
+  std::vector<int64_t> idx_vec = GetIndexVector(index);
+  at::IntArrayRef index_array = at::IntArrayRef(idx_vec);
+
+  // construct output tensor
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
+
+  EXEC_NPU_CMD(aclnnIndexFillTensor, self, dim, index_array, value_scalar, result);
+  return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::index_fill_(at::Tensor& self, int64_t dim, const at::Tensor& index,
+                                                 const at::Scalar& value) {
+  DO_COMPATIBILITY(aclnnInplaceIndexFillTensor, NPUNativeFunctions::index_fill_(self, dim, index, value));
+  TORCH_CHECK(index.dim() <= MAX_DIM, "Index has to be a vector/scalar.");
+
+  std::vector<int64_t> idx_vec = GetIndexVector(index);
+  at::IntArrayRef index_array = at::IntArrayRef(idx_vec);
+
+  EXEC_NPU_CMD(aclnnInplaceIndexFillTensor, self, dim, index_array, value);
+  return self;
+}
+
+at::Tensor NPUNativeOpApiFunctions::index_fill(const at::Tensor& self, int64_t dim, const at::Tensor& index,
+                                               const at::Scalar& value) {
+  DO_COMPATIBILITY(aclnnIndexFillTensor, NPUNativeFunctions::index_fill(self, dim, index, value));
+  TORCH_CHECK(index.dim() <= MAX_DIM, "Index has to be a vector/scalar.");
+
+  std::vector<int64_t> idx_vec = GetIndexVector(index);
+  at::IntArrayRef index_array = at::IntArrayRef(idx_vec);
+
+  // construct output tensor
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
+
+  EXEC_NPU_CMD(aclnnIndexFillTensor, self, dim, index_array, value, result);
+  return result;
+}
+
 }  // namespace native
 }  // namespace at_npu
