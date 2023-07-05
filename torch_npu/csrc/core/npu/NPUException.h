@@ -38,10 +38,13 @@ do {                                                      \
     static c10_npu::acl::AclErrorCode err_map;                         \
     if ((Error) != ACL_ERROR_NONE) {                                   \
       if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {               \
+        static auto feature_not_support_warn_once = []() {             \
           printf("[WARN]%s,%s:%u:%s\n",                                \
                  __FUNCTION__, __FILENAME__, __LINE__,                 \
                  "Feature is not supportted and the possible cause is" \
-                 " that CANN packages do not match.");                 \
+                 " that driver and firmware packages do not match.");  \
+          return true;                                                 \
+        }();                                                           \
       } else {                                                         \
         TORCH_CHECK(                                                   \
           false,                                                       \
