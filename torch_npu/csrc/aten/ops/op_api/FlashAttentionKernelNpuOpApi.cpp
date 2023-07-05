@@ -52,8 +52,7 @@ at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &keep_
     const int64_t offset, const int64_t numels) {
   int64_t length = (numels + 128 - 1) / 128 * 128 / 8;
   c10::TensorOptions options = self.options();
-  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length + 32}, options.dtype(at::kByte),
-                                                         ACL_FORMAT_ND);
+  at::Tensor mask = OpPreparation::ApplyTensorWithoutFormat(at::IntArrayRef{length + 32}, options.dtype(at::kByte));
   at::SmallVector<int64_t, N> offsetList = {0, offset};
   const int64_t seed1 = 0;
   OpCommand cmd;
@@ -157,9 +156,9 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor format_softmax = format_trans(softmax_const);
   at::Tensor format_attention = format_trans(attention_const);
 
-  at::Tensor dq = OpPreparation::ApplyTensor(format_query);
-  at::Tensor dk = OpPreparation::ApplyTensor(format_key);
-  at::Tensor dv = OpPreparation::ApplyTensor(format_value);
+  at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query);
+  at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
+  at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
@@ -188,7 +187,7 @@ public:
     TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
     TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
     TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
-    at::Tensor attention_score = OpPreparation::ApplyTensor(query);
+    at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(query);
 
     at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
     at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
@@ -205,9 +204,9 @@ public:
         seed, offset, numels);
 
     size_t dim = (query.scalar_type() == at::ScalarType::Float) ? 8 : 16;
-    at::Tensor softmax_max = OpPreparation::ApplyTensor(query,
+    at::Tensor softmax_max = OpPreparation::ApplyTensorWithoutFormat(query,
         {query.size(0), head_num, query.size(1), dim}); // [B, N, S, dim]
-    at::Tensor softmax_sum = OpPreparation::ApplyTensor(query,
+    at::Tensor softmax_sum = OpPreparation::ApplyTensorWithoutFormat(query,
         {query.size(0), head_num, query.size(1), dim}); // [B, N, S, dim]
 
     bool is_flash = true;

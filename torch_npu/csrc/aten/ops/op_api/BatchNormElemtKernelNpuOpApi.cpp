@@ -39,7 +39,7 @@ at::Tensor NPUNativeOpApiFunctions::batch_norm_elemt(const at::Tensor& self, con
                                                      const c10::optional<at::Tensor>& bias, const at::Tensor& mean,
                                                      const at::Tensor& invstd, double eps) {
   DO_COMPATIBILITY(aclnnBatchNormElemt, NPUNativeFunctions::batch_norm_elemt(self, weight, bias, mean, invstd, eps));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnBatchNormElemt, self, weight, bias, mean, invstd, eps, result);
   return result;
 }

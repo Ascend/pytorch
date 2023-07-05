@@ -23,7 +23,7 @@ namespace native {
 
 at::Tensor NPUNativeOpApiFunctions::hardtanh(const at::Tensor& self, const at::Scalar& min, const at::Scalar& max) {
   DO_COMPATIBILITY(aclnnHardtanh, NPUNativeFunctions::hardtanh(self, min, max));
-  at::Tensor out = OpPreparation::ApplyTensor(self);
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnHardtanh, self, min, max, out);
   return out;
 }

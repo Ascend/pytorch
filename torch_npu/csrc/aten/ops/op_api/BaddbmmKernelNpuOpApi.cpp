@@ -55,7 +55,7 @@ at::Tensor NPUNativeOpApiFunctions::baddbmm(
       NPUNativeFunctions::baddbmm(self, batch1, batch2, beta, alpha));
   
   auto output_size = baddbmm_npu_output_size(batch1, batch2);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(output_size, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
 
   int8_t cube_math_type = 1;
   EXEC_NPU_CMD(aclnnBaddbmm, self, batch1, batch2, beta, alpha, result, cube_math_type);

@@ -53,7 +53,7 @@ at::Tensor NPUNativeOpApiFunctions::addmv(
     const at::Scalar& alpha) {
   DO_COMPATIBILITY(aclnnAddmv, NPUNativeFunctions::addmv(self, mat, vec, beta, alpha));
   auto output_size = addmv_npu_output_size(self, mat, vec, beta, alpha);
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   AddmvOutOpApi(self, mat, vec, beta, alpha, result);
   return result;
 }

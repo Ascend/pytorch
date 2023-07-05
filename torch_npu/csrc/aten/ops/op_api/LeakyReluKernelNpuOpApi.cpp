@@ -35,7 +35,7 @@ at::Tensor& NPUNativeOpApiFunctions::leaky_relu_out(const at::Tensor& self, cons
 at::Tensor NPUNativeOpApiFunctions::leaky_relu(const at::Tensor& self, const at::Scalar& negval) {
   DO_COMPATIBILITY(aclnnLeakyRelu, NPUNativeFunctions::leaky_relu(self, negval));
 
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnLeakyRelu, self, negval, result);
 

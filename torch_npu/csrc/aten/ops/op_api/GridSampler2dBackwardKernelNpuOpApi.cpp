@@ -34,8 +34,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::grid_sampler_2d_back
                                                                                             padding_mode,
                                                                                             align_corners,
                                                                                             output_mask));
-  at::Tensor dinput = OpPreparation::ApplyTensor(input);
-  at::Tensor dgrid = OpPreparation::ApplyTensor(grid);
+  at::Tensor dinput = OpPreparation::ApplyTensorWithoutFormat(input);
+  at::Tensor dgrid = OpPreparation::ApplyTensorWithoutFormat(grid);
   EXEC_NPU_CMD(aclnnGridSampler2DBackward, grad, input, grid, interpolation_mode, padding_mode, align_corners,
                output_mask, dinput, dgrid);
   return std::tuple<at::Tensor, at::Tensor>(dinput, dgrid);

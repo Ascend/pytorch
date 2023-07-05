@@ -33,7 +33,7 @@ at::Tensor NPUNativeOpApiFunctions::max_unpool2d_backward(const at::Tensor& grad
                                                           const at::Tensor& indices, at::IntArrayRef outputSize) {
   DO_COMPATIBILITY(aclnnMaxUnpool2dBackward,
                    NPUNativeFunctions::max_unpool2d_backward(gradOutput, self, indices, outputSize));
-  at::Tensor gradInput = OpPreparation::ApplyTensor(self);
+  at::Tensor gradInput = OpPreparation::ApplyTensorWithoutFormat(self);
   max_unpool2d_backward_out(gradOutput, self, indices, outputSize, gradInput);
   return gradInput;
 }

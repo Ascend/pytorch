@@ -44,7 +44,7 @@ at::Tensor NPUNativeOpApiFunctions::addcmul(const at::Tensor& self, const at::Te
   auto mul_output_size = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto output_size = broadcast_ops_npu_output_size(self.sizes(), mul_output_size);
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
 
   EXEC_NPU_CMD(aclnnAddcmul, self, tensor1, tensor2, value, result);
   return result;

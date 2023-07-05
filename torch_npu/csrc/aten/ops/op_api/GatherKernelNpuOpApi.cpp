@@ -64,7 +64,7 @@ at::Tensor NPUNativeOpApiFunctions::gather(
     bool sparse_grad) {
   DO_COMPATIBILITY(aclnnGather, NPUNativeFunctions::gather(self, dim, index, sparse_grad));
   auto outputSize = index.sizes();
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   EXEC_NPU_CMD(aclnnGather, self, dim, index, result);
   return result;
 }
@@ -76,7 +76,7 @@ at::Tensor NPUNativeOpApiFunctions::gather(
     bool sparse_grad) {
   DO_COMPATIBILITY(aclnnGather, NPUNativeFunctions::gather(self, dim, index, sparse_grad));
   auto outputSize = index.sizes();
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   const int64_t real_dim = dimname_to_position(self, dim);
   EXEC_NPU_CMD(aclnnGather, self, real_dim, index, result);
   return result;

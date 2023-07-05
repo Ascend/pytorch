@@ -34,14 +34,14 @@ at::Tensor& NPUNativeOpApiFunctions::elu_out(const at::Tensor& self, const at::S
 }
 
 at::Tensor elu_npu_impl_op_api(const at::Tensor& self, at::Scalar alpha, at::Scalar scale, at::Scalar input_scale) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnElu, self, alpha, scale, input_scale, result);
   return result;
 }
 
 at::Tensor elu_backward_npu_impl_op_api(const at::Tensor& grad_output, at::Scalar alpha, at::Scalar scale,
                                         at::Scalar input_scale, const at::Tensor& output) {
-  at::Tensor result = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(grad_output);
   bool is_result = true;
   EXEC_NPU_CMD(aclnnEluBackward, grad_output, alpha, scale, input_scale, is_result, output, result);
   return result;

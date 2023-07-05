@@ -101,7 +101,7 @@ static at::Tensor matmul_opt_npu(c10::optional<at::Tensor> out_opt,
     out = out_opt.value();
     OpPreparation::CheckOut({tensor1, tensor2}, out, tensor1, output_size);
   } else {
-    out = OpPreparation::ApplyTensorWithSizes(output_size, tensor1.options());
+    out = OpPreparation::ApplyTensorWithoutFormat(output_size, tensor1.options());
   }
 
   // allow dicrease precision

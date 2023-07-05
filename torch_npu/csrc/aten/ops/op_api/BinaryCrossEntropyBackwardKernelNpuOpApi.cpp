@@ -52,7 +52,7 @@ at::Tensor NPUNativeOpApiFunctions::binary_cross_entropy_backward(
     int64_t reduction) {
   DO_COMPATIBILITY(aclnnBinaryCrossEntropyBackward,
       NPUNativeFunctions::binary_cross_entropy_backward(grad_output, self, target, weight_opt, reduction));
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(self);
   // calculate the output result of the NPU
   binary_cross_entropy_backward_out_npu_nocheck(grad_input, grad_output, self, target, weight_opt, reduction);
   return grad_input;

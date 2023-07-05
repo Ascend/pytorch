@@ -36,7 +36,7 @@ at::Tensor NPUNativeOpApiFunctions::addcdiv(const at::Tensor& self, const at::Te
   auto divOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), divOutputSize);
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
 
   EXEC_NPU_CMD(aclnnAddcdiv, self, tensor1, tensor2, value, result);
   return result;

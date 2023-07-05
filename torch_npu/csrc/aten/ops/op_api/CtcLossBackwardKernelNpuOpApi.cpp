@@ -38,7 +38,7 @@ at::Tensor NPUNativeOpApiFunctions::_ctc_loss_backward(
   auto outputSize = input_same_output_size(log_probs);
 
   // construct the output tensor of the NPU
-  at::Tensor grad = OpPreparation::ApplyTensor(grad_out, outputSize);
+  at::Tensor grad = OpPreparation::ApplyTensorWithoutFormat(grad_out, outputSize);
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnCtcLossBackward, grad_out, log_probs, targets, input_lengths, target_lengths, 

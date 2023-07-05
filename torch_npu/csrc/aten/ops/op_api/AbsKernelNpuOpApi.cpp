@@ -34,7 +34,7 @@ at::Tensor NPUNativeOpApiFunctions::abs(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnAbs, NPUNativeFunctions::abs(self));
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAbs, self, result);

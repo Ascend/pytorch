@@ -36,7 +36,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_l
       bias_op.defined() ? bias_op.resize_(normalized_shape) : at::zeros(normalized_shape, input.options());
 
   // 构造HostApi接口所需的输出
-  auto output = OpPreparation::ApplyTensor(input);
+  auto output = OpPreparation::ApplyTensorWithoutFormat(input);
   at::Tensor mean_out;
   at::Tensor rstd_out;
 
@@ -50,8 +50,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_l
       std::accumulate(input_shape.cbegin(), input_shape.cbegin() + begin_axis, 1LL, std::multiplies<int64_t>());
   // 根据M是否大于0，决定输出shape的大小
   if (M <= 0) {
-    mean_out = OpPreparation::ApplyTensorWithFormat({M}, input.options(), ACL_FORMAT_ND);
-    rstd_out = OpPreparation::ApplyTensorWithFormat({M}, input.options(), ACL_FORMAT_ND);
+    mean_out = OpPreparation::ApplyTensorWithoutFormat({M}, input.options());
+    rstd_out = OpPreparation::ApplyTensorWithoutFormat({M}, input.options());
   } else {
     at::SmallVector<int64_t, 8> mean_shape;
     for (size_t index = 0; index < begin_axis; index++) {
@@ -60,8 +60,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_l
     for (size_t index = begin_axis; index < input_ndim; index++) {
       mean_shape.emplace_back(1);
     }
-    mean_out = OpPreparation::ApplyTensorWithFormat(mean_shape, input.options(), ACL_FORMAT_ND);
-    rstd_out = OpPreparation::ApplyTensorWithFormat(mean_shape, input.options(), ACL_FORMAT_ND);
+    mean_out = OpPreparation::ApplyTensorWithoutFormat(mean_shape, input.options());
+    rstd_out = OpPreparation::ApplyTensorWithoutFormat(mean_shape, input.options());
   }
   // 调用HostAPI接口
   EXEC_NPU_CMD(aclnnLayerNorm, input, normalized_shape, weight, bias, eps, output, mean_out, rstd_out);

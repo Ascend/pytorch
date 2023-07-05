@@ -51,7 +51,7 @@ at::Tensor NPUNativeOpApiFunctions::binary_cross_entropy(
         outputSize = at::ArrayRef<int64_t>();
     }
 
-    at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+    at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
     EXEC_NPU_CMD(aclnnBinaryCrossEntropy, self, target, weight_opt, reduction, result);
 
     return result;

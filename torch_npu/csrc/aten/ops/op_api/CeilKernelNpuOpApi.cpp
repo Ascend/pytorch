@@ -34,7 +34,7 @@ at::Tensor& NPUNativeOpApiFunctions::ceil_out(const at::Tensor& self, at::Tensor
 
 at::Tensor NPUNativeOpApiFunctions::ceil(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnCeil, NPUNativeFunctions::ceil(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnCeil, self, result);
   return result;
 }
