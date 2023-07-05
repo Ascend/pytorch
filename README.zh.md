@@ -415,14 +415,19 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
       环境变量脚本的默认路径一般为：/usr/local/Ascend/ascend-toolkit/set_env.sh，其中ascend-toolkit路径取决于安装的CANN软件名称。
 
-   2. 执行单元测试脚本，验证PyTorch是否安装成功。
+   2. 执行如下命令，验证PyTorch是否安装成功。
 
       ```
-      cd test/test_network_ops/
-      python3 test_div.py
+      python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
       ```
 
-      结果显示OK证明PyTorch框架与插件安装成功。
+      显示以下内容证明PyTorch框架与插件安装成功。
+      ```
+      tensor([[-0.6066, 6.3385,  0.0379, 3.3356],
+              [ 2.9243, 3.3134, -1.5465, 0.1916],
+              [-2.1807, 0.2008, -1.1431, 2.1523]], device='npu:0')
+      ```
+
 
 ## 在PIP设置为华为源时，安装requirements.txt中的typing依赖后，会导致python环境错误。
 
