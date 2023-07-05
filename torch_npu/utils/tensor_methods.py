@@ -148,7 +148,7 @@ def _new_ones(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_tensor(self, *args, **kwargs):
-    return torch_npu._C.new_tensor(self, *args, **kwargs)
+    return torch_npu._C.new_tensor(*args, **kwargs, tensor=self)
 
 
 @torch_device_guard
