@@ -23,6 +23,11 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::ceil_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnCeil, NPUNativeFunctions::ceil_out(self, result));
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self);
+
   EXEC_NPU_CMD(aclnnCeil, self, result);
   return result;
 }
