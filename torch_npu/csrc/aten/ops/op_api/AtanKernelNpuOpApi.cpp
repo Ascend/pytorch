@@ -20,6 +20,7 @@ namespace at_npu {
 namespace native {
 at::Tensor& NPUNativeOpApiFunctions::atan_out(const at::Tensor& self, at::Tensor& result) { 
   DO_COMPATIBILITY(aclnnAtan, NPUNativeFunctions::atan_out(self, result));
+  TORCH_CHECK(!isIntegralType(result.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
   auto outputSize = self.sizes();
   OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
   EXEC_NPU_CMD(aclnnAtan, self, result);
@@ -40,8 +41,9 @@ at::Tensor NPUNativeOpApiFunctions::atan(const at::Tensor& self) {
 } 
  
 at::Tensor& NPUNativeOpApiFunctions::atan_(at::Tensor& self) { 
-  DO_COMPATIBILITY(aclnnAtan, NPUNativeFunctions::atan_(self));
-  EXEC_NPU_CMD(aclnnAtan, self, self);
+  DO_COMPATIBILITY(aclnnInplaceAtan, NPUNativeFunctions::atan_(self));
+  TORCH_CHECK(!isIntegralType(self.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
+  EXEC_NPU_CMD(aclnnInplaceAtan, self);
   return self;
 }
 
