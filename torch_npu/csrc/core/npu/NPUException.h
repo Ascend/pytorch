@@ -39,8 +39,11 @@ do {                                                      \
     static c10_npu::acl::AclErrorCode err_map;                         \
     if ((Error) != ACL_ERROR_NONE) {                                   \
       if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {               \
-        NPU_LOGW(Feature is not supportted and the possible cause is   \
-                    that CANN packages do not match.);                 \
+        static auto feature_not_support_warn_once = []() {             \
+          NPU_LOGW(Feature is not supported and the possible cause is  \
+                    that drivers and firmware packages do not match.); \
+          return true;                                                 \
+        }();                                                           \
       } else {                                                         \
         TORCH_CHECK(                                                   \
           false,                                                       \
