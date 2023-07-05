@@ -459,11 +459,10 @@ static PyObject * THPVariable_new_tensor(PyObject* self, PyObject* args, PyObjec
     torch_npu::utils::maybe_initialize_npu(device);
     PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
   }
-  PyObject* self_obj = PyTuple_GetItem(args, 0);
-  auto& self_ = THPVariable_Unpack(self_obj);
-  c10::OptionalDeviceGuard device_guard(device_of(self_));
-  PyObject* new_args = PyTuple_GetSlice(args, 1 ,PyTuple_GET_SIZE(args));
-  return THPVariable_Wrap(torch::utils::new_tensor(legacyExtractDispatchKey(self_), self_.scalar_type(), new_args, kwargs));
+  auto& self_ = THPVariable_Unpack(PyDict_GetItem(kwargs, THPUtils_internString("tensor")));
+  TORCH_CHECK(PyDict_DelItem(kwargs, THPUtils_internString("tensor")) == 0, "Fail to Del 'tensor' in kwargs");
+  c10::OptionalDeviceGuard device_guard(at::device_of(self_));
+  return THPVariable_Wrap(torch::utils::new_tensor(at::legacyExtractDispatchKey(self_), self_.scalar_type(), args, kwargs));
   END_HANDLE_TH_ERRORS
 }
 
