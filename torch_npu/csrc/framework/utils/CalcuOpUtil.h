@@ -135,6 +135,8 @@ public:
                       c10::optional<c10::ArrayRef<double>> scale_factors);
   static c10::optional<double>
   GetScaleValue(c10::optional<c10::ArrayRef<double>> scales, int idx);
+  // used by aclnn to reduce time cost of alloc workspace
+  static at::Tensor UnsafeEmptyWorkspace(uint64_t size);
 };
 
 } // namespace native

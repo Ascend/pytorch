@@ -578,5 +578,19 @@ c10::optional<double> CalcuOpUtil::GetScaleValue(
   return scales->at(idx);
 }
 
+at::Tensor CalcuOpUtil::UnsafeEmptyWorkspace(uint64_t workspace_size) {
+  ASCEND_LOGD("Alloc workspace %zu bytes unsafely.", workspace_size);
+  c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl =
+      c10::make_intrusive<torch_npu::NPUStorageImpl>(
+        c10::StorageImpl::use_byte_size_t(), workspace_size,
+        allocator->allocate(workspace_size), allocator, true);
+  static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
+      storage_impl, storage_impl, dtype);
+  tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+  return tensor;
+}
+
 } // namespace native
 } // namespace at_npu
