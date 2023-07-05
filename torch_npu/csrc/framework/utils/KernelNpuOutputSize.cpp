@@ -419,137 +419,85 @@ namespace at_npu
       return it == stop.base();
     }
 
-    c10::SmallVector<int64_t, SIZE> index_npu_output_size(
-        const at::Tensor &self,
-        at::TensorList indices)
-    {
-      std::vector<at::Tensor> new_indices;
-      for (const auto &index : indices)
-      {
-        if (index.scalar_type() == at::kBool)
-        {
-          /**
-           * In the cann framework, index operator belongs to the fourth type of
-           * operator, which means that the execution of the index operator must go
-           * through the dynamic shape execution framework. In this case, constructing
-           * a large dynamic shape graph is not beneficial to the overall execution
-           * performance, because more dynamic shape operators are introduced.
-           * Therefore, when the fourth type of operator is encountered in graph
-           * mode, the single op mode is switched to execute by default.
-           */
-          GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
-
-          for (int64_t j = 0; j < index.dim(); j++)
-          {
-            int64_t srcIdx = new_indices.size() + j;
-            if (index.size(j) != self.size(srcIdx))
-            {
-              TORCH_CHECK_INDEX(false, "The shape of boolTensorIndex does not match the self");
-            }
-          }
-          // Replace with nonzeros
-          auto nonzero = index.nonzero();
-          for (int64_t j = 0; j < index.dim(); j++)
-          {
-            new_indices.emplace_back(nonzero.select(1, j));
-          }
-        }
-        else
-        {
-          new_indices.emplace_back(index);
-        }
-      }
-
-      c10::SmallVector<int64_t, SIZE> inferShape;
-      for (size_t i = 0; i < new_indices.size(); ++i)
-      {
-        if (!new_indices[i].defined())
-        {
+    std::vector<at::Tensor> index_expand_outplace(at::TensorList to_expand) {
+      // expands a list of Tensors; ignores undefined (null) tensors
+      bool first = true;
+      std::vector<int64_t> sizes;
+      for (size_t i = 0; i < to_expand.size(); ++i) {
+        if (!to_expand[i].defined()) {
           continue;
-        }
-        else if (inferShape.empty())
-        {
-          inferShape = new_indices[i].sizes();
-        }
-        else
-        {
-          inferShape = at::infer_size(inferShape, new_indices[i].sizes());
+        } else if (first) {
+          sizes = to_expand[i].sizes().vec();
+          first = false;
+        } else {
+          sizes = at::infer_size(sizes, to_expand[i].sizes());
         }
       }
-
-      std::vector<at::Tensor> mid_indices(new_indices.size());
-      for (size_t i = 0; i < new_indices.size(); ++i)
-      {
-        if (!new_indices[i].defined())
-        {
+      std::vector<at::Tensor> result(to_expand.size());
+      for (size_t i = 0; i < to_expand.size(); ++i) {
+        if (!to_expand[i].defined()) {
           continue;
-        }
-        else if (new_indices[i].sizes().equals(inferShape))
-        {
-          mid_indices[i] = new_indices[i];
-        }
-        else
-        {
-          mid_indices[i] = new_indices[i].expand(inferShape, true);
+        } else if (to_expand[i].sizes().equals(sizes)) {
+          result[i] = to_expand[i];
+        } else {
+          result[i] = to_expand[i].expand(sizes, true);
         }
       }
+      return result;
+    }
 
-      while (mid_indices.size() < (size_t)self.dim())
-      {
+    c10::SmallVector<int64_t, SIZE> index_reshape(
+        std::vector<at::Tensor> end_indices,
+        int64_t dims_before,
+        int64_t dims_after) {
+      c10::SmallVector<int64_t, SIZE> index_shape;
+      for (auto &index : end_indices) {
+        if (index.defined()) {
+          auto shape = at::DimVector();
+          shape.append(dims_before, 1);
+          shape.append(index.sizes().begin(), index.sizes().end());
+          shape.append(dims_after, 1);
+          if (index_shape.empty()) {
+            index_shape = shape;
+          } else if (index_shape != shape) {
+            index_shape = at::infer_size(index_shape, shape);
+          }
+        }
+      }
+      return index_shape;
+    }
+
+    c10::SmallVector<int64_t, SIZE> index_npu_output_size(const at::Tensor &self, at::TensorList indices) {
+      std::vector<at::Tensor> mid_indices = index_expand_outplace(indices);
+
+      while (mid_indices.size() < (size_t)self.dim()) {
         mid_indices.emplace_back();
       }
       at::Tensor src = self;
       std::vector<at::Tensor> end_indices = mid_indices;
-      if (!hasContiguousSubspace(mid_indices))
-      {
+      if (!hasContiguousSubspace(mid_indices)) {
         end_indices.clear();
-        std::vector<int64_t> dims;
-        dims.reserve(self.dim());
-        for (int64_t i = 0; i < self.dim(); i++)
-        {
-          if (mid_indices[i].defined())
-          {
-            dims.push_back(i);
-            end_indices.emplace_back(mid_indices[i]);
-          }
-        }
-        for (int64_t i = 0; i < self.dim(); i++)
-        {
-          if (!mid_indices[i].defined())
-          {
-            dims.push_back(i);
-            end_indices.emplace_back();
-          }
-        }
-        src = self.permute(dims);
+        std::tie(src, end_indices) = at::native::transposeToFront(self, mid_indices);
       }
 
       int64_t dims_before = 0, dims_after = 0, dims_indexed = 0;
       c10::SmallVector<int64_t, SIZE> replacement_shape;
       at::DimVector indexed_sizes;
-      for (size_t dim = 0; dim < end_indices.size(); dim++)
-      {
-        if (!end_indices[dim].defined())
-        {
-          if (dims_indexed == 0)
-          {
+      for (size_t dim = 0; dim < end_indices.size(); dim++) {
+        if (!end_indices[dim].defined()) {
+          if (dims_indexed == 0) {
             dims_before++;
-          }
-          else
-          {
+          } else {
             dims_after++;
           }
-        }
-        else
-        {
+        } else {
           dims_indexed++;
           replacement_shape = end_indices[dim].sizes();
           indexed_sizes.push_back(src.size(dim));
         }
       }
       if (std::find(indexed_sizes.begin(), indexed_sizes.end(), 0) != indexed_sizes.end() &&
-          std::find(replacement_shape.begin(), replacement_shape.end(), 0) == replacement_shape.end())
-      {
+          std::find(replacement_shape.begin(), replacement_shape.end(), 0) == replacement_shape.end()) {
         TORCH_CHECK_INDEX(false, "index is out of bounds for dimension with size 0");
       }
       auto self_shape = at::DimVector(src.sizes());
@@ -557,32 +505,11 @@ namespace at_npu
       self_shape.erase(self_shape.begin() + dims_before, self_shape.begin() + end);
       self_shape.insert(self_shape.begin() + dims_before, replacement_shape.begin(), replacement_shape.end());
 
-      c10::SmallVector<int64_t, SIZE> index_shape;
-      for (auto &index : end_indices)
-      {
-        if (index.defined())
-        {
-          auto shape = at::DimVector();
-          shape.append(dims_before, 1);
-          shape.append(index.sizes().begin(), index.sizes().end());
-          shape.append(dims_after, 1);
-          if (index_shape.empty())
-          {
-            index_shape = shape;
-          }
-          else if (index_shape != shape)
-          {
-            index_shape = at::infer_size(index_shape, shape);
-          }
-        }
-      }
-
+      c10::SmallVector<int64_t, SIZE> index_shape = index_reshape(end_indices, dims_before, dims_after);
       c10::SmallVector<int64_t, SIZE> outputSize = index_shape;
-      if (index_shape != self_shape)
-      {
+      if (index_shape != self_shape) {
         outputSize = at::infer_size(index_shape, self_shape);
       }
-
       return outputSize;
     }
 
