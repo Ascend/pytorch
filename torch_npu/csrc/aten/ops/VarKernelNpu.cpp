@@ -53,7 +53,8 @@ at::Tensor& var_after_npu_nocheck(
     const at::Tensor& mean_broadcast,
     at::IntArrayRef dim,
     bool unbiased,
-    bool keepdim) {
+    bool keepdim,
+    int64_t correction) {
   bool if_std = false;
   OpCommand cmd;
   cmd.Name("ReduceStdV2Update")
@@ -64,6 +65,7 @@ at::Tensor& var_after_npu_nocheck(
      .Attr("if_std", if_std)
      .Attr("unbiased", unbiased)
      .Attr("keepdim", keepdim)
+     .Attr("correction", correction)
      .Run();
   return var;
 }
@@ -90,7 +92,8 @@ tuple<at::Tensor&, at::Tensor&> var_mean_compute(
     const at::Tensor& self,
     at::IntArrayRef dim,
     bool unbiased,
-    bool keepdim) {
+    bool keepdim,
+    int64_t correction) {
   auto mean_output_size_keepdim = var_npu_output_size(self, dim, true);
   auto mean_output_size_not_keepdim = var_npu_output_size(self, dim, false);
   mean = at::mean(self, dim, false);
@@ -100,15 +103,17 @@ tuple<at::Tensor&, at::Tensor&> var_mean_compute(
     mean.resize_(mean_output_size_not_keepdim);
   }
 
-  if (unbiased) {
-    auto shape_prod = get_shape_prod(self, dim);
-    if (shape_prod <= 1) {
-      variance.fill_(NAN);
-      return tuple<at::Tensor&, at::Tensor&>(variance, mean);
-    }
+  auto shape_prod = get_shape_prod(self, dim);
+  if (shape_prod == 0 || (shape_prod <= 1 && shape_prod <= correction)) {
+    variance.fill_(NAN);
+    return tuple<at::Tensor&, at::Tensor&>(variance, mean);
+  }
+  if (correction > 1 && shape_prod <= correction) {
+    variance.fill_(INFINITY);
+    return tuple<at::Tensor&, at::Tensor&>(variance, mean);
   }
 
-  var_after_npu_nocheck(variance, self, mean_broadcast, dim, unbiased, keepdim);
+  var_after_npu_nocheck(variance, self, mean_broadcast, dim, unbiased, keepdim, correction);
   return tuple<at::Tensor&, at::Tensor&>(variance, mean);
 }
 
@@ -118,7 +123,8 @@ tuple<at::Tensor&, at::Tensor&> var_mean_out_npu(
     const at::Tensor& self,
     at::IntArrayRef dim,
     bool unbiased,
-    bool keepdim) {
+    bool keepdim,
+    int64_t correction) {
 
   auto dim_now = check_and_trans_dim(self, dim);
   auto mean_output_size_keepdim = var_npu_output_size(self, dim_now, true);
@@ -139,7 +145,8 @@ tuple<at::Tensor&, at::Tensor&> var_mean_out_npu(
       self,
       dim_now,
       unbiased,
-      keepdim);
+      keepdim,
+      correction);
 
   return tuple<at::Tensor&, at::Tensor&>(variance, mean);
 }
@@ -195,9 +202,9 @@ at::Tensor& NPUNativeFunctions::var_out(
       output_size);
 
   if (correction.has_value() && correction.value() == 0) {
-    var_mean_out_npu(var, mean, self, dim, false, keepdim);
+    var_mean_out_npu(var, mean, self, dim, false, keepdim, 0);
   } else {
-    var_mean_out_npu(var, mean, self, dim, true, keepdim);
+    var_mean_out_npu(var, mean, self, dim, true, keepdim, correction.has_value() ? correction.value() : 1);
   }
   return var;
 }
@@ -250,9 +257,9 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(
   at::Tensor mean = OpPreparation::ApplyTensor(self, output_size);
 
   if (correction.has_value() && correction.value() == 0) {
-    var_mean_out_npu(variance, mean, self, dim, false, keepdim);
+    var_mean_out_npu(variance, mean, self, dim, false, keepdim, 0);
   } else {
-    var_mean_out_npu(variance, mean, self, dim, true, keepdim);
+    var_mean_out_npu(variance, mean, self, dim, true, keepdim, correction.has_value() ? correction.value() : 1);
   }
 
   return tuple<at::Tensor, at::Tensor>(variance, mean);
