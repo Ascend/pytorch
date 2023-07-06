@@ -17,12 +17,13 @@ from contextlib import contextmanager
 import torch
 import torch_npu
 
+
 class ReplayGraph(torch_npu._C._NPUReplayGraphBase):
     def __new__(cls, **kwargs):
         return super(ReplayGraph, cls).__new__(cls, **kwargs)
 
     def __generate_replay_graph(self, inputs: list, assigned_outputs: list,
-                              returnable_outputs: list, retain_inner_outputs: bool=False):
+                                returnable_outputs: list, retain_inner_outputs: bool = False):
         super(ReplayGraph, self).generate_replay_graph(inputs, assigned_outputs,
                                                        returnable_outputs, retain_inner_outputs)
 
@@ -136,7 +137,6 @@ class WrapModule(object):
             grad_output, shallow_fwd_output, fwd_inputs, shallow_input = [], [], [], []
             fwd_graph_info, bwd_graph_info = [], []
 
-
         class ReplayFunction(torch.autograd.Function):
             @staticmethod
             def forward(ctx, *args, **kwargs):
@@ -151,8 +151,8 @@ class WrapModule(object):
                                                                  assigned_outputs=fwd_assigned_outputs)
 
                 all_outputs = []
-                none_output_idx=0
-                for i in range (len(fwd_output) + len(self.none_output_idx)):
+                none_output_idx = 0
+                for i in range(len(fwd_output) + len(self.none_output_idx)):
                     if none_output_idx < len(self.none_output_idx):
                         if i == self.none_output_idx[none_output_idx]:
                             all_outputs.append(None)
@@ -207,7 +207,7 @@ class WrapModule(object):
         return ret
 
 
-def make_replay_graph(module: torch.nn.Module, requires_grad: bool=True, verbose_: bool=False) -> torch.nn.Module:
+def make_replay_graph(module: torch.nn.Module, requires_grad: bool = True, verbose_: bool = False) -> torch.nn.Module:
     wrap_module = WrapModule(module, module.forward, requires_grad=requires_grad, verbose=verbose_)
     module.forward = wrap_module._WrapModule__wrap_forward
     module.is_replay_graph = True
@@ -215,7 +215,7 @@ def make_replay_graph(module: torch.nn.Module, requires_grad: bool=True, verbose
 
 
 def generate_replay_graph(replay_graph: ReplayGraph, inputs: list, assigned_outputs: list,
-                          returnable_outputs: list, retain_inner_outputs: bool=False) -> ReplayGraph:
+                          returnable_outputs: list, retain_inner_outputs: bool = False) -> ReplayGraph:
     if replay_graph is None:
         replay_graph = ReplayGraph()
 
@@ -234,8 +234,9 @@ def generate_replay_graph(replay_graph: ReplayGraph, inputs: list, assigned_outp
     replay_graph._ReplayGraph__generate_replay_graph(real_input, assigned_outputs, real_output, retain_inner_outputs)
     return replay_graph
 
+
 @contextmanager
-def enable_replay_graph_mode(verbose: bool=False):
+def enable_replay_graph_mode(verbose: bool = False):
     torch_npu._C._npu_enable_replay_graph_mode(verbose)
     yield 1
     torch_npu._C._npu_disable_replay_graph_mode()

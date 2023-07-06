@@ -16,9 +16,9 @@
 import copy
 import contextlib
 import functools
-import sympy
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
+import sympy
 import torch
 import torch._functorch.config as functor_config
 from torch._functorch.aot_autograd import aot_module_simplified
