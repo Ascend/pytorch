@@ -29,7 +29,6 @@
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include <Python.h>
 
-extern std::atomic<bool> global_enable_profiling;
 namespace at_npu
 {
   namespace native
