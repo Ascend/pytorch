@@ -45,7 +45,7 @@ void MakeCompileCacheDirAndSetOption() {
   auto ret = Mkdir(compile_cache_dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP);
   if (ret == -1) {
     if (errno != EEXIST) {
-      TORCH_WARN("make compile cache directory error: ", strerror(errno));
+      TORCH_NPU_WARN("make compile cache directory error: ", strerror(errno));
       return;
     }
   }

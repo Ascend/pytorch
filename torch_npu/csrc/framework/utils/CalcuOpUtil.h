@@ -7,14 +7,13 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
-#include <c10/util/Exception.h>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
-
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl.h"
 

@@ -185,12 +185,12 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
   }
 
   if(!dst.data_ptr()) {
-    TORCH_WARN("copy_d2d_by_memcpy, dst.data_ptr() is null.");
+    TORCH_NPU_WARN("copy_d2d_by_memcpy, dst.data_ptr() is null.");
     return;
   }
 
   if(!src.data_ptr()) {
-    TORCH_WARN("copy_d2d_by_memcpy, src.data_ptr() is null.");
+    TORCH_NPU_WARN("copy_d2d_by_memcpy, src.data_ptr() is null.");
     return;
   }
 

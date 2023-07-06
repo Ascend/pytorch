@@ -9,6 +9,7 @@
 
 #include <c10/core/Device.h>
 #include <c10/macros/Macros.h>
+
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include <third_party/acl/inc/acl/acl.h>

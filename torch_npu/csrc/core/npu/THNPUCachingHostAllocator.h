@@ -1,8 +1,9 @@
 #include <c10/core/Allocator.h>
-#include "torch_npu/csrc/core/npu/NPUStream.h"
-#include <c10/util/Exception.h>
-#include <third_party/acl/inc/acl/acl.h>
 #include <c10/util/SmallVector.h>
+
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include <third_party/acl/inc/acl/acl.h>
 
 c10::Allocator* getTHNPUCachingHostAllocator(void);
 

@@ -13,7 +13,6 @@
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/irange.h>
-#include <c10/util/Exception.h>
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h"
@@ -23,12 +22,13 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/NPUTensorImpl.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
+#include "torch_npu/csrc/core/NPUTensorImpl.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 
 namespace at_npu {
 namespace native {

@@ -1,5 +1,4 @@
-#include <c10/util/Exception.h>
-
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 

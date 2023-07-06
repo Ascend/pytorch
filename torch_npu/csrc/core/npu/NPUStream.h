@@ -2,15 +2,14 @@
 
 #include <cstdint>
 #include <mutex>
-#include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include <c10/core/DeviceGuard.h>
 #include <c10/core/Stream.h>
-#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <c10/util/SmallVector.h>
-#include "torch_npu/csrc/core/npu/NPUMacros.h"
-#include <c10/util/Exception.h>
-#include "torch_npu/csrc/core/npu/npu_log.h"
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUQueue.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 #include "third_party/acl/inc/acl/acl_op.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 

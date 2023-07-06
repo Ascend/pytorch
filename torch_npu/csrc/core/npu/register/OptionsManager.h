@@ -3,7 +3,8 @@
 #include <map>
 #include <string>
 #include <unordered_map>
-#include <c10/util/Exception.h>
+
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace c10_npu {
 namespace option {

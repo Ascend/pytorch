@@ -1,24 +1,23 @@
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include <unordered_map>
 
 #include <ATen/record_function.h>
-#include <c10/util/Exception.h>
 
 #include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/core/NPUStorageImpl.h"
-
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 

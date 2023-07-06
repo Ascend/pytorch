@@ -36,14 +36,14 @@ static bool validateInput(
     ss << "Failed to save extra arguments for flops compuation of op "
        << op_name << ", min size: " << min_size
        << ", actual size: " << inputs.size();
-    TORCH_WARN(ss.str());
+    TORCH_NPU_WARN(ss.str());
     return false;
   }
   for (auto index : should_be_tensor) {
     if (!inputs[index].isTensor()) {
       ss << "Failed to save extra arguments for flops compuation of op "
          << op_name << ", input[" << index << "] must be a tensor.";
-      TORCH_WARN(ss.str());
+      TORCH_NPU_WARN(ss.str());
       return false;
     }
   }
@@ -71,7 +71,7 @@ std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunct
     at::Tensor input = inputs[0].toTensor();
     at::Tensor weight = inputs[1].toTensor();
     if (weight.sizes().size() != 4) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because it requires a 4D kernel tensor.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because it requires a 4D kernel tensor.");
       return map;
     }
     map[kInputSize] = at::IValue(input.sizes());
@@ -122,7 +122,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
         || extra_args.find(kPadding) == extra_args.end()
         || extra_args.find(kStride) == extra_args.end()
         || extra_args.find(kDilation) == extra_args.end()) {
-      TORCH_WARN("Calculating flops for aten::conv2d requires groups, padding, stride, dilation, input_size, and weight_size in saved arguments.");
+      TORCH_NPU_WARN("Calculating flops for aten::conv2d requires groups, padding, stride, dilation, input_size, and weight_size in saved arguments.");
       return 0;
     }
     auto input_sizes_ref = extra_args.at(kInputSize);
@@ -132,11 +132,11 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     auto stride_ref = extra_args.at(kStride);
     auto dilation_ref = extra_args.at(kDilation);
     if (!input_sizes_ref.isIntList() || !kernel_sizes_ref.isIntList()) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because it requires input and weight tensor sizes.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because it requires input and weight tensor sizes.");
       return 0;
     }
     if (!padding_ref.isIntList() || !stride_ref.isIntList() || !dilation_ref.isIntList()) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because it requires padding, stride, and dilation values.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because it requires padding, stride, and dilation values.");
       return 0;
     }
 
@@ -147,19 +147,19 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     const std::vector<int64_t> stride = stride_ref.toIntVector();
     const std::vector<int64_t> dilation = dilation_ref.toIntVector();
     if (input_sizes.size() != 4 || kernel_sizes.size() != 4) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because both input and weight must be size 4.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because both input and weight must be size 4.");
       return 0;
     }
     if (!groups) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because group size must not be 0.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because group size must not be 0.");
       return 0;
     }
     if (padding.size() != 2 || dilation.size() != 2) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because both padding and dilation must be size 2.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because both padding and dilation must be size 2.");
       return 0;
     }
     if (stride.size() != 2 || (stride[0] * stride[1] == 0)) {
-      TORCH_WARN("Failed to compute flops for op aten::conv2d because stride must be size 2 and cannot be 0.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::conv2d because stride must be size 2 and cannot be 0.");
       return 0;
     }
     // format of the input is defined in torch.nn.quantized.functional.conv2d()
@@ -180,13 +180,13 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
   } else if (op_name == kGemmOp) {
     if (extra_args.find(kMat1Size) == extra_args.end()
         || extra_args.find(kMat2Size) == extra_args.end()) {
-      TORCH_WARN("Calculating flops for aten::mm requires mat1_size and mat2_size in saved arguments.");
+      TORCH_NPU_WARN("Calculating flops for aten::mm requires mat1_size and mat2_size in saved arguments.");
       return 0;
     }
     auto mat1_sizes_ref = extra_args.at(kMat1Size);
     auto mat2_sizes_ref = extra_args.at(kMat2Size);
     if (!mat1_sizes_ref.isIntList() || !mat2_sizes_ref.isIntList()) {
-      TORCH_WARN("Failed to compute flops for op aten::mm because it requires mat1_size and mat2_size to be IntList.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::mm because it requires mat1_size and mat2_size to be IntList.");
       return 0;
     }
 
@@ -213,12 +213,12 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     }
   } else if (op_name == kMulOp) {
     if (extra_args.find(kMatSize) == extra_args.end()) {
-      TORCH_WARN("Calculating flops for aten::mul.Tensor requires mat_size in saved arguments.");
+      TORCH_NPU_WARN("Calculating flops for aten::mul.Tensor requires mat_size in saved arguments.");
       return 0;
     }
     auto mat_sizes = extra_args.at(kMatSize);
     if (!mat_sizes.isIntList()) {
-      TORCH_WARN("Failed to compute flops for op aten::mul because it requires mat_size to be IntList.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::mul because it requires mat_size to be IntList.");
       return 0;
     }
 
@@ -230,12 +230,12 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     return flops;
   } else if (op_name == kAddOp) {
     if (extra_args.find(kMatSize) == extra_args.end()) {
-      TORCH_WARN("Calculating flops for aten::add.Tensor requires mat_size in saved arguments.");
+      TORCH_NPU_WARN("Calculating flops for aten::add.Tensor requires mat_size in saved arguments.");
       return 0;
     }
     auto mat_sizes = extra_args.at(kMatSize);
     if (!mat_sizes.isIntList()) {
-      TORCH_WARN("Failed to compute flops for op aten::add because it requires mat_size to be IntList.");
+      TORCH_NPU_WARN("Failed to compute flops for op aten::add because it requires mat_size to be IntList.");
       return 0;
     }
 

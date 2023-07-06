@@ -1,5 +1,6 @@
-#include <c10/util/Exception.h>
 #include <c10/util/Optional.h>
+
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "third_party/acl/inc/acl/acl_base.h"

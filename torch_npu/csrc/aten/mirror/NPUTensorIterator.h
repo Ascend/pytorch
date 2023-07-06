@@ -1,13 +1,13 @@
 #ifndef __PLUGIN_NATIVE_UTILS_NPU_TENSOR_ITERATOR__
 #define __PLUGIN_NATIVE_UTILS_NPU_TENSOR_ITERATOR__
 
+#include <bitset>
 #include <ATen/ATen.h>
 #include <functional>
-#include <c10/util/Exception.h>
 #include <c10/util/SmallVector.h>
-#include <bitset>
 #include <c10/util/TypeCast.h>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
 namespace at_npu {
 namespace native {
 

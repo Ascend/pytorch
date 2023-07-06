@@ -469,7 +469,7 @@ class TestCase(expecttest.TestCase):
 
     @contextmanager
     def maybeWarnsRegex(self, category, regex=''):
-        """Context manager for code that *may* warn, e.g. ``TORCH_WARN_ONCE``.
+        """Context manager for code that *may* warn, e.g. ``TORCH_NPU_WARN_ONCE``.
 
         This filters expected warnings from the test log and fails the test if
         any unexpected warnings are caught.

@@ -67,7 +67,7 @@ do {                                                      \
     auto Error = err_code;                                           \
     static c10_npu::acl::AclErrorCode err_map;                       \
     if ((Error) != ACL_ERROR_NONE) {                                 \
-      TORCH_WARN("NPU warning, error code is ", Error,               \
+      TORCH_NPU_WARN("NPU warning, error code is ", Error,               \
         "[Error]: ",                                                 \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
@@ -75,3 +75,19 @@ do {                                                      \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
+
+void warn_(const ::c10::Warning& warning);
+
+#define TORCH_NPU_WARN(...)                                  \
+  warn_(::c10::Warning(                                       \
+      ::c10::UserWarning(),                                  \
+      {__func__, __FILE__, static_cast<uint32_t>(__LINE__)}, \
+      ::c10::str(__VA_ARGS__),                               \
+      false));
+
+#define TORCH_NPU_WARN_ONCE(...)                                          \
+  C10_UNUSED static const auto C10_ANONYMOUS_VARIABLE(TORCH_NPU_WARN_ONCE_) = \
+      [&] {                                                               \
+        TORCH_NPU_WARN(__VA_ARGS__);                                      \
+        return true;                                                      \
+      }()

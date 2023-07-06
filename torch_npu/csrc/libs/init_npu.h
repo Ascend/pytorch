@@ -1,8 +1,8 @@
 #pragma once
 
 #include <c10/core/Device.h>
-#include <c10/util/Exception.h>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 

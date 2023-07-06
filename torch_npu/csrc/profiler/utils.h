@@ -5,7 +5,8 @@
 #include <unordered_map>
 #include <ATen/ATen.h>
 #include <ATen/record_function.h>
-#include <c10/util/Exception.h>
+
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch_npu {
 namespace profiler{

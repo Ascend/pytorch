@@ -3,7 +3,7 @@ namespace c10_npu {
 bool NpuTdtChannel::Init() {
   std::lock_guard<std::mutex> lock(channel_mutex_);
   if (inited_) {
-    TORCH_WARN("Current channel %s has beed inited.", channel_name_);
+    TORCH_NPU_WARN("Current channel %s has beed inited.", channel_name_);
     return true;
   }
   TORCH_CHECK(!channel_name_.empty(), "Name of channel is empty.");

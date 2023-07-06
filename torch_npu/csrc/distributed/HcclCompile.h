@@ -1,4 +1,4 @@
-#include <c10/util/Exception.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
 namespace c10d_npu {

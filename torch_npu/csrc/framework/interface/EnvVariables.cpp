@@ -1,5 +1,5 @@
 #include <limits.h>
-#include <c10/util/Exception.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 #include "third_party/acl/inc/acl/acl_mdl.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"

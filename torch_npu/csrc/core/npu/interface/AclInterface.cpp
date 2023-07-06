@@ -3,7 +3,7 @@
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "c10/util/Exception.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace c10_npu {
 
@@ -319,7 +319,7 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
     return func(stream, timeout);
   }
   else {
-    TORCH_WARN(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
+    TORCH_NPU_WARN(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
     typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
     static AclrtSynchronizeStream func_backup = nullptr;
     if (func_backup == nullptr) {
@@ -339,7 +339,7 @@ aclError AclrtDestroyStreamForce(aclrtStream stream) {
   if (func != nullptr) {
     return func(stream);
   }
-  TORCH_WARN(func, "Failed to find function ", "aclrtDestroyStreamForce");
+  TORCH_NPU_WARN(func, "Failed to find function ", "aclrtDestroyStreamForce");
   return aclrtDestroyStream(stream);
 }
 

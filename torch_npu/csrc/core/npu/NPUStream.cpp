@@ -1,22 +1,21 @@
-#include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/NPUFunctions.h"
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "torch_npu/csrc/core/npu/NPUQueue.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
-#include <c10/util/Exception.h>
-#include "third_party/acl/inc/acl/acl_rt.h"
-
 #include <array>
 #include <climits>
 #include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <vector>
-
 #include <sys/time.h>
 #include <unistd.h>
 #include <iostream>
+
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUQueue.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 
 namespace c10_npu {
 namespace {
@@ -98,7 +97,7 @@ static inline size_t streamIdIndex(c10::StreamId s) {
 }
 
 c10::StreamId makeStreamId(StreamIdType st, size_t si) {
-  return ((uint32_t)static_cast<c10::StreamId>(st) << kStreamsPerPoolBits) |
+  return (static_cast<c10::StreamId>(st) << kStreamsPerPoolBits) |
       static_cast<c10::StreamId>(si);
 }
 
@@ -197,7 +196,7 @@ static void initNPUStreamsOnce() {
   // Inits current streams (thread local) to default streams
   current_streams =
       (LeakyStreamInternals**)malloc(num_npus * sizeof(LeakyStreamInternals*));
-  if (current_streams == NULL){
+  if (current_streams == nullptr){
     ASCEND_LOGE("current_streams malloc failed.");
     return;
   }

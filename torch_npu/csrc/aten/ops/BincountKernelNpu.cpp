@@ -38,7 +38,7 @@ at::Tensor NPUNativeFunctions::bincount(
 
   // input convert to int32
   if (self.dtype() == at::ScalarType::Long) {
-      TORCH_WARN_ONCE("CANN: Bincount cann't support dtype int64.");
+      TORCH_NPU_WARN_ONCE("CANN: Bincount cann't support dtype int64.");
   }
   auto input = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Int);
 

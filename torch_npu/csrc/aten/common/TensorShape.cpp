@@ -9,7 +9,7 @@
 #include <ATen/native/Copy.h>
 #include <ATen/native/Resize.h>
 #include <ATen/quantized/QTensorImpl.h>
-#include <c10/util/Exception.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <c10/util/Optional.h>
 #include <algorithm>
 #include <vector>

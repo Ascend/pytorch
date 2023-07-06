@@ -11,7 +11,7 @@ at::Tensor& index_select_out_npu_nocheck(
     const at::Tensor& index,
     at::Tensor& result) {
   if (self.scalar_type() == at::kLong) {
-    TORCH_WARN_ONCE("The oprator of index_select is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
+    TORCH_NPU_WARN_ONCE("The oprator of index_select is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
   }
   c10::SmallVector<int64_t, N> dimVec = {dim};

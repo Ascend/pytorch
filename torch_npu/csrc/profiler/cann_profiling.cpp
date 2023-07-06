@@ -1,6 +1,6 @@
-#include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/profiler/cann_profiling.h"
 
 namespace torch_npu {
 namespace profiler {

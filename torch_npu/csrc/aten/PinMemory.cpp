@@ -2,9 +2,9 @@
 #include <ATen/MemoryOverlap.h>
 #include <ATen/NativeFunctions.h>
 #include <ATen/TensorUtils.h>
-#include <c10/util/Exception.h>
 #include <c10/core/Storage.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 
 #define TORCH_ASSERT_ONLY_METHOD_OPERATORS

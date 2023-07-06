@@ -1,7 +1,6 @@
-#include <c10/util/Exception.h>
-
 #include "GraphConstructor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"

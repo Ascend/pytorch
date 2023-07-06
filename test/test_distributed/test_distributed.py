@@ -24,7 +24,7 @@ from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
-
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 try:
     import torchvision
@@ -166,6 +166,7 @@ class Barrier(object):
 # then use the provided test function name to retrieve the function attribute
 # from the test instance and run it. The main process simply waits for all
 # subprocesses to join.
+@skipIfUnsupportMultiNPU(4)
 class MultiProcessTestCase(TestCase):
     MAIN_PROCESS_RANK = -1
     # This exit code is used to indicate that the test code had an error and
@@ -707,6 +708,7 @@ def cleanup_temp_dir():
 
 WORLD_SIZE = os.environ["WORLD_SIZE"]
 
+@skipIfUnsupportMultiNPU(4)
 class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @classmethod
     def setUpClass(cls):

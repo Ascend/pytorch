@@ -77,7 +77,7 @@ uint64_t getNumelForHCCL(at::Tensor& self) {
     aclFormat format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
     if (format != ACL_FORMAT_ND and format != ACL_FORMAT_NCHW) {
         if (self.storage().data_ptr().get() != self.data_ptr()) {
-            TORCH_WARN_ONCE("The storage data_ptr is different from tensor data_ptr."
+            TORCH_NPU_WARN_ONCE("The storage data_ptr is different from tensor data_ptr."
                             "Maybe this tensor is not suitable for HCCL.");
         }
         return physical_numel(self);
@@ -100,7 +100,7 @@ std::string getHcclDataTypeSerialString(HcclDataType type){
   if (iter != kHcclDataTypeToStringMap.end()){
     return iter->second;
   } else {
-    TORCH_WARN_ONCE("Can not serialize undefined hccl data type.");
+    TORCH_NPU_WARN_ONCE("Can not serialize undefined hccl data type.");
     return "";
   }
 }
@@ -396,7 +396,7 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID) {
     }
     auto main_list = store_->get(ver_key);
     if (main_list != ver_list) {
-      TORCH_WARN("PTA version mismatch");
+      TORCH_NPU_WARN("PTA version mismatch");
     }
   }
 }

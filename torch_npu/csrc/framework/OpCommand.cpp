@@ -1,9 +1,9 @@
-#include <c10/util/Exception.h>
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -114,7 +114,7 @@ OpCommand& OpCommand::InputWithoutContiguous(
       graphCmd.AddInput(input, descName, realData);
   )
   if (input.storage_offset() != 0) {
-    TORCH_WARN_ONCE(
+    TORCH_NPU_WARN_ONCE(
         "[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy",
         input.storage_offset());
   }

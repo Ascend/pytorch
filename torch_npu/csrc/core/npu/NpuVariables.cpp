@@ -1,11 +1,9 @@
-#include "torch_npu/csrc/core/npu/NpuVariables.h"
-
-#include <c10/util/Exception.h>
-
 #include <iostream>
 #include <map>
 #include <string>
 
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace c10_npu {

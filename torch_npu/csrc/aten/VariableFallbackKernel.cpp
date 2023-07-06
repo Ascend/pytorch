@@ -2,6 +2,7 @@
 #include <ATen/core/LegacyTypeDispatch.h>
 #include <ATen/native/CPUFallback.h>
 #include <torch/library.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 /*
  * This file implements a variable fallback kernel for custom operators.
@@ -36,11 +37,11 @@ TORCH_LIBRARY_IMPL(_, AutogradPrivateUse1, m){
 }
 
 void npu_cpu_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
-  TORCH_WARN_ONCE("The operator '",
-                  op.schema().operator_name(),
-                  "' is not currently supported ",
-                  "on the NPU backend and will fall back to run on the CPU.",
-                  " This may have performance implications.");
+  TORCH_NPU_WARN_ONCE("The operator '",
+                      op.schema().operator_name(),
+                      "' is not currently supported ",
+                      "on the NPU backend and will fall back to run on the CPU.",
+                      " This may have performance implications.");
 
   at::native::cpu_fallback(op, stack);
 

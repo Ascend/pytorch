@@ -1,6 +1,5 @@
-#include <c10/util/Exception.h>
-
 #include "AclTdtInterface.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
 namespace c10_npu {

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "torch_npu/csrc/core/npu/NPUException.h"
-#include <c10/core/thread_pool.h>
-#include <third_party/acl/inc/acl/acl.h>
 #include <deque>
 #include <mutex>
+#include <c10/core/thread_pool.h>
+#include <third_party/acl/inc/acl/acl.h>
+
+#include "torch_npu/csrc/core/npu/NPUException.h"
 namespace c10_npu {
 
 class NPUEventManager {

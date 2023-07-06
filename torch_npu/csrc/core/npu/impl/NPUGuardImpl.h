@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cassert>
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 #include <c10/macros/Macros.h>
-#include <c10/util/Exception.h>
+
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
@@ -12,7 +13,7 @@
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
-#include <cassert>
+
 
 
 namespace c10_npu {
