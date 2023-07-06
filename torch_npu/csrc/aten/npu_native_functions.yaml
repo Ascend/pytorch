@@ -694,7 +694,8 @@ supported:
  - func: log2.out
    op_api: False
  - log2_
- - log_
+ - func: log_
+   op_api: False
  - log_sigmoid
  - log_sigmoid.out
  - log_sigmoid_backward
