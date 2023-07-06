@@ -1260,9 +1260,12 @@ supported:
  - true_divide_.Tensor
  - func: trace
    op_api: False
- - trunc
- - trunc.out
- - trunc_
+ - func: trunc
+   op_api: False
+ - func: trunc.out
+   op_api: False
+ - func: trunc_
+   op_api: False
  - unfold
  - func: uniform_
    op_api: True
