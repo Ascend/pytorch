@@ -77,6 +77,9 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_fused_attention_layernorm_qkv_fw
   TORCH_CHECK(seq_len != 0 || num_heads != 0, 
       "seq_len and num_heads cannot be equal to 0.");
   c10::SmallVector<int64_t, SIZE> qkv_output_shape = {x.size(0) / seq_len, num_heads, seq_len, x.size(1) / num_heads};
+  TORCH_CHECK(x.size(0) % seq_len == 0 && x.size(1) % num_heads == 0,
+      "In npu_fused_attention_layernorm_qkv_fwd, x.size(0) should be divisible by seq_len",
+      "and x.size(1) should be divisible by num_heads.")
   c10::SmallVector<int64_t, SIZE> mean_output_shape = {x.size(0)};
   at::Tensor norm = OpPreparation::ApplyTensor(x);
   at::Tensor query_output = OpPreparation::ApplyTensor(kernel_query, qkv_output_shape);
