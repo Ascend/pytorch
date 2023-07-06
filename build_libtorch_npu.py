@@ -128,6 +128,10 @@ def clean_generated_files():
     if os.path.exists(os.path.join(BASE_DIR, "libtorch")):
         shutil.rmtree(os.path.join(BASE_DIR, "libtorch"))
 
+def check_gtest_valid(base_dir):
+    # validation of GoogleTest path.
+    gtest_path = os.path.join(base_dir, 'third_party/googletest/CMakeLists.txt')
+    return os.path.exists(gtest_path)
 
 def run_cmake():
     cmake = get_cmake_command()
@@ -153,6 +157,9 @@ def run_cmake():
 
     if check_opplugin_valid(BASE_DIR):
         cmake_args.append('-DBUILD_OPPLUGIN=on')
+
+    if check_gtest_valid(BASE_DIR):
+        cmake_args.append('-DBUILD_GTEST=' + 'ON')
 
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
