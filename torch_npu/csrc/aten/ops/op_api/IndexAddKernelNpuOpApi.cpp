@@ -35,6 +35,9 @@ at::Tensor& NPUNativeOpApiFunctions::index_add_out(
       result,
       result.scalar_type(),
       self.sizes());
+  if (!result.is_same(self)) {
+    result.copy_(self);
+  }
   EXEC_NPU_CMD(aclnnIndexAdd, self, dim, index, source, alpha, result);
   return result;
 }
@@ -47,7 +50,7 @@ at::Tensor NPUNativeOpApiFunctions::index_add(
     const at::Scalar& alpha) {
   DO_COMPATIBILITY(aclnnIndexAdd, NPUNativeFunctions::index_add(self, dim, index, source, alpha));
   at::Tensor result = OpPreparation::ApplyTensor(self, self.options());
-  EXEC_NPU_CMD(aclnnIndexAdd, self, dim, index, source, alpha, result);
+  EXEC_NPU_CMD(aclnnIndexAdd, self, dim, index, source, alpha, result.copy_(self));
   return result;
 }
 
