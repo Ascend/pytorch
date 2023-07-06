@@ -30,20 +30,48 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_and_out(const at::Tensor& self, con
   return result;
 }
 
+at::Tensor& bitwise_and_op_api_out_npu_nocheck(
+    at::Tensor& result,
+    const at::Tensor& self,
+    const at::Tensor& other) {
+  if (OpPreparation::IsCPUScalar(other)) {
+    const at::Scalar other_value = other.item();
+    EXEC_NPU_CMD(aclnnBitwiseAndScalar, self, other_value, result);
+  } else if (OpPreparation::IsCPUScalar(self)) {
+    const at::Scalar self_value = self.item();
+    EXEC_NPU_CMD(aclnnBitwiseAndScalar, other, self_value, result);
+  } else {
+    EXEC_NPU_CMD(aclnnBitwiseAndTensor, self, other, result);
+  }
+  return result;
+}
+
 at::Tensor& NPUNativeOpApiFunctions::bitwise_and_out(const at::Tensor& self, const at::Tensor& other,
                                                      at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnBitwiseAndScalar, NPUNativeFunctions::bitwise_and_out(self, other, result));
   DO_COMPATIBILITY(aclnnBitwiseAndTensor, NPUNativeFunctions::bitwise_and_out(self, other, result));
   auto output_size = broadcast_ops_npu_output_size(self, other);
 
   OpPreparation::CheckOut({self}, result, result, output_size);
 
-  EXEC_NPU_CMD(aclnnBitwiseAndTensor, self, other, result);
+  bitwise_and_op_api_out_npu_nocheck(result, self, other);
 
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnBitwiseAndScalar, NPUNativeFunctions::bitwise_and(self, other));
   DO_COMPATIBILITY(aclnnBitwiseAndTensor, NPUNativeFunctions::bitwise_and(self, other));
+
+  if (OpPreparation::IsCPUScalar(other)) {
+    const at::Scalar other_value = other.item();
+    return NPUNativeOpApiFunctions::bitwise_and(self, other_value);
+  }
+
+  if (OpPreparation::IsCPUScalar(self)) {
+    const at::Scalar self_value = self.item();
+    return NPUNativeOpApiFunctions::bitwise_and(other, self_value);
+  }
   // calculate the output size
   bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
 
@@ -85,9 +113,22 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_and(const at::Tensor& self, const at
   return result;
 }
 
+at::Tensor& bitwise_and_inplace_op_api_out_npu_nocheck(
+    at::Tensor& self,
+    const at::Tensor& other) {
+  if (OpPreparation::IsCPUScalar(other)) {
+    const at::Scalar other_value = other.item();
+    EXEC_NPU_CMD(aclnnInplaceBitwiseAndScalar, self, other_value);
+  } else {
+    EXEC_NPU_CMD(aclnnInplaceBitwiseAndTensor, self, other);
+  }
+  return self;
+}
+
 at::Tensor& NPUNativeOpApiFunctions::bitwise_and_(at::Tensor& self, const at::Tensor& other) {
-  DO_COMPATIBILITY(aclnnInplaceBitwiseAndTensorOut, NPUNativeFunctions::bitwise_and_(self, other));
-  EXEC_NPU_CMD(aclnnInplaceBitwiseAndTensorOut, self, other);
+  DO_COMPATIBILITY(aclnnInplaceBitwiseAndScalar, NPUNativeFunctions::bitwise_and_(self, other));
+  DO_COMPATIBILITY(aclnnInplaceBitwiseAndTensor, NPUNativeFunctions::bitwise_and_(self, other));
+  bitwise_and_inplace_op_api_out_npu_nocheck(self, other);
   return self;
 }
 
