@@ -37,7 +37,8 @@ at::Tensor& NPUNativeOpApiFunctions::erf_(at::Tensor& self) {
 at::Tensor NPUNativeOpApiFunctions::erf(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnErf, NPUNativeFunctions::erf(self));
   at::Tensor result;
-  if (self.scalar_type() == at::ScalarType::Bool) {
+  if (self.scalar_type() == at::ScalarType::Bool || self.scalar_type() == at::ScalarType::Long ||
+      self.scalar_type() == at::ScalarType::Int) {
     result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kFloat));
   } else {
     result = OpPreparation::ApplyTensor(self);
