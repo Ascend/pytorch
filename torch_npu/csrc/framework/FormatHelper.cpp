@@ -429,7 +429,14 @@ namespace at_npu
 
       FormatShape InferShapeofNCHW(c10::IntArrayRef dims)
       {
-        return InferShapeLessTo4(dims);
+        if (dims.size() < 5)
+        {
+          return InferShapeLessTo4(dims);
+        }
+        else
+        {
+          return InferShapeofND(dims);
+        }
       }
 
       FormatShape InferShapeofND(c10::IntArrayRef dims)
