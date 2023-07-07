@@ -25,19 +25,30 @@ namespace native {
 at::Tensor& NPUNativeOpApiFunctions::range_out(const at::Scalar& start, const at::Scalar& end, const at::Scalar& step,
                                                at::Tensor& result) {
   DO_COMPATIBILITY(aclnnRange, NPUNativeFunctions::range_out(start, end, step, result));
+  TORCH_CHECK(std::isfinite(start.toDouble()) && std::isfinite(end.toDouble()), "unsupported range: start -> end");
 
   float start_value = CalcuOpUtil::GetScalarFloatValue(start);
   float end_value = CalcuOpUtil::GetScalarFloatValue(end);
   float step_value = CalcuOpUtil::GetScalarFloatValue(step);
-
+  
+  TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
       "upper bound and larger bound inconsistent with step sign");
+  TORCH_CHECK(isFloatingType(result.scalar_type()) || isIntegralType(result.scalar_type()),
+              "out datatype: ", result.scalar_type(), " unsupported datatype");
+  
+  double output_size = 0;
+  if (isFloatingType(result.scalar_type())) {
+    output_size = std::floor((end.toDouble() - start.toDouble()) / step.toDouble());
+  } else {
+    output_size = std::floor(static_cast<double>((end.toLong() - start.toLong()) / step.toLong()));
+  }
+  output_size = static_cast<int64_t>(output_size) + 1;
 
-  auto outputSize = range_npu_output_size(start_value, end_value, step_value);
   OpPreparation::CheckOut({ }, result, result.scalar_type(), result.sizes());
 
-  if (result.numel() != outputSize[0]) {
-    result.resize_({outputSize[0]});
+  if (result.numel() != output_size) {
+    result.resize_({output_size});
   }
 
   EXEC_NPU_CMD(aclnnRange, start, end, step, result);
