@@ -39,6 +39,7 @@ aclError aclrtEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end){retu
 
 // memory相关操作
 aclError aclrtMalloc(void **devPtr, size_t size, aclrtMemMallocPolicy policy){return 0;}
+aclError aclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy){return 0;}
 aclError aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, aclrtMemcpyKind kind){return 0;}
 aclError aclrtMemcpyAsync(void *dst, size_t destMax, const void *src,
                           size_t count, aclrtMemcpyKind kind, aclrtStream stream){return 0;}
