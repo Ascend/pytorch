@@ -349,7 +349,7 @@ supported:
  - clamp_min.Tensor_out
  - clamp_min_.Tensor
  - func: clone
-   op_api: False
+   op_api: True
  - col2im
  - col2im.out
  - col2im_backward
@@ -369,7 +369,7 @@ supported:
  - func: count_nonzero.dim_IntList
    op_api: False
  - func: copy_
-   op_api: False
+   op_api: True
  - copy_memory_
  - func: cos
    op_api: True
