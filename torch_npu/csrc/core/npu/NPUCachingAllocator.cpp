@@ -935,7 +935,7 @@ class DeviceCachingAllocator {
     if (set_fraction && total_allocated_memory + size > allowed_memory_maximum) {
       p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
     } else {
-      p.err = aclrtMalloc(
+      p.err = c10_npu::acl::AclrtMallocAlign32(
           &ptr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
     }
   
