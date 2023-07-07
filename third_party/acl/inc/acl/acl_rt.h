@@ -628,6 +628,9 @@ ACL_FUNC_VISIBILITY aclError aclrtMalloc(void **devPtr,
                                          size_t size,
                                          aclrtMemMallocPolicy policy);
 
+ACL_FUNC_VISIBILITY aclError aclrtMallocAlign32(void **devPtr, size_t size,
+                                                aclrtMemMallocPolicy policy);
+
 /**
  * @ingroup AscendCL
  * @brief allocate memory on device with cache
