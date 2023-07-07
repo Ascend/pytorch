@@ -29,6 +29,7 @@ class TorchOpBean:
     def __init__(self, data: dict):
         self._origin_data = data
         self._constant_data = struct.unpack(self.CONSTANT_STRUCT, data.get(Constant.CONSTANT_BYTES))
+        self._kernel_list = []
 
     @property
     def pid(self) -> int:
@@ -40,7 +41,7 @@ class TorchOpBean:
 
     @property
     def name(self) -> str:
-        return str(self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.OP_NAME)))
+        return str(self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.OP_NAME), ""))
 
     @property
     def ts(self) -> float:

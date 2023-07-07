@@ -1,0 +1,91 @@
+#include <torch/csrc/python_headers.h>
+
+#include <c10/core/DeviceType.h>
+#include <torch/csrc/Exceptions.h>
+#include <torch/csrc/utils/pybind.h>
+#include <torch/csrc/autograd/autograd.h>
+#include <torch/csrc/autograd/grad_mode.h>
+#include <ATen/autocast_mode.h>
+#include <torch/csrc/autograd/python_function.h>
+#include <torch/csrc/autograd/function.h>
+#include <torch/csrc/autograd/utils/wrap_outputs.h>
+#include <torch/csrc/autograd/utils/python_arg_parsing.h>
+#include <torch/csrc/utils/pycfunction_helpers.h>
+
+#include "torch_npu/csrc/profiler/init.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
+
+namespace torch_npu {
+namespace profiler{
+
+PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
+
+  auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
+  if (!torch_npu_C_module) {
+    return nullptr;
+  }
+  auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
+  auto m = torch_npu_C_m.def_submodule("_profiler", "_profiler bindings");
+
+  py::enum_<NpuActivityType>(m, "ProfilerActivity")
+      .value("CPU", NpuActivityType::CPU)
+      .value("NPU", NpuActivityType::NPU);
+
+  py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
+      .def(
+          py::init<std::string, std::string, bool>(),
+          py::arg("trace_level") = "Level0",
+          py::arg("metrics") = "ACL_AICORE_NONE",
+          py::arg("l2_cache") = false
+      )
+      .def(py::pickle(
+          [](const ExperimentalConfig& p) {
+              return py::make_tuple(p.trace_level, p.metrics, p.l2_cache);
+          },
+          [](py::tuple t) {
+              if (t.size() < 3) {
+                  throw std::runtime_error("Expected atleast 3 values in state");
+              }
+              return ExperimentalConfig(
+                  t[0].cast<std::string>(),
+                  t[1].cast<std::string>(),
+                  t[2].cast<bool>()
+              );
+          }
+      ));
+
+  py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
+      .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
+
+  m.def("_supported_npu_activities", [](){
+    std::set<NpuActivityType> activities {
+      NpuActivityType::CPU,
+      NpuActivityType::NPU
+    };
+    return activities;
+  });
+  m.def("_init_profiler", initNpuProfiler);
+  m.def("_start_profiler",
+        &startNpuProfiler,
+        py::arg("config"),
+        py::arg("activities"),
+        py::arg("scopes") = std::unordered_set<at::RecordScope>());
+  m.def("_stop_profiler", stopNpuProfiler);
+  m.def("_finalize_profiler", finalizeNpuProfiler);
+
+  Py_RETURN_TRUE;
+}
+
+// autograd methods on torch._C
+static PyMethodDef TorchProfilerMethods[] = { // NOLINT
+  {"_profiler_init", profiler_initExtension, METH_NOARGS, nullptr},
+  {nullptr, nullptr, 0, nullptr}
+};
+
+
+PyMethodDef* profiler_functions() {
+  return TorchProfilerMethods;
+}
+
+}
+}

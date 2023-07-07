@@ -5,6 +5,7 @@ import subprocess
 from enum import Enum
 from json import JSONDecodeError
 
+from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.path_manager import PathManager
@@ -16,18 +17,30 @@ class CANNDataEnum(Enum):
     NPU_MEMORY = 1
     MSPROF_TIMELINE = 2
     STEP_TRACE = 3
+    GE_MEMORY_RECORD = 4
+    GE_OPERATOR_MEMORY = 5
+    L2_CACHE = 6
+    AI_CPU = 7
 
 
 class CANNFileParser:
     COMMAND_SUCCESS = 0
     ACL_TO_NPU = "acl_to_npu"
+    START_FLOW = "s"
+    END_FLOW = "f"
     SUMMARY = "summary"
     TIMELINE = "timeline"
     CANN_DATA_MATCH = {
         CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv"],
         CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv"],
         CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d_\d+\.json", r"^msprof_\d_\d+_\d+\.json"],
-        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv"]
+        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv"],
+        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d_\d+\.csv", r"^ge_memory_record_\d_\d+_\d+\.csv",
+                                        r"^memory_record_\d_\d+\.csv", r"^memory_record_\d_\d+_\d+\.csv"],
+        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d_\d+\.csv", r"^ge_operator_memory_\d_\d+_\d+\.csv",
+                                          r"^operator_memory_\d_\d+\.csv", r"^operator_memory_\d_\d+_\d+\.csv"],
+        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d_\d+\.csv", r"^l2_cache_\d_\d+_\d+\.csv"],
+        CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv"]
     }
 
     def __init__(self, profiler_path: str):
@@ -84,15 +97,24 @@ class CANNFileParser:
             timeline_data.extend(data)
         return timeline_data
 
-    def get_acl_and_npu_data(self) -> dict:
-        acl_and_npu_data = {}
+    def get_acl_to_npu_data(self) -> dict:
+        flow_start_dict, flow_end_dict = {}, {}
         all_data = self.get_timeline_all_data()
         for data in all_data:
-            if data.get("name", "") in Constant.ACL_OP_EXE_NAME:
-                acl_and_npu_data.setdefault(data.get("ts"), [])
-            elif data.get("name") == self.ACL_TO_NPU and data.get("ph") == "s":
-                acl_and_npu_data.setdefault(data.get("ts"), []).append(data.get("id"))
-        return acl_and_npu_data
+            event_bean = EventBean(data)
+            if event_bean.is_flow_start_event():
+                flow_start_dict[event_bean.id] = event_bean.ts
+            elif event_bean.is_flow_end_event():
+                flow_end_dict[event_bean.unique_id] = event_bean.id
+        acl_to_npu_dict = {}
+        for data in all_data:
+            event_bean = EventBean(data)
+            if event_bean.is_x_event():
+                corr_id = flow_end_dict.get(event_bean.unique_id)
+                acl_ts = flow_start_dict.get(corr_id)
+                if corr_id is not None and acl_ts is not None:
+                    acl_to_npu_dict.setdefault(acl_ts, []).append(event_bean)
+        return acl_to_npu_dict
 
     def get_file_list_by_type(self, file_type: CANNDataEnum) -> set:
         return self._file_dict.get(file_type, set())

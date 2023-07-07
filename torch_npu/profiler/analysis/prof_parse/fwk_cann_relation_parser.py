@@ -1,8 +1,6 @@
-from warnings import warn
-
-from ..prof_bean.event_bean import EventBean
+from ..prof_bean.node_info_bean import NodeInfoBean
 from ..prof_common_func.file_tag import FileTag
-from ..prof_bean.torch_acl_bean import TorchAclBean
+from ..prof_common_func.tree_builder import TreeBuilder, TorchOpNode
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
 
@@ -11,53 +9,42 @@ class FwkCANNRelationParser:
     def __init__(self, profiler_path: str):
         self._profiler_path = profiler_path
 
-    @classmethod
-    def _match_event(cls, sorted_event_list: list, sorted_mark_data_list: list) -> dict:
-        result_dict = {}
-        event_index, unmatched_num = 0, 0
-        for mark_data in sorted_mark_data_list:
-            matched_event = None
-            while event_index < len(sorted_event_list):
-                if sorted_event_list[event_index].ts > mark_data.ts:
+    def build_torch_op_tree(self) -> TorchOpNode:
+        fwk_parser = FwkFileParser(self._profiler_path)
+        torch_op_list = fwk_parser.get_file_data_by_tag(FileTag.TORCH_OP)
+        if not torch_op_list:
+            return TorchOpNode()
+        root_node = TreeBuilder.build_tree(torch_op_list)
+
+        acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_to_npu_data()
+        enqueue_data_list, dequeue_data_list = fwk_parser.get_task_queue_data()
+        if not acl_to_npu_dict:
+            return root_node
+        acl_start_time_list = sorted(list(acl_to_npu_dict.keys()))
+        if not enqueue_data_list and not dequeue_data_list:
+            for acl_start_time in acl_start_time_list:
+                kernel_list = acl_to_npu_dict.get(acl_start_time, [])
+                if not kernel_list:
+                    continue
+                TreeBuilder.find_call_node(acl_start_time, NodeInfoBean(acl_start_time, kernel_list), root_node)
+            return root_node
+
+        corr_id_dict = {}
+        index = 0
+        for acl_start_time in acl_start_time_list:
+            while index < len(dequeue_data_list):
+                if dequeue_data_list[index].ts > acl_start_time:
                     break
-                matched_event = sorted_event_list[event_index]
-                event_index += 1
-            if matched_event and matched_event.ts + matched_event.dur >= mark_data.ts:
-                result_dict[mark_data.corr_id] = matched_event
-            else:
-                unmatched_num += 1
-        if unmatched_num:
-            warn(f"The number of unmatched events is: {unmatched_num}")
-        return result_dict
+                if acl_start_time <= dequeue_data_list[index].ts + dequeue_data_list[index].dur:
+                    corr_id_dict[dequeue_data_list[index].corr_id] = acl_start_time
+                    index += 1
+                    break
+                index += 1
 
-    def get_relation_data(self) -> list:
-        relation_data = []
-        acl_to_npu_dict = CANNFileParser(self._profiler_path).get_acl_and_npu_data()
-        torch_op_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.TORCH_OP)
-        if not torch_op_data or not acl_to_npu_dict:
-            return relation_data
-
-        acl_data_list = []
-        for acl_start_time in acl_to_npu_dict.keys():
-            acl_data_list.append(EventBean({"ts": acl_start_time, "corr_id": acl_start_time}))
-        acl_data_list.sort(key=lambda x: x.ts)
-        torch_op_data.sort(key=lambda x: x.ts)
-
-        acl_to_torch_dict = {}
-        enqueue_data_list, dequeue_data_list = FwkFileParser(self._profiler_path).get_task_queue_data()
-        if enqueue_data_list and dequeue_data_list:
-            acl_to_dequeue_dict = self._match_event(dequeue_data_list, acl_data_list)
-            enqueue_to_torch_dict = self._match_event(torch_op_data, enqueue_data_list)
-            for acl_start_time, dequeue_data in acl_to_dequeue_dict.items():
-                acl_to_torch_dict[acl_start_time] = enqueue_to_torch_dict.get(dequeue_data.corr_id)
-        else:
-            acl_to_torch_dict = self._match_event(torch_op_data, acl_data_list)
-
-        for acl_start_time, kernel_ids in acl_to_npu_dict.items():
-            matched_torch_op = acl_to_torch_dict.get(acl_start_time)
-            if matched_torch_op:
-                relation_data.append(TorchAclBean(
-                    {"torch_op_pid": matched_torch_op.pid, "torch_op_tid": matched_torch_op.tid,
-                     "torch_op_start_time": matched_torch_op.ts, "op_name": matched_torch_op.name,
-                     "acl_start_time": acl_start_time, "npu_kernel_list": kernel_ids}))
-        return relation_data
+        for enqueue_data in enqueue_data_list:
+            acl_start_time = corr_id_dict.get(enqueue_data.corr_id)
+            kernel_list = acl_to_npu_dict.get(acl_start_time, [])
+            if not kernel_list:
+                continue
+            TreeBuilder.find_call_node(enqueue_data.ts, NodeInfoBean(acl_start_time, kernel_list), root_node)
+        return root_node

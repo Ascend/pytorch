@@ -57,6 +57,9 @@ except ImportError:
             return wrapped
 __all__ = ["profile", "record_function", ]
 
+if not torch_npu._C._profiler_init():
+    raise RuntimeError("proflier initialization failed")
+
 file_flags = os.O_WRONLY | os.O_CREAT
 file_modes = stat.S_IWUSR | stat.S_IRUSR
 
