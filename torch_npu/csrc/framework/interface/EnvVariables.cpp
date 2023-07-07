@@ -144,7 +144,7 @@ REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
               "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
-REGISTER_OPTION_BOOL_FUNCTION_UNIQ(IsAllowConvHF32, ALLOW_CONV_HF32, "disable", "enable")
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(IsAllowMatmulHF32, ALLOW_MATMUL_HF32, "disable", "enable")
 
 } // namespace env
 } // namespace native

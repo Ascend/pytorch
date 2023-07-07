@@ -24,7 +24,6 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 
 namespace at_npu {
 namespace native {

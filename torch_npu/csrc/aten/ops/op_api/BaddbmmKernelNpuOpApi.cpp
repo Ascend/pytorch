@@ -53,7 +53,7 @@ at::Tensor NPUNativeOpApiFunctions::baddbmm(
 {
   DO_COMPATIBILITY(aclnnBaddbmm,
       NPUNativeFunctions::baddbmm(self, batch1, batch2, beta, alpha));
-  
+
   auto output_size = baddbmm_npu_output_size(batch1, batch2);
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
 

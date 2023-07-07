@@ -144,10 +144,7 @@ namespace at_npu
         return true;
       }
       const auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
-      if (desc.origin_format_ == desc.npu_format_) {
-        return true;
-      }
-      return false;
+      return desc.origin_format_ == desc.npu_format_;
     }
 
     bool FormatHelper::IsOpInputBaseFormat(
@@ -158,18 +155,15 @@ namespace at_npu
       return IsOpInputBaseFormat(tensor.value());
     }
 
-    bool FormatHelper::IsOpInputBaseFormat(
-         const c10::List<c10::optional<at::Tensor>> &tensors) {
-      const auto &iter = std::find_if(
-          tensors.begin(), tensors.end(),
-          [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
+    bool FormatHelper::IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors) {
+      const auto &iter =
+          std::find_if(tensors.begin(), tensors.end(), [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
       return iter == tensors.end();
     }
 
     bool FormatHelper::IsOpInputBaseFormat(const at::TensorList &tensors) {
-      const auto &iter = std::find_if(
-        tensors.begin(), tensors.end(),
-        [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
+      const auto &iter =
+          std::find_if(tensors.begin(), tensors.end(), [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
       return iter == tensors.end();
     }
 
@@ -462,12 +456,12 @@ namespace at_npu
       }
 
       FormatShape InferShapeofNCHW(c10::IntArrayRef dims)
-      { 
+      {
         if (dims.size() < 5)
         {
           return InferShapeLessTo4(dims);
-        } 
-        else 
+        }
+        else
         {
           return InferShapeofND(dims);
         }

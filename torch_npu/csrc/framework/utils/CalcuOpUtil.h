@@ -138,6 +138,7 @@ public:
   GetScaleValue(c10::optional<c10::ArrayRef<double>> scales, int idx);
   // used by aclnn to reduce time cost of alloc workspace
   static at::Tensor UnsafeEmptyWorkspace(uint64_t size);
+  static int8_t GetCubeMathType(bool allowHf32, bool allowFp32ToFp16);
 };
 
 } // namespace native

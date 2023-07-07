@@ -377,10 +377,7 @@ torch_npu::profiler::NPURecordFunction guard;
                         device_of = next((f'{a.name}' for a in candidate_args if a.type.is_tensor_like()), None)
                         if device_of is not None:
                             device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
-
-                if not f.op_api:
-                    op_api_impl_name = impl_name
-
+                
                 tensor_check_str = ""
                 tensor_check_list = []
                 for a in args:
@@ -389,12 +386,17 @@ torch_npu::profiler::NPURecordFunction guard;
                 if tensor_check_list:
                     tensor_check_str = f" && {' && '.join(tensor_check_list)}"
 
-                return_code = f"""\
+                if f.op_api:
+                    return_code = f"""\
 if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
         return {op_api_impl_name}({args_exprs_str});
     }} else {{
         return {impl_name}({args_exprs_str});
     }}
+"""
+                else:
+                    return_code = f"""\
+    return {impl_name}({args_exprs_str});
 """
 
                 return f"""\

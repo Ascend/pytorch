@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 
 namespace at_npu {
 namespace native {
@@ -98,9 +99,9 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
 
   auto promotedDtype = promote_dtype(input, weight);
   auto output = OpPreparation::ApplyTensorWithoutFormat(out_size, input.options().dtype(promotedDtype));
-  int8_t cube_math_dtype = 1; // ALLOW_FP32_DOWN_PRECISION Use reduced-precision operations
+  int8_t cube_math_type = 1;
   EXEC_NPU_CMD(aclnnConvolution, input, weight, bias, stride, padding, dilation, transposed, output_padding, groups,
-               output, cube_math_dtype);
+               output, cube_math_type);
 
   // input dim = 3 while conv2D: 2
   if (dim == 2 && inputK == 3) {
