@@ -105,7 +105,7 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
       set_transposed_npu_desc(contiguousSelf);
     }
   } else {
-    contiguousSelf = NpuUtils::format_contiguous(self);
+    contiguousSelf = NpuUtils::format_contiguous_add_copy_optimize(self);
   }
 
   if (isMat2T_flex) {
@@ -118,7 +118,7 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
       set_transposed_npu_desc(contiguousMat2);
     }
   } else {
-    contiguousMat2 = NpuUtils::format_contiguous(mat2);
+    contiguousMat2 = NpuUtils::format_contiguous_add_copy_optimize(mat2);
   }
 
   // executing the NPU operator

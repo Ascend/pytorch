@@ -725,7 +725,7 @@ namespace at_npu
     at::Tensor NPUNativeFunctions::clone(const at::Tensor &src,
                                          c10::optional<c10::MemoryFormat> format)
     {
-      OptimizationCases opt_cases{"reshape", "slice", "reshapeV2"};
+      OptimizationCases opt_cases{"reshape", "slice"};
       if (TransContiguous::CanOptimize(src, opt_cases))
       {
         // clone with any npu formats
