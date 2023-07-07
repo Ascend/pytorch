@@ -324,7 +324,7 @@ OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
 // 由于format_contiguous会生成新Tensor，为了保证其在生命周期内有效，故而放到对象中存储
 // 同下，CopyScalarToDevice也有同样问题
 at::Tensor& OpCommand::Contiguous(const at::Tensor &input) {
-  storage.emplace_back(std::move(NpuUtils::format_contiguous(input)));
+  storage.emplace_back(std::move(NpuUtils::format_contiguous_add_copy_optimize(input)));
   return storage.back();
 }
 

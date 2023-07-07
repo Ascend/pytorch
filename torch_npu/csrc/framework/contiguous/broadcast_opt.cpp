@@ -92,17 +92,6 @@ private:
                                                           src.strides());
 
     if (temp_src.is_contiguous()) {
-      // NPU op BroadcastTo not supports dtype of bool yet.
-      if (self.dtype() == at::kBool) {
-        auto temp_dst = NPUNativeFunctions::npu_broadcast(temp_src, self.sizes());
-        // The current logic is only used in single op mode.
-        c10_npu::queue::LaunchAsyncCopyTask(self.data_ptr(),
-                                            self.nbytes(),
-                                            temp_dst.data_ptr(),
-                                            self.nbytes(),
-                                            ACL_MEMCPY_DEVICE_TO_DEVICE);
-        return true;
-      }
       NPUNativeFunctions::npu_broadcast_out(temp_src, self.sizes(), self);
       return true;
     }

@@ -11,8 +11,8 @@ at::Tensor& bmm_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, cons
   bool is_self_t = CalcuOpUtil::IsTransposeLastTwoDims(self);
   bool is_mat2_t = CalcuOpUtil::IsTransposeLastTwoDims(mat2);
 
-  at::Tensor contiguous_self = is_self_t ? self : NpuUtils::format_contiguous(self);
-  at::Tensor contiguous_mat2 = is_mat2_t ? mat2 : NpuUtils::format_contiguous(mat2);
+  at::Tensor contiguous_self = is_self_t ? self : NpuUtils::format_contiguous_add_copy_optimize(self);
+  at::Tensor contiguous_mat2 = is_mat2_t ? mat2 : NpuUtils::format_contiguous_add_copy_optimize(mat2);
 
   OpCommand cmd;
   cmd.Name("BatchMatMul")
