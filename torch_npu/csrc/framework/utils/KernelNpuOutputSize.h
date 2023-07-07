@@ -23,6 +23,7 @@
 #include <tuple>
 #include <vector>
 #include <ATen/ATen.h>
+#include <ATen/native/IndexingUtils.h>
 
 using std::bitset;
 using std::string;
