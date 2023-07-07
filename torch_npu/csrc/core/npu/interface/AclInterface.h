@@ -114,5 +114,7 @@ aclError AclrtDestroyStreamForce(aclrtStream stream);
 
 aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
 
+aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
+
 } // namespace acl
 } // namespace c10_npu
