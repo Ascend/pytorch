@@ -47,6 +47,23 @@ namespace
   const std::string aicore_str = "AiCore";
 }
 
+// True if `shape` can be broadcasted to `desired`
+bool is_expandable_to(c10::IntArrayRef shape, c10::IntArrayRef desired) {
+  size_t ndim = shape.size();
+  size_t target_dim = desired.size();
+  if (ndim > target_dim) {
+    return false;
+  }
+  for (size_t i = 0; i < ndim; i++) {
+    int64_t size = shape[ndim - i - 1];
+    int64_t target = desired[target_dim - i - 1];
+    if (size != target && size != 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool is_aicpu_valid(const at::Tensor& self,
     const std::vector<at::Tensor>& all_defined_indices,
     const at::SmallVector<int64_t, N> masks) { 
@@ -64,17 +81,12 @@ bool is_aicpu_valid(const at::Tensor& self,
       is_zero_in_masks = true;
     }
   }
+
   // using aicpu when indices num is more than 20000 or the type of self tensor is double.
   if (self.scalar_type() == at::kDouble || all_defined_indices[0].numel() > 20000) {
     return true;
   }
 
-  // first return false, after trans to int, and then check by aicpu or aicore
-  for (int32_t i = 0; i < all_defined_indices.size(); i++) {
-    if (all_defined_indices[i].scalar_type() == at::kBool) {
-      return false;
-    }
-  }
   // indices may need broadcast, in this case, indexput is implemented by aicpu
   for (int32_t i = 1; i < all_defined_indices.size(); i++) {
     if (all_defined_indices[0].dim() != all_defined_indices[i].dim()) {
@@ -212,6 +224,7 @@ at::Tensor NPUNativeFunctions::index_put(
   return self.clone(at::MemoryFormat::Contiguous)
       .index_put_(indices, value, accumulate);
 }
+
 at::Tensor& index_put_aicpu(
     at::Tensor& result,
     at::Tensor& self,
@@ -231,69 +244,26 @@ at::Tensor& index_put_aicpu(
 
 at::Tensor& index_put_aicore(
     at::Tensor& self,
-    const c10::List<c10::optional<at::Tensor>>& indices,
-    std::vector<at::Tensor> all_defined_indices,
+    std::vector<at::Tensor> indices_expand,
+    at::SmallVector<int64_t, N> masks,
+    at::SmallVector<int64_t, N> bool_masks,
     const at::Tensor& value,
     bool accumulate) {
-  std::vector<at::Tensor> indices_expand;
-  at::SmallVector<int64_t, N> indices_expand_mask;
   at::Tensor value_broadcast;
-  auto input_shape = array_to_small_vector(self.sizes());
-  c10::List<c10::optional<at::Tensor>> shaped_indices;
-
-  // transfer input and index to 1 dim tensor if index is bool type, and the shape of input and index is the same
-  if (all_defined_indices.size() == 1) {
-    auto indices_shape = array_to_small_vector(all_defined_indices[0].sizes());
-    if (all_defined_indices[0].scalar_type() == at::kBool && input_shape == indices_shape) {
-      self = self.reshape(-1);
-      shaped_indices.push_back(all_defined_indices[0].reshape(-1));
-      indices_expand = AdvanceIndex::npu_expand_tensors(self, shaped_indices);
-      indices_expand_mask = npu_expand_tensors_mask(self, shaped_indices);
-    }
-  }
-  if (shaped_indices.size() == 0) {
-    indices_expand = AdvanceIndex::npu_expand_tensors(self, indices);
-    indices_expand_mask = npu_expand_tensors_mask(self, indices);
-  }
-
   // value broadcast
   auto index_output_size = index_npu_output_size(self, indices_expand);
   auto value_shape = array_to_small_vector(value.sizes());
   value_broadcast = (index_output_size != value_shape) ?
       NPUNativeFunctions::npu_broadcast(value, index_output_size) : value;
 
-  // re-caculate mask
-  at::SmallVector<int64_t, N> masks;
-  for (c10::optional<at::Tensor> index_opt : indices_expand) {
-    if (index_opt.has_value()) {
-      const auto& index = *index_opt;
-      if (index.defined()) {
-        masks.emplace_back(1);
-      } else {
-        masks.emplace_back(0);
-      }
-    } else {
-      masks.emplace_back(0);
-    }
+  if (!NpuUtils::check_match(&self)) {
+    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+    index_put_aicore_nocheck(contiguous_self, indices_expand, masks, bool_masks, value_broadcast, accumulate);
+    self.copy_(contiguous_self);
+  } else {
+    index_put_aicore_nocheck(self, indices_expand, masks, bool_masks, value_broadcast, accumulate);
   }
 
-  // after expand, check it through aicpu or aicore
-  bool aicpu_true = is_aicpu_valid(self, indices_expand, masks);
-  if (aicpu_true) {
-    index_put_aicpu(self, self, indices_expand, masks, value, accumulate);
-    self.copy_(self);
-  } else {
-    if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
-      index_put_aicore_nocheck(contiguous_self, indices_expand, masks, indices_expand_mask, value_broadcast, accumulate);
-      self.copy_(contiguous_self);
-    } else {
-      index_put_aicore_nocheck(self, indices_expand, masks, indices_expand_mask, value_broadcast, accumulate);
-    }
-  }
-  if (shaped_indices.size() != 0) {
-    self = self.reshape(input_shape);
-  }
   return self;
 }
 
@@ -315,7 +285,16 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
   at::native::checkIndexTensorTypes(indices);
   at::SmallVector<int64_t, N> masks;
   std::vector<at::Tensor> all_defined_indices;
-  for (c10::optional<at::Tensor> index_opt : indices) {
+  std::vector<at::Tensor> indices_expand;
+  c10::List<c10::optional<at::Tensor>> indices_expand_list;
+  indices_expand = AdvanceIndex::npu_expand_tensors(self, indices);
+  for (at::Tensor index_opt : indices_expand) {
+    indices_expand_list.push_back(index_opt);
+  }
+  auto info = AdvanceIndex::make_info(self, indices_expand_list);
+  TORCH_CHECK(is_expandable_to(value.sizes(), info.src.sizes()), "shape mismatch: value tensor of shape ", value.sizes(),
+      " cannot be broadcast to indexing result of shape ", info.src.sizes());
+  for (c10::optional<at::Tensor> index_opt : indices_expand) {
     if (index_opt.has_value()) {
       const auto& index = *index_opt;
       if (index.defined()) {
@@ -344,7 +323,8 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
     index_put_aicpu(self_copy, self_copy, all_defined_indices, masks, value_copy, accumulate);
     self.copy_(self_copy);
   } else {
-    index_put_aicore(self_copy, indices, all_defined_indices, value_copy, accumulate);
+    auto bool_mask = npu_expand_tensors_mask(self, indices);
+    index_put_aicore(self_copy, indices_expand, masks, bool_mask, value_copy, accumulate);
     self.copy_(self_copy);
   }
   return self;

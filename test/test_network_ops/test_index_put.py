@@ -170,5 +170,10 @@ class TestIndexPut(TestCase):
         npu_res = input_data_npu.cpu().numpy()
         self.assertRtolEqual(cpu_res, npu_res)
 
+    def test_index_put_dim_size(self):
+        npu_input1 = torch.arange(0, 4).npu()
+        with self.assertRaisesRegex(RuntimeError, "shape mismatch"):
+            npu_input1[npu_input1 > -1] = torch.tensor([1, 2, 3]).npu()
+
 if __name__ == "__main__":
     run_tests()
