@@ -25,6 +25,7 @@
 #include <torch/csrc/jit/frontend/tracer.h>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/VariableType.h"
 
 #ifdef USE_OPPLUGIN
 #include "op_plugin/ops/OpInterface.h"

@@ -38,26 +38,6 @@ at::Tensor& fast_gelu_backward_npu_nocheck(
 }
 }
 
-class NPUFastGeluFunction : public torch::autograd::Function<NPUFastGeluFunction> {
-public:
-  static at::Tensor forward(AutogradContext *ctx,
-    const at::Tensor& self) {
-    at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({self});
-    return NPUNativeFunctions::npu_fast_gelu(self);
-  }
-
-  static tensor_list backward(AutogradContext *ctx,
-    tensor_list grad_outputs) {
-    auto saved = ctx->get_saved_variables();
-    auto input = saved[0];
-
-    at::Tensor result = NPUNativeFunctions::npu_fast_gelu_backward(grad_outputs[0], input);
-    tensor_list output = {result};
-    return output;
-  }
-};
-
 at::Tensor NPUNativeFunctions::npu_fast_gelu_backward(
     const at::Tensor& grad, 
     const at::Tensor& self) {
@@ -70,7 +50,7 @@ at::Tensor NPUNativeFunctions::npu_fast_gelu_backward(
 }
 
 at::Tensor NPUNativeFunctions::fast_gelu(const at::Tensor& self) {
-    return NPUFastGeluFunction::apply(self);
+    return NPUNativeFunctions::npu_fast_gelu(self);
 }
 
 } // namespace native

@@ -1,6 +1,7 @@
 FILE(GLOB _FRAMEWORK_SRCS
     *.cpp
     aoe/*.cpp
+    autograd/*.cpp
     contiguous/*.cpp
     graph/*.cpp
     graph/cache/*.cpp

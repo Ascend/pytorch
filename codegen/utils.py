@@ -15,6 +15,7 @@
 
 from collections import defaultdict
 import os
+import re
 import sys
 import stat
 import traceback
@@ -34,6 +35,7 @@ from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
 from torchgen.utils import Target
 from torchgen.gen import LineLoader
+from torchgen.yaml_utils import YamlLoader
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 
@@ -62,6 +64,20 @@ def parse_npu_yaml(custom_path: str) -> List:
         _set_wrap_impl_state(x)
 
     return source_es
+
+
+def parse_derivatives_yaml(custom_path) -> set:
+    with open(custom_path, 'r') as f:
+        definitions = yaml.load(f, Loader=YamlLoader)
+
+    function_names = set()
+
+    for item in definitions:
+        match = re.search(r'([a-zA-Z0-9_]+)\(', item['name'])
+        if match:
+            function_names.add(match.group(1))
+
+    return function_names
 
 
 def rename_privateuse1_dispatch_key():

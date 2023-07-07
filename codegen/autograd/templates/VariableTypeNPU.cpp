@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-
+#include "op_plugin/ops/OpInterface.h"
 
 // ${generated_comment}
 
