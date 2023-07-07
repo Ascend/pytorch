@@ -58,5 +58,12 @@ at::Tensor NPUNativeOpApiFunctions::log(const at::Tensor& self) {
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::log_(at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnInplaceLog, NPUNativeFunctions::log_(self));
+  EXEC_NPU_CMD(aclnnInplaceLog, self);
+
+  return self;
+}
+
 }  // namespace native
 }  // namespace at_npu
