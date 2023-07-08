@@ -336,7 +336,10 @@ class BdistWheelBuild(bdist_wheel):
     def _rewrite_ld_preload(self, to_preload):
         flags = os.O_WRONLY | os.O_CREAT
         mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
-        preload_path = os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "_ld_preload.py")
+        torch_npu_root = Path(__file__).parent
+        preload_path = torch_npu_root / "build" / get_build_type() / "packages" / "torch_npu" / "_ld_preload.py"
+        if preload_path.exists():
+            preload_path.unlink()
         with os.fdopen(os.open(preload_path, flags, mode), 'w') as f:
             if len(to_preload) > 0:
                 f.write("from ctypes import CDLL, RTLD_GLOBAL\n")
