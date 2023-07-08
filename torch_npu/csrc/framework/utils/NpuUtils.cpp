@@ -159,6 +159,15 @@ at::Tensor metadata_convert_match(const at::Tensor &src, bool numelEq) {
   }
 }
 
+at::Tensor metadata_convert_match_without_copy_optimize(const at::Tensor &src) {
+  TORCH_CHECK(src.device().type() == at_npu::key::NativeDeviceType,
+      "Expected all tensors to be on the same device. "
+      "Expected NPU tensor, please check whether the input tensor device is correct.");
+  auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+  bool numelEq = (src.numel() == at::prod_intlist(src_desc.base_sizes_));
+  return metadata_convert_match(src, numelEq);
+}
+
 at::Tensor metadata_convert_match_with_copy_optimize(const at::Tensor &src) {
   TORCH_CHECK(src.device().type() == at_npu::key::NativeDeviceType,
       "Expected all tensors to be on the same device. "
@@ -210,7 +219,7 @@ at::Tensor NpuUtils::format_contiguous(const at::Tensor &src) {
     // Fix not match case2, tensor should have matched metadata and
     // NPUStorageDesc.
     RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
-    return metadata_convert_match_with_copy_optimize(src);
+    return metadata_convert_match_without_copy_optimize(src);
   }
 
   // case3:meta data not match, storage_offset of presentation layer
@@ -219,6 +228,33 @@ at::Tensor NpuUtils::format_contiguous(const at::Tensor &src) {
       (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
     RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
+    return metadata_with_offset_padding_convert_match(src);
+  }
+
+  return src;
+}
+
+at::Tensor NpuUtils::format_contiguous_add_copy_optimize(const at::Tensor &src) {
+  // case1:tensor src is not contiguous
+  if (!src.is_contiguous()) {
+    RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    return src.contiguous();
+  }
+  // case2:meta data not match, sizes or strides of presentation
+  // layer is different from that of storage layer
+  if (!StorageDescHelper::MetaDataAreMatch(&src)) {
+    // Fix not match case2, tensor should have matched metadata and
+    // NPUStorageDesc.
+    RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    return metadata_convert_match_with_copy_optimize(src);
+  }
+
+  // case3:meta data not match, storage_offset of presentation layer
+  // is different from that of storage layer
+  if (FormatHelper::IsPadded(&src) &&
+      (!StorageDescHelper::OffsetAreMatch(&src))) {
+    // Fix not match case3, tensor with padding should not have storage-offset.
+    RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
     return metadata_with_offset_padding_convert_match(src);
   }
 
