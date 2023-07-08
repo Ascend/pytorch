@@ -182,6 +182,7 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
   aclrtUtilizationInfo util_info;
   util_info.cubeUtilization = 0;
   util_info.vectorUtilization = 0;
+  util_info.utilizationExtend = nullptr;
   NPU_CHECK_ERROR(c10_npu::acl::AclrtGetDeviceUtilizationRate(device, &util_info));
   int32_t cube = util_info.cubeUtilization;
   int32_t vector = util_info.vectorUtilization;
