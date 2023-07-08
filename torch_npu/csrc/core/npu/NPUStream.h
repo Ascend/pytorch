@@ -72,7 +72,7 @@ public:
   }
 
   /// Explicit conversion to rtStream_t.
-  aclrtStream stream(const bool need_empty = true) const;
+  aclrtStream stream() const;
 
   /// Explicit conversion to Stream.
   c10::Stream unwrap() const {
@@ -96,6 +96,8 @@ public:
 
   bool isDataPreprocessStream();
 
+  /// Explicit conversion to rtStream_t， with out empty taskQ.
+  aclrtStream stream(const bool need_empty) const;
 private:
   c10::Stream stream_;
 };
