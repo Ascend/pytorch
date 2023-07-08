@@ -27,7 +27,7 @@ at::Tensor NPUNativeOpApiFunctions::kl_div_backward(const at::Tensor& grad_outpu
   DO_COMPATIBILITY(aclnnKlDivBackward,
                    NPUNativeFunctions::kl_div_backward(grad_output, self, target, reduction, log_target));
 
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnKlDivBackward, grad_output, self, target, reduction, log_target, result);
   return result;
 }

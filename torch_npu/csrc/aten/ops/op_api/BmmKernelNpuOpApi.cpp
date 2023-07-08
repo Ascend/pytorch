@@ -43,7 +43,7 @@ at::Tensor NPUNativeOpApiFunctions::bmm(const at::Tensor& self, const at::Tensor
   auto output_size = {self.size(0), self.size(1), mat2.size(2)};
   
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(
       output_size, self.options());
 
   // cube_math_type, an enumeration value of type int8 that determines which calculation logic the CUBE unit should use

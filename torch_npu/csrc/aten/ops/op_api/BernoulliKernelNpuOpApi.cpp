@@ -52,7 +52,7 @@ at::Tensor& NPUNativeOpApiFunctions::bernoulli_(at::Tensor& self, const at::Tens
 
 at::Tensor NPUNativeOpApiFunctions::bernoulli(const at::Tensor& self, c10::optional<at::Generator> gen) {
   DO_COMPATIBILITY(aclnnInplaceBernoulliTensor, NPUNativeFunctions::bernoulli(self, gen));
-  at::Tensor self_copy = OpPreparation::ApplyTensor(self);
+  at::Tensor self_copy = OpPreparation::ApplyTensorWithoutFormat(self);
   return NPUNativeOpApiFunctions::bernoulli_(self_copy, self, gen);
 }
 

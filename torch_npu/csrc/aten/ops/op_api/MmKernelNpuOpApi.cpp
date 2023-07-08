@@ -25,7 +25,7 @@ at::Tensor NPUNativeOpApiFunctions::mm(const at::Tensor &self,
                                        const at::Tensor &mat2) {
   DO_COMPATIBILITY(aclnnMatmul, NPUNativeFunctions::mm(self, mat2));
   auto output_size = {self.size(0), mat2.size(1)};
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(output_size, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
   int8_t cube_math_dtype = 1;
   EXEC_NPU_CMD(aclnnMm, self, mat2, result, cube_math_dtype);
   return result;

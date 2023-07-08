@@ -88,8 +88,7 @@ at::Tensor NPUNativeOpApiFunctions::mul(const at::Tensor& self, const at::Tensor
   at::Tensor self_cp = self_tensor_to_device(self, result_type);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(output_size, output_tensor.options().dtype(result_type),
-                                                           CalcuOpUtil::GetTensorNpuFormat(output_tensor));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, output_tensor.options().dtype(result_type));
 
   // calculate the output result of the NPU
   mul_out_npu_no_check(self_cp, other, result);
@@ -101,8 +100,7 @@ at::Tensor NPUNativeOpApiFunctions::mul(const at::Tensor& self, const at::Scalar
   auto output_size = input_same_output_size(self);
   at::ScalarType result_type = at::native::result_type(self, other);
   // construct the output tensor of the Npu
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(output_size, self.options().dtype(result_type),
-                                                           CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(result_type));
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnMuls, self, other, result);
   return result;

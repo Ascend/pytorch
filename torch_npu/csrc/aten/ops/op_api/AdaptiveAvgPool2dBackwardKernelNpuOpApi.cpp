@@ -27,7 +27,7 @@ at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d_backward(const at::Tens
                                                                   const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnAdaptiveAvgPool2dBackward,
                    NPUNativeFunctions::_adaptive_avg_pool2d_backward(grad_output, self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnAdaptiveAvgPool2dBackward, grad_output, self, result);
   return result;
 }

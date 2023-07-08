@@ -43,8 +43,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::_ctc_loss(
   auto outputSizes = ctc_loss_npu_output_size(log_probs, max_length);
 
   // construct the output tensor of the NPU
-  at::Tensor neg_log_likelihood = OpPreparation::ApplyTensor(log_probs, std::get<0>(outputSizes));
-  at::Tensor log_alpha = OpPreparation::ApplyTensor(log_probs, std::get<1>(outputSizes));
+  at::Tensor neg_log_likelihood = OpPreparation::ApplyTensorWithoutFormat(log_probs, std::get<0>(outputSizes));
+  at::Tensor log_alpha = OpPreparation::ApplyTensorWithoutFormat(log_probs, std::get<1>(outputSizes));
 
   // calculate the output result of the NPU 
   EXEC_NPU_CMD(aclnnCtcLoss, log_probs, targets, input_lengths_list, target_lengths_list, 

@@ -27,7 +27,7 @@ at::Tensor NPUNativeOpApiFunctions::hardtanh_backward(
     const at::Scalar& min_val,
     const at::Scalar& max_val) {
   DO_COMPATIBILITY(aclnnHardtanhBackward, NPUNativeFunctions::hardtanh_backward(grad_output, self, min_val, max_val));
-  at::Tensor out = OpPreparation::ApplyTensor(self);
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnHardtanhBackward, grad_output, self, min_val, max_val, out);
   return out;
 }

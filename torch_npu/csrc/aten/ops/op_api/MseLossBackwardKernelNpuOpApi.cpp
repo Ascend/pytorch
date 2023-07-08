@@ -46,7 +46,7 @@ at::Tensor NPUNativeOpApiFunctions::mse_loss_backward(
                    NPUNativeFunctions::mse_loss_backward(grad_output, self, target, reduction));
   auto output_size_pre = broadcast_ops_npu_output_size(grad_output.sizes(), self.sizes());
   auto output_size = broadcast_ops_npu_output_size(output_size_pre, target.sizes());
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   EXEC_NPU_CMD(aclnnMseLossBackward, grad_output, self, target, reduction, grad_input);
   return grad_input;
 }

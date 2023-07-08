@@ -35,7 +35,7 @@ at::Tensor NPUNativeOpApiFunctions::cos(const at::Tensor& self) {
   if (isIntegralType(self.scalar_type(), true)) {
     outDtype = at::kFloat;
   }
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(outDtype));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(outDtype));
   EXEC_NPU_CMD(aclnnCos, self, result);
 
   return result;

@@ -66,7 +66,7 @@ at::Tensor NPUNativeOpApiFunctions::masked_select(const at::Tensor& self, const 
   DO_COMPATIBILITY(aclnnMaskedSelect, NPUNativeFunctions::masked_select(self, mask));
 
   auto outputSize = masked_select_npu_output_size(self, mask);
-  at::Tensor out = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   return exec_aclnn_masked_select(self, mask, out);
 }
 

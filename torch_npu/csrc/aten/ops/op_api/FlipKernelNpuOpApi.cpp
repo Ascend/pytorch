@@ -23,7 +23,7 @@ namespace native {
 
 at::Tensor NPUNativeOpApiFunctions::flip(const at::Tensor& self, at::IntArrayRef dims) {
   DO_COMPATIBILITY(aclnnFlip, NPUNativeFunctions::flip(self, dims));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnFlip, self, dims, result);
   return result;
 }

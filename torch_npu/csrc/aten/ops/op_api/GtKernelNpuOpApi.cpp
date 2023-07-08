@@ -40,7 +40,7 @@ at::Tensor NPUNativeOpApiFunctions::gt(const at::Tensor& self, const at::Scalar&
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool), ACL_FORMAT_ND);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool));
 
   // calculate the output resugt of the NPU
   EXEC_NPU_CMD(aclnnGtScalar, formatCastOfSelf, other, result);
@@ -68,7 +68,7 @@ at::Tensor NPUNativeOpApiFunctions::gt(const at::Tensor& self, const at::Tensor&
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool), ACL_FORMAT_ND);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnGtTensor, formatCastOfSelf, formatCastOfOther, result);

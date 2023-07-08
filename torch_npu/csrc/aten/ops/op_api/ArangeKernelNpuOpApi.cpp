@@ -73,7 +73,7 @@ at::Tensor NPUNativeOpApiFunctions::arange(const at::Scalar& start, const at::Sc
 
   int64_t size_value = GetResultSize(start, end, step, c10::typeMetaToScalarType(option.dtype()));
   at::SmallVector<int64_t, SIZE> outputSize = {size_value};
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, option);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, option);
 
   ArangeOutOpApi(start, end, step, result);
 

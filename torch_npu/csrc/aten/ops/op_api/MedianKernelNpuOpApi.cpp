@@ -26,7 +26,7 @@ at::Tensor NPUNativeOpApiFunctions::median(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnMedian, NPUNativeFunctions::median(self));
   at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
   auto output_size = reduce_ops_npu_output_size(self, dims, false);
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   EXEC_NPU_CMD(aclnnMedian, self, result);
   return result;
 }

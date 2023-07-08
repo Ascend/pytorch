@@ -25,7 +25,7 @@ namespace native {
 at::Tensor NPUNativeOpApiFunctions::hardswish_backward(const at::Tensor& gradOutput, const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnHardswishBackward, NPUNativeFunctions::hardswish_backward(gradOutput, self));
   auto result =
-      OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+      OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options());
   EXEC_NPU_CMD(aclnnHardswishBackward, gradOutput, self, result);
   return result;
 }

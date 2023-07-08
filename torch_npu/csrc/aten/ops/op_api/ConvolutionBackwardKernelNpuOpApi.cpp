@@ -82,19 +82,19 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
     at::Tensor gradWeight;
     at::Tensor gradBias;
 
-    gradInput = OpPreparation::ApplyTensorWithSizes(
+    gradInput = OpPreparation::ApplyTensorWithoutFormat(
         std::get<0>(outputSizes), input.options());
 
     if (groups > 1) {
-        gradWeight = OpPreparation::ApplyTensorWithSizes(
+        gradWeight = OpPreparation::ApplyTensorWithoutFormat(
             std::get<1>(outputSizes), weight.options());
     } else {
-        gradWeight = OpPreparation::ApplyTensorWithSizes(
+        gradWeight = OpPreparation::ApplyTensorWithoutFormat(
             std::get<1>(outputSizes), weight.options());
     }
 
     // use 2nd dimension of outputSizes
-    gradBias = OpPreparation::ApplyTensorWithSizes(
+    gradBias = OpPreparation::ApplyTensorWithoutFormat(
         std::get<2>(outputSizes), grad_output.options());
 
     int64_t input_dim = input.ndimension();

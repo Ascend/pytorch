@@ -97,7 +97,7 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
   out_size = conv_npu_output_size(input, weight, bias, padding, output_padding, stride, dilation, groups, transposed);
 
   auto promotedDtype = promote_dtype(input, weight);
-  auto output = OpPreparation::ApplyTensorWithSizes(out_size, input.options().dtype(promotedDtype));
+  auto output = OpPreparation::ApplyTensorWithoutFormat(out_size, input.options().dtype(promotedDtype));
   int8_t cube_math_dtype = 1; // ALLOW_FP32_DOWN_PRECISION Use reduced-precision operations
   EXEC_NPU_CMD(aclnnConvolution, input, weight, bias, stride, padding, dilation, transposed, output_padding, groups,
                output, cube_math_dtype);

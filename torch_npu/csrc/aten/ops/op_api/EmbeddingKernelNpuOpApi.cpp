@@ -34,7 +34,7 @@ at::Tensor NPUNativeOpApiFunctions::embedding(
   auto outputSize = array_to_small_vector(indices.sizes());
   outputSize.emplace_back(weight.size(weight.dim() - 1));
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, weight.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, weight.options());
   // calculate the output resugt of the NPU
   EXEC_NPU_CMD(aclnnEmbedding, weight, indices, result);
   return result;

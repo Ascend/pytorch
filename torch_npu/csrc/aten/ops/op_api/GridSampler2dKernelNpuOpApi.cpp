@@ -30,7 +30,7 @@ at::Tensor NPUNativeOpApiFunctions::grid_sampler_2d(
   DO_COMPATIBILITY(aclnnGridSampler2D, NPUNativeFunctions::grid_sampler_2d(self, grid, interpolation_mode,
                                                                            padding_mode, align_corners));
   auto outputSize = {self.size(0), self.size(1), grid.size(1), grid.size(2)};
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options());
   EXEC_NPU_CMD(aclnnGridSampler2D, self, grid, interpolation_mode, padding_mode, align_corners, result);
   return result;
 }

@@ -108,7 +108,7 @@ at::Tensor NPUNativeOpApiFunctions::avg_pool2d(const at::Tensor& self,
   auto output_size = avg_pool2d_npu_output_size(self, kernels, strides, paddings, ceil_mode, count_include_pad,
                                                 divisor_override);
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
 
   DO_COMPATIBILITY(aclnnAvgPool2d,
       NPUNativeFunctions::avg_pool2d(self, kernel_size, stride, padding, ceil_mode, count_include_pad,
