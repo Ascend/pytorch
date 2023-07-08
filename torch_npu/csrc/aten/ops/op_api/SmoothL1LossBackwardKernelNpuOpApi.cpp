@@ -45,7 +45,7 @@ at::Tensor NPUNativeOpApiFunctions::smooth_l1_loss_backward(
   DO_COMPATIBILITY(aclnnSmoothL1LossBackward,
                    NPUNativeFunctions::smooth_l1_loss_backward(grad_out, self, target, reduction, beta));
   auto output_size = smooth_l1_loss_backward_npu_output_size(self, target, grad_out);
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   float sigma = static_cast<float>(beta);
   EXEC_NPU_CMD(aclnnSmoothL1LossBackward, grad_out, self, target, reduction, sigma, grad_input);
   return grad_input;

@@ -31,7 +31,7 @@ at::Tensor NPUNativeOpApiFunctions::relu(const at::Tensor& self) {
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options());
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnRelu, self, result);

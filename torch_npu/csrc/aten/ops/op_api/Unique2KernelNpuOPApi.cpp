@@ -30,9 +30,9 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::_unique2(
 
   DO_COMPATIBILITY(aclnnUnique2, NPUNativeFunctions::_unique2(selfOp, sorted, return_inverse, return_counts));
   
-  at::Tensor y = OpPreparation::ApplyTensor(selfOp, selfOp.numel());
-  at::Tensor yInverse = OpPreparation::ApplyTensor(selfOp.sizes(), selfOp.options().dtype(at::kLong), selfOp);
-  at::Tensor yCounts = OpPreparation::ApplyTensor(selfOp.numel(), selfOp.options().dtype(at::kLong), selfOp);
+  at::Tensor y = OpPreparation::ApplyTensorWithoutFormat(selfOp, selfOp.numel());
+  at::Tensor yInverse = OpPreparation::ApplyTensorWithoutFormat(selfOp.sizes(), selfOp.options().dtype(at::kLong));
+  at::Tensor yCounts = OpPreparation::ApplyTensorWithoutFormat(selfOp.numel(), selfOp.options().dtype(at::kLong));
   
   static auto opApiFuncAddr = [](){
     auto ret = GetOpApiFuncAddr("aclGetViewShape");

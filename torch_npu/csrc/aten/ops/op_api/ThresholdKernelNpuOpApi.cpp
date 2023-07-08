@@ -33,7 +33,7 @@ at::Tensor& NPUNativeOpApiFunctions::threshold_out(
 
 at::Tensor NPUNativeOpApiFunctions::threshold(const at::Tensor& self, const at::Scalar& threshold, const at::Scalar& value) {
   DO_COMPATIBILITY(aclnnThreshold, NPUNativeFunctions::threshold(self, threshold, value));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   NPUNativeOpApiFunctions::threshold_out(self, threshold, value, result);
   return result;
 }

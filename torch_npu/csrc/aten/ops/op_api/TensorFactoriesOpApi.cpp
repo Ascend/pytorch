@@ -26,7 +26,7 @@ namespace native {
 at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c10::MemoryFormat> format)
 {
   DO_COMPATIBILITY(aclnnInplaceCopy, NPUNativeFunctions::clone(src, format));
-  auto baseSelf = OpPreparation::ApplyTensor(src);
+  auto baseSelf = OpPreparation::ApplyTensorWithoutFormat(src);
   EXEC_NPU_CMD(aclnnInplaceCopy, baseSelf, src);
   return baseSelf;
 }

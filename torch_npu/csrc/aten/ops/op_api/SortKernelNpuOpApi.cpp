@@ -29,8 +29,8 @@ std::tuple<at::Tensor &, at::Tensor &> sort_output(const at::Tensor &self, bool 
 
 std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::sort(const at::Tensor &self, int64_t dim, bool descending) {
     DO_COMPATIBILITY(aclnnSort, NPUNativeFunctions::sort(self, dim, descending));
-    at::Tensor values = OpPreparation::ApplyTensor(self);
-    at::Tensor indices = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+    at::Tensor values = OpPreparation::ApplyTensorWithoutFormat(self);
+    at::Tensor indices = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kLong));
     bool stable = false;
 
     return sort_output(self, stable, dim, descending, values, indices);
@@ -39,8 +39,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::sort(const at::Tenso
 std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::sort(const at::Tensor &self, c10::optional<bool> stable,
     int64_t dim, bool descending) {
     DO_COMPATIBILITY(aclnnSort, NPUNativeFunctions::sort(self, stable, dim, descending));
-    at::Tensor values = OpPreparation::ApplyTensor(self);
-    at::Tensor indices = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+    at::Tensor values = OpPreparation::ApplyTensorWithoutFormat(self);
+    at::Tensor indices = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kLong));
     bool argStable = c10::value_or_else(stable, [] { return false; });
 
     return sort_output(self, argStable, dim, descending, values, indices);
@@ -49,8 +49,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::sort(const at::Tenso
 std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::sort(const at::Tensor &self, at::Dimname dim,
     bool descending) {
     DO_COMPATIBILITY(aclnnSort, NPUNativeFunctions::sort(self, dim, descending));
-    at::Tensor values = OpPreparation::ApplyTensor(self);
-    at::Tensor indices = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+    at::Tensor values = OpPreparation::ApplyTensorWithoutFormat(self);
+    at::Tensor indices = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kLong));
     bool stable = false;
     int64_t argDim = dimname_to_position(self, dim);
 

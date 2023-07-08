@@ -29,7 +29,7 @@ at::Tensor NPUNativeOpApiFunctions::sqrt(const at::Tensor& self) {
                 at::kFloat : self.scalar_type();
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(outDtype));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(outDtype));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnSqrt, self, result);

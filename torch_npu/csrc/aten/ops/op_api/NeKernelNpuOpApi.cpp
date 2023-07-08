@@ -49,7 +49,7 @@ at::Tensor NPUNativeOpApiFunctions::ne(const at::Tensor& self, const at::Tensor&
 
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
   at::Tensor result =
-      OpPreparation::ApplyTensor(outputSize, formatCastOfSelf.options().dtype(at::kBool), formatCastOfSelf);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool));
 
   EXEC_NPU_CMD(aclnnNeTensor, formatCastOfSelf, formatCastOfOther, result);
   return result;
@@ -59,7 +59,7 @@ at::Tensor NPUNativeOpApiFunctions::ne(const at::Tensor& self, const at::Scalar&
   DO_COMPATIBILITY(aclnnNeScalar, NPUNativeFunctions::ne(self, other));
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
 
-  at::Tensor result = OpPreparation::ApplyTensor(formatCastOfSelf, formatCastOfSelf.options().dtype(at::kBool));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(formatCastOfSelf.sizes(), formatCastOfSelf.options().dtype(at::kBool));
 
   EXEC_NPU_CMD(aclnnNeScalar, formatCastOfSelf, other, result);
   return result;

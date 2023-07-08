@@ -29,7 +29,7 @@ at::Tensor NPUNativeOpApiFunctions::_s_where(
   auto broadcastOutputSize = broadcast_ops_npu_output_size(self, other);
   auto outputSize = broadcast_ops_npu_output_size(condition.sizes(), broadcastOutputSize);
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   EXEC_NPU_CMD(aclnnSWhere, condition, self, other, result);
 
   return result;

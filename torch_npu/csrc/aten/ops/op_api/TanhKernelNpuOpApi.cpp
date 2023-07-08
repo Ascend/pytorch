@@ -37,7 +37,7 @@ at::Tensor NPUNativeOpApiFunctions::tanh(const at::Tensor& self) {
   if(isIntegralType(self.scalar_type(), true)) {
     output_dtype = at::kFloat;
   }
-  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(output_dtype));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(output_dtype));
   EXEC_NPU_CMD(aclnnTanh, self, result);
   return result;
 }

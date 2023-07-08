@@ -33,7 +33,7 @@ at::Tensor& NPUNativeOpApiFunctions::tril_out(const at::Tensor& self, int64_t di
 
 at::Tensor NPUNativeOpApiFunctions::tril(const at::Tensor& self, int64_t diagonal) {
   DO_COMPATIBILITY(aclnnTril, NPUNativeFunctions::tril(self, diagonal));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnTril, self, diagonal, result);
 
   return result;

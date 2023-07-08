@@ -70,7 +70,7 @@ at::Tensor apply_result_tensor(const at::Tensor &self, c10::SmallVector<int64_t,
     if (output_size.has_value() && self.numel() != 0) {
         TORCH_CHECK(output_size_expected == output_size, "Allocated size does not match required size.");
     }
-    at::Tensor result = OpPreparation::ApplyTensor(self, output_shape);
+    at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_shape);
     return result;
 }
 

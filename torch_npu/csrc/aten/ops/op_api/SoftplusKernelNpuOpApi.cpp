@@ -41,7 +41,7 @@ at::Tensor NPUNativeOpApiFunctions::softplus(
     const at::Scalar& threshold) {
   DO_COMPATIBILITY(aclnnSoftplus, NPUNativeFunctions::softplus(self, beta, threshold));
   auto output_size = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options(), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
   NPUNativeOpApiFunctions::softplus_out(self, beta, threshold, result);
   return result;
 }

@@ -41,7 +41,7 @@ at::Tensor NPUNativeOpApiFunctions::upsample_nearest1d(const at::Tensor& input,
   auto compute_size = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);
   auto scales_w = CalcuOpUtil::GetScaleValue(scale_factors, 0);
   c10::SmallVector<int64_t, SIZE> out_size = upsample_linear1d_npu_output_size(input, compute_size, false, scales_w);
-  at::Tensor result = OpPreparation::ApplyTensor(input, out_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(input, out_size);
 
   EXEC_NPU_CMD(aclnnUpsampleNearest1d, input, output_size, result);
   return result;
@@ -52,7 +52,7 @@ at::Tensor NPUNativeOpApiFunctions::upsample_nearest1d(const at::Tensor& self,
                                                        c10::optional<double> scales) {
   DO_COMPATIBILITY(aclnnUpsampleNearest1d, NPUNativeFunctions::upsample_nearest1d(self, output_size, scales));
   c10::SmallVector<int64_t, SIZE> out_size = upsample_linear1d_npu_output_size(self, output_size, false, scales);
-  at::Tensor result = OpPreparation::ApplyTensor(self, out_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, out_size);
   
   EXEC_NPU_CMD(aclnnUpsampleNearest1d, self, output_size, result);
   return result;

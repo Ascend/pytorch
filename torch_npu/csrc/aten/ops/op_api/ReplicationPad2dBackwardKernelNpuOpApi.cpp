@@ -38,7 +38,7 @@ at::Tensor NPUNativeOpApiFunctions::replication_pad2d_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     at::IntArrayRef padding) {
-    at::Tensor grad_input = OpPreparation::ApplyTensor(self);
+    at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(self);
     DO_COMPATIBILITY(aclnnReplicationPad2dBackward,
         NPUNativeFunctions::replication_pad2d_backward(grad_output, self, padding));
     EXEC_NPU_CMD(aclnnReplicationPad2dBackward, grad_output, self, padding, grad_input);

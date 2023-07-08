@@ -42,7 +42,7 @@ at::Tensor NPUNativeOpApiFunctions::sigmoid(const at::Tensor& self) {
   if (isIntegralType(self.scalar_type(), true)) {
     outDtype = at::kFloat;
   }
-  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(outDtype));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(outDtype));
   EXEC_NPU_CMD(aclnnSigmoid, self, result);
 
   return result;

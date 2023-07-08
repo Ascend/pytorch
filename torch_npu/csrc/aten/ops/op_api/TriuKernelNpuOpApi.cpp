@@ -33,7 +33,7 @@ at::Tensor& NPUNativeOpApiFunctions::triu_out(const at::Tensor& self, int64_t di
 
 at::Tensor NPUNativeOpApiFunctions::triu(const at::Tensor& self, int64_t diag) {
   DO_COMPATIBILITY(aclnnTriu, NPUNativeFunctions::triu(self, diag));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnTriu, self, diag, result);
   return result;
 }

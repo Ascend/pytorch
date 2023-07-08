@@ -68,8 +68,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::nll_loss_forward(const at
     output_size = {self.size(0)};
   }
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
-  at::Tensor total_weight = OpPreparation::ApplyTensor(self, totalWeightSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  at::Tensor total_weight = OpPreparation::ApplyTensorWithoutFormat(self, totalWeightSize);
 
   nll_loss_forward_npu_nocheck(result, total_weight, self, target, weight, reduction, ignore_index);
   return tuple<at::Tensor, at::Tensor>(result, total_weight);
