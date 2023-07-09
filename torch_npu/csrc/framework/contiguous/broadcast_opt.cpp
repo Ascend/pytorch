@@ -2,6 +2,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -92,7 +93,7 @@ private:
                                                           src.strides());
 
     if (temp_src.is_contiguous()) {
-      NPUNativeFunctions::npu_broadcast_out(temp_src, self.sizes(), self);
+      custom_ops::npu_broadcast_out(temp_src, self.sizes(), self);
       return true;
     }
     return false;

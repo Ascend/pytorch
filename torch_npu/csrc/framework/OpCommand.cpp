@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
+#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
 
 namespace {
 const uint64_t kStringOffset = 16UL;
@@ -98,7 +99,7 @@ OpCommand& OpCommand::Input(
       auto contiguous_input = Contiguous(input);
       if (commonType.has_value() &&
           commonType.value() != contiguous_input.scalar_type()) {
-        contiguous_input = NPUNativeFunctions::npu_dtype_cast(contiguous_input, commonType.value());
+        contiguous_input = custom_ops::npu_dtype_cast(contiguous_input, commonType.value());
       }
       graphCmd.AddInput(contiguous_input, descName, realData, sensitive_format);
   )
@@ -205,7 +206,7 @@ OpCommand& OpCommand::Output(
       graphCmd.AddOutput(output, descName, realType, sensitive_format);
       if (!resultTypeDefined && commonType.has_value() &&
           output.scalar_type() != commonType.value()) {
-        output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
+        output = custom_ops::npu_dtype_cast(output, commonType.value());
       } 
   )
   outputTensor.emplace_back(output);
@@ -263,7 +264,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      const string &realData) {
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
-    tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
+    tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
   }
   if (at_npu::native::NpuDataDumpMgr::GetInstance().IsDatadumpEnable()) {
     inputTensor.emplace_back(tensor);
@@ -314,7 +315,7 @@ OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType ty
 
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
   if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
-    output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
+    output = custom_ops::npu_dtype_cast(output, commonType.value());
   }
   auto res = OpCmdHelper::CovertToAclOutput(output, realType);
   aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));
