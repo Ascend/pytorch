@@ -52,6 +52,7 @@ using StorageAndOffsetMemSizePair =
 
 namespace at_npu {
 namespace native {
+
 class CalcuOpUtil {
 public:
   static aclDataType ConvertToAclDataType(const at::ScalarType &data_type);
@@ -96,8 +97,11 @@ public:
                                   c10::ArrayRef<at::Tensor> outputs);
   static int64_t MakeWrapDim(int64_t dim, int64_t dim_post_expr);
   static bool IsTransposeLastTwoDims(const at::Tensor &tensor);
+  static bool IsMmTranspose(const at::Tensor &tensor);
   static bool IsScalarWrappedToTensor(const at::Tensor &tensor);
   static bool IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2);
+  static bool IsTransposeInnerAxis(const at::Tensor &self);
+  static bool IsTransposeBothInnerAxis(const at::Tensor &self, const at::Tensor &mat2);
   static bool IsScalarOne(const c10::Scalar &scalar);
   static float GetScalarFloatValue(const c10::Scalar &scalar);
   static int64_t GetTensorNpuFormat(const at::Tensor &tensor);
