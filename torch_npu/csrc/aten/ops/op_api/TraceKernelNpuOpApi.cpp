@@ -24,7 +24,7 @@ at::Tensor NPUNativeOpApiFunctions::trace(const at::Tensor &self)
 {
   DO_COMPATIBILITY(aclnnTrace, NPUNativeFunctions::trace(self));
   c10::SmallVector<int64_t, N> outputSize = {};
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnTrace, self, result);
   return result;

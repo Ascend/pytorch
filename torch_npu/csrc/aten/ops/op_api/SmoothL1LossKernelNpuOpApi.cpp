@@ -37,7 +37,7 @@ at::Tensor NPUNativeOpApiFunctions::smooth_l1_loss(const at::Tensor &self, const
   DO_COMPATIBILITY(aclnnSmoothL1Loss,
                    NPUNativeFunctions::smooth_l1_loss(self, target, reduction, beta));
   auto outputSize = smooth_l1_loss_npu_output_size(self, target, reduction);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   float sigma = static_cast<float>(beta);
   EXEC_NPU_CMD(aclnnSmoothL1Loss, self, target, reduction, sigma, result);
   return result;

@@ -39,7 +39,7 @@ at::Tensor NPUNativeOpApiFunctions::zeros(at::IntArrayRef size,
                                   .layout(layout_opt)
                                   .device(device_opt)
                                   .pinned_memory(pin_memory_opt);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(size, option);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(size, option);
   return result.zero_();
 }
 

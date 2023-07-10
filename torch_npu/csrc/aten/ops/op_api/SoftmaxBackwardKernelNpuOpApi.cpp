@@ -39,7 +39,7 @@ at::Tensor NPUNativeOpApiFunctions::_softmax_backward_data(const at::Tensor& gra
                    NPUNativeFunctions::_softmax_backward_data(grad_output, output, dim, input_dtype));
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output);
   EXEC_NPU_CMD(aclnnSoftmaxBackward, grad_output, output, dim, result);
 
   return result;

@@ -58,7 +58,7 @@ at::Tensor NPUNativeOpApiFunctions::pow(const at::Tensor& self, const at::Tensor
   // calculate the output size
   auto output_size = broadcast_ops_npu_output_size(self, exp);
   at::ScalarType result_type = at::result_type(self, exp);
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(result_type));
   EXEC_NPU_CMD(aclnnPowTensorTensor, self, exp, result);
   return result;
 }
@@ -67,7 +67,7 @@ at::Tensor NPUNativeOpApiFunctions::pow(const at::Tensor& self, const at::Scalar
   DO_COMPATIBILITY(aclnnPowTensorScalar, NPUNativeFunctions::pow(self, exp));
   auto outputSize = input_same_output_size(self);
   auto resultType = at::result_type(self, exp);
-  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(resultType), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(resultType));
   EXEC_NPU_CMD(aclnnPowTensorScalar, self, exp, result);
   return result;
 }
@@ -75,7 +75,7 @@ at::Tensor NPUNativeOpApiFunctions::pow(const at::Tensor& self, const at::Scalar
 at::Tensor NPUNativeOpApiFunctions::pow(const at::Scalar& self, const at::Tensor& exp) {
   DO_COMPATIBILITY(aclnnPowScalarTensor, NPUNativeFunctions::pow(self, exp));
   at::ScalarType result_type = at::result_type(self, exp);
-  at::Tensor result = OpPreparation::ApplyTensor(exp, exp.options().dtype(result_type));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(exp.sizes(), exp.options().dtype(result_type));
   EXEC_NPU_CMD(aclnnPowScalarTensor, self, exp, result);
   return result;
 }

@@ -24,9 +24,9 @@ static const int64_t BIT_NUMBER = 128;
 static const int64_t UINT8_BIT_NUMBER = 8;
 
 static std::tuple<at::Tensor, at::Tensor> _dropout_npu(const at::Tensor& self, double p, bool train) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   int64_t length = (self.numel() + BIT_NUMBER - 1) / BIT_NUMBER * BIT_NUMBER / UINT8_BIT_NUMBER;
-  at::Tensor mask = OpPreparation::ApplyTensor({length}, self.options().dtype(at::kByte), self);
+  at::Tensor mask = OpPreparation::ApplyTensorWithoutFormat({length}, self.options().dtype(at::kByte));
 
   // DropOutGenMask use seed and seed1 to generator a seed, like this:
   //  seed1   seed
@@ -56,7 +56,7 @@ at::Tensor NPUNativeOpApiFunctions::native_dropout_backward(const at::Tensor& gr
                                                             double scale) {
   DO_COMPATIBILITY(aclnnDropoutBackward, NPUNativeFunctions::native_dropout_backward(grad_output, mask, scale));
 
-  at::Tensor result = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(grad_output);
   EXEC_NPU_CMD(aclnnDropoutBackward, grad_output, mask, scale, result);
   return result;
 }

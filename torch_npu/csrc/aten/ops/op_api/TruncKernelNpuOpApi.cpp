@@ -42,7 +42,7 @@ at::Tensor NPUNativeOpApiFunctions::trunc(const at::Tensor& self) {
     auto outputSize = self.sizes();
     DO_COMPATIBILITY(aclnnTrunc,
         NPUNativeFunctions::trunc(self));
-    at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+    at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options());
     EXEC_NPU_CMD(aclnnTrunc, self, result);
     return result;
 }

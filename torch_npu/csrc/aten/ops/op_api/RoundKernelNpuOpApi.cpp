@@ -29,7 +29,7 @@ at::Tensor& NPUNativeOpApiFunctions::round_out(const at::Tensor& self, at::Tenso
 
 at::Tensor NPUNativeOpApiFunctions::round(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnRound, NPUNativeFunctions::round(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnRound, self, result);
   return result;
 }

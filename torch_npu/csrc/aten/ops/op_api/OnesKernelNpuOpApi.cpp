@@ -40,7 +40,7 @@ at::Tensor NPUNativeOpApiFunctions::ones(at::IntArrayRef size,
                  .layout(layout_opt)
                  .device(device)
                  .pinned_memory(pin_memory_opt);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(size, option);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(size, option);
 
   EXEC_NPU_CMD(aclnnInplaceOne, result);
   return result;
@@ -60,7 +60,7 @@ at::Tensor NPUNativeOpApiFunctions::ones(at::IntArrayRef size,
                  .layout(layout_opt)
                  .device(device)
                  .pinned_memory(pin_memory_opt);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(size, option);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(size, option);
 
   EXEC_NPU_CMD(aclnnInplaceOne, result);
   return result;

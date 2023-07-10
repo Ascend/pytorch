@@ -56,7 +56,7 @@ at::Tensor NPUNativeOpApiFunctions::randperm(int64_t n, c10::optional<at::Genera
   at::TensorOptions options;
   options = options.dtype(dtype).layout(layout).device(device).pinned_memory(pin_memory);
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat({n}, options, ACL_FORMAT_ND);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat({n}, options);
 
   randperm_op_api(n, generator, result);
   return result;

@@ -48,8 +48,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::topk(
   DO_COMPATIBILITY(aclnnTopk, NPUNativeFunctions::topk(self, k, dim, largest, sorted));
   auto output_size = topk_npu_output_size(self, k, dim, largest, sorted);
 
-  at::Tensor values = OpPreparation::ApplyTensor(output_size, self.options(), self);
-  at::Tensor indices = OpPreparation::ApplyTensor(output_size, self.options().dtype(at::kLong), self);
+  at::Tensor values = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
+  at::Tensor indices = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(at::kLong));
 
   EXEC_NPU_CMD(aclnnTopk, self, k, dim, largest, sorted, values, indices);
   return std::tuple<at::Tensor, at::Tensor>(values, indices);

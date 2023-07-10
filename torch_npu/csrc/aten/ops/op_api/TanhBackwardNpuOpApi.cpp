@@ -33,7 +33,7 @@ at::Tensor& NPUNativeOpApiFunctions::tanh_backward_out(const at::Tensor& grad_ou
 
 at::Tensor NPUNativeOpApiFunctions::tanh_backward(const at::Tensor& grad_output, const at::Tensor& output) {
   DO_COMPATIBILITY(aclnnTanhBackward, NPUNativeFunctions::tanh_backward(grad_output, output));
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(grad_output);
 
   EXEC_NPU_CMD(aclnnTanhBackward, grad_output, output, grad_input);
   return grad_input;

@@ -27,9 +27,9 @@ at::Tensor NPUNativeOpApiFunctions::_softmax(const at::Tensor& self, int64_t dim
   // construct the output tensor of the NPU
   at::Tensor result;
   if (half_to_float) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::ScalarType::Float));
+    result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::ScalarType::Float));
   } else {
-    result = OpPreparation::ApplyTensor(self);
+    result = OpPreparation::ApplyTensorWithoutFormat(self);
   }
 
   EXEC_NPU_CMD(aclnnSoftmax, self, dim, result);

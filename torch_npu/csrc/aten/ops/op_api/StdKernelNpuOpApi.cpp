@@ -87,7 +87,7 @@ at::Tensor NPUNativeOpApiFunctions::std(
     real_dim = array_to_small_vector(dim.value());
   }
   auto output_size = reduce_ops_npu_output_size(self, real_dim, keepdim);
-  auto result = OpPreparation::ApplyTensor(output_size, self.options(), self);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
   return NPUNativeOpApiFunctions::std_out(self, dim, correction, keepdim, result);
 }
 

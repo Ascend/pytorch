@@ -53,7 +53,7 @@ at::Tensor NPUNativeOpApiFunctions::searchsorted(
   DO_COMPATIBILITY(aclnnSearchSorted,
                    NPUNativeFunctions::searchsorted(sorted_sequence, self, out_int32, right, side_opt, sorter_opt));
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;
-  at::Tensor result = OpPreparation::ApplyTensor(self.sizes(), self.options().dtype(scalar_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(scalar_type));
   EXEC_NPU_CMD(aclnnSearchSorted, sorted_sequence, self, out_int32, right, result);
   return result;
 }
@@ -68,7 +68,7 @@ at::Tensor NPUNativeOpApiFunctions::searchsorted(
   DO_COMPATIBILITY(aclnnSearchSorteds,
                    NPUNativeFunctions::searchsorted(sorted_sequence, self, out_int32, right, side_opt, sorter_opt));
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;
-  at::Tensor result = OpPreparation::ApplyTensor({}, sorted_sequence.options().dtype(scalar_type), sorted_sequence);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat({}, sorted_sequence.options().dtype(scalar_type));
   EXEC_NPU_CMD(aclnnSearchSorteds, sorted_sequence, self, out_int32, right, result);
   return result;
 }

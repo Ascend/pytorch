@@ -47,7 +47,7 @@ at::Tensor NPUNativeOpApiFunctions::nll_loss_backward(const at::Tensor& grad_out
   DO_COMPATIBILITY(aclnnNLLLossBackward, NPUNativeFunctions::nll_loss_backward(grad_output, self, target, weight,
                                                                                reduction, ignore_index, total_weight));
   // construct the output tensor of the NPU
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(self);
 
   // calculate the output result of the NPU
   NPUNativeOpApiFunctions::nll_loss_backward_out(grad_output, self, target, weight, reduction, ignore_index,

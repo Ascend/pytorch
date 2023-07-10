@@ -80,8 +80,7 @@ at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Tensor
   at::ScalarType result_type = at::native::result_type(self, other);
   at::Tensor self_converted = self_tensor_to_device(self, result_type);
 
-  auto result = OpPreparation::ApplyTensor(output_size, output_tensor.options().dtype(result_type),
-                                           output_tensor);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(output_size, output_tensor.options().dtype(result_type));
   sub_out_npu_nocheck(self_converted, other, alpha, result);
   return result;
 }
@@ -90,7 +89,7 @@ at::Tensor NPUNativeOpApiFunctions::sub(const at::Tensor &self, const at::Scalar
   DO_COMPATIBILITY(aclnnSubs, NPUNativeFunctions::sub(self, other, alpha));
   auto output_size = input_same_output_size(self);
   at::ScalarType result_type = at::native::result_type(self, other);
-  auto result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(result_type));
   EXEC_NPU_CMD(aclnnSubs, self, other, alpha, result);
   return result;
 }

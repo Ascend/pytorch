@@ -22,7 +22,7 @@ namespace at_npu {
 namespace native {
 at::Tensor NPUNativeOpApiFunctions::threshold_backward(const at::Tensor &gradOutput, const at::Tensor &self, const at::Scalar &threshold) {
   DO_COMPATIBILITY(aclnnThresholdBackward, NPUNativeFunctions::threshold_backward(gradOutput, self, threshold));
-  auto result = OpPreparation::ApplyTensor(self);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnThresholdBackward, gradOutput, self, threshold, result);
   return result;
 }

@@ -32,7 +32,7 @@ at::Tensor& NPUNativeOpApiFunctions::sigmoid_backward_out(const at::Tensor& grad
 
 at::Tensor NPUNativeOpApiFunctions::sigmoid_backward(const at::Tensor& grad_output, const at::Tensor& output) {
   DO_COMPATIBILITY(aclnnSigmoidBackward, NPUNativeFunctions::sigmoid_backward(grad_output, output));
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(grad_output);
 
   EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, grad_input);
   return grad_input;
