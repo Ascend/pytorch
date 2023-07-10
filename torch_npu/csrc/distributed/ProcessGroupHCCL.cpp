@@ -23,6 +23,7 @@
 #include <tuple>
 #include <unordered_set>
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "third_party/acl/inc/acl/acl.h"
@@ -36,6 +37,9 @@
 
 namespace c10d_npu {
 namespace {
+static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
+static uint32_t kOpWaitTimeout = 1868U; // second
+
 using hcclUs = std::chrono::steady_clock::time_point;
 #define DURATION_US(x) \
   (std::chrono::duration_cast<std::chrono::microseconds>(x))
@@ -308,6 +312,18 @@ ProcessGroupHCCL::ProcessGroupHCCL(
       hcclCommCounter_(0),
       terminateWatchdog_(false),
       opTimeout_(options->opTimeout) {
+  uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+  // When no env, the default value is 0
+  if (hccl_exec_timeout > 0) {
+    kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
+    if (kOpWaitTimeout <= hccl_exec_timeout) {
+      kOpWaitTimeout = UINT_MAX;
+    }
+  }
+  NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+  ASCEND_LOGI("Get env HCCL_EXEC_TIMEOUT value %u, and set op wait timeout to %u.",
+              hccl_exec_timeout, kOpWaitTimeout);
+
   char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
   try {
     if (blockingWait != nullptr) {
