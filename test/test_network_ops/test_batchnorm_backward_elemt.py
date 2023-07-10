@@ -71,8 +71,8 @@ class TestBatchNormBackwardElemt(TestCase):
 
         grad_input = torch.batch_norm_backward_elemt(grad_output, input1, mean, invstd,
                                                      weight, mean_dy, mean_dy_xmn, count_tensor)
-        cuda_expect_out = torch.tensor([[27.4980, 4.51119, 306.8037],
-                                        [27.4980, 4.51119, 306.8037]])
+        cuda_expect_out = torch.tensor([[27.4980, 4.5119, 306.8037],
+                                        [27.4980, 4.5119, 306.8037]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
 
 
