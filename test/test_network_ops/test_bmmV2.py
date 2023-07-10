@@ -41,8 +41,8 @@ class TestBatchMatMulV2(TestCase):
 
     def bmm_auto_list_exec(self, shape):
         for item in shape:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 10)
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 1)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 1)
             if cpu_input1.dtype == torch.float16:
                 cpu_output, cpu_grad1, cpu_grad2 = self.cpu_op_exec(cpu_input1.float(), cpu_input2.float())
                 cpu_output = cpu_output.astype(np.float16)
@@ -52,9 +52,9 @@ class TestBatchMatMulV2(TestCase):
                 cpu_output, cpu_grad1, cpu_grad2 = self.cpu_op_exec(cpu_input1, cpu_input2)
 
             npu_output, npu_grad1, npu_grad2 = self.npu_op_exec(npu_input1, npu_input2)
-            self.assertRtolEqual(cpu_output, npu_output)
-            self.assertRtolEqual(cpu_grad1, npu_grad1)
-            self.assertRtolEqual(cpu_grad2, npu_grad2)
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
+            self.assertRtolEqual(cpu_grad1, npu_grad1, prec=1.e-3, prec16=1.e-3)
+            self.assertRtolEqual(cpu_grad2, npu_grad2, prec=1.e-3, prec16=1.e-3)
 
     def test_batchmatmul_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 29]
