@@ -70,10 +70,8 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
   if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
     auto is_aligin = [&]() {
-      return (!(static_cast<uint64_t>(self.size(1)) & 0x0000000F)) &&
-             (!(static_cast<uint64_t>(self.size(2)) & 0x0000000F)) &&
-             (!(static_cast<uint64_t>(mat2.size(1)) & 0x0000000F)) &&
-             (!(static_cast<uint64_t>(mat2.size(2)) & 0x0000000F));
+      return (!(static_cast<uint64_t>(self.size(1)) & 0xF)) && (!(static_cast<uint64_t>(self.size(2)) & 0xF)) &&
+             (!(static_cast<uint64_t>(mat2.size(1)) & 0xF)) && (!(static_cast<uint64_t>(mat2.size(2)) & 0xF));
     };
 
     static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
