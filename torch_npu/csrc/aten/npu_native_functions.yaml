@@ -714,9 +714,12 @@ supported:
    op_api: True
  - func: logical_and_
    op_api: False
- - logical_not
- - logical_not.out
- - logical_not_
+ - func: logical_not
+   op_api: False
+ - func: logical_not.out
+   op_api: False
+ - func: logical_not_
+   op_api: False
  - func: logical_or
    op_api: True
  - func: logical_or.out
