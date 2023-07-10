@@ -199,9 +199,12 @@ supported:
  - asin
  - asin.out
  - asin_
- - asinh
- - asinh.out
- - asinh_
+ - func: asinh
+   op_api: False
+ - func: asinh.out
+   op_api: False
+ - func: asinh_
+   op_api: False
  - func: atan
    op_api: True
  - func: atan.out
