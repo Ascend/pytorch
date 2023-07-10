@@ -228,7 +228,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   const at::Tensor running_mean_tensor = running_mean.defined() ? running_mean : at::zeros({dim_c}, options);
   const at::Tensor running_var_tensor = running_var.defined() ? running_var : at::ones({dim_c}, options);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self.sizes(), self.options(), self);
+  at::Tensor result;
 
   at::Tensor save_mean;
   at::Tensor save_invstd;
@@ -248,9 +248,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
     save_invstd = at::empty({0}, self.options());
   }
   
-  NPUNativeFunctions::native_batch_norm_out(self, weight_opt, bias_opt, running_mean_opt, running_var_opt, train,
-                                            momentum, eps, result, save_mean, save_invstd);
-  return std::tie(result, save_mean, save_invstd);
+  return NPUNativeFunctions::native_batch_norm_out(self, weight_opt, bias_opt, running_mean_opt, running_var_opt,
+                                                   train, momentum, eps, result, save_mean, save_invstd);
 }
 
 tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch_norm_out(
@@ -271,7 +270,6 @@ tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch
   const at::Tensor& running_var = c10::value_or_else(running_var_opt, [] {return at::Tensor();});
 
   at::Tensor self_reshape;
-  at::Tensor out_reshape = out;
   c10::SmallVector<int64_t, N> self_shape = array_to_small_vector(self.sizes());
 
   int64_t self_npu_format = CalcuOpUtil::GetTensorNpuFormat(self);
@@ -288,7 +286,9 @@ tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch
     c10::SmallVector<int64_t, N> nchw_shape(self_shape);
     nchw_shape.resize(4, 1);
     self_reshape = self.reshape(nchw_shape);
-    out = out.reshape(nchw_shape);
+    if (out.defined()) {
+      out = out.reshape(nchw_shape);
+    }
   } else if (train && self.dim() == 5) {
     // Use 3D BN ops for training, merging axes is not required.
     self_reshape = self;
@@ -300,7 +300,9 @@ tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch
     c10::SmallVector<int64_t, N> nchw_shape = {self_shape[0] * self_shape[2], self_shape[1], self_shape[3], self_shape[4]};
     // ndchw -> nchw
     self_reshape = self_reshape.reshape(nchw_shape);
-    out_reshape = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
+    if (out.defined()) {
+      out = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
+    }
   }
 
   // process when affine=Flase and track_running_stats=False
@@ -318,9 +320,12 @@ tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch
   at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
   at::Tensor bias_tensor = bias.defined() ? bias_cp : at::zeros({dim_c}, options);
 
+  if (!out.defined()) {
+    out = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
+  }
   // calculate the output result of the NPU
   batch_norm_impl(
-      out_reshape,
+      out,
       save_mean,
       save_invstd,
       self_reshape,
@@ -336,12 +341,12 @@ tuple<at::Tensor &, at::Tensor &, at::Tensor &> NPUNativeFunctions::native_batch
   if (!train && self.dim() == 5) {
     // NCHW -> NDCHW -> NCDHW
     std::swap(self_shape[1], self_shape[2]);
-    out_reshape = out_reshape.view(self_shape);
-    out_reshape = NpuUtils::format_contiguous(out_reshape);
-    out = out_reshape.permute({0, 2, 1, 3, 4}).clone();
+    out = out.view(self_shape);
+    out = NpuUtils::format_contiguous(out);
+    out = out.permute({0, 2, 1, 3, 4}).clone();
   } else if (self.dim() < 5) {
-    out_reshape = out_reshape.view(self_shape);
-    out = NpuUtils::format_contiguous(out_reshape);
+    out = out.view(self_shape);
+    out = NpuUtils::format_contiguous(out);
   }
 
   return std::tie(out, save_mean, save_invstd);
