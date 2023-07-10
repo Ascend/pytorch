@@ -29,12 +29,12 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_b
   DO_COMPATIBILITY(aclnnBatchNorm, NPUNativeFunctions::native_batch_norm(self, weight_opt, bias_opt, running_mean_opt,
                                                                          running_var_opt, train, momentum, eps));
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self.sizes(), self.options(), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options());
   at::Tensor save_mean;
   at::Tensor save_invstd;
   if (train) {
-    save_mean = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
-    save_invstd = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
+    save_mean = OpPreparation::ApplyTensorWithoutFormat({self.size(1)}, self.options().dtype(at::kFloat));
+    save_invstd = OpPreparation::ApplyTensorWithoutFormat({self.size(1)}, self.options().dtype(at::kFloat));
   } else {
     save_mean = at::empty({0}, self.options());
     save_invstd = at::empty({0}, self.options());

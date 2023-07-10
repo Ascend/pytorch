@@ -32,9 +32,9 @@ at::Tensor NPUNativeOpApiFunctions::_log_softmax(const at::Tensor& self, int64_t
   // construct the output tensor of the NPU
   at::Tensor result;
   if (half_to_float) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(c10::ScalarType::Float));
+    result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(c10::ScalarType::Float));
   } else {
-    result = OpPreparation::ApplyTensor(self);
+    result = OpPreparation::ApplyTensorWithoutFormat(self);
   }
 
   // calculate the output result of the NPU

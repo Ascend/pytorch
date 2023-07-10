@@ -41,7 +41,7 @@ at::Tensor& NPUNativeOpApiFunctions::le_out(const at::Tensor& self, const at::Sc
 at::Tensor NPUNativeOpApiFunctions::le(const at::Tensor& self, const at::Tensor& other) {
   DO_COMPATIBILITY(aclnnLeTensor, NPUNativeFunctions::le(self, other));
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::kBool), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kBool));
   EXEC_NPU_CMD(aclnnLeTensor, self, other, result);
   return result;
 }
@@ -49,7 +49,7 @@ at::Tensor NPUNativeOpApiFunctions::le(const at::Tensor& self, const at::Tensor&
 at::Tensor NPUNativeOpApiFunctions::le(const at::Tensor& self, const at::Scalar& other) {
   DO_COMPATIBILITY(aclnnLeScalar, NPUNativeFunctions::le(self, other));
   auto outputSize = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::kBool), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kBool));
   EXEC_NPU_CMD(aclnnLeScalar, self, other, result);  
   return result;
 }

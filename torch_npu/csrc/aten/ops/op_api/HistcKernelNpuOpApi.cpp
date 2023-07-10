@@ -34,7 +34,7 @@ at::Tensor NPUNativeOpApiFunctions::histc(const at::Tensor& self, int64_t bins, 
                                           const at::Scalar& max) {
   DO_COMPATIBILITY(aclnnHistc, NPUNativeFunctions::histc(self, bins, min, max));
   at::ScalarType out_type = self.scalar_type();
-  at::Tensor result = OpPreparation::ApplyTensor({bins}, self.options().dtype(out_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat({bins}, self.options().dtype(out_type));
   EXEC_NPU_CMD(aclnnHistc, self, bins, min, max, result);
   return result;
 }

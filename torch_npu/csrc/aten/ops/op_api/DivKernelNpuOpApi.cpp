@@ -115,7 +115,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
   }
   // construct the output tensor of the NPU
   at::Tensor result = 
-      OpPreparation::ApplyTensor(outputSize, outputTensor.options().dtype(high_type), outputTensor);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, outputTensor.options().dtype(high_type));
 
   // calculate the output result of the NPU
   div_out_npu_opapi_nocheck(self_cp, other, result);
@@ -153,7 +153,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Tensor
     }
   }
   at::Tensor result = 
-      OpPreparation::ApplyTensor(outputSize, outputTensor.options().dtype(high_type), outputTensor);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, outputTensor.options().dtype(high_type));
 
   // executing the NPU operator
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
@@ -224,7 +224,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Scalar
     high_type = at::ScalarType::Float;
   }
   at::Tensor result = 
-      OpPreparation::ApplyTensor(outputSize, self.options().dtype(high_type), self);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(high_type));
   EXEC_NPU_CMD(aclnnDivs, self, other, result);
   return result;
 }
@@ -247,7 +247,7 @@ at::Tensor NPUNativeOpApiFunctions::div(const at::Tensor& self, const at::Scalar
     }
   }
   at::Tensor result = 
-      OpPreparation::ApplyTensor(outputSize, self.options().dtype(high_type), self);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(high_type));
   EXEC_NPU_CMD(aclnnDivMods, self, other, mode, result);
   return result;
 }

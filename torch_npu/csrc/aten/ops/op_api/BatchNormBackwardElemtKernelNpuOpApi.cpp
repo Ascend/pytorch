@@ -36,7 +36,7 @@ at::Tensor NPUNativeOpApiFunctions::batch_norm_backward_elemt(
                                                                                               sum_dy, sum_dy_xmu,
                                                                                               count));
 
-  at::Tensor grad_input = OpPreparation::ApplyTensor(input);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(input);
   EXEC_NPU_CMD(aclnnBatchNormElemtBackward, grad_out, input, mean, invstd, weight_opt, sum_dy, sum_dy_xmu, count,
                grad_input);
   return grad_input;

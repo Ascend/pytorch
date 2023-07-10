@@ -59,7 +59,7 @@ at::Tensor NPUNativeOpApiFunctions::all(const at::Tensor& self, int64_t dim, boo
   auto output_dtype = self.scalar_type() == at::ScalarType::Byte ? at::ScalarType::Byte : at::ScalarType::Bool;
   auto options = self.options().dtype(output_dtype);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, options);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAll, self, dims, keepdim, result);
 
@@ -74,7 +74,7 @@ at::Tensor NPUNativeOpApiFunctions::all(const at::Tensor& self) {
   auto output_dtype = self.scalar_type() == at::ScalarType::Byte ? at::ScalarType::Byte : at::ScalarType::Bool;
   auto options = self.options().dtype(output_dtype);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, options);
 
   at::IntArrayRef dimList(CalcuOpUtil::GetDimlistForTensor(self));
   bool keepdim = false;

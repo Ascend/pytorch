@@ -64,8 +64,8 @@ at::Tensor NPUNativeOpApiFunctions::multinomial(
   auto dim = self.dim();
   auto shape = array_to_small_vector(self.sizes());
   shape[dim-1] = num_samples;
-  at::Tensor result = OpPreparation::ApplyTensor(
-      shape, self.options().dtype(at::kLong), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(
+      shape, self.options().dtype(at::kLong));
   multinomial_op_api(result, self, num_samples, replacement, gen);
   return result;
 }

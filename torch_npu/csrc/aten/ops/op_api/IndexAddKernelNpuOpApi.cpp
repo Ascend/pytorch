@@ -49,7 +49,7 @@ at::Tensor NPUNativeOpApiFunctions::index_add(
     const at::Tensor& source,
     const at::Scalar& alpha) {
   DO_COMPATIBILITY(aclnnIndexAdd, NPUNativeFunctions::index_add(self, dim, index, source, alpha));
-  at::Tensor result = OpPreparation::ApplyTensor(self, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options());
   EXEC_NPU_CMD(aclnnIndexAdd, self, dim, index, source, alpha, result.copy_(self));
   return result;
 }
