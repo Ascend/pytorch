@@ -16,6 +16,7 @@
 
 from logging import exception
 import os
+import warnings
 import torch_npu._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
@@ -161,6 +162,8 @@ class profile(object):
         config=profileConfig()):
         self.result_path = profiler_result_path
         self.use_e2e_profiler = use_e2e_profiler
+        warnings.warn("The E2E and CANN profilers will be deprecated, "\
+                      "use ascend pytorch profiler (torch_npu.profiler.profile) instead.")
         self.config = config
         self.entered = False
         try:
