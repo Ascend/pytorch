@@ -297,10 +297,14 @@ supported:
    op_api: True
  - func: bitwise_or.Tensor_out
    op_api: True
- - bitwise_xor.Scalar
- - bitwise_xor.Scalar_out
- - bitwise_xor.Tensor
- - bitwise_xor.Tensor_out
+ - func: bitwise_xor.Scalar
+   op_api: False
+ - func: bitwise_xor.Scalar_out
+   op_api: False
+ - func: bitwise_xor.Tensor
+   op_api: False
+ - func: bitwise_xor.Tensor_out
+   op_api: False
  - bitwise_xor_.Scalar
  - bitwise_xor_.Tensor
  - blackman_window
@@ -496,7 +500,8 @@ supported:
    op_api: True
  - func: floor.out
    op_api: True
- - floor_
+ - func: floor_
+   op_api: False
  - floor_divide
  - floor_divide.Scalar
  - floor_divide.out
