@@ -300,4 +300,3 @@ def clear_npu_overflow_flag():
         raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)
-

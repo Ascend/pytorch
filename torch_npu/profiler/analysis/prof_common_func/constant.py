@@ -25,19 +25,43 @@ class Constant:
     FLOPS = "flops"
     NAME = "name"
 
-    # torch op acl relation field name
-    ACL_START_TIME = "acl_start_time"
-
     # trace constant
     PROCESS_NAME = "process_name"
     PROCESS_LABEL = "process_labels"
     PROCESS_SORT = "process_sort_index"
     THREAD_NAME = "thread_name"
     THREAD_SORT = "thread_sort_index"
+    FLOW_START_PH = "s"
+    FLOW_END_PH = "f"
 
     # framework
     TENSORBOARD_TRACE_HABDLER = "tensorboard_trace_handler"
     EXPORT_CHROME_TRACE = "export_chrome_trace"
 
-    ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute", "AscendCL@aclopCompileAndExecuteV2")
-    NPU_PID = "3_0"
+    ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute".lower(), "AscendCL@aclopCompileAndExecuteV2".lower())
+    AI_CORE = "AI_CORE"
+
+    # memory
+    PTA = "PTA"
+    GE = "GE"
+    PTA_GE = "PTA+GE"
+    APP = "APP"
+    B_TO_KB = 1024.0
+    KB_TO_MB = 1024.0
+    B_TO_MB = 1024.0 ** 2
+
+    # experimentalconfig
+    PROFILER_LEVEL = 'profiler_level'
+    AI_CORE_METRICS = 'ai_core_metrics'
+    L2_CACHE = 'l2_cache'
+    LEVEL0 = "Level0"
+    LEVEL1 = "Level1"
+    LEVEL2 = "Level2"
+    AicPipeUtilization = "ACL_AICORE_PIPE_UTILIZATION"
+    AicArithmeticUtilization = "ACL_AICORE_ARITHMETIC_UTILIZATION"
+    AicMemory = "ACL_AICORE_MEMORY_BANDWIDTH"
+    AicMemoryL0 = "ACL_AICORE_L0B_AND_WIDTH"
+    AicMemoryUB = "ACL_AICORE_MEMORY_UB"
+    AicResourceConflictRatio = "ACL_AICORE_RESOURCE_CONFLICT_RATIO"
+    AicL2Cache = "ACL_AICORE_L2_CACHE"
+    AicMetricsNone = "ACL_AICORE_NONE"

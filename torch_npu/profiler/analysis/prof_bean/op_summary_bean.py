@@ -1,10 +1,6 @@
 class OpSummaryBean:
-    SHOW_HEADERS = ["Op Name", "OP Type", "Task Type", "Task Start Time", "Task Duration(us)", "Task Wait Time(us)",
-                    "Block Dim", "Input Shapes", "Input Data Types", "Input Formats", "Output Shapes",
-                    "Output Data Types", "Output Formats"]
-    SAVE_HEADERS = ["Name", "Type", "Accelerator Core", "Start Time", "Duration(us)", "Wait Time(us)",
-                    "Block Dim", "Input Shapes", "Input Data Types", "Input Formats", "Output Shapes",
-                    "Output Data Types", "Output Formats"]
+    TASK_START_TIME = "Task Start Time"
+    headers = []
 
     def __init__(self, data: list):
         self._data = data
@@ -12,11 +8,18 @@ class OpSummaryBean:
     @property
     def row(self) -> list:
         row = []
-        for field_name in self.SHOW_HEADERS:
-            row.append(self._data.get(field_name, ""))
+        read_headers = OpSummaryBean.headers if OpSummaryBean.headers else self._data.keys()
+        for field_name in read_headers:
+            if field_name == self.TASK_START_TIME:
+                row.append(float(self._data.get(field_name, 0)) / 1000)
+            else:
+                row.append(self._data.get(field_name, ""))
         return row
 
-    @classmethod
-    def headers(cls, step_id: list) -> list:
-        step = ["Step Id"] if step_id else []
-        return step + cls.SAVE_HEADERS
+    @property
+    def ts(self) -> float:
+        return float(self._data.get(self.TASK_START_TIME, 0)) / 1000
+
+    @property
+    def all_headers(self) -> list:
+        return list(self._data.keys())

@@ -21,6 +21,8 @@ class OpMarkBean:
     def __init__(self, data: dict):
         self._origin_data = data
         self._constant_data = struct.unpack(self.CONSTANT_STRUCT, data.get(Constant.CONSTANT_BYTES))
+        self._ts = None
+        self._dur = None
 
     @property
     def pid(self) -> int:
@@ -37,6 +39,10 @@ class OpMarkBean:
     @property
     def corr_id(self) -> int:
         return int(self._constant_data[OpMarkEnum.CORRELATION_ID.value])
+
+    @property
+    def origin_name(self) -> str:
+        return self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.NAME), "")
 
     @property
     def name(self) -> str:
@@ -63,3 +69,23 @@ class OpMarkBean:
     @property
     def is_dequeue_end(self) -> bool:
         return int(self._constant_data[OpMarkEnum.CATEGORY.value]) == 3
+
+    @property
+    def is_dequeue(self) -> bool:
+        return self.is_dequeue_start or self.is_dequeue_end
+
+    @property
+    def ts(self) -> float:
+        return self._ts
+
+    @property
+    def dur(self) -> float:
+        return self._dur
+
+    @ts.setter
+    def ts(self, ts: float):
+        self._ts = ts
+
+    @dur.setter
+    def dur(self, dur: float):
+        self._dur = dur
