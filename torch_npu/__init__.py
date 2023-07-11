@@ -37,6 +37,7 @@ except ImportError as e:
         traceback.print_exc()
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
+import torch_npu.dynamo
 import torch_npu._C
 import torch_npu.npu.npu_print as _npu_print
 from torch_npu import profiler
@@ -78,7 +79,7 @@ def cann_package_check():
         if not os.path.exists(ascend_home_path):
             raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist. " \
                             "Please run 'source set_env.sh' in the CANN installation path.")
-        
+
         # check whether environment variables are correctly configured
         if "ASCEND_OPP_PATH" not in os.environ:
             raise Exception(f"ASCEND_OPP_PATH environment variable is not set. " \
@@ -141,7 +142,7 @@ all_monkey_patches = [
 ]
 
 def _apply_patches(monkey_patches):
-    
+
     def _getattr(module_list, root_module=torch):
         if len(module_list) <= 1:
             return root_module

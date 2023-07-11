@@ -218,6 +218,11 @@ endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
 
+if (DEFINED BUILD_TORCHAIR)
+  add_subdirectory(${TORCHNPU_THIRD_PARTY_ROOT}/torchair)
+  add_dependencies(${PLUGIN_NAME} copy_torchair_pyfiles)
+endif()
+
 link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
 

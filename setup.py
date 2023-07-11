@@ -141,6 +141,12 @@ def check_opplugin_valid(base_dir):
     op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
     return os.path.exists(op_plugin_path)
 
+
+def check_torchair_valid(base_dir):
+    # build with submodule of torchair, if path of torchair is valid
+    torchair_path = os.path.join(base_dir, 'third_party/torchair/torchair')
+    return os.path.exists(torchair_path)
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -233,6 +239,12 @@ class CPPLibBuild(build_clib, object):
 
         if check_opplugin_valid(BASE_DIR):
             cmake_args.append('-DBUILD_OPPLUGIN=on')
+
+        if check_torchair_valid(BASE_DIR):
+            cmake_args.append('-DBUILD_TORCHAIR=on')
+            torchair_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/dynamo/torchair")
+            cmake_args.append(f'-DTORCHAIR_INSTALL_PREFIX={torchair_install_prefix}')
+            cmake_args.append(f'-DTORCHAIR_TARGET_PYTHON={sys.executable}')
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
