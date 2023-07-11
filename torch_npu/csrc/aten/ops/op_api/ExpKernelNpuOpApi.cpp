@@ -14,11 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
@@ -27,7 +25,7 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::exp_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnExp, NPUNativeFunctions::exp_out(self, result));
-  OpPreparation::CheckOut({self}, result, CalcuOpUtil::GetTensorNpuFormat(self), result.scalar_type(), self.sizes());
+  OpPreparation::CheckOut({self}, result, result, self.sizes());
   CalcuOpUtil::CheckMemoryOverLaps({self}, {result});
 
   EXEC_NPU_CMD(aclnnExp, self, result);
