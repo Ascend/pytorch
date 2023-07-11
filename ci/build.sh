@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.8 3.9)
 PY_VERSION='3.8'                     # Default supported python version is 3.8
