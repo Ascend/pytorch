@@ -43,7 +43,7 @@ from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     add_storage_methods
+     add_storage_methods, add_optim_method
 import torch_npu.utils.custom_ops
 from torch_npu.npu.profiler import add_profiler_methods
 from .version import __version__ as __version__
@@ -178,6 +178,7 @@ def apply_class_patches():
     apply_module_patch()
     add_tensor_methods()
     add_profiler_methods()
+    add_optim_method()
 
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
