@@ -43,7 +43,7 @@ at::Tensor& NPUNativeOpApiFunctions::exp_(at::Tensor& self) {
 at::Tensor NPUNativeOpApiFunctions::exp(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnExp, NPUNativeFunctions::exp(self));
   at::Tensor result;
-  if (self.scalar_type() == at::ScalarType::Bool) {
+  if (self.scalar_type() == at::ScalarType::Bool || self.scalar_type() == at::ScalarType::Long) {
     result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kFloat));
   } else {
     result = OpPreparation::ApplyTensor(self);
