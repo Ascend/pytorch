@@ -1,4 +1,5 @@
 #include <c10d/reducer_timer.hpp>
+#include <c10d/debug.h>
 
 #include "torch_npu/csrc/npu/Event.h"
 
@@ -20,6 +21,12 @@ public:
   }
 
   c10::optional<int64_t> measureDifference(Event start, Event end) override {
+    // Currently elapsed_time does not support the return of negative values.
+    // So measureDifference is only calculated when the debug level is detail.
+    if (debug_level() != DebugLevel::Detail) {
+      return c10::nullopt;
+    }
+
     c10_npu::NPUGuard g(device);
     c10_npu::NPUEvent& start_event = getEvent(start);
     c10_npu::NPUEvent& end_event = getEvent(end);
@@ -37,7 +44,13 @@ public:
     // as mostly all npu operations are finished in previous iteration.
     start_event.synchronize();
     end_event.synchronize();
-    float milliseconds = start_event.elapsed_time(end_event);
+
+    float milliseconds;
+    try {
+      milliseconds = start_event.elapsed_time(end_event);
+    } catch (std::exception &e) {
+      milliseconds = -1;
+    }
     // If gpu_end is not recorded in this iteration,
     // milliseconds will have invalid value.
     // For some cases like DDP runs on non-sync mode,
