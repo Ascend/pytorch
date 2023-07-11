@@ -556,8 +556,10 @@ supported:
    op_api: True
  - func: gt.Tensor_out
    op_api: True
- - gt_.Scalar
- - gt_.Tensor
+ - func: gt_.Scalar
+   op_api: False
+ - func: gt_.Tensor
+   op_api: False
  - hamming_window
  - hamming_window.periodic
  - hamming_window.periodic_alpha
