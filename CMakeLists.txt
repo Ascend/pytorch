@@ -139,6 +139,10 @@ else()
   set(CXXFLAGS "-fstack-protector-all -Wl,-z,relro,-z,now,-s,-z,noexecstack -fPIE -pie ${CXXFLAGS}")
 endif()
 
+if (NOT DEFINED BUILD_LIBTORCH)
+  set(_GLIBCXX_USE_CXX11_ABI 0)
+  set(CMAKE_CXX_FLAGS "-fabi-version=11 ${CMAKE_CXX_FLAGS}")
+endif()
 
 if (DEFINED BUILD_LIBTORCH)
   add_compile_definitions(BUILD_LIBTORCH)
