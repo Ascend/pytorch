@@ -58,8 +58,7 @@ at::Tensor &NPUNativeFunctions::npu_slice_out(const at::Tensor &self, c10::IntAr
         CalcuOpUtil::GetTensorNpuFormat(result));
     npu_slic_out_compute(self_split[1], offsets, size, result_complex);
     auto result_combine = NPUNativeFunctions::stack({result_real, result_complex}, -1);
-    auto result_final = at::native::view_as_complex(result_combine);
-    result.copy_(result_final);
+    result.copy_(at::native::view_as_complex(result_combine));
   }
   return result;
 }

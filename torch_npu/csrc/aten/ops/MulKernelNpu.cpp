@@ -127,8 +127,7 @@ at::Tensor& mul_out_nocheck(at::Tensor& result, const at::Tensor& self, const at
           CalcuOpUtil::GetTensorNpuFormat(result));
       mul_out_npu_nocheck_compute(bc, self_split[1], other_split[0]);
       auto result_complex = NPUNativeFunctions::stack({ac.sub(bd), ad.add(bc)}, -1);
-      at::Tensor result_new = at::native::view_as_complex(result_complex);
-      result.copy_(result_new);
+      result.copy_(at::native::view_as_complex(result_complex));
     }
   }
   return result;
