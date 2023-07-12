@@ -503,7 +503,7 @@ class DeviceCachingAllocator {
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_allocations, 1);
 
-    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, address = %lu, cached = %lu, allocated = %lu",
+    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, address = 0x%p, cached = %lu, allocated = %lu",
         block->size,
         block->ptr,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
@@ -546,7 +546,7 @@ class DeviceCachingAllocator {
       free_block(block);
     }
 
-    ASCEND_LOGD("PTA CachingAllocator free: free = %zu, address = %lu, cached = %lu, allocated = %lu",
+    ASCEND_LOGD("PTA CachingAllocator free: free = %zu, address = 0x%p, cached = %lu, allocated = %lu",
         orig_block_size,
         orig_block_ptr,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
@@ -914,7 +914,7 @@ class DeviceCachingAllocator {
           freeable_block_count--; // One less block that can be freed
           release_block(block);
 
-          ASCEND_LOGD("PTA CachingAllocator gc: free = %zu, address = %lu, cached = %lu, allocated = %lu",
+          ASCEND_LOGD("PTA CachingAllocator gc: free = %zu, address = 0x%p, cached = %lu, allocated = %lu",
               block->size,
               block->ptr,
               stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
