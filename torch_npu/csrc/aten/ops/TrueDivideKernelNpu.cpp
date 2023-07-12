@@ -20,8 +20,8 @@
 
 namespace at_npu {
 namespace native {
-at::Tensor &true_div_scalar_out_npu(const at::Tensor &self, const at::Scalar other, at::Tensor &result)
-{
+namespace {
+at::Tensor& true_div_scalar_out_nocheck(const at::Tensor& self, const at::Scalar other, at::Tensor& result) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
   cmd.Name("Div")
@@ -34,16 +34,22 @@ at::Tensor &true_div_scalar_out_npu(const at::Tensor &self, const at::Scalar oth
   return result;
 }
 
-at::Tensor &true_div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-{
+at::Tensor& true_div_scalar_out_nocheck(const at::Scalar self, const at::Tensor& other, at::Tensor& result) {
+  OpCommand cmd;
+  cmd.Name("Div")
+      .Input(self, other.scalar_type())
+      .Input(other)
+      .Output(result)
+      .Run();
+  return result;
+}
 
-  // executing the NPU operator
-  if (other.dim() == 0)
-  {
-    true_div_scalar_out_npu(self, other.item(), result);
-  }
-  else
-  {
+at::Tensor& true_div_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  if (OpPreparation::IsCPUScalar(other)) {
+    true_div_scalar_out_nocheck(self, other.item(), result);
+  } else if (OpPreparation::IsCPUScalar(self)) {
+    true_div_scalar_out_nocheck(self.item(), other, result);
+  } else {
     auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
     OpCommand cmd;
     cmd.Name("Div")
@@ -53,120 +59,84 @@ at::Tensor &true_div_out_npu_nocheck(const at::Tensor &self, const at::Tensor &o
         .Output(result)
         .Run();
   }
-
   return result;
 }
 
-at::Tensor &NPUNativeFunctions::true_divide_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-{  
-  at::Tensor selfTemp = self;
-  at::Tensor otherTemp = other;
-  if (result.scalar_type() != at::ScalarType::Float && result.scalar_type() != at::ScalarType::Half) {
-    TORCH_CHECK(false, "result type Float can't be cast to the desired output type ", result.scalar_type());
+at::ScalarType get_divide_high_type(const at::Tensor& self, const at::Tensor& other) {
+  at::ScalarType high_type = at::native::result_type(self, other);
+  if (isIntegralType(high_type, true)) {
+    high_type = at::kFloat;
   }
-      
-  if (self.scalar_type() != result.scalar_type())
-  {
-    selfTemp = NPUNativeFunctions::npu_dtype_cast(self, result.scalar_type());
-    otherTemp = other.to(result.scalar_type());
-  }    
-  // calculate the output size
-  at::Tensor outputTensor = CalcuOpUtil::IsScalarWrappedToTensor(selfTemp) ? otherTemp : selfTemp;
-  auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
+  return high_type;
+}
+} // namespace
+
+at::Tensor& NPUNativeFunctions::true_divide_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {  
+  auto high_type = get_divide_high_type(self, other);
+  at::ScalarType result_type = result.scalar_type();
+  TORCH_CHECK(canCast(high_type, result_type),
+      "result type ", high_type, " can't be cast to the desired output type ", result_type);
+
+  at::Tensor self_temp = (self.scalar_type() == high_type) ? self : self.to(high_type);
+  at::Tensor other_temp = (other.scalar_type() == high_type) ? other : other.to(high_type);
+
+  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self_temp) || OpPreparation::IsCPUScalar(self_temp);
+  at::Tensor output_tensor = is_self_wrapped ? other_temp : self_temp;
+  auto output_size = broadcast_ops_npu_output_size(self_temp, other_temp);
   OpPreparation::CheckOut(
-      {selfTemp},
+      {self_temp, other_temp},
       result,
-      CalcuOpUtil::GetTensorNpuFormat(outputTensor),
-      outputTensor.scalar_type(),
-      outputSize);
-      
-  if (!NpuUtils::check_match(&result))
-  {
-    at::Tensor contiguousResult = NpuUtils::format_contiguous(selfTemp);
-    true_div_out_npu_nocheck(selfTemp, otherTemp, contiguousResult);
-    NpuUtils::format_fresh_view(result, contiguousResult);
+      CalcuOpUtil::GetTensorNpuFormat(output_tensor),
+      result_type,
+      output_size);
+  at::Tensor result_cast = result_type == high_type ? result : NPUNativeFunctions::npu_dtype_cast(result, high_type);
+  if (!NpuUtils::check_match(&result_cast)) {
+    at::Tensor contiguous_result = NpuUtils::format_contiguous(result_cast);
+    true_div_out_npu_nocheck(self_temp, other_temp, contiguous_result);
+    NpuUtils::format_fresh_view(result_cast, contiguous_result);
+  } else {
+    true_div_out_npu_nocheck(self_temp, other_temp, result_cast);
   }
-  else
-  {
-    true_div_out_npu_nocheck(selfTemp, otherTemp, result);
+
+  if (result_type != high_type) {
+    result_cast = NPUNativeFunctions::npu_dtype_cast(result_cast, result_type);
+    result.copy_(result_cast);
   }
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::true_divide(const at::Tensor& self, const at::Tensor& other) {
+  auto high_type = get_divide_high_type(self, other);
+  at::Tensor self_temp = (self.scalar_type() == high_type) ? self : self.to(high_type);
+  at::Tensor other_temp = (other.scalar_type() == high_type) ? other : other.to(high_type);
+
+  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self_temp) || OpPreparation::IsCPUScalar(self_temp);
+  at::Tensor output_tensor = is_self_wrapped ? other_temp : self_temp;
+  auto output_size = broadcast_ops_npu_output_size(self_temp, other_temp);
+
+  at::Tensor result = OpPreparation::ApplyTensor(output_tensor, output_size);
+  true_div_out_npu_nocheck(self_temp, other_temp, result);
 
   return result;
 }
 
-at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Tensor &other)
-{
-  at::Tensor selfTemp = self;
-  at::Tensor otherTemp = other;
-  if (self.scalar_type() == at::ScalarType::Int || self.scalar_type() == at::ScalarType::Bool) {
-    selfTemp = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-
-  if (other.scalar_type() == at::ScalarType::Int) {
-    otherTemp = other.to(at::ScalarType::Float);
-  }
-  
-  // calculate the output size
-  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(selfTemp);
-  at::Tensor outputTensor = isSelfWrapped ? otherTemp : selfTemp;
-
-  auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
-      outputTensor.options(),
-      CalcuOpUtil::GetTensorNpuFormat(outputTensor));
-
-  // calculate the output result of the NPU
-  true_div_out_npu_nocheck(selfTemp, otherTemp, result);
-
+at::Tensor NPUNativeFunctions::true_divide(const at::Tensor& self, at::Scalar other) {
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  true_div_scalar_out_nocheck(self, other, result);
   return result;
 }
 
-at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, at::Scalar other)
-{
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
-      self.options(),
-      CalcuOpUtil::GetTensorNpuFormat(self));
-
-  // calculate the output result of the NPU
-  true_div_scalar_out_npu(self, other, result);
-
-  return result;
+at::Tensor& NPUNativeFunctions::true_divide_(at::Tensor& self, const at::Tensor& other) {
+  return NPUNativeFunctions::true_divide_out(self, other, self);
 }
 
-at::Tensor &NPUNativeFunctions::true_divide_(at::Tensor &self, const at::Tensor &other)
-{
-  at::Tensor otherTemp = other;
-  if (self.scalar_type() != other.scalar_type())
-  {
-    otherTemp = other.to(self.scalar_type());
-  }
-  
-  NPUNativeFunctions::true_divide_out(self, otherTemp, self);
-
-  return self;
-}
-
-at::Tensor &NPUNativeFunctions::true_divide_(at::Tensor &self, at::Scalar other)
-{
-  if (!NpuUtils::check_match(&self))
-  {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-
-    true_div_scalar_out_npu(contiguousSelf, other, contiguousSelf);
-
-    NpuUtils::format_fresh_view(self, contiguousSelf);
-  }
-  else
-  {
-    true_div_scalar_out_npu(self, other, self);
+at::Tensor& NPUNativeFunctions::true_divide_(at::Tensor& self, at::Scalar other) {
+  if (!NpuUtils::check_match(&self)) {
+    at::Tensor contiguous_self = NpuUtils::format_contiguous(self);
+    true_div_scalar_out_nocheck(contiguous_self, other, contiguous_self);
+    NpuUtils::format_fresh_view(self, contiguous_self);
+  } else {
+    true_div_scalar_out_nocheck(self, other, self);
   }
   return self;
 }
