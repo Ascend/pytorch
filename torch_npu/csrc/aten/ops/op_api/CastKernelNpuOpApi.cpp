@@ -30,7 +30,7 @@ at::Tensor npu_dtype_cast_impl_op_api(const at::Tensor& self, at::ScalarType dty
     return self.clone();
   }
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self.sizes(), self.options().dtype(dtype), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(dtype));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnCast, self, dtype, result);

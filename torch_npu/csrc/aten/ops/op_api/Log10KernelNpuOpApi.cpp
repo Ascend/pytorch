@@ -34,9 +34,9 @@ at::Tensor NPUNativeOpApiFunctions::log10(const at::Tensor& self) {
   // construct the output tensor of the NPU
   at::Tensor result;
   if (self.scalar_type() != at::ScalarType::Float || self.scalar_type() != at::ScalarType::Half) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kFloat));
+    result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kFloat));
   } else {
-    result = OpPreparation::ApplyTensor(self);
+    result = OpPreparation::ApplyTensorWithoutFormat(self);
   }
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnLog10, self, result);

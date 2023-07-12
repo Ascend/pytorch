@@ -23,8 +23,8 @@ namespace native {
 std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::batch_norm_stats(const at::Tensor& self, double eps) {
   DO_COMPATIBILITY(aclnnBatchNormStats, NPUNativeFunctions::batch_norm_stats(self, eps));
   TORCH_CHECK(self.ndimension() >= 2, "Expected 2D+ Tensor, but got tensor with ", self.ndimension(), " Dimension");
-  at::Tensor mean = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
-  at::Tensor invstd = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
+  at::Tensor mean = OpPreparation::ApplyTensorWithoutFormat({self.size(1)}, self.options().dtype(at::kFloat));
+  at::Tensor invstd = OpPreparation::ApplyTensorWithoutFormat({self.size(1)}, self.options().dtype(at::kFloat));
 
   EXEC_NPU_CMD(aclnnBatchNormStats, self, eps, mean, invstd);
   return std::tie(mean, invstd);

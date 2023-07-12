@@ -36,13 +36,13 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_b
   at::Tensor grad_weight;
   at::Tensor grad_bias;
   if (grad_input_mask[0]) {
-    grad_input = OpPreparation::ApplyTensor(self.sizes(), self.options(), self);
+    grad_input = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options());
   }
   if (grad_input_mask[1]) {
-    grad_weight = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
+    grad_weight = OpPreparation::ApplyTensorWithoutFormat({self.size(1)}, self.options().dtype(at::kFloat));
   }
   if (grad_input_mask[2]) {
-    grad_bias = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
+    grad_bias = OpPreparation::ApplyTensorWithoutFormat({self.size(1)}, self.options().dtype(at::kFloat));
   }
 
   // calculate the output result of the NPU

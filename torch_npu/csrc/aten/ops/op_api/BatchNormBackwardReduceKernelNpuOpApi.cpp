@@ -51,16 +51,16 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctio
 
   // construct the output tensor of the NPU
   if (input_g) {
-      sum_dy = OpPreparation::ApplyTensor(mean, mean.options().dtype(out_dtype));
-      sum_dy_xmu = OpPreparation::ApplyTensor(mean, mean.options().dtype(out_dtype));
+      sum_dy = OpPreparation::ApplyTensorWithoutFormat(mean.sizes(), mean.options().dtype(out_dtype));
+      sum_dy_xmu = OpPreparation::ApplyTensorWithoutFormat(mean.sizes(), mean.options().dtype(out_dtype));
   }
 
   if (weight_g) {
-      grad_weight = OpPreparation::ApplyTensor({n_input}, invstd.options().dtype(out_dtype), invstd);
+      grad_weight = OpPreparation::ApplyTensorWithoutFormat({n_input}, invstd.options().dtype(out_dtype));
   }
 
   if (bias_g) {
-      grad_bias = OpPreparation::ApplyTensor({n_input}, grad_out.options().dtype(out_dtype), grad_out);
+      grad_bias = OpPreparation::ApplyTensorWithoutFormat({n_input}, grad_out.options().dtype(out_dtype));
   }
 
   // calculate the output result of the NPU

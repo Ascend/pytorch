@@ -47,10 +47,9 @@ at::Tensor NPUNativeOpApiFunctions::log(const at::Tensor& self) {
     // int need cast to float
     expext_dtype = at::kFloat;
   }
-  at::Tensor result = OpPreparation::ApplyTensor(
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(
       self.sizes(),
-      self.options().dtype(expext_dtype),
-      self);
+      self.options().dtype(expext_dtype));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnLog, self, result);

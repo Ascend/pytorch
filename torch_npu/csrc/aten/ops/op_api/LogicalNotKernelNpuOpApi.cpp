@@ -35,10 +35,9 @@ at::Tensor& NPUNativeOpApiFunctions::logical_not_out(const at::Tensor& self, at:
 
 at::Tensor NPUNativeOpApiFunctions::logical_not(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnLogicalNot, NPUNativeFunctions::logical_not(self));
-  at::Tensor result = OpPreparation::ApplyTensor(
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(
       self.sizes(),
-      self.options().dtype(at::kBool),
-      self);
+      self.options().dtype(at::kBool));
   EXEC_NPU_CMD(aclnnLogicalNot, self, result);
   return result;
 }

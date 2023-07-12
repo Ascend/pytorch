@@ -44,7 +44,7 @@ at::Tensor NPUNativeOpApiFunctions::mse_loss(
     output_size = broadcast_ops_npu_output_size(self, target);
   }
   at::ScalarType high_type = at::native::result_type(self, target);
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(high_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(high_type));
   EXEC_NPU_CMD(aclnnMseLoss, self, target, reduction, result);
   return result;
 }

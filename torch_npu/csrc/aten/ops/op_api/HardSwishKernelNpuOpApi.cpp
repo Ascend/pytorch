@@ -35,7 +35,7 @@ at::Tensor& NPUNativeOpApiFunctions::hardswish_out(const at::Tensor& self, at::T
 at::Tensor NPUNativeOpApiFunctions::hardswish(const at::Tensor &self) {
   DO_COMPATIBILITY(aclnnHardswish, NPUNativeFunctions::hardswish(self));
   auto out_size = input_same_output_size(self);
-  auto result = OpPreparation::ApplyTensor(out_size, self.options(), self);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(out_size, self.options());
   EXEC_NPU_CMD(aclnnHardswish, self, result);
   return result;
 }

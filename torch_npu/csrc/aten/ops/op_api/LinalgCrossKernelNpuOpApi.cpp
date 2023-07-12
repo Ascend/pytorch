@@ -47,7 +47,7 @@ at::Tensor NPUNativeOpApiFunctions::linalg_cross(const at::Tensor& self, const a
         NPUNativeFunctions::linalg_cross(self, other, dim));
     auto output_size = broadcast_ops_npu_output_size(self, other);
     at::Tensor output_tensor = linalg_cross_output(self, other);
-    at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options(), output_tensor);
+    at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
     EXEC_NPU_CMD(aclnnLinalgCross, self, other, dim, result);
     return result;
 }

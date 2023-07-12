@@ -35,7 +35,7 @@ at::Tensor& NPUNativeOpApiFunctions::hardsigmoid_out(const at::Tensor& self, at:
 at::Tensor NPUNativeOpApiFunctions::hardsigmoid(const at::Tensor &self) {
   DO_COMPATIBILITY(aclnnHardsigmoid, NPUNativeFunctions::hardsigmoid(self));
   auto out_size = input_same_output_size(self);
-  auto result = OpPreparation::ApplyTensor(out_size, self.options(), self);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(out_size, self.options());
   EXEC_NPU_CMD(aclnnHardsigmoid, self, result);
   return result;
 }
