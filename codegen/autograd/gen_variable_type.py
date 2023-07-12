@@ -22,10 +22,12 @@ from codegen.torch_autograd.gen_variable_type import (
     gen_variable_type_func,
     gen_wrapper_registration
 )
-from codegen.utils import parse_derivatives_yaml
+from codegen.utils import filt_npu_autograd_functions, get_torchgen_dir
 
 # NPU methods require special processing. 
-NPU_AUTOGRAD_FUNCTION = parse_derivatives_yaml(os.path.join(os.path.dirname(__file__), 'derivatives.yaml'))
+NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions( 
+    os.path.join(get_torchgen_dir(),'packaged/ATen/native/native_functions.yaml'),
+    os.path.join(os.path.dirname(__file__), 'derivatives.yaml'))
 
 try_jit_decomposition_pattern = (r'if \(\(.*?\)\) \{.*?static c10::OperatorName full_name\("aten::.*?", .*?\);\n.*?'
                                  r'return impl::run_jit_decomposition_with_args_for_jvp<at::Tensor>'
