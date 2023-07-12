@@ -1,3 +1,4 @@
+import io
 import os
 import tempfile
 import argparse
@@ -5,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_npu
-import io
 
 from torch_npu.testing.testcase import TestCase, run_tests
 torch_npu.npu.set_device("npu:0")
@@ -13,27 +13,27 @@ torch_npu.npu.set_device("npu:0")
 
 # acl format
 FORMAT_NCHW = 0
-FORMAT_ND =2
+FORMAT_ND = 2
 FORMAT_NC1HWC0 = 3
 FORMAT_NZ = 29
 
 
 class NpuMNIST(nn.Module):
 
-  def __init__(self):
-    super(NpuMNIST, self).__init__()
-    self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-    self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-    self.fc1 = nn.Linear(320, 50)
-    self.fc2 = nn.Linear(50, 10)
+    def __init__(self):
+        super(NpuMNIST, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
 
-  def forward(self, x):
-    x = F.relu(F.max_pool2d(self.conv1(x), 2))
-    x = F.relu(F.max_pool2d(self.conv2(x), 2))
-    x = x.view(-1, 320)
-    x = F.relu(self.fc1(x))
-    x = self.fc2(x)
-    return F.log_softmax(x, dim=1)
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
 
 
 class WN(torch.nn.Module):
@@ -56,10 +56,10 @@ class WN(torch.nn.Module):
 
 
 class TestSerialization(TestCase):
-    '''
+    """
     The saved data is saved by using the PyTorch CPU storage structure, but 
     following `torch.load()`  will load the corresponding NPU data.
-    '''
+    """
     def test_save(self):
         x = torch.randn(5).npu()
         with tempfile.TemporaryDirectory() as tmpdir:

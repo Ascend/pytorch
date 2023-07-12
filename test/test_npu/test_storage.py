@@ -1,21 +1,8 @@
-# Copyright (c) 2023, Huawei Technologies.All rights reserved.
-#
-# Licensed under the BSD 3-Clause License  (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# https://opensource.org/licenses/BSD-3-Clause
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestStorage(TestCase):
 
@@ -57,8 +44,8 @@ class TestStorage(TestCase):
                 self.assertEqual(cpu_res, npu_res)
 
             def _test_copy_(cpu_storage, npu_storage):
-                cpu_res = torch.ones([3,1,2,2]).to(dtype).storage()
-                npu_res = torch.zeros([3,1,2,2]).npu().to(dtype).storage()
+                cpu_res = torch.ones([3, 1, 2, 2]).to(dtype).storage()
+                npu_res = torch.zeros([3, 1, 2, 2]).npu().to(dtype).storage()
 
                 cpu_res.copy_(cpu_storage)
                 npu_res.copy_(npu_storage)
@@ -186,7 +173,7 @@ class TestStorage(TestCase):
                 npu_res = npu_storage.dtype
                 if cpu_res == torch.float64:
                     self.assertEqual(npu_res, torch.float32)
-                else :
+                else:
                     self.assertEqual(npu_res, cpu_res)
 
             def _test_device(cpu_storage, npu_storage):
@@ -222,7 +209,7 @@ class TestStorage(TestCase):
                 cpu_list = [2, 3, 3, 2, 5]
                 cpu_buffer = bytearray(cpu_list)
                 cpu_res = torch.ByteStorage.from_buffer(cpu_buffer)
-                self.assertEqual(cpu_res.tolist() , cpu_list)
+                self.assertEqual(cpu_res.tolist(), cpu_list)
 
             ''' test TypedStorage, FloatStorage and so on '''
             cpu_tensor = torch.randn([3, 1, 2, 2])
@@ -254,10 +241,8 @@ class TestStorage(TestCase):
             _test_datatype_cast(cpu_storage, npu_storage)
             _test_from_buffer(cpu_storage, npu_storage)
 
-
             ''' test untyped storage only on a certain data type'''
             if dtype == torch.int8:
-
                 def _test_mps(cpu_storage, npu_storage):
                     npu_res = npu_storage.mps()
                     cpu_res = cpu_storage.mps()
@@ -276,8 +261,8 @@ class TestStorage(TestCase):
                     self.assertEqual(npu_res, "torch.storage.UntypedStorage")
 
                 def _test_copy_(cpu_storage, npu_storage):
-                    cpu_res = torch.ones([3,1,2,2]).untyped_storage()
-                    npu_res = torch.zeros([3,1,2,2]).npu().untyped_storage()
+                    cpu_res = torch.ones([3, 1, 2, 2]).untyped_storage()
+                    npu_res = torch.zeros([3, 1, 2, 2]).npu().untyped_storage()
 
                     cpu_res.copy_(cpu_storage)
                     npu_res.copy_(npu_storage)
@@ -299,8 +284,8 @@ class TestStorage(TestCase):
                 _test_element_size(cpu_storage, npu_storage)
                 _test_fill_(cpu_storage, npu_storage)
                 _test_get_device(cpu_storage, npu_storage)
-                #_test_is_pinned(cpu_storage, npu_storage)
-                #_test_pin_memory(cpu_storage, npu_storage)
+                _test_is_pinned(cpu_storage, npu_storage)
+                _test_pin_memory(cpu_storage, npu_storage)
                 _test_nbytes(cpu_storage, npu_storage)
                 _test_size(cpu_storage, npu_storage)
                 _test_tolist(cpu_storage, npu_storage)
@@ -317,7 +302,7 @@ class TestStorage(TestCase):
     def test_type_conversions(self):
         x = torch.randn(5, 5)
         supported_dtypes = ["float", "half", "long", "short", "int", "bool", "char", "byte"]
-        
+
         for dtype in supported_dtypes:
             self.assertIsInstance(getattr(x.npu(), dtype)(), getattr(torch.npu, dtype.title() + "Tensor"))
             self.assertIsInstance(getattr(x.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Tensor"))
@@ -326,6 +311,7 @@ class TestStorage(TestCase):
         for dtype in supported_dtypes:
             self.assertIsInstance(getattr(y.npu(), dtype)(), getattr(torch.npu, dtype.title() + "Storage"))
             self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
+
 
 if __name__ == '__main__':
     run_tests()

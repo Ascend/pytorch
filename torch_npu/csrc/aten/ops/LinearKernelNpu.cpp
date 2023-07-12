@@ -116,9 +116,10 @@ public:
   }
 };
 
-at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
-  const at::Tensor& weight,
-  const c10::optional<at::Tensor>& bias_opt) {
+at::Tensor NPUNativeFunctions::npu_linear(
+    const at::Tensor& input,
+    const at::Tensor& weight,
+    const c10::optional<at::Tensor>& bias_opt) {
   auto isAligin = [&]() {
   return (!(static_cast<uint64_t>(input.size(0)) & 0x0000000F)) &&
           (!(static_cast<uint64_t>(input.size(1)) & 0x0000000F)) &&

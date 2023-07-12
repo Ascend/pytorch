@@ -285,7 +285,7 @@ struct NPUMultiStreamGuard {
   // See Note [Move assignment for RAII guards is tricky]
   NPUMultiStreamGuard& operator=(NPUMultiStreamGuard&& other) = delete;
 
- private:
+private:
   c10::impl::InlineMultiStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
 
   static std::vector<c10::Stream> unwrapStreams(at::ArrayRef<NPUStream> NPUStreams) {

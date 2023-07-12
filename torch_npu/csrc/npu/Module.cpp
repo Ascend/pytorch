@@ -242,13 +242,13 @@ PyObject* THNPModule_setStream_wrap(
   constexpr char* kwlist[] = {
       "stream_id", "device_index", "device_type", nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "|LLL",
-          const_cast<char**>(kwlist),
-          &stream_id,
-          &device_index,
-          &device_type)) {
+      args,
+      kwargs,
+      "|LLL",
+      const_cast<char**>(kwlist),
+      &stream_id,
+      &device_index,
+      &device_type)) {
   }
 
   auto stream = c10_npu::NPUStream::unpack3(

@@ -36,15 +36,15 @@ static PyObject * THNPStream_pynew(
       "stream_ptr",
       nullptr};
   if (!PyArg_ParseTupleAndKeywords(
-          args,
-          kwargs,
-          "|iLLLK",
-          const_cast<char**>(kwlist),
-          &priority,
-          &stream_id,
-          &device_index,
-          &device_type,
-          &stream_ptr)) {
+      args,
+      kwargs,
+      "|iLLLK",
+      const_cast<char**>(kwlist),
+      &priority,
+      &stream_id,
+      &device_index,
+      &device_type,
+      &stream_ptr)) {
     return nullptr;
   }
 
@@ -56,7 +56,7 @@ static PyObject * THNPStream_pynew(
   c10_npu::NPUStream stream =
     (stream_id || device_index || device_type) ?
     c10_npu::NPUStream::unpack3(
-            stream_id, device_index, static_cast<c10::DeviceType>(device_type)) :
+        stream_id, device_index, static_cast<c10::DeviceType>(device_type)) :
     c10_npu::getNPUStreamFromPool();
 
   THNPStream* self = (THNPStream *)ptr.get();

@@ -86,10 +86,11 @@ at::Tensor NPUNativeFunctions::std(
   return result1;
 }
 
-at::Tensor NPUNativeFunctions::std(const at::Tensor& self, at::OptionalIntArrayRef dim,
-           const c10::optional<at::Scalar>& correction, bool keepdim) {
-           const auto correction_double = correction.value_or(1).toDouble();
-    return NPUNativeFunctions::std(self, dim, correction_double > 0, keepdim);
+at::Tensor NPUNativeFunctions::std(
+    const at::Tensor& self, at::OptionalIntArrayRef dim,
+    const c10::optional<at::Scalar>& correction, bool keepdim) {
+  const auto correction_double = correction.value_or(1).toDouble();
+  return NPUNativeFunctions::std(self, dim, correction_double > 0, keepdim);
 }
 
 at::Tensor NPUNativeFunctions::std(

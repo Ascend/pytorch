@@ -352,7 +352,8 @@ class BdistWheelBuild(bdist_wheel):
                         "libgraph.so", "libacl_tdt_channel.so", "libtorch_python", "libtorch_cpu.so",
                         "libtorch.so", "libc10.so", "libgomp.so"]
 
-        libs = glob.glob(os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "**", "*.so"), recursive=True)
+        libs = glob.glob(os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "**", "*.so"),
+                         recursive=True)
         for lib in libs:
             if os.path.isfile(lib):
                 result = subprocess.run(
