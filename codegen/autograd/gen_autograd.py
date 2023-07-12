@@ -41,7 +41,6 @@ torch_npu/csrc/aten/
 import argparse
 import os
 from typing import List, Sequence
-
 from codegen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
     DifferentiabilityInfo
@@ -57,7 +56,6 @@ from .gen_inplace_or_view_type import gen_inplace_or_view_type
 from .gen_variable_factories import gen_variable_factories
 from .load_derivatives import load_derivatives
 
-
 def gen_autograd(
     native_functions_path: str,
     out: str,
@@ -66,24 +64,11 @@ def gen_autograd(
 ) -> None:
     differentiability_infos = load_derivatives(
         os.path.join(autograd_dir, 'derivatives.yaml'), native_functions_path, npu_native_functions_path)
-
-    aclnn_differentiability_infos = load_derivatives(
-        os.path.join(autograd_dir, 'aclnn_derivatives.yaml'), native_functions_path, npu_native_functions_path)
-
     template_path = os.path.join(autograd_dir, 'templates')
-
     native_funcs = parse_native_and_custom_yaml(native_functions_path, npu_native_functions_path).native_functions
     funcs = filte_out_native_autograd_function(native_funcs, differentiability_infos)
-    aclnn_funcs = filte_out_aclnn_function(native_funcs, aclnn_differentiability_infos)
-
     funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
-    aclnn_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
-
     funcs_with_diff_infos = match_differentiability_info(funcs, differentiability_infos)
-    aclnn_funcs_with_diff_infos = match_differentiability_info(aclnn_funcs, aclnn_differentiability_infos)
-    differentiability_infos = differentiability_infos + aclnn_differentiability_infos
-    funcs_with_diff_infos.extend(aclnn_funcs_with_diff_infos)
-
     torch_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     for func in funcs_with_diff_infos:
@@ -109,40 +94,20 @@ def gen_autograd(
     # Generate variable_factories.h
     gen_variable_factories(out, native_functions_path, npu_native_functions_path, template_path)
 
-
 def filte_out_native_autograd_function(
     native_funcs: List[NativeFunction],
     differentiability_infos: Sequence[DifferentiabilityInfo],
 ):
     result: List[NativeFunction] = []
     derivatives_name_list: List[str] = []
-
     for info in differentiability_infos:
         derivatives_name_list.append(str(info.func.func.name))
     for funcs in native_funcs:
         func_name = str(funcs.func.name)
         func_base_name = str(funcs.func.name.name.base)
         if (func_name in derivatives_name_list) or (func_base_name in derivatives_name_list):
-                result.append(funcs)
+            result.append(funcs)
     return result
-
-def filte_out_aclnn_function(
-    native_funcs: List[NativeFunction],
-    aclnn_differentiability_infos: Sequence[DifferentiabilityInfo],
-):
-    result: List[NativeFunction] = []
-    derivatives_name_list: List[str] = []
-
-    for info in aclnn_differentiability_infos:
-        derivatives_name_list.append(str(info.func.func.name))
-    for funcs in native_funcs:
-        func_name = str(funcs.func.name)
-        func_base_name = str(funcs.func.name.name.base)
-        if (func_name in derivatives_name_list) or (func_base_name in derivatives_name_list):
-            if funcs.op_api is True:
-                result.append(funcs)
-    return result
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(

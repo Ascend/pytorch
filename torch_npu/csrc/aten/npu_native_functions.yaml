@@ -752,10 +752,6 @@ supported:
    op_api: True
  - func: masked_fill_.Tensor
    op_api: True
- - func: matmul
-   op_api: False
- - func: matmul.out
-   op_api: False
  - func: masked_scatter_
    op_api: False
  - func: masked_select
@@ -1361,6 +1357,10 @@ supported:
  - zeros_like
 
 autograd:
+  - func: matmul
+    op_api: True
+  - func: matmul.out
+    op_api: True
   - celu
   - celu_
   - func: elu.out
