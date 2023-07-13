@@ -36,6 +36,8 @@ from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
 
 
+logger = logging.getLogger(__name__)
+
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
 
@@ -189,7 +191,7 @@ def ddp_forward(self, *inputs, **kwargs):
         # during forward computation.
         # This should be called only once during whole training period.
         if torch.is_grad_enabled() and self.reducer._rebuild_buckets():
-            logging.info("Reducer buckets have been rebuilt in this iteration.")
+            logger.info("Reducer buckets have been rebuilt in this iteration.")
             self._has_rebuilt_buckets = True
 
         # sync params according to location (before/after forward) user
