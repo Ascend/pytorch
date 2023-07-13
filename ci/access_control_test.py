@@ -18,9 +18,10 @@ import os
 import re
 import sys
 import subprocess
+import threading
+import queue
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-
 
 BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
@@ -210,22 +211,45 @@ def exec_ut(files):
             return cmd + ["test_ops", "--", "-k", get_op_name(ut_file)]
         return cmd + [get_ut_name(ut_file)]
 
+    def wait_thread(process, event_timer):
+        process.wait()
+        event_timer.set()
+
+    def enqueue_output(out, log_queue):
+        for line in iter(out.readline, b''):
+            log_queue.put(line.decode('utf-8'))
+        out.close()
+        return
+
+    def start_thread(fn, *args):
+        stdout_t = threading.Thread(target=fn, args=args)
+        stdout_t.daemon = True
+        stdout_t.start()
+
+    def print_subprocess_log(log_queue):
+        while (not log_queue.empty()):
+            print(log_queue.get())
+
     def run_cmd_with_timeout(cmd):
         os.chdir(str(TEST_DIR))
-        p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+        stdout_queue = queue.Queue()
+        event_timer = threading.Event()
+
+        p = subprocess.Popen(cmd, stdin= subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+        start_thread(wait_thread, p, event_timer)
+        start_thread(enqueue_output, p.stdout, stdout_queue)
 
         try:
-            msg = p.communicate(timeout=2000)
+            event_timer.wait(2000)
             ret = p.poll()
             if ret:
-                stdout = msg[0].decode('utf-8')
-                stderr = msg[1].decode('utf-8') if msg[1] else msg[1]
-                print(stdout, stderr)
-        except subprocess.TimeoutExpired:
-            p.kill()
-            p.terminate()
-            ret = 1
-            print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
+                print_subprocess_log(stdout_queue)
+            if not event_timer.is_set():
+                ret = 1
+                p.kill()
+                p.terminate()
+                print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
+                print_subprocess_log(stdout_queue)
         except Exception as err:
             ret = 1
             print(err)
