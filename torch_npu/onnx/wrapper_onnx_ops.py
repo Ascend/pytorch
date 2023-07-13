@@ -591,6 +591,17 @@ class NPUMishOP(torch.autograd.Function):
         return g.op("npu::NPUMish", self)
 
 
+class NPURotaryMulOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_rotary_mul(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, x: Tensor, r1: Tensor, r2: Tensor):
+        return g.op("npu::NPURotaryMul", x, r1, r2)
+
+
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
@@ -805,6 +816,10 @@ def wrapper_npu_mish(self):
     return NPUMishOP.apply(self)
 
 
+def wrapper_npu_rotary_mul(x, r1, r2):
+    return NPURotaryMulOP.apply(x, r1, r2)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -849,3 +864,4 @@ def add_onnx_ops():
     torch_npu.npu_dropout_with_add_softmax = wrapper_npu_dropout_with_add_softmax
     torch_npu.npu_scaled_masked_softmax = wrapper_npu_scaled_masked_softmax
     torch_npu.npu_mish = wrapper_npu_mish
+    torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
