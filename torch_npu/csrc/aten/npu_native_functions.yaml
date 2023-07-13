@@ -1095,7 +1095,8 @@ supported:
    op_api: False
  - func: renorm_
    op_api: False
- - repeat
+ - func: repeat
+   op_api: False
  - func: repeat_interleave.self_Tensor
    op_api: True
  - func: repeat_interleave.self_int
