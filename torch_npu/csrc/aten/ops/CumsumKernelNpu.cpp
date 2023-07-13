@@ -93,7 +93,15 @@ at::Tensor NPUNativeFunctions::cumsum(
     const at::Tensor& self,
     const int64_t dim,
     const c10::optional<at::ScalarType> dtype) {
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result;
+  if (dtype.has_value()) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(dtype.value()));
+  } else if (self.scalar_type() == at::ScalarType::Bool) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+  } else {
+    result = OpPreparation::ApplyTensor(self);
+  }
+
   NPUNativeFunctions::cumsum_out(self, dim, dtype, result);
   return result;
 }
