@@ -541,9 +541,12 @@ supported:
  - fmod.Tensor_out
  - fmod_.Scalar
  - fmod_.Tensor
- - frac
- - frac.out
- - frac_
+ - func: frac
+   op_api: False
+ - func: frac.out
+   op_api: False
+ - func: frac_
+   op_api: False
  - full
  - full.names
  - full.out
