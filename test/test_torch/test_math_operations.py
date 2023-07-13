@@ -24,6 +24,34 @@ torch.npu.set_device(device)
 
 class TestPointwiseOps(TestCase):
 
+    def test_copysign(self):
+        input1 = torch.randn(4, 4)
+        input2 = torch.randn(4)
+        npu_input1 = input1.npu()
+        npu_input2 = input2.npu()
+        cpu_output = torch.copysign(input1, input2)
+        npu_output = torch.copysign(npu_input1, npu_input2)
+
+        self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
+
+    def test_digamma(self):
+        input1 = torch.tensor([1, 0.5])
+        npu_input1 = input1.npu()
+        cpu_output1 = torch.special.digamma(input1)
+        npu_output1 = torch.special.digamma(npu_input1)
+        self.assertRtolEqual(npu_output1.cpu().numpy(), cpu_output1.numpy())
+
+        cpu_output2 = torch.digamma(input1)
+        npu_output2 = torch.digamma(npu_input1)
+        self.assertRtolEqual(npu_output2.cpu().numpy(), cpu_output2.numpy())
+
+    def test_mvlgamma(self):
+        input1 = torch.empty(2, 3).uniform_(1, 2)
+        npu_input1 = input1.npu()
+        cpu_output1 = torch.mvlgamma(input1, 2)
+        npu_output1 = torch.mvlgamma(npu_input1, 2)
+        self.assertRtolEqual(npu_output1.cpu().numpy(), cpu_output1.numpy())
+
     def test_real(self):
         cpu_input = torch.randn(4, dtype=torch.float32)
         npu_input = cpu_input.npu()
@@ -68,6 +96,24 @@ class TestComparisonOps(TestCase):
         
         self.assertFalse(npu_output)
 
+    def test_isneginf(self):
+        input1 = torch.tensor([-float('inf'), float('inf'), 1.2])
+        npu_input1 = input1.npu()
+
+        cpu_output = torch.isneginf(input1)
+        npu_output = torch.isneginf(npu_input1)
+
+        self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
+
+    def test_isposinf(self):
+        input1 = torch.tensor([-float('inf'), float('inf'), 1.2])
+        npu_input1 = input1.npu()
+
+        cpu_output = torch.isposinf(input1)
+        npu_output = torch.isposinf(npu_input1)
+
+        self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
+
 
 class TestSpectralOps(TestCase):
     def test_isinf(self):
@@ -86,6 +132,25 @@ class TestOtherOps(TestCase):
         expected_cpu_b = torch.tensor([[0, 0, 0], [1, 1, 1]])
         self.assertEqual(a.cpu(),expected_cpu_a)
         self.assertEqual(b.cpu(),expected_cpu_b)
+
+    def test_bucketize(self):
+        input1 = torch.tensor([[3, 6, 9], [3, 6, 9]])
+        input2 = torch.tensor([1, 3, 5, 7, 9])
+        npu_input1 = input1.npu()
+        npu_input2 = input2.npu()
+        cpu_output1 = torch.bucketize(input1, input2)
+        npu_output1 = torch.bucketize(npu_input1, npu_input2)
+
+        self.assertRtolEqual(npu_output1.cpu().numpy(), cpu_output1.numpy())
+
+        input3 = torch.randn(16)
+        input4 = torch.randn(4)
+        npu_input3 = input3.npu()
+        npu_input4 = input4.npu()
+        cpu_output2 = torch.bucketize(input3, input4, out_int32=False, right=False)
+        npu_output2 = torch.bucketize(npu_input3, npu_input4, out_int32=False, right=False)
+
+        self.assertRtolEqual(npu_output2.cpu().numpy(), cpu_output2.numpy())
 
     def test_cartesian_prod(self):
         a = [1, 2, 3]
@@ -168,7 +233,16 @@ class TestBLOps(TestCase):
         cpu_output = torch.chain_matmul(a, b, c, d)
         npu_output = torch.chain_matmul(a.half().npu(), b.half().npu(), c.half().npu(), d.half().npu())
         self.assertEqual(cpu_output, npu_output, prec = 1e-2)
-    
+
+    def test_pca_lowrank(self):
+        input1 = torch.arange(15).reshape(3, 5).float()
+        npu_input1 = input1.npu()
+        cpu_output1, cpu_output2, cpu_output3 = torch.pca_lowrank(input1, q=1, center=False, niter=1)
+        npu_output1, npu_output2, npu_output3 = torch.pca_lowrank(npu_input1, q=1, center=False, niter=1)
+        self.assertEqual(cpu_output1.numpy(), npu_output1.cpu().numpy(), prec=1e-3)
+        self.assertEqual(cpu_output2.numpy(), npu_output2.cpu().numpy(), prec=1e-3)
+        self.assertEqual(cpu_output3.numpy(), npu_output3.cpu().numpy(), prec=1e-3)
+
     def test_trapz(self):
         def test_dx(sizes, dim, dx):
             t = torch.randn(sizes, device=device)

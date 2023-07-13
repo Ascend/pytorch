@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import numpy as np
 
 import torch
 import torch.nn.functional as F
@@ -143,6 +144,32 @@ class TestLossFunctions(TestCase):
         
         cpu_output = F.margin_ranking_loss(input1, input2, targets)
         npu_output = F.margin_ranking_loss(npu_input1, npu_input2, npu_targets)
+
+        self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
+
+    def test_multi_margin_loss(self):
+        input1 = np.random.uniform(-2, 2, (5, 3)).astype(np.float32)
+        target = np.random.uniform(0, 2, (5)).astype(np.int64)
+        input1 = torch.from_numpy(input1)
+        target = torch.from_numpy(target)
+        weight = torch.ones(3)
+
+        npu_input1 = input1.npu()
+        npu_target = target.npu()
+        npu_weight = weight.npu()
+
+        margin = 1.0
+        size_average = True
+        reduce = True
+        reduction = "none"
+        p = 1
+
+        cpu_output = F.multi_margin_loss(input1, target, p=p, margin=margin,
+                                         weight=weight, size_average=size_average,
+                                         reduce=reduce, reduction=reduction)
+        npu_output = F.multi_margin_loss(npu_input1, npu_target, p=p, margin=margin,
+                                         weight=npu_weight, size_average=size_average,
+                                         reduce=reduce, reduction=reduction)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
 
