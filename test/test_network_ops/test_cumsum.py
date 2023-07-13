@@ -23,13 +23,13 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestCumsum(TestCase):
 
-    def cpu_op_exec(self, input1, dim):
-        output = torch.cumsum(input1, dim)
+    def cpu_op_exec(self, input1, dim, dtype=None):
+        output = torch.cumsum(input1, dim, dtype=dtype)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self, input1, dim):
-        output = torch.cumsum(input1, dim)
+    def npu_op_exec(self, input1, dim, dtype=None):
+        output = torch.cumsum(input1, dim, dtype=dtype)
         output = output.to("cpu").numpy()
         return output
 
@@ -57,6 +57,7 @@ class TestCumsum(TestCase):
             [[np.int32, 0, (3, 4)]],
         ]
         dim = 0
+        dtype = torch.float64
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 4)
 
@@ -64,6 +65,11 @@ class TestCumsum(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, dim)
             npu_output = self.npu_op_exec(npu_input1, dim)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_output = self.cpu_op_exec(cpu_input1, dim, dtype)
+            npu_output = self.npu_op_exec(npu_input1, dim, dtype)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
