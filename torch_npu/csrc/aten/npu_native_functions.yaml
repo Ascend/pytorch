@@ -1023,8 +1023,6 @@ supported:
  - renorm.out
  - renorm_
  - repeat
- - func: repeat_interleave.Tensor
-   op_api: False
  - func: repeat_interleave.self_Tensor
    op_api: False
  - func: repeat_interleave.self_int
@@ -1533,6 +1531,7 @@ tocpu:
   - polar.out
   - replication_pad3d_backward.grad_input
   - replication_pad3d_backward
+  - repeat_interleave.Tensor
   - slow_conv_dilated3d
   - slow_conv_transpose3d.out
   - slow_conv_transpose3d
