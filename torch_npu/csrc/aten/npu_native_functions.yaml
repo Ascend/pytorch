@@ -1025,8 +1025,10 @@ supported:
    op_api: True
  - func: put_
    op_api: True
- - qr
- - qr.Q
+ - func: qr
+   op_api: False
+ - func: qr.Q
+   op_api: False
  - quantize_per_channel
  - quantize_per_tensor
  - func: random_
