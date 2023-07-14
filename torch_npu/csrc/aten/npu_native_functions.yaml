@@ -47,9 +47,9 @@ supported:
  - func: _convolution
    op_api: False
  - func: _ctc_loss
-   op_api: False
+   op_api: True
  - func: _ctc_loss_backward
-   op_api: False
+   op_api: True
  - _cummax_helper
  - func: _cummin_helper
    op_api: False
@@ -395,9 +395,9 @@ supported:
  - cosh_
  - crop_and_resize
  - func: ctc_loss.IntList
-   op_api: False
+   op_api: True
  - func: ctc_loss.Tensor
-   op_api: False
+   op_api: True
  - cumprod.dimname_out
  - cumprod.out
  - cumprod_
@@ -466,11 +466,11 @@ supported:
  - func: equal
    op_api: True
  - func: erf
-   op_api: False
+   op_api: True
  - func: erf.out
-   op_api: False
+   op_api: True
  - func: erf_
-   op_api: False
+   op_api: True
  - func: erfc
    op_api: False
  - func: erfc.out
@@ -493,13 +493,13 @@ supported:
  - expm1.out
  - expm1_
  - func: eye
-   op_api: False
+   op_api: True
  - func: eye.m
-   op_api: False
+   op_api: True
  - func: eye.m_out
-   op_api: False
+   op_api: True
  - func: eye.out
-   op_api: False
+   op_api: True
  - func: fill_.Tensor
    op_api: True
  - func: fill_.Scalar
@@ -536,13 +536,13 @@ supported:
  - full.names
  - full.out
  - func: gather
-   op_api: False
+   op_api: True
  - func: gather.dimname
-   op_api: False
+   op_api: True
  - func: gather.dimname_out
-   op_api: False
+   op_api: True
  - func: gather.out
-   op_api: False
+   op_api: True
  - func: ge.Scalar
    op_api: True
  - func: ge.Scalar_out
@@ -558,7 +558,7 @@ supported:
  - func: gelu.out
    op_api: True
  - func: gelu_backward
-   op_api: False
+   op_api: True
  - ger
  - ger.out
  - func: glu
@@ -570,9 +570,9 @@ supported:
  - func: glu_backward.grad_input
    op_api: False
  - func: grid_sampler_2d
-   op_api: False
+   op_api: True
  - func: grid_sampler_2d_backward
-   op_api: False
+   op_api: True
  - grid_sampler_3d
  - grid_sampler_3d_backward
  - gru.input
@@ -612,12 +612,12 @@ supported:
  - func: hardswish_backward
    op_api: True
  - func: hardtanh
-   op_api: False
+   op_api: True
  - hardtanh.out
  - func: hardtanh_
-   op_api: False
+   op_api: True
  - func: hardtanh_backward
-   op_api: False
+   op_api: True
  - hardtanh_backward.grad_input
  - func: histc
    op_api: False
@@ -784,9 +784,9 @@ supported:
  - func: lt.Tensor_out
    op_api: True
  - func: lt_.Scalar
-   op_api: False
+   op_api: True
  - func: lt_.Tensor
-   op_api: False
+   op_api: True
  - func: masked_fill_.Scalar
    op_api: True
  - func: masked_fill_.Tensor
@@ -1254,9 +1254,9 @@ supported:
  - func: sum.dim_IntList
    op_api: True
  - func: take
-   op_api: False
+   op_api: True
  - func: take.out
-   op_api: False
+   op_api: True
  - func: tanh
    op_api: False
  - func: tanh.out
@@ -1299,11 +1299,11 @@ supported:
    op_api: True
  - tril_indices
  - func: triu
-   op_api: False
+   op_api: True
  - func: triu.out
-   op_api: False
+   op_api: True
  - func: triu_
-   op_api: False
+   op_api: True
  - triu_indices
  - true_divide.Scalar
  - true_divide.Tensor
