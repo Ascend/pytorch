@@ -17,14 +17,10 @@
 #include <torch/csrc/autograd/custom_function.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
-using torch::autograd::Function;
-using torch::autograd::AutogradContext;
-using tensor_list = std::vector<at::Tensor>;
 
 at::Tensor& rotary_mul_nocheck(
     at::Tensor& y,
@@ -62,59 +58,26 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> rotary_mul_backward_nocheck(
   return std::tie(dx, dr1, dr2);
 }
 
-at::Tensor rotary_mul_npu(
-    const at::Tensor& x,
+at::Tensor NPUNativeFunctions::npu_rotary_mul(
+    const at::Tensor& self,
     const at::Tensor& r1,
     const at::Tensor& r2) {
-  at::Tensor result = OpPreparation::ApplyTensor(x);
-  rotary_mul_nocheck(result, x, r1, r2);
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  rotary_mul_nocheck(result, self, r1, r2);
   return result;
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> rotary_mul_backward_npu(
-    const at::Tensor& x,
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_rotary_mul_backward(
+    const at::Tensor& grad,
+    const at::Tensor& self,
     const at::Tensor& r1,
-    const at::Tensor& r2,
-    const at::Tensor& dy) {
-  at::Tensor dx = OpPreparation::ApplyTensor(x);
+    const at::Tensor& r2) {
+  at::Tensor dx = OpPreparation::ApplyTensor(self);
   at::Tensor dr1 = OpPreparation::ApplyTensor(r1);
   at::Tensor dr2 = OpPreparation::ApplyTensor(r2);
-  rotary_mul_backward_nocheck(dx, dr1, dr2, x, r1, r2, dy);
+  rotary_mul_backward_nocheck(dx, dr1, dr2, self, r1, r2, grad);
   return std::tie(dx, dr1, dr2);
 }
 
-class NPURotaryMulFunction : public torch::autograd::Function<NPURotaryMulFunction> {
-public:
-  static at::Tensor forward(AutogradContext *ctx,
-      const at::Tensor& x,
-      const at::Tensor& r1,
-      const at::Tensor& r2) {
-    at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({x, r1, r2});
-    return rotary_mul_npu(x, r1, r2);
-  }
-
-  static tensor_list backward(AutogradContext *ctx,
-      tensor_list grad_outputs) {
-    auto saved = ctx->get_saved_variables();
-    auto x = saved[0];
-    auto r1 = saved[1];
-    auto r2 = saved[2];
-
-    tuple<at::Tensor, at::Tensor, at::Tensor> result = rotary_mul_backward_npu(x, r1, r2, grad_outputs[0]);
-
-    tensor_list output = {std::get<0>(result),
-        std::get<1>(result),
-        std::get<2>(result)};
-    return output;
-  }
-};
-
-at::Tensor NPUNativeFunctions::npu_rotary_mul(
-    const at::Tensor& x,
-    const at::Tensor& r1,
-    const at::Tensor& r2) {
-  return NPURotaryMulFunction::apply(x, r1, r2);
-}
 } // namespace native
 } // namespace at_npu

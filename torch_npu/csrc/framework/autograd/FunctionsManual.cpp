@@ -127,6 +127,14 @@ Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self) {
   return at_npu::native::NPUNativeFunctions::npu_fast_gelu_backward(grad, self);
 }
 
+std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
+    const Tensor& grad,
+    const Tensor& self,
+    const Tensor& r1,
+    const Tensor& r2) {
+  return at_npu::native::NPUNativeFunctions::npu_rotary_mul_backward(grad, self, r1, r2);
+}
+
 } // namespace details
 } // namespace generated
 } // namespace autograd

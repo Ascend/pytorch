@@ -59,6 +59,12 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason=""
 
 Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self);
 
+std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
+    const Tensor& grad,
+    const Tensor& self,
+    const Tensor& r1,
+    const Tensor& r2);
+
 } // namespace details
 } // namespace generated
 } // namespace autograd
