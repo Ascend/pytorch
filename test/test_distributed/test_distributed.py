@@ -19,12 +19,11 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
-from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import TestCase, run_tests
 
 try:
     import torchvision
@@ -166,7 +165,6 @@ class Barrier(object):
 # then use the provided test function name to retrieve the function attribute
 # from the test instance and run it. The main process simply waits for all
 # subprocesses to join.
-@skipIfUnsupportMultiNPU(4)
 class MultiProcessTestCase(TestCase):
     MAIN_PROCESS_RANK = -1
     # This exit code is used to indicate that the test code had an error and
@@ -524,7 +522,7 @@ class _DistTestBase(object):
 
     def test_DistributedDataParallel_requires_grad(self):
         # a module without gradients shouldn't be accepted
-        self.assertRaises(AssertionError, lambda: nn.parallel.DistributedDataParallel(nn.Module()))
+        self.assertRaises(RuntimeError, lambda: nn.parallel.DistributedDataParallel(nn.Module()))
 
     def test_DistributedDataParallel(self):
         group, group_id, rank = self._init_global_test()
@@ -708,7 +706,6 @@ def cleanup_temp_dir():
 
 WORLD_SIZE = os.environ["WORLD_SIZE"]
 
-@skipIfUnsupportMultiNPU(4)
 class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @classmethod
     def setUpClass(cls):
