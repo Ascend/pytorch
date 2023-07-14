@@ -483,8 +483,10 @@ supported:
  - expm1
  - expm1.out
  - expm1_
- - eye
- - eye.m
+ - func: eye
+   op_api: False
+ - func: eye.m
+   op_api: False
  - func: eye.m_out
    op_api: False
  - func: eye.out
