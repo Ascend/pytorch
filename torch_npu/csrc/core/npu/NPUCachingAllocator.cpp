@@ -425,6 +425,8 @@ class DeviceCachingAllocator {
             " total capacity; ",
             format_size(stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
             " already allocated; ",
+            format_size(stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current),
+            " current active; ",
             format_size(device_free),
             " free; ",
             allowed_info,
