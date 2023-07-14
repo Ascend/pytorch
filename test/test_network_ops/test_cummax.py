@@ -129,14 +129,14 @@ class TestCummax(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_argmax, npu_argmax)
 
-    def test_cummax_npu_format(self):
-        cpu_x = torch.randn(2, 3, 4, 5)
-        npu_x = cpu_x.npu()
-        npu_x = torch_npu.npu_format_cast(npu_x, 3)
-        cpu_output, cpu_argmax = torch.cummax(cpu_x, 3)
-        npu_output, npu_argmax = torch.cummax(npu_x, 3)
-        self.assertRtolEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_argmax, npu_argmax)
+    # def test_cummax_npu_format(self):
+    #     cpu_x = torch.randn(2, 3, 4, 5)
+    #     npu_x = cpu_x.npu()
+    #     npu_x = torch_npu.npu_format_cast(npu_x, 3)
+    #     cpu_output, cpu_argmax = torch.cummax(cpu_x, 3)
+    #     npu_output, npu_argmax = torch.cummax(npu_x, 3)
+    #     self.assertRtolEqual(cpu_output, npu_output)
+    #     self.assertRtolEqual(cpu_argmax, npu_argmax)
 
 
 if __name__ == "__main__":

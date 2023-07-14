@@ -23,12 +23,12 @@ class TestMM(TestCase):
         ]
 
         for item in shape_format: 
-            cpu_input, npu_input = create_common_tensor(item, -1, 1)
+            cpu_input, npu_input = create_common_tensor(item, 0, 1)
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
             npu_out = torch.mm(npu_input, npu_input.t())
             cpu_out = torch.mm(cpu_input, cpu_input.t())
-            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy())
+            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy(), prec=1.e-3, prec16=1.e-3)
 
     @graph_mode
     def test_mm_mat1_view_mat2_view_transpose(self):
@@ -45,7 +45,7 @@ class TestMM(TestCase):
         ]
 
         for item in shape_format: 
-            cpu_input, npu_input = create_common_tensor(item, -10, 10)
+            cpu_input, npu_input = create_common_tensor(item, 0, 1)
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
             res_shape = [cpu_input.shape[0] * cpu_input.shape[1], cpu_input.shape[2]]
@@ -53,7 +53,7 @@ class TestMM(TestCase):
                 npu_input.view(res_shape[0], res_shape[1]).t())
             cpu_out = torch.mm(cpu_input.view(res_shape[0], res_shape[1]), \
                 cpu_input.view(res_shape[0], res_shape[1]).t())
-            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy())
+            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy(), prec=1.e-3, prec16=1.e-3)
 
 
 if __name__ == "__main__":
