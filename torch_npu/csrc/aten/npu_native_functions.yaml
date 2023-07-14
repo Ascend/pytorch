@@ -1239,8 +1239,10 @@ supported:
    op_api: True
  - func: sub.out
    op_api: True
- - sub_.Scalar
- - sub_.Tensor
+ - func: sub_.Scalar
+   op_api: False
+ - func: sub_.Tensor
+   op_api: False
  - func: sum
    op_api: True
  - func: sum.DimnameList_out
