@@ -66,18 +66,26 @@ def parse_npu_yaml(custom_path: str) -> List:
     return source_es
 
 
-def parse_derivatives_yaml(custom_path) -> set:
+def filt_npu_autograd_functions(path, custom_path) -> set:
+    torch_functions = set()
+    with open(path, 'r') as f:
+        es = yaml.load(f, Loader=LineLoader)
+    assert isinstance(es, list)
+    for e in es:
+        torch_functions.add(e.get('func'))
+
     with open(custom_path, 'r') as f:
         definitions = yaml.load(f, Loader=YamlLoader)
 
-    function_names = set()
-
+    npu_autograd_functions = set()
     for item in definitions:
+        if item['name'] in torch_functions:
+            continue
         match = re.search(r'([a-zA-Z0-9_]+)\(', item['name'])
         if match:
-            function_names.add(match.group(1))
+            npu_autograd_functions.add(match.group(1))
 
-    return function_names
+    return npu_autograd_functions
 
 
 def rename_privateuse1_dispatch_key():
