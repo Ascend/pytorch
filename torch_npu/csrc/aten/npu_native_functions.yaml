@@ -634,8 +634,10 @@ supported:
  - index_select.dimname_out
  - func: index_select.out
    op_api: True
- - inverse
- - inverse.out
+ - func: inverse
+   op_api: False
+ - func: inverse.out
+   op_api: False
  - is_pinned
  - isclose
  - isfinite

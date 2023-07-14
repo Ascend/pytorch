@@ -65,7 +65,6 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_xor_out(const at::Tensor& self, con
   DO_COMPATIBILITY(aclnnBitwiseXorTensor, NPUNativeFunctions::bitwise_xor_out(self, other, result));
 
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-
   OpPreparation::CheckOut({self}, result, result, outputSize);
 
   bitwise_xor_op_api_out_npu_nocheck(result, self, other);
@@ -76,11 +75,9 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_xor(const at::Tensor& self, const at
   DO_COMPATIBILITY(aclnnBitwiseXorScalar, NPUNativeFunctions::bitwise_xor(self, other));
   DO_COMPATIBILITY(aclnnBitwiseXorTensor, NPUNativeFunctions::bitwise_xor(self, other));
 
-  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
-  at::Tensor outputTensor = isSelfWrapped ? other : self;
-
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputTensor, outputSize);
+  at::ScalarType resultType = at::native::result_type(self, other);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(resultType));
 
   bitwise_xor_op_api_out_npu_nocheck(result, self, other);
   return result;
