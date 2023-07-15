@@ -317,7 +317,7 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
   if (func != nullptr) {
     return func(stream, timeout);
   } else {
-    TORCH_WARN(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
+    TORCH_WARN_ONCE(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
     typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
     static AclrtSynchronizeStream func_backup = nullptr;
     if (func_backup == nullptr) {
@@ -334,7 +334,7 @@ aclError AclrtDestroyStreamForce(aclrtStream stream) {
   if (func != nullptr) {
     return func(stream);
   }
-  TORCH_WARN(func, "Failed to find function ", "aclrtDestroyStreamForce");
+  TORCH_WARN_ONCE(func, "Failed to find function ", "aclrtDestroyStreamForce");
   return aclrtDestroyStream(stream);
 }
 
@@ -354,7 +354,7 @@ aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy pol
   if (func != nullptr) {
     return func(devPtr, size, policy);
   }
-  TORCH_WARN(func, "Failed to find function ", "aclrtMallocAlign32");
+  TORCH_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
   return aclrtMalloc(devPtr, size, policy);
 }
 

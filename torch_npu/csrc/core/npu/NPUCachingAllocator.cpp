@@ -625,7 +625,7 @@ struct THNCachingAllocator {
   aclError npu_malloc_retry(int device, void** devPtr, size_t size) {
     // Try npuMalloc. If npuMalloc fails, frees all non-split cached blocks
     // and retries.
-    aclError err = c10_npu::acl::AclrtMallocAlign32(
+    aclError err = aclrtMalloc(
         devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
 
     if (err != ACL_ERROR_NONE) {
@@ -634,7 +634,7 @@ struct THNCachingAllocator {
 
       // npuGetLastError();  // reset the last NPU error
       free_cached_blocks(device);
-      err = c10_npu::acl::AclrtMallocAlign32(
+      err = aclrtMalloc(
           devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
       ASCEND_LOGD("pta_memory acl_malloc retry: malloc = %zu, ret = %d", size, err);
       if (err != ACL_ERROR_NONE) {
