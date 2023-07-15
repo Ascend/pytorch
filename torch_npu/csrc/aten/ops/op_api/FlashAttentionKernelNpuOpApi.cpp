@@ -107,8 +107,6 @@ at::Tensor dropout_gen_mask(const at::Tensor &self, double keep_prob, int64_t he
     drop_mask = dropout_gen_mask_dispatch(self, at::Scalar(keep_prob), at::Scalar(seed), offset, numels, gen_mask_parallel, sync);
   } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
     drop_mask = at::zeros(at::IntArrayRef{length}, self.options().dtype(at::kByte));
-  } else {
-    drop_mask = at::full(at::IntArrayRef{length}, 255, self.options().dtype(at::kByte));
   }
   return drop_mask;
 }
@@ -270,8 +268,6 @@ public:
       drop_mask = dropout_gen_mask_dispatch(query, at::Scalar(keep_prob), at::Scalar(seed), offset, numels, gen_mask_parallel, sync);
     } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
       drop_mask = at::zeros(at::IntArrayRef{length}, query.options().dtype(at::kByte));
-    } else {
-      drop_mask = at::full(at::IntArrayRef{length}, 255, query.options().dtype(at::kByte));
     }
 
     return npu_flash_attention_backward(query,
