@@ -1282,7 +1282,8 @@ supported:
  - unfold
  - func: uniform_
    op_api: True
- - unique_consecutive
+ - func: unique_consecutive
+   op_api: False
  - unsqueeze
  - upsample_bicubic2d
  - upsample_bicubic2d.out
