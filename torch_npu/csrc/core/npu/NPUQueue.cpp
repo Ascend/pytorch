@@ -15,8 +15,6 @@
 namespace c10_npu {
 
 struct timeval delay = {0, 1};
-#define MAX_TTL_TIME 10  // 10ms
-#define GET_MSEC(sec, nsec) ((sec) * 1000 + (nsec) / 1000)
 
 namespace {
 
@@ -315,6 +313,17 @@ void Repository::Enqueue(void* cur_paras) {
       continue;
     }
     __sync_synchronize();
+    while (!IsReadWorking()) {
+      s = eventfd_write(efd_read, u);
+      if (s != 0) {
+        if (errno == EINTR) {
+          continue;
+        }
+        ASCEND_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
+        return;
+      }
+      break;
+    }
   }
   SetWriteWorking(false);
 }
@@ -329,7 +338,6 @@ void Repository::Dequeue() {
   bool notify_empty = false;
   ssize_t s;
   uint64_t u = 1;
-  uint32_t waitCnt = 0;
 
   SetReadWorking(true);
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
@@ -339,10 +347,25 @@ void Repository::Dequeue() {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
         break;
       }
+
+      SetReadWorking(false);
+      __sync_synchronize();
+      if (IsEmptyQueue()) {
+        s = eventfd_read(efd_read, &u);
+        if (s != 0) {
+          if (errno == EINTR) {
+            continue;
+          }
+          ASCEND_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
+          return;
+        }
+        SetReadWorking(true);
+      }
+      continue;
     }
     __sync_synchronize();
     notify_empty = need_empty &&
-        IsEmptyQueue();
+        IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
     while (notify_empty) {
       s = eventfd_write(efd_empty, u);
       if (s != 0) {
@@ -416,31 +439,8 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
     C10_NPU_SHOW_ERR_MSG();
     ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);
   }
- 
-  struct timeval delay = {0, 1};
-  uint64_t ttl = 0;
-  timespec lastWorkTime = {0, 0};
-  timespec currTime = {0, 0};
-  clock_gettime(CLOCK_MONOTONIC, &lastWorkTime);
 
   while (repo->GetStatus() != RepoStatus::CAN_EXIT) {
-    // If repo not in running stage, we must change state use repo->Dequeue
-    if (repo->IsEmptyQueue() && repo->GetStatus() == RepoStatus::RUN) {
-      if (ttl == 0) {
-        delay.tv_usec = 1;
-        select(0, nullptr, nullptr, nullptr, &delay);
-      } else {
-        clock_gettime(CLOCK_MONOTONIC, &currTime);
-        uint64_t elapseTime = GET_MSEC(currTime.tv_sec, currTime.tv_nsec)
-                              - GET_MSEC(lastWorkTime.tv_sec, lastWorkTime.tv_nsec);
-        ttl = (elapseTime >= ttl) ? 0 : (ttl - elapseTime);
-      }
-      continue;
-    }
-
-    clock_gettime(CLOCK_MONOTONIC, &lastWorkTime);
-    ttl = MAX_TTL_TIME;
-
     repo->Dequeue();
   }
   return;
