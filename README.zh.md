@@ -44,7 +44,31 @@
 </th>
 </tr>
 </thead>
-<tbody><tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1</p>
+<tbody>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2</p>
+</td>
+<td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC2</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>2.0.1.rc1</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v2.0.1-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post2</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>    
+<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0.post1</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
+</td>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1</p>
 </td>
 <td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC1</p>
 </td>
@@ -61,24 +85,6 @@
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
 </td>
-<tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1(适用于昇腾910B处理器)</p>
-</td>
-<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.1.RC1</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
-</td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
-</td>
-</tr>
-<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc1</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
-</td>
-</tr>
     <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
 </td>
 <td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.0.1</p>
@@ -201,6 +207,9 @@
 </tbody>
 </table>
 
+
+
+
 **安装PyTorch环境依赖<a name="section311512324315"></a>**
 
 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user**，例如：**pip3 install pyyaml --user，pip3 install wheel --user**。
@@ -247,14 +256,14 @@ pip3 install wheel
 
       ```
       # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc1-pytorch1.11.0/torch_npu-1.11.0-cp37-cp37m-linux_aarch64.whl
+      wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc2-pytorch1.11.0/torch_npu-1.11.0.post1-cp37-cp37m-linux_aarch64.whl
       ```
       
    2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
    
       ```
       # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      pip3 install torch_npu-1.11.0-cp37-cp37m-linux_aarch64.whl
+      pip3 install torch_npu-1.11.0.post1-cp37-cp37m-linux_aarch64.whl
       ```
    
 3. 安装对应框架版本的torchvision。
@@ -288,16 +297,17 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 # 现有分支维护状态
 
-| **分支名**   | **当前状态** | **上线时间** | **后续状态**                           | **EOL 日期** |
-| ------------ | ------------ | ------------ | -------------------------------------- | ------------ |
-| **v2.0.2**   | EOL          | 2021-07-29   | N/A                                    |              |
-| **v2.0.3**   | EOL          | 2021-10-15   | N/A                                    |              |
-| **v2.0.4**   | EOL          | 2022-01-15   | N/A                                    |              |
-| **v3.0.rc1** | UnMaintained | 2022-04-10   | EOL <br> 2023-07-10 estimated          |              |
-| **v3.0.rc2** | Maintained   | 2022-07-15   | Unmaintained <br> 2023-07-15 estimated |              |
-| **v3.0.rc3** | Maintained   | 2022-10-20   | Unmaintained <br> 2023-10-20 estimated |              |
-| **v3.0.0**   | Maintained   | 2023-1-18    | Unmaintained <br> 2024-1-18 estimated  |              |
-| **v5.0.rc1** | Maintained   | 2023-4-19    | Unmaintained <br/> 2024-4-19 estimated |              |
+| 分支名   | 当前状态     | 上线时间   | 后续状态                          | EOL 日期 |
+| -------- | ------------ | ---------- | --------------------------------- | -------- |
+| v2.0.2   | EOL          | 2021/7/29  | N/A                               |          |
+| v2.0.3   | EOL          | 2021/10/15 | N/A                               |          |
+| v2.0.4   | EOL          | 2022/1/15  | N/A                               |          |
+| v3.0.rc1 | EOL          | 2022/4/10  | N/A                               |          |
+| v3.0.rc2 | UnMaintained | 2022/7/15  | EOL 2023-10-15 estimated          |          |
+| v3.0.rc3 | Maintained   | 2022/10/20 | Unmaintained 2023-10-20 estimated |          |
+| v3.0.0   | Maintained   | 2023/1/18  | Unmaintained 2024-1-18 estimated  |          |
+| v5.0.rc1 | Maintained   | 2023/4/19  | Unmaintained 2024-4-19 estimated  |          |
+| v5.0.rc2 | Maintained   | 2023/7/19  | Unmaintained 2024-7-19 estimated  |          |
 
 # FAQ
 
@@ -415,14 +425,18 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
       环境变量脚本的默认路径一般为：/usr/local/Ascend/ascend-toolkit/set_env.sh，其中ascend-toolkit路径取决于安装的CANN软件名称。
 
-   2. 执行单元测试脚本，验证PyTorch是否安装成功。
+   2. 执行如下命令，验证PyTorch是否安装成功。
 
       ```
-      cd test/test_network_ops/
-      python3 test_div.py
+      python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
       ```
 
-      结果显示OK证明PyTorch框架与插件安装成功。
+      显示以下内容证明PyTorch框架与插件安装成功。
+      ```
+      tensor([[-0.6066, 6.3385,  0.0379, 3.3356],
+              [ 2.9243, 3.3134, -1.5465, 0.1916],
+              [-2.1807, 0.2008, -1.1431, 2.1523]], device='npu:0')
+      ```
 
 ## 在PIP设置为华为源时，安装requirements.txt中的typing依赖后，会导致python环境错误。
 
