@@ -3,7 +3,7 @@
 <h2 id="简介md">简介</h2>
 
 本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译相关模块。
-当前master分支为在研版本，上下游依赖存在变动可能，功能较不稳定，推荐使用Ascend配套软件表格中分支对应版本。master分支的安装使用请参考FAQ-[使用源码编译安装PyTorch框架](#FAQ)。
+当前master分支为在研版本，上下游依赖存在变动可能，功能较不稳定，推荐使用Ascend配套软件表格中分支对应版本。master分支的安装使用请参考FAQ-[使用源码编译安装PyTorch框架](#compilePT)。
 
 
 # 文档
@@ -24,8 +24,8 @@
 
 **对应分支代码包下载<a name="zh-cn_topic_0000001435374593_section5248152713711"></a>**
 
->![](D:\project\pzr_pytorch\pytorch\figures\icon-note.gif) **说明：** 
->PyTorch配套的Python版本是：Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2）。
+>![](figures/icon-note.gif) **说明：** 
+>PyTorch配套的Python版本是：Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2)。
 
 安装PyTorch时，请参见[表1](#zh-cn_topic_0000001435374593_table723553621419)下载对应分支代码包。
 
@@ -46,6 +46,29 @@
 </tr>
 </thead>
 <tbody>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2</p>
+</td>
+<td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC2</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>2.0.1.rc1</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v2.0.1-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post2</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>    
+<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0.post1</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
+</td>
     <tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1</p>
 </td>
 <td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC1</p>
@@ -63,24 +86,6 @@
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
 </td>
-<tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1(适用于昇腾910B处理器)</p>
-</td>
-<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.1.RC1</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
-</td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
-</td>
-</tr>
-<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc1</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
-</td>
-</tr>
     <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
 </td>
 <td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.0.1</p>
@@ -203,6 +208,8 @@
 </tbody>
 </table>
 
+
+
 **安装PyTorch环境依赖<a name="section311512324315"></a>**
 
 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user**，例如：**pip3 install pyyaml --user，pip3 install wheel --user**。
@@ -214,33 +221,40 @@ pip3 install wheel
 
 **安装PyTorch<a name="section1762728142316"></a>**
 
-推荐用户使用编好的二进制whl包安装PyTorch 2.0.0。用户也可选择编译安装方式安装PyTorch 2.0.0。请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+推荐用户使用编好的二进制whl包安装PyTorch 2.0.1。用户也可选择编译安装方式安装PyTorch 2.0.1。请参考[编译安装PyTorch](##compilePT)。
 
 1. 安装官方torch包。
 
-   - x86\_64
+   ```
+   pip3 install torch==2.0.1+cpu  
+   ```
+   
+   若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
+   
+   - x86\_64：[下载链接](https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp38-cp38-linux_x86_64.whl)。
+   
+   - aarch64：[下载链接](https://download.pytorch.org/whl/torch-2.0.1-cp38-cp38-manylinux2014_aarch64.whl)。
+   
+2. 安装PyTorch插件torch\_npu。以下命令以在aarch64架构下安装为例。
 
-     ```
-     pip3 install torch==2.0.0+cpu  
-     ```
-     
-     若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
-     
-     PyTorch 2.0.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-2.0.0%2Bcpu-cp38-cp38-linux_x86_64.whl)。
-     
-   - aarch64
-
-     暂无可用ARM架构下预编译的PyTorch安装包，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
-
-2. 安装PyTorch插件torch\_npu。
-
-   master分支暂不提供对应的torch_npu预编译安装包，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+      1. 进入安装目录，执行如下命令获取PyTorch插件的whl包。
+      
+         ```
+         # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
+         wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc2-pytorch2.0.1/torch_npu-2.0.1rc1-cp38-cp38m-linux_aarch64.whl
+         ```
+         
+      2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
+      
+         ```
+         # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
+         pip3 install torch_npu-2.0.1rc1-cp38-cp38m-linux_aarch64.whl
    
 3. 安装对应框架版本的torchvision。
 
    ```
-   #PyTorch 2.0.0需安装0.15.1版本
-   pip3 install torchvision==0.15.1  
+   #PyTorch 2.0.1需安装0.15.2版本
+   pip3 install torchvision==0.15.2 
    ```
 
 **安装APEX混合精度模块<a name="section154215015416"></a>**
@@ -272,11 +286,12 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.2**   | EOL          | 2021-07-29   | N/A                                    |              |
 | **v2.0.3**   | EOL          | 2021-10-15   | N/A                                    |              |
 | **v2.0.4**   | EOL          | 2022-01-15   | N/A                                    |              |
-| **v3.0.rc1** | UnMaintained | 2022-04-10   | EOL <br> 2023-07-10 estimated          |              |
-| **v3.0.rc2** | Maintained   | 2022-07-15   | Unmaintained <br> 2023-07-15 estimated |              |
+| **v3.0.rc1** | EOL          | 2022-04-10   | N/A                                    |              |
+| **v3.0.rc2** | UnMaintained | 2022-07-15   | EOL <br> 2023-10-15 estimated          |              |
 | **v3.0.rc3** | Maintained   | 2022-10-20   | Unmaintained <br> 2023-10-20 estimated |              |
 | **v3.0.0**   | Maintained   | 2023-1-18    | Unmaintained <br> 2024-1-18 estimated  |              |
 | **v5.0.rc1** | Maintained   | 2023-4-19    | Unmaintained <br/> 2024-4-19 estimated |              |
+| **v5.0.rc2** | Maintained   | 2023-7-19    | Unmaintained <br/> 2024-7-19 estimated |              |
 
 # FAQ
 
@@ -289,7 +304,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 - 修改算子输入数据类型，使用float64数据类型进行运算。
 - 升级编译arm版本PyTorch使用的gcc编译器至9.4版本及以上，并使用相同编译器重新编译torch_npu、apex、mmcv等其他配套软件（避免因编译器版本不匹配导致兼容性问题）。
 
-## 使用源码编译安装PyTorch框架。
+## 使用源码编译安装PyTorch框架<a name=compilePT></a>
 
 **安装依赖<a name="section1832663918540"></a>**
 
@@ -303,64 +318,66 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
   ```
   yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git 
-  yum install -y gcc==7.5.0 cmake==3.13.0 #gcc7.5.0版本及以上，cmake3.13.0版本及以上。
+  yum install -y gcc==7.5.0 cmake==3.18.0 #gcc7.5.0版本及以上，cmake3.18.0版本及以上。
   ```
 
 - Ubuntu
 
   ```
   apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git 
-  apt-get install -y gcc==7.5.0 cmake==3.13.0 #gcc7.5.0版本及以上，cmake3.13.0版本及以上。
+  apt-get install -y gcc==7.5.0 cmake==3.18.0 #gcc7.5.0版本及以上，cmake3.18.0版本及以上。
   ```
 
-**安装2.0.0.0<a name="section462918122313"></a>**
+**PIP安装torch包<a name="section462918122313"></a>**
 
-以下操作步骤以安装PyTorch 2.0.0版本为例。
+以下操作步骤以安装PyTorch 2.0.1版本为例。
 
 1. 安装官方torch包。
 
-   - x86\_64
+   ```
+   pip3 install torch==2.0.1+cpu  
+   ```
+   
+   若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
 
-     ```
-     pip3 install torch==2.0.0+cpu  
-     ```
+   PyTorch 2.0.1版本：
 
-     若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
+   - x86\_64:[下载链接](https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp38-cp38-linux_x86_64.whl)
 
-     PyTorch 2.0.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-2.0.0%2Bcpu-cp38-cp38-linux_x86_64.whl)。
+   - aarch64:[下载链接](https://download.pytorch.org/whl/torch-2.0.1-cp38-cp38-manylinux2014_aarch64.whl)
 
-   - 在aarch64架构下，用户可以选择编译安装官方torch包。
+**源码编译安装torch包**
 
-     1. 下载PyTorch v2.0.0源码包。
+1. 下载PyTorch v2.0.1源码包。
 
-        ```
-     	git clone -b v2.0.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v2.0.0
-        ```
-     
-     2. 进入源码包获取被动依赖代码。
+   ```
+   git clone -b v2.0.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v2.0.1
+   ```
 
-        ```
-     	cd pytorch_v2.0.0
-        git submodule sync
-        git submodule update --init --recursive
-        ```
-     
-     3. 配置环境变量。
+2. 进入源码包获取被动依赖代码。
 
-        ```
-     	export USE_XNNPACK=0
-        ```
-     
-     4. 执行编译安装。
+   ```
+   cd pytorch_v2.0.1
+   git submodule sync
+   git submodule update --init --recursive
+   ```
 
-        ```
-     	python3 setup.py install
-        ```
+3. 配置环境变量。
+
+   ```
+   export USE_XNNPACK=0
+   ```
+
+4. 执行编译安装。
+
+   ```
+   python3 setup.py install
+   ```
 
 **安装torch_npu**
 
 
-1. 编译生成PyTorch插件的二进制安装包（以master分支为例，当前对应版本2.0.0）。
+1. 编译生成PyTorch插件的二进制安装包（以master分支为例，当前对应版本2.0.1）。
 
    ```
    # 下载对应PyTorch版本分支代码，进入插件根目录
@@ -373,15 +390,15 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 2. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加**--user**。
 
    ```
-   pip3 install --upgrade dist/torch_npu-2.0.0-cp38-cp38m-linux_aarch64.whl
+   pip3 install --upgrade dist/torch_npu-2.0.1.rc1-cp38-cp38m-linux_aarch64.whl
    # 若用户在x86架构下安装插件，请替换为对应的whl包。
    ```
 
 3. 安装对应框架版本的torchvision。
 
    ```
-   #PyTorch 2.0.0需安装0.15.1版本
-   pip3 install torchvision==0.15.1  
+   #PyTorch 2.0.1需安装0.15.2版本
+   pip3 install torchvision==0.15.2  
    ```
 
 4. 配置环境变量，验证是否安装成功。
@@ -394,14 +411,18 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
       环境变量脚本的默认路径一般为：/usr/local/Ascend/ascend-toolkit/set_env.sh，其中ascend-toolkit路径取决于安装的CANN软件名称。
 
-   2. 执行单元测试脚本，验证PyTorch是否安装成功。
+   2. 执行如下命令，验证PyTorch是否安装成功。
 
       ```
-      cd test/test_network_ops/
-      python3 test_div.py
+      python3 -c "import torch;import torch_npu; a = torch.randn(3, 4).npu(); print(a + a);"
       ```
 
-      结果显示OK证明PyTorch框架与插件安装成功。
+      显示以下内容证明PyTorch框架与插件安装成功。
+      ```
+      tensor([[-0.6066, 6.3385,  0.0379, 3.3356],
+              [ 2.9243, 3.3134, -1.5465, 0.1916],
+              [-2.1807, 0.2008, -1.1431, 2.1523]], device='npu:0')
+      ```
 
 ## 在PIP设置为华为源时，安装requirements.txt中的typing依赖后，会导致python环境错误。
 
@@ -443,14 +464,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 方法一：下载安装脚本安装cmake。（参考cmake官网）
 
-​		X86_64环境脚本安装：cmake-3.13.0-Linux-x86_64.sh
+​		X86_64环境脚本安装：cmake-3.18.0-Linux-x86_64.sh
 
-​		aarch64环境脚本安装：cmake-3.13.0-Linux-aarch64.sh
+​		aarch64环境脚本安装：cmake-3.18.0-Linux-aarch64.sh
 
 1. 执行命令。
 
    ```
-   ./cmake-3.13.0-Linux-{arch}.sh #{arch}为架构名称
+   ./cmake-3.18.0-Linux-{arch}.sh #{arch}为架构名称
    ```
 
 2. 设置软连接。
@@ -465,7 +486,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    cmake --version
    ```
 
-   如显示“cmake version 3.13.0”则表示安装成功。
+   如显示“cmake version 3.18.0”则表示安装成功。
 
 
 方法二：使用源码编译安装。
@@ -473,14 +494,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 1. 获取cmake软件包。
 
    ```
-   wget https://cmake.org/files/v3.13/cmake-3.13.0.tar.gz --no-check-certificate
+   wget https://cmake.org/files/v3.18/cmake-3.18.0.tar.gz --no-check-certificate
    ```
 
 2. 解压并进入软件包目录。
 
    ```
-   tar -xf cmake-3.13.0.tar.gz
-   cd cmake-3.13.0/
+   tar -xf cmake-3.18.0.tar.gz
+   cd cmake-3.18.0/
    ```
 
 3. 执行配置、编译和安装命令。
@@ -502,7 +523,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    cmake --version
    ```
 
-   如显示“cmake version 3.13.0”则表示安装成功。
+   如显示“cmake version 3.18.0”则表示安装成功。
 
 ## 命令行安装gcc依赖时提示找不到包、编译时gcc报错问题
 
@@ -729,4 +750,4 @@ init_process_group 函数中使用了IPV6地址，例如::1(注意localhost 可�
 
 # 版本说明
 
-版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
+版本说明请参阅[ReleseNote](docs/RELEASENOTE_zh/RELEASENOTE.md)
