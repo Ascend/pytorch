@@ -3,4 +3,4 @@
 #If you need any guidance, please refer to the comments in derivatives.yaml in PyTorch.
 
 - name: fast_gelu(Tensor self) -> Tensor
-  self: fast_gelu_backward(grad, self)
+  self: npu_fast_gelu_backward(grad, self)
