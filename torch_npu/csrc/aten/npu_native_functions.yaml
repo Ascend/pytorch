@@ -1029,8 +1029,10 @@ supported:
    op_api: False
  - func: reflection_pad1d.out
    op_api: False
- - reflection_pad1d_backward
- - reflection_pad1d_backward.grad_input
+ - func: reflection_pad1d_backward
+   op_api: False
+ - func: reflection_pad1d_backward.grad_input
+   op_api: False
  - func: reflection_pad2d
    op_api: False
  - func: reflection_pad2d.out
@@ -1059,8 +1061,10 @@ supported:
    op_api: False
  - replication_pad1d
  - replication_pad1d.out
- - replication_pad1d_backward
- - replication_pad1d_backward.grad_input
+ - func: replication_pad1d_backward
+   op_api: False
+ - func: replication_pad1d_backward.grad_input
+   op_api: False
  - replication_pad2d
  - replication_pad2d.out
  - func: replication_pad2d_backward
