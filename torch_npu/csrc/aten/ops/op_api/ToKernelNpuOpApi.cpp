@@ -27,7 +27,7 @@ namespace native {
 at::Tensor NPUNativeOpApiFunctions::to(const at::Tensor& self, at::ScalarType dtype, bool non_blocking, bool copy,
                                        c10::optional<c10::MemoryFormat> optional_memory_format) {
   DO_COMPATIBILITY(aclnnCast, NPUNativeFunctions::to(self, dtype, non_blocking, copy, optional_memory_format));
-  if (self.dtype() == dtype) {
+  if (self.dtype() == dtype && !copy) {
     return self;
   }
 
