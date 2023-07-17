@@ -478,8 +478,10 @@ supported:
    op_api: True
  - func: exp.out
    op_api: True
- - exp2
- - exp2.out
+ - func: exp2
+   op_api: False
+ - func: exp2.out
+   op_api: False
  - exp2_
  - func: exp_
    op_api: True
