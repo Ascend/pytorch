@@ -23,8 +23,8 @@
 
 **对应分支代码包下载<a name="zh-cn_topic_0000001435374593_section5248152713711"></a>**
 
->![](D:\project\pzr_pytorch\pytorch\figures\icon-note.gif) **说明：** 
->PyTorch配套的Python版本是：Python3.7.x（3.7.5\~3.7.11）、Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2）。
+>![](figures/icon-note.gif) **说明：** 
+>PyTorch配套的Python版本是：Python3.7.x（3.7.5\~3.7.11）、Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2)。
 
 安装PyTorch时，请参见[表1](#zh-cn_topic_0000001435374593_table723553621419)下载对应分支代码包。
 
@@ -61,24 +61,6 @@
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
 </td>
-<tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1(适用于昇腾910B处理器)</p>
-</td>
-<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.1.RC1</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
-</td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
-</td>
-</tr>
-<tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p10655452142612"><a name="p10655452142612"></a><a name="p10655452142612"></a>v1.11.0-5.0.rc1</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
-</td>
-</tr>
 <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
 </td>
 <td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.0.1</p>
