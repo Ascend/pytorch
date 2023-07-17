@@ -19,7 +19,8 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.testing._internal.common_utils import TestCase, run_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
@@ -706,7 +707,8 @@ def cleanup_temp_dir():
         tmp_dir.cleanup()
 
 WORLD_SIZE = os.environ["WORLD_SIZE"]
-
+ 
+@unittest.skip("Multi-NPU condition not satisfied")
 class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @classmethod
     def setUpClass(cls):
