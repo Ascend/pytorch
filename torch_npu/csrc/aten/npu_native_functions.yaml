@@ -384,9 +384,12 @@ supported:
    op_api: True
  - func: cos_
    op_api: True
- - cosh
- - cosh.out
- - cosh_
+ - func: cosh
+   op_api: False
+ - func: cosh.out
+   op_api: False
+ - func: cosh_
+   op_api: False
  - crop_and_resize
  - func: ctc_loss.IntList
    op_api: False
