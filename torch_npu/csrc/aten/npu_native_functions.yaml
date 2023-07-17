@@ -640,6 +640,7 @@ supported:
  - inverse
  - inverse.out
  - is_pinned
+ - is_set_to
  - isclose
  - isfinite
  - isnan
@@ -1516,7 +1517,6 @@ tocpu:
   - complex.out
   - exponential_
   - geometric_
-  - is_set_to
   - linalg_vector_norm
   - linalg_vector_norm.out
   - linalg_slogdet
