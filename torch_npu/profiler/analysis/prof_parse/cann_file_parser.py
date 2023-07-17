@@ -48,7 +48,8 @@ class CANNFileParser:
     CANN_DATA_MATCH = {
         CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv"],
         CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv"],
-        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d_\d+\.json", r"^msprof_\d_\d+_\d+\.json"],
+        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d_\d+\.json", r"^msprof_\d_\d+_\d+\.json",
+                                       r"^msprof_\d_\d+_slice_\d+\.json", r"^msprof_\d_\d+_\d+_slice_\d+\.json"],
         CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv"],
         CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d_\d+\.csv", r"^ge_memory_record_\d_\d+_\d+\.csv",
                                         r"^memory_record_\d_\d+\.csv", r"^memory_record_\d_\d+_\d+\.csv"],
@@ -83,8 +84,10 @@ class CANNFileParser:
         completed_process = subprocess.run(["msprof", "--export=on", f"--output={self._cann_path}"],
                                            capture_output=True, timeout=2400)
         if completed_process.returncode != self.COMMAND_SUCCESS:
-            raise RuntimeError("Export CANN Profiling data failed, please verify that the "
-                               "ascend-toolkit is installed and set-env.sh is sourced.")
+            raise RuntimeError(
+                f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and set-env.sh "
+                f"is sourced. or you can execute the command to confirm the CANN Profiling export result: "
+                f"msprof --export=on --output={self._cann_path}")
         self._file_dispatch()
         step_trace_file_set = self.get_file_list_by_type(CANNDataEnum.STEP_TRACE)
         if not step_trace_file_set:
@@ -97,7 +100,7 @@ class CANNFileParser:
             if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
                 completed_process = subprocess.run(
                     ["msprof", "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
-                    capture_output=True, timeout=2400)
+                    capture_output=True, timeout=3600)
                 if completed_process.returncode != self.COMMAND_SUCCESS:
                     raise RuntimeError("Export CANN Profiling data failed, please verify that the "
                                        "ascend-toolkit is installed and set-env.sh is sourced.")
