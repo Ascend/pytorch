@@ -11,6 +11,7 @@ from torchgen.utils import concatMap, context
 from torchgen.context import with_native_function
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
+from codegen.torch_autograd.gen_trace_type import type_wrapper_name
 from codegen.utils import (enable_opplugin, is_op_valid)
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
@@ -97,7 +98,7 @@ def compute_trace_method_definition(f: NativeFunction):
         dispatch_key_set = \
             'c10::DispatchKeySet().add(c10::DispatchKey::AutogradPrivateUse1).add(c10::DispatchKey::PrivateUse1), '
         args_exprs_str = dispatch_key_set + args_exprs_str
-        impl_name = f"at_npu::autograd::VariableType::{cpp.name(f.func)}"
+        impl_name = f"at_npu::autograd::VariableType::{type_wrapper_name(f)}"
 
     check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
     unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \

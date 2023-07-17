@@ -81,6 +81,21 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason) {
   return not_implemented_base<std::vector<Tensor>>(name, reason);
 }
 
+Tensor maybe_multiply(const Tensor& t, const Scalar& s) {
+  bool is_one = false;
+  if (s.isFloatingPoint()) {
+    is_one = s.toSymFloat() == 1;
+  } else if (s.isIntegral(true)) {
+    is_one = s.toSymInt() == 1;
+  }
+
+  if (is_one) {
+    return t;
+  } else {
+    return t * s;
+  }
+}
+
 } // namespace details
 } // namespace generated
 } // namespace autograd
