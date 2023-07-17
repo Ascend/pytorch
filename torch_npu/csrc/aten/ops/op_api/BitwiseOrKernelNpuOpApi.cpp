@@ -71,19 +71,11 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_or_out(
   DO_COMPATIBILITY(aclnnBitwiseOrScalar, NPUNativeFunctions::bitwise_or_out(self, other, result));
   DO_COMPATIBILITY(aclnnBitwiseOrTensor, NPUNativeFunctions::bitwise_or_out(self, other, result));
 
-  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
-
-  at::Tensor outputTensor;
-  if (isSelfWrapped) {
-    outputTensor = other;
-  } else {
-    outputTensor = self;
-  }
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
       {self},
       result,
-      outputTensor,
+      result,
       outputSize);
 
   bitwise_or_op_api_out_npu_nocheck(result, self, other);
