@@ -37,6 +37,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "NPUBlockHandle.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -1469,6 +1470,40 @@ void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
   int device = 0;
   NPU_CHECK_ERROR(aclrtGetDevice(&device));
   return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
+}
+
+void* MallocBlock(size_t size, void *stream, int device) {
+  if (device == -1) {
+    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+  }
+  if ((device < 0) || (device > caching_allocator.device_allocator.size())) {
+    return nullptr;
+  }
+  AT_ASSERT(caching_allocator.device_allocator[device]);
+  AT_ASSERT(stream);
+  auto block = caching_allocator.device_allocator[device]->malloc(device, size, stream);
+  AT_ASSERT(block);
+  return reinterpret_cast<void*>(block);
+}
+
+void FreeBlock(void *handle) {
+  Block* block = reinterpret_cast<Block*>(handle);
+  AT_ASSERT(block);
+  assertValidDevice(block->device);
+  AT_ASSERT(caching_allocator.device_allocator[block->device]);
+  return caching_allocator.device_allocator[block->device]->free(block);
+}
+
+void* GetBlockPtr(const void *handle) {
+  const Block* block = reinterpret_cast<const Block*>(handle);
+  AT_ASSERT(block);
+  return block->ptr;
+}
+
+size_t GetBlockSize(const void *handle) {
+  const Block* block = reinterpret_cast<const Block*>(handle);
+  AT_ASSERT(block);
+  return block->size;
 }
 
 } // namespace NPUCachingAllocator
