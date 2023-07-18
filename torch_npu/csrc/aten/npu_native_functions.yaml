@@ -85,9 +85,9 @@ supported:
  - func: _softmax.out
    op_api: True
  - func: _softmax_backward_data
-   op_api: False
+   op_api: True
  - func: _softmax_backward_data.out
-   op_api: False
+   op_api: True
  - _symeig_helper
  - func: _unique2
    op_api: False
@@ -131,9 +131,9 @@ supported:
  - func: add.out
    op_api: True
  - func: add_.Scalar
-   op_api: False
+   op_api: True
  - func: add_.Tensor
-   op_api: False
+   op_api: True
  - addbmm
  - addbmm.out
  - addbmm_
@@ -436,7 +436,7 @@ supported:
  - func: dot.out
    op_api: True
  - func: dropout
-   op_api: False
+   op_api: True
  - dropout_with_byte_mask
  - func: embedding
    op_api: True
@@ -460,9 +460,9 @@ supported:
  - func: eq.Tensor_out
    op_api: True
  - func: eq_.Scalar
-   op_api: False
+   op_api: True
  - func: eq_.Tensor
-   op_api: False
+   op_api: True
  - func: equal
    op_api: True
  - func: erf
@@ -620,30 +620,30 @@ supported:
    op_api: False
  - hardtanh_backward.grad_input
  - func: histc
-   op_api: False
+   op_api: True
  - func: histc.out
-   op_api: False
+   op_api: True
  - im2col
  - im2col.out
  - func: im2col_backward
-   op_api: False
+   op_api: True
  - func: im2col_backward.grad_input
-   op_api: False
+   op_api: True
  - image_normalize
  - image_normalize_
  - img_to_tensor
  - func: index.Tensor
    op_api: True
  - func: index_add
-   op_api: False
+   op_api: True
  - index_add.dimname
  - func: index_add.out
-   op_api: False
+   op_api: True
  - index_fill.int_Scalar
  - index_fill.int_Tensor
  - index_fill_.int_Scalar
  - func: index_fill_.int_Tensor
-   op_api: False
+   op_api: True
  - func: index_select
    op_api: True
  - func: index_put
@@ -665,7 +665,7 @@ supported:
  - isnan
  - kl_div
  - func: kl_div_backward
-   op_api: False
+   op_api: True
  - func: kthvalue
    op_api: False
  - func: kthvalue.dimname
@@ -679,25 +679,25 @@ supported:
  - l1_loss_backward
  - l1_loss_backward.grad_input
  - func: le.Scalar
-   op_api: False
+   op_api: True
  - func: le.Scalar_out
-   op_api: False
+   op_api: True
  - func: le.Tensor
-   op_api: False
+   op_api: True
  - func: le.Tensor_out
-   op_api: False
+   op_api: True
  - le_.Scalar
  - le_.Tensor
  - func: leaky_relu
-   op_api: False
+   op_api: True
  - func: leaky_relu.out
-   op_api: False
+   op_api: True
  - func: leaky_relu_
    op_api: False
  - func: leaky_relu_backward
-   op_api: False
+   op_api: True
  - func: leaky_relu_backward.grad_input
-   op_api: False
+   op_api: True
  - lerp.Scalar
  - lerp.Scalar_out
  - lerp.Tensor
@@ -727,9 +727,9 @@ supported:
  - func: log1p_
    op_api: False
  - func: log2
-   op_api: False
+   op_api: True
  - func: log2.out
-   op_api: False
+   op_api: True
  - log2_
  - func: log_
    op_api: False
@@ -776,9 +776,9 @@ supported:
  - lstm.input
  - lstm_cell
  - func: lt.Scalar
-   op_api: False
+   op_api: True
  - func: lt.Scalar_out
-   op_api: False
+   op_api: True
  - func: lt.Tensor
    op_api: True
  - func: lt.Tensor_out
@@ -792,17 +792,17 @@ supported:
  - func: masked_fill_.Tensor
    op_api: True
  - func: masked_scatter_
-   op_api: False
+   op_api: True
  - func: masked_select
-   op_api: False
+   op_api: True
  - func: masked_select.out
-   op_api: False
+   op_api: True
  - func: max
-   op_api: False
+   op_api: True
  - func: max.dim
-   op_api: False
+   op_api: True
  - func: max.dim_max
-   op_api: False
+   op_api: True
  - max.names_dim
  - max.names_dim_max
  - max.out
@@ -820,9 +820,9 @@ supported:
  - func: max_unpool2d.out
    op_api: False
  - func: max_unpool2d_backward
-   op_api: False
+   op_api: True
  - func: max_unpool2d_backward.grad_input
-   op_api: False
+   op_api: True
  - max_unpool3d
  - max_unpool3d.out
  - max_unpool3d_backward
@@ -846,18 +846,18 @@ supported:
  - median.names_dim
  - median.names_dim_values
  - func: min
-   op_api: False
+   op_api: True
  - func: min.dim
-   op_api: False
+   op_api: True
  - func: min.dim_min
-   op_api: False
+   op_api: True
  - min.names_dim
  - min.names_dim_min
  - min.out
  - func: minimum
-   op_api: False
+   op_api: True
  - func: minimum.out
-   op_api: False
+   op_api: True
  - mish
  - mish.out
  - mish_
@@ -867,13 +867,13 @@ supported:
  - func: mm.out
    op_api: True
  - func: mse_loss
-   op_api: False
+   op_api: True
  - func: mse_loss.out
-   op_api: False
+   op_api: True
  - func: mse_loss_backward
-   op_api: False
+   op_api: True
  - func: mse_loss_backward.grad_input
-   op_api: False
+   op_api: True
  - func: mul.Scalar
    op_api: True
  - func: mul.Tensor
@@ -889,9 +889,9 @@ supported:
  - multilabel_margin_loss_forward
  - multilabel_margin_loss_forward.output
  - func: multinomial
-   op_api: False
+   op_api: True
  - func: multinomial.out
-   op_api: False
+   op_api: True
  - mv
  - mv.out
  - func: native_batch_norm
@@ -901,9 +901,9 @@ supported:
  - func: native_batch_norm_backward
    op_api: True
  - func: native_dropout
-   op_api: False
+   op_api: True
  - func: native_dropout_backward
-   op_api: False
+   op_api: True
  - func: native_layer_norm
    op_api: True
  - func: native_layer_norm_backward
@@ -945,16 +945,16 @@ supported:
  - func: nll_loss_forward.output
    op_api: True
  - func: nonzero
-   op_api: False
+   op_api: True
  - func: nonzero.out
-   op_api: False
+   op_api: True
  - norm.Scalar
  - norm.ScalarOpt_dim
  - norm.ScalarOpt_dim_dtype
  - norm.ScalarOpt_dtype
  - norm.dtype_out
  - func: norm.out
-   op_api: False
+   op_api: True
  - normal.Tensor_Tensor
  - normal.Tensor_Tensor_out
  - normal.Tensor_float
@@ -978,9 +978,9 @@ supported:
    op_api: False
  - pdist
  - func: pow.Scalar
-   op_api: False
+   op_api: True
  - func: pow.Scalar_out
-   op_api: False
+   op_api: True
  - func: pow.Tensor_Scalar
    op_api: True
  - func: pow.Tensor_Scalar_out
@@ -995,15 +995,15 @@ supported:
    op_api: True
  - prelu_backward
  - func: prod
-   op_api: False
+   op_api: True
  - prod.Dimname_out
  - prod.dim_Dimname
  - func: prod.dim_int
-   op_api: False
+   op_api: True
  - func: prod.int_out
-   op_api: False
+   op_api: True
  - func: put_
-   op_api: False
+   op_api: True
  - qr
  - qr.Q
  - quantize_per_channel
@@ -1024,7 +1024,7 @@ supported:
    op_api: True
  - range
  - func: range.out
-   op_api: False
+   op_api: True
  - range.step
  - func: reciprocal
    op_api: False
