@@ -11,6 +11,7 @@ namespace option {
 
 class OptionsManager {
 public:
+  static bool IsMultiStreamMemoryReuse();
   static bool CheckInfNanModeEnable();
   static bool CheckQueueEnable();
   static bool CheckCombinedOptimizerEnable();

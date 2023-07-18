@@ -8,12 +8,20 @@ namespace option {
 
 using namespace std;
 
-bool OptionsManager::CheckInfNanModeEnable() {
-  const static bool checkQueueEnable = []() -> bool {
-    int32_t queue_enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 0);
-    return (queue_enable != 0) ? true : false;
+bool OptionsManager::IsMultiStreamMemoryReuse() {
+  const static bool hcclRealTimeMemoryReuse = []() -> bool {
+    int32_t enable = OptionsManager::GetBoolTypeOption("MULTI_STREAM_MEMORY_REUSE", 0);
+    return enable != 0;
   }();
-  return checkQueueEnable;
+  return hcclRealTimeMemoryReuse;
+}
+
+bool OptionsManager::CheckInfNanModeEnable() {
+  const static bool checkInfNanModeEnable = []() -> bool {
+    int32_t enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 0);
+    return enable != 0;
+  }();
+  return checkInfNanModeEnable;
 }
 
 bool OptionsManager::CheckQueueEnable() {
