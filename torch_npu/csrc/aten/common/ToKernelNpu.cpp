@@ -4,6 +4,7 @@
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
@@ -132,7 +133,7 @@ at::Tensor NPUNativeFunctions::to(
     }();
   }
   dtype = (at::ScalarType::Double == dtype) ? at::ScalarType::Float : dtype;
-  return NPUNativeFunctions::npu_dtype_cast(self, dtype);
+  return custom_ops::npu_dtype_cast(self, dtype);
 }
 
 at::Tensor NPUNativeFunctions::to(

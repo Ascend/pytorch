@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -111,7 +112,7 @@ private:
     temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
                   temp_src.strides());
 
-    NPUNativeFunctions::npu_slice_out(temp_src, offsets, size, self);
+    custom_ops::npu_slice_out(temp_src, offsets, size, self);
     return;
   }
 

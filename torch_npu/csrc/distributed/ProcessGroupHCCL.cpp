@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
@@ -699,7 +700,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
                          tensors[0].scalar_type() == at::kLong;
   auto input_tensors = tensors;
   if (is_int64_scalar) {
-    input_tensors[0] = at_npu::native::NPUNativeFunctions::npu_dtype_cast(tensors[0], at::kInt);
+    input_tensors[0] = at_npu::native::custom_ops::npu_dtype_cast(tensors[0], at::kInt);
   }
   return collective(
       input_tensors,

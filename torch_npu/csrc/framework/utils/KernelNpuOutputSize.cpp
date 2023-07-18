@@ -1,5 +1,4 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -671,28 +670,6 @@ namespace at_npu
           c10::SmallVector<int64_t, SIZE>,
           c10::SmallVector<int64_t, SIZE>>(boxesSize, idxSize, maskSize);
     };
-
-    c10::SmallVector<int64_t, SIZE> nonzero_npu_output_size(const at::Tensor &self)
-    {
-      int64_t dim = self.dim();
-      at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
-      at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
-
-      at::Tensor coutNonzeroSelf = intSelf;
-      if (self.numel() > 10000000)
-      {
-        // Ensure outputsize correctly in large shape case
-        coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Long);
-      }
-      else
-      {
-        coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Int);
-      }
-
-      int64_t nonzeroNum = coutNonzeroSelf.item().toInt();
-      c10::SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
-      return outputSize;
-    }
 
     c10::SmallVector<int64_t, SIZE> nonzero_npu_max_output_size(const at::Tensor& self) {
       int64_t selfNumEl = self.numel();
