@@ -148,6 +148,10 @@ public:
     // The future returned by getFuture.
     c10::intrusive_ptr<at::ivalue::Future> future_;
 
+    // save inputs for tensor free when WorkHCCL::wait
+    std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
+    std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
+
     friend class ProcessGroupHCCL;
   };
   struct Options : c10d::Backend::Options {

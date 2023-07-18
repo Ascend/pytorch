@@ -378,8 +378,6 @@ namespace at_npu
       // event must be recorded before query
       if (cur_paras->eventAllocatorType == c10_npu::queue::HOST_ALLOCATOR_EVENT) {
         THNPUCachingHostAllocator_insertCompleteEvent(cur_paras->event);
-      } else if (cur_paras->eventAllocatorType == c10_npu::queue::NPU_ALLOCATOR_EVENT) {
-        c10_npu::NPUCachingAllocator::NpuAllocatorInsertRecordedEvent(cur_paras->event);
       }
 
       return ret;
