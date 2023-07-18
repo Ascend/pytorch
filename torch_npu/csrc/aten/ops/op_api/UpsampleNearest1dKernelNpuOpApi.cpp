@@ -43,7 +43,8 @@ at::Tensor NPUNativeOpApiFunctions::upsample_nearest1d(const at::Tensor& input,
   c10::SmallVector<int64_t, SIZE> out_size = upsample_linear1d_npu_output_size(input, compute_size, false, scales_w);
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(input, out_size);
 
-  EXEC_NPU_CMD(aclnnUpsampleNearest1d, input, output_size, result);
+  auto result_size = at::IntArrayRef(compute_size);
+  EXEC_NPU_CMD(aclnnUpsampleNearest1d, input, result_size, result);
   return result;
 }
 

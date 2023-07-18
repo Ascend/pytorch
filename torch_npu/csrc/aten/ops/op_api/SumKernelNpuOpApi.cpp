@@ -33,7 +33,7 @@ at::Tensor &NPUNativeOpApiFunctions::sum_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      self,
+      res_type,
       output_size);
 
   auto des_dim = ConvertType(dim);
