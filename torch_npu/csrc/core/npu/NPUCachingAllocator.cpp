@@ -321,9 +321,6 @@ class DeviceCachingAllocator {
 
   // lock around all operations
   mutable std::recursive_mutex mutex;
-  
-  // lock around taskqueue events operations
-  mutable std::mutex recorded_event_mutex;
 
   // device statistics
   DeviceStats stats;
@@ -339,9 +336,6 @@ class DeviceCachingAllocator {
 
   // outstanding acl events
   std::deque<std::pair<aclrtEvent, Block*>> npu_events;
-  
-  // outstanding taskqueue events
-  std::set<aclrtEvent> recorded_events;
 
   // record used memory.
   size_t total_allocated_memory = 0;
@@ -585,6 +579,27 @@ class DeviceCachingAllocator {
     block->stream_uses.insert(stream);
   }
 
+  void eraseStream(Block* block, c10_npu::NPUStream stream) {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    block->stream_uses.erase(stream);
+
+    // free block, lazy destory block related events
+    for (auto it = npu_events.begin(); it != npu_events.end();) {
+      if (block != (*it).second) {
+        it++;
+        continue;
+      }
+      aclrtEvent event = (*it).first;
+      c10_npu::NPUEventManager::GetInstance().LazyDestroy(event);
+      npu_events.erase(it);
+      block->event_count--;
+      if (block->event_count == 0) {
+        free_block(block);
+        break;
+      }      
+    }
+  }
+
   /** set memory fraction to limit maximum allocated memory **/
   void setMemoryFraction(double fraction) {
     size_t device_free;
@@ -710,12 +725,7 @@ class DeviceCachingAllocator {
       return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
     }
   }
-
-  void insertRecordedEvent(aclrtEvent event) {
-    std::lock_guard<std::mutex> lock(recorded_event_mutex);
-    recorded_events.insert(event);
-  }
-
+  
  private:
 
   // All private methods do not acquire the allocator mutex.
@@ -1083,13 +1093,6 @@ class DeviceCachingAllocator {
 
     for (auto& e : npu_events) {
       aclrtEvent event = e.first;
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() && it == recorded_events.end()) {
-            break;
-        }
-      }
       Block* block = e.second;
 
       if (check_error) {
@@ -1098,14 +1101,6 @@ class DeviceCachingAllocator {
         NPU_CHECK_WARN(aclrtSynchronizeEvent(event));
       }
       ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event=%p.", event);
-
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (it != recorded_events.end()) {
-          recorded_events.erase(it);
-        }
-      }
 
       if (check_error) {
         free_event_internal(event);        
@@ -1164,15 +1159,6 @@ class DeviceCachingAllocator {
       aclrtEvent event = e.first;
       Block* block = e.second;
 
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.begin();
-        it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() && it == recorded_events.end()) {
-            break;
-        }
-      }
-
       c10_npu::acl::aclrtEventRecordedStatus status = c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
       aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
 
@@ -1181,14 +1167,6 @@ class DeviceCachingAllocator {
       }
       if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         break;
-      }
-
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (it != recorded_events.end()) {
-          recorded_events.erase(it);
-        }
       }
       
       free_event_internal(event);
@@ -1338,6 +1316,14 @@ class THNCachingAllocator {
     device_allocator[block->device]->recordStream(block, stream);
   }
 
+  void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
+    if (!ptr.get()) {
+      return;
+    }
+    Block* block = get_allocated_block(ptr.get());
+    device_allocator[block->device]->eraseStream(block, stream);
+  }
+
   std::vector<SegmentInfo> snapshot() {
     std::vector<SegmentInfo> result;
     int count = device_allocator.size();
@@ -1406,6 +1392,10 @@ void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
   caching_allocator.recordStream(ptr, stream);
 }
 
+void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
+  caching_allocator.eraseStream(ptr, stream);
+}
+
 std::mutex* getFreeMutex() {
   return caching_allocator.getNpuFreeMutex();
 }
@@ -1462,12 +1452,6 @@ void raw_delete(void* ptr) {
 
 void FreeDeviceCachedMemory(int device) {
   caching_allocator.device_allocator[device]->emptyCache(true);
-}
-
-void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
-  int device = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&device));
-  return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
 }
 
 } // namespace NPUCachingAllocator
