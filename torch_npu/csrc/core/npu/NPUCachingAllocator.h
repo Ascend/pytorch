@@ -137,6 +137,7 @@ void setShutdownStats();
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
 void* getBaseAllocation(void* ptr, size_t* size);
 void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
+void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
 DeviceStats getDeviceStats(int device);
 void resetAccumulatedStats(int device);
 void resetPeakStats(int device);
@@ -145,8 +146,6 @@ std::vector<SegmentInfo> snapshot();
 std::mutex* getFreeMutex();
 
 void FreeDeviceCachedMemory(int device);
-
-void NpuAllocatorInsertRecordedEvent(aclrtEvent event);
 
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
