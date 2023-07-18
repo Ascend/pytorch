@@ -509,11 +509,16 @@ supported:
    op_api: True
  - func: floor_
    op_api: False
- - floor_divide
- - floor_divide.Scalar
- - floor_divide.out
- - floor_divide_.Scalar
- - floor_divide_.Tensor
+ - func: floor_divide
+   op_api: False
+ - func: floor_divide.Scalar
+   op_api: False
+ - func: floor_divide.out
+   op_api: False
+ - func: floor_divide_.Scalar
+   op_api: False
+ - func: floor_divide_.Tensor
+   op_api: False
  - fmod.Scalar
  - fmod.Scalar_out
  - fmod.Tensor
