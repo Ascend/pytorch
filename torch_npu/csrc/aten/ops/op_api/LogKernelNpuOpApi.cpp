@@ -31,6 +31,10 @@ at::Tensor& NPUNativeOpApiFunctions::log_out(const at::Tensor& self, at::Tensor&
       // int need cast to float
       expext_dtype = at::kFloat;
     }
+    if (isFloatingType(result.scalar_type()) ||
+        isComplexType(result.scalar_type())) {
+      expext_dtype = result.scalar_type();
+    }
     OpPreparation::CheckOut({self}, result, expext_dtype, self.sizes());
   }
 
