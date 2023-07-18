@@ -787,6 +787,7 @@ supported:
  - func: inverse.out
    wrap_impl: inverse_out
  - is_pinned
+ - is_set_to
  - func: isclose
    wrap_impl: isclose
  - func: isfinite
