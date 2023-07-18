@@ -32,5 +32,20 @@ at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFor
   return self.clone();
 }
 
+bool NPUNativeFunctions::is_set_to(const at::Tensor& self, const at::Tensor& src) {
+  if (self.storage().unsafeGetStorageImpl() == src.storage().unsafeGetStorageImpl() &&
+      self.storage_offset() == src.storage_offset() && self.dim() == src.dim() &&
+      NPUNativeFunctions::get_storage_size(self) == NPUNativeFunctions::get_storage_size(src) &&
+      NPUNativeFunctions::get_npu_format(self) == NPUNativeFunctions::get_npu_format(src)) {
+    for (int64_t d = 0; d < self.dim(); ++d) {
+      if (self.size(d) != src.size(d) || self.stride(d) != src.stride(d)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
 }
-}
+
+} // namespace native
+} // namespace at_npu
