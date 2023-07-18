@@ -192,8 +192,10 @@ supported:
    op_api: True
  - func: arange.start_step
    op_api: True
- - argsort
- - argsort.dimname
+ - func: argsort
+   op_api: False
+ - func: argsort.dimname
+   op_api: False
  - as_strided
  - as_strided_
  - asin
