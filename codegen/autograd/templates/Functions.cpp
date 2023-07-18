@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
+#include "op_plugin/ops/OpInterface.h"
 
 // ${generated_comment}
 
@@ -7,6 +8,7 @@
 // used for forward mode AD formulas as well.
 
 using namespace at_npu::autograd::generated::details;
+using namespace op_plugin;
 using at::Tensor;
 using at::Scalar;
 using at::IntArrayRef;
