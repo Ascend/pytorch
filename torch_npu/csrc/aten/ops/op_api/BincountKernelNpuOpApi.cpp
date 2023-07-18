@@ -27,10 +27,16 @@ at::Tensor NPUNativeOpApiFunctions::bincount(
                    NPUNativeFunctions::bincount(self, weight_opt, minlength));
   // null tensor
   if (self.dim() == 1 && self.numel() == 0) {
-      auto result = OpPreparation::ApplyTensorWithoutFormat(
+    at::Tensor result;
+    if (minlength <= 0) {
+      result = OpPreparation::ApplyTensorWithoutFormat(
           {0}, 
-          self.options().dtype(at::ScalarType::Long));
-      return result;
+          self.options().dtype(at::ScalarType::Long)); 
+    } else {
+      result = OpPreparation::ApplyTensorWithoutFormat({minlength}, self.options().dtype(at::ScalarType::Long));
+      EXEC_NPU_CMD(aclnnBincount, self, weight_opt, minlength, result);
+    }
+    return result;
   } 
 
   // cheack non-negative
