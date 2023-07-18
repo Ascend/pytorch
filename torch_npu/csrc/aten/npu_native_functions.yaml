@@ -674,7 +674,8 @@ supported:
    op_api: False
  - func: leaky_relu.out
    op_api: False
- - leaky_relu_
+ - func: leaky_relu_
+   op_api: False
  - func: leaky_relu_backward
    op_api: False
  - func: leaky_relu_backward.grad_input
