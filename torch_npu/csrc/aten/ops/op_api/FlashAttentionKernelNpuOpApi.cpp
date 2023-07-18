@@ -90,10 +90,14 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &k
   return mask;
 }
 
-at::Tensor dropout_gen_mask(const at::Tensor &self, double keep_prob, int64_t head_num, bool gen_mask_parallel,
-    bool sync, int64_t &seed, int64_t &offset, int64_t &numels) {
+at::Tensor dropout_gen_mask(const at::Tensor &self, double keep_prob, int64_t head_num, std::string input_layout,
+    bool gen_mask_parallel, bool sync, int64_t &seed, int64_t &offset, int64_t &numels) {
   at::Tensor drop_mask;
-  numels = self.size(0) * head_num * self.size(1) * self.size(1); // [B,N,S,S]
+  if (input_layout == "BSH") {
+    numels = self.size(0) * head_num * self.size(1) * self.size(1); // [B,N,S,S]
+  } else if (input_layout == "SBH") {
+    numels = self.size(1) * head_num * self.size(0) * self.size(0); // [B,N,S,S]
+  }
   int64_t length = (numels + 128 - 1) / 128 * 128 / 8;
   length += 32;
   if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_NORMAL) {
@@ -114,6 +118,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     const at::Tensor &value,
     const at::Tensor &dy,
     int64_t head_num,
+    const std::string input_layout,
     const c10::optional<at::Tensor> &pse,
     const c10::optional<at::Tensor> &drop_mask,
     const c10::optional<at::Tensor> &padding_mask,
@@ -157,14 +162,15 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query);
   at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
   at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
+  char* input_layout_ptr = const_cast<char *>(input_layout.c_str());
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
       format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
-      pre_tockens, next_tockens, is_flash, head_num, dq, dk, dv);
+      pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq, dk, dv);
 
-  return {dq, dk, dv,
+  return {dq, dk, dv, at::Tensor(),
           at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(),
           at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
 }
@@ -173,7 +179,7 @@ class NPUFlashAttentionFunction : public torch::autograd::Function<NPUFlashAtten
 public:
   static std::vector<at::Tensor> forward(
       AutogradContext *ctx, const at::Tensor &query, const at::Tensor &key,
-      const at::Tensor &value, int64_t head_num, const c10::optional<at::Tensor> &pse_opt,
+      const at::Tensor &value, int64_t head_num, c10::string_view input_layout, const c10::optional<at::Tensor> &pse_opt,
       const c10::optional<at::Tensor> &padding_mask_opt, const c10::optional<at::Tensor> &atten_mask_opt,
       double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
   {
@@ -185,6 +191,12 @@ public:
     TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
     TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
     TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
+    std::string input_layout_str = std::string(input_layout);
+    for (auto & c : input_layout_str) {
+      c = toupper(c);
+    }
+    TORCH_CHECK(input_layout_str == "BSH" || input_layout_str == "SBH",
+        "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
     at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(query);
 
     at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
@@ -198,24 +210,37 @@ public:
       (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
       NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
+    int64_t B = 0;
+    int64_t S = 0;
+    int64_t H = 0;
+    if (input_layout_str == "BSH") {
+      B = query.size(0);
+      S = query.size(1);
+      H = query.size(2);
+    } else if (input_layout_str == "SBH") {
+      B = query.size(1);
+      S = query.size(0);
+      H = query.size(2);
+    }
+
     int64_t seed;
     int64_t offset;
     int64_t numels;
-    at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, gen_mask_parallel, sync,
-        seed, offset, numels);
+    at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, input_layout_str,
+        gen_mask_parallel, sync, seed, offset, numels);
 
-    size_t dim = (query.scalar_type() == at::ScalarType::Float) ? 8 : 16;
-    at::Tensor softmax_max = OpPreparation::ApplyTensorWithoutFormat(query,
-        {query.size(0), head_num, query.size(1), dim}); // [B, N, S, dim]
-    at::Tensor softmax_sum = OpPreparation::ApplyTensorWithoutFormat(query,
-        {query.size(0), head_num, query.size(1), dim}); // [B, N, S, dim]
+    at::Tensor softmax_max = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S, 8},
+        query.options().dtype(at::kFloat)); // [B, N, S, 8]
+    at::Tensor softmax_sum = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S, 8},
+        query.options().dtype(at::kFloat)); // [B, N, S, 8]
 
     bool is_flash = true;
     at::Tensor softmax_out;
 
+    char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
     EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
         format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
-        scale, keep_prob, pre_tockens, next_tockens, head_num, is_flash,
+        scale, keep_prob, pre_tockens, next_tockens, head_num, is_flash, input_layout_ptr,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
     if (!sync) {
@@ -233,8 +258,9 @@ public:
     ctx->saved_data["keep_prob"] = keep_prob;
     ctx->saved_data["pre_tockens"] = pre_tockens;
     ctx->saved_data["next_tockens"] = next_tockens;
-    ctx->saved_data["is_flash"] = is_flash;
     ctx->saved_data["head_num"] = head_num;
+    ctx->saved_data["is_flash"] = is_flash;
+    ctx->saved_data["input_layout"] = input_layout_str;
     ctx->saved_data["gen_mask_parallel"] = gen_mask_parallel;
     ctx->saved_data["sync"] = sync;
     ctx->saved_data["seed"] = seed;
@@ -250,8 +276,9 @@ public:
     auto keep_prob = ctx->saved_data["keep_prob"].toDouble();
     auto pre_tockens = ctx->saved_data["pre_tockens"].toInt();
     auto next_tockens = ctx->saved_data["next_tockens"].toInt();
-    auto is_flash = ctx->saved_data["is_flash"].toBool();
     auto head_num = ctx->saved_data["head_num"].toInt();
+    auto is_flash = ctx->saved_data["is_flash"].toBool();
+    auto input_layout = ctx->saved_data["input_layout"].toStringRef();
     auto gen_mask_parallel = ctx->saved_data["gen_mask_parallel"].toBool();
     auto sync = ctx->saved_data["sync"].toBool();
     auto seed = ctx->saved_data["seed"].toInt();
@@ -280,7 +307,7 @@ public:
     }
 
     auto results = npu_flash_attention_backward(query,
-        key, value, grad_outputs[0], head_num, pse, drop_mask, padding_mask, atten_mask,
+        key, value, grad_outputs[0], head_num, input_layout, pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
         keep_prob, pre_tockens, next_tockens);
 
@@ -299,6 +326,7 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
     const at::Tensor &value,
     const at::Tensor &dy,
     int64_t head_num,
+    c10::string_view input_layout,
     const c10::optional<at::Tensor> &pse,
     const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask,
@@ -318,14 +346,20 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
   TORCH_CHECK(dy.dim() == 3, "The shapes of the input dy should be 3-dimensional, but got ", dy.dim(), "-dimensional");
   TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
+  std::string input_layout_str = std::string(input_layout);
+  for (auto & c : input_layout_str) {
+    c = toupper(c);
+  }
+  TORCH_CHECK(input_layout_str == "BSH" || input_layout_str == "SBH",
+      "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
   int64_t seed;
   int64_t offset;
   int64_t numels;
-  at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, gen_mask_parallel, sync,
+  at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, input_layout_str, gen_mask_parallel, sync,
       seed, offset, numels);
 
   auto result = npu_flash_attention_backward(query,
-      key, value, dy, head_num, pse, drop_mask, padding_mask, atten_mask,
+      key, value, dy, head_num, input_layout_str, pse, drop_mask, padding_mask, atten_mask,
       softmax_max, softmax_sum, softmax_in, attention_in, scale_value,
       keep_prob, pre_tockens, next_tockens);
 
@@ -340,12 +374,12 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
 
 std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention(
     const at::Tensor &query, const at::Tensor &key,
-    const at::Tensor &value, int64_t head_num,
+    const at::Tensor &value, int64_t head_num, c10::string_view input_layout,
     const c10::optional<at::Tensor> &pse, const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask,
     double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
 {
-  return NPUFlashAttentionFunction::apply(query, key, value, head_num, pse, padding_mask,
+  return NPUFlashAttentionFunction::apply(query, key, value, head_num, input_layout, pse, padding_mask,
       atten_mask, scale, keep_prob, pre_tockens, next_tockens, gen_mask_parallel, sync);
 }
 } // namespace native
