@@ -466,8 +466,10 @@ supported:
    wrap_impl: convolution_backward_overrideable
  - func: convolution_overrideable
    wrap_impl: convolution_overrideable
- - count_nonzero
- - count_nonzero.dim_IntList
+ - func: count_nonzero
+   wrap_impl: count_nonzero
+ - func: count_nonzero.dim_IntList
+   wrap_impl: count_nonzero
  - copy_
  - copy_memory_
  - func: cos
@@ -488,14 +490,16 @@ supported:
    wrap_impl: ctc_loss
  - func: ctc_loss.Tensor
    wrap_impl: ctc_loss
- - cumprod.dimname_out
+ - func: cumprod.dimname_out
+   wrap_impl: cumprod_out
  - func: cumprod.out
    wrap_impl: cumprod_out
  - func: cumprod_
    wrap_impl: cumprod_
  - func: cumprod_.dimname
    wrap_impl: cumprod_
- - cumsum.dimname_out
+ - func: cumsum.dimname_out
+   wrap_impl: cumsum_out
  - func: cumsum.out
    wrap_impl: cumsum_out
  - func: decode_jpeg
@@ -1079,8 +1083,10 @@ supported:
    wrap_impl: native_batch_norm
  - func: native_batch_norm_backward
    wrap_impl: native_batch_norm_backward
- - native_dropout
- - native_dropout_backward
+ - func: native_dropout
+   wrap_impl: native_dropout
+ - func: native_dropout_backward
+   wrap_impl: native_dropout_backward
  - func: native_layer_norm
    wrap_impl: native_layer_norm
  - func: native_layer_norm_backward
@@ -1247,8 +1253,10 @@ supported:
    wrap_impl: reflection_pad1d
  - func: reflection_pad1d.out
    wrap_impl: reflection_pad1d_out
- - reflection_pad1d_backward
- - reflection_pad1d_backward.grad_input
+ - func: reflection_pad1d_backward
+   wrap_impl: reflection_pad1d_backward
+ - func: reflection_pad1d_backward.grad_input
+   wrap_impl: reflection_pad1d_backward_out
  - func: reflection_pad2d
    wrap_impl: reflection_pad2d
  - func: reflection_pad2d.out
@@ -1332,8 +1340,10 @@ supported:
  - func: rsub.Tensor
    wrap_impl: rsub
  - scalar_tensor
- - scatter.src_out
- - scatter.value_out
+ - func: scatter.src_out
+   wrap_impl: scatter_out
+ - func: scatter.value_out
+   wrap_impl: scatter_out
  - func: scatter_add
    wrap_impl: scatter_add
  - func: scatter_add.dimname
@@ -1945,9 +1955,6 @@ custom:
     wrap_impl: npu_fused_attention_layernorm_qkv_fwd
   - func: npu_layernorm_grad(Tensor grad_out, Tensor input, int[] normalized_shape, Tensor mean, Tensor rstd, Tensor? weight, Tensor? bias) -> (Tensor, Tensor, Tensor)
     wrap_impl: npu_layernorm_grad
-  - func: format_contiguous(Tensor self) -> Tensor
-  - func: check_match(Tensor self) -> bool
-  - func: check_memory_overlaps(Tensor[] inputs, Tensor[] outputs) -> ()
   - func: npu_ifmr(Tensor data, Tensor data_min, Tensor data_max, Tensor cumsum, float min_percentile, float max_percentile, float search_start, float search_end, float search_step, bool with_offset) -> (Tensor, Tensor)
     wrap_impl: npu_ifmr
   - func: npu_grid_assign_positive(Tensor self, Tensor overlaps, Tensor box_responsible_flags, Tensor max_overlaps, Tensor argmax_overlaps, Tensor gt_max_overlaps, Tensor gt_argmax_overlaps, int num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all) -> Tensor

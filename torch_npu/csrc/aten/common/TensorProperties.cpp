@@ -18,10 +18,6 @@ at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFor
   return self.clone();
 }
 
-at::Tensor NPUNativeFunctions::format_contiguous(const at::Tensor &self) {
-  return NpuUtils::format_contiguous(self);
-}
-
 bool NPUNativeFunctions::is_set_to(const at::Tensor& self, const at::Tensor& src) {
   if (self.storage().unsafeGetStorageImpl() == src.storage().unsafeGetStorageImpl() &&
       self.storage_offset() == src.storage_offset() && self.dim() == src.dim() &&
