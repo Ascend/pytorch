@@ -80,6 +80,12 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
   AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
 })
 
+REGISTER_OPTION_HOOK(ACL_AICORE_NUM, [](const std::string &val) {
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_AICORE_NUM, result = ", ret, ", set value ", val);
+})
+
 REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
   auto ret = AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str());
   TORCH_CHECK(ret == ACL_SUCCESS,

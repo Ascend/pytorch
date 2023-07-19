@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from logging import exception
+import inspect
 import os
 import warnings
 import torch_npu._C
@@ -23,6 +24,24 @@ import torch_npu._C
 __all__ = ["set_option", "set_compile_mode", "set_aoe", "profile", "prof_init",
             "prof_start", "prof_stop", "iteration_start", "iteration_end", "prof_finalize", "profileConfig",
             "set_mm_bmm_format_nd"]
+
+_option_map = {"ACL_PRECISION_MODE" : ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
+               "ACL_OP_SELECT_IMPL_MODE" : ["high_performance", "high_precision"],
+               "ACL_AICORE_NUM" : (lambda value: value.isdigit() and 1 <= int(value) <= 32),
+               "ACL_OPTYPELIST_FOR_IMPLMODE" : None,
+               "ACL_OP_DEBUG_LEVEL" : ["0", "1", "2"],
+               "ACL_DEBUG_DIR" : None,
+               "ACL_OP_COMPILER_CACHE_MODE" : ["disable", "enable", "force"],
+               "ACL_OP_COMPILER_CACHE_DIR" : None}
+
+def _check_compile_option(name, value) -> bool:
+    if name in _option_map.keys():
+        if _option_map[name] is None:
+            return True
+        if callable(_option_map[name]):
+            return _option_map[name](value)
+        return value in _option_map[name]
+    return True
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -34,7 +53,13 @@ def set_option(option):
         set_mm_bmm_format_nd(False)
 
     for option_name, option_value in option.items():
-        option[option_name] = str(option_value)
+        if _check_compile_option(option_name, str(option_value)):
+            option[option_name] = str(option_value)
+        elif callable(_option_map[option_name]):
+            raise ValueError(f"value of {option_name} should be in %s "
+                             %(inspect.getsource(_option_map[option_name])))
+        else:
+            raise ValueError(f"value of {option_name} should be in %s "%(_option_map[option_name]))
     torch_npu._C._npu_setOption(option)
 
 def init_dump():
