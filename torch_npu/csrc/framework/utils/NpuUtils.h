@@ -59,6 +59,7 @@ namespace at_npu
     public:
       static bool check_match(const at::Tensor *tensor);
       static at::Tensor format_contiguous(const at::Tensor &src);
+      static at::Tensor format_contiguous_add_copy_optimize(const at::Tensor &src);
       static void RefreshFormat(const at::Tensor &tensor);
       static void format_fresh_view(
           at::Tensor &x,
