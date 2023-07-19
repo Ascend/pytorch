@@ -738,8 +738,10 @@ supported:
  - log2_
  - func: log_
    op_api: False
- - log_sigmoid
- - log_sigmoid.out
+ - func: log_sigmoid
+   op_api: False
+ - func: log_sigmoid.out
+   op_api: False
  - log_sigmoid_backward
  - log_sigmoid_backward.grad_input
  - log_sigmoid_forward
