@@ -722,10 +722,14 @@ supported:
  - log_sigmoid_forward.output
  - log_softmax.Dimname
  - log_softmax.int
- - logaddexp
- - logaddexp.out
- - logaddexp2
- - logaddexp2.out
+ - func: logaddexp
+   op_api: False
+ - func: logaddexp.out
+   op_api: False
+ - func: logaddexp2
+   op_api: False
+ - func: logaddexp2.out
+   op_api: False
  - func: logical_and
    op_api: True
  - func: logical_and.out
