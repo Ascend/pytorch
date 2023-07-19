@@ -19,7 +19,7 @@ import re
 import sys
 import stat
 import traceback
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Dict
 import yaml
 
 from torchgen.context import native_function_manager
@@ -39,7 +39,7 @@ from torchgen.yaml_utils import YamlLoader
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 
-def parse_npu_yaml(custom_path: str) -> List:
+def parse_npu_yaml(custom_path: str) -> Dict:
     from io import StringIO
     f_str = StringIO()
     with open(custom_path, 'r') as f:
@@ -74,7 +74,10 @@ def filt_npu_autograd_functions(path, custom_path, derivatives_path) -> set:
     for e in es:
         torch_functions.add(e.get('func'))
 
-    parse_npu_yaml(custom_path)
+    npu_func = parse_npu_yaml(custom_path)
+    custom_autograd = set()
+    for func in npu_func['custom_autograd']:
+        custom_autograd.add(func['func'].split('(')[0])
 
     with open(derivatives_path, 'r') as f:
         definitions = yaml.load(f, Loader=YamlLoader)
@@ -86,7 +89,7 @@ def filt_npu_autograd_functions(path, custom_path, derivatives_path) -> set:
         suffixes = ['', '_', '.out']
         for suffix in suffixes:
             func_name = name + suffix
-            if func_name in GLOBAL_STRUCTURED_OP_INFO_CACHE:
+            if func_name in custom_autograd:
                 npu_autograd_functions.add(func_name)
 
     return npu_autograd_functions
