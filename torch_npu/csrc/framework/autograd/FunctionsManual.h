@@ -41,6 +41,8 @@ void copy_range(variable_list& out, IndexRange range, at::ArrayRef<at::Tensor> t
 at::Tensor not_implemented(const char* name, const char* reason="");
 std::vector<Tensor> not_implemented_list(const char* name, const char* reason="");
 
+TORCH_API at::Tensor maybe_multiply(const at::Tensor& t, const at::Scalar& s);
+
 } // namespace details
 } // namespace generated
 } // namespace autograd

@@ -66,7 +66,7 @@ def parse_npu_yaml(custom_path: str) -> List:
     return source_es
 
 
-def filt_npu_autograd_functions(path, custom_path) -> set:
+def filt_npu_autograd_functions(path, custom_path, derivatives_path) -> set:
     torch_functions = set()
     with open(path, 'r') as f:
         es = yaml.load(f, Loader=LineLoader)
@@ -74,16 +74,20 @@ def filt_npu_autograd_functions(path, custom_path) -> set:
     for e in es:
         torch_functions.add(e.get('func'))
 
-    with open(custom_path, 'r') as f:
-        definitions = yaml.load(f, Loader=YamlLoader)
+    parse_npu_yaml(custom_path)
 
+    with open(derivatives_path, 'r') as f:
+        definitions = yaml.load(f, Loader=YamlLoader)
     npu_autograd_functions = set()
     for item in definitions:
         if item['name'] in torch_functions:
             continue
-        match = re.search(r'([a-zA-Z0-9_]+)\(', item['name'])
-        if match:
-            npu_autograd_functions.add(match.group(1))
+        name = item['name'].split('(')[0]
+        suffixes = ['', '_', '.out']
+        for suffix in suffixes:
+            func_name = name + suffix
+            if func_name in GLOBAL_STRUCTURED_OP_INFO_CACHE:
+                npu_autograd_functions.add(func_name)
 
     return npu_autograd_functions
 

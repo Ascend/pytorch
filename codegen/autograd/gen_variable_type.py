@@ -4,8 +4,8 @@
 #
 
 import re
-import os
-from typing import List
+from pathlib import Path
+from typing import List, Dict
 
 from torchgen.api.autograd import NativeFunctionWithDifferentiabilityInfo
 from torchgen.api import cpp
@@ -26,11 +26,12 @@ from codegen.utils import filt_npu_autograd_functions, get_torchgen_dir
 
 # NPU methods require special processing. 
 NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions( 
-    os.path.join(get_torchgen_dir(),'packaged/ATen/native/native_functions.yaml'),
-    os.path.join(os.path.dirname(__file__), 'derivatives.yaml'))
+    str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
+    str(Path(__file__).parents[2].joinpath('torch_npu/csrc/aten/npu_native_functions.yaml')),
+    str(Path(__file__).parent.joinpath('derivatives.yaml')))
 
 try_jit_decomposition_pattern = (r'if \(\(.*?\)\) \{.*?static c10::OperatorName full_name\("aten::.*?", .*?\);\n.*?'
-                                 r'return impl::run_jit_decomposition_with_args_for_jvp<at::Tensor>'
+                                 r'return impl::run_jit_decomposition_with_args_for_jvp<.*?>'
                                  r'\(".*?", \*opt_op, ks, .*?\);\n\s*\} '
                                  r'else \{\n\s*(.*?)\n\s*\}')
 use_count_pattern = (r'if \(\S+\.has_storage\(\) && !at::impl::dispatch_mode_enabled\(\) && '
@@ -68,9 +69,9 @@ def gen_variable_type(
             'generated_comment':
             "@" f'generated from {template_path}/VariableType.cpp',
         },
-        env_callable=gen_variable_type_func,
+        env_callable=gen_variable_type_func_for_npu,
         num_shards=1,
-        sharded_keys={'type_derived_method_definitions', 'wrapper_registrations'}
+        sharded_keys={'type_derived_method_definitions_Default', 'wrapper_registrations_Default'}
     )
 
 
@@ -147,3 +148,15 @@ def gen_variable_type_header(
                     )
                 variable_type_header.append(type_header_definition)
     return variable_type_header
+
+
+def gen_variable_type_func_for_npu(
+    fn: NativeFunctionWithDifferentiabilityInfo,
+) -> Dict[str, List[str]]:
+    gen_code = gen_variable_type_func(fn)
+    type_definition = gen_code['type_derived_method_definitions_Default'][0]
+    type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
+    type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
+    gen_code['type_derived_method_definitions_Default'] = [type_definition]
+
+    return gen_code

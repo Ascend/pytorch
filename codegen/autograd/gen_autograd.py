@@ -82,7 +82,7 @@ def gen_autograd(
     gen_variable_type_head(out, funcs_with_diff_infos, template_path)
 
     # Generate ADInplaceOrViewType.cpp
-    gen_inplace_or_view_type(out, native_functions_path, tags_path, funcs_with_diff_infos, torch_templace_path)
+    gen_inplace_or_view_type(out, native_functions_path, tags_path, npu_funcs_with_diff_infos, torch_templace_path)
     
     # Generate Functions.h/cpp
     gen_autograd_functions_lib(out, differentiability_infos, template_path)
