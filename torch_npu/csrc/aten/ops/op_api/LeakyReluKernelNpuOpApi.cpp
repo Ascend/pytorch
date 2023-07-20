@@ -42,5 +42,11 @@ at::Tensor NPUNativeOpApiFunctions::leaky_relu(const at::Tensor& self, const at:
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::leaky_relu_(at::Tensor& self, const at::Scalar& negval) {
+  DO_COMPATIBILITY(aclnnInplaceLeakyRelu, NPUNativeFunctions::leaky_relu_(self, negval));
+  EXEC_NPU_CMD(aclnnInplaceLeakyRelu, self, negval);
+  return self;
+}
+
 } // namespace native
 } // namespace at_npu
