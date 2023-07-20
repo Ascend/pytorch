@@ -176,6 +176,20 @@ PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+  PyObject *value_1 = nullptr;
+  PyObject *value_2 = nullptr;
+  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
+    throw torch::TypeError("device id or peer device id error.");
+  }
+  int32_t device_id = THPUtils_unpackInt(value_1);
+  int32_t peer_device_id = THPUtils_unpackInt(value_2);
+  auto can_access_peer = c10_npu::acl::can_device_access_peer(device_id, peer_device_id);
+  return PyBool_FromLong(can_access_peer);
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index) {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate");
@@ -864,6 +878,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
+    {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},
     {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},

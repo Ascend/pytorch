@@ -26,6 +26,7 @@ aclError aclrtGetDevice(int32_t *deviceId){return 0;}
 aclError aclrtResetDevice(int32_t deviceId){return 0;}
 aclError aclrtSetDevice(int32_t deviceId){return 0;}
 aclError aclrtGetDeviceCount(uint32_t *count){return 0;}
+aclError aclrtDeviceCanAccessPeer(int32_t *canAccessPeer, int32_t deviceId, int32_t peerDeviceId){return 0;}
 aclError aclrtSynchronizeDevice(void){return 0;}
 aclError aclmdlSetDump(const char *configPath){return 0;}
 aclError aclmdlInitDump(){return 0;}
