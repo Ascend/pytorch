@@ -1404,8 +1404,10 @@ autograd:
   - func: silu.out
     op_api: False
   - binary_cross_entropy_with_logits_backward
-  - selu
-  - selu_
+  - func: selu
+    op_api: False
+  - func: selu_
+    op_api: False
 
 tocpu:
   - _cholesky_helper
