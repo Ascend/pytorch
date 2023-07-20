@@ -333,3 +333,8 @@ def enable_opplugin() -> bool:
 
 def is_op_valid(op_key: str) -> bool:
     return True if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE else False
+
+
+def get_opplugin_wrap_name(func) -> str:
+    op_key = str(func.func.name) if type(func) is NativeFunction else func
+    return GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, None)
