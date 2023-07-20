@@ -14,11 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 
 import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestRotaryMul(TestCase):
@@ -55,6 +58,7 @@ class TestRotaryMul(TestCase):
         r2_grad = r2.grad.detach().cpu().numpy()
         return x_grad, r1_grad, r2_grad
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `RotaryMulGrad` is only supported on 910B, skip this ut!")
     def test_rotary_mul_backward(self):
         dtype_list = [torch.float32]
         shape_list = [
