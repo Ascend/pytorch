@@ -40,7 +40,7 @@ from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
-                           add_header_to_template_file, parse_npu_yaml)
+                           add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name)
 from codegen.custom_functions import parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch
 
 
@@ -262,19 +262,23 @@ def check_op_on_cpu_kernels(
             backend_indices[DispatchKey.CPU].index.pop(op_name, None)
 
 
-# Double-check the functions we supported to see whether there exists something mismatch.
-def error_on_missing_kernels(
-        native_functions: Sequence[NativeFunction],
-        backend_indices: Dict[DispatchKey, BackendIndex],
-        backend_key: DispatchKey,
-        autograd_key: DispatchKey,
-        kernel_def_file_path: str,
-) -> None:
-    class_name: Optional[str] = backend_indices[backend_key].native_function_class_name()
-    assert class_name is not None
-
+def op_plugin_kernel_conut(op_plugin_ops_dir: str):
     actual_backend_kernel_name_counts = Counter()
-    for cur_dir, _, filenames in os.walk(kernel_def_file_path):
+    file_path = os.path.join(op_plugin_ops_dir, "OpInterface.h")
+    try:
+        with open(file_path, 'r') as f:
+            backend_defns = f.read()
+    except IOError:
+        raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}')
+
+    kernel_defn_regex = rf'\w+(?=\()'
+    actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
+    return actual_backend_kernel_name_counts
+
+
+def pta_kernel_conut(class_name: str, pta_op_dir: str):
+    actual_backend_kernel_name_counts = Counter()
+    for cur_dir, _, filenames in os.walk(pta_op_dir):
         for filename in filenames:
             if not filename.endswith('.cpp'):
                 continue
@@ -287,7 +291,35 @@ def error_on_missing_kernels(
 
             kernel_defn_regex = rf'{class_name}::([\w\d]*)\([^\)]*\)\s*{{'
             actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
+    return actual_backend_kernel_name_counts
 
+
+def check_op_plugin_kernels(
+        native_functions: Sequence[NativeFunction],
+        expected_kernel_counts: Dict[str, List[NativeFunction]],
+        actual_kernel_counts: Dict[str, List[NativeFunction]]):
+    for f in native_functions:
+        wrap_name = get_opplugin_wrap_name(f)
+        expect_op_plugin_kernel_count = len(expected_kernel_counts[wrap_name])
+        if expect_op_plugin_kernel_count > actual_kernel_counts[wrap_name]:
+            return False
+    return True
+
+
+# Double-check the functions we supported to see whether there exists something mismatch.
+def error_on_missing_kernels(
+        native_functions: Sequence[NativeFunction],
+        backend_indices: Dict[DispatchKey, BackendIndex],
+        backend_key: DispatchKey,
+        autograd_key: DispatchKey,
+        kernel_def_file_path: str,
+        op_plugin_kernel_def_file_path: str,
+) -> None:
+    class_name: Optional[str] = backend_indices[backend_key].native_function_class_name()
+    assert class_name is not None
+
+    actual_backend_kernel_name_counts = pta_kernel_conut(class_name, kernel_def_file_path)
+    actual_kernel_counts_op_plugin = op_plugin_kernel_conut(op_plugin_kernel_def_file_path)
     expected_backend_op_names: Dict[OperatorName, str] = dict(
         list(
             concatMap(
@@ -299,22 +331,30 @@ def error_on_missing_kernels(
     expected_backend_native_funcs: List[NativeFunction] = \
         [f for f in native_functions if f.func.name in expected_backend_op_names]
     expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
+    expected_kernel_counts_op_plugin: Dict[str, List[NativeFunction]] = defaultdict(list)
     for native_f in expected_backend_native_funcs:
         expected_backend_kernel_name_counts[expected_backend_op_names[native_f.func.name]].append(native_f)
+        expected_kernel_counts_op_plugin[get_opplugin_wrap_name(native_f)].append(native_f)
 
     missing_kernels_err_msg = ""
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
         expected_overload_count = len(funcs)
         actual_overload_count = actual_backend_kernel_name_counts[expected_name]
-        if expected_overload_count != actual_overload_count:
+
+        if expected_overload_count != actual_overload_count and \
+            (not check_op_plugin_kernels(funcs, expected_kernel_counts_op_plugin, actual_kernel_counts_op_plugin)):
             def create_decl(f: NativeFunction) -> str:
                 with native_function_manager(f):
                     return DispatcherSignature.from_schema(f.func).decl()
             expected_schemas_str = '\n'.join([create_decl(f) for f in funcs])
+            expected_schemas_str_op = '\n'.join(
+                [create_decl(f).replace(str(f.func.name), get_opplugin_wrap_name(f)) for f in funcs])
             missing_kernels_err_msg += f"""
-{class_name} is missing a kernel definition for {expected_name}. We found {actual_overload_count} kernel(s) with that name,
-but expected {expected_overload_count} kernel(s). The expected function schemas for the missing operator are:
+{class_name} or op_plugin is missing a kernel definition for {expected_name}.
+The expected function schemas for the missing operator in torch_npu are:
 {expected_schemas_str}
+The expected function schemas for the missing operator in op_plugin are:
+{expected_schemas_str_op}
 """
     assert missing_kernels_err_msg == "", missing_kernels_err_msg
 
@@ -333,9 +373,13 @@ def main() -> None:
         '--dry_run', type=bool, default=False, help='output directory')
     parser.add_argument(
         '--impl_path', type=str, default=None, help='path to the source C++ file containing kernel definitions')
+    parser.add_argument(
+        '--op_plugin_impl_path', type=str, default=None,
+        help='path to the source C++ file containing kernel definitions in op_plugin')
     options = parser.parse_args()
 
-    run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run, options.impl_path)
+    run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run,
+        options.impl_path, options.op_plugin_impl_path)
 
 
 def gen_dispatcher_registrations(
@@ -437,7 +481,8 @@ def get_supported_grouped_native_functions(
     return supported_grouped_native_functions
 
 
-def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
+def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
+        impl_path: Optional[str], op_plugin_impl_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
     torchgen_path = get_torchgen_dir()
 
@@ -466,8 +511,9 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
         autograd_dispatch_key: DispatchKey = autograd_key
         class_name = backend_indices[backend_dispatch_key].native_function_class_name()
 
-        if impl_path is not None:
-            error_on_missing_kernels(native_functions, backend_indices, backend_key, autograd_key, impl_path)
+        if (impl_path is not None) and (op_plugin_impl_path is not None):
+            error_on_missing_kernels(native_functions, backend_indices, backend_key, autograd_key,
+                                     impl_path, op_plugin_impl_path)
         gen_dispatchkey_nativefunc_headers(
             fm,
             class_name,
