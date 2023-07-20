@@ -1298,9 +1298,12 @@ supported:
    op_api: True
  - func: upsample_bilinear2d.vec
    op_api: True
- - upsample_bilinear2d_backward
- - upsample_bilinear2d_backward.grad_input
- - upsample_bilinear2d_backward.vec
+ - func: upsample_bilinear2d_backward
+   op_api: False
+ - func: upsample_bilinear2d_backward.grad_input
+   op_api: False
+ - func: upsample_bilinear2d_backward.vec
+   op_api: False
  - upsample_linear1d
  - upsample_linear1d.out
  - upsample_linear1d.vec
