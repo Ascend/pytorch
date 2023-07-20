@@ -716,9 +716,12 @@ supported:
    op_api: False
  - func: log10_
    op_api: False
- - log1p
- - log1p.out
- - log1p_
+ - func: log1p
+   op_api: False
+ - func: log1p.out
+   op_api: False
+ - func: log1p_
+   op_api: False
  - func: log2
    op_api: False
  - func: log2.out
