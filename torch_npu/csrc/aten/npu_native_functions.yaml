@@ -157,9 +157,12 @@ supported:
    op_api: True
  - func: addmv_
    op_api: True
- - addr
- - addr.out
- - addr_
+ - func: addr
+   op_api: False
+ - func: addr.out
+   op_api: False
+ - func: addr_
+   op_api: False
  - affine_grid_generator
  - affine_grid_generator_backward
  - func: all
