@@ -22,8 +22,8 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeOpApiFunctions::index_select_out(const at::Tensor& self, 
-                                                      int64_t dim, 
+at::Tensor& NPUNativeOpApiFunctions::index_select_out(const at::Tensor& self,
+                                                      int64_t dim,
                                                       const at::Tensor& index,
                                                       at::Tensor& result) {
   DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select_out(self, dim, index, result));
@@ -37,15 +37,29 @@ at::Tensor& NPUNativeOpApiFunctions::index_select_out(const at::Tensor& self,
   return result;
 }
 
-
 at::Tensor NPUNativeOpApiFunctions::index_select(const at::Tensor& self,
-                                                 int64_t dim, 
+                                                 int64_t dim,
                                                  const at::Tensor& index) {
   DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select(self, dim, index));
   auto outputSize = index_select_npu_output_size(self, dim, index);
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   EXEC_NPU_CMD(aclnnIndexSelect, self, dim, index, result);
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::index_select_out(const at::Tensor& self,
+                                                      at::Dimname dim,
+                                                      const at::Tensor& index,
+                                                      at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select_out(self, dim, index, result));
+  return NPUNativeOpApiFunctions::index_select_out(self, dimname_to_position(self, dim), index, result);
+}
+
+at::Tensor NPUNativeOpApiFunctions::index_select(const at::Tensor& self,
+                                                 at::Dimname dim,
+                                                 const at::Tensor& index) {
+  DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select(self, dim, index));
+  return NPUNativeOpApiFunctions::index_select(self, dimname_to_position(self, dim), index);
 }
 
 } // namespace native

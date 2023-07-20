@@ -679,8 +679,10 @@ supported:
    op_api: True
  - func: index_put_
    op_api: True
- - index_select.dimname
- - index_select.dimname_out
+ - func: index_select.dimname
+   op_api: False
+ - func: index_select.dimname_out
+   op_api: False
  - func: index_select.out
    op_api: True
  - func: inverse
