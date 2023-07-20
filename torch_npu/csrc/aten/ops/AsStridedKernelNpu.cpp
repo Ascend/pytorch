@@ -6,6 +6,10 @@
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
+#ifdef USE_OPPLUGIN
+#include "op_plugin/ops/OpInterface.h"
+#endif
+
 namespace at_npu {
 namespace native {
 
@@ -69,7 +73,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
       output_perm[output_perm_origin[i]] = i;
     }
     at::IntArrayRef output_perm_array(output_perm);
-    result = NPUNativeFunctions::npu_transpose(result_out, output_perm_array, true);
+    result = op_plugin::npu_transpose(result_out, output_perm_array, true);
     return result;
   } else {
     // (Ascend) Fix multi-compiling of asstrided op by wrapping attr storage_offset as a NPU Tensor instead of GE Const node.

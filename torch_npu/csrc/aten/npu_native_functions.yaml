@@ -650,10 +650,8 @@ supported:
  - func: frac_
    wrap_impl: frac_
  - full
- - func: full.names
-   wrap_impl: full
- - func: full.out
-   wrap_impl: full_out
+ - full.names
+ - full.out
  - func: gather
    wrap_impl: gather
  - func: gather.dimname
@@ -1746,8 +1744,11 @@ custom:
   - func: npu_dtype_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
     wrap_impl: npu_dtype_cast_
   - func: npu_alloc_float_status(Tensor self) -> Tensor
+    wrap_impl: npu_alloc_float_status
   - func: npu_get_float_status(Tensor self) -> Tensor
+    wrap_impl: npu_get_float_status
   - func: npu_clear_float_status(Tensor self) -> Tensor
+    wrap_impl: npu_clear_float_status
   - func: one_(Tensor(a!) self) -> Tensor(a!)
     wrap_impl: one_
   - func: npu_fast_gelu(Tensor self) -> Tensor
@@ -1963,6 +1964,7 @@ custom:
   - func: npu_hcom_allreduce(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm) -> Tensor
   - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_enque_tensor(Tensor[] tensors, str format_string, int capacity=3) -> ()
+    wrap_impl: npu_enque_tensor
   - func: npu_hcom_allgather(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm) -> Tensor
   - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_rotary_mul_backward(Tensor grad, Tensor self, Tensor r1, Tensor r2) -> (Tensor, Tensor, Tensor)

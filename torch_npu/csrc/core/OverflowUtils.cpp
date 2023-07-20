@@ -1,8 +1,8 @@
 #include <ATen/ATen.h>
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "op_plugin/ops/OpInterface.h"
 
 namespace torch_npu {
 namespace utils {
@@ -19,8 +19,8 @@ void OverflowUtil::EnableOverflowNpu() {
 bool OverflowUtil::CheckOverflowNpu() {
   auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kFloat);
   at::Tensor tmp = at::empty({8}, options);
-  auto floatStatus = at_npu::native::NPUNativeFunctions::npu_alloc_float_status(tmp);
-  auto result = at_npu::native::NPUNativeFunctions::npu_get_float_status(floatStatus);
+  auto floatStatus = op_plugin::npu_alloc_float_status(tmp);
+  auto result = op_plugin::npu_get_float_status(floatStatus);
   if (result.cpu()[0].item().toInt() != 0) {
     return true;
   }
@@ -30,8 +30,8 @@ bool OverflowUtil::CheckOverflowNpu() {
 void OverflowUtil::ClearOverflowNpu() {
   auto options = at::TensorOptions(c10::DeviceType::PrivateUse1).dtype(at::kFloat);
   at::Tensor tmp = at::empty({8}, options);
-  auto floatStatus = at_npu::native::NPUNativeFunctions::npu_alloc_float_status(tmp);
-  auto result = at_npu::native::NPUNativeFunctions::npu_clear_float_status(floatStatus);
+  auto floatStatus = op_plugin::npu_alloc_float_status(tmp);
+  auto result = op_plugin::npu_clear_float_status(floatStatus);
   return;
 }
 

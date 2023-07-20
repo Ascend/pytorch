@@ -11,7 +11,7 @@ at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, const at::Scalar&
       out,
       out,
       size);
-  fill_(out, fill_value);
+  out.fill_(fill_value);
   return out;
 }
 

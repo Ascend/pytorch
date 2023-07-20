@@ -3,6 +3,9 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#ifdef USE_OPPLUGIN
+#include "op_plugin/ops/OpInterface.h"
+#endif
 
 namespace at_npu {
 namespace native {
@@ -24,7 +27,7 @@ public:
           static_cast<FormatShape>(sizes));
       src_desc.storage_sizes_ = sizes;
 
-      NPUNativeFunctions::npu_transpose_out(src, perm, false, self);
+      op_plugin::npu_transpose_out(src, perm, false, self);
       src_desc = src_desc_stored;
       return true;
     }

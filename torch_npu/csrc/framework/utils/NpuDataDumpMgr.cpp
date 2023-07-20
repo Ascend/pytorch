@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <map>
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "op_plugin/ops/OpInterface.h"
 
 namespace at_npu {
 namespace native {
@@ -21,12 +21,10 @@ void NpuDataDumpMgr::DatadumpEnqueue(const at::TensorList &inputs,
   enableFlag_ = false;
   string tensorName = std::to_string(idx) + '_' + opName;
   if (!inputs.empty()) {
-    at_npu::native::NPUNativeFunctions::npu_enque_tensor(
-        inputs, tensorName + "_input", capacity_);
+    op_plugin::npu_enque_tensor(inputs, tensorName + "_input", capacity_);
   }
   if (!outputs.empty()) {
-    at_npu::native::NPUNativeFunctions::npu_enque_tensor(
-        outputs, tensorName + "_output", capacity_);
+    op_plugin::npu_enque_tensor(outputs, tensorName + "_output", capacity_);
   }
   enableFlag_ = true;
 }
