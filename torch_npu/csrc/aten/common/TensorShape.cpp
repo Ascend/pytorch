@@ -170,5 +170,9 @@ at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
   return result;
 }
 
+at::Tensor NPUNativeFunctions::_reshape_alias(const at::Tensor& self, at::IntArrayRef sizes, at::IntArrayRef strides) {
+  return self.view(sizes);
+}
+
 } // namespace native
 } // namespace at_npu
