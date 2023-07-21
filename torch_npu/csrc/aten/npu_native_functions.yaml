@@ -229,9 +229,12 @@ supported:
  - atan2
  - atan2.out
  - atan2_
- - atanh
- - atanh.out
- - atanh_
+ - func: atanh
+   op_api: False
+ - func: atanh.out
+   op_api: False
+ - func: atanh_
+   op_api: False
  - func: avg_pool2d
    op_api: True
  - func: avg_pool2d.out
