@@ -4,3 +4,23 @@
 
 - name: fast_gelu(Tensor self) -> Tensor
   self: npu_fast_gelu_backward(grad, self)
+
+- name: npu_diou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+  self, gtboxes: npu_diou_backward(grad, self, gtboxes, trans, is_cross, mode)
+
+- name: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+  self, gtboxes: npu_giou_backward(grad, self, gtboxes, trans, is_cross, mode)
+
+- name: npu_mish(Tensor self) -> Tensor
+  self: npu_mish_backward(grad, self)
+
+- name: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
+  self: npu_softmax_cross_entropy_with_logits_backward(grad, self, labels)
+
+- name: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
+  input, weight: npu_linear_backward(grad, input, weight)
+  bias: maybe_multiply(grad, 1)
+
+- name: npu_dropout_with_add_softmax(Tensor self, Tensor x1, Scalar alpha, float prob, int dim) -> (Tensor, Tensor, Tensor)
+  output_differentiability: [False, False, True]
+  self, x1: npu_dropout_with_add_softmax_backward(grad, result0, result1, alpha, prob, dim)
