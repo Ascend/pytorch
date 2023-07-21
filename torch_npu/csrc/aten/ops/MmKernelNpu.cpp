@@ -92,7 +92,7 @@ void mm_set_format_contiguous(at::Tensor &tensor, bool &is_tensor_trans_flex, bo
       set_transposed_npu_desc(tensor);
     }
   } else {
-    tensor = NpuUtils::format_contiguous(tensor);
+    tensor = NpuUtils::format_contiguous_add_copy_optimize(tensor);
   }
 }
 
