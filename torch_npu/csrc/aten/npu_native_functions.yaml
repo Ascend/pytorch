@@ -104,9 +104,12 @@ supported:
    op_api: False
  - func: acos_
    op_api: False
- - acosh
- - acosh.out
- - acosh_
+ - func: acosh
+   op_api: False
+ - func: acosh.out
+   op_api: False
+ - func: acosh_
+   op_api: False
  - adaptive_avg_pool1d
  - func: adaptive_avg_pool2d
    op_api: True
