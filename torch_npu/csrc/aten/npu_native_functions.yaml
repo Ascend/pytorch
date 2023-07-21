@@ -495,9 +495,12 @@ supported:
    op_api: False
  - func: erfc_
    op_api: False
- - erfinv
- - erfinv.out
- - erfinv_
+ - func: erfinv
+   op_api: False
+ - func: erfinv.out
+   op_api: False
+ - func: erfinv_
+   op_api: False
  - func: exp
    op_api: True
  - func: exp.out
