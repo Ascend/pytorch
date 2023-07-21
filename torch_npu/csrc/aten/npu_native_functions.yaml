@@ -1090,9 +1090,12 @@ supported:
    op_api: True
  - rrelu_with_noise_backward
  - square.out
- - rsqrt
- - rsqrt.out
- - rsqrt_
+ - func: rsqrt
+   op_api: False
+ - func: rsqrt.out
+   op_api: False
+ - func: rsqrt_
+   op_api: False
  - rsub.Scalar
  - rsub.Tensor
  - scalar_tensor
