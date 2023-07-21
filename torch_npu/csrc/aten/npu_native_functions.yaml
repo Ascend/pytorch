@@ -1153,9 +1153,12 @@ supported:
    op_api: False
  - func: sin_
    op_api: False
- - sinh
- - sinh.out
- - sinh_
+ - func: sinh
+   op_api: False
+ - func: sinh.out
+   op_api: False
+ - func: sinh_
+   op_api: False
  - slogdet
  - slow_conv3d
  - slow_conv3d.out
