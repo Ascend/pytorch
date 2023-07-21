@@ -3,8 +3,10 @@ cpp_namespace: at_npu::native
 supported:
  - __ilshift__.Scalar
  - __ilshift__.Tensor
- - __ior__.Scalar
- - __ior__.Tensor
+ - func: __ior__.Scalar
+   op_api: False
+ - func: __ior__.Tensor
+   op_api: False
  - __irshift__.Scalar
  - __irshift__.Tensor
  - __lshift__.Scalar
