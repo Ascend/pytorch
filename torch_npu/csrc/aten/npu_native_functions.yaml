@@ -20,7 +20,7 @@ supported:
  - func: _adaptive_avg_pool2d_backward
    op_api: True
  - func: argmin.out
-   op_api: False
+   op_api: True
  - _adaptive_avg_pool3d
  - _adaptive_avg_pool3d_backward
  - _add_relu.Tensor
@@ -97,13 +97,13 @@ supported:
  - func: abs.out
    op_api: True
  - func: abs_
-   op_api: False
+   op_api: True
  - func: acos
-   op_api: False
+   op_api: True
  - func: acos.out
-   op_api: False
+   op_api: True
  - func: acos_
-   op_api: False
+   op_api: True
  - func: acosh
    op_api: False
  - func: acosh.out
@@ -148,7 +148,7 @@ supported:
  - func: addcmul.out
    op_api: True
  - func: addcmul_
-   op_api: False
+   op_api: True
  - func: addmm
    op_api: True
  - func: addmm.out
@@ -173,19 +173,19 @@ supported:
  - func: all.out
    op_api: True
  - func: all.all_out
-   op_api: False
+   op_api: True
  - amax
  - amax.out
  - amin
  - amin.out
  - func: any
-   op_api: False
+   op_api: True
  - func: any.all_out
-   op_api: False
+   op_api: True
  - func: any.dim
-   op_api: False
+   op_api: True
  - func: any.out
-   op_api: False
+   op_api: True
  - func: arange
    op_api: True
  - func: arange.out
@@ -243,19 +243,19 @@ supported:
  - bartlett_window.periodic
  - batch_norm
  - func: batch_norm_backward_elemt
-   op_api: False
+   op_api: True
  - func: batch_norm_backward_reduce
-   op_api: False
+   op_api: True
  - func: batch_norm_elemt
-   op_api: False
+   op_api: True
  - func: batch_norm_elemt.out
-   op_api: False
+   op_api: True
  - batch_norm_gather_stats_update
  - func: batch_norm_gather_stats_with_counts
-   op_api: False
+   op_api: True
  - batch_norm_reduce
  - func: batch_norm_stats
-   op_api: False
+   op_api: True
  - func: bernoulli
    op_api: True
  - func: bernoulli.out
@@ -271,22 +271,22 @@ supported:
  - func: binary_cross_entropy.out
    op_api: True
  - func: binary_cross_entropy_backward
-   op_api: False
+   op_api: True
  - func: binary_cross_entropy_backward.grad_input
-   op_api: False
+   op_api: True
  - binary_cross_entropy_with_logits
  - func: bincount
-   op_api: False
+   op_api: True
  - func: bitwise_and.Scalar
-   op_api: False
+   op_api: True
  - func: bitwise_and.Scalar_out
-   op_api: False
+   op_api: True
  - func: bitwise_and.Tensor
    op_api: True
  - func: bitwise_and.Tensor_out
    op_api: True
  - func: bitwise_and_.Scalar
-   op_api: False
+   op_api: True
  - func: bitwise_and_.Tensor
    op_api: True
  - func: bitwise_not
@@ -378,9 +378,9 @@ supported:
  - convolution_backward_overrideable
  - convolution_overrideable
  - func: count_nonzero
-   op_api: False
+   op_api: True
  - func: count_nonzero.dim_IntList
-   op_api: False
+   op_api: True
  - func: copy_
    op_api: True
  - copy_memory_
@@ -412,9 +412,9 @@ supported:
  - diag
  - diag.out
  - func: div.Scalar
-   op_api: False
+   op_api: True
  - func: div.Scalar_mode
-   op_api: False
+   op_api: True
  - func: div.Tensor
    op_api: True
  - func: div.Tensor_mode
@@ -424,9 +424,9 @@ supported:
  - func: div.out_mode
    op_api: True
  - func: div_.Scalar
-   op_api: False
+   op_api: True
  - func: div_.Scalar_mode
-   op_api: False
+   op_api: True
  - func: div_.Tensor
    op_api: True
  - func: div_.Tensor_mode
