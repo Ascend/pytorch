@@ -38,7 +38,11 @@ at::Tensor wrapper__argmin(const at::Tensor & self, c10::optional<int64_t> dim, 
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
 #endif
-  return at_npu::native::NPUNativeFunctions::argmin(self, dim, keepdim);
+  if (c10_npu::NpuRunMode::IsGraphMode() || !(at_npu::native::env::CheckForbidInternalFormat() && at_npu::native::env::CheckJitDisable())) {
+    return at_npu::native::NPUNativeFunctions::argmin(self, dim, keepdim);
+  } else {
+    return at_npu::native::NPUNativeOpApiFunctions::argmin(self, dim, keepdim);
+  }
 }
 at::Tensor wrapper__argmax(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
   // No device check
