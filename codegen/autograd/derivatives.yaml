@@ -5,6 +5,9 @@
 - name: fast_gelu(Tensor self) -> Tensor
   self: npu_fast_gelu_backward(grad, self)
 
+- name: npu_rotary_mul(Tensor self, Tensor r1, Tensor r2) -> Tensor
+  self, r1, r2: npu_rotary_mul_backward(grad, self, r1, r2)
+
 - name: npu_diou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   self, gtboxes: npu_diou_backward(grad, self, gtboxes, trans, is_cross, mode)
 

@@ -1,14 +1,18 @@
 import os
 import shutil
+import unittest
 
 import torch
 
-from torch_npu.testing.testcase import TestCase, run_tests
+import torch_npu
 import torch_npu.onnx
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import DEVICE_NAME
 
-#acl format
+# acl format
 FORMAT_ND = 2
 FORMAT_NZ = 29
+
 
 class TestOnnxOps(TestCase):
 
@@ -1176,6 +1180,28 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
+
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `RotaryMul` is only supported on 910B, skip this ut!")
+    def test_wrapper_npu_rotary_mul(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, r1, r2):
+                return torch_npu.npu_rotary_mul(x, r1, r2)
+
+        def export_onnx(onnx_model_name):
+            x = torch.rand([8192, 2, 5, 128], dtype=torch.float32).npu()
+            r1 = torch.rand([8192, 1, 1, 128], dtype=torch.float32).npu()
+            r2 = torch.rand([8192, 1, 1, 128], dtype=torch.float32).npu()
+            model = Model().to("npu")
+            model(x, r1, r2)
+            self.onnx_export(model, (x, r1, r2), onnx_model_name, ["x", "r1", "r2"])
+
+        onnx_model_name = "model_npu_rotary_mul.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
+
 
 if __name__ == '__main__':
     run_tests()
