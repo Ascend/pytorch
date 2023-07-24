@@ -26,7 +26,7 @@ at::Tensor& NPUNativeOpApiFunctions::lt_out(const at::Tensor& self, const at::Te
   DO_COMPATIBILITY(aclnnLtTensor, NPUNativeFunctions::lt_out(self, other, result));
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
-  OpPreparation::CheckOut({self}, result, at::kBool, outputSize);
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
 
   EXEC_NPU_CMD(aclnnLtTensor, self, other, result);
   return result;
@@ -49,7 +49,7 @@ at::Tensor &NPUNativeOpApiFunctions::lt_out(const at::Tensor &self, const at::Sc
 {
   DO_COMPATIBILITY(aclnnLtScalar, NPUNativeFunctions::lt_out(self, other, result));
   auto outputSize = self.sizes();
-  OpPreparation::CheckOut({self}, result, at::kBool, outputSize);
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
 
   EXEC_NPU_CMD(aclnnLtScalar, self, other, result);
   return result;
@@ -64,7 +64,7 @@ at::Tensor NPUNativeOpApiFunctions::lt(const at::Tensor &self, const at::Scalar&
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kBool));
 
   // calculate the output result of the NPU
-  EXEC_NPU_CMD(aclnnLtScalar, self, other, result);  
+  EXEC_NPU_CMD(aclnnLtScalar, self, other, result);
   return result;
 }
 
