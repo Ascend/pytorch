@@ -344,19 +344,8 @@ at::Tensor NPUNativeFunctions::convolution(
     bool transposed,
     at::IntArrayRef output_padding,
     int64_t groups) {
-  return at::_convolution(
-      input,
-      weight,
-      bias,
-      stride,
-      padding,
-      dilation,
-      transposed,
-      output_padding,
-      groups,
-      false,
-      false,
-      false);
+  return at::_convolution(input, weight, bias, stride, padding, dilation, transposed, output_padding, groups, false,
+                          false, false);
 }
 
 at::Tensor NPUNativeFunctions::_convolution(

@@ -29,6 +29,10 @@ bool CheckJitDisable();
 bool CheckProfilingEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
+bool IsAllowFP32ToFP16();
+bool IsMustKeepOriginDtype();
+bool IsAllowConvHF32();
+bool IsAllowMatmulHF32();
 
 } // namespace env
 } // namespace native

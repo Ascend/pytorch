@@ -27,10 +27,16 @@ at::Tensor NPUNativeOpApiFunctions::bincount(
                    NPUNativeFunctions::bincount(self, weight_opt, minlength));
   // null tensor
   if (self.dim() == 1 && self.numel() == 0) {
-      auto result = OpPreparation::ApplyTensorWithSizes(
+    at::Tensor result;
+    if (minlength <= 0) {
+      result = OpPreparation::ApplyTensorWithoutFormat(
           {0}, 
-          self.options().dtype(at::ScalarType::Long));
-      return result;
+          self.options().dtype(at::ScalarType::Long)); 
+    } else {
+      result = OpPreparation::ApplyTensorWithoutFormat({minlength}, self.options().dtype(at::ScalarType::Long));
+      EXEC_NPU_CMD(aclnnBincount, self, weight_opt, minlength, result);
+    }
+    return result;
   } 
 
   // cheack non-negative
@@ -44,11 +50,11 @@ at::Tensor NPUNativeOpApiFunctions::bincount(
   // weight convert dtype as same as output defined by torch
   at::Tensor result;
   if (!weight_opt.has_value()) {
-      result = OpPreparation::ApplyTensorWithSizes({sizes}, self.options().dtype(at::ScalarType::Long));
+      result = OpPreparation::ApplyTensorWithoutFormat({sizes}, self.options().dtype(at::ScalarType::Long));
   } else if (weight_opt->dtype() == at::ScalarType::Float) {
-      result = OpPreparation::ApplyTensorWithSizes({sizes}, weight_opt->options().dtype(at::ScalarType::Float));
+      result = OpPreparation::ApplyTensorWithoutFormat({sizes}, weight_opt->options().dtype(at::ScalarType::Float));
   } else {
-      result = OpPreparation::ApplyTensorWithSizes({sizes}, weight_opt->options().dtype(at::ScalarType::Double));
+      result = OpPreparation::ApplyTensorWithoutFormat({sizes}, weight_opt->options().dtype(at::ScalarType::Double));
   }
   
   EXEC_NPU_CMD(aclnnBincount, self, weight_opt, minlength, result);

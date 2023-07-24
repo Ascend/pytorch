@@ -33,7 +33,7 @@ at::Tensor &NPUNativeOpApiFunctions::sum_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      self,
+      res_type,
       output_size);
 
   auto des_dim = ConvertType(dim);
@@ -73,7 +73,7 @@ at::Tensor NPUNativeOpApiFunctions::sum(
     }
   }
 
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(out_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(out_type));
   auto des_dim = ConvertType(dim);
   EXEC_NPU_CMD(aclnnReduceSum, self, des_dim, keepdim, out_type, result);
   return result;

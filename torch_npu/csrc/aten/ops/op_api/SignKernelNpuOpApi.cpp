@@ -39,7 +39,7 @@ at::Tensor &NPUNativeOpApiFunctions::sgn_out(const at::Tensor &self, at::Tensor 
 at::Tensor NPUNativeOpApiFunctions::sgn(const at::Tensor &self) {
   DO_COMPATIBILITY(aclnnSign, NPUNativeFunctions::sgn(self));
   auto outputSize = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options());
   EXEC_NPU_CMD(aclnnSign, self, result);
   return result;
 }
@@ -47,7 +47,7 @@ at::Tensor NPUNativeOpApiFunctions::sgn(const at::Tensor &self) {
 at::Tensor NPUNativeOpApiFunctions::sign(const at::Tensor &self) {
   DO_COMPATIBILITY(aclnnSign, NPUNativeFunctions::sign(self));
   auto outputSize = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options());
   EXEC_NPU_CMD(aclnnSign, self, result);
   return result;
 }

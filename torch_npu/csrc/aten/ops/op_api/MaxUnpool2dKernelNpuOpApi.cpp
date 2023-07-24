@@ -42,7 +42,7 @@ at::Tensor NPUNativeOpApiFunctions::max_unpool2d(
   DO_COMPATIBILITY(aclnnMaxUnpool2d, NPUNativeFunctions::max_unpool2d(self, indices, output_size));
   
   auto outputSize = max_pool2d_out_size(self, output_size);
-  at::Tensor output = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor output = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   NPUNativeOpApiFunctions::max_unpool2d_out(self, indices, output_size, output);
   return output;
 }

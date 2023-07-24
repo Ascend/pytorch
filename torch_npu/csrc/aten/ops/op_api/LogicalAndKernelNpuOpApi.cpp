@@ -36,8 +36,7 @@ at::Tensor& NPUNativeOpApiFunctions::logical_and_out(const at::Tensor& self, con
 at::Tensor NPUNativeOpApiFunctions::logical_and(const at::Tensor& self, const at::Tensor& other) {
   DO_COMPATIBILITY(aclnnLogicalAnd, NPUNativeFunctions::logical_and(self, other));
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::kBool),
-                                                           CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kBool));
   EXEC_NPU_CMD(aclnnLogicalAnd, self, other, result);
   return result;
 }

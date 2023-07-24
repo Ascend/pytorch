@@ -63,9 +63,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_embed
   if (per_sample_weights_cpu.defined()) {
     per_sample_weights_cpu = per_sample_weights_cpu.to("cpu");
   }
-  
-  auto result = at::native::_embedding_bag_cpu(weight_cpu, indices_cpu, offsets_cpu, scale_grad_by_freq, mode, sparse, per_sample_weights_cpu, include_last_offset);
-  
+
+  auto result = at::native::_embedding_bag_cpu(weight_cpu, indices_cpu, offsets_cpu, scale_grad_by_freq, mode, sparse,
+                                               per_sample_weights_cpu, include_last_offset, padding_idx);
+
   at::Tensor output = std::get<0>(result).to(weight.device());
   at::Tensor offset2bag = std::get<1>(result).to(weight.device());
   at::Tensor bag_size = std::get<2>(result).to(weight.device());

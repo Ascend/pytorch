@@ -231,6 +231,24 @@ namespace at_npu
       return tensor;
     }
 
+    inline at::Tensor ApplyTensorUseEmpty(c10::IntArrayRef sizes, const c10::TensorOptions &options) {
+      return NPUNativeFunctions::empty(
+          sizes, options.dtype().toScalarType(), c10::nullopt,
+          at::Device(at_npu::key::NativeDeviceType), false, c10::MemoryFormat::Contiguous);
+    }
+
+    at::Tensor OpPreparation::ApplyTensorWithoutFormat(const at::Tensor &src) {
+      return ApplyTensorUseEmpty(src.sizes(), src.options());
+    }
+
+    at::Tensor OpPreparation::ApplyTensorWithoutFormat(const at::Tensor &src, c10::IntArrayRef sizes) {
+      return ApplyTensorUseEmpty(sizes, src.options());
+    }
+
+    at::Tensor OpPreparation::ApplyTensorWithoutFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options) {
+      return ApplyTensorUseEmpty(sizes, options);
+    }
+
     at::Tensor OpPreparation::ApplyTensor(const at::Tensor &src)
     {
       return ApplyTensor(src, src.sizes());

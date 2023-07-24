@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -43,7 +43,7 @@ from codegen.selective_build.selector import SelectiveBuilder
 def gen_create_out_helper(backend_index: BackendIndex) -> List[str]:
     if backend_index.dispatch_key != DispatchKey.CPU:
         return []
-    
+
     empty_options = "options"
     dispatch = str(backend_index.dispatch_key).lower()
     empty_impl = f"at::detail::empty_{dispatch}"
@@ -353,7 +353,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 record_func_def = """
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
-#endif 
+#endif
 """
                 if f.device_guard and is_cuda_dispatch_key(self.backend_index.dispatch_key):
                     has_tensor_options = any(isinstance(a.argument, TensorOptionsArguments) for a in args)
@@ -377,16 +377,26 @@ torch_npu::profiler::NPURecordFunction guard;
                         device_of = next((f'{a.name}' for a in candidate_args if a.type.is_tensor_like()), None)
                         if device_of is not None:
                             device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
+                
+                tensor_check_str = ""
+                tensor_check_list = []
+                for a in args:
+                    if a.argument.type.is_tensor_like():
+                        tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name})")
+                if tensor_check_list:
+                    tensor_check_str = f" && {' && '.join(tensor_check_list)}"
 
-                if not f.op_api:
-                    op_api_impl_name = impl_name
-
-                return_code = f"""\
-if (c10_npu::NpuRunMode::IsGraphMode() || !(at_npu::native::env::CheckForbidInternalFormat() && at_npu::native::env::CheckJitDisable())) {{
-        return {impl_name}({args_exprs_str});
-    }} else {{
+                if f.op_api:
+                    return_code = f"""\
+if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
         return {op_api_impl_name}({args_exprs_str});
+    }} else {{
+        return {impl_name}({args_exprs_str});
     }}
+"""
+                else:
+                    return_code = f"""\
+    return {impl_name}({args_exprs_str});
 """
 
                 return f"""\

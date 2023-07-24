@@ -41,6 +41,7 @@ LOAD_FUNCTION(aclrtGetStreamOverflowSwitch)
 LOAD_FUNCTION(aclrtSynchronizeStreamWithTimeout)
 LOAD_FUNCTION(aclrtDestroyStreamForce)
 LOAD_FUNCTION(aclrtGetDeviceUtilizationRate)
+LOAD_FUNCTION(aclrtMallocAlign32)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -311,16 +312,12 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
 
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
   typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
-  static AclrtSynchronizeStreamWithTimeout func = nullptr;
+  static AclrtSynchronizeStreamWithTimeout func = (AclrtSynchronizeStreamWithTimeout)GET_FUNC(aclrtSynchronizeStreamWithTimeout);
   int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
-  if (func == nullptr) {
-    func = (AclrtSynchronizeStreamWithTimeout)GET_FUNC(aclrtSynchronizeStreamWithTimeout);
-  }
   if (func != nullptr) {
     return func(stream, timeout);
-  }
-  else {
-    TORCH_WARN(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
+  } else {
+    TORCH_WARN_ONCE(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout");
     typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
     static AclrtSynchronizeStream func_backup = nullptr;
     if (func_backup == nullptr) {
@@ -333,14 +330,11 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
 
 aclError AclrtDestroyStreamForce(aclrtStream stream) {
   typedef aclError (*AclrtDestroyStreamForce)(aclrtStream);
-  static AclrtDestroyStreamForce func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtDestroyStreamForce)GET_FUNC(aclrtDestroyStreamForce);
-  }
+  static AclrtDestroyStreamForce func = (AclrtDestroyStreamForce)GET_FUNC(aclrtDestroyStreamForce);
   if (func != nullptr) {
     return func(stream);
   }
-  TORCH_WARN(func, "Failed to find function ", "aclrtDestroyStreamForce");
+  TORCH_WARN_ONCE(func, "Failed to find function ", "aclrtDestroyStreamForce");
   return aclrtDestroyStream(stream);
 }
 
@@ -352,6 +346,16 @@ aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *u
     }
     TORCH_CHECK(func, "Failed to find function ", "aclrtGetDeviceUtilizationRate");
     return func(deviceId, utilizationInfo);
+}
+
+aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy) {
+  typedef aclError (*AclrtMallocAlign32)(void**, size_t, aclrtMemMallocPolicy);
+  static AclrtMallocAlign32 func = (AclrtMallocAlign32)GET_FUNC(aclrtMallocAlign32);
+  if (func != nullptr) {
+    return func(devPtr, size, policy);
+  }
+  TORCH_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
+  return aclrtMalloc(devPtr, size, policy);
 }
 
 } // namespace acl

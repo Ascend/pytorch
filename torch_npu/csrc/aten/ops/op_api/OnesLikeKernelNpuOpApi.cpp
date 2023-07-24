@@ -32,7 +32,7 @@ at::Tensor NPUNativeOpApiFunctions::ones_like(const at::Tensor &self,
                                                   .device(device_opt)
                                                   .layout(layout_opt)
                                                   .pinned_memory(pin_memory_opt);
-  at::Tensor result = OpPreparation::ApplyTensor(self, option);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), option);
 
   EXEC_NPU_CMD(aclnnInplaceOne, result);
   return result;

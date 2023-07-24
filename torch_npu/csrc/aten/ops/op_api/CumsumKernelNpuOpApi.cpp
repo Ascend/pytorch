@@ -55,12 +55,12 @@ at::Tensor NPUNativeOpApiFunctions::cumsum(const at::Tensor& self, int64_t dim,
 
   at::Tensor result;
   if (dtype.has_value()) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(dtype.value()));
+    result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(dtype.value()));
   } else {
     if (self.scalar_type() == at::ScalarType::Bool) {
-      result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+      result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kLong));
     } else {
-      result = OpPreparation::ApplyTensor(self);
+      result = OpPreparation::ApplyTensorWithoutFormat(self);
     }
   }
 

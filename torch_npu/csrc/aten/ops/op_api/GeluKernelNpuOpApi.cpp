@@ -31,7 +31,7 @@ at::Tensor& NPUNativeOpApiFunctions::gelu_out(const at::Tensor& self, at::Tensor
 
 at::Tensor NPUNativeOpApiFunctions::gelu(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnGelu, NPUNativeFunctions::gelu(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnGelu, self, result);
   return result;
 }

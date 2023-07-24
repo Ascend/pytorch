@@ -92,7 +92,7 @@ void mm_set_format_contiguous(at::Tensor &tensor, bool &is_tensor_trans_flex, bo
       set_transposed_npu_desc(tensor);
     }
   } else {
-    tensor = NpuUtils::format_contiguous(tensor);
+    tensor = NpuUtils::format_contiguous_add_copy_optimize(tensor);
   }
 }
 
@@ -107,20 +107,26 @@ bool mm_check_split_k(const at::Tensor &self, const at::Tensor &mat2, bool &is_s
 }
 
 bool mm_check_nd_to_nz_on_the_fly(const at::Tensor &self, const at::Tensor &mat2) {
+  const static int64_t kInnerAxisMinBytes = 256;
   const static int64_t kInnerAxisMaxLimit = 65535;
   int64_t self_inner_axis = self.size(self.dim() - 1);
   int64_t self_outer_axis = self.size(self.dim() - 2);
   int64_t mat2_inner_axis = mat2.size(mat2.dim() - 1);
   int64_t mat2_outer_axis = mat2.size(mat2.dim() - 2);
-  if (CalcuOpUtil::IsTransposeLastTwoDims(self)) {
+  if (CalcuOpUtil::IsMmTranspose(self)) {
     self_inner_axis = self.size(self.dim() - 2);
     self_outer_axis = self.size(self.dim() - 1);
   }
-  if (CalcuOpUtil::IsTransposeLastTwoDims(mat2)) {
+  if (CalcuOpUtil::IsMmTranspose(mat2)) {
     mat2_inner_axis = mat2.size(mat2.dim() - 2);
     mat2_outer_axis = mat2.size(mat2.dim() - 1);
   }
-  return !(self_inner_axis > kInnerAxisMaxLimit && self_outer_axis > kInnerAxisMaxLimit &&
+  int64_t data_type = elementSize(self.scalar_type());
+  if (self_outer_axis > kInnerAxisMaxLimit && self_inner_axis * data_type < kInnerAxisMinBytes &&
+      bool((self_inner_axis * data_type) & 0x1F)) {
+    return false;
+  }
+  return !(self_inner_axis > kInnerAxisMaxLimit && self_outer_axis > kInnerAxisMaxLimit ||
            mat2_inner_axis > kInnerAxisMaxLimit && mat2_outer_axis > kInnerAxisMaxLimit);
 }
 

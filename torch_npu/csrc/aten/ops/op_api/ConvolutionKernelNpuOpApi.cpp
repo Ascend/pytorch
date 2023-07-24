@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 
 namespace at_npu {
 namespace native {
@@ -71,7 +72,7 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
 
   // Groups > 1 and 3D scenes are currently not supported (binary operator problem), and path 3 implementation is
   // temporarily called
-  if (dim == 3 || groups > 1) {
+  if (dim == 3 || groups > 1 || (!at_npu::native::env::CheckForbidInternalFormat() && at_npu::native::env::CheckJitDisable())) {
     return at_npu::native::NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation, transposed,
                                                             output_padding, groups, false, false, false, false);
   }
@@ -97,10 +98,10 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
   out_size = conv_npu_output_size(input, weight, bias, padding, output_padding, stride, dilation, groups, transposed);
 
   auto promotedDtype = promote_dtype(input, weight);
-  auto output = OpPreparation::ApplyTensorWithSizes(out_size, input.options().dtype(promotedDtype));
-  int8_t cube_math_dtype = 1; // ALLOW_FP32_DOWN_PRECISION Use reduced-precision operations
+  auto output = OpPreparation::ApplyTensorWithoutFormat(out_size, input.options().dtype(promotedDtype));
+  int8_t cube_math_type = 1;
   EXEC_NPU_CMD(aclnnConvolution, input, weight, bias, stride, padding, dilation, transposed, output_padding, groups,
-               output, cube_math_dtype);
+               output, cube_math_type);
 
   // input dim = 3 while conv2D: 2
   if (dim == 2 && inputK == 3) {

@@ -24,7 +24,12 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::log2_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnLog2, NPUNativeFunctions::log2_out(self, result));
-  OpPreparation::CheckOut({self}, result, self.scalar_type(), self.sizes());
+  at::ScalarType expext_dtype = self.scalar_type();
+  if (self.dtype() == at::kLong || self.dtype() == at::kBool) {
+    // int need cast to float
+    expext_dtype = at::kFloat;
+  }
+  OpPreparation::CheckOut({self}, result, expext_dtype, self.sizes());
   EXEC_NPU_CMD(aclnnLog2, self, result);
   return result;
 }
@@ -32,7 +37,14 @@ at::Tensor& NPUNativeOpApiFunctions::log2_out(const at::Tensor& self, at::Tensor
 at::Tensor NPUNativeOpApiFunctions::log2(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnLog2, NPUNativeFunctions::log2(self));
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::ScalarType expext_dtype = self.scalar_type();
+  if (self.dtype() == at::kLong || self.dtype() == at::kBool) {
+    // int need cast to float
+    expext_dtype = at::kFloat;
+  }
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(
+      self.sizes(),
+      self.options().dtype(expext_dtype));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnLog2, self, result);

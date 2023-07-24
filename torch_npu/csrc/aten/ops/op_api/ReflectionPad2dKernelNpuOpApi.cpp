@@ -38,7 +38,7 @@ at::Tensor NPUNativeOpApiFunctions::reflection_pad2d(const at::Tensor& self, at:
                    NPUNativeFunctions::reflection_pad2d(self, padding));
 
   auto output_size = reflection_pad2d_npu_out_size(self, padding);
-  at::Tensor out = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   EXEC_NPU_CMD(aclnnReflectionPad2d, self, padding, out);
   return out;
 }

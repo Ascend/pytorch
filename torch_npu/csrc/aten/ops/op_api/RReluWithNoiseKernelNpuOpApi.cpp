@@ -28,7 +28,7 @@ at::Tensor NPUNativeOpApiFunctions::rrelu_with_noise(
     bool training,
     c10::optional<at::Generator> generator) {
   DO_COMPATIBILITY(aclnnRReluWithNoise, NPUNativeFunctions::rrelu_with_noise(self, noise, lower, upper, training, generator));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   auto gen_ = at::get_generator_or_default<NPUGeneratorImpl>(generator, at_npu::detail::getDefaultNPUGenerator());
   auto pair = gen_->philox_engine_inputs(1 << 28);
   const int64_t seed = pair.first;

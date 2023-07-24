@@ -44,7 +44,7 @@ at::Tensor NPUNativeOpApiFunctions::im2col_backward(const at::Tensor& grad_outpu
                                                                             dilation, padding, stride));
 
   auto output_size = im2col_backward_npu_output_size(grad_output, input_size, kernel_size);
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, output_size);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(grad_output, output_size);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnIm2colBackward, grad_output, input_size, kernel_size, dilation, padding, stride, grad_input);
 

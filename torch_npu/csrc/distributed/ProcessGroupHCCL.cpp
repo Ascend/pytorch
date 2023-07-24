@@ -26,6 +26,7 @@
 #include <c10d/ParamCommsUtils.hpp>
 #include <c10d/TraceUtils.h>
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "third_party/acl/inc/acl/acl.h"
@@ -43,6 +44,9 @@
 
 namespace c10d_npu {
 namespace {
+static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
+static uint32_t kOpWaitTimeout = 1868U; // second
+
 using hcclUs = std::chrono::steady_clock::time_point;
 #define DURATION_US(x) \
   (std::chrono::duration_cast<std::chrono::microseconds>(x))
@@ -67,6 +71,7 @@ std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kFloat, HCCL_DATA_TYPE_FP32},
     {at::kDouble, HCCL_DATA_TYPE_FP64},
     {at::kBool, HCCL_DATA_TYPE_UINT8},
+    {at::kBFloat16, HCCL_DATA_TYPE_BFP16},
 };
 
 std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
@@ -78,6 +83,7 @@ std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_FP16,  "at::kHalf"},
     {HCCL_DATA_TYPE_FP32,  "at::kFloat"},
     {HCCL_DATA_TYPE_FP64,  "at::kDouble"},
+    {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
 
 int64_t physical_numel(at::Tensor& self){
@@ -136,7 +142,7 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input) {
 void checkSupportedDataTypeOfAllReduce(HcclDataType type) {
   static std::set <HcclDataType> allReduceSupportedDataTypes = {HCCL_DATA_TYPE_INT8, HCCL_DATA_TYPE_INT16,
                                                                 HCCL_DATA_TYPE_INT32, HCCL_DATA_TYPE_FP16,
-                                                                HCCL_DATA_TYPE_FP32};
+                                                                HCCL_DATA_TYPE_FP32, HCCL_DATA_TYPE_BFP16};
   TORCH_CHECK(allReduceSupportedDataTypes.count(type) != 0,
               "HCCL AllReduce & Reduce: Unsupported data type ",
               getHcclDataTypeSerialString(type));
@@ -289,6 +295,23 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
     }
   }
 
+  if (!recorded_inputs_.empty()) {
+    for (auto it = recorded_inputs_.begin(); it != recorded_inputs_.end(); ++it) {
+      auto storage = it->first.lock();
+      if (storage) {
+        c10_npu::NPUCachingAllocator::eraseStream(storage->data_ptr(), it->second);
+      }
+    }
+  }
+  if (!recorded_outputs_.empty()) {
+    for (auto it = recorded_outputs_.begin(); it != recorded_outputs_.end(); ++it) {
+      auto storage = it->first.lock();
+      if (storage) {
+        c10_npu::NPUCachingAllocator::eraseStream(storage->data_ptr(), it->second);
+      }
+    }
+  }
+
   // In case of blocking, wait for the operation to complete.
   if (blockingWait_) {
     // Wait for the operation to complete.
@@ -327,6 +350,18 @@ ProcessGroupHCCL::ProcessGroupHCCL(
       hcclCommCounter_(0),
       opTimeout_(options->opTimeout),
       terminateWatchdog_(false) {
+  uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+  // When no env, the default value is 0
+  if (hccl_exec_timeout > 0) {
+    kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
+    if (kOpWaitTimeout <= hccl_exec_timeout) {
+      kOpWaitTimeout = UINT_MAX;
+    }
+  }
+  NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
+  ASCEND_LOGI("Get env HCCL_EXEC_TIMEOUT value %u, and set op wait timeout to %u.",
+              hccl_exec_timeout, kOpWaitTimeout);
+
   char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
   try {
     if (blockingWait != nullptr) {
@@ -613,8 +648,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   syncStreams(devices, hcclEvents_[key], hcclStreams);
   // Work itself will create the events on all NPUs of tensors
   auto work = initWork(devices);
+
   c10_npu::OptionalNPUGuard npuGuard;
-  pre(hcclStreams);
+  pre(hcclStreams, work);
 
   if (!c10_npu::NpuRunMode::IsGraphMode()) {
     for (const auto i : c10::irange(inputs.size())) {
@@ -631,6 +667,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       // See [Sync Streams].
       c10_npu::NPUCachingAllocator::recordStream(
           inputs[i].storage().data_ptr(), hcclStream);
+      if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+          work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+      }
     }
   }
   {
@@ -642,9 +681,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       hcclUs startut = TIME_NOW();
       HCCL_CHECK_ERROR(
           fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream));
+      if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+          work->recorded_outputs_.push_back(std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
+      }
     }
   }
-  post(hcclStreams);
+  post(hcclStreams, work);
 
   if (!c10_npu::NpuRunMode::IsGraphMode()) {
     for (size_t i = 0; i < inputs.size(); ++i) {
@@ -667,8 +709,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       inputs,
       outputs,
       fn,
-      [](std::vector<c10_npu::NPUStream>&) {},
-      [](std::vector<c10_npu::NPUStream>&) {});
+      [](std::vector<c10_npu::NPUStream>&,
+         c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      [](std::vector<c10_npu::NPUStream>&,
+         c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
 }
 
 int g_allreduceID = 0;
@@ -822,11 +866,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
   check_npu_tensors_different_devices(outputFlattened);
 
   return collective(
-      inputTensors_,
-      outputFlattened,
-      [&](at::Tensor& input,
-          at::Tensor& output,
-          HcclComm comm,
+      inputTensors_, outputFlattened,
+      [&](at::Tensor& input, at::Tensor& output, HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
 
@@ -853,8 +894,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
             comm,
             stream.stream());
       },
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
         // Copy the flattened output tensors to the outputs.
         for (const auto i : c10::irange(outputTensors.size())) {
           c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -862,6 +905,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
             // See [Sync Streams].
             c10_npu::NPUCachingAllocator::recordStream(
                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+            
+            if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+              work->recorded_outputs_.push_back(std::make_pair(
+                  outputTensors[i][j].storage().getWeakStorageImpl(),
+                  hcclStreams[i]));
+            }
 
             outputTensors[i][j].copy_(outputFlattened[i][j], true);
           }
@@ -895,8 +944,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togathe
             comm,
             stream.stream());
       },
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {}
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {}
       );
 }
 
@@ -928,8 +979,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
             comm,
             stream.stream());
       },
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {}
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {}
       );
 }
 
@@ -964,7 +1017,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
             comm,
             stream.stream());
       },
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
         // Copy the input tensors to the flattened inputs.
         for (const auto i : c10::irange(inputTensors.size())) {
           c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -973,11 +1027,18 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
             c10_npu::NPUCachingAllocator::recordStream(
                 inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
+            if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+              work->recorded_inputs_.push_back(std::make_pair(
+                  inputTensors[i][j].storage().getWeakStorageImpl(),
+                  hcclStreams[i]));
+            }
+
             inputFlattened[i][j].copy_(inputTensors[i][j], true);
           }
         }
       },
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {});
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_base(
@@ -1017,8 +1078,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
             comm,
             stream.stream());
       },
-      [&](std::vector<c10_npu::NPUStream>&) {},
-      [&](std::vector<c10_npu::NPUStream>&) {});
+      [&](std::vector<c10_npu::NPUStream>&,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      [&](std::vector<c10_npu::NPUStream>&,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
@@ -1117,10 +1180,16 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
             comm,
             stream.stream());
       },
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
-      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
         for (size_t i = 0; i < tensors_.size(); ++i) {
           c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
+          if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+            work->recorded_outputs_.push_back(std::make_pair(
+                tensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
+          }
           if (!at_npu::native::FormatHelper::IsBaseFormatType(tensors[i])) {
             tensors[i].copy_(tensors_[i], true);
           }

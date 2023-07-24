@@ -44,7 +44,7 @@ at::Tensor NPUNativeOpApiFunctions::any(const at::Tensor& self, int64_t dim, boo
   auto output_dtype = (self.scalar_type() == at::ScalarType::Byte) ? at::ScalarType::Byte : at::ScalarType::Bool;
   auto options = self.options().dtype(output_dtype);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, options);
   EXEC_NPU_CMD(aclnnAny, self, dims, keepdim, result);
   return result;
 }
@@ -77,7 +77,7 @@ at::Tensor NPUNativeOpApiFunctions::any(const at::Tensor& self) {
   auto options = self.options().dtype(output_dtype);
   
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, options, self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, options);
   return NPUNativeOpApiFunctions::any_out(self, result);
 }
 

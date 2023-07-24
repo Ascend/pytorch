@@ -60,7 +60,7 @@ at::Tensor NPUNativeOpApiFunctions::upsample_nearest2d(
   DO_COMPATIBILITY(aclnnUpsampleNearest2d,
                    NPUNativeFunctions::upsample_nearest2d(self, output_size, scales_h, scales_w));
   at::SmallVector<int64_t, SIZE> outputSize = upsample_nearest2d_output_size_npu(self, output_size);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   EXEC_NPU_CMD(aclnnUpsampleNearest2d, self, output_size, result);
   return result;
 }
@@ -73,7 +73,7 @@ at::Tensor NPUNativeOpApiFunctions::upsample_nearest2d(
                    NPUNativeFunctions::upsample_nearest2d(input, output_size, scale_factors));
   auto osize = CalcuOpUtil::ComputeOutputSize(input.sizes(), output_size, scale_factors);
   at::SmallVector<int64_t, SIZE> output_size_vec = upsample_nearest2d_output_size_npu(input, osize);
-  at::Tensor result = OpPreparation::ApplyTensor(input, output_size_vec);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(input, output_size_vec);
   auto outputSize = at::IntArrayRef(osize);
   EXEC_NPU_CMD(aclnnUpsampleNearest2d, input, outputSize, result);
   return result;

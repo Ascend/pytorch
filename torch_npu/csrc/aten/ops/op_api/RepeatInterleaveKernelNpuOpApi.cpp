@@ -70,14 +70,14 @@ at::Tensor apply_result_tensor(const at::Tensor &self, c10::SmallVector<int64_t,
     if (output_size.has_value() && self.numel() != 0) {
         TORCH_CHECK(output_size_expected == output_size, "Allocated size does not match required size.");
     }
-    at::Tensor result = OpPreparation::ApplyTensor(self, output_shape);
+    at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_shape);
     return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::repeat_interleave(const at::Tensor& self, int64_t repeats,
     c10::optional<int64_t> dim, c10::optional<int64_t> output_size) {
     if (dim.has_value()) {
-        DO_COMPATIBILITY(aclnnRepeatInterleaveIntWithDim, 
+        DO_COMPATIBILITY(aclnnRepeatInterleaveIntWithDim,
             NPUNativeFunctions::repeat_interleave(self, repeats, dim, output_size));
     }
     else {
@@ -114,7 +114,7 @@ at::Tensor NPUNativeOpApiFunctions::repeat_interleave(const at::Tensor& self, co
     } else {
         DO_COMPATIBILITY(aclnnRepeatInterleave, NPUNativeFunctions::repeat_interleave(self, repeats, dim, output_size));
     }
-    
+
     // argument repeat and dim must be valid
     TORCH_CHECK(check_dim_valid(self, dim), "dim value is not in valid range.")
     TORCH_CHECK(check_tensor_repeats(self, repeats, dim), "repeats must have the same size as input along dim");
@@ -124,7 +124,7 @@ at::Tensor NPUNativeOpApiFunctions::repeat_interleave(const at::Tensor& self, co
     int64_t cur_dim = wrap_dim(self, dim);
     int64_t output_size_expected = output_shape[cur_dim];
     at::Tensor result = apply_result_tensor(self, output_shape, dim, output_size);
-       
+
     if (dim.has_value()) {
         int64_t real_dim = dim.value_or(0);
         EXEC_NPU_CMD(aclnnRepeatInterleaveWithDim, self, repeats, real_dim, output_size_expected, result);
@@ -132,18 +132,6 @@ at::Tensor NPUNativeOpApiFunctions::repeat_interleave(const at::Tensor& self, co
     else {
         EXEC_NPU_CMD(aclnnRepeatInterleave, self, repeats, output_size_expected, result);
     }
-
-    return result;
-}
-
-at::Tensor NPUNativeOpApiFunctions::repeat_interleave(const at::Tensor& repeats, c10::optional<int64_t> output_size) {
-    DO_COMPATIBILITY(aclnnRepeatInterleaveTensor, NPUNativeFunctions::repeat_interleave(repeats, output_size));
-    
-    // check output_size value is valid
-    auto output_shape = repeat_interleave_tensor_npu_output_size(repeats);
-    int64_t output_size_expected = output_shape[0];
-    at::Tensor result = apply_result_tensor(repeats, output_shape, c10::nullopt, output_size);
-    EXEC_NPU_CMD(aclnnRepeatInterleaveTensor, repeats, output_size_expected, result);
 
     return result;
 }

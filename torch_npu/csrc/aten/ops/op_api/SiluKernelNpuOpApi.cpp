@@ -30,7 +30,7 @@ at::Tensor& NPUNativeOpApiFunctions::silu_out(const at::Tensor& self, at::Tensor
 
 at::Tensor NPUNativeOpApiFunctions::silu(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnSilu, NPUNativeFunctions::silu(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnSilu, self, result);
   return result;
 }

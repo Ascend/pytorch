@@ -40,7 +40,7 @@ at::Tensor NPUNativeOpApiFunctions::_log_softmax_backward_data(const at::Tensor&
                                                                int64_t dim, c10::ScalarType input_dtype) {
   DO_COMPATIBILITY(aclnnLogSoftmaxBackward,
                    NPUNativeFunctions::_log_softmax_backward_data(grad_output, output, dim, input_dtype));
-  at::Tensor result = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(grad_output);
   EXEC_NPU_CMD(aclnnLogSoftmaxBackward, grad_output, output, dim, result);
 
   return result;

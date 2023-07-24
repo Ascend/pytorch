@@ -35,7 +35,7 @@ at::Tensor& NPUNativeOpApiFunctions::dot_out(const at::Tensor& self, const at::T
 at::Tensor NPUNativeOpApiFunctions::dot(const at::Tensor& self, const at::Tensor& tensor) {
   DO_COMPATIBILITY(aclnnDot, NPUNativeFunctions::dot(self, tensor));
   c10::SmallVector<int64_t, N> output_size = {};
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   NPUNativeOpApiFunctions::dot_out(self, tensor, result);
   return result;
 }

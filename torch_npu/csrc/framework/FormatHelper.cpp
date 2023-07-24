@@ -139,6 +139,34 @@ namespace at_npu
       return GetStorageSizes(format, ori_size);
     }
 
+    bool FormatHelper::IsOpInputBaseFormat(const at::Tensor &tensor) {
+      if (!at_npu::key::isDeviceTensor(tensor)) {
+        return true;
+      }
+      const auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
+      return desc.origin_format_ == desc.npu_format_;
+    }
+
+    bool FormatHelper::IsOpInputBaseFormat(
+        const c10::optional<at::Tensor> &tensor) {
+      if (!tensor.has_value()) {
+        return true;
+      }
+      return IsOpInputBaseFormat(tensor.value());
+    }
+
+    bool FormatHelper::IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors) {
+      const auto &iter =
+          std::find_if(tensors.begin(), tensors.end(), [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
+      return iter == tensors.end();
+    }
+
+    bool FormatHelper::IsOpInputBaseFormat(const at::TensorList &tensors) {
+      const auto &iter =
+          std::find_if(tensors.begin(), tensors.end(), [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
+      return iter == tensors.end();
+    }
+
     //
     namespace
     {
@@ -429,7 +457,14 @@ namespace at_npu
 
       FormatShape InferShapeofNCHW(c10::IntArrayRef dims)
       {
-        return InferShapeLessTo4(dims);
+        if (dims.size() < 5)
+        {
+          return InferShapeLessTo4(dims);
+        }
+        else
+        {
+          return InferShapeofND(dims);
+        }
       }
 
       FormatShape InferShapeofND(c10::IntArrayRef dims)

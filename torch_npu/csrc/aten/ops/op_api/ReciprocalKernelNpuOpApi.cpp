@@ -43,7 +43,7 @@ at::Tensor NPUNativeOpApiFunctions::reciprocal(const at::Tensor& self) {
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithSizes(output_size, self.options());
+      OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
 
   result = (result.dtype() == at::ScalarType::Half) ?
             result : NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);

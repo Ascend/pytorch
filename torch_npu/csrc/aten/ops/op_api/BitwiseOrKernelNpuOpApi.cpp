@@ -38,9 +38,9 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_or(const at::Tensor& self, const at:
 
   at::Tensor result;
   if ((self.scalar_type() == at::ScalarType::Bool) && (!other.isBoolean())) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kLong));
+    result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kLong));
   } else {
-    result = OpPreparation::ApplyTensor(self);
+    result = OpPreparation::ApplyTensorWithoutFormat(self);
   }
 
   // calculate the output result of the NPU
@@ -71,19 +71,11 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_or_out(
   DO_COMPATIBILITY(aclnnBitwiseOrScalar, NPUNativeFunctions::bitwise_or_out(self, other, result));
   DO_COMPATIBILITY(aclnnBitwiseOrTensor, NPUNativeFunctions::bitwise_or_out(self, other, result));
 
-  bool isSelfWrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
-
-  at::Tensor outputTensor;
-  if (isSelfWrapped) {
-    outputTensor = other;
-  } else {
-    outputTensor = self;
-  }
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
       {self},
       result,
-      outputTensor,
+      result,
       outputSize);
 
   bitwise_or_op_api_out_npu_nocheck(result, self, other);
@@ -106,7 +98,7 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_or(const at::Tensor& self, const at:
 
   auto output_size = broadcast_ops_npu_output_size(self, other);
   at::ScalarType result_type = at::native::result_type(self, other);
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(result_type));
   EXEC_NPU_CMD(aclnnBitwiseOrTensor, self, other, result);
 
   return result;

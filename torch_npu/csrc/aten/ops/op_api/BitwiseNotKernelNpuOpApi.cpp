@@ -34,7 +34,7 @@ at::Tensor& NPUNativeOpApiFunctions::bitwise_not_out(const at::Tensor& self, at:
 
 at::Tensor NPUNativeOpApiFunctions::bitwise_not(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnBitwiseNot, NPUNativeFunctions::bitwise_not(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnBitwiseNot, self, result);
   return result;
 }

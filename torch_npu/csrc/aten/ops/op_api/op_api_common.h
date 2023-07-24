@@ -372,8 +372,6 @@ typedef void(*ReleaseHugeMem)(void*, bool);
     TORCH_CHECK(getWorkspaceSizeFuncAddr != nullptr && opApiFuncAddr != nullptr,                             \
                 #aclnn_api, " or ", #aclnn_api "GetWorkspaceSize", " not in ", GetOpApiLibName(), ", or ",   \
                 GetOpApiLibName(), "not found.");                                                            \
-    TORCH_CHECK(at_npu::native::env::CheckForbidInternalFormat(), #aclnn_api ": Internal format not support,"\
-                " please set 'torch.npu.config.allow_internal_format=False'");                               \
     auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);                                          \
     uint64_t workspace_size = 0;                                                                             \
     uint64_t *workspace_size_addr = &workspace_size;                                                         \
@@ -390,11 +388,7 @@ typedef void(*ReleaseHugeMem)(void*, bool);
     TORCH_CHECK(workspace_status == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());         \
     void *workspace_addr = nullptr;                                                                          \
     if (workspace_size != 0) {                                                                               \
-      int deviceIdx = 0;                                                                                     \
-      NPU_CHECK_ERROR(aclrtGetDevice(&deviceIdx));                                                           \
-      auto workspace_tensor =                                                                                \
-          at::empty({static_cast<int64_t>(workspace_size)},                                                  \
-                    at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte));  \
+      auto workspace_tensor = CalcuOpUtil::UnsafeEmptyWorkspace(workspace_size);                             \
       workspace_addr = workspace_tensor.storage().data();                                                    \
     }                                                                                                        \
     auto acl_call = [converted_params, workspace_addr, workspace_size, acl_stream, executor]() -> int {      \
@@ -444,11 +438,7 @@ typedef void(*ReleaseHugeMem)(void*, bool);
     TORCH_CHECK(workspace_status == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());         \
     void *workspace_addr = nullptr;                                                                          \
     if (workspace_size != 0) {                                                                               \
-      int deviceIdx = 0;                                                                                     \
-      NPU_CHECK_ERROR(aclrtGetDevice(&deviceIdx));                                                           \
-      auto workspace_tensor =                                                                                \
-          at::empty({static_cast<int64_t>(workspace_size)},                                                  \
-                    at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte));  \
+      auto workspace_tensor = CalcuOpUtil::UnsafeEmptyWorkspace(workspace_size);                             \
       workspace_addr = workspace_tensor.storage().data();                                                    \
     }                                                                                                        \
     auto acl_call = [converted_params, workspace_addr, workspace_size, acl_stream, executor]() -> int {      \
@@ -523,9 +513,6 @@ private:
     TORCH_CHECK(getWorkspaceSizeFuncAddr != nullptr && opApiFuncAddr != nullptr,                            \
                 #aclnn_api, " and ", #aclnn_api "GetWorkspaceSize", " not in ", GetOpApiLibName(), ", or ", \
                 GetOpApiLibName(), "not found.");                                                           \
-    TORCH_CHECK(at_npu::native::env::CheckForbidInternalFormat(),                                           \
-                apiName, ": Internal format not support,"                                                   \
-                         " please set 'torch.npu.config.allow_internal_format=False'");                     \
     auto acl_stream = c10_npu::getCurrentNPUStream().stream(false);                                         \
     uint64_t workspace_size = 0;                                                                            \
     uint64_t *workspace_size_addr = &workspace_size;                                                        \
@@ -537,11 +524,7 @@ private:
     TORCH_CHECK(workspace_status == 0, "call " #aclnn_api " failed, detail:", aclGetRecentErrMsg());        \
     void *workspace_addr = nullptr;                                                                         \
     if (workspace_size != 0) {                                                                              \
-      int deviceIdx = 0;                                                                                    \
-      NPU_CHECK_ERROR(aclrtGetDevice(&deviceIdx));                                                          \
-      auto workspace_tensor =                                                                               \
-          at::empty({static_cast<int64_t>(workspace_size)},                                                 \
-                    at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIdx).dtype(at::kByte)); \
+      auto workspace_tensor = CalcuOpUtil::UnsafeEmptyWorkspace(workspace_size);                            \
       workspace_addr = workspace_tensor.storage().data();                                                   \
     }                                                                                                       \
     auto acl_call =                                                                                         \

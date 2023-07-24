@@ -24,7 +24,7 @@ at::Tensor NPUNativeOpApiFunctions::prelu(const at::Tensor& self, const at::Tens
   DO_COMPATIBILITY(aclnnPrelu, NPUNativeFunctions::prelu(self, weight_));
   // calculate the output size
   auto outputSize = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
 
   EXEC_NPU_CMD(aclnnPrelu, self, weight_, result);
   return result;

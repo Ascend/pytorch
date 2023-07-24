@@ -57,7 +57,7 @@ at::Tensor& NPUNativeOpApiFunctions::nonzero_out(const at::Tensor& self, at::Ten
 at::Tensor NPUNativeOpApiFunctions::nonzero(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnNonzero, NPUNativeFunctions::nonzero(self));
   auto out_size = nonzero_npu_max_output_size(self);
-  at::Tensor out = OpPreparation::ApplyTensor(out_size, self.options().dtype(at::kLong), self);
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(out_size, self.options().dtype(at::kLong));
   return exec_aclnn_non_zero(self, out);
 }
 

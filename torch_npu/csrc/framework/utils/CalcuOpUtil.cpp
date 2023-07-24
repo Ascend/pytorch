@@ -398,6 +398,20 @@ bool CalcuOpUtil::IsTransposeLastTwoDims(const at::Tensor &tensor) {
   }
 }
 
+bool CalcuOpUtil::IsMmTranspose(const at::Tensor &tensor) {
+  if (tensor.dim() < 2 || tensor.dim() > 3) {
+    return false;
+  }
+  int64_t dim1 = tensor.dim() - 1;
+  int64_t dim2 = tensor.dim() - 2;
+
+  if (tensor.stride(dim2) == 1 && tensor.stride(dim1) == tensor.size(dim2)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool CalcuOpUtil::IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2) {
   const static int64_t kInnerAxisMinLimit = 128;
   const static int64_t kInnerAxisMaxLimit = 65535;
@@ -439,7 +453,7 @@ bool CalcuOpUtil::IsTransposeInnerAxis(const at::Tensor &self) {
   int64_t data_type = elementSize(self.scalar_type());
   int64_t self_inner_axis = self.size(self.dim() - 1);
   int64_t self_outer_axis = self.size(self.dim() - 2);
-  if (IsTransposeLastTwoDims(self)) {
+  if (IsMmTranspose(self)) {
     self_inner_axis = self.size(self.dim() - 2);
     self_outer_axis = self.size(self.dim() - 1);
   }
@@ -576,6 +590,44 @@ c10::optional<double> CalcuOpUtil::GetScaleValue(
     return c10::nullopt;
   }
   return scales->at(idx);
+}
+
+at::Tensor CalcuOpUtil::UnsafeEmptyWorkspace(uint64_t workspace_size) {
+  ASCEND_LOGD("Alloc workspace %zu bytes unsafely.", workspace_size);
+  c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+  c10::intrusive_ptr<c10::StorageImpl> storage_impl =
+      c10::make_intrusive<torch_npu::NPUStorageImpl>(
+        c10::StorageImpl::use_byte_size_t(), workspace_size,
+        allocator->allocate(workspace_size), allocator, true);
+  static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
+  auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
+      storage_impl, storage_impl, dtype);
+  tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+  return tensor;
+}
+
+using aclCubeMathType = enum:int8_t {
+  KEEP_DTYPE = 0,
+  ALLOW_FP32_DOWN_PRECISION = 1,
+  USE_FP16 = 2,
+  USE_HF32 = 3,
+};
+
+static std::unordered_map<uint8_t, aclCubeMathType>
+    ACL_CUBE_MATH_TYPE_MAP = {
+      {0b00, KEEP_DTYPE},
+      {0b01, USE_FP16},
+      {0b10, USE_HF32},
+      {0b11, ALLOW_FP32_DOWN_PRECISION}
+};
+
+int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32, bool allowFp32ToFp16) {
+  uint8_t CubeMathTypeCode = ((uint8_t)allowHf32 << 1) + (uint8_t)allowFp32ToFp16;
+  auto iter = ACL_CUBE_MATH_TYPE_MAP.find(CubeMathTypeCode);
+  if (iter == ACL_CUBE_MATH_TYPE_MAP.end()) {
+    return ALLOW_FP32_DOWN_PRECISION;
+  }
+  return iter->second;
 }
 
 } // namespace native

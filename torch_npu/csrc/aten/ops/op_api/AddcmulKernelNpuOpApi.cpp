@@ -26,6 +26,14 @@ at::Tensor& NPUNativeOpApiFunctions::addcmul_out(const at::Tensor& self, const a
                                                  const at::Tensor& tensor2, const at::Scalar& value,
                                                  at::Tensor& result) {
   DO_COMPATIBILITY(aclnnAddcmul, NPUNativeFunctions::addcmul_out(self, tensor1, tensor2, value, result));
+  auto mul_output_size = broadcast_ops_npu_output_size(tensor1, tensor2);
+  auto output_size = broadcast_ops_npu_output_size(self.sizes(), mul_output_size);
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self,
+      output_size);
+
   EXEC_NPU_CMD(aclnnAddcmul, self, tensor1, tensor2, value, result);
   return result;
 }
@@ -33,10 +41,10 @@ at::Tensor& NPUNativeOpApiFunctions::addcmul_out(const at::Tensor& self, const a
 at::Tensor NPUNativeOpApiFunctions::addcmul(const at::Tensor& self, const at::Tensor& tensor1,
                                             const at::Tensor& tensor2, const at::Scalar& value) {
   DO_COMPATIBILITY(aclnnAddcmul, NPUNativeFunctions::addcmul(self, tensor1, tensor2, value));
-  auto mulOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
-  auto outputSize = broadcast_ops_npu_output_size(self.sizes(), mulOutputSize);
+  auto mul_output_size = broadcast_ops_npu_output_size(tensor1, tensor2);
+  auto output_size = broadcast_ops_npu_output_size(self.sizes(), mul_output_size);
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
 
   EXEC_NPU_CMD(aclnnAddcmul, self, tensor1, tensor2, value, result);
   return result;

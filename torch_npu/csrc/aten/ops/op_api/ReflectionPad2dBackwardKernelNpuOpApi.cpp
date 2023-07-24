@@ -39,7 +39,7 @@ at::Tensor NPUNativeOpApiFunctions::reflection_pad2d_backward(const at::Tensor& 
   DO_COMPATIBILITY(aclnnReflectionPad2dBackward,
                    NPUNativeFunctions::reflection_pad2d_backward(grad_output, self, padding));
 
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnReflectionPad2dBackward, grad_output, self, padding, grad_input);
   return grad_input;
 }

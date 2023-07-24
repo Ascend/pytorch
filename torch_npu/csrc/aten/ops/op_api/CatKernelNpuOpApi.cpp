@@ -118,7 +118,7 @@ at::Tensor NPUNativeOpApiFunctions::_cat(at::TensorList tensors, int64_t dim) {
   if (inputTensors.size() > 0) {
     dim_post_expr = inputTensors[0].dim();
   } else {
-    at::Tensor result = OpPreparation::ApplyTensor(tensors[0]);
+    at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(tensors[0]);
     return result;
   }
   dim = CalcuOpUtil::MakeWrapDim(dim, dim_post_expr);
@@ -126,7 +126,7 @@ at::Tensor NPUNativeOpApiFunctions::_cat(at::TensorList tensors, int64_t dim) {
   // calculate the output size
   auto outputSize = cat_npu_output_size_opapi(inputTensors, dim);
   at::Tensor result =
-      OpPreparation::ApplyTensor(outputSize, inputTensors[0].options().dtype(high_type), inputTensors[0]);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, inputTensors[0].options().dtype(high_type));
   NPUNativeOpApiFunctions::_cat_out(tensors, dim, result);
   return result;
 }

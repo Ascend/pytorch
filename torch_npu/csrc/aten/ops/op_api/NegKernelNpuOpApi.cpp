@@ -34,10 +34,20 @@ at::Tensor NPUNativeOpApiFunctions::neg(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnNeg, NPUNativeFunctions::neg(self));
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+      OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options());
 
   EXEC_NPU_CMD(aclnnNeg, self, result);
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::neg_(at::Tensor &self) {
+  DO_COMPATIBILITY(aclnnInplaceNeg, NPUNativeFunctions::neg_(self));
+  c10::SmallVector<at::Tensor, N> inputs = {self};
+  c10::SmallVector<at::Tensor, N> outputs = {self};
+  CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
+
+  EXEC_NPU_CMD(aclnnInplaceNeg, self);
+  return self;
 }
 }  // namespace native
 }  // namespace at_npu

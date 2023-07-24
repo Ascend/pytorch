@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu {
 namespace native {
@@ -35,6 +36,55 @@ at::Tensor& NPUNativeOpApiFunctions::eye_out(int64_t n, int64_t m, at::Tensor& r
   TORCH_CHECK(m >= 0, "m must be greater or equal to 0, got ", m);
   result.resize_({n, m});
   EXEC_NPU_CMD(aclnnEye, n, m, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::eye(
+    int64_t n,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<at::Layout> layout_opt,
+    c10::optional<at::Device> device_opt,
+    c10::optional<bool> pin_memory_opt) {
+  DO_COMPATIBILITY(aclnnEye,
+                   NPUNativeFunctions::eye(n, dtype_opt, layout_opt, device_opt, pin_memory_opt));
+  auto device = device_or_default(device_opt);
+  at::TensorOptions option;
+  option = option.dtype(dtype_opt)
+                 .layout(layout_opt)
+                 .device(device)
+                 .pinned_memory(pin_memory_opt);
+
+  // get the output size
+  c10::SmallVector<int64_t, N> output_size = {n, n};
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, option);
+
+  EXEC_NPU_CMD(aclnnEye, n, n, result);
+
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::eye(
+    int64_t n,
+    int64_t m,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<at::Layout> layout_opt,
+    c10::optional<at::Device> device_opt,
+    c10::optional<bool> pin_memory_opt) {
+  DO_COMPATIBILITY(aclnnEye,
+                   NPUNativeFunctions::eye(n, m, dtype_opt, layout_opt, device_opt, pin_memory_opt));
+  auto device = device_or_default(device_opt);
+  at::TensorOptions option;
+  option = option.dtype(dtype_opt)
+                 .layout(layout_opt)
+                 .device(device)
+                 .pinned_memory(pin_memory_opt);
+
+  // get the output size
+  c10::SmallVector<int64_t, N> output_size = {n, m};
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, option);
+
+  EXEC_NPU_CMD(aclnnEye, n, m, result);
+
   return result;
 }
 

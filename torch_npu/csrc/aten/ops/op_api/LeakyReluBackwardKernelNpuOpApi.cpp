@@ -39,7 +39,7 @@ at::Tensor NPUNativeOpApiFunctions::leaky_relu_backward(const at::Tensor& grad_o
   DO_COMPATIBILITY(aclnnLeakyReluBackward,
                    NPUNativeFunctions::leaky_relu_backward(grad_output, self, negval, is_result));
 
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnLeakyReluBackward, grad_output, self, negval, is_result, result);
 

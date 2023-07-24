@@ -113,6 +113,7 @@ public:
                                   c10::ArrayRef<at::Tensor> outputs);
   static int64_t MakeWrapDim(int64_t dim, int64_t dim_post_expr);
   static bool IsTransposeLastTwoDims(const at::Tensor &tensor);
+  static bool IsMmTranspose(const at::Tensor &tensor);
   static bool IsScalarWrappedToTensor(const at::Tensor &tensor);
   static bool IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2);
   static bool IsTransposeInnerAxis(const at::Tensor &self);
@@ -135,6 +136,9 @@ public:
                       c10::optional<c10::ArrayRef<double>> scale_factors);
   static c10::optional<double>
   GetScaleValue(c10::optional<c10::ArrayRef<double>> scales, int idx);
+  // used by aclnn to reduce time cost of alloc workspace
+  static at::Tensor UnsafeEmptyWorkspace(uint64_t size);
+  static int8_t GetCubeMathType(bool allowHf32, bool allowFp32ToFp16);
 };
 
 } // namespace native

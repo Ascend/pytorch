@@ -21,6 +21,7 @@ namespace at_npu {
 namespace native {
 at::Tensor& NPUNativeOpApiFunctions::cos_out(const at::Tensor& self, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnCos, NPUNativeFunctions::cos_out(self, result));
+  TORCH_CHECK(!isIntegralType(result.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
   auto outputSize = self.sizes();
   OpPreparation::CheckOut({self}, result, result.scalar_type(), outputSize);
   EXEC_NPU_CMD(aclnnCos, self, result);
@@ -34,15 +35,16 @@ at::Tensor NPUNativeOpApiFunctions::cos(const at::Tensor& self) {
   if (isIntegralType(self.scalar_type(), true)) {
     outDtype = at::kFloat;
   }
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(outDtype));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(outDtype));
   EXEC_NPU_CMD(aclnnCos, self, result);
 
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::cos_(at::Tensor& self) {
-  DO_COMPATIBILITY(aclnnCos, NPUNativeFunctions::cos_(self));
-  EXEC_NPU_CMD(aclnnCos, self, self);
+  DO_COMPATIBILITY(aclnnInplaceCos, NPUNativeFunctions::cos_(self));
+  TORCH_CHECK(!isIntegralType(self.scalar_type(), true), "result dtype can't be cast to the desired output type.\n");
+  EXEC_NPU_CMD(aclnnInplaceCos, self);
   return self;
 }
 

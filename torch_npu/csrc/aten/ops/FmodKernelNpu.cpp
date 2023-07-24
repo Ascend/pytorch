@@ -23,7 +23,7 @@ namespace native {
 at::Tensor& fmod_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, const at::Tensor& other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
-  cmd.Name("FloorMod")
+  cmd.Name("Mod")
     .Expect(unified_result)
     .Input(self)
     .Input(other)

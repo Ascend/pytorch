@@ -60,10 +60,30 @@ at::Tensor& NPUNativeOpApiFunctions::_index_put_impl_(
   if (self.device().type() == at::kCPU) {
     return at::native::_index_put_impl_(self, indices, value, accumulate, unsafe);
   }
-  at::native::checkIndexTensorTypes(indices);
-  auto indices_expand = AdvanceIndex::npu_expand_tensors(self, indices);
-  at::TensorList indices_tensor_list = indices_expand;
-  EXEC_NPU_CMD(aclnnIndexPutImpl, self, indices_tensor_list, value, accumulate, unsafe);
+  at::SmallVector<int64_t, N> outputsize;
+  outputsize.emplace_back(0);
+  at::Tensor zerotensor = OpPreparation::ApplyTensor(self, outputsize);
+  std::vector<at::Tensor> allDefinedIndices;
+  for (c10::optional<at::Tensor> index_opt : indices) {
+    if (index_opt.has_value()) {
+      const auto& index = *index_opt;
+      if (index.defined()) {
+        allDefinedIndices.emplace_back(index);
+        continue;
+      }
+    }
+    allDefinedIndices.emplace_back(zerotensor);
+  }
+
+  for (auto &allDefinedIndice : allDefinedIndices) {
+    if (allDefinedIndice.device() != self.device()) {
+      allDefinedIndice = allDefinedIndice.to(self.device());
+    }
+  }
+  at::TensorList indices_tensor_list = allDefinedIndices;
+  if (self.numel() != 0 && value.numel() != 0) {
+    EXEC_NPU_CMD(aclnnIndexPutImpl, self, indices_tensor_list, value, accumulate, unsafe);
+  }
   return self;
 }
 

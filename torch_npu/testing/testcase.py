@@ -71,7 +71,6 @@ def run_tests():
     else:
         unittest.main(argv=argv)
 
-
 class TestCase(expecttest.TestCase):
     _precision = 1e-5
     maxDiff = None

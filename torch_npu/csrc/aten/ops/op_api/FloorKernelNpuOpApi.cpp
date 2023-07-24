@@ -29,15 +29,14 @@ at::Tensor& NPUNativeOpApiFunctions::floor_out(const at::Tensor& self, at::Tenso
 }
 
 at::Tensor& NPUNativeOpApiFunctions::floor_(at::Tensor& self) {
-  DO_COMPATIBILITY(aclnnFloor, NPUNativeFunctions::floor_(self));
-  NPUNativeOpApiFunctions::floor_out(self, self);
-
+  DO_COMPATIBILITY(aclnnInplaceFloor, NPUNativeFunctions::floor_(self));
+  EXEC_NPU_CMD(aclnnInplaceFloor, self);
   return self;
 }
 
 at::Tensor NPUNativeOpApiFunctions::floor(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnFloor, NPUNativeFunctions::floor(self));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnFloor, self, result);
   return result;
 }

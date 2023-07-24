@@ -45,7 +45,7 @@ at::Tensor &argmin_exec(
     OpPreparation::CheckOut({self}, result, result, output_size);
   } else {
     // construct the output tensor of the NPU
-    result = OpPreparation::ApplyTensorWithSizes(output_size, self.options().dtype(at::kLong));
+    result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(at::kLong));
   }
 
   EXEC_NPU_CMD(aclnnArgMin, input, real_dim, real_keep_dim, result);

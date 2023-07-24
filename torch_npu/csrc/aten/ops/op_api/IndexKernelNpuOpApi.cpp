@@ -24,7 +24,7 @@ namespace native {
 at::Tensor index_high_dims_op_api(const at::Tensor& self, std::vector<at::Tensor> indices) {
   std::vector<at::Tensor> all_defined_indices;
   at::SmallVector<int64_t, N> zeroSize = {0};
-  at::Tensor emptyTensor = OpPreparation::ApplyTensor(self, zeroSize);
+  at::Tensor emptyTensor = OpPreparation::ApplyTensorWithoutFormat(self, zeroSize);
   for (int i = 0; i < indices.size(); i++) {
     if (indices[i].defined()) {
       all_defined_indices.emplace_back(indices[i]);
@@ -34,7 +34,7 @@ at::Tensor index_high_dims_op_api(const at::Tensor& self, std::vector<at::Tensor
   }
 
   auto output_size = index_npu_output_size(self, indices);
-  auto result = OpPreparation::ApplyTensor(self, output_size);
+  auto result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
   // calculate the output result of the NPU
   at::TensorList indices_tensor_list = all_defined_indices;
   EXEC_NPU_CMD(aclnnIndex, self, indices_tensor_list, result);

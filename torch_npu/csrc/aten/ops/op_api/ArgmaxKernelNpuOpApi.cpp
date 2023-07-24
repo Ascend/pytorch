@@ -41,7 +41,7 @@ at::Tensor NPUNativeOpApiFunctions::argmax(const at::Tensor& self, at::optional<
   auto outputSize = reduce_ops_npu_output_size(input, realDim, realKeepDim);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(at::kLong));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kLong));
 
   EXEC_NPU_CMD(aclnnArgMax, input, realDim, realKeepDim, result);
   return result;

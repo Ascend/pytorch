@@ -57,9 +57,6 @@ struct LeakyStreamInternals {
   bool is_data_preprocess_stream = false;
 };
 
-static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
-static uint32_t kOpWaitTimeout = 1868U; // second
-
 // Global stream state and constants
 static c10::DeviceIndex num_npus = -1;
 static constexpr int kStreamsPerPoolBits = 3;
@@ -175,17 +172,9 @@ static void initGlobalStreamState() {
   }
   // Initializes secondary streams
   secondary_streams[device_id].device_index = device_id;
-  auto& secondary_streamsi = secondary_streams[device_id];
+  auto &secondary_streamsi = secondary_streams[device_id];
   NPU_CHECK_SUPPORTED_OR_ERROR(
       acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-  uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
-  if (hccl_exec_timeout > 0) {
-    kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
-    if (kOpWaitTimeout < hccl_exec_timeout) {
-      kOpWaitTimeout = UINT_MAX;
-    }
-  }
-  NPU_CHECK_SUPPORTED_OR_ERROR(acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
 }
 
 static void initDeviceStreamState(c10::DeviceIndex device_index) {
@@ -272,10 +261,10 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
 }
 } // namespace
 
- aclrtStream NPUStream::stream(const bool need_empty) const {
+ aclrtStream NPUStream::stream() const {
   auto ptr = NPUStream_internals(getDefaultNPUStream());
   AT_ASSERT(ptr);
-  if (ptr->repo->CheckInit() && need_empty) {
+  if (ptr->repo->CheckInit()) {
     NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
     if (ret != SUCCESS) {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
@@ -435,4 +424,13 @@ bool NPUStream::isDataPreprocessStream() {
   return ptr->is_data_preprocess_stream;
 }
 
+aclrtStream NPUStream::stream(const bool need_empty) const {
+  if (!need_empty) {
+    auto cur_ptr = NPUStream_internals(*this);
+    AT_ASSERT(cur_ptr);
+    return cur_ptr->stream;
+  }
+  
+  return stream();
+}
 } // namespace c10_npu

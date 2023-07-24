@@ -26,21 +26,22 @@ at::Tensor& NPUNativeOpApiFunctions::threshold_out(
     const at::Scalar& value,
     at::Tensor& result) {
   DO_COMPATIBILITY(aclnnThreshold, NPUNativeFunctions::threshold_out(self, threshold, value, result));
-  OpPreparation::CheckOut({self}, result, self);
+  auto res_type = at::result_type(self, result);
+  OpPreparation::CheckOut({self}, result, res_type, self.sizes());
   EXEC_NPU_CMD(aclnnThreshold, self, threshold, value, result);
   return result;
 }
 
 at::Tensor NPUNativeOpApiFunctions::threshold(const at::Tensor& self, const at::Scalar& threshold, const at::Scalar& value) {
   DO_COMPATIBILITY(aclnnThreshold, NPUNativeFunctions::threshold(self, threshold, value));
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   NPUNativeOpApiFunctions::threshold_out(self, threshold, value, result);
   return result;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::threshold_(at::Tensor& self, const at::Scalar& threshold, const at::Scalar& value) {
-  DO_COMPATIBILITY(aclnnThreshold, NPUNativeFunctions::threshold_(self, threshold, value));
-  NPUNativeOpApiFunctions::threshold_out(self, threshold, value, self);
+  DO_COMPATIBILITY(aclnnInplaceThreshold, NPUNativeFunctions::threshold_(self, threshold, value));
+  EXEC_NPU_CMD(aclnnInplaceThreshold, self, threshold, value);
   return self;
 }
 

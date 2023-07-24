@@ -83,6 +83,9 @@ namespace at_npu
             static at::Tensor ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options,
                                                     int64_t format, bool keep_format = false);
             static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
+            static at::Tensor ApplyTensorWithoutFormat(const at::Tensor &src);
+            static at::Tensor ApplyTensorWithoutFormat(const at::Tensor &src, c10::IntArrayRef sizes);
+            static at::Tensor ApplyTensorWithoutFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options);
             // check memory
             static void CheckMemory(const std::initializer_list<at::Tensor> &inputs,
                                     const std::initializer_list<at::Tensor> &outputs);

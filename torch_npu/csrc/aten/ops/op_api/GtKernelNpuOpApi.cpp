@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -40,11 +40,17 @@ at::Tensor NPUNativeOpApiFunctions::gt(const at::Tensor& self, const at::Scalar&
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool), ACL_FORMAT_ND);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool));
 
-  // calculate the output resugt of the NPU
+  // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnGtScalar, formatCastOfSelf, other, result);
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::gt_(at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceGtScalar, NPUNativeFunctions::gt_(self, other));
+  EXEC_NPU_CMD(aclnnInplaceGtScalar, self, other);
+  return self;
 }
 
 at::Tensor& NPUNativeOpApiFunctions::gt_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
@@ -68,11 +74,27 @@ at::Tensor NPUNativeOpApiFunctions::gt(const at::Tensor& self, const at::Tensor&
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool), ACL_FORMAT_ND);
+      OpPreparation::ApplyTensorWithoutFormat(outputSize, formatCastOfSelf.options().dtype(at::kBool));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnGtTensor, formatCastOfSelf, formatCastOfOther, result);
   return result;
+}
+
+at::Tensor &NPUNativeOpApiFunctions::gt_(at::Tensor &self, const at::Tensor &other) {
+  DO_COMPATIBILITY(aclnnInplaceGtTensor, NPUNativeFunctions::gt_(self, other));
+  if (OpPreparation::IsCPUScalar(other)) {
+    return NPUNativeOpApiFunctions::gt_(self, other.item());
+  } else {
+    TORCH_CHECK(self.device() == other.device(),
+        "Expected all tensors to be on the same device, but found at least two devices, ",
+        (self.device().type() == at_npu::key::NativeDeviceType ? "npu" : "cpu"),
+        " and ",
+        (other.device().type() == at_npu::key::NativeDeviceType ? "npu! " : "cpu! "));
+    OpPreparation::CheckMemory({self, other}, {self});
+    EXEC_NPU_CMD(aclnnInplaceGtTensor, self, other);
+    return self;
+  }
 }
 
 }  // namespace native

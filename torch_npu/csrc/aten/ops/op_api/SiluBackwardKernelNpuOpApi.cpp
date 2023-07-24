@@ -36,7 +36,7 @@ at::Tensor& silu_backward_out(const at::Tensor& grad_output, const at::Tensor& s
 }
 
 at::Tensor silu_backward(const at::Tensor& grad_output, const at::Tensor& self) {
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(grad_output);
   EXEC_NPU_CMD(aclnnSiluBackward, grad_output, self, grad_input);
   return grad_input;
 }

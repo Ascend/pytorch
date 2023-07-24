@@ -1162,6 +1162,26 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    def test_wrapper_npu_rotary_mul(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, r1, r2):
+                return torch_npu.npu_rotary_mul(x, r1, r2)
+
+        def export_onnx(onnx_model_name):
+            x = torch.rand([8192, 2, 5, 128], dtype=torch.float32).npu()
+            r1 = torch.rand([8192, 1, 1, 128], dtype=torch.float32).npu()
+            r2 = torch.rand([8192, 1, 1, 128], dtype=torch.float32).npu()
+            model = Model().to("npu")
+            model(x, r1, r2)
+            self.onnx_export(model, (x, r1, r2), onnx_model_name, ["x", "r1", "r2"])
+
+        onnx_model_name = "model_npu_rotary_mul.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
+
 
 if __name__ == '__main__':
     run_tests()

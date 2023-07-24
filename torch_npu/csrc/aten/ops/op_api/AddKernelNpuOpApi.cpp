@@ -81,7 +81,7 @@ at::Tensor NPUNativeOpApiFunctions::add(const at::Tensor& self, const at::Tensor
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      OpPreparation::ApplyTensor(output_size, output_tensor.options().dtype(result_type), output_tensor);
+      OpPreparation::ApplyTensorWithoutFormat(output_size, output_tensor.options().dtype(result_type));
   // calculate the output result of the NPU
   add_out_npu_nocheck(self_cp, other, alpha, result);
   return result;
@@ -94,7 +94,7 @@ at::Tensor NPUNativeOpApiFunctions::add(const at::Tensor& self, const at::Scalar
   auto output_size = input_same_output_size(self);
   at::ScalarType result_type = at::native::result_type(self, other);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(result_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(result_type));
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnAdds, self, other, alpha, result);
   return result;

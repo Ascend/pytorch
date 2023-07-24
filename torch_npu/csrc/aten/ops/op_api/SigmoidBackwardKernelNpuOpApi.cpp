@@ -24,7 +24,8 @@ namespace native {
 at::Tensor& NPUNativeOpApiFunctions::sigmoid_backward_out(const at::Tensor& grad_output, const at::Tensor& output,
                                                           at::Tensor& result) {
   DO_COMPATIBILITY(aclnnSigmoidBackward, NPUNativeFunctions::sigmoid_backward_out(grad_output, output, result));
-  OpPreparation::CheckOut({grad_output, output}, result, grad_output);
+  auto output_size = broadcast_ops_npu_output_size(grad_output, output);
+  OpPreparation::CheckOut({grad_output, output}, result, result.scalar_type(), output_size);
 
   EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, result);
   return result;
@@ -32,7 +33,9 @@ at::Tensor& NPUNativeOpApiFunctions::sigmoid_backward_out(const at::Tensor& grad
 
 at::Tensor NPUNativeOpApiFunctions::sigmoid_backward(const at::Tensor& grad_output, const at::Tensor& output) {
   DO_COMPATIBILITY(aclnnSigmoidBackward, NPUNativeFunctions::sigmoid_backward(grad_output, output));
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+  auto output_size = broadcast_ops_npu_output_size(grad_output, output);
+  at::ScalarType promote_type = at::native::result_type(grad_output, output);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(output_size, promote_type);
 
   EXEC_NPU_CMD(aclnnSigmoidBackward, grad_output, output, grad_input);
   return grad_input;

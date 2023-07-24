@@ -34,7 +34,7 @@ at::Tensor NPUNativeOpApiFunctions::embedding_dense_backward(
   auto outputSize = {num_weights, grad_weight.size(-1)};
   
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(grad_weight, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(grad_weight, outputSize);
   
   // calculate the output resugt of the NPU
   EXEC_NPU_CMD(aclnnEmbeddingDenseBackward, grad_weight, indices, num_weights, padding_idx, 

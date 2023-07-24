@@ -34,7 +34,7 @@ at::Tensor& NPUNativeOpApiFunctions::take_out(const at::Tensor& self, const at::
 
 at::Tensor NPUNativeOpApiFunctions::take(const at::Tensor& self, const at::Tensor& index) {
   DO_COMPATIBILITY(aclnnTake, NPUNativeFunctions::take(self, index));
-  at::Tensor result = OpPreparation::ApplyTensor(self, index.sizes());
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, index.sizes());
   EXEC_NPU_CMD(aclnnTake, self, index, result);
   return result;
 }

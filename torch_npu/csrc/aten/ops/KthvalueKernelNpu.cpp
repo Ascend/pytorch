@@ -124,11 +124,6 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::kthvalue_out(
       ACL_FORMAT_ND,
       at::ScalarType::Long,
       outputSize);
-  TORCH_CHECK(
-      self.scalar_type() == at::kHalf ||
-      self.scalar_type() == at::kFloat ||
-      self.scalar_type() == at::kInt,
-      "the type of input must be float16, float32, or int32");
   dim = CalcuOpUtil::MakeWrapDim(dim, self.dim());
 
   TORCH_CHECK(

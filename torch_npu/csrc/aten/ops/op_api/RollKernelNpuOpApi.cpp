@@ -22,7 +22,7 @@ namespace native {
 at::Tensor NPUNativeOpApiFunctions::roll(const at::Tensor& self, at::IntArrayRef shifts, at::IntArrayRef dims) {
   DO_COMPATIBILITY(aclnnRoll, NPUNativeFunctions::roll(self, shifts, dims));
 
-  at::Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   EXEC_NPU_CMD(aclnnRoll, self, shifts, dims, result);
   return result;
 }

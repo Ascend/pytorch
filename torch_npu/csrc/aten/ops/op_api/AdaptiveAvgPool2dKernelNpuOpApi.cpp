@@ -44,7 +44,7 @@ at::Tensor NPUNativeOpApiFunctions::_adaptive_avg_pool2d(const at::Tensor& self,
   outputSize[self.dim() - 1] = output_size[1];
   outputSize[self.dim() - 2] = output_size[0];
 
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
 
   NPUNativeOpApiFunctions::adaptive_avg_pool2d_out(self, output_size, result);
 

@@ -46,8 +46,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::adaptive_max_pool2d(
   
   auto outputSize = max_pool2d_out_size(self, output_size);
   
-  at::Tensor output = OpPreparation::ApplyTensor(self, outputSize);
-  at::Tensor indices = OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::kLong), self);
+  at::Tensor output = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
+  at::Tensor indices = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kLong));
 
   NPUNativeOpApiFunctions::adaptive_max_pool2d_out(self, output_size, output, indices);
   return tuple<at::Tensor, at::Tensor>(output, indices);

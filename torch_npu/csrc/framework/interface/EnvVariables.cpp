@@ -79,11 +79,19 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
   AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
 })
 
+REGISTER_OPTION_HOOK(ACL_AICORE_NUM, [](const std::string &val) {
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_AICORE_NUM, result = ", ret, ", set value ", val);
+})
+
 REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
   auto ret = AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str());
   TORCH_CHECK(ret == ACL_SUCCESS,
               "Failed to set compile option ACL_PRECISION_MODE, result = ", ret, ", set value ", val);
 })
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(IsAllowFP32ToFP16, ACL_PRECISION_MODE, "must_keep_origin_dtype", "allow_fp32_to_fp16")
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(IsMustKeepOriginDtype, ACL_PRECISION_MODE, "allow_fp32_to_fp16", "must_keep_origin_dtype")
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
   auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
@@ -118,6 +126,7 @@ REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
               "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(IsAllowConvHF32, ALLOW_CONV_HF32, "disable", "enable")
 
 REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
   static const std::string conv_hf32_option_name = "ALLOW_CONV_HF32";
@@ -135,6 +144,7 @@ REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
               "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(IsAllowMatmulHF32, ALLOW_MATMUL_HF32, "disable", "enable")
 
 } // namespace env
 } // namespace native

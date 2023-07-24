@@ -27,7 +27,7 @@ at::Tensor NPUNativeOpApiFunctions::gelu_backward(const at::Tensor& grad, const 
   // dtype promotion
   auto output_dtype = at::native::result_type(grad, self);
   // construct the output tensor of the NPU
-  at::Tensor grad_input = OpPreparation::ApplyTensor(output_size, self.options().dtype(output_dtype), self);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(output_dtype));
   // dispatch hostAPI
   EXEC_NPU_CMD(aclnnGeluBackward, grad, self, grad_input);
   return grad_input;

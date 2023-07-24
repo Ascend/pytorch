@@ -43,7 +43,7 @@ at::Tensor NPUNativeOpApiFunctions::index_select(const at::Tensor& self,
                                                  const at::Tensor& index) {
   DO_COMPATIBILITY(aclnnIndexSelect, NPUNativeFunctions::index_select(self, dim, index));
   auto outputSize = index_select_npu_output_size(self, dim, index);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
   EXEC_NPU_CMD(aclnnIndexSelect, self, dim, index, result);
   return result;
 }

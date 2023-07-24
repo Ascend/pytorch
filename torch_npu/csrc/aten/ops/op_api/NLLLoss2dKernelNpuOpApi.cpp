@@ -60,8 +60,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::nll_loss2d_forward(const 
   auto outputSizes = nll_loss2d_npu_output_size(self, target, reduction, ignore_index);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(self, std::get<0>(outputSizes));
-  at::Tensor total_weight = OpPreparation::ApplyTensor(self, std::get<1>(outputSizes));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, std::get<0>(outputSizes));
+  at::Tensor total_weight = OpPreparation::ApplyTensorWithoutFormat(self, std::get<1>(outputSizes));
 
   // calculate the output result of the NPU
   NPUNativeOpApiFunctions::nll_loss2d_forward_out(self, target, weight_opt, reduction, ignore_index, result,

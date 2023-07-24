@@ -51,10 +51,9 @@ at::Tensor NPUNativeOpApiFunctions::stack(at::TensorList tensors, int64_t dim) {
   DO_COMPATIBILITY(aclnnStack, NPUNativeFunctions::stack(tensors, dim));
   auto output_size = stack_output_size(tensors, dim);
   at::ScalarType result_type = at::native::result_type(tensors);
-  at::Tensor result = OpPreparation::ApplyTensor(
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(
       output_size,
-      tensors[0].options().dtype(result_type),
-      tensors[0]);
+      tensors[0].options().dtype(result_type));
 
   EXEC_NPU_CMD(aclnnStack, tensors, dim, result);
 

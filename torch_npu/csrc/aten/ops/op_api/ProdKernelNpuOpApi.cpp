@@ -48,7 +48,7 @@ at::Tensor NPUNativeOpApiFunctions::prod(const at::Tensor& self, int64_t dim,
   // calculate the output size
   auto output_size = prod_npu_output_size(self, dim, keepdim);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(dst_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(dst_type));
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnProdDim, self, dim, keepdim, dst_type, result);
 
@@ -67,7 +67,7 @@ at::Tensor NPUNativeOpApiFunctions::prod(const at::Tensor& self, c10::optional<a
   // calculate the output size
   auto output_size = prod_npu_output_size(self, false);
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options().dtype(dst_type), self);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(dst_type));
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnProd, self, dst_type, result);
 

@@ -52,8 +52,7 @@ at::Tensor dropout_gen_mask_impl(const at::Tensor &self, const at::Scalar &keep_
     const int64_t offset, const int64_t numels) {
   int64_t length = (numels + 128 - 1) / 128 * 128 / 8;
   c10::TensorOptions options = self.options();
-  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length + 32}, options.dtype(at::kByte),
-                                                         ACL_FORMAT_ND);
+  at::Tensor mask = OpPreparation::ApplyTensorWithoutFormat(at::IntArrayRef{length + 32}, options.dtype(at::kByte));
   at::SmallVector<int64_t, N> offsetList = {0, offset};
   const int64_t seed1 = 0;
   OpCommand cmd;
@@ -85,9 +84,6 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &k
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(original_stream));
       }
     }
-    // When tasks on multiple streams read and write the same block of memory,
-    // recordStream needs to be called to ensure the correctness of memory reuse.
-    c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   } else {
     mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, numels);
   }
@@ -108,8 +104,6 @@ at::Tensor dropout_gen_mask(const at::Tensor &self, double keep_prob, int64_t he
     drop_mask = dropout_gen_mask_dispatch(self, at::Scalar(keep_prob), at::Scalar(seed), offset, numels, gen_mask_parallel, sync);
   } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
     drop_mask = at::zeros(at::IntArrayRef{length}, self.options().dtype(at::kByte));
-  } else {
-    drop_mask = at::full(at::IntArrayRef{length}, 255, self.options().dtype(at::kByte));
   }
   return drop_mask;
 }
@@ -156,14 +150,17 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor format_softmax_sum = format_trans(softmax_sum_const);
   at::Tensor format_softmax = format_trans(softmax_const);
   at::Tensor format_attention = format_trans(attention_const);
+  at::Tensor dtype_atten_mask =
+      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
+      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
-  at::Tensor dq = OpPreparation::ApplyTensor(format_query);
-  at::Tensor dk = OpPreparation::ApplyTensor(format_key);
-  at::Tensor dv = OpPreparation::ApplyTensor(format_value);
+  at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query);
+  at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
+  at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
-      format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
+      format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
       pre_tockens, next_tockens, is_flash, head_num, dq, dk, dv);
 
@@ -188,7 +185,7 @@ public:
     TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
     TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
     TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
-    at::Tensor attention_score = OpPreparation::ApplyTensor(query);
+    at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(query);
 
     at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
     at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
@@ -197,6 +194,9 @@ public:
     at::Tensor format_pse = format_trans(pse);
     at::Tensor format_padding_mask = format_trans(padding_mask);
     at::Tensor format_atten_mask = format_trans(atten_mask);
+    at::Tensor dtype_atten_mask =
+      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
+      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
     int64_t seed;
     int64_t offset;
@@ -205,18 +205,24 @@ public:
         seed, offset, numels);
 
     size_t dim = (query.scalar_type() == at::ScalarType::Float) ? 8 : 16;
-    at::Tensor softmax_max = OpPreparation::ApplyTensor(query,
+    at::Tensor softmax_max = OpPreparation::ApplyTensorWithoutFormat(query,
         {query.size(0), head_num, query.size(1), dim}); // [B, N, S, dim]
-    at::Tensor softmax_sum = OpPreparation::ApplyTensor(query,
+    at::Tensor softmax_sum = OpPreparation::ApplyTensorWithoutFormat(query,
         {query.size(0), head_num, query.size(1), dim}); // [B, N, S, dim]
 
     bool is_flash = true;
     at::Tensor softmax_out;
 
     EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
-        format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
+        format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
         scale, keep_prob, pre_tockens, next_tockens, head_num, is_flash,
         softmax_max, softmax_sum, softmax_out, attention_score);
+
+    if (!sync) {
+      c10_npu::NPUEvent npu_event;
+      npu_event.record(c10_npu::getCurrentNPUStream());
+      npu_event.block(c10_npu::getCurrentSecondaryStream());
+    }
 
     at::AutoNonVariableTypeMode g;
 
@@ -271,14 +277,19 @@ public:
       drop_mask = dropout_gen_mask_dispatch(query, at::Scalar(keep_prob), at::Scalar(seed), offset, numels, gen_mask_parallel, sync);
     } else if (get_dropout_status(keep_prob) == DropOutStatus::DROPOUT_ALL) {
       drop_mask = at::zeros(at::IntArrayRef{length}, query.options().dtype(at::kByte));
-    } else {
-      drop_mask = at::full(at::IntArrayRef{length}, 255, query.options().dtype(at::kByte));
     }
 
-    return npu_flash_attention_backward(query,
+    auto results = npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
         keep_prob, pre_tockens, next_tockens);
+
+    if (!sync) {
+      c10_npu::NPUEvent npu_event;
+      npu_event.record(c10_npu::getCurrentNPUStream());
+      npu_event.block(c10_npu::getCurrentSecondaryStream());
+    }
+    return results;
   }
 };
 
@@ -313,10 +324,18 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, gen_mask_parallel, sync,
       seed, offset, numels);
 
-  return npu_flash_attention_backward(query,
+  auto result = npu_flash_attention_backward(query,
       key, value, dy, head_num, pse, drop_mask, padding_mask, atten_mask,
       softmax_max, softmax_sum, softmax_in, attention_in, scale_value,
       keep_prob, pre_tockens, next_tockens);
+
+  if (!sync) {
+    c10_npu::NPUEvent npu_event;
+    npu_event.record(c10_npu::getCurrentNPUStream());
+    npu_event.block(c10_npu::getCurrentSecondaryStream());
+  }
+  
+  return result;
 }
 
 std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention(

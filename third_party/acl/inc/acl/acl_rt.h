@@ -107,11 +107,14 @@ typedef enum aclrtFloatOverflowMode {
   ACL_RT_OVERFLOW_MODE_UNDEF,
 } aclrtFloatOverflowMode;
 
+typedef struct aclrtUtilizationExtendInfo aclrtUtilizationExtendInfo;
+
 typedef struct aclrtUtilizationInfo {
   int32_t cubeUtilization;
   int32_t vectorUtilization;
   int32_t aicpuUtilization;
   int32_t memoryUtilization;
+  aclrtUtilizationExtendInfo *utilizationExtend;
 } aclrtUtilizationInfo;
 
 typedef struct tagRtGroupInfo aclrtGroupInfo;
@@ -627,6 +630,9 @@ ACL_FUNC_VISIBILITY aclError aclrtEventElapsedTime(float *ms, aclrtEvent startEv
 ACL_FUNC_VISIBILITY aclError aclrtMalloc(void **devPtr,
                                          size_t size,
                                          aclrtMemMallocPolicy policy);
+
+ACL_FUNC_VISIBILITY aclError aclrtMallocAlign32(void **devPtr, size_t size,
+                                                aclrtMemMallocPolicy policy);
 
 /**
  * @ingroup AscendCL

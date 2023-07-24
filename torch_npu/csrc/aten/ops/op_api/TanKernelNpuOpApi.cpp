@@ -37,7 +37,7 @@ at::Tensor NPUNativeOpApiFunctions::tan(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnTan, NPUNativeFunctions::tan(self));
   auto output_options = (isIntegralType(self.scalar_type(), true)) ?
                         self.options().dtype(at::kFloat) : self.options();
-  at::Tensor result = OpPreparation::ApplyTensor(self, output_options);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), output_options);
   EXEC_NPU_CMD(aclnnTan, self, result);
   return result;
 }
