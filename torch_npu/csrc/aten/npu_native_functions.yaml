@@ -1162,7 +1162,10 @@ supported:
    op_api: False
  - func: sinh_
    op_api: False
- - slogdet
+ - func: linalg_slogdet
+   op_api: False
+ - func: linalg_slogdet.out
+   op_api: False
  - slow_conv3d
  - slow_conv3d.out
  - slow_conv3d_forward
@@ -1561,8 +1564,6 @@ tocpu:
   - geometric_
   - linalg_vector_norm
   - linalg_vector_norm.out
-  - linalg_slogdet
-  - linalg_slogdet.out
   - logical_xor.out
   - log_normal_
   - logit
