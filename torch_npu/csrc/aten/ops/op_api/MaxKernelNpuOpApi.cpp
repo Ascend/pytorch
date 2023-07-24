@@ -64,8 +64,8 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::max_out(
 }
 
 tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::max(
-    const at::Tensor& self, 
-    int64_t dim, 
+    const at::Tensor& self,
+    int64_t dim,
     bool keepdim) {
   DO_COMPATIBILITY(aclnnMaxDim, NPUNativeFunctions::max(self, dim, keepdim));
   at::SmallVector<int64_t, SIZE> dims = {dim};
@@ -74,6 +74,14 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::max(
   at::Tensor indices = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::ScalarType::Long));
   EXEC_NPU_CMD(aclnnMaxDim, self, dim, keepdim, outputs, indices);
   return std::tie(outputs, indices);
+}
+
+at::Tensor& NPUNativeOpApiFunctions::max_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnMaximum, NPUNativeFunctions::max_out(self, other, result));
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self, other}, result, result.scalar_type(), outputSize);
+  EXEC_NPU_CMD(aclnnMaximum, self, other, result);
+  return result;
 }
 
 }  // namespace native

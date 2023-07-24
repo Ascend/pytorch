@@ -179,10 +179,14 @@ supported:
    op_api: True
  - func: all.all_out
    op_api: True
- - amax
- - amax.out
- - amin
- - amin.out
+ - func: amax
+   op_api: False
+ - func: amax.out
+   op_api: False
+ - func: amin
+   op_api: False
+ - func: amin.out
+   op_api: False
  - func: any
    op_api: True
  - func: any.all_out
@@ -812,7 +816,8 @@ supported:
    op_api: True
  - max.names_dim
  - max.names_dim_max
- - max.out
+ - func: max.out
+   op_api: False
  - max_pool2d
  - max_pool2d_with_indices
  - max_pool2d_with_indices.out
@@ -860,7 +865,8 @@ supported:
    op_api: True
  - min.names_dim
  - min.names_dim_min
- - min.out
+ - func: min.out
+   op_api: False
  - func: minimum
    op_api: True
  - func: minimum.out

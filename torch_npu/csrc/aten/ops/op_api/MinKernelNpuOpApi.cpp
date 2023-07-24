@@ -73,5 +73,13 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::min(const at::Tensor& sel
   return std::tie(outputs, indices);
 }
 
+at::Tensor& NPUNativeOpApiFunctions::min_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnMinimum, NPUNativeFunctions::min_out(self, other, result));
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self, other}, result, result.scalar_type(), outputSize);
+  EXEC_NPU_CMD(aclnnMinimum, self, other, result);
+  return result;
+}
+
 } // namespace native
 } // namespace at_npu
