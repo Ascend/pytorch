@@ -962,14 +962,22 @@ supported:
  - norm.dtype_out
  - func: norm.out
    op_api: True
- - normal.Tensor_Tensor
- - normal.Tensor_Tensor_out
- - normal.Tensor_float
- - normal.Tensor_float_out
- - normal.float_Tensor
- - normal.float_Tensor_out
- - normal.float_float
- - normal.float_float_out
+ - func: normal.Tensor_Tensor
+   op_api: False
+ - func: normal.Tensor_Tensor_out
+   op_api: False
+ - func: normal.Tensor_float
+   op_api: False
+ - func: normal.Tensor_float_out
+   op_api: False
+ - func: normal.float_Tensor
+   op_api: False
+ - func: normal.float_Tensor_out
+   op_api: False
+ - func: normal.float_float
+   op_api: False
+ - func: normal.float_float_out
+   op_api: False
  - func: normal_
    op_api: True
  - func: one_
