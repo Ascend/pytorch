@@ -137,5 +137,10 @@ at::Tensor& NPUNativeFunctions::remainder_(at::Tensor& self, const at::Scalar& o
   return self;
 }
 
+
+at::Tensor NPUNativeFunctions::remainder(const at::Scalar& self, const at::Tensor& other) {
+    TORCH_CHECK(false, "remainder.Scalar_Tensor is not supported.");
+}
+
 } // namespace native
 } // namespace at_npu

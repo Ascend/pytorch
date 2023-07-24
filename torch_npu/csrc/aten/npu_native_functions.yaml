@@ -1075,12 +1075,20 @@ supported:
    op_api: True
  - func: relu_
    op_api: True
- - remainder.Scalar
- - remainder.Scalar_out
- - remainder.Tensor
- - remainder.Tensor_out
- - remainder_.Scalar
- - remainder_.Tensor
+ - func: remainder.Scalar
+   op_api: False
+ - func: remainder.Scalar_out
+   op_api: False
+ - func: remainder.Tensor
+   op_api: False
+ - func: remainder.Tensor_out
+   op_api: False
+ - func: remainder_.Scalar
+   op_api: False
+ - func: remainder_.Tensor
+   op_api: False
+ - func: remainder.Scalar_Tensor
+   op_api: False
  - func: renorm
    op_api: False
  - func: renorm.out
