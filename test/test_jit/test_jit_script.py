@@ -67,6 +67,25 @@ class TestJitTrace(TestCase):
         output2 = script_model(grad, var_in, m_in, v_in)
         self.assertRtolEqual(output1, output2)
 
+    def test_script_npu_rotary_mul(self):
+        class NpuModel(torch.nn.Module):
+            def __init__(self):
+                super(NpuModel, self).__init__()
+
+            def forward(self, x, r1, r2):
+                x = torch_npu.npu_rotary_mul(x, r1, r2)
+                return x
+
+        x = torch.rand([8192, 2, 5, 128], dtype=torch.float32).npu()
+        r1 = torch.rand([8192, 1, 1, 128], dtype=torch.float32).npu()
+        r2 = torch.rand([8192, 1, 1, 128], dtype=torch.float32).npu()
+        model = NpuModel().to("npu")
+        output1 = model(x, r1, r2)
+
+        script_model = torch.jit.script(model)
+        output2 = script_model(x, r1, r2)
+        self.assertRtolEqual(output1, output2)
+
 
 if __name__ == '__main__':
     run_tests()
