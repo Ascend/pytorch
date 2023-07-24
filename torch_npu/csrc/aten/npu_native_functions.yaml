@@ -132,9 +132,12 @@ supported:
    op_api: True
  - func: add_.Tensor
    op_api: True
- - addbmm
- - addbmm.out
- - addbmm_
+ - func: addbmm
+   op_api: False
+ - func: addbmm.out
+   op_api: False
+ - func: addbmm_
+   op_api: False
  - func: addcdiv
    op_api: True
  - func: addcdiv.out
