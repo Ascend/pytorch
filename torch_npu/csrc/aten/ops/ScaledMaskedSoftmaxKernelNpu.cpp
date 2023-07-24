@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Huawei Technologies Co., Ltd
+// Copyright (c) 2022-2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -29,7 +29,12 @@ at::Tensor npu_scaled_masked_softmax_forward(
     const at::Tensor& mask,
     at::Scalar scale,
     bool fixed_triu_mask){
-  at::Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kHalf));
+  at::Tensor result;
+  if (self.dtype() == at::ScalarType::BFloat16) {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kBFloat16));
+  } else {
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(at::kHalf));
+  }
   OpCommand cmd;
   cmd.Name("ScaledMaskedSoftmax")
     .Input(self)
@@ -47,7 +52,12 @@ at::Tensor npu_scaled_masked_softmax_backward(
     const at::Tensor& mask,
     at::Scalar scale,
     bool fixed_triu_mask){
-  at::Tensor result = OpPreparation::ApplyTensor(y_grad, y_grad.options().dtype(at::kHalf));
+  at::Tensor result;
+  if (y_grad.dtype() == at::ScalarType::BFloat16) {
+    result = OpPreparation::ApplyTensor(y_grad, y_grad.options().dtype(at::kBFloat16));
+  } else {
+    result = OpPreparation::ApplyTensor(y_grad, y_grad.options().dtype(at::kHalf));
+  }
   OpCommand cmd;
   cmd.Name("ScaledMaskedSoftmaxGrad")
     .Input(y_grad)
