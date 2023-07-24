@@ -44,7 +44,7 @@ namespace {
 
 int64_t physical_numel(const at::Tensor& self) {
   if (!self.is_contiguous()) {
-    TORCH_WARN(
+    TORCH_WARN_ONCE(
         "Found dis-contiguous tensor and using dis-contiguous tensor in Reducer "
         "to build buckets may result in undefined behavior.");
   }
