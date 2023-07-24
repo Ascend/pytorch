@@ -699,12 +699,18 @@ supported:
    op_api: True
  - func: leaky_relu_backward.grad_input
    op_api: True
- - lerp.Scalar
- - lerp.Scalar_out
- - lerp.Tensor
- - lerp.Tensor_out
- - lerp_.Scalar
- - lerp_.Tensor
+ - func: lerp.Scalar
+   op_api: False
+ - func: lerp.Scalar_out
+   op_api: False
+ - func: lerp.Tensor
+   op_api: False
+ - func: lerp.Tensor_out
+   op_api: False
+ - func: lerp_.Scalar
+   op_api: False
+ - func: lerp_.Tensor
+   op_api: False
  - func: linalg_cross
    op_api: False
  - func: linalg_cross.out
