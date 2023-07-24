@@ -1398,14 +1398,22 @@ supported:
  - where
  - func: where.self
    op_api: True
- - xlogy.OutScalar_Other
- - xlogy.OutScalar_Self
- - xlogy.OutTensor
- - xlogy.Scalar_Other
- - xlogy.Scalar_Self
- - xlogy.Tensor
- - xlogy_.Scalar_Other
- - xlogy_.Tensor
+ - func: xlogy.OutScalar_Other
+   op_api: False
+ - func: xlogy.OutScalar_Self
+   op_api: False
+ - func: xlogy.OutTensor
+   op_api: False
+ - func: xlogy.Scalar_Other
+   op_api: False
+ - func: xlogy.Scalar_Self
+   op_api: False
+ - func: xlogy.Tensor
+   op_api: False
+ - func: xlogy_.Scalar_Other
+   op_api: False
+ - func: xlogy_.Tensor
+   op_api: False
  - func: zero_
    op_api: True
  - func: zeros
