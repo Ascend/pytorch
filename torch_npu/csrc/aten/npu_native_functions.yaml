@@ -1,8 +1,6 @@
 backend: NPU
 cpp_namespace: at_npu::native
 supported:
- - __and__.Scalar
- - __and__.Tensor
  - __ilshift__.Scalar
  - __ilshift__.Tensor
  - __ior__.Scalar
