@@ -1062,9 +1062,12 @@ supported:
  - remainder.Tensor_out
  - remainder_.Scalar
  - remainder_.Tensor
- - renorm
- - renorm.out
- - renorm_
+ - func: renorm
+   op_api: False
+ - func: renorm.out
+   op_api: False
+ - func: renorm_
+   op_api: False
  - repeat
  - func: repeat_interleave.self_Tensor
    op_api: True
