@@ -15,11 +15,8 @@ torch_npu/csrc/aten/
 # gen_autograd.py generates C++ autograd functions and Python bindings.
 #
 # It delegates to the following scripts:
-#
-#  gen_autograd_functions.py: generates subclasses of torch::autograd::Node
 #  gen_variable_type.py: generates VariableType.h which contains all tensor methods
-#  gen_python_functions.py: generates Python bindings to THPVariable
-#
+
 
 import argparse
 import os
@@ -54,7 +51,7 @@ def gen_autograd(
     differentiability_infos, _ = load_derivatives(
         os.path.join(autograd_dir, 'derivatives.yaml'), native_functions_path, tags_path)
     template_path = os.path.join(autograd_dir, 'templates')
-    torch_templace_path = os.path.join(os.path.dirname(autograd_dir), 'torch_autograd/templates')
+    torch_template_path = os.path.join(os.path.dirname(autograd_dir), 'torch_autograd/templates')
 
     native_funcs = parse_native_and_custom_yaml(native_functions_path,
                                                 tags_path, npu_native_functions_path).native_functions
@@ -82,13 +79,13 @@ def gen_autograd(
     gen_variable_type_head(out, funcs_with_diff_infos, template_path)
 
     # Generate ADInplaceOrViewType.cpp
-    gen_inplace_or_view_type(out, native_functions_path, tags_path, npu_funcs_with_diff_infos, torch_templace_path)
+    gen_inplace_or_view_type(out, native_functions_path, tags_path, npu_funcs_with_diff_infos, template_path)
     
     # Generate Functions.h/cpp
     gen_autograd_functions_lib(out, differentiability_infos, template_path)
 
     # Generate variable_factories.h
-    gen_variable_factories(out,torch_templace_path, native_funcs)
+    gen_variable_factories(out, torch_template_path, native_funcs)
 
 
 def filte_out_native_autograd_function(
