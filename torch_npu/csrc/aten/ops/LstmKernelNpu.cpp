@@ -402,6 +402,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> lstm
     const at::Tensor& f,
     const at::Tensor& o,
     const at::Tensor& tanhc,
+    bool flag_direction = false,
     const c10::optional<at::Tensor>& batch_sizes_ = c10::nullopt) {
   const at::Tensor& batch_sizes = c10::value_or_else(batch_sizes_, [] {return at::Tensor();});
   at::Tensor seqmask_h = at::unsqueeze(init_h, 0);
@@ -412,6 +413,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> lstm
   at::Tensor wcf = at::zeros({}, x.options());
   at::Tensor wco = at::zeros({}, x.options());
   string gate_order = "ifjo";
+  string direction = flag_direction ? "REDIRECTIONAL" : "UNIDIRECTIONAL";
 
   OpCommand cmd;
   cmd.Name("DynamicRNNGrad")
@@ -442,7 +444,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> lstm
       .Output(dht)
       .Output(dct)
       .Attr("cell_type", "LSTM")
-      .Attr("direction", "UNIDIRECTIONAL")
+      .Attr("direction", direction)
       .Attr("cell_depth", (int64_t)0)
       .Attr("use_peephole", (bool)false)
       .Attr("keep_prob", (float)-1.0)
@@ -473,7 +475,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> npu_lstm_
     const at::Tensor& j,
     const at::Tensor& f,
     const at::Tensor& o,
-    const at::Tensor& tanhc) {
+    const at::Tensor& tanhc,
+    bool flag_direction) {
   const at::Tensor& grady = c10::value_or_else(grady_opt, [] {return at::Tensor();});
   const at::Tensor& gradh = c10::value_or_else(gradh_opt, [] {return at::Tensor();});
   const at::Tensor& gradc = c10::value_or_else(gradc_opt, [] {return at::Tensor();});
@@ -492,7 +495,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> npu_lstm_
   auto grad_c = gradc.defined() ? gradc[input.size(0)-1] : at::zeros(inc.sizes(), c.options());
 
   lstm_backward_out_npu(grad_weight, grad_bias, grad_input, grad_ht, grad_ct, input, weight,
-                        bias, inh, inc, grad_y, grad_h, grad_c, y, h, c, i, j, f, o, tanhc, batch_sizes);
+                        bias, inh, inc, grad_y, grad_h, grad_c, y, h, c, i, j, f, o, tanhc,
+                        flag_direction, batch_sizes);
   grad_ht = at::unsqueeze(grad_ht, 0);
   grad_ct = at::unsqueeze(grad_ct, 0);
 
@@ -520,6 +524,7 @@ public:
     at::AutoNonVariableTypeMode g;
     auto result = npu_lstm_npu(input, weight, bias, seq_mask, h, c, has_biases, num_layers,
         dropout, train, bidirectional, batch_first, flag_seq, flag_direction);
+    ctx->saved_data["flag_direction"] = flag_direction;
     ctx->save_for_backward({input, batch_sizes, weight, bias, h, c,
         result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7]});
     return result;
@@ -542,10 +547,11 @@ public:
     auto result5 = saved[11];
     auto result6 = saved[12];
     auto result7 = saved[13];
+    bool flag_direction = ctx->saved_data["flag_direction"].toBool();
 
     std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> result = npu_lstm_data_backward(
         grad_outputs[0], grad_outputs[1], grad_outputs[2], input, batch_sizes, weight, bias, h, c,
-        result0, result1, result2, result3, result4, result5, result6, result7);
+        result0, result1, result2, result3, result4, result5, result6, result7, flag_direction);
     tensor_list output = {
         std::get<0>(result),
         at::Tensor(),
