@@ -735,6 +735,14 @@ class DeviceCachingAllocator {
     recorded_events.insert(event);
   }
 
+  void eraseRecordedEvent(aclrtEvent event) {
+    std::lock_guard<std::mutex> lock(recorded_event_mutex);
+    auto it = recorded_events.find(event);
+    if (it != recorded_events.end()) {
+      recorded_events.erase(it);
+    }
+  }
+
  private:
 
   // All private methods do not acquire the allocator mutex.
@@ -1499,6 +1507,12 @@ void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
   int device = 0;
   NPU_CHECK_ERROR(aclrtGetDevice(&device));
   return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
+}
+
+void NpuAllocatorEraseRecordedEvent(aclrtEvent event) {
+  int device = 0;
+  NPU_CHECK_ERROR(aclrtGetDevice(&device));
+  return caching_allocator.device_allocator[device]->eraseRecordedEvent(event);
 }
 
 } // namespace NPUCachingAllocator

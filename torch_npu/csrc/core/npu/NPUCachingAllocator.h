@@ -149,5 +149,7 @@ void FreeDeviceCachedMemory(int device);
 
 void NpuAllocatorInsertRecordedEvent(aclrtEvent event);
 
+void NpuAllocatorEraseRecordedEvent(aclrtEvent event);
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
