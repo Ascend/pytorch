@@ -76,7 +76,7 @@ supported:
  - _pdist_forward
  - _pin_memory
  - func: _s_where
-   op_api: False
+   op_api: True
  - _slow_conv2d_backward.output_mask
  - _slow_conv2d_forward
  - _slow_conv2d_forward.output
@@ -90,7 +90,7 @@ supported:
    op_api: False
  - _symeig_helper
  - func: _unique2
-   op_api: False
+   op_api: True
  - _reshape_alias
  - func: abs
    op_api: True
@@ -119,9 +119,9 @@ supported:
  - adaptive_avg_pool3d.out
  - adaptive_avg_pool3d_backward.grad_input
  - func: adaptive_max_pool2d
-   op_api: False
+   op_api: True
  - func: adaptive_max_pool2d.out
-   op_api: False
+   op_api: True
  - adaptive_max_pool2d_backward
  - adaptive_max_pool2d_backward.grad_input
  - func: add.Scalar
@@ -597,11 +597,11 @@ supported:
  - hardshrink
  - hardshrink_backward
  - func: hardsigmoid
-   op_api: False
+   op_api: True
  - func: hardsigmoid.out
-   op_api: False
+   op_api: True
  - func: hardsigmoid_
-   op_api: False
+   op_api: True
  - hardsigmoid_backward
  - func: hardswish
    op_api: True
@@ -667,13 +667,13 @@ supported:
  - func: kl_div_backward
    op_api: False
  - func: kthvalue
-   op_api: False
+   op_api: True
  - func: kthvalue.dimname
-   op_api: False
+   op_api: True
  - func: kthvalue.dimname_out
-   op_api: False
+   op_api: True
  - func: kthvalue.values
-   op_api: False
+   op_api: True
  - l1_loss
  - l1_loss.out
  - l1_loss_backward
@@ -715,11 +715,11 @@ supported:
  - func: log.out
    op_api: True
  - func: log10
-   op_api: False
+   op_api: True
  - func: log10.out
-   op_api: False
+   op_api: True
  - func: log10_
-   op_api: False
+   op_api: True
  - func: log1p
    op_api: False
  - func: log1p.out
@@ -816,9 +816,9 @@ supported:
  - max_pool3d_with_indices_backward
  - max_pool3d_with_indices_backward.grad_input
  - func: max_unpool2d
-   op_api: False
+   op_api: True
  - func: max_unpool2d.out
-   op_api: False
+   op_api: True
  - func: max_unpool2d_backward
    op_api: False
  - func: max_unpool2d_backward.grad_input
@@ -839,10 +839,10 @@ supported:
  - func: mean.out
    op_api: True
  - func: median
-   op_api: False
+   op_api: True
  - median.dim
  - func: median.dim_values
-   op_api: False
+   op_api: True
  - median.names_dim
  - median.names_dim_values
  - func: min
@@ -966,16 +966,16 @@ supported:
  - func: normal_
    op_api: True
  - func: one_
-   op_api: False
+   op_api: True
  - one_hot
  - func: ones
-   op_api: False
+   op_api: True
  - func: ones.names
-   op_api: False
+   op_api: True
  - func: ones.out
-   op_api: False
+   op_api: True
  - func: ones_like
-   op_api: False
+   op_api: True
  - pdist
  - func: pow.Scalar
    op_api: False
@@ -1121,11 +1121,11 @@ supported:
  - func: scatter_add_
    op_api: True
  - func: searchsorted.Scalar
-   op_api: False
+   op_api: True
  - func: searchsorted.Tensor
-   op_api: False
+   op_api: True
  - func: searchsorted.Tensor_out
-   op_api: False
+   op_api: True
  - set_
  - set_.source_Storage
  - set_.source_Storage_storage_offset
@@ -1187,9 +1187,9 @@ supported:
  - softmax.Dimname
  - softmax.int
  - func: softplus
-   op_api: False
+   op_api: True
  - func: softplus.out
-   op_api: False
+   op_api: True
  - softplus_backward.grad_input
  - softshrink
  - softshrink.out
@@ -1220,17 +1220,17 @@ supported:
  - func: stack.out
    op_api: True
  - func: std.correction
-   op_api: False
+   op_api: True
  - func: std.correction_out
-   op_api: False
+   op_api: True
  - func: std.correction_names
-   op_api: False
+   op_api: True
  - func: std.correction_names_out
-   op_api: False
+   op_api: True
  - func: std.names_out
-   op_api: False
+   op_api: True
  - func: std.out
-   op_api: False
+   op_api: True
  - std_mean.correction
  - std_mean.correction_names
  - func: sub.Scalar
@@ -1258,27 +1258,27 @@ supported:
  - func: take.out
    op_api: False
  - func: tanh
-   op_api: False
+   op_api: True
  - func: tanh.out
-   op_api: False
+   op_api: True
  - func: tanh_
-   op_api: False
+   op_api: True
  - func: tan
-   op_api: False
+   op_api: True
  - func: tan.out
-   op_api: False
+   op_api: True
  - func: tan_
-   op_api: False
+   op_api: True
  - func: tanh_backward
-   op_api: False
+   op_api: True
  - func: tanh_backward.grad_input
-   op_api: False
+   op_api: True
  - func: threshold
-   op_api: False
+   op_api: True
  - func: threshold.out
-   op_api: False
+   op_api: True
  - func: threshold_
-   op_api: False
+   op_api: True
  - func: threshold_backward
    op_api: True
  - to.device
@@ -1311,7 +1311,7 @@ supported:
  - true_divide_.Scalar
  - true_divide_.Tensor
  - func: trace
-   op_api: False
+   op_api: True
  - func: trunc
    op_api: False
  - func: trunc.out
@@ -1345,20 +1345,20 @@ supported:
  - upsample_linear1d_backward
  - upsample_linear1d_backward.vec
  - func: upsample_nearest1d
-   op_api: False
+   op_api: True
  - func: upsample_nearest1d.out
-   op_api: False
+   op_api: True
  - func: upsample_nearest1d.vec
-   op_api: False
+   op_api: True
  - upsample_nearest1d_backward
  - upsample_nearest1d_backward.grad_input
  - upsample_nearest1d_backward.vec
  - func: upsample_nearest2d
-   op_api: False
+   op_api: True
  - func: upsample_nearest2d.out
-   op_api: False
+   op_api: True
  - func: upsample_nearest2d.vec
-   op_api: False
+   op_api: True
  - upsample_nearest2d_backward
  - upsample_nearest2d_backward.grad_input
  - upsample_nearest2d_backward.vec
@@ -1387,7 +1387,7 @@ supported:
  - view_as_real
  - where
  - func: where.self
-   op_api: False
+   op_api: True
  - xlogy.OutScalar_Other
  - xlogy.OutScalar_Self
  - xlogy.OutTensor
