@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -33,7 +33,7 @@ tuple<at::Tensor&, at::Tensor&> slogdet_out_nocheck_npu(
   return std::tie(sign, y);
 }
 
-tuple<at::Tensor, at::Tensor>NPUNativeFunctions::slogdet(const at::Tensor& self) {
+tuple<at::Tensor, at::Tensor>NPUNativeFunctions::linalg_slogdet(const at::Tensor& self) {
 
   TORCH_CHECK(self.dim() >= 2, "input must be at least 2 dimensions");
 
@@ -44,11 +44,20 @@ tuple<at::Tensor, at::Tensor>NPUNativeFunctions::slogdet(const at::Tensor& self)
   // construct the output tensor of the NPU
   at::Tensor sign = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor y = OpPreparation::ApplyTensor(self, outputSize);
-  
+
   // calculate the output result of the NPU
   slogdet_out_nocheck_npu(self, sign, y);
 
   return std::tie(sign, y);
+}
+
+tuple<at::Tensor &, at::Tensor &>NPUNativeFunctions::linalg_slogdet_out(const at::Tensor& self,
+    at::Tensor& sign, at::Tensor& log) {
+  TORCH_CHECK(self.dim() >= 2, "input must be at least 2 dimensions");
+  // calculate the output result of the NPU
+  slogdet_out_nocheck_npu(self, sign, log);
+
+  return std::tie(sign, log);
 }
 
 } // namespace native
