@@ -234,11 +234,11 @@ supported:
  - avg_pool3d_backward
  - avg_pool3d_backward.grad_input
  - func: baddbmm
-   op_api: False
+   op_api: True
  - func: baddbmm.out
-   op_api: False
+   op_api: True
  - func: baddbmm_
-   op_api: False
+   op_api: True
  - bartlett_window
  - bartlett_window.periodic
  - batch_norm
@@ -1027,23 +1027,23 @@ supported:
    op_api: False
  - range.step
  - func: reciprocal
-   op_api: False
+   op_api: True
  - func: reciprocal.out
-   op_api: False
+   op_api: True
  - func: reciprocal_
-   op_api: False
+   op_api: True
  - func: reflection_pad1d
-   op_api: False
+   op_api: True
  - func: reflection_pad1d.out
-   op_api: False
+   op_api: True
  - func: reflection_pad1d_backward
    op_api: False
  - func: reflection_pad1d_backward.grad_input
    op_api: False
  - func: reflection_pad2d
-   op_api: False
+   op_api: True
  - func: reflection_pad2d.out
-   op_api: False
+   op_api: True
  - func: reflection_pad2d_backward
    op_api: True
  - func: reflection_pad2d_backward.grad_input
@@ -1063,9 +1063,9 @@ supported:
  - renorm_
  - repeat
  - func: repeat_interleave.self_Tensor
-   op_api: False
+   op_api: True
  - func: repeat_interleave.self_int
-   op_api: False
+   op_api: True
  - replication_pad1d
  - replication_pad1d.out
  - func: replication_pad1d_backward
@@ -1084,11 +1084,11 @@ supported:
  - func: roll
    op_api: True
  - func: round
-   op_api: False
+   op_api: True
  - func: round.out
-   op_api: False
+   op_api: True
  - func: round_
-   op_api: False
+   op_api: True
  - func: rrelu_with_noise
    op_api: True
  - func: rrelu_with_noise.out
@@ -1173,13 +1173,13 @@ supported:
  - slow_conv_transpose2d.out
  - slow_conv_transpose2d_backward
  - func: smooth_l1_loss
-   op_api: False
+   op_api: True
  - func: smooth_l1_loss.out
-   op_api: False
+   op_api: True
  - func: smooth_l1_loss_backward
-   op_api: False
+   op_api: True
  - func: smooth_l1_loss_backward.grad_input
-   op_api: False
+   op_api: True
  - soft_margin_loss
  - soft_margin_loss.out
  - soft_margin_loss_backward
@@ -1421,8 +1421,7 @@ autograd:
     op_api: False
   - silu
   - silu_
-  - func: silu.out
-    op_api: False
+  - silu.out
   - binary_cross_entropy_with_logits_backward
   - func: selu
     op_api: False
