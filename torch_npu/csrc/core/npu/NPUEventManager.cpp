@@ -15,6 +15,7 @@
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 namespace c10_npu {
 
 NPUEventManager::NPUEventManager() : thread_pool_(std::make_shared<c10::TaskThreadPool>(5)) {};
@@ -58,7 +59,7 @@ aclError NPUEventManager::QueryAndDestroyEvent() {
         break;
       }
     }
-
+    c10_npu::NPUCachingAllocator::NpuAllocatorEraseRecordedEvent(event);
     {
       thread_pool_->run(std::bind(
           &NPUEventManager::run,
