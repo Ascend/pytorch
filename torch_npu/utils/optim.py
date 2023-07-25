@@ -1,4 +1,4 @@
-from functools import partial, wraps
+from functools import partial, partialmethod, wraps
 
 import torch
 from torch.optim.sgd import SGD as SrcSGD
@@ -36,37 +36,46 @@ def wrap_optim_warning_func(func, name):
     wrapper.warned = False
     return wrapper
 
-SGD = wrap_optim_warning_func(partial(SrcSGD, foreach=False), 'SGD')
+
+def partialclass(cls, *args, **kwargs):
+    
+    class NewCls(cls):
+        __init__ = partialmethod(cls.__init__, *args, **kwargs)
+    
+    return NewCls
+
+
+SGD = partialclass(SrcSGD, foreach=False)
 sgd = wrap_optim_warning_func(partial(src_sgd, foreach=False), 'sgd')
 
-Rprop = wrap_optim_warning_func(partial(SrcRprop, foreach=False), 'Rprop')
+Rprop = partialclass(SrcRprop, foreach=False)
 rprop = wrap_optim_warning_func(partial(src_rprop, foreach=False), 'rprop')
 
-RMSprop = wrap_optim_warning_func(partial(SrcRMSprop, foreach=False), 'RMSprop')
+RMSprop = partialclass(SrcRMSprop, foreach=False)
 rmsprop = wrap_optim_warning_func(partial(src_rmsprop, foreach=False), 'rmsprop')
 
-RAdam = wrap_optim_warning_func(partial(SrcRAdam, foreach=False), 'RAdam')
+RAdam = partialclass(SrcRAdam, foreach=False)
 radam = wrap_optim_warning_func(partial(src_radam, foreach=False), 'radam')
 
-NAdam = wrap_optim_warning_func(partial(SrcNAdam, foreach=False), 'NAdam')
+NAdam = partialclass(SrcNAdam, foreach=False)
 nadam = wrap_optim_warning_func(partial(src_nadam, foreach=False), 'nadam')
 
-ASGD = wrap_optim_warning_func(partial(SrcASGD, foreach=False), 'ASGD')
+ASGD = partialclass(SrcASGD, foreach=False)
 asgd = wrap_optim_warning_func(partial(src_asgd, foreach=False), 'asgd')
 
-AdamW = wrap_optim_warning_func(partial(SrcAdamW, foreach=False), 'AdamW')
+AdamW = partialclass(SrcAdamW, foreach=False)
 adamw = wrap_optim_warning_func(partial(src_adamw, foreach=False), 'adamw')
 
-Adamax = wrap_optim_warning_func(partial(SrcAdamax, foreach=False), 'Adamax')
+Adamax = partialclass(SrcAdamax, foreach=False)
 adamax = wrap_optim_warning_func(partial(src_adamax, foreach=False), 'adamax')
 
-Adam = wrap_optim_warning_func(partial(SrcAdam, foreach=False), 'Adam')
+Adam = partialclass(SrcAdam, foreach=False)
 adam = wrap_optim_warning_func(partial(src_adam, foreach=False), 'adam')
 
-Adagrad = wrap_optim_warning_func(partial(SrcAdagrad, foreach=False), 'Adagrad')
+Adagrad = partialclass(SrcAdagrad, foreach=False)
 adagrad = wrap_optim_warning_func(partial(src_adagrad, foreach=False), 'adagrad')
 
-Adadelta = wrap_optim_warning_func(partial(SrcAdadelta, foreach=False), 'Adadelta')
+Adadelta = partialclass(SrcAdadelta, foreach=False)
 adadelta = wrap_optim_warning_func(partial(src_adadelta, foreach=False), 'adadelta')
 
 
