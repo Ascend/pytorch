@@ -117,5 +117,34 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
         gradBias);
     return std::make_tuple(std::move(gradInput), std::move(gradWeight), std::move(gradBias));
 }
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::conv_tbc_backward(
+    const at::Tensor& self,
+    const at::Tensor& input,
+    const at::Tensor& weight,
+    const at::Tensor& bias,
+    int64_t pad) {
+  DO_COMPATIBILITY(aclnnConvolutionTbcBackward,
+        NPUNativeFunctions::conv_tbc_backward(self, input, weight, bias, pad));
+  // construct other inputs of the NPU
+  int8_t cubeMathType = 1;
+  at::IntArrayRef stride = {1, 1};
+  at::IntArrayRef padding = {0, pad};
+  at::IntArrayRef dilation = {1, 1};
+  int64_t groups = 1;
+  std::array<bool, 3> grad_input_mask = {1, 1, 1};
+  // calculate outputSizes of every output
+  auto outputSizes = conv2d_backward_tbc_output_size(input, self, weight, stride, padding, dilation, groups);
+
+  // construct the output tensor of the NPU
+  at::Tensor gradInput = OpPreparation::ApplyTensorWithoutFormat(std::get<0>(outputSizes), input.options());
+  at::Tensor gradWeight = OpPreparation::ApplyTensorWithoutFormat(std::get<1>(outputSizes), weight.options());
+  at::Tensor gradBias = OpPreparation::ApplyTensorWithoutFormat(std::get<2>(outputSizes), self.options());
+  // execute hostapi
+  EXEC_NPU_CMD(aclnnConvolutionTbcBackward, self, input, weight, bias,
+               pad, cubeMathType, gradInput, gradWeight, gradBias);
+  return std::make_tuple(gradInput, gradWeight, gradBias);
+}
+
 } // namespace native
 } // namespace at_npu

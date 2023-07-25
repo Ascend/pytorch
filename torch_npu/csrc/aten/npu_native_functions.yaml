@@ -399,7 +399,8 @@ supported:
  - contiguous
  - func: conv_tbc
    op_api: False
- - conv_tbc_backward
+ - func: conv_tbc_backward
+   op_api: False
  - conv_transpose2d.input
  - conv_transpose3d.input
  - func: convolution_backward
