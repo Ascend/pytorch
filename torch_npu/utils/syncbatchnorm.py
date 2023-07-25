@@ -57,7 +57,7 @@ class SyncBatchNorm(Function):
                                                             eps,
                                                             count_all.view(-1))
 
-        self.save_for_backward(input_tensor, weight, mean, invstd, count_all)
+        self.save_for_backward(input_tensor, weight, mean, invstd, count_all.to(torch.int32))
         self.process_group = process_group
 
         # apply element-wise normalization
