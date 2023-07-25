@@ -268,4 +268,12 @@ void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,
     }
 }
 
+aclError SetCurrentDevice() {
+  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    aclrtSetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+    return ACL_SUCCESS;
+  }
+  TORCH_CHECK(false, "npu device has not been inited.");
+}
+
 } // namespace c10_npu
