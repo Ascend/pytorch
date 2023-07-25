@@ -13,12 +13,14 @@
 # limitations under the License.
 
 import os
+import unittest
 import shutil
 import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+IS_HOSTAPI_ENABLED = os.getenv('HOSTAPI_ENABLED') == 'ON'
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel, out_channel):
@@ -33,6 +35,7 @@ class SmallModel(torch.nn.Module):
         input_1 = self.conv2(input_1)
         return input_1.reshape(input_1.shape[0], -1)
 
+@unittest.skipIf(IS_HOSTAPI_ENABLED, "Hostapi do not support dumpgraph.")
 class TestAoe(TestCase):
     results_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], "graphs")
 
