@@ -67,6 +67,7 @@ std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
     {at::kFloat, HCCL_DATA_TYPE_FP32},
     {at::kDouble, HCCL_DATA_TYPE_FP64},
     {at::kBool, HCCL_DATA_TYPE_UINT8},
+    {at::kBFloat16, HCCL_DATA_TYPE_BFP16},
 };
 
 std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
@@ -78,6 +79,7 @@ std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_FP16,  "at::kHalf"},
     {HCCL_DATA_TYPE_FP32,  "at::kFloat"},
     {HCCL_DATA_TYPE_FP64,  "at::kDouble"},
+    {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
 
 int64_t physical_numel(at::Tensor& self){
@@ -136,7 +138,7 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input) {
 void checkSupportedDataTypeOfAllReduce(HcclDataType type) {
   static std::set <HcclDataType> allReduceSupportedDataTypes = {HCCL_DATA_TYPE_INT8, HCCL_DATA_TYPE_INT16,
                                                                 HCCL_DATA_TYPE_INT32, HCCL_DATA_TYPE_FP16,
-                                                                HCCL_DATA_TYPE_FP32};
+                                                                HCCL_DATA_TYPE_FP32, HCCL_DATA_TYPE_BFP16};
   TORCH_CHECK(allReduceSupportedDataTypes.count(type) != 0,
               "HCCL AllReduce & Reduce: Unsupported data type ",
               getHcclDataTypeSerialString(type));
