@@ -397,7 +397,8 @@ supported:
  - func: constant_pad_nd
    op_api: False
  - contiguous
- - conv_tbc
+ - func: conv_tbc
+   op_api: False
  - conv_tbc_backward
  - conv_transpose2d.input
  - conv_transpose3d.input
