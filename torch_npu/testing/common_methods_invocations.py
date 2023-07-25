@@ -543,6 +543,23 @@ op_db: List[OpInfo] = [
         ),
     ),
     OpInfo(
+        'nn.functional.avg_pool3d',
+        aten_name='avg_pool3d',
+        supports_autograd=False,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=False,
+        dtypes=_dispatch_dtypes((torch.float32,)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        gradcheck_nondet_tol=common_methods_invocations.GRADCHECK_NONDET_TOL,
+        sample_inputs_func=common_methods_invocations.sample_inputs_avgpool3d,
+        skips=(
+            # fp32 accuracy failure
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps',
+                         'test_correctness',
+                         dtypes=[torch.float32]),
+        ),
+    ),
+    OpInfo(
         'nn.functional.conv_transpose2d',
         aten_name='conv_transpose2d',
         aliases=('conv_transpose2d',),
