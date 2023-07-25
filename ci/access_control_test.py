@@ -208,7 +208,7 @@ def exec_ut(ut_files):
 
     def print_subprocess_log(log_queue):
         while (not log_queue.empty()):
-            print(log_queue.get())
+            print((log_queue.get()).strip())
 
     def run_cmd_with_timeout(cmd):
         os.chdir(str(TEST_DIR))
