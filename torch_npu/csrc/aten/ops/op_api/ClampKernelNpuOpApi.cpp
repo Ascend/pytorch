@@ -86,5 +86,25 @@ at::Tensor& NPUNativeOpApiFunctions::clamp_min_(at::Tensor& self, const at::Scal
   return NPUNativeOpApiFunctions::clamp_min_out(self, min, self);
 }
 
+at::Tensor& NPUNativeOpApiFunctions::clamp_min_out(const at::Tensor& self, const at::Tensor& min, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnClampMinTensor, NPUNativeFunctions::clamp_min_out(self, min, result));
+  OpPreparation::CheckOut({self}, result, self.scalar_type(), self.sizes());
+  EXEC_NPU_CMD(aclnnClampMinTensor, self, min, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::clamp_min(const at::Tensor& self, const at::Tensor& min) {
+  DO_COMPATIBILITY(aclnnClampMinTensor, NPUNativeFunctions::clamp_min(self, min));
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
+  EXEC_NPU_CMD(aclnnClampMinTensor, self, min, result);
+  return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::clamp_min_(at::Tensor& self, const at::Tensor& min) {
+  DO_COMPATIBILITY(aclnnInplaceClampMinTensor, NPUNativeFunctions::clamp_min_(self, min));
+  EXEC_NPU_CMD(aclnnInplaceClampMinTensor, self, min);
+  return self;
+}
+
 }  // namespace native
 }  // namespace at_npu
