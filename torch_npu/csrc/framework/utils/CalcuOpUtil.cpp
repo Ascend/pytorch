@@ -488,6 +488,55 @@ bool CalcuOpUtil::IsTransposeBothInnerAxis(const at::Tensor &self, const at::Ten
          mat2_inner_axis > kInnerAxisMaxLimit && mat2_outer_axis <= kInnerAxisMaxLimit;
 }
 
+void CalcuOpUtil::InsertInputPad(at::Tensor &self, at::Tensor &mat2) {
+  bool is_self_trans = IsTransposeLastTwoDims(self);
+  bool is_mat2_trans = IsTransposeLastTwoDims(mat2);
+  int64_t m_dim = self.size(-2);
+  int64_t n_dim = mat2.size(-1);
+  int64_t k_dim = self.size(-1);
+  int64_t data_size = elementSize(self.scalar_type());
+  // k_dim less than is skipped
+  const int64_t min_k_dim = 1024;
+  // when k_dim exceeds 4096, pad + aligned matmul costs more than single unaligned matmul
+  const int64_t max_k_dim = 4096;
+  // 512B aligned shape is soc friendly
+  const int64_t kPackage512 = 512;
+  // one block takes 32 bytes
+  const int64_t kBlockBytes = 32;
+  bool valid_scenario = (m_dim * data_size) % kPackage512 == 0 && (n_dim * data_size) % kPackage512 == 0;
+  valid_scenario &= (k_dim * data_size) % kBlockBytes != 0 && IsHalfFloatDtype(self);
+  valid_scenario &= m_dim > k_dim && n_dim > k_dim && k_dim > min_k_dim && k_dim < max_k_dim;
+  valid_scenario &= c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+  if (valid_scenario) {
+    int64_t pad_num = Ceil(k_dim, CeilDiv(kPackage512, data_size)) - k_dim;
+    // pad: left, right, top, bottom
+    vector<int64_t> self_pad = {0, 0, 0, 0};
+    vector<int64_t> mat2_pad = {0, 0, 0, 0};
+    self_pad[2 * is_self_trans + 1] = pad_num;
+    mat2_pad[2 * (1 - is_mat2_trans) + 1] = pad_num;
+    self = is_self_trans ? self.transpose(-1, -2) : self;
+    mat2 = is_mat2_trans ? mat2.transpose(-1, -2) : mat2;
+    self = NPUNativeFunctions::constant_pad_nd(self, self_pad, 0);
+    mat2 = NPUNativeFunctions::constant_pad_nd(mat2, mat2_pad, 0);
+    self = is_self_trans ? self.transpose(-1, -2) : self;
+    mat2 = is_mat2_trans ? mat2.transpose(-1, -2) : mat2;
+  }
+}
+
+int64_t CalcuOpUtil::Ceil(int64_t x, int64_t y) {
+  TORCH_CHECK(y != 0 , "Error, zero division.");
+  return ((x + y - 1) / y) * y;
+}
+
+int64_t CalcuOpUtil::CeilDiv(int64_t x, int64_t y) {
+  TORCH_CHECK(y != 0 , "Error, zero division.");
+  return (x + y - 1) / y;
+}
+
+bool CalcuOpUtil::IsHalfFloatDtype(const at::Tensor &tensor) {
+  return tensor.scalar_type() == at::ScalarType::Half || tensor.scalar_type() == at::ScalarType::BFloat16;
+}
+
 bool CalcuOpUtil::IsScalarWrappedToTensor(const at::Tensor &tensor) {
   return tensor.unsafeGetTensorImpl()->is_wrapped_number() &&
          (!at_npu::key::isDeviceTensor(tensor));
