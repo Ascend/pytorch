@@ -792,6 +792,10 @@ supported:
  - func: logical_or.out
    op_api: True
  - logical_or_
+ - func: logical_xor
+   op_api: False
+ - func: logical_xor.out
+   op_api: False
  - logspace
  - logspace.out
  - logsumexp
@@ -1620,7 +1624,6 @@ tocpu:
   - geometric_
   - linalg_vector_norm
   - linalg_vector_norm.out
-  - logical_xor.out
   - log_normal_
   - logit
   - logit_
