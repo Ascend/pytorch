@@ -118,6 +118,10 @@ public:
   static bool IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2);
   static bool IsTransposeInnerAxis(const at::Tensor &self);
   static bool IsTransposeBothInnerAxis(const at::Tensor &self, const at::Tensor &mat2);
+  static void InsertInputPad(at::Tensor &self, at::Tensor &mat2);
+  static bool IsHalfFloatDtype(const at::Tensor &tensor);
+  static int64_t Ceil(int64_t x, int64_t y);
+  static int64_t CeilDiv(int64_t x, int64_t y);
   static bool IsScalarOne(const c10::Scalar &scalar);
   static float GetScalarFloatValue(const c10::Scalar &scalar);
   static int64_t GetTensorNpuFormat(const at::Tensor &tensor);
