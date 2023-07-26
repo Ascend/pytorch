@@ -48,7 +48,8 @@ supported:
    op_api: True
  - func: _ctc_loss_backward
    op_api: True
- - _cummax_helper
+ - func: _cummax_helper
+   op_api: False
  - func: _cummin_helper
    op_api: False
  - _dim_arange
