@@ -895,7 +895,8 @@ supported:
  - mish
  - mish.out
  - mish_
- - mish_backward
+ - func: mish_backward
+   op_api: False
  - func: mm
    op_api: True
  - func: mm.out
