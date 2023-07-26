@@ -537,12 +537,18 @@ supported:
    op_api: False
  - func: floor_divide_.Tensor
    op_api: False
- - fmod.Scalar
- - fmod.Scalar_out
- - fmod.Tensor
- - fmod.Tensor_out
- - fmod_.Scalar
- - fmod_.Tensor
+ - func: fmod.Scalar
+   op_api: False
+ - func: fmod.Scalar_out
+   op_api: False
+ - func: fmod.Tensor
+   op_api: False
+ - func: fmod.Tensor_out
+   op_api: False
+ - func: fmod_.Scalar
+   op_api: False
+ - func: fmod_.Tensor
+   op_api: False
  - func: frac
    op_api: False
  - func: frac.out
