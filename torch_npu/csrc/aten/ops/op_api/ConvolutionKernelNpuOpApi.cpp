@@ -100,7 +100,7 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
 
   auto promotedDtype = promote_dtype(input, weight);
   auto output = OpPreparation::ApplyTensorWithoutFormat(out_size, input.options().dtype(promotedDtype));
-  int8_t cube_math_type = 1;
+  int8_t cube_math_type = CalcuOpUtil::GetCubeMathType(native::env::IsAllowConvHF32());
   EXEC_NPU_CMD(aclnnConvolution, input, weight, bias, stride, padding, dilation, transposed, output_padding, groups,
                output, cube_math_type);
 

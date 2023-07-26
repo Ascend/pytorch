@@ -670,7 +670,8 @@ static std::unordered_map<uint8_t, aclCubeMathType>
       {0b11, ALLOW_FP32_DOWN_PRECISION}
 };
 
-int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32, bool allowFp32ToFp16) {
+int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32) {
+  bool allowFp32ToFp16 = native::env::IsAllowFP32ToFP16();
   uint8_t CubeMathTypeCode = ((uint8_t)allowHf32 << 1) + (uint8_t)allowFp32ToFp16;
   auto iter = ACL_CUBE_MATH_TYPE_MAP.find(CubeMathTypeCode);
   if (iter == ACL_CUBE_MATH_TYPE_MAP.end()) {
