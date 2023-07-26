@@ -155,5 +155,13 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::median(
   return median(self, dimname_to_position(self, dim), keepdim);
 }
 
+at::Tensor NPUNativeFunctions::nanmedian(const at::Tensor& self) {
+  TORCH_WARN_ONCE("Warning: kernel [nanmedian] is not supported by NPU currently. Now this kernel is running on CPU.");
+  at::Tensor self_cpu = self.to("cpu");
+  auto result = at::native::nanmedian_cpu(self_cpu);
+  at::Tensor output = result.to(self.device());
+  return output;
+}
+
 } // namespace native
 } // namespace at_npu
