@@ -1115,14 +1115,18 @@ supported:
    op_api: True
  - func: repeat_interleave.self_int
    op_api: True
- - replication_pad1d
- - replication_pad1d.out
+ - func: replication_pad1d
+   op_api: False
+ - func: replication_pad1d.out
+   op_api: False
  - func: replication_pad1d_backward
    op_api: False
  - func: replication_pad1d_backward.grad_input
    op_api: False
- - replication_pad2d
- - replication_pad2d.out
+ - func: replication_pad2d
+   op_api: False
+ - func: replication_pad2d.out
+   op_api: False
  - func: replication_pad2d_backward
    op_api: True
  - func: replication_pad2d_backward.grad_input

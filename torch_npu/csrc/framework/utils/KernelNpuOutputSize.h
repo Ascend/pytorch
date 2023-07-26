@@ -444,6 +444,14 @@ c10::SmallVector<int64_t, SIZE> reflection_pad2d_npu_out_size(
     const at::Tensor& self,
     at::IntArrayRef padding);
 
+c10::SmallVector<int64_t, SIZE> replication_pad1d_npu_out_size(
+    const at::Tensor& self,
+    at::IntArrayRef padding);
+
+c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_out_size(
+    const at::Tensor& self,
+    at::IntArrayRef padding);
+
 c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
     const at::Tensor& self,
     const c10::optional<at::Tensor>& min,
