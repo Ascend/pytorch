@@ -15,7 +15,6 @@
 
 from collections import defaultdict
 import os
-import re
 import sys
 import stat
 import traceback
@@ -35,7 +34,6 @@ from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
 from torchgen.utils import Target
 from torchgen.gen import LineLoader
-from torchgen.yaml_utils import YamlLoader
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 
@@ -64,35 +62,6 @@ def parse_npu_yaml(custom_path: str) -> Dict:
         _set_wrap_impl_state(x)
 
     return source_es
-
-
-def filt_npu_autograd_functions(path, custom_path, derivatives_path) -> set:
-    torch_functions = set()
-    with open(path, 'r') as f:
-        es = yaml.load(f, Loader=LineLoader)
-    assert isinstance(es, list)
-    for e in es:
-        torch_functions.add(e.get('func'))
-
-    npu_func = parse_npu_yaml(custom_path)
-    custom_autograd = set()
-    for func in npu_func['custom_autograd']:
-        custom_autograd.add(func['func'].split('(')[0])
-
-    with open(derivatives_path, 'r') as f:
-        definitions = yaml.load(f, Loader=YamlLoader)
-    npu_autograd_functions = set()
-    for item in definitions:
-        if item['name'] in torch_functions:
-            continue
-        name = item['name'].split('(')[0]
-        suffixes = ['', '_', '.out']
-        for suffix in suffixes:
-            func_name = name + suffix
-            if func_name in custom_autograd:
-                npu_autograd_functions.add(func_name)
-
-    return npu_autograd_functions
 
 
 def rename_privateuse1_dispatch_key():

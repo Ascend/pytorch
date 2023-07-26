@@ -4,8 +4,7 @@
 #
 
 import re
-from pathlib import Path
-from typing import List, Dict
+from typing import List
 
 from torchgen.api.autograd import NativeFunctionWithDifferentiabilityInfo
 from torchgen.api import cpp
@@ -18,17 +17,10 @@ from codegen.torch_autograd.gen_inplace_or_view_type import (
 )
 from codegen.torch_autograd.gen_trace_type import type_wrapper_name
 from codegen.torch_autograd.gen_variable_type import (
-    emit_body,
-    gen_variable_type_func,
-    gen_wrapper_registration
+    emit_body, gen_wrapper_registration
 )
-from codegen.utils import filt_npu_autograd_functions, get_torchgen_dir
+from .utils import NPU_AUTOGRAD_FUNCTION
 
-# NPU methods require special processing. 
-NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions( 
-    str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
-    str(Path(__file__).parents[2].joinpath('torch_npu/csrc/aten/npu_native_functions.yaml')),
-    str(Path(__file__).parent.joinpath('derivatives.yaml')))
 
 try_jit_decomposition_pattern = (r'if \(\(.*?\)\) \{.*?static c10::OperatorName full_name\("aten::.*?", .*?\);\n.*?'
                                  r'return impl::run_jit_decomposition_with_args_for_jvp<.*?>'
@@ -48,19 +40,12 @@ def gen_variable_type(
     fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
     template_path: str,
 ) -> None:
-
-    """VariableType.cpp body
-
-    This is the at::Type subclass for differentiable tensors. The
-    implementation of each function dispatches to the base tensor type to
-    compute the output. The grad_fn is attached to differentiable functions.
+    """Generate VariableType.cpp body
     
-    For npu, we keep original process for torch method. 
+    Generate variable type definition for torch and npu method here.
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
 
-    # NOTE: see Note [Sharded File] at the top of the VariableType.cpp
-    # template regarding sharding of the generated files.
     fm.write_sharded(
         'VariableType.cpp',
         [fn for fn in fns_with_diff_infos if use_derived(fn)],
@@ -69,51 +54,11 @@ def gen_variable_type(
             'generated_comment':
             "@" f'generated from {template_path}/VariableType.cpp',
         },
-        env_callable=gen_variable_type_func_for_npu,
+        env_callable=gen_variable_type_func,
         num_shards=1,
-        sharded_keys={'type_derived_method_definitions_Default', 'wrapper_registrations_Default'}
+        sharded_keys={'type_derived_method_definitions', 'wrapper_registrations'}
     )
 
-
-def gen_npu_variable_type(
-    out: str,
-    fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
-    template_path: str,
-) -> None:
-    
-    """Generate VariableTypeNPU.cpp body
-    
-    Generate variable type definition for npu method here.
-    """
-    fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
-    
-    npu_method_definitions: List[str] = []
-    wrapper_registrations: List[str] = []
-    for fn in fns_with_diff_infos:
-        if use_derived(fn):
-            f = fn.func
-            with native_function_manager(f):
-                formals = gen_formals(f)
-                key = "Default"
-                type_definition = METHOD_DEFINITION.substitute(
-                    return_type=cpp.returns_type(f.func.returns).cpp_type(),
-                    type_wrapper_name=type_wrapper_name(f),
-                    type_definition_body=emit_body(fn, key),
-                    formals=formals,
-                )
-
-                type_definition = type_definition.replace('at::redispatch', 'op_plugin')
-                type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
-                type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
-                type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
-                wrapper_registrations.append(gen_wrapper_registration(f, key))
-                npu_method_definitions.append(type_definition)
-    
-    fm.write_with_template('VariableTypeNPU.cpp', 'VariableTypeNPU.cpp', lambda: {
-        'npu_method_definitions': npu_method_definitions,
-        'wrapper_registrations': wrapper_registrations
-    })
-                
 
 def gen_variable_type_head(
     out: str,
@@ -150,13 +95,28 @@ def gen_variable_type_header(
     return variable_type_header
 
 
-def gen_variable_type_func_for_npu(
-    fn: NativeFunctionWithDifferentiabilityInfo,
-) -> Dict[str, List[str]]:
-    gen_code = gen_variable_type_func(fn)
-    type_definition = gen_code['type_derived_method_definitions_Default'][0]
-    type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
-    type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
-    gen_code['type_derived_method_definitions_Default'] = [type_definition]
+def gen_variable_type_func(
+    fn: NativeFunctionWithDifferentiabilityInfo
+) -> str:
+    f = fn.func
+    result = {}
+    with native_function_manager(f):
+        formals = gen_formals(f)
+        type_definition = METHOD_DEFINITION.substitute(
+            return_type=cpp.returns_type(f.func.returns).cpp_type(),
+            type_wrapper_name=type_wrapper_name(f),
+            type_definition_body=emit_body(fn, "Default"),
+            formals=formals,
+        )
+        type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
+        type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
+        if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
+            type_definition = type_definition.replace('at::redispatch', 'op_plugin')
+            type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
+        
+        wrapper_registration = gen_wrapper_registration(f, "Default")
 
-    return gen_code
+        result[f"type_derived_method_definitions"] = [type_definition]
+        result[f"wrapper_registrations"] = [wrapper_registration]
+
+    return result
