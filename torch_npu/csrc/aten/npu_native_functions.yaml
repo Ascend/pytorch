@@ -504,8 +504,10 @@ supported:
  - exp2_
  - func: exp_
    op_api: True
- - expm1
- - expm1.out
+ - func: expm1
+   op_api: False
+ - func: expm1.out
+   op_api: False
  - expm1_
  - func: eye
    op_api: True
@@ -691,11 +693,15 @@ supported:
  - func: kthvalue.dimname_out
    op_api: True
  - func: kthvalue.values
-   op_api: True
- - l1_loss
- - l1_loss.out
- - l1_loss_backward
- - l1_loss_backward.grad_input
+   op_api: False
+ - func: l1_loss
+   op_api: False
+ - func: l1_loss.out
+   op_api: False
+ - func: l1_loss_backward
+   op_api: False
+ - func: l1_loss_backward.grad_input
+   op_api: False
  - func: le.Scalar
    op_api: True
  - func: le.Scalar_out
