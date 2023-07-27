@@ -80,5 +80,17 @@ at::Tensor NPUNativeOpApiFunctions::pow(const at::Scalar& self, const at::Tensor
   return result;
 }
 
+at::Tensor &NPUNativeOpApiFunctions::pow_(at::Tensor &self, const at::Tensor &exp) {
+  DO_COMPATIBILITY(aclnnInplacePowTensorTensor, NPUNativeFunctions::pow_(self, exp));
+  EXEC_NPU_CMD(aclnnInplacePowTensorTensor, self, exp);
+  return self;
+}
+
+at::Tensor &NPUNativeOpApiFunctions::pow_(at::Tensor &self, const at::Scalar& exp) {
+  DO_COMPATIBILITY(aclnnInplacePowTensorScalar, NPUNativeFunctions::pow_(self, exp));
+  EXEC_NPU_CMD(aclnnInplacePowTensorScalar, self, exp);
+  return self;
+}
+
 }  // namespace native
 }  // namespace at_npu

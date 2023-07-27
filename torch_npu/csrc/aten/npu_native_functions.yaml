@@ -1031,8 +1031,10 @@ supported:
    op_api: True
  - func: pow.Tensor_Tensor_out
    op_api: True
- - pow_.Scalar
- - pow_.Tensor
+ - func: pow_.Scalar
+   op_api: False
+ - func: pow_.Tensor
+   op_api: False
  - func: prelu
    op_api: True
  - prelu_backward
