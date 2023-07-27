@@ -35,10 +35,8 @@ at::Tensor NPUNativeOpApiFunctions::clamp(const at::Tensor& self, const c10::opt
   return NPUNativeOpApiFunctions::clamp_out(self, min, max, result);
 }
 
-at::Tensor& NPUNativeOpApiFunctions::clamp_(
-    at::Tensor& self,
-    const c10::optional<at::Scalar>& min,
-    const c10::optional<at::Scalar>& max) {
+at::Tensor& NPUNativeOpApiFunctions::clamp_(at::Tensor& self, const c10::optional<at::Scalar>& min,
+                                            const c10::optional<at::Scalar>& max) {
   DO_COMPATIBILITY(aclnnClamp, NPUNativeFunctions::clamp_(self, min, max));
   return NPUNativeOpApiFunctions::clamp_out(self, min, max, self);
 }
@@ -52,10 +50,8 @@ at::Tensor& NPUNativeOpApiFunctions::clamp_out(const at::Tensor& self, const c10
   return result;
 }
 
-at::Tensor& NPUNativeOpApiFunctions::clamp_(
-    at::Tensor& self,
-    const c10::optional<at::Tensor>& min,
-    const c10::optional<at::Tensor>& max) {
+at::Tensor& NPUNativeOpApiFunctions::clamp_(at::Tensor& self, const c10::optional<at::Tensor>& min,
+                                            const c10::optional<at::Tensor>& max) {
   DO_COMPATIBILITY(aclnnClampTensor, NPUNativeFunctions::clamp_(self, min, max));
   return NPUNativeOpApiFunctions::clamp_out(self, min, max, self);
 }
@@ -106,5 +102,19 @@ at::Tensor& NPUNativeOpApiFunctions::clamp_min_(at::Tensor& self, const at::Tens
   return self;
 }
 
+at::Tensor NPUNativeOpApiFunctions::clamp_max(const at::Tensor& self, const at::Scalar& max) {
+  DO_COMPATIBILITY(aclnnClampMax, NPUNativeFunctions::clamp_max(self, max));
+
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
+  EXEC_NPU_CMD(aclnnClampMax, self, max, result);
+  return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::clamp_max_(at::Tensor& self, const at::Scalar& max) {
+  DO_COMPATIBILITY(aclnnInplaceClampMax, NPUNativeFunctions::clamp_max_(self, max));
+
+  EXEC_NPU_CMD(aclnnInplaceClampMax, self,max);
+  return self;
+}
 }  // namespace native
 }  // namespace at_npu

@@ -355,9 +355,11 @@ supported:
    op_api: True
  - func: clamp_
    op_api: True
- - clamp_max
+ - func: clamp_max
+   op_api: False
  - clamp_max.out
- - clamp_max_
+ - func: clamp_max_
+   op_api: False
  - func: clamp_min
    op_api: True
  - func: clamp_min.out
