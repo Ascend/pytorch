@@ -522,7 +522,8 @@ supported:
    op_api: True
  - func: fill_.Scalar
    op_api: True
- - fill_diagonal_
+ - func: fill_diagonal_
+   op_api: False
  - func: flip
    op_api: True
  - func: floor
