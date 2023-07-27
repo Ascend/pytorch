@@ -14,6 +14,8 @@
 // limitations under the License.
 
 #include <c10/util/Exception.h>
+#include <ATen/record_function.h>
+
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
@@ -242,7 +244,7 @@ void OpCommand::Run() {
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, execParams.pta_correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
     aclCmd->releaseSource(false);
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
