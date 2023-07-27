@@ -660,9 +660,12 @@ supported:
  - index_add.dimname
  - func: index_add.out
    op_api: True
- - index_fill.int_Scalar
- - index_fill.int_Tensor
- - index_fill_.int_Scalar
+ - func: index_fill.int_Scalar
+   op_api: False
+ - func: index_fill.int_Tensor
+   op_api: False
+ - func: index_fill_.int_Scalar
+   op_api: False
  - func: index_fill_.int_Tensor
    op_api: True
  - func: index_select
