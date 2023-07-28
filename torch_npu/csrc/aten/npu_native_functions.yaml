@@ -1503,7 +1503,8 @@ supported:
    op_api: True
  - func: zeros.out
    op_api: True
- - zeros_like
+ - func: zeros_like
+   op_api: False
 
 autograd:
   - func: matmul
