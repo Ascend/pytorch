@@ -246,8 +246,10 @@ supported:
    op_api: True
  - func: avg_pool2d.out
    op_api: True
- - avg_pool2d_backward
- - avg_pool2d_backward.grad_input
+ - func: avg_pool2d_backward
+   op_api: False
+ - func: avg_pool2d_backward.grad_input
+   op_api: False
  - avg_pool3d
  - avg_pool3d.out
  - avg_pool3d_backward

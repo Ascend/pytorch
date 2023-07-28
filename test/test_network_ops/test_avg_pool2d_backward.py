@@ -85,6 +85,17 @@ class TestAvgPool2dBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output_grad, npu_output_grad)
 
+    def test_avg_pool2d_backward_3d_fp32(self):
+        cpu_input, npu_input = create_common_tensor([np.float32, 0, (1, 13, 13)], 0, 1)
+        cpu_output_grad, _ = self.cpu_op_exec(cpu_input)
+        npu_output_grad, _ = self.npu_op_exec(npu_input)
+        self.assertRtolEqual(cpu_output_grad, npu_output_grad, 0.0009)
+
+    def test_avg_pool2d_backward_4d_fp32(self):
+        cpu_input, npu_input = create_common_tensor([np.float32, 0, (5, 1, 8, 8)], 0, 1)
+        cpu_output_grad, _ = self.cpu_op_exec(cpu_input)
+        npu_output_grad, _ = self.npu_op_exec(npu_input)
+        self.assertRtolEqual(cpu_output_grad, npu_output_grad, 0.0009)
 
 if __name__ == "__main__":
     run_tests()
