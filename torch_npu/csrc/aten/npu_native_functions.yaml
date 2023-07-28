@@ -979,6 +979,9 @@ supported:
  - mv.out
  - func: nanmedian
    op_api: False
+ - nan_to_num
+ - nan_to_num_
+ - nan_to_num.out
  - func: native_batch_norm
    op_api: True
  - func: native_batch_norm.out

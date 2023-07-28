@@ -19,19 +19,20 @@ import unittest
 import torch
 
 import torch_npu
+from torch_npu.testing.common_utils import DEVICE_NAME
 from torch_npu.testing.testcase import TestCase, run_tests
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestRotaryMul(TestCase):
-    def rotary_mul(self, x, r1, r2):
+    @staticmethod
+    def rotary_mul(x, r1, r2):
         x1, x2 = torch.chunk(x, 2, -1)
         x_new = torch.cat((-x2, x1), dim=-1)
         output = r1 * x + r2 * x_new
         return output
 
-    def gen_data(self, shape, dtype):
+    @staticmethod
+    def gen_data(shape, dtype):
         cpu_input = torch.rand(shape, dtype=dtype)
         npu_input = cpu_input.npu()
         return cpu_input, npu_input
@@ -40,7 +41,8 @@ class TestRotaryMul(TestCase):
         out = self.rotary_mul(x, r1, r2)
         return out.cpu().numpy()
 
-    def npu_to_exec(self, x, r1, r2):
+    @staticmethod
+    def npu_to_exec(x, r1, r2):
         out = torch_npu.npu_rotary_mul(x, r1, r2)
         return out.cpu().numpy()
 
