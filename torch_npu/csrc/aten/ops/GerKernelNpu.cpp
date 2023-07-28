@@ -20,15 +20,6 @@
 namespace at_npu {
 namespace native {
 
-c10::SmallVector<int64_t, SIZE> ger_npu_output_size(
-    const at::Tensor& self,
-    const at::Tensor& vec2) {
-  int64_t outputsize_0 = self.size(0);
-  int64_t outputsize_1 = vec2.size(0);
-  c10::SmallVector<int64_t, SIZE> outputsize = {outputsize_0, outputsize_1};
-
-  return outputsize;
-}
 
 at::Tensor& ger_out_npu_nocheck(const at::Tensor& self , const at::Tensor& vec2, at::Tensor& result) {
   OpCommand cmd;
@@ -49,7 +40,7 @@ at::Tensor& NPUNativeFunctions::ger_out(const at::Tensor& self , const at::Tenso
       vec2.dim() == 1, "Input2 must have only1 dims.");
 
   // calculate the output size
-  auto outputSize = ger_npu_output_size(self, vec2);
+  auto outputSize = ger_output_size(self, vec2);
 
   OpPreparation::CheckOut(
       {self},
@@ -70,7 +61,7 @@ at::Tensor NPUNativeFunctions::ger(const at::Tensor& self, const at::Tensor& vec
       vec2.dim() == 1, "Input2 must have only1 dims.");
 
   // calculate the output size
-  auto outputSize = ger_npu_output_size(self, vec2);
+  auto outputSize = ger_output_size(self, vec2);
 
   // construct the output Tensor of the NPU 
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
