@@ -818,10 +818,14 @@ supported:
    op_api: False
  - logspace
  - logspace.out
- - logsumexp
- - logsumexp.names
- - logsumexp.names_out
- - logsumexp.out
+ - func: logsumexp
+   op_api: False
+ - func: logsumexp.names
+   op_api: False
+ - func: logsumexp.names_out
+   op_api: False
+ - func: logsumexp.out
+   op_api: False
  - lstm.data
  - lstm.input
  - lstm_cell
