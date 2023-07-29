@@ -1281,7 +1281,8 @@ supported:
    op_api: True
  - func: softplus.out
    op_api: True
- - softplus_backward.grad_input
+ - func: softplus_backward.grad_input
+   op_api: False
  - softshrink
  - softshrink.out
  - softshrink_backward
