@@ -373,9 +373,12 @@ supported:
  - clamp_max.Tensor
  - clamp_max.Tensor_out
  - clamp_max_.Tensor
- - clamp_min.Tensor
- - clamp_min.Tensor_out
- - clamp_min_.Tensor
+ - func: clamp_min.Tensor
+   op_api: False
+ - func: clamp_min.Tensor_out
+   op_api: False
+ - func: clamp_min_.Tensor
+   op_api: False
  - func: clone
    op_api: True
  - col2im
