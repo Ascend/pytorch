@@ -124,7 +124,7 @@ namespace at_npu
     void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
                                      at::ScalarType expect_dtype, c10::IntArrayRef expect_size)
     {
-      // if need to add memory_overlap_check, call CheckMemory(src_list, {dst});
+      check_memory(src_list, {dst});
       TORCH_CHECK(torch_npu::utils::is_npu(dst), "output with device ", dst.device(),
                   " doesn't match the desired device NPU");
       TORCH_CHECK(dst.scalar_type() == expect_dtype, "expected dtype ", expect_dtype, " but got dtype ",
@@ -135,7 +135,7 @@ namespace at_npu
     void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
                                      c10::IntArrayRef expect_size)
     {
-      // if need to add memory_overlap_check, call CheckMemory(src_list, {dst});
+      check_memory(src_list, {dst});
       TORCH_CHECK(torch_npu::utils::is_npu(dst), "output with device ", dst.device(),
                   " doesn't match the desired device NPU");
       check_tensor_size(src_list, dst, expect_size);
