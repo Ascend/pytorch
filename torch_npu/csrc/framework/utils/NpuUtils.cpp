@@ -328,6 +328,7 @@ const std::string AclDateTypeToString(aclDataType descDType)
         {ACL_DOUBLE, "ACL_DOUBLE"},
         {ACL_BOOL, "ACL_BOOL"},
         {ACL_STRING, "ACL_STRING"},
+        {ACL_COMPLEX32, "ACL_COMPLEX32"},
         {ACL_COMPLEX64, "ACL_COMPLEX64"},
         {ACL_COMPLEX128, "ACL_COMPLEX128"},
         {ACL_BF16, "ACL_BF16"}};

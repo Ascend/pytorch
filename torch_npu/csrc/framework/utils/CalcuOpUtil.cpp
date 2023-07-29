@@ -42,7 +42,7 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::Half, ACL_FLOAT16)                                         \
   _(at::ScalarType::Float, ACL_FLOAT)                                          \
   _(at::ScalarType::Double, ACL_DOUBLE)                                        \
-  _(at::ScalarType::ComplexHalf, ACL_DT_UNDEFINED)                             \
+  _(at::ScalarType::ComplexHalf, ACL_COMPLEX32)                                \
   _(at::ScalarType::ComplexFloat, ACL_COMPLEX64)                               \
   _(at::ScalarType::ComplexDouble, ACL_COMPLEX128)                             \
   _(at::ScalarType::Bool, ACL_BOOL)                                            \
