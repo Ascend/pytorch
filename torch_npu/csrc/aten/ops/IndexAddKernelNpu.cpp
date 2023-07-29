@@ -45,6 +45,7 @@ at::Tensor& index_add_out_npu(
       .Input(self)
       .Input(indices)
       .Input(source_broadcast)
+      .Input(alpha, self.scalar_type())
       .Output(result)
       .Attr("axis", dim)
       .Run();
