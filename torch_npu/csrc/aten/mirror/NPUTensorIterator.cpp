@@ -65,6 +65,10 @@ namespace at_npu
       {
         scalar_type = at::ScalarType::Half;
       }
+      if (a.scalar_type() == at::ScalarType::BFloat16)
+      {
+        scalar_type = at::ScalarType::BFloat16;
+      }
       if (a.scalar_type() != scalar_type)
       {
         scalar_type = result_type(a.scalar_type(), scalar_type);
