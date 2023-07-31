@@ -28,7 +28,6 @@ at::Tensor& NPUNativeOpApiFunctions::reciprocal_out(const at::Tensor& self, at::
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::GetTensorNpuFormat(self),
       result.scalar_type(),
       output_size);
 
@@ -40,13 +39,10 @@ at::Tensor NPUNativeOpApiFunctions::reciprocal(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnReciprocal, NPUNativeFunctions::reciprocal(self));
   // calculate the output size
   auto output_size = input_same_output_size(self);
+  auto out_dtype = (isIntegralType(self.scalar_type(), true)) ? at::kFloat : self.scalar_type();
 
   // construct the output tensor of the NPU
-  at::Tensor result =
-      OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
-
-  result = (result.dtype() == at::ScalarType::Half) ?
-            result : NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(out_dtype));
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnReciprocal, self, result);
