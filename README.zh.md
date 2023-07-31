@@ -10,13 +10,13 @@
 
 有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
 
-| 文档名称              | 文档链接                                                                                                                      |
-|-------------------|---------------------------------------------------------------------------------------------------------------------------|
-| PyTorch 安装指南      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000035.html)              |
-| PyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptmigr/ptmigr_0001.html)                 |
-| PyTorch 在线推理      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptonlineinfer/ptonlineinfer_000001.html) |
-| PyTorch 算子适配      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/operatordev/operatordevg/atlasopdev_10_0081.html)   |
-| PyTorch API清单     | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/oplist/fwoperator/fwoperatorlist_0301.html)         |
+| 文档名称                   | 文档链接                                                     |
+| -------------------------- | ------------------------------------------------------------ |
+| PyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/envdeployment/instg/instg_000041.html) |
+| PyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/modeldevpt/ptmigr/ptmigr_0001.html) |
+| PyTorch 在线推理           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| PyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| PyTorch API清单            | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/oplist/fwoperator/fwoperatorlist_0316.html) |
 
 # 快速安装PyTorch
 
