@@ -10,13 +10,13 @@
 
 有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
 
-| 文档名称              | 文档链接                                                                                                                      |
-|-------------------|---------------------------------------------------------------------------------------------------------------------------|
-| PyTorch 安装指南      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/envdeployment/instg/instg_000035.html)              |
-| PyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptmigr/ptmigr_0001.html)                 |
-| PyTorch 在线推理      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/modeldevpt/ptonlineinfer/ptonlineinfer_000001.html) |
-| PyTorch 算子适配      | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/operatordev/operatordevg/atlasopdev_10_0081.html)   |
-| PyTorch API清单     | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/601/oplist/fwoperator/fwoperatorlist_0301.html)         |
+| 文档名称                   | 文档链接                                                     |
+| -------------------------- | ------------------------------------------------------------ |
+| PyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/envdeployment/instg/instg_000041.html) |
+| PyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/modeldevpt/ptmigr/ptmigr_0001.html) |
+| PyTorch 在线推理           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| PyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| PyTorch API清单            | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/63RC2/oplist/fwoperator/fwoperatorlist_0316.html) |
 
 # 快速安装PyTorch
 
@@ -225,9 +225,17 @@ pip3 install wheel
 
 1. 安装官方torch包。
 
-   ```
-   pip3 install torch==2.0.1+cpu  
-   ```
+   - x86_64:
+   
+     ```
+     pip3 install torch==2.0.1+cpu
+     ```
+   
+   - aarch64:
+   
+     ```
+     pip3 install torch==2.0.1
+     ```
    
    若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
    
@@ -241,14 +249,14 @@ pip3 install wheel
       
          ```
          # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-         wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc2-pytorch2.0.1/torch_npu-2.0.1rc1-cp38-cp38m-linux_aarch64.whl
+         wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc2-pytorch2.0.1/torch_npu-2.0.1rc1-cp38-cp38-linux_aarch64.whl
          ```
          
       2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
       
          ```
          # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-         pip3 install torch_npu-2.0.1rc1-cp38-cp38m-linux_aarch64.whl
+         pip3 install torch_npu-2.0.1rc1-cp38-cp38-linux_aarch64.whl
    
 3. 安装对应框架版本的torchvision。
 
@@ -334,16 +342,24 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
 1. 安装官方torch包。
 
-   ```
-   pip3 install torch==2.0.1+cpu  
-   ```
+   - x86_64:
+   
+     ```
+     pip3 install torch==2.0.1+cpu
+     ```
+
+   - aarch64:
+
+     ```
+     pip3 install torch==2.0.1
+     ```
    
    若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
-
+   
    PyTorch 2.0.1版本：
-
+   
    - x86\_64:[下载链接](https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp38-cp38-linux_x86_64.whl)
-
+   
    - aarch64:[下载链接](https://download.pytorch.org/whl/torch-2.0.1-cp38-cp38-manylinux2014_aarch64.whl)
 
 **源码编译安装torch包**
@@ -390,7 +406,7 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 2. 安装pytorch/dist目录下生成的插件torch\_npu包，如果使用非root用户安装，需要在命令后加**--user**。
 
    ```
-   pip3 install --upgrade dist/torch_npu-2.0.1.rc1-cp38-cp38m-linux_aarch64.whl
+   pip3 install --upgrade dist/torch_npu-2.0.1.rc1-cp38-cp38-linux_aarch64.whl
    # 若用户在x86架构下安装插件，请替换为对应的whl包。
    ```
 
@@ -750,4 +766,4 @@ init_process_group 函数中使用了IPV6地址，例如::1(注意localhost 可�
 
 # 版本说明
 
-版本说明请参阅[ReleseNote](docs/RELEASENOTE_zh/RELEASENOTE.md)
+版本说明请参阅[ReleseNote](docs/RELEASENOTE_zh/RELEASENOTE.md)****
