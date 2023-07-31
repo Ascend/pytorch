@@ -14,10 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import copy
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
@@ -43,10 +45,10 @@ class TestAvgPool3D(TestCase):
     @graph_mode
     def test_avg_pool_3d_fp32(self):
         shape_format = [
-                        [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
-                        [[np.float32, -1, (2, 1, 4, 4, 4)], 3, 2],
-                        [[np.float32, -1, (2, 1, 4, 4, 4)], 2, 2],
-                        [[np.float32, -1, (2, 4 , 4, 4)], 2, 2]
+            [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
+            [[np.float32, -1, (2, 1, 4, 4, 4)], 3, 2],
+            [[np.float32, -1, (2, 1, 4, 4, 4)], 2, 2],
+            [[np.float32, -1, (2, 4, 4, 4)], 2, 2]
         ]
 
         for item in shape_format:
@@ -58,10 +60,10 @@ class TestAvgPool3D(TestCase):
     @graph_mode
     def test_avg_pool_3d_fp16(self):
         shape_format = [
-                        [[np.float16, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
-                        [[np.float16, -1, (2, 1, 4, 4, 4)], 3, 2],
-                        [[np.float16, -1, (2, 1, 4, 4, 4)], 2, 2],
-                        [[np.float16, -1, (2, 4 , 4, 4)], 2, 2]
+            [[np.float16, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
+            [[np.float16, -1, (2, 1, 4, 4, 4)], 3, 2],
+            [[np.float16, -1, (2, 1, 4, 4, 4)], 2, 2],
+            [[np.float16, -1, (2, 4, 4, 4)], 2, 2]
         ]
 
         for item in shape_format:
@@ -70,7 +72,25 @@ class TestAvgPool3D(TestCase):
             cpu_output = self.cpu_op_exec_fp16(item[1], item[2], cpu_input1)
             self.assertRtolEqual(cpu_output, npu_output.cpu())
 
+    def test_avg_pool_3d(self):
+        shape_format = [
+            [np.float16, -1, (512, 88, 64, 31)],
+            [np.float16, -1, (2, 1, 4, 4, 4)],
+            [np.float32, -1, (512, 88, 64, 31)],
+            [np.float16, -1, (2, 1, 4, 4, 4)]
+        ]
+        cmodel = torch.nn.AvgPool3d((3, 3, 5), (6, 9, 3), (1, 1, 2), True)
+        nmodel = copy.deepcopy(cmodel).npu()
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
+            if item[0] == np.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
+            cpu_output = cmodel(cpu_input1)
+            npu_output = nmodel(npu_input1)
+            if item[0] == np.float16:
+                cpu_output = cpu_output.to(torch.float16)
+            self.assertRtolEqual(cpu_output, npu_output.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
-
