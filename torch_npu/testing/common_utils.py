@@ -35,6 +35,7 @@ import torch_npu
 
 
 IS_WINDOWS = sys.platform == "win32"
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 if IS_WINDOWS:
     @contextmanager
