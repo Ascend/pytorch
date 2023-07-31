@@ -24,7 +24,9 @@ namespace native {
 at::Tensor &NPUNativeOpApiFunctions::glu_out(const at::Tensor &self, int64_t dim, at::Tensor &result) {
   DO_COMPATIBILITY(aclnnGlu, NPUNativeFunctions::glu_out(self, dim, result));
   auto output_size = glu_npu_output_size(self, dim);
-  OpPreparation::CheckOut({self}, result, self, output_size);
+
+  // the dtype that does not check self must be equal to the result dtype
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), output_size);
 
   // calculate the output result of the NPU
   EXEC_NPU_CMD(aclnnGlu, self, dim, result);
