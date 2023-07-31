@@ -697,7 +697,8 @@ supported:
    op_api: False
  - is_pinned
  - is_set_to
- - isclose
+ - func: isclose
+   op_api: False
  - isfinite
  - isnan
  - kl_div
