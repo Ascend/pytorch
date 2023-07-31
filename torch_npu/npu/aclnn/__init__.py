@@ -1,1 +1,1 @@
-from .backends import version
+from .backends import version, allow_hf32

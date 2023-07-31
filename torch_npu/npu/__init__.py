@@ -113,6 +113,7 @@ from . import profiler
 from .npu_config import *  # noqa: F403
 from .datadump import dump_enable, dump_disable
 from .autocast_utils import *  # noqa: F403
+from .backends import *
 
 config = npu_config.npuConfig()
 
