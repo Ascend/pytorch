@@ -185,6 +185,8 @@ def init():
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+    torch_npu.npu.init()
+    torch.cuda.default_generators = torch_npu.npu.default_generators
 
     # torch.profiler.*
     patch_profiler()
@@ -199,12 +201,13 @@ def init():
     torch.Tensor.is_cuda = torch.Tensor.is_npu
     torch.cuda.DoubleTensor = torch.npu.FloatTensor
 
-    # torch.nn.Module.*
+    # torch.nn.Module.*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     device_wrapper(torch.nn.Module, torch_module_fn_white_list)
     torch.nn.Module.cuda = torch.nn.Module.npu
 
     # torch.distributed.init_process_group
     torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
+    torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
 
     # torch.nn.parallel.DistributedDataParallel
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
