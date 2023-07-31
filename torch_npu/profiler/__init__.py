@@ -20,4 +20,8 @@ from .profiler import tensorboard_trace_handler
 from .scheduler import Schedule as schedule
 from .scheduler import ProfilerAction
 from .experimental_config import _ExperimentalConfig, supported_profiler_level, supported_ai_core_metrics, \
-                                  ProfilerLevel, AiCMetrics
+    ProfilerLevel, AiCMetrics
+
+from torch_npu.npu.utils import _lazy_init
+
+_lazy_init()
