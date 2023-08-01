@@ -68,12 +68,7 @@ at::Tensor& NPUNativeOpApiFunctions::remainder_out(const at::Tensor& self, const
 {
   DO_COMPATIBILITY(aclnnRemainderTensorTensor, NPUNativeFunctions::remainder_out(self, other, result));
   auto broadcast_shape = broadcast_ops_npu_output_size(self, other);
-  auto self_shape = array_to_small_vector(self.sizes());
-  if (broadcast_shape == self_shape) {
-    OpPreparation::CheckOut({self, other}, result, result.scalar_type(), self.sizes());
-  } else {
-    OpPreparation::CheckOut({self, other}, result, result.scalar_type(), other.sizes());
-  }
+  OpPreparation::CheckOut({self, other}, result, result.scalar_type(), broadcast_shape);
 
   EXEC_NPU_CMD(aclnnRemainderTensorTensor, self, other, result);
   return result;
