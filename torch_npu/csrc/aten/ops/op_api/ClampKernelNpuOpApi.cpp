@@ -86,6 +86,22 @@ at::Tensor& NPUNativeOpApiFunctions::clamp_min_(at::Tensor& self, const at::Scal
   return NPUNativeOpApiFunctions::clamp_min_out(self, min, self);
 }
 
+at::Tensor& NPUNativeOpApiFunctions::clamp_max_out(const at::Tensor& self, const at::Tensor& max, at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnClampMaxTensor, NPUNativeFunctions::clamp_max_out(self, max, result));
+  auto output_size = broadcast_ops_npu_output_size(self, max);
+  OpPreparation::CheckOut({self, max}, result, result.scalar_type(), output_size);
+  EXEC_NPU_CMD(aclnnClampMaxTensor, self, max, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::clamp_max(const at::Tensor& self, const at::Tensor& max) {
+  DO_COMPATIBILITY(aclnnClampMaxTensor, NPUNativeFunctions::clamp_max(self, max));
+  auto output_size = broadcast_ops_npu_output_size(self, max);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  EXEC_NPU_CMD(aclnnClampMaxTensor, self, max, result);
+  return result;
+}
+
 at::Tensor& NPUNativeOpApiFunctions::clamp_min_out(const at::Tensor& self, const at::Tensor& min, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnClampMinTensor, NPUNativeFunctions::clamp_min_out(self, min, result));
   OpPreparation::CheckOut({self}, result, self.scalar_type(), self.sizes());
