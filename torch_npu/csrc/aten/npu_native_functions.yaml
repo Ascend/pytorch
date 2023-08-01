@@ -647,7 +647,8 @@ supported:
    op_api: True
  - func: hardsigmoid_
    op_api: True
- - hardsigmoid_backward
+ - func: hardsigmoid_backward
+   op_api: False
  - func: hardswish
    op_api: True
  - func: hardswish.out
