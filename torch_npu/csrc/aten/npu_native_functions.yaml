@@ -1532,7 +1532,8 @@ autograd:
   - silu
   - silu_
   - silu.out
-  - binary_cross_entropy_with_logits_backward
+  - func: binary_cross_entropy_with_logits_backward
+    op_api: False
   - func: selu
     op_api: False
   - func: selu_
