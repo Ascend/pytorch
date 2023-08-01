@@ -17,6 +17,8 @@
 #include "NpuUtils.h"
 #include "OpPreparation.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
 namespace at_npu {
 namespace native {
@@ -187,9 +189,16 @@ at::Tensor npu_nonzero_transpose(const at::Tensor& self) {
   return result;
 }
 
+at::Tensor npu_nonzero_notranspose(const at::Tensor& self) {
+  at::Tensor result = at_npu::native::NPUNativeOpApiFunctions::nonzero(self);
+  result = result.transpose(1, 0);
+  return result;
+}
+
 std::vector<at::Tensor> AdvanceIndex::npu_expand_tensors(
     const at::Tensor& self,
-    const torch::List<c10::optional<at::Tensor>>& indices) {
+    const torch::List<c10::optional<at::Tensor>>& indices,
+    bool flag_aclnn) {
   // If indices come in as ByteTensor or BoolTensor (masks), expand them into the equivalent indexing by LongTensors
   std::vector<at::Tensor> result;
   for (c10::optional<at::Tensor> index_opt : indices) {
@@ -213,8 +222,13 @@ std::vector<at::Tensor> AdvanceIndex::npu_expand_tensors(
                 " does not match the shape of the indexed tensor ", self.sizes(), " at index ", srcIdx);
           }
         }
+        at::Tensor nonzero;
         // Replace with nonzeros
-        auto nonzero = npu_nonzero_transpose(index);
+        if (flag_aclnn) {
+          nonzero = npu_nonzero_notranspose(index);
+        } else {
+          nonzero = npu_nonzero_transpose(index);
+        }
         for (int64_t j = 0; j < index.dim(); j++) {
           result.emplace_back(nonzero.select(0, j));
         }

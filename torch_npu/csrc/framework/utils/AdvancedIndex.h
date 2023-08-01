@@ -44,7 +44,8 @@ public:
   static AdvancedIndex make_info(at::Tensor self, const torch::List<c10::optional<at::Tensor>>& orig);
   static std::vector<at::Tensor> npu_expand_tensors(
       const at::Tensor& self,
-      const torch::List<c10::optional<at::Tensor>>& indices);
+      const torch::List<c10::optional<at::Tensor>>& indices,
+      bool flag_aclnn = false);
   static std::vector<at::Tensor> npu_broadcast_tensors(std::vector<at::Tensor> to_broadcast);
 };
 
