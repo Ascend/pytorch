@@ -1051,7 +1051,8 @@ supported:
    op_api: True
  - func: one_
    op_api: True
- - one_hot
+ - func: one_hot
+   op_api: False
  - func: ones
    op_api: True
  - func: ones.names
