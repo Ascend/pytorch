@@ -603,6 +603,38 @@ class NPURotaryMulOP(torch.autograd.Function):
         return g.op("npu::NPURotaryMul", x, r1, r2)
 
 
+class NPUFlashAttentionOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_flash_attention(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, query: Tensor, key: Tensor, value: Tensor, head_num: int, input_layout: str,
+                 pse: Tensor, padding_mask: Tensor, atten_mask: Tensor, scale: float = 1.0,
+                 keep_prob: float = 1.0, pre_tockens: int = 2147483647, next_tockens: int = 2147483647,
+                 gen_mask_parallel: bool = True, sync: bool = False):
+        if pse is None:
+            pse = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if padding_mask is None:
+            padding_mask = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if atten_mask is None:
+            atten_mask = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        return g.op("npu::NPUFlashAttention", query, key, value, pse, padding_mask, atten_mask,
+                     head_num_i=head_num, input_layout_s=input_layout, scale_f=scale, keep_prob_f=keep_prob,
+                     pre_tockens_i=pre_tockens, next_tockens_i=next_tockens,
+                     gen_mask_parallel_i=gen_mask_parallel, sync_i=sync)
+
+
+def wrapper_npu_flash_attention(query, key, value, head_num,
+                                input_layout, pse=None, padding_mask=None, atten_mask=None,
+                                scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
+                                gen_mask_parallel=True, sync=False):
+    return NPUFlashAttentionOP.apply(query, key, value, head_num, input_layout,
+                                     pse, padding_mask, atten_mask, scale,
+                                     keep_prob, pre_tockens, next_tockens, gen_mask_parallel, sync)
+
+
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
@@ -866,3 +898,4 @@ def add_onnx_ops():
     torch_npu.npu_scaled_masked_softmax = wrapper_npu_scaled_masked_softmax
     torch_npu.npu_mish = wrapper_npu_mish
     torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
+    torch_npu.npu_flash_attention = wrapper_npu_flash_attention
