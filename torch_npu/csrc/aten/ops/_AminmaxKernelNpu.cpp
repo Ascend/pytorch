@@ -36,6 +36,21 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_aminmax(
   return std::tie(std::get<0>(min), std::get<0>(max));
 }
 
+std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::aminmax(
+    const at::Tensor &self,
+    c10::optional<int64_t> dim,
+    bool keepdim) {
+  if (dim.has_value()) {
+    auto max = NPUNativeFunctions::amax(self, dim.value(), keepdim);
+    auto min = NPUNativeFunctions::amin(self, dim.value(), keepdim);
+    return std::tie(min,max);
+  }
+  at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
+  auto max = NPUNativeFunctions::amax(self, dims, keepdim);
+  auto min = NPUNativeFunctions::amin(self, dims, keepdim);
+  return std::tie(min, max);
+}
+
 std::tuple<at::Tensor &, at::Tensor &> NPUNativeFunctions::aminmax_out(
     const at::Tensor & self,
     c10::optional<int64_t> dim,

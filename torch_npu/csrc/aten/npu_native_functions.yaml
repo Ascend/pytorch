@@ -28,7 +28,10 @@ supported:
  - _add_relu_.Tensor
  - _aminmax
  - _aminmax.dim
- - aminmax.out
+ - func: aminmax
+   op_api: False
+ - func: aminmax.out
+   op_api: False
  - _amp_foreach_non_finite_check_
  - func: _amp_foreach_non_finite_check_and_unscale_
    op_api: False
@@ -1202,8 +1205,10 @@ supported:
    op_api: False
  - func: rsqrt_
    op_api: False
- - rsub.Scalar
- - rsub.Tensor
+ - func: rsub.Scalar
+   op_api: False
+ - func: rsub.Tensor
+   op_api: False
  - scalar_tensor
  - func: scatter.src_out
    op_api: True
