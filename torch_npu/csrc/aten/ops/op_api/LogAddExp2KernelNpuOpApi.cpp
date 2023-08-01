@@ -24,6 +24,8 @@ namespace native {
 
 at::Tensor &NPUNativeOpApiFunctions::logaddexp2_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &out) {
   DO_COMPATIBILITY(aclnnLogAddExp2, NPUNativeFunctions::logaddexp2_out(self, other, out));
+  auto output_size = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self}, out, out, output_size);
   EXEC_NPU_CMD(aclnnLogAddExp2, self, other, out);
 
   return out;
@@ -32,7 +34,8 @@ at::Tensor &NPUNativeOpApiFunctions::logaddexp2_out(const at::Tensor &self, cons
 at::Tensor NPUNativeOpApiFunctions::logaddexp2(const at::Tensor &self, const at::Tensor &other) {
   DO_COMPATIBILITY(aclnnLogAddExp2, NPUNativeFunctions::logaddexp2(self, other));
   auto output_size = broadcast_ops_npu_output_size(self, other);
-  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
+  at::ScalarType output_type = at::native::result_type(self, other);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(output_type));
   EXEC_NPU_CMD(aclnnLogAddExp2, self, other, result);
 
   return result;
