@@ -1419,7 +1419,8 @@ supported:
  - triu_indices
  - true_divide.Scalar
  - true_divide.Tensor
- - true_divide.out
+ - func: true_divide.out
+   op_api: False
  - true_divide_.Scalar
  - true_divide_.Tensor
  - func: trace
