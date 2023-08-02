@@ -14,8 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
-#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -97,12 +98,12 @@ at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Ten
 {
   at::Tensor selfTemp = self;
   at::Tensor otherTemp = other;
-  if (!isFloatingType(self.scalar_type())) {
+  if (self.scalar_type() == at::ScalarType::Int || self.scalar_type() == at::ScalarType::Bool) {
     selfTemp = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
 
-  if (!isFloatingType(other.scalar_type())) {
-    otherTemp = NPUNativeFunctions::npu_dtype_cast(other, at::ScalarType::Float);
+  if (other.scalar_type() == at::ScalarType::Int) {
+    otherTemp = other.to(at::ScalarType::Float);
   }
   
   // calculate the output size
@@ -112,7 +113,10 @@ at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Ten
   auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, outputTensor.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      outputTensor.options(),
+      CalcuOpUtil::GetTensorNpuFormat(outputTensor));
 
   // calculate the output result of the NPU
   true_div_out_npu_nocheck(selfTemp, otherTemp, result);
