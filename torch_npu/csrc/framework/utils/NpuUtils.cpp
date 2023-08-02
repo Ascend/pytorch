@@ -19,7 +19,6 @@
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
@@ -306,7 +305,33 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::str
   }
 }
 
+void NpuUtils::DqueueCompileExcute(c10_npu::queue::QueueParas * para, uint32_t category){
+  auto param_val = static_cast<at_npu::native::ExecuteParas *>(para->paramVal);
+  torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
+}
+void NpuUtils::DqueueEvent(c10_npu::queue::QueueParas * para, uint32_t category){
+  auto param_val = static_cast<c10_npu::queue::EventParas *>(para->paramVal);
+  torch_npu::profiler::reportMarkDataToNpuProfiler(category, c10_npu::queue::EventParas::EVENT_PARAS_MAP[param_val->eventAllocatorType], para->correlation_id);
+}
+void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t category){
+  auto param_val = static_cast<c10_npu::queue::CopyParas *>(para->paramVal);
+  torch_npu::profiler::reportMarkDataToNpuProfiler(category, c10_npu::queue::CopyParas::COPY_PARAS_MAP[param_val->kind], para->correlation_id);
+}
+void NpuUtils::DqueueCompileExcuteBs(c10_npu::queue::QueueParas * para, uint32_t category){
+  auto param_val = static_cast<at_npu::native::ExecuteBsParas *>(para->paramVal);
+  torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
+}
+
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
+  std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
+    {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
+    {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
+    {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
+    {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
+    {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
+    {c10_npu::queue::RESET_EVENT, &DqueueEvent},
+    {c10_npu::queue::LAMBDA_EXECUTE, &DqueueCompileExcuteBs},
+  };
   if (!data) {
     return;
   }
@@ -317,11 +342,11 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
   if (torch_npu::profiler::profDataReportEnable()) {
     void *cur_addr = (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
     auto cur_param = static_cast<c10_npu::queue::QueueParas *>(cur_addr);
-    if (cur_param->paramType != c10_npu::queue::COMPILE_AND_EXECUTE) {
-      return;
+    for (auto [key, value] : DEQUEUE_CALL_FUNC_MAP) {
+      if (key == cur_param->paramType) {
+        value(cur_param, category);
+      }
     }
-    auto param_val = static_cast<at_npu::native::ExecuteParas *>(cur_param->paramVal);
-    torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), param_val->pta_correlation_id);
   }
 }
 #endif
