@@ -394,7 +394,8 @@ supported:
  - col2im.out
  - col2im_backward
  - col2im_backward.grad_input
- - constant_pad_nd
+ - func: constant_pad_nd
+   op_api: False
  - contiguous
  - conv_tbc
  - conv_tbc_backward
