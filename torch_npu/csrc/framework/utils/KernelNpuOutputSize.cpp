@@ -1336,5 +1336,14 @@ namespace native {
       return shape;
     }
 
+    c10::SmallVector<int64_t, SIZE> ger_output_size(
+        const at::Tensor& self,
+        const at::Tensor& vec2) {
+      int64_t outputsize_0 = self.size(0);
+      int64_t outputsize_1 = vec2.size(0);
+      c10::SmallVector<int64_t, SIZE> output_size = {outputsize_0, outputsize_1};
+      return output_size;
+  }
+
 } // namespace native
 } // namespace at_npu

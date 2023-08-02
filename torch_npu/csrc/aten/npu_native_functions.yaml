@@ -607,8 +607,10 @@ supported:
    op_api: True
  - func: gelu_backward
    op_api: True
- - ger
- - ger.out
+ - func: ger
+   op_api: False
+ - func: ger.out
+   op_api: False
  - func: glu
    op_api: False
  - func: glu.out
