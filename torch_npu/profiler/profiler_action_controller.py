@@ -102,7 +102,33 @@ class ActionController:
 
         self.next_step += 1
 
-    def init(self) -> None:
+    def _init_action_map(self) -> dict:
+        return {
+            (ProfilerAction.NONE, ProfilerAction.NONE): [],
+            (ProfilerAction.NONE, ProfilerAction.WARMUP): [self._init],
+            (ProfilerAction.NONE, ProfilerAction.RECORD): [self._init, self._start_prof],
+            (ProfilerAction.NONE, ProfilerAction.RECORD_AND_SAVE): [self._init, self._start_prof],
+
+            (ProfilerAction.WARMUP, ProfilerAction.NONE): [self._warn_warmup_follow_none, self._start_prof,
+                                                           self._stop_prof],
+            (ProfilerAction.WARMUP, ProfilerAction.WARMUP): [],
+            (ProfilerAction.WARMUP, ProfilerAction.RECORD): [self._start_prof],
+            (ProfilerAction.WARMUP, ProfilerAction.RECORD_AND_SAVE): [self._start_prof],
+
+            (ProfilerAction.RECORD, ProfilerAction.NONE): [self._warn_none_follow_record, self._stop_prof],
+            (ProfilerAction.RECORD, ProfilerAction.WARMUP): [self._warn_warmup_follow_record, self._stop_prof],
+            (ProfilerAction.RECORD, ProfilerAction.RECORD): [self._iteration_end, self._iteration_start],
+            (ProfilerAction.RECORD, ProfilerAction.RECORD_AND_SAVE): [self._iteration_end, self._iteration_start],
+
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.NONE): [self._stop_prof, self._trace_ready],
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.WARMUP): [self._stop_prof, self._trace_ready, self._init],
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD): [self._stop_prof, self._trace_ready, self._init,
+                                                                      self._start_prof],
+            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD_AND_SAVE): [self._stop_prof, self._trace_ready,
+                                                                               self._init, self._start_prof]
+        }
+
+    def _init(self) -> None:
         if isinstance(self._on_trace_ready, NpuProfCreator):
             path = self._on_trace_ready.create_prof_dir()
         else:
@@ -110,16 +136,16 @@ class ActionController:
         self._msprofiler_interface.set_config(path)
         self._msprofiler_interface.init_profiler()
 
-    def start_prof(self) -> None:
+    def _start_prof(self) -> None:
         self._msprofiler_interface.start_profiler()
         self._iteration_start()
 
-    def stop_prof(self) -> None:
+    def _stop_prof(self) -> None:
         self._iteration_end()
         self._msprofiler_interface.stop_profiler()
         self._msprofiler_interface.finalize_profiler()
 
-    def trace_ready(self) -> None:
+    def _trace_ready(self) -> None:
         if isinstance(self._on_trace_ready, NpuProfCreator):
             self._on_trace_ready(self._instance)
 
@@ -132,29 +158,3 @@ class ActionController:
         if self._record_steps:
             if self.step_rec_fc:
                 self.step_rec_fc.__exit__(None, None, None)
-
-    def _init_action_map(self) -> dict:
-        return {
-            (ProfilerAction.NONE, ProfilerAction.NONE): [],
-            (ProfilerAction.NONE, ProfilerAction.WARMUP): [self.init],
-            (ProfilerAction.NONE, ProfilerAction.RECORD): [self.init, self.start_prof],
-            (ProfilerAction.NONE, ProfilerAction.RECORD_AND_SAVE): [self.init, self.start_prof],
-
-            (ProfilerAction.WARMUP, ProfilerAction.NONE): [self._warn_warmup_follow_none, self.start_prof,
-                                                           self.stop_prof],
-            (ProfilerAction.WARMUP, ProfilerAction.WARMUP): [],
-            (ProfilerAction.WARMUP, ProfilerAction.RECORD): [self.start_prof],
-            (ProfilerAction.WARMUP, ProfilerAction.RECORD_AND_SAVE): [self.start_prof],
-
-            (ProfilerAction.RECORD, ProfilerAction.NONE): [self._warn_none_follow_record, self.stop_prof],
-            (ProfilerAction.RECORD, ProfilerAction.WARMUP): [self._warn_warmup_follow_record, self.stop_prof],
-            (ProfilerAction.RECORD, ProfilerAction.RECORD): [self._iteration_end, self._iteration_start],
-            (ProfilerAction.RECORD, ProfilerAction.RECORD_AND_SAVE): [self._iteration_end, self._iteration_start],
-
-            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.NONE): [self.stop_prof, self.trace_ready],
-            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.WARMUP): [self.stop_prof, self.trace_ready, self.init],
-            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD): [self.stop_prof, self.trace_ready, self.init,
-                                                                      self.start_prof],
-            (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD_AND_SAVE): [self.stop_prof, self.trace_ready,
-                                                                               self.init, self.start_prof]
-        }
