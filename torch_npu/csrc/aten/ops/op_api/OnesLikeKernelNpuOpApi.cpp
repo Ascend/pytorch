@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
@@ -28,6 +26,16 @@ at::Tensor NPUNativeOpApiFunctions::ones_like(const at::Tensor &self,
                                               c10::optional<c10::MemoryFormat> optional_memory_format) {
   DO_COMPATIBILITY(aclnnInplaceOne, NPUNativeFunctions::ones_like(self, dtype_opt, layout_opt, device_opt,
                                                                   pin_memory_opt, optional_memory_format));
+  auto device = device_or_default(device_opt);
+  if (!(device.type() == at_npu::key::NativeDeviceType)) {
+    auto result = at::empty_like(self,
+                                 dtype_opt,
+                                 layout_opt,
+                                 device_opt,
+                                 pin_memory_opt,
+                                 optional_memory_format);
+    return result.fill_(1.);
+  }
   c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
                                                   .device(device_opt)
                                                   .layout(layout_opt)
