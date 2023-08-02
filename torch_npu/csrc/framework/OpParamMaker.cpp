@@ -423,6 +423,7 @@ namespace at_npu
       dstPtr->paramStream = srcPtr->paramStream;
       dstPtr->paramType = srcPtr->paramType;
       dstPtr->paramLen = srcPtr->paramLen;
+      dstPtr->correlation_id = srcPtr->correlation_id;
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         new(dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));

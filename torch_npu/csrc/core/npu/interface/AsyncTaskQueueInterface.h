@@ -13,6 +13,7 @@ struct CopyParas {
   size_t srcLen = 0;
   aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
   void Copy(CopyParas& other);
+  static std::map<int64_t, std::string> COPY_PARAS_MAP;
 };
 
 enum EventAllocatorType {
@@ -28,6 +29,7 @@ struct EventParas {
   aclrtEvent event = nullptr;
   void Copy(EventParas& other);
   EventAllocatorType eventAllocatorType = RESERVED;
+  static std::map<int64_t, std::string> EVENT_PARAS_MAP;
 };
 
 enum QueueParamType {
@@ -45,6 +47,8 @@ struct QueueParas {
   QueueParamType paramType = COMPILE_AND_EXECUTE;
   size_t paramLen = 0;
   void* paramVal = nullptr;
+  static std::atomic<uint64_t> g_correlation_id;
+  uint64_t correlation_id = 0;
 };
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
@@ -62,5 +66,6 @@ aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 aclError LaunchResetEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchLazyDestroyEventTask(aclrtEvent event);
+
 } // namespace queue
 } // namespace c10_npu
