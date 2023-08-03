@@ -81,7 +81,7 @@ at::Tensor NPUNativeOpApiFunctions::xlogy(const at::Scalar& self, const at::Tens
 
 at::Tensor& NPUNativeOpApiFunctions::xlogy_(at::Tensor& self, const at::Tensor& other) {
   DO_COMPATIBILITY(aclnnInplaceXLogYTensor, NPUNativeFunctions::xlogy_(self, other));
-  CalcuOpUtil::CheckMemoryOverLaps({self, other}, {self});
+  OpPreparation::CheckMemory({self, other}, {self});
   EXEC_NPU_CMD(aclnnInplaceXLogYTensor, self, other);
   return self;
 }
