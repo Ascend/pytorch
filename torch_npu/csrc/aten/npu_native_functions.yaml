@@ -359,7 +359,8 @@ supported:
    op_api: True
  - func: ceil.out
    op_api: True
- - ceil_
+ - func: ceil_
+   op_api: True
  - channel_shuffle
  - func: clamp
    op_api: True
