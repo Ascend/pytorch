@@ -72,7 +72,8 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
 
   // Groups > 1 and 3D scenes are currently not supported (binary operator problem), and path 3 implementation is
   // temporarily called
-  if (dim == 3 || groups > 1 || (!at_npu::native::env::CheckForbidInternalFormat() && at_npu::native::env::CheckJitDisable())) {
+  // CheckForbidInternalFormat = False: turn on private format；CheckJitDisable = False: turn on JitCompile
+  if (dim == 3 || groups > 1 || (!at_npu::native::env::CheckForbidInternalFormat() || !at_npu::native::env::CheckJitDisable())) {
     return at_npu::native::NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation, transposed,
                                                             output_padding, groups, false, false, false, false);
   }
@@ -107,6 +108,9 @@ at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const a
   if (dim == 2 && inputK == 3) {
     c10::SmallVector<int64_t, SIZE> squeeze_size = {output.size(1), output.size(2), output.size(3)};
     output.resize_(squeeze_size);
+
+    c10::SmallVector<int64_t, SIZE> squeeze_size_input = {input.size(1), input.size(2), input.size(3)};
+    input.resize_(squeeze_size_input);
   }
   return output;
 }

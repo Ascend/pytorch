@@ -53,10 +53,10 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
     int64_t dim = k - 2;
     int8_t cubeMathType = 1;
 
-    /* k == 5 and groups > 3 currently unsupported by the binary file, CCB concludes to use path 3 to maintain 
-        the current function in hostapi
+    /* k == 5 and groups > 3 currently unsupported by the binary file
+        CheckForbidInternalFormat = False: turn on private format；CheckJitDisable = False: turn on JitCompile
     */
-    if (k == 5 || groups > 1) { 
+    if (k == 5 || groups > 1 || (!at_npu::native::env::CheckForbidInternalFormat() || !at_npu::native::env::CheckJitDisable())) {
         return at_npu::native::NPUNativeFunctions::convolution_backward(grad_output, input, weight, bias_sizes_opt,
             stride, padding, dilation, transposed, output_padding, groups, output_mask);
     }
@@ -98,7 +98,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
         std::get<2>(outputSizes), grad_output.options());
 
     int64_t input_dim = input.ndimension();
-        
+
     EXEC_NPU_CMD(aclnnConvolutionBackward,
         grad_output,
         input,
