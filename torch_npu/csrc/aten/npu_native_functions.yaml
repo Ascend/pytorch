@@ -721,7 +721,8 @@ supported:
    op_api: False
  - isfinite
  - isnan
- - kl_div
+ - func: kl_div
+   op_api: False
  - func: kl_div_backward
    op_api: True
  - func: kthvalue
