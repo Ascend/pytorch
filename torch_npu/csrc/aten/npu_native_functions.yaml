@@ -774,9 +774,9 @@ supported:
  - func: lerp_.Tensor
    op_api: False
  - func: linalg_cross
-   op_api: False
+   op_api: True
  - func: linalg_cross.out
-   op_api: False
+   op_api: True
  - linspace
  - linspace.out
  - func: log
@@ -1265,11 +1265,11 @@ supported:
  - func: sign_
    op_api: True
  - func: sin
-   op_api: False
+   op_api: True
  - func: sin.out
-   op_api: False
+   op_api: True
  - func: sin_
-   op_api: False
+   op_api: True
  - func: sinh
    op_api: False
  - func: sinh.out
