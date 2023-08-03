@@ -2,6 +2,7 @@ import shutil
 from warnings import warn
 
 from torch_npu.npu.utils import _lazy_init
+
 from .analysis.npu_profiler import NpuProfiler
 from .analysis.prof_common_func.constant import Constant
 from .experimental_config import _ExperimentalConfig
@@ -28,7 +29,7 @@ class profile:
             with_modules=False,
             experimental_config=None,
             use_cuda=None
-            ):
+    ):
         self._activities = set(activities) if activities else supported_ms_activities()
         self._schedule = schedule
         self._record_shapes = record_shapes
@@ -45,9 +46,9 @@ class profile:
         self._action_controller = ActionController(self._msprofiler_interface, schedule, self, on_trace_ready)
         self._use_cuda = use_cuda
         self._check_params()
+        _lazy_init()
 
     def __enter__(self):
-        _lazy_init()
         self._action_controller.transit_action()
         return self
 
@@ -67,6 +68,15 @@ class profile:
     def step(self):
         if self._schedule:
             self._action_controller.transit_action()
+
+    def start(self):
+        self._action_controller.init()
+        self._msprofiler_interface.start_profiler()
+
+    def stop(self):
+        self._msprofiler_interface.stop_profiler()
+        self._msprofiler_interface.finalize_profiler()
+        self._action_controller.trace_ready()
 
     def export_chrome_trace(self, output_path: str):
         if isinstance(self._action_controller._on_trace_ready, NpuProfCreator):

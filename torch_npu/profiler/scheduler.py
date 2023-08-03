@@ -27,7 +27,7 @@ class ProfilerAction(Enum):
 
 
 class Schedule:
-    def __init__(self, wait: int, warmup: int, active: int, repeat: int = 0, skip_first: int = 0) -> any:
+    def __init__(self, wait: int, active: int, warmup: int = 0, repeat: int = 0, skip_first: int = 0) -> any:
         self._wait = wait
         self._warmup = warmup
         self._active = active
