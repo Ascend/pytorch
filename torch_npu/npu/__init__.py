@@ -44,7 +44,6 @@ __all__ = [
     "memory_summary",
     "Stream",
     "Event",
-    "profiler",
     "set_option",
     "set_aoe",
     "profile",
@@ -109,10 +108,13 @@ from .utils import (synchronize, device_count, set_device, current_device, get_d
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag)
 from .streams import Stream, Event
 
-from . import profiler
 from .npu_config import *  # noqa: F403
 from .datadump import dump_enable, dump_disable
 from .autocast_utils import *  # noqa: F403
+
+# init profiler
+if not torch_npu._C._profiler_init():
+    raise RuntimeError("proflier initialization failed")
 
 config = npu_config.npuConfig()
 
