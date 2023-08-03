@@ -46,5 +46,14 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::median_out(
   return std::tie(output, indices);
 }
 
+at::Tensor NPUNativeOpApiFunctions::nanmedian(const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnNanMedian, NPUNativeFunctions::nanmedian(self));
+  at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::GetDimlistForTensor(self);
+  auto output_size = reduce_ops_npu_output_size(self, dims, false);
+  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  EXEC_NPU_CMD(aclnnNanMedian, self, result);
+  return result;
+}
+
 }  // namespace native
 }  // namespace at_npu
