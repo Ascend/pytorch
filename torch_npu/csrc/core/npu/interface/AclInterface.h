@@ -110,6 +110,8 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
 
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream);
 
+aclError AclrtSynchronizeStream(aclrtStream stream);
+
 aclError AclrtDestroyStreamForce(aclrtStream stream);
 
 aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
