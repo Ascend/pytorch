@@ -25,6 +25,8 @@
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/Exception.h>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
