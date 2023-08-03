@@ -1502,12 +1502,18 @@ supported:
  - upsample_trilinear3d_backward
  - upsample_trilinear3d_backward.grad_input
  - upsample_trilinear3d_backward.vec
- - var.correction
- - var.correction_names
- - var.out
- - var.names_out
- - var.correction_out
- - var.correction_names_out
+ - func: var.correction
+   op_api: False
+ - func: var.correction_names
+   op_api: False
+ - func: var.out
+   op_api: False
+ - func: var.names_out
+   op_api: False
+ - func: var.correction_out
+   op_api: False
+ - func: var.correction_names_out
+   op_api: False
  - var_mean.correction
  - var_mean.correction_names
  - view
