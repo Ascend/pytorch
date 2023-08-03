@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace c10_npu {
 
@@ -310,6 +311,10 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
 }
 
 aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
+  if (C10_UNLIKELY(
+          c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
+    c10_npu::warn_or_error_on_sync();
+  }
   typedef aclError (*AclrtSynchronizeStreamWithTimeout)(aclrtStream, int32_t);
   static AclrtSynchronizeStreamWithTimeout func = (AclrtSynchronizeStreamWithTimeout)GET_FUNC(aclrtSynchronizeStreamWithTimeout);
   int32_t timeout = c10_npu::option::OptionsManager::GetACLExecTimeout();
@@ -325,6 +330,20 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
     TORCH_CHECK(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream");
     return func_backup(stream);
   }
+}
+
+aclError AclrtSynchronizeStream(aclrtStream stream) {
+  if (C10_UNLIKELY(
+          c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
+    c10_npu::warn_or_error_on_sync();
+  }
+  typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
+  static AclrtSynchronizeStream func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
+  }
+  TORCH_CHECK(func, "Failed to find function", "aclrtSynchronizeStream");
+  return func(stream);
 }
 
 aclError AclrtDestroyStreamForce(aclrtStream stream) {
