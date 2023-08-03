@@ -58,11 +58,13 @@ c10::SmallVector<int64_t, SIZE> calc_output_size_with_generalized_attrs(const at
   const int64_t s_h = stride.empty() ? k_h : stride[0];
   const int64_t s_w = stride.empty() ? k_w : stride.size() == 1 ? s_h : stride[1];
   c10::SmallVector<int64_t, SIZE> stride_sizes = {s_h, s_w};
+  TORCH_CHECK(s_h != 0 && s_w != 0, "stride should not be zero");
   at::IntArrayRef strides = at::IntArrayRef(stride_sizes);
 
   const int64_t pad_h = padding[0];
   const int64_t pad_w = padding.size() == 1 ? pad_h : padding[1];
   c10::SmallVector<int64_t, SIZE> padding_sizes = {pad_h, pad_w};
+  TORCH_CHECK(pad_h <= k_h / 2 && pad_w <= k_w / 2, "pad should be smaller than or equal to half of kernel size");
   at::IntArrayRef paddings = at::IntArrayRef(padding_sizes);
 
   auto output_size = avg_pool2d_npu_output_size(self, kernels, strides, paddings, ceil_mode, count_include_pad,
