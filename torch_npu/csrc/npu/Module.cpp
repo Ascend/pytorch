@@ -759,6 +759,7 @@ PyObject* THNPModule_npu_datadump_disable(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+
 PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type) {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkString(option_type), "invalid argument to option_type,option_type must string!");
@@ -768,6 +769,53 @@ PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type) {
     return PyBytes_FromString(option_key.value().c_str());
   }
   Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  TORCH_WARN_ONCE(
+      "Synchronization debug mode is a prototype feature and does not yet detect all "
+      "synchronizing operations");
+  THPUtils_assert(
+      THPUtils_checkLong(arg), "invalid argument to set_sync_debug_mode, debug_mode type must long");
+  int64_t debug_mode = THPUtils_unpackLong(arg);
+  TORCH_CHECK(
+      debug_mode >= 0 && debug_mode <= 2,
+      "invalid value of debug_mode, expected one of 0,1,2");
+  c10_npu::SyncDebugMode level;
+  switch (debug_mode) {
+    case 0:
+      level = c10_npu::SyncDebugMode::L_DISABLED;
+      break;
+    case 1:
+      level = c10_npu::SyncDebugMode::L_WARN;
+      break;
+    case 2:
+      level = c10_npu::SyncDebugMode::L_ERROR;
+      break;
+    default:
+      level = c10_npu::SyncDebugMode::L_DISABLED;
+      break;
+  }
+  c10_npu::warning_state().set_sync_debug_mode(level);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  auto debug_mode = c10_npu::warning_state().get_sync_debug_mode();
+  switch (debug_mode) {
+    case c10_npu::SyncDebugMode::L_DISABLED:
+      return THPUtils_packInt32(0);
+    case c10_npu::SyncDebugMode::L_WARN:
+      return THPUtils_packInt32(1);
+    case c10_npu::SyncDebugMode::L_ERROR:
+      return THPUtils_packInt32(2);
+    default:
+      return THPUtils_packInt32(-1); // can't happen
+  }
   END_HANDLE_TH_ERRORS
 }
 
@@ -815,6 +863,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_VARARGS, nullptr},
     {"_npu_datadump_disable", (PyCFunction)THNPModule_npu_datadump_disable, METH_NOARGS, nullptr},
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
+    {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
+    {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {

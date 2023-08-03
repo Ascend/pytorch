@@ -351,6 +351,38 @@ def default_stream(device=None):
         _get_device_index(device, optional=True)))
 
 
+def set_sync_debug_mode(debug_mode):
+    r"""Sets the debug mode for npu synchronizing operations.
+
+    Args:
+        debug_mode(str or int): if "default" or 0, don't error or warn on synchronizing operations,
+            if "warn" or 1, warn on synchronizing operations, if "error" or 2, error out synchronizing operations.
+
+    Warning:
+        This is an experimental feature, and not all synchronizing operations will trigger warning or error.
+    """
+
+    if isinstance(debug_mode, str):
+        if debug_mode == "default":
+            debug_mode = 0
+        elif debug_mode == "warn":
+            debug_mode = 1
+        elif debug_mode == "error":
+            debug_mode = 2
+        else:
+            raise RuntimeError(
+                "invalid value of debug_mode, expected one of `default`, `warn`, `error`"
+            )
+
+    torch_npu._C._npu_set_sync_debug_mode(debug_mode)
+
+
+def get_sync_debug_mode():
+    r"""Returns current value of debug mode for npu synchronizing operations."""
+
+    return torch_npu._C._npu_get_sync_debug_mode()
+
+
 def _dummy_type(name):
     def init_err(self):
         class_name = self.__class__.__name__
