@@ -243,7 +243,7 @@ void ReplayGraphImpl::SetInnerOutput(CombinedInfo& outputcombinedinfo, ReplayGra
                     " output_storages.size(): ", output_storages.size());
         c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::intrusive_ptr<c10::StorageImpl>::
                                                 unsafe_reclaim_from_nonowning(output_storages[idx]);
-        auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, storage_impl,
+        auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl,
                                                                     graphinfo.inner_outputs.at_tensor_info[i].dtype);
         graphinfo.inner_outputs_tensors.emplace_back(tensor);
     }
