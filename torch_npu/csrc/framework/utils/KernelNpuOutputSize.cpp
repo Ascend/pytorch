@@ -251,6 +251,19 @@ namespace native {
           input.sizes(), weight.sizes(), gradBiasSize);
     }
 
+    tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>> conv2d_backward_tbc_output_size(
+        const at::Tensor &input,
+        const at::Tensor &grad,
+        const at::Tensor &weight,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef padding,
+        c10::IntArrayRef dilation,
+        int64_t groups) {
+      c10::SmallVector<int64_t, SIZE> gradBiasSize = {grad.size(2)};
+      return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::SmallVector<int64_t, SIZE>>(
+          input.sizes(), weight.sizes(), gradBiasSize);
+    }
+
     c10::SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
         const at::Tensor &x1,
         int64_t dim,
