@@ -375,6 +375,7 @@ void enCurrentNPUStream(
   }
   check_npu(device_index);
   c10_npu::queue::QueueParas* queueParam = static_cast<c10_npu::queue::QueueParas* >(cur_paras);
+  queueParam->correlation_id = c10_npu::queue::QueueParas::g_correlation_id++;
   queueParam->paramStream = current_streams[device_index]->stream;
   default_streams[device_index].repo->Enqueue(cur_paras);
   if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {

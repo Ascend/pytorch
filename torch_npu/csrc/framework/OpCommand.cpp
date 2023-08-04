@@ -234,7 +234,7 @@ void OpCommand::Run() {
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
 #ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, execParams.pta_correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
