@@ -22,9 +22,6 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::expm1_out(const at::Tensor& self, at::Tensor& out) {
   DO_COMPATIBILITY(aclnnExpm1, NPUNativeFunctions::expm1_out(self, out));
-  // check if out on NPU
-  TORCH_CHECK(at_npu::key::isDeviceTensor(out), "out with device ", out.device(),
-              " doesn't match the desired device NPU");
   // resize_ the output size when size of out and self don't match with each other.
   if (out.sizes() != self.sizes()) {
     auto output_size = input_same_output_size(self);
@@ -37,8 +34,14 @@ at::Tensor& NPUNativeOpApiFunctions::expm1_out(const at::Tensor& self, at::Tenso
 
 at::Tensor NPUNativeOpApiFunctions::expm1(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnExpm1, NPUNativeFunctions::expm1(self));
-  // construct the output tensor of NPU
-  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self);
+  // construct the output tensor of NPU. If dtype of self isn't included in floating point list,
+  // dtype of out must be float32.
+  auto output_size = input_same_output_size(self);
+  at::ScalarType out_type = self.scalar_type();
+  if (!isFloatingType(self.scalar_type())) {
+    out_type = at::kFloat;
+  }
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(out_type));
   // dispatch hostAPI
   EXEC_NPU_CMD(aclnnExpm1, self, out);
   return out;
