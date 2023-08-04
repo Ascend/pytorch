@@ -1,6 +1,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 
 namespace at_npu
@@ -122,6 +123,36 @@ namespace at_npu
       auto ori_size = desc.base_sizes_;
       auto format = desc.npu_format_;
       return GetStorageSizes(format, ori_size);
+    }
+
+    bool FormatHelper::is_op_input_base_format(const at::Tensor &tensor) {
+      if (!torch_npu::utils::is_npu(tensor)) {
+        return true;
+      }
+      const auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
+      return desc.origin_format_ == desc.npu_format_;
+    }
+
+    bool FormatHelper::is_op_input_base_format(
+        const c10::optional<at::Tensor> &tensor) {
+      if (!tensor.has_value()) {
+        return true;
+      }
+      return is_op_input_base_format(tensor.value());
+    }
+
+    bool FormatHelper::is_op_input_base_format(const c10::List<c10::optional<at::Tensor>> &tensors) {
+      const auto &iter =
+          std::find_if(tensors.begin(), tensors.end(), 
+                       [](const auto &tensor) { return !is_op_input_base_format(tensor); });
+      return iter == tensors.end();
+    }
+
+    bool FormatHelper::is_op_input_base_format(const at::TensorList &tensors) {
+      const auto &iter =
+          std::find_if(tensors.begin(), tensors.end(), 
+                       [](const auto &tensor) { return !is_op_input_base_format(tensor); });
+      return iter == tensors.end();
     }
 
     //
