@@ -25,6 +25,8 @@
 
 namespace at_npu {
 namespace native {
+const static int FLASH_THRESHOLD = 512;
+
 using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 
@@ -130,9 +132,9 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     double scale_value,
     double keep_prob,
     int64_t pre_tockens,
-    int64_t next_tockens)
+    int64_t next_tockens,
+    bool is_flash)
 {
-  bool is_flash = true;
   const at::Tensor &pse_const = pse.value_or(at::Tensor());
   const at::Tensor &drop_mask_const = drop_mask.value_or(at::Tensor());
   const at::Tensor &padding_mask_const = padding_mask.value_or(at::Tensor());
@@ -158,20 +160,23 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor dtype_atten_mask =
       (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
       NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
-
   at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query);
   at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
   at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
   char* input_layout_ptr = const_cast<char *>(input_layout.c_str());
+  at::Tensor dpse;
+  if (format_pse.defined()) {
+    dpse = OpPreparation::ApplyTensorWithoutFormat(format_pse);
+  }
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
       format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
-      pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq, dk, dv);
+      pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq, dk, dv, dpse);
 
-  return {dq, dk, dv, at::Tensor(),
-          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(),
+  return {dq, dk, dv,
+          at::Tensor(), at::Tensor(), dpse, at::Tensor(), at::Tensor(), at::Tensor(),
           at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
 }
 
@@ -211,15 +216,18 @@ public:
       NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
     int64_t B = 0;
-    int64_t S = 0;
+    int64_t S0 = 0; // S for query
+    int64_t S1 = 0; // S for key & value
     int64_t H = 0;
     if (input_layout_str == "BSH") {
       B = query.size(0);
-      S = query.size(1);
+      S0 = query.size(1);
+      S1 = key.size(1);
       H = query.size(2);
     } else if (input_layout_str == "SBH") {
       B = query.size(1);
-      S = query.size(0);
+      S0 = query.size(0);
+      S1 = key.size(0);
       H = query.size(2);
     }
 
@@ -229,13 +237,19 @@ public:
     at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, input_layout_str,
         gen_mask_parallel, sync, seed, offset, numels);
 
-    at::Tensor softmax_max = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S, 8},
-        query.options().dtype(at::kFloat)); // [B, N, S, 8]
-    at::Tensor softmax_sum = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S, 8},
-        query.options().dtype(at::kFloat)); // [B, N, S, 8]
-
-    bool is_flash = true;
+    bool is_flash = S1 > FLASH_THRESHOLD;
+    at::Tensor softmax_max;
+    at::Tensor softmax_sum;
     at::Tensor softmax_out;
+    if (is_flash) {
+        softmax_max = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
+            query.options().dtype(at::kFloat)); // [B, N, S0, 8]
+        softmax_sum = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
+            query.options().dtype(at::kFloat)); // [B, N, S0, 8]
+    } else {
+        softmax_out = OpPreparation::ApplyTensorWithoutFormat(format_query,
+            {B, head_num, S0, S1}); // [B, N, S0, S1]
+    }
 
     char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
     EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
@@ -309,7 +323,7 @@ public:
     auto results = npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, input_layout, pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
-        keep_prob, pre_tockens, next_tockens);
+        keep_prob, pre_tockens, next_tockens, is_flash);
 
     if (!sync) {
       c10_npu::NPUEvent npu_event;
@@ -358,17 +372,23 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, input_layout_str, gen_mask_parallel, sync,
       seed, offset, numels);
 
+  bool is_flash = true;
+  if (input_layout_str == "BSH") {
+    is_flash = key.size(1) > FLASH_THRESHOLD;
+  } else if (input_layout_str == "SBH") {
+    is_flash = key.size(0) > FLASH_THRESHOLD;
+  }
+
   auto result = npu_flash_attention_backward(query,
       key, value, dy, head_num, input_layout_str, pse, drop_mask, padding_mask, atten_mask,
       softmax_max, softmax_sum, softmax_in, attention_in, scale_value,
-      keep_prob, pre_tockens, next_tockens);
+      keep_prob, pre_tockens, next_tockens, is_flash);
 
   if (!sync) {
     c10_npu::NPUEvent npu_event;
     npu_event.record(c10_npu::getCurrentNPUStream());
     npu_event.block(c10_npu::getCurrentSecondaryStream());
   }
-  
   return result;
 }
 
