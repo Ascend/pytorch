@@ -10,12 +10,10 @@ os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 class CombinedViewsCopyToContiguous(TestCase):
-    def test_permute_narrow_copy_contiguous(self, device="npu"):
+    def test_permute_narrow_copy_contiguous(self):
         dtype_list1 = [np.float16]
         format_list1 = [-1]
-        shape_list1 = [
-                      [20, 30, 40, 50],
-                      ]
+        shape_list1 = [[20, 30, 40, 50]]
         shape_format1 = [
             [i, j, k] for i in dtype_list1 for j in format_list1 for k in shape_list1
         ]
@@ -38,12 +36,10 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[:,1:10].permute(1,0,3,2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_permute_select_copy_contiguous(self, device="npu"):
+    def test_permute_select_copy_contiguous(self):
         dtype_list2 = [np.float32]
         format_list2 = [-1]
-        shape_list2 = [
-                      [20, 30, 40, 50],
-                      ]
+        shape_list2 = [[20, 30, 40, 50],]
         shape_format2 = [
             [i, j, k] for i in dtype_list2 for j in format_list2 for k in shape_list2
         ]
@@ -66,12 +62,10 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_out2 = cpu_input.select(1,0).permute(1,0,2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_permute_strideslice_copy_contiguous(self, device="npu"):
+    def test_permute_strideslice_copy_contiguous(self):
         dtype_list3 = [np.float16]
         format_list3 = [-1]
-        shape_list3 = [
-                      [20, 30, 40, 50],
-                      ]
+        shape_list3 = [[20, 30, 40, 50]]
         shape_format3 = [
             [i, j, k] for i in dtype_list3 for j in format_list3 for k in shape_list3
         ]
@@ -96,12 +90,10 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[:,1:10:3].permute(1,3,0,2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_narrow_select_copy_contiguous(self, device="npu"):
+    def test_narrow_select_copy_contiguous(self):
         dtype_list4 = [np.float16, np.float32]
         format_list4 = [0, 3, 29]
-        shape_list4 = [
-                      [20, 30, 40, 16],
-                      ]
+        shape_list4 = [[20, 30, 40, 16]]
         shape_format4 = [
             [i, j, k] for i in dtype_list4 for j in format_list4 for k in shape_list4
         ]
@@ -140,12 +132,10 @@ class CombinedViewsCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
 
-    def test_narrow_strideslice_copy_contiguous(self, device="npu"):
+    def test_narrow_strideslice_copy_contiguous(self):
         dtype_list5 = [np.float32]
         format_list5 = [-1]
-        shape_list5 = [
-                      [20, 30, 40, 16],
-                      ]
+        shape_list5 = [[20, 30, 40, 16]]
         shape_format5 = [
             [i, j, k] for i in dtype_list5 for j in format_list5 for k in shape_list5
         ]
@@ -191,12 +181,10 @@ class CombinedViewsCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
             self.assertRtolEqual(npu_out5.to("cpu").numpy(), cpu_out5.numpy())
 
-    def test_strideslice_select_contiguous(self, device="npu"):
+    def test_strideslice_select_contiguous(self):
         dtype_list6 = [np.float16]
         format_list6 = [-1]
-        shape_list6 = [
-                      [20, 30, 40, 16],
-                      ]
+        shape_list6 = [[20, 30, 40, 16]]
         shape_format6 = [
             [i, j, k] for i in dtype_list6 for j in format_list6 for k in shape_list6
         ]
@@ -234,7 +222,7 @@ class CombinedViewsCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
     
-    def test_broadcast_permute_contiguous(self, device="npu"):
+    def test_broadcast_permute_contiguous(self):
         dtype_list7 = [np.float16, np.float32]
         format_list7 = [-1]
         shape_list7 = [
