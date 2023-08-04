@@ -180,7 +180,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
     config.emplace(HCOM_OPTIONS.data(), "1");
   }
-
+  config.emplace(ge::PRECISION_MODE.data(), "allow_fp32_to_fp16");
   NPU_CHECK_ERROR(ge::GEInitialize(config));
 
   // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
