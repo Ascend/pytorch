@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include <ATen/native/TypeProperties.h>
-#include <third_party/acl/inc/op_proto/split_combination_ops.h>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -23,15 +22,6 @@
 
 namespace at_npu {
 namespace native {
-namespace {
-template <typename ge_op_type>
-at_npu::native::DynamicInputRegFunc concat_func =
-    [](DyNumAndIndex num_and_index, std::string op_name) -> ge::OperatorPtr {
-  auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
-  ge_op->create_dynamic_input_byindex_x(num_and_index.front().first, num_and_index.front().second);
-  return ge_op;
-};
-}
 
 c10::SmallVector<at::Tensor, N> cat_dest_tensor_list(at::TensorList tensors) {
   at::ScalarType high_type = at::native::result_type(tensors);
@@ -129,8 +119,7 @@ at::Tensor& cat_out_nocheck( at::Tensor& result, at::TensorList tensors, int64_t
     }
   }
 
-  cmd.DynamicInputReg(concat_func<ge::op::ConcatD>, {{input_number, 0}})
-      .Output(result)
+  cmd.Output(result)
       .Attr("N", input_number)
       .Attr("concat_dim", dim)
       .Run();

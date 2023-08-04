@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#include "third_party/acl/inc/op_proto/data_flow_ops.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
