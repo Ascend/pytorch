@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-class Constant:
+class Constant(object):
     INVALID_VALUE = -1
 
     # dir name
@@ -24,8 +24,8 @@ class Constant:
     # file authority
     FILE_AUTHORITY = 0o640
     DIR_AUTHORITY = 0o750
-    MAX_FILE_SIZE = 1024 * 1024 * 1024
-    MAX_CSV_SIZE = 1024 * 1024 * 1024
+    MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10
+    MAX_CSV_SIZE = 1024 * 1024 * 1024 * 5
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
