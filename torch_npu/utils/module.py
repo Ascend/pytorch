@@ -28,6 +28,7 @@ from torch.nn.modules.batchnorm import _NormBase, _LazyNormBase
 from torch.nn.modules.module import Module
 from torch.nn.parallel._functions import _streams
 from torch.nn.utils.rnn import PackedSequence
+from torch._C._nn import _parse_to as torch_parse_to
 
 import torch_npu
 import torch_npu.distributed as dist
@@ -705,6 +706,9 @@ def gru_forward(self, input_tensor, hx=None):
             hidden = hidden.squeeze(1)
         return output, self.permute_hidden(hidden, unsorted_indices)
 
+@torch_device_guard
+def _parse_to(*args, **kwargs):
+    return torch_parse_to(*args, **kwargs)
 
 def apply_module_patch():
     torch.nn.Module.npu = npu
@@ -726,3 +730,4 @@ def apply_module_patch():
     torch.nn.modules.batchnorm._NormBase._load_from_state_dict = _normbase__load_from_state_dict
     torch.nn.modules.batchnorm._LazyNormBase.__init__ = _lazynormbase__init__
     torch.nn.parallel._functions._get_stream = _get_stream
+    torch._C._nn._parse_to = _parse_to
