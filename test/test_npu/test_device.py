@@ -3,6 +3,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestDevice(TestCase):
     def device_monitor(func):
         def wrapper(self, *args, **kwargs):
@@ -10,12 +11,12 @@ class TestDevice(TestCase):
             torch.npu.set_device(device_id)
             npu_device = torch.randn(2).npu(device_id).device
             device_types = [
-                            "npu",
-                            "npu:"+str(device_id),
-                            torch.device("npu:"+str(device_id)),
-                            torch.device("npu:"+str(device_id)).type,
-                            npu_device
-                            ]
+                "npu",
+                "npu:" + str(device_id),
+                torch.device("npu:" + str(device_id)),
+                torch.device("npu:" + str(device_id)).type,
+                npu_device
+            ]
             for device_type in device_types:
                 kwargs["device"] = device_type
                 npu_tensor = func(self, *args, **kwargs)
@@ -23,52 +24,47 @@ class TestDevice(TestCase):
                 self.assertEqual(npu_tensor.device.index, device_id)
             kwargs["device"] = None
             func(self, *args, **kwargs)
-        return wrapper
 
+        return wrapper
 
     @device_monitor
     def test_torch_tensor_to_device(self, device=None):
         cpu_tensor = torch.randn(2, 3)
         return cpu_tensor.to(device, torch.int64)
 
-
     @device_monitor
     def test_torch_tensor_new_empty_with_device_input(self, device=None):
         npu_tensor = torch.ones(2, 3).to(device)
         return npu_tensor.new_empty((2, 3), dtype=torch.float16, device=device)
 
-
     @device_monitor
     def test_torch_func_arange_with_device_input(self, device=None):
         return torch.arange(5, dtype=torch.float32, device=device)
-
 
     @device_monitor
     def test_torch_func_zeros_with_device_input(self, device=None):
         return torch.zeros((2, 3), dtype=torch.int8, device=device)
 
-
     @device_monitor
     def test_tensor_method_npu_with_device_input(self, device=None):
         if isinstance(device, str):
             device = torch.device(device)
-        cpu_input = torch.randn(2,3)
+        cpu_input = torch.randn(2, 3)
         return cpu_input.npu(device)
 
     @device_monitor
     def test_torch_func_tensor_with_device_input(self, device=None):
         return torch.tensor((2, 3), device=device)
 
-
     def test_device_argument_as_input(self):
         device_str = "npu:0"
-        
+
         torch.npu.set_device(device_str)
         device = torch.device(device_str)
         assert isinstance(device, torch.device)
 
         torch.npu.set_device(device)
-        tensor = torch.rand(2,3).npu()
+        tensor = torch.rand(2, 3).npu()
         assert isinstance(tensor.device, torch.device)
         assert tensor.device.type == "npu"
         assert tensor.device.index == 0
@@ -92,6 +88,18 @@ class TestDevice(TestCase):
         assert isinstance(new_device, torch.device)
         assert new_device.type == "npu"
         assert new_device.index == 0
+
+    def test_torch_funcs_with_separate_index_under_npu_device_context(self):
+        device = torch.device(0)
+        assert device.type == "npu"
+        device = torch.device(device=0)
+        assert device.type == "npu"
+        tensor = torch.rand(4, device=0)
+        assert tensor.device.type == "npu"
+        tensor = torch.tensor([0, 1], device=0)
+        assert tensor.device.type == "npu"
+        tensor = torch.empty((2, 3), device=0)
+        assert tensor.device.type == "npu"
 
 
 if __name__ == '__main__':
