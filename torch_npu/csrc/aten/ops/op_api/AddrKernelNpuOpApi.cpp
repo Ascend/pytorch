@@ -50,8 +50,8 @@ at::Tensor NPUNativeOpApiFunctions::addr(const at::Tensor &self, const at::Tenso
 
 at::Tensor& NPUNativeOpApiFunctions::addr_(at::Tensor &self, const at::Tensor &vec1, const at::Tensor &vec2,
                                            const at::Scalar &beta, const at::Scalar &alpha) {
-  DO_COMPATIBILITY(aclnnAddr, NPUNativeFunctions::addr_(self, vec1, vec2, beta, alpha));
-  NPUNativeOpApiFunctions::addr_out(self, vec1, vec2, beta, alpha, self);
+  DO_COMPATIBILITY(aclnnInplaceAddr, NPUNativeFunctions::addr_(self, vec1, vec2, beta, alpha));
+  EXEC_NPU_CMD(aclnnInplaceAddr, self, vec1, vec2, beta, alpha);
   return self;
 }
 
