@@ -39,10 +39,21 @@ bool OptionsManager::CheckInfNanModeEnable() {
   return checkInfNanModeEnable;
 }
 
+bool OptionsManager::CheckBlockingEnable() {
+  const static bool checkBlockingEnable = []() -> bool {
+    int32_t blocking_enable = OptionsManager::GetBoolTypeOption("ASCEND_LAUNCH_BLOCKING", 0);
+    return blocking_enable != 0;
+  }();
+  return checkBlockingEnable;
+}
+
 bool OptionsManager::CheckQueueEnable() {
+  if (CheckBlockingEnable()) {
+    return false;
+  }
   const static bool checkQueueEnable = []() -> bool {
     int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE", 1);
-    return (queue_enable != 0) ? true : false;
+    return queue_enable != 0;
   }();
   return checkQueueEnable;
 }
@@ -50,7 +61,7 @@ bool OptionsManager::CheckQueueEnable() {
 bool OptionsManager::CheckCombinedOptimizerEnable() {
   const static bool checkCombinedOptimizerEnable = []() -> bool {
     int32_t combined_optimize = OptionsManager::GetBoolTypeOption("COMBINED_ENABLE");
-    return (combined_optimize != 0) ? true : false;
+    return combined_optimize != 0;
   }();
   return checkCombinedOptimizerEnable;
 }
@@ -58,7 +69,7 @@ bool OptionsManager::CheckCombinedOptimizerEnable() {
 bool OptionsManager::CheckAclDumpDateEnable() {
   const static bool checkAclDumpDateEnable = []() -> bool {
     int32_t acl_dump_data = OptionsManager::GetBoolTypeOption("ACL_DUMP_DATA");
-    return (acl_dump_data != 0) ? true : false;
+    return acl_dump_data != 0;
   }();
   return checkAclDumpDateEnable;
 }
@@ -66,7 +77,7 @@ bool OptionsManager::CheckAclDumpDateEnable() {
 bool OptionsManager::CheckDisableAclopComAndExe() {
   const static bool checkDisableAclopComAndExe = []() -> bool {
     int32_t disable_aclop_com_exe = OptionsManager::GetBoolTypeOption("DISABLE_ACLOP_COM_EXE");
-    return (disable_aclop_com_exe != 0) ? true : false;
+    return disable_aclop_com_exe != 0;
   }();
   return checkDisableAclopComAndExe;
 }
