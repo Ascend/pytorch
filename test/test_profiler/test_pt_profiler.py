@@ -87,8 +87,8 @@ class TestProfiler(TestCase):
         with torch.autograd.profiler.profile(use_device='npu') as prof:
             self.train(steps)
         expected_event_count = {
-            "Optimizer.step#SGD.step": steps,
-            "Optimizer.zero_grad#SGD.zero_grad": steps
+            "Optimizer.step#NewCls.step": steps,
+            "Optimizer.zero_grad#NewCls.zero_grad": steps
         }
         judge(expected_event_count, prof)
 
