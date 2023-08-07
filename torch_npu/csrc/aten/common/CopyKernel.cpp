@@ -1,5 +1,7 @@
 #include <ATen/ATen.h>
 
+#include "op_plugin/ops/OpInterface.h"
+
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -49,7 +51,8 @@ void copy_d2d_last_method(
     bool same_type,
     bool non_blocking) {
   // general copy method but Low performance
-  copy_kernel_npu(self, src, non_blocking);
+  RECORD_FUNCTION("contiguous_d_ViewCopy", std::vector<c10::IValue>({src}));
+  op_plugin::npu_view_copy(self, src, non_blocking);
 }
 
 // the dst and src are same format now
@@ -277,7 +280,8 @@ void copy_d2d_dtype_baseformat(
       return;
     } else {
       // General trans-contiguous method
-      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+      RECORD_FUNCTION("contiguous_d_AsStrided", std::vector<c10::IValue>({src}));
+      op_plugin::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
       return;
     }
   } else {

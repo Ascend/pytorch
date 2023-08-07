@@ -1,5 +1,3 @@
-import sys
-
 import torch
 import numpy as np
 
@@ -20,7 +18,7 @@ class TestAsStrided(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_as_strided(self, device='npu'):
+    def test_as_strided(self):
         shape_format = [
                 [[np.float32, 0, [3, 3]], (2, 2), (1, 2), 0],
                 [[np.float16, 0, [13, 23]], (10, 15), (1, 2), 1],

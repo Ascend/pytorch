@@ -22,12 +22,10 @@ class TestAsStridedCopyToContiguous(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_as_strided(self, device="npu"):
-        dtype_list = [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+    def test_as_strided(self):
+        dtype_list = [bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
         format_list = [-1]
-        small_shape_list = [
-                      [5, 5]
-                      ]
+        small_shape_list = [[5, 5]]
         small_shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in small_shape_list
         ]
