@@ -181,6 +181,7 @@ def apply_class_patches():
     add_profiler_methods()
     add_optim_method()
 
+torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
 unsupported_dtype = [torch.quint8, torch.quint4x2, torch.quint2x4, torch.qint32, torch.qint8]
