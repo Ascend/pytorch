@@ -13,6 +13,7 @@ class OptionsManager {
 public:
   static bool IsMultiStreamMemoryReuse();
   static bool CheckInfNanModeEnable();
+  static bool CheckBlockingEnable();
   static bool CheckQueueEnable();
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
