@@ -51,7 +51,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
 
     int64_t k = weight.ndimension();
     int64_t dim = k - 2;
-    int8_t cubeMathType = 1;
+    int8_t cube_math_type = CalcuOpUtil::GetCubeMathType(native::env::IsAllowConvHF32());
 
     /* k == 5 and groups > 3 currently unsupported by the binary file
         CheckForbidInternalFormat = False: turn on private format；CheckJitDisable = False: turn on JitCompile
@@ -111,7 +111,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
         output_padding,
         groups,
         output_mask,
-        cubeMathType,
+        cube_math_type,
         gradInput,
         gradWeight,
         gradBias);
@@ -127,7 +127,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::conv_tbc
   DO_COMPATIBILITY(aclnnConvolutionTbcBackward,
         NPUNativeFunctions::conv_tbc_backward(self, input, weight, bias, pad));
   // construct other inputs of the NPU
-  int8_t cubeMathType = 1;
+  int8_t cube_math_type = CalcuOpUtil::GetCubeMathType(native::env::IsAllowConvHF32());
   at::IntArrayRef stride = {1, 1};
   at::IntArrayRef padding = {0, pad};
   at::IntArrayRef dilation = {1, 1};
@@ -142,7 +142,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::conv_tbc
   at::Tensor gradBias = OpPreparation::ApplyTensorWithoutFormat(std::get<2>(outputSizes), self.options());
   // execute hostapi
   EXEC_NPU_CMD(aclnnConvolutionTbcBackward, self, input, weight, bias,
-               pad, cubeMathType, gradInput, gradWeight, gradBias);
+               pad, cube_math_type, gradInput, gradWeight, gradBias);
   return std::make_tuple(gradInput, gradWeight, gradBias);
 }
 
