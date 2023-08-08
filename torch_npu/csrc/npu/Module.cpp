@@ -784,6 +784,18 @@ PyObject* THNPModule_npu_datadump_disable(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type) {
+  HANDLE_TH_ERRORS
+  THPUtils_assert(THPUtils_checkString(option_type), "invalid argument to option_type,option_type must string!");
+  std::string option_type_str = THPUtils_unpackString(option_type);
+  auto option_key = c10_npu::option::GetOption(option_type_str);
+  if (option_key.has_value()) {
+    return PyBytes_FromString(option_key.value().c_str());
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -827,6 +839,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_VARARGS, nullptr},
     {"_npu_datadump_disable", (PyCFunction)THNPModule_npu_datadump_disable, METH_NOARGS, nullptr},
+    {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {

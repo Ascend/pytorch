@@ -111,6 +111,7 @@ from .streams import Stream, Event
 from .npu_config import *  # noqa: F403
 from .datadump import dump_enable, dump_disable
 from .autocast_utils import *  # noqa: F403
+from .backends import *
 
 # init profiler
 if not torch_npu._C._profiler_init():
