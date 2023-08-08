@@ -1125,11 +1125,11 @@ supported:
    op_api: True
  - range.step
  - func: reciprocal
-   op_api: False
+   op_api: True
  - func: reciprocal.out
-   op_api: False
+   op_api: True
  - func: reciprocal_
-   op_api: False
+   op_api: True
  - func: reflection_pad1d
    op_api: True
  - func: reflection_pad1d.out
