@@ -1,6 +1,8 @@
 #ifndef __PULGIN_NATIVE_UTILS_STORAGE_DESC_HELPER__
 #define __PULGIN_NATIVE_UTILS_STORAGE_DESC_HELPER__
 
+#include <string>
+#include <unordered_map>
 #include <ATen/ATen.h>
 
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
@@ -36,6 +38,10 @@ namespace at_npu
       static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
       static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
       static bool CheckDescInit(const c10::Storage &storage);
+
+      // For Serialization to Get and Set NpuStorageDesc
+      static void GetDescForSerialization(const at::Tensor &dst, std::unordered_map<std::string, bool> &desc_map);
+      static void SetDescForSerialization(const at::Tensor &dst, std::unordered_map<std::string, bool> &desc_map);
 
       static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
       static void CopyDesc(at::Tensor &dst, const c10::Storage &src);

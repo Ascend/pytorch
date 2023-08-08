@@ -105,6 +105,89 @@ namespace at_npu
       return ACL_FORMAT_UNDEFINED != torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->npu_desc_.origin_format_;
     }
 
+    void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor, std::unordered_map<std::string, bool> &desc_map) {
+      auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
+      // Record all NPUStorageDesc information
+      // Due to the limitation of pytorch extension, it is decided to store information in the key
+      // For example, NPUStorageDesc.base_sizes_ is a vector including five int64_t values,
+      // using string obj "base_size/10/10/10/10/10/" to represent
+      auto small_vector_to_str = [](std::string &str, std::string key_name, c10::SmallVector<int64_t, 5> vec) -> void {
+        str = key_name;
+        for (int i=0; i<vec.size(); i++) {
+          str += '/';
+          str += std::to_string(vec[i]);
+        }
+        str += '/';
+        return;
+      };
+
+      std::string base_sizes_;
+      std::string base_strides_;
+      std::string storage_sizes_;
+      small_vector_to_str(base_sizes_, "base_sizes_", desc.base_sizes_);
+      small_vector_to_str(base_strides_, "base_strides_", desc.base_strides_);
+      small_vector_to_str(storage_sizes_, "storage_sizes_", desc.storage_sizes_);
+      desc_map[base_sizes_] = true;
+      desc_map[base_strides_] = true;
+      desc_map[storage_sizes_] = true;
+
+      auto acl_format_to_str = [](std::string &str, std::string key_name, aclFormat format) -> void {
+        str = key_name;
+        str += '/';
+        str += FormatHelper::GetFormatName(format);
+        return;
+      };
+
+      std::string origin_format_;
+      std::string npu_format_;
+      acl_format_to_str(origin_format_, "origin_format_", desc.origin_format_);
+      acl_format_to_str(npu_format_, "npu_format_", desc.npu_format_);
+      desc_map[origin_format_] = true;
+      desc_map[npu_format_] = true;
+    }
+
+    void StorageDescHelper::SetDescForSerialization(const at::Tensor &tensor, std::unordered_map<std::string, bool> &desc_map) {
+        auto &cur_desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
+        // The NPUStorageDesc object to restore
+        struct torch_npu::NPUStorageDesc load_desc;
+
+        auto str_to_small_vector = [](std::string str) -> c10::SmallVector<int64_t, 5> {
+            int start = 0;
+            while (str[start++] != '/');
+            int end = start;
+            c10::SmallVector<int64_t, 5> vec;
+            while (end < str.size()) {
+                if (str[end] != '/') {
+                    end++;
+                } else {
+                    vec.emplace_back(std::stoi(str.substr(start, end - start)));
+                    end++;
+                    start = end;
+                }
+            }
+            return vec;
+        };
+
+        for (auto &m : desc_map) {
+            if (m.first.find("base_sizes_") != std::string::npos) {
+                load_desc.base_sizes_ = str_to_small_vector(m.first);
+            } else if (m.first.find("base_strides_") != std::string::npos) {
+                load_desc.base_strides_ = str_to_small_vector(m.first);
+            } else if (m.first.find("storage_sizes_") != std::string::npos) {
+                load_desc.storage_sizes_ = str_to_small_vector(m.first);
+            }
+        }
+
+        if (IsSameDesc(cur_desc, load_desc)) {
+            return;
+        }
+
+        cur_desc.base_sizes_ = load_desc.base_sizes_;
+        cur_desc.base_strides_ = load_desc.base_strides_;
+        cur_desc.storage_sizes_ = load_desc.storage_sizes_;
+        cur_desc.data_type_ = tensor.dtype();
+    }
+
     void StorageDescHelper::CopyDesc(at::Tensor &dst, const at::Tensor &src)
     {
       CopyDesc(dst, src.storage());

@@ -21,21 +21,34 @@ std::unordered_map<std::string, aclFormat> FORMAT_INFO = {
 };
 
 void npu_info_serialization(const at::Tensor& t, std::unordered_map<std::string, bool>& map) {
-  std::string src_format_name = at_npu::native::FormatHelper::GetFormatName(t);
-  map[src_format_name] = true;
+  at_npu::native::StorageDescHelper::GetDescForSerialization(t, map);
 }
 
 void npu_info_deserialization(const at::Tensor& t, std::unordered_map<std::string, bool>& map) {
   // Set the true stroage description
-  if (t.is_contiguous()) {
-    at_npu::native::StorageDescHelper::SetDesc(const_cast<at::Tensor&>(t), t.sizes(), t.strides());
-  }
-  auto iter_end = FORMAT_INFO.end();
-  for (auto m : map) {
-    // Filter out irrelevant key information.
-    if (FORMAT_INFO.find(m.first) != iter_end){
-      at_npu::native::NPUNativeFunctions::npu_format_cast_(const_cast<at::Tensor&>(t), FORMAT_INFO[m.first]);
-      return;
+  at_npu::native::StorageDescHelper::SetDescForSerialization(t, map);
+
+  auto str_to_aclFormat = [](std::string str) -> aclFormat {
+    int start = 0;
+    while (str[start++] != '/');
+    return FORMAT_INFO[str.substr(start, str.size() - start)];
+  };
+
+  for (auto &m : map) {
+    if (m.first.find("npu_format_") != std::string::npos) {
+      aclFormat format = str_to_aclFormat(m.first);
+      // The format cast is an operator, 
+      // so special handling is required for scenarios 
+      // where the leaf node tensor requires grad at the same time
+      bool revert_flag = false;
+      if (t.is_leaf() && t.requires_grad()) {
+        revert_flag = true;
+        t.set_requires_grad(false);
+      }
+      at_npu::native::NPUNativeFunctions::npu_format_cast_(const_cast<at::Tensor&>(t), format);
+      if (revert_flag) {
+        t.set_requires_grad(true);
+      }
     }
   }
 }
