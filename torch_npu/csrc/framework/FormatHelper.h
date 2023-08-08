@@ -19,6 +19,7 @@ namespace at_npu
       // helper function of copy, because of padding will change the physical size.
       static bool IsPadded(const at::Tensor *tensor);
       static char *GetFormatName(const at::Tensor &tensor);
+      static char *GetFormatName(aclFormat format);
       static aclFormat GetBaseFormat(const at::Tensor &tensor);
       static aclFormat GetBaseFormat(aclFormat format);
       static aclFormat GetFormat(const at::Tensor &tensor);
@@ -45,7 +46,6 @@ namespace at_npu
 
     private:
       static bool IsPadded(aclFormat format);
-      static char *GetFormatName(aclFormat format);
 
     private:
       using shapeInfer = std::function<FormatShape(c10::IntArrayRef dims)>;
