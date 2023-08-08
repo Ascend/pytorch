@@ -57,6 +57,14 @@ public:
     // Get Init_flag
      bool GetInitFlag();
 
+    int InitializedDeviceID() {
+        if (GetInitFlag()) {
+            return device_id_;
+        }
+        TORCH_CHECK(false, "no npu device has been initialized!");
+        return -1;
+    }
+
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
      void RegisterReleaseFn(ReleaseFn release_fn,
@@ -69,5 +77,8 @@ private:
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
+
+aclError SetCurrentDevice();
+
 } // namespace c10_npu
 

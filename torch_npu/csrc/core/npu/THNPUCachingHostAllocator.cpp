@@ -90,6 +90,8 @@ struct HostAllocator {
     }
 
     *ptr = nullptr;
+    // for pin_memory in dataloader, it should be set device first when new a thread
+    c10_npu::SetCurrentDevice();
 
     // allocate a new block if no cached allocation is found
     err = aclrtMallocHost(ptr, size);
