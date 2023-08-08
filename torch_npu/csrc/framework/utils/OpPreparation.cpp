@@ -315,5 +315,112 @@ namespace at_npu
       return false;
     }
 
+    void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
+                                     at::ScalarType expect_dtype, c10::IntArrayRef expect_size)
+    {
+      check_memory(src_list, {dst});
+      TORCH_CHECK(at_npu::key::isDeviceTensor(dst), "output with device ", dst.device(),
+                  " doesn't match the desired device NPU");
+      TORCH_CHECK(dst.scalar_type() == expect_dtype, "expected dtype ", expect_dtype, " but got dtype ",
+                  dst.scalar_type());
+      check_tensor_size(src_list, dst, expect_size);
+    }
+
+    void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
+                                     c10::IntArrayRef expect_size)
+    {
+      check_memory(src_list, {dst});
+      TORCH_CHECK(at_npu::key::isDeviceTensor(dst), "output with device ", dst.device(),
+                  " doesn't match the desired device NPU");
+      check_tensor_size(src_list, dst, expect_size);
+    }
+
+    void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
+                                     const at::Tensor &expect_tensor)
+    {
+      check_tensor(src_list, dst, expect_tensor.scalar_type(), expect_tensor.sizes());
+    }
+
+    void OpPreparation::check_memory(const std::initializer_list<at::Tensor> &inputs,
+                                     const std::initializer_list<at::Tensor> &outputs)
+    {
+      c10::SmallVector<at::Tensor, N> in = inputs;
+      c10::SmallVector<at::Tensor, N> out = outputs;
+      CalcuOpUtil::CheckMemoryOverLaps(in, out);
+    }
+
+    at::Tensor OpPreparation::cast_to_ori_format(const at::Tensor &tensor)
+    {
+      auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
+      auto ret = NPUNativeFunctions::npu_format_cast(tensor, tensor_desc.origin_format_);
+      return ret;
+    }
+
+    at::Tensor &OpPreparation::cast_to_ori_format(at::Tensor &tensor)
+    {
+      auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
+      NPUNativeFunctions::npu_format_cast_(tensor, tensor_desc.origin_format_);
+      return tensor;
+    }
+
+    at::Tensor OpPreparation::apply_tensor(const at::Tensor &src)
+    {
+      return apply_tensor(src, src.sizes());
+    }
+
+    at::Tensor OpPreparation::apply_tensor(const at::Tensor &src, c10::IntArrayRef sizes)
+    {
+      return apply_tensor_with_format(sizes, src.options(), CalcuOpUtil::GetTensorNpuFormat(src));
+    }
+
+    at::Tensor OpPreparation::apply_tensor(const at::Tensor &src, const c10::TensorOptions &options)
+    {
+      return apply_tensor_with_format(src.sizes(), options, CalcuOpUtil::GetTensorNpuFormat(src));
+    }
+
+    at::Tensor OpPreparation::apply_tensor(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                           const at::Tensor &src)
+    {
+      return apply_tensor_with_format(sizes, options, CalcuOpUtil::GetTensorNpuFormat(src));
+    }
+
+    at::Tensor OpPreparation::apply_tensor_with_format(const at::Tensor &src, int64_t format, bool keep_format)
+    {
+      return apply_tensor_with_format(src, src.sizes(), format, keep_format);
+    }
+
+    at::Tensor OpPreparation::apply_tensor_with_format(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
+                                                       bool keep_format)
+    {
+      return apply_tensor_with_format(sizes, src.options(), format, keep_format);
+    }
+
+    at::Tensor OpPreparation::apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                                       int64_t format, bool keep_format)
+    {
+      TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
+          "Expected all tensors to be on the same device. "
+          "Expected NPU tensor, please check whether the input tensor device is correct.");
+      auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
+      return NPUNativeFunctions::unsafe_empty_with_format(
+          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
+    }
+
+    at::Tensor OpPreparation::apply_tensor_with_sizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
+    {
+      auto format = InferFormat::GuessBaseFormat(sizes);
+      return NPUNativeFunctions::empty_with_format(
+          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          options.device_opt(), options.pinned_memory_opt(), format);
+    }
+
+    bool OpPreparation::is_cpu_scalar(const at::Tensor &tensor) {
+      if (tensor.dim() == 0 && !at_npu::key::isDeviceTensor(tensor)) {
+        return true;
+      }
+      return false;
+    }
+
   } // namespace native
 } // namespace at_npu
