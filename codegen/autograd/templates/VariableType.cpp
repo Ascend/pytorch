@@ -50,15 +50,14 @@ namespace{
   }
 }
 
-namespace {
-${type_derived_method_definitions_Default}
-}
+${type_derived_method_definitions}
+
 } // namespace VariableType
 
 namespace {
 
 TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
-  ${wrapper_registrations_Default}
+  ${wrapper_registrations}
 }
 
 }

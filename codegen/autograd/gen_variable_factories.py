@@ -9,8 +9,7 @@ from codegen.torch_autograd.gen_variable_factories import (
     process_function,
     is_factory_function,
 )
-from codegen.gen_backend_stubs import parse_native_and_custom_yaml
-from .gen_variable_type import NPU_AUTOGRAD_FUNCTION
+from .utils import NPU_AUTOGRAD_FUNCTION
 
 def gen_variable_factories(
     out: str,

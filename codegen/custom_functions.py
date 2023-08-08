@@ -92,7 +92,7 @@ def compute_trace_method_definition(f: NativeFunction):
     if enable_opplugin() and is_op_valid(str(f.func.name)):
         impl_name = f"op_plugin::{cpp.name(f.func)}"
 
-    from codegen.autograd.gen_variable_type import NPU_AUTOGRAD_FUNCTION
+    from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
     is_npu_autograd = str(f.func.name) in NPU_AUTOGRAD_FUNCTION
     if is_npu_autograd:
         dispatch_key_set = \
