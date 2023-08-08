@@ -599,6 +599,9 @@ supported:
  - multinomial.out
  - mv
  - mv.out
+ - nan_to_num
+ - nan_to_num_
+ - nan_to_num.out
  - native_batch_norm
  - native_batch_norm_backward
  - native_dropout
