@@ -20,7 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
-PescesionTableFP16 = [
+PrescsionTableFP16 = [
     [2, 1e2, 0.005], [2, 1e3, 0.005], [2, 1e4, 0.005], [2, 1e5, 0.005], [2, 1e6, 0.005],
     [10, 1e2, 0.005], [10, 1e3, 0.01], [10, 1e4, 0.02], [10, 1e5, 0.0305], [10, 1e6, 0.04],
     [50, 1e2, 0.03], [50, 1e3, 0.03], [50, 1e4, 0.03], [50, 1e5, 0.03], [50, 1e6, 0.04],
@@ -33,17 +33,10 @@ class TestMatMul(TestCase):
     def assertRtolEqualMatmul(self, x, y):
         def getFp16Precsion(D_range, K_range):
             prec16=1e-3
-            for elm in PescesionTableFP16:
+            for elm in PrescsionTableFP16:
                 if elm[0]==D_range and elm[1]==K_range:
                     return elm[2]
             return prec16
-        def getFp32Precsion(D_range, K_range):
-            arr = PescesionTableFP16
-            prec=1e-4
-            for elm in PescesionTableFP16:
-                if elm[0]==D_range and elm[1]==K_range:
-                    return elm[2]
-            return prec
 
         D = np.amax(np.maximum(np.abs(x), np.abs(y))) if (x.size and y.size) else 1
         D_range = 10000
@@ -65,14 +58,10 @@ class TestMatMul(TestCase):
 
         prec = 1e-4
         prec16= 1e-3
-        if(x.dtype == np.float16):
+        if x.dtype == np.float16:
             prec16 = getFp16Precsion(D_range, K_range)
-        if(x.dtype == np.float32):
+        if x.dtype == np.float32:
             prec16 = getFp16Precsion(D_range, K_range)
-
-        if(D>1):
-            prec = prec*D
-            prec16 = prec16*D
 
         self.assertRtolEqual(x, y, prec, prec16)
 
@@ -144,8 +133,8 @@ class TestMatMul(TestCase):
         shape_format = [
             # mat1 1dim, mat2 2dim
             [[np.float16, 2, [4,5,10]], [np.float16, 2, [10]]],
-            #[[np.float16, 2, [5,10,20,30]], [np.float16, 2, [30]]],  # 该shape无法通过
-            #[[np.float16, 2, [20,30,40,50,60]], [np.float16, 2, [60]]], batch 三维 精度不行
+            [[np.float16, 2, [5,10,20,30]], [np.float16, 2, [30]]],
+            [[np.float16, 2, [20,30,40,50,60]], [np.float16, 2, [60]]],
             [[np.float16, 2, [2,3,4,5,6,8]], [np.float16, 2, [8]]],
         ]
         self.matmul_backward_result(shape_format)
@@ -154,7 +143,7 @@ class TestMatMul(TestCase):
         shape_format = [
             # mat1 >2dim, mat2 2dim
             [[np.float16, 2, [5,7,10]], [np.float16, 2, [10,16]]],
-            #[[np.float16, 2, [5,10,20,30]], [np.float16, 2, [30,25]]], # 该shape无法过
+            [[np.float16, 2, [5,10,20,30]], [np.float16, 2, [30,25]]],
             [[np.float16, 2, [2,5,7,8,9,10]], [np.float16, 2, [10,16]]],
         ]
         self.matmul_backward_result(shape_format)
@@ -163,7 +152,7 @@ class TestMatMul(TestCase):
         shape_format = [
             # mat1 1dim, mat2 >2dim
             [[np.float16, 2, [3,]], [np.float16, 2, [2,3,2]]],
-            # [[np.float16, 2, [20]], [np.float16, 2, [5,10,20,30]]], # 该shape无法过
+            [[np.float16, 2, [20]], [np.float16, 2, [5,10,20,30]]],
         ]
         self.matmul_backward_result(shape_format)
 
@@ -171,8 +160,8 @@ class TestMatMul(TestCase):
         shape_format = [
             # mat1 2dim, mat2 >2dim
             [[np.float16, 2, [2,3]], [np.float16, 2, [2,3,2]]],
-            # [[np.float16, 2, [44,20]], [np.float16, 2, [5,10,20,30]]], # 该shape无法过
-            # [[np.float16, 2, [75,50]], [np.float16, 2, [2,3,40,50,60]]], # 该shape无法过
+            [[np.float16, 2, [44,20]], [np.float16, 2, [5,10,20,30]]],
+            [[np.float16, 2, [75,50]], [np.float16, 2, [2,3,40,50,60]]],
         ]
         self.matmul_backward_result(shape_format)
 
@@ -180,9 +169,6 @@ class TestMatMul(TestCase):
         shape_format = [
             [[np.float16, 2, [5,7,10]], [np.float16, 2, [5,10,15]]],
             [[np.float16, 2, [68,75,16]], [np.float16, 2, [68,16,43]]],
-            # TODO(ascend): Insufficient precision
-            # 在两个输入shape不一致的情况下,会通过expand将两个tensor shape对齐。反向时expand的反向会调用sum(dim)，在fp16下与CPU比较不过。
-            # 但是结果与CUDA比对通过。所以只放开两个tensor batch部分一致的用例
         ]
         self.matmul_backward_result(shape_format)
 
@@ -201,7 +187,7 @@ class TestMatMul(TestCase):
         shape_format = [
             [[np.float16, 2, [1, 1, 10, 2, 16, 16]], [np.float16, 2, [1, 10, 1, 16, 16]]],
             [[np.float16, 2, [1, 11, 10, 10, 16, 5]], [np.float16, 2, [1, 10, 1, 5, 16]]],
-            [[np.float16, 2, [3, 4, 1, 11, 10, 10, 16, 5]], [np.float16, 2, [1, 10, 1, 5, 16]]],
+            [[np.float16, 2, [400, 11, 10, 10, 16, 5]], [np.float16, 2, [1, 10, 1, 5, 16]]],
         ]
         self.matmul_backward_result(shape_format)
         torch.npu.matmul.allow_hf32 = False
