@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -28,7 +29,7 @@ const int FLOAT_STATUS_OP_DIMS_SIZE = 8;
 void NPUNativeOpApiFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorList scaled_grads,
                                                                          at::Tensor& found_inf,
                                                                          const at::Tensor& inv_scale) {
-  TORCH_WARN_ONCE("Non finite check and unscale on NPU device!");
+  TORCH_NPU_WARN_ONCE("Non finite check and unscale on NPU device!");
 
   TORCH_CHECK(at_npu::key::isDeviceTensor(inv_scale), "inv_scale must be NPU-Tensor");
   TORCH_CHECK(inv_scale.numel() == 1, "inv_scale must be a 1-element tensor");

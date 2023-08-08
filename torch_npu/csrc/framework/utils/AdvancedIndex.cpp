@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -211,7 +212,7 @@ std::vector<at::Tensor> AdvanceIndex::npu_expand_tensors(
       }
       if (index.scalar_type() == at::kByte || index.scalar_type() == at::kBool) {
         if (index.scalar_type() == at::kByte) {
-          TORCH_WARN("indexing with dtype torch.uint8 is now deprecated," \
+          TORCH_NPU_WARN("indexing with dtype torch.uint8 is now deprecated," \
               " please use a dtype torch.bool instead.");
         }
         // The sizes of the ByteTensor mask or bool tensor must match the sizes of the corresponding dimensions in self

@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -87,7 +88,7 @@ at::Tensor &add_out_npu_nocheck(
     // executing the NPU operator
     if (CalcuOpUtil::IsScalarOne(alpha)) {
       if (self.scalar_type() == at::kLong) {
-        TORCH_WARN_ONCE("The oprator of add is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
+        TORCH_NPU_WARN_ONCE("The oprator of add is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
                         "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
       }
 

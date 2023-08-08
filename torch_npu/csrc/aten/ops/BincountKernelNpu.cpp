@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -54,7 +55,7 @@ at::Tensor NPUNativeFunctions::bincount(
 
   // input convert to int32
   if (self.dtype() == at::ScalarType::Long) {
-      TORCH_WARN_ONCE("CANN: Bincount cann't support dtype int64.");
+      TORCH_NPU_WARN_ONCE("CANN: Bincount cann't support dtype int64.");
   }
   auto input = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Int);
 

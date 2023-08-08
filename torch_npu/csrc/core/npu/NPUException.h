@@ -74,3 +74,29 @@ do {                                                      \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
+
+void warn_(
+    const c10::SourceLocation& source_location,
+    const std::string& msg,
+    const bool verbatim);
+
+void warn_(
+    c10::SourceLocation source_location,
+    const char* msg,
+    const bool verbatim);
+
+#define TORCH_NPU_WARN(...)                                  \
+  warn_(                                                     \
+      {__func__, __FILE__, static_cast<uint32_t>(__LINE__)}, \
+      ::c10::str(__VA_ARGS__),                               \
+      false)                                               
+
+#define TORCH_NPU_WARN_ONCE(...)                                              \
+  C10_UNUSED static const auto C10_ANONYMOUS_VARIABLE(torch_npu_warn_once_) = \
+      [&] {                                                                   \
+        warn_(                                                                \
+            {__func__, __FILE__, static_cast<uint32_t>(__LINE__)},            \
+            ::c10::str(__VA_ARGS__),                                          \
+            false);                                                           \
+        return true;                                                          \
+      }()

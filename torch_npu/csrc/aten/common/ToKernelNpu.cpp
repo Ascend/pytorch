@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/OverrideOperators.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -143,13 +144,10 @@ at::Tensor NPUNativeFunctions::to(
     return self;
   }
   if (at::ScalarType::Double == dtype) {
-    static auto warn_once = [](){
-        std::cout << "Warning: Device do not support double dtype now, " \
-                     "dtype cast repalce with float." << std::endl;
-        return true;
-    }();
+    TORCH_NPU_WARN_ONCE("Device do not support double dtype now, "
+                        "dtype cast repalce with float.");
+    dtype = at::ScalarType::Float;
   }
-  dtype = (at::ScalarType::Double == dtype) ? at::ScalarType::Float : dtype;
   return NPUNativeFunctions::npu_dtype_cast(self, dtype);
 }
 
