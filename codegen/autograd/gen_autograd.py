@@ -21,14 +21,10 @@ torch_npu/csrc/aten/
 import argparse
 import os
 
-
-from codegen.torch_autograd.gen_inplace_or_view_type import gen_inplace_or_view_type
-
-from codegen.torch_autograd.gen_autograd_functions import gen_autograd_functions_lib
+from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type
+from torchgen.packaged.autograd.gen_autograd_functions import gen_autograd_functions_lib
 
 from codegen.utils import get_torchgen_dir
-
-
 from .gen_variable_type import (
     gen_variable_type, gen_variable_type_head
 )
@@ -46,7 +42,7 @@ def gen_autograd(
     parse_derivatives(native_functions_path, tags_path, autograd_dir, npu_native_functions_path)
     npu_funcs_with_diff_infos, _ = filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
     template_path = os.path.join(autograd_dir, 'templates')
-    torch_template_path = os.path.join(os.path.dirname(autograd_dir), 'torch_autograd/templates')
+    torch_template_path = os.path.join(get_torchgen_dir(), 'packaged/autograd/templates')
 
     # Generate VariableType.cpp
     gen_variable_type(out, funcs_with_diff_infos, template_path)

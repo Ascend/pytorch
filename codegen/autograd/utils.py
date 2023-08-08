@@ -9,9 +9,11 @@ from torchgen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
     DifferentiabilityInfo
 )
+from torchgen.packaged.autograd.load_derivatives import load_derivatives
+
 from codegen.utils import get_torchgen_dir
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
-from codegen.torch_autograd.load_derivatives import load_derivatives
+
 
 def parse_derivatives(
     native_functions_path: str,

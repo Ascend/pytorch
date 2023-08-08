@@ -11,14 +11,14 @@ from torchgen.api import cpp
 from torchgen.code_template import CodeTemplate
 from torchgen.context import native_function_manager
 from torchgen.gen import FileManager
-
-from codegen.torch_autograd.gen_inplace_or_view_type import (
+from torchgen.packaged.autograd.gen_inplace_or_view_type import (
     use_derived, METHOD_DEFINITION, gen_formals,
 )
-from codegen.torch_autograd.gen_trace_type import type_wrapper_name
-from codegen.torch_autograd.gen_variable_type import (
+from torchgen.packaged.autograd.gen_trace_type import type_wrapper_name
+from torchgen.packaged.autograd.gen_variable_type import (
     emit_body, gen_wrapper_registration
 )
+
 from .utils import NPU_AUTOGRAD_FUNCTION
 
 

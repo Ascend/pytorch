@@ -4,11 +4,11 @@
 
 from torchgen.gen import FileManager
 from torchgen.utils import mapMaybe
-
-from codegen.torch_autograd.gen_variable_factories import (
+from torchgen.packaged.autograd.gen_variable_factories import (
     process_function,
     is_factory_function,
 )
+
 from .utils import NPU_AUTOGRAD_FUNCTION
 
 def gen_variable_factories(

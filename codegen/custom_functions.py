@@ -11,7 +11,7 @@ from torchgen.utils import concatMap, context
 from torchgen.context import with_native_function
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
-from codegen.torch_autograd.gen_trace_type import type_wrapper_name
+from torchgen.packaged.autograd.gen_trace_type import type_wrapper_name
 from codegen.utils import (enable_opplugin, is_op_valid)
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
