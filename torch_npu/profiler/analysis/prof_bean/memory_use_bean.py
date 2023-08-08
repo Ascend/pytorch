@@ -18,7 +18,7 @@ class MemoryEnum(Enum):
 
 class MemoryUseBean:
     CONSTANT_STRUCT = "<5qbB2Q"
-    NPU_ID = 9
+    NPU_ID = 20
     CPU_ID = 0
 
     def __init__(self, data: dict):
