@@ -110,6 +110,45 @@ namespace at_npu
       return unified_result;
     }
 
+    // From CalcuOpUtil part
+    aclDataType OpPreparation::convert_to_acl_data_type(const at::ScalarType &data_type)
+    {
+      return CalcuOpUtil::ConvertToAclDataType(data_type);
+    }
+
+    aclDataType OpPreparation::convert_to_acl_data_type(
+        const at::ScalarType &data_type,
+        const string &realDataType)
+    {
+      return CalcuOpUtil::ConvertToAclDataType(data_type, realDataType);
+    }
+
+    at::Tensor OpPreparation::copy_scalar_to_device(const c10::Scalar &cpu_scalar,
+                                                    at::ScalarType scalar_data_type)
+    {
+      return CalcuOpUtil::CopyScalarToDevice(cpu_scalar, scalar_data_type);
+    }
+
+    at::Tensor OpPreparation::copy_tensor_host_to_device(const at::Tensor &cpu_tensor) {
+      return CalcuOpUtil::CopyTensorHostToDevice(cpu_tensor);
+    }
+
+    bool OpPreparation::is_scalar_wrapped_to_tensor(const at::Tensor &tensor)
+    {
+      return CalcuOpUtil::IsScalarWrappedToTensor(tensor);
+    }
+
+    int64_t OpPreparation::get_tensor_npu_format(const at::Tensor &tensor)
+    {
+      return CalcuOpUtil::GetTensorNpuFormat(tensor);
+    }
+
+    c10::SmallVector<int64_t, 5> OpPreparation::get_tensor_desc_base_sizes(
+      const at::Tensor &tensor)
+    {
+      return torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().base_sizes_;
+    }
+
     // OpPreparation part
     void OpPreparation::CheckOut(
         const std::initializer_list<at::Tensor> &inputs,
