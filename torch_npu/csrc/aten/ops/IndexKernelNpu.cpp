@@ -37,6 +37,12 @@ DynamicInputRegFunc index_func =
 
 // Limitations of the aicore branch
 bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, const at::IntArrayRef masks) {
+  // This is non-first-axis index
+  if (indices[0].scalar_type() == at::kLong && masks[0] == 0 && masks[1] == 1 && masks.size() == 2
+      && indices[0].dim() == 1 && self.dim() == 2) {
+    return true;
+  }
+  
   // The input of the aicore does not support float64.
   // Indices should start from dimension 0 of x and continuous.
   if (self.scalar_type() == at::kDouble || masks[0] == 0 || masks.size() > indices.size()) {
