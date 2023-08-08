@@ -250,9 +250,21 @@ class allowHF32Matmul:
             option = {"ALLOW_MATMUL_HF32": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
 
+    @classmethod
+    def __getattr__(self, name):
+        if name == "allow_hf32":
+            hf32_value = torch_npu._C._npu_getOption("ALLOW_MATMUL_HF32")
+            return hf32_value is not None and hf32_value.decode() == "enable"
+
 class allowHF32Conv:
     @classmethod
     def __setattr__(self, name, value):
         if name == "allow_hf32":
             option = {"ALLOW_CONV_HF32": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
+
+    @classmethod
+    def __getattr__(self, name):
+        if name == "allow_hf32":
+            hf32_value = torch_npu._C._npu_getOption("ALLOW_CONV_HF32")
+            return (hf32_value is None) or (hf32_value.decode() == "") or (hf32_value.decode() == "enable")
