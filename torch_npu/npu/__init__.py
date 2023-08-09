@@ -4,6 +4,7 @@ __all__ = [
     "set_dump",
     "synchronize",
     "device_count",
+    "can_device_access_peer",
     "set_device",
     "current_device",
     "get_device_name",
@@ -92,6 +93,7 @@ __all__ = [
     "IntTensor",
     "LongTensor",
     "ShortTensor",
+    "current_blas_handle",
 ]
 
 from typing import Tuple, Union
@@ -104,10 +106,10 @@ from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
 
 import torch_npu
-from .utils import (synchronize, device_count, set_device, current_device, get_device_name,
+from .utils import (synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index,
-                    device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode, 
-                    get_sync_debug_mode, init_dump,
+                    device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
+                    get_sync_debug_mode, init_dump, current_blas_handle,
                     utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag)
 from .streams import Stream, Event
 

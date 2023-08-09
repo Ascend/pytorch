@@ -28,6 +28,18 @@ def device_count():
     return torch_npu._C._npu_getDeviceCount()
 
 
+def can_device_access_peer(device_id, peer_device_id):
+    r"""Checks if peer access between two devices is possible.
+    """
+    device_id = _get_device_index(device_id, optional=True)
+    peer_device_id = _get_device_index(peer_device_id, optional=True)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid devide id")
+    if peer_device_id < 0 or peer_device_id >= device_count():
+        raise AssertionError("Invalid peer devide id")
+    return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
+
+
 def set_device(device):
     device_id = _get_device_index(device, optional=True)
     if device_id >=0:
@@ -332,3 +344,8 @@ def clear_npu_overflow_flag():
         raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)
+
+
+def current_blas_handle():
+    warnings.warn("NPU does not use blas handle.")
+    return None

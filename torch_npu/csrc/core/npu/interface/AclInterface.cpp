@@ -42,6 +42,7 @@ LOAD_FUNCTION(aclrtSynchronizeStreamWithTimeout)
 LOAD_FUNCTION(aclrtDestroyStreamForce)
 LOAD_FUNCTION(aclrtGetDeviceUtilizationRate)
 LOAD_FUNCTION(aclrtMallocAlign32)
+LOAD_FUNCTION(aclrtDeviceCanAccessPeer)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -374,6 +375,25 @@ aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy pol
   }
   TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtMallocAlign32");
   return aclrtMalloc(devPtr, size, policy);
+}
+
+bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id) {
+  int32_t can_access_peer = 0;
+  c10::DeviceIndex num_npus = c10_npu::device_count();
+  TORCH_CHECK(device_id >= 0 && device_id < num_npus);
+  TORCH_CHECK(peer_device_id >= 0 && peer_device_id < num_npus);
+  // To maintain consistency with cuda, returns false when deviceid and peerdeviceid are equal.
+  if (device_id == peer_device_id) {
+    return false;
+  }
+  typedef aclError (*AclrtDeviceCanAccessPeer)(int32_t*, int32_t, int32_t);
+  static AclrtDeviceCanAccessPeer func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtDeviceCanAccessPeer)GET_FUNC(aclrtDeviceCanAccessPeer);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer");
+  NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id));
+  return can_access_peer != 0;
 }
 
 } // namespace acl
