@@ -45,7 +45,7 @@ c10::SmallVector<at::Tensor, N> complex_compute_split(const at::Tensor& input) {
 
 at::Tensor complex_compute(const at::Tensor& input) {
   c10::SmallVector<at::Tensor, N> input_split;
-  auto input_r = at::native::view_as_real(input);
+  auto input_r = at::native::view_as_real(input).clone();
   torch_npu::NPUStorageDesc &input_r_desc = torch_npu::NPUBridge::GetNpuStorageImpl(input_r)->npu_desc_;
   input_r_desc.base_sizes_ = input_r.sizes();
   input_r_desc.base_strides_ = input_r.strides();
