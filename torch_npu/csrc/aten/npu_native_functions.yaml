@@ -286,9 +286,9 @@ supported:
  - func: bernoulli_.float
    op_api: True
  - func: binary_cross_entropy
-   op_api: True
+   op_api: False
  - func: binary_cross_entropy.out
-   op_api: True
+   op_api: False
  - func: binary_cross_entropy_backward
    op_api: True
  - func: binary_cross_entropy_backward.grad_input
