@@ -200,6 +200,7 @@ class Clean(distutils.command.clean.clean):
             'torch_npu/csrc/aten/RegisterAutogradNPU.cpp',
             'torch_npu/csrc/aten/NPUNativeFunctions.h',
             'torch_npu/csrc/aten/CustomRegisterSchema.cpp',
+            'torch_npu/csrc/aten/ForeachRegister.cpp',
             'torch_npu/utils/custom_ops.py',
             'torch_npu/version.py',
         ]

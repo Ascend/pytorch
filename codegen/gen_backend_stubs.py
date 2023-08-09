@@ -23,7 +23,7 @@ from typing import List, Dict, Union, Sequence, Optional, Set, Callable
 import yaml
 
 from torchgen.code_template import CodeTemplate
-from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager,
+from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager, parse_native_yaml,
                           get_grouped_native_functions, error_check_native_functions)
 from torchgen.model import (BackendIndex, DispatchKey, Location,
                             NativeFunction, NativeFunctionsGroup, OperatorName,
@@ -481,6 +481,47 @@ def get_supported_grouped_native_functions(
     return supported_grouped_native_functions
 
 
+def gen_foreach_register(
+    fm: FileManager,
+    tags_yaml_path: str,
+    native_yaml_path: str,
+    grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
+    backend_indices: BackendIndex,
+):
+    cpu_backend_indices = parse_native_yaml(native_yaml_path, tags_yaml_path).backend_indices[DispatchKey.CPU]
+    foreach_dict: Dict[str, str] = {}
+    header_set = set()
+
+    def get_foreach_kernel(func: NativeFunction):
+        schema = func.func.name
+        if not str(schema).startswith("_foreach"):
+            return
+        if schema in cpu_backend_indices.index and schema not in backend_indices.index:
+            foreach_dict[str(schema)] = cpu_backend_indices.index[schema].kernel
+
+    for f in grouped_native_functions:
+        if isinstance(f, NativeFunctionsGroup):
+            header_set.add(str(f.signature().name.name.base))
+            for func in f.functions():
+                get_foreach_kernel(func)
+        else:
+            header_set.add(str(f.func.name.name.base))
+            get_foreach_kernel(f)
+
+    kernel_template = CodeTemplate(
+        """\
+m.impl("${schema}", TORCH_FN(at::native::${kernel}));"""
+    )
+    header_template = CodeTemplate(
+        """\
+#include <ATen/ops/${function}_native.h>"""
+    )
+    fm.write_with_template(f'ForeachRegister.cpp', 'ForeachRegister.cpp', lambda: {
+        'include_headers': [header_template.substitute(function=h) for h in header_set if h.startswith("_foreach")],
+        'foreach_kernel': [kernel_template.substitute(schema=kv[0], kernel=kv[1]) for kv in foreach_dict.items()]
+    })
+
+
 def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         impl_path: Optional[str], op_plugin_impl_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
@@ -543,6 +584,12 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         fm = FileManager(install_dir=output_dir, template_dir=template_dir, dry_run=dry_run)
         custom_trace_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
         gen_custom_trace(fm, custom_trace_functions)
+
+        gen_foreach_register(fm,
+                             tags_yaml_path,
+                             native_yaml_path,
+                             grouped_native_functions,
+                             backend_indices[backend_dispatch_key])
 
         custom_ops_patch_dir = os.path.join(output_dir, "../../utils/")
         fm = FileManager(install_dir=custom_ops_patch_dir, template_dir=template_dir, dry_run=dry_run)
