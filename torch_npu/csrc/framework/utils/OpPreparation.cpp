@@ -341,6 +341,12 @@ namespace at_npu
       check_tensor(src_list, dst, expect_tensor.scalar_type(), expect_tensor.sizes());
     }
 
+    void OpPreparation::check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
+                                     const at::Tensor &expect_tensor, c10::IntArrayRef expect_size)
+    {
+      check_tensor(src_list, dst, expect_tensor.scalar_type(), expect_size);
+    }
+
     void OpPreparation::check_memory(const std::initializer_list<at::Tensor> &inputs,
                                      const std::initializer_list<at::Tensor> &outputs)
     {
