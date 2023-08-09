@@ -1,5 +1,3 @@
-import os
-
 from typing import Any
 from functools import lru_cache
 import warnings
@@ -10,6 +8,7 @@ from torch._utils import _get_device_index as _torch_get_device_index
 
 import torch_npu
 import torch_npu._C
+
 
 def synchronize(device=None):
     r"""Waits for all kernels in all streams on a NPU device to complete.
@@ -23,6 +22,7 @@ def synchronize(device=None):
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_synchronize()
 
+
 @lru_cache(maxsize=1)
 def device_count():
     return torch_npu._C._npu_getDeviceCount()
@@ -30,13 +30,14 @@ def device_count():
 
 def set_device(device):
     device_id = _get_device_index(device, optional=True)
-    if device_id >=0:
+    if device_id >= 0:
         torch_npu._C._npu_setDevice(device_id)
 
 
 def current_device():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDevice()
+
 
 def get_device_name(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
@@ -45,6 +46,7 @@ def get_device_name(device_name=None):
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceProperties(device_id)
     return device_prop.name
+
 
 def get_device_properties(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
@@ -61,6 +63,7 @@ def get_device_capability(device=None):
     warnings.warn("torch.npu.get_device_capability isn't implemented!")
     return None
 
+
 def utilization(device=None):
     r"""Query the comprehensive utilization rate of device
     """
@@ -69,6 +72,7 @@ def utilization(device=None):
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
+
 
 class device(object):
     r"""Context-manager that changes the selected device.
@@ -277,13 +281,16 @@ def init_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_initDump()
 
+
 def set_dump(cfg_file):
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_setDump(cfg_file)
 
+
 def finalize_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_finalizeDump()
+
 
 def get_soc_version():
     torch_npu.npu._lazy_init()
@@ -298,10 +305,10 @@ def is_support_inf_nan():
 
 def get_npu_overflow_flag():
     if is_support_inf_nan():
-        raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
+        raise RuntimeError("Unsupported api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_get_float_status(float_status)
-    if (result.cpu()[0] != 0):
+    if result.cpu()[0] != 0:
         return True
     else:
         return False
@@ -314,7 +321,7 @@ def npu_check_overflow(grad):
         elif isinstance(grad, torch.Tensor):
             cpu_sum = float(grad.float().sum())
         else:
-            raise RuntimeError("Unsupport type.")
+            raise RuntimeError("Unsupported type.")
 
         if cpu_sum == float('inf') or cpu_sum == -float('inf') or cpu_sum != cpu_sum:
             return True
@@ -329,6 +336,6 @@ def npu_check_overflow(grad):
 
 def clear_npu_overflow_flag():
     if is_support_inf_nan():
-        raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
+        raise RuntimeError("Unsupported api when soc_version >= Ascend910B1, please use npu_check_overflow")
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)

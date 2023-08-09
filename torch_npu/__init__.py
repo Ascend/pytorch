@@ -5,7 +5,6 @@ import types
 import atexit
 import traceback
 
-from typing import Set, Type
 from functools import wraps
 
 import torch
@@ -17,24 +16,25 @@ try:
 except ImportError as e:
     if "libhccl.so" in str(e):
         ei = sys.exc_info()
-        if ("ASCEND_OPP_PATH" in os.environ):
-            newErr = ImportError(str(ei[1]) + ". Please check that the compiler package is installed. " \
+        if "ASCEND_OPP_PATH" in os.environ:
+            newErr = ImportError(str(ei[1]) + ". Please check that the compiler package is installed. "
                                  "Please run 'source set_env.sh' in the CANN installation path.")
-        else :
-            newErr = ImportError(str(ei[1]) + ". Please check that the cann package is installed. " \
+        else:
+            newErr = ImportError(str(ei[1]) + ". Please check that the cann package is installed. "
                                  "Please run 'source set_env.sh' in the CANN installation path.")
         traceback.print_exception(ei[0], newErr, ei[2])
         sys.exit()
 
     if "libascendcl.so" in str(e):
         ei = sys.exc_info()
-        newErr = ImportError(str(ei[1]) + ". Please check that the runtime package is installed. " \
+        newErr = ImportError(str(ei[1]) + ". Please check that the runtime package is installed. "
                              "Please run 'source set_env.sh' in the CANN installation path.")
         traceback.print_exception(ei[0], newErr, ei[2])
         sys.exit()
 
     else:
         traceback.print_exc()
+
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
 import torch_npu.dynamo
@@ -44,18 +44,19 @@ from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     add_storage_methods, add_optim_method
+     add_storage_methods, add_optim_method, NPUDeviceContext
 import torch_npu.utils.custom_ops
 from .version import __version__ as __version__
 
 
 cann_pytorch_version_map = {
-    "6.3.RC2" : ["1.8.1.post2", "1.11.0.post1", "2.0.0.rc1"],
-    "6.3.RC1" : ["1.8.1.post1", "1.11.0"],
-    "6.1.RC1" : ["1.8.1.post1", "1.11.0"],
-    "6.0.1" : ["1.8.1", "1.11.0.rc2"],
-    "6.0.RC1" : ["1.8.1", "1.11.0.rc1"]
+    "6.3.RC2": ["1.8.1.post2", "1.11.0.post1", "2.0.0.rc1"],
+    "6.3.RC1": ["1.8.1.post1", "1.11.0"],
+    "6.1.RC1": ["1.8.1.post1", "1.11.0"],
+    "6.0.1": ["1.8.1", "1.11.0.rc2"],
+    "6.0.RC1": ["1.8.1", "1.11.0.rc1"]
 }
+
 
 def get_cann_version(ascend_home_path):
     cann_version = ""
@@ -72,35 +73,36 @@ def get_cann_version(ascend_home_path):
                         break
     return cann_version
 
+
 def cann_package_check():
     if "ASCEND_HOME_PATH" in os.environ:
         ascend_home_path = os.environ["ASCEND_HOME_PATH"]
         if not os.path.exists(ascend_home_path):
-            raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist. " \
+            raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist. "
                             "Please run 'source set_env.sh' in the CANN installation path.")
 
         # check whether environment variables are correctly configured
         if "ASCEND_OPP_PATH" not in os.environ:
-            raise Exception(f"ASCEND_OPP_PATH environment variable is not set. " \
-                            "Please check whether the opp package has been installed. If exist, please run "\
+            raise Exception(f"ASCEND_OPP_PATH environment variable is not set. "
+                            "Please check whether the opp package has been installed. If exist, please run "
                             "'source set_env.sh' in the CANN installation path.")
 
         ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
         if not os.path.exists(ascend_opp_path):
-            raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist. " \
-                            "Please check whether the opp package has been installed. If exist, please run "\
+            raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist. "
+                            "Please check whether the opp package has been installed. If exist, please run "
                             "'source set_env.sh' in the CANN installation path.")
 
         ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
         if not os.path.exists(ascend_runtime_path):
-            raise Exception(f"ASCEND_RUNTIME_PATH : {ascend_runtime_path} does not exist. " \
-                            "Please check whether the runtime package has been installed. If exist, please run "\
+            raise Exception(f"ASCEND_RUNTIME_PATH : {ascend_runtime_path} does not exist. "
+                            "Please check whether the runtime package has been installed. If exist, please run "
                             "'source set_env.sh' in the CANN installation path.")
 
         ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
         if not os.path.exists(ascend_compiler_path):
-            raise Exception(f"ASCEND_COMPILER_PATH : {ascend_compiler_path} does not exist. " \
-                            "Please check whether the compiler package has been installed. If exist, please run "\
+            raise Exception(f"ASCEND_COMPILER_PATH : {ascend_compiler_path} does not exist. "
+                            "Please check whether the compiler package has been installed. If exist, please run "
                             "'source set_env.sh' in the CANN installation path.")
 
         # get the cann version
@@ -108,11 +110,12 @@ def cann_package_check():
 
         # check whether the CANN package version matches the pytorch version
         if cann_version in cann_pytorch_version_map and \
-            torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
-            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} " \
+                torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
+            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} "
                   "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
     else:
         print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
+
 
 cann_package_check()
 
@@ -128,6 +131,7 @@ def wrap_torch_error_func(func):
                            f"Use torch_npu.{func.__name__} instead.")
     return wrapper
 
+
 for name in dir(torch.ops.npu):
     if name.startswith('__') or name in ['_dir', 'name']:
         continue
@@ -139,6 +143,7 @@ all_monkey_patches = [
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
 ]
+
 
 def _apply_patches(monkey_patches):
 
@@ -200,13 +205,16 @@ torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, gro
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
 # set default device type for gradient checkpointing
-from torch.utils.checkpoint import DefaultDeviceType
-DefaultDeviceType.set_device_type("npu")
-del DefaultDeviceType
+torch.utils.checkpoint.DefaultDeviceType.set_device_type("npu")
+
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
     torch_npu._C._npu_shutdown()
 
-#register npu shutdown hook on exit
+
+# register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
+
+_GLOBAL_NPU_DEVICE_CONTEXT = NPUDeviceContext()
+_GLOBAL_NPU_DEVICE_CONTEXT.__enter__()
