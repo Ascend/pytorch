@@ -237,7 +237,10 @@ void OpCommand::Run() {
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
 #endif
   } else {
-    aclCmd->Run(sync, sync_index, outputTensor);
+    aclCmd->Run(sync, sync_index, outputTensor); 
+    if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+      Sync();
+    }
     aclCmd->releaseSource();
   }
   at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, op_name);
