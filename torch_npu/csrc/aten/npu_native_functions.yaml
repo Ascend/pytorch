@@ -1696,6 +1696,30 @@ supported:
  - func: zeros_like
    wrap_impl: zeros_like
  - _copy_from_and_resize
+ - func: linalg_norm
+   wrap_impl: linalg_norm
+ - func: linalg_norm.ord_str
+   wrap_impl: linalg_norm
+ - func: linalg_norm.out
+   wrap_impl: linalg_norm_out
+ - func: linalg_norm.ord_str_out
+   wrap_impl: linalg_norm_out
+ - func: linalg_vector_norm
+   wrap_impl: linalg_vector_norm
+ - func: linalg_vector_norm.out
+   wrap_impl: linalg_vector_norm_out
+ - func: linalg_matrix_norm
+   wrap_impl: linalg_matrix_norm
+ - func: linalg_matrix_norm.str_ord
+   wrap_impl: linalg_matrix_norm
+ - func: linalg_matrix_norm.out
+   wrap_impl: linalg_matrix_norm_out
+ - func: linalg_matrix_norm.str_ord_out
+   wrap_impl: linalg_matrix_norm_out
+ - func: linalg_svdvals
+   wrap_impl: linalg_svdvals
+ - func: linalg_svdvals.out
+   wrap_impl: linalg_svdvals_out
 
 autograd:
   - func: celu
