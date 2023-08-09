@@ -4,6 +4,7 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_prof.h>
+#include <third_party/acl/inc/acl/acl_op.h>
 
 namespace at_npu {
 namespace native {
@@ -67,6 +68,10 @@ aclprofConfig * AclProfilingCreateConfig(
     aclprofAicoreEvents *aicoreEvents,
     uint64_t dataTypeConfig);
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
+
+aclError AclopStartDumpArgs(uint32_t dumpType, const char *path);
+
+aclError AclopStopDumpArgs(uint32_t dumpType);
 
 } // namespace native
 } // namespace at_npu

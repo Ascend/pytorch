@@ -562,6 +562,30 @@ ACL_FUNC_VISIBILITY aclError aclopInferShape(const char *opType,
                                              aclTensorDesc *outputDesc[],
                                              aclopAttr *attr);
 
+#define ACL_OP_DUMP_OP_AICORE_ARGS 0x00000001U
+
+/**
+ * @ingroup AscendCL
+ * @brief Enable the dump function of the corresponding dump type.
+ *
+ * @param dumpType [IN]       type of dump
+ * @param path [IN]    dump path
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclopStartDumpArgs(uint32_t dumpType, const char *path);
+
+/**
+ * @ingroup AscendCL
+ * @brief Disable the dump function of the corresponding dump type.
+ *
+ * @param dumpType [IN]       type of dump
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclopStopDumpArgs(uint32_t dumpType);
 
 #ifdef __cplusplus
 }
