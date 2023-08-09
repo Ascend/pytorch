@@ -10,7 +10,7 @@ namespace torch_npu {
 // Its scope is just to handle an NPUTensor.
 class NPUTensorImpl : public c10::TensorImpl {
 public:
-  explicit NPUTensorImpl(c10::Storage&& storage, const c10::intrusive_ptr<c10::StorageImpl> storage_impl, const caffe2::TypeMeta& data_type);
+  explicit NPUTensorImpl(c10::Storage&& storage, const caffe2::TypeMeta& data_type);
 
   void shallow_copy_from(const c10::intrusive_ptr<TensorImpl>& impl) final;
 
@@ -33,9 +33,6 @@ public:
   NPUTensorImpl(NPUTensorImpl&&) = default;
   NPUTensorImpl& operator=(NPUTensorImpl&&) = default;
   ~NPUTensorImpl();
-
-private:
-  c10::intrusive_ptr<c10::StorageImpl> _storage_impl;
 
 };
 
