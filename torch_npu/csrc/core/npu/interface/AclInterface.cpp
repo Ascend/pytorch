@@ -43,6 +43,7 @@ LOAD_FUNCTION(aclrtDestroyStreamForce)
 LOAD_FUNCTION(aclrtGetDeviceUtilizationRate)
 LOAD_FUNCTION(aclrtMallocAlign32)
 LOAD_FUNCTION(aclrtDeviceCanAccessPeer)
+LOAD_FUNCTION(aclrtSynchronizeStream)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -328,23 +329,9 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
     if (func_backup == nullptr) {
       func_backup = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
     }
-    TORCH_CHECK(func, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream");
+    TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream");
     return func_backup(stream);
   }
-}
-
-aclError AclrtSynchronizeStream(aclrtStream stream) {
-  if (C10_UNLIKELY(
-          c10_npu::warning_state().get_sync_debug_mode() != SyncDebugMode::L_DISABLED)) {
-    c10_npu::warn_or_error_on_sync();
-  }
-  typedef aclError (*AclrtSynchronizeStream)(aclrtStream);
-  static AclrtSynchronizeStream func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
-  }
-  TORCH_CHECK(func, "Failed to find function", "aclrtSynchronizeStream");
-  return func(stream);
 }
 
 aclError AclrtDestroyStreamForce(aclrtStream stream) {
