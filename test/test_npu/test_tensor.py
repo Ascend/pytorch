@@ -65,21 +65,21 @@ class TestTensor(TestCase):
         npu_s_1.copy_(cpu_s, non_blocking=True)
         npu_t_1 = torch.empty([], dtype=torch.float, device=torch.device('npu'))
         npu_t_1.set_(npu_s_1)
-        self.assertEqual(npu_tensor_1, npu_t_1)
+        self.assertEqual(npu_tensor_1.cpu(), npu_t_1.cpu())
         self.assertEqual(torch_npu.get_npu_format(torch_npu.npu_format_cast(npu_t_1, 29)), 2)
 
         npu_s_2 = torch.UntypedStorage(cpu_s.size(), device=torch.device('npu'))
         npu_s_2.copy_(cpu_s, non_blocking=True)
         npu_t_2 = torch.empty([], dtype=torch.float, device=torch.device('npu'))
         npu_t_2.set_(npu_s_2, 0, [4, 4], [4, 1])
-        self.assertEqual(npu_tensor_2, npu_t_2)
+        self.assertEqual(npu_tensor_2.cpu(), npu_t_2.cpu())
         self.assertEqual(torch_npu.get_npu_format(torch_npu.npu_format_cast(npu_t_2, 29)), 2)
 
         npu_s_3 = torch.UntypedStorage(cpu_s.size(), device=torch.device('npu'))
         npu_s_3.copy_(cpu_s, non_blocking=True)
         npu_t_3 = torch.empty([], dtype=torch.float, device=torch.device('npu'))
         npu_t_3.set_(npu_s_3, 0, [4, 2], [4, 1])
-        self.assertEqual(npu_tensor_2[:, :2], npu_t_3)
+        self.assertEqual(npu_tensor_2[:, :2].cpu(), npu_t_3.cpu())
 
     @Dtypes(torch.half, torch.float)
     def test_set_storage(self, dtype):
@@ -87,9 +87,9 @@ class TestTensor(TestCase):
         a = make_tensor((4, 5, 3), dtype=dtype, device=device, low=-9, high=9)
         a_s = a.storage()
         b = torch.tensor([], device=device, dtype=dtype).set_(a_s).reshape(a.size())
-        self.assertEqual(a, b)
+        self.assertEqual(a.cpu(), b.cpu())
         c = torch.tensor([], device=device, dtype=dtype).set_(a_s.untyped()).reshape(a.size())
-        self.assertEqual(a, c)
+        self.assertEqual(a.cpu(), c.cpu())
 
         x = torch.randn((1, 2, 3), dtype=dtype, device=device)
         def inplace():
