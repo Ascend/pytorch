@@ -57,7 +57,6 @@ fsdp_patches = [
     ["distributed.fsdp.sharded_grad_scaler", sharded_grad_scaler],
     ["distributed.fsdp.wrap", wrap],
     ["distributed.fsdp.fully_sharded_data_parallel", fully_sharded_data_parallel],
-    ["distributed.fsdp", fsdp],
-    ["distributed.algorithms", algorithms]
+    ["distributed.fsdp", fsdp]
 ]
 
