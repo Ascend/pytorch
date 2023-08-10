@@ -143,8 +143,9 @@ namespace at_npu
       if (!at_npu::key::isDeviceTensor(tensor)) {
         return true;
       }
-      const auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
-      return desc.origin_format_ == desc.npu_format_;
+      const auto format = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).npu_format_;
+      return (format == ACL_FORMAT_ND) || (format == ACL_FORMAT_NCHW) ||
+             (format == ACL_FORMAT_NHWC) || (format == ACL_FORMAT_NCDHW);
     }
 
     bool FormatHelper::IsOpInputBaseFormat(
