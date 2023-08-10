@@ -1,5 +1,8 @@
-import torch_npu._C
+import os
 
+import torch
+
+import torch_npu._C
 
 class ProfilerActivity:
     CPU = torch_npu._C._profiler.ProfilerActivity.CPU
@@ -17,8 +20,11 @@ class MsProfilerInterface:
         self.path = None
         self.msprof_config = None
 
-    @classmethod
-    def stop_profiler(cls):
+    def stop_profiler(self):
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            os.mknod(os.path.join(os.path.abspath(self.path), 'profiler_info_{}.json'.format(torch.distributed.get_rank())))
+        else:
+            os.mknod(os.path.join(os.path.abspath(self.path), 'profiler_info.json'))
         torch_npu._C._profiler._stop_profiler()
 
     @classmethod
