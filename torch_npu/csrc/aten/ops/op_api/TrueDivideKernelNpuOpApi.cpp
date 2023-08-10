@@ -41,6 +41,41 @@ static at::Tensor self_tensor_to_device(const at::Tensor& tensor, const at::Scal
   return tensor;
 }
 
+at::Tensor NPUNativeOpApiFunctions::true_divide(const at::Tensor &self, const at::Tensor &other) {
+  DO_COMPATIBILITY(aclnnDivs, NPUNativeFunctions::true_divide(self, other));
+  DO_COMPATIBILITY(aclnnDiv, NPUNativeFunctions::true_divide(self, other));
+  // calculate the output size
+  bool is_self_wrapped = CalcuOpUtil::IsScalarWrappedToTensor(self);
+  at::Tensor output_tensor = is_self_wrapped ? other : self;
+  auto output_size = broadcast_ops_npu_output_size(self, other);
+  at::ScalarType high_type = at::native::result_type(self, other);
+  at::Tensor self_cp = self_tensor_to_device(self, high_type);
+
+  if (isIntegralType(high_type, true)) {
+    high_type = at::ScalarType::Float;
+  }
+  // construct the output tensor of the NPU
+  at::Tensor result = 
+      OpPreparation::ApplyTensorWithoutFormat(output_size, output_tensor.options().dtype(high_type));
+
+  // calculate the output result of the NPU
+  div_out_npu_opapi_nocheck(self_cp, other, result);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::true_divide(const at::Tensor &self, const at::Scalar &other) {
+  DO_COMPATIBILITY(aclnnDivs, NPUNativeFunctions::true_divide(self, other));
+  auto output_size = input_same_output_size(self);
+  at::ScalarType high_type = at::native::result_type(self, other);
+  if (isIntegralType(high_type, true)) {
+    high_type = at::ScalarType::Float;
+  }
+  at::Tensor result = 
+      OpPreparation::ApplyTensorWithoutFormat(output_size, self.options().dtype(high_type));
+  EXEC_NPU_CMD(aclnnDivs, self, other, result);
+  return result;
+}
+
 at::Tensor& NPUNativeOpApiFunctions::true_divide_out(const at::Tensor& self, const at::Tensor& other,
                                                      at::Tensor& result) {
   DO_COMPATIBILITY(aclnnDivs, NPUNativeFunctions::true_divide_out(self, other, result));
