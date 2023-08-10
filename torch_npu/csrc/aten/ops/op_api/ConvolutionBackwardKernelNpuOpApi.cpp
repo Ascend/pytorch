@@ -124,8 +124,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::conv_tbc
     const at::Tensor& weight,
     const at::Tensor& bias,
     int64_t pad) {
-  DO_COMPATIBILITY(aclnnConvolutionTbcBackward,
-        NPUNativeFunctions::conv_tbc_backward(self, input, weight, bias, pad));
+  DO_COMPATIBILITY(aclnnConvTbcBackward, NPUNativeFunctions::conv_tbc_backward(self, input, weight, bias, pad));
   // construct other inputs of the NPU
   int8_t cube_math_type = CalcuOpUtil::GetCubeMathType(native::env::IsAllowConvHF32());
   at::IntArrayRef stride = {1, 1};
@@ -141,10 +140,11 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::conv_tbc
   at::Tensor gradWeight = OpPreparation::ApplyTensorWithoutFormat(std::get<1>(outputSizes), weight.options());
   at::Tensor gradBias = OpPreparation::ApplyTensorWithoutFormat(std::get<2>(outputSizes), self.options());
   // execute hostapi
-  EXEC_NPU_CMD(aclnnConvolutionTbcBackward, self, input, weight, bias,
+  EXEC_NPU_CMD(aclnnConvTbcBackward, self, input, weight, bias,
                pad, cube_math_type, gradInput, gradWeight, gradBias);
   return std::make_tuple(gradInput, gradWeight, gradBias);
 }
 
 } // namespace native
 } // namespace at_npu
+
