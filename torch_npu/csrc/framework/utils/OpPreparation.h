@@ -75,6 +75,8 @@ class OpPreparation {
                            const at::Tensor &expect_tensor);
   static void check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
                            c10::IntArrayRef expect_size);
+  static void check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
+                           const at::Tensor &expect_tensor, c10::IntArrayRef expect_size);
   // check memory overlaps
   static void check_memory(const std::initializer_list<at::Tensor> &inputs,
                            const std::initializer_list<at::Tensor> &outputs);
