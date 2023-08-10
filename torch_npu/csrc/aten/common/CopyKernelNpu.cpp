@@ -14,8 +14,8 @@
 // limitations under the License.
 #include <c10/core/Scalar.h>
 #include <ATen/record_function.h>
-#include "torch_npu/csrc/core/npu/NPUStream.h"
 
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
@@ -25,6 +25,7 @@
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -203,12 +204,12 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
   }
 
   if(!dst.data_ptr()) {
-    TORCH_WARN("copy_d2d_by_memcpy, dst.data_ptr() is null.");
+    TORCH_NPU_WARN("copy_d2d_by_memcpy, dst.data_ptr() is null.");
     return;
   }
 
   if(!src.data_ptr()) {
-    TORCH_WARN("copy_d2d_by_memcpy, src.data_ptr() is null.");
+    TORCH_NPU_WARN("copy_d2d_by_memcpy, src.data_ptr() is null.");
     return;
   }
 

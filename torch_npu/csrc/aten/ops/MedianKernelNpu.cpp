@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -156,7 +157,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::median(
 }
 
 at::Tensor NPUNativeFunctions::nanmedian(const at::Tensor& self) {
-  TORCH_WARN_ONCE("Warning: kernel [nanmedian] is not supported by NPU currently. Now this kernel is running on CPU.");
+  TORCH_NPU_WARN_ONCE("Warning: kernel [nanmedian] is not supported by NPU currently. Now this kernel is running on CPU.");
   at::Tensor self_cpu = self.to("cpu");
   auto result = at::native::nanmedian_cpu(self_cpu);
   at::Tensor output = result.to(self.device());
