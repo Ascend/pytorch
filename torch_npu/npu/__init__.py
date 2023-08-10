@@ -16,7 +16,7 @@
 
 __all__ = [
     "native_device", "npu_device", "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
-    "synchronize", "device_count", "set_device", "current_device", "get_device_name",
+    "synchronize", "device_count", "can_device_access_peer", "set_device", "current_device", "get_device_name",
     "get_device_properties", "get_device_capability", "_get_device_index", "is_available", "device", "device_of",
     "stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
     "init_dump", "utilization", "finalize_dump", "set_dump", "manual_seed", "manual_seed_all",
@@ -33,7 +33,7 @@ __all__ = [
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
     "get_rng_state_all", "set_rng_state_all", "make_replay_graph", "is_jit_compile_false",
-    "dump_enable", "dump_disable",
+    "dump_enable", "dump_disable", "current_blas_handle",
 ]
 
 import torch
@@ -42,11 +42,11 @@ import torch_npu
 from .device import __device__ as native_device
 from .device import __npu_device__ as npu_device
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
-                    synchronize, device_count, set_device, current_device, get_device_name,
+                    synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index, is_available, device, device_of,
                     stream, current_stream, default_stream, set_sync_debug_mode, get_sync_debug_mode,
                     init_dump, utilization, finalize_dump, set_dump, _in_bad_fork,
-                    get_npu_overflow_flag, clear_npu_overflow_flag)
+                    get_npu_overflow_flag, clear_npu_overflow_flag, current_blas_handle)
 from .random import (manual_seed, manual_seed_all, seed, seed_all, initial_seed, 
                      get_rng_state_all, set_rng_state_all,
                      get_rng_state, set_rng_state)
