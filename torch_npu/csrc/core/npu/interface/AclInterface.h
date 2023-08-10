@@ -1,5 +1,7 @@
 #pragma once
 
+#include <c10/core/Device.h>
+
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
@@ -115,6 +117,8 @@ aclError AclrtDestroyStreamForce(aclrtStream stream);
 aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
 
 aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
+
+bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
 
 } // namespace acl
 } // namespace c10_npu
