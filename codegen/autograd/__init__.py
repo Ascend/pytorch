@@ -5,7 +5,7 @@ import torchgen.gen
 from torchgen.api.autograd import NativeFunctionWithDifferentiabilityInfo
 
 import codegen
-from codegen.torch_autograd.gen_inplace_or_view_type import gen_inplace_or_view_type_env
+from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type_env
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 
 
@@ -30,7 +30,8 @@ def gen_inplace_or_view_type_env_for_npu(
 
 def apply_autograd_patches():
     torchgen.gen.parse_native_yaml = parse_native_and_custom_yaml_
-    codegen.torch_autograd.gen_inplace_or_view_type.gen_inplace_or_view_type_env = gen_inplace_or_view_type_env_for_npu
+    torchgen.packaged.autograd.gen_inplace_or_view_type.gen_inplace_or_view_type_env = \
+    gen_inplace_or_view_type_env_for_npu
 
 
 apply_autograd_patches()

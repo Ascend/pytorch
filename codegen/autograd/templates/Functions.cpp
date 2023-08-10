@@ -1,3 +1,5 @@
+#include <torch/csrc/dynamo/compiled_autograd.h>
+
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
 #include "op_plugin/ops/OpInterface.h"
 
