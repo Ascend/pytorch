@@ -48,6 +48,7 @@
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 
 struct NPUDeviceProp {
   std::string name;
@@ -172,6 +173,20 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
 PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return PyLong_FromLong(c10_npu::device_count());
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+  PyObject *value_1 = nullptr;
+  PyObject *value_2 = nullptr;
+  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
+    throw torch::TypeError("Pybind failed to parse parameters.");
+  }
+  int32_t device_id = THPUtils_unpackInt(value_1);
+  int32_t peer_device_id = THPUtils_unpackInt(value_2);
+  auto can_access_peer = c10_npu::acl::can_device_access_peer(device_id, peer_device_id);
+  return PyBool_FromLong(can_access_peer);
   END_HANDLE_TH_ERRORS
 }
 
@@ -826,6 +841,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
+    {"_npu_canDeviceAccessPeer", (PyCFunction)THNPModule_npuCanDeviceAccessPeer_wrap, METH_VARARGS, nullptr},
     {"_npu_getDeviceUtilizationRate", (PyCFunction)THNPModule_getDeviceUtilizationRate_wrap, METH_O, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},

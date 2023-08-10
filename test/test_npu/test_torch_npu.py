@@ -18,6 +18,7 @@ import collections
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 class TorchNPUDeviceTestCase(TestCase):
     def test_npu_current_device(self):
@@ -31,6 +32,19 @@ class TorchNPUDeviceTestCase(TestCase):
     def test_npu_device_count(self):
         res = torch_npu.npu.device_count()
         self.assertIsInstance(res, int)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_npu_can_device_access_peer_multi_npu(self):
+        res = torch_npu.npu.can_device_access_peer(0, 1)
+        self.assertEqual(res, True)
+
+    def test_npu_can_device_access_peer(self):
+        res = torch_npu.npu.can_device_access_peer(0, 0)
+        self.assertEqual(res, False)
+        with self.assertRaisesRegex(AssertionError, "Invalid devide id"):
+            torch_npu.npu.can_device_access_peer(-1, 0)
+        with self.assertRaisesRegex(AssertionError, "Invalid peer devide id"):
+            torch_npu.npu.can_device_access_peer(0, -1)
 
     def test_npu_device_of(self):
         x = torch.Tensor([1,2,3]).to("npu")
@@ -131,15 +145,19 @@ class TorchNPUSyncApiTestCase(TestCase):
             torch.npu.set_sync_debug_mode(3)
         res = torch.npu.get_sync_debug_mode()
         self.assertEqual(res, 2)
-        
+
 class TorchNPUApiTestCase(TestCase):
     def test_npu_current_stream(self):
         res = torch_npu.npu.current_stream()
         self.assertIsInstance(res, torch_npu.npu.streams.Stream)
-    
+
     def test_npu_default_stream(self):
         res = torch_npu.npu.default_stream()
         self.assertIsInstance(res, torch_npu.npu.streams.Stream)
+
+    def test_npu_current_blas_handle(self):
+        res = torch_npu.npu.current_blas_handle()
+        self.assertIsNone(res)
 
     def test_npu_init(self):
         res = torch_npu.npu.init()
