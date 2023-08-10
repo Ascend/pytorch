@@ -49,7 +49,7 @@ public:
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto dtype = ctx->saved_data["dtype"].toScalarType();
     grad_outputs[0].requires_grad_();
-    return {NPUDtypeCastOpApiFunction::apply(grad_outputs[0], dtype), at::Tensor()};
+    return {grad_outputs[0].to(dtype), at::Tensor()};
   }
 };
 
