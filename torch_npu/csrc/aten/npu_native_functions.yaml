@@ -469,7 +469,7 @@ supported:
  - func: dot.out
    op_api: True
  - func: dropout
-   op_api: True
+   op_api: False
  - dropout_with_byte_mask
  - func: embedding
    op_api: True
@@ -986,9 +986,9 @@ supported:
  - func: native_batch_norm_backward
    op_api: True
  - func: native_dropout
-   op_api: True
+   op_api: False
  - func: native_dropout_backward
-   op_api: True
+   op_api: False
  - func: native_layer_norm
    op_api: True
  - func: native_layer_norm_backward
