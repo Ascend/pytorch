@@ -650,7 +650,7 @@ at::Tensor CalcuOpUtil::UnsafeEmptyWorkspace(uint64_t workspace_size) {
         allocator->allocate(workspace_size), allocator, true);
   static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
   auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
-      storage_impl, storage_impl, dtype);
+      storage_impl, dtype);
   tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
   return tensor;
 }
