@@ -45,76 +45,8 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      add_storage_methods, add_optim_method, NPUDeviceContext, add_serialization_methods
 import torch_npu.utils.custom_ops
+from torch_npu.utils import cann_package_check, add_intercept_methods
 from .version import __version__ as __version__
-
-
-cann_pytorch_version_map = {
-    "6.3.RC2": ["1.8.1.post2", "1.11.0.post1", "2.0.0.rc1"],
-    "6.3.RC1": ["1.8.1.post1", "1.11.0"],
-    "6.1.RC1": ["1.8.1.post1", "1.11.0"],
-    "6.0.1": ["1.8.1", "1.11.0.rc2"],
-    "6.0.RC1": ["1.8.1", "1.11.0.rc1"]
-}
-
-
-def get_cann_version(ascend_home_path):
-    cann_version = ""
-    for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
-        if cann_version:
-            break
-        install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
-        if install_files:
-            filepath = os.path.join(dirpath, install_files[0])
-            with open(filepath, "r") as f:
-                for line in f:
-                    if line.find("version") != -1:
-                        cann_version = line.strip().split("=")[-1]
-                        break
-    return cann_version
-
-
-def cann_package_check():
-    if "ASCEND_HOME_PATH" in os.environ:
-        ascend_home_path = os.environ["ASCEND_HOME_PATH"]
-        if not os.path.exists(ascend_home_path):
-            raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist. "
-                            "Please run 'source set_env.sh' in the CANN installation path.")
-
-        # check whether environment variables are correctly configured
-        if "ASCEND_OPP_PATH" not in os.environ:
-            raise Exception(f"ASCEND_OPP_PATH environment variable is not set. "
-                            "Please check whether the opp package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
-
-        ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
-        if not os.path.exists(ascend_opp_path):
-            raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist. "
-                            "Please check whether the opp package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
-
-        ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
-        if not os.path.exists(ascend_runtime_path):
-            raise Exception(f"ASCEND_RUNTIME_PATH : {ascend_runtime_path} does not exist. "
-                            "Please check whether the runtime package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
-
-        ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
-        if not os.path.exists(ascend_compiler_path):
-            raise Exception(f"ASCEND_COMPILER_PATH : {ascend_compiler_path} does not exist. "
-                            "Please check whether the compiler package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
-
-        # get the cann version
-        cann_version = get_cann_version(ascend_home_path)
-
-        # check whether the CANN package version matches the pytorch version
-        if cann_version in cann_pytorch_version_map and \
-                torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
-            print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} "
-                  "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
-    else:
-        print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
-
 
 cann_package_check()
 
@@ -182,6 +114,7 @@ def apply_class_patches():
     add_tensor_methods()
     add_optim_method()
     add_serialization_methods()
+    add_intercept_methods()
 
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
