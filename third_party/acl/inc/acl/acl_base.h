@@ -149,7 +149,8 @@ typedef enum {
     ACL_STRING = 13,
     ACL_COMPLEX64 = 16,
     ACL_COMPLEX128 = 17,
-    ACL_BF16 = 27
+    ACL_BF16 = 27,
+    ACL_COMPLEX32 = 33
 } aclDataType;
 
 typedef enum {
