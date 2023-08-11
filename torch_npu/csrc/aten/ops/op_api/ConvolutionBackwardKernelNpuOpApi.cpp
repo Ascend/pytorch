@@ -56,7 +56,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeOpApiFunctions::convolut
     /* k == 5 and groups > 3 currently unsupported by the binary file
         CheckForbidInternalFormat = False: turn on private format；CheckJitDisable = False: turn on JitCompile
     */
-    if (k == 5 || groups > 1 || (!at_npu::native::env::CheckForbidInternalFormat() || !at_npu::native::env::CheckJitDisable())) {
+    if (k == 5 || (!at_npu::native::env::CheckForbidInternalFormat() || !at_npu::native::env::CheckJitDisable())) {
         return at_npu::native::NPUNativeFunctions::convolution_backward(grad_output, input, weight, bias_sizes_opt,
             stride, padding, dilation, transposed, output_padding, groups, output_mask);
     }
