@@ -19,6 +19,17 @@ public:
   static void nullary_op(at::Tensor &out);
   static UnifiedResult reduce_op_check(at::Tensor &out, const at::Tensor &a);
   static UnifiedResult reduce_op_check(at::Tensor &out1, at::Tensor &out2, const at::Tensor &a);
+  // From CalcuOpUtil part
+  static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type);
+  static aclDataType convert_to_acl_data_type(const at::ScalarType &data_type,
+                                              const string &realDataType);
+  static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar,
+                                          at::ScalarType scalar_data_type);
+  static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
+
+  static bool is_scalar_wrapped_to_tensor(const at::Tensor &tensor);
+  static int64_t get_tensor_npu_format(const at::Tensor &tensor);
+  static c10::SmallVector<int64_t, 5> get_tensor_desc_base_sizes(const at::Tensor &tensor);
   // check output tensor
   static void check_tensor(const std::initializer_list<at::Tensor> &src_list, at::Tensor &dst,
                            at::ScalarType expect_dtype, c10::IntArrayRef expect_size);
