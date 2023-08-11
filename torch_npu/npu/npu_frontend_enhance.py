@@ -29,7 +29,7 @@ _option_map = {"ACL_PRECISION_MODE" : ["allow_fp32_to_fp16", "must_keep_origin_d
                "ACL_OP_SELECT_IMPL_MODE" : ["high_performance", "high_precision"],
                "ACL_AICORE_NUM" : (lambda value: value.isdigit() and 1 <= int(value) <= 32),
                "ACL_OPTYPELIST_FOR_IMPLMODE" : None,
-               "ACL_OP_DEBUG_LEVEL" : ["0", "1", "2"],
+               "ACL_OP_DEBUG_LEVEL" : ["0", "1", "2", "3", "4"],
                "ACL_DEBUG_DIR" : None,
                "ACL_OP_COMPILER_CACHE_MODE" : ["disable", "enable", "force"],
                "ACL_OP_COMPILER_CACHE_DIR" : None}
@@ -57,9 +57,10 @@ def set_option(option):
             option[option_name] = str(option_value)
         elif callable(_option_map[option_name]):
             raise ValueError(f"value of {option_name} should be in %s "
-                             %(inspect.getsource(_option_map[option_name])))
+                             %(inspect.getsource(_option_map[option_name])) + f"but got {option_value}")
         else:
-            raise ValueError(f"value of {option_name} should be in %s "%(_option_map[option_name]))
+            raise ValueError(f"value of {option_name} should be in %s "
+                             %(_option_map[option_name]) + f"but got {option_value}")
     torch_npu._C._npu_setOption(option)
 
 def init_dump():
