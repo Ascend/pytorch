@@ -31,6 +31,11 @@ at::Tensor NPUNativeOpApiFunctions::to(const at::Tensor& self, at::ScalarType dt
     return self;
   }
 
+  if (dtype == at::ScalarType::Double) {
+    TORCH_NPU_WARN_ONCE("Device do not support double dtype now, "
+                        "dtype cast repalce with float.");
+    dtype = at::ScalarType::Float;
+  }
   return NPUNativeOpApiFunctions::npu_dtype_cast(self, dtype);
 }
 
