@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/DeviceUtils.h"
 
 namespace at_npu
 {
@@ -191,6 +192,38 @@ namespace at_npu
     {
       auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
       NPUNativeFunctions::npu_format_cast_(tensor, tensor_desc.origin_format_);
+      return tensor;
+    }
+
+    inline at::Tensor apply_tensor_use_empty(c10::SymIntArrayRef sizes, const c10::TensorOptions &options) {
+      return NPUNativeFunctions::empty(
+          sizes, options.dtype().toScalarType(), c10::nullopt,
+          at::Device(torch_npu::utils::get_npu_device_type()), false, c10::MemoryFormat::Contiguous);
+    }
+
+    at::Tensor OpPreparation::apply_tensor_without_format(const at::Tensor &src) {
+      return apply_tensor_use_empty(src.sym_sizes(), src.options());
+    }
+
+    at::Tensor OpPreparation::apply_tensor_without_format(const at::Tensor &src, c10::IntArrayRef sizes) {
+      return apply_tensor_use_empty(c10::fromIntArrayRefSlow(sizes), src.options());
+    }
+
+    at::Tensor OpPreparation::apply_tensor_without_format(c10::IntArrayRef sizes, const c10::TensorOptions &options) {
+      return apply_tensor_use_empty(c10::fromIntArrayRefSlow(sizes), options);
+    }
+
+    at::Tensor OpPreparation::unsafe_empty_workspace(uint64_t workspace_size) {
+      ASCEND_LOGD("Alloc workspace %zu bytes unsafely.", workspace_size);
+      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+      c10::intrusive_ptr<c10::StorageImpl> storage_impl =
+          c10::make_intrusive<torch_npu::NPUStorageImpl>(
+            c10::StorageImpl::use_byte_size_t(), workspace_size,
+            allocator->allocate(workspace_size), allocator, true);
+      static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
+      auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
+          storage_impl, dtype);
+      tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
       return tensor;
     }
 
