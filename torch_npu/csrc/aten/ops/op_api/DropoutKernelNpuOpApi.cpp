@@ -20,7 +20,12 @@
 namespace at_npu {
 namespace native {
 at::Tensor NPUNativeOpApiFunctions::dropout(const at::Tensor& self, double p, bool train) {
-  DO_COMPATIBILITY(aclnnDropout, NPUNativeFunctions::dropout(self, p, train));
+  DO_COMPATIBILITY(aclnnDropoutGenMask, NPUNativeFunctions::dropout(self, p, train));
+  DO_COMPATIBILITY(aclnnDropoutDoMask, NPUNativeFunctions::dropout(self, p, train));
+
+  if (!train) {
+    return self;
+  }
   at::Tensor result = std::get<0>(at::native_dropout(self, p, train));
   return result;
 }
