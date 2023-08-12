@@ -463,7 +463,7 @@ supported:
  - func: div_.Tensor
    op_api: True
  - func: div_.Tensor_mode
-   op_api: False
+   op_api: True
  - func: dot
    op_api: True
  - func: dot.out
