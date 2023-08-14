@@ -32,6 +32,8 @@ at::Tensor &NPUNativeOpApiFunctions::addmm_out(
   DO_COMPATIBILITY(aclnnAddmm,
       NPUNativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, result));
   int8_t cube_math_type = 1;
+  auto output_size = addmm_npu_output_size(self, mat1, mat2, beta, alpha);
+  OpPreparation::CheckOut({self, mat1, mat2}, result, result.scalar_type(), output_size);
   EXEC_NPU_CMD(aclnnAddmm, self, mat1, mat2, beta, alpha, result, cube_math_type);
 
   return result;
