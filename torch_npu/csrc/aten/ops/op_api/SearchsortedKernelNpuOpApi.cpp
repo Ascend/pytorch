@@ -65,11 +65,11 @@ at::Tensor NPUNativeOpApiFunctions::searchsorted(
     bool right,
     const c10::optional<c10::string_view> side_opt,
     const c10::optional<at::Tensor>& sorter_opt) {
-  DO_COMPATIBILITY(aclnnSearchSorteds,
+  DO_COMPATIBILITY(aclnnSearchSortedScalar,
                    NPUNativeFunctions::searchsorted(sorted_sequence, self, out_int32, right, side_opt, sorter_opt));
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat({}, sorted_sequence.options().dtype(scalar_type));
-  EXEC_NPU_CMD(aclnnSearchSorteds, sorted_sequence, self, out_int32, right, sorter_opt, result);
+  EXEC_NPU_CMD(aclnnSearchSortedScalar, sorted_sequence, self, out_int32, right, sorter_opt, result);
   return result;
 }
 } // namespace native
