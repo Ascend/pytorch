@@ -23,8 +23,8 @@
 
 **对应分支代码包下载<a name="zh-cn_topic_0000001435374593_section5248152713711"></a>**
 
->![](D:\project\pzr_pytorch\pytorch\figures\icon-note.gif) **说明：** 
->PyTorch配套的Python版本是：Python3.7.x（3.7.5\~3.7.11）、Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2）。
+>![](figures/icon-note.gif) **说明：** 
+>PyTorch配套的Python版本是：Python3.7.x（3.7.5\~3.7.11）、Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2)。
 
 安装PyTorch时，请参见[表1](#zh-cn_topic_0000001435374593_table723553621419)下载对应分支代码包。
 
@@ -318,7 +318,102 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 可通过以下方式解决：
 
 - 修改算子输入数据类型，使用float64数据类型进行运算。
+
 - 升级编译arm版本PyTorch使用的gcc编译器至9.4版本及以上，并使用相同编译器重新编译torch_npu、apex、mmcv等其他配套软件（避免因编译器版本不匹配导致兼容性问题）。
+
+- 在Docker环境编译torch_npu。
+
+  1. 拉取容器镜像。
+
+     ```
+     docker pull quay.io/pypa/manylinux2014_aarch64:latest
+     ```
+
+  2. 执行命令查看镜像信息。
+
+     ```
+     docker images
+     ```
+
+     回显如下：
+
+     ```
+     REPOSITORY                            TAG       IMAGE ID       CREATED         SIZE
+     quay.io/pypa/manylinux2014_aarch64  latest     fe2afc7b4b0d   9 days ago      2.09GB
+     ```
+
+  3. 启动镜像并在后台运行。
+
+     ```
+     docker run -dit  [IMAGE ID] bash
+     ```
+
+     [IMAGE ID]为上步骤所查询的镜像ID。
+
+  4. 执行命令查看运行的容器。
+
+     ```
+     docker ps
+     ```
+
+     回显如下：
+
+     ```
+     CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS     NAMES
+     6c2ead81ede5   fe2afc7b4b0d   "manylinux-entrypoin…"   6 seconds ago   Up 4 seconds             dreamy_einstein
+     ```
+
+  5. 执行命令进入容器。
+
+     ```
+     docker exec -it [CONTAINER ID] bash
+     ```
+
+     [CONTAINER_ID]为上步骤查询到的容器ID。
+
+  6. 编译torch_npu。
+
+     1. 创建软链接。
+
+        ```
+        cd /usr/local/bin/
+        ln -s /opt/_internal/cpython-3.7.17/bin/pip3.7 pip3.7
+        ln -s /opt/_internal/cpython-3.8.17/bin/pip3.8 pip3.8
+        ln -s /opt/_internal/cpython-3.9.17/bin/pip3.9 pip3.9
+        ln -s python3.7 python3
+        ```
+
+     2. 安装PyTorch1.11及依赖。
+
+        ```
+        pip3.7 install torch==1.11.0
+        pip3.7 install pyyaml
+        ```
+
+     3. 进入任意目录，下载torch_npu源码，此处以“/home/”为例。
+
+        ```
+        cd /home/
+        git clone https://gitee.com/ascend/pytorch.git -b v1.11.0 --depth=1 v1.11.0
+        cd v1.11.0/
+        ```
+
+     4. 编译torch_npu。
+
+        ```
+        bash ci/build.sh --python=3.7
+        ```
+
+  7. 退出容器，在服务器取回编译完成的包并安装。
+
+     ```
+     exit
+     docker cp [CONTAINER ID]:/home/v1.11.0/dist/torch_npu-1.11.0.post1-cp37-cp37m-linux_aarch64.whl ./
+     pip3 install torch_npu-1.11.0.post1-cp37-cp37m-linux_aarch64.whl
+     ```
+
+     
+
 
 ## 使用源码编译安装PyTorch框架。
 
