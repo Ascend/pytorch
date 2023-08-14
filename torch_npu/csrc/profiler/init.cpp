@@ -58,23 +58,25 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
 
   py::class_<ExperimentalConfig>(m, "_ExperimentalConfig")
       .def(
-          py::init<std::string, std::string, bool>(),
+          py::init<std::string, std::string, bool, bool>(),
           py::arg("trace_level") = "Level0",
           py::arg("metrics") = "ACL_AICORE_NONE",
-          py::arg("l2_cache") = false
+          py::arg("l2_cache") = false,
+          py::arg("record_op_args") = false
       )
       .def(py::pickle(
           [](const ExperimentalConfig& p) {
-              return py::make_tuple(p.trace_level, p.metrics, p.l2_cache);
+              return py::make_tuple(p.trace_level, p.metrics, p.l2_cache, p.record_op_args);
           },
           [](py::tuple t) {
-              if (t.size() < 3) {
+              if (t.size() < 4) {
                   throw std::runtime_error("Expected atleast 3 values in state");
               }
               return ExperimentalConfig(
                   t[0].cast<std::string>(),
                   t[1].cast<std::string>(),
-                  t[2].cast<bool>()
+                  t[2].cast<bool>(),
+                  t[3].cast<bool>()
               );
           }
       ));

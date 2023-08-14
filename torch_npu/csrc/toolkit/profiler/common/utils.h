@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <linux/limits.h>
+#include <libgen.h>
 
 #include <stdint.h>
 
@@ -86,6 +87,14 @@ public:
       return "";
     }
     return std::string(path);
+  }
+
+  static std::string DirName(const std::string &path) {
+    if (path.empty()) {
+      return ".";
+    }
+    char *path_c = const_cast<char *>(path.data());
+    return std::string(dirname(path_c));
   }
 
   static int64_t GetClockMonotonicRawNs() {

@@ -175,5 +175,43 @@ aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
   return func(profilerConfig);
 }
 
+#undef LOAD_ASCEND_DUMP_FUNCTION
+#define LOAD_ASCEND_DUMP_FUNCTION(funcName) \
+  REGISTER_FUNCTION(libascend_dump, funcName)
+
+#undef GET_ASCEND_DUMP_FUNC
+#define GET_ASCEND_DUMP_FUNC(funcName) \
+  GET_FUNCTION(libascend_dump, funcName)
+
+REGISTER_LIBRARY(libascend_dump)
+LOAD_ASCEND_DUMP_FUNCTION(aclopStartDumpArgs)
+LOAD_ASCEND_DUMP_FUNCTION(aclopStopDumpArgs)
+
+aclError AclopStartDumpArgs(uint32_t dumpType, const char *path) {
+  typedef aclError(*AclopStartDumpArgsFunc)(uint32_t, const char *);
+    static AclopStartDumpArgsFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclopStartDumpArgsFunc)GET_ASCEND_DUMP_FUNC(aclopStartDumpArgs);
+        if (func == nullptr) {
+            return ACL_ERROR_FEATURE_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclopStartDumpArgs");
+    return func(dumpType, path);
+}
+
+aclError AclopStopDumpArgs(uint32_t dumpType) {
+  typedef aclError(*AclopStopDumpArgsFunc)(uint32_t);
+    static AclopStopDumpArgsFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclopStopDumpArgsFunc)GET_ASCEND_DUMP_FUNC(aclopStopDumpArgs);
+        if (func == nullptr) {
+            return ACL_ERROR_FEATURE_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclopStopDumpArgs");
+    return func(dumpType);
+}
+
 } // namespace native
 } // namespace at_npu
