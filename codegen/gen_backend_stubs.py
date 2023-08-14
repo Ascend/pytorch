@@ -40,7 +40,8 @@ from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
-                           add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name)
+                           add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
+                           parse_opplugin_yaml)
 from codegen.custom_functions import parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch
 
 
@@ -315,6 +316,8 @@ def error_on_missing_kernels(
         kernel_def_file_path: str,
         op_plugin_kernel_def_file_path: str,
 ) -> None:
+    # Do not check when opplugin keeps two headers
+    return
     class_name: Optional[str] = backend_indices[backend_key].native_function_class_name()
     assert class_name is not None
 
@@ -376,10 +379,13 @@ def main() -> None:
     parser.add_argument(
         '--op_plugin_impl_path', type=str, default=None,
         help='path to the source C++ file containing kernel definitions in op_plugin')
+    parser.add_argument(
+        '--op_plugin_yaml_path', type=str, default=None,
+        help='path to the source yaml file containing kernel definitions in op_plugin')
     options = parser.parse_args()
 
     run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run,
-        options.impl_path, options.op_plugin_impl_path)
+        options.impl_path, options.op_plugin_impl_path, options.op_plugin_yaml_path)
 
 
 def gen_dispatcher_registrations(
@@ -401,7 +407,9 @@ def gen_dispatcher_registrations(
 #endif
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#ifdef USE_OPPLUGIN
+#ifdef USE_GEN_HEADER
+#include "op_plugin/OpInterface.h"
+#else
 #include "op_plugin/ops/OpInterface.h"
 #endif
 """
@@ -523,7 +531,7 @@ m.impl("${schema}", TORCH_FN(at::native::${kernel}));"""
 
 
 def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
-        impl_path: Optional[str], op_plugin_impl_path: Optional[str]) -> None:
+        impl_path: Optional[str], op_plugin_impl_path: Optional[str], op_plugin_yaml_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
     torchgen_path = get_torchgen_dir()
 
@@ -537,6 +545,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
     tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
     native_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/native_functions.yaml')
     parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, tags_yaml_path, source_yaml)
+    parse_opplugin_yaml(op_plugin_yaml_path)
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)

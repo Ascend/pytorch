@@ -3,7 +3,9 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#ifdef USE_OPPLUGIN
+#ifdef USE_GEN_HEADER
+#include "op_plugin/OpInterface.h"
+#else
 #include "op_plugin/ops/OpInterface.h"
 #endif
 

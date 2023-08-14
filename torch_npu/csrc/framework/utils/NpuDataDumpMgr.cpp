@@ -3,7 +3,11 @@
 #include <algorithm>
 #include <map>
 
+#ifdef USE_GEN_HEADER
+#include "op_plugin/OpInterface.h"
+#else
 #include "op_plugin/ops/OpInterface.h"
+#endif
 
 namespace at_npu {
 namespace native {
