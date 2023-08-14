@@ -22,24 +22,12 @@
 #include "torch_npu/csrc/framework/utils/AdvancedIndex.h"
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
-#include <third_party/acl/inc/op_proto/experiment_ops.h>
 
 namespace at_npu {
 namespace native {
 
 namespace 
 {
-  template <typename ge_op_type>
-  at_npu::native::DynamicInputRegFunc indexput_func =
-      [](DyNumAndIndex num_and_index,
-        std::string op_name) -> ge::OperatorPtr 
-        {
-          auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
-          ge_op->create_dynamic_input_byindex_indices(
-              num_and_index.front().first, num_and_index.front().second);
-          return ge_op;
-        };
-
   const std::string x_str = "x";
   const std::string value_str = "value";
   const std::string indexed_sizes_str = "indexed_sizes";
@@ -141,8 +129,7 @@ at::Tensor& index_put_aicore_nocheck(
     string input_name = "indices" +std::to_string(i);
     cmd.Input(all_defined_indices[i], input_name);
   }
-  cmd.DynamicInputReg(indexput_func<ge::op::IndexPutV2>, {{all_defined_indices.size(), 4}})
-      .Output(temp_self, x_str)
+  cmd.Output(temp_self, x_str)
       .Attr("accumulate", accumulate)
       .Run();
   if (self.scalar_type() == at::ScalarType::Half) {
@@ -204,8 +191,7 @@ at::Tensor& index_put_aicpu_nocheck(
     string input_name = "indices" +std::to_string(i);
     cmd.Input(all_defined_indices[i], input_name);
   }
-  cmd.DynamicInputReg(indexput_func<ge::op::IndexPutV2>, {{all_defined_indices.size(), 4}})
-      .Output(result, x_str)
+  cmd.Output(result, x_str)
       .Attr("_exclude_engines", aicore_str)
       .Attr("accumulate", accumulate)
       .Run();

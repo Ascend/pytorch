@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <third_party/acl/inc/op_proto/index_ops.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/AdvancedIndex.h"
@@ -21,14 +20,6 @@
 namespace at_npu {
 namespace native {
 namespace {
-DynamicInputRegFunc index_func =
-  [](DyNumAndIndex num_and_index, std::string op_name) -> ge::OperatorPtr {
-    auto ge_op = std::make_shared<ge::op::Index>(op_name.c_str());
-    ge_op->create_dynamic_input_byindex_indices(
-        num_and_index.front().first, num_and_index.front().second);
-    return ge_op;
-  };
-
   const std::string x_str = "x";
   const std::string indexed_sizes_str = "indexed_sizes";
   const std::string indexed_strides_str = "indexed_strides";
@@ -91,7 +82,6 @@ at::Tensor& index_out_nocheck_npu(
     std::string name = "indices" + std::to_string(i);
     cmd.Input(indices[i], name);
   }
-  cmd.DynamicInputReg(index_func, {{indices.size(), 3}});
   cmd.Output(result);
   if (!is_aicore) {
     cmd.Attr("_exclude_engines", aicore_str);

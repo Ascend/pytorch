@@ -26,10 +26,9 @@
 #include <torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h>
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
-#include <third_party/acl/inc/op_proto/array_ops.h>
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-
+#include <third_party/acl/inc/graph/operator_reg.h>
 #include <stack>
 
 // wait RECORD_HOST_FUNCTION to be added into plugin
@@ -301,7 +300,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
     auto op_ptr = data_node.value()->GetGeOp();
     if (data_node.value()->GetOpType() == "Data") {
       if (op_ptr == nullptr) {
-        data_node.value()->SetGeOp(std::make_shared<ge::op::Data>());
+        data_node.value()->SetGeOp(std::make_shared<ge::Operator>());
         op_ptr = data_node.value()->GetGeOp();
       }
       auto op_desc = ATenGeBridge::InferGeTenosrDesc(

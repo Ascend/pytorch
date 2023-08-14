@@ -17,8 +17,8 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include <third_party/acl/inc/graph/operator_factory.h>
+#include <third_party/acl/inc/graph/operator_reg.h>
 
-#include <third_party/acl/inc/op_proto/array_ops.h>
 
 namespace at_npu {
 namespace native {
@@ -163,9 +163,7 @@ ge::Operator ATenGeBridge::SetAndReturnGeOpConstInput(
       reinterpret_cast<uint8_t*>(cpu_tensor.data_ptr()),
       cpu_tensor.nbytes()};
 
-  auto const_op = std::make_shared<ge::op::Const>();
-  const_op->set_attr_value(ge_tenosr);
-  ge_op->SetInput(std::get<0>(const_input_tuple), *const_op, 0);
+  auto const_op = std::make_shared<ge::Operator>();
   return *const_op;
 }
 
