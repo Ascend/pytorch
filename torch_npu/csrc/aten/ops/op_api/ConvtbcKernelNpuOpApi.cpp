@@ -37,7 +37,7 @@ at::Tensor NPUNativeOpApiFunctions::conv_tbc(const at::Tensor &self, const at::T
   int64_t Wo = self.size(0) + 2 * pad - weight.size(0) + 1;
   c10::SmallVector<int64_t, SIZE> outputSize = {Wo, self.size(1), weight.size(2)};
   at::Tensor output = OpPreparation::ApplyTensorWithoutFormat(self, outputSize);
-  int8_t cube_math_type = CalcuOpUtil::GetCubeMathType(native::env::IsAllowConvHF32());
+  int8_t cube_math_type = CalcuOpUtil::GetCubeMathType(!native::env::IsForbidConvHF32());
   EXEC_NPU_CMD(aclnnConvTbc, self, weight, bias, pad, output, cube_math_type);
   return output;
 }
