@@ -11,13 +11,14 @@ namespace torch_npu {
 namespace profiler {
 constexpr uint64_t Level0 = ACL_PROF_TASK_TIME_L0 | ACL_PROF_ACL_API;
 constexpr uint64_t Level1 = Level0 | ACL_PROF_TASK_TIME | ACL_PROF_HCCL_TRACE | ACL_PROF_AICORE_METRICS;
-constexpr uint64_t Level2 = Level1 | ACL_PROF_AICPU | ACL_PROF_HCCL_TRACE | ACL_PROF_RUNTIME_API;
+constexpr uint64_t Level2 = Level1 | ACL_PROF_AICPU | ACL_PROF_RUNTIME_API;
 
 struct NpuTraceConfig {
   std::string trace_level;
   std::string metrics;
   bool npu_memory;
   bool l2_cache;
+  bool record_op_args;
 };
 
 class ProfilerMgr : public torch_npu::toolkit::profiler::Singleton<ProfilerMgr> {
@@ -49,6 +50,7 @@ private:
   static std::map<std::string, uint64_t> trace_level_map_;
   std::atomic<bool> report_enable_;
   std::atomic<bool> npu_trace_;
+  std::atomic<bool> record_op_args_;
   std::string path_;
   aclprofConfig *profConfig_;
   torch_npu::toolkit::profiler::DataDumper dataReceiver_;

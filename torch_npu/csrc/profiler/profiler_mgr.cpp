@@ -2,6 +2,8 @@
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+
 namespace torch_npu {
 namespace profiler {
 std::map<std::string, aclprofAicoreMetrics> ProfilerMgr::npu_metrics_map_ = {
@@ -24,6 +26,7 @@ std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
 ProfilerMgr::ProfilerMgr()
   : report_enable_(false),
     npu_trace_(false),
+    record_op_args_(false),
     profConfig_(nullptr) {}
 
 void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
@@ -83,6 +86,11 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
     dataReceiver_.Start();
     report_enable_.store(true);
   }
+  if (npu_config.record_op_args) {
+    record_op_args_.store(true);
+    const std::string op_dump_path = torch_npu::toolkit::profiler::Utils::DirName(path_) + "/OP_ARGS";
+    at_npu::native::AclopStartDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS, op_dump_path.c_str());
+  }
 }
 
 void ProfilerMgr::Stop() {
@@ -94,6 +102,10 @@ void ProfilerMgr::Stop() {
   report_enable_.store(false);
   if (npu_trace_.load() == true) {
     at_npu::native::AclProfilingStop(profConfig_);
+  }
+  if (record_op_args_.load() == true) {
+    at_npu::native::AclopStopDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS);
+    record_op_args_.store(false);
   }
 }
 

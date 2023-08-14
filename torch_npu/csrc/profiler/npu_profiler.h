@@ -19,15 +19,17 @@ enum class NpuActivityType {
 };
 
 struct ExperimentalConfig {
-  ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE", bool l2_cache = false)
+  ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE", bool l2_cache = false, bool record_op_args = false)
     : trace_level(level),
       metrics(metrics),
-      l2_cache(l2_cache) {}
+      l2_cache(l2_cache),
+      record_op_args(record_op_args) {}
   ~ExperimentalConfig() = default;
 
   std::string trace_level;
   std::string metrics;
   bool l2_cache;
+  bool record_op_args;
 };
 
 struct NpuProfilerConfig {
