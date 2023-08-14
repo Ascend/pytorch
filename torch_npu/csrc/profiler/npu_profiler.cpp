@@ -212,7 +212,8 @@ void startNpuProfiler(const NpuProfilerConfig &config,
   c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
   bool cpu_trace = activities.count(NpuActivityType::CPU);
   ExperimentalConfig experimental_config = config.experimental_config;
-  NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics, config.profile_memory, experimental_config.l2_cache};
+  NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
+    config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args};
   ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
   if (cpu_trace) {
     registerCallback(scopes);
