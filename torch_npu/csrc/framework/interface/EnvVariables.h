@@ -30,8 +30,7 @@ bool CheckProfilingEnable();
 bool CheckMmBmmNDDisable();
 bool CheckForbidInternalFormat();
 bool IsAllowFP32ToFP16();
-bool IsMustKeepOriginDtype();
-bool IsAllowConvHF32();
+bool IsForbidConvHF32();
 bool IsAllowMatmulHF32();
 
 } // namespace env
