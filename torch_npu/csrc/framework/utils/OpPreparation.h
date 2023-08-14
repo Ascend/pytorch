@@ -100,6 +100,10 @@ public:
                                              bool keep_format = false);
   static at::Tensor apply_tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format,
                                              bool keep_format = false);
+  static at::Tensor apply_tensor_without_format(const at::Tensor &src);
+  static at::Tensor apply_tensor_without_format(const at::Tensor &src, c10::IntArrayRef sizes);
+  static at::Tensor apply_tensor_without_format(c10::IntArrayRef sizes, const c10::TensorOptions &options);
+  static at::Tensor unsafe_empty_workspace(uint64_t size);
   static at::Tensor apply_tensor_with_sizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);
   // used to check cpu scalar
   static bool is_cpu_scalar(const at::Tensor &tensor);
