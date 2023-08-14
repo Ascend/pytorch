@@ -1556,6 +1556,11 @@ supported:
    op_api: True
  - func: zeros_like
    op_api: False
+ - silu
+ - silu_
+ - silu.out
+ - silu_backward.grad_input
+ - silu_backward
 
 autograd:
   - func: matmul
@@ -1570,9 +1575,6 @@ autograd:
     op_api: False
   - func: elu_
     op_api: False
-  - silu
-  - silu_
-  - silu.out
   - func: binary_cross_entropy_with_logits_backward
     op_api: False
   - func: selu
