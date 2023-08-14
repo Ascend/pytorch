@@ -421,6 +421,38 @@ namespace at_npu
           options.device_opt(), options.pinned_memory_opt(), format);
     }
 
+    inline at::Tensor apply_tensor_use_empty(c10::IntArrayRef sizes, const c10::TensorOptions &options) {
+      return NPUNativeFunctions::empty(
+          sizes, options.dtype().toScalarType(), c10::nullopt,
+          at::Device(at_npu::key::NativeDeviceType), false, c10::MemoryFormat::Contiguous);
+    }
+
+    at::Tensor OpPreparation::apply_tensor_without_format(const at::Tensor &src) {
+      return apply_tensor_use_empty(src.sizes(), src.options());
+    }
+
+    at::Tensor OpPreparation::apply_tensor_without_format(const at::Tensor &src, c10::IntArrayRef sizes) {
+      return apply_tensor_use_empty(sizes, src.options());
+    }
+
+    at::Tensor OpPreparation::apply_tensor_without_format(c10::IntArrayRef sizes, const c10::TensorOptions &options) {
+      return apply_tensor_use_empty(sizes, options);
+    }
+
+    at::Tensor OpPreparation::unsafe_empty_workspace(uint64_t workspace_size) {
+      ASCEND_LOGD("Alloc workspace %zu bytes unsafely.", workspace_size);
+      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+      c10::intrusive_ptr<c10::StorageImpl> storage_impl =
+      c10::make_intrusive<torch_npu::NPUStorageImpl>(
+        c10::StorageImpl::use_byte_size_t(), workspace_size,
+        allocator->allocate(workspace_size), allocator, true);
+      static auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(at::kByte));
+      auto tensor = at::detail::make_tensor<torch_npu::NPUTensorImpl>(
+        storage_impl, storage_impl, dtype);
+      tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
+      return tensor;
+    }
+
     bool OpPreparation::is_cpu_scalar(const at::Tensor &tensor) {
       if (tensor.dim() == 0 && !at_npu::key::isDeviceTensor(tensor)) {
         return true;
