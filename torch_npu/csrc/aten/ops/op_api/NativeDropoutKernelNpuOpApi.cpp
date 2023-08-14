@@ -17,6 +17,8 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
+#include "torch_npu/csrc/core/npu/SecondaryStreamGuard.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 namespace at_npu {
 namespace native {
@@ -24,9 +26,19 @@ static const int64_t BIT_NUMBER = 128;
 static const int64_t UINT8_BIT_NUMBER = 8;
 
 static std::tuple<at::Tensor, at::Tensor> _dropout_npu(const at::Tensor& self, double p, bool train) {
-  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
   int64_t length = (self.numel() + BIT_NUMBER - 1) / BIT_NUMBER * BIT_NUMBER / UINT8_BIT_NUMBER;
-  at::Tensor mask = OpPreparation::ApplyTensorWithoutFormat({length}, self.options().dtype(at::kByte));
+  at::Tensor result;
+  at::Tensor mask;
+
+  if (!train) {
+    result = self.clone();
+    mask = at::ones({length}, self.options().dtype(at::kByte));
+    return std::tie(result, mask);
+  }
+
+  result = OpPreparation::ApplyTensorWithoutFormat(self);
+  mask = OpPreparation::ApplyTensorWithoutFormat({length}, self.options().dtype(at::kByte));
+  at::IntArrayRef shapeArray(self.sizes());
 
   // DropOutGenMask use seed and seed1 to generator a seed, like this:
   //  seed1   seed
@@ -40,13 +52,27 @@ static std::tuple<at::Tensor, at::Tensor> _dropout_npu(const at::Tensor& self, d
   const int64_t seed = pair.first;
   const int64_t offset = pair.second;
 
-  EXEC_NPU_CMD(aclnnDropout, self, p, train, seed, offset, result, mask);
+  auto original_stream = c10_npu::getCurrentNPUStream();
+  {
+    // During the life cycle of this raii instance, the calcu stream is set as the
+    // secondary stream, and tasks are distributed to the secondary stream. At the
+    // same time, according to the one-stream-one-pool principle, memory is also
+    // alloced from the pool of the secondary stream.
+    c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
+    EXEC_NPU_CMD(aclnnDropoutGenMask, shapeArray, p, seed, offset, mask);
+  }
+  // When tasks on multiple streams read and write the same block of memory,
+  // recordStream needs to be called to ensure the correctness of memory reuse.
+  c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
+
+  EXEC_NPU_CMD(aclnnDropoutDoMask, self, mask, p, result);
   return std::tie(result, mask);
 }
 
 std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_dropout(const at::Tensor& input, double p,
                                                                            c10::optional<bool> train) {
-  DO_COMPATIBILITY(aclnnDropout, NPUNativeFunctions::native_dropout(input, p, train));
+  DO_COMPATIBILITY(aclnnDropoutGenMask, NPUNativeFunctions::native_dropout(input, p, train));
+  DO_COMPATIBILITY(aclnnDropoutDoMask, NPUNativeFunctions::native_dropout(input, p, train));
 
   bool dropout_train = !train.has_value() ? true : train.value();
   return _dropout_npu(input, p, dropout_train);
@@ -54,10 +80,11 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::native_dropout(const
 
 at::Tensor NPUNativeOpApiFunctions::native_dropout_backward(const at::Tensor& grad_output, const at::Tensor& mask,
                                                             double scale) {
-  DO_COMPATIBILITY(aclnnDropoutBackward, NPUNativeFunctions::native_dropout_backward(grad_output, mask, scale));
+  DO_COMPATIBILITY(aclnnDropoutDoMask, NPUNativeFunctions::native_dropout_backward(grad_output, mask, scale));
 
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(grad_output);
-  EXEC_NPU_CMD(aclnnDropoutBackward, grad_output, mask, scale, result);
+  double p = (scale == 0.0) ? 1 : (1 - 1 / scale);
+  EXEC_NPU_CMD(aclnnDropoutDoMask, grad_output, mask, p, result);
   return result;
 }
 
