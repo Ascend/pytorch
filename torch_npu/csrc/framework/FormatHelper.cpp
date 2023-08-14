@@ -125,7 +125,7 @@ namespace at_npu
       return GetStorageSizes(format, ori_size);
     }
 
-    bool FormatHelper::is_op_input_base_format(const at::Tensor &tensor) {
+    bool FormatHelper::IsOpInputBaseFormat(const at::Tensor &tensor) {
       if (!torch_npu::utils::is_npu(tensor)) {
         return true;
       }
@@ -133,25 +133,25 @@ namespace at_npu
       return desc.origin_format_ == desc.npu_format_;
     }
 
-    bool FormatHelper::is_op_input_base_format(
+    bool FormatHelper::IsOpInputBaseFormat(
         const c10::optional<at::Tensor> &tensor) {
       if (!tensor.has_value()) {
         return true;
       }
-      return is_op_input_base_format(tensor.value());
+      return IsOpInputBaseFormat(tensor.value());
     }
 
-    bool FormatHelper::is_op_input_base_format(const c10::List<c10::optional<at::Tensor>> &tensors) {
+    bool FormatHelper::IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors) {
       const auto &iter =
           std::find_if(tensors.begin(), tensors.end(), 
-                       [](const auto &tensor) { return !is_op_input_base_format(tensor); });
+                       [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
       return iter == tensors.end();
     }
 
-    bool FormatHelper::is_op_input_base_format(const at::TensorList &tensors) {
+    bool FormatHelper::IsOpInputBaseFormat(const at::TensorList &tensors) {
       const auto &iter =
           std::find_if(tensors.begin(), tensors.end(), 
-                       [](const auto &tensor) { return !is_op_input_base_format(tensor); });
+                       [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
       return iter == tensors.end();
     }
 

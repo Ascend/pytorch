@@ -39,10 +39,10 @@ namespace at_npu
       static FormatShape GetStorageSizes(const torch_npu::NPUStorageDesc &desc);
       static at::Tensor& unsafe_format_cast(at::Tensor& self, int64_t self_format, int64_t result_format);
 
-      static bool is_op_input_base_format(const at::Tensor &tensor);
-      static bool is_op_input_base_format(const c10::optional<at::Tensor> &tensor);
-      static bool is_op_input_base_format(const c10::List<c10::optional<at::Tensor>> &tensors);
-      static bool is_op_input_base_format(const at::TensorList &tensors);
+      static bool IsOpInputBaseFormat(const at::Tensor &tensor);
+      static bool IsOpInputBaseFormat(const c10::optional<at::Tensor> &tensor);
+      static bool IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors);
+      static bool IsOpInputBaseFormat(const at::TensorList &tensors);
 
     private:
       static bool IsPadded(aclFormat format);
