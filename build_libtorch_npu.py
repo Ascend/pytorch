@@ -13,7 +13,7 @@ from distutils.version import LooseVersion
 from distutils import file_util
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+VERSION = '2.1.0'
 
 def which(thefile):
     path = os.environ.get("PATH", os.defpath).split(os.pathsep)
@@ -138,6 +138,7 @@ def run_cmake():
         '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
         '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
+        '-DTORCH_VERSION=' + VERSION,
         '-DBUILD_LIBTORCH=' + "ON"]
 
     if check_opplugin_valid(BASE_DIR):

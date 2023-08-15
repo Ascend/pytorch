@@ -160,14 +160,14 @@ if(DEFINED PYTORCH_INSTALL_DIR)
   include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/api/include)
   include_directories(${PYTORCH_INSTALL_DIR}/include/torch/csrc/distributed)
 else()
-  message(FATAL_ERROR, "Cannot find installed PyTorch directory")
+  message(FATAL_ERROR "Cannot find installed PyTorch directory")
 endif()
 
 # Set Python include dir
 if(DEFINED PYTHON_INCLUDE_DIR)
   include_directories(${PYTHON_INCLUDE_DIR})
 else()
-  message(FATAL_ERROR, "Cannot find installed Python head file directory")
+  message(FATAL_ERROR "Cannot find installed Python head file directory")
 endif()
 
 # sources
