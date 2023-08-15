@@ -56,14 +56,11 @@ class TestMatMul(TestCase):
         K_range = 1e3 if (K<=1e3) else K_range
         K_range = 1e2 if (K<=1e2) else K_range
 
-        prec = 1e-4
-        prec16= 1e-3
-        if x.dtype == np.float16:
-            prec16 = getFp16Precsion(D_range, K_range)
-        if x.dtype == np.float32:
+        prec16 = 1e-3
+        if x.dtype == np.float16 or x.dtype == np.float32:
             prec16 = getFp16Precsion(D_range, K_range)
 
-        self.assertRtolEqual(x, y, prec, prec16)
+        self.assertRtolEqual(x, y, prec16, prec16)
 
     def op_exec_cpu(self, mat1, mat2):
         input1 = mat1
@@ -188,6 +185,15 @@ class TestMatMul(TestCase):
             [[np.float16, 2, [1, 1, 10, 2, 16, 16]], [np.float16, 2, [1, 10, 1, 16, 16]]],
             [[np.float16, 2, [1, 11, 10, 10, 16, 5]], [np.float16, 2, [1, 10, 1, 5, 16]]],
             [[np.float16, 2, [400, 11, 10, 10, 16, 5]], [np.float16, 2, [1, 10, 1, 5, 16]]],
+        ]
+        self.matmul_backward_result(shape_format)
+        torch.npu.matmul.allow_hf32 = False
+
+    def test_matmul_backward_shape_diff_input_types(self):
+        torch.npu.matmul.allow_hf32 = True
+        shape_format = [
+            [[np.float16, 2, [1, 7, 10]], [np.float32, 2, [5, 10, 15]]],
+            [[np.float32, 2, [68, 75, 16]], [np.float16, 2, [16, 43]]],
         ]
         self.matmul_backward_result(shape_format)
         torch.npu.matmul.allow_hf32 = False
