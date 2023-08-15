@@ -73,3 +73,16 @@ class PathManager:
         for sub_file in sub_files:
             file_list.append(os.path.join(_path, sub_file))
         return file_list
+
+    @classmethod
+    def get_analyze_all_file(cls, profiler_path: str, analyze: str) -> list:
+        file_list = []
+        _path = os.path.join(profiler_path, analyze)
+        if not os.path.isdir(_path):
+            return file_list
+        sub_files = os.listdir(os.path.realpath(_path))
+        if not sub_files:
+            return file_list
+        for sub_file in sub_files:
+            file_list.append(os.path.join(_path, sub_file))
+        return file_list

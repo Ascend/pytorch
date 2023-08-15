@@ -45,7 +45,7 @@ class NpuProfCreator:
     def make_dir(cls, target_path: str) -> any:
         if not os.path.isdir(target_path):
             try:
-                os.makedirs(target_path, exist_ok=True)
+                os.makedirs(target_path, mode=Constant.DIR_AUTHORITY, exist_ok=True)
             except Exception:
                 raise RuntimeError("Can't create directory: " + target_path)
 
