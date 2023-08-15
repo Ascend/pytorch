@@ -39,9 +39,7 @@ class HcomAllReduceTest(TestCase):
         dist_group = init_pg(rank, world_size)
         dst = 0
         input1 = input1.npu()
-        torch.npu.enable_graph_mode()
         dist_group.all_reduce(input1)
-        torch.npu.disable_graph_mode()
         c2p.put((rank, dst, input1.cpu()))
 
     def _test_multiprocess(self, f, init_pg, expected, input1, world_size):
@@ -81,6 +79,24 @@ class HcomAllReduceTest(TestCase):
                     expected += exp_input
                 self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
                                         HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_all_reduce_int64(self):
+        ranks = [4, 8]
+        dtype_list = [np.int64]
+        format_list = [0, 2]
+        shape_format = [
+            [i, j, [2, 3, 16]] for i in dtype_list for j in format_list
+        ]
+        for world_size in ranks:
+            for shape in shape_format:
+                exp_input, input1 = create_common_tensor(shape, -10, 10)
+                expected = 0
+                for _ in range(world_size):
+                    expected += exp_input
+                self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
+                                        HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
+
 
 if __name__ == '__main__':
     run_tests()

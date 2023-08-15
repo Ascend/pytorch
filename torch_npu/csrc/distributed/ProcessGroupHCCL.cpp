@@ -142,7 +142,8 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input) {
 void checkSupportedDataTypeOfAllReduce(HcclDataType type) {
   static std::set <HcclDataType> allReduceSupportedDataTypes = {HCCL_DATA_TYPE_INT8, HCCL_DATA_TYPE_INT16,
                                                                 HCCL_DATA_TYPE_INT32, HCCL_DATA_TYPE_FP16,
-                                                                HCCL_DATA_TYPE_FP32, HCCL_DATA_TYPE_BFP16};
+                                                                HCCL_DATA_TYPE_FP32, HCCL_DATA_TYPE_BFP16,
+                                                                HCCL_DATA_TYPE_INT64};
   TORCH_CHECK(allReduceSupportedDataTypes.count(type) != 0,
               "HCCL AllReduce & Reduce: Unsupported data type ",
               getHcclDataTypeSerialString(type));
