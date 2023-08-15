@@ -1,6 +1,10 @@
 #include <ATen/ATen.h>
 
+#ifdef USE_GEN_HEADER
+#include "op_plugin/OpInterface.h"
+#else
 #include "op_plugin/ops/OpInterface.h"
+#endif
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"

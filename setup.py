@@ -119,7 +119,7 @@ def get_pytorch_dir():
 
 def generate_bindings_code(base_dir):
     python_execute = sys.executable
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute, VERSION]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -142,10 +142,17 @@ def check_opplugin_valid(base_dir):
     return os.path.exists(op_plugin_path)
 
 
+def check_opplugin_codegen(base_dir):
+    # Use the generated OpInterface.h if path of gencode.sh in op-plugin is valid
+    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/gencode.sh')
+    return os.path.exists(op_plugin_path)
+
+
 def check_torchair_valid(base_dir):
     # build with submodule of torchair, if path of torchair is valid
     torchair_path = os.path.join(base_dir, 'third_party/torchair/torchair')
     return os.path.exists(torchair_path)
+
 
 def CppExtension(name, sources, *args, **kwargs):
     r'''
@@ -240,6 +247,8 @@ class CPPLibBuild(build_clib, object):
 
         if check_opplugin_valid(BASE_DIR):
             cmake_args.append('-DBUILD_OPPLUGIN=on')
+            if check_opplugin_codegen(BASE_DIR):
+                cmake_args.append('-DBUILD_NEW_HEADER=on')
 
         if check_torchair_valid(BASE_DIR):
             cmake_args.append('-DBUILD_TORCHAIR=on')

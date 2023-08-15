@@ -28,6 +28,7 @@ from torchgen.model import (
     is_cuda_dispatch_key,
     NativeFunction,
     NativeFunctionsGroup,
+    FunctionSchema,
 )
 from torchgen.api import cpp
 from torchgen.api.translate import translate
@@ -62,6 +63,52 @@ def parse_npu_yaml(custom_path: str) -> Dict:
         _set_wrap_impl_state(x)
 
     return source_es
+
+
+def parse_opplugin_yaml(custom_path: str) -> Dict:
+    if not os.path.exists(custom_path):
+        return
+
+    from io import StringIO
+    f_str = StringIO()
+    with open(custom_path, 'r') as f:
+        for line in f:
+            if ':' not in line:
+                continue
+            f_str.write(line)
+
+    f_str.seek(0)
+    source_es = yaml.safe_load(f_str)
+
+    custom = source_es.pop('custom', [])
+    if custom is None:
+        custom = []  # Allow an empty list of supported ops
+    official = source_es.pop('official', [])
+    if official is None:
+        official = []  # Allow an empty list of supported ops
+
+    support_ops = custom + official
+
+    symint = source_es.pop("symint", [])
+    if symint is None:
+        symint = []
+    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]
+    symint_set = set([str(FunctionSchema.parse(op).name) for op in symint])
+
+    global GLOBAL_STRUCTURED_OP_INFO_CACHE
+    for x in support_ops:
+        funcs = x.get("func", None)
+        assert isinstance(funcs, str), f'not a str : {funcs}'
+        func = FunctionSchema.parse(funcs)
+        wrap_name = cpp.name(func)
+        op_key = str(func.name)
+        if op_key in symint_set:
+            wrap_name += "_symint"
+        cur_wrap_name = GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
+        if cur_wrap_name and cur_wrap_name != wrap_name:
+            print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
+                  f"with {wrap_name} being used as the actual wrap_name")
+        GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
 
 
 def rename_privateuse1_dispatch_key():
