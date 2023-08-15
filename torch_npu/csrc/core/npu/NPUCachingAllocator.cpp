@@ -226,78 +226,138 @@ class CachingAllocatorConfig {
   static size_t max_split_size() {
     return instance().m_max_split_size;
   }
+
   static double garbage_collection_threshold() {
     return instance().m_garbage_collection_threshold;
   }
+
+  static CachingAllocatorConfig &instance() {
+    static CachingAllocatorConfig *s_instance = ([]() {
+      auto inst = new CachingAllocatorConfig();
+      const char* env = getenv("PYTORCH_NPU_ALLOC_CONF");
+      inst->parseArgs(env);
+      return inst;
+    })();
+    return *s_instance;
+  }
+
+  void parseArgs(const char* env);
 
  private:
 
   size_t m_max_split_size;
   double m_garbage_collection_threshold;
 
-  static CachingAllocatorConfig &instance() {
-    static CachingAllocatorConfig *s_instance = ([]() {
-      auto inst = new CachingAllocatorConfig();
-      inst->parseArgs();
-      return inst;
-    })();
-    return *s_instance;
-  }
-
   CachingAllocatorConfig() 
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0) {}
 
-  void parseArgs() {
-      const char *val = getenv("PYTORCH_NPU_ALLOC_CONF");
-      if (val != nullptr) {
-        const std::string config(val);
-        std::regex exp("[\\s,]+");
-        std::sregex_token_iterator it(config.begin(), config.end(), exp, -1);
-        std::sregex_token_iterator end;
-        std::vector<std::string> options(it, end);
-
-        for (auto option : options) {
-          std::regex exp2("[:]+");
-          std::sregex_token_iterator it2(option.begin(), option.end(), exp2, -1);
-          std::sregex_token_iterator end2;
-          std::vector<std::string> kv(it2, end2);
-          if (kv.size() >= 2) {
-            /* Maximum split size in MB.  Limited to large size blocks */
-            if (kv[0].compare("max_split_size_mb") == 0) {
-              size_t val2 = stoi(kv[1]);
-              TORCH_CHECK(val2 > kLargeBuffer / (1024 * 1024),
-                  "CachingAllocator option max_split_size_mb too small, must be > ",
-                  kLargeBuffer / (1024 * 1024),
-                  "");
-              val2 = std::max(val2, kLargeBuffer / (1024 * 1024));
-              val2 = std::min(val2, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
-              m_max_split_size = val2 * 1024 * 1024;
-            } else if (kv[0].compare("garbage_collection_threshold") == 0) {
-              /*
-              * Perform garbage collection of NPU memory blocks to avoid
-              * triggering expensive sync-and-reclaim-all operation. Upon setting
-              * the threshold (e.g., 0.8), the allocator will start reclaiming
-              * blocks if NPU memory capacity usage exceeds the threshold (i.e.,
-              * 80% of total memory).
-              * Values 0.0 and 1.0 are not allowed as they are less meaningful.
-              */
-              double val2 = stod(kv[1]);
-              TORCH_CHECK(
-                  val2 > 0,
-                  "garbage_collect_threshold too small, set it 0.0~1.0");
-              TORCH_CHECK(
-                  val2 < 1.0,
-                  "garbage_collect_threshold too big, set it 0.0~1.0");
-              m_garbage_collection_threshold = val2;
-            } else {
-              TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", kv[0]);
-            }
-          }
-        }
-      }
-    }
+  void lexArgs(const char* env, std::vector<std::string>& config);
+  void consumeToken(
+      const std::vector<std::string>& config,
+      size_t i,
+      const char c);
+  size_t parseMaxSplitSize(const std::vector<std::string>& config, size_t i);
+  size_t parseGarbageCollectionThreshold(
+      const std::vector<std::string>& config,
+      size_t i);
 };
+
+void CachingAllocatorConfig::lexArgs(
+    const char* env,
+    std::vector<std::string>& config) {
+  std::vector<char> buf;
+
+  size_t env_length = strlen(env);
+  for (size_t i = 0; i < env_length; i++) {
+    if (env[i] == ',' || env[i] == ':' || env[i] == '[' || env[i] == ']') {
+      if (!buf.empty()) {
+        config.emplace_back(buf.begin(), buf.end());
+        buf.clear();
+      }
+      config.emplace_back(1, env[i]);
+    } else if (env[i] != ' ') {
+      buf.emplace_back(static_cast<char>(env[i]));
+    }
+  }
+  if (!buf.empty()) {
+    config.emplace_back(buf.begin(), buf.end());
+  }
+}
+
+void CachingAllocatorConfig::consumeToken(
+    const std::vector<std::string>& config,
+    size_t i,
+    const char c) {
+  TORCH_CHECK(
+      i < config.size() && config[i].compare(std::string(1, c)) == 0,
+      "Error parsing CachingAllocator settings, expected ", c);
+}
+
+size_t CachingAllocatorConfig::parseMaxSplitSize(
+    const std::vector<std::string>& config,
+    size_t i) {
+  consumeToken(config, ++i, ':');
+  if (++i < config.size()) {
+    size_t val1 = stoi(config[i]);
+    TORCH_CHECK(
+        val1 > kLargeBuffer / (1024 * 1024),
+        "CachingAllocator option max_split_size_mb too small, must be > ",
+        kLargeBuffer / (1024 * 1024));
+    val1 = std::max(val1, kLargeBuffer / (1024 * 1024));
+    val1 = std::min(val1, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
+    m_max_split_size = val1 * 1024 * 1024;
+  } else {
+    TORCH_CHECK(false, "Error, expecting max_split_size_mb value");
+  }
+  return i;
+}
+
+size_t CachingAllocatorConfig::parseGarbageCollectionThreshold(
+    const std::vector<std::string>& config,
+    size_t i) {
+  consumeToken(config, ++i, ':');
+  if (++i < config.size()) {
+    double val1 = stod(config[i]);
+    TORCH_CHECK(
+        val1 > 0, "garbage_collect_threshold too small, set it 0.0~1.0");
+    TORCH_CHECK(
+        val1 < 1.0, "garbage_collect_threshold too big, set it 0.0~1.0");
+    m_garbage_collection_threshold = val1;
+  } else {
+    TORCH_CHECK(
+        false, "Error, expecting garbage_collection_threshold value");
+  }
+  return i;
+}
+
+void CachingAllocatorConfig::parseArgs(const char* env) {
+  // If empty, set the default values
+  m_max_split_size = std::numeric_limits<size_t>::max();
+  m_garbage_collection_threshold = 0;
+
+  if (env == nullptr) {
+    return;
+  }
+
+  std::vector<std::string> config;
+  lexArgs(env, config);
+
+  for (size_t i = 0; i < config.size(); i++) {
+    if (config[i].compare("max_split_size_mb") == 0) {
+      i = parseMaxSplitSize(config, i);
+    } else if (config[i].compare("garbage_collection_threshold") == 0) {
+      i = parseGarbageCollectionThreshold(config, i);
+    } else {
+      TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i]);
+    }
+
+    if (i + 1 < config.size()) {
+      consumeToken(config, ++i, ',');
+    }
+  }
+}
+
 
 class DeviceCachingAllocator {
 
@@ -1051,31 +1111,6 @@ class DeviceCachingAllocator {
       ++it;
       if (!block->prev && !block->next) {
         release_block(block);
-      }
-    }
-  }
-
-  void free_blocks(BlockPool& blocks) {
-    // Frees all non-split blocks
-    auto it = blocks.blocks.begin();
-    while (it != blocks.blocks.end()) {
-      Block* block = *it;
-      if (!block->prev && !block->next) {
-        aclrtFree((void*)block->ptr);
-        total_allocated_memory -= block->size;
-
-        StatTypes stat_types = {false};
-        stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-        stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
-        update_stat_array(stats.segment, -1, stat_types);
-        update_stat_array(stats.reserved_bytes, -block->size, stat_types);
-        ASCEND_LOGD("pta_memory acl_free: free_size = %zu", block->size);
-        auto cur = it;
-        ++it;
-        blocks.blocks.erase(cur);
-        delete block;
-      } else {
-        ++it;
       }
     }
   }
