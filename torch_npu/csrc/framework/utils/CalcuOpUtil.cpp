@@ -488,7 +488,7 @@ bool CalcuOpUtil::IsTransposeBothInnerAxis(const at::Tensor &self, const at::Ten
          mat2_inner_axis > kInnerAxisMaxLimit && mat2_outer_axis <= kInnerAxisMaxLimit;
 }
 
-void CalcuOpUtil::InsertInputPad(at::Tensor &self, at::Tensor &mat2) {
+bool CalcuOpUtil::InsertInputPad(at::Tensor &self, at::Tensor &mat2) {
   bool is_self_trans = IsTransposeLastTwoDims(self);
   bool is_mat2_trans = IsTransposeLastTwoDims(mat2);
   int64_t m_dim = self.size(-2);
@@ -520,7 +520,9 @@ void CalcuOpUtil::InsertInputPad(at::Tensor &self, at::Tensor &mat2) {
     mat2 = NPUNativeFunctions::constant_pad_nd(mat2, mat2_pad, 0);
     self = is_self_trans ? self.transpose(-1, -2) : self;
     mat2 = is_mat2_trans ? mat2.transpose(-1, -2) : mat2;
+    return true;
   }
+  return false;
 }
 
 int64_t CalcuOpUtil::Ceil(int64_t x, int64_t y) {

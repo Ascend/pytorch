@@ -153,31 +153,38 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self, const at::Tensor 
     is_transpose_self = !is_transpose_self;
     is_transpose_mat2 = !is_transpose_mat2;
   }
+  bool is_k_padded = false;
+  if (!is_transpose_self && !is_transpose_mat2) {
+    is_k_padded = CalcuOpUtil::InsertInputPad(contiguous_self, contiguous_mat2);
+  }
 
   int64_t m_dim = self.size(-2);
   int64_t k_dim = self.size(-1);
   int64_t n_dim = mat2.size(-1);
   int64_t data_size = elementSize(self.scalar_type());
+  int64_t self_inner_dim = is_self_trans_flex ? m_dim : k_dim;
+  int64_t self_outer_dim = is_self_trans_flex ? k_dim : m_dim;
+  int64_t mat2_inner_dim = is_mat2_trans_flex ? k_dim : n_dim;
+  int64_t mat2_outer_dim = is_mat2_trans_flex ? n_dim : k_dim;
   // 512B aligned shape is soc friendly
   const int64_t kPackage512 = 512;
   // 128 unaligned inner axis performs bad
   const int64_t kInnerDimAlignment = 128;
   // k_dim less than 512 is skipped
-  const int64_t kMinKDim = 2048;
-  // m/n should be less than 16384 to gain perf improvement
+  const int64_t kMinOuterDim = 2048;
+  // innser axis should be less than 16384 to gain perf improvement
   const int64_t kMaxInnerDim = 16384;
-  bool common_rule = k_dim > kMinKDim && ((k_dim * data_size) % kPackage512 == 0);
-  common_rule &= c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 && CalcuOpUtil::IsHalfFloatDtype(self);
-  bool self_cache_opti = is_self_trans_flex && (m_dim % kInnerDimAlignment != 0) && m_dim < kMaxInnerDim;
+  bool common_rule = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
+  common_rule &= !is_k_padded && CalcuOpUtil::IsHalfFloatDtype(self);
+  bool self_cache_opti = self_outer_dim > kMinOuterDim && ((self_outer_dim * data_size) % kPackage512 == 0);
+  self_cache_opti &= (self_inner_dim % kInnerDimAlignment != 0) && self_inner_dim < kMaxInnerDim;
   if (is_transpose_self || (self_cache_opti && common_rule)) {
     mm_insert_input_transpose(contiguous_self, is_self_trans_flex, is_self_trans_strict);
   }
-  bool mat2_cache_opti = !is_mat2_trans_flex && (n_dim % kInnerDimAlignment != 0) && n_dim < kMaxInnerDim;
+  bool mat2_cache_opti = mat2_outer_dim > kMinOuterDim && ((mat2_outer_dim * data_size) % kPackage512 == 0);
+  mat2_cache_opti &= (mat2_inner_dim % kInnerDimAlignment != 0) && mat2_inner_dim < kMaxInnerDim;
   if (is_transpose_mat2 || (mat2_cache_opti && common_rule)) {
     mm_insert_input_transpose(contiguous_mat2, is_mat2_trans_flex, is_mat2_trans_strict);
-  }
-  if (!is_transpose_self && !is_transpose_mat2) {
-    CalcuOpUtil::InsertInputPad(contiguous_self, contiguous_mat2);
   }
 
   mm_set_format_contiguous(contiguous_self, is_self_trans_flex, is_self_trans_strict);
