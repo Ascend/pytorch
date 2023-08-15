@@ -26,6 +26,10 @@ class GeMemoryRecordBean:
         return [Constant.GE, self.time_us, self.total_allocated, self.total_reserved, self.device_tag]
 
     @property
+    def component(self) -> str:
+        return self._data.get("Component")
+
+    @property
     def time_us(self) -> float:
         return float(self._data.get("Timestamp(us)"))
 
