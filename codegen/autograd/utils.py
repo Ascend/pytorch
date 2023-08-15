@@ -21,7 +21,8 @@ def parse_derivatives(
     autograd_dir: str,
     npu_native_functions_path: str
 ) :
-    derivatives_path = os.path.join(autograd_dir, 'derivatives.yaml')
+    derivatives_path = \
+    str(Path(autograd_dir).parents[1].joinpath('third_party/op-plugin/op_plugin/config/v2r1/derivatives.yaml'))
     differentiability_infos, _ = load_derivatives(
     derivatives_path, native_functions_path, tags_path)
     native_funcs = parse_native_and_custom_yaml(native_functions_path,
