@@ -2,6 +2,7 @@
 #include <torch/csrc/autograd/utils/wrap_outputs.h>
 
 #include "torch_npu/csrc/utils/TensorType.h"
+#include "torch_npu/csrc/utils/LazyInit.h"
 
 namespace torch_npu {
 namespace utils {
@@ -72,6 +73,7 @@ static PyObject * Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwarg
   if (tensor_type.is_npu && c10_npu::device_count() == 0) {
     throw unavailable_type(tensor_type);
   }
+  torch_npu::utils::npu_lazy_init();
   return THPVariable_Wrap(torch::utils::legacy_tensor_ctor(tensor_type.get_dispatch_key(),
                                                            tensor_type.get_scalar_type(),
                                                            args,
