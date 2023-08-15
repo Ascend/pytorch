@@ -59,7 +59,11 @@ class TLVDecoder:
             value = tlv_bytes[index: index + value_len]
             index += value_len
             if is_field:
-                result_data[type_id] = bytes.decode(value)
+                try:
+                    result_data[type_id] = bytes.decode(value)
+                except UnicodeDecodeError:
+                    warn(f"The collected data can't decode by bytes.decode: {value}")
+                    result_data[type_id] = 'N/A'
             else:
                 result_data.append(value)
         return result_data
