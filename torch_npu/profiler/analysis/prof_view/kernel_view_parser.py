@@ -41,13 +41,11 @@ class KernelViewParser(BaseViewParser):
         FileManager.create_csv_file(self._profiler_path, summary_data, self.KERNEL_VIEW, headers)
 
     def _project_map_for_headers(self, input_headers: list):
-            project_map_dict = {
-                self.SHOW_HEADERS[i]: self.KERNEL_BASE_HEADERS[i] for i in range(len(self.SHOW_HEADERS))
-            }
-            output_headers = []
-            for header in input_headers:
-                if header in project_map_dict:
-                    output_headers.append(project_map_dict.get(header))
-                else:
-                    output_headers.append(header)
-            return output_headers
+        project_map_dict = {self.SHOW_HEADERS[i]: self.KERNEL_BASE_HEADERS[i] for i in range(len(self.SHOW_HEADERS))}
+        output_headers = []
+        for header in input_headers:
+            if header in project_map_dict:
+                output_headers.append(project_map_dict.get(header))
+            else:
+                output_headers.append(header)
+        return output_headers
