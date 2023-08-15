@@ -14,5 +14,14 @@ class GlobalVar:
         for level1_node in root_node.child_node_list:
             if level1_node.is_profiler_step():
                 step_id = level1_node.event.name.split("#")[-1]
-                cls.step_range.append([step_id, level1_node.first_kernel_ts, level1_node.end_kernel_ts])
+                cls.step_range.append([step_id, level1_node.start_time, level1_node.end_time])
         cls.torch_op_tree_node = TreeBuilder.go_through_tree(root_node)
+
+    @classmethod
+    def get_step_id_list(cls):
+        if not cls.step_range:
+            return [{"step_id": None, "start_ts": 0, "end_ts": float('inf'), "comm_ops": {}}]
+        else:
+            return [{"step_id": steps[0], "start_ts": steps[1], "end_ts": steps[2], "comm_ops": {}}
+                    for steps in cls.step_range]
+

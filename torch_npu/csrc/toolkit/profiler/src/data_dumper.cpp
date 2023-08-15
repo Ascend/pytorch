@@ -97,7 +97,7 @@ void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
   for (auto &data : dataMap) {
     std::string dump_file = path_ + "/" + data.first;
     if (!Utils::IsFileExist(dump_file)) {
-      int new_file = creat(dump_file.c_str(), S_IRUSR|S_IWUSR|S_IROTH);
+      int new_file = creat(dump_file.c_str(), S_IRUSR|S_IWUSR|S_IRGRP);
       close(new_file);
     }
     file.open(dump_file, std::ios::out | std::ios::app | std::ios::binary);

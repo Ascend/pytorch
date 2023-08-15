@@ -29,6 +29,7 @@ class MemoryViewParser(BaseViewParser):
         self.pta_record_list = []
         self.ge_record_list = []
         self.memory_data = []
+        self.component_list = []
 
     @staticmethod
     def _check_whether_invalid_match(allocate_record: MemoryUseBean, release_record: MemoryUseBean):
@@ -84,7 +85,7 @@ class MemoryViewParser(BaseViewParser):
         self._add_pta_memory_data()
         self._add_pta_ge_record_data()
         FileManager.create_csv_file(self._profiler_path, self.memory_data, self.OPERATOR_MEMORY, self.HEADERS_OPERATOR)
-        FileManager.create_csv_file(self._profiler_path, self.size_record_list,
+        FileManager.create_csv_file(self._profiler_path, self.size_record_list + self.component_list,
                                     self.MEMORY_RECORD, self.HEADERS_RECORD)
 
     def _add_pta_ge_record_data(self):
@@ -133,6 +134,13 @@ class MemoryViewParser(BaseViewParser):
                 if record[0] == Constant.APP:
                     record.append(device_tag)
 
+    def split_component_ge(self, data: list):
+        for row in data:
+            if row.component == Constant.GE:
+                self.ge_record_list.append(row)
+            else:
+                self.component_list.append(row)
+
     def _add_memory_from_cann(self):
         """
         add ge memory and app memory from cann files
@@ -141,7 +149,7 @@ class MemoryViewParser(BaseViewParser):
         self.size_record_list.extend(self._get_data_from_file(npu_app_memory_file_set, NpuMemoryBean))
         self._add_device_type_for_npu(npu_app_memory_file_set)
         ge_memory_record_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_MEMORY_RECORD)
-        self.ge_record_list.extend(self._get_data_from_file(ge_memory_record_file, GeMemoryRecordBean, bean_list=True))
+        self.split_component_ge(self._get_data_from_file(ge_memory_record_file, GeMemoryRecordBean, bean_list=True))
         ge_op_memory_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_OPERATOR_MEMORY)
         self.memory_data.extend(self._get_data_from_file(ge_op_memory_file, GeOpMemoryBean))
 
