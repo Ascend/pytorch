@@ -120,7 +120,7 @@ at::Tensor matmul_mat1_backward(const at::Tensor self, const at::Tensor other,
 
   at::Tensor output;
   if (mat1.dim() == 2 && mat2.dim() > 2) { // mm
-    output = OpPreparation::ApplyTensorWithoutFormat(mat1);
+    output = OpPreparation::ApplyTensorWithoutFormat(mat1.sizes(), grad.options());
     mat2 = mat2.transpose(-2, -1);
     mat2 = mat2.reshape({-1, mat2.size(-1)});
     grad = grad.view({grad.size(-2), -1});
@@ -130,7 +130,7 @@ at::Tensor matmul_mat1_backward(const at::Tensor self, const at::Tensor other,
   } else { // bmm
     mat2 = mat2.transpose(-2, -1);
     auto expend_sizes = get_output_size(grad, mat2);
-    output = OpPreparation::ApplyTensorWithoutFormat(expend_sizes, mat1.options());
+    output = OpPreparation::ApplyTensorWithoutFormat(expend_sizes, grad.options());
     matmul_implement_npu(output, grad, mat2);
   }
 
@@ -160,7 +160,7 @@ at::Tensor matmul_mat2_backward(const at::Tensor self, const at::Tensor other,
 
   at::Tensor output;
   if (mat2.dim() == 2 && mat1.dim() > 2) { // mm
-    output = OpPreparation::ApplyTensorWithoutFormat(mat2);
+    output = OpPreparation::ApplyTensorWithoutFormat(mat2.sizes(), mat1.options());
     mat1 = mat1.reshape({-1, mat1.size(-1)});
     grad = grad.reshape({-1, grad.size(-1)});
     mat1 = mat1.transpose(-2, -1);
@@ -169,7 +169,7 @@ at::Tensor matmul_mat2_backward(const at::Tensor self, const at::Tensor other,
   } else { // bmm
     mat1 = mat1.transpose(-2, -1);
     auto expend_sizes = get_output_size(mat1, grad);
-    output = OpPreparation::ApplyTensorWithoutFormat(expend_sizes, mat2.options());
+    output = OpPreparation::ApplyTensorWithoutFormat(expend_sizes, mat1.options());
     matmul_implement_npu(output, mat1, grad);
   }
 
