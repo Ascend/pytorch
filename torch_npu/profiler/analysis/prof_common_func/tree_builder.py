@@ -40,8 +40,6 @@ class TreeBuilder:
         matched_child_node = root_node.match_child_node(enqueue_ts)
         if not matched_child_node:
             return
-        matched_child_node.update_first_kernel_ts(node_info_bean.kernel_min_ts)
-        matched_child_node.update_end_kernel_ts(node_info_bean.kernel_max_ts)
         node_queue = Queue()
         node_queue.put(matched_child_node)
         while not node_queue.empty():
