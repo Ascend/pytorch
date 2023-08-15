@@ -142,7 +142,8 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input) {
 void checkSupportedDataTypeOfAllReduce(HcclDataType type) {
   static std::set <HcclDataType> allReduceSupportedDataTypes = {HCCL_DATA_TYPE_INT8, HCCL_DATA_TYPE_INT16,
                                                                 HCCL_DATA_TYPE_INT32, HCCL_DATA_TYPE_FP16,
-                                                                HCCL_DATA_TYPE_FP32, HCCL_DATA_TYPE_BFP16};
+                                                                HCCL_DATA_TYPE_FP32, HCCL_DATA_TYPE_BFP16,
+                                                                HCCL_DATA_TYPE_INT64};
   TORCH_CHECK(allReduceSupportedDataTypes.count(type) != 0,
               "HCCL AllReduce & Reduce: Unsupported data type ",
               getHcclDataTypeSerialString(type));
@@ -855,18 +856,62 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
       });
 }
 
+#define ADDRESS_ALIGNMENT_BYTE 512
+at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) {
+  at::Tensor inter_tensors = at::reshape(tensors, {1, tensors.numel()});
+  if (tensors.element_size() == 0) {
+    return inter_tensors;
+  }
+
+  int64_t tensor_byte = tensors.numel() * tensors.element_size();
+  int64_t byte_add = (tensor_byte % ADDRESS_ALIGNMENT_BYTE == 0) ?
+                0 : (ADDRESS_ALIGNMENT_BYTE - tensor_byte % ADDRESS_ALIGNMENT_BYTE);
+  int64_t num_add = byte_add / tensors.element_size();
+  if (num_add != 0) {
+    bool transflag = false;
+    if (inter_tensors.scalar_type() == at::ScalarType::Bool) {
+      inter_tensors = at_npu::native::NPUNativeFunctions::npu_dtype_cast(inter_tensors, at::ScalarType::Int);
+      transflag = true;
+    }
+
+    inter_tensors = at_npu::native::NPUNativeFunctions::constant_pad_nd(inter_tensors, {0, num_add}, 0);
+
+    if (transflag == true) {
+      inter_tensors = at_npu::native::NPUNativeFunctions::npu_dtype_cast(inter_tensors, at::ScalarType::Bool);
+    }
+  }
+  return inter_tensors;
+}
+
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
     std::vector<std::vector<at::Tensor>>& outputTensors,
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts) {
   check_npu_tensors_different_devices(inputTensors);
   auto inputTensors_ = cast_to_origin_format(inputTensors);
+
+  int outsize = outputTensors[0].size();
+  uint64_t output_nums[outsize];
+  for (const auto i : c10::irange(outputTensors.size())) {
+    for (const auto j : c10::irange(outsize)) {
+      output_nums[j] = outputTensors[0][j].numel();
+    }
+  }
+
+  std::vector<at::Tensor> byte_alignment_inputTensors_ = {byte_alignment(inputTensors_[0])};
+  std::vector<at::Tensor> byte_alignment_outputTensors_;
+  for (int i = 0; i < outputTensors[0].size(); i++) {
+    byte_alignment_outputTensors_.push_back(byte_alignment(outputTensors[0][i]));
+  }
+  std::vector<std::vector<at::Tensor>> byte_alignment_outputTensors;
+  byte_alignment_outputTensors.push_back(byte_alignment_outputTensors_);
+
   auto outputFlattened =
-      flatten_for_scatter_gather(outputTensors, inputTensors, size_);
+      flatten_for_scatter_gather(byte_alignment_outputTensors, byte_alignment_inputTensors_, size_);
   check_npu_tensors_different_devices(outputFlattened);
 
   return collective(
-      inputTensors_, outputFlattened,
+      byte_alignment_inputTensors_, outputFlattened,
       [&](at::Tensor& input, at::Tensor& output, HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
@@ -911,8 +956,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
                   outputTensors[i][j].storage().getWeakStorageImpl(),
                   hcclStreams[i]));
             }
-
-            outputTensors[i][j].copy_(outputFlattened[i][j], true);
+            at::Tensor output_tensor = outputFlattened[i][j].slice(1, 0, output_nums[j]);
+            at::Tensor output_tensor_shape = at::reshape(output_tensor, outputTensors[i][j].sizes());
+            outputTensors[i][j].copy_(output_tensor_shape, true);
           }
         }
       });
