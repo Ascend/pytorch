@@ -125,7 +125,7 @@ namespace at_npu
           true);
 
       auto tensor =
-          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, storage_impl, dtype);
+          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
       // NB
       // Store weak intrusive ptr of storage impl in both graph mode and single op mode
@@ -328,7 +328,7 @@ namespace at_npu
           true);
 
       auto tensor =
-          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, storage_impl, dtype);
+          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
       // NB Store weak intrusive ptr of storage impl in graph mode
       // see note above
@@ -390,7 +390,7 @@ namespace at_npu
           allocator,
           true);
       auto tensor =
-          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, storage_impl, dtype);
+          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
       // NB Store weak intrusive ptr of storage impl in graph mode
       // see note above
