@@ -11,8 +11,6 @@ class TorchOpNode:
         self._all_node_num = all_node_num
         self._child_list = []
         self._device_dur_list = [0, 0, 0, 0]
-        self._first_kernel_ts = 0
-        self._end_kernel_ts = 0
         self._kernel_list = []
 
     @property
@@ -75,14 +73,6 @@ class TorchOpNode:
     def parent_node(self) -> any:
         return self._parent_node
 
-    @property
-    def first_kernel_ts(self) -> float:
-        return self._first_kernel_ts
-
-    @property
-    def end_kernel_ts(self) -> float:
-        return self._end_kernel_ts
-
     def is_profiler_step(self) -> bool:
         return self._event.name.find("ProfilerStep#") != -1
 
@@ -110,12 +100,3 @@ class TorchOpNode:
     def update_device_total(self, node_info_bean: NodeInfoBean):
         self._device_dur_list[2] += node_info_bean.device_dur
         self._device_dur_list[3] += node_info_bean.device_dur_with_ai_core
-
-    def update_first_kernel_ts(self, ts: float):
-        if self._first_kernel_ts == 0:
-            self._first_kernel_ts = ts
-        else:
-            self._first_kernel_ts = min(self._first_kernel_ts, ts)
-
-    def update_end_kernel_ts(self, ts: float):
-        self._end_kernel_ts = max(self._end_kernel_ts, ts)
