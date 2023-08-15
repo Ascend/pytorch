@@ -36,6 +36,7 @@ class CANNDataEnum(Enum):
     GE_OPERATOR_MEMORY = 5
     L2_CACHE = 6
     AI_CPU = 7
+    COMMUNICATION = 8
 
 
 class CANNFileParser:
@@ -45,6 +46,7 @@ class CANNFileParser:
     END_FLOW = "f"
     SUMMARY = "summary"
     TIMELINE = "timeline"
+    ANALYZE = "analyze"
     CANN_DATA_MATCH = {
         CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv"],
         CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv"],
@@ -55,7 +57,8 @@ class CANNFileParser:
         CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d_\d+\.csv", r"^ge_operator_memory_\d_\d+_\d+\.csv",
                                           r"^operator_memory_\d_\d+\.csv", r"^operator_memory_\d_\d+_\d+\.csv"],
         CANNDataEnum.L2_CACHE: [r"^l2_cache_\d_\d+\.csv", r"^l2_cache_\d_\d+_\d+\.csv"],
-        CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv"]
+        CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv"],
+        CANNDataEnum.COMMUNICATION: [r"^communication\.json"]
     }
 
     def __init__(self, profiler_path: str):
@@ -77,6 +80,18 @@ class CANNFileParser:
             return []
         if data and "ph" not in data[0].keys():
             return []
+        return data
+
+    @classmethod
+    def _json_dict_load(cls, data: str) -> dict:
+        if not data:
+            return {}
+        try:
+            data = json.loads(data)
+        except JSONDecodeError:
+            raise RuntimeError("Invalid communication data.")
+        if not isinstance(data, dict):
+            return {}
         return data
 
     def export_cann_profiling(self):
@@ -112,6 +127,15 @@ class CANNFileParser:
             timeline_data.extend(data)
         return timeline_data
 
+    def get_analyze_communication_data(self) -> dict:
+        communication_data = {}
+        communication_file_set = self._file_dict.get(CANNDataEnum.COMMUNICATION, set())
+        if communication_file_set:
+            # only need to read one file if there exist more than one files
+            sub_file = next(iter(communication_file_set))
+            communication_data = self._json_dict_load(FileManager.file_read_all(sub_file, "rt"))
+        return communication_data
+
     def get_acl_to_npu_data(self) -> dict:
         flow_start_dict, flow_end_dict = {}, {}
         all_data = self.get_timeline_all_data()
@@ -137,6 +161,7 @@ class CANNFileParser:
     def _file_dispatch(self):
         all_file_list = PathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
         all_file_list += PathManager.get_device_all_file_list_by_type(self._cann_path, self.TIMELINE)
+        all_file_list += PathManager.get_analyze_all_file(self._cann_path, self.ANALYZE)
         for file_path in all_file_list:
             if not os.path.isfile(file_path):
                 continue
