@@ -14,8 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 
@@ -33,7 +31,7 @@ at::Tensor NPUNativeOpApiFunctions::log10(const at::Tensor& self) {
   DO_COMPATIBILITY(aclnnLog10, NPUNativeFunctions::log10(self));
   // construct the output tensor of the NPU
   at::Tensor result;
-  if (self.scalar_type() != at::ScalarType::Float || self.scalar_type() != at::ScalarType::Half) {
+  if (isIntegralType(self.scalar_type(), true)) {
     result = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(at::kFloat));
   } else {
     result = OpPreparation::ApplyTensorWithoutFormat(self);
