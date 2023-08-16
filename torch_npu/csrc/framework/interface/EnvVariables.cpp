@@ -102,10 +102,24 @@ REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
               "Failed to set compile option ACL_PRECISION_MODE, result = ", ret, ", set value ", val);
 })
 
-bool IsAllowFP32ToFP16(){
+bool IsAllowFP32ToFP16() {
   // For Ascend910B1 and subsequent device, the default precision mode is must_keep_origin_dtype,
-  static auto is_must_keep_origin_dtype = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1;
-  return !is_must_keep_origin_dtype;
+  // and the default value for others is allow_fp32_to_fp16.
+  bool is_allow_fp32_to_fp16 = c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1;
+
+  static const std::string precision_mode = "ACL_PRECISION_MODE";
+  auto precision_mode_val = c10_npu::option::GetOption(precision_mode);
+  if (precision_mode_val.has_value()) {
+    if (precision_mode_val.value() == "must_keep_origin_dtype") {
+      is_allow_fp32_to_fp16 = false;
+    } else if (precision_mode_val.value() == "allow_fp32_to_fp16") {
+      is_allow_fp32_to_fp16 = true;
+    } else {
+      ASCEND_LOGW("Unsupported precision mode value, using default value according to soc version.");
+    }
+  }
+
+  return is_allow_fp32_to_fp16;
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
@@ -146,7 +160,7 @@ REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
               "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
-REGISTER_OPTION_BOOL_FUNCTION(IsForbidConvHF32, ALLOW_CONV_HF32, "disable", "enable")
+REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(IsAllowConvHF32, ALLOW_CONV_HF32, "enable", "disable", "enable")
 
 REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
   static const std::string conv_hf32_option_name = "ALLOW_CONV_HF32";
