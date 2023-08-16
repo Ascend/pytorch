@@ -23,13 +23,15 @@ from torch_npu.testing.common_utils import create_common_tensor
 class TestNorm(TestCase):
     def norm_output_size(self, data, dimVal, keepdimVal):
         output_size = list(data.size())
+        count = 0
         for i in dimVal:
-          if i < 0:
-            i = i + data.dim()
-          if i < data.dim() and keepdimVal:
-            output_size[i] = 1
-          if  i < data.dim() and not keepdimVal:
-            output_size.pop(i)  
+            if i < 0:
+                i = i + data.dim()
+            if i < data.dim() and keepdimVal:
+                output_size[i] = 1
+            if i < data.dim() and not keepdimVal:
+                output_size.pop(i - count)
+                count += 1
         return output_size
         
     def cpu_dtype_out_exec(self, data, pVal, dimVal, keepdimVal, dtypeVal):
@@ -46,20 +48,24 @@ class TestNorm(TestCase):
         
     def dtype_out_test(self, item):
         cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
-        cpu_out = self.cpu_dtype_out_exec(cpu_input, 2, [1,2], True, torch.float)
-        npu_out = self.npu_dtype_out_exec(npu_input, 2, [1,2], True, torch.float)
+        cpu_out = self.cpu_dtype_out_exec(cpu_input, 2.0, [1,2], True, torch.float)
+        npu_out = self.npu_dtype_out_exec(npu_input, 2.0, [1,2], True, torch.float)
         self.assertRtolEqual(cpu_out, npu_out)
         
-        cpu_out = self.cpu_dtype_out_exec(cpu_input, 2, [1,2], False, torch.float)
-        npu_out = self.npu_dtype_out_exec(npu_input, 2, [1,2], False, torch.float)
+        cpu_out = self.cpu_dtype_out_exec(cpu_input, 2.5, [1,2], False, torch.float)
+        npu_out = self.npu_dtype_out_exec(npu_input, 2.5, [1,2], False, torch.float)
         self.assertRtolEqual(cpu_out, npu_out)
         
-        cpu_out = self.cpu_dtype_out_exec(cpu_input, 1, [1,2], False, torch.float)
-        npu_out = self.npu_dtype_out_exec(npu_input, 1, [1,2], False, torch.float)
+        cpu_out = self.cpu_dtype_out_exec(cpu_input, 1.0, [1,2], False, torch.float)
+        npu_out = self.npu_dtype_out_exec(npu_input, 1.0, [1,2], False, torch.float)
         self.assertRtolEqual(cpu_out, npu_out)
         
-        cpu_out = self.cpu_dtype_out_exec(cpu_input, 3, [1,2], False, torch.float)
-        npu_out = self.npu_dtype_out_exec(npu_input, 3, [1,2], False, torch.float)
+        cpu_out = self.cpu_dtype_out_exec(cpu_input, 3.0, [1,2], False, torch.float)
+        npu_out = self.npu_dtype_out_exec(npu_input, 3.0, [1,2], False, torch.float)
+        self.assertRtolEqual(cpu_out, npu_out)
+
+        cpu_out = self.cpu_dtype_out_exec(cpu_input, -1.5, [1,2], False, torch.float)
+        npu_out = self.npu_dtype_out_exec(npu_input, -1.5, [1,2], False, torch.float)
         self.assertRtolEqual(cpu_out, npu_out)
         
         cpu_out = self.cpu_dtype_out_exec(cpu_input, float("-inf"), [1,2], False, torch.float)
@@ -69,6 +75,7 @@ class TestNorm(TestCase):
     def test_norm_shape_format(self):
         shape_format = [
                         [[np.float32, 0, (64, 64, 64, 64)]],
+                        [[np.float32, 0, (128, 64, 30)]],
                         ]
 
         for item in shape_format:
