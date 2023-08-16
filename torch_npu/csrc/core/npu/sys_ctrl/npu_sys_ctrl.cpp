@@ -210,6 +210,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
   SetHF32DefaultValue();
 
+  NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
   return INIT_SUCC;
 }
 
