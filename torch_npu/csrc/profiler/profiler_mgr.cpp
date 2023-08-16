@@ -88,7 +88,8 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
   }
   if (npu_config.record_op_args) {
     record_op_args_.store(true);
-    const std::string op_dump_path = torch_npu::toolkit::profiler::Utils::DirName(path_) + "/OP_ARGS";
+    const std::string op_dump_path = std::string(path_.begin(), path_.begin() + path_.find_last_not_of("/") + 1) +
+      "_op_args";
     at_npu::native::AclopStartDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS, op_dump_path.c_str());
   }
 }
