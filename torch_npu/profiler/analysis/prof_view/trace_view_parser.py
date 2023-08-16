@@ -6,10 +6,12 @@ from ..level_config import LevelConfig
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_view.base_view_parser import BaseViewParser
+from ..prof_view.trace_step_time import TraceStepTimeParser
 
 
 class TraceViewParser(BaseViewParser):
     TRACE_VIEW = "trace_view.json"
+    STEP_TRACE = "step_trace_time.csv"
 
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
@@ -38,6 +40,7 @@ class TraceViewParser(BaseViewParser):
             FileManager.create_json_file_by_path(output_path, trace_data)
             return
         FileManager.create_json_file(self._profiler_path, trace_data, self.TRACE_VIEW)
+        TraceStepTimeParser.create_step_file(self._profiler_path, trace_data, self.STEP_TRACE)
 
     def _add_fwk_trace_data(self, json_data: list):
         if not GlobalVar.torch_op_tree_node:
