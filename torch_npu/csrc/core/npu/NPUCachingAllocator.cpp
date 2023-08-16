@@ -447,7 +447,8 @@ class DeviceCachingAllocator {
     // Can't reuse an existing block; try to get a new one.
     if (!block_found) {
       // Do garbage collection if the flag is set.
-      if (C10_UNLIKELY(CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+      if (C10_UNLIKELY(set_fraction &&
+              CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
         garbage_collect_cached_blocks();
       }
       // Attempt allocate
@@ -901,7 +902,8 @@ class DeviceCachingAllocator {
   bool get_free_block(AllocParams& p) {
     BlockPool& pool = *p.pool;
 
-    if (C10_UNLIKELY(CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
+    if (C10_UNLIKELY(set_fraction &&
+            CachingAllocatorConfig::garbage_collection_threshold() > 0.0)) {
       // Track block reuse interval only when garbage collection is enabled.
       for (auto& b : pool.blocks) {
         ++b->gc_count;
@@ -936,9 +938,6 @@ class DeviceCachingAllocator {
     // Free unused cached blocks to reclaim NPU memory.
     // Unlike release_cached_blocks(), this does not enforce synchronization and
     // therefore should be of less overheads.
-    TORCH_CHECK(allowed_memory_maximum, 
-        "Please first use the `torch_npu.npu.set_per_process_memory_fraction` function, "
-        "so that `allowed_memory_maximum` is not 0")
 
     size_t gc_threshold = static_cast<size_t>(
         CachingAllocatorConfig::garbage_collection_threshold() *
@@ -964,6 +963,8 @@ class DeviceCachingAllocator {
     if (freeable_block_count == 0) {
       return;
     }
+
+    c10_npu::npuSynchronizeDevice(true);
 
     // Repeat GC until we reach reclaim > target size.
     bool block_freed = true;
