@@ -91,6 +91,7 @@ functional:
   - linear
   - bilinear
   - silu
+  - silu_backward
   - hardswish
   - embedding
   - embedding_bag
