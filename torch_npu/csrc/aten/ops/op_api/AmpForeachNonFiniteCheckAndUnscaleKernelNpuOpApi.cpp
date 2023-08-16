@@ -41,20 +41,14 @@ void NPUNativeOpApiFunctions::_amp_foreach_non_finite_check_and_unscale_(at::Ten
     return;
   }
 
-  bool is_finite = true;
+  // inf/nan mode
   if (c10_npu::IsSupportInfNan()) {
-    for (const auto& scaled_grad : scaled_grads) {
-      auto res = NPUNativeOpApiFunctions::sum(scaled_grad, at::ScalarType::Float);
-      float cpu_sum = res.item().toFloat();
-      if (!std::isfinite(cpu_sum)) {
-        is_finite = false;
-        break;
-      }
-    }
-  } else {
-    is_finite = !NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads);
+    EXEC_NPU_CMD(aclnnForeachNonFiniteCheckAndUnscale, scaled_grads, found_inf, inv_scale);
+    return;
   }
 
+  // saturation mode
+  bool is_finite = !NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads);
   if (!is_finite) {
     NPUNativeOpApiFunctions::ones_out(1, found_inf);
   }
