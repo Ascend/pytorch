@@ -1,13 +1,12 @@
 import os
 import warnings
-import inspect
-import builtins
+import logging as logger
 from functools import wraps
-from builtins import isinstance as builtin_isinstance
 import torch
 import torch_npu
 
 warnings.filterwarnings(action='once')
+
 
 torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
                        'arange', 'frombuffer', 'normal', '_empty_per_channel_affine_quantized', 'empty_strided',
@@ -24,7 +23,9 @@ torch_cuda_fn_white_list = [
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
 ]
+torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
+device_kwargs_list = ['device', 'device_type']
 
 def wrapper_cuda(fn):
     @wraps(fn)
@@ -33,12 +34,20 @@ def wrapper_cuda(fn):
             args_new = list(args)
             args = replace_cuda_to_npu_in_list(args_new)
         if kwargs:
-            if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
-                kwargs['device'] = kwargs['device'].replace('cuda', 'npu')
-            device = kwargs.get('device', None)
-            if isinstance(device, torch.device) and 'cuda' in device.type:
-                device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
-                kwargs['device'] = torch.device(device_info)
+            for device_arg in device_kwargs_list: 
+                device = kwargs.get(device_arg, None)
+                if isinstance(device, str) and 'cuda' in device:
+                    kwargs[device_arg] = device.replace('cuda', 'npu')
+                if isinstance(device, torch.device) and 'cuda' in device.type:
+                    device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
+                    kwargs[device_arg] = torch.device(device_info)
+            if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
+                                                                         torch_npu.profiler._ExperimentalConfig):
+                logger.warning(
+                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
+                    'because it can only be used in cuda, please manually modify the code '
+                    'and use the experimental_config parameter adapted to npu.')
+                del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
                 device_ids = replace_cuda_to_npu_in_list(device_ids)
@@ -81,6 +90,21 @@ def wrapper_hccl(fn):
     return decorated
 
 
+def wrapper_data_loader(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        if kwargs:
+            pin_memory = kwargs.get('pin_memory', False)
+            pin_memory_device = kwargs.get('pin_memory_device', None)
+            if pin_memory and not pin_memory_device:
+                kwargs['pin_memory_device'] = 'npu'
+            if pin_memory and isinstance(pin_memory_device, str) and 'cuda' in pin_memory_device:
+                kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
+        return fn(*args, **kwargs)
+
+    return decorated
+
+
 def patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
@@ -88,6 +112,18 @@ def patch_cuda():
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
         ['cuda.amp.common', torch_npu.npu.amp.common],
         ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
+    ]
+    torch_npu._apply_patches(patchs)
+
+
+def patch_profiler():
+    patchs = [
+        ['profiler.profile', torch_npu.profiler.profile], 
+        ['profiler.schedule', torch_npu.profiler.schedule],
+        ['profiler.tensorboard_trace_handler', torch_npu.profiler.tensorboard_trace_handler],
+        ['profiler.ProfilerAction', torch_npu.profiler.ProfilerAction],
+        ['profiler.ProfilerActivity.CUDA', torch_npu.profiler.ProfilerActivity.NPU],
+        ['profiler.ProfilerActivity.CPU', torch_npu.profiler.ProfilerActivity.CPU]
     ]
     torch_npu._apply_patches(patchs)
 
@@ -127,6 +163,10 @@ def init():
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
 
+    # torch.profiler.*
+    patch_profiler()
+    device_wrapper(torch.profiler, torch_profiler_fn_white_list)
+
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
 
@@ -142,9 +182,12 @@ def init():
 
     # torch.distributed.init_process_group
     torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
-    
+    torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
+
     # torch.nn.parallel.DistributedDataParallel
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
+    # torch.utils.data.DataLoader
+    torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
 
 
 init()
