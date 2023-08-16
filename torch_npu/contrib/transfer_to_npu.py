@@ -14,14 +14,13 @@
 
 import os
 import warnings
-import inspect
-import builtins
+import logging as logger
 from functools import wraps
-from builtins import isinstance as builtin_isinstance
 import torch
 import torch_npu
 
 warnings.filterwarnings(action='once')
+
 
 torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
                        'arange', 'frombuffer', 'normal', '_empty_per_channel_affine_quantized', 'empty_strided',
@@ -30,7 +29,7 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory']
+                       'empty_quantized', '_pin_memory', 'autocast']
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
 torch_cuda_fn_white_list = [
@@ -40,34 +39,8 @@ torch_cuda_fn_white_list = [
 ]
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
+device_kwargs_list = ['device', 'device_type']
 
-NPU_TENSOR = set([
-    "FloatTensor", "IntTensor", "DoubleTensor",
-    "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
-
-def _isinstance(obj, class_or_tuple):
-    try:
-        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
-        class_list = []
-        for type_item in class_tuple:
-            if type_item is torch.device:
-                class_list.append(torch_npu._C.device)
-            else:
-                class_list.append(type_item)
-        return builtin_isinstance(obj, tuple(class_list))
-    except TypeError as e:
-        class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
-        if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
-            type_str = str(obj.type())
-            tensor_type = type_str.split('.')[-1]
-            if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
-                return eval(type_str) in class_tuple
-
-        if torch._C.device in class_tuple or torch_npu._C.device in class_tuple:
-            return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
-        raise e
-
-builtins.isinstance = _isinstance
 
 def wrapper_cuda(fn):
     @wraps(fn)
@@ -76,13 +49,19 @@ def wrapper_cuda(fn):
             args_new = list(args)
             args = replace_cuda_to_npu_in_list(args_new)
         if kwargs:
-            if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
-                kwargs['device'] = kwargs['device'].replace('cuda', 'npu')
-            device = kwargs.get('device', None)
-            if isinstance(device, torch_npu._C.device) and 'cuda' in device.type:
-                device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
-                kwargs['device'] = torch.device(device_info)
-            if 'experimental_config' in kwargs.keys():
+            for device_arg in device_kwargs_list: 
+                device = kwargs.get(device_arg, None)
+                if isinstance(device, str) and 'cuda' in device:
+                    kwargs[device_arg] = device.replace('cuda', 'npu')
+                if isinstance(device, torch.device) and 'cuda' in device.type:
+                    device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
+                    kwargs[device_arg] = torch.device(device_info)
+            if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
+                                                                         torch_npu.profiler._ExperimentalConfig):
+                logger.warning(
+                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
+                    'because it can only be used in cuda, please manually modify the code '
+                    'and use the experimental_config parameter adapted to npu.')
                 del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
@@ -183,8 +162,6 @@ def init():
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
-    torch_npu.npu.init()
-    torch.cuda.default_generators = torch_npu.npu.default_generators
 
     # torch.profiler.*
     patch_profiler()
