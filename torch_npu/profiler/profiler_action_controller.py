@@ -39,7 +39,10 @@ class NpuProfCreator:
             Constant.AI_CORE_METRICS: instance._experimental_config.aic_metrics(),
             Constant.L2_CACHE: instance._experimental_config.l2_cache()
         }
-        NpuProfiler.analyse(instance._msprofiler_interface.path, level_config)
+        try:
+            NpuProfiler.analyse(instance._msprofiler_interface.path, level_config)
+        except Exception:
+            print("analyse failed.")
 
     @classmethod
     def make_dir(cls, target_path: str) -> any:

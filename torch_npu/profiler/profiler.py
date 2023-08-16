@@ -88,7 +88,10 @@ class profile:
                 Constant.AI_CORE_METRICS: self._experimental_config.aic_metrics(),
                 Constant.L2_CACHE: self._experimental_config.l2_cache()
             }
-            NpuProfiler.analyse(self._msprofiler_interface.path, level_config, output_path)
+            try:
+                NpuProfiler.analyse(self._msprofiler_interface.path, level_config, output_path)
+            except Exception:
+                print("analyse failed.")
             try:
                 shutil.rmtree(self._msprofiler_interface.path)
             except Exception:
