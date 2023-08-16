@@ -642,7 +642,7 @@ class DeviceCachingAllocator {
       }
       aclrtEvent event = (*it).first;
       c10_npu::NPUEventManager::GetInstance().LazyDestroy(event);
-      npu_events.erase(it);
+      it = npu_events.erase(it);
       block->event_count--;
       if (block->event_count == 0) {
         free_block(block);
