@@ -231,6 +231,8 @@ public:
       std::vector<at::Tensor>& tensors,
       const c10d::ReduceOptions& opts = c10d::ReduceOptions()) override;
 
+  at::Tensor byte_alignment(at::Tensor& tensors);
+
   c10::intrusive_ptr<c10d::Work> allgather(
       std::vector<std::vector<at::Tensor>>& outputTensors,
       std::vector<at::Tensor>& inputTensors,

@@ -87,7 +87,7 @@ class HcclReduceTest(TestCase):
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_dist(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool]
+        dtype_list = [np.float32, np.float16, np.int32, np.int8, np.bool_]
         format_list = [0, 2, 3, 29]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
