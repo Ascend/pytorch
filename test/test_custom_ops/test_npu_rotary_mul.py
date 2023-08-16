@@ -3,7 +3,8 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import DEVICE_NAME
+
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestRotaryMul(TestCase):
