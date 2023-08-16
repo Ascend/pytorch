@@ -351,6 +351,17 @@ ACL_FUNC_VISIBILITY aclError aclrtGetCurrentContext(aclrtContext *context);
 
 /**
  * @ingroup AscendCL
+ * @brief set system param option value in current context
+ *
+ * @param opt[IN] system option
+ * @param value[IN] value of system option
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+*/
+ACL_FUNC_VISIBILITY aclError aclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value);
+
+/**
+ * @ingroup AscendCL
  * @brief Specify the device to use for the operation
  * implicitly create the default context and the default stream
  *
