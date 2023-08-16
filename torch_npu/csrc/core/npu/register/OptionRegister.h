@@ -148,6 +148,20 @@ c10::optional<std::string> GetOption(const std::string& key);
     return false;                                                           \
   }
 
+#define REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(func, key, defaultVal, falseVal, trueVal)  \
+  bool func() {                                                                           \
+    auto val = c10_npu::option::GetOption(#key);                                          \
+    if (val.has_value()) {                                                                \
+        if (val.value() == (trueVal)) {                                                   \
+            return true;                                                                  \
+        }                                                                                 \
+        if (val.value() == (falseVal)) {                                                  \
+            return false;                                                                 \
+        }                                                                                 \
+    }                                                                                     \
+    return (defaultVal) == (trueVal);                                                     \
+  }
+
 } // namespace option
 } // namespace c10_npu
 
