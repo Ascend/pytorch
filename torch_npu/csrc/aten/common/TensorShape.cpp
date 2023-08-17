@@ -94,22 +94,24 @@ at::Tensor alias_with_sizes_and_strides_npu(
     const c10::IntArrayRef strides) {
   at::Tensor self_;
   if (self.is_quantized()) {
-    auto impl = c10::make_intrusive<at::QTensorImpl>(
+    self_ = at::detail::make_tensor<at::QTensorImpl>(
+        c10::TensorImpl::VIEW,
         c10::Storage(self.storage()),
         self.key_set(),
         self.dtype(),
         get_qtensorimpl(self)->quantizer());
-    impl->set_storage_offset(self.storage_offset());
-    impl->set_sizes_and_strides(sizes, strides);
-    self_ = at::Tensor(std::move(impl));
+    auto* self_tmp_ = self_.unsafeGetTensorImpl();
+    self_tmp_->set_storage_offset(self.storage_offset());
+    self_tmp_->set_sizes_and_strides(sizes, strides);
   } else {
-    auto impl = c10::make_intrusive<at::TensorImpl>(
+    self_ = at::detail::make_tensor<at::TensorImpl>(
+        c10::TensorImpl::VIEW,
         c10::Storage(self.storage()),
         self.key_set(),
         self.dtype());
-    impl->set_storage_offset(self.storage_offset());
-    impl->set_sizes_and_strides(sizes, strides);
-    self_ = at::Tensor(std::move(impl));
+    auto* self_tmp_ = self_.unsafeGetTensorImpl();
+    self_tmp_->set_storage_offset(self.storage_offset());
+    self_tmp_->set_sizes_and_strides(sizes, strides);
   }
   at::namedinference::propagate_names(self_, self);
   return self_;
