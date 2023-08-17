@@ -44,6 +44,22 @@ static at::Tensor _embedding_bag_dense_backward(
     int64_t mode,
     const c10::optional<at::Tensor> & per_sample_weights,
     int64_t padding_idx);
+static at::Tensor nan_to_num(
+    const at::Tensor& self,
+    c10::optional<double> nan,
+    c10::optional<double> posinf,
+    c10::optional<double> neginf);
+static at::Tensor& nan_to_num_(
+    at::Tensor& self,
+    c10::optional<double> nan,
+    c10::optional<double> posinf,
+    c10::optional<double> neginf);
+static at::Tensor& nan_to_num_out(
+    const at::Tensor& self,
+    c10::optional<double> nan,
+    c10::optional<double> posinf,
+    c10::optional<double> neginf,
+    at::Tensor& out);
 
 ${dispatch_declarations}
 

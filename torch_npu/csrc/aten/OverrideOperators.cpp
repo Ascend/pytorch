@@ -33,6 +33,49 @@ torch_npu::profiler::NPURecordFunction guard;
       scale_grad_by_freq, mode, per_sample_weights, padding_idx);
 }
 
+at::Tensor wrapper__nan_to_num(
+    const at::Tensor& self,
+    c10::optional<double> nan,
+    c10::optional<double> posinf,
+    c10::optional<double> neginf) {
+  // No device check
+  // DeviceGuard omitted
+#ifndef BUILD_LIBTORCH
+  torch_npu::profiler::NPURecordFunction guard;
+#endif
+
+  return at_npu::native::NPUNativeFunctions::nan_to_num(self, nan, posinf, neginf);
+}
+
+at::Tensor& wrapper_out_nan_to_num_out(
+    const at::Tensor& self,
+    c10::optional<double> nan,
+    c10::optional<double> posinf,
+    c10::optional<double> neginf,
+    at::Tensor& out) {
+  // No device check
+  // DeviceGuard omitted
+#ifndef BUILD_LIBTORCH
+  torch_npu::profiler::NPURecordFunction guard;
+#endif
+
+  return at_npu::native::NPUNativeFunctions::nan_to_num_out(self, nan, posinf, neginf, out);
+}
+
+at::Tensor& wrapper__nan_to_num_(
+    at::Tensor& self,
+    c10::optional<double> nan,
+    c10::optional<double> posinf,
+    c10::optional<double> neginf) {
+  // No device check
+  // DeviceGuard omitted
+#ifndef BUILD_LIBTORCH
+  torch_npu::profiler::NPURecordFunction guard;
+#endif
+
+  return at_npu::native::NPUNativeFunctions::nan_to_num_(self, nan, posinf, neginf);
+}
+
 at::Tensor wrapper__argmin(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
   // No device check
   // DeviceGuard omitted
@@ -103,6 +146,9 @@ c10::WarningHandler* getIgnoreHandler() {
   TORCH_LIBRARY_IMPL(aten, XLA, m) {                                          \
     m.impl("argmin", TORCH_FN(wrapper__argmin));                              \
     m.impl("argmax", TORCH_FN(wrapper__argmax));                              \
+    m.impl("nan_to_num", TORCH_FN(wrapper__nan_to_num));                      \
+    m.impl("nan_to_num_", TORCH_FN(wrapper__nan_to_num_));                    \
+    m.impl("nan_to_num.out", TORCH_FN(wrapper_out_nan_to_num_out));           \
     m.impl("_embedding_bag_dense_backward",                                   \
         TORCH_FN(wrapper___embedding_bag_dense_backward));                    \
   }                                                                           \
