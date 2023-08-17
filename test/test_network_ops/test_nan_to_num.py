@@ -18,8 +18,9 @@ import unittest
 import torch
 
 import torch_npu
-from torch_npu.testing.common_utils import DEVICE_NAME
 from torch_npu.testing.testcase import TestCase, run_tests
+
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestNanToNum(TestCase):
