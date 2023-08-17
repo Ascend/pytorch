@@ -50,8 +50,25 @@ at::Tensor NPUNativeOpApiFunctions::le(const at::Tensor& self, const at::Scalar&
   DO_COMPATIBILITY(aclnnLeScalar, NPUNativeFunctions::le(self, other));
   auto outputSize = input_same_output_size(self);
   at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(outputSize, self.options().dtype(at::kBool));
-  EXEC_NPU_CMD(aclnnLeScalar, self, other, result);  
+  EXEC_NPU_CMD(aclnnLeScalar, self, other, result);
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::le_(at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceLeScalar, NPUNativeFunctions::le_(self, other));
+  EXEC_NPU_CMD(aclnnInplaceLeScalar, self, other);
+  return self;
+}
+
+at::Tensor &NPUNativeOpApiFunctions::le_(at::Tensor &self, const at::Tensor &other) {
+  DO_COMPATIBILITY(aclnnInplaceLeTensor, NPUNativeFunctions::le_(self, other));
+  if (OpPreparation::IsCPUScalar(other)) {
+    return NPUNativeOpApiFunctions::le_(self, other.item());
+  } else {
+    OpPreparation::CheckMemory({self, other}, {self});
+    EXEC_NPU_CMD(aclnnInplaceLeTensor, self, other);
+    return self;
+  }
 }
 
 }  // namespace native
