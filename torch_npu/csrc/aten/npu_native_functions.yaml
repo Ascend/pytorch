@@ -1720,6 +1720,8 @@ supported:
    wrap_impl: linalg_svdvals
  - func: linalg_svdvals.out
    wrap_impl: linalg_svdvals_out
+ - func: binary_cross_entropy_with_logits
+   wrap_impl: binary_cross_entropy_with_logits
 
 autograd:
   - func: celu
@@ -1738,8 +1740,6 @@ autograd:
     wrap_impl: silu_
   - func: silu.out
     wrap_impl: silu_out
-  - func: binary_cross_entropy_with_logits
-    wrap_impl: binary_cross_entropy_with_logits
   - func: selu
     wrap_impl: selu
   - func: selu_

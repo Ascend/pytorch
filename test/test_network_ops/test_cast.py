@@ -25,7 +25,7 @@ def npu_op_exec(input1, func):
 
 
 shape_format = [
-    [[np.bool, -1, (4, 3, 1)]],
+    [[np.bool_, -1, (4, 3, 1)]],
     [[np.int64, -1, (4, 3)]],
     [[np.int32, -1, (4, 3, 1)]],
     [[np.int8, -1, (2, 3)]],
@@ -36,28 +36,28 @@ shape_format = [
 
 
 class TestCast(TestCase):
-    def test__cast_Byte_common_shape_format(self, device='npu'):
+    def test__cast_Byte_common_shape_format(self):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_output = cpu_op_exec(cpu_input1, torch._cast_Byte)
             npu_output = npu_op_exec(npu_input1, torch._cast_Byte)
             self.assertEqual(cpu_output, npu_output)
 
-    def test_cast_Char_common_shape_format(self, device='npu'):
+    def test_cast_Char_common_shape_format(self):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_output = cpu_op_exec(cpu_input1, torch._cast_Char)
             npu_output = npu_op_exec(npu_input1, torch._cast_Char)
             self.assertEqual(cpu_output, npu_output)
 
-    def test_cast_Float_common_shape_format(self, device='npu'):
+    def test_cast_Float_common_shape_format(self):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_output = cpu_op_exec(cpu_input1, torch._cast_Float)
             npu_output = npu_op_exec(npu_input1, torch._cast_Float)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cast_Half(self, device='npu'):
+    def test_cast_Half(self):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             if cpu_input1.dtype == torch.float16:
@@ -66,23 +66,23 @@ class TestCast(TestCase):
             npu_output = npu_op_exec(npu_input1, torch._cast_Half)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cast_Int(self, device='npu'):
+    def test_cast_Int(self):
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
+            cpu_input1, _ = create_common_tensor(item[0], -100, 100)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = cpu_op_exec(cpu_input1, torch._cast_Int)
             npu_output = npu_op_exec(cpu_input1, torch._cast_Int)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cast_Long_common_shape_format(self, device='npu'):
+    def test_cast_Long_common_shape_format(self):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_output = cpu_op_exec(cpu_input1, torch._cast_Long)
             npu_output = npu_op_exec(npu_input1, torch._cast_Long)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cast_Short_common_shape_format(self, device='npu'):
+    def test_cast_Short_common_shape_format(self):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_output = cpu_op_exec(cpu_input1, torch._cast_Short)
