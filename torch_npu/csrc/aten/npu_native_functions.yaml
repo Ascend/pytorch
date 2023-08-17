@@ -1557,11 +1557,16 @@ supported:
    op_api: True
  - func: zeros_like
    op_api: False
- - silu
- - silu_
- - silu.out
- - silu_backward.grad_input
- - silu_backward
+ - func: silu
+   op_api: False
+ - func: silu_
+   op_api: False
+ - func: silu.out
+   op_api: False
+ - func: silu_backward.grad_input
+   op_api: False
+ - func: silu_backward
+   op_api: False
 
 autograd:
   - func: matmul

@@ -21,21 +21,16 @@
 namespace at_npu {
 namespace native {
 
-/* Note: This is the pre-released op_api-version PTA for silu_backward. To avoid build problem, op_api namespace of
-  defined function(NPUNativeOpApiFunctions) is removed here. When old-version PTA for silu_backward is refined and
-  uploaded, the op_api namespace should be added (e.g. NPUNativeOpApiFunctions::silu_backward_out()), and the macro
-  for compatibility(e.g. DO_COMPATIBILITY(aclnnSiluBackward, NPUNativeFunctions::silu_backward(grad_output, self)))
-  should also be added in all defined functions.
-*/ 
-
-at::Tensor& silu_backward_out(const at::Tensor& grad_output, const at::Tensor& self,
-                              at::Tensor& result) {
+at::Tensor& NPUNativeOpApiFunctions::silu_backward_out(const at::Tensor& grad_output, const at::Tensor& self,
+                                                       at::Tensor& result) {
+  DO_COMPATIBILITY(aclnnSiluBackward, NPUNativeFunctions::silu_backward_out(grad_output, self, result));
   OpPreparation::CheckOut({grad_output, self}, result, grad_output);
   EXEC_NPU_CMD(aclnnSiluBackward, grad_output, self, result);
   return result;
 }
 
-at::Tensor silu_backward(const at::Tensor& grad_output, const at::Tensor& self) {
+at::Tensor NPUNativeOpApiFunctions::silu_backward(const at::Tensor& grad_output, const at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnSiluBackward, NPUNativeFunctions::silu_backward(grad_output, self));
   at::Tensor grad_input = OpPreparation::ApplyTensorWithoutFormat(grad_output);
   EXEC_NPU_CMD(aclnnSiluBackward, grad_output, self, grad_input);
   return grad_input;
