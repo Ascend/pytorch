@@ -167,6 +167,8 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor dpse;
   if (format_pse.defined()) {
     dpse = OpPreparation::ApplyTensorWithoutFormat(format_pse);
+  } else {
+    dpse = at::empty({0}, query.options());
   }
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
@@ -246,7 +248,10 @@ public:
             query.options().dtype(at::kFloat)); // [B, N, S0, 8]
         softmax_sum = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
             query.options().dtype(at::kFloat)); // [B, N, S0, 8]
+        softmax_out = at::empty({0}, query.options());
     } else {
+        softmax_max = at::empty({0}, query.options().dtype(at::kFloat));
+        softmax_sum = at::empty({0}, query.options().dtype(at::kFloat));
         softmax_out = OpPreparation::ApplyTensorWithoutFormat(format_query,
             {B, head_num, S0, S1}); // [B, N, S0, S1]
     }
