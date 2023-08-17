@@ -143,6 +143,7 @@ def run_cmake():
 
     if check_opplugin_valid(BASE_DIR):
         cmake_args.append('-DBUILD_OPPLUGIN=on')
+        cmake_args.append('-DBUILD_NEW_HEADER=on')
 
 
     build_args = ['-j', str(multiprocessing.cpu_count())]
