@@ -216,6 +216,7 @@ namespace at_npu
               ACL_COMPILE_SYS,
               NULL,
               stream);
+          NPU_CHECK_ERROR(ret);
         } else {
           int64_t dimSize;
           ret = AclopCompileAndExecuteV2(
@@ -231,7 +232,7 @@ namespace at_npu
               ACL_COMPILE_SYS,
               NULL,
               stream);
-
+          NPU_CHECK_ERROR(ret);
           for (size_t i = 0; i < sync_index.size(); i++) {
             c10::SmallVector<int64_t, N> real_shape;
             for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
