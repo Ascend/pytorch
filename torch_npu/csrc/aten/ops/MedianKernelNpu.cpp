@@ -163,5 +163,23 @@ at::Tensor NPUNativeFunctions::nanmedian(const at::Tensor& self) {
   return output;
 }
 
+std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nanmedian(const at::Tensor &self, int64_t dim, bool keepdim) {
+  TORCH_WARN_ONCE(
+      "Warning: kernel [nanmedian.dim] is not supported by NPU currently. Now this kernel is running on CPU.");
+  auto outputSize = median_npu_output_size(self, dim, keepdim);
+  at::Tensor values =
+      OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), CalcuOpUtil::GetTensorNpuFormat(self));
+  at::Tensor indices =
+      OpPreparation::ApplyTensorWithFormat(outputSize, self.options().dtype(at::kLong), ACL_FORMAT_NCHW);
+
+  auto self_cpu = self.cpu();
+  auto values_cpu = values.cpu();
+  auto indices_cpu = indices.cpu();
+  auto result = at::native::nanmedian_out_cpu(self_cpu, dim, keepdim, values_cpu, indices_cpu);
+  at::Tensor valuesOut = values_cpu.to(self.device());
+  at::Tensor indicesOut = indices_cpu.to(self.device());
+  return tuple<at::Tensor &, at::Tensor &>(valuesOut, indicesOut);
+}
+
 } // namespace native
 } // namespace at_npu
