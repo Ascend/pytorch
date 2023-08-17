@@ -103,6 +103,10 @@ class CANNFileParser:
                 f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and set-env.sh "
                 f"is sourced. or you can execute the command to confirm the CANN Profiling export result: "
                 f"msprof --export=on --output={self._cann_path}")
+        completed_analysis = subprocess.run(["msprof", "--analyze=on", f"--output={self._cann_path}"],
+                                           capture_output=True, timeout=2400)
+        if completed_analysis.returncode != self.COMMAND_SUCCESS:
+            print("Export CANN analysis results failed!")
         self._file_dispatch()
         step_trace_file_set = self.get_file_list_by_type(CANNDataEnum.STEP_TRACE)
         if not step_trace_file_set:
