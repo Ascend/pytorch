@@ -15,6 +15,8 @@ from codegen.utils import get_torchgen_dir
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 
 
+AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
+
 def parse_derivatives(
     native_functions_path: str,
     tags_path: str,
@@ -31,7 +33,9 @@ def parse_derivatives(
     funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     funcs_with_diff_infos = match_differentiability_info(funcs, differentiability_infos)
 
-    return (differentiability_infos, native_funcs, funcs_with_diff_infos)
+    filt_funcs_with_diff_infos = [f for f in funcs_with_diff_infos if str(f.func.func.name) not in AUTOGRAD_BLACK_LIST]
+
+    return (differentiability_infos, native_funcs, filt_funcs_with_diff_infos)
 
 
 def filt_npu_autograd_functions(
