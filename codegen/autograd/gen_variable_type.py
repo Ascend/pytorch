@@ -111,7 +111,10 @@ def gen_variable_type_func(
         type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
         type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
         if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
-            type_definition = type_definition.replace('at::redispatch', 'op_plugin')
+            if str(f.func.name) == 'npu_format_cast':
+                type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
+            else:
+                type_definition = type_definition.replace('at::redispatch', 'op_plugin')
             type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
         
         wrapper_registration = gen_wrapper_registration(f, "Default")
