@@ -7,11 +7,12 @@ import torch
 import torch_npu
 import torch_npu.onnx
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import DEVICE_NAME
 
 # acl format
 FORMAT_ND = 2
 FORMAT_NZ = 29
+
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestOnnxOps(TestCase):
@@ -256,7 +257,7 @@ class TestOnnxOps(TestCase):
                     torch.randn((weight_col, )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_ND
                 )
                 self.grad = torch_npu.npu_format_cast(
-                    torch.randn((batch * tgt_len, 
+                    torch.randn((batch * tgt_len,
                                  attn_dim_per_head * attn_head_num )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
                 )
                 self.mask = (torch.randn((src_len * tgt_len * attn_head_num)).uniform_(-1,
@@ -265,7 +266,7 @@ class TestOnnxOps(TestCase):
             def forward(self, query, key, value):
                 return torch_npu.npu_multi_head_attention(
                         query, key, value, self.query_weight, self.key_weight, self.value_weight,
-                        self.attn_mask, self.out_proj_weight, self.query_bias, self.key_bias, 
+                        self.attn_mask, self.out_proj_weight, self.query_bias, self.key_bias,
                         self.value_bias, self.out_proj_bias, self.mask, self.attn_head_num,
                         self.attn_dim_per_head, self.src_len, self.tgt_len, self.dropout_prob,
                         self.softmax_use_float)
@@ -464,7 +465,7 @@ class TestOnnxOps(TestCase):
 
             def forward(self, assigned_gt_inds, overlaps, box_responsible_flags, max_overlap,
                         argmax_overlap, gt_max_overlaps, gt_argmax_overlaps):
-                return torch_npu.npu_grid_assign_positive(assigned_gt_inds, overlaps, 
+                return torch_npu.npu_grid_assign_positive(assigned_gt_inds, overlaps,
                         box_responsible_flags, max_overlap, argmax_overlap, gt_max_overlaps,
                         gt_argmax_overlaps, 128, 0.5, 0.0, True)
 
@@ -594,7 +595,7 @@ class TestOnnxOps(TestCase):
             def __init__(self):
                 super(Model, self).__init__()
 
-            def forward(self, input_, seq_len): 
+            def forward(self, input_, seq_len):
                 return torch_npu.npu_normalize_batch(input_, seq_len)
 
         def export_onnx(onnx_model_name):
@@ -690,18 +691,18 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_nms_with_mask(input1, 0.5)
 
         def export_onnx(onnx_model_name):
-            input1 = torch.tensor([[0.0, 1.0, 2.0, 3.0, 0.6], 
+            input1 = torch.tensor([[0.0, 1.0, 2.0, 3.0, 0.6],
                                    [6.0, 7.0, 8.0, 9.0, 0.4]]).npu()
             model = Model().to("npu")
             model(input1)
             self.onnx_export(model, input1,
-                            onnx_model_name, ["input1"], 
+                            onnx_model_name, ["input1"],
                             ["out1", "out2", "out3"])
 
         onnx_model_name = "model_npu_nms_with_mask.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))               
+                                            onnx_model_name)))
 
     def test_wrapper_npu_rotated_iou(self):
         class Model(torch.nn.Module):
@@ -731,7 +732,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_rotated_iou.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))     
+                                            onnx_model_name)))
 
 
     def test_wrapper_npu_rotated_overlaps(self):
@@ -761,7 +762,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_rotated_overlaps.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))     
+                                            onnx_model_name)))
 
     def test_wrapper_npu_rotated_box_decode(self):
         class Model(torch.nn.Module):
@@ -785,7 +786,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_rotated_box_decode.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name))) 
+                                            onnx_model_name)))
 
     def test_wrapper_npu_rotated_box_encode(self):
         class Model(torch.nn.Module):
@@ -809,7 +810,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_rotated_box_encode.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))    
+                                            onnx_model_name)))
 
     def test_wrapper_npu_yolo_boxes_encode(self):
         class Model(torch.nn.Module):
@@ -831,7 +832,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_yolo_boxes_encode.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name)))   
+                                            onnx_model_name)))
 
     def test_wrapper_npu_masked_fill_range(self):
         class Model(torch.nn.Module):
@@ -914,7 +915,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_sign_bits_pack.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name))) 
+                                            onnx_model_name)))
 
     def test_wrapper_npu_stride_add(self):
         class Model(torch.nn.Module):
@@ -935,7 +936,7 @@ class TestOnnxOps(TestCase):
         onnx_model_name = "model_npu_stride_add.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
-                                            onnx_model_name))) 
+                                            onnx_model_name)))
 
     def test_wrapper_npu_scatter(self):
         class Model(torch.nn.Module):
@@ -1064,7 +1065,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-        
+
     def test_wrapper_npu_gru(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1161,7 +1162,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-        
+
     def test_wrapper_npu_mish(self):
         class Model(torch.nn.Module):
             def __init__(self):
