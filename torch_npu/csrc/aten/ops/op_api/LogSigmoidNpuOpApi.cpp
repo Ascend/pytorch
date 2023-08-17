@@ -17,9 +17,28 @@
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
+
+tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::log_sigmoid_forward_out(
+    const at::Tensor &self,
+    at::Tensor &out,
+    at::Tensor &buffer) {
+  DO_COMPATIBILITY(aclnnLogSigmoid, NPUNativeFunctions::log_sigmoid_forward_out(self, out, buffer));
+  OpPreparation::CheckOut({self}, out, self);
+  EXEC_NPU_CMD(aclnnLogSigmoidForward, self, out, buffer);
+  return std::tie(out, buffer);
+}
+
+tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::log_sigmoid_forward(const at::Tensor &self) {
+  DO_COMPATIBILITY(aclnnLogSigmoid, NPUNativeFunctions::log_sigmoid_forward(self));
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self);
+  at::Tensor buffer = OpPreparation::ApplyTensorWithSizes({0}, self.options());
+  EXEC_NPU_CMD(aclnnLogSigmoidForward, self, out, buffer);
+  return tuple<at::Tensor, at::Tensor>(out, buffer);
+}
 
 at::Tensor &NPUNativeOpApiFunctions::log_sigmoid_out(const at::Tensor &self, at::Tensor &out) {
   DO_COMPATIBILITY(aclnnLogSigmoid, NPUNativeFunctions::log_sigmoid_out(self, out));
@@ -30,9 +49,9 @@ at::Tensor &NPUNativeOpApiFunctions::log_sigmoid_out(const at::Tensor &self, at:
 
 at::Tensor NPUNativeOpApiFunctions::log_sigmoid(const at::Tensor &self) {
   DO_COMPATIBILITY(aclnnLogSigmoid, NPUNativeFunctions::log_sigmoid(self));
-  at::Tensor result = OpPreparation::ApplyTensorWithoutFormat(self);
-  EXEC_NPU_CMD(aclnnLogSigmoid, self, result);
-  return result;
+  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self);
+  EXEC_NPU_CMD(aclnnLogSigmoid, self, out);
+  return out;
 }
 
 } // namespace native

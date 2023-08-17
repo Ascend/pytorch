@@ -809,8 +809,10 @@ supported:
    op_api: False
  - log_sigmoid_backward
  - log_sigmoid_backward.grad_input
- - log_sigmoid_forward
- - log_sigmoid_forward.output
+ - func: log_sigmoid_forward
+   op_api: False
+ - func: log_sigmoid_forward.output
+   op_api: False
  - log_softmax.Dimname
  - log_softmax.int
  - func: logaddexp
