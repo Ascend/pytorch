@@ -276,7 +276,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
   auto device_ = c10::device_or_default(device_opt);
-  AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1);
+  torch_npu::utils::torch_check_npu(device_);
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
@@ -338,6 +338,7 @@ at::Tensor NPUNativeFunctions::unsafe_empty_with_format(c10::IntArrayRef size,
 at::Tensor empty_with_format_npu(c10::IntArrayRef size,
                                  const c10::TensorOptions &options,
                                  int64_t dst_format) {
+  torch_npu::utils::torch_check_npu(options);
   AT_ASSERT(options.device().type() == c10::DeviceType::PrivateUse1);
   AT_ASSERT(options.backend() == c10::Backend::PrivateUse1);
   torch_npu::utils::maybe_initialize_npu(options);
@@ -386,9 +387,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                  c10::optional<c10::Device> device_opt,
                                                  c10::optional<bool> pin_memory_opt,
                                                  int64_t dst_format) {
-  TORCH_CHECK(c10::device_or_default(device_opt).type() == c10::DeviceType::PrivateUse1,
-      "Expected all tensors to be on the same device. "
-      "Expected NPU tensor, please check whether the input tensor device is correct.");
+  torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
   caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                       .device(device_opt)
