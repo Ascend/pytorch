@@ -290,7 +290,6 @@ namespace at_npu
         c10::optional<bool> pin_memory_opt,
         c10::optional<c10::MemoryFormat> optional_memory_format)
     {
-
       c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                           .device(device_opt)
                                           .layout(layout_opt)
@@ -306,7 +305,7 @@ namespace at_npu
                                                      c10::optional<bool> pin_memory_opt,
                                                      int64_t dst_format)
     {
-      AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
+      torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -369,7 +368,7 @@ namespace at_npu
                                      const c10::TensorOptions &options,
                                      int64_t dst_format)
     {
-      AT_ASSERT(options.device().type() == at_npu::key::NativeDeviceType);
+      torch_npu::utils::torch_check_npu(options);
       AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
       TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
@@ -417,9 +416,7 @@ namespace at_npu
                                                      c10::optional<bool> pin_memory_opt,
                                                      int64_t dst_format)
     {
-      TORCH_CHECK(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType,
-          "Expected all tensors to be on the same device. "
-          "Expected NPU tensor, please check whether the input tensor device is correct.");
+      torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
       caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                           .device(device_opt)

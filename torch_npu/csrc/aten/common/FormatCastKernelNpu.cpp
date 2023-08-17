@@ -53,6 +53,8 @@ at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src) {
 
 // convert src from src_format to dst_format, write the result into dst
 at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tensor& src) {
+  torch_npu::utils::torch_check_npu(dst);
+  torch_npu::utils::torch_check_npu(src);
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   if (src_desc.npu_format_ == dst_desc.npu_format_) {
@@ -97,6 +99,7 @@ at::Tensor npu_format_cast_impl(
 at::Tensor NPUNativeFunctions::npu_format_cast(
     const at::Tensor& src,
     const at::Tensor& dst) {
+  torch_npu::utils::torch_check_npu(dst);
   auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   int64_t dst_format = dst_desc.npu_format_;
   return NPUNativeFunctions::npu_format_cast(src, dst_format);
@@ -106,6 +109,7 @@ at::Tensor NPUNativeFunctions::npu_format_cast(
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
     at::Tensor& src,
     int64_t acl_format) {
+  torch_npu::utils::torch_check_npu(src);
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   if (src_desc.npu_format_ == acl_format) {
     return src;
@@ -130,6 +134,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
 }
 
 int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
+  torch_npu::utils::torch_check_npu(src);
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   return src_desc.npu_format_;
 }
@@ -155,6 +160,7 @@ public:
 
 at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self,
     int64_t acl_format) {
+  torch_npu::utils::torch_check_npu(self);
   return NPUFormatCastFunction::apply(self, acl_format);
 }
 
