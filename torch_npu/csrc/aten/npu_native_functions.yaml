@@ -923,6 +923,11 @@ supported:
  - zeros_like
  - bucketize.Tensor
  - bucketize.Tensor_out
+ - silu
+ - silu_
+ - silu.out
+ - silu_backward
+ - silu_backward.grad_input
 
 autograd:
   - celu
@@ -930,9 +935,6 @@ autograd:
   - elu.out
   - elu
   - elu_
-  - silu
-  - silu_
-  - silu.out
   - binary_cross_entropy_with_logits_backward
   - selu
   - selu_
