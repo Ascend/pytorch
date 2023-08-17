@@ -1408,6 +1408,9 @@ class THNCachingAllocator {
       return;
     }
     Block* block = get_allocated_block(ptr.get());
+    if (!block) {
+      AT_ERROR("invalid device pointer: ", ptr.get());
+    }
     device_allocator[block->device]->eraseStream(block, stream);
   }
 
