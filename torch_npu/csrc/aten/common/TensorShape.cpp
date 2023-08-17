@@ -123,6 +123,7 @@ at::Tensor NPUNativeFunctions::as_strided(
   }
   auto storage_offset = storage_offset_.value_or(dst.storage_offset());
   auto result = at::detail::make_tensor<at::TensorImpl>(
+      c10::TensorImpl::VIEW,
       c10::Storage(dst.storage()),
       dst.key_set(),
       dst.dtype());
