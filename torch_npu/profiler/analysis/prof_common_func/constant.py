@@ -1,4 +1,4 @@
-class Constant:
+class Constant(object):
     INVALID_VALUE = -1
 
     # dir name
@@ -8,8 +8,8 @@ class Constant:
     # file authority
     FILE_AUTHORITY = 0o640
     DIR_AUTHORITY = 0o750
-    MAX_FILE_SIZE = 1024 * 1024 * 1024
-    MAX_CSV_SIZE = 1024 * 1024 * 1024
+    MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10
+    MAX_CSV_SIZE = 1024 * 1024 * 1024 * 5
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
@@ -44,13 +44,13 @@ class Constant:
     # memory
     PTA = "PTA"
     GE = "GE"
-    PTA_GE = "PTA+GE"
     APP = "APP"
+    PTA_GE = "PTA+GE"
     B_TO_KB = 1024.0
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
 
-    # experimentalconfig
+    # experimental config
     PROFILER_LEVEL = 'profiler_level'
     AI_CORE_METRICS = 'ai_core_metrics'
     L2_CACHE = 'l2_cache'
