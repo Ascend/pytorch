@@ -45,6 +45,17 @@
 </tr>
 </thead>
 <tbody>
+     <tr id="row1452975217222"><td class="cellrowborder" rowspan="1" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2.1</p>
+</td>
+<td class="cellrowborder" rowspan="1" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC3</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.11.0.post2</p>
+</td>
+<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.11.0-5.0.rc2.1</p>
+</td>
+<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
     <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2</p>
 </td>
 <td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC2</p>
@@ -210,6 +221,7 @@
 
 
 
+
 **安装PyTorch环境依赖<a name="section311512324315"></a>**
 
 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user**，例如：**pip3 install pyyaml --user，pip3 install wheel --user**。
@@ -236,18 +248,14 @@ pip3 install wheel
      PyTorch 1.11.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.11.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
      
    - aarch64
-   
-     1. 进入安装目录，执行如下命令获取鲲鹏文件共享中心上对应版本的whl包。
-   
-        ```
-        wget https://repo.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/torch-1.11.0-cp37-cp37m-linux_aarch64.whl
-        ```
-   
-     2. 执行如下命令安装，如果使用非root用户安装，需要在命令后加**--user。**
-   
-         ```
-         pip3 install torch-1.11.0-cp37-cp37m-linux_aarch64.whl
-         ```
+
+     ```
+     pip3 install torch==1.11.0
+     ```
+
+     若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
+
+     PyTorch 1.11.0版本：[下载链接](https://download.pytorch.org/whl/torch-1.11.0-cp37-cp37m-manylinux2014_aarch64.whl)。
 
 
 2. 安装PyTorch插件torch\_npu。以下命令以在aarch64架构下安装为例。
@@ -256,14 +264,14 @@ pip3 install wheel
 
       ```
       # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc2-pytorch1.11.0/torch_npu-1.11.0.post1-cp37-cp37m-linux_aarch64.whl
+      wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc2.1-pytorch1.11.0/torch_npu-1.11.0.post2-cp37-cp37m-linux_aarch64.whl
       ```
       
    2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
    
       ```
       # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
-      pip3 install torch_npu-1.11.0.post1-cp37-cp37m-linux_aarch64.whl
+      pip3 install torch_npu-1.11.0.post2-cp37-cp37m-linux_aarch64.whl
       ```
    
 3. 安装对应框架版本的torchvision。
@@ -360,7 +368,17 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 
      PyTorch 1.11.0版本：[下载链接](https://download.pytorch.org/whl/cpu/torch-1.11.0%2Bcpu-cp37-cp37m-linux_x86_64.whl)。
 
-   - 在aarch64架构下，用户可以选择编译安装官方torch包。
+   - aarch64
+
+     ```
+     pip3 install torch==1.11.0
+     ```
+
+     若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
+
+     PyTorch 1.11.0版本：[下载链接](https://download.pytorch.org/whl/torch-1.11.0-cp37-cp37m-manylinux2014_aarch64.whl)。
+
+   - 用户也可以选择编译安装官方torch包。
 
      1. 下载PyTorch v1.11.0源码包。
 
@@ -394,8 +412,8 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
 1. 编译生成PyTorch插件的二进制安装包。
 
    ```
-   # 下载对应PyTorch版本分支代码，进入插件根目录，以v1.11.0为例
-   git clone -b  v1.11.0 https://gitee.com/ascend/pytorch.git 
+   # 下载对应PyTorch版本分支代码，进入插件根目录，以v1.11.0-5.0.rc2.1为例
+   git clone -b  v1.11.0-5.0.rc2.1 https://gitee.com/ascend/pytorch.git 
    cd pytorch    
    # 指定Python版本编包方式，以Python3.7为例，其他Python版本请使用 --python=3.8或--python3.9
    bash ci/build.sh --python=3.7
