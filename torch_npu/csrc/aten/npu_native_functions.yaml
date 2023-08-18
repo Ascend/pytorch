@@ -233,9 +233,12 @@ supported:
    op_api: True
  - func: atan_
    op_api: True
- - atan2
- - atan2.out
- - atan2_
+ - func: atan2
+   op_api: False
+ - func: atan2.out
+   op_api: False
+ - func: atan2_
+   op_api: False
  - func: atanh
    op_api: False
  - func: atanh.out
@@ -362,7 +365,8 @@ supported:
    op_api: True
  - func: clamp_max
    op_api: False
- - clamp_max.out
+ - func: clamp_max.out
+   op_api: False
  - func: clamp_max_
    op_api: False
  - func: clamp_min

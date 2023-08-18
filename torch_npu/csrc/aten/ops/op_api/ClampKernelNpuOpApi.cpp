@@ -132,5 +132,16 @@ at::Tensor& NPUNativeOpApiFunctions::clamp_max_(at::Tensor& self, const at::Scal
   EXEC_NPU_CMD(aclnnInplaceClampMax, self,max);
   return self;
 }
+
+at::Tensor &NPUNativeOpApiFunctions::clamp_max_out(const at::Tensor &self, const at::Scalar &max, at::Tensor &result)
+{
+  DO_COMPATIBILITY(aclnnClampMax, NPUNativeFunctions::clamp_max_out(self, max, result));
+  auto output_size = self.sizes();
+  OpPreparation::CheckOut({self}, result, result.scalar_type(), output_size);
+
+  EXEC_NPU_CMD(aclnnClampMax, self, max, result);
+  return result;
+}
+
 }  // namespace native
 }  // namespace at_npu
