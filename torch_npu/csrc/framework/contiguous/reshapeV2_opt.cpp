@@ -56,6 +56,10 @@ private:
       ResetDataPtr(src, self,
                    static_cast<at::Half *>(src.storage().data_ptr().get()));
       return true;
+    case at::ScalarType::BFloat16:
+      ResetDataPtr(src, self,
+                   static_cast<at::BFloat16 *>(src.storage().data_ptr().get()));
+      return true;
     case at::ScalarType::Float:
       ResetDataPtr(src, self,
                    static_cast<float *>(src.storage().data_ptr().get()));
