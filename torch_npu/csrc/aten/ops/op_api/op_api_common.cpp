@@ -151,72 +151,114 @@ void AddParamToBuf(const string& s) {
 
 void AddParamToBuf() {}
 
+inline uint64_t rotl64(uint64_t x, int8_t r) {
+    return (x << r) | (x >> (64 - r));
+}
+
+#define ROTL64(x, y) rotl64(x, y)
+#define BIG_CONSTANT(x) (x##LLU)
+
+inline uint64_t GetBlock64(const uint64_t *p, int i) {
+    return p[i];
+}
+
 inline uint64_t fmix64(uint64_t k) {
     // 0xff51afd7ed558ccd and 0xc4ceb9fe1a85ec53 are carefully selected constants to allow
     // hash values to be more evenly distributed in 64-bit space after multiplication.
     k ^= k >> Fmix64Shift;
-    k *= 0xff51afd7ed558ccd;
+    k *= BIG_CONSTANT(0xff51afd7ed558ccd);
     k ^= k >> Fmix64Shift;
-    k *= 0xc4ceb9fe1a85ec53;
+    k *= BIG_CONSTANT(0xc4ceb9fe1a85ec53);
     k ^= k >> Fmix64Shift;
 
     return k;
 }
 
-uint64_t MurmurHash(const void * key, const uint32_t len, const uint32_t seed = 0x271812) {
-    // m represents a constant of the hash function, which is a large prime number.
-    // this constant is used to limit the output value of the hash function to a specific range
-    // for subsequent processing and use.
-    const uint64_t m = 0xc6a4a7935bd1e995;
-    // each input bytes is process with r, ensure that each byte of the input data has an impact
-    // on the final hash value.
-    const int r = 47;
+uint64_t MurmurHash(const void *key, const int len, const uint32_t seed = 0xdeadb0d7) {
+    const uint8_t *data = (const uint8_t *)key;
+    // the length of each block is 16 bytes
+    const int nblocks = len / 16;
+    uint64_t h1 = seed;
+    uint64_t h2 = seed;
 
-    uint64_t h = seed ^ (len * m);
+    // 0x87c37b91114253d5 and 0x4cf5ad432745937f are carefully selected constants to
+    // blocking and obfuscation of input data
+    const uint64_t c1 = BIG_CONSTANT(0x87c37b91114253d5);
+    const uint64_t c2 = BIG_CONSTANT(0x4cf5ad432745937f);
 
-    const uint64_t * data = (const uint64_t *)key;
-    const uint64_t * end = data + (len / 8);
+    const uint64_t *blocks = (const uint64_t *)(data);
 
-    while (data != end) {
-        uint64_t k = *data++;
+    for (int i = 0; i < nblocks; i++) {
+        int even_num = 2;
+        int odd_num = 1;
+        uint64_t k1 = GetBlock64(blocks, i * even_num);
+        uint64_t k2 = GetBlock64(blocks, i * even_num + odd_num);
 
-        k *= m;
-        k ^= k >> r;
-        k *= m;
+        int8_t k1_shift = 31;
+        k1 *= c1;
+        k1  = ROTL64(k1, k1_shift);
+        k1 *= c2;
+        h1 ^= k1;
 
-        h ^= k;
-        h *= m;
+        int8_t h1_shift = 27;
+        h1 = ROTL64(h1, h1_shift);
+        h1 += h2;
+        // increase randomness by mul by 5 and adding a constant
+        h1 = h1 * 5 + 0x52dce729;
+
+        int8_t k2_shift = 33;
+        k2 *= c2;
+        k2  = ROTL64(k2, k2_shift);
+        k2 *= c1;
+        h2 ^= k2;
+
+        int8_t h2_shift = 31;
+        h2 = ROTL64(h2, h2_shift);
+        h2 += h1;
+        // increase randomness by mul by 5 and adding a constant
+        h2 = h2 * 5 + 0x38495ab5;
     }
 
-    const uint8_t * data2 = (const uint8_t*)data;
+    // the length of each block is 16 bytes
+    const uint8_t *tail = (const uint8_t*)(data + nblocks * 16);
+    uint64_t k1 = 0;
+    uint64_t k2 = 0;
+    // because the size of a block is 16, different offsets are calculated for tail blocks
+    // for different sizes
+    switch(len & 15)
+    {
+    case 15: k2 ^= ((uint64_t)tail[14]) << 48;
+    case 14: k2 ^= ((uint64_t)tail[13]) << 40;
+    case 13: k2 ^= ((uint64_t)tail[12]) << 32;
+    case 12: k2 ^= ((uint64_t)tail[11]) << 24;
+    case 11: k2 ^= ((uint64_t)tail[10]) << 16;
+    case 10: k2 ^= ((uint64_t)tail[ 9]) << 8;
+    case  9: k2 ^= ((uint64_t)tail[ 8]) << 0;
+            k2 *= c2; k2 = ROTL64(k2, 33); k2 *= c1; h2 ^= k2;
 
-    switch (len & RemaindSevenByte) {
-        case RemaindSevenByte:
-            h ^= uint64_t(data2[SeventhByte]) << SeventhByteShift;
-            break;
-        case RemaindSixByte:
-            h ^= uint64_t(data2[SixthByte]) << SixthByteShift;
-            break;
-        case RemaindFiveByte:
-            h ^= uint64_t(data2[FifthByte]) << FifthByteShift;
-            break;
-        case RemaindFourByte:
-            h ^= uint64_t(data2[ForthByte]) << ForthByteShift;
-            break;
-        case RemaindThreeByte:
-            h ^= uint64_t(data2[ThirdByte]) << ThirdByteShift;
-            break;
-        case RemaindTwoByte:
-            h ^= uint64_t(data2[SecondByte]) << SecondByteShift;
-            break;
-        case RemaindOneByte:
-            h ^= uint64_t(data2[FirstByte]);
-            h *= m;
+    case  8: k1 ^= ((uint64_t)tail[ 7]) << 56;
+    case  7: k1 ^= ((uint64_t)tail[ 6]) << 48;
+    case  6: k1 ^= ((uint64_t)tail[ 5]) << 40;
+    case  5: k1 ^= ((uint64_t)tail[ 4]) << 32;
+    case  4: k1 ^= ((uint64_t)tail[ 3]) << 24;
+    case  3: k1 ^= ((uint64_t)tail[ 2]) << 16;
+    case  2: k1 ^= ((uint64_t)tail[ 1]) << 8;
+    case  1: k1 ^= ((uint64_t)tail[ 0]) << 0;
+            k1 *= c1; k1 = ROTL64(k1, 31); k1 *= c2; h1 ^= k1;
     };
 
-    h = fmix64(h);
+    h1 ^= len;
+    h2 ^= len;
 
-    return h;
+    h1 += h2;
+    h2 += h1;
+
+    h1 = fmix64(h1);
+    h2 = fmix64(h2);
+
+    h1 += h2;
+    h2 += h1;
+    return h2;
 }
 
 uint64_t CalcHashId() {
