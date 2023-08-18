@@ -800,7 +800,8 @@ supported:
    op_api: True
  - func: log2.out
    op_api: True
- - log2_
+ - func: log2_
+   op_api: False
  - func: log_
    op_api: False
  - func: log_sigmoid
@@ -1224,7 +1225,8 @@ supported:
    op_api: False
  - func: rsub.Tensor
    op_api: False
- - scalar_tensor
+ - func: scalar_tensor
+   op_api: False
  - func: scatter.src_out
    op_api: True
  - func: scatter.value_out

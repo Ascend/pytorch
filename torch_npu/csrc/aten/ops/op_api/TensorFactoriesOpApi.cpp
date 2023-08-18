@@ -31,6 +31,17 @@ at::Tensor NPUNativeOpApiFunctions::clone(const at::Tensor &src, c10::optional<c
   return baseSelf;
 }
 
+at::Tensor NPUNativeOpApiFunctions::scalar_tensor(const c10::Scalar& s, c10::optional<at::ScalarType> dtype,
+                                                  c10::optional<at::Layout> layout, c10::optional<at::Device> device,
+                                                  c10::optional<bool> pin_memory) {
+  DO_COMPATIBILITY(aclnnInplaceFillScalar, NPUNativeFunctions::scalar_tensor(s, dtype, layout, device, pin_memory));
+  at::tracer::impl::NoTracerDispatchMode tracer_guard;
+  at::AutoNonVariableTypeMode non_var_type_mode(true);
+  auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
+  auto result_npu = result.to(at::device(at_npu::key::NativeDeviceType));
+  EXEC_NPU_CMD(aclnnInplaceFillScalar, result_npu, s);
+  return result_npu;
+}
 }  // namespace native
 }  // namespace at_npu
 
