@@ -34,7 +34,7 @@ supported:
    op_api: False
  - _amp_foreach_non_finite_check_
  - func: _amp_foreach_non_finite_check_and_unscale_
-   op_api: False
+   op_api: True
  - _batch_norm_impl_index
  - _batch_norm_impl_index_backward
  - func: _cat
