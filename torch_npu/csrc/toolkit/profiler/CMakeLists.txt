@@ -17,6 +17,8 @@ target_include_directories(${PROFILER_NAME} PRIVATE
     ${NPU_PROF_INC}
 )
 
+target_link_libraries(${PROFILER_NAME} PRIVATE torch_cpu pthread)
+
 target_compile_options(${PROFILER_NAME} PRIVATE
     ${TORCH_CXX_FLAGS}
 )
