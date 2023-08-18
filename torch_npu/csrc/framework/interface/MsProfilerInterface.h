@@ -41,6 +41,8 @@ aclError AclprofReportStamp(const char *tag, unsigned int tagLen,
 
 bool CheckInterfaceReportStamp();
 
+aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength);
+
 }
 }
 
