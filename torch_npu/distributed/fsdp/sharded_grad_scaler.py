@@ -11,6 +11,8 @@ import torch.distributed as dist
 from torch.optim.sgd import SGD
 
 
+logger = logging.getLogger(__name__)
+
 def _refresh_per_optimizer_state():
     return {"stage": OptState.READY, "found_inf_per_device": {}}
 
@@ -162,7 +164,7 @@ class ShardedGradScaler(GradScaler):
         for grad in grads:
             for tensor in grad:
                 if tensor.device != expected_device:
-                    logging.error("tensor device is %s and expected device is %s" % (tensor.device, expected_device))
+                    logger.error("tensor device is %s and expected device is %s" % (tensor.device, expected_device))
                     raise ValueError("Gradients must be on the same device.")
 
                 # check for non_overlapping_and_dense doesn't exist in the python world
