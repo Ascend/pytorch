@@ -381,7 +381,8 @@ supported:
    op_api: False
  - func: clamp_max.Tensor_out
    op_api: False
- - clamp_max_.Tensor
+ - func: clamp_max_.Tensor
+   op_api: False
  - func: clamp_min.Tensor
    op_api: False
  - func: clamp_min.Tensor_out

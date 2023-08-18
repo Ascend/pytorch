@@ -98,6 +98,12 @@ at::Tensor NPUNativeOpApiFunctions::clamp_max(const at::Tensor& self, const at::
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::clamp_max_(at::Tensor& self, const at::Tensor& max) {
+  DO_COMPATIBILITY(aclnnInplaceClampMaxTensor, NPUNativeFunctions::clamp_max_(self, max));
+  EXEC_NPU_CMD(aclnnInplaceClampMaxTensor, self, max);
+  return self;
+}
+
 at::Tensor& NPUNativeOpApiFunctions::clamp_min_out(const at::Tensor& self, const at::Tensor& min, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnClampMinTensor, NPUNativeFunctions::clamp_min_out(self, min, result));
   OpPreparation::CheckOut({self}, result, self.scalar_type(), self.sizes());
