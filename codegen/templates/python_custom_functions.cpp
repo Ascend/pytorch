@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -31,7 +31,6 @@
 #endif // _MSC_VER
 
 #include <torch/csrc/autograd/python_variable.h>
-#include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include <torch/csrc/Dtype.h>
 #include <torch/csrc/DynamicTypes.h>
 #include <torch/csrc/Exceptions.h>
@@ -58,6 +57,7 @@
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/utils/DeviceParser.h"
 #include "torch_npu/csrc/aten/VariableType.h"
+#include "torch_npu/csrc/framework/autograd/wrap_outputs.h"
 
 using at::Tensor;
 using at::Device;
