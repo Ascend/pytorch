@@ -13,8 +13,8 @@ at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFor
   }
 
   TORCH_CHECK(
-      memory_format != c10::MemoryFormat::Preserve,
-      "preserve memory format is unsupported by the contiguous operator");
+      memory_format == c10::MemoryFormat::Contiguous,
+      "NPU contiguous operator only supportted contiguous memory format.");
   return self.clone();
 }
 
