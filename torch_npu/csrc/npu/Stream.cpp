@@ -111,9 +111,9 @@ static PyObject * THNPStream_priority_range() {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_query(THNPStream *self, PyObject *noargs) {\
+static PyObject * THNPStream_query(THNPStream *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(false, "NPU does not support Stream.query() currently.");
+  return PyBool_FromLong(self->npu_stream.query());
   END_HANDLE_TH_ERRORS
 }
 
