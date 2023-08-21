@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_op.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -63,6 +64,16 @@ public:
 
   c10::StreamId id() const {
     return stream_.id();
+  }
+
+  bool query() const {
+    c10::DeviceGuard guard{stream_.device()};
+    acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
+    NPU_CHECK_ERROR(acl::AclrtStreamQuery(stream(), &status));
+    if (status == acl::ACL_STREAM_STATUS_COMPLETE) {
+      return true;
+    }
+    return false;
   }
 
   void synchronize() const {
