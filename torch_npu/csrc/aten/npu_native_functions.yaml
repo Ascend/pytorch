@@ -1326,8 +1326,10 @@ supported:
    op_api: False
  - softshrink
  - softshrink.out
- - softshrink_backward
- - softshrink_backward.grad_input
+ - func: softshrink_backward
+   op_api: True
+ - func: softshrink_backward.grad_input
+   op_api: True
  - func: sort
    op_api: True
  - func: sort.stable
