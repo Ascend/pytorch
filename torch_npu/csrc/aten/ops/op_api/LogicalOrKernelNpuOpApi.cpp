@@ -41,5 +41,12 @@ at::Tensor NPUNativeOpApiFunctions::logical_or(const at::Tensor& self, const at:
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::logical_or_(at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnInplaceLogicalOr, NPUNativeFunctions::logical_or_(self, other));
+  OpPreparation::CheckMemory({self, other},{self});
+  EXEC_NPU_CMD(aclnnInplaceLogicalOr, self, other);
+  return self;
+}
+
 }  // namespace native
 }  // namespace at_npu

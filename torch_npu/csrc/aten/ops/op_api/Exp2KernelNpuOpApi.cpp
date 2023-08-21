@@ -33,21 +33,26 @@ at::Tensor& NPUNativeOpApiFunctions::exp2_out(const at::Tensor& self, at::Tensor
 }
 
 at::Tensor NPUNativeOpApiFunctions::exp2(const at::Tensor& self) {
-    
+
     DO_COMPATIBILITY(aclnnExp2, NPUNativeFunctions::exp2(self));
 
     auto out_Dtype = self.dtype();
     if (isIntegralType(self.scalar_type(), true)) {
         out_Dtype = at::ScalarType::Float;
     }
-    
+
     at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self.sizes(), self.options().dtype(out_Dtype));
-    
+
     EXEC_NPU_CMD(aclnnExp2, self, out);
     return out;
 }
-    
-   
+
+at::Tensor& NPUNativeOpApiFunctions::exp2_(at::Tensor& self) {
+  DO_COMPATIBILITY(aclnnInplaceExp2, NPUNativeFunctions::exp2_(self));
+  EXEC_NPU_CMD(aclnnInplaceExp2, self);
+  return self;
+}
+
 }  // namespace native
 }  // namespace at_npu
 

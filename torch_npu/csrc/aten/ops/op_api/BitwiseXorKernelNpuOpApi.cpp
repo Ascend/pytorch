@@ -83,5 +83,18 @@ at::Tensor NPUNativeOpApiFunctions::bitwise_xor(const at::Tensor& self, const at
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::bitwise_xor_(at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnInplaceBitwiseXorTensor, NPUNativeFunctions::bitwise_xor_(self, other));
+  OpPreparation::CheckMemory({self, other}, {self});
+  EXEC_NPU_CMD(aclnnInplaceBitwiseXorTensor, self, other);
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::bitwise_xor_(at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceBitwiseXorScalar, NPUNativeFunctions::bitwise_xor_(self, other));
+  EXEC_NPU_CMD(aclnnInplaceBitwiseXorScalar, self, other);
+  return self;
+}
+
 } // namespace native
 } // namespace at_npu
