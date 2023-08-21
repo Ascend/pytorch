@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
-#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace {
 const uint64_t kStringOffset = 16UL;
