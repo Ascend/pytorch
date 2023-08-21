@@ -181,6 +181,9 @@ typedef enum {
     ACL_MEMTYPE_HOST_COMPILE_INDEPENDENT = 2
 } aclMemType;
 
+typedef enum {
+    ACL_OPT_DETERMINISTIC = 0,
+} aclSysParamOpt;
 
 /**
  * @ingroup AscendCL
