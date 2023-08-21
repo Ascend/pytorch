@@ -38,6 +38,7 @@ namespace at_npu
     LOAD_FUNCTION(aclCreateGraphDumpOpt)
     LOAD_FUNCTION(aclDestroyGraphDumpOpt)
     LOAD_FUNCTION(aclopCompileAndExecuteV2)
+    LOAD_FUNCTION(aclrtCtxSetSysParamOpt)
 
 aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
   typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);
@@ -133,6 +134,20 @@ aclError AclopCompileAndExecuteV2(const char *opType,
   TORCH_CHECK(func, "Failed to find function ", "aclopCompileAndExecuteV2");
   auto ret = func(opType, numInputs, inputDesc, inputs, numOutputs,
       outputDesc, outputs, attr, engineType, compileFlag, opPath, stream);
+  return ret;
+}
+
+aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
+  typedef aclError (*AclrtCtxSetSysParamOptFunc)(aclSysParamOpt opt, int64_t value);
+  static AclrtCtxSetSysParamOptFunc func = nullptr;
+  if (func == nullptr){
+    func = (AclrtCtxSetSysParamOptFunc)GET_FUNC(aclrtCtxSetSysParamOpt);
+  }
+  if (func == nullptr){
+    TORCH_WARN("Failed to find this aclrtCtxSetSysParamOpt function!");
+    return ACL_ERROR_NONE;
+  }
+  auto ret = func(opt, value);
   return ret;
 }
 
