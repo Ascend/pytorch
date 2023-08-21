@@ -46,24 +46,22 @@ static inline at::ScalarType promote_dtype(const at::Tensor& input_t, const at::
   return at::ScalarType::Half;
 }
 
-at::Tensor NPUNativeOpApiFunctions::_convolution(const at::Tensor &input, const at::Tensor &weight,
+at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const at::Tensor &weight,
                                                  const c10::optional<at::Tensor> &bias, at::IntArrayRef stride,
                                                  at::IntArrayRef padding, at::IntArrayRef dilation, bool transposed,
-                                                 at::IntArrayRef output_padding, int64_t groups, bool benchmark,
+                                                 at::IntArrayRef output_padding, int64_t groups) {
+  return at::_convolution(input, weight, bias, stride, padding, dilation, transposed, output_padding, groups, false,
+                          false, false, false);
+}
+
+at::Tensor NPUNativeOpApiFunctions::_convolution(const at::Tensor &input, const at::Tensor &weight,
+                                                const c10::optional<at::Tensor> &bias, at::IntArrayRef stride,
+                                                at::IntArrayRef padding, at::IntArrayRef dilation, bool transposed,
+                                                at::IntArrayRef output_padding, int64_t groups, bool benchmark,
                                                  bool deterministic, bool cudnn_enabled, bool allow_tf32) {
   DO_COMPATIBILITY(aclnnConvolution, NPUNativeFunctions::_convolution(input, weight, bias, stride, padding, dilation,
                                                                       transposed, output_padding, groups, benchmark,
                                                                       deterministic, cudnn_enabled, allow_tf32));
-  return at_npu::native::NPUNativeOpApiFunctions::convolution(input, weight, bias, stride, padding, dilation,
-                                                              transposed, output_padding, groups);
-}
-
-at::Tensor NPUNativeOpApiFunctions::convolution(const at::Tensor &input, const at::Tensor &weight,
-                                                const c10::optional<at::Tensor> &bias, at::IntArrayRef stride,
-                                                at::IntArrayRef padding, at::IntArrayRef dilation, bool transposed,
-                                                at::IntArrayRef output_padding, int64_t groups) {
-  DO_COMPATIBILITY(aclnnConvolution, NPUNativeFunctions::convolution(input, weight, bias, stride, padding, dilation,
-                                                                     transposed, output_padding, groups));
 
   int64_t k = weight.ndimension();
   int64_t inputK = input.ndimension();

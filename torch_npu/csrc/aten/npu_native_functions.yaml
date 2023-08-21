@@ -49,7 +49,7 @@ supported:
  - func: convolution
    op_api: True
  - func: _convolution
-   op_api: False
+   op_api: True
  - func: _ctc_loss
    op_api: True
  - func: _ctc_loss_backward
