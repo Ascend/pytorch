@@ -30,7 +30,7 @@ VERSION = '2.1.0'
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
         return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=pytorch_root)
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=pytorch_root)  # Compliant
             .decode("ascii")
             .strip()
         )
@@ -120,7 +120,7 @@ def get_pytorch_dir():
 def generate_bindings_code(base_dir):
     python_execute = sys.executable
     generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute, VERSION]
-    if subprocess.call(generate_code_cmd) != 0:
+    if subprocess.call(generate_code_cmd) != 0:  # Compliant
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
             file=sys.stderr)
@@ -372,7 +372,7 @@ class BdistWheelBuild(bdist_wheel):
         to_preload = []
         dependencies = ["libascendcl.so", "libacl_op_compiler.so", "libhccl.so", "libge_runner.so",
                         "libgraph.so", "libacl_tdt_channel.so", "libtorch_python", "libtorch_cpu.so",
-                        "libtorch.so", "libc10.so", "libgomp.so"]
+                        "libtorch.so", "libc10.so"]
 
         libs = glob.glob(os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "**", "*.so"),
                          recursive=True)
@@ -383,7 +383,7 @@ class BdistWheelBuild(bdist_wheel):
                     check=True,
                     stdout=subprocess.PIPE,
                     text=True
-                )
+                )  # Compliant
 
                 args = ["patchelf", "--debug"]
                 for line in result.stdout.split("\n"):
@@ -394,7 +394,7 @@ class BdistWheelBuild(bdist_wheel):
                             args.extend(["--remove-needed", line])
                 args.append(lib)
                 if len(args) > 3:
-                    subprocess.run(args, check=True, stdout=subprocess.PIPE)
+                    subprocess.run(args, check=True, stdout=subprocess.PIPE)  # Compliant
 
         self._rewrite_ld_preload(to_preload)
 
@@ -410,7 +410,7 @@ class BdistWheelBuild(bdist_wheel):
                     ["auditwheel", "repair", "-w", self.dist_dir, file],
                     check=True,
                     stdout=subprocess.PIPE
-                )
+                )  # Compliant
             finally:
                 os.remove(file)
 
