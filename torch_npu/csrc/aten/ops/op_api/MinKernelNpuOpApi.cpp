@@ -81,5 +81,20 @@ at::Tensor& NPUNativeOpApiFunctions::min_out(const at::Tensor& self, const at::T
   return result;
 }
 
+tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::min_out(
+    const at::Tensor& self,
+    at::Dimname dim,
+    bool keepdim,
+    at::Tensor& output,
+    at::Tensor& indices) {
+  DO_COMPATIBILITY(aclnnMinDim, NPUNativeFunctions::min_out(self, dim, keepdim, output, indices));
+  return min_out(self, dimname_to_position(self, dim), keepdim, output, indices);
+}
+
+tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::min(const at::Tensor& self, at::Dimname dim, bool keepdim) {
+  DO_COMPATIBILITY(aclnnMinDim, NPUNativeFunctions::min(self, dim, keepdim));
+  return min(self, dimname_to_position(self, dim), keepdim);
+}
+
 } // namespace native
 } // namespace at_npu

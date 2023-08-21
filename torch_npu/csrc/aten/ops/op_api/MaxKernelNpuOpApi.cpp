@@ -84,5 +84,23 @@ at::Tensor& NPUNativeOpApiFunctions::max_out(const at::Tensor& self, const at::T
   return result;
 }
 
+tuple<at::Tensor&, at::Tensor&> NPUNativeOpApiFunctions::max_out(
+    const at::Tensor& self,
+    at::Dimname dim,
+    bool keepdim,
+    at::Tensor& output,
+    at::Tensor& indices) {
+  DO_COMPATIBILITY(aclnnMaxDim, NPUNativeFunctions::max_out(self, dim, keepdim, output, indices));
+  return max_out(self, dimname_to_position(self, dim), keepdim, output, indices);
+  }
+
+tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::max(
+    const at::Tensor& self,
+    at::Dimname dim,
+    bool keepdim) {
+  DO_COMPATIBILITY(aclnnMaxDim, NPUNativeFunctions::max(self, dim, keepdim));
+  return max(self, dimname_to_position(self, dim), keepdim);
+}
+
 }  // namespace native
 }  // namespace at_npu
