@@ -19,7 +19,7 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {

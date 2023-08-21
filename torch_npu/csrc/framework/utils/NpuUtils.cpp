@@ -16,7 +16,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"

@@ -1,5 +1,4 @@
-#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
-
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #include <ATen/core/dispatch/Dispatcher.h>
 
 #define GET_OP_HANDLE(BASE_NAME, OVERLOAD_NAME, FUNC) \

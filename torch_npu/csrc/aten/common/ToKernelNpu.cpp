@@ -4,7 +4,7 @@
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/framework/utils/CustomFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
