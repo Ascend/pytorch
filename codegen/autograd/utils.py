@@ -11,7 +11,7 @@ from torchgen.api.autograd import (
 )
 from torchgen.packaged.autograd.load_derivatives import load_derivatives
 
-from codegen.utils import get_torchgen_dir
+from codegen.utils import get_torchgen_dir, CUSTOM_YAML_NAME
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 
 
@@ -84,5 +84,5 @@ NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions(
     str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
     str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/tags.yaml')),
     str(Path(__file__).parent),
-    str(Path(__file__).parents[2].joinpath('torch_npu/csrc/aten/npu_native_functions.yaml')))[-1]
+    str(Path(__file__).parents[2].joinpath(f'torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')))[-1]
 )[-1]
