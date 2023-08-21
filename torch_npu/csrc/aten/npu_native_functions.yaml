@@ -324,13 +324,13 @@ supported:
  - func: bitwise_or.Tensor_out
    op_api: True
  - func: bitwise_xor.Scalar
-   op_api: False
+   op_api: True
  - func: bitwise_xor.Scalar_out
-   op_api: False
+   op_api: True
  - func: bitwise_xor.Tensor
-   op_api: False
+   op_api: True
  - func: bitwise_xor.Tensor_out
-   op_api: False
+   op_api: True
  - func: bitwise_xor_.Scalar
    op_api: False
  - func: bitwise_xor_.Tensor
@@ -507,17 +507,17 @@ supported:
  - func: erf_
    op_api: True
  - func: erfc
-   op_api: False
+   op_api: True
  - func: erfc.out
-   op_api: False
+   op_api: True
  - func: erfc_
-   op_api: False
+   op_api: True
  - func: erfinv
-   op_api: False
+   op_api: True
  - func: erfinv.out
-   op_api: False
+   op_api: True
  - func: erfinv_
-   op_api: False
+   op_api: True
  - func: exp
    op_api: True
  - func: exp.out
@@ -531,9 +531,9 @@ supported:
  - func: exp_
    op_api: True
  - func: expm1
-   op_api: False
+   op_api: True
  - func: expm1.out
-   op_api: False
+   op_api: True
  - expm1_
  - func: eye
    op_api: True
@@ -556,7 +556,7 @@ supported:
  - func: floor.out
    op_api: True
  - func: floor_
-   op_api: False
+   op_api: True
  - func: floor_divide
    op_api: False
  - func: floor_divide.Scalar
@@ -568,17 +568,17 @@ supported:
  - func: floor_divide_.Tensor
    op_api: False
  - func: fmod.Scalar
-   op_api: False
+   op_api: True
  - func: fmod.Scalar_out
-   op_api: False
+   op_api: True
  - func: fmod.Tensor
-   op_api: False
+   op_api: True
  - func: fmod.Tensor_out
-   op_api: False
+   op_api: True
  - func: fmod_.Scalar
-   op_api: False
+   op_api: True
  - func: fmod_.Tensor
-   op_api: False
+   op_api: True
  - func: frac
    op_api: False
  - func: frac.out
@@ -617,13 +617,13 @@ supported:
  - func: ger.out
    op_api: False
  - func: glu
-   op_api: False
+   op_api: True
  - func: glu.out
-   op_api: False
+   op_api: True
  - func: glu_backward
-   op_api: False
+   op_api: True
  - func: glu_backward.grad_input
-   op_api: False
+   op_api: True
  - func: grid_sampler_2d
    op_api: True
  - func: grid_sampler_2d_backward
@@ -640,9 +640,9 @@ supported:
  - func: gt.Tensor_out
    op_api: True
  - func: gt_.Scalar
-   op_api: False
+   op_api: True
  - func: gt_.Tensor
-   op_api: False
+   op_api: True
  - hamming_window
  - hamming_window.periodic
  - hamming_window.periodic_alpha
@@ -716,13 +716,13 @@ supported:
  - func: index_select.out
    op_api: True
  - func: inverse
-   op_api: False
+   op_api: True
  - func: inverse.out
-   op_api: False
+   op_api: True
  - is_pinned
  - is_set_to
  - func: isclose
-   op_api: False
+   op_api: True
  - isfinite
  - isnan
  - func: kl_div
@@ -738,13 +738,13 @@ supported:
  - func: kthvalue.values
    op_api: False
  - func: l1_loss
-   op_api: False
+   op_api: True
  - func: l1_loss.out
-   op_api: False
+   op_api: True
  - func: l1_loss_backward
-   op_api: False
+   op_api: True
  - func: l1_loss_backward.grad_input
-   op_api: False
+   op_api: True
  - func: le.Scalar
    op_api: True
  - func: le.Scalar_out
