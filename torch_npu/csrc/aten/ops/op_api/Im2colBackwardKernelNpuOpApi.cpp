@@ -1,5 +1,5 @@
 // Copyright (c) 2023 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -49,6 +49,24 @@ at::Tensor NPUNativeOpApiFunctions::im2col_backward(const at::Tensor& grad_outpu
   EXEC_NPU_CMD(aclnnIm2colBackward, grad_output, input_size, kernel_size, dilation, padding, stride, grad_input);
 
   return grad_input;
+}
+
+at::Tensor NPUNativeOpApiFunctions::col2im(const at::Tensor& grad_output, at::IntArrayRef input_size,
+                                           at::IntArrayRef kernel_size, at::IntArrayRef dilation,
+                                           at::IntArrayRef padding, at::IntArrayRef stride) {
+  DO_COMPATIBILITY(aclnnIm2colBackward, NPUNativeFunctions::im2col_backward(grad_output, input_size, kernel_size,
+                                                                            dilation, padding, stride));
+  return im2col_backward(grad_output, input_size, kernel_size, dilation, padding, stride);
+}
+
+at::Tensor& NPUNativeOpApiFunctions::col2im_out(const at::Tensor& grad_output, at::IntArrayRef input_size,
+                                                at::IntArrayRef kernel_size, at::IntArrayRef dilation,
+                                                at::IntArrayRef padding, at::IntArrayRef stride,
+                                                at::Tensor& grad_input) {
+  DO_COMPATIBILITY(aclnnIm2colBackward, NPUNativeFunctions::im2col_backward_out(grad_output, input_size,
+                                                                                kernel_size, dilation, padding,
+                                                                                stride, grad_input));
+  return im2col_backward_out(grad_output, input_size, kernel_size, dilation, padding, stride, grad_input);
 }
 } // namespace native
 } // namespace at_npu

@@ -390,8 +390,10 @@ supported:
    op_api: False
  - func: clone
    op_api: True
- - col2im
- - col2im.out
+ - func: col2im
+   op_api: False
+ - func: col2im.out
+   op_api: False
  - col2im_backward
  - col2im_backward.grad_input
  - func: constant_pad_nd
