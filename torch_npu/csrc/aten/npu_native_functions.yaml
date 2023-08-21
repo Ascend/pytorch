@@ -1574,9 +1574,9 @@ supported:
 
 autograd:
   - func: matmul
-    op_api: True
+    op_api: False
   - func: matmul.out
-    op_api: True
+    op_api: False
   - celu
   - celu_
   - func: elu.out
