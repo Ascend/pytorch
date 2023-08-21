@@ -135,6 +135,14 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     int64_t next_tockens,
     bool is_flash)
 {
+  double scale = scale_value;
+
+  if (!is_flash) {
+    scale = 1;
+  }
+
+  at::Tensor query_scaled = at::mul(query, at::Scalar(scale));
+
   const at::Tensor &pse_const = pse.value_or(at::Tensor());
   const at::Tensor &drop_mask_const = drop_mask.value_or(at::Tensor());
   const at::Tensor &padding_mask_const = padding_mask.value_or(at::Tensor());
@@ -144,7 +152,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   const at::Tensor &softmax_const = softmax_in.value_or(at::Tensor());
   const at::Tensor &attention_const = attention_in.value_or(at::Tensor());
 
-  at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
+  at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query_scaled, ACL_FORMAT_ND);
   at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
   at::Tensor format_value = NPUNativeFunctions::npu_format_cast(value, ACL_FORMAT_ND);
   at::Tensor format_dy = NPUNativeFunctions::npu_format_cast(dy, ACL_FORMAT_ND);
@@ -175,7 +183,8 @@ std::vector<at::Tensor> npu_flash_attention_backward(
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
       pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq, dk, dv, dpse);
 
-  return {dq, dk, dv,
+  at::Tensor dq_scalared = at::mul(dq, at::Scalar(scale));
+  return {dq_scalared, dk, dv,
           at::Tensor(), at::Tensor(), dpse, at::Tensor(), at::Tensor(), at::Tensor(),
           at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
 }
@@ -204,17 +213,6 @@ public:
         "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
     at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(query);
 
-    at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
-    at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
-    at::Tensor format_value = NPUNativeFunctions::npu_format_cast(value, ACL_FORMAT_ND);
-
-    at::Tensor format_pse = format_trans(pse);
-    at::Tensor format_padding_mask = format_trans(padding_mask);
-    at::Tensor format_atten_mask = format_trans(atten_mask);
-    at::Tensor dtype_atten_mask =
-      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
-      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
-
     int64_t B = 0;
     int64_t S0 = 0; // S for query
     int64_t S1 = 0; // S for key & value
@@ -231,13 +229,31 @@ public:
       H = query.size(2);
     }
 
+    bool is_flash = S1 > FLASH_THRESHOLD;
+    double scale_value = scale;
+
+    if (!is_flash) {
+      scale_value = 1;
+    }
+
+    at::Tensor query_scaled = at::mul(query, at::Scalar(scale_value));
+    at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query_scaled, ACL_FORMAT_ND);
+    at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
+    at::Tensor format_value = NPUNativeFunctions::npu_format_cast(value, ACL_FORMAT_ND);
+
+    at::Tensor format_pse = format_trans(pse);
+    at::Tensor format_padding_mask = format_trans(padding_mask);
+    at::Tensor format_atten_mask = format_trans(atten_mask);
+    at::Tensor dtype_atten_mask =
+      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
+      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;  
+
     int64_t seed;
     int64_t offset;
     int64_t numels;
     at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, input_layout_str,
         gen_mask_parallel, sync, seed, offset, numels);
 
-    bool is_flash = S1 > FLASH_THRESHOLD;
     at::Tensor softmax_max;
     at::Tensor softmax_sum;
     at::Tensor softmax_out;
