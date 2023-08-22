@@ -1502,9 +1502,12 @@ supported:
  - upsample_nearest3d
  - upsample_nearest3d.out
  - upsample_nearest3d.vec
- - upsample_nearest3d_backward
- - upsample_nearest3d_backward.grad_input
- - upsample_nearest3d_backward.vec
+ - func: upsample_nearest3d_backward
+   op_api: False
+ - func: upsample_nearest3d_backward.grad_input
+   op_api: False
+ - func: upsample_nearest3d_backward.vec
+   op_api: False
  - upsample_trilinear3d
  - upsample_trilinear3d.out
  - upsample_trilinear3d.vec
