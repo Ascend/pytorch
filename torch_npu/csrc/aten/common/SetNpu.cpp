@@ -1,13 +1,4 @@
-#include <ATen/ATen.h>
-#include <ATen/NativeFunctions.h>
-#include <ATen/native/Resize.h>
-
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/aten/common/ResizeNpu.h"
-#include "torch_npu/csrc/core/NPUBridge.h"
-#include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/aten/common/SetNpu.h"
 
 namespace at_npu {
 namespace native {
@@ -90,6 +81,25 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
       self,
       self.unsafeGetTensorImpl()->sizes(),
       self.unsafeGetTensorImpl()->strides());
+  return self;
+}
+
+at::Tensor& set_tensor_with_storage_format(at::Tensor& self, c10::Storage src) {
+  if (StorageDescHelper::CheckDescInit(src)) {
+    // The storage object src has complete description information,
+    // and the tensor object self needs to be brushed to be the same
+    auto desc = torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl())->npu_desc_;
+    set_storage_nd_npu(self, src, 0, desc.base_sizes_.size(), desc.base_sizes_, desc.base_strides_);
+  } else {
+    // The storage object src doesn't have complete description information,
+    // and the tensor object self needs to be brushed to be the 1 dimension
+    int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
+    set_storage_nd_npu(self, src, 0, 1, {new_size}, {});
+    StorageDescHelper::SetDesc(
+        self,
+        self.unsafeGetTensorImpl()->sizes(),
+        self.unsafeGetTensorImpl()->strides());
+  }
   return self;
 }
 
