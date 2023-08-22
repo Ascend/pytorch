@@ -179,6 +179,24 @@ namespace native {
           self.sizes(), {vec1.size(0), vec2.size(0)});
     }
 
+    c10::SmallVector<int64_t, SIZE> avg_pool2d_backward_npu_output_size(
+        const at::Tensor &grad_output,
+        const at::Tensor &self,
+        c10::IntArrayRef kernel_size,
+        c10::IntArrayRef stride,
+        c10::IntArrayRef padding,
+        bool ceil_mode,
+        bool count_include_pad,
+        c10::optional<int64_t> divisor_override) {
+      c10::SmallVector<int64_t, SIZE> output_size;
+      if (self.dim() == 3) {
+        output_size = {self.size(0), self.size(1), self.size(2)};
+      } else {
+        output_size = {self.size(0), self.size(1), self.size(2), self.size(3)};
+      }
+      return output_size;
+    }
+
     c10::SmallVector<int64_t, SIZE> avg_pool2d_npu_output_size(
         const at::Tensor &self,
         c10::IntArrayRef kernel_size,
