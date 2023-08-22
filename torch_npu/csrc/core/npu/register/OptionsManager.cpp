@@ -23,6 +23,14 @@ namespace option {
 
 using namespace std;
 
+bool OptionsManager::IsResumeModeEnable() {
+  const static bool isResumeModeEnable = []() -> bool {
+    int32_t enable = OptionsManager::GetBoolTypeOption("RESUME_MODE_ENABLE", 0);
+    return enable != 0;
+  }();
+  return isResumeModeEnable;
+}
+
 bool OptionsManager::IsMultiStreamMemoryReuse() {
   const static bool hcclRealTimeMemoryReuse = []() -> bool {
     int32_t enable = OptionsManager::GetBoolTypeOption("MULTI_STREAM_MEMORY_REUSE", 0);
