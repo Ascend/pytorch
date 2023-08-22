@@ -231,7 +231,7 @@ public:
       H = query.size(2);
     }
 
-    bool is_flash = S1 > FLASH_THRESHOLD;
+    bool is_flash = (S1 > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
     double scale_value = scale;
 
     if (!is_flash) {
@@ -248,7 +248,7 @@ public:
     at::Tensor format_atten_mask = format_trans(atten_mask);
     at::Tensor dtype_atten_mask =
       (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
-      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;  
+      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
     int64_t seed;
     int64_t offset;
@@ -395,9 +395,9 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
 
   bool is_flash = true;
   if (input_layout_str == "BSH") {
-    is_flash = key.size(1) > FLASH_THRESHOLD;
+    is_flash = (key.size(1) > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
   } else if (input_layout_str == "SBH") {
-    is_flash = key.size(0) > FLASH_THRESHOLD;
+    is_flash = (key.size(0) > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
   }
 
   auto result = npu_flash_attention_backward(query,
