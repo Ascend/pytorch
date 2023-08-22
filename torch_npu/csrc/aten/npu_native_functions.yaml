@@ -986,8 +986,10 @@ supported:
    op_api: True
  - func: multinomial.out
    op_api: True
- - mv
- - mv.out
+ - func: mv
+   op_api: False
+ - func: mv.out
+   op_api: False
  - func: nanmedian
    op_api: False
  - func: native_batch_norm
