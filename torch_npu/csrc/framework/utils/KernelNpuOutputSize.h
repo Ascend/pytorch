@@ -441,6 +441,10 @@ c10::SmallVector<int64_t, SIZE> upsample_linear1d_npu_output_size(
     bool align_corners,
     c10::optional<double> scales);
 
+c10::SmallVector<int64_t, SIZE> upsample_trilinear3d_npu_output_size(
+    const at::Tensor& input,
+    at::IntArrayRef output_size);
+
 c10::SmallVector<int64_t, SIZE> var_npu_output_size(
     const at::Tensor& self,
     c10::IntArrayRef dim,
