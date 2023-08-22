@@ -1,10 +1,5 @@
-from typing import Any, Dict
-from collections import OrderedDict
+import io
 import torch
-from torch.overrides import has_torch_function_unary, handle_torch_function, has_torch_function
-from torch._namedtensor_internals import check_serializing_named_tensor
-
-import torch_npu
 
 
 def _cpu(self):
@@ -20,6 +15,15 @@ def _deepcopy(self, memo):
     tmp_tensor = torch.tensor([], dtype=self.dtype, device=self._untyped_storage.device).set_(self)
     return tmp_tensor._typed_storage()
 
+
+def _reduce(self):
+    b = io.BytesIO()
+    torch.save(self, b, _use_new_zipfile_serialization=True)
+    return (torch.load(io.BytesIO(b)), (b.getvalue(),))
+
+
 def add_storage_methods():
+    torch.storage.TypedStorage.__reduce__ = _reduce
+    torch.storage._StorageBase.__reduce__ = _reduce
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.TypedStorage._deepcopy = _deepcopy
