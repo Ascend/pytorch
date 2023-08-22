@@ -18,6 +18,18 @@ from codegen.utils import (enable_opplugin, is_op_valid)
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 
 
+CUSTOM_FUNCTIONS_DECLARATION = CodeTemplate("""\
+${return_type} ${func_name}(${args_str});
+""")
+
+CUSTOM_FUNCTIONS_DEFINITION = CodeTemplate("""\
+${return_type} ${func_name}(${args_str}) {
+    static auto op = c10::Dispatcher::singleton().findSchemaOrThrow("npu::${base_name}", "${overload}").typed<${schema}>();
+    return op.call(${args_exprs_str});
+}
+""")
+
+
 def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
     valid_tags = parse_tags_yaml(tag_path)
     rs: List[NativeFunction] = []
@@ -86,7 +98,7 @@ def compute_trace_method_definition(f: NativeFunction):
     args_str = ', '.join(a.defn() for a in args)
 
     args_exprs_str = ', '.join(a.name for a in args)
-    
+
     impl_name = f"at_npu::native::NPUNativeFunctions::{cpp.name(f.func)}"
 
     if enable_opplugin() and is_op_valid(str(f.func.name)):
@@ -146,3 +158,53 @@ def gen_custom_ops_patch(fm: FileManager, custom_trace_functions: Sequence[Nativ
         'custom_ops': [f'torch_npu.{ops} = torch.ops.npu.{ops}'
                        for ops in set([f.func.name.name for f in custom_trace_functions])],
     })
+
+
+@with_native_function
+def compute_custom_functions_declaration(f: NativeFunction):
+    sig = DispatcherSignature.from_schema(f.func)
+    name = sig.name()
+    args = sig.arguments()
+    args_str = ', '.join(a.defn() for a in args)
+    return [CUSTOM_FUNCTIONS_DECLARATION.substitute(
+            return_type=cpp.returns_type(f.func.returns).cpp_type(),
+            func_name=name,
+            args_str=args_str,)]
+
+
+@with_native_function
+def compute_custom_functions_definition(f: NativeFunction):
+    sig = DispatcherSignature.from_schema(f.func)
+    name = sig.name()
+    args = sig.arguments()
+    args_str = ', '.join(a.defn() for a in args)
+    args_exprs_str = ', '.join(a.name for a in args)
+    return [CUSTOM_FUNCTIONS_DEFINITION.substitute(
+            return_type=cpp.returns_type(f.func.returns).cpp_type(),
+            base_name=f.func.name.name,
+            func_name=name,
+            overload=f.func.name.overload_name,
+            args_str=args_str,
+            schema=sig.type(),
+            args_exprs_str=args_exprs_str,)]
+
+
+def gen_custom_functions(
+    fm: FileManager,
+    custom_functions: Sequence[NativeFunction]
+) -> None:
+    fm.write_with_template(
+    f'CustomFunctions.h', 'CustomFunctions.h', lambda:{
+    'custom_function_declarations':list(concatMap(
+        lambda f: compute_custom_functions_declaration(f),
+        custom_functions
+        ))}
+    )
+
+    fm.write_with_template(
+        f'CustomFunctions.cpp', 'CustomFunctions.cpp', lambda:{
+        'custom_function_definitions':list(concatMap(
+            lambda f: compute_custom_functions_definition(f),
+            custom_functions
+        ))}
+    )
