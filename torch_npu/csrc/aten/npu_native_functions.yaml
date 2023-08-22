@@ -661,7 +661,10 @@ supported:
  - hann_window
  - hann_window.periodic
  - hardshrink
- - hardshrink_backward
+ - func: hardshrink_backward
+   op_api: False
+ - func: hardshrink_backward.grad_input
+   op_api: False
  - func: hardsigmoid
    op_api: True
  - func: hardsigmoid.out
