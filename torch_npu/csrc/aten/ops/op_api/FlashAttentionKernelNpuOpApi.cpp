@@ -86,6 +86,9 @@ at::Tensor dropout_gen_mask_dispatch(const at::Tensor &self, const at::Scalar &k
         NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(original_stream));
       }
     }
+    // When tasks on multiple streams read and write the same block of memory,
+    // recordStream needs to be called to ensure the correctness of memory reuse.
+    c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   } else {
     mask = dropout_gen_mask_impl(self, keep_prob, seed, offset, numels);
   }
@@ -280,12 +283,6 @@ public:
         scale, keep_prob, pre_tockens, next_tockens, head_num, is_flash, input_layout_ptr,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
-    if (!sync) {
-      c10_npu::NPUEvent npu_event;
-      npu_event.record(c10_npu::getCurrentNPUStream());
-      npu_event.block(c10_npu::getCurrentSecondaryStream());
-    }
-
     at::AutoNonVariableTypeMode g;
 
     ctx->save_for_backward({query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
@@ -343,17 +340,10 @@ public:
       drop_mask = at::zeros(at::IntArrayRef{length}, query.options().dtype(at::kByte));
     }
 
-    auto results = npu_flash_attention_backward(query,
+    return npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, input_layout, pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
         keep_prob, pre_tockens, next_tockens, is_flash);
-
-    if (!sync) {
-      c10_npu::NPUEvent npu_event;
-      npu_event.record(c10_npu::getCurrentNPUStream());
-      npu_event.block(c10_npu::getCurrentSecondaryStream());
-    }
-    return results;
   }
 };
 
@@ -402,17 +392,10 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
     is_flash = (key.size(0) > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
   }
 
-  auto result = npu_flash_attention_backward(query,
+  return npu_flash_attention_backward(query,
       key, value, dy, head_num, input_layout_str, pse, drop_mask, padding_mask, atten_mask,
       softmax_max, softmax_sum, softmax_in, attention_in, scale_value,
       keep_prob, pre_tockens, next_tockens, is_flash);
-
-  if (!sync) {
-    c10_npu::NPUEvent npu_event;
-    npu_event.record(c10_npu::getCurrentNPUStream());
-    npu_event.block(c10_npu::getCurrentSecondaryStream());
-  }
-  return result;
 }
 
 std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention(
