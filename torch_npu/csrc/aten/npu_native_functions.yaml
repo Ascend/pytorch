@@ -141,11 +141,11 @@ supported:
  - func: add_.Tensor
    op_api: True
  - func: addbmm
-   op_api: False
+   op_api: True
  - func: addbmm.out
-   op_api: False
+   op_api: True
  - func: addbmm_
-   op_api: False
+   op_api: True
  - func: addcdiv
    op_api: True
  - func: addcdiv.out
@@ -409,9 +409,9 @@ supported:
    op_api: False
  - contiguous
  - func: conv_tbc
-   op_api: False
+   op_api: True
  - func: conv_tbc_backward
-   op_api: False
+   op_api: True
  - conv_transpose2d.input
  - conv_transpose3d.input
  - func: convolution_backward
@@ -807,11 +807,11 @@ supported:
  - func: log10_
    op_api: True
  - func: log1p
-   op_api: False
+   op_api: True
  - func: log1p.out
-   op_api: False
+   op_api: True
  - func: log1p_
-   op_api: False
+   op_api: True
  - func: log2
    op_api: True
  - func: log2.out
@@ -821,9 +821,9 @@ supported:
  - func: log_
    op_api: True
  - func: log_sigmoid
-   op_api: False
+   op_api: True
  - func: log_sigmoid.out
-   op_api: False
+   op_api: True
  - func: log_sigmoid_backward
    op_api: False
  - func: log_sigmoid_backward.grad_input
@@ -835,13 +835,13 @@ supported:
  - log_softmax.Dimname
  - log_softmax.int
  - func: logaddexp
-   op_api: False
+   op_api: True
  - func: logaddexp.out
-   op_api: False
+   op_api: True
  - func: logaddexp2
-   op_api: False
+   op_api: True
  - func: logaddexp2.out
-   op_api: False
+   op_api: True
  - func: logical_and
    op_api: True
  - func: logical_and.out
@@ -1128,9 +1128,9 @@ supported:
  - func: put_
    op_api: True
  - func: qr
-   op_api: False
+   op_api: True
  - func: qr.Q
-   op_api: False
+   op_api: True
  - quantize_per_channel
  - quantize_per_tensor
  - func: random_
@@ -1162,9 +1162,9 @@ supported:
  - func: reflection_pad1d.out
    op_api: True
  - func: reflection_pad1d_backward
-   op_api: False
+   op_api: True
  - func: reflection_pad1d_backward.grad_input
-   op_api: False
+   op_api: True
  - func: reflection_pad2d
    op_api: True
  - func: reflection_pad2d.out
@@ -1178,43 +1178,43 @@ supported:
  - func: relu_
    op_api: True
  - func: remainder.Scalar
-   op_api: False
+   op_api: True
  - func: remainder.Scalar_out
-   op_api: False
+   op_api: True
  - func: remainder.Tensor
-   op_api: False
+   op_api: True
  - func: remainder.Tensor_out
-   op_api: False
+   op_api: True
  - func: remainder_.Scalar
-   op_api: False
+   op_api: True
  - func: remainder_.Tensor
-   op_api: False
+   op_api: True
  - func: remainder.Scalar_Tensor
-   op_api: False
+   op_api: True
  - func: renorm
-   op_api: False
+   op_api: True
  - func: renorm.out
-   op_api: False
+   op_api: True
  - func: renorm_
-   op_api: False
+   op_api: True
  - func: repeat
-   op_api: False
+   op_api: True
  - func: repeat_interleave.self_Tensor
    op_api: True
  - func: repeat_interleave.self_int
    op_api: True
  - func: replication_pad1d
-   op_api: False
+   op_api: True
  - func: replication_pad1d.out
-   op_api: False
+   op_api: True
  - func: replication_pad1d_backward
-   op_api: False
+   op_api: True
  - func: replication_pad1d_backward.grad_input
-   op_api: False
+   op_api: True
  - func: replication_pad2d
-   op_api: False
+   op_api: True
  - func: replication_pad2d.out
-   op_api: False
+   op_api: True
  - func: replication_pad2d_backward
    op_api: True
  - func: replication_pad2d_backward.grad_input
@@ -1240,11 +1240,11 @@ supported:
  - func: square.out
    op_api: True
  - func: rsqrt
-   op_api: False
+   op_api: True
  - func: rsqrt.out
-   op_api: False
+   op_api: True
  - func: rsqrt_
-   op_api: False
+   op_api: True
  - func: rsub.Scalar
    op_api: True
  - func: rsub.Tensor
@@ -1308,9 +1308,9 @@ supported:
  - func: sinh_
    op_api: True
  - func: linalg_slogdet
-   op_api: False
+   op_api: True
  - func: linalg_slogdet.out
-   op_api: False
+   op_api: True
  - slow_conv3d
  - slow_conv3d.out
  - slow_conv3d_forward
@@ -1465,11 +1465,11 @@ supported:
  - func: trace
    op_api: True
  - func: trunc
-   op_api: False
+   op_api: True
  - func: trunc.out
-   op_api: False
+   op_api: True
  - func: trunc_
-   op_api: False
+   op_api: True
  - unfold
  - func: uniform_
    op_api: True
@@ -1608,9 +1608,9 @@ autograd:
   - func: binary_cross_entropy_with_logits_backward
     op_api: True
   - func: selu
-    op_api: False
+    op_api: True
   - func: selu_
-    op_api: False
+    op_api: True
 
 tocpu:
   - _cholesky_helper
