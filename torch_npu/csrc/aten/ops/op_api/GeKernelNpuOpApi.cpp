@@ -1,5 +1,5 @@
 // Copyright (c) 2023 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -24,7 +24,7 @@ namespace native {
 
 at::Tensor& NPUNativeOpApiFunctions::ge_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   DO_COMPATIBILITY(aclnnGeScalar, NPUNativeFunctions::ge_out(self, other, result));
-  auto outputSize = self.sizes(); 
+  auto outputSize = self.sizes();
   OpPreparation::CheckOut(
       {self},
       result,
@@ -84,5 +84,21 @@ at::Tensor NPUNativeOpApiFunctions::ge(const at::Tensor& self, const at::Tensor&
   }
 }
 
+at::Tensor& NPUNativeOpApiFunctions::ge_(at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceGeScalar, NPUNativeFunctions::ge_(self, other));
+  EXEC_NPU_CMD(aclnnInplaceGeScalar, self, other);
+  return self;
+}
+
+at::Tensor &NPUNativeOpApiFunctions::ge_(at::Tensor &self, const at::Tensor &other) {
+  DO_COMPATIBILITY(aclnnInplaceGeTensor, NPUNativeFunctions::ge_(self, other));
+  if (OpPreparation::IsCPUScalar(other)) {
+    return NPUNativeOpApiFunctions::ge_(self, other.item());
+  } else {
+    OpPreparation::CheckMemory({self, other}, {self});
+    EXEC_NPU_CMD(aclnnInplaceGeTensor, self, other);
+    return self;
+  }
+}
 } // namespace native
 } // namespace at_npu
