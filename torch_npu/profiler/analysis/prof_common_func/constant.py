@@ -10,6 +10,7 @@ class Constant(object):
     DIR_AUTHORITY = 0o750
     MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10
     MAX_CSV_SIZE = 1024 * 1024 * 1024 * 5
+    MAX_PATH_LENGTH = 4096
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
