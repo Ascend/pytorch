@@ -170,6 +170,14 @@ namespace at_npu
       return iter == tensors.end();
     }
 
+    bool FormatHelper::IsOpInputBaseFormat(const at::ITensorListRef &tensors) {
+      auto materialized = tensors.materialize();
+      const auto &iter =
+          std::find_if(materialized.begin(), materialized.end(), 
+                       [](const auto &tensor) { return !IsOpInputBaseFormat(tensor.get()); });
+      return iter == materialized.end();
+    }
+
     //
     namespace
     {
