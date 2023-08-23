@@ -32,7 +32,7 @@ import codegen.dest as dest
 import codegen.dest.utils as utils
 import codegen.api.dispatcher as dispatcher
 from codegen.api.signature import DispatcherSignature
-
+from codegen.custom_functions import gen_custom_functions, gen_custom_registration, parse_custom_yaml
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(backend_ops: List[str],
@@ -559,6 +559,9 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
             )),
         })
 
+        custom_functions = parse_custom_yaml(source_yaml).native_functions
+        gen_custom_registration(fm, custom_functions)
+        gen_custom_functions(fm, custom_functions)
 
 if __name__ == '__main__':
     main()
