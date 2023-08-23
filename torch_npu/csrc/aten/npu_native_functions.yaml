@@ -395,9 +395,9 @@ supported:
  - func: clone
    op_api: True
  - func: col2im
-   op_api: False
+   op_api: True
  - func: col2im.out
-   op_api: False
+   op_api: True
  - col2im_backward
  - col2im_backward.grad_input
  - func: constant_pad_nd
@@ -812,7 +812,7 @@ supported:
  - func: log2.out
    op_api: True
  - func: log2_
-   op_api: False
+   op_api: True
  - func: log_
    op_api: False
  - func: log_sigmoid
@@ -1238,7 +1238,7 @@ supported:
  - func: rsub.Tensor
    op_api: False
  - func: scalar_tensor
-   op_api: False
+   op_api: True
  - func: scatter.src_out
    op_api: True
  - func: scatter.value_out
