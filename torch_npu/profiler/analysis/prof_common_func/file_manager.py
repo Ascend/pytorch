@@ -111,3 +111,40 @@ class FileManager:
             os.makedirs(output_path, mode=Constant.DIR_AUTHORITY)
         except Exception:
             raise RuntimeError(f"Can't create directory: {output_path}")
+
+    @classmethod
+    def check_input_path(cls, path):
+        """
+        Function Description:
+            check whether the path is valid
+        Parameter:
+            path: the path to check
+        Exception Description:
+            when invalid data throw exception
+        """
+        if len(path) > Constant.MAX_PATH_LENGTH:
+            msg = f"The length of file path exceeded the maximum value {Constant.MAX_PATH_LENGTH}: {path}"
+            raise RuntimeError(msg)
+
+        if os.path.islink(path):
+            msg = f"Invalid profiling path is soft link: {path}"
+            raise RuntimeError(msg)
+
+        if os.path.isfile(path):
+            raise RuntimeError('Your profiling output path {} is a file.'.format(path))
+
+    @classmethod
+    def check_directory_path_writable(cls, path):
+        """
+        Function Description:
+            check whether the path is writable
+        Parameter:
+            path: the path to check
+        Exception Description:
+            when invalid data throw exception
+        """
+        if not os.path.exists(path):
+            raise RuntimeError('The path {} is not exist.'.format(path))
+        if not os.access(path, os.W_OK):
+            raise RuntimeError('The path {} does not have permission to write. '
+                               'Please check the path permission'.format(path))
