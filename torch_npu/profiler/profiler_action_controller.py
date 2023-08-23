@@ -24,6 +24,8 @@ import torch.autograd.profiler as prof
 from .analysis.npu_profiler import NpuProfiler
 from .scheduler import default_schedule_fn, ProfilerAction
 from .analysis.prof_common_func.constant import Constant
+from .analysis.prof_common_func.file_manager import FileManager
+
 
 class NpuProfCreator:
     DEFAULT_PROF_SUFFIX = "./profiler"
@@ -53,6 +55,7 @@ class NpuProfCreator:
                 raise RuntimeError("Can't create directory: " + target_path)
 
     def create_prof_dir(self) -> str:
+        FileManager.check_input_path(self._dir_name)
         if not self._worker_name:
             self._worker_name = "{}_{}".format(socket.gethostname(), str(os.getpid()))
         worker_span_name = "{}_{}_ascend_pt".format(self._worker_name,
@@ -60,12 +63,14 @@ class NpuProfCreator:
 
         total_path = os.path.join(self._dir_name, worker_span_name)
         self.make_dir(total_path)
+        FileManager.check_directory_path_writable(total_path)
         return total_path
 
     def create_default_prof_dir(self) -> str:
         target_path = "{}_{}_ascend_pt".format(self.DEFAULT_PROF_SUFFIX,
                                                time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
         self.make_dir(target_path)
+        FileManager.check_directory_path_writable(target_path)
         return target_path
 
 
