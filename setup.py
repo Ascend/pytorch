@@ -121,7 +121,7 @@ def get_pytorch_dir():
 
 def generate_bindings_code(base_dir, verbose):
     py_exec = sys.executable
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, py_exec]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, py_exec, VERSION]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -136,6 +136,12 @@ def build_stub(base_dir):
             'Failed to build stub: {}'.format(build_stub_cmd),
             file=sys.stderr)
         sys.exit(1)
+
+
+def check_opplugin_valid(base_dir):
+    # build with submodule of op_plugin, if path of op-plugin is valid
+    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
 
 
 def CppExtension(name, sources, *args, **kwargs):
@@ -229,6 +235,9 @@ class CPPLibBuild(build_clib, object):
             '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
+
+        if check_opplugin_valid(BASE_DIR):
+            cmake_args.append('-DBUILD_OPPLUGIN=ON')
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 

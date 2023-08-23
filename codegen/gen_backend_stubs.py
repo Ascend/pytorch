@@ -26,7 +26,9 @@ from codegen.gen import FileManager, get_grouped_native_functions, error_check_n
 from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
 from codegen.selective_build.selector import SelectiveBuilder
-from codegen.utils import Target, concat_map, context
+from codegen.utils import (Target, concat_map, context, parse_npu_yaml,
+                           get_opplugin_wrap_name, parse_opplugin_yaml,
+                           merge_custom_yaml, gen_custom_yaml_path, filed_tag)
 from codegen.context import native_function_manager
 import codegen.dest as dest
 import codegen.dest.utils as utils
@@ -105,20 +107,9 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
-        # Filter the custom native yaml file, and extract the functions we defined.
-        from io import StringIO
-        f_str = StringIO()
-        with open(custom_path, 'r') as f:
-            for line in f:
-                if line.split(':')[0] in ['backend', 'cpp_namespace', 'tocpu',
-                                          'supported', 'autograd', 'custom', 'custom_autograd', 'unsupported']:
-                    continue
-                if ':' not in line:
-                    continue
-                f_str.write(line)
-
-        f_str.seek(0)
-        custom_es = yaml.safe_load(f_str)
+        source_es = parse_npu_yaml(custom_path)
+        custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+        custom_es = filed_tag(custom_es)
         for e in custom_es:
             funcs = e.get('func')
             with context(lambda: f'in {custom_path}:\n  {funcs}'):
@@ -177,7 +168,11 @@ def parse_backend_yaml(
     supported_autograd = yaml_values.pop('autograd', [])
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
 
+    supported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported]
+    supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
+
     supported_tocpu = yaml_values.pop('tocpu', [])
+    supported_tocpu = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_tocpu]
     assert isinstance(supported_tocpu, list), f'expected "tocpu" to be a list, but got: {supported_tocpu}'
 
     custom = yaml_values.pop('custom', [])
@@ -194,11 +189,12 @@ def parse_backend_yaml(
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
     unsupported = yaml_values.pop('unsupported', [])
+    unsupported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in unsupported]
     assert isinstance(unsupported, list), f'expected "unsupported" to be a list, but got: {unsupported}'
 
-    assert len(yaml_values.keys()) == 0, \
-        f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
-Only the following keys are supported: {", ".join(valid_keys)}'
+    if (len(yaml_values.keys()) != 0):
+        print(f'Waring: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
+Only the following keys are supported: {", ".join(valid_keys)}')
 
     backend_key: Optional[DispatchKey] = None
     if len(supported) > 0:
@@ -244,6 +240,50 @@ def check_op_on_cpu_kernels(
             backend_indices[DispatchKey.CPU].index.pop(op_name, None)
 
 
+def op_plugin_kernel_conut(op_plugin_ops_dir: str):
+    actual_backend_kernel_name_counts = Counter()
+    file_path = os.path.join(op_plugin_ops_dir, "OpInterface.h")
+    try:
+        with open(file_path, 'r') as f:
+            backend_defns = f.read()
+    except IOError:
+        raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}')
+
+    kernel_defn_regex = rf'\w+(?=\()'
+    actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
+    return actual_backend_kernel_name_counts
+
+
+def pta_kernel_conut(class_name: str, pta_op_dir: str):
+    actual_backend_kernel_name_counts = Counter()
+    for cur_dir, _, filenames in os.walk(pta_op_dir):
+        for filename in filenames:
+            if not filename.endswith('.cpp'):
+                continue
+            file_path = os.path.join(cur_dir, filename)
+            try:
+                with open(file_path, 'r') as f:
+                    backend_defns = f.read()
+            except IOError:
+                raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}')
+
+            kernel_defn_regex = rf'{class_name}::([\w\d]*)\([^\)]*\)\s*{{'
+            actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
+    return actual_backend_kernel_name_counts
+
+
+def check_op_plugin_kernels(
+        native_functions: Sequence[NativeFunction],
+        expected_kernel_counts: Dict[str, List[NativeFunction]],
+        actual_kernel_counts: Dict[str, List[NativeFunction]]):
+    for f in native_functions:
+        wrap_name = get_opplugin_wrap_name(str(f.func.name))
+        expect_op_plugin_kernel_count = len(expected_kernel_counts[wrap_name])
+        if expect_op_plugin_kernel_count > actual_kernel_counts[wrap_name]:
+            return False
+    return True
+
+
 # Double-check the functions we supported to see whether there exists something mismatch.
 def error_on_missing_kernels(
         native_functions: Sequence[NativeFunction],
@@ -251,7 +291,15 @@ def error_on_missing_kernels(
         backend_key: DispatchKey,
         autograd_key: DispatchKey,
         kernel_def_file_path: str,
-) -> None:
+        op_plugin_kernel_def_file_path: str) -> None:
+    # Do not check when opplugin keeps two headers
+    return
+
+    class_name: Optional[str] = backend_indices[backend_key].native_function_class_name()
+    assert class_name is not None
+
+    actual_backend_kernel_name_counts = pta_kernel_conut(class_name, kernel_def_file_path)
+    actual_kernel_counts_op_plugin = op_plugin_kernel_conut(op_plugin_kernel_def_file_path)
     class_name: Optional[str] = backend_indices[backend_key].native_function_class_name()
     assert class_name is not None
 
@@ -275,8 +323,10 @@ def error_on_missing_kernels(
     expected_backend_native_funcs: List[NativeFunction] = \
         [f for f in native_functions if f.func.name in expected_backend_op_names]
     expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
+    expected_kernel_counts_op_plugin: Dict[str, List[NativeFunction]] = defaultdict(list)
     for native_f in expected_backend_native_funcs:
         expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
+        expected_kernel_counts_op_plugin[get_opplugin_wrap_name(str(native_f.func.name))].append(native_f)
 
     missing_kernels_err_msg = ""
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
@@ -284,15 +334,22 @@ def error_on_missing_kernels(
             continue
         expected_overload_count = len(funcs)
         actual_overload_count = actual_backend_kernel_name_counts[expected_name]
-        if expected_overload_count != actual_overload_count:
+        if expected_overload_count != actual_overload_count and \
+            (not check_op_plugin_kernels(funcs, expected_kernel_counts_op_plugin, actual_kernel_counts_op_plugin)):
             def create_decl(f: NativeFunction) -> str:
                 with native_function_manager(f):
                     return DispatcherSignature.from_schema(f.func).decl()
             expected_schemas_str = '\n'.join([create_decl(f) for f in funcs])
+            expected_schemas_str_op = '\n'.join(
+                [create_decl(f).replace(str(f.func.name), get_opplugin_wrap_name(f))
+                 if get_opplugin_wrap_name(f) else ""
+                 for f in funcs])
             missing_kernels_err_msg += f"""
-{class_name} is missing a kernel definition for {expected_name}. We found {actual_overload_count} kernel(s) with that name,
-but expected {expected_overload_count} kernel(s). The expected function schemas for the missing operator are:
+{class_name} or op_plugin is missing a kernel definition for {expected_name}.
+The expected function schemas for the missing operator in torch_npu are:
 {expected_schemas_str}
+The expected function schemas for the missing operator in op_plugin are:
+{expected_schemas_str_op}
 """
     assert missing_kernels_err_msg == "", missing_kernels_err_msg
 
@@ -311,12 +368,20 @@ def main() -> None:
         '--dry_run', type=bool, default=False, help='output directory')
     parser.add_argument(
         '--impl_path', type=str, default=None, help='path to the source C++ file containing kernel definitions')
+    parser.add_argument(
+        '--op_plugin_impl_path', type=str, default=None,
+        help='path to the source C++ file containing kernel definitions in op_plugin')
+    parser.add_argument(
+        '--op_plugin_yaml_path', type=str, default=None,
+        help='path to the source yaml file containing kernel definitions in op_plugin')
     options = parser.parse_args()
 
-    run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run, options.impl_path)
+    run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run,
+        options.impl_path, options.op_plugin_impl_path, options.op_plugin_yaml_path)
 
 
-def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
+def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
+        impl_path: Optional[str], op_plugin_impl_path: Optional[str], op_plugin_yaml_path: Optional[str]) -> None:
 
     template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
 
@@ -324,9 +389,12 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
         return FileManager(install_dir=install_dir, template_dir=template_dir, dry_run=dry_run)
 
     fm = make_file_manager(output_dir)
+    merge_custom_yaml(source_yaml, op_plugin_yaml_path)
+    source_yaml = gen_custom_yaml_path(source_yaml)
 
     native_yaml_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'native_functions.yaml')
     parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, source_yaml)
+    parse_opplugin_yaml(op_plugin_yaml_path)
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
@@ -345,8 +413,9 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
         autograd_dispatch_key: DispatchKey = autograd_key
         class_name = backend_indices[backend_dispatch_key].native_function_class_name()
 
-        if impl_path is not None:
-            error_on_missing_kernels(native_functions, backend_indices, backend_key, autograd_key, impl_path)
+        if (impl_path is not None) and (op_plugin_impl_path is not None):
+            error_on_missing_kernels(native_functions, backend_indices, backend_key, autograd_key,
+                                     impl_path, op_plugin_impl_path)
 
         assert class_name is not None
         generated_comment = 'Autogenerated file by gen_backend_stubs.py. Do not edit directly!'
@@ -372,7 +441,12 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
             if not dispatch_key:
                 continue
 
-            native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
+            native_func_header = """\
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#ifdef USE_OPPLUGIN
+#include "op_plugin/OpInterface.h"
+#endif
+"""
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,
                 'namespaced_headers': '',

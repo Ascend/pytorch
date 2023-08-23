@@ -15,10 +15,13 @@
 # limitations under the License.
 
 import re
-from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar, Optional
+from collections import defaultdict
+from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar, Optional, Dict
 from enum import Enum
 import contextlib
 import textwrap
+import yaml
+import os
 
 # Safely load fast C Yaml loader/dumper if they are available
 try:
@@ -30,7 +33,16 @@ try:
     from yaml import CSafeDumper as Dumper
 except ImportError:
     from yaml import SafeDumper as Dumper  # type: ignore[misc]
+
+from codegen.model import NativeFunction, FunctionSchema
+from codegen.api import cpp
+
 YamlDumper = Dumper
+
+GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
+
+CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
+FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns"]
 
 # A custom loader for YAML that errors on duplicate keys.
 # This doesn't happen by default: see https://github.com/yaml/pyyaml/issues/165
@@ -111,3 +123,105 @@ def context(msg_fn: Callable[[], str]) -> Iterator[None]:
         msg = f'{e.args[0]}\n{msg}' if e.args else msg
         e.args = (msg,) + e.args[1:]
         raise
+
+
+def parse_npu_yaml(custom_path: str, use_line_loader=True) -> List:
+    if not os.path.exists(custom_path):
+        return {}
+
+    with open(custom_path, 'r') as yaml_file:
+        source_es = yaml.safe_load(yaml_file)
+
+    return source_es
+
+
+def merge_yaml(base_data, additional_data):
+    """Merge two YAML data structures. If there's a conflict, the base data will take precedence."""
+    map_dict = {"official": "supported"}
+    key_map = lambda x: map_dict.get(x, x)
+    if isinstance(base_data, dict):
+        for key, value in additional_data.items():
+            if key_map(key) not in base_data:
+                base_data[key_map(key)] = value
+            else:
+                base_data[key_map(key)] = merge_yaml(base_data[key_map(key)], value)
+    elif isinstance(base_data, list):
+        for item in additional_data:
+            if item not in base_data:
+                base_data.append(item)
+    return base_data
+
+
+def merge_custom_yaml(pta_path, op_plugin_path):
+    pta_es = parse_npu_yaml(pta_path)
+    op_es = parse_npu_yaml(pta_path)
+
+    merged_yaml = merge_yaml(pta_es, op_es)
+    merged_yaml_path = gen_custom_yaml_path(pta_path)
+    with open(merged_yaml_path, 'w') as outfile:
+        yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
+    return merged_yaml
+
+
+def filed_tag(custom_es):
+    for e in custom_es:
+        if not isinstance(e, Dict):
+            continue
+        for field in FIELDS_TO_REMOVE:
+            e.pop(field, None)
+    return custom_es
+
+
+def parse_opplugin_yaml(custom_path: str) -> None:
+    source_es = parse_npu_yaml(custom_path)
+
+    custom = source_es.pop('custom', [])
+    if custom is None:
+        custom = []  # Allow an empty list of supported ops
+    official = source_es.pop('official', [])
+    if official is None:
+        official = []  # Allow an empty list of supported ops
+
+    support_ops = custom + official
+
+    symint = source_es.pop("symint", [])
+    if symint is None:
+        symint = []
+    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]
+    symint_set = set([str(FunctionSchema.parse(op).name) for op in symint])
+
+    global GLOBAL_STRUCTURED_OP_INFO_CACHE
+    for x in support_ops:
+        funcs = x.get("func", None)
+        assert isinstance(funcs, str), f'not a str : {funcs}'
+        func = FunctionSchema.parse(funcs)
+        wrap_name = cpp.name(func)
+        op_key = str(func.name)
+        if op_key in symint_set:
+            wrap_name += "_symint"
+        cur_wrap_name = GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
+        if cur_wrap_name and cur_wrap_name != wrap_name:
+            print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
+                  f"with {wrap_name} being used as the actual wrap_name")
+        GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
+
+
+def enable_opplugin() -> bool:
+    # enable op_plugin, if path of third_party/op-plugin is valid.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    op_plugin_path = os.path.join(base_dir, '../third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
+
+
+def is_op_valid(op_key: str) -> bool:
+    return True if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE else False
+
+
+def get_opplugin_wrap_name(func) -> str:
+    op_key = str(func.func.name) if type(func) is NativeFunction else func
+    return GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
+
+
+def gen_custom_yaml_path(original_path, codegen_yaml_filename=CUSTOM_YAML_NAME):
+    new_path = os.path.join(os.path.dirname(original_path), codegen_yaml_filename)
+    return new_path

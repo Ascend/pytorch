@@ -21,11 +21,26 @@ cd $CDIR
 
 build_libtorch="$1"
 py_exec="$2"
+pytorch_version="$3"
 
+IFS='.' read -ra version_parts <<< "$pytorch_version"
+
+pytorch_dir="v${version_parts[0]}r${version_parts[1]}"
+
+file=$CDIR/third_party/op-plugin/gencode.sh
+
+if [ -f "${file}" ]; then
+  bash ${file} ${pytorch_version} ${py_exec}
+fi
+
+# impl_path is used to double-check the yaml file definitions.
+# yaml_path is used to load opplugin api
 ${py_exec} -m codegen.gen_backend_stubs  \
   --output_dir="$CDIR/torch_npu/csrc/aten/" \
   --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
-  --impl_path="$CDIR/torch_npu/csrc/aten"  # Used to double-check the yaml file definitions.
+  --impl_path="$CDIR/torch_npu/csrc/aten" \
+  --op_plugin_impl_path="$CDIR/third_party/op-plugin/op_plugin/" \
+  --op_plugin_yaml_path="$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir/op_plugin_functions.yaml"
 
 ${py_exec} -m codegen.autograd.gen_autograd \
   --native_functions_dir="$CDIR/codegen/native_functions.yaml" \
@@ -38,5 +53,6 @@ if [[ ${build_libtorch} != "True" ]]; then
     --output_dir="$CDIR/torch_npu/csrc/aten/" \
     --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
     --native_yaml="$CDIR/codegen/native_functions.yaml" \
-    --template_path="$CDIR/codegen/templates"
+    --template_path="$CDIR/codegen/templates" \
+    --op_plugin_yaml_path="$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir/op_plugin_functions.yaml"
 fi
