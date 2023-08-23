@@ -35,6 +35,7 @@ except ImportError as e:
     else:
         traceback.print_exc()
 
+import torch_npu.optim
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
 import torch_npu.dynamo
