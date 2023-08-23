@@ -9,7 +9,7 @@ std::vector<at::Tensor> NPUNativeFunctions::unflatten_dense_tensors(const at::Te
   outputs.reserve(tensors.size());
   size_t offset = 0;
   for (const auto & tensor : tensors) {
-    auto numel = NPUNativeFunctions::npu_format_cast(tensor,
+    auto numel = custom_ops::npu_format_cast(tensor,
         torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.origin_format_).numel();
     // If unflatten an empty tensor, create a new empty tensor using
     // flat tensor Options.

@@ -3,6 +3,7 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 
@@ -203,7 +204,7 @@ namespace at_npu
     at::Tensor OpPreparation::cast_to_ori_format(const at::Tensor &tensor)
     {
       auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-      auto ret = NPUNativeFunctions::npu_format_cast(tensor, tensor_desc.origin_format_);
+      auto ret = custom_ops::npu_format_cast(tensor, tensor_desc.origin_format_);
       return ret;
     }
 
@@ -338,7 +339,7 @@ namespace at_npu
     at::Tensor OpPreparation::CastBackToOriFormat(const at::Tensor &tensor)
     {
       auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-      auto ret = NPUNativeFunctions::npu_format_cast(tensor, tensor_desc.origin_format_);
+      auto ret = custom_ops::npu_format_cast(tensor, tensor_desc.origin_format_);
       return ret;
     }
 
