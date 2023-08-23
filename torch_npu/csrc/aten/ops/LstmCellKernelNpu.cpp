@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <torch/csrc/autograd/custom_function.h>
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -24,7 +25,8 @@ using torch::autograd::Function;
 using torch::autograd::AutogradContext;
 using tensor_list = std::vector<at::Tensor>;
 
-std::vector<at::Tensor> lstm_cell_npu_impl(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
+at::Tensor, at::Tensor, at::Tensor> lstm_cell_npu_impl(
     const at::Tensor& _input,
     const at::Tensor& w_ih,
     const at::Tensor& w_hh,
@@ -83,8 +85,7 @@ std::vector<at::Tensor> lstm_cell_npu_impl(
       .Run();
   at::Tensor hOut = hOutput[0];
   at::Tensor cOut = cOutput[0];
-  tensor_list results = {yOutput, hOut, cOut, iOutput, jOutput, fOutput, oOutput, tanhc};
-  return results;
+  return std::make_tuple(yOutput, hOut, cOut, iOutput, jOutput, fOutput, oOutput, tanhc);
 }
 
 std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> lstm_cell_backward_npu_impl(
@@ -161,7 +162,8 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&, at::
   return std::tie(grad_input, grad_wih, grad_whh, grad_bias, grad_ht, grad_ct);
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_lstm_cell_backward(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
+at::Tensor> NPUNativeFunctions::npu_lstm_cell_backward(
     const c10::optional<at::Tensor>& grad_y_opt_,
     const c10::optional<at::Tensor>& grad_h_opt_,
     const c10::optional<at::Tensor>& grad_c_opt_,
@@ -197,71 +199,17 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tenso
   return std::tie(grad_input, grad_wih, grad_whh, grad_bias, grad_ht, grad_ct);
 }
 
-class NPULstmCellFunction : public torch::autograd::Function<NPULstmCellFunction> {
-public:
-  static tensor_list forward(AutogradContext *ctx,
-      const at::Tensor& input,
-      const at::Tensor& w_ih,
-      const at::Tensor& w_hh,
-      const at::Tensor& h,
-      const at::Tensor& c,
-      const c10::optional<at::Tensor>& b_ih_opt,
-      const c10::optional<at::Tensor>& b_hh_opt) {
-    at::AutoNonVariableTypeMode g;
-    const at::Tensor& b_ih = c10::value_or_else(b_ih_opt, [] {return at::Tensor();});
-    const at::Tensor& b_hh = c10::value_or_else(b_hh_opt, [] {return at::Tensor();});
-    at::Tensor bias;
-    if (b_ih.defined()) {
-      bias = at::add(b_ih, b_hh).to(input.dtype());
-    }
-    auto results = lstm_cell_npu_impl(input, w_ih, w_hh, h, c, bias);
-    ctx->save_for_backward({input, w_ih, w_hh, h, c,
-        results[0], results[1], results[2], results[3], results[4], results[5], results[6], results[7]});
-    return results;
-  }
-
-  static tensor_list backward(AutogradContext *ctx,
-      tensor_list grad_outputs) {
-    auto saved = ctx->get_saved_variables();
-    auto input = saved[0];
-    auto w_ih = saved[1];
-    auto w_hh = saved[2];
-    auto h = saved[3];
-    auto c = saved[4];
-    auto y_output = saved[5];
-    auto h_output = saved[6];
-    auto c_output = saved[7];
-    auto i = saved[8];
-    auto j = saved[9];
-    auto f = saved[10];
-    auto o = saved[11];
-    auto tanhc = saved[12];
-
-    auto results = NPUNativeFunctions::npu_lstm_cell_backward(
-        grad_outputs[0], grad_outputs[1], grad_outputs[2], 
-        input, w_ih, w_hh, h, c, y_output, h_output, c_output, i, j, f, o, tanhc);
-
-    tensor_list outputlist = {
-        std::get<0>(results),
-        std::get<1>(results),
-        std::get<2>(results),
-        std::get<4>(results),
-        std::get<5>(results),
-        std::get<3>(results),
-        std::get<3>(results)};
-    return outputlist;
-  }
-};
-
-std::vector<at::Tensor> NPUNativeFunctions::npu_lstm_cell(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
+at::Tensor, at::Tensor> NPUNativeFunctions::npu_lstm_cell(
     const at::Tensor& input,
     const at::Tensor& w_ih,
     const at::Tensor& w_hh,
     const at::Tensor& h,
     const at::Tensor& c,
-    const c10::optional<at::Tensor>& b_ih_opt,
-    const c10::optional<at::Tensor>& b_hh_opt) {
-  return NPULstmCellFunction::apply(input, w_ih, w_hh, h, c, b_ih_opt, b_hh_opt);
+    const c10::optional<at::Tensor>& bias_opt) {
+  const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
+  auto result = lstm_cell_npu_impl(input, w_ih, w_hh, h, c, bias);
+  return result;
 }
 
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::lstm_cell(
@@ -275,9 +223,14 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::lstm_cell(
   at::Tensor weight_hh = w_hh.t().to(input.dtype());
   at::Tensor h = hx[0];
   at::Tensor c = hx[1];
-  auto result = NPUNativeFunctions::npu_lstm_cell(input, weight_ih, weight_hh, h, c, b_ih_opt, b_hh_opt);
-  std::tuple<at::Tensor, at::Tensor> output(result[1], result[2]);
-  return output;
+  const at::Tensor& b_ih = c10::value_or_else(b_ih_opt, [] {return at::Tensor();});
+  const at::Tensor& b_hh = c10::value_or_else(b_hh_opt, [] {return at::Tensor();});
+  at::Tensor bias;
+  if (b_ih.defined()) {
+    bias = at::add(b_ih, b_hh).to(input.dtype());
+  }
+  auto result = at_npu::native::custom_ops::npu_lstm_cell(input, weight_ih, weight_hh, h, c, bias);
+  return std::tuple<at::Tensor, at::Tensor>(std::get<1>(result), std::get<2>(result));
 }
 
 } // namespace native
