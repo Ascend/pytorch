@@ -64,6 +64,20 @@ at::Tensor NPUNativeOpApiFunctions::mean(const at::Tensor& self, at::IntArrayRef
   return result;
 }
 
+at::Tensor NPUNativeOpApiFunctions::mean(const at::Tensor &self, at::DimnameList dim, bool keepdim,
+                                    c10::optional<c10::ScalarType> dtype)
+{
+  DO_COMPATIBILITY(aclnnMean, NPUNativeFunctions::mean(self, dim, keepdim, dtype));
+  return NPUNativeOpApiFunctions::mean(self, dimnames_to_positions(self, dim), keepdim, dtype);
+}
+
+at::Tensor &NPUNativeOpApiFunctions::mean_out(const at::Tensor &self, at::DimnameList dim, bool keepdim,
+                                         c10::optional<c10::ScalarType> dtype, at::Tensor &result)
+{
+  DO_COMPATIBILITY(aclnnMean, NPUNativeFunctions::mean_out(self, dim, keepdim, dtype, result));
+  return NPUNativeOpApiFunctions::mean_out(self, dimnames_to_positions(self, dim), keepdim, dtype, result);
+}
+
 at::Tensor NPUNativeOpApiFunctions::mean(const at::Tensor& self, c10::optional<c10::ScalarType> dtype) {
   DO_COMPATIBILITY(aclnnMean, NPUNativeFunctions::mean(self, dtype));
   return NPUNativeOpApiFunctions::mean(self, c10::SmallVector<int64_t, N>{}, false, dtype);

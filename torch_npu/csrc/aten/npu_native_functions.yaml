@@ -929,9 +929,12 @@ supported:
    op_api: True
  - func: mean
    op_api: True
- - mean.dim
- - mean.names_dim
- - mean.names_out
+ - func: mean.dim
+   op_api: True
+ - func: mean.names_dim
+   op_api: True
+ - func: mean.names_out
+   op_api: True
  - func: mean.out
    op_api: True
  - func: median
