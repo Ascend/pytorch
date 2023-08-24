@@ -75,7 +75,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
       .InputWithoutContiguous(self)
       .Input(output_shape_array)
       .Input(output_stride_array)
-      .Input(storage_offset, at::kLong)
+      .Input(at::Scalar(0), at::kLong)
       .Output(result_out)
       .Run();
     std::vector<int64_t> output_perm(tensor_dim);
@@ -92,7 +92,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
         .InputWithoutContiguous(self)
         .Input(shape)
         .Input(stride)
-        .Input(storage_offset, at::kLong)
+        .Input(at::Scalar(0), at::kLong)
         .Output(result)
         .Run();
     return result;
