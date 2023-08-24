@@ -821,15 +821,17 @@ supported:
  - func: log_
    op_api: False
  - func: log_sigmoid
-   op_api: False
+   op_api: True
  - func: log_sigmoid.out
-   op_api: False
- - log_sigmoid_backward
- - log_sigmoid_backward.grad_input
+   op_api: True
+ - func: log_sigmoid_backward
+   op_api: True
+ - func: log_sigmoid_backward.grad_input
+   op_api: True
  - func: log_sigmoid_forward
-   op_api: False
+   op_api: True
  - func: log_sigmoid_forward.output
-   op_api: False
+   op_api: True
  - log_softmax.Dimname
  - log_softmax.int
  - func: logaddexp
@@ -1578,15 +1580,15 @@ supported:
  - func: zeros_like
    op_api: False
  - func: silu
-   op_api: False
+   op_api: True
  - func: silu_
-   op_api: False
+   op_api: True
  - func: silu.out
-   op_api: False
+   op_api: True
  - func: silu_backward.grad_input
-   op_api: False
+   op_api: True
  - func: silu_backward
-   op_api: False
+   op_api: True
 
 autograd:
   - func: matmul
