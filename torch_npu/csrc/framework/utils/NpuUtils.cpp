@@ -131,7 +131,7 @@ at::Tensor metadata_convert_match(const at::Tensor &src, bool numelEq) {
   // NCHW will generate a temporary tensor, which always monopolizes its own
   // storage.
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
-    at::Tensor tempTensor = NPUNativeFunctions::npu_format_cast(
+    at::Tensor tempTensor = custom_ops::npu_format_cast(
         src, FormatHelper::GetBaseFormat(src));
     custom_ops::npu_reshape_out(tempTensor, tempTensor.sizes(), true, tempTensor);
     NpuUtils::RefreshFormat(tempTensor);
