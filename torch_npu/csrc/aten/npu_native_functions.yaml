@@ -543,7 +543,8 @@ supported:
    op_api: True
  - func: expm1.out
    op_api: True
- - expm1_
+ - func: expm1_
+   op_api: True
  - func: eye
    op_api: True
  - func: eye.m
@@ -604,6 +605,8 @@ supported:
  - func: gather.dimname_out
    op_api: True
  - func: gather.out
+   op_api: True
+ - func: gcd.out
    op_api: True
  - func: ge.Scalar
    op_api: True
@@ -735,6 +738,10 @@ supported:
  - func: isclose
    op_api: True
  - func: isfinite
+   op_api: True
+ - func: isposinf.out
+   op_api: True
+ - func: isneginf.out
    op_api: True
  - isnan
  - func: kl_div
@@ -1792,10 +1799,7 @@ tocpu:
   - unique_dim_consecutive
   - vdot
   - sinc.out
-  - gcd.out
   - lcm.out
-  - isposinf.out
-  - isneginf.out
   - fmin
   - fmin.out
   - fmax
