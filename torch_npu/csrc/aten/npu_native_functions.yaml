@@ -734,7 +734,8 @@ supported:
  - is_set_to
  - func: isclose
    op_api: True
- - isfinite
+ - func: isfinite
+   op_api: True
  - isnan
  - func: kl_div
    op_api: False
