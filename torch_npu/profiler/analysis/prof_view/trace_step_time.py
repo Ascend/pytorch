@@ -72,7 +72,7 @@ class TraceStepTimeParser(BaseViewParser):
                 cls.count_time(data.get('name'), data.get('ts', 0), data.get('dur', 0), step_list, save_time)
                 has_analysis_data_flag = True
             elif str(data.get('name')).startswith('hcom_receive'):
-                cls.count_time('bubble', data.get('ts', 0), data.get('dur', 0), step_list, save_time)
+                cls.count_time('hcom_receive', data.get('ts', 0), data.get('dur', 0), step_list, save_time)
         if not has_analysis_data_flag:
             return
         for calc_time in save_time:
