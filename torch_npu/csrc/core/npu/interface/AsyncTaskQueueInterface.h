@@ -64,8 +64,6 @@ aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
-aclError LaunchResetEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
-
 aclError LaunchLazyDestroyEventTask(aclrtEvent event);
 
 } // namespace queue
