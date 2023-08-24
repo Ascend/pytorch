@@ -907,10 +907,14 @@ supported:
    op_api: True
  - func: max_unpool2d_backward.grad_input
    op_api: True
- - max_unpool3d
- - max_unpool3d.out
- - max_unpool3d_backward
- - max_unpool3d_backward.grad_input
+ - func: max_unpool3d
+   op_api: False
+ - func: max_unpool3d.out
+   op_api: False
+ - func: max_unpool3d_backward
+   op_api: False
+ - func: max_unpool3d_backward.grad_input
+   op_api: False
  - func: maximum
    op_api: True
  - func: maximum.out
