@@ -57,7 +57,8 @@ from .utils import (
 )
 
 # NPU methods require special processing. 
-NPU_AUTOGRAD_FUNCTION = {'fast_gelu', 'npu_rotary_mul'}
+NPU_AUTOGRAD_FUNCTION = {'fast_gelu', 'npu_rotary_mul', 'npu_lstm_cell', 'npu_multi_head_attention', 'npu_lstm',
+                         'npu_gru', 'npu_lstm_data'}
 
 # We don't set or modify grad_fn on these methods. Generally, they return
 # tensors that have requires_grad=False. In-place functions listed here will
