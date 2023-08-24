@@ -57,6 +57,7 @@ namespace at_npu
       static bool IsOpInputBaseFormat(const c10::optional<at::Tensor> &tensor);
       static bool IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors);
       static bool IsOpInputBaseFormat(const at::TensorList &tensors);
+      static bool IsOpInputBaseFormat(const at::ITensorListRef &tensors);
 
     private:
       static bool IsPadded(aclFormat format);
