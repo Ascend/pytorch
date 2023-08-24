@@ -48,7 +48,7 @@ from codegen.model import (BaseOperatorName, NativeFunction,
                            BackendMetadata, DispatchKey, OperatorName)
 from codegen.utils import (context, parse_npu_yaml, parse_opplugin_yaml,
                            gen_custom_yaml_path, filed_tag)
-from codegen.autograd.gen_variable_type import NPU_AUTOGRAD_FUNCTION
+from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
 
 # These functions require manual Python bindings or are not exposed to Python
 _SKIP_PYTHON_BINDINGS = [
@@ -77,6 +77,7 @@ _SKIP_PYTHON_BINDINGS = [
     'fake_quantize_per_channel_affine_cachemask',
     '_reshape_alias',
     '_cudnn.*', '.*_quantized', 'fft_.*',
+    'npu_view_copy',
 ]
 
 SKIP_PYTHON_BINDINGS = list(map(lambda pattern: re.compile(rf'^{pattern}$'), _SKIP_PYTHON_BINDINGS))
@@ -766,6 +767,7 @@ if __name__ == "__main__":
 
     file_manager = FileManager(install_dir=options.output_dir, template_dir=options.template_path, dry_run=False)
     source_yaml = gen_custom_yaml_path(options.source_yaml)
+    parse_opplugin_yaml(options.op_plugin_yaml_path)
     parsed_native_functions = parse_custom_yaml(source_yaml).native_functions
     valid_native_functions = list(filter(should_generate_py_binding, parsed_native_functions))
 

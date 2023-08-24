@@ -153,8 +153,13 @@ def merge_yaml(base_data, additional_data):
 
 
 def merge_custom_yaml(pta_path, op_plugin_path):
+    not_codegen_ops = ["argmin", "argmax", "nan_to_num", "nan_to_num_",
+                       "nan_to_num.out", "_embedding_bag_dense_backward"]
     pta_es = parse_npu_yaml(pta_path)
-    op_es = parse_npu_yaml(pta_path)
+    op_es = parse_npu_yaml(op_plugin_path)
+
+    op_es["official"] = [op for op in op_es["official"]
+                         if op["func"].split("(")[0] not in not_codegen_ops]
 
     merged_yaml = merge_yaml(pta_es, op_es)
     merged_yaml_path = gen_custom_yaml_path(pta_path)

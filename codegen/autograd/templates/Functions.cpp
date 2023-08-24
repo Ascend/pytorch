@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-
+#include "op_plugin/OpInterface.h"
 // ${generated_comment}
 
 // The manual function definitions that used to be here are now in torch/csrc/autograd/FunctionsManual.cpp
@@ -23,6 +23,7 @@
 // used for forward mode AD formulas as well.
 
 using namespace at_npu::autograd::generated::details;
+using namespace op_plugin;
 using at::Tensor;
 using at::Scalar;
 using at::IntArrayRef;

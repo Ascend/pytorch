@@ -443,9 +443,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
 
             native_func_header = """\
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#ifdef USE_OPPLUGIN
 #include "op_plugin/OpInterface.h"
-#endif
 """
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,
