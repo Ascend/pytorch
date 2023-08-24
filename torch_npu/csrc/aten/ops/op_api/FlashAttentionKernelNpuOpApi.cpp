@@ -288,7 +288,7 @@ public:
 
     at::AutoNonVariableTypeMode g;
 
-    ctx->save_for_backward({format_query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
+    ctx->save_for_backward({query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
                             format_pse, format_padding_mask, format_atten_mask, attention_score});
 
     ctx->saved_data["scale"] = scale;
