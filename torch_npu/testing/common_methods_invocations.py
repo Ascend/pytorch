@@ -1422,6 +1422,26 @@ op_db: List[OpInfo] = [
         formats=(2, ),
         supports_inplace_autograd=False,
     ),
+    ReductionOpInfo(
+        'prod',
+        identity=1,
+        nan_policy='propagate',
+        supports_multiple_dims=False,
+        supports_out=False,
+        supports_forward_ad=True,
+        supports_fwgrad_bwgrad=True,
+        promotes_int_to_int64=True,
+        gradcheck_nondet_tol=common_methods_invocations.GRADCHECK_NONDET_TOL,
+        dtypes=_dispatch_dtypes((torch.float32, torch.bool)),
+        dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.bool)),
+        sample_inputs_func=common_methods_invocations.sample_inputs_prod,
+        ref=reference_reduction_numpy(np.prod),
+        skips=(
+            # the framework does not support the conversion of dtype parameter
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+            dtypes=[torch.float16, ]),
+        ),
+    ),
     OpInfo(
         'nn.functional.prelu',
         dtypes=_dispatch_dtypes((torch.float32, )),
