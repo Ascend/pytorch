@@ -72,7 +72,6 @@ public:
   void LaunchRecordTask(
       c10_npu::NPUStream npuStream);
   void LaunchWaitTask(c10_npu::NPUStream npuStream);
-  void LaunchResetTask(c10_npu::NPUStream npuStream);
   void LaunchLazyDestroyTask();
 
 private:
@@ -126,8 +125,7 @@ aclError LaunchAsyncCopyTask(
   return ACL_ERROR_NONE;
 }
 
-void EventTask::LaunchRecordTask(
-    c10_npu::NPUStream npuStream) {
+void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream) {
   RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], std::vector<c10::IValue>({}));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
 #ifndef BUILD_LIBTORCH
@@ -136,32 +134,17 @@ void EventTask::LaunchRecordTask(
     c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
     c10_npu::setCurrentNPUStream(npuStream);
     QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
+    c10_npu::NPUEventManager::GetInstance().IncreaseUnrecordedCount(eventParam_.event);
     c10_npu::enCurrentNPUStream(&params);
-    c10_npu::setCurrentNPUStream(currentStream);
+    c10_npu::setCurrentNPUStream(currentStream);    
+    ASCEND_LOGI("Event: LaunchRecordTask is successfully executed, eventParam_.event=%p.", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
 #endif
   } else {
     NPU_CHECK_ERROR(aclrtRecordEvent(eventParam_.event, npuStream));
-    ASCEND_LOGI("aclrtRecordEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
+    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
   }
-}
-
-aclError HostAllocatorLaunchRecordEventTask(
-    aclrtEvent event,
-    c10_npu::NPUStream npuStream) {
-  EventTask recordTask(event, HOST_ALLOCATOR_EVENT);
-  recordTask.LaunchRecordTask(npuStream);
-  return ACL_ERROR_NONE;
-}
-
-aclError NpuAllocatorLaunchRecordEventTask(
-    aclrtEvent event,
-    c10_npu::NPUStream npuStream) {
-  EventTask recordTask(event, NPU_ALLOCATOR_EVENT);
-  recordTask.LaunchRecordTask(npuStream);
-  ASCEND_LOGI("NpuAllocatorLaunchRecordEventTask is successfully executed, event=%p.", event);
-  return ACL_ERROR_NONE;
 }
 
 aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
@@ -181,44 +164,19 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
     QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
+    ASCEND_LOGI("Event: LaunchWaitTask is successfully executed, eventParam_.event=%p.", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
 #endif
   } else {
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npuStream, eventParam_.event));
-    ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
+    ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
   }
 }
 
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
   EventTask waitTask(event);
   waitTask.LaunchWaitTask(npuStream);
-  return ACL_ERROR_NONE;
-}
-
-void EventTask::LaunchResetTask(c10_npu::NPUStream npuStream) {
-  RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], std::vector<c10::IValue>({}));
-  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-#ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType]);
-#endif
-    c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
-    c10_npu::setCurrentNPUStream(npuStream);
-    QueueParas params(RESET_EVENT, sizeof(EventParas), &eventParam_);
-    c10_npu::enCurrentNPUStream(&params);
-    c10_npu::setCurrentNPUStream(currentStream);
-#ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
-#endif
-  } else {
-    NPU_CHECK_ERROR(aclrtResetEvent(eventParam_.event, npuStream));
-    ASCEND_LOGI("aclrtResetEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
-  }
-}
-
-aclError LaunchResetEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
-  EventTask resetTask(event);
-  resetTask.LaunchResetTask(npuStream);
   return ACL_ERROR_NONE;
 }
 
@@ -230,6 +188,7 @@ void EventTask::LaunchLazyDestroyTask() {
 #endif
     QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params);
+    ASCEND_LOGI("Event: LaunchLazyDestroyTask is successfully executed, eventParam_.event=%p.", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
 #endif
