@@ -41,6 +41,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace c10d_npu {
 namespace {
@@ -549,7 +550,7 @@ std::vector<at::Tensor> cast_to_origin_format(const std::vector<at::Tensor>& inp
       inputTensors_[index] = tensor;
     } else {
       auto origin_format = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.origin_format_;
-      inputTensors_[index] = at_npu::native::NPUNativeFunctions::npu_format_cast(tensor, origin_format);
+      inputTensors_[index] = at_npu::native::custom_ops::npu_format_cast(tensor, origin_format);
     }
     index++;
   }

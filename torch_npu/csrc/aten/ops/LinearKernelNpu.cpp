@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -88,7 +89,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_linear_backward(
     linear_backward_out_npu(weightGrad, grad, input, true, false);
   } else {
     at::Tensor gradFormatcast = OpPreparation::ApplyTensor(grad, grad.sizes());
-    gradFormatcast = NPUNativeFunctions::npu_format_cast(grad, CalcuOpUtil::GetTensorNpuFormat(weight));
+    gradFormatcast = custom_ops::npu_format_cast(grad, CalcuOpUtil::GetTensorNpuFormat(weight));
     linear_backward_out_npu(inputGrad, gradFormatcast, weight, false, false);
     linear_backward_out_npu(weightGrad, gradFormatcast, input, true, false);
   }
@@ -146,7 +147,7 @@ at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
   at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd &&
   ((is_support_nd_out && CalcuOpUtil::IsNdToNzOnTheFly(input, weight)) ||
   (!is_support_nd_out && isAligin()))) ?
-      input : NPUNativeFunctions::npu_format_cast(input, ACL_FORMAT_FRACTAL_NZ);
+      input : custom_ops::npu_format_cast(input, ACL_FORMAT_FRACTAL_NZ);
   return NPULinearFunction::apply(input_cast, weight, bias_opt);
 }
 

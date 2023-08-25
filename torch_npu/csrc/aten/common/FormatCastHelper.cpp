@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -90,12 +91,12 @@ bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tens
 
 at::Tensor FormatCastHelper::ApplyBaseFormatTensorBy(const at::Tensor& src) {
   auto format = FormatHelper::GetBaseFormat(src);
-  return NPUNativeFunctions::npu_format_cast(src, format);
+  return custom_ops::npu_format_cast(src, format);
 }
 
 at::Tensor& FormatCastHelper::CovertSelfToBaseFormat(at::Tensor& src) {
   auto format = FormatHelper::GetBaseFormat(src);
-  return NPUNativeFunctions::npu_format_cast_(src, format);
+  return custom_ops::npu_format_cast_(src, format);
 }
 
 } // namespace native

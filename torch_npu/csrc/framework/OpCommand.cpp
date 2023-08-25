@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace {
 const uint64_t kStringOffset = 16UL;
@@ -95,7 +96,7 @@ OpCommand &OpCommand::InputWithMetaInfo(const at::Tensor &input,
   auto tmpInput = const_cast<at::Tensor &>(input);
   auto baseFormat = FormatHelper::GetBaseFormat(tmpInput);
   if (desc.npu_format_ != baseFormat) {
-    tmpInput = NPUNativeFunctions::npu_format_cast(tmpInput, baseFormat);
+    tmpInput = custom_ops::npu_format_cast(tmpInput, baseFormat);
     inputTensor.emplace_back(tmpInput);
   }
 
@@ -215,7 +216,7 @@ OpCommand& OpCommand::Output(
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       if (sensitive_format.has_value() &&
           FormatHelper::GetBaseFormat(output) != sensitive_format.value()) {
-        output = NPUNativeFunctions::npu_format_cast(output, sensitive_format.value());
+        output = custom_ops::npu_format_cast(output, sensitive_format.value());
       }
       graphCmd.AddOutput(output, descName, realType, sensitive_format);
       if (!resultTypeDefined && commonType.has_value() &&

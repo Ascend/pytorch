@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/framework/utils/AdvancedIndex.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -120,7 +121,7 @@ at::Tensor index_high_dims(const at::Tensor& self, std::vector<at::Tensor> indic
     return result;
   }
 
-  at::Tensor self_nd = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+  at::Tensor self_nd = custom_ops::npu_format_cast(self, ACL_FORMAT_ND);
 
   bool is_aicore = check_index_aicore(self_nd, all_defined_indices, masks);
 
