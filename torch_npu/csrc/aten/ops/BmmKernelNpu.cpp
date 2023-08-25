@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -101,7 +102,7 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
 
   bmm_out_npu_nocheck(result, self, mat2);
   if (need_nd_out) {
-    result = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
+    result = custom_ops::npu_format_cast(result, ACL_FORMAT_ND);
   }
   return result;
 }

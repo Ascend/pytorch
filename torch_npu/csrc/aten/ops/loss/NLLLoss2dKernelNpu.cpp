@@ -15,6 +15,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -97,7 +98,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
       NPUNativeFunctions::npu_dtype_cast(target, at::kInt) : target;
 
   auto self_input = self.contiguous();
-  self_input = NPUNativeFunctions::npu_format_cast(self_input, ACL_FORMAT_ND);
+  self_input = custom_ops::npu_format_cast(self_input, ACL_FORMAT_ND);
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 

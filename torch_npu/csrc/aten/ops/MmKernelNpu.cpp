@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -229,7 +230,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self, const at::Tensor &mat2
   // calculate the output result of the NPU
   NPUNativeFunctions::mm_out(self, mat2, result);
   if (need_nd_out) {
-    result = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
+    result = custom_ops::npu_format_cast(result, ACL_FORMAT_ND);
   }
   result = split_k ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half) : result;
   return result;

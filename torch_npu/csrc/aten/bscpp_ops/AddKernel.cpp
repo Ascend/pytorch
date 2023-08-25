@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/framework/OpRunner.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -83,8 +84,8 @@ at::Tensor NPUNativeFunctions::bscpp_add(const at::Tensor& self, const at::Tenso
       return true;
   }();
   auto self_format = NPUNativeFunctions::get_npu_format(self);
-  at::Tensor fortmat_self = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
-  at::Tensor fortmat_other = NPUNativeFunctions::npu_format_cast(other, ACL_FORMAT_ND);
+  at::Tensor fortmat_self = custom_ops::npu_format_cast(self, ACL_FORMAT_ND);
+  at::Tensor fortmat_other = custom_ops::npu_format_cast(other, ACL_FORMAT_ND);
   at::Tensor result = at::empty(fortmat_self.sizes(), fortmat_self.options());
   if (fortmat_self.scalar_type() == at::kHalf) {
     bscpp_add_launch<half, class bscpp_add_launch_half>(fortmat_self, fortmat_other, result);
@@ -96,7 +97,7 @@ at::Tensor NPUNativeFunctions::bscpp_add(const at::Tensor& self, const at::Tenso
     AT_ERROR("bscpp_add not implemented for '", toString(fortmat_self.scalar_type()), "'");
   }
   at::Tensor output = (self_format == ACL_FORMAT_ND) ?
-      result : NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
+      result : custom_ops::npu_format_cast(result, ACL_FORMAT_ND);
 
   return output;
 }

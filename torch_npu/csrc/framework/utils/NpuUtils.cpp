@@ -32,6 +32,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
@@ -146,7 +147,7 @@ at::Tensor metadata_convert_match(const at::Tensor &src, bool numelEq) {
   // NCHW will generate a temporary tensor, which always monopolizes its own
   // storage.
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
-    at::Tensor tempTensor = NPUNativeFunctions::npu_format_cast(
+    at::Tensor tempTensor = custom_ops::npu_format_cast(
         src, FormatHelper::GetBaseFormat(src));
     NPUNativeFunctions::npu_reshape_out(tempTensor, tempTensor.sizes(), true,
                                         tempTensor);
