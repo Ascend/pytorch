@@ -58,6 +58,7 @@
 #include "torch_npu/csrc/utils/DeviceParser.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/wrap_outputs.h"
+#include "op_plugin/OpInterface.h"
 
 using at::Tensor;
 using at::Device;

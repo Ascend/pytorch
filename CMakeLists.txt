@@ -202,11 +202,19 @@ if (DEFINED BUILD_LIBTORCH)
   add_subdirectory(${TORCHNPU_ROOT}/libs)
 endif()
 
+set(OPS_PLUGIN_SRCS)
+if (DEFINED BUILD_OPPLUGIN)
+  # Add subdirectory of op-plugin
+  add_definitions(-DUSE_OPPLUGIN)
+  include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
+endif()
+
 if (DEFINED BUILD_LIBTORCH)
-  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${FRAMEWORK_SRCS} ${NPU_CPP_LIBS_SRCS})
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${FRAMEWORK_SRCS} ${NPU_CPP_LIBS_SRCS})
 else()
 # Compile code with pybind11
-  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${DIST_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS})
+  set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${DIST_SRCS} ${FRAMEWORK_SRCS} ${NPU_SRCS} ${PROF_SRCS} ${UTILS_SRCS})
 endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})

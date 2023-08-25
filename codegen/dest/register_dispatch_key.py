@@ -23,7 +23,8 @@ from typing import List, Optional, Union, Tuple
 from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
-from codegen.utils import Target, map_maybe
+from codegen.utils import (Target, map_maybe, enable_opplugin, is_op_valid,
+                           get_opplugin_wrap_name)
 from codegen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
                            TensorOptionsArguments,
@@ -412,6 +413,8 @@ torch_npu::profiler::NPURecordFunction guard;
                         device_of = next((f'{a.name}' for a in candidate_args if a.type.is_tensor_like()), None)
                         if device_of is not None:
                             device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
+                if enable_opplugin() and is_op_valid(str(f.func.name)):
+                    impl_name = f"op_plugin::{get_opplugin_wrap_name(str(f.func.name))}"
 
                 return f"""\
 namespace {{

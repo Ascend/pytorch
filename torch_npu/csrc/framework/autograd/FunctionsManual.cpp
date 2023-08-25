@@ -126,16 +126,19 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason) {
   return not_implemented_base<std::vector<Tensor>>(name, reason);
 }
 
-Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self) {
-  return at_npu::native::NPUNativeFunctions::npu_fast_gelu_backward(grad, self);
-}
+Tensor maybe_multiply(const Tensor& t, const Scalar& s) {
+  bool is_one = false;
+  if (s.isFloatingPoint()) {
+    is_one = s.toDouble() == 1;
+  } else if (s.isIntegral(true)) {
+    is_one = s.toLong() == 1;
+  }
 
-std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
-    const Tensor& grad,
-    const Tensor& self,
-    const Tensor& r1,
-    const Tensor& r2) {
-  return at_npu::native::NPUNativeFunctions::npu_rotary_mul_backward(grad, self, r1, r2);
+  if (is_one) {
+    return t;
+  } else {
+    return t * s;
+  }
 }
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,

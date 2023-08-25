@@ -6,7 +6,7 @@ from codegen.code_template import CodeTemplate
 from codegen.gen import FileManager, cpp_string, error_check_native_functions
 from codegen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata)
-from codegen.utils import concat_map, context, YamlLoader
+from codegen.utils import concat_map, context, YamlLoader, filed_tag
 from codegen.context import with_native_function
 from codegen.api.signature import DispatcherSignature
 from codegen.api import cpp
@@ -36,7 +36,7 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     with open(custom_path, 'r') as f:
         for line in f:
             if line.split(':')[0] in ['backend', 'cpp_namespace', 'extra_headers',
-                                      'supported', 'autograd']:
+                                      'supported', 'autograd', 'unsupported']:
                 flag = False
                 continue
             if line.split(':')[0] in ['custom', 'custom_autograd']:
@@ -48,10 +48,10 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
 
     f_str.seek(0)
     custom_es = yaml.load(f_str, Loader=YamlLoader)
+    custom_es = filed_tag(custom_es)
     for e_with_vars in custom_es:
         funcs = e_with_vars.get('func')
-        # loc = Location(custom_path, e_with_vars["__line__"])
-        with context(lambda: f'in {loc}:\n  {funcs}'):
+        with context(lambda: f'{funcs}'):
             func, m = NativeFunction.from_yaml(e_with_vars)
             func.variants.discard(Variant.method)
             rs.append(func)
