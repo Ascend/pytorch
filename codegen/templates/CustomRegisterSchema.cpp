@@ -37,14 +37,22 @@ namespace at_npu {
 
 namespace native {
 
-${custom_trace_definitions}
+${custom_op_definitions}
 
 namespace {
 
 TORCH_LIBRARY(npu, m) {
 
+  ${custom_schema_registrations}
+}
 
-  ${custom_trace_registrations}
+} // anonymous namespace
+
+namespace {
+
+TORCH_LIBRARY_IMPL(npu, PrivateUse1, m) {
+
+  ${custom_impl_registrations}
 }
 
 } // anonymous namespace
