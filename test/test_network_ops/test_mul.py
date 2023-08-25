@@ -164,12 +164,23 @@ class TestMuls(TestCase):
     def test_mul_out_error_dtype(self):
         npu_input1 = torch.randn(10, 23).npu()
         npu_input2 = npu_input1.int()
-        npu_out = torch.randn(2, 3).long()
+        npu_out = torch.randn(2, 3).long().npu()
         try:
             self.npu_op_out_exec(npu_input1, npu_input2, npu_out)
         except RuntimeError as e:
             self.assertRegex(
                 str(e), "result type Float can't be cast to the desired output type Long")
+
+    def test_mul_scalar_tensor(self):
+        cpu_input1, npu_input1 = create_common_tensor([np.float32, 0, [23, 45]], 1, 100)
+        scalar = torch.tensor(5.6)
+        cpu_output = self.cpu_op_exec(0.5, cpu_input1)
+        npu_output = self.npu_op_exec(0.5, npu_input1)
+        self.assertRtolEqual(cpu_output, npu_output)
+
+        cpu_output = self.cpu_op_exec(scalar, cpu_input1)
+        npu_output = self.npu_op_exec(scalar, npu_input1)
+        self.assertRtolEqual(cpu_output, npu_output)
 
 
 if __name__ == "__main__":
