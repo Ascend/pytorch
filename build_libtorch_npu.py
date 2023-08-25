@@ -28,7 +28,7 @@ from distutils.version import LooseVersion
 from distutils import file_util
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+VERSION = '2.0.1.rc1'
 
 def which(thefile):
     path = os.environ.get("PATH", os.defpath).split(os.pathsep)
@@ -88,7 +88,7 @@ def get_pytorch_dir():
 
 def generate_bindings_code(base_dir, verbose):
     py_exec = sys.executable
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, py_exec]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, py_exec, VERSION]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -149,12 +149,22 @@ def run_cmake():
         '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
         '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
-        '-DBUILD_LIBTORCH=' + "ON"]
+        '-DBUILD_LIBTORCH=' + "ON",
+        '-DTORCH_VERSION=' + VERSION,]
+
+    if check_opplugin_valid(BASE_DIR):
+        cmake_args.append('-DBUILD_OPPLUGIN=on')
 
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
     subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+
+
+def check_opplugin_valid(base_dir):
+    # build with submodule of op_plugin, if path of op-plugin is valid
+    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
 
 
 def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, level=1):
