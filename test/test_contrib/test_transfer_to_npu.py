@@ -32,6 +32,13 @@ class TestTransferToNpu(TestCase):
         a = torch.randint(1, 5, (2, 3), device=device)
         self.assertEqual(a.device.type, 'npu')
 
+    def test_wrap_device_int_type(self):
+        a = torch.rand(1)
+        device_id = torch.cuda.current_device()
+        b = a.to(device=device_id)
+        c = a.to(device_id)
+        d = torch.tensor(1, device=device_id)
+
 
 if __name__ == "__main__":
     run_tests()
