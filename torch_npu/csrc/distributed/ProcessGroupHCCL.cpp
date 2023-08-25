@@ -1212,11 +1212,16 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
-  uint64_t index = inputTensor.numel() / ranks;
+  uint64_t index = outputTensor.numel() / ranks;
   if (outputSplitSizes.empty()) {
     for (int i = 0; i < ranks; i++) {
-      inputSplitSizes.push_back(index);
       outputSplitSizes.push_back(index);
+    }
+  }
+  index = inputTensor.numel() / ranks;
+  if (inputSplitSizes.empty()) {
+    for (int i = 0; i < ranks; i++) {
+      inputSplitSizes.push_back(index);
     }
   }
 
