@@ -24,7 +24,7 @@ import os
 from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type
 from torchgen.packaged.autograd.gen_autograd_functions import gen_autograd_functions_lib
 
-from codegen.utils import get_torchgen_dir
+from codegen.utils import get_torchgen_dir, gen_custom_yaml_path
 from .gen_variable_type import (
     gen_variable_type, gen_variable_type_head
 )
@@ -38,6 +38,7 @@ def gen_autograd(
     autograd_dir: str,
     npu_native_functions_path: str
 ) -> None:
+    npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
     differentiability_infos, native_funcs, funcs_with_diff_infos =\
     parse_derivatives(native_functions_path, tags_path, autograd_dir, npu_native_functions_path)
     npu_funcs_with_diff_infos, _ = filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)

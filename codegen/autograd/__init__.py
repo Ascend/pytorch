@@ -7,10 +7,10 @@ from torchgen.api.autograd import NativeFunctionWithDifferentiabilityInfo
 import codegen
 from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type_env
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
-
+from codegen.utils import CUSTOM_YAML_NAME
 
 def parse_native_and_custom_yaml_(*args, **kwargs):
-    return parse_native_and_custom_yaml(*args, **kwargs, custom_path='./torch_npu/csrc/aten/npu_native_functions.yaml')
+    return parse_native_and_custom_yaml(*args, **kwargs, custom_path=f'./torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')
 
 
 def gen_inplace_or_view_type_env_for_npu(

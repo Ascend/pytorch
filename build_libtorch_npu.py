@@ -73,7 +73,7 @@ def get_pytorch_dir():
 
 def generate_bindings_code(base_dir):
     python_execute = sys.executable
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), python_execute, VERSION]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),

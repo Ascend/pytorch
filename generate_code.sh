@@ -21,9 +21,6 @@ op_plugin_config_path=$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir
 source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
 
 op_plugin_functions_yaml_path="$op_plugin_config_path/npu_native_functions.yaml"
-if [ -f "${op_plugin_functions_yaml_path}" ]; then
-  cp -f $op_plugin_functions_yaml_path $source_yaml
-fi
 
 ${python_execute} -m codegen.gen_backend_stubs  \
   --output_dir="torch_npu/csrc/aten" \

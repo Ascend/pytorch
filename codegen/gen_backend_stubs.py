@@ -41,7 +41,7 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
-                           parse_opplugin_yaml)
+                           parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path)
 from codegen.custom_functions import parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch, gen_custom_functions
 
 
@@ -123,11 +123,9 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
                 BackendIndex.grow_index(bs, m)
 
         source_es = parse_npu_yaml(custom_path)
-        custom_es = source_es['custom'] + source_es['custom_autograd']
-
+        custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+        custom_es = filed_tag(custom_es)
         for e in custom_es:
-            if e.get('wrap_impl'):
-                del e['wrap_impl']
             funcs = e.get('func')
             loc = Location(custom_path, e["__line__"])
             with context(lambda: f'in {loc}:\n  {funcs}'):
@@ -199,14 +197,14 @@ def parse_backend_yaml(
     assert isinstance(
         symint, list
     ), f'expected "symint" to be a list, but got: {supported} (of type {type(supported)})'
-    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]  
+    symint = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in symint]  
     symint_set = set(symint)
 
     supported_autograd = yaml_values.pop('autograd', [])
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
 
-    supported = [op['func'] if isinstance(op, Dict) else op for op in supported]
-    supported_autograd = [op['func'] if isinstance(op, Dict) else op for op in supported_autograd]
+    supported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported]
+    supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
 
     supported_tocpu = yaml_values.pop('tocpu', [])
     assert isinstance(supported_tocpu, list), f'expected "tocpu" to be a list, but got: {supported_tocpu}'
@@ -541,7 +539,8 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         return FileManager(install_dir=install_dir, template_dir=template_dir, dry_run=dry_run)
 
     fm = make_file_manager(output_dir)
-
+    merge_custom_yaml(source_yaml, op_plugin_yaml_path)
+    source_yaml = gen_custom_yaml_path(source_yaml)
     tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
     native_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/native_functions.yaml')
     parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, tags_yaml_path, source_yaml)

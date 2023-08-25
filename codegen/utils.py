@@ -38,7 +38,13 @@ from torchgen.gen import LineLoader
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 
+CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
+FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns"]
+
+
 def parse_npu_yaml(custom_path: str) -> Dict:
+    if not os.path.exists(custom_path):
+        return {}
     from io import StringIO
     f_str = StringIO()
     with open(custom_path, 'r') as f:
@@ -48,37 +54,52 @@ def parse_npu_yaml(custom_path: str) -> Dict:
             f_str.write(line)
 
     f_str.seek(0)
-    global GLOBAL_STRUCTURED_OP_INFO_CACHE
     source_es = yaml.load(f_str, Loader=LineLoader)
-
-    wrap_impl_keys = ['supported', 'autograd', 'symint', 'custom', 'custom_autograd']
-
-    def _set_wrap_impl_state(key: str):
-        if source_es[key]:
-            for x in source_es[key]:
-                if 'wrap_impl' in x:
-                    GLOBAL_STRUCTURED_OP_INFO_CACHE[x['func'].split('(')[0]] = x['wrap_impl']
-
-    for x in wrap_impl_keys:
-        _set_wrap_impl_state(x)
-
     return source_es
 
 
+def merge_yaml(base_data, additional_data):
+    """Merge two YAML data structures. If there's a conflict, the base data will take precedence."""
+    map_dict = {"official": "supported"}
+    key_map = lambda x: map_dict.get(x, x)
+    if isinstance(base_data, dict):
+        for key, value in additional_data.items():
+            if key_map(key) not in base_data:
+                base_data[key_map(key)] = value
+            else:
+                base_data[key_map(key)] = merge_yaml(base_data[key_map(key)], value)
+    elif isinstance(base_data, list):
+        for item in additional_data:
+            if item not in base_data:
+                base_data.append(item)
+    return base_data
+
+
+def merge_custom_yaml(pta_path, op_plugin_path):
+    with open(pta_path, 'r') as pta_file:
+        pta_es = yaml.safe_load(pta_file)
+    with open(op_plugin_path, 'r') as op_plugin_file:
+        op_es = yaml.safe_load(op_plugin_file)
+
+    merged_yaml = merge_yaml(pta_es, op_es)
+    merged_yaml_path = gen_custom_yaml_path(pta_path)
+    with open(merged_yaml_path, 'w') as outfile:
+        yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
+    return merged_yaml
+
+
+def filed_tag(custom_es):
+    for e in custom_es:
+        if not isinstance(e, Dict):
+            print(e)
+            continue
+        for field in FIELDS_TO_REMOVE:
+            e.pop(field, None)
+    return custom_es
+
 def parse_opplugin_yaml(custom_path: str) -> Dict:
-    if not os.path.exists(custom_path):
-        return
 
-    from io import StringIO
-    f_str = StringIO()
-    with open(custom_path, 'r') as f:
-        for line in f:
-            if ':' not in line:
-                continue
-            f_str.write(line)
-
-    f_str.seek(0)
-    source_es = yaml.safe_load(f_str)
+    source_es = parse_npu_yaml(custom_path)
 
     custom = source_es.pop('custom', [])
     if custom is None:
@@ -109,6 +130,8 @@ def parse_opplugin_yaml(custom_path: str) -> Dict:
             print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
                   f"with {wrap_name} being used as the actual wrap_name")
         GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
+
+    return source_es
 
 
 def rename_privateuse1_dispatch_key():
@@ -361,3 +384,8 @@ def is_op_valid(op_key: str) -> bool:
 def get_opplugin_wrap_name(func) -> str:
     op_key = str(func.func.name) if type(func) is NativeFunction else func
     return GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, None)
+
+
+def gen_custom_yaml_path(original_path, codegen_yaml_filename=CUSTOM_YAML_NAME):
+    new_path = os.path.join(os.path.dirname(original_path), codegen_yaml_filename)
+    return new_path
