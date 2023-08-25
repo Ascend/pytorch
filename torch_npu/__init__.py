@@ -45,7 +45,7 @@ from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     add_storage_methods, add_optim_method, NPUDeviceContext
+     add_storage_methods, add_optim_method, NPUDeviceContext, add_serialization_methods
 import torch_npu.utils.custom_ops
 from .version import __version__ as __version__
 
@@ -184,6 +184,7 @@ def apply_class_patches():
     apply_module_patch()
     add_tensor_methods()
     add_optim_method()
+    add_serialization_methods()
 
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
