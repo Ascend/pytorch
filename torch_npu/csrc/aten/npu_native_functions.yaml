@@ -234,11 +234,11 @@ supported:
  - func: atan_
    op_api: True
  - func: atan2
-   op_api: False
+   op_api: True
  - func: atan2.out
-   op_api: False
+   op_api: True
  - func: atan2_
-   op_api: False
+   op_api: True
  - func: atanh
    op_api: False
  - func: atanh.out
@@ -368,11 +368,11 @@ supported:
  - func: clamp_
    op_api: True
  - func: clamp_max
-   op_api: False
+   op_api: True
  - func: clamp_max.out
-   op_api: False
+   op_api: True
  - func: clamp_max_
-   op_api: False
+   op_api: True
  - func: clamp_min
    op_api: True
  - func: clamp_min.out
@@ -386,11 +386,11 @@ supported:
  - func: clamp_.Tensor
    op_api: True
  - func: clamp_max.Tensor
-   op_api: False
+   op_api: True
  - func: clamp_max.Tensor_out
-   op_api: False
+   op_api: True
  - func: clamp_max_.Tensor
-   op_api: False
+   op_api: True
  - func: clamp_min.Tensor
    op_api: False
  - func: clamp_min.Tensor_out
@@ -861,9 +861,9 @@ supported:
  - func: logical_or_
    op_api: False
  - func: logical_xor
-   op_api: False
+   op_api: True
  - func: logical_xor.out
-   op_api: False
+   op_api: True
  - logspace
  - logspace.out
  - func: logsumexp
