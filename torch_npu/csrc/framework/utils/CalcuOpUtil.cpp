@@ -300,6 +300,9 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor &tensor) {
     const torch_npu::NPUStorageDesc &tensor_desc =
         torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
     return tensor_desc.npu_format_;
+  } else if (tensor.data_ptr() == nullptr){
+    // transforming faketensor into realtensor and assigning format ND
+    return ACL_FORMAT_ND;
   } else {
     return InferFormat::GuessFormatWhenContiguous(tensor);
   }
