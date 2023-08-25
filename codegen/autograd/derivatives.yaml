@@ -3,27 +3,7 @@
 #If you need any guidance, please refer to the comments in derivatives.yaml in PyTorch.
 
 - name: fast_gelu(Tensor self) -> Tensor
-  self: fast_gelu_backward(grad, self)
+  self: npu_fast_gelu_backward(grad, self)
 
 - name: npu_rotary_mul(Tensor self, Tensor r1, Tensor r2) -> Tensor
-  self, r1, r2: rotary_mul_backward(grad, self, r1, r2)
-
-- name: npu_multi_head_attention(Tensor query, Tensor key, Tensor value, Tensor query_weight, Tensor key_weight, Tensor value_weight, Tensor attn_mask, Tensor out_proj_weight, Tensor? query_bias, Tensor? key_bias, Tensor? value_bias, Tensor? out_proj_bias, Tensor? dropout_mask, int attn_head_num, int attn_dim_per_head, int src_len, int tgt_len, float dropout_prob, bool softmax_use_float) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
-  output_differentiability: [True, False, False, False, False, False, False, False]
-  query_weight, key_weight, value_weight, out_proj_weight, query, key, value, query_bias, key_bias, value_bias, out_proj_bias: multi_head_attention_backward(query, key, value, query_weight, key_weight, value_weight, out_proj_weight, query_bias, key_bias, value_bias, out_proj_bias, result2, result3, result4, result5, result6, result7, grad, result1, attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)
-
-- name: npu_gru(Tensor input, Tensor hx, Tensor weight_input, Tensor weight_hidden, Tensor bias_input, Tensor bias_hidden, Tensor seq_length, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
-  output_differentiability: [True, True, False, False, False, False]
-  weight_input, weight_hidden, input, bias_input, bias_hidden, hx: gru_backward(grads[0], grads[1], input, weight_input, weight_hidden, bias_input, bias_hidden, seq_length, hx, result0, result1, result2, result3, result4, result5)
-
-- name: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seq_mask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flag_seq, bool direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
-  output_differentiability: [True, True, True, False, False, False, False, False]
-  input, weight, bias, h, c: lstm_backward(grads[0], grads[1], grads[2], input, weight, bias, h, c, result0, result1, result2, result3, result4, result5, result6, result7)
-
-- name: npu_lstm_cell(Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor? bias=None) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
-  output_differentiability: [True, True, True, False, False, False, False, False]
-  input, w_ih, w_hh, bias, h, c: lstm_cell_backward(grads[0], grads[1], grads[2], input, w_ih, w_hh, h, c, result0, result1, result2, result3, result4, result5, result6, result7)
-
-- name: npu_lstm_data(Tensor input, Tensor batch_sizes, Tensor weight, Tensor bias, Tensor seq_mask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flag_seq, bool direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
-  output_differentiability: [True, True, True, False, False, False, False, False]
-  input, weight, bias, h, c: lstm_data_backward(grads[0], grads[1], grads[2], input, batch_sizes, weight, bias, h, c, result0, result1, result2, result3, result4, result5, result6, result7, direction)
+  self, r1, r2: npu_rotary_mul_backward(grad, self, r1, r2)

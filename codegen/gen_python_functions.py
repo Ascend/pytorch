@@ -48,7 +48,7 @@ from codegen.model import (BaseOperatorName, NativeFunction,
                            BackendMetadata, DispatchKey, OperatorName)
 from codegen.utils import (context, parse_npu_yaml, evaluate_opplugin_op,
                            gen_custom_yaml_path, filed_tag)
-from codegen.autograd.gen_variable_type import NPU_AUTOGRAD_FUNCTION
+from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
 
 # These functions require manual Python bindings or are not exposed to Python
 _SKIP_PYTHON_BINDINGS = [

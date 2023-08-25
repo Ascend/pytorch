@@ -57,13 +57,7 @@ void copy_range(variable_list& out, IndexRange range, at::ArrayRef<at::Tensor> t
 at::Tensor not_implemented(const char* name, const char* reason="");
 std::vector<Tensor> not_implemented_list(const char* name, const char* reason="");
 
-Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self);
-
-std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
-    const Tensor& grad,
-    const Tensor& self,
-    const Tensor& r1,
-    const Tensor& r2);
+at::Tensor maybe_multiply(const at::Tensor& t, const at::Scalar& s);
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
 at::Tensor, at::Tensor, at::Tensor, at::Tensor> multi_head_attention_backward(
