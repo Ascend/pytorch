@@ -26,8 +26,10 @@ supported:
  - _add_relu.Tensor
  - _add_relu.out
  - _add_relu_.Tensor
- - _aminmax
- - _aminmax.dim
+ - func: _aminmax
+   op_api: True
+ - func: _aminmax.dim
+   op_api: True
  - func: aminmax
    op_api: False
  - func: aminmax.out
@@ -1270,6 +1272,8 @@ supported:
    op_api: True
  - func: sign_
    op_api: True
+ - func: signbit.out
+   op_api: True
  - func: sin
    op_api: True
  - func: sin.out
@@ -1776,7 +1780,6 @@ tocpu:
   - igammac
   - igammac_
   - i0.out
-  - signbit.out
   - hypot.out
   - hypot
   - nextafter.out
