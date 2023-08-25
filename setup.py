@@ -371,8 +371,7 @@ class BdistWheelBuild(bdist_wheel):
     def run(self):
         to_preload = []
         dependencies = ["libascendcl.so", "libacl_op_compiler.so", "libhccl.so", "libge_runner.so",
-                        "libgraph.so", "libacl_tdt_channel.so", "libtorch_python", "libtorch_cpu.so",
-                        "libtorch.so", "libc10.so"]
+                        "libgraph.so", "libacl_tdt_channel.so"]
 
         libs = glob.glob(os.path.join(BASE_DIR, "build", get_build_type(), "packages", "torch_npu", "**", "*.so"),
                          recursive=True)
