@@ -46,7 +46,7 @@ void copy_between_host_and_device_opapi(
     void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
     NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
-    NPU_CHECK_ERROR(aclrtSynchronizeStream(stream));
+    aclError error = aclrtSynchronizeStream(stream);
     auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
         std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
         nbytes,
@@ -54,6 +54,16 @@ void copy_between_host_and_device_opapi(
         nbytes,
         kind);
     NPU_CHECK_ERROR(ret);
+    if (error != ACL_ERROR_NONE) {
+      C10_NPU_SHOW_ERR_MSG();
+      if (c10_npu::option::OptionsManager::IsResumeModeEnable()) {
+        TORCH_NPU_WARN("ACL stream synchronize failed, error code:", error,
+                       ". But in checkpoint-resume mode will not throw exceptions.");
+      }
+      else {
+        AT_ERROR("ACL stream synchronize failed, error code:", error);
+      }
+    }
   }
 }
 
