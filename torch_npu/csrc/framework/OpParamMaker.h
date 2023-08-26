@@ -285,17 +285,6 @@ namespace at_npu
 
         size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen + 
                               outputTensorDescArrLen + outputDataBuffArrLen;
-        if (totalMemLen == 0) {
-          params.paras.input_num = inputNum;
-          params.paras.output_num = outputNum;
-          params.paras.input_desc = nullptr;
-          params.paras.input_data_buf = nullptr;
-          params.paras.output_desc = nullptr;
-          params.paras.output_data_buf = nullptr;
-          params.hostMemory = execParam.hostMem;
-          params.customHandler = execParam.customHandler;
-          return;
-        }
 
         char* basePtr = static_cast<char* >(malloc(totalMemLen));
         AT_ASSERT(basePtr != nullptr);
