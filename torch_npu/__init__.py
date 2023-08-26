@@ -218,5 +218,6 @@ def _npu_shutdown():
 # register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
 
+torch._dynamo.skipfiles.add(torch_npu.utils._device)
 _GLOBAL_NPU_DEVICE_CONTEXT = NPUDeviceContext()
 _GLOBAL_NPU_DEVICE_CONTEXT.__enter__()
