@@ -1004,6 +1004,8 @@ supported:
  - mv.out
  - func: nanmedian
    op_api: False
+ - func: nanmedian.dim
+   op_api: True
  - func: native_batch_norm
    op_api: True
  - func: native_batch_norm.out
