@@ -32,7 +32,7 @@ at::Tensor &NPUNativeOpApiFunctions::norm_out(
     at::Tensor &out) {
   DO_COMPATIBILITY(aclnnNorm, NPUNativeFunctions::norm_out(self, p, dim, keepdim, out));
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-  OpPreparation::CheckOut({self}, out, self.scalar_type(), outputSize);
+  OpPreparation::CheckOut({self}, out, out.scalar_type(), outputSize);
   
   at::Scalar pvalue = 2;
   if (p.has_value()) {
