@@ -30,9 +30,10 @@ device_kwargs_list = ['device', 'device_type']
 def wrapper_cuda(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
+        replace_int = fn.__name__ in ['to', 'to_empty']
         if args:
             args_new = list(args)
-            args = replace_cuda_to_npu_in_list(args_new)
+            args = replace_cuda_to_npu_in_list(args_new, replace_int)
         if kwargs:
             for device_arg in device_kwargs_list: 
                 device = kwargs.get(device_arg, None)
@@ -41,6 +42,8 @@ def wrapper_cuda(fn):
                 if isinstance(device, torch.device) and 'cuda' in device.type:
                     device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                     kwargs[device_arg] = torch.device(device_info)
+                if isinstance(device, int):
+                    kwargs[device_arg] = f'npu:{device}'
             if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
                                                                          torch_npu.profiler._ExperimentalConfig):
                 logger.warning(
@@ -50,19 +53,21 @@ def wrapper_cuda(fn):
                 del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
-                device_ids = replace_cuda_to_npu_in_list(device_ids)
+                device_ids = replace_cuda_to_npu_in_list(device_ids, replace_int)
         return fn(*args, **kwargs)
 
     return decorated
 
 
-def replace_cuda_to_npu_in_list(args_list):
+def replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
             args_list[idx] = arg.replace('cuda', 'npu')
         if isinstance(arg, torch.device) and 'cuda' in arg.type:
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
             args_list[idx] = torch.device(device_info)
+        if replace_int and not isinstance(arg, bool) and isinstance(arg, int):
+            args_list[idx] = f'npu:{arg}'
     return args_list
 
 
