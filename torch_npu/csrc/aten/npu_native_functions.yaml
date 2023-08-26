@@ -98,6 +98,8 @@ supported:
  - func: _unique2
    op_api: True
  - _reshape_alias
+ - func: real
+   op_api: True
  - func: abs
    op_api: True
  - func: abs.out
