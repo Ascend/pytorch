@@ -43,15 +43,13 @@ tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::log_sigmoid_forward(const
 at::Tensor &NPUNativeOpApiFunctions::log_sigmoid_out(const at::Tensor &self, at::Tensor &out) {
   DO_COMPATIBILITY(aclnnLogSigmoid, NPUNativeFunctions::log_sigmoid_out(self, out));
   OpPreparation::CheckOut({self}, out, self);
-  EXEC_NPU_CMD(aclnnLogSigmoid, self, out);
-  return out;
+  at::Tensor buffer = OpPreparation::ApplyTensorWithSizes({0}, self.options());
+  return std::get<0>(at::log_sigmoid_forward_out(out, buffer, self));
 }
 
 at::Tensor NPUNativeOpApiFunctions::log_sigmoid(const at::Tensor &self) {
   DO_COMPATIBILITY(aclnnLogSigmoid, NPUNativeFunctions::log_sigmoid(self));
-  at::Tensor out = OpPreparation::ApplyTensorWithoutFormat(self);
-  EXEC_NPU_CMD(aclnnLogSigmoid, self, out);
-  return out;
+  return std::get<0>(at::log_sigmoid_forward(self));
 }
 
 } // namespace native
