@@ -41,13 +41,22 @@ at::Tensor NPUNativeOpApiFunctions::one_hot(const at::Tensor& self, int64_t num_
     }
   }
 
+  // construct on_value tensor
+  at::Tensor on_value_tensor = OpPreparation::ApplyTensorWithoutFormat({1}, self.options());
+  on_value_tensor.fill_(1);
+
+  // construct off_value tensor
+  at::Tensor off_value_tensor = OpPreparation::ApplyTensorWithoutFormat({1}, self.options());
+  off_value_tensor.fill_(0);
+
   auto output_size = array_to_small_vector(self.sizes());
   output_size.emplace_back(depth);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(output_size, self.options(), self);
 
-  EXEC_NPU_CMD(aclnnOneHot, self, depth, result);
+  int64_t axis = -1;
+  EXEC_NPU_CMD(aclnnOneHot, self, depth, on_value_tensor, off_value_tensor, axis, result);
   return result;
 }
 }  // namespace native
