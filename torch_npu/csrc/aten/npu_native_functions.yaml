@@ -4,9 +4,9 @@ supported:
  - __ilshift__.Scalar
  - __ilshift__.Tensor
  - func: __ior__.Scalar
-   op_api: False
+   op_api: True
  - func: __ior__.Tensor
-   op_api: False
+   op_api: True
  - __irshift__.Scalar
  - __irshift__.Tensor
  - __lshift__.Scalar
@@ -55,9 +55,9 @@ supported:
  - func: _ctc_loss_backward
    op_api: True
  - func: _cummax_helper
-   op_api: False
+   op_api: True
  - func: _cummin_helper
-   op_api: False
+   op_api: True
  - _dim_arange
  - _embedding_bag
  - _embedding_bag_backward
@@ -171,11 +171,11 @@ supported:
  - func: addmv_
    op_api: True
  - func: addr
-   op_api: False
+   op_api: True
  - func: addr.out
-   op_api: False
+   op_api: True
  - func: addr_
-   op_api: False
+   op_api: True
  - affine_grid_generator
  - affine_grid_generator_backward
  - func: all
@@ -213,20 +213,20 @@ supported:
  - func: arange.start_step
    op_api: True
  - func: argsort
-   op_api: False
+   op_api: True
  - func: argsort.dimname
-   op_api: False
+   op_api: True
  - as_strided
  - as_strided_
  - asin
  - asin.out
  - asin_
  - func: asinh
-   op_api: False
+   op_api: True
  - func: asinh.out
-   op_api: False
+   op_api: True
  - func: asinh_
-   op_api: False
+   op_api: True
  - func: atan
    op_api: True
  - func: atan.out
@@ -240,11 +240,11 @@ supported:
  - func: atan2_
    op_api: False
  - func: atanh
-   op_api: False
+   op_api: True
  - func: atanh.out
-   op_api: False
+   op_api: True
  - func: atanh_
-   op_api: False
+   op_api: True
  - func: avg_pool2d
    op_api: True
  - func: avg_pool2d.out
@@ -299,7 +299,7 @@ supported:
  - func: binary_cross_entropy_backward.grad_input
    op_api: True
  - func: binary_cross_entropy_with_logits
-   op_api: False
+   op_api: True
  - func: bincount
    op_api: True
  - func: bitwise_and.Scalar
@@ -392,11 +392,11 @@ supported:
  - func: clamp_max_.Tensor
    op_api: False
  - func: clamp_min.Tensor
-   op_api: False
+   op_api: True
  - func: clamp_min.Tensor_out
-   op_api: False
+   op_api: True
  - func: clamp_min_.Tensor
-   op_api: False
+   op_api: True
  - func: clone
    op_api: True
  - func: col2im
@@ -567,15 +567,15 @@ supported:
  - func: floor_
    op_api: True
  - func: floor_divide
-   op_api: False
+   op_api: True
  - func: floor_divide.Scalar
-   op_api: False
+   op_api: True
  - func: floor_divide.out
-   op_api: False
+   op_api: True
  - func: floor_divide_.Scalar
-   op_api: False
+   op_api: True
  - func: floor_divide_.Tensor
-   op_api: False
+   op_api: True
  - func: fmod.Scalar
    op_api: True
  - func: fmod.Scalar_out
@@ -589,11 +589,11 @@ supported:
  - func: fmod_.Tensor
    op_api: True
  - func: frac
-   op_api: False
+   op_api: True
  - func: frac.out
-   op_api: False
+   op_api: True
  - func: frac_
-   op_api: False
+   op_api: True
  - full
  - full.names
  - full.out
@@ -779,17 +779,17 @@ supported:
  - func: leaky_relu_backward.grad_input
    op_api: True
  - func: lerp.Scalar
-   op_api: False
+   op_api: True
  - func: lerp.Scalar_out
-   op_api: False
+   op_api: True
  - func: lerp.Tensor
-   op_api: False
+   op_api: True
  - func: lerp.Tensor_out
-   op_api: False
+   op_api: True
  - func: lerp_.Scalar
-   op_api: False
+   op_api: True
  - func: lerp_.Tensor
-   op_api: False
+   op_api: True
  - func: linalg_cross
    op_api: True
  - func: linalg_cross.out
@@ -847,13 +847,13 @@ supported:
  - func: logical_and.out
    op_api: True
  - func: logical_and_
-   op_api: False
+   op_api: True
  - func: logical_not
-   op_api: False
+   op_api: True
  - func: logical_not.out
-   op_api: False
+   op_api: True
  - func: logical_not_
-   op_api: False
+   op_api: True
  - func: logical_or
    op_api: True
  - func: logical_or.out
@@ -1606,7 +1606,7 @@ autograd:
   - func: elu_
     op_api: False
   - func: binary_cross_entropy_with_logits_backward
-    op_api: False
+    op_api: True
   - func: selu
     op_api: False
   - func: selu_
