@@ -29,9 +29,9 @@ supported:
  - _aminmax
  - _aminmax.dim
  - func: aminmax
-   op_api: False
+   op_api: True
  - func: aminmax.out
-   op_api: False
+   op_api: True
  - _amp_foreach_non_finite_check_
  - func: _amp_foreach_non_finite_check_and_unscale_
    op_api: True
@@ -63,7 +63,7 @@ supported:
  - _embedding_bag_backward
  - _embedding_bag_forward_only
  - func: _index_copy_
-   op_api: False
+   op_api: True
  - func: _index_put_impl_
    op_api: True
  - _linalg_svd.U
@@ -187,13 +187,13 @@ supported:
  - func: all.all_out
    op_api: True
  - func: amax
-   op_api: False
+   op_api: True
  - func: amax.out
-   op_api: False
+   op_api: True
  - func: amin
-   op_api: False
+   op_api: True
  - func: amin.out
-   op_api: False
+   op_api: True
  - func: any
    op_api: True
  - func: any.all_out
@@ -532,9 +532,9 @@ supported:
  - func: exp.out
    op_api: True
  - func: exp2
-   op_api: False
+   op_api: True
  - func: exp2.out
-   op_api: False
+   op_api: True
  - func: exp2_
    op_api: False
  - func: exp_
@@ -707,11 +707,11 @@ supported:
  - func: index_add.out
    op_api: True
  - func: index_fill.int_Scalar
-   op_api: False
+   op_api: True
  - func: index_fill.int_Tensor
-   op_api: False
+   op_api: True
  - func: index_fill_.int_Scalar
-   op_api: False
+   op_api: True
  - func: index_fill_.int_Tensor
    op_api: True
  - func: index_select
@@ -819,7 +819,7 @@ supported:
  - func: log2_
    op_api: False
  - func: log_
-   op_api: False
+   op_api: True
  - func: log_sigmoid
    op_api: False
  - func: log_sigmoid.out
@@ -867,13 +867,13 @@ supported:
  - logspace
  - logspace.out
  - func: logsumexp
-   op_api: False
+   op_api: True
  - func: logsumexp.names
-   op_api: False
+   op_api: True
  - func: logsumexp.names_out
-   op_api: False
+   op_api: True
  - func: logsumexp.out
-   op_api: False
+   op_api: True
  - lstm.data
  - lstm.input
  - lstm_cell
@@ -1035,7 +1035,7 @@ supported:
  - func: neg.out
    op_api: True
  - func: neg_
-   op_api: False
+   op_api: True
  - nll_loss
  - nll_loss.out
  - nll_loss2d
@@ -1068,21 +1068,21 @@ supported:
  - func: norm.out
    op_api: True
  - func: normal.Tensor_Tensor
-   op_api: False
+   op_api: True
  - func: normal.Tensor_Tensor_out
-   op_api: False
+   op_api: True
  - func: normal.Tensor_float
-   op_api: False
+   op_api: True
  - func: normal.Tensor_float_out
-   op_api: False
+   op_api: True
  - func: normal.float_Tensor
-   op_api: False
+   op_api: True
  - func: normal.float_Tensor_out
-   op_api: False
+   op_api: True
  - func: normal.float_float
-   op_api: False
+   op_api: True
  - func: normal.float_float_out
-   op_api: False
+   op_api: True
  - func: normal_
    op_api: True
  - func: one_
@@ -1111,9 +1111,9 @@ supported:
  - func: pow.Tensor_Tensor_out
    op_api: True
  - func: pow_.Scalar
-   op_api: False
+   op_api: True
  - func: pow_.Tensor
-   op_api: False
+   op_api: True
  - func: prelu
    op_api: True
  - prelu_backward
@@ -1246,9 +1246,9 @@ supported:
  - func: rsqrt_
    op_api: False
  - func: rsub.Scalar
-   op_api: False
+   op_api: True
  - func: rsub.Tensor
-   op_api: False
+   op_api: True
  - func: scalar_tensor
    op_api: False
  - func: scatter.src_out
@@ -1455,11 +1455,11 @@ supported:
    op_api: True
  - triu_indices
  - func: true_divide.Scalar
-   op_api: False
+   op_api: True
  - func: true_divide.Tensor
-   op_api: False
+   op_api: True
  - func: true_divide.out
-   op_api: False
+   op_api: True
  - true_divide_.Scalar
  - true_divide_.Tensor
  - func: trace
