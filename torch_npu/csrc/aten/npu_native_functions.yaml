@@ -111,11 +111,11 @@ supported:
  - func: acos_
    op_api: True
  - func: acosh
-   op_api: False
+   op_api: True
  - func: acosh.out
-   op_api: False
+   op_api: True
  - func: acosh_
-   op_api: False
+   op_api: True
  - adaptive_avg_pool1d
  - func: adaptive_avg_pool2d
    op_api: True
@@ -432,11 +432,11 @@ supported:
  - func: cos_
    op_api: True
  - func: cosh
-   op_api: False
+   op_api: True
  - func: cosh.out
-   op_api: False
+   op_api: True
  - func: cosh_
-   op_api: False
+   op_api: True
  - crop_and_resize
  - func: ctc_loss.IntList
    op_api: True
@@ -557,7 +557,7 @@ supported:
  - func: fill_.Scalar
    op_api: True
  - func: fill_diagonal_
-   op_api: False
+   op_api: True
  - func: flip
    op_api: True
  - func: floor
@@ -624,9 +624,9 @@ supported:
  - func: gelu_backward
    op_api: True
  - func: ger
-   op_api: False
+   op_api: True
  - func: ger.out
-   op_api: False
+   op_api: True
  - func: glu
    op_api: True
  - func: glu.out
@@ -669,7 +669,7 @@ supported:
  - func: hardsigmoid_
    op_api: True
  - func: hardsigmoid_backward
-   op_api: False
+   op_api: True
  - func: hardswish
    op_api: True
  - func: hardswish.out
@@ -737,7 +737,7 @@ supported:
  - isfinite
  - isnan
  - func: kl_div
-   op_api: False
+   op_api: True
  - func: kl_div_backward
    op_api: True
  - func: kthvalue
@@ -773,7 +773,7 @@ supported:
  - func: leaky_relu.out
    op_api: True
  - func: leaky_relu_
-   op_api: False
+   op_api: True
  - func: leaky_relu_backward
    op_api: True
  - func: leaky_relu_backward.grad_input
@@ -969,7 +969,7 @@ supported:
  - mish.out
  - mish_
  - func: mish_backward
-   op_api: False
+   op_api: True
  - func: mm
    op_api: True
  - func: mm.out
@@ -1302,11 +1302,11 @@ supported:
  - func: sin_
    op_api: True
  - func: sinh
-   op_api: False
+   op_api: True
  - func: sinh.out
-   op_api: False
+   op_api: True
  - func: sinh_
-   op_api: False
+   op_api: True
  - func: linalg_slogdet
    op_api: False
  - func: linalg_slogdet.out
@@ -1339,7 +1339,7 @@ supported:
  - func: softplus.out
    op_api: True
  - func: softplus_backward.grad_input
-   op_api: False
+   op_api: True
  - softshrink
  - softshrink.out
  - softshrink_backward
@@ -1389,9 +1389,9 @@ supported:
  - func: sub.out
    op_api: True
  - func: sub_.Scalar
-   op_api: False
+   op_api: True
  - func: sub_.Tensor
-   op_api: False
+   op_api: True
  - func: sum
    op_api: True
  - func: sum.DimnameList_out
@@ -1474,7 +1474,7 @@ supported:
  - func: uniform_
    op_api: True
  - func: unique_consecutive
-   op_api: False
+   op_api: True
  - unsqueeze
  - upsample_bicubic2d
  - upsample_bicubic2d.out
@@ -1489,11 +1489,11 @@ supported:
  - func: upsample_bilinear2d.vec
    op_api: True
  - func: upsample_bilinear2d_backward
-   op_api: False
+   op_api: True
  - func: upsample_bilinear2d_backward.grad_input
-   op_api: False
+   op_api: True
  - func: upsample_bilinear2d_backward.vec
-   op_api: False
+   op_api: True
  - upsample_linear1d
  - upsample_linear1d.out
  - upsample_linear1d.vec
@@ -1506,11 +1506,11 @@ supported:
  - func: upsample_nearest1d.vec
    op_api: True
  - func: upsample_nearest1d_backward
-   op_api: False
+   op_api: True
  - func: upsample_nearest1d_backward.grad_input
-   op_api: False
+   op_api: True
  - func: upsample_nearest1d_backward.vec
-   op_api: False
+   op_api: True
  - func: upsample_nearest2d
    op_api: True
  - func: upsample_nearest2d.out
@@ -1518,11 +1518,11 @@ supported:
  - func: upsample_nearest2d.vec
    op_api: True
  - func: upsample_nearest2d_backward
-   op_api: False
+   op_api: True
  - func: upsample_nearest2d_backward.grad_input
-   op_api: False
+   op_api: True
  - func: upsample_nearest2d_backward.vec
-   op_api: False
+   op_api: True
  - upsample_nearest3d
  - upsample_nearest3d.out
  - upsample_nearest3d.vec
@@ -1536,17 +1536,17 @@ supported:
  - upsample_trilinear3d_backward.grad_input
  - upsample_trilinear3d_backward.vec
  - func: var.correction
-   op_api: False
+   op_api: True
  - func: var.correction_names
-   op_api: False
+   op_api: True
  - func: var.out
-   op_api: False
+   op_api: True
  - func: var.names_out
-   op_api: False
+   op_api: True
  - func: var.correction_out
-   op_api: False
+   op_api: True
  - func: var.correction_names_out
-   op_api: False
+   op_api: True
  - var_mean.correction
  - var_mean.correction_names
  - view
@@ -1556,21 +1556,21 @@ supported:
  - func: where.self
    op_api: True
  - func: xlogy.OutScalar_Other
-   op_api: False
+   op_api: True
  - func: xlogy.OutScalar_Self
-   op_api: False
+   op_api: True
  - func: xlogy.OutTensor
-   op_api: False
+   op_api: True
  - func: xlogy.Scalar_Other
-   op_api: False
+   op_api: True
  - func: xlogy.Scalar_Self
-   op_api: False
+   op_api: True
  - func: xlogy.Tensor
-   op_api: False
+   op_api: True
  - func: xlogy_.Scalar_Other
-   op_api: False
+   op_api: True
  - func: xlogy_.Tensor
-   op_api: False
+   op_api: True
  - func: zero_
    op_api: True
  - func: zeros
