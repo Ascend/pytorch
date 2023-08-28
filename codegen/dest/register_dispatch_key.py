@@ -23,7 +23,8 @@ from typing import List, Optional, Union
 from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
-from codegen.utils import Target, map_maybe
+from codegen.utils import (Target, map_maybe, is_op_valid,
+                           get_opplugin_wrap_name)
 from codegen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
                            TensorOptionsArguments,
@@ -337,6 +338,9 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     impl_name = f"{self.cpp_namespace}::{self.class_method_name}::{metadata.kernel}"
 
+                if is_op_valid(str(f.func.name)):
+                    impl_name = f"op_plugin::{get_opplugin_wrap_name(f)}"
+
                 op_api_impl_name = f"{self.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"
 
                 args_exprs_str = ', '.join(a.name for a in args)
@@ -386,7 +390,7 @@ torch_npu::profiler::NPURecordFunction guard;
                 if tensor_check_list:
                     tensor_check_str = f" && {' && '.join(tensor_check_list)}"
 
-                if f.op_api:
+                if f.op_api and not is_op_valid(str(f.func.name)):
                     return_code = f"""\
 if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
         return {op_api_impl_name}({args_exprs_str});

@@ -6,7 +6,7 @@ from codegen.code_template import CodeTemplate
 from codegen.gen import FileManager, cpp_string, error_check_native_functions
 from codegen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata)
-from codegen.utils import concat_map, context, YamlLoader
+from codegen.utils import concat_map, context, YamlLoader, filed_tag
 from codegen.context import with_native_function
 from codegen.api.signature import DispatcherSignature
 from codegen.api import cpp
@@ -48,6 +48,7 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
 
     f_str.seek(0)
     custom_es = yaml.load(f_str, Loader=YamlLoader)
+    custom_es = filed_tag(custom_es)
     for e_with_vars in custom_es:
         funcs = e_with_vars.get('func')
         with context(lambda: f'{funcs}'):

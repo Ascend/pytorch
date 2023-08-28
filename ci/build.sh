@@ -16,6 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 CUR_DIR=$(dirname $(readlink -f $0))
 SUPPORTED_PY_VERSION=(3.7 3.8 3.9 3.10)
 PY_VERSION='3.7'                     # Default supported python version is 3.7
@@ -93,6 +95,10 @@ function check_python_version() {
     fi
 }
 
+function update_submodule() {
+    git submodule init &&git submodule update
+}
+
 function main()
 {
     if ! parse_script_args "$@"; then
@@ -120,6 +126,8 @@ function main()
             sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${cmake_file}
         fi
     done
+
+    update_submodule
 
     cd ${CUR_DIR}/..
     # if you add or delete file/files in the project, you need to remove the following comment

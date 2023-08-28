@@ -46,7 +46,8 @@ from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
                            Type, Variant, BackendIndex,
                            BackendMetadata, DispatchKey, OperatorName)
-from codegen.utils import context
+from codegen.utils import (context, parse_npu_yaml, evaluate_opplugin_op,
+                           gen_custom_yaml_path, filed_tag)
 from codegen.autograd.gen_variable_type import NPU_AUTOGRAD_FUNCTION
 
 # These functions require manual Python bindings or are not exposed to Python
@@ -103,23 +104,10 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     rs: List[NativeFunction] = []
     bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
     # Filter the custom native yaml file, and extract the functions we defined.
-    from io import StringIO
-    f_str = StringIO()
-    with open(custom_path, 'r') as f:
-        for line in f:
-            if line.split(':')[0] in ['backend', 'cpp_namespace', 'extra_headers',
-                                      'supported', 'autograd']:
-                flag = False
-                continue
-            if line.split(':')[0] in ['custom', 'custom_autograd']:
-                flag = True
-                continue
-            if ':' not in line or not flag:
-                continue
-            f_str.write(line)
+    source_es = parse_npu_yaml(custom_path)
+    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+    custom_es = filed_tag(custom_es)
 
-    f_str.seek(0)
-    custom_es = yaml.safe_load(f_str)
     for e_with_vars in custom_es:
         funcs = e_with_vars.get('func')
         with context(lambda: f'in {custom_path}:\n  {funcs}'):
@@ -761,10 +749,15 @@ if __name__ == "__main__":
         '-o', '--output_dir', help='output directory')
     parser.add_argument(
         '-t', '--template_path', type=str, default=None, help='path of the templates')
+    parser.add_argument(
+        '--op_plugin_yaml_path', type=str, default=None,
+        help='path to the source yaml file containing kernel definitions in op_plugin')
     options = parser.parse_args()
 
     file_manager = FileManager(install_dir=options.output_dir, template_dir=options.template_path, dry_run=False)
-    parsed_native_functions = parse_custom_yaml(options.source_yaml).native_functions
+    source_yaml = gen_custom_yaml_path(options.source_yaml)
+    parsed_native_functions = parse_custom_yaml(source_yaml).native_functions
+    evaluate_opplugin_op(source_yaml, options.op_plugin_yaml_path)
     valid_native_functions = list(filter(should_generate_py_binding, parsed_native_functions))
 
     functions = load_signatures(valid_native_functions, method=False)

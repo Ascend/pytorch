@@ -28,7 +28,7 @@ from distutils.version import LooseVersion
 from distutils import file_util
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+VERSION = '1.11.0.post1'
 
 def which(thefile):
     path = os.environ.get("PATH", os.defpath).split(os.pathsep)
@@ -88,7 +88,7 @@ def get_pytorch_dir():
 
 def generate_bindings_code(base_dir, verbose):
     python_execute = sys.executable
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, python_execute]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, python_execute, VERSION]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -149,7 +149,9 @@ def run_cmake():
         '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
         '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
-        '-DBUILD_LIBTORCH=' + "ON"]
+        '-DBUILD_LIBTORCH=' + "ON",
+        '-DTORCH_VERSION=' + VERSION,
+        '-DBUILD_OPPLUGIN' + "ON"]
 
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
