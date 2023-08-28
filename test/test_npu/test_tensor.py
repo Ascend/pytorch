@@ -285,6 +285,19 @@ class TestTensor(TestCase):
             self.assertEqual(npu_tensor.device.type, "npu")
             self.assertEqual(npu_tensor.to("cpu"), cpu_tensor)
 
+    def test_faketensor(self, device="npu"):
+        from torch.utils._mode_utils import no_dispatch
+        from torch._subclasses.fake_tensor import FakeTensorMode
+        faketensor_mode = FakeTensorMode(allow_non_fake_inputs=True)
+
+        x = torch.randn((3, 3,), device=device)
+        faketensor = faketensor_mode.from_tensor(x)
+
+        expected = torch.zeros_like(x, device=x.device)
+        with no_dispatch():
+            res1 = torch.zeros_like(faketensor, device=faketensor.device)
+
+        self.assertEqual(res1.to('cpu'), expected.to('cpu'))
 
 if __name__ == '__main__':
     run_tests()
