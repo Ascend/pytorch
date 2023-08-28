@@ -337,9 +337,9 @@ supported:
  - func: bitwise_xor.Tensor_out
    op_api: True
  - func: bitwise_xor_.Scalar
-   op_api: False
+   op_api: True
  - func: bitwise_xor_.Tensor
-   op_api: False
+   op_api: True
  - blackman_window
  - blackman_window.periodic
  - func: bmm
@@ -536,7 +536,7 @@ supported:
  - func: exp2.out
    op_api: True
  - func: exp2_
-   op_api: False
+   op_api: True
  - func: exp_
    op_api: True
  - func: expm1
@@ -859,7 +859,7 @@ supported:
  - func: logical_or.out
    op_api: True
  - func: logical_or_
-   op_api: False
+   op_api: True
  - func: logical_xor
    op_api: False
  - func: logical_xor.out
