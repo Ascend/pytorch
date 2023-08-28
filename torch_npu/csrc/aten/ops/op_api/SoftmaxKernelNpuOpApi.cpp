@@ -22,6 +22,24 @@
 
 namespace at_npu {
 namespace native {
+
+at::Tensor NPUNativeOpApiFunctions::softmax(const at::Tensor& self, int64_t dim, c10::optional<at::ScalarType> dtype) {
+  DO_COMPATIBILITY(aclnnSoftmax, NPUNativeFunctions::softmax(self, dim, dtype));
+  auto result = [&]() {
+    at::NoNamesGuard guard;
+    at::Tensor converted = dtype.has_value() ? NPUNativeOpApiFunctions::npu_dtype_cast(self, dtype.value()) : self;
+    return at::_softmax(converted, dim, false);
+  }();
+  at::namedinference::propagate_names(result, self);
+  return result;
+}
+
+at::Tensor NPUNativeOpApiFunctions::softmax(const at::Tensor& self, at::Dimname dim, 
+                                            c10::optional<at::ScalarType> dtype) {
+  DO_COMPATIBILITY(aclnnSoftmax, NPUNativeFunctions::softmax(self, dim, dtype));
+  return NPUNativeOpApiFunctions::softmax(self, dimname_to_position(self, dim), dtype);
+}
+
 at::Tensor NPUNativeOpApiFunctions::_softmax(const at::Tensor& self, int64_t dim, bool half_to_float) {
   DO_COMPATIBILITY(aclnnSoftmax, NPUNativeFunctions::_softmax(self, dim, half_to_float));
   // construct the output tensor of the NPU
