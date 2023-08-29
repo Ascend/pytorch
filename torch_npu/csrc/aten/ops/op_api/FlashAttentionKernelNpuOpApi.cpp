@@ -138,14 +138,9 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     double scale_value,
     double keep_prob,
     int64_t pre_tockens,
-    int64_t next_tockens,
-    bool is_flash)
+    int64_t next_tockens)
 {
   double scale = scale_value;
-
-  if (!is_flash) {
-    scale = 1;
-  }
 
   const at::Tensor &pse_const = pse.value_or(at::Tensor());
   const at::Tensor &drop_mask_const = drop_mask.value_or(at::Tensor());
@@ -195,7 +190,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
       aclnnFlashAttentionScoreGrad, format_query_scaled, format_key, format_value, format_dy,
       format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
-      pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq_32, dk_32, dv_32, dpse_required);
+      pre_tockens, next_tockens, head_num, input_layout_ptr, dq_32, dk_32, dv_32, dpse_required);
 
   at::Tensor dq_scalared = at::mul(dq_32, at::Scalar(scale));
 
@@ -330,7 +325,6 @@ public:
     auto pre_tockens = ctx->saved_data["pre_tockens"].toInt();
     auto next_tockens = ctx->saved_data["next_tockens"].toInt();
     auto head_num = ctx->saved_data["head_num"].toInt();
-    auto is_flash = ctx->saved_data["is_flash"].toBool();
     auto input_layout = ctx->saved_data["input_layout"].toStringRef();
     auto gen_mask_parallel = ctx->saved_data["gen_mask_parallel"].toBool();
     auto sync = ctx->saved_data["sync"].toBool();
@@ -362,7 +356,7 @@ public:
     auto results = npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, input_layout, pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
-        keep_prob, pre_tockens, next_tockens, is_flash);
+        keep_prob, pre_tockens, next_tockens);
 
     if (!sync) {
       c10_npu::NPUEvent npu_event;
@@ -411,17 +405,10 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   at::Tensor drop_mask = dropout_gen_mask(query, keep_prob, head_num, input_layout_str, gen_mask_parallel, sync,
       seed, offset, numels);
 
-  bool is_flash = true;
-  if (input_layout_str == "BSH") {
-    is_flash = (key.size(1) > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
-  } else if (input_layout_str == "SBH") {
-    is_flash = (key.size(0) > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
-  }
-
   auto result = npu_flash_attention_backward(query,
       key, value, dy, head_num, input_layout_str, pse, drop_mask, padding_mask, atten_mask,
       softmax_max, softmax_sum, softmax_in, attention_in, scale_value,
-      keep_prob, pre_tockens, next_tockens, is_flash);
+      keep_prob, pre_tockens, next_tockens);
 
   if (!sync) {
     c10_npu::NPUEvent npu_event;
