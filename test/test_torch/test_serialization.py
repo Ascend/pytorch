@@ -76,6 +76,20 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), m_loaded)
             n_loaded = torch.load(path, map_location=torch.device("cpu"))
             self.assertRtolEqual(x.cpu(), n_loaded)
+            x_loaded = torch.load(path, map_location="npu:0", weights_only=True)
+            self.assertRtolEqual(x.cpu(), x_loaded.cpu())
+
+    def test_load_legacy_file(self):
+        x = torch.randn(5)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.serialization.save(x, path, _use_new_zipfile_serialization=False)
+            x_loaded = torch.load(path, map_location="npu:0")
+            self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
+            self.assertRtolEqual(x, x_loaded.cpu())
+            x_loaded = torch.load(path, map_location=torch.device("npu:0"))
+            self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
+            self.assertRtolEqual(x, x_loaded.cpu())
 
     def test_save_npu_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -89,7 +103,7 @@ class TestSerialization(TestCase):
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertRtolEqual(torch_npu.get_npu_format(x),
-                                 torch_npu.get_npu_format(x_loaded))            
+                                 torch_npu.get_npu_format(x_loaded))          
             x = torch_npu.npu_format_cast(torch.randn(2, 3, 224, 224).npu(), FORMAT_NC1HWC0)
             torch.save(x, path)
             x_loaded = torch.load(path)
@@ -143,6 +157,8 @@ class TestSerialization(TestCase):
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertExpectedInline(str(x), str(x_loaded))
+            x_loaded = torch.load(path, weights_only=True)
+            self.assertExpectedInline(str(x), str(x_loaded))
     
     def test_save_torch_size(self):
         x = torch.randn(2, 3).size()
@@ -150,6 +166,8 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
             x_loaded = torch.load(path)
+            self.assertExpectedInline(str(x), str(x_loaded))
+            x_loaded = torch.load(path, weights_only=True)
             self.assertExpectedInline(str(x), str(x_loaded))
 
     def test_save_tuple(self):
@@ -170,6 +188,8 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
             x_loaded = torch.load(path)
+            self.assertTrue(x, x_loaded)
+            x_loaded = torch.load(path, weights_only=True)
             self.assertTrue(x, x_loaded)
 
     def test_save_argparse_namespace(self):
