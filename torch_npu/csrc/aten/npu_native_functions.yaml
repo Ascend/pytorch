@@ -77,8 +77,6 @@ custom:
   - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_hcom_allgather(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm) -> Tensor
   - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
-
-custom_autograd:
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
 
 symint:
