@@ -1311,4 +1311,92 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
       });
 }
 
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
+    std::vector<at::Tensor>& output_tensors,
+    std::vector<at::Tensor>& input_tensors,
+    const c10d::AllToAllOptions& opts) {
+  std::vector<int64_t> output_split_sizes;
+  std::vector<int64_t> input_split_sizes;
+  std::vector<at::Tensor> output_results;
+  std::vector<at::Tensor> input_tensors_after;
+  std::vector<at::Tensor> output_tensors_after;
+  
+  for (size_t i = 0; i < input_tensors.size(); i++) {
+    int64_t inputlist_tensor_size = input_tensors[i].numel();
+    input_split_sizes.push_back(inputlist_tensor_size);
+    input_tensors_after.push_back(at::reshape(input_tensors[i],{inputlist_tensor_size,1}));
+  }
+
+  for (size_t i = 0; i < output_tensors.size(); i++) {
+    output_split_sizes.push_back(output_tensors[i].numel());
+    output_tensors_after.push_back(at::reshape(output_tensors[i],{output_tensors[i].numel(),1}));
+  }
+
+  int ranks = getSize();
+
+  int inputsize = input_split_sizes.size();
+  int outsize = output_split_sizes.size();
+  uint64_t input_counts[inputsize];
+  uint64_t input_spl[inputsize];
+  uint64_t output_counts[outsize];
+  uint64_t output_spl[outsize];
+  input_spl[0] = 0;
+  output_spl[0] = 0;
+  output_counts[0] = output_split_sizes[0];
+  input_counts[0] = input_split_sizes[0];
+  for (int i = 1; i < outsize; i++) {
+    output_counts[i] = output_split_sizes[i];
+    output_spl[i] = output_spl[i-1] + output_split_sizes[i-1];
+  }
+  for (int i = 1; i < inputsize; i++) {
+    input_counts[i] = input_split_sizes[i];
+    input_spl[i] = input_spl[i-1] + input_split_sizes[i-1];
+  }
+
+  std::vector<at::Tensor> in_tensors = {at::cat(input_tensors_after, 0)};
+  std::vector<at::Tensor> out_tensors = {at::cat(output_tensors_after, 0)};
+
+  auto input_tensors_ = cast_to_origin_format(in_tensors);
+  auto output_tensors_ = cast_to_origin_format(out_tensors);
+
+  check_npu_tensors_different_devices(in_tensors);
+  check_npu_tensors_different_devices(out_tensors);
+
+  return collective(
+      input_tensors_,
+      output_tensors_,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
+        return hcclAlltoAllV(
+            input.data_ptr(),
+            input_counts,
+            input_spl,
+            getHcclDataType(input.scalar_type()),
+            output.data_ptr(),
+            output_counts,
+            output_spl,
+            getHcclDataType(output.scalar_type()),
+            comm,
+            stream.stream());
+      },
+      [&](std::vector<c10_npu::NPUStream>&,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams,
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+          c10_npu::NPUStreamGuard guard(hcclStreams[0]);
+          c10_npu::NPUCachingAllocator::recordStream(output_tensors_[0].storage().data_ptr(), hcclStreams[0]);
+          if (!at_npu::native::FormatHelper::IsBaseFormatType(out_tensors[0])) {
+            out_tensors[0].copy_(output_tensors_[0], true);
+          }
+          output_results = at::split_with_sizes(out_tensors[0], output_split_sizes, 0);
+      for (int i = 0; i < output_results.size(); i++) {
+        at::Tensor output_results_shaped = at::reshape(output_results[i], output_tensors[i].sizes());
+        output_tensors[i].copy_(output_results_shaped, true);
+      }
+      });
+}
+
 } // namespace c10d_npu

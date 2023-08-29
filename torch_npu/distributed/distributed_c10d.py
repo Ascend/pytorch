@@ -1935,32 +1935,23 @@ def all_to_all(output_tensor_list,
     _check_tensor_list(output_tensor_list, "output_tensor_list")
     _check_tensor_list(input_tensor_list, "input_tensor_list")
 
-    output_tensor_size = len(output_tensor_list)
-    input_tensor_size = len(input_tensor_list)
-    output_split_sizes = [x.size(0) for x in output_tensor_list]
-    input_split_sizes = [x.size(0) for x in input_tensor_list]
-
-    output_tensor = torch.empty(0)
-    input_tensor = torch.empty(0)
-
-    for i in range(0, output_tensor_size):
-        output_tensor = torch.cat((output_tensor, output_tensor_list[i]))
-
-    for i in range(0, input_tensor_size):
-        input_tensor = torch.cat((input_tensor, input_tensor_list[i]))
+    input_tensor_list = [
+        t if not t.is_complex() else torch.view_as_real(t) for t in input_tensor_list
+    ]
+    output_tensor_list = [
+        t if not t.is_complex() else torch.view_as_real(t) for t in output_tensor_list
+    ]
 
     if group is None:
         default_pg = _get_default_group()
-        work = default_pg.alltoall_base(output_tensor, input_tensor, output_split_sizes, input_split_sizes, opts)
+        work = default_pg.alltoall(output_tensor_list, input_tensor_list, opts)
     else:
-        work = group.alltoall_base(output_tensor, input_tensor, output_split_sizes, input_split_sizes, opts)
-    
+        work = group.alltoall(output_tensor_list, input_tensor_list, opts)
+
     if async_op:
-        output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
         return work
     else:
         work.wait()
-        output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
 
 def barrier(group=GroupMember.WORLD,
             async_op=False,
