@@ -25,15 +25,12 @@ class OpSummaryBean:
         row = []
         read_headers = OpSummaryBean.headers if OpSummaryBean.headers else self._data.keys()
         for field_name in read_headers:
-            if field_name == self.TASK_START_TIME:
-                row.append(float(self._data.get(field_name, 0)) / 1000)
-            else:
-                row.append(self._data.get(field_name, ""))
+            row.append(self._data.get(field_name, ""))
         return row
 
     @property
     def ts(self) -> float:
-        return float(self._data.get(self.TASK_START_TIME, 0)) / 1000
+        return float(self._data.get(self.TASK_START_TIME, 0))
 
     @property
     def all_headers(self) -> list:
