@@ -150,8 +150,9 @@ def run_cmake():
         '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
         '-DBUILD_LIBTORCH=' + "ON",
-        '-DTORCH_VERSION=' + VERSION,
-        '-DBUILD_OPPLUGIN' + "ON"]
+        '-DTORCH_VERSION=' + VERSION,]
+    if check_opplugin_valid(BASE_DIR):
+        cmake_args.append('-DBUILD_OPPLUGIN=ON')
 
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
@@ -165,6 +166,13 @@ def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, lev
     the latter defaults to false for commands that don't define it.)
     """
     return file_util.copy_file(infile, outfile, preserve_mode, preserve_times, True, link)
+
+
+def check_opplugin_valid(base_dir):
+    # build with submodule of op_plugin, if path of op-plugin is valid
+    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
+    return os.path.exists(op_plugin_path)
+
 
 def move_special_hpp(ret):
     hpp_name = "library_npu.h"

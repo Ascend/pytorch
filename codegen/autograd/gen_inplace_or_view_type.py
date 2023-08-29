@@ -37,6 +37,7 @@ from codegen.model import (
     TensorOptionsArguments, SchemaKind, is_foreach_op,
 )
 from codegen.gen import FileManager
+from codegen.utils import enable_opplugin
 
 from .context import with_native_function_with_differentiability_info
 from .utils import (
@@ -454,8 +455,9 @@ def gen_inplace_or_view_type_env(fn: NativeFunctionWithDifferentiabilityInfo) ->
     definition = inplace_or_view_method_definition(fn)
     registration = inplace_or_view_method_registration(fn)
     if definition is not None:
+        cpp_namespace = "op_plugin::" if enable_opplugin() else "at_npu::native::NPUNativeOpApiFunctions::"
         definition = re.sub(pattern=r"at::_ops::(\w+)::redispatch",
-                            repl=r'op_plugin::\1',
+                            repl=rf'{cpp_namespace}\1',
                             string=definition)
         definition = definition.replace('ks & c10::after_ADInplaceOrView_keyset, ', '')
     return {

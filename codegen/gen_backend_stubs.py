@@ -489,7 +489,9 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#ifdef USE_OPPLUGIN
 #include "op_plugin/OpInterface.h"
+#endif
 """
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,

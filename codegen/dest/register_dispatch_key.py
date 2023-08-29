@@ -24,7 +24,7 @@ from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
 from codegen.utils import (Target, map_maybe, is_op_valid,
-                           get_opplugin_wrap_name)
+                           get_opplugin_wrap_name, enable_opplugin)
 from codegen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
                            TensorOptionsArguments,
@@ -338,7 +338,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     impl_name = f"{self.cpp_namespace}::{self.class_method_name}::{metadata.kernel}"
 
-                if is_op_valid(str(f.func.name)):
+                if enable_opplugin() and is_op_valid(str(f.func.name)):
                     impl_name = f"op_plugin::{get_opplugin_wrap_name(f)}"
 
                 op_api_impl_name = f"{self.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"

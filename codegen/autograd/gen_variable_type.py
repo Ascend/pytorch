@@ -37,7 +37,7 @@ from codegen.api import cpp
 from codegen.code_template import CodeTemplate
 from codegen.context import native_function_manager, with_native_function
 from codegen.gen import FileManager
-from codegen.utils import map_maybe
+from codegen.utils import map_maybe, enable_opplugin
 from codegen.model import (
     Argument, NativeFunction, SchemaKind,
     SelfArgument, TensorOptionsArguments,
@@ -438,8 +438,9 @@ def gen_npu_variable_type(
                 )
                 if str(f.func.name) in  NPU_NATIVEFUNCTIONS:
                     type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
-                else: 
-                    type_definition = type_definition.replace('at::redispatch', 'op_plugin')
+                else:
+                    cpp_namespace = 'op_plugin' if enable_opplugin() else 'at_npu::native::NPUNativeFunctions'
+                    type_definition = type_definition.replace('at::redispatch', cpp_namespace)
                 type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
                 wrapper_registrations.append(gen_wrapper_registration(f))
                 npu_method_definitions.append(type_definition)

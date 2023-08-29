@@ -22,7 +22,7 @@ from codegen.api import cpp
 from codegen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
     DifferentiabilityInfo)
-from codegen.utils import YamlLoader, CUSTOM_YAML_NAME
+from codegen.utils import YamlLoader, CUSTOM_YAML_NAME, enable_opplugin
 from codegen.model import NativeFunction, SchemaKind
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 from .load_derivatives import load_derivatives
@@ -48,8 +48,12 @@ def parse_derivatives(
     autograd_dir: str,
     npu_native_functions_path: str
 ) :
+    derivatives_file_path =  ('third_party/op-plugin/op_plugin/config/v1r11/derivatives.yaml'
+        if enable_opplugin()
+        else "codegen/autograd/derivatives.yaml")
+        
     derivatives_path = \
-    str(Path(autograd_dir).parents[1].joinpath('third_party/op-plugin/op_plugin/config/v1r11/derivatives.yaml'))
+    str(Path(autograd_dir).parents[1].joinpath(derivatives_file_path))
     differentiability_infos = load_derivatives(
         derivatives_path, native_functions_path, npu_native_functions_path)
     native_funcs = parse_native_and_custom_yaml(native_functions_path,npu_native_functions_path).native_functions

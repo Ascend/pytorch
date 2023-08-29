@@ -3,7 +3,7 @@
 #If you need any guidance, please refer to the comments in derivatives.yaml in PyTorch.
 
 - name: fast_gelu(Tensor self) -> Tensor
-  self: npu_fast_gelu_backward(grad, self)
+  self: fast_gelu_backward(grad, self)
 
 - name: npu_rotary_mul(Tensor self, Tensor r1, Tensor r2) -> Tensor
-  self, r1, r2: npu_rotary_mul_backward(grad, self, r1, r2)
+  self, r1, r2: rotary_mul_backward(grad, self, r1, r2)

@@ -59,7 +59,9 @@
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/wrap_outputs.h"
 
+#ifdef USE_OPPLUGIN
 #include "op_plugin/OpInterface.h"
+#endif
 
 using at::Tensor;
 using at::Device;
