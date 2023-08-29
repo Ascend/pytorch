@@ -1531,8 +1531,10 @@ supported:
    op_api: False
  - func: upsample_linear1d.vec
    op_api: False
- - upsample_linear1d_backward
- - upsample_linear1d_backward.vec
+ - func: upsample_linear1d_backward
+   op_api: False
+ - func: upsample_linear1d_backward.vec
+   op_api: False
  - func: upsample_nearest1d
    op_api: True
  - func: upsample_nearest1d.out
