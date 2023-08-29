@@ -905,8 +905,10 @@ supported:
    op_api: True
  - func: max.dim_max
    op_api: True
- - max.names_dim
- - max.names_dim_max
+ - func: max.names_dim
+   op_api: True
+ - func: max.names_dim_max
+   op_api: True
  - func: max.out
    op_api: False
  - max_pool2d
@@ -957,8 +959,10 @@ supported:
    op_api: True
  - func: min.dim_min
    op_api: True
- - min.names_dim
- - min.names_dim_min
+ - func: min.names_dim
+   op_api: True
+ - func: min.names_dim_min
+   op_api: True
  - func: min.out
    op_api: False
  - func: minimum
