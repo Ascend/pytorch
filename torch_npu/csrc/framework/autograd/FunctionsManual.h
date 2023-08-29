@@ -65,6 +65,8 @@ std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
     const Tensor& r1,
     const Tensor& r2);
 
+at::Tensor maybe_multiply(const at::Tensor& t, const at::Scalar& s);
+
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
 at::Tensor, at::Tensor, at::Tensor, at::Tensor> multi_head_attention_backward(
     const at::Tensor& query, const at::Tensor& key, const at::Tensor& value,

@@ -40,21 +40,17 @@ torch_npu/csrc/aten/
 
 import argparse
 import os
-from typing import List, Sequence
-from codegen.api.autograd import (
-    match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
-    DifferentiabilityInfo
-)
-from codegen.gen_backend_stubs import parse_native_and_custom_yaml
-from codegen.model import NativeFunction
+
 from .gen_autograd_functions import gen_autograd_functions_lib
 from .gen_variable_type import (
     gen_variable_type, gen_npu_variable_type,
-    NPU_AUTOGRAD_FUNCTION, gen_variable_type_head
+    gen_variable_type_head
 )
 from .gen_inplace_or_view_type import gen_inplace_or_view_type
 from .gen_variable_factories import gen_variable_factories
-from .load_derivatives import load_derivatives
+from .utils import parse_derivatives, filt_npu_autograd_functions
+
+from codegen.utils import gen_custom_yaml_path
 
 def gen_autograd(
     native_functions_path: str,
@@ -62,22 +58,12 @@ def gen_autograd(
     autograd_dir: str,
     npu_native_functions_path: str
 ) -> None:
-    differentiability_infos = load_derivatives(
-        os.path.join(autograd_dir, 'derivatives.yaml'), native_functions_path, npu_native_functions_path)
+    npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
+    differentiability_infos, _ , funcs_with_diff_infos =\
+    parse_derivatives(native_functions_path, autograd_dir, npu_native_functions_path)
+    torch_funcs_with_diff_infos, npu_funcs_with_diff_infos, _ = \
+    filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
     template_path = os.path.join(autograd_dir, 'templates')
-    native_funcs = parse_native_and_custom_yaml(native_functions_path, npu_native_functions_path).native_functions
-    funcs = filte_out_native_autograd_function(native_funcs, differentiability_infos)
-    funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
-    funcs_with_diff_infos = match_differentiability_info(funcs, differentiability_infos)
-    torch_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
-    npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
-    for func in funcs_with_diff_infos:
-        f = func.func
-        name = str(f.func.name)
-        if name in NPU_AUTOGRAD_FUNCTION:
-            npu_funcs_with_diff_infos.append(func)
-        else:
-            torch_funcs_with_diff_infos.append(func)
 
     # Generate VariableType.h/cpp
     gen_variable_type(out, torch_funcs_with_diff_infos, template_path)
@@ -86,28 +72,14 @@ def gen_autograd(
 
     gen_variable_type_head(out, funcs_with_diff_infos, template_path)
 
-    gen_inplace_or_view_type(out, funcs_with_diff_infos, template_path)
-
+    gen_inplace_or_view_type(out, npu_funcs_with_diff_infos, template_path)
+    
     # Generate Functions.h/cpp
     gen_autograd_functions_lib(out, differentiability_infos, template_path)
 
     # Generate variable_factories.h
     gen_variable_factories(out, native_functions_path, npu_native_functions_path, template_path)
 
-def filte_out_native_autograd_function(
-    native_funcs: List[NativeFunction],
-    differentiability_infos: Sequence[DifferentiabilityInfo],
-):
-    result: List[NativeFunction] = []
-    derivatives_name_list: List[str] = []
-    for info in differentiability_infos:
-        derivatives_name_list.append(str(info.func.func.name))
-    for funcs in native_funcs:
-        func_name = str(funcs.func.name)
-        func_base_name = str(funcs.func.name.name.base)
-        if (func_name in derivatives_name_list) or (func_base_name in derivatives_name_list):
-            result.append(funcs)
-    return result
 
 def main() -> None:
     parser = argparse.ArgumentParser(

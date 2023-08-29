@@ -18,13 +18,14 @@
 #include <torch/csrc/autograd/VariableTypeUtils.h>
 
 #include <torch/library.h>
-
 // ${generated_comment}
 
 #ifndef AT_PER_OPERATOR_HEADERS
 #include <ATen/Operators.h>
-#else
 $ops_headers
+#endif
+#ifdef USE_OPPLUGIN
+#include "op_plugin/OpInterface.h"
 #endif
 
 using namespace at;

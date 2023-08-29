@@ -21,23 +21,49 @@ cd $CDIR
 
 build_libtorch="$1"
 python_execute="$2"
+pytorch_version="$3"
+
+IFS='.' read -ra version_parts <<< "$pytorch_version"
+
+pytorch_dir="v${version_parts[0]}r${version_parts[1]}"
+
+op_plugin_config_path=$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir
+source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
+
+op_plugin_functions_yaml_path="$op_plugin_config_path/npu_native_functions.yaml"
+if [ -f "${op_plugin_functions_yaml_path}" ]; then
+  cp -f $op_plugin_functions_yaml_path $source_yaml
+fi
+
+file=$CDIR/third_party/op-plugin/gencode.sh
+
+if [ -f "${file}" ]; then
+  bash ${file} ${pytorch_version} python3
+fi
+
+# impl_path is used to double-check the yaml file definitions.
+# yaml_path is used to load opplugin api
+
 
 ${python_execute} -m codegen.gen_backend_stubs  \
   --output_dir="$CDIR/torch_npu/csrc/aten/" \
-  --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
-  --impl_path="$CDIR/torch_npu/csrc/aten"  # Used to double-check the yaml file definitions.
+  --source_yaml="$source_yaml" \
+  --impl_path="$CDIR/torch_npu/csrc/aten" \
+  --op_plugin_impl_path="$CDIR/third_party/op-plugin/op_plugin/" \
+  --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml"
 
   
 ${python_execute} -m codegen.autograd.gen_autograd \
   --native_functions_dir="$CDIR/codegen/native_functions.yaml" \
   --out_dir="$CDIR/torch_npu/csrc/aten/" \
   --autograd_dir="$CDIR/codegen/autograd/" \
-  --npu_native_function_dir="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
+  --npu_native_function_dir="$source_yaml"
 
 if [[ ${build_libtorch} != "True" ]]; then
   ${python_execute} -m codegen.gen_python_functions  \
     --output_dir="$CDIR/torch_npu/csrc/aten/" \
-    --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
+    --source_yaml="$source_yaml" \
     --native_yaml="$CDIR/codegen/native_functions.yaml" \
-    --template_path="$CDIR/codegen/templates"
+    --template_path="$CDIR/codegen/templates" \
+    --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml"
 fi

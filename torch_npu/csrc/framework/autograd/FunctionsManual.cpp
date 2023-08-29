@@ -135,6 +135,21 @@ std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
   return at_npu::native::NPUNativeFunctions::npu_rotary_mul_backward(grad, self, r1, r2);
 }
 
+Tensor maybe_multiply(const Tensor & t, const Scalar & s) {
+  bool is_one = false;
+  if (s.isFloatingPoint()) {
+    is_one = s.toDouble() == 1;
+  } else if(s.isIntegral(true)) {
+    is_one = s.toLong() == 1;
+  }
+
+  if (is_one) {
+    return t;
+  } else {
+    return t * s;
+  }
+}
+
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
 at::Tensor, at::Tensor, at::Tensor, at::Tensor> multi_head_attention_backward(
     const at::Tensor& query, const at::Tensor& key, const at::Tensor& value,

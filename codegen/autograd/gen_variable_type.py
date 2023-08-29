@@ -37,7 +37,7 @@ from codegen.api import cpp
 from codegen.code_template import CodeTemplate
 from codegen.context import native_function_manager, with_native_function
 from codegen.gen import FileManager
-from codegen.utils import map_maybe
+from codegen.utils import map_maybe, enable_opplugin
 from codegen.model import (
     Argument, NativeFunction, SchemaKind,
     SelfArgument, TensorOptionsArguments,
@@ -53,12 +53,10 @@ from .gen_inplace_or_view_type import (
 )
 from .utils import (
     MANUAL_BACKEND, type_wrapper_name, 
-    tie_return_values, get_return_value
+    tie_return_values, get_return_value, NPU_AUTOGRAD_FUNCTION
 )
 
-# NPU methods require special processing. 
-NPU_AUTOGRAD_FUNCTION = {'fast_gelu', 'npu_rotary_mul', 'npu_lstm_cell', 'npu_multi_head_attention', 'npu_lstm',
-                         'npu_gru', 'npu_lstm_data'}
+NPU_NATIVEFUNCTIONS = {'npu_format_cast'}
 
 # We don't set or modify grad_fn on these methods. Generally, they return
 # tensors that have requires_grad=False. In-place functions listed here will
@@ -438,8 +436,11 @@ def gen_npu_variable_type(
                     type_definition_body=emit_body(fn),
                     formals=formals,
                 )
-                
-                type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
+                if str(f.func.name) in  NPU_NATIVEFUNCTIONS:
+                    type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
+                else:
+                    cpp_namespace = 'op_plugin' if enable_opplugin() else 'at_npu::native::NPUNativeFunctions'
+                    type_definition = type_definition.replace('at::redispatch', cpp_namespace)
                 type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
                 wrapper_registrations.append(gen_wrapper_registration(f))
                 npu_method_definitions.append(type_definition)

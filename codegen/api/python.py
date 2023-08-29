@@ -24,6 +24,7 @@ from codegen.model import (Argument, BaseTy, BaseType, ListType,
                            NativeFunction, OptionalType, Return, Type,
                            Variant)
 from codegen.autograd.utils import type_wrapper_name
+from codegen.utils import enable_opplugin, is_op_valid, get_opplugin_wrap_name
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 #
@@ -1007,6 +1008,9 @@ def cpp_dispatch_target(f: NativeFunction, custom=False, is_npu_autograd=False) 
         if custom:
             if is_npu_autograd:
                 namespace = 'at_npu::autograd::VariableType'
+            elif (enable_opplugin() and is_op_valid(str(f.func.name))):
+                namespace = 'op_plugin'
+                name = get_opplugin_wrap_name(str(f.func.name))
             else:
                 namespace = 'at_npu::native::NPUNativeFunctions'
         elif has_tensor_options(f) or f.func.name.name.base.endswith('_like'):

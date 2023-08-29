@@ -16,7 +16,7 @@
 
 # Generates ADInplaceOrViewType.h/cpp
 #
-
+import re
 from typing import List, Optional, Sequence, Tuple, Dict
 
 from codegen.api import cpp
@@ -37,6 +37,7 @@ from codegen.model import (
     TensorOptionsArguments, SchemaKind, is_foreach_op,
 )
 from codegen.gen import FileManager
+from codegen.utils import enable_opplugin
 
 from .context import with_native_function_with_differentiability_info
 from .utils import (
@@ -453,10 +454,14 @@ def use_derived(fn: NativeFunctionWithDifferentiabilityInfo) -> bool:
 def gen_inplace_or_view_type_env(fn: NativeFunctionWithDifferentiabilityInfo) -> Dict[str, List[str]]:
     definition = inplace_or_view_method_definition(fn)
     registration = inplace_or_view_method_registration(fn)
-
+    if definition is not None:
+        cpp_namespace = "op_plugin::" if enable_opplugin() else "at_npu::native::NPUNativeOpApiFunctions::"
+        definition = re.sub(pattern=r"at::_ops::(\w+)::redispatch",
+                            repl=rf'{cpp_namespace}\1',
+                            string=definition)
+        definition = definition.replace('ks & c10::after_ADInplaceOrView_keyset, ', '')
     return {
-        'ops_headers': ([f'#include <ATen/ops/{fn.func.root_name}_ops.h>']
-                        if definition is not None else []),
+        'ops_headers': [],
         'inplace_or_view_method_definitions': [definition] if definition is not None else [],
         'inplace_or_view_wrapper_registrations': [registration] if registration is not None else [],
     }
