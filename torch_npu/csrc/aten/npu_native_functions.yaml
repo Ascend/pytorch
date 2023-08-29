@@ -1240,7 +1240,6 @@ supported:
    op_api: True
  - func: rrelu_with_noise_
    op_api: True
- - rrelu_with_noise_backward
  - func: square.out
    op_api: True
  - func: rsqrt
