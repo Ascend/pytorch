@@ -89,7 +89,7 @@ return ${impl_name}(${args_exprs_str});""")
 
 
 @with_native_function
-def compute_trace_method_definition(f: NativeFunction):
+def compute_op_definition(f: NativeFunction):
     out_num = len(f.func.arguments.out)
     sig = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_')
     name = sig.name()
@@ -127,7 +127,6 @@ def compute_trace_method_definition(f: NativeFunction):
 
 @with_native_function
 def compute_register_symbol(f: NativeFunction):
-    name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
     out_num = len(f.func.arguments.out)
     if out_num > 1:
         decl = re.compile(r"(?P<name>[^\(]+)\((?P<args>.*)\) -> (?P<returns>.*)").findall(str(f.func))[0]
@@ -135,18 +134,28 @@ def compute_register_symbol(f: NativeFunction):
             ['Tensor'] * out_num) + ')'
     else:
         func_schema = str(f.func)
-    return [f'm.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}));\n']
+    return [f'm.def({cpp_string(func_schema)});\n']
+
+
+@with_native_function
+def compute_register_impl(f: NativeFunction):
+    name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
+    return [f'm.impl("{f.func.name}", TORCH_FN(at_npu::native::{name}));\n']
 
 
 def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
 
     fm.write_with_template(f'CustomRegisterSchema.cpp', 'CustomRegisterSchema.cpp', lambda: {
-        'custom_trace_definitions': list(concatMap(
-            lambda f: compute_trace_method_definition(f),
+        'custom_op_definitions': list(concatMap(
+            lambda f: compute_op_definition(f),
             custom_trace_functions
         )),
-        'custom_trace_registrations': list(concatMap(
+        'custom_schema_registrations': list(concatMap(
             lambda f: compute_register_symbol(f),
+            custom_trace_functions
+        )),
+        'custom_impl_registrations': list(concatMap(
+            lambda f: compute_register_impl(f),
             custom_trace_functions
         )),
     })
