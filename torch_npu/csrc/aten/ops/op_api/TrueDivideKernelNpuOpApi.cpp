@@ -1,5 +1,5 @@
 // Copyright (c) 2023 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
@@ -95,6 +94,25 @@ at::Tensor& NPUNativeOpApiFunctions::true_divide_out(const at::Tensor& self, con
   // calculate the output result of the NPU
   div_out_npu_opapi_nocheck(self_cp, other, result);
   return result;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::true_divide_(at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnInplaceDiv, NPUNativeFunctions::true_divide_(self, other));
+  OpPreparation::check_memory({self, other}, {self});
+
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
+    c10::Scalar other_value = other.item();
+    true_divide_(self, other_value);
+  } else {
+    EXEC_NPU_CMD(aclnnInplaceDiv, self, other);
+  }
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::true_divide_(at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceDivs, NPUNativeFunctions::true_divide_(self, other));
+  EXEC_NPU_CMD(aclnnInplaceDivs, self, other);
+  return self;
 }
 
 }  // namespace native
