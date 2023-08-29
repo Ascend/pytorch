@@ -149,8 +149,7 @@ at::Tensor metadata_convert_match(const at::Tensor &src, bool numelEq) {
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
     at::Tensor tempTensor = custom_ops::npu_format_cast(
         src, FormatHelper::GetBaseFormat(src));
-    NPUNativeFunctions::npu_reshape_out(tempTensor, tempTensor.sizes(), true,
-                                        tempTensor);
+    custom_ops::npu_reshape_out(tempTensor, tempTensor.sizes(), true, tempTensor);
     NpuUtils::RefreshFormat(tempTensor);
     return tempTensor;
   } else {

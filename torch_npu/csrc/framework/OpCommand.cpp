@@ -113,7 +113,7 @@ OpCommand& OpCommand::Input(
       auto contiguous_input = Contiguous(input);
       if (commonType.has_value() &&
           commonType.value() != contiguous_input.scalar_type()) {
-        contiguous_input = NPUNativeFunctions::npu_dtype_cast(contiguous_input, commonType.value());
+        contiguous_input = custom_ops::npu_dtype_cast(contiguous_input, commonType.value());
       }
       graphCmd.AddInput(contiguous_input, descName, realData, sensitive_format);
   )
@@ -220,7 +220,7 @@ OpCommand& OpCommand::Output(
       graphCmd.AddOutput(output, descName, realType, sensitive_format);
       if (!resultTypeDefined && commonType.has_value() &&
           output.scalar_type() != commonType.value()) {
-        output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
+        output = custom_ops::npu_dtype_cast(output, commonType.value());
       } 
   )
   outputTensor.emplace_back(output);
@@ -280,7 +280,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      const string &realData) {
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
-    tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
+    tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
   if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
@@ -328,7 +328,7 @@ OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType ty
 
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
   if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
-    output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
+    output = custom_ops::npu_dtype_cast(output, commonType.value());
   }
   auto res = OpCmdHelper::CovertToAclOutput(output, realType);
   aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));

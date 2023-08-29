@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -29,7 +30,7 @@ public:
         return true;
       }
       RECORD_FUNCTION("contiguous_d_Reshape", std::vector<c10::IValue>({src}));
-      NPUNativeFunctions::npu_reshape_out(src, src.sizes(), false, result);
+      custom_ops::npu_reshape_out(src, src.sizes(), false, result);
       return true;
     }
     return false;

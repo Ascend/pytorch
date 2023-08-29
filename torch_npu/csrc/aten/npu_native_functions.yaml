@@ -1,11 +1,9 @@
 backend: NPU
 cpp_namespace: at_npu::native
 supported:
-- _amp_foreach_non_finite_check_
 - _local_scalar_dense
 - _pin_memory
 - _reshape_alias
-- _symeig_helper
 - _trilinear
 - _foreach_add.Scalar
 - _foreach_add_.Scalar
@@ -42,8 +40,6 @@ supported:
 - blackman_window
 - blackman_window.periodic
 - clone
-- col2im_backward
-- col2im_backward.grad_input
 - contiguous
 - copy_
 - copy_memory_
@@ -62,17 +58,11 @@ supported:
 - hamming_window.periodic_alpha_beta
 - hann_window
 - hann_window.periodic
-- im2col_backward
-- im2col_backward.grad_input
 - is_pinned
 - is_set_to
 - isnan
 - lift_fresh_copy
 - linalg_pinv.atol_rtol_tensor
-- max_unpool2d_backward
-- max_unpool2d_backward.grad_input
-- max_unpool3d_backward
-- max_unpool3d_backward.grad_input
 - new_empty_strided
 - pixel_shuffle
 - pixel_unshuffle
@@ -98,11 +88,9 @@ supported:
 - bucketize.Tensor
 - bucketize.Tensor_out
 autograd:
-- binary_cross_entropy_with_logits_backward
 - native_group_norm
 custom:
 - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
-- func: _amp_foreach_non_finite_check_(Tensor[] scaled_grads) -> bool
 - func: get_npu_format(Tensor self) -> int
 - func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
 - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
@@ -111,8 +99,6 @@ custom:
 - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
 - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
 - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
-- func: npu_stride_copy(Tensor self, int[] shape, int[] stride, Scalar storage_offset) -> Tensor
-- func: npu_stride_copy.out(Tensor self, int[] shape, int[] stride, Scalar storage_offset, *, Tensor(a!) out) -> Tensor(a!)
 - func: format_contiguous(Tensor self) -> Tensor
 - func: check_match(Tensor self) -> bool
 - func: check_memory_overlaps(Tensor[] inputs, Tensor[] outputs) -> ()
@@ -123,9 +109,4 @@ custom:
 - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
 - bscpp_op: true
   func: bscpp_add(Tensor self, Tensor other) -> Tensor
-- func: npu_max_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
-- func: npu_min_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
-- func: npu_confusion_transpose_backward(Tensor grad, int[] perm, int[] shape, bool transpose_first) -> Tensor
-- func: npu_ps_roi_pooling_backward(Tensor output_grad, Tensor rois, float spatial_scale, int group_size, int output_dim, int[] input_size) -> Tensor
-- func: npu_lstm_data_backward(Tensor? grady_opt, Tensor? gradh_opt, Tensor? gradc_opt, Tensor input, Tensor batch_sizes, Tensor weight, Tensor bias, Tensor init_h, Tensor init_c, Tensor y, Tensor h, Tensor c, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc, bool flag_direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor)
 - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
