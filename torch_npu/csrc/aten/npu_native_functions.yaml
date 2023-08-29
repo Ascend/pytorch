@@ -1032,8 +1032,10 @@ supported:
    op_api: True
  - func: ne.Tensor_out
    op_api: True
- - ne_.Scalar
- - ne_.Tensor
+ - func: ne_.Scalar
+   op_api: False
+ - func: ne_.Tensor
+   op_api: False
  - func: neg
    op_api: True
  - func: neg.out

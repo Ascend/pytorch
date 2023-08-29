@@ -65,5 +65,20 @@ at::Tensor NPUNativeOpApiFunctions::ne(const at::Tensor& self, const at::Scalar&
   return result;
 }
 
+at::Tensor& NPUNativeOpApiFunctions::ne_(at::Tensor& self, const at::Tensor& other) {
+  DO_COMPATIBILITY(aclnnInplaceNeTensor, NPUNativeFunctions::ne_(self, other));
+  OpPreparation::check_memory({self, other}, {self});
+
+  EXEC_NPU_CMD(aclnnInplaceNeTensor, self, other);
+  return self;
+}
+
+at::Tensor& NPUNativeOpApiFunctions::ne_(at::Tensor& self, const at::Scalar& other) {
+  DO_COMPATIBILITY(aclnnInplaceNeScalar, NPUNativeFunctions::ne_(self, other));
+
+  EXEC_NPU_CMD(aclnnInplaceNeScalar, self, other);
+  return self;
+}
+
 }  // namespace native
 }  // namespace at_npu
