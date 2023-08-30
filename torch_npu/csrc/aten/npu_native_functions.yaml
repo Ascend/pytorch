@@ -1523,6 +1523,10 @@ supported:
    op_api: True
  - func: upsample_nearest2d
    op_api: True
+ - func: complex
+   op_api: False
+ - func: complex.out
+   op_api: False
  - func: upsample_nearest2d.out
    op_api: True
  - func: upsample_nearest2d.vec
@@ -1749,7 +1753,6 @@ tocpu:
   - cauchy_
   - cholesky_inverse
   - cholesky_inverse.out
-  - complex.out
   - exponential_
   - geometric_
   - linalg_vector_norm
