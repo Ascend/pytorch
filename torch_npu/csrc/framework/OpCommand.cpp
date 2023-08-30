@@ -22,7 +22,6 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 
@@ -258,7 +257,6 @@ void OpCommand::Run() {
     }
     aclCmd->releaseSource();
   }
-  at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, op_name);
   aclCmds->Pop();
 }
 
@@ -283,9 +281,6 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
-  }
-  if (at_npu::native::NpuDataDumpMgr::GetInstance().IsDatadumpEnable()) {
-    inputTensor.emplace_back(tensor);
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
   if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
