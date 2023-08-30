@@ -13,27 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
-#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 
-
-namespace at_npu {
-namespace native {
-
-// norm.out
-at::Tensor &NPUNativeOpApiFunctions::norm_out(
-    const at::Tensor &self,
-    const c10::optional<at::Scalar>& p,
-    at::IntArrayRef dim,
-    bool keepdim,
-    at::Tensor &out) {
-  DO_COMPATIBILITY(aclnnNorm, NPUNativeFunctions::norm_out(self, p, dim, keepdim, out));
-  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-  OpPreparation::CheckOut({self}, out, out.scalar_type(), outputSize);
-  
+namespace{
+using namespace at_npu::native;
+inline at::Tensor &norm_out_npu_nocheck_opapi(at::Tensor &out,
+                                              const at::Tensor &self,
+                                              c10::optional<at::Scalar> p,
+                                              at::IntArrayRef dim,
+                                              bool keepdim) {
   at::Scalar pvalue = 2;
   if (p.has_value()) {
     pvalue = p.value();
@@ -42,5 +33,78 @@ at::Tensor &NPUNativeOpApiFunctions::norm_out(
   return out;
 }
 
+inline at::Tensor &norm_out_imp(const at::Tensor &self,
+                              const c10::optional<at::Scalar> &p,
+                              at::IntArrayRef dim, bool keepdim,
+                              at::ScalarType dtype, at::Tensor &out) {
+  DO_COMPATIBILITY(aclnnNorm,
+                    NPUNativeFunctions::norm_out(self, p, dim, keepdim, out));
+
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  OpPreparation::CheckOut({self}, out, dtype, outputSize);
+
+  return norm_out_npu_nocheck_opapi(out, self, p, dim, keepdim);
+}
+
+inline at::Tensor norm_imp(const at::Tensor &self,
+                           const c10::optional<at::Scalar> &p,
+                           at::IntArrayRef dim, bool keepdim,
+                           at::ScalarType dtype) {
+  DO_COMPATIBILITY(aclnnNorm, NPUNativeFunctions::norm(self, p, dim, keepdim));
+
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  at::Tensor out = OpPreparation::ApplyTensorWithSizes(
+      outputSize, self.options().dtype(dtype));
+
+  return norm_out_npu_nocheck_opapi(out, self, p, dim, keepdim);
+}
+}
+
+namespace at_npu {
+namespace native {
+
+// norm.dtype_out
+at::Tensor &NPUNativeOpApiFunctions::norm_out(
+    const at::Tensor &self, const c10::optional<at::Scalar> &p,
+    at::IntArrayRef dim, bool keepdim, at::ScalarType dtype, at::Tensor &out) {
+  return norm_out_imp(self, p, dim, keepdim, out.scalar_type(), out);
+}
+
+// norm.out
+at::Tensor &NPUNativeOpApiFunctions::norm_out(
+    const at::Tensor &self, const c10::optional<at::Scalar> &p,
+    at::IntArrayRef dim, bool keepdim, at::Tensor &out) {
+  return norm_out_imp(self, p, dim, keepdim, out.scalar_type(), out);
+}
+
+// norm.ScalarOpt_dim_dtype
+at::Tensor NPUNativeOpApiFunctions::norm(const at::Tensor &self,
+                                         const c10::optional<at::Scalar> &p,
+                                         at::IntArrayRef dim, bool keepdim,
+                                         at::ScalarType dtype) {
+  return norm_imp(self, p, dim, keepdim, dtype);
+}
+
+// norm.ScalarOpt_dtype
+at::Tensor NPUNativeOpApiFunctions::norm(const at::Tensor &self,
+                                         const c10::optional<at::Scalar> &p,
+                                         at::ScalarType dtype) {
+  return norm_imp(self, p, {}, false, dtype);
+}
+
+// norm.Scalar
+at::Tensor NPUNativeOpApiFunctions::norm(const at::Tensor &self,
+                                         const at::Scalar &p) {
+  return norm_imp(self, p, {}, false, self.scalar_type());
+}
+
+// norm.ScalarOpt_dim
+at::Tensor NPUNativeOpApiFunctions::norm(const at::Tensor &self,
+                                         const c10::optional<at::Scalar> &p,
+                                         at::IntArrayRef dim, bool keepdim) {
+  return norm_imp(self, p, dim, false, self.scalar_type());
+}
+
 } // namespace native
 } // namespace at_npu
+

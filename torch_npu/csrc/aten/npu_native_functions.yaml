@@ -1066,11 +1066,16 @@ supported:
    op_api: True
  - func: nonzero.out
    op_api: True
- - norm.Scalar
- - norm.ScalarOpt_dim
- - norm.ScalarOpt_dim_dtype
- - norm.ScalarOpt_dtype
- - norm.dtype_out
+ - func: norm.Scalar
+   op_api: False
+ - func: norm.ScalarOpt_dim
+   op_api: False
+ - func: norm.ScalarOpt_dim_dtype
+   op_api: False
+ - func: norm.ScalarOpt_dtype
+   op_api: False
+ - func: norm.dtype_out
+   op_api: False
  - func: norm.out
    op_api: True
  - func: normal.Tensor_Tensor
