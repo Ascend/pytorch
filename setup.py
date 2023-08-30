@@ -26,6 +26,7 @@ from wheel.bdist_wheel import bdist_wheel
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '2.1.0'
+DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
@@ -250,11 +251,12 @@ class CPPLibBuild(build_clib, object):
             if check_opplugin_codegen(BASE_DIR):
                 cmake_args.append('-DBUILD_NEW_HEADER=on')
 
-        if check_torchair_valid(BASE_DIR):
-            cmake_args.append('-DBUILD_TORCHAIR=on')
-            torchair_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/dynamo/torchair")
-            cmake_args.append(f'-DTORCHAIR_INSTALL_PREFIX={torchair_install_prefix}')
-            cmake_args.append(f'-DTORCHAIR_TARGET_PYTHON={sys.executable}')
+        if not DISABLE_TORCHAIR:
+            if check_torchair_valid(BASE_DIR):
+                cmake_args.append('-DBUILD_TORCHAIR=on')
+                torchair_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/dynamo/torchair")
+                cmake_args.append(f'-DTORCHAIR_INSTALL_PREFIX={torchair_install_prefix}')
+                cmake_args.append(f'-DTORCHAIR_TARGET_PYTHON={sys.executable}')
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
