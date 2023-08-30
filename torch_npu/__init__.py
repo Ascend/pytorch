@@ -58,7 +58,6 @@ import torch_npu.distributed
 import torch_npu.optim
 import torch_npu._C
 
-import torch_npu.npu.npu_print as _npu_print
 from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
@@ -139,7 +138,6 @@ def cann_package_check():
 
 cann_package_check()
 
-graph_printer = _npu_print.GraphPrinter()
 
 _tensor_classes: Set[Type] = set()
 
