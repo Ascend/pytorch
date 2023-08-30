@@ -948,11 +948,14 @@ supported:
    op_api: True
  - func: median
    op_api: True
- - median.dim
+ - func: median.dim
+   op_api: True
  - func: median.dim_values
    op_api: True
- - median.names_dim
- - median.names_dim_values
+ - func: median.names_dim
+   op_api: True
+ - func: median.names_dim_values
+   op_api: True
  - func: min
    op_api: True
  - func: min.dim
