@@ -1356,6 +1356,16 @@ namespace native {
       return broadcast_ops_npu_output_size(mid_shape, grad_output.sizes());
     }
 
+    c10::SmallVector<int64_t, SIZE> prelu_backward_npu_grad_weight_output_size(const at::Tensor& weight) {
+      int64_t weight_num = weight.numel();
+      if (weight_num == 1) {
+        return array_to_small_vector(weight.sizes());
+      }
+
+      c10::SmallVector<int64_t, SIZE> output_size = {weight_num};
+      return output_size;
+  }
+
     c10::SmallVector<int64_t, SIZE> max_pool2d_out_size(
         const at::Tensor &self,
         at::IntArrayRef output_size) {

@@ -730,6 +730,10 @@ supported:
    op_api: True
  - func: inverse.out
    op_api: True
+ - func: isin.Tensor_Scalar_out
+   op_api: True
+ - func: isin.Tensor_Scalar
+   op_api: True
  - is_pinned
  - is_set_to
  - func: isclose
@@ -1127,7 +1131,8 @@ supported:
    op_api: True
  - func: prelu
    op_api: True
- - prelu_backward
+ - func: prelu_backward
+   op_api: True
  - func: prod
    op_api: True
  - prod.Dimname_out
@@ -1873,8 +1878,6 @@ unsupported:
   - frexp.Tensor_out
   - isin.Tensor_Tensor_out
   - isin.Tensor_Tensor
-  - isin.Tensor_Scalar_out
-  - isin.Tensor_Scalar
   - isin.Scalar_Tensor_out
   - isin.Scalar_Tensor
   - cholesky.out
