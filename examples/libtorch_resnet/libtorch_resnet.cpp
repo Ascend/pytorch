@@ -5,7 +5,7 @@
 #include <torch/torch.h>
 #include <torch/script.h>
 
-#include <torch_npu/library_npu.h>
+#include <torch_npu/torch_npu.h>
 
 int main(int argc, const char* argv[]) {
   if (argc != 2) {

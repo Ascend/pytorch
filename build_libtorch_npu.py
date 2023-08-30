@@ -15,6 +15,7 @@ from distutils import file_util
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '2.1.0'
 
+
 def which(thefile):
     path = os.environ.get("PATH", os.defpath).split(os.pathsep)
     for d in path:
@@ -113,10 +114,12 @@ def clean_generated_files():
     if os.path.exists(os.path.join(BASE_DIR, "libtorch")):
         shutil.rmtree(os.path.join(BASE_DIR, "libtorch"))
 
+
 def check_gtest_valid(base_dir):
     # validation of GoogleTest path.
     gtest_path = os.path.join(base_dir, 'third_party/googletest/CMakeLists.txt')
     return os.path.exists(gtest_path)
+
 
 def run_cmake():
     cmake = get_cmake_command()
@@ -145,7 +148,6 @@ def run_cmake():
         cmake_args.append('-DBUILD_OPPLUGIN=on')
         cmake_args.append('-DBUILD_NEW_HEADER=on')
 
-
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
@@ -167,7 +169,7 @@ def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, lev
 
 
 def move_special_hpp(ret):
-    hpp_name = "library_npu.h"
+    hpp_name = "torch_npu.h"
     for _, dst in ret:
         if dst.endswith(hpp_name):
             dir_name = os.path.join(os.path.dirname(dst), "../../" + hpp_name)
@@ -185,13 +187,11 @@ def copy_hpp():
             "torch_npu/csrc/aten/*/*/*.h",
             "torch_npu/csrc/core/*.h",
             "torch_npu/csrc/core/*/*.h",
-            "torch_npu/csrc/libs/*.h",
             "torch_npu/csrc/core/*/*/*.h",
             "torch_npu/csrc/framework/*.h",
             "torch_npu/csrc/framework/*/*.h",
             "torch_npu/csrc/framework/*/*/*.h",
-            "third_party/acl/inc/*/*.h",
-            "third_party/acl/inc/*/*/*.h"
+            "torch_npu/csrc/libs/*.h"
         ]
         glob_header_files = []
         for regex_pattern in header_files:
@@ -225,6 +225,13 @@ def copy_lib():
         copy_file(src, os.path.join(dst_path, src_file_name))
 
 
+def copy_cmake():
+    cmake_file = os.path.join(BASE_DIR, "build/Torch_npuConfig.cmake")
+    dst_path = os.path.join(BASE_DIR, "libtorch_npu/share/cmake/Torch_npu")
+    os.makedirs(dst_path, exist_ok=True)
+    copy_file(cmake_file, dst_path)
+
+
 def build_libtorch_npu():
     clean_generated_files()
     generate_bindings_code(BASE_DIR)
@@ -232,6 +239,7 @@ def build_libtorch_npu():
     run_cmake()
     copy_hpp()
     copy_lib()
+    copy_cmake()
 
 
 if __name__ == "__main__":

@@ -4,6 +4,9 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 
 namespace torch_npu {
@@ -72,6 +75,10 @@ c10::DeviceIndex current_device() {
     TORCH_NPU_WARN("Please init npu device first!");
     return (c10::DeviceIndex)-1;
   }
+}
+
+bool npuSynchronizeDevice(bool check_error) {
+  c10_npu::npuSynchronizeDevice(check_error);
 }
 
 } // namespace torch_npu

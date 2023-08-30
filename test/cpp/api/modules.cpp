@@ -2,7 +2,7 @@
 #include <c10/util/irange.h>
 
 #include <torch/torch.h>
-#include "torch_npu/csrc/libs/library_npu.h"
+#include "torch_npu/csrc/libs/torch_npu.h"
 
 namespace F = torch::nn::functional;
 using namespace torch::nn;
