@@ -1327,6 +1327,12 @@ supported:
    op_api: True
  - func: sin_
    op_api: True
+ - func: sinc
+   op_api: True
+ - func: sinc.out
+   op_api: True
+ - func: sinc_
+   op_api: True
  - func: sinh
    op_api: True
  - func: sinh.out
@@ -1813,7 +1819,7 @@ tocpu:
   - unique_dim
   - unique_dim_consecutive
   - vdot
-  - sinc.out
+  - gcd.out
   - lcm.out
   - fmin
   - fmin.out
