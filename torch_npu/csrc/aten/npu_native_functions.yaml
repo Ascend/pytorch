@@ -459,6 +459,8 @@ supported:
  - func: cumsum
    op_api: True
  - decode_jpeg
+ - func: dequantize.self
+   op_api: False
  - func: diag
    op_api: False
  - func: diag.out
@@ -1143,7 +1145,8 @@ supported:
    op_api: True
  - func: ones_like
    op_api: True
- - pdist
+ - func: pdist
+   op_api: False
  - func: pow.Scalar
    op_api: True
  - func: pow.Scalar_out
@@ -1624,8 +1627,10 @@ supported:
    op_api: True
  - func: var.correction_names_out
    op_api: True
- - var_mean.correction
- - var_mean.correction_names
+ - func: var_mean.correction
+   op_api: False
+ - func: var_mean.correction_names
+   op_api: False
  - view
  - view_as_complex
  - view_as_real
