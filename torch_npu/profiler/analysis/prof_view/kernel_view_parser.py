@@ -3,7 +3,7 @@ from ..prof_bean.op_summary_bean import OpSummaryBean
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 from ..prof_view.base_view_parser import BaseViewParser
-from ..level_config import LevelConfig
+from ..profiler_config import ProfilerConfig
 
 
 class KernelViewParser(BaseViewParser):
@@ -24,7 +24,7 @@ class KernelViewParser(BaseViewParser):
             all_data = FileManager.read_csv_file(file_path, OpSummaryBean)
             if all_data:
                 OpSummaryBean.headers = \
-                    all_data[0].all_headers if LevelConfig().is_all_kernel_headers() else self.SHOW_HEADERS
+                    all_data[0].all_headers if ProfilerConfig().is_all_kernel_headers() else self.SHOW_HEADERS
                 output_headers = self._project_map_for_headers(OpSummaryBean.headers)
             if not GlobalVar.step_range:
                 summary_data.extend([data.row for data in all_data])

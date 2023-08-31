@@ -42,6 +42,20 @@ class PathManager:
         return ""
 
     @classmethod
+    def get_start_info_path(cls, cann_path: str) -> str:
+        device_path = cls.get_device_path(cann_path)
+        if not device_path:
+            return ""
+        device_path_split = os.path.basename(device_path).split("_")
+        if len(device_path_split) != 2:
+            return ""
+        start_info_file = f"start_info.{device_path_split[1]}"
+        start_info_path = os.path.join(device_path, start_info_file)
+        if os.path.exists(start_info_path):
+            return start_info_path
+        return ""
+
+    @classmethod
     def get_profiler_path_list(cls, input_path: str) -> list:
         if not os.path.isdir(input_path):
             return []

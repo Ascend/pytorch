@@ -1,6 +1,7 @@
 import struct
 from enum import Enum
 
+from ..profiler_config import ProfilerConfig
 from ..prof_common_func.constant import Constant
 
 
@@ -31,7 +32,8 @@ class MemoryUseBean:
 
     @property
     def time_us(self) -> float:
-        return int(self._constant_data[MemoryEnum.TIME_NS.value]) / 1000.0
+        time_us = int(self._constant_data[MemoryEnum.TIME_NS.value]) / Constant.NS_TO_US
+        return ProfilerConfig().get_local_time(time_us)
 
     @property
     def alloc_size(self) -> int:

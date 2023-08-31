@@ -36,12 +36,14 @@ class _ExperimentalConfig:
                  profiler_level: int = Constant.LEVEL0,
                  aic_metrics: int = Constant.AicMetricsNone,
                  l2_cache: bool = False,
+                 data_simplification: bool = None,
                  record_op_args: bool = False):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
         if self._profiler_level != Constant.LEVEL0 and self._aic_metrics == Constant.AicMetricsNone:
             self._aic_metrics = Constant.AicPipeUtilization
         self._l2_cache = l2_cache
+        self._data_simplification = data_simplification
         self.record_op_args = record_op_args
         self._check_params()
 
