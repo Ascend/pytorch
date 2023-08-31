@@ -1,4 +1,2 @@
 pyyaml
 setuptools
-auditwheel
-patchelf

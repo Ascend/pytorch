@@ -8,7 +8,6 @@ import traceback
 from functools import wraps
 
 import torch
-from . import _ld_preload  # noqa: F401
 import torch_npu
 
 try:
