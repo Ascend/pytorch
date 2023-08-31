@@ -205,7 +205,9 @@ torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, gro
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
 # set default device type for gradient checkpointing
-torch.utils.checkpoint.DefaultDeviceType.set_device_type("npu")
+from torch.utils.checkpoint import DefaultDeviceType
+DefaultDeviceType.set_device_type("npu")
+del DefaultDeviceType
 
 
 # NPU exit, need to synchronize devices
