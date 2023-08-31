@@ -614,9 +614,9 @@ supported:
  - func: ge.Tensor_out
    op_api: True
  - func: ge_.Scalar
-   op_api: False
+   op_api: True
  - func: ge_.Tensor
-   op_api: False
+   op_api: True
  - func: gelu
    op_api: True
  - func: gelu.out
@@ -765,9 +765,9 @@ supported:
  - func: le.Tensor_out
    op_api: True
  - func: le_.Scalar
-   op_api: False
+   op_api: True
  - func: le_.Tensor
-   op_api: False
+   op_api: True
  - func: leaky_relu
    op_api: True
  - func: leaky_relu.out
