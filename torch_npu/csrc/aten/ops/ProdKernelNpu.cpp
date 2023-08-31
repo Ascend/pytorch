@@ -112,15 +112,6 @@ at::Tensor& NPUNativeFunctions::prod_out(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::prod_out(
-    const at::Tensor& self,
-    at::Dimname dim,
-    bool keepdim,
-    c10::optional<at::ScalarType> dtype,
-    at::Tensor& result) {
-  return NPUNativeFunctions::prod_out(self, dimname_to_position(self, dim), keepdim, dtype, result);
-}
-
 at::Tensor NPUNativeFunctions::prod(
     const at::Tensor& self,
     int64_t dim,
@@ -145,14 +136,6 @@ at::Tensor NPUNativeFunctions::prod(
     result = NPUNativeFunctions::npu_dtype_cast(result, dst_type);
   }
   return result;
-}
-
-at::Tensor NPUNativeFunctions::prod(
-    const at::Tensor& self,
-    at::Dimname dim,
-    bool keepdim,
-    c10::optional<at::ScalarType> dtype) {
-  return NPUNativeFunctions::prod(self, dimname_to_position(self, dim), keepdim, dtype);
 }
 
 at::Tensor NPUNativeFunctions::prod(const at::Tensor& self, c10::optional<at::ScalarType> dtype) {

@@ -1134,8 +1134,6 @@ supported:
  - prelu_backward
  - func: prod
    op_api: True
- - prod.Dimname_out
- - prod.dim_Dimname
  - func: prod.dim_int
    op_api: True
  - func: prod.int_out
