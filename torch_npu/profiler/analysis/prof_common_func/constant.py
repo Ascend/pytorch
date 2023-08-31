@@ -31,6 +31,7 @@ class Constant(object):
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
+    NS_TO_US = 1000.0
 
     # field name
     SEQUENCE_UNMBER = "Sequence number"
@@ -68,12 +69,14 @@ class Constant(object):
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
 
-    #profiler config
+    # profiler config
     CONFIG = "config"
+    COMMON_CONFIG = "common_config"
     EXPERIMENTAL_CONFIG = "experimental_config"
     PROFILER_LEVEL = '_profiler_level'
     AI_CORE_METRICS = '_aic_metrics'
     L2_CACHE = '_l2_cache'
+    DATA_SIMPLIFICATION = '_data_simplification'
     LEVEL0 = "Level0"
     LEVEL1 = "Level1"
     LEVEL2 = "Level2"
@@ -85,3 +88,10 @@ class Constant(object):
     AicResourceConflictRatio = "ACL_AICORE_RESOURCE_CONFLICT_RATIO"
     AicL2Cache = "ACL_AICORE_L2_CACHE"
     AicMetricsNone = "ACL_AICORE_NONE"
+
+    # profiler end info
+    END_INFO = "end_info"
+    CANN_BEGIN_TIME = "collectionTimeBegin"
+    CANN_BEGIN_MONOTONIC = "clockMonotonicRaw"
+    FWK_END_TIME = "collectionTimeEnd"
+    FWK_END_MONOTONIC = "MonotonicTimeEnd"
