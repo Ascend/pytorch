@@ -68,8 +68,6 @@ __all__ = [
     "set_rng_state_all",
     "make_replay_graph",
     "is_jit_compile_false",
-    "dump_enable",
-    "dump_disable",
     "get_amp_supported_dtype",
     "is_autocast_enabled",
     "set_autocast_enabled",
@@ -114,7 +112,6 @@ from .utils import (synchronize, device_count, can_device_access_peer, set_devic
 from .streams import Stream, Event
 
 from .npu_config import *  # noqa: F403
-from .datadump import dump_enable, dump_disable
 from .autocast_utils import *  # noqa: F403
 from .backends import *
 

@@ -7,7 +7,6 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 
@@ -243,7 +242,6 @@ void OpCommand::Run() {
     }
     aclCmd->releaseSource();
   }
-  at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, op_name);
   aclCmds->Pop();
 }
 
@@ -268,9 +266,6 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
-  }
-  if (at_npu::native::NpuDataDumpMgr::GetInstance().IsDatadumpEnable()) {
-    inputTensor.emplace_back(tensor);
   }
   // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
   if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {

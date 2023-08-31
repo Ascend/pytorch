@@ -10,8 +10,6 @@ PyObject *THNPModule_getDeviceName_wrap(PyObject *self, PyObject *arg);
 PyObject *THNPModule_getDriverVersion(PyObject *self);
 PyObject *THNPModule_isDriverSufficient(PyObject *self);
 PyObject *THNPModule_getCurrentBlasHandle_wrap(PyObject *self);
-PyObject *THNPModule_npu_datadump_enable(PyObject *self, PyObject *args);
-PyObject *THNPModule_npu_datadump_disable(PyObject *self, PyObject *noargs);
 
 #define CHANGE_UNIT_SIZE 1024.0
 #endif

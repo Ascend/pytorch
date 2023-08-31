@@ -40,7 +40,6 @@ import torch_npu.npu.amp
 import torch_npu.npu.aclnn
 import torch_npu.dynamo
 import torch_npu._C
-import torch_npu.npu.npu_print as _npu_print
 from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
@@ -120,7 +119,6 @@ def cann_package_check():
 
 cann_package_check()
 
-graph_printer = _npu_print.GraphPrinter()
 
 __all__ = []
 
