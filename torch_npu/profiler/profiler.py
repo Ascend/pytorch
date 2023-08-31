@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from warnings import warn
 
 from torch_npu.npu.utils import _lazy_init
@@ -124,8 +125,9 @@ class profile:
                          "with_flops": self._with_flops,
                          "with_modules": self._with_modules}
         experimental_config = _trans_obj2cfg(self._experimental_config)
-        config = {"common_config": common_config, "experimental_config": experimental_config}
-        total_info = {"config": config}
+        config = {Constant.COMMON_CONFIG: common_config, Constant.EXPERIMENTAL_CONFIG: experimental_config}
+        end_info = {Constant.FWK_END_TIME: time.time_ns(), Constant.FWK_END_MONOTONIC: time.monotonic_ns()}
+        total_info = {Constant.CONFIG: config, Constant.END_INFO: end_info}
         self._msprofiler_interface.dump_info(total_info)
 
     def _check_params(self):
