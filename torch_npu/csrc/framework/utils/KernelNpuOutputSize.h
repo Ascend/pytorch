@@ -489,6 +489,9 @@ c10::SmallVector<int64_t, SIZE> ger_output_size(
     const at::Tensor& self,
     const at::Tensor& vec2);
 
+c10::SmallVector<int64_t, SIZE> max_pool3d_output_size(
+    const at::Tensor& self,
+    at::IntArrayRef output_size);
 } // namespace native
 } // namespace at_npu
 

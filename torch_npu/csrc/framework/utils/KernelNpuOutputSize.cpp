@@ -1376,5 +1376,17 @@ namespace native {
       return output_size;
   }
 
+  c10::SmallVector<int64_t, SIZE> max_pool3d_output_size(
+      const at::Tensor& self,
+      at::IntArrayRef output_size) {
+    c10::SmallVector<int64_t, SIZE> shape = {};
+    if (self.dim() == 4) {
+      shape = {self.size(0), output_size[0], output_size[1], output_size[2]};
+    } else if (self.dim() == 5) {
+      shape = {self.size(0), self.size(1), output_size[0], output_size[1], output_size[2]};
+    }
+    return shape;
+  }
+
 } // namespace native
 } // namespace at_npu

@@ -21,23 +21,6 @@
 namespace at_npu {
 namespace native {
 
-
-namespace {
-
-c10::SmallVector<int64_t, SIZE> max_pool3d_npu_output_size(
-    const at::Tensor& self,
-    at::IntArrayRef output_size) {
-  c10::SmallVector<int64_t, SIZE> shape = {};
-  if (self.dim() == 4) {
-    shape = {self.size(0), output_size[0], output_size[1], output_size[2]};
-  } else {
-    shape = {self.size(0), self.size(1), output_size[0], output_size[1], output_size[2]};
-  }
-  return shape;
-}  // max_pool3d_npu_output_size
-
-}  // namespace
-
 at::Tensor& max_unpool3d_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
@@ -75,7 +58,7 @@ at::Tensor& NPUNativeFunctions::max_unpool3d_out(
     at::IntArrayRef stride,
     at::IntArrayRef padding,
     at::Tensor& result) {
-  auto out_shape = max_pool3d_npu_output_size(self, output_size);
+  auto out_shape = max_pool3d_output_size(self, output_size);
 
   at::Tensor data = at::zeros(out_shape, self.options());
   OpPreparation::CheckOut(
@@ -110,7 +93,7 @@ at::Tensor NPUNativeFunctions::max_unpool3d(
       "Shape of indices should match shape of input");
   TORCH_CHECK(self.numel() > 0, "Input must be non-empty");
 
-  auto out_shape = max_pool3d_npu_output_size(self, output_size);
+  auto out_shape = max_pool3d_output_size(self, output_size);
 
   at::Tensor data = at::zeros(out_shape, self.options());
   at::Tensor result = OpPreparation::ApplyTensor(data);
