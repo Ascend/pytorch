@@ -1592,8 +1592,7 @@ supported:
    op_api: True
  - func: zeros.out
    op_api: True
- - func: zeros_like
-   op_api: False
+ - zeros_like
  - func: silu
    op_api: False
  - func: silu_

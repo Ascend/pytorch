@@ -28,25 +28,5 @@ at::Tensor& NPUNativeOpApiFunctions::zero_(at::Tensor& self) {
   return self;
 }
 
-at::Tensor NPUNativeOpApiFunctions::zeros_like(
-    const at::Tensor &self,
-    c10::optional<c10::ScalarType> dtype_opt,
-    c10::optional<c10::Layout> layout_opt,
-    c10::optional<c10::Device> device_opt,
-    c10::optional<bool> pin_memory_opt,
-    c10::optional<c10::MemoryFormat> optional_memory_format)
-{
-  DO_COMPATIBILITY(aclnnInplaceZero, NPUNativeFunctions::zeros_like(self, dtype_opt, layout_opt,device_opt,
-                                                                    pin_memory_opt, optional_memory_format));
-  c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
-                                                  .device(device_opt)
-                                                  .layout(layout_opt)
-                                                  .pinned_memory(pin_memory_opt);
-  at::Tensor result = OpPreparation::ApplyTensor(self, option);
-  // calculate the output result of the NPU
-  EXEC_NPU_CMD(aclnnInplaceZero, result);
-  return result;
-}
-
 }  // namespace native
 }  // namespace at_npu
