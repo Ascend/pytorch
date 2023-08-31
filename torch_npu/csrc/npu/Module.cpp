@@ -48,7 +48,6 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
-#include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 
 struct NPUDeviceProp {
   std::string name;
@@ -778,40 +777,6 @@ PyObject* THNPModule_clear_overflow_npu(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_datadump_enable(PyObject* self, PyObject* args) {
-  HANDLE_TH_ERRORS
-  PyObject *value_1 = nullptr;
-  PyObject *value_2 = nullptr;
-  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
-    throw torch::TypeError("npu_datadump_enable set opWhiteList or capacity error.");
-  }
-  if (!PyList_Check(value_1)) {
-    throw torch::TypeError("ops must be a list.");
-  }
-  c10::SmallVector<std::string, at_npu::native::N> opWhiteList;
-  Py_ssize_t size = PyList_Size(value_1);
-  PyObject* item = nullptr;
-  for (Py_ssize_t i = 0; i < size; i++) {
-    item = PyList_GetItem(value_1, i);
-    if (item == nullptr || !PyUnicode_Check(item)) {
-      throw torch::TypeError("op name is nullptr or is not string.");
-    }
-    const char* pItem = PyUnicode_AsUTF8(item);
-    opWhiteList.push_back(pItem);
-  }
-  uint64_t capacity = THPUtils_unpackLong(value_2);
-  at_npu::native::NpuDataDumpMgr::GetInstance().EnableDatadump(opWhiteList, capacity);
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_npu_datadump_disable(PyObject* self, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  at_npu::native::NpuDataDumpMgr::GetInstance().DisableDatadump();
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
 PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type) {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkString(option_type), "invalid argument to option_type,option_type must string!");
@@ -913,8 +878,6 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_is_support_inf_nan", (PyCFunction)THNPModule_npu_is_support_inf_nan, METH_NOARGS, nullptr},
     {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
-    {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_VARARGS, nullptr},
-    {"_npu_datadump_disable", (PyCFunction)THNPModule_npu_datadump_disable, METH_NOARGS, nullptr},
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
     {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
