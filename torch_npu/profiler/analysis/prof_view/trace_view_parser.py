@@ -18,7 +18,7 @@ from ..prof_common_func.constant import Constant
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_common_func.trace_event_manager import TraceEventManager
-from ..level_config import LevelConfig
+from ..profiler_config import ProfilerConfig
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_view.base_view_parser import BaseViewParser
@@ -34,7 +34,7 @@ class TraceViewParser(BaseViewParser):
 
     @staticmethod
     def _prune_trace_by_level(json_data: list) -> list:
-        prune_config = LevelConfig().get_prune_config()
+        prune_config = ProfilerConfig().get_prune_config()
         if not prune_config or not json_data:
             return json_data
         result = []
