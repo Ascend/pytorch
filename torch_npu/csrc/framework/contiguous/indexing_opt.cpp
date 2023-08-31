@@ -43,7 +43,10 @@ private:
     const auto &indexing_stride = src_desc.strides_;
 
     for (int64_t i = 0; i < indexing_size.size(); i++) {
-      if ((indexing_stride[i] < base_stride[i]) || ((indexing_stride[i] % base_stride[i]) != 0)) {
+      // base_stride should not be 0.
+      if ((base_stride[i] == 0) || 
+          (indexing_stride[i] < base_stride[i]) || 
+          ((indexing_stride[i] % base_stride[i]) != 0)) {
         return false;
       }
     } 
@@ -51,14 +54,12 @@ private:
     // indexing信息获取部分
     // Get step info(for indexing step at index aixs should > 1)
     for (int64_t i = 0; i < indexing_size.size(); i++) {
-      TORCH_CHECK(base_stride[i] != 0, "stride should not be 0");
       step.emplace_back(indexing_stride[i] / base_stride[i]);
     }
 
     // Get start index based on offset and base stride
     int64_t src_offset = src_desc.offset_;
     for (int64_t i = 0; i < indexing_size.size(); i++) {
-      TORCH_CHECK(base_stride[i] != 0, "stride should not be 0");
       start.emplace_back(src_offset / base_stride[i]);
       src_offset = src_offset % base_stride[i];
     }
