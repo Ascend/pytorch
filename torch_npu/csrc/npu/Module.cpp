@@ -17,6 +17,7 @@
 #include <torch/csrc/utils/python_numbers.h>
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/aten/common/SetNpu.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -822,6 +823,26 @@ PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_set_storage_with_format(PyObject* self, PyObject* args) {
+
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser(
+      {"set_storage_with_format_(Tensor dst, Storage source)",},
+      /*traceable=*/false
+      );
+
+  torch::ParsedArgs<2> parsed_args;
+  auto _r = parser.parse(args, nullptr, parsed_args);
+
+  at::Tensor dst = _r.tensor(0);
+  at::ScalarType storage_scalar_type;
+  bool is_typed_storage = true;
+  c10::Storage storage = _r.storage(1, storage_scalar_type, is_typed_storage);
+  return THPVariable_Wrap(at_npu::native::set_tensor_with_storage_format(dst, storage));
+
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -867,6 +888,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},
     {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
+    {"_set_storage_with_format", (PyCFunction)THNPModule_set_storage_with_format, METH_VARARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {
