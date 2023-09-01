@@ -16,7 +16,7 @@
 from ..prof_common_func.file_manager import FileManager
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_parse.cann_file_parser import CANNFileParser
-from ..level_config import LevelConfig
+from ..prof_parse.cann_file_parser import CANNDataEnum
 from ..prof_common_func.global_var import GlobalVar
 from collections import defaultdict
 
@@ -40,11 +40,14 @@ class CommunicationParser(BaseViewParser):
     WAIT_TIME_MS = "Wait Time(ms)"
     BANDWIDTH_GB_S = "Bandwidth(GB/s)"
     COMMUNICATION = "communication.json"
+    COMMUNICATION_MATRIX = "communication_matrix.json"
     P2P = "p2p"
     COLLECTIVE = "collective"
+    TRANSPORT_TYPE = "Transport Type"
 
     def __init__(self, profiler_path: str):
         self._profiler_path = profiler_path
+        self.step_list = GlobalVar.get_step_id_list()
 
     @staticmethod
     def combine_size_distribution(op_dict: dict, total_dict: dict):
@@ -54,45 +57,107 @@ class CommunicationParser(BaseViewParser):
 
     @staticmethod
     def compute_ratio(dividend: float, divisor: float):
-        if divisor == 0:
+        if abs(divisor) < 1e-15:
             return 0
         else:
             return round(dividend / divisor, 4)
 
     def generate_view(self, output_path: str = None) -> None:
-        communication_data = CANNFileParser(self._profiler_path).get_analyze_communication_data()
+        self.generate_communication(output_path)
+        self.generate_matrix(output_path)
+
+    def generate_communication(self, output_path: str = None):
+        communication_data = CANNFileParser(self._profiler_path).get_analyze_communication_data(
+            CANNDataEnum.COMMUNICATION)
         if not communication_data:
             return
-        step_list = self.split_comm_op_by_step(communication_data)
+        self.split_comm_op_by_step(communication_data)
         output_communication = {}
-        for step_info in step_list:
+        for step_info in self.step_list:
             step = "step" + step_info.get("step_id") if step_info.get("step_id") else "step"
-            output_communication[step] = self.split_communication_ops(step_info)
+            output_communication[step] = self.get_communication_ops_dict(step_info.get("comm_ops"))
         FileManager.create_json_file(self._profiler_path, output_communication, self.COMMUNICATION)
 
-    def split_comm_op_by_step(self, communication_data: dict) -> list:
-        step_list = GlobalVar.get_step_id_list()
-        if len(step_list) == 1:
-            step_list[0]["comm_ops"] = communication_data
+    def generate_matrix(self, output_path: str = None):
+        matrix_data = CANNFileParser(self._profiler_path).get_analyze_communication_data(CANNDataEnum.MATRIX)
+        if not matrix_data:
+            return
+        matrix_data_by_step = self.split_matrix_by_step(matrix_data)
+        output_matrix_data = {}
+        for step, comm_matrix_data in matrix_data_by_step.items():
+            output_matrix_data[step] = self.get_matrix_ops_dict(matrix_data_by_step[step])
+        FileManager.create_json_file(self._profiler_path, output_matrix_data, self.COMMUNICATION_MATRIX)
+
+    def split_comm_op_by_step(self, communication_data: dict):
+        if len(self.step_list) == 1:
+            self.step_list[0]["comm_ops"] = communication_data
         for communication_op, communication_op_info in communication_data.items():
             start_time = communication_op_info.get(self.COMMUNICATION_TIME_INFO, {}).get(self.START_TIMESTAMP)
-            for step_info in step_list:
-                if step_info["start_ts"] <= start_time <= step_info["end_ts"]:
-                    step_info["comm_ops"][communication_op] = communication_op_info
-        return step_list
+            for step_info in self.step_list:
+                if step_info.get("start_ts", -1) <= start_time <= step_info.get("end_ts", -1):
+                    step_info.get("comm_ops", {})[communication_op] = communication_op_info
+                    break
 
-    def split_communication_ops(self, step_info: dict) -> dict:
+    def split_communication_p2p_ops(self, op_data: dict):
         comm_op_dict = {self.P2P: {}, self.COLLECTIVE: {}}
-        for communication_op, communication_op_info in step_info["comm_ops"].items():
+        for communication_op, communication_info in op_data.items():
             if communication_op.startswith(self.HCOM_SEND) or communication_op.startswith(self.HCOM_RECEIVE):
-                comm_op_dict[self.P2P][communication_op] = communication_op_info
+                comm_op_dict[self.P2P][communication_op] = communication_info
             elif communication_op.startswith(self.TOTAL):
                 continue
             else:
-                comm_op_dict[self.COLLECTIVE][communication_op] = communication_op_info
+                comm_op_dict[self.COLLECTIVE][communication_op] = communication_info
+        return comm_op_dict
+
+    def compute_total_link_info(self, op_matrix_data: dict):
+        total_op_info = defaultdict(lambda: {
+                self.TRANSPORT_TYPE: '',
+                self.TRANSIT_TIME_MS: 0,
+                self.TRANSIT_SIZE_MB: 0
+            })
+        for op_name, link_dict in op_matrix_data.items():
+            for link, link_info in link_dict.items():
+                total_op_info[link][self.TRANSIT_TIME_MS] += link_info.get(self.TRANSIT_TIME_MS, 0)
+                total_op_info[link][self.TRANSIT_SIZE_MB] += link_info.get(self.TRANSIT_SIZE_MB, 0)
+                total_op_info[link][self.TRANSPORT_TYPE] = link_info.get(self.TRANSPORT_TYPE, 0)
+
+        for link, link_info_dict in total_op_info.items():
+            total_op_info[link][self.BANDWIDTH_GB_S] = \
+                self.compute_ratio(total_op_info[link].get(self.TRANSIT_SIZE_MB, 0),
+                                   total_op_info[link].get(self.TRANSIT_TIME_MS))
+        op_matrix_data['Total Op Info'] = total_op_info
+
+    def split_matrix_by_step(self, matrix_data: dict) -> dict:
+        matrix_data_by_step = {}
+        if len(self.step_list) == 1 or self.is_step_list_empty():
+            matrix_data_by_step["step"] = matrix_data
+            return matrix_data_by_step
+
+        for comm_op in matrix_data:
+            for step_info in self.step_list:
+                if comm_op in step_info.get("comm_ops", {}):
+                    step = step_info.get("step_id")
+                    matrix_data_by_step.setdefault(step, {})[comm_op] = matrix_data.get(comm_op)
+                    break
+        return matrix_data_by_step
+
+    def get_communication_ops_dict(self, op_data: dict) -> dict:
+        comm_op_dict = self.split_communication_p2p_ops(op_data)
         self.compute_total_info(comm_op_dict[self.P2P])
         self.compute_total_info(comm_op_dict[self.COLLECTIVE])
         return comm_op_dict
+
+    def get_matrix_ops_dict(self, op_data: dict) -> dict:
+        comm_op_dict = self.split_communication_p2p_ops(op_data)
+        self.compute_total_link_info(comm_op_dict[self.P2P])
+        self.compute_total_link_info(comm_op_dict[self.COLLECTIVE])
+        return comm_op_dict
+
+    def is_step_list_empty(self):
+        for step_info in self.step_list:
+            if step_info.get("comm_ops"):
+                return False
+        return True
 
     def compute_total_info(self, comm_ops: dict):
         if not comm_ops:
@@ -146,9 +211,4 @@ class CommunicationParser(BaseViewParser):
 
     def compute_bandwidth_ratio(self, total_bandwidth_info_dict: dict):
         for transport_type, bandwidth_dict in total_bandwidth_info_dict.items():
-            if bandwidth_dict.get(self.TRANSIT_TIME_MS) == 0:
-                bandwidth_dict[self.BANDWIDTH_GB_S] = 0
-            else:
-                bandwidth_dict[self.BANDWIDTH_GB_S] = \
-                    self.compute_ratio(bandwidth_dict.get(self.TRANSIT_SIZE_MB, 0),
-                                       bandwidth_dict.get(self.TRANSIT_TIME_MS, 0))
+            self.compute_ratio(bandwidth_dict.get(self.TRANSIT_SIZE_MB, 0), bandwidth_dict.get(self.TRANSIT_TIME_MS, 0))
