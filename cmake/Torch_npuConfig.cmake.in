@@ -1,0 +1,27 @@
+include(FindPackageHandleStandardArgs)
+
+if(DEFINED ENV{TORCH_NPU_INSTALL_PREFIX})
+  set(TORCH_NPU_INSTALL_PREFIX $ENV{TORCH_NPU_INSTALL_PREFIX})
+else()
+  # Assume we are in <install-prefix>/share/cmake/Torch_npu/Torch_npuConfig.cmake
+  get_filename_component(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+  get_filename_component(TORCH_NPU_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+endif()
+
+# Include directories.
+if(EXISTS "${TORCH_NPU_INSTALL_PREFIX}/include")
+  set(TORCH_NPU_INCLUDE_DIRS
+    ${TORCH_NPU_INSTALL_PREFIX}/include)
+else()
+  set(TORCH_NPU_INCLUDE_DIRS
+    ${TORCH_NPU_INSTALL_PREFIX}/include)
+endif()
+
+# Library dependencies.
+find_library(TORCH_NPU_LIBRARY torch_npu PATHS "${TORCH_NPU_INSTALL_PREFIX}/lib")
+
+include_directories(${TORCH_NPU_INCLUDE_DIRS})
+
+set(TORCH_NPU_LIBRARIES ${TORCH_NPU_LIBRARY})
+
+find_package_handle_standard_args(Torch_npu DEFAULT_MSG TORCH_NPU_LIBRARY TORCH_NPU_INCLUDE_DIRS)

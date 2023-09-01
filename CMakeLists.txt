@@ -279,3 +279,10 @@ if (DEFINED BUILD_GTEST)
   target_link_libraries(test_api PUBLIC torch_npu)
   target_link_libraries(test_api PUBLIC gtest_main gtest)
 endif()
+
+if (DEFINED BUILD_LIBTORCH)
+  configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/Torch_npuConfig.cmake.in
+    ${PROJECT_SOURCE_DIR}/build/Torch_npuConfig.cmake
+    @ONLY)
+endif()

@@ -4,7 +4,7 @@
 #include <torch/library.h>
 #include <torch/script.h>
 
-#include "torch_npu/library_npu.h"
+#include "torch_npu/torch_npu.h"
 
 
 int main(int argc, char*argv[]) {

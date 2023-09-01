@@ -2,10 +2,6 @@
 
 #include <c10/core/Device.h>
 
-#include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
-
-
 namespace torch_npu {
 
 // device init related funcs
@@ -18,5 +14,8 @@ void finalize_npu();
 
 bool is_npu_device(const at::Device& device);
 c10::DeviceIndex current_device();
+
+// device Synchronize
+bool npuSynchronizeDevice(bool check_error = true);
 
 } // namespace torch_npu
