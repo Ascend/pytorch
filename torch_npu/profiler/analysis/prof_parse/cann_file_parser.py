@@ -22,6 +22,7 @@ class CANNDataEnum(Enum):
     L2_CACHE = 6
     AI_CPU = 7
     COMMUNICATION = 8
+    MATRIX = 9
 
 
 class CANNFileParser:
@@ -44,7 +45,8 @@ class CANNFileParser:
                                           r"^operator_memory_\d_\d+\.csv", r"^operator_memory_\d_\d+_\d+\.csv"],
         CANNDataEnum.L2_CACHE: [r"^l2_cache_\d_\d+\.csv", r"^l2_cache_\d_\d+_\d+\.csv"],
         CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv"],
-        CANNDataEnum.COMMUNICATION: [r"^communication\.json"]
+        CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
+        CANNDataEnum.MATRIX: [r"^communication_matrix\.json"]
     }
 
     def __init__(self, profiler_path: str):
@@ -117,9 +119,9 @@ class CANNFileParser:
             timeline_data.extend(data)
         return timeline_data
 
-    def get_analyze_communication_data(self) -> dict:
+    def get_analyze_communication_data(self, file_type: Enum) -> dict:
         communication_data = {}
-        communication_file_set = self._file_dict.get(CANNDataEnum.COMMUNICATION, set())
+        communication_file_set = self._file_dict.get(file_type, set())
         if communication_file_set:
             # only need to read one file if there exist more than one files
             sub_file = next(iter(communication_file_set))
