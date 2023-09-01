@@ -738,7 +738,8 @@ supported:
  - func: inverse.out
    op_api: True
  - is_pinned
- - is_set_to
+ - func: is_set_to
+   op_api: False 
  - func: isclose
    op_api: True
  - func: isfinite
@@ -1355,10 +1356,14 @@ supported:
    op_api: True
  - func: smooth_l1_loss_backward.grad_input
    op_api: True
- - soft_margin_loss
- - soft_margin_loss.out
- - soft_margin_loss_backward
- - soft_margin_loss_backward.grad_input
+ - func: soft_margin_loss
+   op_api: False
+ - func: soft_margin_loss.out
+   op_api: False
+ - func: soft_margin_loss_backward
+   op_api: False
+ - func: soft_margin_loss_backward.grad_input
+   op_api: False
  - softmax.Dimname
  - softmax.int
  - func: softplus
