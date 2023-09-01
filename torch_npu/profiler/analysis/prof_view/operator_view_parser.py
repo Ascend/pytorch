@@ -12,7 +12,7 @@ class OperatorViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
-    def generate_view(self, output_path: str = None) -> None:
+    def generate_view(self, output_path: str) -> None:
         if not GlobalVar.torch_op_tree_node:
             return
         operator_list = [None] * len(GlobalVar.torch_op_tree_node)
@@ -27,4 +27,4 @@ class OperatorViewParser(BaseViewParser):
                                     torch_op_node.device_total_dur_with_ai_core]
             index += 1
         del operator_list[index:]
-        FileManager.create_csv_file(self._profiler_path, operator_list, self.OPERATOR_VIEW, self.OPERATOR_HEADERS)
+        FileManager.create_csv_file(output_path, operator_list, self.OPERATOR_VIEW, self.OPERATOR_HEADERS)

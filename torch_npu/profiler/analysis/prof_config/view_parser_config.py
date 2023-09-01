@@ -9,7 +9,7 @@ from ..prof_view.communication_parser import CommunicationParser
 
 class ViewParserConfig(object):
     CONFIG_DICT = {
-        Constant.TENSORBOARD_TRACE_HABDLER: [OperatorViewParser, TraceViewParser, KernelViewParser,
+        Constant.TENSORBOARD_TRACE_HANDLER: [OperatorViewParser, TraceViewParser, KernelViewParser,
                                              MemoryViewParser, IntegrateParser, CommunicationParser],
         Constant.EXPORT_CHROME_TRACE: [TraceViewParser]
     }

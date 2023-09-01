@@ -11,6 +11,7 @@ class Constant(object):
     MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10
     MAX_CSV_SIZE = 1024 * 1024 * 1024 * 5
     MAX_PATH_LENGTH = 4096
+    PROF_WARN_SIZE = 1024 * 1024 * 400
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
@@ -36,7 +37,7 @@ class Constant(object):
     FLOW_END_PH = "f"
 
     # framework
-    TENSORBOARD_TRACE_HABDLER = "tensorboard_trace_handler"
+    TENSORBOARD_TRACE_HANDLER = "tensorboard_trace_handler"
     EXPORT_CHROME_TRACE = "export_chrome_trace"
 
     ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute".lower(), "AscendCL@aclopCompileAndExecuteV2".lower())
@@ -51,10 +52,12 @@ class Constant(object):
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
 
-    # experimental config
-    PROFILER_LEVEL = 'profiler_level'
-    AI_CORE_METRICS = 'ai_core_metrics'
-    L2_CACHE = 'l2_cache'
+    #profiler config
+    CONFIG = "config"
+    EXPERIMENTAL_CONFIG = "experimental_config"
+    PROFILER_LEVEL = '_profiler_level'
+    AI_CORE_METRICS = '_aic_metrics'
+    L2_CACHE = '_l2_cache'
     LEVEL0 = "Level0"
     LEVEL1 = "Level1"
     LEVEL2 = "Level2"

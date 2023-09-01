@@ -16,11 +16,11 @@ class IntegrateParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         self._profiler_path = profiler_path
 
-    def generate_view(self, output_path: str = None) -> None:
+    def generate_view(self, output_path: str) -> None:
         for cann_data_enum, parser_bean in LevelConfig().get_parser_bean():
-            self.generate_csv(cann_data_enum, parser_bean)
+            self.generate_csv(cann_data_enum, parser_bean, output_path)
 
-    def generate_csv(self, cann_data_enum: int, parser_bean: any) -> None:
+    def generate_csv(self, cann_data_enum: int, parser_bean: any, output_path: str) -> None:
         """
         summarize data to generate csv files
         Returns: None
@@ -34,5 +34,5 @@ class IntegrateParser(BaseViewParser):
                 summary_data.append(data.row)
             if all_data and not output_headers:
                 output_headers = all_data[0].headers
-        FileManager.create_csv_file(self._profiler_path, summary_data,
+        FileManager.create_csv_file(output_path, summary_data,
                                     self.CSV_FILENAME_MAP.get(cann_data_enum, "none"), output_headers)

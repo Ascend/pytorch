@@ -1,3 +1,4 @@
+import os
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.global_var import GlobalVar
@@ -32,15 +33,15 @@ class TraceViewParser(BaseViewParser):
                 result.append(data)
         return result
 
-    def generate_view(self, output_path: str = None) -> None:
+    def generate_view(self, output_path: str) -> None:
         trace_data = self._prune_trace_by_level(CANNFileParser(self._profiler_path).get_timeline_all_data())
         self._add_fwk_trace_data(trace_data)
         GlobalVar.torch_op_tree_node = []
-        if output_path:
+        if os.path.isdir(output_path):
+            FileManager.create_json_file(output_path, trace_data, self.TRACE_VIEW)
+            TraceStepTimeParser.create_step_file(output_path, trace_data, self.STEP_TRACE)
+        else:
             FileManager.create_json_file_by_path(output_path, trace_data)
-            return
-        FileManager.create_json_file(self._profiler_path, trace_data, self.TRACE_VIEW)
-        TraceStepTimeParser.create_step_file(self._profiler_path, trace_data, self.STEP_TRACE)
 
     def _add_fwk_trace_data(self, json_data: list):
         if not GlobalVar.torch_op_tree_node:
