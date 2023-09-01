@@ -31,7 +31,7 @@ class KernelViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
-    def generate_view(self, output_path: str = None) -> None:
+    def generate_view(self, output_path: str) -> None:
         op_summary_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.OP_SUMMARY)
         summary_data = []
         output_headers = self.KERNEL_BASE_HEADERS
@@ -53,7 +53,7 @@ class KernelViewParser(BaseViewParser):
                 summary_data.append([step_id] + data.row)
 
         headers = ["Step Id"] + output_headers if GlobalVar.step_range else output_headers
-        FileManager.create_csv_file(self._profiler_path, summary_data, self.KERNEL_VIEW, headers)
+        FileManager.create_csv_file(output_path, summary_data, self.KERNEL_VIEW, headers)
 
     def _project_map_for_headers(self, input_headers: list):
         project_map_dict = {self.SHOW_HEADERS[i]: self.KERNEL_BASE_HEADERS[i] for i in range(len(self.SHOW_HEADERS))}

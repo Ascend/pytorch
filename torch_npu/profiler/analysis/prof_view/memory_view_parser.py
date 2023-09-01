@@ -95,13 +95,13 @@ class MemoryViewParser(BaseViewParser):
                                   cur_record.total_reserved, cur_record.device_tag]
         return [cur_record_list, pta_ge_record_list]
 
-    def generate_view(self: any, output_path: str = None) -> None:
+    def generate_view(self: any, output_path: str) -> None:
         self._add_memory_from_cann()
         self._add_pta_memory_data()
         self._add_pta_ge_record_data()
-        FileManager.create_csv_file(self._profiler_path, self.memory_data, self.OPERATOR_MEMORY, self.HEADERS_OPERATOR)
-        FileManager.create_csv_file(self._profiler_path, self.size_record_list + self.component_list,
-                                    self.MEMORY_RECORD, self.HEADERS_RECORD)
+        FileManager.create_csv_file(output_path, self.memory_data, self.OPERATOR_MEMORY, self.HEADERS_OPERATOR)
+        FileManager.create_csv_file(output_path, self.size_record_list + self.component_list, self.MEMORY_RECORD,
+                                    self.HEADERS_RECORD)
 
     def _add_pta_ge_record_data(self):
         """
