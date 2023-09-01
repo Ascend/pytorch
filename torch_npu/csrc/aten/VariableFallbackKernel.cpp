@@ -55,10 +55,19 @@ void npu_cpu_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
                    " This may have performance implications.");
   }
   at::native::cpu_fallback(op, stack);
-
 }
 
 TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
   m.fallback(torch::CppFunction::makeFromBoxedFunction<&npu_cpu_fallback>());
+}
+
+void npu_Sparse_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
+  TORCH_CHECK(false, "CAUTION: The operator '",
+              op.schema().operator_name(),
+              "' is not currently supported on the NPU backend.")
+}
+
+TORCH_LIBRARY_IMPL(_, SparsePrivateUse1, m) {
+  m.fallback(torch::CppFunction::makeFromBoxedFunction<&npu_Sparse_fallback>());
 }
 }
