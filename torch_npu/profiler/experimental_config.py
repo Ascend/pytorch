@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 import torch_npu._C
@@ -41,6 +42,7 @@ class _ExperimentalConfig:
             self._aic_metrics = Constant.AicPipeUtilization
         self._l2_cache = l2_cache
         self.record_op_args = record_op_args
+        self._check_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
         return torch_npu._C._profiler._ExperimentalConfig(trace_level=self._profiler_level,
@@ -48,11 +50,7 @@ class _ExperimentalConfig:
                                                           l2_cache=self._l2_cache,
                                                           record_op_args=self.record_op_args)
 
-    def profiler_level(self):
-        return self._profiler_level
-
-    def aic_metrics(self):
-        return self._aic_metrics
-
-    def l2_cache(self):
-        return self._l2_cache
+    def _check_params(self):
+        if self._profiler_level == Constant.LEVEL0 and self._aic_metrics != Constant.AicMetricsNone:
+            print(
+                f"[WARNING] [{os.getpid()}] profiler.py: Please use leve1 or level2 if you want to collect aic metrics!")

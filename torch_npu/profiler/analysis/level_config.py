@@ -1,3 +1,10 @@
+import json
+import os
+import re
+from json import JSONDecodeError
+
+from .prof_common_func.file_manager import FileManager
+from .prof_common_func.path_manager import PathManager
 from .prof_common_func.singleton import Singleton
 from .prof_common_func.constant import Constant
 from .prof_bean.ai_cpu_bean import AiCpuBean
@@ -18,16 +25,25 @@ class LevelConfig:
         Constant.LEVEL2: []
     }
 
-    def __init__(self, profiler_level: int = Constant.LEVEL0,
-                 ai_core_metrics: str = Constant.AicMetricsNone, l2_cache: bool = False):
-        self._profiler_level = profiler_level
-        self._ai_core_metrics = ai_core_metrics
-        self._l2_cache = l2_cache
+    def __init__(self):
+        self._profiler_level = Constant.LEVEL0
+        self._ai_core_metrics = Constant.AicMetricsNone
+        self._l2_cache = False
 
-    def load_info(self, config_dict: dict):
-        self._profiler_level = config_dict.get(Constant.PROFILER_LEVEL, self._profiler_level)
-        self._ai_core_metrics = config_dict.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
-        self._l2_cache = config_dict.get(Constant.L2_CACHE, self._l2_cache)
+    def load_info(self, profiler_path: str):
+        info_file_path = PathManager.get_info_file_path(profiler_path)
+        if not info_file_path:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Failed to get profiler config info.")
+            return
+        try:
+            info_json = json.loads(FileManager.file_read_all(info_file_path, "rt"))
+        except JSONDecodeError:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Failed to get profiler config info.")
+            return
+        experimental_config = info_json.get(Constant.CONFIG, {}).get(Constant.EXPERIMENTAL_CONFIG, {})
+        self._profiler_level = experimental_config.get(Constant.PROFILER_LEVEL, self._profiler_level)
+        self._ai_core_metrics = experimental_config.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
+        self._l2_cache = experimental_config.get(Constant.L2_CACHE, self._l2_cache)
 
     def get_parser_bean(self):
         return self.LEVEL_PARSER_CONFIG.get(self._profiler_level) + self._get_l2_cache_bean()

@@ -36,15 +36,10 @@ class NpuProfCreator:
 
     @classmethod
     def __call__(cls, instance: any) -> None:
-        level_config = {
-            Constant.PROFILER_LEVEL: instance._experimental_config.profiler_level(),
-            Constant.AI_CORE_METRICS: instance._experimental_config.aic_metrics(),
-            Constant.L2_CACHE: instance._experimental_config.l2_cache()
-        }
         try:
-            NpuProfiler.analyse(instance._msprofiler_interface.path, level_config)
+            NpuProfiler.analyse(instance._msprofiler_interface.path)
         except Exception:
-            print("analyse failed.")
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
 
     @classmethod
     def make_dir(cls, target_path: str) -> any:
@@ -126,6 +121,7 @@ class ActionController:
         self._iteration_end()
         self._msprofiler_interface.stop_profiler()
         self._msprofiler_interface.finalize_profiler()
+        self._instance.dump_profiler_info()
 
     def trace_ready(self) -> None:
         if isinstance(self._on_trace_ready, NpuProfCreator):
