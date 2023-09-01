@@ -25,7 +25,7 @@ at::Tensor NPUNativeFunctions::prelu(const at::Tensor& self, const at::Tensor& w
   // calculate the output size
   auto outputSize = input_same_output_size(self);
   at::Tensor result = OpPreparation::ApplyTensor(input, outputSize);
-  
+
   OpCommand cmd;
   cmd.Name("PRelu")
      .Input(self)

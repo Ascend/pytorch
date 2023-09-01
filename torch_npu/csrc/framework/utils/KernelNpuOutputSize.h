@@ -480,6 +480,8 @@ c10::SmallVector<int64_t, SIZE> clamp_npu_output_size(
     const c10::optional<at::Tensor>& min,
     const c10::optional<at::Tensor>& max);
 
+c10::SmallVector<int64_t, SIZE> prelu_backward_npu_grad_weight_output_size(const at::Tensor& weight);
+
 c10::SmallVector<int64_t, SIZE> smooth_l1_loss_backward_npu_output_size(
     const at::Tensor &self,
     const at::Tensor &target,
