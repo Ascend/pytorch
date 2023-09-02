@@ -1852,7 +1852,6 @@ tocpu:
   - unique_dim
   - unique_dim_consecutive
   - vdot
-  - gcd.out
   - lcm.out
   - fmin
   - fmin.out
