@@ -177,7 +177,10 @@ supported:
    op_api: True
  - func: addr_
    op_api: True
- - affine_grid_generator
+ - func: affine_grid_generator
+   op_api: True
+ - func: isin.Scalar_Tensor_out
+   op_api: True
  - affine_grid_generator_backward
  - func: all
    op_api: True
@@ -1921,8 +1924,6 @@ unsupported:
   - frexp.Tensor_out
   - isin.Tensor_Tensor_out
   - isin.Tensor_Tensor
-  - isin.Scalar_Tensor_out
-  - isin.Scalar_Tensor
   - cholesky.out
   - cholesky
   - geqrf.a
