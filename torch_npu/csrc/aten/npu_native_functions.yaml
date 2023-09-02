@@ -1571,9 +1571,12 @@ supported:
    op_api: True
  - func: upsample_nearest2d_backward.vec
    op_api: True
- - upsample_nearest3d
- - upsample_nearest3d.out
- - upsample_nearest3d.vec
+ - func: upsample_nearest3d
+   op_api: False
+ - func: upsample_nearest3d.out
+   op_api: False
+ - func: upsample_nearest3d.vec
+   op_api: False
  - func: upsample_nearest3d_backward
    op_api: False
  - func: upsample_nearest3d_backward.grad_input
