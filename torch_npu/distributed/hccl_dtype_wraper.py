@@ -25,7 +25,6 @@ WRAP_DTYPE_DICT = {
     'torch.uint16': torch.int32,
     'torch.uint32': torch.int32,
     'torch.uint64': torch.int32,
-    'torch.int64': torch.int32,
     'torch.float64': torch.float32,
 }
 
