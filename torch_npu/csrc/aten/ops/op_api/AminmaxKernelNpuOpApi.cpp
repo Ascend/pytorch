@@ -20,6 +20,29 @@
 
 namespace at_npu {
 namespace native {
+
+std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::_aminmax(const at::Tensor &self,
+                                                                    const int64_t dim,
+                                                                    bool keepdim) {
+  DO_COMPATIBILITY(aclnnAminmaxDim, NPUNativeFunctions::_aminmax(self, dim, keepdim));
+  at::SmallVector<int64_t, SIZE> dims = {dim};
+  auto output_size = reduce_ops_npu_output_size(self, dims, keepdim);
+  auto min = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  auto max = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  EXEC_NPU_CMD(aclnnAminmaxDim, self, dim, keepdim, min, max);
+  return std::tie(min, max);
+}
+
+std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::_aminmax(const at::Tensor &self) {
+  DO_COMPATIBILITY(aclnnAminmaxDim, NPUNativeFunctions::_aminmax(self));
+  at::IntArrayRef dims = CalcuOpUtil::GetDimlistForTensor(self);
+  auto output_size = reduce_ops_npu_output_size(self, dims, false);
+  auto min = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  auto max = OpPreparation::ApplyTensorWithoutFormat(self, output_size);
+  EXEC_NPU_CMD(aclnnAminmaxAll, self, min, max);
+  return std::tie(min, max);
+}
+
 std::tuple<at::Tensor, at::Tensor> NPUNativeOpApiFunctions::aminmax(const at::Tensor &self,
                                                                     c10::optional<int64_t> dim,
                                                                     bool keepdim) {
