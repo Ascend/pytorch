@@ -1020,10 +1020,14 @@ supported:
    op_api: True
  - func: mul_.Tensor
    op_api: True
- - multilabel_margin_loss
- - multilabel_margin_loss.out
- - multilabel_margin_loss_forward
- - multilabel_margin_loss_forward.output
+ - func: multilabel_margin_loss
+   op_api: False
+ - func: multilabel_margin_loss.out
+   op_api: False
+ - func: multilabel_margin_loss_forward
+   op_api: False
+ - func: multilabel_margin_loss_forward.output
+   op_api: False
  - func: multinomial
    op_api: True
  - func: multinomial.out
