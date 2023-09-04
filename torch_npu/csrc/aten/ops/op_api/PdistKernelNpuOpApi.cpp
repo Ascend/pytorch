@@ -37,5 +37,11 @@ at::Tensor NPUNativeOpApiFunctions::_pdist_forward(const at::Tensor& self, doubl
   return result;
 }
 
+at::Tensor NPUNativeOpApiFunctions::pdist(
+    const at::Tensor& self,
+    double p) {
+  return NPUNativeOpApiFunctions::_pdist_forward(self, p);
+}
+
 } // namespace native
 } // namespace at_npu
