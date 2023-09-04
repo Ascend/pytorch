@@ -1,5 +1,4 @@
 import os
-from enum import Enum
 
 import torch_npu._C
 
@@ -7,11 +6,13 @@ from .analysis.prof_common_func.constant import Constant
 
 
 def supported_profiler_level():
-    return set(ProfilerLevel.__members__.values())
+    return set((ProfilerLevel.Level0, ProfilerLevel.Level1, ProfilerLevel.Level2))
 
 
 def supported_ai_core_metrics():
-    return set(AiCMetrics.__members__.values())
+    return set((AiCMetrics.PipeUtilization, AiCMetrics.ArithmeticUtilization,
+                AiCMetrics.Memory, AiCMetrics.MemoryL0, AiCMetrics.MemoryUB,
+                AiCMetrics.ResourceConflictRatio, AiCMetrics.L2Cache))
 
 
 class ProfilerLevel:
