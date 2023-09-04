@@ -47,10 +47,10 @@ class FileManager:
         return result_data
 
     @classmethod
-    def create_csv_file(cls, profiler_path: str, data: list, file_name: str, headers: list = None) -> None:
+    def create_csv_file(cls, output_path: str, data: list, file_name: str, headers: list = None) -> None:
         if not data:
             return
-        file_path = os.path.join(profiler_path, Constant.OUTPUT_DIR, file_name)
+        file_path = os.path.join(output_path, file_name)
         try:
             with os.fdopen(os.open(file_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY), "w",
                            newline="") as file:
@@ -62,10 +62,10 @@ class FileManager:
             raise RuntimeError(f"Can't create file: {file_path}")
 
     @classmethod
-    def create_json_file(cls, profiler_path: str, data: list, file_name: str) -> None:
+    def create_json_file(cls, output_path: str, data: list, file_name: str) -> None:
         if not data:
             return
-        file_path = os.path.join(profiler_path, Constant.OUTPUT_DIR, file_name)
+        file_path = os.path.join(output_path, file_name)
         cls.create_json_file_by_path(file_path, data)
 
     @classmethod
@@ -83,15 +83,12 @@ class FileManager:
             raise RuntimeError(f"Can't create file: {output_path}")
 
     @classmethod
-    def remove_and_make_output_dir(cls, profiler_path) -> None:
-        output_path = os.path.join(profiler_path, Constant.OUTPUT_DIR)
-        if os.path.isdir(output_path):
+    def remove_and_make_output_dir(cls, output_path: str) -> None:
+        if os.path.exists(output_path):
             try:
                 shutil.rmtree(output_path)
-                os.makedirs(output_path, mode=Constant.DIR_AUTHORITY)
             except Exception:
                 raise RuntimeError(f"Can't delete files in the directory: {output_path}")
-            return
         try:
             os.makedirs(output_path, mode=Constant.DIR_AUTHORITY)
         except Exception:

@@ -1,3 +1,4 @@
+import os
 import shutil
 from warnings import warn
 
@@ -14,6 +15,10 @@ from .scheduler import CLOSE_STEP, ProfilerAction
 
 def tensorboard_trace_handler(dir_name: str, worker_name: str = None, use_gzip: bool = False):
     return NpuProfCreator(worker_name, dir_name)
+
+
+def analyse(profiler_path: str):
+    NpuProfiler.analyse(profiler_path)
 
 
 class profile:
@@ -45,6 +50,10 @@ class profile:
                                                           self._experimental_config()], self._activities)
         self._action_controller = ActionController(self._msprofiler_interface, schedule, self, on_trace_ready)
         self._use_cuda = use_cuda
+        self._on_trace_ready = on_trace_ready
+        self._profile_memory = profile_memory
+        self._with_stack = with_stack
+        self._with_modules = with_modules
         self._check_params()
         _lazy_init()
 
@@ -76,28 +85,48 @@ class profile:
     def stop(self):
         self._msprofiler_interface.stop_profiler()
         self._msprofiler_interface.finalize_profiler()
+        self.dump_profiler_info()
         self._action_controller.trace_ready()
+
 
     def export_chrome_trace(self, output_path: str):
         if isinstance(self._action_controller._on_trace_ready, NpuProfCreator):
             warn("Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
             return
         if self._action_controller.next_step == CLOSE_STEP + 1:
-            level_config = {
-                Constant.PROFILER_LEVEL: self._experimental_config.profiler_level(),
-                Constant.AI_CORE_METRICS: self._experimental_config.aic_metrics(),
-                Constant.L2_CACHE: self._experimental_config.l2_cache()
-            }
             try:
-                NpuProfiler.analyse(self._msprofiler_interface.path, level_config, output_path)
+                NpuProfiler.analyse(self._msprofiler_interface.path, Constant.EXPORT_CHROME_TRACE, output_path)
             except Exception:
-                print("analyse failed.")
+                print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
             try:
                 shutil.rmtree(self._msprofiler_interface.path)
             except Exception:
                 warn(f"Can't remove directory: {self._msprofiler_interface.path}")
         else:
             raise RuntimeError("Profiler didn't finish running")
+
+    def dump_profiler_info(self):
+        if not self._msprofiler_interface:
+            return
+
+        def _trans_obj2cfg(obj):
+            if not obj:
+                return None
+            obj_attr = getattr(obj, "__dict__", {})
+            return obj_attr
+
+        common_config = {"activities": list(map(str, list(self._activities))),
+                         "schedule": _trans_obj2cfg(self._schedule),
+                         "on_trace_ready": _trans_obj2cfg(self._on_trace_ready),
+                         "record_shapes": self._record_shapes,
+                         "profile_memory": self._profile_memory,
+                         "with_stack": self._with_stack,
+                         "with_flops": self._with_flops,
+                         "with_modules": self._with_modules}
+        experimental_config = _trans_obj2cfg(self._experimental_config)
+        config = {"common_config": common_config, "experimental_config": experimental_config}
+        total_info = {"config": config}
+        self._msprofiler_interface.dump_info(total_info)
 
     def _check_params(self):
         if self._use_cuda is not None:

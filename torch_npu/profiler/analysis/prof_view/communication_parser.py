@@ -62,11 +62,11 @@ class CommunicationParser(BaseViewParser):
         else:
             return round(dividend / divisor, 4)
 
-    def generate_view(self, output_path: str = None) -> None:
+    def generate_view(self, output_path) -> None:
         self.generate_communication(output_path)
         self.generate_matrix(output_path)
 
-    def generate_communication(self, output_path: str = None):
+    def generate_communication(self, output_path: str):
         communication_data = CANNFileParser(self._profiler_path).get_analyze_communication_data(
             CANNDataEnum.COMMUNICATION)
         if not communication_data:
@@ -76,9 +76,9 @@ class CommunicationParser(BaseViewParser):
         for step_info in self.step_list:
             step = "step" + step_info.get("step_id") if step_info.get("step_id") else "step"
             output_communication[step] = self.get_communication_ops_dict(step_info.get("comm_ops"))
-        FileManager.create_json_file(self._profiler_path, output_communication, self.COMMUNICATION)
+        FileManager.create_json_file(output_path, output_communication, self.COMMUNICATION)
 
-    def generate_matrix(self, output_path: str = None):
+    def generate_matrix(self, output_path: str):
         matrix_data = CANNFileParser(self._profiler_path).get_analyze_communication_data(CANNDataEnum.MATRIX)
         if not matrix_data:
             return
@@ -86,7 +86,7 @@ class CommunicationParser(BaseViewParser):
         output_matrix_data = {}
         for step, comm_matrix_data in matrix_data_by_step.items():
             output_matrix_data[step] = self.get_matrix_ops_dict(matrix_data_by_step[step])
-        FileManager.create_json_file(self._profiler_path, output_matrix_data, self.COMMUNICATION_MATRIX)
+        FileManager.create_json_file(output_path, output_matrix_data, self.COMMUNICATION_MATRIX)
 
     def split_comm_op_by_step(self, communication_data: dict):
         if len(self.step_list) == 1:
