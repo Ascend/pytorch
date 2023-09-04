@@ -40,17 +40,24 @@ torch_npu/csrc/aten/
 
 import argparse
 import os
+from pathlib import Path
+from typing import List
 
+from codegen.api.autograd import (
+    match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
+    DifferentiabilityInfo)
+from codegen.model import NativeFunction
 from .gen_autograd_functions import gen_autograd_functions_lib
 from .gen_variable_type import (
     gen_variable_type, gen_npu_variable_type,
-    gen_variable_type_head
+    gen_aclnn_variable_type, gen_variable_type_head
 )
 from .gen_inplace_or_view_type import gen_inplace_or_view_type
 from .gen_variable_factories import gen_variable_factories
 from .utils import parse_derivatives, filt_npu_autograd_functions
+from .load_derivatives import load_derivatives
 
-from codegen.utils import gen_custom_yaml_path
+from codegen.utils import gen_custom_yaml_path, enable_opplugin
 
 def gen_autograd(
     native_functions_path: str,
@@ -59,11 +66,40 @@ def gen_autograd(
     npu_native_functions_path: str
 ) -> None:
     npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
-    differentiability_infos, _ , funcs_with_diff_infos =\
+    differentiability_infos, native_funcs , funcs_with_diff_infos =\
     parse_derivatives(native_functions_path, autograd_dir, npu_native_functions_path)
     torch_funcs_with_diff_infos, npu_funcs_with_diff_infos, _ = \
     filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
     template_path = os.path.join(autograd_dir, 'templates')
+    
+    # The purpose of the following code is to handle this situation:
+    # Is aclnn kernel, and only have backward function in aclnn kernel.
+    aclnn_derivatives_path =  ('third_party/op-plugin/op_plugin/config/v1r11/aclnn_derivatives.yaml'
+        if enable_opplugin()
+        else "codegen/autograd/aclnn_derivatives.yaml")
+    aclnn_differentiability_infos = load_derivatives(
+        str(Path(autograd_dir).parents[1].joinpath(aclnn_derivatives_path)), 
+            native_functions_path, 
+            npu_native_functions_path)
+    
+    if aclnn_differentiability_infos:
+        aclnn_funcs: List[NativeFunction] = []
+        derivatives_name_list: List[str] = []
+        for info in aclnn_differentiability_infos:
+            derivatives_name_list.append(str(info.func.func.name))
+        for funcs in native_funcs:
+            func_name = str(funcs.func.name)
+            func_base_name = str(funcs.func.name.name.base)
+            if (func_name in derivatives_name_list) or (func_base_name in derivatives_name_list):
+                aclnn_funcs.append(funcs)
+        
+        aclnn_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
+        aclnn_funcs_with_diff_infos = match_differentiability_info(aclnn_funcs, aclnn_differentiability_infos)
+        #Merge diff infos to generate header in one file.
+        differentiability_infos = differentiability_infos + aclnn_differentiability_infos
+        funcs_with_diff_infos.extend(aclnn_funcs_with_diff_infos)
+        
+        gen_aclnn_variable_type(out, aclnn_funcs_with_diff_infos, template_path)
 
     # Generate VariableType.h/cpp
     gen_variable_type(out, torch_funcs_with_diff_infos, template_path)

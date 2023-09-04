@@ -55,6 +55,9 @@ def load_derivatives(
 
         with open(derivatives_yaml_path, 'r') as f:
             definitions = yaml.load(f, Loader=YamlLoader)
+        
+        if definitions is None:
+            return definitions
 
         functions = parse_native_and_custom_yaml(native_yaml_path, npu_native_yaml_path).native_functions
 
