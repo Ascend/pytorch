@@ -40,8 +40,8 @@ at::Tensor NPUNativeOpApiFunctions::ceil(const at::Tensor& self) {
 }
 
 at::Tensor& NPUNativeOpApiFunctions::ceil_(at::Tensor& self) {
-  DO_COMPATIBILITY(aclnnCeil, NPUNativeFunctions::ceil_(self));
-  NPUNativeOpApiFunctions::ceil_out(self, self);
+  DO_COMPATIBILITY(aclnnInplaceCeil, NPUNativeFunctions::ceil_(self));
+  EXEC_NPU_CMD(aclnnInplaceCeil, self);
   return self;
 }
 
