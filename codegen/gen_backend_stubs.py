@@ -150,7 +150,7 @@ def parse_backend_yaml(
     assert isinstance(yaml_values, dict)
 
     valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd',
-                  'custom', 'custom_autograd', 'unsupported']
+                  'custom', 'custom_autograd', 'unsupported', 'symint']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'XLA' if yaml_backend == 'NPU' else yaml_backend
@@ -192,7 +192,10 @@ def parse_backend_yaml(
     unsupported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in unsupported]
     assert isinstance(unsupported, list), f'expected "unsupported" to be a list, but got: {unsupported}'
 
-    if (len(yaml_values.keys()) != 0):
+    # Currently, symint is only supported for ops in opplugin, and is not useful here.
+    symint = yaml_values.pop('symint', [])
+
+    if (len(yaml_values.keys()) > 0):
         print(f'Waring: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
 Only the following keys are supported: {", ".join(valid_keys)}')
 
