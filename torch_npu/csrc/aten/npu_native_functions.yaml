@@ -475,6 +475,8 @@ supported:
    op_api: False
  - func: diag.out
    op_api: False
+ - func: diagflat
+   op_api: False
  - func: div.Scalar
    op_api: True
  - func: div.Scalar_mode
