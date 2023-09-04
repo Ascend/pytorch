@@ -1390,8 +1390,10 @@ supported:
    op_api: False
  - func: soft_margin_loss_backward.grad_input
    op_api: False
- - softmax.Dimname
- - softmax.int
+ - func: softmax.Dimname
+   op_api: False
+ - func: softmax.int
+   op_api: False
  - func: softplus
    op_api: True
  - func: softplus.out
