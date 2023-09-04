@@ -15,7 +15,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
