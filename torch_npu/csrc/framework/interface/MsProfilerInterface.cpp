@@ -29,6 +29,7 @@ LOAD_FUNCTION(aclprofPush)
 LOAD_FUNCTION(aclprofPop)
 LOAD_FUNCTION(aclprofRangeStart)
 LOAD_FUNCTION(aclprofRangeStop)
+LOAD_FUNCTION(aclprofSetConfig)
 
 
 void *AclprofCreateStamp() {
@@ -189,6 +190,19 @@ bool CheckInterfaceReportStamp() {
     typedef aclError(*AclprofReportStampFunc)(const char *, unsigned int, unsigned char *, unsigned int);
     static AclprofReportStampFunc func = (AclprofReportStampFunc)GET_FUNC(aclprofReportStamp);
     return (func == nullptr) ? false : true;
+}
+
+aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength) {
+    typedef aclError(*AclprofSetConfigFunc)(aclprofConfigType, const char *, size_t);
+    static AclprofSetConfigFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclprofSetConfigFunc)GET_FUNC(aclprofSetConfig);
+        if (func == nullptr) {
+            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+        }
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetConfig");
+    return func(configType, config, configLength);
 }
 }
 }

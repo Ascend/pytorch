@@ -16,6 +16,20 @@
 extern "C" {
 #endif
 
+typedef enum {
+    ACL_PROF_ARGS_MIN = 0,
+    ACL_PROF_STORAGE_LIMIT,
+    ACL_PROF_AIV_METRICS,
+    ACL_PROF_SYS_HARDWARE_MEM_FREQ,
+    ACL_PROF_LLC_MODE,
+    ACL_PROF_SYS_IO_FREQ,
+    ACL_PROF_SYS_INTERCONNECTION_FREQ,
+    ACL_PROF_DVPP_FREQ,
+    ACL_PROF_HOST_SYS,
+    ACL_PROF_HOST_SYS_USAGE,
+    ACL_PROF_HOST_SYS_USAGE_FREQ,
+    ACL_PROF_ARGS_MAX,
+} aclprofConfigType;
 
 ACL_FUNC_VISIBILITY void *aclprofCreateStamp();
 
@@ -53,6 +67,8 @@ ACL_FUNC_VISIBILITY aclError aclprofRangeStop(uint32_t rangeId);
 
 ACL_FUNC_VISIBILITY aclError aclprofReportStamp(
     const char *tag, unsigned int tagLen, unsigned char *data, unsigned int dataLen);
+
+ACL_FUNC_VISIBILITY aclError aclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength);
 
 #ifdef __cplusplus
 }

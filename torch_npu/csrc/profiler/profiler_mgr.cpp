@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/profiler/profiler_mgr.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
+#include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
@@ -67,6 +68,11 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
     }
     if (npu_config.npu_memory) {
       datatype_config |= ACL_PROF_TASK_MEMORY;
+      const std::string freq = "50";
+      auto prof_ret = at_npu::native::AclprofSetConfig(ACL_PROF_SYS_HARDWARE_MEM_FREQ, freq.c_str(), freq.size());
+      if (prof_ret == ACL_ERROR_PROF_MODULES_UNSUPPORTED) {
+        ASCEND_LOGW("not support to set config for sys-hardware-mem.");
+      }
     }
     int32_t deviceId = 0;
     auto ret = aclrtGetDevice(&deviceId);
