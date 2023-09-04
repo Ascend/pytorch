@@ -230,9 +230,12 @@ supported:
    op_api: True
  - as_strided
  - as_strided_
- - asin
- - asin.out
- - asin_
+ - func: asin
+   op_api: False
+ - func: asin.out
+   op_api: False
+ - func: asin_
+   op_api: False
  - func: asinh
    op_api: True
  - func: asinh.out
