@@ -378,6 +378,12 @@ METHOD_HEADER_DEFINITION = CodeTemplate("""\
 ${return_type} ${type_wrapper_name}(${formals});
 """)
 
+ACLNN_WRAP_DEFINITION = CodeTemplate("""
+${return_type} ${type_wrapper_name}(${formals}) {
+  ${select_path}
+}                             
+""")
+
 
 def gen_variable_type(
     out: str,
@@ -449,6 +455,87 @@ def gen_npu_variable_type(
         'npu_method_definitions': npu_method_definitions,
         'wrapper_registrations': wrapper_registrations
     })
+
+
+def gen_aclnn_variable_type(
+    out: str,
+    fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
+    template_path: str,
+) -> None:
+    
+    """Generate VariableTypeAclnn.cpp body
+    
+    Generate variable type definition for npu method here.
+    """
+    fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
+    
+    aclnn_method_definitions: List[str] = []
+    wrapper_registrations: List[str] = []
+    wrap_method_definitions: List[str] = []
+    for fn in fns_with_diff_infos:
+        if use_derived(fn):
+            f = fn.func
+            with native_function_manager(f):
+                formals = gen_formals(f)
+                aclnn_return = gen_aclnn_formals(f)
+                wrapper_name = type_wrapper_name(f)
+                cpp_return_type = cpp.returns_type(f.func.returns).cpp_type()
+                type_definition = METHOD_DEFINITION.substitute(
+                    return_type=cpp_return_type,
+                    type_wrapper_name=wrapper_name,
+                    type_definition_body=emit_body(fn),
+                    formals=formals,
+                )
+                wrap_method_definition = ACLNN_WRAP_DEFINITION.substitute(
+                    return_type=cpp_return_type,
+                    type_wrapper_name="wrap_" + wrapper_name,
+                    select_path=gen_select_patch(fn, aclnn_return),
+                    formals=formals,
+                )
+                wrapper_registrations.append(gen_aclnn_wrapper_registration(f))
+                aclnn_method_definitions.append(type_definition)
+                wrap_method_definitions.append(wrap_method_definition)
+    
+    fm.write_with_template('VariableTypeAclnn.cpp', 'VariableTypeAclnn.cpp', lambda: {
+        'aclnn_method_definitions': aclnn_method_definitions,
+        'wrap_method_definitions': wrap_method_definitions,
+        'wrapper_registrations': wrapper_registrations
+    })
+
+def gen_select_patch(fn: NativeFunctionWithDifferentiabilityInfo, aclnn_return: str):
+    f = fn.func
+    tensor_check_str = ""
+    tensor_check_list = []
+    
+    
+    for derivatives in fn.info.derivatives:
+        for arg in derivatives.var_names:
+            # We should check if arg is_tensor_like, but in matmul we do not need this 
+            tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({arg})")
+    if tensor_check_list:
+        tensor_check_str = f" && {' && '.join(tensor_check_list)}"
+
+    redispatch_name = cpp.name(f.func, faithful_name_for_out_overloads=True)
+    path_five_return = aclnn_return.replace('ks, ', 'ks & c10::after_autograd_keyset, ')
+    path_three = f"at::redispatch::{redispatch_name}({path_five_return})"    
+    path_five = f"{type_wrapper_name(f)}({aclnn_return})"
+    
+    return_code = f"""\
+if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
+        return {path_five};
+    }} else {{
+        return {path_three};
+    }}
+"""
+    return return_code
+
+@with_native_function
+def gen_aclnn_formals(f: NativeFunction) -> str:
+    return ', '.join(
+        # code-generated autograd kernels plumb and recompute dispatch keys directly through the kernel for performance.
+        # See Note [Plumbing Keys Through The Dispatcher] for details.
+        ['ks'] + [f'{a.name}' for a in f.func.schema_order_arguments()]
+    )
                 
 
 def gen_variable_type_head(
@@ -491,6 +578,15 @@ def gen_wrapper_registration(f: NativeFunction) -> str:
     return WRAPPER_REGISTRATION.substitute(
         unqual_operator_name_with_overload=f.func.name,
         type_wrapper_name=type_wrapper_name(f),
+        class_type='VariableType',
+    )
+
+
+@with_native_function
+def gen_aclnn_wrapper_registration(f: NativeFunction) -> str:
+    return WRAPPER_REGISTRATION.substitute(
+        unqual_operator_name_with_overload=f.func.name,
+        type_wrapper_name="wrap_" + type_wrapper_name(f),
         class_type='VariableType',
     )
 
