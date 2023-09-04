@@ -87,8 +87,10 @@ supported:
  - _pin_memory
  - func: _s_where
    op_api: True
- - _slow_conv2d_backward.output_mask
- - _slow_conv2d_forward
+ - func: _slow_conv2d_backward.output_mask
+   op_api: False
+ - func: _slow_conv2d_forward
+   op_api: False
  - _slow_conv2d_forward.output
  - func: _softmax
    op_api: True
@@ -423,12 +425,15 @@ supported:
    op_api: True
  - func: conv_tbc_backward
    op_api: True
- - conv_transpose2d.input
+ - func: conv_transpose2d.input
+   op_api: True
  - conv_transpose3d.input
  - func: convolution_backward
    op_api: True
- - convolution_backward_overrideable
- - convolution_overrideable
+ - func: convolution_backward_overrideable
+   op_api: False
+ - func: convolution_overrideable
+   op_api: False
  - func: count_nonzero
    op_api: True
  - func: count_nonzero.dim_IntList
@@ -1377,11 +1382,16 @@ supported:
  - slow_conv3d.out
  - slow_conv3d_forward
  - slow_conv3d_forward.output
- - slow_conv_dilated2d
- - slow_conv_dilated2d_backward
- - slow_conv_transpose2d
- - slow_conv_transpose2d.out
- - slow_conv_transpose2d_backward
+ - func: slow_conv_dilated2d
+   op_api: True
+ - func: slow_conv_dilated2d_backward
+   op_api: True
+ - func: slow_conv_transpose2d
+   op_api: True
+ - func: slow_conv_transpose2d.out
+   op_api: True
+ - func: slow_conv_transpose2d_backward
+   op_api: True
  - func: smooth_l1_loss
    op_api: True
  - func: smooth_l1_loss.out
