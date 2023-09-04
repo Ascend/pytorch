@@ -99,6 +99,8 @@ supported:
  - func: _softmax_backward_data.out
    op_api: True
  - _symeig_helper
+ - func: _unique
+   op_api: False
  - func: _unique2
    op_api: True
  - _reshape_alias
@@ -1812,7 +1814,6 @@ tocpu:
   - _test_optional_filled_intlist
   - _test_optional_floatlist
   - _solve_helper
-  - _unique
   - angle
   - angle.out
   - binomial
