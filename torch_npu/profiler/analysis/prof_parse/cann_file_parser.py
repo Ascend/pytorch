@@ -99,16 +99,16 @@ class CANNFileParser:
         if not os.path.isdir(self._cann_path):
             return
         completed_process = subprocess.run(["msprof", "--export=on", f"--output={self._cann_path}"],
-                                           capture_output=True, timeout=2400)
+                                           capture_output=True)
         if completed_process.returncode != self.COMMAND_SUCCESS:
             raise RuntimeError(
                 f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and set-env.sh "
                 f"is sourced. or you can execute the command to confirm the CANN Profiling export result: "
                 f"msprof --export=on --output={self._cann_path}")
         completed_analysis = subprocess.run(["msprof", "--analyze=on", f"--output={self._cann_path}"],
-                                           capture_output=True, timeout=2400)
+                                            capture_output=True)
         if completed_analysis.returncode != self.COMMAND_SUCCESS:
-            print("Export CANN analysis results failed!")
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Analyze CANN Profiling data failed!")
         self._file_dispatch()
         step_trace_file_set = self.get_file_list_by_type(CANNDataEnum.STEP_TRACE)
         if not step_trace_file_set:
@@ -121,7 +121,7 @@ class CANNFileParser:
             if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
                 completed_process = subprocess.run(
                     ["msprof", "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
-                    capture_output=True, timeout=3600)
+                    capture_output=True)
                 if completed_process.returncode != self.COMMAND_SUCCESS:
                     raise RuntimeError("Export CANN Profiling data failed, please verify that the "
                                        "ascend-toolkit is installed and set-env.sh is sourced.")
@@ -164,6 +164,20 @@ class CANNFileParser:
 
     def get_file_list_by_type(self, file_type: CANNDataEnum) -> set:
         return self._file_dict.get(file_type, set())
+
+    def check_prof_data_size(self):
+        if not self._cann_path:
+            return
+        device_data_path = os.path.join(PathManager.get_device_path(self._cann_path), "data")
+        host_data_path = os.path.join(self._cann_path, "host", "data")
+        prof_data_size = 0
+        for root, dirs, files in os.walk(device_data_path):
+            prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+        for root, dirs, files in os.walk(host_data_path):
+            prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+        if prof_data_size >= Constant.PROF_WARN_SIZE:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: The parsing time is expected to exceed 30 minutes, "
+                  f"and you can choose to stop the process and use offline parsing.")
 
     def _file_dispatch(self):
         all_file_list = PathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
