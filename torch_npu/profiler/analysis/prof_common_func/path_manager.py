@@ -37,6 +37,17 @@ class PathManager:
         return ""
 
     @classmethod
+    def get_info_file_path(cls, profiler_path: str) -> str:
+        sub_files = os.listdir(profiler_path)
+        for sub_file in sub_files:
+            sub_path = os.path.join(profiler_path, sub_file)
+            if sub_file == "profiler_info.json":
+                return sub_path
+            if re.match(r"^profiler_info_\d+\.json", sub_file):
+                return sub_path
+        return ""
+
+    @classmethod
     def get_device_path(cls, cann_path: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(cann_path))
         for sub_dir in sub_dirs:
