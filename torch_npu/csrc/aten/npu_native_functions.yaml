@@ -1529,8 +1529,10 @@ supported:
    op_api: True
  - func: true_divide.out
    op_api: True
- - true_divide_.Scalar
- - true_divide_.Tensor
+ - func: true_divide_.Scalar
+   op_api: False
+ - func: true_divide_.Tensor
+   op_api: False
  - func: trace
    op_api: True
  - func: trunc
