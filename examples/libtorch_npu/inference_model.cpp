@@ -31,7 +31,4 @@ int main(int argc, char*argv[]) {
     auto inputs = torch::rand({4, 3, 4, 4}).to(device);
     auto model_out = script_model.forward({inputs});
     std::cout << "model output:" << model_out << std::endl;
-
-    // finalize npu device
-    torch_npu::finalize_npu();
 }

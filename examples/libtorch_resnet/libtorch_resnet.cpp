@@ -33,8 +33,7 @@ int main(int argc, const char* argv[]) {
   input_tensor.push_back(torch::randn({1, 3, 244, 244}).to(device));
   at::Tensor output = module.forward(input_tensor).toTensor();
 
-  // finalize npu
-  torch_npu::finalize_npu();
+  std::cout << output.slice(1, 0, 5) << std::endl;
   std::cout << "resnet_model run success!" << std::endl;
 
   return 0;

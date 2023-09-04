@@ -21,4 +21,12 @@ fi
 
 mkdir build && cd build && \
 cmake -DCMAKE_PREFIX_PATH=`python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'` .. && \
-make && ./libtorch_resnet ../resnet_model.pt
+make && ./libtorch_resnet ../resnet_model.pt > out.log
+
+if grep -q "resnet_model run success!" out.log; then
+  echo "Success."
+  exit 0
+else
+  echo "Failed."
+  exit 1
+fi
