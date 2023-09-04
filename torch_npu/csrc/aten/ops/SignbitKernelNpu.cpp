@@ -22,6 +22,8 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeFunctions::signbit_out(const at::Tensor& self, at::Tensor& result) {
+  TORCH_NPU_WARN_ONCE(
+    "Warning: kernel [signbit] is not supported by NPU currently. Now this kernel is running on CPU.");
   OpPreparation::CheckOut({self}, result, at::ScalarType::Bool, self.sizes());
   const auto self_cpu = self.cpu();
   auto result_cpu = result.cpu();
