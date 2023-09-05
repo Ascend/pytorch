@@ -73,7 +73,7 @@ from .version import __version__ as __version__
 
 
 cann_pytorch_version_map = {
-    "6.3.RC2" : ["1.8.1.post2", "1.11.0.post1", "2.0.0.rc1"],
+    "6.3.RC2" : ["1.8.1.post2", "1.11.0.post3", "2.0.0.rc1"],
     "6.3.RC1" : ["1.8.1.post1", "1.11.0"],
     "6.1.RC1" : ["1.8.1.post1", "1.11.0"],
     "6.0.1" : ["1.8.1", "1.11.0.rc2"],
