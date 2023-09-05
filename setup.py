@@ -40,6 +40,7 @@ from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '1.8.1.post2'
+UNKNOWN = "Unknown"
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
@@ -61,7 +62,8 @@ def generate_torch_npu_version():
     if os.getenv("BUILD_WITHOUT_SHA") is None:
         global VERSION
         sha = get_sha(torch_npu_root)
-        VERSION += "+git" + sha[:7]
+        if sha != UNKNOWN:
+            VERSION += "+git" + sha[:7]
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f: 
         f.write("__version__ = '{version}'\n".format(version=VERSION))
 
