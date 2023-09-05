@@ -222,9 +222,9 @@ def parse_backend_yaml(
     for item in custom_autograd:
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
-    assert len(yaml_values.keys()) == 0, \
-        f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
-Only the following keys are supported: {", ".join(valid_keys)}'
+    if (len(yaml_values.keys()) > 0):
+        print(f'Warning: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
+Only the following keys are supported: {", ".join(valid_keys)}')
 
     backend_key: Optional[DispatchKey] = None
     if len(supported) > 0:
