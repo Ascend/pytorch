@@ -27,7 +27,7 @@ from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
 from codegen.selective_build.selector import SelectiveBuilder
 from codegen.utils import (Target, concat_map, context, parse_npu_yaml,
-                           get_opplugin_wrap_name, evaluate_opplugin_op,
+                           get_opplugin_wrap_name, parse_opplugin_yaml,
                            merge_custom_yaml, gen_custom_yaml_path, filed_tag)
 from codegen.context import native_function_manager
 import codegen.dest as dest
@@ -98,11 +98,10 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         source_data = parse_npu_yaml(custom_path)
         custom_es = source_data.get('custom', []) + source_data.get('custom_autograd', [])
         custom_es = filed_tag(custom_es)
-        custom_es = source_data['custom'] + source_data['custom_autograd']
         all_data = []
         need_key =  ['supported', 'autograd', 'autograd', 'custom_autograd']
         for key in need_key:
-            if source_data[key]:
+            if source_data.get(key, []):
                 all_data += source_data[key]
         all_data = [op for op in all_data if isinstance(op, dict)]
         all_data = filed_tag(all_data)
@@ -179,6 +178,8 @@ def parse_backend_yaml(
     assert isinstance(supported, list), f'expected "supported" to be a list, but got type {type(supported)}'
 
     supported_autograd = yaml_values.pop('autograd', [])
+    if supported_autograd is None:
+        supported_autograd = []  # Allow an empty list of supported ops
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
 
     supported_tocpu = yaml_values.pop('tocpu', [])
@@ -388,11 +389,12 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
         return FileManager(install_dir=install_dir, template_dir=template_dir, dry_run=dry_run)
 
     fm = make_file_manager(output_dir)
+    merge_custom_yaml(source_yaml, op_plugin_yaml_path)
     source_yaml = gen_custom_yaml_path(source_yaml)
 
     native_yaml_path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'native_functions.yaml')
     parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, source_yaml)
-    evaluate_opplugin_op(source_yaml, op_plugin_yaml_path, )
+    parse_opplugin_yaml(op_plugin_yaml_path)
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
