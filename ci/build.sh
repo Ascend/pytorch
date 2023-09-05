@@ -130,10 +130,7 @@ function main()
             sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${cmake_file}
         fi
     done
-    if [ "$UPDATE_SUBMODULE" ]; then
-        echo "update submodule"
-        update_submodule
-    fi
+    update_submodule
     cd ${CUR_DIR}/..
     # if you add or delete file/files in the project, you need to remove the following comment
     # make clean
