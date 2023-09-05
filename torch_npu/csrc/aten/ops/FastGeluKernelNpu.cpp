@@ -23,7 +23,7 @@ namespace native {
 using torch::autograd::AutogradContext;
 using tensor_list = std::vector<at::Tensor>;
 
-at::Tensor npu_fast_gelu(const at::Tensor& self) {
+at::Tensor npu_fast_gelu_nocheck(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   OpCommand cmd;
   cmd.Name("FastGelu")
@@ -61,7 +61,7 @@ at::Tensor NPUNativeFunctions::npu_fast_gelu_backward(
 }
 
 at::Tensor NPUNativeFunctions::fast_gelu(const at::Tensor& self) {
-    return npu_fast_gelu(self);
+    return npu_fast_gelu_nocheck(self);
 }
 
 } // namespace native

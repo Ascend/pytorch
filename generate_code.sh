@@ -30,13 +30,7 @@ pytorch_dir="v${version_parts[0]}r${version_parts[1]}"
 op_plugin_config_path=$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir
 source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
 
-op_plugin_functions_yaml_path="$op_plugin_config_path/npu_native_functions.yaml"
-if [ -f "${op_plugin_functions_yaml_path}" ]; then
-  cp -f $op_plugin_functions_yaml_path $source_yaml
-fi
-
 file=$CDIR/third_party/op-plugin/gencode.sh
-
 if [ -f "${file}" ]; then
   bash ${file} ${pytorch_version} python3
 fi

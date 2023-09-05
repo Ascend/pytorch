@@ -41,8 +41,10 @@ YamlDumper = Dumper
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 
-CUSTOM_YAML_NAME = "npu_native_functions.yaml"
-FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns"]
+CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
+FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns", "tags"]
+MANUAL_OPS = ["argmin", "argmax", "nan_to_num", "nan_to_num_",
+              "nan_to_num.out", "_embedding_bag_dense_backward", "matmul_backward"]
 
 # A custom loader for YAML that errors on duplicate keys.
 # This doesn't happen by default: see https://github.com/yaml/pyyaml/issues/165
@@ -152,13 +154,24 @@ def merge_yaml(base_data, additional_data):
 
 
 def merge_custom_yaml(pta_path, op_plugin_path):
-    not_codegen_ops = ["argmin", "argmax", "nan_to_num", "nan_to_num_",
-                       "nan_to_num.out", "_embedding_bag_dense_backward"]
+    def parse_op_name(value):
+        return value["func"].split("(")[0] if isinstance(value, dict) else value
     pta_es = parse_npu_yaml(pta_path)
     op_es = parse_npu_yaml(op_plugin_path)
 
-    op_es["official"] = [op for op in op_es["official"]
-                         if op["func"].split("(")[0] not in not_codegen_ops]
+    all_op_name = []
+    for key, value in op_es.items():
+        if isinstance(value, list):
+            all_op_name.extend([parse_op_name(op) for op in value])
+    # Filtering of existing funcs in the op_plugin yaml
+    for key, value in pta_es.items():
+        if isinstance(value, list):
+            pta_es[key] = [op for op in value
+                           if parse_op_name(op) not in all_op_name]
+
+    # Filtering of manually registered op
+    op_es["official"] = [op for op in op_es.get("official", [])
+                         if parse_op_name(op) not in MANUAL_OPS]
 
     merged_yaml = merge_yaml(pta_es, op_es)
     merged_yaml_path = gen_custom_yaml_path(pta_path)
@@ -176,44 +189,25 @@ def filed_tag(custom_es):
     return custom_es
 
 
-def evaluate_opplugin_op_by_npu_yaml(npu_yaml_path: str) -> None:
-    npu_es = parse_npu_yaml(npu_yaml_path)
-    all_support_ops = npu_es.pop('supported', []) + npu_es.pop('custom', []) + \
-                      npu_es.pop('autograd', []) + npu_es.pop('custom_autograd', [])
-    global GLOBAL_STRUCTURED_OP_INFO_CACHE
-    for x in all_support_ops:
-        if isinstance(x, dict) and "wrap_impl" in x:
-            op_key = x["func"].split("(")[0]
-            wrap_name = x["wrap_impl"] if x["wrap_impl"] else op_key
-            GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
+def parse_opplugin_yaml(custom_path: str) -> None:
+    source_es = parse_npu_yaml(custom_path)
 
+    suppprt_keys = ['custom', 'official', 'autograd', 'custom_autograd']
+    support_ops = []
+    for key in suppprt_keys:
+        value = source_es.pop(key, [])
+        if value is not None:
+            support_ops.extend(value)
 
-def evaluate_opplugin_op(npu_yaml_path: str, op_yaml_path: str) -> None:
-    npu_es = parse_npu_yaml(npu_yaml_path)
-    all_support_ops = npu_es.pop('supported', []) + npu_es.pop('custom', [])+ \
-                      npu_es.pop('autograd', []) + npu_es.pop('custom_autograd', [])
-
-    enable_ops = [op.get("func").split("(")[0] for op in all_support_ops if isinstance(op, Dict) and "wrap_impl" in op]
-    source_es = parse_npu_yaml(op_yaml_path)
-
-    custom = source_es.pop('custom', [])
-    if custom is None:
-        custom = []  # Allow an empty list of supported ops
-    official = source_es.pop('official', [])
-    if official is None:
-        official = []  # Allow an empty list of supported ops
-
-    support_ops = custom + official
+    symint = source_es.pop("symint", [])
 
     global GLOBAL_STRUCTURED_OP_INFO_CACHE
     for x in support_ops:
         funcs = x.get("func", None)
         assert isinstance(funcs, str), f'not a str : {funcs}'
         func = FunctionSchema.parse(funcs)
-        op_key = str(func.name)
-        if op_key not in enable_ops:
-            continue
         wrap_name = cpp.name(func)
+        op_key = str(func.name)
         cur_wrap_name = GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
         if cur_wrap_name and cur_wrap_name != wrap_name:
             print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
@@ -235,6 +229,7 @@ def is_op_valid(op_key: str) -> bool:
 def get_opplugin_wrap_name(func) -> str:
     op_key = str(func.func.name) if type(func) is NativeFunction else func
     return GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
+
 
 def gen_custom_yaml_path(original_path, codegen_yaml_filename=CUSTOM_YAML_NAME):
     new_path = os.path.join(os.path.dirname(original_path), codegen_yaml_filename)
