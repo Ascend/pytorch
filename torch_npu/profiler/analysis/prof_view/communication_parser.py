@@ -62,7 +62,7 @@ class CommunicationParser(BaseViewParser):
         else:
             return round(dividend / divisor, 4)
 
-    def generate_view(self, output_path) -> None:
+    def generate_view(self, output_path, **kwargs) -> None:
         self.generate_communication(output_path)
         self.generate_matrix(output_path)
 

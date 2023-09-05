@@ -16,7 +16,7 @@ class KernelViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
-    def generate_view(self, output_path: str) -> None:
+    def generate_view(self, output_path: str, **kwargs) -> None:
         op_summary_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.OP_SUMMARY)
         summary_data = []
         output_headers = self.KERNEL_BASE_HEADERS

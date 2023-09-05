@@ -33,7 +33,7 @@ class TraceViewParser(BaseViewParser):
                 result.append(data)
         return result
 
-    def generate_view(self, output_path: str) -> None:
+    def generate_view(self, output_path: str, **kwargs) -> None:
         trace_data = self._prune_trace_by_level(CANNFileParser(self._profiler_path).get_timeline_all_data())
         self._add_fwk_trace_data(trace_data)
         GlobalVar.torch_op_tree_node = []
