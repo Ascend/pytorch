@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -36,9 +37,9 @@ std::tuple<at::Tensor&, at::Tensor&> batch_norm_gather_stats_with_counts_npu_imp
   at::Tensor meanCp = NPUNativeFunctions::npu_dtype_cast(mean, at::kFloat);
   at::Tensor invstdCp = NPUNativeFunctions::npu_dtype_cast(invstd, at::kFloat);
   auto running_mean_dtype = running_mean.scalar_type();
-  at::Tensor running_mean_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_mean.defined() ?
+  at::Tensor running_mean_ = NPUNativeFunctions::npu_dtype_cast(custom_ops::npu_format_cast((running_mean.defined() ?
       running_mean.unsqueeze(0) :at::zeros({1, dimC}, options)), ACL_FORMAT_ND), at::kFloat);
-  at::Tensor running_var_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_var.defined() ?
+  at::Tensor running_var_ = NPUNativeFunctions::npu_dtype_cast(custom_ops::npu_format_cast((running_var.defined() ?
       running_var.unsqueeze(0) :at::ones({1, dimC}, options)), ACL_FORMAT_ND), at::kFloat);
   at::IntArrayRef axes({0});
   at::Tensor countsTensor;

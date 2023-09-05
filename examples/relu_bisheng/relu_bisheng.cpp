@@ -19,6 +19,7 @@
 #include <torch/script.h>
 #include <torch_npu/csrc/aten/NPUNativeFunctions.h>
 #include <torch_npu/csrc/core/npu/NPUStream.h>
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 using namespace at;
 using namespace sycl;
@@ -82,7 +83,7 @@ torch::Tensor relu_forward_launch(torch::Tensor self) {
 }
 
 torch::Tensor relu_forward(torch::Tensor self) {
-  at::Tensor fortmat_self = at_npu::native::NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+  at::Tensor fortmat_self = at_npu::native::custom_ops::npu_format_cast(self, ACL_FORMAT_ND);
 
   const at::Tensor self_dtype = fortmat_self.scalar_type() == at::kDouble
     ? at_npu::native::NPUNativeFunctions::npu_dtype_cast(fortmat_self, at::kFloat) : fortmat_self;

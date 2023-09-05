@@ -23,7 +23,7 @@
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -51,7 +51,7 @@ DropOutStatus get_dropout_status(double keep_prob) {
 at::Tensor format_trans(const at::Tensor &at_tensor) {
   if (at_tensor.defined()) {
     TORCH_CHECK(at_npu::key::isDeviceTensor(at_tensor), "only npu tensor is supported");
-    return NPUNativeFunctions::npu_format_cast(at_tensor, ACL_FORMAT_ND);
+    return custom_ops::npu_format_cast(at_tensor, ACL_FORMAT_ND);
   }
   return at_tensor;
 }
