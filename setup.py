@@ -25,6 +25,7 @@ from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '2.1.0'
+UNKNOWN = "Unknown"
 DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
@@ -47,7 +48,8 @@ def generate_torch_npu_version():
     sha = get_sha(torch_npu_root)
     if os.getenv("BUILD_WITHOUT_SHA") is None:
         global VERSION
-        VERSION += "+git" + sha[:7]
+        if sha != UNKNOWN:
+            VERSION += "+git" + sha[:7]
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
         f.write("git_version = {}\n".format(repr(sha)))
