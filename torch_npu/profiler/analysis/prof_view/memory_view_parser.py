@@ -95,7 +95,7 @@ class MemoryViewParser(BaseViewParser):
                                   cur_record.total_reserved, cur_record.device_tag]
         return [cur_record_list, pta_ge_record_list]
 
-    def generate_view(self: any, output_path: str) -> None:
+    def generate_view(self: any, output_path: str, **kwargs) -> None:
         self._add_memory_from_cann()
         self._add_pta_memory_data()
         self._add_pta_ge_record_data()
