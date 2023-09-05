@@ -16,6 +16,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -93,7 +94,7 @@ vector<at::Tensor> NPUNativeFunctions::where(const at::Tensor& condition) {
   at::Tensor formatCastOfCondition = condition;
   if (torch_npu::NPUBridge::GetNpuStorageImpl(condition)->npu_desc_.npu_format_ !=
     ACL_FORMAT_ND) {
-    formatCastOfCondition = NPUNativeFunctions::npu_format_cast(formatCastOfCondition, ACL_FORMAT_ND);
+    formatCastOfCondition = custom_ops::npu_format_cast(formatCastOfCondition, ACL_FORMAT_ND);
   }
   if (condition.scalar_type() == at::ScalarType::Half) {
     formatCastOfCondition = NPUNativeFunctions::npu_dtype_cast(formatCastOfCondition, at::ScalarType::Float);

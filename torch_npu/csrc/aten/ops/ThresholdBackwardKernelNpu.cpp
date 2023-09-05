@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu
 {
@@ -73,7 +74,7 @@ namespace at_npu
            ACL_FORMAT_NC1HWC0))
       {
         at::Tensor grad_output_5HD =
-            NPUNativeFunctions::npu_format_cast(grad_output, ACL_FORMAT_NC1HWC0);
+            custom_ops::npu_format_cast(grad_output, ACL_FORMAT_NC1HWC0);
         threshold_backward_out_npu(result, grad_output_5HD, self, threshold);
         return result;
       }

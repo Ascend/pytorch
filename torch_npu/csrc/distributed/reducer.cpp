@@ -31,6 +31,7 @@
 #include <torch/csrc/utils/memory.h>
 #include <torch/csrc/distributed/c10d/debug.h>
 
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -374,7 +375,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
           // make sure grad has the same format as variable
           if (torch_npu::NPUBridge::GetNpuStorageImpl(grad)->npu_desc_.npu_format_ !=
                 torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_) {
-            grad = at_npu::native::NPUNativeFunctions::npu_format_cast(grad,
+            grad = at_npu::native::custom_ops::npu_format_cast(grad,
                 torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
           }
           if (comm_hook_ == nullptr) {

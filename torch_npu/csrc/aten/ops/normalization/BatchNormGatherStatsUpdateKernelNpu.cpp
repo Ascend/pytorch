@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -34,9 +35,9 @@ std::tuple<at::Tensor &, at::Tensor &> batch_norm_gather_stats_update_npu_impl(
   at::Tensor counts_cp = counts.scalar_type() == at::kInt ? counts : NPUNativeFunctions::npu_dtype_cast(counts, at::kInt);
 
   auto running_mean_dtype = running_mean.scalar_type();
-  at::Tensor running_mean_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_mean.defined() ? 
+  at::Tensor running_mean_ = NPUNativeFunctions::npu_dtype_cast(custom_ops::npu_format_cast((running_mean.defined() ? 
       running_mean : at::zeros({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
-  at::Tensor running_var_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_var.defined() ? 
+  at::Tensor running_var_ = NPUNativeFunctions::npu_dtype_cast(custom_ops::npu_format_cast((running_var.defined() ? 
       running_var : at::ones({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
 
   OpCommand cmd;

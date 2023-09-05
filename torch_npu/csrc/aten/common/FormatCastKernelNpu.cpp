@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -102,7 +103,7 @@ at::Tensor NPUNativeFunctions::npu_format_cast(
   torch_npu::utils::torch_check_npu(dst);
   auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   int64_t dst_format = dst_desc.npu_format_;
-  return NPUNativeFunctions::npu_format_cast(src, dst_format);
+  return custom_ops::npu_format_cast(src, dst_format);
 }
 
 // conver self to acl_format, write the result into self
@@ -139,29 +140,10 @@ int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
   return src_desc.npu_format_;
 }
 
-class NPUFormatCastFunction : public torch::autograd::Function<NPUFormatCastFunction> {
-public:
-  static at::Tensor forward(AutogradContext *ctx,
-      const at::Tensor& self,
-      int64_t acl_format) {
-  ctx->saved_data["acl_format"] = acl_format;
-  at::AutoNonVariableTypeMode g;
-  return npu_format_cast_impl(self, acl_format);
-  }
-
-  static tensor_list backward(AutogradContext *ctx,
-      tensor_list grad_outputs) {
-    auto acl_format = ctx->saved_data["acl_format"].toInt();
-    at::Tensor result = grad_outputs[0];
-    tensor_list output = {result, at::Tensor()};
-    return output;
-  }
-};
-
 at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self,
     int64_t acl_format) {
   torch_npu::utils::torch_check_npu(self);
-  return NPUFormatCastFunction::apply(self, acl_format);
+  return npu_format_cast_impl(self, acl_format);
 }
 
 } // namespace native
