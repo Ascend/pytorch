@@ -735,6 +735,40 @@ at::Tensor NPUNativeFunctions::full(
   return result.fill_(fill_value);
 }
 
+at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, const at::Scalar& fill_value, at::Tensor& out) {
+  OpPreparation::CheckOut(
+      {},
+      out,
+      out,
+      size);
+  out.fill_(fill_value);
+  return out;
+}
+
+at::Tensor NPUNativeFunctions::full(
+    at::IntArrayRef size,
+    const at::Scalar& fill_value,
+    c10::optional<at::DimnameList> names,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<at::Layout> layout_opt,
+    c10::optional<at::Device> device_opt,
+    c10::optional<bool> pin_memory_opt) {
+  c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
+      .device(device_opt).layout(layout_opt).pinned_memory(pin_memory_opt);
+  at::Tensor result = OpPreparation::apply_tensor_with_sizes(size, option);
+
+  if (!dtype_opt.has_value()) {
+    if (fill_value.isBoolean()) {
+      option = option.dtype(at::kBool);
+    } else if (fill_value.isIntegral(false)) {
+      option = option.dtype(at::kLong);
+    } else {
+      option = option.dtype(c10::get_default_dtype());
+    }
+  }
+  return result.fill_(fill_value);
+}
+
 at::Tensor NPUNativeFunctions::tril_indices(
     int64_t row,
     int64_t col,
