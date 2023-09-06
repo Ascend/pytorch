@@ -134,13 +134,20 @@ def compute_register_symbol(f: NativeFunction):
             ['Tensor'] * out_num) + ')'
     else:
         func_schema = str(f.func)
-    return [f'm.def({cpp_string(func_schema)});\n']
+    if f.has_composite_explicit_autograd_kernel:
+        name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
+        return [f'm.def({cpp_string(func_schema)}, TORCH_FN(at_npu::native::{name}));\n']
+    else:
+        return [f'm.def({cpp_string(func_schema)});\n']
 
 
 @with_native_function
 def compute_register_impl(f: NativeFunction):
-    name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
-    return [f'm.impl("{f.func.name}", TORCH_FN(at_npu::native::{name}));\n']
+    if f.has_composite_explicit_autograd_kernel:
+        return []
+    else:
+        name = DispatcherSignature.from_schema(f.func, prefix=f'wrapper_{f.func.name.overload_name}_').name()
+        return [f'm.impl("{f.func.name}", TORCH_FN(at_npu::native::{name}));\n']
 
 
 def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
