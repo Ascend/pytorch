@@ -253,7 +253,7 @@ class CPPLibBuild(build_clib, object):
             if check_opplugin_codegen(BASE_DIR):
                 cmake_args.append('-DBUILD_NEW_HEADER=on')
 
-        if not DISABLE_TORCHAIR:
+        if DISABLE_TORCHAIR == 'FALSE':
             if check_torchair_valid(BASE_DIR):
                 cmake_args.append('-DBUILD_TORCHAIR=on')
                 torchair_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/dynamo/torchair")
