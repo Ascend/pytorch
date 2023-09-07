@@ -37,22 +37,22 @@ def wrapper_cuda(fn):
         if kwargs:
             for device_arg in device_kwargs_list: 
                 device = kwargs.get(device_arg, None)
-                if isinstance(device, str) and 'cuda' in device:
+                if type(device) == str and 'cuda' in device:
                     kwargs[device_arg] = device.replace('cuda', 'npu')
-                if isinstance(device, torch.device) and 'cuda' in device.type:
+                if type(device) == torch.device and 'cuda' in device.type:
                     device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                     kwargs[device_arg] = torch.device(device_info)
-                if isinstance(device, int):
+                if type(device) == int:
                     kwargs[device_arg] = f'npu:{device}'
-            if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
-                                                                         torch_npu.profiler._ExperimentalConfig):
+            if 'experimental_config' in kwargs.keys() and \
+                type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
                     'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
                     'because it can only be used in cuda, please manually modify the code '
                     'and use the experimental_config parameter adapted to npu.')
                 del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
-            if isinstance(device_ids, list):
+            if type(device_ids) == list:
                 device_ids = replace_cuda_to_npu_in_list(device_ids, replace_int)
         return fn(*args, **kwargs)
 
@@ -61,12 +61,12 @@ def wrapper_cuda(fn):
 
 def replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
-        if isinstance(arg, str) and 'cuda' in arg:
+        if type(arg) == str and 'cuda' in arg:
             args_list[idx] = arg.replace('cuda', 'npu')
-        if isinstance(arg, torch.device) and 'cuda' in arg.type:
+        if type(arg) == torch.device and 'cuda' in arg.type:
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
             args_list[idx] = torch.device(device_info)
-        if replace_int and not isinstance(arg, bool) and isinstance(arg, int):
+        if replace_int and type(arg) != bool and type(arg) == int:
             args_list[idx] = f'npu:{arg}'
     return args_list
 
@@ -84,11 +84,11 @@ def wrapper_hccl(fn):
         if args:
             args_new = list(args)
             for idx, arg in enumerate(args_new):
-                if isinstance(arg, str) and 'nccl' in arg:
+                if type(arg) == str and 'nccl' in arg:
                     args_new[idx] = arg.replace('nccl', 'hccl')
             args = args_new
         if kwargs:
-            if isinstance(kwargs.get('backend', None), str):
+            if type(kwargs.get('backend', None)) == str:
                 kwargs['backend'] = 'hccl'
         return fn(*args, **kwargs)
 
@@ -103,7 +103,7 @@ def wrapper_data_loader(fn):
             pin_memory_device = kwargs.get('pin_memory_device', None)
             if pin_memory and not pin_memory_device:
                 kwargs['pin_memory_device'] = 'npu'
-            if pin_memory and isinstance(pin_memory_device, str) and 'cuda' in pin_memory_device:
+            if pin_memory and type(pin_memory_device) == str and 'cuda' in pin_memory_device:
                 kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
         return fn(*args, **kwargs)
 
