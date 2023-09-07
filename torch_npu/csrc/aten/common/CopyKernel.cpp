@@ -29,6 +29,7 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -64,7 +65,8 @@ void copy_d2d_last_method(
     bool same_type,
     bool non_blocking) {
   // general copy method but Low performance
-  copy_kernel_npu(self, src, non_blocking);
+  RECORD_FUNCTION("contiguous_d_ViewCopy", std::vector<c10::IValue>({src}));
+  custom_ops::npu_view_copy(self, src, non_blocking);
 }
 
 // the dst and src are same format now
@@ -94,7 +96,7 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
 
 void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (self.dtype() != src.dtype()) {
-    NPUNativeFunctions::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
+    custom_ops::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
     return;
   }
   copy_d2d_dtype(self, src, non_blocking);
@@ -298,7 +300,8 @@ void copy_d2d_dtype_baseformat(
       return;
     } else {
       // General trans-contiguous method
-      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+      RECORD_FUNCTION("contiguous_d_AsStrided", std::vector<c10::IValue>({src}));
+      custom_ops::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
       return;
     }
   } else {
@@ -310,7 +313,8 @@ void copy_d2d_dtype_baseformat(
         return;
       }
       // General trans-contiguous method
-      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+      RECORD_FUNCTION("contiguous_d_AsStrided", std::vector<c10::IValue>({src}));
+      custom_ops::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
       return;
     }
     // Contiguous source tensor copy to contiguous self tensor

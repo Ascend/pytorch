@@ -3,6 +3,8 @@
 #include "torch_npu/csrc/profiler/utils.h"
 #endif
 
+#include "op_plugin/OpInterface.h"
+
 namespace at_npu {
 namespace native {
 
@@ -23,7 +25,7 @@ at::Tensor wrapper___embedding_bag_dense_backward(
 torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::_embedding_bag_dense_backward(
+  return op_plugin::_embedding_bag_dense_backward(
       grad, indices, offset2bag, bag_size, maximum_indices, num_weights,
       scale_grad_by_freq, mode, per_sample_weights, padding_idx);
 }
@@ -39,7 +41,7 @@ at::Tensor wrapper__nan_to_num(
   torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::nan_to_num(self, nan, posinf, neginf);
+  return op_plugin::nan_to_num(self, nan, posinf, neginf);
 }
 
 at::Tensor& wrapper_out_nan_to_num_out(
@@ -54,7 +56,7 @@ at::Tensor& wrapper_out_nan_to_num_out(
   torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::nan_to_num_out(self, nan, posinf, neginf, out);
+  return op_plugin::nan_to_num_out(self, nan, posinf, neginf, out);
 }
 
 at::Tensor& wrapper__nan_to_num_(
@@ -68,7 +70,7 @@ at::Tensor& wrapper__nan_to_num_(
   torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::nan_to_num_(self, nan, posinf, neginf);
+  return op_plugin::nan_to_num_(self, nan, posinf, neginf);
 }
 
 at::Tensor wrapper__argmin(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
@@ -77,7 +79,7 @@ at::Tensor wrapper__argmin(const at::Tensor & self, c10::optional<int64_t> dim, 
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
 #endif
-  return at_npu::native::NPUNativeFunctions::argmin(self, dim, keepdim);
+  return op_plugin::argmin(self, dim, keepdim);
 }
 at::Tensor wrapper__argmax(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
   // No device check
@@ -85,7 +87,7 @@ at::Tensor wrapper__argmax(const at::Tensor & self, c10::optional<int64_t> dim, 
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
 #endif
-  return at_npu::native::NPUNativeFunctions::argmax(self, dim, keepdim);
+  return op_plugin::argmax(self, dim, keepdim);
 }
 
 

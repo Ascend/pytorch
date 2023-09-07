@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -152,7 +151,7 @@ class TestDivide(TestCase):
             npu_output = self.npu_op_exec_mode(npu_input1, npu_input2, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
             # divide_out
-            cpu_out, npu_out = create_common_tensor(item[2], 1, 100)
+            _, npu_out = create_common_tensor(item[2], 1, 100)
             npu_output_out = self.npu_op_exec_mode_out(npu_input1, npu_input2, npu_out, item[3])
             self.assertRtolEqual(cpu_output, npu_output_out)
             # divide_
@@ -166,8 +165,6 @@ class TestDivide(TestCase):
             [[np.float16, 0, (2, 20, 16)], 72.2, 'floor'],
             [[np.float16, 0, (2, 20, 16)], -5.4, 'trunc'],
             [[np.float16, 0, (3, 20, 16)], -45.3, None],
-            [[np.int32, 0, (20, 16)], 15.9, 'floor'],
-            [[np.int32, 0, (20, 16)], 17.2, 'trunc'],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -178,6 +175,18 @@ class TestDivide(TestCase):
             # divide_
             npu_output_inp = self.npu_op_exec_mode_inp(npu_input, item[1], item[2])
             self.assertRtolEqual(cpu_output, npu_output_inp)
+
+    def test_divide_scalar_mode_error(self):
+        shape_format = [
+            [[np.int32, 0, (20, 16)], 15.9, 'floor'],
+            [[np.int32, 0, (20, 16)], 17.2, 'trunc'],
+        ]
+        for item in shape_format:
+            _, npu_input = create_common_tensor(item[0], 1, 100)
+            try:
+                npu_input.divide_(item[1], rounding_mode=item[2])
+            except RuntimeError as e:
+                self.assertRegex(str(e), "result type Float can't be cast to the desired output type Int")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -136,8 +137,7 @@ private:
                   temp_src.strides());
 
     // call StridedSlice op
-    NPUNativeFunctions::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0,
-                                         0, self);
+    custom_ops::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0, 0, self);
 
     return;
   }
