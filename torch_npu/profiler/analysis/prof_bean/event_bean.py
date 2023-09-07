@@ -17,7 +17,7 @@ from ..prof_common_func.constant import Constant
 
 
 class EventBean:
-    ACL_TO_NPU = "acl_to_npu"
+    HOST_TO_DEVICE = "HostToDevice"
     START_FLOW = "s"
     END_FLOW = "f"
 
@@ -60,10 +60,10 @@ class EventBean:
         return False
 
     def is_flow_start_event(self) -> bool:
-        return self._origin_data.get("name") == self.ACL_TO_NPU and self._origin_data.get("ph") == self.START_FLOW
+        return self._origin_data.get("cat") == self.HOST_TO_DEVICE and self._origin_data.get("ph") == self.START_FLOW
 
     def is_flow_end_event(self) -> bool:
-        return self._origin_data.get("name") == self.ACL_TO_NPU and self._origin_data.get("ph") == self.END_FLOW
+        return self._origin_data.get("cat") == self.HOST_TO_DEVICE and self._origin_data.get("ph") == self.END_FLOW
 
     def is_x_event(self) -> bool:
         return self._origin_data.get("ph") == "X"
