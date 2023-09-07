@@ -1,12 +1,8 @@
 #include "torch_npu/csrc/libs/init_npu.h"
-#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
-#include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 
 
 namespace torch_npu {
@@ -38,35 +34,26 @@ void init_npu(const at::Device& device) {
   init_npu(device.index());
 }
 
+} // namespace torch_npu
 
-void finalize_npu() {
-  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-    try {
-      c10_npu::npuSynchronizeDevice();
-    } catch (std::exception& e) {
-      TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what());
-    }
-    at_npu::native::GraphExecutor::GetInstance().Finalize();
-    at_npu::native::TdtChannelForPrint::GetInstance().Finalize();
 
-    THNPUCachingHostAllocator_emptyCache();
-    try {
-      c10_npu::NPUCachingAllocator::emptyCache();
-    } catch (std::exception& e) {
-      TORCH_CHECK(false, "NPU CachingAllocator::emptyCache failed err=:%s", e.what());
-    }
 
-    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
-    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
-      TORCH_CHECK(false, "NPU sys finalize failed.\n");
-    }
-  } else {
-    TORCH_NPU_WARN("Please init npu device first!");
-  }
+namespace torch {
+namespace npu {
+
+void synchronize(int64_t device_index) {
+  c10_npu::NPUGuard device_guard(at::Device(at::DeviceType::PrivateUse1, device_index));
+  c10_npu::npuSynchronizeDevice();
 }
 
+} // namespace npu
+} // namespace torch
 
-c10::DeviceIndex current_device() {
+
+namespace c10 {
+namespace npu {
+
+DeviceIndex current_device() {
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     int device;
     aclrtGetDevice(&device);
@@ -77,8 +64,5 @@ c10::DeviceIndex current_device() {
   }
 }
 
-bool npuSynchronizeDevice(bool check_error) {
-  c10_npu::npuSynchronizeDevice(check_error);
-}
-
-} // namespace torch_npu
+} // namespace npu
+} // namespace c10
