@@ -45,6 +45,9 @@ public:
   // cast format
   static at::Tensor cast_to_ori_format(const at::Tensor &tensor);
   static at::Tensor &cast_to_ori_format(at::Tensor &tensor);
+
+  static int8_t get_cube_math_type(bool allowHf32);
+
   // used to apply output tensor
   static at::Tensor apply_tensor(const at::Tensor &src);
   static at::Tensor apply_tensor(const at::Tensor &src, c10::IntArrayRef sizes);
