@@ -61,10 +61,6 @@ function parse_script_args() {
             args_num=$((args_num-1))
             shift
             ;;
-        --enable_submodule)
-            UPDATE_SUBMODULE=TRUE
-            shift
-            ;;
         -*)
             echo "ERROR Unsupported parameters: ${1}"
             return 1
@@ -99,10 +95,6 @@ function check_python_version() {
     fi
 }
 
-function update_submodule() {
-    git submodule init &&git submodule update
-}
-
 function main()
 {
     if ! parse_script_args "$@"; then
@@ -130,8 +122,6 @@ function main()
             sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${cmake_file}
         fi
     done
-
-    update_submodule
 
     cd ${CUR_DIR}/..
     # if you add or delete file/files in the project, you need to remove the following comment

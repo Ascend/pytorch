@@ -24,6 +24,7 @@ import subprocess
 import sys
 import traceback
 import platform
+import time
 from pathlib import Path
 from typing import Union
 
@@ -39,8 +40,49 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '2.0.1.rc1'
 UNKNOWN = "Unknown"
+
+def get_submodule_folders():
+    git_modules_path = os.path.join(BASE_DIR, ".gitmodules")
+    default_modules_path = [
+        os.path.join(THIRD_PARTY_PATH, name)
+        for name in [
+            "op-plugin",
+        ]
+    ]
+    if not os.path.exists(git_modules_path):
+        return default_modules_path
+    with open(git_modules_path) as f:
+        return [
+            os.path.join(BASE_DIR, line.split("=", 1)[1].strip())
+            for line in f.readlines()
+            if line.strip().startswith("path")
+        ]
+
+def check_submodules():
+    def not_exists_or_empty(folder):
+        return not os.path.exists(folder) or (
+            os.path.isdir(folder) and len(os.listdir(folder)) == 0
+        )
+
+    folders = get_submodule_folders()
+    # If none of the submodule folders exists, try to initialize them
+    if all(not_exists_or_empty(folder) for folder in folders):
+        try:
+            print(" --- Trying to initialize submodules")
+            start = time.time()
+            subprocess.check_call(["git", "submodule", "init"], cwd=BASE_DIR)  # Compliant
+            subprocess.check_call(["git", "submodule", "update"], cwd=BASE_DIR)  # Compliant
+            end = time.time()
+            print(f" --- Submodule initialization took {end - start:.2f} sec")
+        except Exception:
+            print(" --- Submodule initalization failed")
+            print("Please run:\n\tgit submodule init && git submodule update")
+            sys.exit(1)
+
+check_submodules()
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
@@ -62,8 +104,7 @@ def generate_torch_npu_version():
     if os.getenv("BUILD_WITHOUT_SHA") is None:
         global VERSION
         sha = get_sha(torch_npu_root)
-        if sha != UNKNOWN:
-            VERSION += "+git" + sha[:7]
+        VERSION += "+git" + sha[:7]
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
 
