@@ -3,7 +3,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -20,8 +19,7 @@ class TestMean(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
-    @graph_mode
+
     def test_mean_shape_format(self):
         shape_format = [
                  [[np.float32, 3, (256, 1280, 7, 7)],  torch.float32],

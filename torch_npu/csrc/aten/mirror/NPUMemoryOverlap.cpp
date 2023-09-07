@@ -14,10 +14,6 @@ MemOverlap has_internal_overlap(at::TensorImpl* t) {
     return MemOverlap::NO;
   }
 
-  if (t->storage().data() == nullptr) {
-    return MemOverlap::IS_NULL;
-  }
-
   auto strides = t->strides();
   auto sizes = t->sizes();
   for (size_t i = 0; i < strides.size(); ++i) {
@@ -46,9 +42,6 @@ MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b) {
 
 MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImpl* b) {
   if (a == b) return MemOverlapStatus::FULL;
-  if (a->storage().data() == nullptr || b->storage().data() == nullptr) {
-    return MemOverlapStatus::IS_NULL;
-  }
   if (a->numel() == 0 || b->numel() == 0) {
     return MemOverlapStatus::NO;
   }

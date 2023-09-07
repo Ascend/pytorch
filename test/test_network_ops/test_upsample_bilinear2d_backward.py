@@ -3,7 +3,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestUpsampleBilinear2dBackward(TestCase):
@@ -41,7 +40,6 @@ class TestUpsampleBilinear2dBackward(TestCase):
         grad = grad.to("cpu")
         return out.detach().numpy(), grad.detach().numpy()
 
-    @graph_mode
     def test_UpsampleBilinear2d_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, (4, 3, 1, 5)], (2, 2)],
@@ -63,7 +61,6 @@ class TestUpsampleBilinear2dBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    @graph_mode
     def test_UpsampleBilinear2d_common_scale_shape_format(self):
         shape_format = [
             [[np.float32, -1, (4, 3, 1, 5)], (2, 2)],

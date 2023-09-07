@@ -6,8 +6,7 @@ FILE(GLOB _ATEN_SRCS
     ops/convolution/*.cpp
     ops/loss/*.cpp
     ops/normalization/*.cpp
-    ops/pooling/*.cpp
-    ops/hcom/*.cpp)
+    ops/pooling/*.cpp)
 
 FILE(GLOB _EXCLUDE
     VariableTypeEverything.cpp

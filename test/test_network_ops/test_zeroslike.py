@@ -3,7 +3,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -19,7 +18,6 @@ class TestZerosLike(TestCase):
         output = output.numpy()
         return output
 
-    @graph_mode
     def test_zeroslike_fp32(self):
         format_list = [0, 3, 29]
         shape_list = [1, (1000, 1280), (32, 3, 3), (32, 144, 1, 1)]
@@ -32,7 +30,6 @@ class TestZerosLike(TestCase):
             npu_output = self.npu_op_exec(npu_input, torch.float32)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_zeroslike_fp16(self):
         format_list = [0, 3, 29]
         shape_list = [1, (1000, 1280), (32, 3, 3), (32, 144, 1, 1)]
