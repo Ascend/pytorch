@@ -84,4 +84,5 @@ void aclAppLog(aclLogLevel logLevel, const char *func, const char *file, uint32_
 aclError aclrtSetExceptionInfoCallback(aclrtExceptionInfoCallback callback) {return 0;}
 aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {return 0;}
 aclError aclrtResetEvent(aclrtEvent event, aclrtStream stream){return 0;}
+aclError aclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {return 0;};
 }

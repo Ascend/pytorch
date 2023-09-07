@@ -186,6 +186,15 @@ class TorchNPUApiTestCase(TestCase):
         res = s.wait_event(e)
         self.assertIsNone(res)
 
+    def test_npu_stream_query(self):
+        t = torch.ones(4096, 4096).npu()
+        s = torch_npu.npu.current_stream()
+        # .npu() is synchronous interface, all the work has been completed.
+        self.assertEqual(s.query(), True)
+        t = torch.ones(4096, 4096, device='npu')
+        # .ones() op asynchronous execution，work is not completed when Stream.query()
+        self.assertEqual(s.query(), False)
+
     def test_npu_event(self):
         res = torch_npu.npu.Event(enable_timing=True, blocking=True, interprocess=True)
         self.assertIsInstance(res, torch_npu.npu.Event)
