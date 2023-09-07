@@ -51,14 +51,15 @@ class FwkCANNRelationParser:
                 if dequeue_data_list[index].ts > acl_start_time:
                     break
                 if acl_start_time <= dequeue_data_list[index].ts + dequeue_data_list[index].dur:
-                    corr_id_dict[dequeue_data_list[index].corr_id] = acl_start_time
-                    index += 1
+                    corr_id_dict.setdefault(dequeue_data_list[index].corr_id, []).append(acl_start_time)
                     break
                 index += 1
 
         for enqueue_data in enqueue_data_list:
-            acl_start_time = corr_id_dict.get(enqueue_data.corr_id)
-            kernel_list = acl_to_npu_dict.get(acl_start_time, [])
+            acl_start_time_list = corr_id_dict.get(enqueue_data.corr_id, [])
+            kernel_list = []
+            for acl_start_time in acl_start_time_list:
+                kernel_list.extend(acl_to_npu_dict.get(acl_start_time, []))
             if not kernel_list:
                 continue
             TreeBuilder.find_call_node(enqueue_data.ts, NodeInfoBean(acl_start_time, kernel_list), root_node)
