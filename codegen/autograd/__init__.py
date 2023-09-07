@@ -4,7 +4,6 @@ from typing import List, Dict
 import torchgen.gen
 from torchgen.api.autograd import NativeFunctionWithDifferentiabilityInfo
 
-import codegen
 from torchgen.packaged.autograd.gen_inplace_or_view_type import gen_inplace_or_view_type_env
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 from codegen.utils import CUSTOM_YAML_NAME

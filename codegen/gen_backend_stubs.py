@@ -42,7 +42,8 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
                            parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path)
-from codegen.custom_functions import parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch, gen_custom_functions
+from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch, 
+                                      gen_custom_functions_dispatch)
 
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
@@ -590,10 +591,10 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
 
         template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
         fm = FileManager(install_dir=output_dir, template_dir=template_dir, dry_run=dry_run)
-        custom_trace_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
-        gen_custom_trace(fm, custom_trace_functions)
+        custom_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
 
-        gen_custom_functions(fm, custom_trace_functions)
+        gen_custom_trace(fm, custom_functions)
+        gen_custom_functions_dispatch(fm, custom_functions)
 
         gen_foreach_register(fm,
                              tags_yaml_path,
@@ -603,7 +604,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
 
         custom_ops_patch_dir = os.path.join(output_dir, "../../utils/")
         fm = FileManager(install_dir=custom_ops_patch_dir, template_dir=template_dir, dry_run=dry_run)
-        gen_custom_ops_patch(fm, custom_trace_functions)
+        gen_custom_ops_patch(fm, custom_functions)
 
 
 def apply_torchgen_patch():

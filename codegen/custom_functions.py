@@ -8,7 +8,7 @@ from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager, cpp_string, 
 from torchgen.model import (BackendIndex, DispatchKey, Location, Variant,
                             NativeFunction, OperatorName, BackendMetadata)
 from torchgen.utils import concatMap, context
-from torchgen.context import with_native_function
+from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
 from torchgen.packaged.autograd.gen_trace_type import type_wrapper_name
@@ -25,7 +25,7 @@ ${return_type} ${func_name}(${args_str});
 CUSTOM_FUNCTIONS_DEFINITION = CodeTemplate("""\
 ${return_type} ${func_name}(${args_str}) {
     static auto op = c10::Dispatcher::singleton().findSchemaOrThrow("npu::${base_name}", "${overload}").typed<${schema}>();
-    return op.call(${args_exprs_str});
+    return op.${func_type}(${args_exprs_str});
 }
 """)
 
@@ -168,51 +168,65 @@ def gen_custom_ops_patch(fm: FileManager, custom_trace_functions: Sequence[Nativ
     })
 
 
-@with_native_function
-def compute_custom_functions_declaration(f: NativeFunction):
-    sig = DispatcherSignature.from_schema(f.func)
-    name = sig.name()
-    args = sig.arguments()
-    args_str = ', '.join(a.defn() for a in args)
-    return [CUSTOM_FUNCTIONS_DECLARATION.substitute(
-            return_type=cpp.returns_type(f.func.returns).cpp_type(),
-            func_name=name,
-            args_str=args_str,)]
+def compute_custom_functions_declaration(f: NativeFunction, func_type: str):
+    with native_function_manager(f):
+        sig = DispatcherSignature.from_schema(f.func)
+        name = sig.name()
+        args = sig.arguments()
+        if func_type == 'call':
+            args_str = ', '.join(a.defn() for a in args)
+        if func_type == 'redispatch':
+            args_str = 'c10::DispatchKeySet dispatchKeySet, ' + ', '.join(a.defn() for a in args)
+
+        return [CUSTOM_FUNCTIONS_DECLARATION.substitute(
+                return_type=cpp.returns_type(f.func.returns).cpp_type(),
+                func_name=name,
+                args_str=args_str,)]
 
 
-@with_native_function
-def compute_custom_functions_definition(f: NativeFunction):
-    sig = DispatcherSignature.from_schema(f.func)
-    name = sig.name()
-    args = sig.arguments()
-    args_str = ', '.join(a.defn() for a in args)
-    args_exprs_str = ', '.join(a.name for a in args)
-    return [CUSTOM_FUNCTIONS_DEFINITION.substitute(
-            return_type=cpp.returns_type(f.func.returns).cpp_type(),
-            base_name=f.func.name.name,
-            func_name=name,
-            overload=f.func.name.overload_name,
-            args_str=args_str,
-            schema=sig.type(),
-            args_exprs_str=args_exprs_str,)]
+def compute_custom_functions_definition(f: NativeFunction, func_type: str):
+    with native_function_manager(f):
+        sig = DispatcherSignature.from_schema(f.func)
+        name = sig.name()
+        args = sig.arguments()
+        if func_type == 'call':
+            args_str = ', '.join(a.defn() for a in args)
+            args_exprs_str = ', '.join(a.name for a in args)
+        if func_type == 'redispatch':
+            args_str = 'c10::DispatchKeySet dispatchKeySet, ' + ', '.join(a.defn() for a in args)
+            args_exprs_str = 'dispatchKeySet, ' + ', '.join(a.name for a in args)
+
+        return [CUSTOM_FUNCTIONS_DEFINITION.substitute(
+                return_type=cpp.returns_type(f.func.returns).cpp_type(),
+                base_name=f.func.name.name,
+                func_name=name,
+                overload=f.func.name.overload_name,
+                args_str=args_str,
+                func_type=func_type,
+                schema=sig.type(),
+                args_exprs_str=args_exprs_str,)]
 
 
-def gen_custom_functions(
+def gen_custom_functions_dispatch(
     fm: FileManager,
     custom_functions: Sequence[NativeFunction]
 ) -> None:
-    fm.write_with_template(
-    f'CustomFunctions.h', 'CustomFunctions.h', lambda:{
-    'custom_function_declarations':list(concatMap(
-        lambda f: compute_custom_functions_declaration(f),
-        custom_functions
-        ))}
-    )
+    func_type_list = ['call', 'redispatch']
+    file_name_list = ['CustomFunctions', 'CustomRedispatch']
 
-    fm.write_with_template(
-        f'CustomFunctions.cpp', 'CustomFunctions.cpp', lambda:{
-        'custom_function_definitions':list(concatMap(
-            lambda f: compute_custom_functions_definition(f),
+    for func_type, file_name in zip(func_type_list, file_name_list):
+        fm.write_with_template(
+        f'{file_name}.h', f'{file_name}.h', lambda:{
+        'custom_function_declarations':list(concatMap(
+            lambda f: compute_custom_functions_declaration(f, func_type),
             custom_functions
-        ))}
-    )
+            ))}
+        )
+
+        fm.write_with_template(
+        f'{file_name}.cpp', f'{file_name}.cpp', lambda:{
+        'custom_function_definitions':list(concatMap(
+            lambda f: compute_custom_functions_definition(f, func_type),
+            custom_functions
+            ))}
+        )
