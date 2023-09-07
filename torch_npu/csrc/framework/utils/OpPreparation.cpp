@@ -395,6 +395,11 @@ namespace at_npu
       CalcuOpUtil::CheckMemoryOverLaps(in, out);
     }
 
+    int8_t OpPreparation::get_cube_math_type(bool allowHf32)
+    {
+      return CalcuOpUtil::GetCubeMathType(allowHf32);
+    }
+
     at::Tensor OpPreparation::cast_to_ori_format(const at::Tensor &tensor)
     {
       auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
