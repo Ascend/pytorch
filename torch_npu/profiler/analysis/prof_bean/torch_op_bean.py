@@ -1,6 +1,7 @@
 import struct
 from enum import Enum
 
+from ..profiler_config import ProfilerConfig
 from ..prof_common_func.constant import Constant
 
 
@@ -45,12 +46,13 @@ class TorchOpBean:
 
     @property
     def ts(self) -> float:
-        return int(self._constant_data[TorchOpEnum.START_NS.value]) / 1000.0
+        ts = int(self._constant_data[TorchOpEnum.START_NS.value]) / Constant.NS_TO_US
+        return ProfilerConfig().get_local_time(ts)
 
     @property
     def dur(self) -> float:
         return (int(self._constant_data[TorchOpEnum.END_NS.value]) - int(
-            self._constant_data[TorchOpEnum.START_NS.value])) / 1000.0
+            self._constant_data[TorchOpEnum.START_NS.value])) / Constant.NS_TO_US
 
     @property
     def args(self) -> dict:

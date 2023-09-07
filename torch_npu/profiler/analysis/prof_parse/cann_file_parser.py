@@ -34,17 +34,25 @@ class CANNFileParser:
     TIMELINE = "timeline"
     ANALYZE = "analyze"
     CANN_DATA_MATCH = {
-        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv"],
-        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv"],
+        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv",
+                                  r"^op_summary_\d_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv",
+                                  r"^npu_mem_\d_\d+_\d+_\d+\.csv"],
         CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d_\d+\.json", r"^msprof_\d_\d+_\d+\.json",
-                                       r"^msprof_\d_\d+_slice_\d+\.json", r"^msprof_\d_\d+_\d+_slice_\d+\.json"],
-        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv"],
+                                       r"^msprof_\d_\d+_\d+_\d+\.json", r"^msprof_\d_\d+_slice_\d+\.json",
+                                       r"^msprof_\d_\d+_\d+_slice_\d+\.json",
+                                       r"^msprof_\d_\d+_\d+_slice_\d+_\d+\.json"],
+        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv",
+                                  r"^step_trace_\d_\d+_\d+_\d+\.csv"],
         CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d_\d+\.csv", r"^ge_memory_record_\d_\d+_\d+\.csv",
-                                        r"^memory_record_\d_\d+\.csv", r"^memory_record_\d_\d+_\d+\.csv"],
+                                        r"^ge_memory_record_\d_\d+_\d+_\d+\.csv", r"^memory_record_\d_\d+\.csv",
+                                        r"^memory_record_\d_\d+_\d+\.csv", r"^memory_record_\d_\d+_\d+_\d+\.csv"],
         CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d_\d+\.csv", r"^ge_operator_memory_\d_\d+_\d+\.csv",
-                                          r"^operator_memory_\d_\d+\.csv", r"^operator_memory_\d_\d+_\d+\.csv"],
-        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d_\d+\.csv", r"^l2_cache_\d_\d+_\d+\.csv"],
-        CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv"],
+                                          r"^ge_operator_memory_\d_\d+_\d+_\d+\.csv", r"^operator_memory_\d_\d+\.csv",
+                                          r"^operator_memory_\d_\d+_\d+\.csv", r"^operator_memory_\d_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d_\d+\.csv", r"^l2_cache_\d_\d+_\d+\.csv",
+                                r"^l2_cache_\d_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv", r"^aicpu_\d_\d+_\d+_\d+\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"]
     }
@@ -80,9 +88,15 @@ class CANNFileParser:
             return {}
         return data
 
-    def export_cann_profiling(self):
+    @staticmethod
+    def _get_data_simplification_cmd(data_simplification: bool):
+        switch = "on" if data_simplification else "off"
+        return f"--clear={switch}"
+
+    def export_cann_profiling(self, data_simplification: bool):
         if not os.path.isdir(self._cann_path):
             return
+
         completed_process = subprocess.run(["msprof", "--export=on", f"--output={self._cann_path}"],
                                            capture_output=True)
         if completed_process.returncode != self.COMMAND_SUCCESS:
@@ -90,10 +104,7 @@ class CANNFileParser:
                 f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and set-env.sh "
                 f"is sourced. or you can execute the command to confirm the CANN Profiling export result: "
                 f"msprof --export=on --output={self._cann_path}")
-        completed_analysis = subprocess.run(["msprof", "--analyze=on", f"--output={self._cann_path}"],
-                                            capture_output=True)
-        if completed_analysis.returncode != self.COMMAND_SUCCESS:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Analyze CANN Profiling data failed!")
+
         self._file_dispatch()
         step_trace_file_set = self.get_file_list_by_type(CANNDataEnum.STEP_TRACE)
         if not step_trace_file_set:
@@ -110,6 +121,12 @@ class CANNFileParser:
                 if completed_process.returncode != self.COMMAND_SUCCESS:
                     raise RuntimeError("Export CANN Profiling data failed, please verify that the "
                                        "ascend-toolkit is installed and set-env.sh is sourced.")
+
+        simplification_cmd = self._get_data_simplification_cmd(data_simplification)
+        completed_analysis = subprocess.run(
+            ["msprof", "--analyze=on", f"--output={self._cann_path}", simplification_cmd], capture_output=True)
+        if completed_analysis.returncode != self.COMMAND_SUCCESS:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Analyze CANN Profiling data failed!")
 
     def get_timeline_all_data(self) -> list:
         timeline_data = []
@@ -163,6 +180,21 @@ class CANNFileParser:
         if prof_data_size >= Constant.PROF_WARN_SIZE:
             print(f"[WARNING] [{os.getpid()}] profiler.py: The parsing time is expected to exceed 30 minutes, "
                   f"and you can choose to stop the process and use offline parsing.")
+
+    def get_localtime_diff(self) -> float:
+        localtime_diff = 0
+        if not self._cann_path:
+            return localtime_diff
+        start_info_path = PathManager.get_start_info_path(self._cann_path)
+        if not start_info_path:
+            return localtime_diff
+        try:
+            info_json = eval(FileManager.file_read_all(start_info_path, "rt"))
+            localtime_diff = float(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - float(
+                info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0)) / Constant.NS_TO_US
+        except Exception:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Failed to get CANN localtime diff.")
+        return localtime_diff
 
     def _file_dispatch(self):
         all_file_list = PathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)

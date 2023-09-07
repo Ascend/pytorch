@@ -1,7 +1,7 @@
 from ..prof_common_func.file_manager import FileManager
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
-from ..level_config import LevelConfig
+from ..profiler_config import ProfilerConfig
 
 
 class IntegrateParser(BaseViewParser):
@@ -17,7 +17,7 @@ class IntegrateParser(BaseViewParser):
         self._profiler_path = profiler_path
 
     def generate_view(self, output_path: str) -> None:
-        for cann_data_enum, parser_bean in LevelConfig().get_parser_bean():
+        for cann_data_enum, parser_bean in ProfilerConfig().get_parser_bean():
             self.generate_csv(cann_data_enum, parser_bean, output_path)
 
     def generate_csv(self, cann_data_enum: int, parser_bean: any, output_path: str) -> None:
