@@ -56,6 +56,9 @@ public:
   // DEPRECATED: CastBackToOriFormat will be deprecated, please use cast_to_ori_format instead.
   static at::Tensor CastBackToOriFormat(const at::Tensor &tensor);
   static at::Tensor &CastBackToOriFormat(at::Tensor &tensor);
+
+  static int8_t get_cube_math_type(bool allowHf32);
+
   // DEPRECATED: ApplyTensor will be deprecated, please use apply_tensor instead.
   static at::Tensor ApplyTensor(const at::Tensor &src);
   static at::Tensor ApplyTensor(const at::Tensor &src, c10::IntArrayRef sizes);

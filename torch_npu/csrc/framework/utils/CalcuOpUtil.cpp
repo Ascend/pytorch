@@ -555,5 +555,30 @@ c10::optional<double> CalcuOpUtil::GetScaleValue(
   return scales->at(idx);
 }
 
+using aclCubeMathType = enum:int8_t {
+  KEEP_DTYPE = 0,
+  ALLOW_FP32_DOWN_PRECISION = 1,
+  USE_FP16 = 2,
+  USE_HF32 = 3,
+};
+
+static std::unordered_map<uint8_t, aclCubeMathType>
+    ACL_CUBE_MATH_TYPE_MAP = {
+      {0b00, KEEP_DTYPE},
+      {0b01, USE_FP16},
+      {0b10, USE_HF32},
+      {0b11, ALLOW_FP32_DOWN_PRECISION}
+};
+
+int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32) {
+  bool allowFp32ToFp16 = native::env::IsAllowFP32ToFP16();
+  uint8_t CubeMathTypeCode = ((uint8_t)allowHf32 << 1) + (uint8_t)allowFp32ToFp16;
+  auto iter = ACL_CUBE_MATH_TYPE_MAP.find(CubeMathTypeCode);
+  if (iter == ACL_CUBE_MATH_TYPE_MAP.end()) {
+    return ALLOW_FP32_DOWN_PRECISION;
+  }
+  return iter->second;
+}
+
 } // namespace native
 } // namespace at_npu
