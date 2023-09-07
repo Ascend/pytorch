@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import re
@@ -107,20 +108,19 @@ class CANNFileParser:
 
         self._file_dispatch()
         step_trace_file_set = self.get_file_list_by_type(CANNDataEnum.STEP_TRACE)
-        if not step_trace_file_set:
-            return
-        step_file = step_trace_file_set.pop()
-        step_trace_data = FileManager.read_csv_file(step_file, StepTraceBean)
-        parsed_step = os.path.basename(step_file).split(".")[0].split("_")[-1]
-        for data in step_trace_data:
-            step_id = data.step_id
-            if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
-                completed_process = subprocess.run(
-                    ["msprof", "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
-                    capture_output=True)
-                if completed_process.returncode != self.COMMAND_SUCCESS:
-                    raise RuntimeError("Export CANN Profiling data failed, please verify that the "
-                                       "ascend-toolkit is installed and set-env.sh is sourced.")
+        if step_trace_file_set:
+            step_file = step_trace_file_set.pop()
+            step_trace_data = FileManager.read_csv_file(step_file, StepTraceBean)
+            parsed_step = os.path.basename(step_file).split(".")[0].split("_")[-1]
+            for data in step_trace_data:
+                step_id = data.step_id
+                if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
+                    completed_process = subprocess.run(
+                        ["msprof", "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
+                        capture_output=True)
+                    if completed_process.returncode != self.COMMAND_SUCCESS:
+                        raise RuntimeError("Export CANN Profiling data failed, please verify that the "
+                                           "ascend-toolkit is installed and set-env.sh is sourced.")
 
         simplification_cmd = self._get_data_simplification_cmd(data_simplification)
         completed_analysis = subprocess.run(
@@ -189,7 +189,7 @@ class CANNFileParser:
         if not start_info_path:
             return localtime_diff
         try:
-            info_json = eval(FileManager.file_read_all(start_info_path, "rt"))
+            info_json = ast.literal_eval(FileManager.file_read_all(start_info_path, "rt"))
             localtime_diff = float(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - float(
                 info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0)) / Constant.NS_TO_US
         except Exception:
