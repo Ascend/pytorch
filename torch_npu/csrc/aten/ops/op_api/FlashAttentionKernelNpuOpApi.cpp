@@ -188,8 +188,8 @@ std::vector<at::Tensor> npu_flash_attention_backward(
 
   // aply fp32 dq kv
   at::Tensor dq_32 = OpPreparation::ApplyTensorWithoutFormat(query.sizes(), query.options().dtype(at::kFloat));
-  at::Tensor dk_32 = OpPreparation::ApplyTensorWithoutFormat(query.sizes(), query.options().dtype(at::kFloat));
-  at::Tensor dv_32 = OpPreparation::ApplyTensorWithoutFormat(query.sizes(), query.options().dtype(at::kFloat));
+  at::Tensor dk_32 = OpPreparation::ApplyTensorWithoutFormat(key.sizes(), key.options().dtype(at::kFloat));
+  at::Tensor dv_32 = OpPreparation::ApplyTensorWithoutFormat(value.sizes(), value.options().dtype(at::kFloat));
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query_scaled, format_key, format_value, format_dy,
