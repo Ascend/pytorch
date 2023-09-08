@@ -129,14 +129,14 @@ class CommunicationParser(BaseViewParser):
 
     def split_matrix_by_step(self, matrix_data: dict) -> dict:
         matrix_data_by_step = {}
-        if len(self.step_list) == 1 or self.is_step_list_empty():
+        if self.is_step_list_empty():
             matrix_data_by_step["step"] = matrix_data
             return matrix_data_by_step
 
         for comm_op in matrix_data:
             for step_info in self.step_list:
                 if comm_op in step_info.get("comm_ops", {}):
-                    step = step_info.get("step_id")
+                    step = "step" + step_info.get("step_id") if step_info.get("step_id") else "step"
                     matrix_data_by_step.setdefault(step, {})[comm_op] = matrix_data.get(comm_op)
                     break
         return matrix_data_by_step
