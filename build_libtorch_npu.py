@@ -148,6 +148,9 @@ def run_cmake():
         cmake_args.append('-DBUILD_OPPLUGIN=on')
         cmake_args.append('-DBUILD_NEW_HEADER=on')
 
+    if os.getenv('_GLIBCXX_USE_CXX11_ABI') is not None:
+        cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=' + os.getenv('_GLIBCXX_USE_CXX11_ABI'))
+
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
