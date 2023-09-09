@@ -8,6 +8,30 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler,\
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL
 
+ALWAYS_WARN_LEGACY_SERIALIZATION = False
+
+
+def _get_always_warn_legacy_serialization():
+    return ALWAYS_WARN_LEGACY_SERIALIZATION
+
+
+def _set_always_warn_legacy_serialization(always_warn:bool):
+    global ALWAYS_WARN_LEGACY_SERIALIZATION
+    ALWAYS_WARN_LEGACY_SERIALIZATION = always_warn
+
+
+def _warn_legacy_serialization(warn_massages, load_flag):
+    def is_first_time(load_flag):
+        warn_key = "has_warned_for_load" if load_flag else "has_warned_for_save"
+        if not hasattr(_warn_legacy_serialization, warn_key):
+            _warn_legacy_serialization.__dict__[warn_key] = True
+            return True
+        else:
+            return not _warn_legacy_serialization.__dict__[warn_key]
+
+    if _get_always_warn_legacy_serialization() or is_first_time(load_flag):
+        print(warn_massages)
+
 
 def _remap_result(cpu_result, map_location):
     def traverse_dict(_dict) -> dict:
@@ -152,15 +176,19 @@ def load(
                 except RuntimeError as e:
                     raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e)) from None
 
-            print(f"Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters are currently supported for parameter types of map_location")
+            warn_massage = (
+                "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters are currently supported for parameter types of map_location"
+                "If parameter types of map_location is \"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for zipfile,"
+                "all tensors are currently loaded onto the CPU, which may introduce problems"
+            )
+            _warn_legacy_serialization(warn_massage, True)
+
             if map_location is not None and isinstance(map_location, (torch.device, str)):
                 cpu_result = _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
                 if (isinstance(map_location, str) and "cpu" in map_location) or (isinstance(map_location, torch.device) and "cpu" in map_location.type):
                     return cpu_result
                 return _remap_result(cpu_result, map_location)
             else:
-                print(f"Warning: parameter types of map_location is \"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for zipfile."
-                               "All tensors are currently loaded onto the CPU, which may introduce problems")
                 return _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
 
 
@@ -173,8 +201,11 @@ def save(
     _disable_byteorder_record: bool = False
 ) -> None:
     if _use_new_zipfile_serialization is False:
-        print(f"Warning: legacy save is not recommended for npu tensor, which may bring unexpected errors and hopefully set \"_use_new_zipfile_serialization = True\"",
-                        "If it is necessary to use a unzipfile, convert the npu tensor to cpu tensor for saving")
+        warn_massage = (
+            "Warning: torch.save with \"_use_new_zipfile_serialization = False\" is not recommended for npu tensor, which may bring unexpected errors and hopefully set \"_use_new_zipfile_serialization = True\"",
+            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
+        )
+        _warn_legacy_serialization(warn_massage, False)
     return torch.serialization.save(obj, f, pickle_module,pickle_protocol, True, _disable_byteorder_record)
 
 

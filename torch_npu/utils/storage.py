@@ -1,4 +1,3 @@
-import io
 import torch
 import torch_npu
 
@@ -18,14 +17,6 @@ def _deepcopy(self, memo):
     return tmp_tensor._typed_storage()
 
 
-def _reduce(self):
-    b = io.BytesIO()
-    torch.save(self, b, _use_new_zipfile_serialization=True)
-    return (torch.load(io.BytesIO(b)), (b.getvalue(),))
-
-
 def add_storage_methods():
-    torch.storage.TypedStorage.__reduce__ = _reduce
-    torch.storage._StorageBase.__reduce__ = _reduce
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.TypedStorage._deepcopy = _deepcopy
