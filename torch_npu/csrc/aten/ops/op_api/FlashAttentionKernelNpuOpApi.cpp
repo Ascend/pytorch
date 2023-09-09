@@ -157,7 +157,6 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   const at::Tensor &attention_const = attention_in.value_or(at::Tensor());
 
   at::Tensor format_query = format_trans(query);
-  at::Tensor format_query_scaled = at::mul(format_query, at::Scalar(scale));
   at::Tensor format_key = format_trans(key);
   at::Tensor format_value = format_trans(value);
   at::Tensor format_dy = format_trans(dy);
@@ -173,7 +172,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor dtype_atten_mask =
       (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
       NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
-  at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query_scaled);
+  at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query);
   at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
   at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
   char* input_layout_ptr = const_cast<char *>(input_layout.c_str());
@@ -192,15 +191,13 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor dv_32 = OpPreparation::ApplyTensorWithoutFormat(value.sizes(), value.options().dtype(at::kFloat));
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
-      aclnnFlashAttentionScoreGrad, format_query_scaled, format_key, format_value, format_dy,
+      aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
       format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
       pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq_32, dk_32, dv_32, dpse_required);
 
-  at::Tensor dq_scalared = at::mul(dq_32, at::Scalar(scale));
-
   //cast
-  dq = NPUNativeOpApiFunctions::npu_dtype_cast(dq_scalared, query.scalar_type());
+  dq = NPUNativeOpApiFunctions::npu_dtype_cast(dq_32, query.scalar_type());
   dk = NPUNativeOpApiFunctions::npu_dtype_cast(dk_32, query.scalar_type());
   dv = NPUNativeOpApiFunctions::npu_dtype_cast(dv_32, query.scalar_type());
 
@@ -257,7 +254,6 @@ public:
 
     at::Tensor format_query = format_trans(query);
     at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(format_query);
-    at::Tensor format_query_scaled = at::mul(format_query, at::Scalar(scale_value));
     at::Tensor format_key = format_trans(key);
     at::Tensor format_value = format_trans(value);
 
@@ -271,7 +267,7 @@ public:
     int64_t seed;
     int64_t offset;
     int64_t numels;
-    at::Tensor format_drop_mask = dropout_gen_mask(format_query_scaled, keep_prob, head_num, input_layout_str,
+    at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, input_layout_str,
         gen_mask_parallel, sync, seed, offset, numels);
 
     at::Tensor softmax_max;
@@ -286,12 +282,12 @@ public:
     } else {
         softmax_max = at::empty({0}, query.options().dtype(at::kFloat));
         softmax_sum = at::empty({0}, query.options().dtype(at::kFloat));
-        softmax_out = OpPreparation::ApplyTensorWithoutFormat(format_query_scaled,
+        softmax_out = OpPreparation::ApplyTensorWithoutFormat(format_query,
             {B, head_num, S0, S1}); // [B, N, S0, S1]
     }
 
     char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
-    EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query_scaled, format_key, format_value,
+    EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
         format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
         scale, keep_prob, pre_tockens, next_tockens, head_num, is_flash, input_layout_ptr,
         softmax_max, softmax_sum, softmax_out, attention_score);
