@@ -413,6 +413,11 @@ namespace at_npu
       return tensor;
     }
 
+    int8_t OpPreparation::get_cube_math_type(bool allowHf32)
+    {
+      return CalcuOpUtil::GetCubeMathType(allowHf32);
+    }
+
     at::Tensor OpPreparation::apply_tensor(const at::Tensor &src)
     {
       return apply_tensor(src, src.sizes());
