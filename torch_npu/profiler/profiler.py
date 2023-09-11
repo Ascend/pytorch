@@ -92,19 +92,43 @@ class profile:
 
     def export_chrome_trace(self, output_path: str):
         if isinstance(self._action_controller._on_trace_ready, NpuProfCreator):
-            warn("Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
+            print(f"[WARNING] [{os.getpid()}] profiler.py: "
+                   "Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
             return
-        if self._action_controller.next_step == CLOSE_STEP + 1:
-            try:
-                NpuProfiler.analyse(self._msprofiler_interface.path, Constant.EXPORT_CHROME_TRACE, output_path)
-            except Exception:
-                print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
-            try:
-                shutil.rmtree(self._msprofiler_interface.path)
-            except Exception:
-                warn(f"Can't remove directory: {self._msprofiler_interface.path}")
-        else:
-            raise RuntimeError("Profiler didn't finish running")
+        if not self._msprofiler_interface.path:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Invalid profiling path.")
+            return
+        try:
+            NpuProfiler.analyse(self._msprofiler_interface.path, Constant.EXPORT_CHROME_TRACE, output_path)
+        except Exception:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
+            return
+        try:
+            shutil.rmtree(self._msprofiler_interface.path)
+        except Exception:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove directory: {self._msprofiler_interface.path}")
+
+    def export_stacks(self, output_path: str, metric: str = Constant.METRIC_CPU_TIME):
+        if not self._with_stack:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Function export_stacks() requires with_stack=True.")
+            return
+        if not metric in (Constant.METRIC_CPU_TIME, Constant.METRIC_NPU_TIME):
+            print(f"[WARNING] [{os.getpid()}] profiler.py: "
+                   "Metric should be self_cpu_time_total or self_npu_time_total."
+                   "Here it is presumed to be self_cpu_time_total.")
+            metric = Constant.METRIC_CPU_TIME
+        if not self._msprofiler_interface.path:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Invalid profiling path.")
+            return
+        try:
+            NpuProfiler.analyse(self._msprofiler_interface.path, Constant.EXPORT_STACK, output_path, metric=metric)
+        except Exception:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
+            return
+        try:
+            shutil.rmtree(self._msprofiler_interface.path)
+        except Exception:
+            print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove directory: {self._msprofiler_interface.path}")
 
     def dump_profiler_info(self):
         if not self._msprofiler_interface:
