@@ -105,11 +105,11 @@ void NPUEventManager::IncreaseUnrecordedCount(aclrtEvent event) {
   } else {
     event_unrecorded_count_.insert(std::pair<aclrtEvent, int>(event, 1));
     ASCEND_LOGI("Event: unrecorded count increase, now=%d, event_=%p.", 1, event);
-  }  
+  }
 }
 
 void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event) {
-  std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);  
+  std::lock_guard<std::mutex> guard(event_unrecorded_count_mutex_);
 
   auto it = event_unrecorded_count_.find(event);
   TORCH_CHECK(it != event_unrecorded_count_.end(),
@@ -120,7 +120,7 @@ void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event) {
   } else {
     it->second--;
     ASCEND_LOGI("Event: unrecorded count decrease, now=%d, event_=%p.", it->second, event);
-  }  
+  }
 }
 
 bool NPUEventManager::IsEventRecorded(aclrtEvent event) {

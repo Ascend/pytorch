@@ -233,9 +233,9 @@ struct AllocParams {
 };
 
 class EventPool {
- public:
+public:
   using Event = std::unique_ptr<c10_npu::NPUEvent, std::function<void(c10_npu::NPUEvent*)>>;
-  // TODO: Explicit device count
+  // Explicit device count
   EventPool() : pools_(c10_npu::device_count()) {}
 
   Event get(int device) {
@@ -270,7 +270,7 @@ class EventPool {
     }
   }
 
- private:
+private:
   struct PerDevicePool {
     alignas(64) std::mutex mutex_;
     std::vector<std::unique_ptr<c10_npu::NPUEvent>> event_pool_;
