@@ -40,6 +40,7 @@ class Constant(object):
     # framework
     TENSORBOARD_TRACE_HANDLER = "tensorboard_trace_handler"
     EXPORT_CHROME_TRACE = "export_chrome_trace"
+    EXPORT_STACK = "export_stack"
 
     ACL_OP_EXE_NAME = ("AscendCL@aclopCompileAndExecute".lower(), "AscendCL@aclopCompileAndExecuteV2".lower())
     AI_CORE = "AI_CORE"
@@ -79,3 +80,8 @@ class Constant(object):
     CANN_BEGIN_MONOTONIC = "clockMonotonicRaw"
     FWK_END_TIME = "collectionTimeEnd"
     FWK_END_MONOTONIC = "MonotonicTimeEnd"
+    
+    # metric
+    METRIC_CPU_TIME = "self_cpu_time_total"
+    METRIC_NPU_TIME = "self_npu_time_total"
+

@@ -12,7 +12,7 @@ class OperatorViewParser(BaseViewParser):
     def __init__(self, profiler_path: str):
         super().__init__(profiler_path)
 
-    def generate_view(self, output_path: str) -> None:
+    def generate_view(self, output_path: str, **kwargs) -> None:
         if not GlobalVar.torch_op_tree_node:
             return
         operator_list = [None] * len(GlobalVar.torch_op_tree_node)
