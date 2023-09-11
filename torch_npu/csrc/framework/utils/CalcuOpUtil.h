@@ -119,6 +119,8 @@ public:
                       c10::optional<c10::ArrayRef<double>> scale_factors);
   static c10::optional<double>
   GetScaleValue(c10::optional<c10::ArrayRef<double>> scales, int idx);
+
+  static int8_t GetCubeMathType(bool allowHf32);
 };
 
 } // namespace native
