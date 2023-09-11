@@ -25,7 +25,7 @@ class BaseViewParser(metaclass=ABCMeta):
         self._profiler_path = profiler_path
 
     @abstractmethod
-    def generate_view(self, output_path: str) -> None:
+    def generate_view(self, output_path: str, **kwargs) -> None:
         """
         summarize data to generate json or csv files
         Returns: None
