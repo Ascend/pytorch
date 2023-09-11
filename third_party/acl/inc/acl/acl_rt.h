@@ -59,6 +59,12 @@ typedef enum aclrtEventWaitStatus {
     ACL_EVENT_WAIT_STATUS_RESERVED  = 0xffff,
 } aclrtEventWaitStatus;
 
+typedef enum aclrtStreamStatus {
+    ACL_STREAM_STATUS_COMPLETE  = 0,
+    ACL_STREAM_STATUS_NOT_READY = 1,
+    ACL_STREAM_STATUS_RESERVED  = 0xFFFF,
+} aclrtStreamStatus;
+
 typedef enum aclrtCallbackBlockType {
     ACL_CALLBACK_NO_BLOCK,
     ACL_CALLBACK_BLOCK,
@@ -981,6 +987,19 @@ ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStream(aclrtStream stream);
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStreamWithTimeout(aclrtStream stream, int32_t timeout);
+
+/**
+ * @ingroup AscendCL
+ * @brief block the host until all tasks
+ * in the specified stream have completed
+ *
+ * @param  stream [IN]   the stream to query
+ * @param  status [OUT]  stream status
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status);
 
 /**
  * @ingroup AscendCL
