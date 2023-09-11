@@ -66,7 +66,6 @@ __all__ = [
     "set_rng_state",
     "get_rng_state_all",
     "set_rng_state_all",
-    "make_replay_graph",
     "is_jit_compile_false",
     "get_amp_supported_dtype",
     "is_autocast_enabled",
@@ -218,8 +217,6 @@ def _after_fork(arg):
 
 _register_after_fork(_after_fork, _after_fork)
 
-from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
-from .replay_graph import make_replay_graph
 
 def _get_device(device: Union[int, str, torch.device]) -> torch.device:
     r"""Return the torch.device type object from the passed in device.

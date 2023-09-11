@@ -4,9 +4,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
-from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.common_utils import check_operators_in_prof
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 
 class TestViewCopy(TestCase):
@@ -39,8 +37,7 @@ class TestViewCopy(TestCase):
         input1[:, :, :, :2].copy_(input2[1:2, :, :, 1:2])
         res = input1 + input1
         return res
-    
-    @graph_mode
+
     def test_viewcopy_last_dim(self):
         dtype_list = [np.uint8, np.int8, np.int16, np.int32, np.float32, np.double]
         format_list = [-1]
@@ -62,7 +59,6 @@ class TestViewCopy(TestCase):
             npu_input1_tocpu = npu_input1.cpu()
             self.assertRtolEqual(cpu_input1, npu_input1_tocpu)
 
-    @graph_mode
     def test_viewcopy_first_dim(self):
         dtype_list = [np.uint8, np.int8, np.int16, np.int32, np.float32, np.double]
         format_list = [-1]
@@ -85,7 +81,6 @@ class TestViewCopy(TestCase):
             self.assertRtolEqual(cpu_input1, npu_input1_tocpu)
 
 
-    @graph_mode
     def test_viewcopy_compute(self):
         dtype_list = [np.float32]
         format_list = [-1]
@@ -102,7 +97,6 @@ class TestViewCopy(TestCase):
             npu_res = npu_res.cpu()
             self.assertRtolEqual(cpu_res, npu_res)
 
-    @graph_mode
     def test_viewcopy_broadcast(self):
         dtype_list = [np.float32]
         format_list = [-1]
@@ -124,7 +118,6 @@ class TestViewCopy(TestCase):
             npu_res = npu_res.cpu()
             self.assertRtolEqual(cpu_res, npu_res)
 
-    @graph_mode
     def test_view_copy_of_slice(self):
         cpu_x = torch.rand(2, 3)
         cpu_other = torch.rand(2, 1)
@@ -138,7 +131,6 @@ class TestViewCopy(TestCase):
         self.assertEqual(check_operators_in_prof(['ViewCopy'], prof), True, "Error operators called!")
         self.assertRtolEqual(cpu_slice, npu_slice.cpu())
 
-    @graph_mode
     def test_view_copy_of_transpose(self):
         cpu_x = torch.rand(2, 3)
         cpu_other = torch.rand(3, 2)
