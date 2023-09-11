@@ -143,8 +143,6 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     scale = 1;
   }
 
-  at::Tensor query_scaled = at::mul(query, at::Scalar(scale));
-
   const at::Tensor &pse_const = pse.value_or(at::Tensor());
   const at::Tensor &drop_mask_const = drop_mask.value_or(at::Tensor());
   const at::Tensor &padding_mask_const = padding_mask.value_or(at::Tensor());
@@ -154,7 +152,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   const at::Tensor &softmax_const = softmax_in.value_or(at::Tensor());
   const at::Tensor &attention_const = attention_in.value_or(at::Tensor());
 
-  at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query_scaled, ACL_FORMAT_ND);
+  at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
   at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
   at::Tensor format_value = NPUNativeFunctions::npu_format_cast(value, ACL_FORMAT_ND);
   at::Tensor format_dy = NPUNativeFunctions::npu_format_cast(dy, ACL_FORMAT_ND);
@@ -191,10 +189,8 @@ std::vector<at::Tensor> npu_flash_attention_backward(
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
       pre_tockens, next_tockens, is_flash, head_num, input_layout_ptr, dq_32, dk_32, dv_32, dpse);
 
-  at::Tensor dq_scalared = at::mul(dq_32, at::Scalar(scale));
-
   //cast
-  dq = NPUNativeOpApiFunctions::npu_dtype_cast(dq_scalared, query.scalar_type());
+  dq = NPUNativeOpApiFunctions::npu_dtype_cast(dq_32, query.scalar_type());
   dk = NPUNativeOpApiFunctions::npu_dtype_cast(dk_32, query.scalar_type());
   dv = NPUNativeOpApiFunctions::npu_dtype_cast(dv_32, query.scalar_type());
 
@@ -250,8 +246,7 @@ public:
       scale_value = 1;
     }
 
-    at::Tensor query_scaled = at::mul(query, at::Scalar(scale_value));
-    at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query_scaled, ACL_FORMAT_ND);
+    at::Tensor format_query = NPUNativeFunctions::npu_format_cast(query, ACL_FORMAT_ND);
     at::Tensor format_key = NPUNativeFunctions::npu_format_cast(key, ACL_FORMAT_ND);
     at::Tensor format_value = NPUNativeFunctions::npu_format_cast(value, ACL_FORMAT_ND);
 
@@ -295,7 +290,7 @@ public:
 
     at::AutoNonVariableTypeMode g;
 
-    ctx->save_for_backward({query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
+    ctx->save_for_backward({format_query, format_key, format_value, softmax_max, softmax_sum, softmax_out,
                             format_pse, format_padding_mask, format_atten_mask, attention_score});
 
     ctx->saved_data["scale"] = scale;
