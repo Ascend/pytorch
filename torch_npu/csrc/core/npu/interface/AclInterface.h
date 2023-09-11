@@ -19,6 +19,12 @@ typedef enum aclrtEventRecordedStatus {
     ACL_EVENT_RECORDED_STATUS_COMPLETE = 1,
 } aclrtEventRecordedStatus;
 
+typedef enum aclrtStreamStatus {
+    ACL_STREAM_STATUS_COMPLETE  = 0,
+    ACL_STREAM_STATUS_NOT_READY = 1,
+    ACL_STREAM_STATUS_RESERVED  = 0xFFFF,
+} aclrtStreamStatus;
+
 /**
   aclprofStepInfo is provide by acl, it used to be store dispatch op info.
  */
@@ -117,6 +123,8 @@ aclError AclrtDestroyStreamForce(aclrtStream stream);
 aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
 
 aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy policy);
+
+aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status);
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
 
