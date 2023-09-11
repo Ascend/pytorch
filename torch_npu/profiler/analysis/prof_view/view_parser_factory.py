@@ -29,7 +29,7 @@ from ..profiler_config import ProfilerConfig
 
 class ViewParserFactory:
     @classmethod
-    def create_view_parser_and_run(cls, profiler_path: str, analysis_type: str, output_path: str):
+    def create_view_parser_and_run(cls, profiler_path: str, analysis_type: str, output_path: str, kwargs: dict):
         print(f"[INFO] [{os.getpid()}] profiler.py: Start parsing profiling data.")
         ProfilerConfig().load_info(profiler_path)
         cann_file_parser = CANNFileParser(profiler_path)
@@ -44,7 +44,7 @@ class ViewParserFactory:
             output_path = os.path.join(profiler_path, Constant.OUTPUT_DIR)
             FileManager.remove_and_make_output_dir(output_path)
         for parser in ViewParserConfig.CONFIG_DICT.get(analysis_type):
-            parser(profiler_path).generate_view(output_path)
+            parser(profiler_path).generate_view(output_path, **kwargs)
         cls.simplify_data(profiler_path)
         end_time = datetime.datetime.now()
         print(
