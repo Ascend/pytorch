@@ -39,7 +39,6 @@
 #endif
 #include <c10d/logger.hpp>
 #include <c10d/debug.h>
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace c10d_npu {
 
@@ -210,11 +209,7 @@ public:
   // buckets once after the first iteration and never rebuild them if
   // find_unused_parameters_.
   inline bool should_rebuild_buckets() const {
-    if (!c10_npu::NpuRunMode::IsGraphMode()) {
-      return (static_graph_ || !find_unused_parameters_) && !has_rebuilt_bucket_;
-    } else {
-      return false;
-    }
+    return (static_graph_ || !find_unused_parameters_) && !has_rebuilt_bucket_;
   }
 
   // Pushes all parameters to be rebuilt.

@@ -19,7 +19,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestOnesLike(TestCase):
@@ -35,7 +34,6 @@ class TestOnesLike(TestCase):
         output = output.numpy()
         return output
     
-    @graph_mode
     def test_ones_like_shape_format(self):
         shape_format = [
             [np.float32, -1, (3, )],
@@ -61,7 +59,6 @@ class TestOnesLike(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-    @graph_mode
     def test_ones_like_float16_shape_format(self):
         shape_format = [
             [np.float16, -1, (3, )],

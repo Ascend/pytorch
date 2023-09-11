@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestBatchNormStats(TestCase):
@@ -37,7 +36,6 @@ class TestBatchNormStats(TestCase):
         out_invstd = npu_invstd.cpu().numpy()
         return out_mean, out_invstd
 
-    @graph_mode
     def test_batch_norm_stats(self):
         np.random.seed(1234)
         shape_format = [
