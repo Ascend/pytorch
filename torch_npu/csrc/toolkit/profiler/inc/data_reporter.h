@@ -118,33 +118,7 @@ struct OpRangeData : BaseReportData{
   std::vector<std::string> stack;
   std::vector<std::string> module_hierarchy;
   std::unordered_map<std::string, c10::IValue> extra_args;
-  OpRangeData() : BaseReportData() {}
-  OpRangeData(int32_t device_id, std::string tag,
-              int64_t start_ns, int64_t end_ns, int64_t sequence_number,
-              uint64_t process_id, uint64_t start_thread_id, uint64_t end_thread_id,
-              uint64_t forward_thread_id, bool is_async, std::string name,
-              std::vector<std::string> input_dtypes,
-              std::vector<std::vector<int64_t>> input_shapes,
-              std::vector<std::string> stack,
-              std::vector<std::string> module_hierarchy,
-              std::unordered_map<std::string, c10::IValue> extra_args) {
-    this->device_id = device_id;
-    this->tag = tag;
-    this->start_ns = start_ns;
-    this->end_ns = end_ns;
-    this->sequence_number = sequence_number;
-    this->process_id = process_id;
-    this->start_thread_id = start_thread_id;
-    this->end_thread_id = end_thread_id;
-    this->forward_thread_id = forward_thread_id;
-    this->is_async = is_async;
-    this->name = name;
-    this->input_dtypes = input_dtypes;
-    this->input_shapes = input_shapes;
-    this->stack = stack;
-    this->module_hierarchy = module_hierarchy;
-    this->extra_args = extra_args;
-  }
+  OpRangeData(int32_t device_id, std::string tag) : BaseReportData(device_id, tag) {}
   std::vector<uint8_t> encode();
 };
 
