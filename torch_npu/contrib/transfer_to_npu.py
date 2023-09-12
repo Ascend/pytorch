@@ -185,8 +185,6 @@ def init():
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
-    torch_npu.npu.init()
-    torch.cuda.default_generators = torch_npu.npu.default_generators
 
     # torch.profiler.*
     patch_profiler()
