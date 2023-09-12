@@ -12,7 +12,7 @@ from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
 from torchgen.packaged.autograd.gen_trace_type import type_wrapper_name
-from codegen.utils import (enable_opplugin, is_op_valid, filed_tag)
+from codegen.utils import (enable_opplugin, is_op_valid, filed_tag, get_opplugin_wrap_name)
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
@@ -101,7 +101,7 @@ def compute_op_definition(f: NativeFunction):
     impl_name = f"at_npu::native::NPUNativeFunctions::{cpp.name(f.func)}"
 
     if enable_opplugin() and is_op_valid(str(f.func.name)):
-        impl_name = f"op_plugin::{cpp.name(f.func)}"
+        impl_name = f"op_plugin::{get_opplugin_wrap_name(f)}"
 
     from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
     is_npu_autograd = str(f.func.name) in NPU_AUTOGRAD_FUNCTION
