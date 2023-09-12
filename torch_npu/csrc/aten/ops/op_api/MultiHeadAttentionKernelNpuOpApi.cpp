@@ -153,18 +153,21 @@ std::vector<at::Tensor> npu_multi_head_attention_score_backward(
   at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
   char* input_layout_ptr = const_cast<char*>(input_layout.c_str());
   at::Tensor dpse;
-  at::Tensor dpse_required;
   if (format_pse.defined()) {
     dpse = OpPreparation::ApplyTensorWithoutFormat(format_pse);
-    dpse_required = OpPreparation::ApplyTensorWithoutFormat(format_pse);
   } else {
-    dpse_required = at::empty({0}, query.options());
+    dpse = at::empty({0}, query.options());
   }
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnMultiHeadAttentionScoreGrad, format_query, format_key, format_value, format_dy,
                                format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask, format_softmax,
                                format_attention, scale_value, keep_prob, pre_tockens, next_tockens, head_num,
-                               input_layout_ptr, dq, dk, dv, dpse_required);
+                               input_layout_ptr, dq, dk, dv, dpse);
+
+  if (!format_pse.defined()) {
+    at::Tensor dpse_required;
+    dpse = dpse_required;
+  }
 
   at::Tensor dq_scalared = at::mul(dq, at::Scalar(scale));
   return {dq_scalared,  dk,           dv,           at::Tensor(), at::Tensor(), dpse,         at::Tensor(),
