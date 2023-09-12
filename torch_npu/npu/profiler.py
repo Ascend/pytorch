@@ -543,7 +543,7 @@ class profile(object):
 
     def __enter__(self):
         if not self.enabled:
-            raise RuntimeError("profiler is not enable")
+            return
         if self.entered:
             raise RuntimeError("profiler context manager is not reentrant")
         self.entered = True
@@ -557,7 +557,7 @@ class profile(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self.enabled:
-            raise RuntimeError("profiler is not enable")
+            return
         records = torch_npu._C._profiler._disable_profiler_legacy()
         parsed_results = parse_legacy_records(records)
         self.function_events = EventList(
