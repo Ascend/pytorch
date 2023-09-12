@@ -203,7 +203,7 @@ void syncStreams(
   }
   for (size_t i = 0; i < devices.size(); ++i) {
     c10_npu::NPUStream& hcclStream = hcclStreams[i];
-    c10_npu::NPUEvent& hcclEvent = hcclEvents[i];    
+    c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
     hcclEvent.record(c10_npu::getCurrentNPUStream(devices[i].index()));
     ASCEND_LOGI("Event: record hccl group is successfully executed, hcclEvent=%p.", hcclEvent.event());
     hcclEvent.block(hcclStream);

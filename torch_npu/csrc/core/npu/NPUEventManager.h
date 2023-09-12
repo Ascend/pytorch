@@ -33,7 +33,6 @@ private:
 
   std::mutex event_unrecorded_count_mutex_;
   ska::flat_hash_map<aclrtEvent, int> event_unrecorded_count_;
-
 };
 
 } // namespace c10_npu

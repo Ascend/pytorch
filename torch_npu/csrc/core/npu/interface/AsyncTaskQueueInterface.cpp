@@ -136,7 +136,7 @@ void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream) {
     QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::NPUEventManager::GetInstance().IncreaseUnrecordedCount(eventParam_.event);
     c10_npu::enCurrentNPUStream(&params);
-    c10_npu::setCurrentNPUStream(currentStream);    
+    c10_npu::setCurrentNPUStream(currentStream);
     ASCEND_LOGI("Event: LaunchRecordTask is successfully executed, eventParam_.event=%p.", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);

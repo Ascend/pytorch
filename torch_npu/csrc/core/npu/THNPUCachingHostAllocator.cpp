@@ -55,7 +55,7 @@ struct Block : public BlockSize {
 };
 
 class EventPool {
- public:
+public:
   using Event = std::unique_ptr<
       c10_npu::NPUEvent,
       std::function<void(c10_npu::NPUEvent*)>>;
@@ -93,7 +93,7 @@ class EventPool {
     }
   }
 
- private:
+private:
   struct PerDevicePool {
     alignas(64) std::mutex mutex_;
     std::vector<std::unique_ptr<c10_npu::NPUEvent>> event_pool_;
@@ -151,7 +151,7 @@ struct HostAllocator {
     std::lock_guard<std::mutex> lock(mutex);
     if (!ptr) {
       return ACL_ERROR_NONE;
-    }    
+    }
 
     auto it = blocks.find(ptr);
     AT_ASSERT(it != blocks.end());
