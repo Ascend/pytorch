@@ -43,22 +43,19 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
 
   std::unique_ptr<NpuObserverContext> newOpEvent() {
     std::lock_guard<std::mutex> guard(state_mutex_);
-    op_events_.emplace_back();
+    op_events_.emplace_back(torch_npu::toolkit::profiler::OpRangeData(0, "torch.op_range"));
     return std::make_unique<NpuObserverContext>(&op_events_.back());
-  }
-
-  std::unique_ptr<NpuObserverContext> getOpEvent() {
-    std::lock_guard<std::mutex> guard(state_mutex_);
-    return std::make_unique<NpuObserverContext>(&op_events_.back());
-  }
-
-  void removeOpEvent() {
-    std::lock_guard<std::mutex> guard(state_mutex_);
-    op_events_.pop_back();
   }
 
   void finalizeTrace() {
     std::lock_guard<std::mutex> guard(state_mutex_);
+    for (auto op_event : op_events_) {
+      std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data =
+        std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(op_event);
+      if (data) {
+        reportData(std::move(data));
+      }
+    }
     op_events_.clear();
   }
 
@@ -187,16 +184,6 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             data_ptr->end_ns = Utils::GetClockMonotonicRawNs();
             static thread_local uint64_t tid = syscall(SYS_gettid);
             data_ptr->end_thread_id = tid;
-            std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data = std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(
-              0, "torch.op_range",
-              data_ptr->start_ns, data_ptr->end_ns, data_ptr->sequence_number,
-              data_ptr->process_id, data_ptr->start_thread_id, data_ptr->end_thread_id,
-              data_ptr->forward_thread_id, data_ptr->is_async,
-              data_ptr->name, data_ptr->input_dtypes, data_ptr->input_shapes,
-              data_ptr->stack, data_ptr->module_hierarchy, data_ptr->extra_args
-            );
-            reportData(std::move(data));
-            state_ptr->removeOpEvent();
           }
       )
       .needsInputs(registeration_state_ptr->config().record_shapes)
@@ -232,9 +219,9 @@ void stopNpuProfiler() {
     return;
   }
   if (state_ptr->hasCallbackHandle()) {
+    state_ptr->finalizeTrace();
     at::removeCallback(state_ptr->callbackHandle());
   }
-  state_ptr->finalizeTrace();
   ProfilerMgr::GetInstance()->Stop();
 }
 
