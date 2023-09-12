@@ -43,7 +43,7 @@ struct NPUMethods : public DeviceStubs {
     TORCH_NPU_CHECK(c10_npu::acl::AclQueryEventRecordedStatus(event, &status));
     if (status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         TORCH_NPU_CHECK(aclrtDestroyEvent(event));
-        ASCEND_LOGI("aclrtDestroyEvent is successfully executed, event=%p.", event);
+        ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p.", event);
     } else {
         TORCH_WARN_ONCE("Warning! NPU destroy event error, status is not completed.");
     }
@@ -60,13 +60,13 @@ struct NPUMethods : public DeviceStubs {
     static auto stream = c10_npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));
-    ASCEND_LOGI("aclrtRecordEvent is successfully executed, *event1=%p.", *event1);
+    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, *event1=%p.", *event1);
   }
   float elapsed(const aclrtEvent& event1, const aclrtEvent& event2) const override {
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event1));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event1=%p.", event1);
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event1=%p.", event1);
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event2));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event2=%p.", event2);
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event2=%p.", event2);
     float ms;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
     return ms*1000.0;
