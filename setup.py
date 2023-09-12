@@ -39,7 +39,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.11.0.post2'
+VERSION = '1.11.0.post3'
 UNKNOWN = "Unknown"
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
