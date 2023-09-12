@@ -27,7 +27,6 @@ ProfilerMgr::ProfilerMgr()
     profConfig_(nullptr) {}
 
 void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
-  c10_npu::npuSynchronizeDevice();
   if (npu_trace == true) {
     at_npu::native::AclProfilingInit(path.c_str(), path.size());
     npu_trace_.store(true);
@@ -49,6 +48,7 @@ void ProfilerMgr::EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, a
 }
 
 void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
+  c10_npu::npuSynchronizeDevice();
   if (npu_trace_.load() == true) {
     aclprofAicoreMetrics aic_metrics = ACL_AICORE_NONE;
     auto level_iter = trace_level_map_.find(npu_config.trace_level);
