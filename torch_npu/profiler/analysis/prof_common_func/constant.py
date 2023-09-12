@@ -20,6 +20,8 @@ class Constant(object):
     # dir name
     FRAMEWORK_DIR = "FRAMEWORK"
     OUTPUT_DIR = "ASCEND_PROFILER_OUTPUT"
+    ASCEND_WORK_PATH = "ASCEND_WORK_PATH"
+    PROFILING_WORK_PATH = "profiling_data"
 
     # file authority
     FILE_AUTHORITY = 0o640

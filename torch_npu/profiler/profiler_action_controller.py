@@ -28,7 +28,7 @@ from .analysis.prof_common_func.file_manager import FileManager
 
 
 class NpuProfCreator:
-    DEFAULT_PROF_SUFFIX = "./profiler"
+    DEFAULT_PROF_SUFFIX = "profiler"
 
     def __init__(self, worker_name: str = None, dir_name: str = "./") -> None:
         self._worker_name = worker_name
@@ -62,8 +62,11 @@ class NpuProfCreator:
         return total_path
 
     def create_default_prof_dir(self) -> str:
+        dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
+        dir_name = os.path.join(os.path.abspath(dir_name), Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
         target_path = "{}_{}_ascend_pt".format(self.DEFAULT_PROF_SUFFIX,
                                                time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
+        target_path = os.path.join(dir_name, target_path)
         self.make_dir(target_path)
         FileManager.check_directory_path_writable(target_path)
         return target_path
