@@ -1,22 +1,20 @@
 import torch
-from torch.overrides import TorchFunctionMode
-from torch.utils._device import _device_constructors
+from torch import device as origin_device
 
 
-class NPUDeviceContext(TorchFunctionMode):
-    def __init__(self):
-        super().__init__()
+class MetaDevice(type):
+    def __instancecheck__(self, instance):
+        return isinstance(instance, origin_device)
 
-    def __enter__(self):
-        return super().__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return super().__exit__(exc_type, exc_val, exc_tb)
-
-    def __torch_function__(self, func, types, args=(), kwargs=None):
-        kwargs = kwargs or {}
-        if func == torch.device and args and isinstance(args[0], int):
+class NPUDevice(metaclass=MetaDevice):
+    def __new__(cls, *args, **kwargs):
+        if args and isinstance(args[0], int):
             args = ("npu", args[0])
-        elif (func in _device_constructors() or func == torch.device) and isinstance(kwargs.get('device'), int):
+        elif isinstance(kwargs.get('device'), int):
             kwargs["device"] = f"npu:{kwargs.get('device')}"
-        return func(*args, **kwargs)
+        return origin_device(*args, **kwargs)
+
+
+def apply_device_patch():
+    torch.device = NPUDevice

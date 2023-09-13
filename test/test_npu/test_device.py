@@ -89,17 +89,13 @@ class TestDevice(TestCase):
         assert new_device.type == "npu"
         assert new_device.index == 0
 
-    def test_torch_funcs_with_separate_index_under_npu_device_context(self):
+    def test_torch_npu_device(self):
         device = torch.device(0)
         assert device.type == "npu"
         device = torch.device(device=0)
         assert device.type == "npu"
-        tensor = torch.rand(4, device=0)
-        assert tensor.device.type == "npu"
-        tensor = torch.tensor([0, 1], device=0)
-        assert tensor.device.type == "npu"
-        tensor = torch.empty((2, 3), device=0)
-        assert tensor.device.type == "npu"
+        assert isinstance(device, torch._C.device)
+        assert isinstance(device, torch.device)
 
 
 if __name__ == '__main__':
