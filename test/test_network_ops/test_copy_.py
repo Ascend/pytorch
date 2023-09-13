@@ -16,6 +16,7 @@
 
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 
 import torch_npu
@@ -50,6 +51,10 @@ class TestCopy(TestCase):
                 npu_output = npu_output.float()
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_copy_memery_stampede(self):
+        x = torch.randn((1, 6), device='npu:0').expand((6, 6))
+        with self.assertRaises(RuntimeError):
+            F.silu(x, inplace=True)
 
 if __name__ == "__main__":
     run_tests()

@@ -159,6 +159,9 @@ at::Tensor& NPUNativeOpApiFunctions::copy_(at::Tensor& self, const at::Tensor& s
 
   if (at_npu::key::isDeviceTensor(self)) {
     if (at_npu::key::isDeviceTensor(src)) {
+      c10::SmallVector<at::Tensor, N> inputs = {src};
+      c10::SmallVector<at::Tensor, N> outputs = {self};
+      CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
       EXEC_NPU_CMD(aclnnInplaceCopy, self, src);
     } else {
       copy_h2d_baseformat_opapi(self, src, non_blocking);
