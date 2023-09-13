@@ -285,6 +285,8 @@ namespace at_npu
 #ifndef BUILD_LIBTORCH
       at_npu::native::NpuUtils::ProfReportMarkData(std::string(cur_paras->opType));
 #endif
+      // open the deterministicAlgorithms config
+      SetDeterministic();
       if (cur_paras->customHandler) {
         ASCEND_LOGD("Exec Op %s with custom handle", cur_paras->opType);
         try {
@@ -298,8 +300,6 @@ namespace at_npu
         }
         return ret;
       }
-      // open the deterministicAlgorithms config
-      SetDeterministic();
       bool reset_flag = false;
       if (!cur_paras->isJitDisable)
       {
