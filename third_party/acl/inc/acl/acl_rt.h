@@ -1218,6 +1218,38 @@ ACL_FUNC_VISIBILITY aclError aclrtGetStreamOverflowSwitch(aclrtStream stream, ui
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo);
 
+/**
+ * @ingroup AscendCL
+ * @brief get overflow status asynchronously
+ *
+ * @par Restriction
+ * After calling the aclrtGetOverflowStatus interface,
+ * you need to call the aclrtSynchronizeStream interface
+ * to ensure that the tasks in the stream have been completed.
+ * @param outputAddr [IN/OUT]  output device addr to store overflow status
+ * @param outputSize [IN]  output addr size
+ * @param outputSize [IN]  stream
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetOverflowStatus(void *outputAddr, size_t outputSize, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief reset overflow status asynchronously
+ *
+ * @par Restriction
+ * After calling the aclrtResetOverflowStatus interface,
+ * you need to call the aclrtSynchronizeStream interface
+ * to ensure that the tasks in the stream have been completed.
+ * @param outputSize [IN]  stream
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtResetOverflowStatus(aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif
