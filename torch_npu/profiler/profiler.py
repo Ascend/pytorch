@@ -14,7 +14,10 @@ from .msprofiler_c_interface import MsProfilerInterface, supported_ms_activities
 from .scheduler import CLOSE_STEP, ProfilerAction
 
 
-def tensorboard_trace_handler(dir_name: str, worker_name: str = None, use_gzip: bool = False):
+def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, use_gzip: bool = False):
+    if dir_name is None:
+        dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
+        dir_name = os.path.join(os.path.abspath(dir_name), Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
     return NpuProfCreator(worker_name, dir_name)
 
 
