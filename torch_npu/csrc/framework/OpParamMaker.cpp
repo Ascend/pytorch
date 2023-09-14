@@ -17,11 +17,13 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
@@ -387,8 +389,15 @@ namespace at_npu
                     ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
-      c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(cur_paras->event);
-      ASCEND_LOGI("Event: aclrtRecordEvent dequeue is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      ASCEND_LOGI("aclrtRecordEvent is successfully executed, cur_paras->event=%p.", cur_paras->event);
+
+      // Temporary modification to avoid problem that
+      // event must be recorded before query
+      if (cur_paras->eventAllocatorType == c10_npu::queue::HOST_ALLOCATOR_EVENT) {
+        THNPUCachingHostAllocator_insertCompleteEvent(cur_paras->event);
+      } else if (cur_paras->eventAllocatorType == c10_npu::queue::NPU_ALLOCATOR_EVENT) {
+        c10_npu::NPUCachingAllocator::NpuAllocatorInsertRecordedEvent(cur_paras->event);
+      }
 
       return ret;
     }
@@ -401,7 +410,19 @@ namespace at_npu
                     ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
-      ASCEND_LOGI("Event: aclrtStreamWaitEvent dequeue is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      return ret;
+    }
+
+    int ResetEventFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
+      auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
+      aclError ret = aclrtResetEvent(cur_paras->event, stream);
+      if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtResetEvent error! ret = %d, event = %p, eventAllocatorType = %d",
+                    ret, cur_paras->event, cur_paras->eventAllocatorType);
+        C10_NPU_SHOW_ERR_MSG();
+      }
+      ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, cur_paras->event=%p.", cur_paras->event);
       return ret;
     }
 
@@ -413,7 +434,6 @@ namespace at_npu
                     ret, cur_paras->event, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
-      ASCEND_LOGI("Event: LazyDestroyEventFunc dequeue is successfully executed, cur_paras->event=%p.", cur_paras->event);
       return ret;
     }
 
@@ -478,6 +498,7 @@ namespace at_npu
       {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
       {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
       {c10_npu::queue::LAMBDA_EXECUTE, ExecBsFunc},
+      {c10_npu::queue::RESET_EVENT, ResetEventFunc},
     };
 
     int AsncExecFunc(void* data) {
