@@ -36,6 +36,8 @@ __all__ = [
     "current_blas_handle",
 ]
 
+from typing import Tuple
+
 import torch
 import torch_npu
 
@@ -70,3 +72,5 @@ config = npu_frontend_enhance.npuConfig()
 
 matmul = npu_frontend_enhance.allowHF32Matmul()
 conv = npu_frontend_enhance.allowHF32Conv()
+
+default_generators: Tuple[torch._C.Generator] = ()
