@@ -9,11 +9,14 @@ namespace torch_npu {
 namespace utils {
 
 inline bool is_npu(const at::Tensor& tensor) {
+  if (!tensor.defined()) {
+    return false;
+  }
   return tensor.device().is_privateuseone();
 }
 
 inline bool is_npu(const at::TensorOptions& options) {
-    return options.device().is_privateuseone();
+  return options.device().is_privateuseone();
 }
 
 inline bool is_npu(const at::Device& device) {
