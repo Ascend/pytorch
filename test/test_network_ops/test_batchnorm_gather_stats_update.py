@@ -18,7 +18,6 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestBatchNormGatherStatsUpdate(TestCase):
@@ -65,7 +64,6 @@ class TestBatchNormGatherStatsUpdate(TestCase):
             npu_counts = torch_npu.npu_format_cast(npu_counts, npu_format)
         return cpu_counts, npu_counts
 
-    @graph_mode
     def test_batch_norm_gather_stats_update(self):
         np.random.seed(1234)
         shape_format = [

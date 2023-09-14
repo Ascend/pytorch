@@ -392,7 +392,7 @@ torch_npu::profiler::NPURecordFunction guard;
 
                 if f.op_api and not is_op_valid(str(f.func.name)):
                     return_code = f"""\
-if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
+if (at_npu::native::env::CheckJitDisable(){tensor_check_str}) {{
         return {op_api_impl_name}({args_exprs_str});
     }} else {{
         return {impl_name}({args_exprs_str});

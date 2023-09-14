@@ -16,11 +16,9 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestBatchNormElemt(TestCase):
-    @graph_mode
     def test_batch_norm_elent(self):
         input1 = torch.tensor([[1.], [2.], [3.]]).npu()
         weight = torch.tensor([1.]).npu()
@@ -32,7 +30,6 @@ class TestBatchNormElemt(TestCase):
         expect_out = torch.tensor([[8.], [10.], [12.]])
         self.assertRtolEqual(expect_out, out.cpu())
 
-    @graph_mode
     def test_batch_norm_elent_out(self):
         input1 = torch.tensor([[1.], [2.], [3.]]).npu()
         weight = torch.tensor([1.]).npu()

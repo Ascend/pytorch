@@ -416,16 +416,6 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
               return self->allgather_togather(
                   output_tensors, input_tensor);
            },
-           py::call_guard<py::gil_scoped_release>())
-      .def("allreduce_out",
-           [](
-               ::c10d_npu::ProcessGroupHCCL& pg,
-               std::vector<at::Tensor>& inputs,
-               std::vector<at::Tensor>& outputs,
-               int64_t fusion_id,
-               const c10d::AllreduceOptions& opts) -> c10::intrusive_ptr<c10d::ProcessGroup::Work> {
-                 return pg.allreduce_out(inputs, outputs, fusion_id, opts);
-           },
            py::call_guard<py::gil_scoped_release>());
 
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
