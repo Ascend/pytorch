@@ -20,6 +20,10 @@ endif()
 # Library dependencies.
 find_library(TORCH_NPU_LIBRARY torch_npu PATHS "${TORCH_NPU_INSTALL_PREFIX}/lib")
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(TORCH_NPU_CXX_FALGS "-D_GLIBCXX_USE_CXX11_ABI=@GLIBCXX_USE_CXX11_ABI@")
+endif()
+
 include_directories(${TORCH_NPU_INCLUDE_DIRS})
 
 set(TORCH_NPU_LIBRARIES ${TORCH_NPU_LIBRARY})
