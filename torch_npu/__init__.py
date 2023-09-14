@@ -43,7 +43,7 @@ from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
-     add_storage_methods, add_optim_method, add_serialization_methods
+     add_storage_methods, add_optim_method, add_serialization_methods, apply_device_patch
 import torch_npu.utils.custom_ops
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from .version import __version__ as __version__
@@ -111,6 +111,7 @@ def _apply_patches(monkey_patches):
 def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
+    apply_device_patch()
     add_tensor_methods()
     add_optim_method()
     add_serialization_methods()
