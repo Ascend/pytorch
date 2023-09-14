@@ -64,6 +64,7 @@ class TestNpuProfiler(TestCase):
     OPERATOR_MEMORY = "operator_memory.csv"
     MEMORY_RECORD = "memory_record.csv"
     results_path = "./results"
+    results_work_path = "./work_result_path"
     model_train = TrainModel()
     small_steps = 1
     large_steps = 5
@@ -188,6 +189,17 @@ class TestNpuProfiler(TestCase):
                 self.model_train.train_one_step()
         self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_MEMORY))
         self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_RECORD))
+
+    def test_ascend_work_path(self):
+        os.environ["ASCEND_WORK_PATH"] = self.results_work_path
+        with torch_npu.profiler.profile(
+                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler()
+        ) as prof:
+            for step in range(self.small_steps):
+                self.model_train.train_one_step()
+
+        os.environ["ASCEND_WORK_PATH"] = ""
+        self.assertEqual(True, os.path.exists(os.path.join(self.results_work_path, "profiling_data")))
 
     def _get_tensorboard_output(self, worker_name: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(self.results_path))
