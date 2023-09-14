@@ -169,8 +169,12 @@ class profileConfig(object):
 
 
 class profile(object):
-    def __init__(self, profiler_result_path="./", use_e2e_profiler=False,
+    def __init__(self, profiler_result_path=None, use_e2e_profiler=False,
         config=profileConfig()):
+        if profiler_result_path is None:
+            profiler_result_path = os.getenv("ASCEND_WORK_PATH", default=None)
+            profiler_result_path = os.path.join(os.path.abspath(profiler_result_path), "profiling_data") \
+                if profiler_result_path else os.getcwd()
         self.result_path = profiler_result_path
         self.use_e2e_profiler = use_e2e_profiler
         warnings.warn("The E2E and CANN profilers will be deprecated, "\
