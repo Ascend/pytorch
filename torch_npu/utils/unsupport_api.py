@@ -4,7 +4,7 @@ unsupport_Tensor_api = [
 ]
 
 unsupport_nn_api = [
-  "torch.nn.DataParallel",
+  "torch.nn.DataParallel.__init__",
   "torch.nn.parallel.data_parallel",
   "torch.nn.Module.share_memory",
   "torch.jit.ScriptModule.add_module",

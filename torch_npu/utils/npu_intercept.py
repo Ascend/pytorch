@@ -96,7 +96,8 @@ def is_tensor_npu_supported(*args, **kwargs):
 
 
 def is_module_parameters_supported(*args, **kwargs):
-    module_parameters = [p for _, p in args[0].named_parameters()]
+    module_args = [m for m in args if isinstance(m, torch.nn.Module) and hasattr(m, "_modules")]
+    module_parameters = [p for _, p in module_args[0].named_parameters()]
     return any(p.device is not None and p.device.type == "npu" for p in module_parameters)
 
 
