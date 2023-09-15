@@ -35,25 +35,26 @@ class CANNFileParser:
     TIMELINE = "timeline"
     ANALYZE = "analyze"
     CANN_DATA_MATCH = {
-        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d_\d+\.csv", r"^op_summary_\d_\d+_\d+\.csv",
-                                  r"^op_summary_\d_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d_\d+\.csv", r"^npu_mem_\d_\d+_\d+\.csv",
-                                  r"^npu_mem_\d_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d_\d+\.json", r"^msprof_\d_\d+_\d+\.json",
-                                       r"^msprof_\d_\d+_\d+_\d+\.json", r"^msprof_\d_\d+_slice_\d+\.json",
-                                       r"^msprof_\d_\d+_\d+_slice_\d+\.json",
-                                       r"^msprof_\d_\d+_\d+_slice_\d+_\d+\.json"],
-        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d_\d+\.csv", r"^step_trace_\d_\d+_\d+\.csv",
-                                  r"^step_trace_\d_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d_\d+\.csv", r"^ge_memory_record_\d_\d+_\d+\.csv",
-                                        r"^ge_memory_record_\d_\d+_\d+_\d+\.csv", r"^memory_record_\d_\d+\.csv",
-                                        r"^memory_record_\d_\d+_\d+\.csv", r"^memory_record_\d_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d_\d+\.csv", r"^ge_operator_memory_\d_\d+_\d+\.csv",
-                                          r"^ge_operator_memory_\d_\d+_\d+_\d+\.csv", r"^operator_memory_\d_\d+\.csv",
-                                          r"^operator_memory_\d_\d+_\d+\.csv", r"^operator_memory_\d_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d_\d+\.csv", r"^l2_cache_\d_\d+_\d+\.csv",
-                                r"^l2_cache_\d_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.AI_CPU: [r"^aicpu_\d_\d+\.csv", r"^aicpu_\d_\d+_\d+\.csv", r"^aicpu_\d_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d+_\d+\.csv", r"^op_summary_\d+_\d+_\d+\.csv",
+                                  r"^op_summary_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d+_\d+\.csv", r"^npu_mem_\d+_\d+_\d+\.csv",
+                                  r"^npu_mem_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d+_\d+\.json", r"^msprof_\d+_\d+_\d+\.json",
+                                       r"^msprof_\d+_\d+_\d+_\d+\.json", r"^msprof_\d+_\d+_slice_\d+\.json",
+                                       r"^msprof_\d+_\d+_\d+_slice_\d+\.json",
+                                       r"^msprof_\d+_\d+_\d+_slice_\d+_\d+\.json"],
+        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d+_\d+\.csv", r"^step_trace_\d+_\d+_\d+\.csv",
+                                  r"^step_trace_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d+_\d+\.csv", r"^ge_memory_record_\d+_\d+_\d+\.csv",
+                                        r"^ge_memory_record_\d+_\d+_\d+_\d+\.csv", r"^memory_record_\d+_\d+\.csv",
+                                        r"^memory_record_\d+_\d+_\d+\.csv", r"^memory_record_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d+_\d+\.csv", r"^ge_operator_memory_\d+_\d+_\d+\.csv",
+                                          r"^ge_operator_memory_\d+_\d+_\d+_\d+\.csv", r"^operator_memory_\d+_\d+\.csv",
+                                          r"^operator_memory_\d+_\d+_\d+\.csv",
+                                          r"^operator_memory_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d+_\d+\.csv", r"^l2_cache_\d+_\d+_\d+\.csv",
+                                r"^l2_cache_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.AI_CPU: [r"^aicpu_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+_\d+\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"]
     }
@@ -97,7 +98,7 @@ class CANNFileParser:
     def export_cann_profiling(self, data_simplification: bool):
         if not os.path.isdir(self._cann_path):
             return
-
+        self._del_summary_and_timeline_data()
         completed_process = subprocess.run(["msprof", "--export=on", f"--output={self._cann_path}"],
                                            capture_output=True)
         if completed_process.returncode != self.COMMAND_SUCCESS:
@@ -207,3 +208,12 @@ class CANNFileParser:
                 for re_match_exp in re_match_exp_list:
                     if re.match(re_match_exp, os.path.basename(file_path)):
                         self._file_dict.setdefault(data_type, set()).add(file_path)
+
+    def _del_summary_and_timeline_data(self):
+        device_path = PathManager.get_device_path(self._cann_path)
+        if not device_path:
+            return
+        summary_path = os.path.join(device_path, "summary")
+        timeline_path = os.path.join(device_path, "timeline")
+        FileManager.remove_file_safety(summary_path)
+        FileManager.remove_file_safety(timeline_path)

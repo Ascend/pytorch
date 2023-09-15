@@ -30,6 +30,7 @@ class TreeBuilder:
         while not node_queue.empty():
             tree_node = node_queue.get()
             tree_node.update_device_total(node_info_bean)
+            tree_node.update_device_range(node_info_bean)
             matched_child_node = tree_node.match_child_node(enqueue_ts)
             if matched_child_node:
                 node_queue.put(matched_child_node)
