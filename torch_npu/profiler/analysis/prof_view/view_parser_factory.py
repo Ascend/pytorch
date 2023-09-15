@@ -1,8 +1,5 @@
 import datetime
 import os
-import shutil
-import threading
-import time
 
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.file_manager import FileManager
@@ -16,15 +13,16 @@ from ..profiler_config import ProfilerConfig
 class ViewParserFactory:
     @classmethod
     def create_view_parser_and_run(cls, profiler_path: str, analysis_type: str, output_path: str, kwargs: dict):
-        print(f"[INFO] [{os.getpid()}] profiler.py: Start parsing profiling data.")
-        ProfilerConfig().load_info(profiler_path)
-        cann_file_parser = CANNFileParser(profiler_path)
-        cann_file_parser.check_prof_data_size()
+        print(f"[INFO] [{os.getpid()}] profiler.py: Start parsing profiling data: {profiler_path}")
         start_time = datetime.datetime.now()
-        CANNFileParser(profiler_path).export_cann_profiling(ProfilerConfig().data_simplification)
-        end_time = datetime.datetime.now()
-        print(
-            f"[INFO] [{os.getpid()}] profiler.py: CANN profiling data parsed in a total time of {end_time - start_time}")
+        ProfilerConfig().load_info(profiler_path)
+        if PathManager.get_cann_path(profiler_path):
+            cann_file_parser = CANNFileParser(profiler_path)
+            cann_file_parser.check_prof_data_size()
+            CANNFileParser(profiler_path).export_cann_profiling(ProfilerConfig().data_simplification)
+            end_time = datetime.datetime.now()
+            print(f"[INFO] [{os.getpid()}] profiler.py: CANN profiling data parsed "
+                  f"in a total time of {end_time - start_time}")
         GlobalVar.init(profiler_path)
         if analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
             output_path = os.path.join(profiler_path, Constant.OUTPUT_DIR)
@@ -41,5 +39,4 @@ class ViewParserFactory:
         if not ProfilerConfig().data_simplification:
             return
         target_path = os.path.join(profiler_path, Constant.FRAMEWORK_DIR)
-        if os.path.exists(target_path):
-            shutil.rmtree(target_path)
+        FileManager.remove_file_safety(target_path)

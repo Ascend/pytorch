@@ -7,6 +7,7 @@ from torch_npu.npu import _lazy_init
 
 from .analysis.npu_profiler import NpuProfiler
 from .analysis.prof_common_func.constant import Constant
+from .analysis.prof_common_func.file_manager import FileManager
 from .experimental_config import _ExperimentalConfig
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
@@ -73,10 +74,7 @@ class profile:
             prev_action = self._schedule(prev_step)
             if prev_action == ProfilerAction.NONE:
                 return
-            try:
-                shutil.rmtree(self._msprofiler_interface.path)
-            except Exception:
-                warn(f"Can't remove directory: {self._msprofiler_interface.path}")
+            FileManager.remove_file_safety(self._msprofiler_interface.path)
 
     def step(self):
         if self._schedule:
@@ -92,11 +90,10 @@ class profile:
         self.dump_profiler_info()
         self._action_controller.trace_ready()
 
-
     def export_chrome_trace(self, output_path: str):
         if isinstance(self._action_controller._on_trace_ready, NpuProfCreator):
             print(f"[WARNING] [{os.getpid()}] profiler.py: "
-                   "Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
+                  "Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
             return
         if not self._msprofiler_interface.path:
             print(f"[WARNING] [{os.getpid()}] profiler.py: Invalid profiling path.")
@@ -117,8 +114,8 @@ class profile:
             return
         if not metric in (Constant.METRIC_CPU_TIME, Constant.METRIC_NPU_TIME):
             print(f"[WARNING] [{os.getpid()}] profiler.py: "
-                   "Metric should be self_cpu_time_total or self_npu_time_total."
-                   "Here it is presumed to be self_cpu_time_total.")
+                  "Metric should be self_cpu_time_total or self_npu_time_total."
+                  "Here it is presumed to be self_cpu_time_total.")
             metric = Constant.METRIC_CPU_TIME
         if not self._msprofiler_interface.path:
             print(f"[WARNING] [{os.getpid()}] profiler.py: Invalid profiling path.")
