@@ -14,14 +14,16 @@
 # limitations under the License.
 
 from ..prof_common_func.global_var import GlobalVar
-from ..prof_common_func.trace_event_manager import TraceEventManager
-from ..prof_common_func.constant import Constant
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_common_func.file_manager import FileManager
 
+
 class TraceStepTimeParser(BaseViewParser):
-    timeflag = {'Communication':'comun', 'Computing':'compute', 'Free':'free', 'Communication(Not Overlapped)':'comunNotOverlp', 'hcom_receive':'bubble'}
-    title = ['Step','Computing','Communication(Not Overlapped)','Overlapped','Communication','Free','Stage','Bubble','Communication(Not Overlapped and Exclude Receive)']
+    timeflag = {'Communication': 'comun', 'Computing': 'compute', 'Free': 'free',
+                'Communication(Not Overlapped)': 'comunNotOverlp', 'hcom_receive': 'bubble'}
+    title = ['Step', 'Computing', 'Communication(Not Overlapped)', 'Overlapped', 'Communication', 'Free', 'Stage',
+             'Bubble', 'Communication(Not Overlapped and Exclude Receive)']
+
     @classmethod
     def count_time(cls, addtype, addtime, durtime, step_list, save_time):
         cur_step = None
@@ -58,10 +60,14 @@ class TraceStepTimeParser(BaseViewParser):
         hasStepFlag = False
         for curStep in GlobalVar.step_range:
             step_list.append([curStep[0], curStep[1], curStep[2], -1, -1])
-            save_time.append({'step': curStep[0], 'compute': 0,'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0 })
+            save_time.append(
+                {'step': curStep[0], 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0,
+                 'bubble': 0, 'comunNotOverlpRec': 0})
             hasStepFlag = True
         if not hasStepFlag:
-            save_time.append({'step': None, 'compute': 0,'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0 })
+            save_time.append(
+                {'step': None, 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0,
+                 'bubble': 0, 'comunNotOverlpRec': 0})
             step_list.append([None, -1, -1, -1, -1])
 
         has_analysis_data_flag = False
@@ -81,5 +87,7 @@ class TraceStepTimeParser(BaseViewParser):
             calc_time['stage'] = cls.getE2ETime(calc_time['step'], step_list) - calc_time['bubble']
         print_time = []
         for step in save_time:
-            print_time.append([step['step'], step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'], step['stage'], step['bubble'], step['comunNotOverlpRec']])
+            print_time.append(
+                [step['step'], step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'],
+                 step['stage'], step['bubble'], step['comunNotOverlpRec']])
         FileManager.create_csv_file(output_path, print_time, file_name, cls.title)
