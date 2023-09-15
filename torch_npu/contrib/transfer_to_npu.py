@@ -23,7 +23,6 @@ torch_cuda_fn_white_list = [
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
 ]
-torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type']
 
@@ -44,13 +43,6 @@ def wrapper_cuda(fn):
                     kwargs[device_arg] = torch.device(device_info)
                 if type(device) == int:
                     kwargs[device_arg] = f'npu:{device}'
-            if 'experimental_config' in kwargs.keys() and \
-                type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
-                logger.warning(
-                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
-                    'because it can only be used in cuda, please manually modify the code '
-                    'and use the experimental_config parameter adapted to npu.')
-                del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
             if type(device_ids) == list:
                 device_ids = replace_cuda_to_npu_in_list(device_ids, replace_int)
@@ -105,6 +97,22 @@ def wrapper_data_loader(fn):
                 kwargs['pin_memory_device'] = 'npu'
             if pin_memory and type(pin_memory_device) == str and 'cuda' in pin_memory_device:
                 kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
+        return fn(*args, **kwargs)
+
+    return decorated
+
+
+def wrapper_profiler(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        if kwargs:
+            if 'experimental_config' in kwargs.keys() and \
+                type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
+                logger.warning(
+                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
+                    'because it can only be used in cuda, please manually modify the code '
+                    'and use the experimental_config parameter adapted to npu.')
+                del kwargs['experimental_config']
         return fn(*args, **kwargs)
 
     return decorated
@@ -170,7 +178,7 @@ def init():
 
     # torch.profiler.*
     patch_profiler()
-    device_wrapper(torch.profiler, torch_profiler_fn_white_list)
+    torch.profiler.profile = wrapper_profiler(torch.profiler.profile)
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
