@@ -180,21 +180,11 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     dpse_required = at::empty({0}, query.options());
   }
 
-  // aply fp32 dq kv
-  at::Tensor dq_32 = OpPreparation::ApplyTensorWithoutFormat(query.sizes(), query.options().dtype(at::kFloat));
-  at::Tensor dk_32 = OpPreparation::ApplyTensorWithoutFormat(key.sizes(), key.options().dtype(at::kFloat));
-  at::Tensor dv_32 = OpPreparation::ApplyTensorWithoutFormat(value.sizes(), value.options().dtype(at::kFloat));
-
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
       format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
-      pre_tockens, next_tockens, head_num, input_layout_ptr, dq_32, dk_32, dv_32, dpse_required);
-
-  //cast
-  dq = NPUNativeOpApiFunctions::npu_dtype_cast(dq_32, query.scalar_type());
-  dk = NPUNativeOpApiFunctions::npu_dtype_cast(dk_32, query.scalar_type());
-  dv = NPUNativeOpApiFunctions::npu_dtype_cast(dv_32, query.scalar_type());
+      pre_tockens, next_tockens, head_num, input_layout_ptr, dq, dk, dv, dpse_required);
 
   return {dq, dk, dv,
           at::Tensor(), at::Tensor(), dpse, at::Tensor(), at::Tensor(), at::Tensor(),
