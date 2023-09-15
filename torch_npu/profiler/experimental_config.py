@@ -1,5 +1,4 @@
 import os
-from enum import Enum
 
 import torch_npu._C
 
