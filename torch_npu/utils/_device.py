@@ -1,10 +1,14 @@
 import torch
 from torch import device as origin_device
+from torch.fx.graph import _register_custom_builtin
 
 
 class MetaDevice(type):
     def __instancecheck__(self, instance):
         return isinstance(instance, origin_device)
+
+    def __eq__(self, other):
+        return other == origin_device
 
 
 class NPUDevice(metaclass=MetaDevice):
@@ -18,3 +22,4 @@ class NPUDevice(metaclass=MetaDevice):
 
 def apply_device_patch():
     torch.device = NPUDevice
+    _register_custom_builtin('device', 'from torch import device', NPUDevice)
