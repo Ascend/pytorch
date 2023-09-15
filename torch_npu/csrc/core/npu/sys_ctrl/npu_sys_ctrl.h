@@ -66,6 +66,8 @@ private:
 
 private:
     bool init_flag_;
+    bool is_soc_match;
+    std::string soc_name_;
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };

@@ -41,7 +41,7 @@ enum class SocVersion {
   Ascend910C4
 };
 
-void SetSocVersion(const char* const socVersion);
+bool SetSocVersion(const char* const socVersion);
 
 const SocVersion& GetSocVersion();
 

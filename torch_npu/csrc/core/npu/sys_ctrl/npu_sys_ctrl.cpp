@@ -115,7 +115,7 @@ void SetHF32DefaultValue() {
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
+NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) {}
 
 // Get NpuSysCtrl singleton instance
  NpuSysCtrl& NpuSysCtrl::GetInstance() {
@@ -126,6 +126,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 // GE Environment Initialize, return Status: SUCCESS, FAILED
  NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
     if (init_flag_) {
+        if (!is_soc_match) {
+          AT_ERROR("Unsupported soc version: ", soc_name_);
+        }
         return INIT_SUCC;
     }
     NPU_CHECK_ERROR(aclInit(nullptr));
@@ -190,7 +193,11 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   }
 
   // set global soc name
-  c10_npu::SetSocVersion(soc_name);
+  if (!c10_npu::SetSocVersion(soc_name)) {
+    is_soc_match = false;
+    soc_name_ = soc_name;
+    AT_ERROR("Unsupported soc version: ", soc_name_);
+  }
 
   if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) {
     if (c10_npu::IsSupportInfNan()) {
