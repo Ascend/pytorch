@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from ..prof_common_func.csv_headers import CsvHeaders
+
+
 class OpSummaryBean:
-    TASK_START_TIME = "Task Start Time"
     headers = []
 
     def __init__(self, data: list):
@@ -30,7 +32,7 @@ class OpSummaryBean:
 
     @property
     def ts(self) -> float:
-        return float(self._data.get(self.TASK_START_TIME, 0))
+        return float(self._data.get(CsvHeaders.TASK_START_TIME, 0))
 
     @property
     def all_headers(self) -> list:

@@ -1,6 +1,5 @@
 import os
 
-from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_common_func.constant import Constant
