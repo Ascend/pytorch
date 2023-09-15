@@ -41,7 +41,7 @@ class FwkCANNRelationParser:
                 kernel_list = acl_to_npu_dict.get(acl_start_time, [])
                 if not kernel_list:
                     continue
-                TreeBuilder.find_call_node(acl_start_time, NodeInfoBean(acl_start_time, kernel_list), root_node)
+                TreeBuilder.find_call_node(acl_start_time, NodeInfoBean(kernel_list), root_node)
             return root_node
 
         corr_id_dict = {}
@@ -62,5 +62,5 @@ class FwkCANNRelationParser:
                 kernel_list.extend(acl_to_npu_dict.get(acl_start_time, []))
             if not kernel_list:
                 continue
-            TreeBuilder.find_call_node(enqueue_data.ts, NodeInfoBean(acl_start_time, kernel_list), root_node)
+            TreeBuilder.find_call_node(enqueue_data.ts, NodeInfoBean(kernel_list), root_node)
         return root_node

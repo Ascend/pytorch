@@ -28,7 +28,7 @@ from .analysis.prof_common_func.file_manager import FileManager
 
 
 class NpuProfCreator:
-    DEFAULT_PROF_SUFFIX = "profiler"
+    DEFAULT_PROF_SUFFIX = "{}_{}".format(socket.gethostname(), str(os.getpid()))
 
     def __init__(self, worker_name: str = None, dir_name: str = "./") -> None:
         self._worker_name = worker_name
