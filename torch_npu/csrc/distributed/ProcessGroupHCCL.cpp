@@ -1279,15 +1279,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
   std::vector<int64_t> output_split_sizes;
   std::vector<int64_t> input_split_sizes;
   std::vector<at::Tensor> output_results;
-  uint64_t num = 0;
+  std::vector<at::Tensor> input_tensors_flattened;
+  std::vector<at::Tensor> output_tensors_flattened;
 
   for (size_t i = 0; i < input_tensors.size(); i++) {
-    int64_t inputlist_tensor_size = input_tensors[i].size(0);
-    input_split_sizes.push_back(inputlist_tensor_size);
-    num += inputlist_tensor_size;
+    input_split_sizes.push_back(input_tensors[i].numel());
+    input_tensors_flattened.push_back(at::reshape(input_tensors[i], {input_tensors[i].numel(), 1}));
   }
   for (size_t i = 0; i < output_tensors.size(); i++) {
-    output_split_sizes.push_back(output_tensors[i].size(0));
+    output_split_sizes.push_back(output_tensors[i].numel());
+    output_tensors_flattened.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}));
   }
 
   int ranks = getSize();
@@ -1311,8 +1312,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
     input_spl[i] = input_spl[i-1] + input_split_sizes[i-1];
   }
 
-  std::vector<at::Tensor> in_tensors = {at::cat(input_tensors, 0)};
-  std::vector<at::Tensor> out_tensors = {at::cat(output_tensors, 0)};
+  std::vector<at::Tensor> in_tensors = {at::cat(input_tensors_flattened, 0)};
+  std::vector<at::Tensor> out_tensors = {at::cat(output_tensors_flattened, 0)};
 
   auto input_tensors_ = cast_to_origin_format(in_tensors);
   auto output_tensors_ = cast_to_origin_format(out_tensors);
@@ -1351,7 +1352,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
           }
           output_results = at::split(out_tensors[0], output_split_sizes, 0);
 	  for (int i = 0; i < output_results.size(); i++) {
-	    output_tensors[i].copy_(output_results[i], true);
+	    output_tensors[i].copy_(at::reshape(output_results[i], output_tensors[i].sizes()), true);
 	  } 
       });
 }
