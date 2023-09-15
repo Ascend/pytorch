@@ -99,11 +99,7 @@ class FileManager:
 
     @classmethod
     def remove_and_make_output_dir(cls, output_path: str) -> None:
-        if os.path.exists(output_path):
-            try:
-                shutil.rmtree(output_path)
-            except Exception:
-                raise RuntimeError(f"Can't delete files in the directory: {output_path}")
+        cls.remove_file_safety(output_path)
         try:
             os.makedirs(output_path, mode=Constant.DIR_AUTHORITY)
         except Exception:
@@ -145,3 +141,11 @@ class FileManager:
         if not os.access(path, os.W_OK):
             raise RuntimeError('The path {} does not have permission to write. '
                                'Please check the path permission'.format(path))
+
+    @classmethod
+    def remove_file_safety(cls, path: str):
+        if os.path.exists(path):
+            try:
+                shutil.rmtree(path)
+            except Exception:
+                print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove the directory: {path}")
