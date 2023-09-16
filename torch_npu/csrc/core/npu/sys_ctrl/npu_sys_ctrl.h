@@ -28,10 +28,6 @@ public:
         INIT_FAILED,
         CREATE_SESS_SUCC,
         CREATE_SESS_FAILED,
-        ADD_GRAPH_SUCC,
-        ADD_GRAPH_FAILED,
-        RUN_GRAPH_SUCC,
-        RUN_GRAPH_FAILED,
         FINALIZE_SUCC,
         FINALIZE_FAILED,
     };
@@ -39,7 +35,7 @@ public:
     // Get NpuSysCtrl singleton instance
      static NpuSysCtrl& GetInstance();
 
-    // GE Environment Initialize, return SysStatus
+    // Environment Initialize, return SysStatus
      SysStatus Initialize(int device_id = -1);
 
     // Change current device from pre_device to device
@@ -51,7 +47,7 @@ public:
     // Set overflow switch
      SysStatus OverflowSwitchEnable();
 
-    // GE Environment Finalize, return SysStatus
+    // Environment Finalize, return SysStatus
      SysStatus Finalize();
 
     // Get Init_flag
