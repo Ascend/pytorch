@@ -2,12 +2,7 @@ FILE(GLOB _ATEN_SRCS
     *.cpp
     common/*.cpp
     mirror/*.cpp
-    ops/*.cpp
-    ops/convolution/*.cpp
-    ops/loss/*.cpp
-    ops/normalization/*.cpp
-    ops/pooling/*.cpp
-    ops/hcom/*.cpp)
+    ops/*.cpp)
 
 FILE(GLOB _EXCLUDE
     VariableTypeEverything.cpp

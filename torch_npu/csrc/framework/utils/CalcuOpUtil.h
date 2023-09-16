@@ -76,7 +76,6 @@ public:
   static aclDataType ConvertToAclDataType(const at::ScalarType &data_type);
   static aclDataType ConvertToAclDataType(const at::ScalarType &data_type,
                                               const string &realDataType);
-  static at::ScalarType ConvertToATDataType(const aclDataType &acl_type);
   static at::Tensor CopyScalarToDevice(const c10::Scalar &cpu_scalar,
                                        at::ScalarType scalar_data_type);
   static at::Tensor CopyTensorHostToDevice(const at::Tensor &cpu_tensor);

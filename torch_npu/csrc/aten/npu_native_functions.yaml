@@ -103,10 +103,6 @@ custom:
 - func: check_match(Tensor self) -> bool
 - func: check_memory_overlaps(Tensor[] inputs, Tensor[] outputs) -> ()
 - func: get_storage_size(Tensor self) -> int
-- func: npu_hcom_allreduce(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm) -> Tensor
-- func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
-- func: npu_hcom_allgather(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm) -> Tensor
-- func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
 - bscpp_op: true
   func: bscpp_add(Tensor self, Tensor other) -> Tensor
 - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
