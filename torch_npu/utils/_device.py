@@ -10,6 +10,15 @@ class MetaDevice(type):
     def __eq__(self, other):
         return other == origin_device
 
+    def __ne__(self, other):
+        return other != origin_device
+
+    def __hash__(self):
+        return hash(origin_device)
+
+    def __format__(self, format_spec):
+        return f"{origin_device}"
+
 
 class NPUDevice(metaclass=MetaDevice):
     def __new__(cls, *args, **kwargs):
