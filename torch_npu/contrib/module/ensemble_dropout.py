@@ -176,7 +176,7 @@ class NpuPreGenDropout(torch.nn.Dropout):
 
         model.register_forward_pre_hook(wait_stream_hook_func())
 
-        model_device = torch.npu.current_device()
+        model_device = f"npu:{torch.npu.current_device()}"
         for p in cls.prob:
             init_task = PreGenDropoutTask(model_device, p)
 
