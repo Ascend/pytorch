@@ -59,7 +59,6 @@ def compile_hccl_test():
 -p: number of npus: e.g: -n denotes 8 use 8 NPUs per node.
 -h: help info
 -file: host file to enable multi-node test
--nnpus: total number of npus in cluster
 -multinode: whether to use multi-node test. e.g: False: disable, True: enable 
 """
 
@@ -80,7 +79,6 @@ parser.add_argument("--h", help="help")
 
 #Below are options if multiple nodes tests are enabled
 parser.add_argument("--file", help="host file used by mpirun in multi-node cases.")
-parser.add_argument("--nnpus", help="num of npus.")
 
 #option to execute single node test or multi-node test
 parser.add_argument("--multinode", default="False", help="num of nodes.")
@@ -94,7 +92,7 @@ def execute_hccl_test_single_node():
     comm_op_type = get_exe_hccl_test()
     exe_args = [comm_op_type]
     for key, val in args_dict.items():
-        if key == "t" or val is None or key == 'multinode':
+        if key == "t" or val is None or key == 'multinode' or key == "file":
             continue
         exe_args.extend(['-' + key, val])
     if args_dict["multinode"] == "False":
@@ -103,7 +101,7 @@ def execute_hccl_test_single_node():
         except subprocess.CalledProcessError as err:
             print("HCCL test executes fail! Details listed below: \n", err)
     else:
-        subprocess.check_call(args=["mpirun", "-f", args_dict["file"], "-n", args_dict["nnpus"]] + exe_args)
+        subprocess.check_call(args=["mpirun", "-f", args_dict["file"]] + exe_args)
 
 
 if __name__ == "__main__":
