@@ -25,8 +25,21 @@ class TraceStepTimeParser(BaseViewParser):
              'Bubble', 'Communication(Not Overlapped and Exclude Receive)']
 
     @classmethod
+    def is_float_num(cls, num):
+        try:
+            float(num)
+            return True
+        except VauleError:
+            return False
+
+    @classmethod
     def count_time(cls, addtype, addtime, durtime, step_list, save_time):
         cur_step = None
+        if not cls.is_float_num(addtime) or not cls.is_float_num(durtime):
+            print('Ts or dur format error!')
+            return
+        addtime = float(addtime)
+        durtime = float(durtime)
         for step in step_list:
             if step[1] < addtime and step[2] > addtime:
                 cur_step = step[0]
