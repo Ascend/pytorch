@@ -148,9 +148,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
         NPU_LOGE("Npu device %d has been set before global init.", device_id_);
     }
 
-    init_flag_ = true;
-    NPU_LOGD("Npu sys ctrl initialize successfully.");
-
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
       NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
@@ -186,6 +183,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
   SetHF32DefaultValue();
 
   NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    
+  init_flag_ = true;
+  NPU_LOGD("Npu sys ctrl initialize successfully.");
   return INIT_SUCC;
 }
 
