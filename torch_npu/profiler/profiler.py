@@ -108,28 +108,6 @@ class profile:
         except Exception:
             print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove directory: {self._msprofiler_interface.path}")
 
-    def export_stacks(self, output_path: str, metric: str = Constant.METRIC_CPU_TIME):
-        if not self._with_stack:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Function export_stacks() requires with_stack=True.")
-            return
-        if not metric in (Constant.METRIC_CPU_TIME, Constant.METRIC_NPU_TIME):
-            print(f"[WARNING] [{os.getpid()}] profiler.py: "
-                  "Metric should be self_cpu_time_total or self_npu_time_total."
-                  "Here it is presumed to be self_cpu_time_total.")
-            metric = Constant.METRIC_CPU_TIME
-        if not self._msprofiler_interface.path:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Invalid profiling path.")
-            return
-        try:
-            NpuProfiler.analyse(self._msprofiler_interface.path, Constant.EXPORT_STACK, output_path, metric=metric)
-        except Exception:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
-            return
-        try:
-            shutil.rmtree(self._msprofiler_interface.path)
-        except Exception:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove directory: {self._msprofiler_interface.path}")
-
     def dump_profiler_info(self):
         if not self._msprofiler_interface:
             return
