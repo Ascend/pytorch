@@ -120,14 +120,6 @@ def cast_weight(self, device):
             sub_module.cast_weight(device)
 
 
-def layernorm_forward(self, input: torch.Tensor) -> torch.Tensor:
-    if self.training or (not input.is_npu):
-        return torch.nn.functional.layer_norm(
-            input, self.normalized_shape, self.weight, self.bias, self.eps)
-    else:
-        return torch_npu.npu_layer_norm_eval(input, self.normalized_shape, self.weight, self.bias, self.eps)
-
-
 def lstm_forward(self, input, hx=None):
     orig_input = input
     # xxx: isinstance check needs to be in conditional for TorchScript to compile
@@ -257,6 +249,5 @@ def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
-    torch.nn.LayerNorm.forward = layernorm_forward
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
