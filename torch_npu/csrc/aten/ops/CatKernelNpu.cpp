@@ -98,22 +98,9 @@ at::Tensor& cat_out_nocheck( at::Tensor& result, at::TensorList tensors, int64_t
   OpCommand cmd;
   cmd.Name("ConcatD");
 
-  // In graph mode, if all of input tensors are null numel,
-  // these null tensors should be passed to ConcatD as inputs.
-  // Otherwise, an error will be reported when infershape.
-  bool tensors_empty_in_graph_mode = false;
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    tensors_empty_in_graph_mode = true;
-    for (int i = 0; i < input_tensors.size(); i++) {
-      if (input_tensors[i].numel() != 0) {
-        tensors_empty_in_graph_mode = false;
-        break;
-      }
-    }
-  }
   input_number = 0;
   for (int i = 0; i < input_tensors.size(); i++) {
-    if (input_tensors[i].numel() != 0 || tensors_empty_in_graph_mode) {
+    if (input_tensors[i].numel() != 0) {
       string input_name = "x" + std::to_string(input_number++);
       cmd.Input(input_tensors[i], input_name);
     }

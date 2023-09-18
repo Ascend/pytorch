@@ -38,17 +38,6 @@ at::Tensor& stride_copy_out_npu_nocheck(
   // The accurate offset would be provided as a attr to op. 
   RECORD_FUNCTION("contiguous_d_AsStrided", std::vector<c10::IValue>({self}));
   OpCommand cmd;
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(self));
-    cmd.Name("AsStrided")
-        .InputWithoutContiguous(self)
-        .Input(shape)
-        .Input(stride)
-        .Input(storage_offset, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
-        .Output(result)
-        .Run();
-    return result;
-  }
 
   // When the last dimension of the input tensor stride is greater than 32, we use
   // AsStrided + Transpose instead of AsStrided to get better performance.

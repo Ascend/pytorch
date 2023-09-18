@@ -20,7 +20,6 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestNllloss2d(TestCase):
@@ -39,7 +38,6 @@ class TestNllloss2d(TestCase):
         output = output.detach().numpy()
         return output
 
-    @graph_mode
     def test_nll_loss2d_mean(self):
         m = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
@@ -56,7 +54,6 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_nll_loss2d_none(self):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
@@ -73,7 +70,6 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_nll_loss2d_sum(self):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
@@ -90,7 +86,6 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_nll_loss2d_case_in_ssdresnet34(self):
         cpu_plabel = torch.rand(32, 81, 8732).uniform_(-2.3, 2)
         cpu_glabel = torch.rand(32, 8732).random_(0, 79).long()
@@ -105,7 +100,6 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
     def test_nll_loss2d_dim_4(self):
         cpu_input, npu_input = create_common_tensor((np.float32, 0, (32, 32, 32, 32)), -100, 100)
         cpu_target, npu_target = create_common_tensor((np.int64, 0, (32, 32, 32)), 0, 32)

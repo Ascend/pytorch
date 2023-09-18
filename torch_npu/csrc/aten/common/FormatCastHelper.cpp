@@ -18,7 +18,6 @@
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
@@ -60,19 +59,7 @@ bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tens
       auto src_base_format = FormatHelper::GetBaseFormat(src);
       format_cast_as_base_format(src, FormatHelper::GetBaseFormat(dst)); // prepare: covert src to dst base format
       format_cast_inside_group(dst, src); // src base format (src format) -> dst base format
-
-      // a base format change: ND-> NCHW -> ND
-      // when we run graph,
-      // FE get task : ND/ND -> NCHW/NC1HWC0, which will be failed
-      // so we judge condition below make a base format change become
-      // ND->NCHW->NCHW
-      // then FE get task : NCHW/NCHW -> NCHW/NC1HWC0 and NCHW/NCHW -> NCHW/NZ
-
-      if (c10_npu::NpuRunMode::IsGraphMode() && src_base_format == ACL_FORMAT_ND) {
-        return true;
-      }
-      // recover: dst base format -> dst format
-      format_cast_as_base_format(src, src_base_format);
+      format_cast_as_base_format(src, src_base_format); // recover: dst base format -> dst format
       return true;
     }
   } else {

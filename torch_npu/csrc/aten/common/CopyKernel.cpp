@@ -23,12 +23,10 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
 namespace native {
@@ -301,14 +299,6 @@ void copy_d2d_dtype_baseformat(
       return;
     }
   } else {
-    if (c10_npu::NpuRunMode::IsGraphMode()) {
-      // In graph mode, in order to identify and call the corresponding npu operators,
-      // opt is necessary for contiguous tensor, such as reshape/slice/select. 
-      OptimizationCases contiguous_opt_cases = {"reshape", "slice", "select"};
-      if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src, contiguous_opt_cases)) {
-        return;
-      }
-    }
     // Contiguous source tensor copy to contiguous self tensor
     int64_t numel = self.numel();
     if (numel == src.numel()) {
@@ -343,7 +333,6 @@ at::Tensor& copy_real_number_nocheck(at::Tensor& self, const at::Tensor& src, bo
     }
   } else {
     if (at_npu::key::isDeviceTensor(src)) {
-      GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
       copy_d2h(self, src, non_blocking);
     }
   }
