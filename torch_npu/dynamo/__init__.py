@@ -35,3 +35,11 @@ def _register_npu_backend(backend):
 
 
 _register_npu_backend(_global_backend)
+
+def scatter_update_infer(self, indices, src, dim):
+    return self
+
+from torch.library import Library, impl
+_lib = Library("npu", IMPL)
+_lib.impl("scatter_update", scatter_update_infer, 'CPU')
+_lib.impl("scatter_update", scatter_update_infer, 'Meta')
