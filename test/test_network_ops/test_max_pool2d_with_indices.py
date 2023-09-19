@@ -22,6 +22,7 @@ import torch.nn.functional as F
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestMaxPool2dWithIndices(TestCase):
@@ -38,6 +39,7 @@ class TestMaxPool2dWithIndices(TestCase):
                                               ceil_mode=ceil_mode, return_indices=True)
         return output.cpu()
 
+    @graph_mode
     def test_max_pool2d_with_indices(self):
         dtype_list = [np.float16, np.float32]
         format_list = [0, 3, 4]

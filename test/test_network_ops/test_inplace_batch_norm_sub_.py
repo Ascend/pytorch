@@ -15,6 +15,7 @@
 import torch
 import numpy as np
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 #affine = False,目前测试报错。所以本UT未做affine=False测试
 class TestBatchNormSub_(TestCase):
@@ -61,6 +62,7 @@ class TestBatchNormSub_(TestCase):
         out4 = out4.to("cpu").detach().numpy()
         return out1, out2, out3, out4
     
+    @graph_mode
     def test_batchnorm_shape_format(self):
         shape_format = [[[np.float32, -1, (10, 100, 14, 14)], True]]
         

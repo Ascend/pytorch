@@ -20,6 +20,8 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/AdvancedIndex.h"
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
 
 namespace at_npu {
 namespace native {

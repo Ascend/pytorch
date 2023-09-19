@@ -20,6 +20,7 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -50,6 +51,7 @@ class TestNlllossbackward(TestCase):
         res = res.numpy()
         return input_npu, res
 
+    @graph_mode
     def test_nllloss_shape_format_fp32(self):
         # Currently, only positive numbers are supported.
         # If np.sum(ignore_index == np_target) == 0, ignore_index can be set to any value.
@@ -71,6 +73,7 @@ class TestNlllossbackward(TestCase):
                 self.assertRtolEqual(cpu_output, npu_output)
                 self.assertRtolEqual(cpu_grad, npu_grad)
 
+    @graph_mode
     def test_nllloss_shape_format_fp16(self):
         # Currently, only positive numbers are supported.
         # If np.sum(ignore_index == np_target) == 0, ignore_index can be set to any value.
@@ -95,6 +98,7 @@ class TestNlllossbackward(TestCase):
                 self.assertRtolEqual(cpu_output, npu_output)
                 self.assertRtolEqual(cpu_grad, npu_grad)
 
+    @graph_mode
     def test_nllloss_target_0d(self):
         # Currently, only positive numbers are supported.
         # If np.sum(ignore_index == np_target) == 0, ignore_index can be set to any value.

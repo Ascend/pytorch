@@ -19,7 +19,9 @@
 #include <torch/csrc/Generator.h>
 
 #include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/npu/ReplayFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
@@ -29,6 +31,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
 #include "torch_npu/csrc/utils/TensorType.h"
+#include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/utils/Device.h"
 
 PyObject* module;
@@ -74,6 +77,10 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   if (!success) {
     ASCEND_LOGE("NPU shutdown synchronize device failed.");
   }
+  ASCEND_LOGI("NPU shutdown GraphExecutor Finalize.");
+  at_npu::native::GraphExecutor::GetInstance().Finalize();
+  ASCEND_LOGI("NPU shutdown TdtChannelForPrint Finalize.");
+  at_npu::native::TdtChannelForPrint::GetInstance().Finalize();
   THNPUCachingHostAllocator_emptyCache();
   try {
     ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
@@ -104,6 +111,7 @@ static PyMethodDef TorchNpuMethods[] = {
 
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
+void THNPReplayGraph_init(PyObject *module);
 bool THPGenerator_init(PyObject *module);
 PyMethodDef* THNPModule_get_methods();
 
@@ -140,6 +148,7 @@ PyObject* initModule(){
   // C, so these lines have to execute first)..
   THNPStream_init(module);
   THNPEvent_init(module);
+  THNPReplayGraph_init(module);
   THPGenerator_init(module);
   TNPDevice_init(module);
 

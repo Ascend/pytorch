@@ -20,6 +20,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -40,6 +41,7 @@ class TestCat(TestCase):
         output = output.numpy()
         return output
 
+    @graph_mode
     def test_cat_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         shape_list = [(256, 32, 56)]
@@ -57,6 +59,7 @@ class TestCat(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_cat_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         shape_list = [(256, 32, 56)]
@@ -74,6 +77,7 @@ class TestCat(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_cat_shape_format_fp16_4d(self):
         format_list = [0, 3, 29]
         shape_list = [(256, 32, 56, 56)]
@@ -91,6 +95,7 @@ class TestCat(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_cat_shape_format_fp32_4d(self):
         format_list = [0, 3, 29]
         shape_list = [(256, 32, 56, 56)]
@@ -108,6 +113,7 @@ class TestCat(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_cat_shape_format_fp16_2d(self):
         format_list = [0, 3, 29]
         shape_list = [(56, 56)]
@@ -125,6 +131,7 @@ class TestCat(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_cat_shape_format_fp32_2d(self):
         format_list = [0, 3, 29]
         shape_list = [(56, 56)]
@@ -142,6 +149,7 @@ class TestCat(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_cat_null_tensor(self):
         x1 = torch.randn(15, 2, 1, 1)
         x2 = torch.randn(0, 2, 1, 1)

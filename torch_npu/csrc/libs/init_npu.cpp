@@ -14,6 +14,8 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/libs/init_npu.h"
+#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
+#include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -56,6 +58,8 @@ void finalize_npu() {
     } catch (std::exception& e) {
       TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what());
     }
+    at_npu::native::GraphExecutor::GetInstance().Finalize();
+    at_npu::native::TdtChannelForPrint::GetInstance().Finalize();
 
     THNPUCachingHostAllocator_emptyCache();
     try {

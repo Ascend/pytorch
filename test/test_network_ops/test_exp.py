@@ -17,6 +17,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -32,6 +33,7 @@ class TestExp(TestCase):
         output = output.numpy()
         return output
 
+    @graph_mode
     def test_exp_shape_format_fp16(self):
         format_list = [0, 3]
         shape_list = [[5], [2, 4], [2, 2, 4], [2, 3, 3, 4]]
@@ -46,6 +48,7 @@ class TestExp(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
     
+    @graph_mode
     def test_exp_shape_format_fp32(self):
         format_list = [0, 3]
         shape_list = [[5], [2, 4], [2, 2, 4], [2, 3, 3, 4]]

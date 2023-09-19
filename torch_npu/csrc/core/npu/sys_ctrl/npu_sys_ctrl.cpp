@@ -31,6 +31,7 @@
 #ifdef FAILED
 #undef FAILED
 #endif
+#include <third_party/acl/inc/ge/ge_api.h>
 
 #if defined(_MSC_VER)
 #include <direct.h>
@@ -122,7 +123,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
   return instance;
 }
 
-// Environment Initialize, return Status: SUCCESS, FAILED
+// GE Environment Initialize, return Status: SUCCESS, FAILED
  NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
     if (init_flag_) {
         if (!is_soc_match) {
@@ -154,7 +155,40 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
       NPU_LOGD("set dump config success");
     }
 
+  auto npu_device_id = std::to_string(device_id_);
+  std::map<ge::AscendString, ge::AscendString> config = {
+      {ge::AscendString(ge::OPTION_EXEC_DEVICE_ID),
+       ge::AscendString(npu_device_id.data())},
+      {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
+      {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
+      {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
+  };
+
+  config["ge.session_device_id"] = ge::AscendString(npu_device_id.data());
+  config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
+
+  static std::map<const std::string, const std::string>
+      STRING_TO_COMPILE_OPT_MAP = {
+      {"ACL_OP_DEBUG_LEVEL", ge::OP_DEBUG_LEVEL},
+      {"ACL_DEBUG_DIR", ge::DEBUG_DIR},
+      {"ACL_OP_COMPILER_CACHE_MODE", ge::OP_COMPILER_CACHE_MODE},
+      {"ACL_OP_COMPILER_CACHE_DIR", ge::OP_COMPILER_CACHE_DIR},
+      {"ACL_OP_SELECT_IMPL_MODE", ge::OP_SELECT_IMPL_MODE},
+      {"ACL_OPTYPELIST_FOR_IMPLMODE", ge::OPTYPELIST_FOR_IMPLMODE}
+  };
+
+  for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
+    auto val = c10_npu::option::GetOption(iter.first);
+    if (val.has_value() && (!val.value().empty())) {
+      config.emplace(iter.second.data(), val.value().data());
+    }
+  }
+
   auto soc_name = c10_npu::acl::AclGetSocName();
+  if (soc_name != nullptr) {
+    config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
+  }
+
   // set global soc name
   if (!c10_npu::SetSocVersion(soc_name)) {
     is_soc_match = false;
@@ -169,6 +203,13 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
       c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
     }
   }
+
+  if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
+    static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
+    config.emplace(HCOM_OPTIONS.data(), "1");
+  }
+
+  NPU_CHECK_ERROR(ge::GEInitialize(config));
 
   // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
   auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
@@ -210,7 +251,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
     return INIT_SUCC;
 }
 
-// Environment Finalize, return SysStatus
+// GE Environment Finalize, return SysStatus
  NpuSysCtrl::SysStatus NpuSysCtrl::Finalize() {
     if (!init_flag_) {
         return FINALIZE_SUCC;
@@ -220,6 +261,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
           c10_npu::NPUEventManager::GetInstance().ClearEvent();
           auto stream = c10_npu::getCurrentNPUStream();
           NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+          NPU_CHECK_WARN(ge::GEFinalize());
           NPU_CHECK_WARN(aclrtResetDevice(device_id_));
           NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);

@@ -19,6 +19,7 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -33,6 +34,7 @@ class TestIm2col(TestCase):
         output = output.cpu()
         return output
 
+    @graph_mode
     def test_im2col_float16_shape_format(self):
         shape_format = [
             [np.float16, -1, (1, 3, 3, 3)],

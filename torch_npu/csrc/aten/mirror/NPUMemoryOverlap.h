@@ -25,11 +25,12 @@ namespace at_npu { namespace native {
 //
 // NO: Absolutely no memory overlap
 // YES: Absolutely yes memory overlap
-// TOO_HARD: There might be memory overlap, but it was too expensive to compute.
+// TOO_HARD: There might be memory overlap, but it was too expensive to compute
+// IS_NULL: In npu graph mode, some tensors have no device ptr.
 //
 // NB: Please update the python test for these if you renumber them.
-enum class MemOverlap { NO, YES, TOO_HARD };
-enum class MemOverlapStatus { FULL, PARTIAL, NO, TOO_HARD };
+enum class MemOverlap { NO, YES, TOO_HARD, IS_NULL };
+enum class MemOverlapStatus { FULL, PARTIAL, NO, TOO_HARD, IS_NULL };
 
 MemOverlap has_internal_overlap(const at::Tensor& t);
 MemOverlap has_internal_overlap(at::TensorImpl* t);
