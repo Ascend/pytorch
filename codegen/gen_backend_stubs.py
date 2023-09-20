@@ -204,7 +204,7 @@ def parse_backend_yaml(
     unsupported = yaml_values.pop('unsupported', [])
     assert isinstance(unsupported, list), f'expected "unsupported" to be a list, but got: {unsupported}'
 
-    if (len(yaml_values.keys()) == 0):
+    if (len(yaml_values.keys()) > 0):
         print(f'Waring: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
 Only the following keys are supported: {", ".join(valid_keys)}')
 
