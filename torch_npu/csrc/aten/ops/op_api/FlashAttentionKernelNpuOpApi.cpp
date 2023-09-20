@@ -233,12 +233,7 @@ public:
       H = query.size(2);
     }
 
-    bool is_flash = (S1 > FLASH_THRESHOLD) || (key.scalar_type() != at::kFloat);
     double scale_value = scale;
-
-    if (!is_flash) {
-      scale_value = 1;
-    }
 
     at::Tensor format_query = format_trans(query);
     at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(format_query);
@@ -261,23 +256,16 @@ public:
     at::Tensor softmax_max;
     at::Tensor softmax_sum;
     at::Tensor softmax_out;
-    if (is_flash) {
-        softmax_max = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
-            query.options().dtype(at::kFloat)); // [B, N, S0, 8]
-        softmax_sum = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
-            query.options().dtype(at::kFloat)); // [B, N, S0, 8]
-        softmax_out = at::empty({0}, query.options());
-    } else {
-        softmax_max = at::empty({0}, query.options().dtype(at::kFloat));
-        softmax_sum = at::empty({0}, query.options().dtype(at::kFloat));
-        softmax_out = OpPreparation::ApplyTensorWithoutFormat(format_query,
-            {B, head_num, S0, S1}); // [B, N, S0, S1]
-    }
+    softmax_max = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
+        query.options().dtype(at::kFloat)); // [B, N, S0, 8]
+    softmax_sum = OpPreparation::ApplyTensorWithoutFormat({B, head_num, S0, 8},
+        query.options().dtype(at::kFloat)); // [B, N, S0, 8]
+    softmax_out = at::empty({0}, query.options());
 
     char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
     EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
         format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
-        scale, keep_prob, pre_tockens, next_tockens, head_num, is_flash, input_layout_ptr,
+        scale, keep_prob, pre_tockens, next_tockens, head_num, input_layout_ptr,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
     if (!sync) {
@@ -296,7 +284,6 @@ public:
     ctx->saved_data["pre_tockens"] = pre_tockens;
     ctx->saved_data["next_tockens"] = next_tockens;
     ctx->saved_data["head_num"] = head_num;
-    ctx->saved_data["is_flash"] = is_flash;
     ctx->saved_data["input_layout"] = input_layout_str;
     ctx->saved_data["gen_mask_parallel"] = gen_mask_parallel;
     ctx->saved_data["sync"] = sync;
