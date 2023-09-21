@@ -99,3 +99,4 @@ custom:
 
 custom_autograd:
   - func: npu_flash_attention(Tensor query, Tensor key, Tensor value, int head_num, str input_layout, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, float scale=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, bool gen_mask_parallel=True, bool sync=False) -> Tensor[]
+  - func: npu_multi_head_attention_score(Tensor query, Tensor key, Tensor value, int head_num, str input_layout, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, float scale=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, bool gen_mask_parallel=True, bool sync=False) -> Tensor[]

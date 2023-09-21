@@ -176,7 +176,100 @@ std::vector<at::Tensor> npu_multi_head_attention_score_backward(
 
 class NPUMultiHeadAttentionFunction : public torch::autograd::Function<NPUMultiHeadAttentionFunction> {
  public:
-  static std::vector<at::Tensor> backward(AutogradContext* ctx, std::vector<at::Tensor> grad_outputs) {
+  static std::vector<at::Tensor> forward(
+      AutogradContext *ctx, const at::Tensor &query, const at::Tensor &key,
+      const at::Tensor &value, int64_t head_num, c10::string_view input_layout, const c10::optional<at::Tensor> &pse_opt,
+      const c10::optional<at::Tensor> &padding_mask_opt, const c10::optional<at::Tensor> &atten_mask_opt,
+      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
+      {
+    const at::Tensor &pse = pse_opt.value_or(at::Tensor());
+    const at::Tensor &padding_mask = padding_mask_opt.value_or(at::Tensor());
+    const at::Tensor &atten_mask = atten_mask_opt.value_or(at::Tensor());
+
+    TORCH_CHECK(query.dim() == 3, "The shapes of the input query should be 3-dimensional, but got ", query.dim(), "-dimensional");
+    TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
+    TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
+    TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
+    std::string input_layout_str = std::string(input_layout);
+    for (auto &c : input_layout_str) {
+        c = toupper(c);
+    }
+    TORCH_CHECK(input_layout_str == "BSH" || input_layout_str == "SBH",
+        "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
+
+    int64_t B = 0;
+    int64_t S0 = 0; // S for query
+    int64_t S1 = 0; // S for key & value
+    int64_t H = 0;
+    if (input_layout_str == "BSH") {
+        B = query.size(0);
+        S0 = query.size(1);
+        S1 = key.size(1);
+        H = query.size(2);
+    } else if (input_layout_str == "SBH") {
+        B = query.size(1);
+        S0 = query.size(0);
+        S1 = key.size(0);
+        H = query.size(2);
+    }
+
+    double scale_value = scale;
+
+    at::Tensor format_query = format_trans(query);
+    at::Tensor attention_score = OpPreparation::ApplyTensorWithoutFormat(format_query);
+    at::Tensor format_key = format_trans(key);
+    at::Tensor format_value = format_trans(value);
+
+    at::Tensor format_pse = format_trans(pse);
+    at::Tensor format_padding_mask = format_trans(padding_mask);
+    at::Tensor format_atten_mask = format_trans(atten_mask);
+    at::Tensor dtype_atten_mask =
+      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
+      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
+
+    int64_t seed;
+    int64_t offset;
+    int64_t numels;
+    at::Tensor format_drop_mask = dropout_gen_mask(format_query, keep_prob, head_num, input_layout_str,
+        gen_mask_parallel, sync, seed, offset, numels);
+
+    at::Tensor softmax_out;
+    // [B, N, S0, S1]
+    softmax_out = OpPreparation::ApplyTensorWithoutFormat(format_query, {B, head_num, S0, S1});
+
+    char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
+    EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
+        format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
+        scale, keep_prob, pre_tockens, next_tockens, head_num, input_layout_ptr,
+        softmax_out, attention_score);
+
+    if (!sync) {
+        c10_npu::NPUEvent npu_event;
+        npu_event.record(c10_npu::getCurrentNPUStream());
+        npu_event.block(c10_npu::getCurrentSecondaryStream());
+    }
+
+    at::AutoNonVariableTypeMode g;
+
+    ctx->save_for_backward({query, format_key, format_value, softmax_out,
+                            format_pse, format_padding_mask, format_atten_mask, attention_score});
+
+    ctx->saved_data["scale"] = scale;
+    ctx->saved_data["keep_prob"] = keep_prob;
+    ctx->saved_data["pre_tockens"] = pre_tockens;
+    ctx->saved_data["next_tockens"] = next_tockens;
+    ctx->saved_data["head_num"] = head_num;
+    ctx->saved_data["input_layout"] = input_layout_str;
+    ctx->saved_data["gen_mask_parallel"] = gen_mask_parallel;
+    ctx->saved_data["sync"] = sync;
+    ctx->saved_data["seed"] = seed;
+    ctx->saved_data["offset"] = offset;
+    ctx->saved_data["numels"] = numels;
+
+    return {attention_score};
+  }
+
+    static std::vector<at::Tensor> backward(AutogradContext* ctx, std::vector<at::Tensor> grad_outputs) {
     auto scale = ctx->saved_data["scale"].toDouble();
     auto keep_prob = ctx->saved_data["keep_prob"].toDouble();
     auto pre_tockens = ctx->saved_data["pre_tockens"].toInt();
@@ -240,7 +333,7 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_multi_head_attention_grad(
   std::string input_layout_str = std::string(input_layout);
   for (auto& c : input_layout_str) {
     c = toupper(c);
-  }
+    }
   TORCH_CHECK(input_layout_str == "BSH" || input_layout_str == "SBH",
               "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
   int64_t seed;
@@ -261,5 +354,15 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_multi_head_attention_grad(
   return result;
 }
 
+std::vector<at::Tensor> NPUNativeFunctions::npu_multi_head_attention_score(
+    const at::Tensor &query, const at::Tensor &key,
+    const at::Tensor &value, int64_t head_num, c10::string_view input_layout,
+    const c10::optional<at::Tensor> &pse, const c10::optional<at::Tensor> &padding_mask,
+    const c10::optional<at::Tensor> &atten_mask,
+    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
+{
+    return NPUMultiHeadAttentionFunction::apply(query, key, value, head_num, input_layout, pse, padding_mask,
+        atten_mask, scale, keep_prob, pre_tockens, next_tockens, gen_mask_parallel, sync);
+}
 }  // namespace native
 }  // namespace at_npu
