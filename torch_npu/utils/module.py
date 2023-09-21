@@ -124,6 +124,8 @@ def cast_weight(self, device):
                 "weight" in dict(module.named_parameters()):
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
+        if issubclass(class_name, torch.nn.LazyConv3d):
+            return
         if issubclass(class_name, torch.nn.Conv3d):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
