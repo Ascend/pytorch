@@ -36,13 +36,7 @@ supported:
  - func: is_set_to
    op_api: False
  - isnan
- - func: logical_xor
-   op_api: True
- - func: logical_xor.out
-   op_api: True
  - max_pool2d
- - func: nanmedian.dim
-   op_api: True
  - resize_
  - resize_as_
  - func: scalar_tensor
@@ -51,14 +45,6 @@ supported:
  - set_.source_Storage
  - set_.source_Storage_storage_offset
  - set_.source_Tensor
- - func: signbit.out
-   op_api: True
- - func: sinc
-   op_api: True
- - func: sinc.out
-   op_api: True
- - func: sinc_
-   op_api: True
  - squeeze
  - squeeze.dim
  - to.device

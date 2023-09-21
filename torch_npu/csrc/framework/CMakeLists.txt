@@ -13,6 +13,8 @@ FILE(GLOB _FRAMEWORK_SRCS
     interface/*.cpp
     utils/*.cpp)
 
+LIST(REMOVE_ITEM _FRAMEWORK_SRCS ${TORCHNPU_ROOT}/framework/utils/AdvancedIndex.cpp)
+
 LIST(APPEND FRAMEWORK_SRCS ${_FRAMEWORK_SRCS})
 
 # Pass to parent
