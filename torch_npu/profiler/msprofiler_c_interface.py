@@ -1,9 +1,10 @@
-import json
 import os
 
 import torch
 
 import torch_npu._C
+
+from .analysis.prof_common_func.file_manager import FileManager
 
 
 class ProfilerActivity:
@@ -47,5 +48,4 @@ class MsProfilerInterface:
             total_info["rank_id"] = rank_id
         else:
             path = os.path.join(os.path.abspath(self.path), 'profiler_info.json')
-        with open(path, "w") as f:
-            json.dump(total_info, f, indent=4)
+        FileManager.create_json_file_by_path(path, total_info, indent=4)

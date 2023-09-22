@@ -25,14 +25,6 @@ class NpuProfCreator:
         except Exception:
             print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
 
-    @classmethod
-    def make_dir(cls, target_path: str) -> any:
-        if not os.path.isdir(target_path):
-            try:
-                os.makedirs(target_path, mode=Constant.DIR_AUTHORITY, exist_ok=True)
-            except Exception:
-                raise RuntimeError("Can't create directory: " + target_path)
-
     def create_prof_dir(self) -> str:
         FileManager.check_input_path(self._dir_name)
         if not self._worker_name:
@@ -41,7 +33,7 @@ class NpuProfCreator:
                                                     time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
 
         total_path = os.path.join(self._dir_name, worker_span_name)
-        self.make_dir(total_path)
+        FileManager.make_dir_safety(total_path)
         FileManager.check_directory_path_writable(total_path)
         return total_path
 
@@ -51,7 +43,7 @@ class NpuProfCreator:
         target_path = "{}_{}_ascend_pt".format(self.DEFAULT_PROF_SUFFIX,
                                                time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
         target_path = os.path.join(dir_name, target_path)
-        self.make_dir(target_path)
+        FileManager.make_dir_safety(target_path)
         FileManager.check_directory_path_writable(target_path)
         return target_path
 
