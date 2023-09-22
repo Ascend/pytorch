@@ -64,7 +64,8 @@ static constexpr int kStreamsPerPool = 1 << kStreamsPerPoolBits;
 // static constexpr unsigned int kDefaultFlags = npuStreamNonBlocking;
 
 // Default streams
-static std::once_flag init_flag;
+static int initialize_flag = 0;
+std::mutex mtx;
 static LeakyStreamInternals default_streams[C10_COMPILE_TIME_MAX_NPUS];
 
 // In a specific scenario, the two operators have no value dependence
@@ -193,7 +194,14 @@ static void initDeviceStreamState(c10::DeviceIndex device_index) {
 
 static void initNPUStreamsOnce() {
   // Inits default and secondary streams (once, globally)
-  std::call_once(init_flag, initGlobalStreamState);
+  if (initialize_flag == 0) {
+    mtx.lock();
+    if (initialize_flag == 0) {
+      initGlobalStreamState();
+      initialize_flag = 1;
+    }
+    mtx.unlock();
+  }
 
   if (current_streams) {
     return;
