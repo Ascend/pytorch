@@ -26,7 +26,7 @@ bool OptionsManager::IsMultiStreamMemoryReuse() {
 
 bool OptionsManager::CheckInfNanModeEnable() {
   const static bool checkInfNanModeEnable = []() -> bool {
-    int32_t enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 0);
+    int32_t enable = OptionsManager::GetBoolTypeOption("INF_NAN_MODE_ENABLE", 1);
     return enable != 0;
   }();
   return checkInfNanModeEnable;
