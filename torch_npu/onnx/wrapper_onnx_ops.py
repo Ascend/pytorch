@@ -629,10 +629,10 @@ class NPUFlashAttentionOP(torch.autograd.Function):
 def wrapper_npu_flash_attention(query, key, value, head_num,
                                 input_layout, pse=None, padding_mask=None, atten_mask=None,
                                 scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
-                                gen_mask_parallel=True, sync=False):
+                                inner_precise=1, gen_mask_parallel=True, sync=False):
     return NPUFlashAttentionOP.apply(query, key, value, head_num, input_layout,
                                      pse, padding_mask, atten_mask, scale,
-                                     keep_prob, pre_tockens, next_tockens, gen_mask_parallel, sync)
+                                     keep_prob, pre_tockens, next_tockens, inner_precise, gen_mask_parallel, sync)
 
 
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
