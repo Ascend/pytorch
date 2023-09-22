@@ -29,10 +29,13 @@
 
 
 namespace c10d_npu {
-// Environment variable which controls whether or not wait() is blocking or
-// non-blocking.
+// Environment variable which controls whether or not wait() is blocking or non-blocking.
 constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
 constexpr const char* HCCL_BACKEND_NAME = "hccl";
+
+constexpr const char* HCCL_ASYNC_ERROR_HANDLING = "HCCL_ASYNC_ERROR_HANDLING";
+constexpr const char* HCCL_DESYNC_DEBUG = "HCCL_DESYNC_DEBUG";
+enum ErrorHandlingMode { NoHandling = 0, TearDown = 1, CleanUpOnly = 2};
 
 // ProcessGroupHCCL implements HCCL bindings for c10d.
 //
@@ -135,9 +138,8 @@ public:
     // Record the collective sequential number.
     uint64_t seq_;
 
-    // Temporarily not implemented
-    // virtual std::exception_ptr checkForHCCLErrors(const
-    // std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
+    virtual std::exception_ptr checkForHCCLErrors(const
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
   private:
     // Checks for HCCL errors and sets an appropriate exception_ptr.
@@ -150,8 +152,7 @@ public:
     // exception_ptr.
     bool finishedNPUExecutionInternal() const;
 
-    // Temporarily not implemented
-    // std::shared_ptr<c10d::Store> store_;
+    c10::intrusive_ptr<c10d::Store> store_;
 
     // save inputs for tensor free when WorkHCCL::wait
     std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
@@ -317,6 +318,12 @@ public:
   uint64_t getSequenceNumberForGroup() override;
 
 protected:
+
+    // Wrapper method which can be overridden for tests.
+    virtual std::exception_ptr checkForHCCLErrors(
+        const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+    std::exception_ptr rts_device_error_query(int32_t devId);
+
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);
 
@@ -378,18 +385,34 @@ protected:
   // Whether or not we should terminate the watchdog thread.
   std::atomic<bool> terminateWatchdog_;
 
-  // Condition variable to control how long the  watchdog thread waits.
-  std::condition_variable watchdogCV_;
+  // Whether or not we should terminate the watchdog and workCleanup threads.
+  std::atomic<bool> terminateProcessGroup_;
 
-  // Mutex for watchdog.
-  std::mutex watchdogCVMutex_;
+  std::unordered_set<std::string> abortedComms_;
 
-  // The NPU steams used by NCCL kernels
-  std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
-      hcclStreams_;
+  // Map from ncclUniqueId to appropriate communicator.
+  std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
+      hcclIdToCommMap_;
 
-  // The NPU events used to sync HCCL streams
-  std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>> hcclEvents_;
+    // Whether or not the workCleanupThread is used to perform async error
+    // handling.
+    ErrorHandlingMode asyncErrorHandling_ = NoHandling;
+
+    // Whether or not to enable timeout root cause analysis.
+    bool desyncDebug_;
+
+    // Condition variable to control how long the  watchdog thread waits.
+    std::condition_variable watchdogCV_;
+
+    // Mutex for watchdog.
+    std::mutex watchdogCVMutex_;
+
+    // The NPU steams used by NCCL kernels
+    std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
+        hcclStreams_;
+
+    // The NPU events used to sync HCCL streams
+    std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>> hcclEvents_;
 
   // The NPU events used to control task rate to protect streams
   std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
@@ -455,6 +478,15 @@ private:
       Fn fn,
       PreProcess pre,
       PostProcess post);
+
+    static std::exception_ptr checkForHCCLErrorsInternal(
+        const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+
+    void hcclCommWatchdog();
+
+    void hcclCommWatchdogInternal();
+
+    std::exception_ptr rts_hccl_exception_ = nullptr;
 
 };
 } // namespace c10d_npu

@@ -124,5 +124,18 @@ int32_t OptionsManager::GetACLExecTimeout() {
   int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : -1;
   return static_cast<int32_t>(envFlag);
 }
+
+uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable() {
+  char* asyncErrorHandling_val = std::getenv("HCCL_ASYNC_ERROR_HANDLING");
+  int64_t asyncErrorHandlingFlag = (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 0;
+  return static_cast<uint32_t>(asyncErrorHandlingFlag);
+}
+
+uint32_t OptionsManager::CheckUseDesyncDebugEnable() {
+  char* desyncDebug_val = std::getenv("HCCL_DESYNC_DEBUG");
+  int64_t desyncDebugFlag = (desyncDebug_val != nullptr) ? strtol(desyncDebug_val, nullptr, 10) : 0;
+  return static_cast<uint32_t>(desyncDebugFlag);
+}
+
 } // namespace option
 } // namespace c10_npu

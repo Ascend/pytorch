@@ -37,6 +37,8 @@ public:
   static bool CheckSwitchMMOutputEnable();
   static bool CheckUseNpuLogEnable();
   static uint32_t GetHCCLExecTimeout();
+  static uint32_t CheckUseHcclAsyncErrorHandleEnable();
+  static uint32_t CheckUseDesyncDebugEnable();
   static std::string CheckDisableDynamicPath();
   static int32_t GetACLExecTimeout();
 private:

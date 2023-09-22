@@ -94,4 +94,5 @@ aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type) {return 0;}
 aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {return 0;};
 aclError aclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *utilizationInfo) {return 0;};
 aclError aclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {return 0;};
+aclError aclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatus){return 0;};
 }

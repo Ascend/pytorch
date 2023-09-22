@@ -126,6 +126,8 @@ aclError AclrtMallocAlign32(void **devPtr, size_t size, aclrtMemMallocPolicy pol
 
 aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status);
 
+aclError AclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatus);
+
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
 
 } // namespace acl
