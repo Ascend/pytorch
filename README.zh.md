@@ -22,10 +22,15 @@
 
 昇腾开发PyTorch Adapter插件用于适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力，本章节指导用户安装PyTorch框架和PyTorch Adapter插件。
 
-**对应分支代码包下载<a name="zh-cn_topic_0000001435374593_section5248152713711"></a>**
+PyTorch与Python版本配套表
 
->![](figures/icon-note.gif) **说明：** 
->PyTorch配套的Python版本是：Python3.8.x（3.8.0\~3.8.11）、Python3.9.x（3.9.0\~3.9.2)。
+| PyTorch版本   | Python版本                                                   |
+| ------------- | :----------------------------------------------------------- |
+| PyTorch1.8.1  | Python3.7.x（3.7.5及以上）、Python3.8.x、Python3.9.x         |
+| PyTorch1.11.0 | Python3.7.x（3.7.5及以上）、Python3.8.x、Python3.9.x、Python3.10.x |
+| PyTorch2.0.1  | Python3.8.x、Python3.9.x、Python3.10.x                       |
+
+**对应分支代码包下载<a name="zh-cn_topic_0000001435374593_section5248152713711"></a>**
 
 安装PyTorch时，请参见[表1](#zh-cn_topic_0000001435374593_table723553621419)下载对应分支代码包。
 
@@ -33,35 +38,57 @@
 
 <a name="zh-cn_topic_0000001435374593_table723553621419"></a>
 
-<table><thead align="left"><tr id="zh-cn_topic_0000001435374593_row723593618147"><th class="cellrowborder" valign="top" width="18.16%" id="mcps1.2.6.1.1"><p id="zh-cn_topic_0000001435374593_p12634164910142"><a name="zh-cn_topic_0000001435374593_p12634164910142"></a><a name="zh-cn_topic_0000001435374593_p12634164910142"></a>AscendPyTorch版本</p>
+<table><thead align="left"><tr id="zh-cn_topic_0000001435374593_row723593618147"><th class="cellrowborder" valign="top" id="mcps1.2.6.1.1"><p id="zh-cn_topic_0000001435374593_p12634164910142"><a name="zh-cn_topic_0000001435374593_p12634164910142"></a><a name="zh-cn_topic_0000001435374593_p12634164910142"></a>AscendPyTorch版本</p>
 </th>
-<th class="cellrowborder" valign="top" width="15.78%" id="mcps1.2.6.1.2"><p id="zh-cn_topic_0000001435374593_p7634174921415"><a name="zh-cn_topic_0000001435374593_p7634174921415"></a><a name="zh-cn_topic_0000001435374593_p7634174921415"></a>CANN版本</p>
+<th class="cellrowborder" valign="top" id="mcps1.2.6.1.2"><p id="zh-cn_topic_0000001435374593_p7634174921415"><a name="zh-cn_topic_0000001435374593_p7634174921415"></a><a name="zh-cn_topic_0000001435374593_p7634174921415"></a>CANN版本</p>
 </th>
-<th class="cellrowborder" valign="top" width="17.080000000000002%" id="mcps1.2.6.1.3"><p id="zh-cn_topic_0000001435374593_p36341149111412"><a name="zh-cn_topic_0000001435374593_p36341149111412"></a><a name="zh-cn_topic_0000001435374593_p36341149111412"></a>支持PyTorch版本</p>
+<th class="cellrowborder" valign="top" id="mcps1.2.6.1.3"><p id="zh-cn_topic_0000001435374593_p36341149111412"><a name="zh-cn_topic_0000001435374593_p36341149111412"></a><a name="zh-cn_topic_0000001435374593_p36341149111412"></a>支持PyTorch版本</p>
 </th>
-<th class="cellrowborder" valign="top" width="17.05%" id="mcps1.2.6.1.4"><p id="zh-cn_topic_0000001435374593_p163414971418"><a name="zh-cn_topic_0000001435374593_p163414971418"></a><a name="zh-cn_topic_0000001435374593_p163414971418"></a>代码分支名称</p>
+<th class="cellrowborder" valign="top" id="mcps1.2.6.1.4"><p id="zh-cn_topic_0000001435374593_p163414971418"><a name="zh-cn_topic_0000001435374593_p163414971418"></a><a name="zh-cn_topic_0000001435374593_p163414971418"></a>代码分支名称</p>
 </th>
-<th class="cellrowborder" valign="top" width="31.929999999999996%" id="mcps1.2.6.1.5"><p id="p99351717112212"><a name="p99351717112212"></a><a name="p99351717112212"></a>AscendHub镜像版本/名称（<a href="https://ascendhub.huawei.com/#/index" target="_blank" rel="noopener noreferrer">获取链接</a>）</p>
+<th class="cellrowborder" valign="top" id="mcps1.2.6.1.5"><p id="p99351717112212"><a name="p99351717112212"></a><a name="p99351717112212"></a>AscendHub镜像版本/名称（<a href="https://ascendhub.huawei.com/#/index" target="_blank" rel="noopener noreferrer">获取链接</a>）</p>
 </th>
 </tr>
 </thead>
 <tbody>
-    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2</p>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="1" valign="top" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2.2</p>
 </td>
-<td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC2</p>
+<td class="cellrowborder" rowspan="1" valign="top" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC3.1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>2.0.1.rc1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.11.0.post3</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v2.0.1-5.0.rc2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.11.0-5.0.rc2.2</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
 </td>
 </tr>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post2</p>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="1" valign="top" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2.1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc2</p>
+<td class="cellrowborder" rowspan="1" valign="top" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC3</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.11.0.post2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.11.0-5.0.rc2.1</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC2</p>
+</td>
+<td class="cellrowborder" rowspan="3" valign="top" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>2.0.1.rc1</p>
+</td>
+<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v2.0.1-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+</td>
+</tr>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
 </td>    
 <tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0.post1</p>
 </td>
@@ -69,15 +96,15 @@
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
 </td>
-    <tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1</p>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="2" valign="top" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>5.0.RC1</p>
 </td>
-<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC1</p>
+<td class="cellrowborder" rowspan="2" valign="top" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.3.RC1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.8.1.post1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.8.1-5.0.rc1</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>-</p>
 </td>
 </tr>
 <tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.11.0</p>
@@ -86,15 +113,15 @@
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p2087118825410"><a name="p2087118825410"></a><a name="p2087118825410"></a>-</p>
 </td>
-    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
+    <tr id="row1452975217222"><td class="cellrowborder" rowspan="3" valign="top" headers="mcps1.2.6.1.1 "><p id="p1849173117229"><a name="p1849173117229"></a><a name="p1849173117229"></a>3.0.0</p>
 </td>
-<td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.0.1</p>
+<td class="cellrowborder" rowspan="3" valign="top" headers="mcps1.2.6.1.2 "><p id="p13849183142218"><a name="p13849183142218"></a><a name="p13849183142218"></a>CANN 6.0.1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.5.0.post8</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p197571831182710"><a name="p197571831182710"></a><a name="p197571831182710"></a>1.5.0.post8</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.5.0-3.0.0</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p18655452182620"><a name="p18655452182620"></a><a name="p18655452182620"></a>v1.5.0-3.0.0</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>22.0.0/pytorch-modelzoo</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p2087128165411"><a name="p2087128165411"></a><a name="p2087128165411"></a>22.0.0/pytorch-modelzoo</p>
 </td>
 </tr>
 <tr id="row16995654102215"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p48506347263"><a name="p48506347263"></a><a name="p48506347263"></a>1.8.1</p>
@@ -111,15 +138,15 @@
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p587113885411"><a name="p587113885411"></a><a name="p587113885411"></a>-</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001435374593_row423610361140"><td class="cellrowborder" rowspan="3" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p597121514227"><a name="p597121514227"></a><a name="p597121514227"></a>3.0.rc3</p>
+<tr id="zh-cn_topic_0000001435374593_row423610361140"><td class="cellrowborder" rowspan="3" valign="top" headers="mcps1.2.6.1.1 "><p id="p597121514227"><a name="p597121514227"></a><a name="p597121514227"></a>3.0.rc3</p>
 </td>
-<td class="cellrowborder" rowspan="3" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p69712015122215"><a name="p69712015122215"></a><a name="p69712015122215"></a>CANN 6.0.RC1</p>
+<td class="cellrowborder" rowspan="3" valign="top"  headers="mcps1.2.6.1.2 "><p id="p69712015122215"><a name="p69712015122215"></a><a name="p69712015122215"></a>CANN 6.0.RC1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p89718154228"><a name="p89718154228"></a><a name="p89718154228"></a>1.5.0.post7</p>
+<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.3 "><p id="p89718154228"><a name="p89718154228"></a><a name="p89718154228"></a>1.5.0.post7</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p139712015142217"><a name="p139712015142217"></a><a name="p139712015142217"></a>v1.5.0-3.0.rc3</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p139712015142217"><a name="p139712015142217"></a><a name="p139712015142217"></a>v1.5.0-3.0.rc3</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p587138125420"><a name="p587138125420"></a><a name="p587138125420"></a>22.0.RC3/pytorch-modelzoo</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p587138125420"><a name="p587138125420"></a><a name="p587138125420"></a>22.0.RC3/pytorch-modelzoo</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001435374593_row72366365141"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p39711715202219"><a name="p39711715202219"></a><a name="p39711715202219"></a>1.8.1.rc3</p>
@@ -136,15 +163,15 @@
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p7179115512292"><a name="p7179115512292"></a><a name="p7179115512292"></a>-</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001435374593_row823643641415"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p8972131519223"><a name="p8972131519223"></a><a name="p8972131519223"></a>3.0.rc2</p>
+<tr id="zh-cn_topic_0000001435374593_row823643641415"><td class="cellrowborder" rowspan="2" valign="top" headers="mcps1.2.6.1.1 "><p id="p8972131519223"><a name="p8972131519223"></a><a name="p8972131519223"></a>3.0.rc2</p>
 </td>
-<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p9972915202212"><a name="p9972915202212"></a><a name="p9972915202212"></a>CANN 5.1.RC2</p>
+<td class="cellrowborder" rowspan="2" valign="top" headers="mcps1.2.6.1.2 "><p id="p9972915202212"><a name="p9972915202212"></a><a name="p9972915202212"></a>CANN 5.1.RC2</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p18972215192215"><a name="p18972215192215"></a><a name="p18972215192215"></a>1.5.0.post6</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p18972215192215"><a name="p18972215192215"></a><a name="p18972215192215"></a>1.5.0.post6</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p17972111510220"><a name="p17972111510220"></a><a name="p17972111510220"></a>v1.5.0-3.0.rc2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p17972111510220"><a name="p17972111510220"></a><a name="p17972111510220"></a>v1.5.0-3.0.rc2</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p79355171226"><a name="p79355171226"></a><a name="p79355171226"></a>22.0.RC2/pytorch-modelzoo</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p79355171226"><a name="p79355171226"></a><a name="p79355171226"></a>22.0.RC2/pytorch-modelzoo</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001435374593_row17236133611148"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p7972101514227"><a name="p7972101514227"></a><a name="p7972101514227"></a>1.8.1.rc2</p>
@@ -154,15 +181,15 @@
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p109351117122215"><a name="p109351117122215"></a><a name="p109351117122215"></a>22.0.RC2-1.8.1/pytorch-modelzoo</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001435374593_row17237123610141"><td class="cellrowborder" rowspan="2" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p169723153221"><a name="p169723153221"></a><a name="p169723153221"></a>3.0.rc1</p>
+<tr id="zh-cn_topic_0000001435374593_row17237123610141"><td class="cellrowborder" rowspan="2" valign="top"  headers="mcps1.2.6.1.1 "><p id="p169723153221"><a name="p169723153221"></a><a name="p169723153221"></a>3.0.rc1</p>
 </td>
-<td class="cellrowborder" rowspan="2" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p159721915182216"><a name="p159721915182216"></a><a name="p159721915182216"></a>CANN 5.1.RC1</p>
+<td class="cellrowborder" rowspan="2" valign="top" headers="mcps1.2.6.1.2 "><p id="p159721915182216"><a name="p159721915182216"></a><a name="p159721915182216"></a>CANN 5.1.RC1</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p18972815162217"><a name="p18972815162217"></a><a name="p18972815162217"></a>1.5.0.post5</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p18972815162217"><a name="p18972815162217"></a><a name="p18972815162217"></a>1.5.0.post5</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p79721155222"><a name="p79721155222"></a><a name="p79721155222"></a>v1.5.0-3.0.rc1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p79721155222"><a name="p79721155222"></a><a name="p79721155222"></a>v1.5.0-3.0.rc1</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p20935131722217"><a name="p20935131722217"></a><a name="p20935131722217"></a>22.0.RC1/pytorch-modelzoo</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p20935131722217"><a name="p20935131722217"></a><a name="p20935131722217"></a>22.0.RC1/pytorch-modelzoo</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001435374593_row0237103681420"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p897216157226"><a name="p897216157226"></a><a name="p897216157226"></a>1.8.1.rc1</p>
@@ -172,41 +199,45 @@
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p16935151722212"><a name="p16935151722212"></a><a name="p16935151722212"></a>-</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001435374593_row15574104531416"><td class="cellrowborder" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p99721715182217"><a name="p99721715182217"></a><a name="p99721715182217"></a>2.0.4</p>
+<tr id="zh-cn_topic_0000001435374593_row15574104531416"><td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.1 "><p id="p99721715182217"><a name="p99721715182217"></a><a name="p99721715182217"></a>2.0.4</p>
 </td>
-<td class="cellrowborder" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p2097281518228"><a name="p2097281518228"></a><a name="p2097281518228"></a>CANN 5.0.4</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p2097281518228"><a name="p2097281518228"></a><a name="p2097281518228"></a>CANN 5.0.4</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p1297218156226"><a name="p1297218156226"></a><a name="p1297218156226"></a>1.5.0.post4</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1297218156226"><a name="p1297218156226"></a><a name="p1297218156226"></a>1.5.0.post4</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p15973915192218"><a name="p15973915192218"></a><a name="p15973915192218"></a>2.0.4.tr5</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p15973915192218"><a name="p15973915192218"></a><a name="p15973915192218"></a>2.0.4.tr5</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p193515171225"><a name="p193515171225"></a><a name="p193515171225"></a>21.0.4/pytorch-modelzoo</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001435374593_row14742104715146"><td class="cellrowborder" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p149734151227"><a name="p149734151227"></a><a name="p149734151227"></a>2.0.3</p>
-</td>
-<td class="cellrowborder" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p1397317155220"><a name="p1397317155220"></a><a name="p1397317155220"></a>CANN 5.0.3</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p79734156229"><a name="p79734156229"></a><a name="p79734156229"></a>1.5.0.post3</p>
-</td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p997341592219"><a name="p997341592219"></a><a name="p997341592219"></a>2.0.3.tr5</p>
-</td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p193551715225"><a name="p193551715225"></a><a name="p193551715225"></a>21.0.3/pytorch-modelzoo</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p193515171225"><a name="p193515171225"></a><a name="p193515171225"></a>21.0.4/pytorch-modelzoo</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001435374593_row17748104281412"><td class="cellrowborder" valign="top" width="18.16%" headers="mcps1.2.6.1.1 "><p id="p797371515225"><a name="p797371515225"></a><a name="p797371515225"></a>2.0.2</p>
+<tr id="zh-cn_topic_0000001435374593_row14742104715146"><td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.1 "><p id="p149734151227"><a name="p149734151227"></a><a name="p149734151227"></a>2.0.3</p>
 </td>
-<td class="cellrowborder" valign="top" width="15.78%" headers="mcps1.2.6.1.2 "><p id="p20973615192217"><a name="p20973615192217"></a><a name="p20973615192217"></a>CANN 5.0.2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p1397317155220"><a name="p1397317155220"></a><a name="p1397317155220"></a>CANN 5.0.3</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.080000000000002%" headers="mcps1.2.6.1.3 "><p id="p1997314151227"><a name="p1997314151227"></a><a name="p1997314151227"></a>1.5.0.post2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p79734156229"><a name="p79734156229"></a><a name="p79734156229"></a>1.5.0.post3</p>
 </td>
-<td class="cellrowborder" valign="top" width="17.05%" headers="mcps1.2.6.1.4 "><p id="p697311512219"><a name="p697311512219"></a><a name="p697311512219"></a>2.0.2.tr5</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p997341592219"><a name="p997341592219"></a><a name="p997341592219"></a>2.0.3.tr5</p>
 </td>
-<td class="cellrowborder" valign="top" width="31.929999999999996%" headers="mcps1.2.6.1.5 "><p id="p693510174221"><a name="p693510174221"></a><a name="p693510174221"></a>21.0.2/pytorch-modelzoo</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p193551715225"><a name="p193551715225"></a><a name="p193551715225"></a>21.0.3/pytorch-modelzoo</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001435374593_row17748104281412"><td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.1 "><p id="p797371515225"><a name="p797371515225"></a><a name="p797371515225"></a>2.0.2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p20973615192217"><a name="p20973615192217"></a><a name="p20973615192217"></a>CANN 5.0.2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1997314151227"><a name="p1997314151227"></a><a name="p1997314151227"></a>1.5.0.post2</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p697311512219"><a name="p697311512219"></a><a name="p697311512219"></a>2.0.2.tr5</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.5 "><p id="p693510174221"><a name="p693510174221"></a><a name="p693510174221"></a>21.0.2/pytorch-modelzoo</p>
 </td>
 </tr>
 </tbody>
 </table>
+
+
+
+
 
 
 
