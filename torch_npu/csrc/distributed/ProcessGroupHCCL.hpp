@@ -23,6 +23,8 @@
 #include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
 
+#include <list>
+
 #include "third_party/hccl/inc/hccl/hccl.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/npu/Event.h"
@@ -80,7 +82,12 @@ public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
     explicit WorkHCCL(const std::vector<at::Device>& devices);
+    explicit WorkHCCL(const WorkHCCL& w);
+    WorkHCCL& operator=(const WorkHCCL& w) = default;
     virtual ~WorkHCCL();
+
+    // Checks if the HCCL kernel has started to execute.
+    bool isStarted();
 
     // Checks if request has completed. In this specific case of HCCL, it checks
     // if the HCCL operation has completed on the NPU in its own HCCL stream.
@@ -92,6 +99,8 @@ public:
     // Same as calling synchronize() for HCCL work.
     bool wait(std::chrono::milliseconds timeout) override;
 
+    void handleHCCLGuard(ErrorHandlingMode asyncErrorHandling);
+
     // Let current stream wait on the completing of the HCCL work
     // Throws on exceptions. Blocking operation, which will wait for work
     // completion.
@@ -101,13 +110,20 @@ public:
     // execution on the NPUs
     bool finishedNPUExecution();
 
+    void setException(std::exception_ptr exception_ptr);
+
+    // Helper function that returns True if the WorkHCCL object has timed out
+    // and False otherwise.
+    bool timedOut();
+
   protected:
+
+    // The NPU events tracking this work item on multiple NPU devices
+    std::shared_ptr<std::vector<c10_npu::NPUEvent>> npuEvents_;
+
     // The cached list of NPU devices to operate on.
     // HCCL support one device per rank only
     std::vector<at::Device> devices_;
-
-    // The NPU events tracking this work item on multiple NPU devices
-    std::vector<c10_npu::NPUEvent> npuEvents_;
 
     // The HCCL communicators used for this work item.
     std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
@@ -138,6 +154,8 @@ public:
     // Record the collective sequential number.
     uint64_t seq_;
 
+    bool startTraceUpdated_{false};
+
     virtual std::exception_ptr checkForHCCLErrors(const
     std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
@@ -147,6 +165,10 @@ public:
 
     // Checks for HCCL errors and throws an appropriate exception.
     void checkAndThrowException();
+
+    // Just checks whether GPU execution has started, without modifying
+    // exception_ptr.
+    bool startedNPUExecutionInternal() const;
 
     // Just checks whether NPU execution has completed, without modifying
     // exception_ptr.
@@ -341,6 +363,7 @@ protected:
       std::vector<at::Device> devices);
 
   static const int64_t kWatchdogThreadSleepMillis;
+  static const int64_t kWorkCleanupThreadSleepMillis;
 
   // The store is used to broadcast the HCCL Master ID of rank 0.
   c10::intrusive_ptr<c10d::Store> store_;
@@ -372,6 +395,8 @@ protected:
   //      Note that the order of the device for the tensor list matters.
   std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
       devHCCLCommMap_;
+
+  bool storeError_{false};
 
   // Mutex to guard maps like devHCCLCommMap_.
   std::mutex mutex_;
@@ -406,6 +431,17 @@ protected:
 
     // Mutex for watchdog.
     std::mutex watchdogCVMutex_;
+
+    // Thread that removes HCCL Work upon timeout
+    std::thread workCleanupThread_;
+
+    // Vector to Store WorkHCCL pointers
+    std::list<ProcessGroupHCCL::WorkHCCL> workMetaList_;
+
+    std::mutex workMetaListMutex_;
+
+    // Condition Variable for timeout thread sleep
+    std::condition_variable workMetaListCV_;
 
     // The NPU steams used by NCCL kernels
     std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
@@ -458,6 +494,12 @@ protected:
 
   // Counting for the sequential number of NCCL collective call.
   uint64_t seq_{0};
+  
+  const std::string traceKeyStart_;
+  const std::string traceKeyEnd_;
+
+  // Add Work Pointer to workVector
+  void workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>);
 
 private:
   // Helper that encapsulates work shared across all collective communication
@@ -466,6 +508,12 @@ private:
   //    HcclResult fn(at::Tensor& input, at::Tensor& output,
   //                    ncclComm_t, at::cuda::CUDAStream&);
   //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
+
+  void abortTimedOutCollectives(
+    std::unordered_set<std::string>& abortedCommIds);
+
+  void workCleanupLoop();
+
   template <typename Fn>
   c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
       std::vector<at::Tensor>& input,
