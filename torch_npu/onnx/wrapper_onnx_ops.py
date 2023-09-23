@@ -587,6 +587,41 @@ class NPURotaryMulOP(torch.autograd.Function):
         return g.op("npu::NPURotaryMul", x, r1, r2)
 
 
+class NPUPromptFlashAttentionOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.prompt_flash_attention(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+                 padding_mask: Optional[Tensor], atten_mask: Optional[Tensor],
+                 actual_seq_lengths: Optional[Tensor], num_heads: int = 1,
+                 scale_value: float = 1.0, pre_tokens: int = 2147473647, next_tokens: int = 0,
+                 input_layout: str = "BSH", num_key_value_heads: int = 0):
+        return   g.op("npu::NPUPromptFlashAttention", self, query, key, value,
+                 padding_mask, atten_mask, actual_seq_lengths,
+                 num_heads, scale_value, pre_tokens, next_tokens,
+                 input_layout, num_key_value_heads)
+
+
+class NPUIncreFlashAttentionOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.incre_flash_attention(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+                 padding_mask: Optional[Tensor], atten_mask: Optional[Tensor],
+                 actual_seq_lengths: Optional[Tensor],
+                 num_heads: int = 1, scale_value: float = 1.0,
+                 input_layout: str = "BSH", num_key_value_heads: int = 0):
+        return   g.op("npu::NPUIncreFlashAttention", self, query, key, value,
+                 padding_mask, atten_mask, actual_seq_lengths,
+                 num_heads, scale_value, input_layout, num_key_value_heads)
+
+
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
@@ -805,6 +840,18 @@ def wrapper_npu_rotary_mul(x, r1, r2):
     return NPURotaryMulOP.apply(x, r1, r2)
 
 
+def wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
+                                       num_heads, scale_value, pre_tokens, next_tokens, input_layout, num_key_value_heads):
+    return NPUPromptFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
+                                           num_heads, scale_value, pre_tokens, next_tokens, input_layout, num_key_value_heads)
+
+
+def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
+                                      num_heads, scale_value, input_layout, num_key_value_heads):
+    return NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
+                                           num_heads, scale_value, input_layout, num_key_value_heads)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -850,3 +897,5 @@ def add_onnx_ops():
     torch_npu.npu_scaled_masked_softmax = wrapper_npu_scaled_masked_softmax
     torch_npu.npu_mish = wrapper_npu_mish
     torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
+    torch_npu.npu_prompt_flash_attention = wrapper_npu_prompt_flash_attention
+    torch_npu.npu_incre_flash_attention = wrapper_npu_incre_flash_attention

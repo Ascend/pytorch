@@ -47,6 +47,7 @@ from torch_npu.utils import apply_module_patch, add_tensor_methods, \
 import torch_npu.utils.custom_ops
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from .version import __version__ as __version__
+from .meta import meta_registrations
 
 cann_package_check()
 
