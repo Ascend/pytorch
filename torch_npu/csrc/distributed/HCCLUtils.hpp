@@ -36,12 +36,35 @@
     }                                                               \
   } while (0)
 
+#define ENABLE_HCCL_ERROR_CHECKING
+
+// Macro to throw on a non-successful HCCL return value.
+#define C10D_HCCL_CHECK(cmd)                                                       \
+    do {                                                                           \
+        HcclResult result = cmd;                                                   \
+        if (result != HCCL_SUCCESS) {                                              \
+            std::string err = "HCCL error in: " + std::string(__FILE__) + ":" +    \
+                std::to_string(__LINE__) + ", " +                                  \
+                "\n" + getHcclErrorDetailStr(result);                              \
+            TORCH_CHECK(false, err);                                               \
+        }                                                                          \
+    } while (0)
+
 namespace c10d_npu {
+extern HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
+
+// Provides additional detail into HCCL error codes based on when these are
+// thrown in the HCCL codebase.
+std::string getHcclErrorDetailStr(
+    HcclResult error,
+    c10::optional<std::string> processGroupFailureReason = c10::nullopt);
 
 // RAII wrapper for HCCL communicator
 class HCCLComm {
 public:
-  explicit HCCLComm(HcclComm hcclComm) : hcclComm_(hcclComm) {}
+  explicit HCCLComm(HcclComm hcclComm) :
+      hcclComm_(hcclComm),
+      hcclAsyncErr_(HCCL_SUCCESS) {}
 
   HCCLComm() : HCCLComm(nullptr) {}
 
@@ -59,6 +82,7 @@ public:
     c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
           comm->destropyHcclComm();
         }, c10_npu::ReleasePriority::PriorityMiddle);
+    comm->hcclId_ = rootInfo;
     return comm;
   }
 
@@ -69,11 +93,13 @@ public:
   // Move constructable
   HCCLComm(HCCLComm&& other) {
     std::swap(hcclComm_, other.hcclComm_);
+    std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
   }
 
   // Move assignable
   HCCLComm& operator=(HCCLComm&& other) {
     std::swap(hcclComm_, other.hcclComm_);
+    std::swap(hcclAsyncErr_, other.hcclAsyncErr_);
     return *this;
   }
 
@@ -89,8 +115,31 @@ public:
     }
   }
 
+    HcclRootInfo getHcclId() {
+        return hcclId_;
+    }
+
+    HcclResult checkForHcclError() {
+      std::unique_lock<std::mutex> lock(mutex_);
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+        if (hcclAsyncErr_ != HCCL_SUCCESS) {
+          return hcclAsyncErr_;
+        }
+        if (hcclComm_ != nullptr) {
+            C10D_HCCL_CHECK(hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_));
+        }
+        return hcclAsyncErr_;
+#else
+        // Always return success, if error checks are disabled.
+        return HCCL_SUCCESS;
+#endif
+    }
+
 protected:
-  HcclComm hcclComm_;
-  mutable std::mutex mutex_;
+    HcclComm hcclComm_;
+    mutable std::mutex mutex_;
+    HcclRootInfo hcclId_;
+    c10::optional<std::string> commFailureReason_;
+    HcclResult hcclAsyncErr_;
 };
 } // namespace c10d_npu

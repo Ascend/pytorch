@@ -27,6 +27,36 @@ typedef unsigned int u32;
 typedef unsigned long long u64;
 
 constexpr u32 HCCL_UNIQUE_ID_BYTES =2060; // 2060: unique id length
+
+/**
+ * @brief HCCL functions return value definition
+ */
+typedef enum {
+    HCCL_R_SUCCESS = 0,               /**< success */
+    HCCL_E_PARA = 1,                /**< parameter error */
+    HCCL_E_PTR = 2,                 /**< empty pointer */
+    HCCL_E_MEMORY = 3,              /**< memory error */
+    HCCL_E_INTERNAL = 4,            /**< internal error */
+    HCCL_E_NOT_SUPPORT = 5,         /**< not support feature */
+    HCCL_E_NOT_FOUND = 6,           /**< not found specific resource */
+    HCCL_E_UNAVAIL = 7,             /**< resource unavailable */
+    HCCL_E_SYSCALL = 8,             /**< call system interface error */
+    HCCL_E_TIMEOUT = 9,             /**< timeout */
+    HCCL_E_OPEN_FILE_FAILURE = 10,  /**< open file fail */
+    HCCL_E_TCP_CONNECT = 11,        /**< tcp connect fail */
+    HCCL_E_ROCE_CONNECT = 12,       /**< roce connect fail */
+    HCCL_E_TCP_TRANSFER = 13,       /**< tcp transfer fail */
+    HCCL_E_ROCE_TRANSFER = 14,      /**< roce transfer fail */
+    HCCL_E_RUNTIME = 15,            /**< call runtime api fail */
+    HCCL_E_DRV = 16,                /**< call driver api fail */
+    HCCL_E_PROFILING = 17,          /**< call profiling api fail */
+    HCCL_E_CCE = 18,                /**< call cce api fail */
+    HCCL_E_NETWORK = 19,            /**< call network api fail */
+    HCCL_E_AGAIN = 20,              /**< try again */
+    HCCL_E_REMOTE = 21,             /**< error cqe */
+    HCCL_E_RESERVED                 /**< reserved */
+} HcclResult;
+
 using hcclUniqueId = struct hcclUniqueIdDef {
     char internel[HCCL_UNIQUE_ID_BYTES];
 };
@@ -62,4 +92,5 @@ hcclResult_t HcclAllReduce(void *inputPtr, void *outputPtr, u64 count, hcclDataT
 hcclResult_t HcclBroadcast(void *ptr, u64 count, hcclDataType_t dataType, u32 root, hcclComm_t comm,
                                   rtStream_t stream);
 hcclResult_t HcclCommDestroy(hcclComm_t comm);
+hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, HcclResult* asyncError);
 }

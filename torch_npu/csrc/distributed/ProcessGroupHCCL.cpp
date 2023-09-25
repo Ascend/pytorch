@@ -44,6 +44,31 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 
 namespace c10d_npu {
+
+constexpr const char* const kHCCLAbortedCommStoreKey = "HCCLABORTEDCOMM";
+
+std::string getHcclErrorDetailStr(
+    HcclResult error,
+    c10::optional<std::string> processGroupFailureReason) {
+    // Prioritize failure reason provided by PG HCCL first, as it can abort
+    // communicators when it encounters collective timeouts, etc.
+    if (processGroupFailureReason != c10::nullopt) {
+        return *processGroupFailureReason;
+    }
+    std::string interpret;
+    std::string err;
+
+    switch (error) {
+        case HCCL_E_REMOTE:
+            interpret =
+                "HCCL_E_REMOTE: A call failed possibly due to a network error or a remote process exiting prematurely.";
+            break;
+        default:
+            interpret = "Unknown HCCL error!";
+    }
+    return interpret + err;
+}
+
 namespace {
 static constexpr uint32_t kOpWaitTimeoutOffset = 30U; // second
 static uint32_t kOpWaitTimeout = 1868U; // second
@@ -215,20 +240,54 @@ void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
   // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
   fprintf(stdout, "AllReduce error, see details in Ascend logs.");
 }
+
+// Returns exception's what() given an exception_ptr instance.
+std::string getExceptionMsgFromExceptionPtr(
+    const std::exception_ptr& exceptionPtr) {
+    TORCH_CHECK(exceptionPtr != nullptr);
+    try {
+        std::rethrow_exception(exceptionPtr);
+    } catch (const std::exception& e) {
+        return e.what();
+    } catch (...) {
+        return "Unknown exception type";
+    }
+}
+
 } // namespace
 
 constexpr int64_t kSynchronizeBusyWaitMillis = 10;
 constexpr int64_t maxOpNumPerSyncPoint = 2;
 const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
+constexpr int64_t kWaitForAbortCommStoreKey = 1000;
+const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 10000;
+const int64_t ProcessGroupHCCL::kWorkCleanupThreadSleepMillis = 10000;
 // const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 ProcessGroupHCCL::WorkHCCL::WorkHCCL(const std::vector<at::Device>& devices)
     : devices_(devices), workStartTime_(std::chrono::steady_clock::now()) {
   // Creates the npu event wrappers
   // Note: The actual events are lazily created when first recorded to with
   // DEFAULT_FLAGS = npuEventDisableTiming.
-  npuEvents_.resize(devices.size());
+  hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+  npuEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
   hcclComms_.resize(devices.size());
+}
+
+ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
+    : Work(w.rank_, w.opType_),
+      npuEvents_(w.npuEvents_),
+      devices_(w.devices_),
+      hcclStartEvents_(w.hcclStartEvents_),
+      hcclEndEvents_(w.hcclEndEvents_),
+      hcclComms_(w.hcclComms_),
+      blockingWait_(w.blockingWait_),
+      opTimeout_(w.opTimeout_),
+      workStartTime_(w.workStartTime_),
+      seq_(w.seq_),
+      startTraceUpdated_(w.startTraceUpdated_),
+      store_(w.store_) {
+  exception_ = w.exception_;
 }
 
 ProcessGroupHCCL::WorkHCCL::~WorkHCCL() {}
@@ -236,6 +295,11 @@ ProcessGroupHCCL::WorkHCCL::~WorkHCCL() {}
 bool ProcessGroupHCCL::WorkHCCL::isCompleted() {
   checkAndSetException();
   return exception() || finishedNPUExecutionInternal();
+}
+
+bool ProcessGroupHCCL::WorkHCCL::isStarted() {
+  checkAndSetException();
+  return exception() || startedNPUExecutionInternal();
 }
 
 bool ProcessGroupHCCL::WorkHCCL::isSuccess() const {
@@ -251,6 +315,19 @@ void ProcessGroupHCCL::WorkHCCL::checkAndSetException() {
     // We already have an exception.
     return;
   }
+  auto exception_ptr = checkForHCCLErrors(hcclComms_);
+  std::unique_lock<std::mutex> lock(mutex_);
+  exception_ = exception_ptr;
+  if (exception_) {
+    LOG(INFO) << "[Rank " << rank_ << "]"
+              << " found async exception when checking for HCCL errors: "
+              << getExceptionMsgFromExceptionPtr(exception_);
+  }
+}
+
+void ProcessGroupHCCL::WorkHCCL::setException(std::exception_ptr exception_ptr) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  exception_ = exception_ptr;
 }
 
 // Helper that checks if the HCCL kernels are completed on the NPU
@@ -259,17 +336,32 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution() {
   return finishedNPUExecutionInternal();
 }
 
-// check if HCCL task is finished
-bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
-  for (size_t i = 0; i < devices_.size(); ++i) {
-    // Checking Event completed by Eventquery
-    c10_npu::acl::aclrtEventRecordedStatus status =
-        c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    aclError ret = c10_npu::acl::AclQueryEventRecordedStatus(npuEvents_[i], &status);
-    if (ret != ACL_ERROR_NONE ||
-        status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY) {
+bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
+  for (const auto i : c10::irange(devices_.size())) {
+    // Checking the work's corresponding NPU events' status
+    if (!(*hcclStartEvents_)[i].query()) {
       return false;
     }
+  }
+  return true;
+}
+
+// check if HCCL task is finished
+bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
+  try {
+    for (const auto i : c10::irange(devices_.size())) {
+      // Checking the work's corresponding CUDA events' status
+      if (!(*npuEvents_)[i].query()) {
+        return false;
+      }
+    }
+  } catch (const std::exception& e) {
+    if (std::string(e.what()).find("driver shutting down") ==
+        std::string::npos) {
+      throw;
+    }
+    LOG(INFO) << "[Rank " << rank_
+              << "] Event query failed with exception: " << e.what();
   }
   return true;
 }
@@ -289,7 +381,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
   for (const auto i : c10::irange(devices_.size())) {
     auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
     // Block the current stream on the HCCL stream
-    npuEvents_[i].block(currentStream);
+    (*npuEvents_)[i].block(currentStream);
     // If we use the work to do barrier, we should block here
     if (!barrierTensors_.empty()) {
       c10_npu::NPUGuard npuGuard(devices_[i]);
@@ -332,6 +424,24 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
   }
 }
 
+void ProcessGroupHCCL::WorkHCCL::handleHCCLGuard(ErrorHandlingMode asyncErrorHandling) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (exception_) {
+    auto exceptionMsg = c10::str(
+        "Some HCCL operations have failed or timed out. Due to the ",
+        "asynchronous nature of NPU kernels, subsequent NPU operations ",
+        "might run on corrupted/incomplete data.");
+    LOG(ERROR) << exceptionMsg;
+    C10_LOG_API_USAGE_ONCE("ProcessGroupNCCL.WorkNCCL.handleNCCLGuard");
+    if (asyncErrorHandling == TearDown) {
+      auto tearDownMsg = c10::str(
+          "To avoid data inconsistency, we are taking the entire process down.");
+      LOG(ERROR) << tearDownMsg;
+      std::rethrow_exception(exception_);
+    }
+  }
+}
+
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
   if (!c10_npu::NpuRunMode::IsGraphMode()){
@@ -339,6 +449,260 @@ bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
   }
   // Always return true, because abort API is not implemented.
   return true;
+}
+
+bool ProcessGroupHCCL::WorkHCCL::timedOut() {
+  auto currentTimepoint = std::chrono::steady_clock::now();
+  return (
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          currentTimepoint - workStartTime_) >= opTimeout_);
+}
+
+void ProcessGroupHCCL::hcclCommWatchdog() {
+    try {
+        LOG(INFO) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
+        hcclCommWatchdogInternal();
+        LOG(INFO) << "[Rank " << rank_
+                  << "] HCCL watchdog thread terminated normally";
+    } catch (std::exception& e) {
+        LOG(INFO) << "[Rank " << rank_
+                  << "] HCCL watchdog thread terminated with exception: "
+                  << e.what();
+    } catch (...) {
+        LOG(INFO) << "[Rank " << rank_
+                  << "] HCCL watchdog thread terminated with unknown exception";
+    }
+}
+
+// Given a hcclUniqueId, convert it to a string representation that can be put
+// in the store.
+std::string buildHcclUniqueIdStr(const HcclRootInfo& hcclID) {
+    const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&hcclID);
+    std::ostringstream oss;
+    for (const auto i : c10::irange(HCCL_ROOT_INFO_BYTES)) {
+        oss << std::hex << static_cast<int>(bytes[i]);
+    }
+    return oss.str();
+}
+
+std::string getHcclAbortedCommStoreKey(const std::string hcclIdStr) {
+    return std::string(kHCCLAbortedCommStoreKey) + ":" + hcclIdStr;
+}
+
+std::exception_ptr ProcessGroupHCCL::rts_device_error_query(int32_t devId) {
+    aclrtDeviceStatus deviceStatus = ACL_RT_DEVICE_STATUS_NORMAL;
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtQueryDeviceStatus(devId, &deviceStatus));
+    if (deviceStatus != ACL_RT_DEVICE_STATUS_NORMAL) {
+        return std::make_exception_ptr(std::runtime_error(c10::str(
+            "rts error: ", deviceStatus)));
+    }
+    return nullptr;
+}
+
+std::exception_ptr ProcessGroupHCCL::WorkHCCL::checkForHCCLErrors(
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const {
+    return checkForHCCLErrorsInternal(hcclComms);
+}
+
+std::exception_ptr ProcessGroupHCCL::checkForHCCLErrors(
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) {
+    return checkForHCCLErrorsInternal(hcclComms);
+}
+
+std::exception_ptr ProcessGroupHCCL::checkForHCCLErrorsInternal(
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) {
+    for (auto& hcclComm : hcclComms) {
+        //  checkForHcclError() result
+        HcclResult hcclAsyncErr = hcclComm->checkForHcclError();
+        if (hcclAsyncErr != HCCL_SUCCESS) {
+            return std::make_exception_ptr(std::runtime_error(
+                "HCCL error: " + getHcclErrorDetailStr(hcclAsyncErr)));
+        }
+    }
+  return nullptr;
+}
+
+// Get the list of devices from devicekey
+std::vector<at::Device> get_device_list_from_devicekey(const std::string& devicesKey) {
+    std::vector<at::Device> res;
+    std::stringstream ss(devicesKey);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        res.push_back(at::Device(at_npu::key::NativeDeviceType, std::stoi(token)));
+    }
+    return res;
+}
+
+void ProcessGroupHCCL::abortTimedOutCollectives(std::unordered_set<std::string>& abortedCommIds) {
+  std::unique_lock<std::mutex> lock(workMetaListMutex_);
+  for (auto& work : workMetaList_) {
+    work.checkAndSetException();
+    // Aborting HCCL Communicators due to errors is already handled above.
+    if (work.exception()) {
+      continue;
+    }
+
+    // Check for Timeouts in the WorkHCCL Operations, and abort all
+    // communicators accordingly.
+    if (work.timedOut()) {
+      auto currentTimepoint = std::chrono::steady_clock::now();
+      auto timeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+          currentTimepoint - work.workStartTime_);
+      std::string exceptionMsg = c10::str(
+          "[Rank ",
+          rank_,
+          "] ",
+          "Watchdog caught collective operation timeout: ",
+          // work,
+          " ran for ",
+          timeElapsed.count(),
+          " milliseconds before timing out.");
+      if (desyncDebug_) {
+        exceptionMsg += retrieveDesyncReport(store_, "HCCL", rank_, size_);
+      }
+      LOG(ERROR) << exceptionMsg;
+      std::exception_ptr exception_ptr =
+          std::make_exception_ptr(std::runtime_error(exceptionMsg));
+
+      for (const auto& hcclComm : work.hcclComms_) {
+        hcclComm->destropyHcclComm();
+        abortedCommIds.emplace(buildHcclUniqueIdStr(hcclComm->getHcclId()));
+      }
+    }
+  }
+}
+
+void ProcessGroupHCCL::hcclCommWatchdogInternal() {
+    while (!terminateProcessGroup_.load()) {
+        std::unordered_set<std::string> abortedCommIds;
+        std::unordered_set<std::string> allCommIds;
+
+        {
+            // Loop through the cache of communicators for HCCL errors.
+            std::lock_guard<std::mutex> lock(mutex_);
+
+            for (auto& it : devHCCLCommMap_) {
+                auto& hcclComms = it.second;
+
+                for (const auto& hcclComm : hcclComms) {
+                    allCommIds.emplace(buildHcclUniqueIdStr(hcclComm->getHcclId()));
+                }
+
+                // check rts error for specific device
+                std::exception_ptr rt_device_status = nullptr;
+                std::vector<at::Device> devicelist = get_device_list_from_devicekey(it.first);
+                for (const auto& device : devicelist) {
+                    rt_device_status = rts_device_error_query(device.index());
+                    if (rt_device_status) break;
+                }
+
+                // get hccl error of specific hcclcomms
+                std::exception_ptr hcclErrorException = nullptr;
+                if (!rt_device_status) {
+                    hcclErrorException = checkForHCCLErrors(hcclComms);
+                }
+
+              // deal with hcclErrorException
+              if (rt_device_status || hcclErrorException) {
+                  rts_hccl_exception_ = (hcclErrorException) ? (hcclErrorException) : (rt_device_status);
+                  auto exceptionMsg = getExceptionMsgFromExceptionPtr(rts_hccl_exception_);
+                  LOG(INFO)
+                      << "[Rank " << rank_
+                      << "] Received HCCL or RTS errors for communicators in the cache: \n"
+                      << "HCCL or RTS error: \n"
+                      << exceptionMsg;
+                  
+                   if (blockingWait_ || asyncErrorHandling_ != NoHandling) {
+                       LOG(INFO) << "[Rank " << rank_ << "] Aborting communicators that received errors";
+                       // We abort HCCL communicators that have received errors from this
+                       // thread, and exceptions are set on the corresponding work objects.
+                       // The workCleanupThread will then loop through the unfinished
+                       // collectives and throw exceptions if an exception has been set on
+                       // any of the work objects from this thread.
+                       for (const auto& hcclComm : hcclComms) {
+                           hcclComm->destropyHcclComm();
+                           abortedCommIds.emplace(buildHcclUniqueIdStr(hcclComm->getHcclId()));
+                       }
+                   }
+               }
+             }
+         }
+
+        if (asyncErrorHandling_ != NoHandling) {
+          abortTimedOutCollectives(abortedCommIds);
+        }
+
+        if (blockingWait_) {
+            // When we abort a communicator on one rank, it is likely that might cause
+            // other ranks to hang indefinitely. As a result, whenever we abort a
+            // communicator, we write its ID to the store. The watchdog on other ranks
+            // then monitor the store, find an aborted communicator ID and abort their
+            // respective communicator as well.
+
+            // Record the aborted communicators locally and in the store.
+            for (const auto& abortedCommId : abortedCommIds) {
+                abortedComms_.emplace(abortedCommId);
+                const auto& storeKey = getHcclAbortedCommStoreKey(abortedCommId);
+                auto rankStr = std::to_string(rank_);
+                store_->set(
+                    storeKey,
+                    std::vector<uint8_t>(
+                        reinterpret_cast<const uint8_t*>(rankStr.data()),
+                        reinterpret_cast<const uint8_t*>(rankStr.data()) +
+                            rankStr.size()));
+                LOG(INFO) << "[Rank " << rank_
+                          << "] Watchdog wrote aborted communicator id to store: "
+                          << storeKey;
+            }
+
+            // Check for any communicators in the store and abort them if needed.
+            for (const auto& commId : allCommIds) {
+                if (abortedComms_.find(commId) == abortedComms_.end()) {
+                    // Check if we need to abort them if not already aborted (shouldn't
+                    // wait more than the watchdog sleep time.).
+                    const auto& storeKey = getHcclAbortedCommStoreKey(commId);
+                    try {
+                        store_->wait(
+                            {storeKey},
+                            std::chrono::milliseconds(kWaitForAbortCommStoreKey));
+                        auto val = store_->get(storeKey);
+                        std::string rank(reinterpret_cast<char*>(val.data()), val.size());
+                        std::stringstream ss;
+                        ss << "[Rank " << rank_ << "] Found key in store: " << storeKey
+                          << ", from rank: " << rank
+                          << ". This means that rank has aborted its HCCL communicators previously and is not in a healthy state."
+                          << ". Aborting appropriate communicators";
+                        std::string abortReason = ss.str();
+                        LOG(WARNING) << abortReason;
+
+                        // Now abort the appropriate communicators.
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        auto it = hcclIdToCommMap_.find(commId);
+                        TORCH_INTERNAL_ASSERT(it != hcclIdToCommMap_.end());
+                        for (const auto& hcclComm : it->second) {
+                            // The reason we are aborting is because some other ranks have
+                            // aborted their communicators originally
+                            hcclComm->destropyHcclComm();
+                        }
+                        abortedComms_.emplace(commId);
+                        LOG(INFO) << "[Rank " << rank_
+                                  << "] Aborted communicators for key in store: "
+                                  << storeKey;
+                    } catch (std::exception& e) {
+                        VLOG(1) << "Did not find key in store: " << storeKey
+                         	<< ", error: " << e.what();
+                    }
+                }
+            }
+        }
+
+        std::unique_lock<std::mutex> lock(watchdogCVMutex_);
+
+        watchdogCV_.wait_for(
+            lock,
+            std::chrono::milliseconds(kWatchdogThreadSleepMillis),
+            [&]() -> bool { return terminateProcessGroup_.load(); });
+    }
 }
 
 ProcessGroupHCCL::ProcessGroupHCCL(
@@ -351,7 +715,10 @@ ProcessGroupHCCL::ProcessGroupHCCL(
       options_(options),
       hcclCommCounter_(0),
       opTimeout_(options->opTimeout),
-      terminateWatchdog_(false) {
+      terminateWatchdog_(false),
+      traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
+      traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
+      terminateProcessGroup_(false) {
   uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
   // When no env, the default value is 0
   if (hccl_exec_timeout > 0) {
@@ -382,6 +749,115 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         "Invalid value for environment variable: " +
         std::string(HCCL_BLOCKING_WAIT));
   }
+
+  asyncErrorHandling_ = static_cast<ErrorHandlingMode>(c10_npu::option::OptionsManager::CheckUseHcclAsyncErrorHandleEnable());
+  desyncDebug_ = static_cast<bool>(c10_npu::option::OptionsManager::CheckUseDesyncDebugEnable());
+
+    if (blockingWait_) {
+        if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
+            LOG(INFO) << "[Rank " << rank_ << "] NCCL_BLOCKING_WAIT and "
+                      << "NCCL_ASYNC_ERROR_HANDLING|NCCL_DESYNC_DEBUG"
+                      << "should not both be enabled. "
+                      << "Only NCCL_BLOCKING_WAIT is being used in this process.";
+            asyncErrorHandling_ = NoHandling;
+            desyncDebug_ = false;
+        }
+    } else {
+        if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
+            LOG(INFO) << "[Rank " << rank_
+                      << "] NCCL_DESYNC_DEBUG and NCCL_ASYNC_ERROR_HANDLING "
+                      << "must both be enabled. "
+                      << "Enabling NCCL_ASYNC_ERROR_HANDLING.";
+            asyncErrorHandling_ = TearDown;
+        }
+    }
+
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+    hcclCommWatchdogThread_ =
+        std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
+#endif
+  if (asyncErrorHandling_ != NoHandling) {
+    workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this);
+  }
+}
+
+void ProcessGroupHCCL::workCleanupLoop() {
+  aclrtSetDevice(0);
+  bool done = false;
+  while (!terminateProcessGroup_.load() || !done) {
+    std::list<WorkHCCL> doneWorks;
+    {
+      std::unique_lock<std::mutex> lock(workMetaListMutex_);
+      // We busy-poll the work vector every kWatchdogThreadSleepMillis
+      // milliseconds as long as the atomic is True.
+      workMetaListCV_.wait_for(
+          lock,
+          std::chrono::milliseconds(kWorkCleanupThreadSleepMillis),
+          [&]() -> bool { return terminateProcessGroup_.load(); });
+    
+      for (auto it = workMetaList_.begin(); it != workMetaList_.end();) {
+        auto& work = *it;
+
+        if (desyncDebug_ && !work.exception()) {
+          if (!work.startTraceUpdated_ && work.isStarted() &&
+              !terminateProcessGroup_.load() && !storeError_) {
+            work.startTraceUpdated_ = true;
+            storeError_ = !c10d::traceUpdate(
+                store_,
+                traceKeyStart_,
+                work.seq_,
+                opTypeToString(work.opType_));
+          }
+        }
+
+        if (work.isCompleted()) {
+          if (desyncDebug_ && !work.exception()) {
+            // To close the window between the check of work.isStarted() and
+            // the check of work.isCompleted().
+            if (!work.startTraceUpdated_ && !terminateProcessGroup_.load() &&
+                !storeError_) {
+              storeError_ = !c10d::traceUpdate(
+                  store_,
+                  traceKeyStart_,
+                  work.seq_,
+                  opTypeToString(work.opType_));
+            }
+            if (!terminateProcessGroup_.load() && !storeError_) {
+              storeError_ = !c10d::traceUpdate(
+                  store_,
+                  traceKeyEnd_,
+                  work.seq_,
+                  opTypeToString(work.opType_));
+            }
+          }
+          // Handle Exceptions on failed GPU operations and remove completed
+          // workNCCL objects from work vector.
+          if (!terminateProcessGroup_.load()) {
+            work.handleHCCLGuard(asyncErrorHandling_);
+          }
+          doneWorks.push_back(std::move(*it));
+          it = workMetaList_.erase(it);
+        } else {
+          // Increment the iterator if the current WorkNCCL object is not
+          // completed.
+          ++it;
+        }
+      }
+      done = workMetaList_.empty();
+    }
+    doneWorks.clear();
+  }
+}
+
+void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> work) {
+  if (!terminateProcessGroup_.load()) {
+    std::lock_guard<std::mutex> lock(workMetaListMutex_);
+    // Avoid view tensors to be processed in cleanup thread.
+    // View tensors' destruction invokes autograd_meta, which
+    // needs to be destructed in user thread. Otherwise will
+    // get deadlock. Here we enqueue work without outputs_.
+    workMetaList_.emplace_back(*work);
+  }
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -391,6 +867,16 @@ uint64_t ProcessGroupHCCL::getSequenceNumberForGroup() {
 }
 
 ProcessGroupHCCL::~ProcessGroupHCCL() {
+    terminateProcessGroup_.store(true);
+    watchdogCV_.notify_one();
+
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+    hcclCommWatchdogThread_.join();
+#endif
+  if (asyncErrorHandling_ != NoHandling) {
+    workMetaListCV_.notify_one();
+    workCleanupThread_.join();
+  }
   {
     // Destropy all HCCL Communicators on Process Group Destruction
     std::lock_guard<std::mutex> lock(mutex_);
@@ -462,7 +948,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
   }
 
   {
-    std::lock_guard<std::mutex> lock(devHCCLCommMapLock_);
+    std::lock_guard<std::mutex> lock(mutex_);
     if (devHCCLCommMap_.find(devicesKey) != devHCCLCommMap_.end()) {
       // Reuse the cached communicator if there is one.
       return devHCCLCommMap_[devicesKey];
@@ -518,9 +1004,12 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
       std::make_tuple(devices.size()));
 
   // Hold the lock before modifying the cache.
-  std::lock_guard<std::mutex> lock(devHCCLCommMapLock_);
+  std::lock_guard<std::mutex> lock(mutex_);
 
-  // Move the NCCL resource to cache
+  // Record the communicators based on ncclUniqueId.
+  hcclIdToCommMap_.emplace(buildHcclUniqueIdStr(hcclID), hcclComms);
+
+  // Move the HCCL resource to cache
   devHCCLCommMap_.emplace(devicesKey, std::move(hcclComms));
   return devHCCLCommMap_[devicesKey];
 }
@@ -652,6 +1141,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   auto work = initWork(devices);
 
   c10_npu::OptionalNPUGuard npuGuard;
+
+  if (desyncDebug_) {
+    for (const auto i : c10::irange(devices.size())) {
+      c10_npu::NPUStream& hcclStream = hcclStreams[i];
+      (*work->hcclStartEvents_)[i].record(hcclStream);
+    }
+  }
+
   pre(hcclStreams, work);
 
   if (!c10_npu::NpuRunMode::IsGraphMode()) {
@@ -693,10 +1190,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   if (!c10_npu::NpuRunMode::IsGraphMode()) {
     for (size_t i = 0; i < inputs.size(); ++i) {
       c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
-      work->npuEvents_[i].record(hcclStream);
+      (*work->npuEvents_)[i].record(hcclStream);
       work->hcclComms_[i] = hcclComms[i];
       work->blockingWait_ = blockingWait_;
       work->opTimeout_ = opTimeout_;
+      work->store_ = store_;
+      if (asyncErrorHandling_ != NoHandling) {
+	      workEnqueue(work);
+      }
     }
   }
   return work;

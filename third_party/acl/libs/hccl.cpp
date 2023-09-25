@@ -22,3 +22,4 @@ hcclResult_t HcclAllReduce(void *inputPtr, void *outputPtr, u64 count, hcclDataT
 hcclResult_t HcclBroadcast(void *ptr, u64 count, hcclDataType_t dataType, u32 root, hcclComm_t comm,
                                   rtStream_t stream) {return HCCL_SUCCESS;}
 hcclResult_t HcclCommDestroy(hcclComm_t comm) {return HCCL_SUCCESS;}
+hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, HcclResult* asyncError) {return HCCL_SUCCESS;}

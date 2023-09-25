@@ -47,6 +47,8 @@ LOAD_FUNCTION(aclrtMallocAlign32)
 LOAD_FUNCTION(aclrtDeviceCanAccessPeer)
 LOAD_FUNCTION(aclrtSynchronizeStream)
 LOAD_FUNCTION(aclrtStreamQuery)
+LOAD_FUNCTION(aclrtQueryDeviceStatus)
+
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -375,6 +377,16 @@ aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {
   }
   TORCH_CHECK(func, "Failed to find function aclrtStreamQuery, Please upgrade CANN version.");
   return func(stream, status);
+}
+
+aclError AclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatus) {
+    typedef aclError (*AclrtQueryDeviceStatus)(int32_t, aclrtDeviceStatus*);
+    static AclrtQueryDeviceStatus func = nullptr;
+    if (func == nullptr) {
+      func = (AclrtQueryDeviceStatus)GET_FUNC(aclrtQueryDeviceStatus);
+    }
+    TORCH_CHECK(func, "Failed to find function aclrtQueryDeviceStatus, Please upgrade CANN version.");
+    return func(deviceId, deviceStatus);  
 }
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id) {

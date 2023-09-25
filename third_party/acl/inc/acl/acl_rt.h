@@ -123,6 +123,12 @@ typedef struct aclrtUtilizationInfo {
   aclrtUtilizationExtendInfo *utilizationExtend;
 } aclrtUtilizationInfo;
 
+typedef enum aclrtDeviceStatus {
+    ACL_RT_DEVICE_STATUS_NORMAL = 0,
+    ACL_RT_DEVICE_STATUS_ABNORMAL,
+    ACL_RT_DEVICE_STATUS_END = 0xFFFF,
+} aclrtDeviceStatus;
+
 typedef struct tagRtGroupInfo aclrtGroupInfo;
 
 typedef struct rtExceptionInfo aclrtExceptionInfo;
@@ -1248,6 +1254,19 @@ ACL_FUNC_VISIBILITY aclError aclrtGetOverflowStatus(void *outputAddr, size_t out
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtResetOverflowStatus(aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get device status for watchdog
+ *
+ * @param deviceId       [IN]   device ID
+ * @param deviceStatus   [OUT]   device status for watchdog
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatus);
+
 #ifdef __cplusplus
 }
 #endif
