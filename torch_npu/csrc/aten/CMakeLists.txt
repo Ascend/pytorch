@@ -2,10 +2,6 @@ FILE(GLOB _ATEN_SRCS
     *.cpp
     common/*.cpp
     mirror/*.cpp
-    ops/convolution/*.cpp
-    ops/loss/*.cpp
-    ops/normalization/*.cpp
-    ops/pooling/*.cpp
     ops/hcom/*.cpp)
 
 LIST(APPEND _ATEN_SRCS
@@ -50,8 +46,8 @@ ${TORCHNPU_ROOT}/aten/ops/IndexingKernelNpu.cpp
 ${TORCHNPU_ROOT}/aten/ops/StackKernelNpu.cpp
 ${TORCHNPU_ROOT}/aten/ops/OnesKernelNpu.cpp
 ${TORCHNPU_ROOT}/aten/ops/MatmulKernelNpu.cpp
+${TORCHNPU_ROOT}/aten/ops/pooling/PoolingKernelNpu.cpp
 )
-
 LIST(APPEND _ATEN_SRCS
 ${TORCHNPU_ROOT}/aten/ops/op_api/op_api_common.cpp
 ${TORCHNPU_ROOT}/aten/ops/op_api/AminmaxKernelNpuOpApi.cpp
