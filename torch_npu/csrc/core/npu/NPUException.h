@@ -27,7 +27,7 @@ do {                                                      \
         " NPU error, error code is ", Error,                         \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
-        "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+        "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
@@ -56,7 +56,7 @@ do {                                                      \
           " NPU error, error code is ", Error,                         \
           (err_map.error_code_map.find(Error) !=                       \
           err_map.error_code_map.end() ?                               \
-          "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+          "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
           "\n", c10_npu::acl::AclGetErrMsg());                         \
       }                                                                \
     }                                                                  \
@@ -71,7 +71,7 @@ do {                                                      \
         "[Error]: ",                                                 \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
-        "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+        "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)

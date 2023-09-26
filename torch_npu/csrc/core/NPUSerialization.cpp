@@ -37,8 +37,8 @@ void npu_info_deserialization(const at::Tensor& t, std::unordered_map<std::strin
   for (auto &m : map) {
     if (m.first.find("npu_format_") != std::string::npos) {
       aclFormat format = str_to_aclFormat(m.first);
-      // The format cast is an operator, 
-      // so special handling is required for scenarios 
+      // The format cast is an operator,
+      // so special handling is required for scenarios
       // where the leaf node tensor requires grad at the same time
       bool revert_flag = false;
       if (t.is_leaf() && t.requires_grad()) {
