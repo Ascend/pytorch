@@ -2,11 +2,14 @@ from typing import Optional
 from statistics import mode
 import warnings
 import logging
+import sys
 
 import torch
 import torch.nn.functional as F
+import torch.distributed as pytorch_dist
 from torch import Tensor
 from torch.distributed.algorithms.join import Join
+from torch.distributed import Reducer
 from torch.nn.parameter import Parameter, UninitializedParameter, UninitializedBuffer
 from torch.nn.modules.batchnorm import _NormBase, _LazyNormBase
 from torch.nn.modules.module import Module
@@ -14,6 +17,7 @@ from torch.nn.parallel._functions import _streams
 
 import torch_npu
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
+import torch_npu.distributed as dist
 
 
 def npu(self, device=None):
@@ -243,6 +247,99 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
         return sync_batch_norm.apply(
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
+
+
+def _ddp_init_helper(
+    self,
+    parameters,
+    expect_sparse_gradient,
+    param_to_name_mapping,
+    static_graph,):
+    """
+    Initialization helper function that does the following:
+    (1) bucketing the parameters for reductions
+    (2) resetting the bucketing states
+    (3) registering the grad hooks
+    (4) Logging construction-time DDP logging data
+    (5) passing a handle of DDP to SyncBatchNorm Layer
+    """
+    if static_graph is True or self.find_unused_parameters is False:
+        bucket_size_limits = [sys.maxsize]
+    else:
+        bucket_size_limits = [
+            pytorch_dist._DEFAULT_FIRST_BUCKET_BYTES,
+            self.bucket_bytes_cap,
+        ]
+    (bucket_indices, per_bucket_size_limits) = dist._compute_bucket_assignment_by_size(
+        parameters,
+        bucket_size_limits,
+        expect_sparse_gradient)
+
+    # Note: reverse list of buckets because we want to approximate the
+    # order in which their gradients are produced, and assume they
+    # are used in the forward pass in the order they are defined.
+    self.reducer = dist.Reducer(
+        parameters,
+        list(reversed(bucket_indices)),
+        list(reversed(per_bucket_size_limits)),
+        self.process_group,
+        expect_sparse_gradient,
+        # The bucket size limit is specified in the constructor.
+        # Additionally, we allow for a single small bucket for parameters
+        # that are defined first, such that their gradients don't spill into
+        # a much larger bucket, adding unnecessary latency after gradient
+        # computation finishes. Experiments showed 1MB is a reasonable value.
+        self.bucket_bytes_cap,
+        self.find_unused_parameters,
+        self.gradient_as_bucket_view,
+        param_to_name_mapping,
+        # User can set dist._DEFAULT_FIRST_BUCKET_BYTES to tune DDP first
+        # bucket.
+        pytorch_dist._DEFAULT_FIRST_BUCKET_BYTES)
+
+    ori_reducer = Reducer(
+        parameters,
+        list(reversed(bucket_indices)),
+        list(reversed(per_bucket_size_limits)),
+        self.process_group,
+        expect_sparse_gradient,
+        # The bucket size limit is specified in the constructor.
+        # Additionally, we allow for a single small bucket for parameters
+        # that are defined first, such that their gradients don't spill into
+        # a much larger bucket, adding unnecessary latency after gradient
+        # computation finishes. Experiments showed 1MB is a reasonable value.
+        self.bucket_bytes_cap,
+        self.find_unused_parameters,
+        self.gradient_as_bucket_view,
+        param_to_name_mapping,
+        # User can set dist._DEFAULT_FIRST_BUCKET_BYTES to tune DDP first
+        # bucket.
+        pytorch_dist._DEFAULT_FIRST_BUCKET_BYTES,
+    )
+
+    self.logger = pytorch_dist.Logger(ori_reducer)
+    # Set as a weak reference to avoid reference cycle between
+    # logger and reducer.
+    self.reducer.set_logger(self.logger)
+
+    has_sync_bn = False
+    for submodule in self.module.modules():
+        if isinstance(submodule, torch.nn.SyncBatchNorm):
+            has_sync_bn = True
+            break
+
+    # Set logging data that can be got during construction time.
+    self.logger.set_construction_data_and_log(
+        self.module.__class__.__name__,
+        [] if self.device_ids is None else self.device_ids,
+        -1 if self.output_device is None else self.output_device,
+        self.broadcast_buffers,
+        has_sync_bn,
+        static_graph,
+    )
+
+    # passing a handle to torch.nn.SyncBatchNorm layer
+    self._passing_sync_batchnorm_handle(self.module)
 
 
 def apply_module_patch():

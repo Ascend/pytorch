@@ -34,9 +34,9 @@ except ImportError as e:
     else:
         traceback.print_exc()
 
-import torch_npu.optim
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
+import torch_npu.optim
 import torch_npu.dynamo
 import torch_npu._C
 from torch_npu import profiler
@@ -108,6 +108,11 @@ def _apply_patches(monkey_patches):
             setattr(dest_module, attr, getattr(patch, attr))
 
 
+def _apply_distributed_patches():
+    torch.nn.parallel.DistributedDataParallel._ddp_init_helper = torch_npu.utils.module._ddp_init_helper
+    _apply_patches([["distributed", torch_npu.distributed]])
+
+
 def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
@@ -126,6 +131,7 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
+_apply_distributed_patches()
 apply_class_patches()
 torch.distributed.is_hccl_available = lambda : True
 
@@ -133,7 +139,6 @@ torch.distributed.is_hccl_available = lambda : True
 torch_npu._C._initExtension()
 
 # init and register hccl backend
-torch_npu._C._c10d_npu_init()
 torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
