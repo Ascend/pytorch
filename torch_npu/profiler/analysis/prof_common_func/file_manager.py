@@ -84,26 +84,14 @@ class FileManager:
         cls.create_json_file_by_path(file_path, data)
 
     @classmethod
-    def create_json_file_by_path(cls, output_path: str, data: list) -> None:
+    def create_json_file_by_path(cls, output_path: str, data: list, indent: int = None) -> None:
         dir_name = os.path.dirname(output_path)
-        if not os.path.exists(dir_name):
-            try:
-                os.makedirs(dir_name, mode=Constant.DIR_AUTHORITY)
-            except Exception:
-                raise RuntimeError(f"Can't create directory: {dir_name}")
+        cls.make_dir_safety(dir_name)
         try:
             with os.fdopen(os.open(output_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY), "w") as file:
-                json.dump(data, file)
+                json.dump(data, file, indent=indent)
         except Exception:
             raise RuntimeError(f"Can't create file: {output_path}")
-
-    @classmethod
-    def remove_and_make_output_dir(cls, output_path: str) -> None:
-        cls.remove_file_safety(output_path)
-        try:
-            os.makedirs(output_path, mode=Constant.DIR_AUTHORITY)
-        except Exception:
-            raise RuntimeError(f"Can't create directory: {output_path}")
 
     @classmethod
     def check_input_path(cls, path):
@@ -149,3 +137,16 @@ class FileManager:
                 shutil.rmtree(path)
             except Exception:
                 print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove the directory: {path}")
+
+    @classmethod
+    def make_dir_safety(cls, path: str):
+        if os.path.islink(path):
+            msg = f"Invalid path is soft link: {path}"
+            raise RuntimeError(msg)
+        if os.path.exists(path):
+            return
+        try:
+            os.makedirs(path, mode=Constant.DIR_AUTHORITY)
+            os.chmod(path, Constant.DIR_AUTHORITY)
+        except Exception:
+            raise RuntimeError("Can't create directory: " + path)
