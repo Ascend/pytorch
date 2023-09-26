@@ -57,8 +57,8 @@ from .utils import (
 )
 
 # NPU methods require special processing. 
+NPU_NATIVEFUNCTIONS = {'npu_format_cast', '_npu_format_cast'}
 
-NPU_NATIVEFUNCTIONS = {'npu_format_cast'}
 # We don't set or modify grad_fn on these methods. Generally, they return
 # tensors that have requires_grad=False. In-place functions listed here will
 # not examine or modify requires_grad or grad_fn.
