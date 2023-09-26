@@ -130,7 +130,7 @@ def cann_package_check():
         if cann_version in cann_pytorch_version_map and \
             torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
             print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} " \
-                  "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
+                  "is not matched, please check the README of the ascend pytorch repo.")
     else:
         print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
 

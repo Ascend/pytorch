@@ -182,7 +182,7 @@ invoked."},
         Check whether the transferred resources such as Stream and Context are destroyed or occupied when the \
 interface is invoked."},
         {200006, "This feature is not supported.\n\
-        Rectify the fault based on the error information in the log or contact Huawei technical support. For \
+        Rectify the fault based on the error information in the ascend log or contact Huawei technical support. For \
 details about logs, see the Log Reference."},
         {200007, "Unsupported profiling configurations are delivered.\n\
         Check whether the profiling configuration is correct by referring to the description in \
@@ -190,23 +190,17 @@ details about logs, see the Log Reference."},
         {300000, "The storage limit is exceeded.\n\
         Check the remaining storage space in the hardware environment."},
         {500000, "Unknown internal error.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {500001, "The internal ACL of the system is incorrect.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {500002, "A GE error occurs in the system.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {500003, "The internal RUNTIME of the system is incorrect.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {500004, "An internal DRV (Driver) error occurs.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {500005, "Profiling error.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         /* following return codes is for the internal RUNTIME */
         {107000, "Parameter verification failed.\n\
         Check whether the input parameters of the interface are correct."},
@@ -251,13 +245,11 @@ interface is invoked."},
         {107019, "Task execution timed out.\n\
         Re-execute the interface for delivering the task."},
         {207000, "This feature is not supported.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {207001, "Failed to apply for memory.\n\
         Check the remaining storage space in the hardware environment."},
         {207002, "Failed to release the memory.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {207003, "The operation of the aicore operator overflows.\n\
         Check whether the corresponding aicore operator operation overflows."},
         {207004, "The device is unavailable.\n\
@@ -278,8 +270,7 @@ You are advised to reduce the number of concurrent tasks or uninstall some model
         {207010, "Insufficient model resources.\n\
         You are advised to uninstall some models."},
         {207011, "Runtime internal resources are insufficient.\n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {207012, "The number of queues exceeds the upper limit.\n\
         Destroy unnecessary queues before creating new queues."},
         {207013, "The queue is empty.\n\
@@ -292,173 +283,117 @@ by issues: https://gitee.com/ascend/pytorch/issue"},
         Check the memory usage on the device and properly plan the memory usage based on the memory specifications \
 on the device."},
         {507000, "An internal error occurs in the runtime module on the host. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507001, "An internal error occurs in the task scheduler module on the device. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507002, "The number of tasks on the stream reaches the maximum. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507003, "The number of tasks on the stream is empty. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507004, "Not all tasks on the stream are executed. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507005, "Task execution on the AI CPU is complete. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507006, "The event is not complete. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507007, "Failed to release the context. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507008, "Failed to obtain the SOC version. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507009, "The task type is not supported. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507010, "The task scheduler loses the heartbeat. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507011, "Model execution failed. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507012, "Failed to obtain the task scheduler message. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507013, "System Direct Memory Access (DMA) hardware execution error. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507014, "The aicore execution times out. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507015, "The aicore execution is abnormal. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507016, "An exception occurs when the aicore trap is executed. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507017, "The aicpu execution times out. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507018, "The aicpu execution is abnormal. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507019, "The AICPU does not send a response to the task scheduler after data dump. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507020, "The AIPPU does not send a response to the task scheduler after executing the model. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507021, "The profiling function is abnormal. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507022, "The communication between processes is abnormal. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507023, "The model exits. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507024, "The operator is being deregistered. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507025, "The ring buffer function is not initialized. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507026, "The ring buffer has no data. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507027, "The kernel in RUNTIME is not registered. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507028, "Repeatedly register the kernel inside the RUNTIME. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507029, "The debug function failed to be registered. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507030, "Deregistration of the debugging function fails. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507031, "The tag is not in the current context. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507032, "The number of registered programs exceeds the upper limit. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507033, "Failed to start the device. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507034, "Vector core execution timed out. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507035, "The vector core execution is abnormal. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507036, "An exception occurs when vector core traps are executed. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507037, "An exception occurred when applying for internal resources of the Runtime. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507038, "An error occurred when modifying the die mode, can not change the die mode. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507039, "The die cannot be specified in single-die mode. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507040, "The specified die ID is incorrect. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507041, "The die mode is not set. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507042, "The aicore trap read out-of-bounds exception. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507043, "The aicore trap write out-of-bounds exception. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507044, "Vector core trap read out-of-bounds exception. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507045, "Vector core trap write out-of-bounds exception. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507046, "In the specified timeout waiting event, all tasks in the specified stream are not completed. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507047, "During the specified event synchronization waiting time, the event is not executed completely. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507048, "The execution of the internal task times out. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507049, "An exception occurs during the execution of an internal task. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507050, "The trap of the internal task is abnormal. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507051, "Messages fail to be sent during data enqueuing. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507052, "Memory copy fails during data enqueuing. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507899, "An internal error occurs in the Driver module. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507900, "An internal error occurs on the AI CPU module. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
         {507901, "The internal host device communication (HDC) session is disconnected. \n\
-        Rectify the fault based on the error information in the log, or you can ask us at follwing gitee link \
-by issues: https://gitee.com/ascend/pytorch/issue"},
+        Rectify the fault based on the error information in the ascend log."},
     }; /* aclError code */
 };
 } /* c10_npu::acl */
