@@ -26,7 +26,8 @@ class ViewParserFactory:
         GlobalVar.init(profiler_path)
         if analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
             output_path = os.path.join(profiler_path, Constant.OUTPUT_DIR)
-            FileManager.remove_and_make_output_dir(output_path)
+            FileManager.remove_file_safety(output_path)
+            FileManager.make_dir_safety(output_path)
         for parser in ViewParserConfig.CONFIG_DICT.get(analysis_type):
             parser(profiler_path).generate_view(output_path, **kwargs)
         cls.simplify_data(profiler_path)
