@@ -2,7 +2,8 @@ FILE(GLOB _ATEN_SRCS
     *.cpp
     common/*.cpp
     mirror/*.cpp
-    ops/*.cpp)
+    ops/*.cpp
+    ops/op_api/*.cpp)
 
 FILE(GLOB _EXCLUDE
     VariableTypeEverything.cpp
