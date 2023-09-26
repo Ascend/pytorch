@@ -58,6 +58,9 @@ class PathManager:
 
     @classmethod
     def get_start_info_path(cls, cann_path: str) -> str:
+        start_info_path = os.path.join(cann_path, "host", "start_info")
+        if os.path.exists(start_info_path):
+            return start_info_path
         device_path = cls.get_device_path(cann_path)
         if not device_path:
             return ""
