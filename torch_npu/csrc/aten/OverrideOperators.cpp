@@ -45,7 +45,7 @@ at::Tensor wrapper__nan_to_num(
   torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::nan_to_num(self, nan, posinf, neginf);
+  return op_plugin::nan_to_num(self, nan, posinf, neginf);
 }
 
 at::Tensor& wrapper_out_nan_to_num_out(
@@ -60,7 +60,7 @@ at::Tensor& wrapper_out_nan_to_num_out(
   torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::nan_to_num_out(self, nan, posinf, neginf, out);
+  return op_plugin::nan_to_num_out(self, nan, posinf, neginf, out);
 }
 
 at::Tensor& wrapper__nan_to_num_(
@@ -74,7 +74,7 @@ at::Tensor& wrapper__nan_to_num_(
   torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::nan_to_num_(self, nan, posinf, neginf);
+  return op_plugin::nan_to_num_(self, nan, posinf, neginf);
 }
 
 at::Tensor wrapper__argmin(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
