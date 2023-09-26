@@ -1181,6 +1181,18 @@ ACL_FUNC_VISIBILITY aclError aclrtSetOpWaitTimeout(uint32_t timeout);
 
 /**
  * @ingroup AscendCL
+ * @brief Set the timeout interval for op executing
+ *
+ * @param timeout [IN]   op execute timeout
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetOpExecuteTimeOut(uint32_t timeout);
+
+
+/**
+ * @ingroup AscendCL
  * @brief set saturation mode
  * @param mode [IN]   target saturation mode
  *

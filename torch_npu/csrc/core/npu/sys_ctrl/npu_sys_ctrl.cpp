@@ -47,6 +47,7 @@
 #endif
 
 namespace {
+const uint32_t kMaxOpExecuteTimeOut = 547U;
 const size_t kMaxPathLen = 4096U;
 std::string GetCurDirPath() {
   char buff[kMaxPathLen] = {'\0'};
@@ -224,7 +225,8 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
   SetHF32DefaultValue();
 
   NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-    
+  NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
+
   init_flag_ = true;
   NPU_LOGD("Npu sys ctrl initialize successfully.");
   return INIT_SUCC;
