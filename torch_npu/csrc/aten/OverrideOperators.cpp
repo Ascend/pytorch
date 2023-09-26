@@ -91,12 +91,7 @@ at::Tensor wrapper__argmax(const at::Tensor & self, c10::optional<int64_t> dim, 
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
 #endif
-  if (at_npu::native::env::CheckJitDisable() && at_npu::native::FormatHelper::IsOpInputBaseFormat(self) &&
-      !c10_npu::NpuRunMode::IsGraphMode()) {
-    return at_npu::native::NPUNativeOpApiFunctions::argmax(self, dim, keepdim);
-  } else {
-    return at_npu::native::NPUNativeFunctions::argmax(self, dim, keepdim);
-  }
+  return op_plugin::argmax(self, dim, keepdim);
 }
 
 
