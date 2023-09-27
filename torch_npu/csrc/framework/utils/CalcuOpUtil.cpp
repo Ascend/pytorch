@@ -36,6 +36,7 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "op_plugin/OpInterface.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -516,8 +517,8 @@ void CalcuOpUtil::InsertInputPad(at::Tensor &self, at::Tensor &mat2) {
     mat2_pad[2 * (1 - is_mat2_trans) + 1] = pad_num;
     self = is_self_trans ? self.transpose(-1, -2) : self;
     mat2 = is_mat2_trans ? mat2.transpose(-1, -2) : mat2;
-    self = NPUNativeFunctions::constant_pad_nd(self, self_pad, 0);
-    mat2 = NPUNativeFunctions::constant_pad_nd(mat2, mat2_pad, 0);
+    self = op_plugin::constant_pad_nd(self, self_pad, 0);
+    mat2 = op_plugin::constant_pad_nd(mat2, mat2_pad, 0);
     self = is_self_trans ? self.transpose(-1, -2) : self;
     mat2 = is_mat2_trans ? mat2.transpose(-1, -2) : mat2;
   }

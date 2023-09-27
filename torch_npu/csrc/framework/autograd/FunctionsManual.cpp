@@ -123,18 +123,6 @@ std::vector<Tensor> not_implemented_list(const char* name, const char* reason) {
   return not_implemented_base<std::vector<Tensor>>(name, reason);
 }
 
-Tensor fast_gelu_backward(const Tensor& grad, const Tensor& self) {
-  return at_npu::native::NPUNativeFunctions::npu_fast_gelu_backward(grad, self);
-}
-
-std::tuple<Tensor, Tensor, Tensor> rotary_mul_backward(
-    const Tensor& grad,
-    const Tensor& self,
-    const Tensor& r1,
-    const Tensor& r2) {
-  return at_npu::native::NPUNativeFunctions::npu_rotary_mul_backward(grad, self, r1, r2);
-}
-
 Tensor maybe_multiply(const Tensor & t, const Scalar & s) {
   bool is_one = false;
   if (s.isFloatingPoint()) {
@@ -149,112 +137,6 @@ Tensor maybe_multiply(const Tensor & t, const Scalar & s) {
     return t * s;
   }
 }
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor,
-at::Tensor, at::Tensor, at::Tensor, at::Tensor> multi_head_attention_backward(
-    const at::Tensor& query, const at::Tensor& key, const at::Tensor& value,
-    const at::Tensor& query_weight, const at::Tensor& key_weight, const at::Tensor& value_weight,
-    const at::Tensor& out_proj_weight, const c10::optional<at::Tensor>& query_bias_opt,
-    const c10::optional<at::Tensor>& key_bias_opt, const c10::optional<at::Tensor>& value_bias_opt,
-    const c10::optional<at::Tensor>& out_proj_bias_opt, const at::Tensor& query_res,
-    const at::Tensor& key_res, const at::Tensor& value_res,
-    const at::Tensor& attn_scores, const at::Tensor& attn_res, const at::Tensor& context,
-    const at::Tensor& y_grad, const at::Tensor& dropout_mask,
-    int64_t attn_head_num, int64_t attn_dim_per_head,
-    int64_t src_len, int64_t tgt_len,
-    double dropout_prob, bool softmax_use_float) {
-  return at_npu::native::NPUNativeFunctions::npu_multi_head_attention_backward(
-      query, key, value, query_weight, key_weight, value_weight, out_proj_weight, query_bias_opt, key_bias_opt,
-      value_bias_opt, out_proj_bias_opt, query_res, key_res, value_res, attn_scores, attn_res, context, y_grad,
-      dropout_mask, attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float);
-}
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> gru_backward(
-    const c10::optional<at::Tensor>& grady_opt,
-    const c10::optional<at::Tensor>& gradh_opt,
-    const at::Tensor& input,
-    const at::Tensor& weight_input,
-    const at::Tensor& weight_hidden,
-    const at::Tensor& bias_input,
-    const at::Tensor& bias_hidden,
-    const at::Tensor& seq_length,
-    const at::Tensor& init_h,
-    const at::Tensor& output_y,
-    const at::Tensor& output_h,
-    const at::Tensor& output_updata,
-    const at::Tensor& output_reset,
-    const at::Tensor& output_new,
-    const at::Tensor& hidden_new) {
-  return at_npu::native::NPUNativeFunctions::npu_gru_backward(
-      grady_opt, gradh_opt, input, weight_input, weight_hidden, bias_input, bias_hidden, seq_length, init_h, output_y,
-      output_h, output_updata, output_reset, output_new, hidden_new);
-}
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> lstm_backward(
-    const c10::optional<at::Tensor>& grady_opt,
-    const c10::optional<at::Tensor>& gradh_opt,
-    const c10::optional<at::Tensor>& gradc_opt,
-    const at::Tensor& input,
-    const at::Tensor& weight,
-    const at::Tensor& bias,
-    const at::Tensor& init_h,
-    const at::Tensor& init_c,
-    const at::Tensor& y,
-    const at::Tensor& h,
-    const at::Tensor& c,
-    const at::Tensor& i,
-    const at::Tensor& j,
-    const at::Tensor& f,
-    const at::Tensor& o,
-    const at::Tensor& tanhc){
-  return at_npu::native::NPUNativeFunctions::npu_lstm_backward(
-      grady_opt, gradh_opt, gradc_opt, input, weight, bias, init_h, init_c, y, h, c, i, j, f, o, tanhc);
-}
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> lstm_cell_backward(
-    const c10::optional<at::Tensor>& grad_y_opt_,
-    const c10::optional<at::Tensor>& grad_h_opt_,
-    const c10::optional<at::Tensor>& grad_c_opt_,
-    const at::Tensor& input,
-    const at::Tensor& w_ih,
-    const at::Tensor& w_hh,
-    const at::Tensor& h,
-    const at::Tensor& c,
-    const at::Tensor& y_output,
-    const at::Tensor& h_output,
-    const at::Tensor& c_output,
-    const at::Tensor& i,
-    const at::Tensor& j,
-    const at::Tensor& f,
-    const at::Tensor& o,
-    const at::Tensor& tanhc){
-  return at_npu::native::NPUNativeFunctions::npu_lstm_cell_backward(
-      grad_y_opt_, grad_h_opt_, grad_c_opt_, input, w_ih, w_hh, h, c, y_output, h_output, c_output, i, j, f, o, tanhc);
-}
-
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> lstm_data_backward(
-    const c10::optional<at::Tensor>& grady_opt,
-    const c10::optional<at::Tensor>& gradh_opt,
-    const c10::optional<at::Tensor>& gradc_opt,
-    const at::Tensor& input,
-    const at::Tensor& batch_sizes,
-    const at::Tensor& weight,
-    const at::Tensor& bias,
-    const at::Tensor& init_h,
-    const at::Tensor& init_c,
-    const at::Tensor& y,
-    const at::Tensor& h,
-    const at::Tensor& c,
-    const at::Tensor& i,
-    const at::Tensor& j,
-    const at::Tensor& f,
-    const at::Tensor& o,
-    const at::Tensor& tanhc,
-    bool flag_direction) {
-  return at_npu::native::NPUNativeFunctions::npu_lstm_data_backward(grady_opt, gradh_opt, gradc_opt, input,
-      batch_sizes, weight, bias, init_h, init_c, y, h, c, i, j, f, o, tanhc, flag_direction);
-}
-
 } // namespace details
 } // namespace generated
 } // namespace autograd

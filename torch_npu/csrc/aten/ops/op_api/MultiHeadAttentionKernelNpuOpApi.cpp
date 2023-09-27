@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -146,7 +147,7 @@ std::vector<at::Tensor> npu_multi_head_attention_score_backward(
   at::Tensor format_softmax = format_trans(softmax_const);
   at::Tensor format_attention = format_trans(attention_const);
   at::Tensor dtype_atten_mask = (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type())
-                                    ? NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type())
+                                    ? custom_ops::npu_dtype_cast(format_atten_mask, query.scalar_type())
                                     : format_atten_mask;
   at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query_scaled);
   at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
@@ -225,7 +226,7 @@ class NPUMultiHeadAttentionFunction : public torch::autograd::Function<NPUMultiH
     at::Tensor format_atten_mask = format_trans(atten_mask);
     at::Tensor dtype_atten_mask =
       (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
-      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
+      custom_ops::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
     int64_t seed;
     int64_t offset;

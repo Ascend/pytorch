@@ -1,9 +1,4 @@
 #include "torch_npu/csrc/aten/OverrideOperators.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include "torch_npu/csrc/framework/interface/EnvVariables.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
 #include "op_plugin/OpInterface.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
@@ -29,7 +24,7 @@ at::Tensor wrapper___embedding_bag_dense_backward(
 torch_npu::profiler::NPURecordFunction guard;
 #endif
 
-  return at_npu::native::NPUNativeFunctions::_embedding_bag_dense_backward(
+  return op_plugin::_embedding_bag_dense_backward(
       grad, indices, offset2bag, bag_size, maximum_indices, num_weights,
       scale_grad_by_freq, mode, per_sample_weights, padding_idx);
 }

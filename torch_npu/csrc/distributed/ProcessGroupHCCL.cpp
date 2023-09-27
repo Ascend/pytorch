@@ -42,6 +42,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "op_plugin/OpInterface.h"
 
 namespace c10d_npu {
 
@@ -1372,14 +1373,14 @@ at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors) {
   if (num_add != 0) {
     bool transflag = false;
     if (inter_tensors.scalar_type() == at::ScalarType::Bool) {
-      inter_tensors = at_npu::native::NPUNativeFunctions::npu_dtype_cast(inter_tensors, at::ScalarType::Int);
+      inter_tensors = at_npu::native::custom_ops::npu_dtype_cast(inter_tensors, at::ScalarType::Int);
       transflag = true;
     }
 
-    inter_tensors = at_npu::native::NPUNativeFunctions::constant_pad_nd(inter_tensors, {0, num_add}, 0);
+    inter_tensors = op_plugin::constant_pad_nd(inter_tensors, {0, num_add}, 0);
 
     if (transflag == true) {
-      inter_tensors = at_npu::native::NPUNativeFunctions::npu_dtype_cast(inter_tensors, at::ScalarType::Bool);
+      inter_tensors = at_npu::native::custom_ops::npu_dtype_cast(inter_tensors, at::ScalarType::Bool);
     }
   }
   return inter_tensors;

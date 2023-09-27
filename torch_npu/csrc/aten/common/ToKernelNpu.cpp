@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/OverrideOperators.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -148,7 +149,7 @@ at::Tensor NPUNativeFunctions::to(
                         "dtype cast repalce with float.");
     dtype = at::ScalarType::Float;
   }
-  return NPUNativeFunctions::npu_dtype_cast(self, dtype);
+  return custom_ops::npu_dtype_cast(self, dtype);
 }
 
 at::Tensor NPUNativeFunctions::to(

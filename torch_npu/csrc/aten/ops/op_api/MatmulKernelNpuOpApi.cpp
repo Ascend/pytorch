@@ -15,6 +15,8 @@
 // limitations under the License.
 
 #include <torch/csrc/autograd/custom_function.h>
+
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"

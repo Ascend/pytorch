@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/aten/ops/op_api/op_api_common.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -36,7 +37,7 @@ at::Tensor NPUNativeOpApiFunctions::to(const at::Tensor& self, at::ScalarType dt
                         "dtype cast repalce with float.");
     dtype = at::ScalarType::Float;
   }
-  return NPUNativeOpApiFunctions::npu_dtype_cast(self, dtype);
+  return custom_ops::npu_dtype_cast(self, dtype);
 }
 
 }  // namespace native

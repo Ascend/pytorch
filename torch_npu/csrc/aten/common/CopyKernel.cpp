@@ -17,18 +17,19 @@
 #include <ATen/ATen.h>
 #include <c10/util/Exception.h>
 
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#include "op_plugin/OpInterface.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
 namespace native {
@@ -63,8 +64,9 @@ void copy_d2d_last_method(
     const at::Tensor& src,
     bool same_type,
     bool non_blocking) {
-  // general copy method but Low performance
-  copy_kernel_npu(self, src, non_blocking);
+    // general copy method but Low performance
+    RECORD_FUNCTION("contiguous_d_ViewCopy", std::vector<c10::IValue>({src}));
+    op_plugin::npu_view_copy(self, src, non_blocking);
 }
 
 // the dst and src are same format now
@@ -94,7 +96,7 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
 
 void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (self.dtype() != src.dtype()) {
-    NPUNativeFunctions::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
+    op_plugin::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
     return;
   }
   copy_d2d_dtype(self, src, non_blocking);
@@ -296,14 +298,15 @@ void copy_d2d_dtype_baseformat(
       // Optimized trans-contiguous method
       return;
     } else {
-      // General trans-contiguous method
-      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
-      return;
+        // General trans-contiguous method
+        RECORD_FUNCTION("contiguous_d_AsStrided", std::vector<c10::IValue>({src}));
+        op_plugin::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+        return;
     }
   } else {
     if (c10_npu::NpuRunMode::IsGraphMode()) {
       // In graph mode, in order to identify and call the corresponding npu operators,
-      // opt is necessary for contiguous tensor, such as reshape/slice/select. 
+      // opt is necessary for contiguous tensor, such as reshape/slice/select.
       OptimizationCases contiguous_opt_cases = {"reshape", "slice", "select"};
       if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src, contiguous_opt_cases)) {
         return;
