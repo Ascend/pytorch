@@ -164,9 +164,6 @@ std::vector<at::Tensor> npu_flash_attention_backward(
   at::Tensor format_softmax_sum = format_trans(softmax_sum_const);
   at::Tensor format_softmax = format_trans(softmax_const);
   at::Tensor format_attention = format_trans(attention_const);
-  at::Tensor dtype_atten_mask =
-      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
-      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
   at::Tensor dq = OpPreparation::ApplyTensorWithoutFormat(format_query);
   at::Tensor dk = OpPreparation::ApplyTensorWithoutFormat(format_key);
   at::Tensor dv = OpPreparation::ApplyTensorWithoutFormat(format_value);
@@ -180,7 +177,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
 
   EXEC_NPU_NO_FORMAT_CHECK_CMD(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
-      format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
+      format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
       pre_tockens, next_tockens, head_num, input_layout_ptr, dq, dk, dv, dpse);
 
@@ -243,9 +240,6 @@ public:
     at::Tensor format_pse = format_trans(pse);
     at::Tensor format_padding_mask = format_trans(padding_mask);
     at::Tensor format_atten_mask = format_trans(atten_mask);
-    at::Tensor dtype_atten_mask =
-      (format_atten_mask.defined() && format_atten_mask.scalar_type() != query.scalar_type()) ?
-      NPUNativeFunctions::npu_dtype_cast(format_atten_mask, query.scalar_type()) : format_atten_mask;
 
     int64_t seed;
     int64_t offset;
@@ -264,7 +258,7 @@ public:
 
     char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
     EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
-        format_pse, format_drop_mask, format_padding_mask, dtype_atten_mask,
+        format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
         scale, keep_prob, pre_tockens, next_tockens, head_num, input_layout_ptr,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
