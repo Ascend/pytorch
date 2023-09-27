@@ -106,3 +106,4 @@ custom:
 - bscpp_op: true
   func: bscpp_add(Tensor self, Tensor other) -> Tensor
 - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+- func: _npu_format_cast(Tensor self, int acl_format) -> Tensor
