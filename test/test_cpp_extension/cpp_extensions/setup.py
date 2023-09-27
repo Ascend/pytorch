@@ -16,9 +16,9 @@ import sys
 import os
 
 from setuptools import setup
-from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDAExtension
+from torch.utils.cpp_extension import BuildExtension
 
-from torch_npu.utils.cpp_extension import BISHENG_CPP_HOME, BiShengExtension, NpuExtension
+from torch_npu.utils.cpp_extension import NpuExtension
 from torch_npu.testing.common_utils import set_npu_device
 
 set_npu_device()
@@ -32,15 +32,6 @@ ext_modules = [
         'torch_test_cpp_extension.npu', ['extension.cpp'],
         extra_compile_args=CXX_FLAGS),
 ]
-
-if BISHENG_CPP_HOME is not None:
-    extension = BiShengExtension(
-        'torch_test_cpp_extension.bisheng', [
-                "bisheng_extension.cpp",
-                "bisheng_add_tensor.cpp",
-        ],
-        extra_compile_args=CXX_FLAGS)
-    ext_modules.append(extension)
 
 setup(
     name='torch_test_cpp_extension',

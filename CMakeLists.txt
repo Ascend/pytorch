@@ -250,11 +250,6 @@ else()
   target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.7m)
 endif()
 
-if(DEFINED ENV{BSCPP_OPS_ENABLE})
-  message(STATUS "env BSCPP_OPS_ENABLE exists")
-  target_link_libraries(${PLUGIN_NAME} PUBLIC bscpp_ops)
-endif()
-
 if (NOT DEFINED BUILD_LIBTORCH)
   set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
   message(STATUS "Using ATen parallel backend: ${ATEN_THREADING}")
