@@ -56,7 +56,7 @@ from .utils import (
     tie_return_values, get_return_value, NPU_AUTOGRAD_FUNCTION
 )
 
-NPU_NATIVEFUNCTIONS = {'npu_format_cast'}
+NPU_NATIVEFUNCTIONS = {'npu_format_cast', '_npu_format_cast'}
 
 # We don't set or modify grad_fn on these methods. Generally, they return
 # tensors that have requires_grad=False. In-place functions listed here will

@@ -140,10 +140,19 @@ int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
   return src_desc.npu_format_;
 }
 
+at::Tensor NPUNativeFunctions::_npu_format_cast(const at::Tensor& self,
+    int64_t acl_format) {
+  return npu_format_cast_impl(self, acl_format);
+}
+
 at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self,
     int64_t acl_format) {
   torch_npu::utils::torch_check_npu(self);
-  return npu_format_cast_impl(self, acl_format);
+  if (NPUNativeFunctions::get_npu_format(self) == acl_format) {
+    ASCEND_LOGD("no need to do format cast");
+    return self;
+  }
+  return custom_ops::_npu_format_cast(self, acl_format);
 }
 
 } // namespace native
