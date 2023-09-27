@@ -9,6 +9,7 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
+RE_MAP_CPU = False
 
 
 def _get_always_warn_legacy_serialization():
@@ -20,16 +21,16 @@ def _set_always_warn_legacy_serialization(always_warn:bool):
     ALWAYS_WARN_LEGACY_SERIALIZATION = always_warn
 
 
-def _warn_legacy_serialization(warn_massages, load_flag):
-    def is_first_time(load_flag):
-        warn_key = "has_warned_for_load" if load_flag else "has_warned_for_save"
+def _warn_legacy_serialization(warn_massages, key_flag:str):
+    def is_first_time(flag):
+        warn_key = "has_warned_for" + flag if flag else None
         if not hasattr(_warn_legacy_serialization, warn_key):
             _warn_legacy_serialization.__dict__[warn_key] = True
             return True
         else:
             return not _warn_legacy_serialization.__dict__[warn_key]
 
-    if _get_always_warn_legacy_serialization() or is_first_time(load_flag):
+    if _get_always_warn_legacy_serialization() or is_first_time(key_flag):
         print(warn_massages)
 
 
@@ -110,6 +111,13 @@ def _remap_result(cpu_result, map_location):
         return cpu_result
 
 
+def update_cpu_remap_info(map_location):
+    global RE_MAP_CPU
+    RE_MAP_CPU = False
+    if isinstance(map_location, (str, torch.device)) and 'cpu' in str(map_location):
+        RE_MAP_CPU = True
+
+
 def load(
     f: FILE_LIKE,
     map_location: MAP_LOCATION = None,
@@ -119,7 +127,7 @@ def load(
     mmap: Optional[bool] = None,
     **pickle_load_args: Any
 ) -> Any:
-
+    update_cpu_remap_info(map_location)
     torch._C._log_api_usage_once("torch.load")
     UNSAFE_MESSAGE = (
         "Weights only load failed. Re-running `torch.load` with `weights_only` set to `False`"
@@ -181,7 +189,7 @@ def load(
                 "If parameter types of map_location is \"Callable[[torch.Tensor, str], torch.Tensor]\" or \"Dict[str, str]\", which is only support for zipfile,"
                 "all tensors are currently loaded onto the CPU, which may introduce problems"
             )
-            _warn_legacy_serialization(warn_massage, True)
+            _warn_legacy_serialization(warn_massage, "load")
 
             if map_location is not None and isinstance(map_location, (torch.device, str)):
                 cpu_result = _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
@@ -205,7 +213,7 @@ def save(
             "Warning: torch.save with \"_use_new_zipfile_serialization = False\" is not recommended for npu tensor, which may bring unexpected errors and hopefully set \"_use_new_zipfile_serialization = True\"",
             "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
         )
-        _warn_legacy_serialization(warn_massage, False)
+        _warn_legacy_serialization(warn_massage, "save")
     return torch.serialization.save(obj, f, pickle_module,pickle_protocol, True, _disable_byteorder_record)
 
 
