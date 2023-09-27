@@ -21,6 +21,7 @@ from torchgen.packaged.autograd.gen_variable_type import (
 
 from .utils import NPU_AUTOGRAD_FUNCTION
 
+NPU_NATIVEFUNCTIONS = {'npu_format_cast', '_npu_format_cast'}
 
 try_jit_decomposition_pattern = (r'if \(\(.*?\)\) \{.*?static c10::OperatorName full_name\("aten::.*?", .*?\);\n.*?'
                                  r'return impl::run_jit_decomposition_with_args_for_jvp<.*?>'
@@ -111,7 +112,7 @@ def gen_variable_type_func(
         type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
         type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
         if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
-            if str(f.func.name) == 'npu_format_cast':
+            if str(f.func.name) in NPU_NATIVEFUNCTIONS:
                 type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
             else:
                 type_definition = type_definition.replace('at::redispatch', 'op_plugin')
