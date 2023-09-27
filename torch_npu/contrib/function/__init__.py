@@ -21,6 +21,7 @@ from .fuse_add_softmax_dropout import fuse_add_softmax_dropout
 from .roll import roll
 from .matmul_transpose import matmul_transpose
 from .fused_attention import npu_fused_attention_with_layernorm, npu_fused_attention
+from .fusion_attention import npu_fusion_attention, npu_fusion_attention_grad
 
 __all__ = [
     "npu_iou",

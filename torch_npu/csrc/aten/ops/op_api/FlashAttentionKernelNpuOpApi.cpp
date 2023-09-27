@@ -138,7 +138,8 @@ std::vector<at::Tensor> npu_flash_attention_backward(
     double scale_value,
     double keep_prob,
     int64_t pre_tockens,
-    int64_t next_tockens)
+    int64_t next_tockens,
+    int64_t inner_precise)
 {
   double scale = scale_value;
 
@@ -179,7 +180,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
       aclnnFlashAttentionScoreGrad, format_query, format_key, format_value, format_dy,
       format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
       format_softmax_max, format_softmax_sum, format_softmax, format_attention, scale_value, keep_prob,
-      pre_tockens, next_tockens, head_num, input_layout_ptr, dq, dk, dv, dpse);
+      pre_tockens, next_tockens, head_num, input_layout_ptr, inner_precise, dq, dk, dv, dpse);
 
   if (!format_pse.defined()) {
     at::Tensor dpse_required;
@@ -188,7 +189,7 @@ std::vector<at::Tensor> npu_flash_attention_backward(
 
   return {dq, dk, dv,
           at::Tensor(), at::Tensor(), dpse, at::Tensor(), at::Tensor(), at::Tensor(),
-          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
+          at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor(), at::Tensor()};
 }
 
 class NPUFlashAttentionFunction : public torch::autograd::Function<NPUFlashAttentionFunction> {
@@ -197,7 +198,8 @@ public:
       AutogradContext *ctx, const at::Tensor &query, const at::Tensor &key,
       const at::Tensor &value, int64_t head_num, c10::string_view input_layout, const c10::optional<at::Tensor> &pse_opt,
       const c10::optional<at::Tensor> &padding_mask_opt, const c10::optional<at::Tensor> &atten_mask_opt,
-      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
+      double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, int64_t inner_precise,
+      bool gen_mask_parallel, bool sync)
   {
     const at::Tensor &pse = pse_opt.value_or(at::Tensor());
     const at::Tensor &padding_mask = padding_mask_opt.value_or(at::Tensor());
@@ -259,7 +261,7 @@ public:
     char* input_layout_ptr = const_cast<char *>(input_layout_str.c_str());
     EXEC_NPU_NO_FORMAT_CHECK_CMD(aclnnFlashAttentionScore, format_query, format_key, format_value,
         format_pse, format_drop_mask, format_padding_mask, format_atten_mask,
-        scale, keep_prob, pre_tockens, next_tockens, head_num, input_layout_ptr,
+        scale, keep_prob, pre_tockens, next_tockens, head_num, input_layout_ptr, inner_precise,
         softmax_max, softmax_sum, softmax_out, attention_score);
 
     if (!sync) {
@@ -277,6 +279,7 @@ public:
     ctx->saved_data["keep_prob"] = keep_prob;
     ctx->saved_data["pre_tockens"] = pre_tockens;
     ctx->saved_data["next_tockens"] = next_tockens;
+    ctx->saved_data["inner_precise"] = inner_precise;
     ctx->saved_data["head_num"] = head_num;
     ctx->saved_data["input_layout"] = input_layout_str;
     ctx->saved_data["gen_mask_parallel"] = gen_mask_parallel;
@@ -294,6 +297,7 @@ public:
     auto keep_prob = ctx->saved_data["keep_prob"].toDouble();
     auto pre_tockens = ctx->saved_data["pre_tockens"].toInt();
     auto next_tockens = ctx->saved_data["next_tockens"].toInt();
+    auto inner_precise = ctx->saved_data["inner_precise"].toInt();
     auto head_num = ctx->saved_data["head_num"].toInt();
     auto input_layout = ctx->saved_data["input_layout"].toStringRef();
     auto gen_mask_parallel = ctx->saved_data["gen_mask_parallel"].toBool();
@@ -326,7 +330,7 @@ public:
     auto results = npu_flash_attention_backward(query,
         key, value, grad_outputs[0], head_num, input_layout, pse, drop_mask, padding_mask, atten_mask,
         softmax_max, softmax_sum, softmax_out, attention_score, scale,
-        keep_prob, pre_tockens, next_tockens);
+        keep_prob, pre_tockens, next_tockens, inner_precise);
 
     if (!sync) {
       c10_npu::NPUEvent npu_event;
@@ -355,6 +359,7 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
     double keep_prob,
     int64_t pre_tockens,
     int64_t next_tockens,
+    int64_t inner_precise,
     bool gen_mask_parallel,
     bool sync)
 {
@@ -378,7 +383,7 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention_grad(
   auto result = npu_flash_attention_backward(query,
       key, value, dy, head_num, input_layout_str, pse, drop_mask, padding_mask, atten_mask,
       softmax_max, softmax_sum, softmax_in, attention_in, scale_value,
-      keep_prob, pre_tockens, next_tockens);
+      keep_prob, pre_tockens, next_tockens, inner_precise);
 
   if (!sync) {
     c10_npu::NPUEvent npu_event;
@@ -393,10 +398,11 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_flash_attention(
     const at::Tensor &value, int64_t head_num, c10::string_view input_layout,
     const c10::optional<at::Tensor> &pse, const c10::optional<at::Tensor> &padding_mask,
     const c10::optional<at::Tensor> &atten_mask,
-    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, bool gen_mask_parallel, bool sync)
+    double scale, double keep_prob, int64_t pre_tockens, int64_t next_tockens, int64_t inner_precise,
+    bool gen_mask_parallel, bool sync)
 {
   return NPUFlashAttentionFunction::apply(query, key, value, head_num, input_layout, pse, padding_mask,
-      atten_mask, scale, keep_prob, pre_tockens, next_tockens, gen_mask_parallel, sync);
+      atten_mask, scale, keep_prob, pre_tockens, next_tockens, inner_precise, gen_mask_parallel, sync);
 }
 } // namespace native
 } // namespace at_npu

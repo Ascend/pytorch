@@ -60,6 +60,7 @@ import torch_npu._C
 
 from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
+from torch_npu.contrib.function import fusion_attention
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
     serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
@@ -69,6 +70,10 @@ from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 from torch_npu.distributed import fsdp_patches
 
 from .version import __version__ as __version__
+
+
+torch_npu.npu_fusion_attention = fusion_attention.npu_fusion_attention
+torch_npu.npu_fusion_attention_grad = fusion_attention.npu_fusion_attention_grad
 
 
 cann_pytorch_version_map = {
