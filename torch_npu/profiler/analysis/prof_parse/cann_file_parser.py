@@ -41,6 +41,7 @@ class CANNFileParser:
                                   r"^npu_mem_\d+_\d+_\d+_\d+\.csv"],
         CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d+_\d+\.json", r"^msprof_\d+_\d+_\d+\.json",
                                        r"^msprof_\d+_\d+_\d+_\d+\.json", r"^msprof_\d+_\d+_slice_\d+\.json",
+                                       r"^msprof_\d+_\d+_slice_\d+_\d+\.json",
                                        r"^msprof_\d+_\d+_\d+_slice_\d+\.json",
                                        r"^msprof_\d+_\d+_\d+_slice_\d+_\d+\.json"],
         CANNDataEnum.STEP_TRACE: [r"^step_trace_\d+_\d+\.csv", r"^step_trace_\d+_\d+_\d+\.csv",
