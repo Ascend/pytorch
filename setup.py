@@ -26,7 +26,7 @@ from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
-VERSION = '2.1.0'
+VERSION = '2.1.0.rc1'
 UNKNOWN = "Unknown"
 DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
 
