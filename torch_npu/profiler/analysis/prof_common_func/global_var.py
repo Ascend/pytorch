@@ -29,7 +29,8 @@ class GlobalVar:
         for level1_node in root_node.child_node_list:
             if level1_node.is_profiler_step():
                 step_id = level1_node.event.name.split("#")[-1]
-                cls.step_range.append([step_id, level1_node.device_start, level1_node.device_end])
+                cls.step_range.append([step_id, level1_node.device_start,
+                                       max(level1_node.device_end, level1_node.end_time)])
         cls.torch_op_tree_node = TreeBuilder.go_through_tree(root_node)
 
     @classmethod
