@@ -103,7 +103,8 @@ def _apply_patches(monkey_patches):
             sys.modules[f'{dest_module.__name__}.{last_module_level}'] = patch
             continue
 
-        assert hasattr(patch, '__all__'), "Patch module must have __all__ definition."
+        if not hasattr(patch, '__all__'):
+            raise NotImplementedError("Patch module must have __all__ definition.")
         dest_module = getattr(dest_module, last_module_level)
         for attr in patch.__all__:
             setattr(dest_module, attr, getattr(patch, attr))

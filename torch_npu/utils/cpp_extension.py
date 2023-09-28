@@ -1,9 +1,5 @@
 import os
-import sys
-import platform
-import subprocess
-import importlib
-from typing import List, Optional, Union
+from typing import List, Union
 
 import setuptools
 import torch
@@ -11,8 +7,8 @@ import torch.utils.cpp_extension as TorchExtension
 
 import torch_npu
 
-
 PYTORCH_NPU_INSTALL_PATH = os.path.dirname(os.path.abspath(torch_npu.__file__))
+
 
 def NpuExtension(name, sources, *args, **kwargs):
     r'''
@@ -41,12 +37,12 @@ def NpuExtension(name, sources, *args, **kwargs):
     '''
 
     torch_npu_dir = PYTORCH_NPU_INSTALL_PATH
-    include_dirs = kwargs.get('include_dirs', [])    
+    include_dirs = kwargs.get('include_dirs', [])
     include_dirs.append(os.path.join(torch_npu_dir, 'include'))
     include_dirs += TorchExtension.include_paths()
     kwargs['include_dirs'] = include_dirs
 
-    library_dirs = kwargs.get('library_dirs', [])    
+    library_dirs = kwargs.get('library_dirs', [])
     library_dirs.append(os.path.join(torch_npu_dir, 'lib'))
     library_dirs += TorchExtension.library_paths()
     kwargs['library_dirs'] = library_dirs
@@ -134,18 +130,17 @@ def load(name,
 
     extra_ldflags = extra_ldflags or []
     if not isinstance(extra_ldflags, list):
-            raise RuntimeError("arg extra_ldflags should be None or List[str], "
-                f"not {type(extra_ldflags)}")
+        raise RuntimeError("arg extra_ldflags should be None or List[str], "
+                           f"not {type(extra_ldflags)}")
 
     extra_ldflags.append("-ltorch_npu")
     extra_ldflags.append(f"-L{PYTORCH_NPU_INSTALL_PATH}/lib")
 
     extra_include_paths = extra_include_paths or []
     if not isinstance(extra_include_paths, list):
-            raise RuntimeError("arg extra_include_paths should be None or List[str], " +
-                f"not {type(extra_include_paths)}")
+        raise RuntimeError("arg extra_include_paths should be None or List[str], " +
+                           f"not {type(extra_include_paths)}")
     extra_include_paths.append(os.path.join(PYTORCH_NPU_INSTALL_PATH, 'include'))
-
 
     return TorchExtension.load(name,
                                sources,

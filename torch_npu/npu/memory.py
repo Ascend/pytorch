@@ -11,6 +11,7 @@ __all__ = ["_free_mutex", "caching_allocator_alloc", "caching_allocator_delete",
            "reset_max_memory_cached", "memory_allocated", "max_memory_allocated", "memory_reserved",
            "max_memory_reserved", "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary"]
 
+
 @contextlib.contextmanager
 def _free_mutex():
     torch_npu._C._npu_lock_mutex()
