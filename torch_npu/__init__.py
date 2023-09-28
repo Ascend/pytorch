@@ -151,4 +151,8 @@ def _npu_shutdown():
 # register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
 
+# init and register rpc_npu backend
+torch_npu._C._rpc_npu_init()
+import torch_npu.distributed.rpc
+
 torch._dynamo.skipfiles.add(torch_npu.utils._device)

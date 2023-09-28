@@ -59,8 +59,7 @@ def check_submodules():
         try:
             print(" --- Trying to initialize submodules")
             start = time.time()
-            subprocess.check_call(["git", "submodule", "init"], cwd=BASE_DIR)  # Compliant
-            subprocess.check_call(["git", "submodule", "update"], cwd=BASE_DIR)  # Compliant
+            subprocess.check_call(["git", "submodule", "update", "--init", "--recursive"], cwd=BASE_DIR)  # Compliant
             end = time.time()
             print(f" --- Submodule initialization took {end - start:.2f} sec")
         except Exception:
@@ -202,6 +201,11 @@ def check_torchair_valid(base_dir):
         )
 
 
+def check_tensorpipe_valid(base_dir):
+    tensorpipe_path = os.path.join(base_dir, 'third_party/Tensorpipe/tensorpipe')
+    return os.path.exists(tensorpipe_path)
+
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -297,6 +301,9 @@ class CPPLibBuild(build_clib, object):
             cmake_args.append('-DBUILD_OPPLUGIN=on')
             if check_opplugin_codegen(BASE_DIR):
                 cmake_args.append('-DBUILD_NEW_HEADER=on')
+
+        if check_tensorpipe_valid(BASE_DIR):
+            cmake_args.append('-DBUILD_TENSORPIPE=on')
 
         if DISABLE_TORCHAIR == 'FALSE':
             if check_torchair_valid(BASE_DIR):
@@ -404,6 +411,8 @@ build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
     generate_bindings_code(BASE_DIR)
+    if Path(BASE_DIR).joinpath("third_party/Tensorpipe/third_party/acl/libs").exists():
+        build_stub(Path(BASE_DIR).joinpath("third_party/Tensorpipe"))
     build_stub(BASE_DIR)
 
 # Setup include directories folders.

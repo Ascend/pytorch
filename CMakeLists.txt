@@ -162,6 +162,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
@@ -221,6 +222,10 @@ if (DEFINED BUILD_OPPLUGIN)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
 endif()
 
+if (DEFINED BUILD_TENSORPIPE)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
+endif()
+
 if (DEFINED BUILD_LIBTORCH)
   set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${FRAMEWORK_SRCS} ${NPU_CPP_LIBS_SRCS})
 else()
@@ -249,7 +254,7 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
 
-target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
+target_link_libraries(${PLUGIN_NAME} PUBLIC tensorpipe torch torch_cpu c10)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")

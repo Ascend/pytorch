@@ -17,6 +17,7 @@
 #include <torch/csrc/utils/tensor_flatten.h>
 #include <torch/csrc/distributed/c10d/python_comm_hook.h>
 
+#include "torch_npu/csrc/distributed/rpc/init.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -140,6 +141,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
 // c10d methods on torch._C
 static PyMethodDef methods[] = { // NOLINT
     {"_c10d_npu_init", c10d_npu_init, METH_NOARGS, nullptr},
+    {"_rpc_npu_init", rpc::rpc_npu_init, METH_NOARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 
 PyMethodDef* python_functions() {
