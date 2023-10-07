@@ -1428,7 +1428,7 @@ void Reducer::finalize_backward() {
     // See Note [DDP Communication Hook]
     if (comm_hook_ == nullptr) {
       TORCH_INTERNAL_ASSERT(
-          bucket.future_work,
+          bucket.work,
           "Expected bucket.work not to be null. "
           "This may indicate that allreduce hooks were not properly installed.");
       bucket.work->wait();
