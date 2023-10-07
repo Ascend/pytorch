@@ -11,9 +11,11 @@ supported:
   - bartlett_window.periodic
   - blackman_window
   - blackman_window.periodic
-  - clone
+  - func: clone
+    op_api: True
   - contiguous
-  - copy_
+  - func: copy_
+    op_api: True
   - copy_memory_
   - empty.memory_format
   - empty_like
@@ -74,6 +76,7 @@ custom:
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
   - func: get_storage_size(Tensor self) -> int
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+  - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor 
 
 symint:
   - as_strided_

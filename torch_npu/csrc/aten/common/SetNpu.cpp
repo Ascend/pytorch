@@ -84,23 +84,30 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
   return self;
 }
 
-at::Tensor& set_tensor_with_storage_format(at::Tensor& self, c10::Storage src) {
+at::Tensor set_tensor_with_storage_format(c10::Storage src) {
   if (StorageDescHelper::CheckDescInit(src)) {
     // The storage object src has complete description information,
     // and the tensor object self needs to be brushed to be the same
     auto desc = torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl())->npu_desc_;
-    set_storage_nd_npu(self, src, 0, desc.base_sizes_.size(), desc.base_sizes_, desc.base_strides_);
+    auto dist_tensor = NPUNativeFunctions::empty(
+        {0}, desc.data_type_.toScalarType(), c10::nullopt,
+        at::Device(c10::DeviceType::PrivateUse1), false, c10::MemoryFormat::Contiguous);
+    set_storage_nd_npu(dist_tensor, src, 0, desc.base_sizes_.size(), desc.base_sizes_, desc.base_strides_);
+    return dist_tensor;
   } else {
     // The storage object src doesn't have complete description information,
     // and the tensor object self needs to be brushed to be the 1 dimension
-    int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
-    set_storage_nd_npu(self, src, 0, 1, {new_size}, {});
+    auto dist_tensor = NPUNativeFunctions::empty(
+        {0}, at::ScalarType::Char, c10::nullopt,
+        at::Device(c10::DeviceType::PrivateUse1), false, c10::MemoryFormat::Contiguous);
+    int64_t new_size = static_cast<int64_t>(src.nbytes() / dist_tensor.dtype().itemsize());
+    set_storage_nd_npu(dist_tensor, src, 0, 1, {new_size}, {});
     StorageDescHelper::SetDesc(
-        self,
-        self.unsafeGetTensorImpl()->sizes(),
-        self.unsafeGetTensorImpl()->strides());
+        dist_tensor,
+        dist_tensor.unsafeGetTensorImpl()->sizes(),
+        dist_tensor.unsafeGetTensorImpl()->strides());
+    return dist_tensor;
   }
-  return self;
 }
 
 } // namespace native

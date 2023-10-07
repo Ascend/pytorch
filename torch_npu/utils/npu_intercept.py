@@ -1,13 +1,11 @@
 import os
 import re
-import yaml
-from pathlib import Path
 
 from functools import wraps
 
 import torch
 import torch_npu
-from .unsupport_api import unsupport_Tensor_api, unsupport_nn_api, unsupport_nested_api
+from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api, unsupported_nested_api
 
 
 cann_pytorch_version_map = {
@@ -106,13 +104,12 @@ def is_nested_tensor_npu_supported(*args, **kwargs):
 
 
 def apply_wrap_func_to_modules(wrap_func, unsupported_modules):
-    for module in unsupported_modules:
-        module_name, attr_name = module.rsplit(".", 1)
-        setattr(eval(module_name), attr_name, wrap_func(eval(module)))
+    for attr_name, parent_module in unsupported_modules.items():
+        setattr(parent_module, attr_name, wrap_func(getattr(parent_module, attr_name)))
 
 
 # Apply wrap functions to specific modules
 def add_intercept_methods():
-    apply_wrap_func_to_modules(create_wrap_func(is_tensor_npu_supported), unsupport_Tensor_api)
-    apply_wrap_func_to_modules(create_wrap_func(is_module_parameters_supported), unsupport_nn_api)
-    apply_wrap_func_to_modules(create_wrap_func(is_nested_tensor_npu_supported), unsupport_nested_api)
+    apply_wrap_func_to_modules(create_wrap_func(is_tensor_npu_supported), unsupported_Tensor_api)
+    apply_wrap_func_to_modules(create_wrap_func(is_module_parameters_supported), unsupported_nn_api)
+    apply_wrap_func_to_modules(create_wrap_func(is_nested_tensor_npu_supported), unsupported_nested_api)

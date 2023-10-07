@@ -12,7 +12,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& set_tensor_with_storage_format(at::Tensor& self, c10::Storage src);
+at::Tensor set_tensor_with_storage_format(c10::Storage src);
 
 } // namespace native
 } // namespace at_npu

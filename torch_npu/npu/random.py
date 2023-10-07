@@ -1,6 +1,5 @@
-from typing import cast, Iterable, List, Union
+from typing import Iterable, Union
 import torch
-from torch import Tensor
 
 import torch_npu
 from . import _lazy_init, _lazy_call, device_count, current_device
@@ -9,6 +8,7 @@ __all__ = ['get_rng_state', 'set_rng_state',
            'get_rng_state_all', 'set_rng_state_all',
            'manual_seed', 'manual_seed_all',
            'seed', 'seed_all', 'initial_seed']
+
 
 def get_rng_state(device: Union[int, str, torch.device] = 'npu') -> torch.Tensor:
     r"""Returns the random number generator state of the specified NPU as a ByteTensor.
