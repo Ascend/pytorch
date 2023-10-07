@@ -72,6 +72,11 @@ aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode);
 aclError AclrtSetOpWaitTimeout(uint32_t timeout);
 
 /**
+ * This API is used to set op execute timeout
+ */
+aclError AclrtSetOpExecuteTimeOut(uint32_t timeout);
+
+/**
  * @ingroup AscendCL
  * @brief create event instance
  *
