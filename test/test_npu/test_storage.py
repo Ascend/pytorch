@@ -312,6 +312,17 @@ class TestStorage(TestCase):
             self.assertIsInstance(getattr(y.npu(), dtype)(), getattr(torch.npu, dtype.title() + "Storage"))
             self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
 
+    def test_deepcopy(self):
+        x = torch.tensor([1]).npu()
+        y = copy.deepcopy(x)
+        self.assertNotEqual(x.storage().data_ptr(), y.storage().data_ptr())
+
+        x = torch.rand(3, 3).npu()
+        x = torch_npu.npu_format_cast(x, 29)
+        y = copy.deepcopy(x)
+        self.assertEqual(torch_npu.get_npu_format(y), 29)
+        self.assertEqual(x, y)
+
 
 if __name__ == '__main__':
     run_tests()

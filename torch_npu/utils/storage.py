@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch_npu
 from . import serialization as se
@@ -32,8 +33,10 @@ def _cpu(self):
 
 
 def _deepcopy(self, memo):
-    tmp_tensor = torch.tensor([], dtype=self.dtype, device=self._untyped_storage.device).set_(self)
-    return tmp_tensor._typed_storage()
+    src_tensor = torch_npu._C._tensor_construct_from_storage(self)
+    dst_tensor = src_tensor.clone()
+    dst_tensor = torch_npu.npu_format_cast(dst_tensor, torch_npu.get_npu_format(src_tensor))
+    return dst_tensor._typed_storage()
 
 
 def add_storage_methods():
