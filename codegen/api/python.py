@@ -991,6 +991,7 @@ SUPPORTED_RETURN_TYPES = {
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
+    '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,int64_t,int64_t,int64_t>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,int64_t>',
     '::std::tuple<at::Tensor,at::Tensor,double,int64_t>',

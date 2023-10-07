@@ -15,7 +15,7 @@ namespace acl {
 #define LOAD_FUNCTION(funcName) \
   REGISTER_FUNCTION(libascendcl, funcName)
 #undef GET_FUNC
-#define GET_FUNC(funcName)              \
+#define GET_FUNC(funcName)             \
   GET_FUNCTION(libascendcl, funcName)
 
 REGISTER_LIBRARY(libascendcl)
@@ -36,6 +36,7 @@ LOAD_FUNCTION(aclrtGetSocName)
 LOAD_FUNCTION(aclrtCreateStream)
 LOAD_FUNCTION(aclrtSetStreamFailureMode)
 LOAD_FUNCTION(aclrtSetOpWaitTimeout)
+LOAD_FUNCTION(aclrtSetOpExecuteTimeOut)
 LOAD_FUNCTION(aclrtCreateStreamWithConfig)
 LOAD_FUNCTION(aclrtSetDeviceSatMode)
 LOAD_FUNCTION(aclrtSetStreamOverflowSwitch)
@@ -160,6 +161,18 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
   }
   TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag");
   return func(event, flag);
+}
+
+aclError AclrtSetOpExecuteTimeOut(uint32_t timeout) {
+  typedef aclError (*AclrtSetOpExecuteTimeOut)(uint32_t);
+  static AclrtSetOpExecuteTimeOut func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetOpExecuteTimeOut)GET_FUNC(aclrtSetOpExecuteTimeOut);
+  }
+  if (func == nullptr) {
+    return ACL_ERROR_RT_FEATURE_NOT_SUPPORT;
+  }
+  return func(timeout);
 }
 
 aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus)
