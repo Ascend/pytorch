@@ -784,8 +784,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
 
 void ProcessGroupHCCL::workCleanupLoop() {
   aclrtSetDevice(0);
-  bool done = false;
-  while (!terminateProcessGroup_.load() || !done) {
+  while (!terminateProcessGroup_.load()) {
     std::list<WorkHCCL> doneWorks;
     {
       std::unique_lock<std::mutex> lock(workMetaListMutex_);
@@ -837,6 +836,7 @@ void ProcessGroupHCCL::workCleanupLoop() {
             work.handleHCCLGuard(asyncErrorHandling_);
           }
           doneWorks.push_back(std::move(*it));
+          workTemp_.emplace_back(work);
           it = workMetaList_.erase(it);
         } else {
           // Increment the iterator if the current WorkNCCL object is not
@@ -844,7 +844,6 @@ void ProcessGroupHCCL::workCleanupLoop() {
           ++it;
         }
       }
-      done = workMetaList_.empty();
     }
     doneWorks.clear();
   }
@@ -878,6 +877,7 @@ ProcessGroupHCCL::~ProcessGroupHCCL() {
     workMetaListCV_.notify_one();
     workCleanupThread_.join();
   }
+  workTemp_.clear();
   {
     // Destropy all HCCL Communicators on Process Group Destruction
     std::lock_guard<std::mutex> lock(mutex_);
@@ -1193,12 +1193,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
       (*work->npuEvents_)[i].record(hcclStream);
       work->hcclComms_[i] = hcclComms[i];
-      work->blockingWait_ = blockingWait_;
-      work->opTimeout_ = opTimeout_;
-      work->store_ = store_;
-      if (asyncErrorHandling_ != NoHandling) {
-	      workEnqueue(work);
-      }
+    }
+    work->blockingWait_ = blockingWait_;
+    work->opTimeout_ = opTimeout_;
+    work->store_ = store_;
+    if (asyncErrorHandling_ != NoHandling) {
+	    workEnqueue(work);
     }
   }
   return work;

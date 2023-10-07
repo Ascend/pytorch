@@ -438,6 +438,8 @@ protected:
     // Vector to Store WorkHCCL pointers
     std::list<ProcessGroupHCCL::WorkHCCL> workMetaList_;
 
+    std::list<ProcessGroupHCCL::WorkHCCL> workTemp_;
+
     std::mutex workMetaListMutex_;
 
     // Condition Variable for timeout thread sleep
