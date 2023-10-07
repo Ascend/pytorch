@@ -4,7 +4,6 @@ import math
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
-import torch_npu
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.distributed import distributed_c10d
@@ -20,6 +19,8 @@ from torch.distributed._shard.sharding_spec import (
     ShardingSpec,
     ShardMetadata,
 )
+
+import torch_npu
 
 
 def _sharding_spec_to_offsets(

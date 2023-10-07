@@ -41,6 +41,7 @@ def always_wrap_policy(*args, **kwargs) -> bool:
     """
     return True
 
+
 def lambda_auto_wrap_policy(
     module: nn.Module,
     recurse: bool,
@@ -77,6 +78,7 @@ def lambda_auto_wrap_policy(
     else:
         # if not recursing, decide whether we should wrap for the leaf node or reminder
         return lambda_fn(module)
+
 
 def transformer_auto_wrap_policy(
     module: nn.Module,
@@ -121,6 +123,7 @@ def transformer_auto_wrap_policy(
         # if not recursing, decide whether we should wrap for the leaf node or reminder
         return isinstance(module, tuple(transformer_layer_cls))
 
+
 def _wrap_batchnorm_individually(
     module: nn.Module,
     recurse: bool,
@@ -137,6 +140,7 @@ def _wrap_batchnorm_individually(
         # if not recursing, decide whether we should wrap based on whether it is a
         # BN layer or not.
         return isinstance(module, _BatchNorm)
+
 
 def _or_policy(
     module: nn.Module,
@@ -300,9 +304,6 @@ class ParamExecOrderWrapPolicy:
     the sharded parameters in each wrap will be gathered just before these parameters are used in the passes.
     These parameters will then be reshaded once they have been used.
 
-    TODO (linjianma): For now, the parameters contained in each wrap of ``ParamExecOrderWrapPolicy``
-    are the parameters in each wrap of the ``init_policy`` (a recursive wrapping policy).
-    Later we will wrap parameters based on bucket size.
 
     Args:
         init_policy (Callable):

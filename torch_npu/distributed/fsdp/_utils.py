@@ -4,9 +4,9 @@ from collections import OrderedDict
 from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
 import torch
-import torch_npu
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils.rnn import PackedSequence
+import torch_npu
 
 
 FSDP_FLATTENED = "_fsdp_flattened"

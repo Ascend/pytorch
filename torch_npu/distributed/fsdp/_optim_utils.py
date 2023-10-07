@@ -16,12 +16,12 @@ from typing import (
 )
 
 import torch
-import torch_npu
+import torch.nn as nn
 import torch.distributed as dist
+from torch.distributed._shard.sharded_tensor import ShardedTensor
+import torch_npu
 # Import the entire FSDP file to avoid circular imports
 import torch_npu.distributed.fsdp.fully_sharded_data_parallel as FSDP
-import torch.nn as nn
-from torch.distributed._shard.sharded_tensor import ShardedTensor
 from torch_npu.distributed.fsdp._shard_utils import _gather_state_dict
 from torch_npu.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
 from torch_npu.distributed.fsdp._fsdp_extensions import _ext_chunk_tensor

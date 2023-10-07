@@ -29,9 +29,7 @@ from typing import (
 )
 
 import torch
-import torch_npu
 import torch.distributed as dist
-import torch_npu.distributed.algorithms._checkpoint.checkpoint_wrapper as checkpoint_wrapper
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.module import _IncompatibleKeys
@@ -43,6 +41,15 @@ from torch.distributed._shard.sharded_tensor import (
     ShardedTensor,
     init_from_local_shards,
 )
+from torch.distributed.distributed_c10d import _get_default_group
+from torch.nn.parameter import Parameter
+try:
+    from torchdistx import deferred_init, fake
+except ImportError:
+    _TORCHDISTX_AVAIL = False
+
+import torch_npu
+import torch_npu.distributed.algorithms._checkpoint.checkpoint_wrapper as checkpoint_wrapper
 from torch_npu.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     _CHECKPOINT_PREFIX,
 )
@@ -50,8 +57,6 @@ from torch_npu.distributed.algorithms._comm_hooks import (
     LOW_PRECISION_HOOKS,
     default_hooks,
 )
-from torch.distributed.distributed_c10d import _get_default_group
-from torch.nn.parameter import Parameter
 from .utils import (
     _replace_by_prefix,
     _sync_params_and_buffers,
@@ -99,10 +104,6 @@ from .wrap import (
 )
 
 _TORCHDISTX_AVAIL = True
-try:
-    from torchdistx import deferred_init, fake
-except ImportError:
-    _TORCHDISTX_AVAIL = False
 
 _TORCH_FX_AVAIL = True
 if not hasattr(torch, "fx"):
@@ -212,8 +213,6 @@ class MixedPrecision:
     # Gradient communication precision.
     reduce_dtype: Optional[torch.dtype] = None
     # Buffer precision.
-    # TODO: buffer + param are usually of the same type, if user specifies
-    # param but not buffer, should we automatically make buffer be the same?
     buffer_dtype: Optional[torch.dtype] = None
     keep_low_precision_grads: Optional[bool] = False
 
@@ -258,7 +257,6 @@ class BackwardPrefetch(Enum):
 
     BACKWARD_PRE = auto()
     BACKWARD_POST = auto()
-    # TODO, BACKWARD_PRE_CPU, prefetch full parameters and keep them in the CPU memory
 
 
 class TrainingState_(Enum):
@@ -308,6 +306,7 @@ class StateDictType(Enum):
     LOCAL_STATE_DICT = auto()
     SHARDED_STATE_DICT = auto()
 
+
 @dataclass
 class StateDictConfig:
     """
@@ -317,6 +316,7 @@ class StateDictConfig:
     implementation FSDP will use.
     """
     pass
+
 
 @dataclass
 class FullStateDictConfig(StateDictConfig):
@@ -349,19 +349,23 @@ class FullStateDictConfig(StateDictConfig):
     offload_to_cpu: bool = False
     rank0_only: bool = False
 
+
 @dataclass
 class LocalStateDictConfig(StateDictConfig):
     pass
 
+
 @dataclass
 class ShardedStateDictConfig(StateDictConfig):
     pass
+
 
 _state_dict_type_to_config = {
     StateDictType.FULL_STATE_DICT: FullStateDictConfig,
     StateDictType.LOCAL_STATE_DICT: LocalStateDictConfig,
     StateDictType.SHARDED_STATE_DICT: ShardedStateDictConfig,
 }
+
 
 class OptimStateKeyType(Enum):
     PARAM_NAME = auto()
@@ -449,9 +453,6 @@ class _ExecOrderData:
             Dict[FlatParameter, List[str]],
             _get_param_to_unflat_param_names(fsdp_root),
         )
-        # TODO (awgu): We can broadcast the metadata of rank 0's `all_handles`
-        # to check that all ranks have the same handles in the same order.
-        # https://github.com/pytorch/pytorch/issues/79620
 
     def get_handles_to_backward_prefetch(
         self,
@@ -578,8 +579,6 @@ class _ExecOrderData:
             )
             # Check that all ranks plan to all-gather the same number of
             # parameters
-            # TODO (awgu): Since every module has at most one handle in the
-            # current implementation, this should never raise the error.
             for (r1, n1), (r2, n2) in itertools.combinations(
                 (
                     (rank, world_num_valid_indices[rank])
@@ -755,7 +754,6 @@ class _FreeEventQueue:
         return None
 
 
-# TODO (awgu): Refactor this later
 sharding_strategy_map = {
     ShardingStrategy.NO_SHARD: HandleShardingStrategy.NO_SHARD,
     ShardingStrategy.FULL_SHARD: HandleShardingStrategy.FULL_SHARD,
@@ -1431,9 +1429,6 @@ class FullyShardedDataParallel(nn.Module):
             if param.device == cpu_device:
                 # NOTE: This includes moving ignored modules' parameters.
                 module = module.to(device_from_device_id)
-                # TODO: This is a temporary fix to move already- constructed
-                # `FlatParameter`s back to CPU if needed. This is needed to
-                # make CPU offload work with `device_id`.
                 for submodule in module.modules():
                     if (
                         isinstance(submodule, FullyShardedDataParallel)
@@ -1504,8 +1499,6 @@ class FullyShardedDataParallel(nn.Module):
                 " module to NPU before init."
             )
         module_states: List[torch.Tensor] = []
-        # TODO (awgu): When exposing the original parameters, we need to also
-        # use this attribute to prevent re-synchronizing parameters.
         for buffer in module.buffers():
             # Avoid re-synchronizing buffers in case of nested wrapping
             if not getattr(buffer, "_fsdp_synced", False):
@@ -1884,7 +1877,6 @@ class FullyShardedDataParallel(nn.Module):
                 f"of {self.limit_all_gathers} for all instances."
             )
 
-    # TODO (awgu): Move this to the `FlatParamHandle` class later
     @torch.no_grad()
     def _init_param_attributes(self, handle: FlatParamHandle) -> None:
         """
@@ -2395,8 +2387,6 @@ class FullyShardedDataParallel(nn.Module):
         .. warning:: This needs to be called on all ranks, since synchronization
             primitives may be used.
         """
-        # TODO (rohan-varma): separate these out once a state_dict pre-hook
-        # is available.
         if torch_npu.npu.is_available():
             torch_npu.npu.synchronize()
         self._lazy_init()
@@ -2431,7 +2421,6 @@ class FullyShardedDataParallel(nn.Module):
                     )
                 state_dict = super().state_dict(*args, **kwargs)
 
-            # TODO: support offload to CPU in post state dict hook.
             if not rank0_only or self.rank == 0:
                 return state_dict
             else:
@@ -2559,10 +2548,6 @@ class FullyShardedDataParallel(nn.Module):
             )
 
         nonsharded_tensors = []
-        # TODO: Reduce the communication by using only one _all_gather_base to
-        # gather all the parameters in this layer. This can be achieved by
-        # concatenated all the local shards and then append the padding.
-        # https://github.com/pytorch/pytorch/issues/77461
         for (param_name, _, module_name) in self._fsdp_wrapped_module.handle.flat_param._param_infos:
             module_name = self._convert_to_wrapped_module_name(module_name)
             fqn = f"{prefix}{FSDP_WRAPPED_MODULE}.{module_name}{param_name}"
@@ -2933,10 +2918,6 @@ class FullyShardedDataParallel(nn.Module):
     def _cast_forward_inputs(self, *args, **kwargs):
         """Moves the forward inputs to the compute device and casts them to the
         appropriate dtype if needed."""
-        # TODO: Do not use the side stream for tensor copies for now;
-        # investigate the perf with/without it
-        # TODO: For mixed precision, move the inputs to the compute device and
-        # cast to reduced-precision in a single `to()` call
         args, kwargs = _to_kwargs(args, kwargs, self.compute_device.index, False)
         args = args[0]
         kwargs = kwargs[0]
@@ -3118,7 +3099,6 @@ class FullyShardedDataParallel(nn.Module):
                 for handle in self._handles:
                     if offload_to_cpu and handle.uses_sharded_strategy:
                         stack.enter_context(handle.to_cpu())
-                # TODO (awgu): This FPW call assumes 1 `FlatParameter`
                 stack.enter_context(self._fsdp_wrapped_module.unflatten_as_params())
                 try:
                     yield
@@ -3351,12 +3331,6 @@ class FullyShardedDataParallel(nn.Module):
             free_unsharded_flat_param = self._should_free_unsharded_flat_param(handle)
             self._reshard([handle], [free_unsharded_flat_param])
 
-            # TODO (awgu): Post-backward prefetching does not support the
-            # multiple handles per module case (which was why we keyed by
-            # *tuple*). The post-backward hook runs per handle, not per group
-            # of handles. To generalize this, we may need a 2-level mapping,
-            # where we map each individual handle to its groups of handles and
-            # then from the groups of handles to their indices in the order.
             handles_key = (handle,)
             self._prefetch_handles(handles_key)
 
@@ -3377,9 +3351,6 @@ class FullyShardedDataParallel(nn.Module):
                     # If a low precision hook is registered and reduce_dtype is specified
                     # in `MixedPrecision`, communication hook will take care of
                     # casting to lower precision and back.
-                    # TODO: Make this a communication hook when communication hooks
-                    # are implemented for FSDP. Note that this is a noop if the
-                    # reduce_dtype matches the param dtype.
                     param.grad.data = param.grad.data.to(self.mixed_precision.reduce_dtype)
 
                 if self._exec_order_data.is_first_iter:
@@ -3449,8 +3420,7 @@ class FullyShardedDataParallel(nn.Module):
                     # For NO_SHARD keeping grads in the reduced precision, we
                     # can simply omit the cast as needed, we can't do this for
                     # other sharding strategies because grad field is assigned
-                    # in _finalize_params. TODO (rvarm1) this divergence in
-                    # logic is not ideal.
+                    # in _finalize_params.
                     if not self._mixed_precision_keep_low_precision_grads():
                         self._cast_grad_to_param_dtype(param.grad, param)
 
@@ -3561,8 +3531,6 @@ class FullyShardedDataParallel(nn.Module):
                 free_unsharded_flat_params: List[bool] = []
                 handles_to_reshard: List[FlatParamHandle] = []
                 for handle in fsdp_module._handles:
-                    # TODO: This already-resharded check is brittle:
-                    # https://github.com/pytorch/pytorch/issues/83956
                     already_resharded = (
                         handle.flat_param.data_ptr() == handle.flat_param._local_shard.data_ptr()
                     )
@@ -3614,8 +3582,6 @@ class FullyShardedDataParallel(nn.Module):
                             f"p._saved_grad_shard={p._saved_grad_shard.device}"
                         )
                         # Check if post-backward was called for this param (FSDP unit).
-                        # TODO: This logic will have to be revisited when non-recursive wrapping
-                        # lands. If it was not called, there is no new gradient to accumulate
                         if p._post_backward_called:
                             p.grad = p._saved_grad_shard
                             if fsdp_module._mixed_precision_keep_low_precision_grads():
@@ -3668,19 +3634,6 @@ class FullyShardedDataParallel(nn.Module):
                     m, "_param_exec_order_prep_stage"
                 ), "Non-root FSDP modules should also have _param_exec_order_prep_stage attribute"
                 m._param_exec_order_prep_stage = False
-        # TODO (linjianma): Construct a fsdp_wrap_map whose keys are all children modules with a FSDP wrap,
-        # and values are its FSDP wraps. These children FSDP wraps will be detached from the root FSDP module
-        # and will be used to schedule the parameters (rebuild_full_params and reshard).
-        # TODO (linjianma): Remove all internal FSDP wraps from the root FSDP module.
-        # TODO (linjianma): Based on self._fsdp_params_exec_order, get the information
-        # needed to patch the forward() function of each key in the fsdp_wrap_map. The rules are as follows:
-        # 1: Before each forward(), rebuild_full_params of all parameters that are currently sharded and
-        # will be used in the forward, and reshard all parameters that are currently full and will not be
-        # used in the next forward()
-        # 2: After each forward(), reshard all parameters just used in the forward, and rebuild_full_params of
-        # all parameters that will be used next.
-        # TODO (linjianma): Patch the forward of each model in the keys
-        # of fsdp_wrap_map based on the information above.
 
     def _assert_state(self, state: Union[TrainingState_, List[TrainingState_]]) -> None:
         """Assert we are in the given state."""
@@ -3914,14 +3867,6 @@ class FullyShardedDataParallel(nn.Module):
         using_optim_input = FullyShardedDataParallel._is_using_optim_input(
             optim_input, optim,
         )
-        # TODO: The ultimate goal of the optimizer state APIs should be the same
-        # as state_dict/load_state_dict -- using one API to get optimizer states
-        # and one API to load optimizer states. ``state_dict_type`` will be used
-        # to decide which optimizer states should be returned.
-        # There are currently two APIs to load a full optimizer state. So the
-        # first step of the unification is to merge the two full optimizer state
-        # loading APIs.
-        # Task: https://github.com/pytorch/pytorch/issues/82232
         return _optim_state_dict(
             model=model,
             optim=optim,
@@ -4039,9 +3984,6 @@ class FullyShardedDataParallel(nn.Module):
         using_optim_input = FullyShardedDataParallel._is_using_optim_input(
             optim_input, optim,
         )
-        # TODO: The implementation is the same as ``shard_full_optim_state_dict``.
-        # See the TODO in ``shard_full_optim_state_dict`` for the future
-        # unification plan.
         flattened_osd = _flatten_optim_state_dict(
             sharded_optim_state_dict,
             model=model,
@@ -4400,9 +4342,6 @@ class FullyShardedDataParallel(nn.Module):
             for wrap in self.fsdp_modules(self):
                 module_to_fsdp[wrap.module] = wrap
             # Set self._fsdp_params_exec_order based on execution_info.module_forward_order.
-            # TODO (linjianma): self._fsdp_params_exec_order will be set based on
-            # the parameter execution order rather than module_forward_order,
-            # once the non-recursive wrapping policy is fully implemented.
             for m in execution_info.module_forward_order:
                 if m in module_to_fsdp:
                     for flat_param in module_to_fsdp[m].params:
@@ -4560,9 +4499,5 @@ def clean_tensor_name(tensor_name: str) -> str:
     # Call `replace()` twice separately since the name may not have both
     tensor_name = tensor_name.replace(FSDP_WRAPPED_MODULE + ".", "")
     tensor_name = tensor_name.replace(FPW_MODULE + ".", "")
-    # TODO: Explicitly replacing checkpoint_wrapper prefix is not ideal,
-    # as it increases coupling between CheckpointWrapper and FSDP. This is also not
-    # scalable for additional wrapped modules, we should come up with a general solution
-    # for this issue.
     tensor_name = tensor_name.replace(_CHECKPOINT_PREFIX + ".", "")
     return tensor_name

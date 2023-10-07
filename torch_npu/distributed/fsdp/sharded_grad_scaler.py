@@ -3,12 +3,12 @@ import logging
 from typing import Dict, List, Optional, Union
 
 import torch
-import torch_npu
 from torch.cuda import FloatTensor  # type: ignore[attr-defined]
-from torch_npu.npu.amp.grad_scaler import GradScaler, OptState, _NpuMultiDeviceReplicator
 from torch.distributed.distributed_c10d import ProcessGroup
 import torch.distributed as dist
 from torch.optim.sgd import SGD
+import torch_npu
+from torch_npu.npu.amp.grad_scaler import GradScaler, OptState, _NpuMultiDeviceReplicator
 
 
 logger = logging.getLogger(__name__)

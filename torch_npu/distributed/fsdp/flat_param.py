@@ -18,12 +18,12 @@ from typing import (
 )
 
 import torch
-import torch_npu
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
+import torch_npu
 from ._fsdp_extensions import _ext_post_unflatten_transform, _ext_pre_flatten_transform
 from ._utils import _alloc_storage, _free_storage, _set_fsdp_flattened, p_assert
 
@@ -88,9 +88,6 @@ class FlatParamShardMetadata(NamedTuple):
     param_offsets: Tuple[Tuple[int, int], ...]
 
 
-# TODO (awgu): Prefix these with "Handle" for now to avoid circular imports and
-# inadvertent misuses; coalesce with those in fully_sharded_data_parallel.py
-# later
 class HandleShardingStrategy(Enum):
     FULL_SHARD = auto()
     SHARD_GRAD_OP = auto()
@@ -403,10 +400,6 @@ class FlatParamHandle:
         Postcondition: ``self.flat_param`` is the sharded flattened parameter.
         ``process_group``, ``rank``, and ``world_size`` attributes are set.
 
-        TODO (awgu): Once we retire ``FlattenParamsWrapper``, we should pass
-        the process group directly to the ``FlatParamHandle`` constructor. For
-        now, we decouple ``FlattenParamsWrapper` from a process group, but this
-        makes the process-group-related attributes not necessarily defined.
         """
         if not self.uses_sharded_strategy:
             return
@@ -813,11 +806,6 @@ class FlatParamHandle:
                 == flat_param._local_shard.size()  # type: ignore[attr-defined]
             )
             if prev_iter_synced_gradients:
-                # TODO (awgu): Gradient accumulation outside `no_sync()`
-                # does not work with CPU offloading. The issue should be
-                # that, in the post-backward hook, we cannot do an addition
-                # between a CPU tensor (the existing sharded gradient) and
-                # a GPU tensor (the new sharded gradient).
                 if not grad_offloaded:
                     flat_param._saved_grad_shard = flat_param.grad.data  # type: ignore[attr-defined]
                     # If we're using mixed precision with keeping grads
