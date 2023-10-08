@@ -33,10 +33,13 @@ def _cpu(self):
 
 
 def _deepcopy(self, memo):
-    src_tensor = torch_npu._C._tensor_construct_from_storage(self)
-    dst_tensor = src_tensor.clone()
-    dst_tensor = torch_npu.npu_format_cast(dst_tensor, torch_npu.get_npu_format(src_tensor))
-    return dst_tensor._typed_storage()
+    if self.device.type != 'cpu':
+        src_tensor = torch_npu._C._tensor_construct_from_storage(self)
+        dst_tensor = src_tensor.clone()
+        dst_tensor = torch_npu.npu_format_cast(dst_tensor, torch_npu.get_npu_format(src_tensor))
+        return dst_tensor._typed_storage()
+    else:
+        return self._new_wrapped_storage(copy.deepcopy(self._untyped_storage, memo))
 
 
 def add_storage_methods():
