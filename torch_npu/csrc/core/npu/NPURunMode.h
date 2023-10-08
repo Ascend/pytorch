@@ -27,7 +27,7 @@ enum class ModeKind : uint8_t {
   REPLAY_MODE,
 };
 
-class  NpuRunMode{
+class NpuRunMode {
 public:
   static void SetNpuRunMode(const ModeKind& mode);
   static ModeKind CurRunMode();

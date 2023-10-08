@@ -179,7 +179,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
   // occur.
 #ifndef BUILD_LIBTORCH
   PyThreadState *gilState = nullptr;
-  if(PyGILState_Check()) {
+  if (PyGILState_Check()) {
     gilState = PyEval_SaveThread();
   }
 #endif
@@ -200,7 +200,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
           ASCEND_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
 #ifndef BUILD_LIBTORCH
           // Get the GIL
-          if(gilState) {
+          if (gilState) {
             PyEval_RestoreThread(gilState);
           }
 #endif
@@ -213,7 +213,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
 
 #ifndef BUILD_LIBTORCH
   // Get the GIL
-  if(gilState) {
+  if (gilState) {
     PyEval_RestoreThread(gilState);
   }
 #endif
@@ -248,7 +248,6 @@ bool Repository::ReadQueue() {
 #else
   auto ret = manager().Call(datas, read_idx.idx);
 #endif
-
   if (ret != 0) {
     ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
                 std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
