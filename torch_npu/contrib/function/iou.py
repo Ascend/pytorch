@@ -15,6 +15,7 @@
 import torch
 import torch_npu
 
+
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
@@ -190,6 +191,7 @@ def npu_diou(boxes1,
 
     return out
 
+
 def npu_ciou(boxes1, 
              boxes2,
              trans=True, 
@@ -281,7 +283,7 @@ if __name__ == "__main__":
     box1 = box1.float().npu()
     box2 = box2.float().npu()
     iou1 = npu_giou(box1, box2)
-    l = iou1.sum()
-    l.backward()
+    loss = iou1.sum()
+    loss.backward()
     print(iou1.shape, iou1.max(), iou1.min())
     print(iou2.shape, iou2.max(), iou2.min())
