@@ -47,7 +47,6 @@ from torch._C._distributed_c10d import (
 
 
 # This module is wildcard imported from torch.distributed.
-# TODO: specify __all__
 
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
@@ -93,6 +92,7 @@ __all__ = [
     "_get_default_group", "_get_global_rank", "all_gather_object", "all_gather_togather",
     "_reduce_scatter_base", "_all_gather_base", "_pg_map", "_pg_names", "_pg_group_ranks", "_new_process_group_helper"
 ]
+
 
 # Some reduce ops are not supported by complex numbers and will result in an error.
 # We currently provide complex support to the distributed API by viewing
@@ -179,7 +179,6 @@ class Backend(object):
 
 # `_backend`, `dist_backend`, and `reduce_op` are here to maintain backward
 # compatibility with pre-c10d distributed package.
-# TODO: remove them when users are ready to take a hard dependency on PyTorch 1.
 _backend: str = Backend.UNDEFINED
 dist_backend = Backend
 
@@ -234,6 +233,7 @@ _group_count = 0
 
 STORE_BASED_BARRIER_PREFIX = "store_based_barrier_key"
 
+
 def _store_based_barrier(rank, store, timeout):
     """
     Barrier based on store which is used for synchronizing processes after
@@ -276,6 +276,7 @@ def _store_based_barrier(rank, store, timeout):
     logger.info(
         f"Rank {rank}: Completed store-based barrier for key:{store_key} with {world_size} nodes.")
 
+
 def _rank_not_in_group(group: ProcessGroup):
     """
     Helper that checks if the current process's rank is not in a given group.
@@ -284,11 +285,13 @@ def _rank_not_in_group(group: ProcessGroup):
         return False
     return group == GroupMember.NON_GROUP_MEMBER
 
+
 def _warn_not_in_group(op_name):
     global_rank = -1 if GroupMember.WORLD is None else GroupMember.WORLD.rank()
     warnings.warn(
         f"Running {op_name} on global rank {global_rank} which does not "
         "belong to the given group.")
+
 
 def _get_group_rank(group: ProcessGroup, rank):
     """
@@ -360,6 +363,7 @@ def _check_op(op):
                            "to be of type ``torch.distributed.isend`` or "
                            "``torch.distributed.irecv``.")
 
+
 def _check_p2p_op_list(p2p_op_list):
     """
     Helper to check that the ``p2p_op_list`` is a list of P2POp instances and
@@ -396,6 +400,7 @@ def is_gloo_available():
     """
     return _GLOO_AVAILABLE
 
+
 def is_hccl_available():
     """
     Checks if the HCCL backend is available.
@@ -403,11 +408,13 @@ def is_hccl_available():
     """
     return _HCCL_AVAILABLE
 
+
 def is_initialized():
     """
     Checking if the default process group has been initialized
     """
     return GroupMember.WORLD is not None
+
 
 def is_torchelastic_launched():
     """
@@ -581,7 +588,7 @@ def init_process_group(backend, init_method=None, timeout=default_pg_timeout,
             # Use a PrefixStore to avoid accidental overrides of keys used by
             # different systems (e.g. RPC) in case the store is multi-tenant.
             store = PrefixStore("default_pg", store)
-        default_pg = _new_process_group_helper(world_size, rank, [], backend, store,  pg_options=pg_options,
+        default_pg = _new_process_group_helper(world_size, rank, [], backend, store, pg_options=pg_options,
                                                group_name=group_name, timeout=timeout)
         _update_default_pg(default_pg)
 
@@ -1306,6 +1313,7 @@ def all_gather(tensor_list,
     else:
         work.wait()
 
+
 def all_gather_togather(tensor_ouput,
                tensor,
                group=None,
@@ -1377,6 +1385,7 @@ def all_gather_togather(tensor_ouput,
     else:
         work.wait()
 
+
 def _all_gather_base(output_tensor,
                input_tensor,
                group=None,
@@ -1433,6 +1442,7 @@ def _all_gather_base(output_tensor,
         return work
     else:
         work.wait()
+
 
 def all_gather_coalesced(output_tensor_lists,
                          input_tensor_list,
@@ -1811,7 +1821,7 @@ def all_to_all_single(output_tensor,
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
     input_format = torch.get_npu_format(input_tensor)
     output_format = torch.get_npu_format(output_tensor)
-    judge_format = input_format != 0 and  input_format != 2
+    judge_format = input_format != 0 and input_format != 2
 
     if input_format != output_format:
         raise RuntimeError("Input and output formats should be the same!")
@@ -1836,6 +1846,7 @@ def all_to_all_single(output_tensor,
         work.wait()
         if judge_format:
             output_tensor.copy_(out_tensor)
+
 
 def all_to_all(output_tensor_list,
                input_tensor_list,
@@ -1953,6 +1964,7 @@ def all_to_all(output_tensor_list,
     else:
         work.wait()
 
+
 def barrier(group=GroupMember.WORLD,
             async_op=False,
             device_ids=None):
@@ -2000,6 +2012,7 @@ def barrier(group=GroupMember.WORLD,
     else:
         work.wait()
 
+
 def _create_process_group_wrapper(
     wrapped_pg: ProcessGroup,
     store_prefix: str,
@@ -2015,6 +2028,7 @@ def _create_process_group_wrapper(
     # Wrap the underlying pg with ProcessGroupWrapper.
     wrapped_pg = _ProcessGroupWrapper(wrapped_pg, helper_pg)
     return wrapped_pg
+
 
 def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=None):
     """
@@ -2121,6 +2135,7 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
             pg._set_sequence_number_for_group()
 
     return pg
+
 
 def _object_to_tensor(obj):
     f = io.BytesIO()

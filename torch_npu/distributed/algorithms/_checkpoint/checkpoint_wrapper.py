@@ -10,6 +10,7 @@ from ._utils import _pack_kwargs, _replace_by_prefix, _unpack_kwargs
 
 _CHECKPOINT_PREFIX = "_checkpoint_wrapped_module"
 
+
 class CheckpointImpl(Enum):
     REENTRANT = auto()
     NO_REENTRANT = auto()
@@ -71,6 +72,39 @@ class CheckpointWrapper(torch.nn.Module):
         """Forward indexing calls in case the module is a nn.Sequential."""
         return self._checkpoint_wrapped_module.__getitem__(key)  # type: ignore[operator]
 
+    @staticmethod
+    def _post_state_dict_hook(
+        module: nn.Module,
+        state_dict: Dict[str, Any],
+        prefix: str,
+        *args: Any,
+    ) -> Dict[str, Any]:
+        """
+        _post_state_dict_hook() is called after the state_dict() of this
+        FSDP module is executed. For ``checkpoint_wrapper``, it will strip
+        checkpoint-wrapped module prefix so that this module can be loaded into
+        non-checkpointed modules. It would still be able to be loaded into
+        checkpoint-wrapped modules as this class adds the prefix back before
+        loading the state_dict.
+        """
+        _replace_by_prefix(state_dict, f"{prefix}{_CHECKPOINT_PREFIX}.", prefix)
+        return state_dict
+
+    @staticmethod
+    def _pre_load_state_dict_hook(
+        module: nn.Module,
+        state_dict: Dict[str, Any],
+        prefix: str,
+        *args: Any,
+    ) -> None:
+        """
+        ``_pre_state_dict_hook` is called before ``self._load_from_state_dict()``
+        is called. For ``checkpoint_wrapper``, it will add back the module
+        prefix so that non-checkpointed modules can be loaded into
+        checkpoint_wrapper modules properly.
+        """
+        _replace_by_prefix(state_dict, prefix, prefix + f"{_CHECKPOINT_PREFIX}.")
+    
     def forward(self, *args, **kwargs):
         if self.offload_to_cpu:
             with save_on_cpu(pin_memory=True):
@@ -120,39 +154,6 @@ class CheckpointWrapper(torch.nn.Module):
         """
         for param_name, param in super().named_parameters(*args, **kwargs):
             yield param_name.replace(f"{_CHECKPOINT_PREFIX}.", ""), param
-
-    @staticmethod
-    def _post_state_dict_hook(
-        module: nn.Module,
-        state_dict: Dict[str, Any],
-        prefix: str,
-        *args: Any,
-    ) -> Dict[str, Any]:
-        """
-        _post_state_dict_hook() is called after the state_dict() of this
-        FSDP module is executed. For ``checkpoint_wrapper``, it will strip
-        checkpoint-wrapped module prefix so that this module can be loaded into
-        non-checkpointed modules. It would still be able to be loaded into
-        checkpoint-wrapped modules as this class adds the prefix back before
-        loading the state_dict.
-        """
-        _replace_by_prefix(state_dict, f"{prefix}{_CHECKPOINT_PREFIX}.", prefix)
-        return state_dict
-
-    @staticmethod
-    def _pre_load_state_dict_hook(
-        module: nn.Module,
-        state_dict: Dict[str, Any],
-        prefix: str,
-        *args: Any,
-    ) -> None:
-        """
-        ``_pre_state_dict_hook` is called before ``self._load_from_state_dict()``
-        is called. For ``checkpoint_wrapper``, it will add back the module
-        prefix so that non-checkpointed modules can be loaded into
-        checkpoint_wrapper modules properly.
-        """
-        _replace_by_prefix(state_dict, prefix, prefix + f"{_CHECKPOINT_PREFIX}.")
 
 
 def checkpoint_wrapper(
@@ -236,8 +237,6 @@ def apply_activation_checkpointing(
             ``True`` or ``False`` depending on whether the submodule should be wrapped.
     Returns: None (`model` is modified inplace)
     """
-    # TODO: Importing inside function to avoid circular import issue between FSDP and
-    # checkpoint_wrapper. This can be resolved once wrap() APIs are decoupled from FSDP code.
     from torch_npu.distributed.fsdp.wrap import _recursive_wrap, lambda_auto_wrap_policy
     return _recursive_wrap(
         module=model,

@@ -41,6 +41,7 @@ class DefaultState(object):
             factor *= 2
         return float(factor)
 
+
 class LowPrecisionState(DefaultState):
     r"""
     Stores state needed to perform gradient communication in a lower precision
@@ -76,6 +77,7 @@ def _decompress(state: LowPrecisionState, grad: torch.Tensor):
     # Don't let this memory get reused until after the transfer.
     orig_grad_data.record_stream(torch_npu.npu.current_stream())  # type: ignore[arg-type]
 
+
 def allreduce_hook(state: DefaultState, grad: torch.Tensor):
     r"""
     This FSDP communication hook implements ``all_reduce`` algorithm
@@ -94,6 +96,7 @@ def allreduce_hook(state: DefaultState, grad: torch.Tensor):
     # Average grad by post-division factor.
     if state.gradient_postdivide_factor > 1:
         grad.div_(state.gradient_postdivide_factor)
+
 
 def reduce_scatter_hook(state: DefaultState, grad: torch.Tensor, output: torch.Tensor):
     r"""
@@ -116,6 +119,7 @@ def reduce_scatter_hook(state: DefaultState, grad: torch.Tensor, output: torch.T
     if state.gradient_postdivide_factor > 1:
         output.div_(state.gradient_postdivide_factor)
 
+
 def _low_precision_hook(prec: torch.dtype, state: LowPrecisionState, grad: torch.Tensor, output: torch.Tensor):
     grad.data = grad.data.to(prec)
     if output is not None:
@@ -125,6 +129,7 @@ def _low_precision_hook(prec: torch.dtype, state: LowPrecisionState, grad: torch
     else:
         allreduce_hook(state, grad)
         _decompress(state, grad)
+
 
 def fp16_compress_hook(state: LowPrecisionState, grad: torch.Tensor, output: torch.Tensor = None):
     r"""
@@ -143,6 +148,7 @@ def fp16_compress_hook(state: LowPrecisionState, grad: torch.Tensor, output: tor
     """
     fp16_hook = functools.partial(_low_precision_hook, torch.float16)
     return fp16_hook(state, grad, output)
+
 
 def bf16_compress_hook(state: LowPrecisionState, grad: torch.Tensor, output: torch.Tensor = None):
     r"""
