@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch_npu
 
