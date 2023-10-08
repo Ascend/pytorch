@@ -100,6 +100,8 @@ def should_trace(f: NativeFunction) -> bool:
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
+
+
 def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     rs: List[NativeFunction] = []
     bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
@@ -140,8 +142,10 @@ def should_generate_py_binding(f: NativeFunction) -> bool:
 
     return True
 
+
 def get_pycname(name: BaseOperatorName) -> str:
     return f'THPVariable_{name}'
+
 
 def group_filter_overloads(
     pairs: Sequence[PythonSignatureNativeFunctionPair],
@@ -152,6 +156,7 @@ def group_filter_overloads(
         if pred(pair.function):
             grouped[pair.function.func.name.name].append(pair)
     return grouped
+
 
 def create_python_bindings(
     fm: FileManager,
@@ -254,6 +259,7 @@ def _${name}(*args, **kwargs):
         raise RuntimeError("In device methods file " + 
                     str(fm.install_dir + filename) + " has multi-definition function.")
 
+
 def load_signatures(
     native_functions: List[NativeFunction],
     *,
@@ -271,11 +277,13 @@ def load_signatures(
     pairs = list(map(gen_signature_pairs, native_functions))
     return pairs
 
+
 @with_native_function
 def gen_namedtuple_typename_key(f: NativeFunction) -> str:
     name = cpp.name(f.func)
     fieldnames = namedtuple_fieldnames(f.func.returns)
     return '_'.join([name] + fieldnames)
+
 
 def emit_namedtuple_typedefs(
     overloads: Sequence[PythonSignatureNativeFunctionPair]
@@ -382,6 +390,7 @@ static PyObject * ${pycname}(PyObject* self_, PyObject* args)
   ${method_footer}
 }
 """)
+
 
 def method_impl(
     name: BaseOperatorName,
@@ -627,7 +636,7 @@ def sort_overloads(
 
 
 def emit_single_dispatch(
-    ps: PythonSignature, f: NativeFunction, namedtuple_typenames: Dict[str, str], custom = True
+    ps: PythonSignature, f: NativeFunction, namedtuple_typenames: Dict[str, str], custom=True
 ) -> str:
     """
     Emit dispatch code for a single native function.
@@ -702,6 +711,7 @@ return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad
 
     return go(f)
 
+
 # Parse native_functions.yaml into a sequence of NativeFunctions
 def parse_native_yaml(path: str) -> List[NativeFunction]:
     from io import StringIO
@@ -731,6 +741,7 @@ def parse_native_yaml(path: str) -> List[NativeFunction]:
             func.variants.discard(Variant.method)
             rs.append(func)
     return rs
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate functions binding files')
@@ -763,8 +774,11 @@ if __name__ == "__main__":
 
     create_python_bindings(file_manager, functions, device_native_functions, lambda f: Variant.function in f.variants,
                            'torch_npu', 'python_custom_functions.cpp', method=False)
-    
-    file_device_manager=FileManager(install_dir=options.output_dir +"../../utils/", 
-                                    template_dir=options.template_path, dry_run=False)
+
+    file_device_manager = FileManager(
+        install_dir=f"{options.output_dir}../../utils/",
+        template_dir=options.template_path,
+        dry_run=False,
+    )
     create_python_device_bindings(file_device_manager, device_native_functions, 
                             lambda f: Variant.function in f.variants, 'torch_npu', 'torch_funcs.py', method=False)

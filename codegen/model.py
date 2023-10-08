@@ -24,7 +24,6 @@ import itertools
 
 # A little trick from https://github.com/python/mypy/issues/6366
 # for getting mypy to do exhaustiveness checking
-# TODO: put this somewhere else, maybe
 def assert_never(x: NoReturn) -> NoReturn:
     raise AssertionError("Unhandled type: {}".format(type(x).__name__))
 
@@ -53,6 +52,8 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   construction.
 
 # Represent a source location; used for better error reporting
+
+
 @dataclass(frozen=True)
 class Location:
     file: str
@@ -63,6 +64,7 @@ class Location:
 
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
+
 
 # NOTE: Keep the list in sync with `DispatchKey` in c10/core/DispatchKey.h
 class DispatchKey(Enum):
@@ -152,16 +154,19 @@ class DispatchKey(Enum):
                 return v
         raise AssertionError(f'unknown dispatch key {value}')
 
+
 class UseC10Dispatcher(Enum):
     full = 0
     hacky_wrapper_for_legacy_signatures = 1
 
 STRUCTURED_DISPATCH_KEYS = {DispatchKey.CUDA, DispatchKey.CPU}
 
+
 # Dispatch keys that "support all backends".  These codegen slightly differently
 # then backend specific keys.
 def is_generic_dispatch_key(dk: DispatchKey) -> bool:
     return dk in {DispatchKey.CompositeExplicitAutograd, DispatchKey.CompositeImplicitAutograd}
+
 
 # CUDA specific dispatch keys
 def is_cuda_dispatch_key(dk: DispatchKey) -> bool:
@@ -174,14 +179,17 @@ def is_cuda_dispatch_key(dk: DispatchKey) -> bool:
         DispatchKey.CUDATensorId,
     }
 
+
 # Structured kernel generation is only supported for certain key types;
 # otherwise use old-style
 def is_structured_dispatch_key(dk: DispatchKey) -> bool:
     return dk in STRUCTURED_DISPATCH_KEYS
 
+
 class DeviceCheckType(Enum):
     NoCheck = 0
     ExactSame = 1
+
 
 class Tag(Enum):
     inplace_view = 0
@@ -195,6 +203,7 @@ class Tag(Enum):
             if k == value:
                 return v
         raise AssertionError(f'unknown tag {value}')
+
 
 # The basic input to the code generation is native_functions.yaml.
 # The name "native", BTW, comes from the distinction between native
@@ -230,7 +239,6 @@ class NativeFunction:
     # What python module to put the function in
     python_module: Optional[str]
 
-    # TODO: figure out what this does
     category_override: Optional[str]
 
     # If no variants are specified in native_functions.yaml, this is
@@ -310,6 +318,7 @@ class NativeFunction:
     def from_yaml(ei: Dict[str, object]) -> Tuple['NativeFunction',
                                                   Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
         e = ei.copy()
+
         def parse_func(e):
             funcs = e.pop('func')
             assert isinstance(funcs, str), f'not a str: {funcs}'
@@ -467,8 +476,6 @@ class NativeFunction:
             op_api=op_api), backend_metadata
 
     def validate_unstructured(self) -> None:
-        # TODO: probably better to accumulate these errors and report them all
-        # at once
         assert not self.structured, "This function is structured, but there was " \
             "no valid functional variant of it."
         assert self.structured_delegate, "This function delegates to another structured out function, " \
@@ -602,6 +609,7 @@ class NativeFunctionsGroup:
             out=out,
         )
 
+
 def is_foreach_op(name: str) -> bool:
     return str(name) in set([
         '_amp_foreach_non_finite_check_and_unscale_',
@@ -650,6 +658,7 @@ def is_foreach_op(name: str) -> bool:
         '_foreach_addcmul_.ScalarList',
         '_foreach_addcdiv_.ScalarList',
         '_foreach_zero_'])
+
 
 @dataclass(frozen=True)
 class BackendMetadata:
@@ -724,9 +733,6 @@ class BackendIndex:
         if self.external:
             return f'{str(self.dispatch_key)}NativeFunctions'
         else:
-            # TODO: This discrepancy isn't required; we could also generated
-            # a class for in-tree kernels. It'll just require carefully
-            # updating every kernel definition + callsite of every in-tree aten kernel.
             return None
 
 
@@ -790,7 +796,6 @@ class FunctionSchema:
 
     arguments: 'Arguments'
 
-    # TODO: Need to handle collisions with argument names at some point
     returns: Tuple['Return', ...]
 
     def schema_order_arguments(self) -> Iterator['Argument']:
@@ -936,6 +941,7 @@ class FunctionSchema:
 
 # Here is the rest of the data model, described more briefly.
 
+
 # Simplified version for what actually shows up in built-ins.
 # Look at alias_info.h for expanded syntax.  If you need the structure,
 # you also need to make this structure recursive so it can be lined
@@ -955,7 +961,6 @@ class Annotation:
         becomes_wildcard_index = ann.find(" -> *")
         if becomes_wildcard_index != -1:
             after_set = "*"
-            # TODO: im not good enough with regexes to ignore -> *
             m = re.match(r'^([a-z])(!?)(!?)$',
                          ann[:becomes_wildcard_index] + ann[becomes_wildcard_index + len(" -> *"):])
         else:
@@ -974,6 +979,7 @@ class Annotation:
             alias_set = f'{alias_set}{" -> "}{self.alias_set_after}'
         is_write = '!' if self.is_write else ''
         return f'{alias_set}{is_write}'
+
 
 # The base class for the type system.  This is also loosely modeled
 # off of jit_type.h, but we've simplified the hierarchy to focus
@@ -1037,8 +1043,9 @@ BaseTy = Enum('BaseTy', (
     'QScheme',
     'Storage',
     'Stream',
-    'ConstQuantizerPtr',  # TODO: rename
+    'ConstQuantizerPtr', 
 ))
+
 
 @dataclass(frozen=True)
 class BaseType(Type):
@@ -1056,6 +1063,7 @@ class BaseType(Type):
     def is_list_like(self) -> Optional['ListType']:
         return None
 
+
 # Optional types may be specified, or may also be validly given None
 @dataclass(frozen=True)
 class OptionalType(Type):
@@ -1072,6 +1080,7 @@ class OptionalType(Type):
 
     def is_list_like(self) -> Optional['ListType']:
         return self.elem.is_list_like()
+
 
 # List types specify that we may have multiples of an element.  We
 # also support explicit sizes on list types, but these have
@@ -1097,6 +1106,7 @@ class ListType(Type):
 
     def is_list_like(self) -> Optional['ListType']:
         return self
+
 
 @dataclass(frozen=True)
 class Argument:
@@ -1138,7 +1148,6 @@ class Argument:
         else:
             name = name_and_default
             default = None
-        # TODO: deduplicate annotation matching with Return
         match = re.match(r'Tensor\((.+)\)(.*)', type_and_annot)
         annotation: Optional[Annotation]
         if match:
@@ -1230,6 +1239,7 @@ class Return:
 class SelfArgument:
     argument: Argument
 
+
 # Bundle of arguments that represent a TensorOptions.  This is mostly
 # relevant for the public C++ API but we bake it into the core data
 # model because other APIs often have to interact with it
@@ -1242,6 +1252,7 @@ class TensorOptionsArguments:
 
     def all(self) -> Sequence[Argument]:
         return [self.dtype, self.layout, self.device, self.pin_memory]
+
 
 @dataclass(frozen=True)
 class Arguments:
@@ -1350,8 +1361,6 @@ class Arguments:
         out: List[Argument] = []
         arguments_acc = positional
 
-        # TODO: Use a real parser here; this will get bamboozled
-        # by signatures that contain things like std::array<bool, 2> (note the space)
         for arg in args.split(', '):
             if not arg:
                 continue
@@ -1404,6 +1413,7 @@ class Arguments:
         tensor_options: Optional[TensorOptionsArguments] = None
         post_tensor_options_kwarg_only: List[Argument] = []
         kwarg_only_acc = pre_tensor_options_kwarg_only
+        
         def pred(name: str, ty: Type) -> Callable[[Argument], bool]:
             return lambda a: a.name == name and a.type in [ty, OptionalType(ty)]
 
@@ -1451,8 +1461,6 @@ class Arguments:
         return ', '.join(all_arguments)
 
     def __post_init__(self) -> None:
-        # TODO: These invariants are weirdly asymmetric?
-        # TODO: Fancier types?
         if self.self_arg is None:
             assert not self.pre_self_positional
         if self.tensor_options is None:
@@ -1463,6 +1471,7 @@ class Arguments:
 # Taken from https://www.python.org/dev/peps/pep-0203/#new-methods
 # NB: PyTorch hasn't actually implemented all of these
 AUGMENTED_ASSIGNMENT_NAMES = ['add', 'sub', 'mul', 'div', 'mod', 'pow', 'lshift', 'rshift', 'and', 'xor', 'or']
+
 
 # A BaseOperatorName is what we think of the operator name, without
 # the overload name.  Unusually, we don't represent this as just a
@@ -1516,6 +1525,7 @@ class BaseOperatorName:
             i = '_' if self.inplace else ''
             return f'{self.base}{i}'
 
+
 # Operator name is the base operator name along with the (typically not
 # user visible) overload string.
 @dataclass(frozen=True)
@@ -1561,6 +1571,7 @@ def gets_generated_out_inplace_wrapper(f: NativeFunction, g: NativeFunctionsGrou
         b.has_kernel(g.functional)
 
 # Helper functions for parsing argument lists (both inputs and returns)
+
 
 def parse_returns(return_decl: str) -> Tuple[Return, ...]:
     """
