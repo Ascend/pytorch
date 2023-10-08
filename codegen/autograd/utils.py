@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import yaml
 from pathlib import Path
 from typing import List, Sequence
@@ -22,7 +21,7 @@ from codegen.api import cpp
 from codegen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
     DifferentiabilityInfo)
-from codegen.utils import YamlLoader, CUSTOM_YAML_NAME, enable_opplugin
+from codegen.utils import CUSTOM_YAML_NAME, enable_opplugin
 from codegen.model import NativeFunction, SchemaKind
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 from .load_derivatives import load_derivatives
@@ -74,7 +73,7 @@ def filt_npu_autograd_functions(
     torch_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_functions = set()
     with open(native_functions_path, 'r') as f:
-        es = yaml.load(f, Loader=YamlLoader)
+        es = yaml.safe_load(f)
     for e in es:
         torch_functions.add(e.get('func').split('(')[0])
 
