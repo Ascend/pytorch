@@ -314,6 +314,9 @@ class TestStorage(TestCase):
             self.assertIsInstance(getattr(y.float().cpu(), dtype)(), getattr(torch, dtype.title() + "Storage"))
 
     def test_deepcopy(self):
+        x = torch.tensor([1])
+        y = copy.deepcopy(x)
+
         x = torch.tensor([1]).npu()
         y = copy.deepcopy(x)
         self.assertNotEqual(x.storage().data_ptr(), y.storage().data_ptr())
