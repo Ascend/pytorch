@@ -45,6 +45,8 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      add_storage_methods, add_optim_method, add_serialization_methods, apply_device_patch
 import torch_npu.utils.custom_ops
+import torch_npu.distributed.rpc
+from torch_npu.distributed.rpc.backend_registry import rpc_backend_reg
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from .version import __version__ as __version__
 
@@ -153,6 +155,6 @@ atexit.register(_npu_shutdown)
 
 # init and register rpc_npu backend
 torch_npu._C._rpc_npu_init()
-import torch_npu.distributed.rpc
+rpc_backend_reg()
 
 torch._dynamo.skipfiles.add(torch_npu.utils._device)

@@ -106,7 +106,7 @@ def _validate_device_maps(
 
 
 def _get_device_infos():
-    from . import TensorPipeAgent
+    from torch_npu._C._distributed_rpc import TensorPipeAgent
     agent = cast(TensorPipeAgent, api._get_current_rpc_agent())
     opts = agent._get_backend_options()
     device_count = _get_device_count_info()
@@ -138,7 +138,7 @@ def _tensorpipe_exchange_and_check_all_device_maps(
 
 
 def _set_devices_and_reverse_device_map(agent):
-    from . import TensorPipeAgent
+    from torch_npu._C._distributed_rpc import TensorPipeAgent
     agent = cast(TensorPipeAgent, agent)
     # Group state is retrieved from local agent
     # On initialization, tensorpipe agent retrieves information from all existing workers, so group state is valid
@@ -217,7 +217,7 @@ def _npu_tensorpipe_construct_rpc_backend_options_handler(
 def _npu_tensorpipe_init_backend_handler(
     store, name, rank, world_size, rpc_backend_options
 ):
-    from . import TensorPipeAgent
+    from torch_npu._C._distributed_rpc import TensorPipeAgent
     from .options import NPUTensorPipeRpcBackendOptions
 
     if not isinstance(store, dist.Store):
@@ -285,8 +285,9 @@ def _npu_tensorpipe_init_backend_handler(
 
 
 # Backend Reg
-rpc.backend_registry.register_backend(
-    "NPU_TENSORPIPE",
-    _npu_tensorpipe_construct_rpc_backend_options_handler,
-    _npu_tensorpipe_init_backend_handler,
-)
+def rpc_backend_reg():
+    rpc.backend_registry.register_backend(
+        "NPU_TENSORPIPE",
+        _npu_tensorpipe_construct_rpc_backend_options_handler,
+        _npu_tensorpipe_init_backend_handler,
+    )

@@ -223,7 +223,9 @@ if (DEFINED BUILD_OPPLUGIN)
 endif()
 
 if (DEFINED BUILD_TENSORPIPE)
+  set(BUILD_SHARED_LIBS ON)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
+  set(BUILD_SHARED_LIBS OFF)
 endif()
 
 if (DEFINED BUILD_LIBTORCH)
@@ -254,7 +256,8 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
 
-target_link_libraries(${PLUGIN_NAME} PUBLIC tensorpipe torch torch_cpu c10)
+target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/Release/packages/torch_npu/lib/libtensorpipe.so)
+target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
 
 if (NOT DEFINED BUILD_LIBTORCH)
   set(ATEN_THREADING "OMP" CACHE STRING "ATen parallel backend")
