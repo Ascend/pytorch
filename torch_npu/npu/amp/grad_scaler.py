@@ -138,8 +138,8 @@ class GradScaler(Cuda_GradScaler):
 
     def _lazy_init_scale_growth_tracker(self, dev):
         assert self._growth_tracker is None, "_growth_tracker initialized before _scale"
-        self._scale = torch.full((1,), self._init_scale, dtype=torch.float32).pin_memory().to(dev, non_blocking=True)
-        self._growth_tracker = torch.full((1,), self._init_growth_tracker, dtype=torch.int32)
+        self._scale = torch.full((), self._init_scale, dtype=torch.float32).pin_memory().to(dev, non_blocking=True)
+        self._growth_tracker = torch.full((), self._init_growth_tracker, dtype=torch.int32)
         self._growth_tracker = self._growth_tracker.pin_memory().to(dev, non_blocking=True)
 
     def _lazy_init_dist_flag_and_dist_overflow_count(self):
@@ -261,7 +261,7 @@ class GradScaler(Cuda_GradScaler):
                             torch._amp_foreach_non_finite_check_and_unscale_(grads,
                                                                             per_device_found_inf.get(device),
                                                                             per_device_inv_scale.get(device))
-                            if per_device_found_inf.get(device)[0].item() > 0:
+                            if per_device_found_inf.get(device).item() > 0:
                                 self._has_overflow = True
                         else:
                             for grad in grads:
@@ -322,7 +322,7 @@ class GradScaler(Cuda_GradScaler):
         # FP32 division can be imprecise for certain compile options, so we carry out the reciprocal in FP64.
         assert self._scale is not None
         inv_scale = self._scale.float().reciprocal()
-        found_inf = torch.full((1,), 0.0, dtype=torch.float32).pin_memory().to(self._scale.device, non_blocking=True)
+        found_inf = torch.full((), 0.0, dtype=torch.float32).pin_memory().to(self._scale.device, non_blocking=True)
 
         optimizer_state["found_inf_per_device"] = self._unscale_grads_(optimizer, inv_scale, found_inf, False)
         optimizer_state["stage"] = OptState.UNSCALED
@@ -420,7 +420,7 @@ class GradScaler(Cuda_GradScaler):
         if new_scale is not None:
             # Accept a new user-defined scale.
             if isinstance(new_scale, float):
-                self._scale = torch.full((1,), new_scale, dtype=torch.float32)
+                self._scale = torch.full((), new_scale, dtype=torch.float32)
                 self._scale = self._scale.pin_memory().to(_scale.device, non_blocking=True)
             else:
                 reason = "new_scale should be a float or a 1-element torch.npu.FloatTensor with requires_grad=False."
