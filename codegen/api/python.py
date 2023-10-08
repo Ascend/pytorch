@@ -946,6 +946,7 @@ SUPPORTED_RETURN_TYPES = {
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
+    '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,int64_t,int64_t,int64_t>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor,at::Tensor>',
     '::std::tuple<at::Tensor,at::Tensor,at::Tensor,int64_t>',
     '::std::tuple<at::Tensor,at::Tensor,double,int64_t>',
@@ -1057,7 +1058,7 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
     def unpack_base(t, has_default):
         base_dict = {
             BaseTy.ScalarType: 'scalartypeWithDefault' if has_default else 'scalartype',
-            BaseTy.Device: 'at_npu::key::parse_npu_device_with_default' if has_default 
+            BaseTy.Device: 'at_npu::key::parse_npu_device_with_default' if has_default
                             else 'at_npu::key::parse_npu_device',
             BaseTy.int: 'toInt64',
             BaseTy.bool: 'toBool',
@@ -1209,7 +1210,7 @@ def dispatch_lambda_exprs(
             # optional<vector<T>>, which cannot be implicitly converted to
             # optional<ArrayRef<T>>. One needs to unwrap the optional and rewrap.
             inits.extend([
-                f'auto __{name} = {arg_parser_expr.expr};',  
+                f'auto __{name} = {arg_parser_expr.expr};',
                 (f'c10::optional<DimnameList> {name} = __{name} ?'
                  + f' c10::make_optional(DimnameList(__{name}.value())) : c10::nullopt;'),
             ])
@@ -1217,7 +1218,7 @@ def dispatch_lambda_exprs(
         else:
             # default case - directly using PythonArgParser output expr
             if name == "device":
-                lambda_args_exprs[name] = str("at_npu::key::parse_npu_device(_r.args[" + 
+                lambda_args_exprs[name] = str("at_npu::key::parse_npu_device(_r.args[" +
                                                 str(arg_parser_expr.index) + "])")
             else:
                 lambda_args_exprs[name] = arg_parser_expr.expr
