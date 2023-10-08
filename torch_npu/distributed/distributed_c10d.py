@@ -52,7 +52,6 @@ import torch_npu
 
 
 # This module is wildcard imported from torch.distributed.
-# TODO: specify __all__
 
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
@@ -185,7 +184,6 @@ class Backend(object):
 
 # `_backend`, `dist_backend`, and `reduce_op` are here to maintain backward
 # compatibility with pre-c10d distributed package.
-# TODO: remove them when users are ready to take a hard dependency on PyTorch 1.
 _backend: str = Backend.UNDEFINED
 dist_backend = Backend
 
@@ -596,7 +594,7 @@ def init_process_group(backend, init_method=None, timeout=default_pg_timeout,
             # Use a PrefixStore to avoid accidental overrides of keys used by
             # different systems (e.g. RPC) in case the store is multi-tenant.
             store = PrefixStore("default_pg", store)
-        default_pg = _new_process_group_helper(world_size, rank, [], backend, store,  pg_options=pg_options,
+        default_pg = _new_process_group_helper(world_size, rank, [], backend, store, pg_options=pg_options,
                                                group_name=group_name, timeout=timeout)
         _update_default_pg(default_pg)
 
@@ -1806,6 +1804,7 @@ def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=F
     else:
         work.wait()
 
+
 def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=False):
     """
     Reduces, then scatters a flattened tensor to all processes in a group.
@@ -1916,7 +1915,7 @@ def all_to_all_single(output_tensor,
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
     input_format = torch_npu.get_npu_format(input_tensor)
     output_format = torch_npu.get_npu_format(output_tensor)
-    judge_format = input_format != 0 and  input_format != 2
+    judge_format = input_format != 0 and input_format != 2
 
     if input_format != output_format:
         raise RuntimeError("Input and output formats should be the same!")
@@ -2062,8 +2061,8 @@ def all_to_all(output_tensor_list,
         work = group.alltoall_base(output_tensor, input_tensor, output_split_sizes, input_split_sizes, opts)
     
     if async_op:
-         output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
-         return work
+        output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
+        return work
     else:
         work.wait()
         output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
