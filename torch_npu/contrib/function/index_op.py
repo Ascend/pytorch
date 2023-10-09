@@ -15,6 +15,7 @@
 import torch
 import torch_npu
 
+
 def npu_fast_condition_index_put(x, condition, value):
     """Using NPU affinity writing method to replace the native writing method in bool type index_put function.
 

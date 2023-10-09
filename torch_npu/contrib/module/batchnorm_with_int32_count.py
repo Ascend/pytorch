@@ -22,6 +22,7 @@ from torch.nn.modules.batchnorm import _NormBase as SrcNormBase
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 import torch_npu
 
+
 class _NormBase(SrcNormBase):
     r"""Changed the num_batches_tracked of the batnorm from int64 to int32 to 
     improve the performance of the batchnorm.
@@ -59,7 +60,8 @@ class _NormBase(SrcNormBase):
             self.register_parameter('running_var', None)
             self.register_parameter('num_batches_tracked', None)
         self.reset_parameters()
-        
+
+
 class _BatchNorm(_NormBase):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
                  track_running_stats=True):
@@ -107,6 +109,7 @@ class _BatchNorm(_NormBase):
             self.running_mean if not self.training or self.track_running_stats else None,
             self.running_var if not self.training or self.track_running_stats else None,
             self.weight, self.bias, bn_training, exponential_average_factor, self.eps)
+
 
 class FastBatchNorm1d(_BatchNorm):
     r"""Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D
@@ -220,6 +223,7 @@ class FastBatchNorm3d(_BatchNorm):
         if input1.dim() != 5:
             raise ValueError('expected 5D input1 (got {}D input1)'
                              .format(input1.dim()))
+
 
 class FastSyncBatchNorm(_BatchNorm):
     r"""Applies Batch Normalization over a N-Dimensional input1 (a mini-batch of [N-2]D inputs
