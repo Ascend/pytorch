@@ -218,10 +218,14 @@ class FlatParameter(nn.Parameter):
         Args:
             See the Attributes in the class docstring.
         """
-        assert len(param_infos) == len(numels)
-        assert len(param_infos) == len(shapes)
-        assert len(param_infos) == len(prefixed_param_names)
-        assert len(param_infos) == len(param_extensions)
+        if len(param_infos) != len(numels):
+            raise AssertionError("Length of param_infos and numels are not equal.")
+        if len(param_infos) != len(shapes):
+            raise AssertionError("Length of param_infos and shapes are not equal")
+        if len(param_infos) != len(prefixed_param_names):
+            raise AssertionError("Length of param_infos and prefixed_param_names are not equal")
+        if len(param_infos) != len(param_extensions):
+            raise AssertionError("Length of param_infos and param_extensions are not equal")
         self._num_params = len(param_infos)
         self._param_infos = tuple(param_infos)
         self._numels = tuple(numels)
@@ -288,9 +292,8 @@ class FlatParamHandle:
         """
         params_set = set(params)
         params_set.discard(None)
-        assert (
-            len(params_set) > 0
-        ), "Cannot initialize a `FlatParameter` from an empty parameter list"
+        if len(params_set) <= 0:
+            raise ValueError("Cannot initialize a `FlatParameter` from an empty parameter list")
         param_infos: List[ParamInfo] = []
         numels: List[int] = []
         shapes: List[torch.Size] = []
@@ -351,7 +354,8 @@ class FlatParamHandle:
                         else param_name
                     )
                     prefixed_param_names.append(prefixed_param_name)
-        assert requires_grad is not None
+        if requires_grad is None:
+            raise ValueError("requires_grad is None")
         self.flat_param = FlatParamHandle.flatten_params(
             params_to_flatten, requires_grad
         )
@@ -407,9 +411,8 @@ class FlatParamHandle:
         self.process_group = process_group
         self.rank = process_group.rank()
         self.world_size = process_group.size()
-        assert (
-            flat_param.storage_offset() == 0
-        ), "The `FlatParameter` is not the sole occupant of its storage"
+        if flat_param.storage_offset() != 0:
+            raise RuntimeError("The `FlatParameter` is not the sole occupant of its storage")
         orig_storage = flat_param.storage()
         local_shard, numel_padded = FlatParamHandle._get_shard(
             flat_param, self.rank, self.world_size
@@ -502,16 +505,15 @@ class FlatParamHandle:
             )  # both inclusive
         if len(shard_param_indices_range) == 0:
             shard_param_indices = (0, 0)
-            assert len(shard_param_offsets) == 0
+            if len(shard_param_offsets) != 0:
+                raise RuntimeError("Length of shard_param_offsets not equal to zero.")
         else:
             shard_param_indices = (
                 shard_param_indices_range[0],
                 shard_param_indices_range[-1],
             )
-            assert (
-                len(shard_param_offsets)
-                == shard_param_indices[-1] - shard_param_indices[0] + 1
-            )
+            if len(shard_param_offsets) != shard_param_indices[-1] - shard_param_indices[0] + 1:
+                raise RuntimeError("shard_param_indices or shard_param_offsets is abnormal.")
         return tuple(shard_param_offsets), shard_param_indices
 
     @staticmethod
@@ -536,9 +538,8 @@ class FlatParamHandle:
         else:
             chunk = chunks[rank]
         numel_to_pad = chunks[0].numel() - chunk.numel()
-        assert (
-            numel_to_pad >= 0
-        ), "Chunk's size should be at most the first chunk's size"
+        if numel_to_pad < 0:
+            raise ValueError("Chunk's size should be at most the first chunk's size")
         return chunk, numel_to_pad
 
     @staticmethod
@@ -569,12 +570,14 @@ class FlatParamHandle:
         requires ``tensor`` to have 1D shape and ensures that the returned
         shape is 1D.
         """
-        assert len(tensor.shape) == 1, f"{tensor.shape}"
+        if len(tensor.shape) != 1:
+            raise ValueError(f"Except tensor length to be one but get {tensor.shape}")
         unpadded_sharded_tensor, numel_to_pad = FlatParamHandle._get_unpadded_shard(
             tensor, rank, world_size
         )
         unpadded_sharded_size = unpadded_sharded_tensor.size()
-        assert len(unpadded_sharded_size) == 1, f"{unpadded_sharded_size}"
+        if len(unpadded_sharded_size) != 1:
+            raise ValueError(f"Except unpadded_sharded_size length to be one but get {unpadded_sharded_size}")
         return torch.Size([unpadded_sharded_size[0] + numel_to_pad])
 
     def _get_flat_param_offsets(self) -> List[Tuple[int, int]]:
@@ -593,9 +596,8 @@ class FlatParamHandle:
         Returns shard-related metadata specific to this rank's shard of the
         flattened parameter.
         """
-        assert hasattr(self.flat_param, "_shard_indices") and hasattr(
-            self.flat_param, "_shard_param_offsets"
-        ), "Shard metadata has not been initialized"
+        if not (hasattr(self.flat_param, "_shard_indices") and hasattr(self.flat_param, "_shard_param_offsets")):
+            raise RuntimeError("Shard metadata has not been initialized")
         shard_param_start_index = self.flat_param._shard_indices[0]  # type: ignore[attr-defined]
         shard_param_end_index = self.flat_param._shard_indices[1]  # type: ignore[attr-defined]
         sl = (
@@ -1001,10 +1003,12 @@ class FlatParamHandle:
         ) in self.flat_param._shared_param_infos:
             if hasattr(module, param_name):
                 delattr(module, param_name)
-            assert hasattr(prim_module, prim_param_name)
+            if not hasattr(prim_module, prim_param_name):
+                raise RuntimeError("prim_module doesn't have attribute prim_param_name")
             param: Union[Tensor, nn.Parameter] = getattr(prim_module, prim_param_name)
             if as_params:
-                assert isinstance(param, nn.Parameter)
+                if not isinstance(param, nn.Parameter):
+                    raise RuntimeError("Variable param is abnormal.")
                 module.register_parameter(param_name, param)
             else:
                 setattr(module, param_name, param)

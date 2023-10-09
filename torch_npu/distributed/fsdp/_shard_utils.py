@@ -36,7 +36,8 @@ def _sharding_spec_to_offsets(
         for shard in sharding_spec.shards:
             offsets.append(shard.shard_offsets[0])
     elif isinstance(sharding_spec, ChunkShardingSpec):
-        assert sharding_spec.dim == 0
+        if sharding_spec.dim != 0:
+            raise RuntimeError("Dimension of sharding_spec not equal to zero.")
         chunk_size = math.ceil(tensor_numel / world_size)
         if chunk_size == 1:
             offsets = [
@@ -238,7 +239,8 @@ def _create_chunk_sharded_tensor(
     placements = [
         f"rank:{r}/npu:{r % num_devices_per_node}" for r in range(len(chunk_sizes))
     ]
-    assert len(chunk_sizes) == len(chunk_offsets) == len(placements)
+    if not (len(chunk_sizes) == len(chunk_offsets) == len(placements)):
+        raise RuntimeError("Length of chunk_sizes, chunk_offsets and placements not equal.")
     shard_metadata = [
         ShardMetadata(offset, size, placement)
         for offset, size, placement in zip(chunk_offsets, chunk_sizes, placements)

@@ -27,7 +27,8 @@ class _GeneralMultiDeviceReplicator(_NpuMultiDeviceReplicator):
     _NpuMultiDeviceReplicator to allow support for "cpu" as a device.
     """
     def __init__(self, master_tensor: torch.Tensor) -> None:
-        assert _is_supported_device(master_tensor)
+        if not _is_supported_device(master_tensor):
+            raise RuntimeError("Device is not supported")
         self.master = master_tensor
         self._per_device_tensors: Dict[torch.device, torch.Tensor] = {}
 
@@ -108,18 +109,20 @@ class ShardedGradScaler(GradScaler):
         
         if self._dist_overflow_count is None:
             self._lazy_init_dist_flag_and_dist_overflow_count()
-            assert self._dist_overflow_count is not None
-
+            if self._dist_overflow_count is None:
+                raise RuntimeError("Attribute _dist_overflow_count is abnormal")
         if self._dynamic and not self._clear_overflow_flag:
             if not torch_npu.npu.utils.is_support_inf_nan():
                 GradScaler.clear_npu_overflow_flag()
             self._clear_overflow_flag = True
 
         if isinstance(outputs, torch.Tensor):
-            assert _is_supported_device(outputs)
+            if not _is_supported_device(outputs):
+                raise RuntimeError("Device is not supported")
             if self._scale is None:
                 self._lazy_init_scale_growth_tracker(outputs.device)
-            assert self._scale is not None
+            if self._scale is None:
+                raise RuntimeError("Attribute _scale is abnormal")
             scaled_output = outputs * self._scale.to(device=outputs.device, non_blocking=True)
             # Here we ensure the return dtype is the same as the outputs dtype.
             # For the FSDP + Mixed Precision use case, the loss output is in the Mixed Precision
@@ -130,11 +133,13 @@ class ShardedGradScaler(GradScaler):
 
         def apply_scale(val: Union[torch.Tensor, abc.Iterable]) -> Union[torch.Tensor, abc.Iterable]:
             if isinstance(val, torch.Tensor):
-                assert _is_supported_device(val)
+                if not _is_supported_device(val):
+                    raise RuntimeError("Device is not supported")
                 if len(stash) == 0:
                     if self._scale is None:
                         self._lazy_init_scale_growth_tracker(val.device)
-                    assert self._scale is not None
+                    if self._scale:
+                        raise RuntimeError("Attribute _scale is abnormal")
                     stash.append(_GeneralMultiDeviceReplicator(self._scale))
                 scaled_val = val * stash[0].get(val.device)
                 # Here we ensure the return dtype is the same as the outputs dtype.
@@ -157,9 +162,10 @@ class ShardedGradScaler(GradScaler):
     ) -> None:
         if len(grads) == 0:
             return
-        assert inv_scale.numel() == 1, "inv_scale must be a 1-element tensor."
-        assert found_inf.numel() == 1, "found_inf must be a 1-element tensor."
-
+        if inv_scale.numel() != 1:
+            raise ValueError("inv_scale must be a 1-element tensor.")
+        if found_inf.numel() != 1:
+            raise ValueError("found_inf must be a 1-element tensor.")
         expected_device = grads[0].device
         for grad in grads:
             for tensor in grad:
@@ -250,7 +256,8 @@ class ShardedGradScaler(GradScaler):
             raise RuntimeError("unscale_() is being called after step().")
 
         # FP32 division can be imprecise for certain compile options, so we carry out the reciprocal in FP64.
-        assert self._scale is not None
+        if self._scale is None:
+            raise RuntimeError("Attribute _scale is abnormal")
         inv_scale = self._scale.double().reciprocal().float()
         found_inf = torch.full((1,), 0.0, dtype=torch.float32, device=self._scale.device)
 

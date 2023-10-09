@@ -52,9 +52,8 @@ def _pre_load_state_dict_hook(
     for k in list(state_dict.keys()):
         if k.startswith(flat_param_key):
             last_part = k.split(".")[-1]
-            assert last_part.startswith(
-                FLAT_PARAM
-            ), f"Expected key to contain flat_param, but key name is {k}"
+            if not last_part.startswith(FLAT_PARAM):
+                raise RuntimeError(f"Expected key to contain flat_param, but key name is {k}")
             _replace_by_prefix(state_dict, k, prefix + last_part)
 
 
@@ -104,8 +103,10 @@ class FlattenParamsWrapper(nn.Module):
         # Defining `self.flat_param` registers the `FlatParameter` and makes it
         # visible to `named_parameters()`
         self.flat_param = self._flat_param_handle.flat_param
-        assert getattr(self, FPW_MODULE) is self._fpw_module
-        assert getattr(self, FLAT_PARAM) is self.flat_param
+        if not (getattr(self, FPW_MODULE) is self._fpw_module):
+            raise RuntimeError("FPW_MODULE is abnormal.")
+        if not (getattr(self, FLAT_PARAM) is self.flat_param):
+            raise RuntimeError("FLAT_PARAM is abnormal.")
 
     @property
     def has_params(self) -> bool:
@@ -114,10 +115,11 @@ class FlattenParamsWrapper(nn.Module):
 
     @property
     def handle(self) -> FlatParamHandle:
-        assert hasattr(self, "_flat_param_handle"), (
+        if not hasattr(self, "_flat_param_handle"):
+            raise RuntimeError(
             "Accessing the handle of a `FlattenParamsWrapper` that does not "
             "manage any parameters"
-        )
+            )
         return self._flat_param_handle
 
     @property

@@ -298,9 +298,9 @@ def _flatten_optim_state_dict(
     unflat_osd_state = unflat_osd["state"]
     for param, unflat_param_names in param_to_unflat_param_names.items():
         if isinstance(param, FlatParameter):  # flatten FSDP parameters' states
-            assert param in flat_param_to_fsdp_module, (
-                "Check the `flat_param_to_fsdp_module` construction\n" f"param: {param}"
-            )
+            if param not in flat_param_to_fsdp_module:
+                raise RuntimeError("Check the `flat_param_to_fsdp_module` construction\n" f"param: {param}")
+
             fsdp_module = flat_param_to_fsdp_module[param]
             flat_state = _flatten_optim_state(
                 unflat_osd_state,
@@ -312,7 +312,8 @@ def _flatten_optim_state_dict(
             key = _OptimStateKey(tuple(unflat_param_names), True)
             flat_osd_state[key] = flat_state
         else:  # do not flatten non-FSDP parameters' states
-            assert len(unflat_param_names) == 1
+            if len(unflat_param_names) != 1:
+                raise ValueError("Length of unflat_param_names not equal to one.")
             unflat_param_name = unflat_param_names[0]
             if unflat_param_name not in unflat_osd_state:
                 # The state dict may not have an entry for a parameter if it
@@ -359,15 +360,14 @@ def _flatten_optim_state(
         "state" part will map a key to this returned value.
     """
     num_unflat_params = len(unflat_param_names)
-    assert num_unflat_params > 0, (
+    if num_unflat_params <= 0:
+        raise ValueError(
         "Expects at least one unflattened parameter corresponding to the "
-        "flattened parameter"
-    )
+        "flattened parameter")
     unflat_param_shapes = flat_param._shapes
     num_unflat_param_shapes = len(unflat_param_shapes)
-    assert (
-        num_unflat_params == num_unflat_param_shapes
-    ), f"Expects {num_unflat_params} shapes but got {num_unflat_param_shapes}"
+    if num_unflat_params != num_unflat_param_shapes:
+        raise RuntimeError(f"Expects {num_unflat_params} shapes but got {num_unflat_param_shapes}")
 
     # Check if these unflattened parameters have any optimizer state
     has_state = [
@@ -401,7 +401,8 @@ def _flatten_optim_state(
                     "Differing optimizer state names for the unflattened "
                     f"parameters: {unflat_param_names}"
                 )
-    assert state_names is not None
+    if state_names is None:
+        raise ValueError("Variable state_names is None.")
 
     # Flatten the state
     flat_state: Dict[str, Any] = {}
@@ -451,7 +452,8 @@ def _flatten_optim_state(
                 unflat_param_names,
             )
         else:
-            assert are_non_tensors
+            if not are_non_tensors:
+                raise ValueError("are_non_tensors is empty.")
             flat_state[state_name] = _flatten_non_tensor_optim_state(
                 state_name,
                 state_values,
@@ -537,7 +539,8 @@ def _flatten_tensor_optim_state(
     ]
     flat_tensor = torch.cat(tensors)
     flat_param_shape = flat_param._unpadded_unsharded_size  # type: ignore[attr-defined]
-    assert flat_tensor.shape == flat_param_shape, (
+    if flat_tensor.shape != flat_param_shape:
+        raise RuntimeError(
         f"tensor optim state: {flat_tensor.shape} "
         f"flattened parameter: {flat_param_shape}"
     )
@@ -668,7 +671,8 @@ def _process_pos_dim_tensor_state(
                 sharded_size = FlatParamHandle._get_sharded_size(
                     value, rank=0, world_size=world_size
                 )
-                assert len(sharded_size) == 1, f"{sharded_size}"
+                if len(sharded_size) != 1:
+                    raise ValueError(f"Expect length of sharded_size to be one but get{sharded_size}")
                 info = _PosDimTensorInfo(sharded_size, value.dtype)
             else:  # non-FSDP parameter
                 info = _PosDimTensorInfo(value.shape, value.dtype)
@@ -697,7 +701,8 @@ def _broadcast_processed_optim_state_dict(
     obj_list = [processed_optim_state_dict] if rank == 0 else [None]
     dist.broadcast_object_list(obj_list, src=0, group=group)
     processed_optim_state_dict = obj_list[0]  # type: ignore[assignment]
-    assert processed_optim_state_dict is not None
+    if processed_optim_state_dict is None:
+        raise ValueError("processed_optim_state_dict is None.")
     # Keep zero-dimension tensors on CPU
     return processed_optim_state_dict
 
@@ -731,9 +736,8 @@ def _broadcast_pos_dim_tensor_states(
         Dict[str, Any]: The optimizer state dict with the positive-dimension
         tensor state correctly populated via ``broadcast()`` s from rank 0.
     """
-    assert (
-        rank != 0 or flat_optim_state_dict is not None
-    ), "Expects rank 0 to pass in the flattened optimizer state dict"
+    if not (rank != 0 or flat_optim_state_dict is not None):
+        raise RuntimeError("Expects rank 0 to pass in the flattened optimizer state dict")
     no_tensor_osd = processed_optim_state_dict  # alias
     flat_osd = flat_optim_state_dict  # alias
     for key, param_state in no_tensor_osd["state"].items():
@@ -742,7 +746,8 @@ def _broadcast_pos_dim_tensor_states(
             if not is_pos_dim_tensor_state:
                 continue
             if rank == 0:
-                assert flat_osd is not None
+                if flat_osd is None:
+                    raise ValueError("flat_osd is None.")
                 unsharded_tensor = flat_osd["state"][key][state_name]
             else:
                 unsharded_tensor = None
@@ -796,16 +801,16 @@ def _broadcast_sharded_pos_dim_tensor_state(
     """
     get_shard: Optional[functools.partial[Tuple[torch.Tensor, int]]] = None
     if rank == 0:
-        assert (
-            unsharded_tensor is not None
-        ), "Expects rank 0 to pass in the unsharded tensor"
+        if unsharded_tensor is None:
+            raise ValueError("Expects rank 0 to pass in the unsharded tensor.")
         get_shard = functools.partial(
             FlatParamHandle._get_shard,
             unsharded_tensor,
         )
     for target_rank in range(1, world_size):
         if rank == 0:
-            assert get_shard is not None
+            if get_shard is None:
+                raise ValueError("get_shard is None.")
             sharded_tensor = get_shard(target_rank, world_size)[0].to(broadcast_device)
         else:
             sharded_tensor = torch.zeros(
@@ -847,15 +852,12 @@ def _broadcast_unsharded_pos_dim_tensor_state(
             broadcast if on rank 0; ignored otherwise.
     """
     if rank == 0:
-        assert (
-            unsharded_tensor is not None
-        ), "Expects rank 0 to pass in the unsharded tensor"
-        assert (
-            shape == unsharded_tensor.shape
-        ), f"Shape mismatch: {shape} {unsharded_tensor.shape}"
-        assert (
-            dtype == unsharded_tensor.dtype
-        ), f"dtype mismatch: {dtype} {unsharded_tensor.dtype}"
+        if unsharded_tensor is None:
+            raise ValueError("Expects rank 0 to pass in the unsharded tensor")
+        if shape != unsharded_tensor.shape:
+            raise RuntimeError(f"Shape mismatch: {shape} {unsharded_tensor.shape}")
+        if dtype != unsharded_tensor.dtype:
+            raise RuntimeError(f"dtype mismatch: {dtype} {unsharded_tensor.dtype}")
         unsharded_tensor = unsharded_tensor.to(broadcast_device)
     else:
         unsharded_tensor = torch.zeros(
@@ -896,8 +898,8 @@ def _rekey_sharded_optim_state_dict(
     # All parameter keys in `param_to_flat_param_id` should be in
     # `param_to_unflat_param_names` -- strict inequality follows when not all
     # parameters are passed to the optimizer
-    assert len(param_to_flat_param_id) <= len(param_to_unflat_param_names)
-
+    if len(param_to_flat_param_id) > len(param_to_unflat_param_names):
+        raise RuntimeError("param_to_flat_param_id is longer than param_to_unflat_param_names")
     unflat_param_names_to_flat_param_id: Dict[Tuple[str, ...], int] = {}  # for "state"
     unflat_param_name_to_flat_param_id: Dict[str, int] = {}  # for "param_groups"
     for param, unflat_param_names in param_to_unflat_param_names.items():
@@ -1027,14 +1029,16 @@ def _get_param_id_to_param_from_optim_input(
         raise TypeError("Optimizer input should be an iterable of Tensors or dicts")
     if all_tensors:
         return params  # type: ignore[return-value]
-    assert all_dicts
+    if not all_dicts:
+        raise ValueError("all_dicts is empty.")
     param_id_to_param = []
     for param_group in params:
         has_params_key = "params" in param_group  # type: ignore[operator]
-        assert has_params_key, (
+        if not has_params_key:
+            raise RuntimeError(
             'A parameter group should map "params" to a list of the '
             "parameters in the group"
-        )
+            )
         for param in param_group["params"]:  # type: ignore[index]
             # Implicitly map `flat_param_id` (current length of the list) to
             # `param`
@@ -1087,20 +1091,22 @@ def _get_unflat_to_flat_param_ids(
     unflat_to_flat_param_ids = {}
     for flat_param_id, unflat_param_ids in flat_to_unflat_param_ids.items():
         for unflat_param_id in unflat_param_ids:
-            assert unflat_param_id not in unflat_to_flat_param_ids, (
+            if unflat_param_id in unflat_to_flat_param_ids:
+                raise RuntimeError(
                 "`flat_to_unflat_param_ids` has the unflattened parameter "
                 f"ID {unflat_param_id} mapped to multiple flattened "
                 "parameter IDs"
-            )
+                )
             unflat_to_flat_param_ids[unflat_param_id] = flat_param_id
     num_unflat_param_ids = len(unflat_to_flat_param_ids)
     unflat_param_ids_set = set(unflat_to_flat_param_ids.keys())
-    assert unflat_param_ids_set == set(range(num_unflat_param_ids)), (
+    if unflat_param_ids_set != set(range(num_unflat_param_ids)):
+        raise RuntimeError(
         "The set of unflattened parameter IDs should be {0, ..., "
         + str(num_unflat_param_ids - 1)
         + "} but got "
         + f"{unflat_param_ids_set}"
-    )
+        )
     return [
         unflat_to_flat_param_ids[unflat_param_id]
         for unflat_param_id in range(num_unflat_param_ids)
@@ -1188,7 +1194,8 @@ def _optim_state_dict(
         [r0_flat_param_id_to_optim_state_key] if rank == 0 else [None]
     )
     dist.broadcast_object_list(key_obj_list, src=0, group=group)
-    assert key_obj_list[0] is not None
+    if key_obj_list[0] is None:
+        raise ValueError("key_obj_list[0] is None")
     r0_flat_param_id_to_optim_state_key = key_obj_list[0]
 
     # Ensure that all ranks have at least the optimizer states needed by
@@ -1201,9 +1208,8 @@ def _optim_state_dict(
             missing_keys.append(r0_optim_state_key)
             continue
         flat_param_id = optim_state_key_to_flat_param_id[r0_optim_state_key]
-        assert flat_param_id >= 0 and flat_param_id < len(
-            flat_param_id_to_param
-        ), "Check the `flat_param_id_to_param` construction"
+        if not (flat_param_id >= 0 and flat_param_id < len(flat_param_id_to_param)):
+            raise RuntimeError("Check the `flat_param_id_to_param` construction")
     device = torch.device("npu", torch_npu.npu.current_device())
     num_missing = torch.tensor([len(missing_keys)], dtype=torch.int32, device=device)
     dist.all_reduce(num_missing, group=group)
@@ -1240,14 +1246,17 @@ def _optim_state_dict(
                 shard_state,
             )
             if to_save:
-                assert len(unflat_state) == len(r0_optim_state_key.unflat_param_names)
+                if len(unflat_state) != len(r0_optim_state_key.unflat_param_names):
+                    raise RuntimeError("length of unflat_state and r0_optim_state_key.unflat_param_names "
+                                         "are not equal.")
                 for unflat_param_name, unflat_param_state in zip(
                     r0_optim_state_key.unflat_param_names,
                     unflat_state,
                 ):
                     fsdp_osd_state[unflat_param_name] = unflat_param_state
         elif to_save:
-            assert len(r0_optim_state_key.unflat_param_names) == 1
+            if len(r0_optim_state_key.unflat_param_names) != 1:
+                raise RuntimeError("length of r0_optim_state_key.unflat_param_names not equal to one.")
             unflat_param_name = r0_optim_state_key.unflat_param_names[0]
             fsdp_osd_state[unflat_param_name] = copy.copy(osd_state[flat_param_id])
             for state_name, value in sorted_items(fsdp_osd_state[unflat_param_name]):

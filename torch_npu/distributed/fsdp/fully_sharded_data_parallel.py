@@ -1205,7 +1205,8 @@ class FullyShardedDataParallel(nn.Module):
         # Include nested FSDP modules' ignored modules
         for submodule in root_module.modules():
             if isinstance(submodule, FullyShardedDataParallel):
-                assert hasattr(submodule, "_ignored_modules")
+                if not hasattr(submodule, "_ignored_modules"):
+                    raise RuntimeError("submodule has no attribute _ignored_modules")
                 ignored_modules.update(submodule._ignored_modules)
         return ignored_modules
 
@@ -1282,7 +1283,8 @@ class FullyShardedDataParallel(nn.Module):
         """
         auto_wrap_policy = auto_wrap_kwargs["auto_wrap_policy"]
         root_module = auto_wrap_kwargs["module"]
-        assert auto_wrap_policy is not None
+        if auto_wrap_policy is None:
+            raise ValueError("auto_wrap_policy is None")
         # For auto wrapping, submodules should not already be wrapped with FSDP
         # since double wrapping is not supported
         for module_name, module in root_module.named_modules():
@@ -1616,7 +1618,8 @@ class FullyShardedDataParallel(nn.Module):
         """
         Returns the wrapped module (like :class:`DistributedDataParallel`).
         """
-        assert isinstance(self._fsdp_wrapped_module, FlattenParamsWrapper)
+        if not isinstance(self._fsdp_wrapped_module, FlattenParamsWrapper):
+            raise RuntimeError("Module instance is abnormal")
         return self._fsdp_wrapped_module.module
 
     def __getattr__(self, name: str) -> Any:
@@ -1632,7 +1635,8 @@ class FullyShardedDataParallel(nn.Module):
 
     def check_is_root(self) -> bool:
         self._lazy_init()
-        assert self._is_root is not None
+        if self._is_root is None:
+            raise ValueError("Attribute is abnormal during checking root status.")
         return self._is_root
 
     @staticmethod
@@ -1854,10 +1858,11 @@ class FullyShardedDataParallel(nn.Module):
                 # Relax the assert for non-root FSDP instances in case the
                 # nested initialized module is wrapped again in FSDP later (e.g.
                 # after training to run inference)
-                assert fsdp_module._is_root is None or not fsdp_module._is_root, (
+                if not (fsdp_module._is_root is None or not fsdp_module._is_root):
+                    raise RuntimeError(
                     "Non-root FSDP instance's `_is_root` should not have been "
                     "set yet or should have been set to `False`"
-                )
+                    )
                 fsdp_module._is_root = False
                 fsdp_module._streams = self._streams
                 fsdp_module._exec_order_data = self._exec_order_data
@@ -1902,28 +1907,28 @@ class FullyShardedDataParallel(nn.Module):
             # If CPU offloading, p._local_shard should have been placed on CPU
             # during its first lazy construction.
             if self.cpu_offload.offload_params:
-                assert p._local_shard.device == torch.device(  # type: ignore[attr-defined]
-                    "cpu"
-                ), (
-                    "Expected p._local_shard to be on CPU, "  # type: ignore[attr-defined]
-                    f"but it's on {p._local_shard.device}"  # type: ignore[attr-defined]
-                )
+                if not p._local_shard.device == torch.device("cpu"):
+                    raise RuntimeError(
+                        "Expected p._local_shard to be on CPU, "  
+                        f"but it's on {p._local_shard.device}"
+                    )
             return
 
         # A single shard of the parameters. Also makes p._local_shard to be on
         # CPU if we are CPU offloading, since p.data would be on CPU during
         # init.
         if self.cpu_offload.offload_params:
-            assert p.device == torch.device("cpu"), (
-                "Expected param to be on CPU when cpu_offloading is enabled. "
-                "If CPU offloading is enabled correctly, you may be "
-                "accidentally moving the model to NPU after FSDP initialization."
-            )
+            if p.device != torch.device("cpu"):
+                raise RuntimeError("Expected param to be on CPU when cpu_offloading is enabled. "
+                                    "If CPU offloading is enabled correctly, you may be "
+                                    "accidentally moving the model to NPU after FSDP initialization.")
+
         p._local_shard = p.data  # type: ignore[attr-defined]
         # If CPU offloading, pin the memory to enable faster CPU -> NPU device
         # transfer.
         if self.cpu_offload.offload_params:
-            assert p._local_shard.device == torch.device("cpu")  # type: ignore[attr-defined]
+            if p._local_shard.device != torch.device("cpu"):
+                raise RuntimeError("Device type is abnormal.")
             p._local_shard = p._local_shard.pin_memory()  # type: ignore[attr-defined]
             # When offloading parameters, also move the grad shard to CPU during
             # backward pass. In this case, it's important to pre-allocate the
@@ -1986,8 +1991,10 @@ class FullyShardedDataParallel(nn.Module):
     def _init_streams(self) -> None:
         """Initializes NPU streams for overlapping data transfer and
         computation. This should only be called on the root FSDP instance."""
-        assert self._is_root
-        assert torch_npu.npu.is_available()
+        if not self._is_root:
+            raise RuntimeError("Stream initialization is abnormal.")
+        if not torch_npu.npu.is_available():
+            raise RuntimeError("NPU device is not available.")
         # Stream for all-gathering parameters.
         self._streams["all_gather"] = torch_npu.npu.Stream()
         # Stream for overlapping grad reduction with the backward pass.
@@ -2151,8 +2158,10 @@ class FullyShardedDataParallel(nn.Module):
         try:
             yield
         finally:
-            assert prev_state_dict_type is not None  # Avoid mypy warning
-            assert prev_state_dict_config is not None  # Avoid mypy warning
+            if prev_state_dict_type is None:
+                raise ValueError("prev_state_dict_type is None")
+            if prev_state_dict_config is None:
+                raise ValueError("prev_state_dict_config is None")
             for submodule in FullyShardedDataParallel.fsdp_modules(module):
                 submodule._state_dict_type = prev_state_dict_type
                 submodule._state_dict_config = prev_state_dict_config
@@ -2218,11 +2227,12 @@ class FullyShardedDataParallel(nn.Module):
 
             # Clone non-ignored parameters before exiting the
             # `_summon_full_params()` context
-            assert fqn in state_dict, (
-                f"FSDP assumes {fqn} is in the state_dict but the state_dict "
-                f"only has {state_dict.keys()}. prefix={prefix}, "
-                f"module_name={module_name} param_name={param_name} rank={self.rank}."
-            )
+            if fqn not in state_dict:
+                raise RuntimeError(
+                    f"FSDP assumes {fqn} is in the state_dict but the state_dict "
+                    f"only has {state_dict.keys()}. prefix={prefix}, "
+                    f"module_name={module_name} param_name={param_name} rank={self.rank}.")
+
             if clean_key not in self._ignored_param_names and \
                     not getattr(state_dict[fqn], "_has_been_cloned", False):
                 try:
@@ -2275,7 +2285,8 @@ class FullyShardedDataParallel(nn.Module):
         # nn.Module.state_dict() will detach the parameter. Therefore, we need
         # to get flat_param from the FlattenParamsWrapper to get the metadata.
         flat_param = getattr(self._fsdp_wrapped_module, FLAT_PARAM, None)
-        assert flat_param is not None
+        if flat_param is None:
+            raise ValueError("flat_param is None")
         # Construct a ShardedTensor from the flat_param.
         full_numel = flat_param._unpadded_unsharded_size.numel()  # type: ignore[attr-defined]
         shard_offset = flat_param.numel() * self.rank
@@ -2304,11 +2315,9 @@ class FullyShardedDataParallel(nn.Module):
         _replace_by_prefix(state_dict, f"{prefix}{FSDP_WRAPPED_MODULE}.", prefix)
         if not self._fsdp_wrapped_module.has_params:
             return state_dict
-
-        assert self.training_state != TrainingState_.SUMMON_FULL_PARAMS, (
-            "Inside _sharded_post_load_state_dict_hook, the training_state must "
-            "not be SUMMON_FULL_PARAMS."
-        )
+        if self.training_state == TrainingState_.SUMMON_FULL_PARAMS:
+            raise ValueError("Inside _sharded_post_load_state_dict_hook, the training_state must "
+                                 "not be SUMMON_FULL_PARAMS.")
         with self._summon_full_params(recurse=False, writeback=False):
             for fqn, _, _ in self._param_fqns:
                 # Create a ShardedTensor for the unflattened, non-sharded parameter.
@@ -2454,7 +2463,8 @@ class FullyShardedDataParallel(nn.Module):
     def _full_post_load_state_dict_hook(self, *args, **kwargs) -> None:
         # We should exit summon_full_params context.
         self._assert_state([TrainingState_.SUMMON_FULL_PARAMS])
-        assert getattr(self, '_full_param_ctx', None) is not None
+        if getattr(self, '_full_param_ctx', None) is None:
+            raise RuntimeError("_full_param_ctx attribute doesn't exist")
         self._full_param_ctx.__exit__(None, None, None)
         self._full_param_ctx = None
 
@@ -2475,7 +2485,8 @@ class FullyShardedDataParallel(nn.Module):
     ) -> None:
         # We do not expect to be calling pre-hooks twice without post-hook
         # call in between.
-        assert getattr(self, '_full_param_ctx', None) is None
+        if getattr(self, '_full_param_ctx', None) is not None:
+            raise RuntimeError("Attribute _full_param_ctx exists.")
         # Note that it needs writeback=True to persist.
         self._full_param_ctx = self._summon_full_params(
             recurse=False, writeback=True
@@ -2499,29 +2510,29 @@ class FullyShardedDataParallel(nn.Module):
         _replace_by_prefix(state_dict, prefix, f"{prefix}{FSDP_WRAPPED_MODULE}.")
         fqn = f"{prefix}{FSDP_WRAPPED_MODULE}.{FLAT_PARAM}"
         if fqn not in state_dict:
-            assert getattr(self._fsdp_wrapped_module, FLAT_PARAM, None) is None, (
-                "No flat parameter in state_dict but self._fsdp_wrapped_module.flat_param is not None"
-            )
+            if getattr(self._fsdp_wrapped_module, FLAT_PARAM, None) is not None:
+                raise RuntimeError("No flat parameter in state_dict "
+                                     "but self._fsdp_wrapped_module.flat_param is not None")
+
             return
         load_tensor = state_dict[fqn]
-        assert isinstance(
-            load_tensor, ShardedTensor
-        ), "Tensors in local_state_dict should be ShardedTensor."
-
+        if not isinstance(load_tensor, ShardedTensor):
+            raise RuntimeError("load_tensor is abnormal")
         # Convert the ShardedTensor to a Tensor.
         shards = load_tensor.local_shards()
-        assert len(shards), "load_local_state_dict assume one shard per ShardedTensor."
+        if not shards:
+            raise RuntimeError("load_local_state_dict assume one shard per ShardedTensor.")
         load_tensor = cast(torch.Tensor, shards[0].tensor)
 
         # Get the metada of the flat_param to decide whether to pad the loaded
         # tensor.
         flat_param = self._fsdp_wrapped_module.flat_param
-        assert flat_param is not None
+        if flat_param is None:
+            raise ValueError("flat_param is None")
         if flat_param._shard_numel_padded not in (0, flat_param.numel()):
-            assert load_tensor.numel() < flat_param.numel(), (
-                f"Local shard size = {flat_param.numel()} and the tensor in "
-                f"the state_dict is {load_tensor.numel()}."
-            )
+            if load_tensor.numel() >= flat_param.numel():
+                raise ValueError(f"Local shard size = {flat_param.numel()} and the tensor in "
+                                    f"the state_dict is {load_tensor.numel()}.")
             load_tensor = F.pad(load_tensor, [0, flat_param._shard_numel_padded])
         state_dict[fqn] = load_tensor
 
@@ -2555,9 +2566,8 @@ class FullyShardedDataParallel(nn.Module):
 
             # All-gather the param (ShardedTensor)
             param, shards = _ext_pre_load_state_dict_transform(param)
-            assert len(shards) < 2, (
-                f"Expects 0 or 1 shard per rank but got {len(shards)} shards on rank {self.rank}"
-            )
+            if len(shards) >= 2:
+                raise RuntimeError(f"Expects 0 or 1 shard per rank but got {len(shards)} shards on rank {self.rank}")
             param_numel = param.size().numel()
             dim_0_size = param.size()[0]
             chunk_size = (
@@ -2588,14 +2598,12 @@ class FullyShardedDataParallel(nn.Module):
             loaded_flat_param, self.rank, self.world_size,
         )
         loaded_flat_param.to(flat_param.device)
-        assert flat_param.numel() == loaded_flat_param.numel(), (
-            f"The loaded local chunk has different numel({flat_param.numel()}) "
-            f"from the local chunk {flat_param.numel()}."
-        )
-        assert flat_param._shard_numel_padded == num_to_pad, (
-            f"The loaded local chunk has different padding({num_to_pad}) "
-            f"from the local chunk {flat_param._shard_numel_padded}."
-        )
+        if flat_param.numel() != loaded_flat_param.numel():
+            raise RuntimeError(f"The loaded local chunk has different numel({flat_param.numel()}) "
+                                 f"from the local chunk {flat_param.numel()}.")
+        if flat_param._shard_numel_padded != num_to_pad:
+            raise RuntimeError(f"The loaded local chunk has different padding({num_to_pad}) "
+                                 f"from the local chunk {flat_param._shard_numel_padded}.")
         state_dict[f"{prefix}_fsdp_wrapped_module.flat_param"] = loaded_flat_param
 
     @staticmethod
@@ -2776,11 +2784,10 @@ class FullyShardedDataParallel(nn.Module):
             incompatible_keys = _IncompatibleKeys(missing_keys, unexpected_keys)
             for hook in module._load_state_dict_post_hooks.values():
                 out = hook(module, incompatible_keys)
-                assert out is None, (
-                    "Hooks registered with ``register_load_state_dict_post_hook`` are not"
-                    "expected to return new values, if incompatible_keys need to be modified,"
-                    "it should be done inplace."
-                )
+                if out:
+                    raise RuntimeError("Hooks registered with ``register_load_state_dict_post_hook`` are not"
+                                         "expected to return new values, if incompatible_keys need to be modified,"
+                                         "it should be done inplace.")
 
         load(self, state_dict)
         del load
@@ -3074,7 +3081,8 @@ class FullyShardedDataParallel(nn.Module):
         self._lazy_init()
         self._assert_state([TrainingState_.IDLE])
         for handle in self._handles:
-            assert handle._training_state == HandleTrainingState.IDLE
+            if handle._training_state != HandleTrainingState.IDLE:
+                raise RuntimeError("Object handle is abnormal")
         self.training_state = TrainingState_.SUMMON_FULL_PARAMS
         for handle in self._handles:
             handle._training_state = HandleTrainingState.SUMMON_FULL_PARAMS
@@ -3125,9 +3133,8 @@ class FullyShardedDataParallel(nn.Module):
             # parameter as well
             if not handle.uses_sharded_strategy:
                 continue
-            assert (
-                handle.flat_param.ndim == 1
-            ), f"Expects `flat_param` to be flattened but got {handle.flat_param.shape}"
+            if handle.flat_param.ndim != 1:
+                raise RuntimeError(f"Expects `flat_param` to be flattened but got {handle.flat_param.shape}")
             # Get the unpadded shard instead of the padded shard to persist
             # user changes to the padding (though FSDP does not explicitly
             # support this)
@@ -3497,7 +3504,8 @@ class FullyShardedDataParallel(nn.Module):
     @torch.no_grad()
     def _wait_for_post_backward(self) -> None:
         """Wait for post-backward to finish. Only called on root instance."""
-        assert self._is_root, "_wait_for_post_backward can only be called on root."
+        if not self._is_root:
+            raise RuntimeError("_wait_for_post_backward can only be called on root.")
         # Root's training state might be backward_pre or backward_post depending on
         # if root parameter's post backward hook was called. The post-backward hook
         # may not have been called if gradient was not computed for this param/FSDP
@@ -3627,12 +3635,10 @@ class FullyShardedDataParallel(nn.Module):
         self._fsdp_params_exec_order.reverse()
         for m in self.modules():
             if m is not self and isinstance(m, FullyShardedDataParallel):
-                assert hasattr(
-                    m, "_param_exec_order_policy"
-                ), "Non-root FSDP modules should also have _param_exec_order_policy attribute"
-                assert hasattr(
-                    m, "_param_exec_order_prep_stage"
-                ), "Non-root FSDP modules should also have _param_exec_order_prep_stage attribute"
+                if not hasattr(m, "_param_exec_order_policy"):
+                    raise RuntimeError("Non-root FSDP modules should also have _param_exec_order_policy attribute")
+                if not hasattr(m, "_param_exec_order_prep_stage"):
+                    raise RuntimeError("Non-root FSDP modules should also have _param_exec_order_prep_stage attribute")
                 m._param_exec_order_prep_stage = False
 
     def _assert_state(self, state: Union[TrainingState_, List[TrainingState_]]) -> None:
@@ -3674,7 +3680,8 @@ class FullyShardedDataParallel(nn.Module):
             will only be offloaded right after the eventual sync.
         """
         self._lazy_init()
-        assert self._is_root, "`no_sync()` on inner FSDP instances is not supported"
+        if not self._is_root:
+            raise RuntimeError("`no_sync()` on inner FSDP instances is not supported")
         self._assert_state(TrainingState_.IDLE)
         old_flags = []
         for m in self.modules():
@@ -3685,10 +3692,9 @@ class FullyShardedDataParallel(nn.Module):
             yield
         finally:
             for m, old_flag in old_flags:
-                assert not m._sync_gradients, (
-                    "`_sync_gradients` was incorrectly set to "
-                    "`True` while in the `no_sync()` context manager"
-                )
+                if m._sync_gradients:
+                    raise RuntimeError("`_sync_gradients` was incorrectly set to "
+                                         "`True` while in the `no_sync()` context manager")
                 m._sync_gradients = old_flag
 
     @property
@@ -3727,7 +3733,8 @@ class FullyShardedDataParallel(nn.Module):
         """
         self._lazy_init()
         self._wait_for_previous_optim_step()
-        assert self._is_root, "clip_grad_norm should only be called on the root (parent) instance"
+        if not self._is_root:
+            raise RuntimeError("clip_grad_norm should only be called on the root (parent) instance")
         self._assert_state(TrainingState_.IDLE)
 
         max_norm = float(max_norm)
@@ -3749,7 +3756,8 @@ class FullyShardedDataParallel(nn.Module):
         if clip_coef < 1:
             # multiply by clip_coef, aka, (max_norm/total_norm).
             for p in self.params_with_grad:
-                assert p.grad is not None
+                if p.grad is None:
+                    raise ValueError("Variable p is abnormal")
                 p.grad.detach().mul_(clip_coef.to(p.grad.device))
 
     @staticmethod
@@ -4150,9 +4158,8 @@ class FullyShardedDataParallel(nn.Module):
         using_optim_input = FullyShardedDataParallel._is_using_optim_input(
             optim_input, optim,
         )
-        assert optim_state_key_type in (
-            OptimStateKeyType.PARAM_NAME, OptimStateKeyType.PARAM_ID,
-        )
+        if optim_state_key_type not in (OptimStateKeyType.PARAM_NAME, OptimStateKeyType.PARAM_ID):
+            raise RuntimeError("OptimStateKeyType lacks optim_state_key_type")
         osd = optim_state_dict  # alias
         # Validate that the existing parameter keys are uniformly typed
         uses_param_name_mask = [
@@ -4279,12 +4286,14 @@ class FullyShardedDataParallel(nn.Module):
 
         """
         if not self.check_is_root():
-            raise AssertionError("register_comm_hook can only be called on a root instance.")
+            raise RuntimeError("register_comm_hook can only be called on a root instance.")
         for submodule in self.fsdp_modules(self):
-            assert not submodule._hook_registered, "communication hook can be only registered once"
+            if submodule._hook_registered:
+                raise RuntimeError("communication hook can be only registered once")
             submodule._hook_registered = True
-            assert submodule._communication_hook == self._get_default_comm_hook(),\
-                f"communication hook should be default, but it is {submodule._communication_hook.__name__} instead"
+            if submodule._communication_hook != self._get_default_comm_hook():
+                raise RuntimeError(f"communication hook should be default, "
+                                     f"but it is {submodule._communication_hook.__name__} instead")
             submodule._communication_hook_state = state
             submodule._communication_hook = hook
 
@@ -4292,11 +4301,11 @@ class FullyShardedDataParallel(nn.Module):
     def _init_param_exec_order_wrap_policy(self, *args, **kwargs) -> None:
         auto_wrap_policy = kwargs["auto_wrap_policy"]
         module = kwargs["module"]
-        assert hasattr(auto_wrap_policy, "tracing_config")
+        if not hasattr(auto_wrap_policy, "tracing_config"):
+            raise RuntimeError("auto_wrap_policy has not attribute tracing_config")
         if not _TORCH_FX_AVAIL:
-            assert (
-                auto_wrap_policy.tracing_config is None
-            ), "tracing_config should be None when torch.fx is not enabled"
+            if auto_wrap_policy.tracing_config:
+                raise RuntimeError("tracing_config should be None when torch.fx is not enabled")
         elif isinstance(
             auto_wrap_policy.tracing_config,
             TracingConfig
@@ -4305,9 +4314,8 @@ class FullyShardedDataParallel(nn.Module):
             execution_info = _init_execution_info(module)
 
             for m in module.modules():
-                assert not isinstance(
-                    m, FullyShardedDataParallel
-                ), "The input module of _patch_tracer should not contain FSDP modules"
+                if isinstance(m, FullyShardedDataParallel):
+                    raise RuntimeError("The input module of _patch_tracer should not contain FSDP modules")
 
             with _patch_tracer(
                 tracer=tracer,
@@ -4322,9 +4330,8 @@ class FullyShardedDataParallel(nn.Module):
                         f" with the error: {e}."
                     )
         else:
-            assert (
-                auto_wrap_policy.tracing_config is None
-            ), "tracing_config should either be an instance of TracingConfig or be None"
+            if auto_wrap_policy.tracing_config:
+                raise RuntimeError("tracing_config should either be an instance of TracingConfig or be None")
         # The initial FSDP wrapping is done with auto_wrap_policy.init_policy
         kwargs["auto_wrap_policy"] = auto_wrap_policy.init_policy
         self.__init__(*args, **kwargs)
@@ -4369,9 +4376,9 @@ class FullyShardedDataParallel(nn.Module):
         )
         if not is_prep_stage:
             for p in self.parameters():
-                assert (
-                    not hasattr(p, "_params_exec_order_hook_handle")
-                ), "When not in execution order prep stage, all _params_exec_order_hook_handle should be removed."
+                if hasattr(p, "_params_exec_order_hook_handle"):
+                    raise RuntimeError("When not in execution order prep stage, "
+                                         "all _params_exec_order_hook_handle should be removed.")
         return is_prep_stage
 
 
@@ -4469,8 +4476,9 @@ def _get_param_to_param_name(
     """
     param_to_param_names = _get_param_to_unflat_param_names(model)
     for param_names in param_to_param_names.values():
-        assert len(param_names) > 0, "`_get_param_to_unflat_param_names()` " \
-            "should not construct empty lists"
+        if len(param_names) <= 0:
+            raise ValueError("`_get_param_to_unflat_param_names()` "
+                                 "should not construct empty lists")
         if len(param_names) > 1:
             raise RuntimeError(
                 "Each parameter should only map to one parameter name but got "

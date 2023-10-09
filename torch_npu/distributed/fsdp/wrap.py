@@ -281,7 +281,8 @@ def wrap(module: nn.Module, **wrap_overrides: Any) -> nn.Module:
             the values provided by the :func:`enable_wrap` context
     """
     if _ConfigAutoWrap.in_autowrap_context:
-        assert _ConfigAutoWrap.wrapper_cls is not None
+        if _ConfigAutoWrap.wrapper_cls is None:
+            raise ValueError("Attribute wrapper_cls is abnormal")
 
         wrap_overrides = {**_ConfigAutoWrap.kwargs, **wrap_overrides}
         return _wrap(
@@ -339,7 +340,8 @@ class ParamExecOrderWrapPolicy:
 
 
 def _wrap(module: nn.Module, wrapper_cls: Callable, **kwargs) -> nn.Module:
-    assert wrapper_cls is not None
+    if wrapper_cls is None:
+        raise ValueError("wrapper_cls is None.")
     if hasattr(module, '_wrap_overrides'):
         # If module has a _wrap_overrides attribute, we force overriding the
         # FSDP config with these attributes for this module. Currently this
@@ -377,14 +379,17 @@ def _recursive_wrap(
         (nn.Module, int):
             Wrapped module and the number parameters wrapped recursively.
     """
-    assert auto_wrap_policy is not None, "Must specify auto_wrap_policy."
-    assert wrapper_cls is not None, "Must specify wrapper_cls"
+    if auto_wrap_policy is None:
+        raise ValueError("Must specify auto_wrap_policy.")
+    if wrapper_cls is None:
+        raise ValueError("Must specify wrapper_cls")
     # Make sure no child is already wrapped.
     for _, child in module.named_modules():
         if child in ignored_modules:
             continue
         try:
-            assert not isinstance(child, cast(type, wrapper_cls))
+            if isinstance(child, cast(type, wrapper_cls)):
+                raise ValueError("child is abnormal")
         except TypeError:
             # wrapper_cls is a function as opposed to a class type, just bypass above check.
             pass
@@ -393,8 +398,8 @@ def _recursive_wrap(
     num_params = sum(
         p.numel() for p in module.parameters() if p not in ignored_params
     )
-
-    assert auto_wrap_policy is not None
+    if auto_wrap_policy is None:
+        raise ValueError("auto_wrap_policy is None")
     if auto_wrap_policy(module=module, recurse=True, unwrapped_params=num_params):
         total_wrapped_params = 0
         # Iterate through the children, recursively wrap if necessary
@@ -446,9 +451,8 @@ class _ConfigAutoWrap:
             )
         _ConfigAutoWrap.in_autowrap_context = True
         # Get and save the wrapper cls for the context.
-        assert (
-            "wrapper_cls" in kwargs.keys()
-        ), "Expected to pass in wrapper_cls arg into _ConfigAutoWrap."
+        if "wrapper_cls" not in kwargs.keys():
+            raise RuntimeError("Expected to pass in wrapper_cls arg into _ConfigAutoWrap.")
         _ConfigAutoWrap.wrapper_cls = cast(Callable, kwargs["wrapper_cls"])
         del kwargs["wrapper_cls"]
         # Save the rest.

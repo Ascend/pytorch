@@ -29,7 +29,7 @@ class TraceStepTimeParser(BaseViewParser):
         try:
             float(num)
             return True
-        except VauleError:
+        except ValueError:
             return False
 
     @classmethod
