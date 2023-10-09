@@ -36,15 +36,22 @@ class TraceViewParser(BaseViewParser):
     @staticmethod
     def _prune_trace_by_level(json_data: list) -> list:
         prune_config = ProfilerConfig().get_prune_config()
+        prune_process = ProfilerConfig().get_prune_process()
         if not prune_config or not json_data:
             return json_data
         result = []
+        prune_pid = []
+        for data in json_data:
+            if data.get("name", "") == "process_name" and data.get("args", {}).get("name", "") in prune_process:
+                prune_pid.append(data.get("pid", ""))
         for data in json_data:
             prune_flag = False
+            if data.get("pid") in prune_pid:
+                continue
             for prune_key in prune_config:
                 if data.get("name", "").startswith(prune_key) or data.get("args", {}).get("name", "") == prune_key:
                     prune_flag = True
-                    continue
+                    break
             if not prune_flag:
                 result.append(data)
         return result

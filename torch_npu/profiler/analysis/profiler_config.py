@@ -19,8 +19,13 @@ class ProfilerConfig:
         Constant.LEVEL1: [],
         Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean)]
     }
+    LEVEL_PROCESS_PRUNE_CONFIG = {
+        Constant.LEVEL0: ['CANN', 'HBM', 'LLC', 'NPU_MEM'],
+        Constant.LEVEL1: ['HBM', 'LLC', 'NPU_MEM'],
+        Constant.LEVEL2: []
+    }
     LEVEL_TRACE_PRUNE_CONFIG = {
-        Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu'],
+        Constant.LEVEL0: ['HostToDevice'],
         Constant.LEVEL1: ['Runtime', 'GE', 'Node', 'Model', 'Hccl'],
         Constant.LEVEL2: []
     }
@@ -81,6 +86,9 @@ class ProfilerConfig:
 
     def get_prune_config(self):
         return self.LEVEL_TRACE_PRUNE_CONFIG.get(self._profiler_level)
+
+    def get_prune_process(self):
+        return self.LEVEL_PROCESS_PRUNE_CONFIG.get(self._profiler_level)
 
     def is_all_kernel_headers(self):
         if self._ai_core_metrics != Constant.AicMetricsNone:
