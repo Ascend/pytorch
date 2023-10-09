@@ -207,7 +207,7 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
         wd_ratio_lists_indexed = self.wd_ratio_lists_indexed_by_group[group_index]
         combined_wd_ratio_lists_indexed = self.combined_wd_ratio_lists_indexed_by_group[group_index]
 
-        for combined_param, combined_grad, combined_param_state, params_list,perturb_list, \
+        for combined_param, combined_grad, combined_param_state, params_list, perturb_list, \
             combined_perturb, wd_ratio_list, combined_wd_ratio in zip(
                 combined_group_params, combined_group_grads,
                 combined_group_param_states, params_lists_indexed,

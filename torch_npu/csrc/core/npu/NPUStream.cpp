@@ -193,7 +193,7 @@ static void initNPUStreamsOnce() {
   // Inits current streams (thread local) to default streams
   current_streams =
       (LeakyStreamInternals**)malloc(num_npus * sizeof(LeakyStreamInternals*));
-  if (current_streams == nullptr){
+  if (current_streams == nullptr) {
     ASCEND_LOGE("current_streams malloc failed.");
     return;
   }
