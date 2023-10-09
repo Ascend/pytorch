@@ -390,9 +390,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
                 << "Using DistributedDataParallel with create_graph=True "
                 << " is not well-supported. The higher-order gradient will "
                 << " not be synchronized across ranks, and backpropagation "
-                << " through all_reduce operations will not occur. If you require "
-                << " DDP to work with higher-order gradients for your use case, "
-                << " please ping https://github.com/pytorch/pytorch/issues/63929";
+                << " through all_reduce operations will not occur.";
             at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
           }
         } else {
