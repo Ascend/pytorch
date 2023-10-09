@@ -128,6 +128,14 @@ class TestFormatCast(TestCase):
         b = b.to("cpu")
         self.assertRtolEqual(a, b)
 
+    def test_format_cast_equal(self):
+        a = torch.randn(2, 3).npu()
+        a.requires_grad = True
+        ori_format = torch_npu.get_npu_format(a)
+        b = torch_npu.npu_format_cast(a, ori_format)
+        res = b.sum()
+        res.backward()
+
 
 if __name__ == "__main__":
     run_tests()
