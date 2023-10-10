@@ -36,6 +36,7 @@ import codegen.api.dispatcher as dispatcher
 from codegen.api.signature import DispatcherSignature
 from codegen.custom_functions import gen_custom_functions, gen_custom_registration, parse_custom_yaml
 
+
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(backend_ops: List[str],
                          dispatch_key: DispatchKey,
@@ -87,6 +88,8 @@ _GLOBAL_PARSE_NATIVE_YAML_CACHE = {}
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
+
+
 def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
@@ -96,7 +99,7 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         custom_es = source_data.get('custom', []) + source_data.get('custom_autograd', [])
         custom_es = filed_tag(custom_es)
         all_data = []
-        need_key =  ['supported', 'autograd', 'autograd', 'custom_autograd']
+        need_key = ['supported', 'autograd', 'autograd', 'custom_autograd']
         for key in need_key:
             if source_data.get(key, []):
                 all_data += source_data[key]
@@ -142,6 +145,8 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
 # Returns a Tuple of (true_backend, backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
 ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
     'true_backend', 'backend_key', 'autograd_key', 'unsupport_key', 'cpp_namespace', 'backend_indices'])
+
+
 def parse_backend_yaml(
         backend_yaml_path: str,
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
@@ -162,7 +167,7 @@ def parse_backend_yaml(
                   'custom', 'custom_autograd', 'unsupported']
 
     yaml_backend = yaml_values.pop('backend', None)
-    true_backend = 'XLA' if yaml_backend=='NPU' else yaml_backend
+    true_backend = 'XLA' if yaml_backend == 'NPU' else yaml_backend
     assert true_backend is not None, 'You must provide a value for "backend"'
     backend = "NPU"
 
