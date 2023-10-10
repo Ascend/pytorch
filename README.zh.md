@@ -225,11 +225,37 @@ pip3 install wheel
 推荐用户使用编好的二进制whl包安装PyTorch。用户也可选择编译安装方式安装PyTorch。请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
 
 1. 安装官方torch包。
-   官方torch的master分支，并无每日构建包，请下载官方源码并通过编译安装，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+   - x86_64:
+
+     ```
+     pip3 install torch==2.1.0+cpu --index-url https://download.pytorch.org/whl/cpu
+     ```
+
+   - aarch64:
+
+     ```
+     pip3 install torch==2.1.0
+     ```
+   若执行以上命令安装cpu版本PyTorch报错，请点击下方PyTorch官方链接下载whl包安装。
+
+   - x86\_64：[下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp38-cp38-linux_x86_64.whl)
+
+   - aarch64：[下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl)
 
 2. 安装PyTorch插件torch\_npu。
 
-   master分支暂不提供对应的torch_npu预编译安装包，请参考[编译安装PyTorch](#使用源码编译安装PyTorch框架)。
+   1. 进入安装目录，执行如下命令获取PyTorch插件的whl包。
+      
+      ```
+      # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
+      wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc3-pytorch2.1.0/torch_npu-2.1.0rc1-cp38-cp38-linux_aarch64.whl
+      ```
+      
+   2. 执行如下命令安装。如果使用非root用户安装，需要在命令后加**--user。**
+
+      ```
+      # 若用户在x86架构下安装插件，请将命令中文件包名中的“aarch64”改为“x86_64”。
+      pip3 install torch_npu-2.1.0rc1-cp38-cp38-linux_aarch64.whl
    
 3. 安装对应框架版本的torchvision。
 
