@@ -230,7 +230,7 @@ pip3 install wheel
    - x86_64:
 
      ```
-     pip3 install torch==2.0.1+cpu
+     pip3 install torch==2.0.1+cpu --index-url https://download.pytorch.org/whl/cpu
      ```
 
    - aarch64:
@@ -347,7 +347,7 @@ Debian、UOS20、UOS20 SP1、Linx系统可参考Ubuntu进行安装。
    - x86_64:
    
       ```
-      pip3 install torch==2.0.1+cpu
+      pip3 install torch==2.0.1+cpu --index-url https://download.pytorch.org/whl/cpu
       ```
 
    - aarch64:
