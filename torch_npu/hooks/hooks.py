@@ -62,7 +62,8 @@ class DumpUtil(object):
 
     @staticmethod
     def get_dump_path():
-        assert DumpUtil.dump_path is not None, "Please set dump path for hook tools."
+        if DumpUtil.dump_path is None:
+            raise RuntimeError("Please set dump path for hook tools.")
         return DumpUtil.dump_path
 
 

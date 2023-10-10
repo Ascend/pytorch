@@ -30,7 +30,8 @@ with open(yaml_path, 'r') as f:
 def get_torch_ops():
     global WrapTorchOps
     _torch_ops = dir(torch._C._VariableFunctionsClass)
-    assert set(WrapTorchOps) <= set(_torch_ops)
+    if not (set(WrapTorchOps) <= set(_torch_ops)):
+        raise RuntimeError("Torch ops being wrapped must be a subset of all torch ops.")
     return WrapTorchOps
 
 

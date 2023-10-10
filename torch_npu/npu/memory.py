@@ -21,6 +21,7 @@ import warnings
 import torch_npu
 from .utils import is_initialized, _get_device_index, _lazy_init
 
+
 @contextlib.contextmanager
 def _free_mutex():
     torch_npu._C._npu_lock_mutex()

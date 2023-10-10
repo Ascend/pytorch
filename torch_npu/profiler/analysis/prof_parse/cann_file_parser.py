@@ -18,6 +18,7 @@ import json
 import os
 import re
 import subprocess
+import shutil
 from enum import Enum
 from json import JSONDecodeError
 
@@ -79,6 +80,7 @@ class CANNFileParser:
         self._cann_path = PathManager.get_cann_path(profiler_path)
         self._file_dict = {}
         self._file_dispatch()
+        self.msprof_path = shutil.which("msprof")
 
     @classmethod
     def _json_load(cls, data: str) -> list:
@@ -115,8 +117,8 @@ class CANNFileParser:
         if not os.path.isdir(self._cann_path):
             return
         self._del_summary_and_timeline_data()
-        completed_process = subprocess.run(["msprof", "--export=on", f"--output={self._cann_path}"],
-                                           capture_output=True)
+        completed_process = subprocess.run([self.msprof_path, "--export=on", f"--output={self._cann_path}"],
+                                           capture_output=True, shell=False)
         if completed_process.returncode != self.COMMAND_SUCCESS:
             raise RuntimeError(
                 f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and set-env.sh "
@@ -133,15 +135,16 @@ class CANNFileParser:
                 step_id = data.step_id
                 if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
                     completed_process = subprocess.run(
-                        ["msprof", "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
-                        capture_output=True)
+                        [self.msprof_path, "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
+                        capture_output=True, shell=False)
                     if completed_process.returncode != self.COMMAND_SUCCESS:
                         raise RuntimeError("Export CANN Profiling data failed, please verify that the "
                                            "ascend-toolkit is installed and set-env.sh is sourced.")
 
         simplification_cmd = self._get_data_simplification_cmd(data_simplification)
         completed_analysis = subprocess.run(
-            ["msprof", "--analyze=on", f"--output={self._cann_path}", simplification_cmd], capture_output=True)
+            [self.msprof_path, "--analyze=on", f"--output={self._cann_path}", simplification_cmd],
+            capture_output=True, shell=False)
         if completed_analysis.returncode != self.COMMAND_SUCCESS:
             print(f"[WARNING] [{os.getpid()}] profiler.py: Analyze CANN Profiling data failed!")
 
