@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import torch_npu
 
+
 def autopad(k, p=None):
     if p is None:
         p = k // 2 if isinstance(k, int) else [x // 2 for x in k]
     return p
+
 
 class Conv(nn.Module):
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):
@@ -19,6 +21,7 @@ class Conv(nn.Module):
 
     def fuseforward(self, x):
         return self.act(self.conv(x))
+
 
 def fast_slice(x):
     _, _, w, _ = x.shape
@@ -41,6 +44,7 @@ def fast_slice(x):
     result = [x_all_all_zerostart_zerostart, x_all_all_onestart_zerostart, 
               x_all_all_zerostart_onestart, x_all_all_onestart_onestart]
     return result
+
 
 class Focus(nn.Module):
     """Using NPU affinity writing method to replace the native Focus in Yolov5.

@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 
+
 def npu_multiclass_nms(multi_bboxes,
                        multi_scores,
                        score_thr=0.05,

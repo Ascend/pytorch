@@ -124,6 +124,7 @@ def apply_class_patches():
     add_serialization_methods()
     add_intercept_methods()
 
+
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
@@ -141,7 +142,7 @@ torch.distributed.is_hccl_available = lambda : True
 torch_npu._C._initExtension()
 
 # init and register hccl backend
-torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
+torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout:
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
 # set default device type for gradient checkpointing

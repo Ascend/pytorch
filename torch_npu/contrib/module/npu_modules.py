@@ -4,6 +4,7 @@ __all__ = ["DropoutWithByteMask"]
 from torch.nn import Module
 from ..function import npu_functional as F
 
+
 class DropoutWithByteMask(Module):
     r"""Applies an NPU compatible DropoutWithByteMask operation, Only supports npu devices. 
     

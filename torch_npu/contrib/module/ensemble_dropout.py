@@ -98,7 +98,9 @@ class NpuCachedDropout(torch.nn.Dropout):
 
         model.register_forward_hook(mask_gen_hook_func())
 
+
 NpuFairseqDropout = NpuCachedDropout
+
 
 class PreGenDropoutTask:
     def __init__(self, device, p):

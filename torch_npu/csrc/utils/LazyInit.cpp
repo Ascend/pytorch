@@ -18,9 +18,13 @@ void npu_lazy_init() {
   // have taken a lock.
   if (!npu_run_yet) {
     auto module = THPObjectPtr(PyImport_ImportModule("torch_npu.npu"));
-    if (!module) throw python_error();
+    if (!module) {
+        throw python_error();
+    }
     auto res = THPObjectPtr(PyObject_CallMethod(module.get(), "_lazy_init", ""));
-    if (!res) throw python_error();
+    if (!res) {
+        throw python_error();
+    }
     npu_run_yet = true;
   }
 }

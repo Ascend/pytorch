@@ -95,6 +95,7 @@ class ChannelShuffle(nn.Module):
                 output = indexselect_full_implementation_forward(x1, x2, self.fp_index)
         return output
 
+
 def indexselect_full_implementation_forward(x1, x2, fp_index):
     x = torch.cat([x1, x2], dim=1)
     result = x.index_select(1, fp_index)

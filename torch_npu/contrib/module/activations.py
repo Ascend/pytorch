@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch_npu
 
+
 class Mish(nn.Module):
     def __init__(self):
         r"""Applies an NPU based Mish operation.
@@ -35,6 +36,7 @@ class Mish(nn.Module):
         x = torch_npu.npu_mish(x)
         return x
 
+
 class SiLU(nn.Module):
     def __init__(self):
         r"""Applies an NPU based Sigmoid Linear Unit (SiLU) function, element-wise.
@@ -65,5 +67,6 @@ class SiLU(nn.Module):
     def forward(self, x):
         x = torch_npu.npu_silu(x)
         return x
+
 
 Swish = SiLU

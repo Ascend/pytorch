@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch_npu
 
+
 def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
     """Less ops than timm version.
     Async generating and applying of random tensor for accelerating.
@@ -10,6 +11,7 @@ def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
     random_tensor.floor_()
     output = x.div(keep_prob) * random_tensor
     return output
+
 
 class DropPathTask:
     def __init__(self, shape, device, dtype, ndim, drop_prob):
@@ -20,6 +22,7 @@ class DropPathTask:
         self.drop_prob = drop_prob
         self.request_count = 0
         self.rand_queue = []
+
 
 class NpuDropPath(nn.Module):
     """Using NPU affinity writing method to replace the native Drop paths in swin_transformer.py.

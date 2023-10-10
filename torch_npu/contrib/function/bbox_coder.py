@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 
+
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
@@ -193,7 +194,7 @@ def _npu_bbox_coder_encode_xyxy2xywh():
     gt_bboxes = gt_bboxes.npu()
 
     out = npu_bbox_coder_encode_xyxy2xywh(bboxes, gt_bboxes)
-    out = npu_bbox_coder_encode_xyxy2xywh(bboxes/512., gt_bboxes/512., is_normalized=True, normalized_scale=512.)
+    out = npu_bbox_coder_encode_xyxy2xywh(bboxes / 512., gt_bboxes / 512., is_normalized=True, normalized_scale=512.)
     torch.npu.synchronize()
     print('_npu_bbox_coder_encode_xyxy2xywh done. output shape is ', out.shape)
 

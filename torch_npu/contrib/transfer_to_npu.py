@@ -26,6 +26,7 @@ torch_cuda_fn_white_list = [
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type']
 
+
 def wrapper_cuda(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
@@ -107,7 +108,7 @@ def wrapper_profiler(fn):
     def decorated(*args, **kwargs):
         if kwargs:
             if 'experimental_config' in kwargs.keys() and \
-                type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
+                    type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
                     'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
                     'because it can only be used in cuda, please manually modify the code '

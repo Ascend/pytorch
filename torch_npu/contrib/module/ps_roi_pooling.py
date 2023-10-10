@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch_npu
 
+
 class PSROIPool(nn.Module):
     def __init__(self, pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22):
         """ROIAlign using npu api.

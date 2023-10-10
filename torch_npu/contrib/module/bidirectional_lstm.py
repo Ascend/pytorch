@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 
+
 class BiLSTM(torch.nn.Module):
     r"""Applies an NPU compatible bidirectional LSTM operation to an input
     sequence.
