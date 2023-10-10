@@ -52,8 +52,8 @@ class TraceStepTimeParser(BaseViewParser):
                     step[4] = addtime + durtime
                 break
         for cur_save in save_time:
-            if cur_save['step'] == cur_step:
-                cur_save[cls.timeflag[addtype]] += durtime
+            if cur_save.get('step') == cur_step:
+                cur_save[cls.timeflag.get(addtype)] += durtime
                 break
 
     @classmethod
@@ -61,6 +61,7 @@ class TraceStepTimeParser(BaseViewParser):
         for curStep in step_list:
             if curStep[0] == step:
                 return curStep[4] - curStep[3]
+        return None
 
     @classmethod
     def create_step_file(cls, output_path: str, json_str: list, file_name: str) -> None:

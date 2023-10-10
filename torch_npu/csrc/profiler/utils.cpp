@@ -142,7 +142,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
 
     const std::vector<int64_t> input_sizes = input_sizes_ref.toIntVector();
     const std::vector<int64_t> kernel_sizes = kernel_sizes_ref.toIntVector();
-    const uint64_t groups = groups_ref.toInt();
+    const uint64_t groups = (uint64_t)groups_ref.toInt();
     const std::vector<int64_t> padding = padding_ref.toIntVector();
     const std::vector<int64_t> stride = stride_ref.toIntVector();
     const std::vector<int64_t> dilation = dilation_ref.toIntVector();
@@ -199,14 +199,14 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
       const uint64_t gemm_multiply_factor = 2;
       uint64_t flops = 1;
       for(int64_t dim : mat1_size) {
-        flops *= dim;
+        flops *= (uint64_t)dim;
       }
       if (overlap_dim == 0) {
         TORCH_CHECK(false, "overlap_dim can not be 0.");
       }
-      flops /= overlap_dim;
+      flops /= (uint64_t)overlap_dim;
       for(int64_t dim : mat2_size) {
-        flops *= dim;
+        flops *= (uint64_t)dim;
       }
       flops *= gemm_multiply_factor;
       return flops;
@@ -225,7 +225,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     std::vector<int64_t> mat_size = mat_sizes.toIntVector();
     uint64_t flops = 1;
     for(int64_t dim : mat_size) {
-      flops *= dim;
+      flops *= (uint64_t)dim;
     }
     return flops;
   } else if (op_name == kAddOp) {
@@ -242,7 +242,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     std::vector<int64_t> mat_size = mat_sizes.toIntVector();
     uint64_t flops = 1;
     for(int64_t dim : mat_size) {
-      flops *= dim;
+      flops *= (uint64_t)dim;
     }
     return flops;
   }

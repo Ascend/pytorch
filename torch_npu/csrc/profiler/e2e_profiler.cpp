@@ -169,10 +169,13 @@ void PutMarkStamp(const std::string &opName) {
     }
     // get idle node index
     static std::mutex markStampMtx;
-    markStampMtx.lock();
-    int index = g_markStamp.idleNodeInd;
-    g_markStamp.idleNodeInd = (g_markStamp.idleNodeInd + 1) & (STAMP_QUEUE_LEN - 1);
-    markStampMtx.unlock();
+    int index;
+    do {
+        std::lock_guard<std::mutex> lk(markStampMtx);
+        index = g_markStamp.idleNodeInd;
+        g_markStamp.idleNodeInd = (g_markStamp.idleNodeInd + 1) % STAMP_QUEUE_LEN;
+    } while (0);
+
     // set tid/time/opname
     static thread_local int tid = syscall(SYS_gettid);
     g_markStamp.nodes[index].threadId = tid;
@@ -182,7 +185,7 @@ void PutMarkStamp(const std::string &opName) {
     std::strncpy(g_markStamp.nodes[index].message, opName.c_str(), OP_NAME_LEN);
     g_markStamp.nodes[index].message[OP_NAME_LEN - 1] = '\0';
     // report data
-    if ((index & (ONCE_REPORT_NUM - 1)) == (ONCE_REPORT_NUM - 1)) {
+    if ((index % ONCE_REPORT_NUM) == (ONCE_REPORT_NUM - 1)) {
       int ret = at_npu::native::AclprofReportStamp("torch_cann_op", strlen("torch_cann_op"),
         (unsigned char *)&g_markStamp.nodes[index + 1 - ONCE_REPORT_NUM],
         sizeof(struct Stamp) * ONCE_REPORT_NUM);

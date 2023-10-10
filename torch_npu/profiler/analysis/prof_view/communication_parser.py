@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import defaultdict
 from ..prof_common_func.file_manager import FileManager
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.cann_file_parser import CANNDataEnum
 from ..prof_common_func.global_var import GlobalVar
-from collections import defaultdict
 
 
 class CommunicationParser(BaseViewParser):
@@ -46,7 +46,7 @@ class CommunicationParser(BaseViewParser):
     TRANSPORT_TYPE = "Transport Type"
 
     def __init__(self, profiler_path: str):
-        self._profiler_path = profiler_path
+        super().__init__(profiler_path)
         self.step_list = GlobalVar.get_step_id_list()
 
     @staticmethod
@@ -85,7 +85,7 @@ class CommunicationParser(BaseViewParser):
         matrix_data_by_step = self.split_matrix_by_step(matrix_data)
         output_matrix_data = {}
         for step, comm_matrix_data in matrix_data_by_step.items():
-            output_matrix_data[step] = self.get_matrix_ops_dict(matrix_data_by_step[step])
+            output_matrix_data[step] = self.get_matrix_ops_dict(comm_matrix_data)
         FileManager.create_json_file(output_path, output_matrix_data, self.COMMUNICATION_MATRIX)
 
     def split_comm_op_by_step(self, communication_data: dict):
