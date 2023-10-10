@@ -23,6 +23,7 @@ from setuptools.command.install import install
 from setuptools import setup, distutils, Extension
 from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
+from wheel.bdist_wheel import bdist_wheel
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
@@ -400,6 +401,31 @@ class PythonPackageBuild(build_py, object):
         super(PythonPackageBuild, self).finalize_options()
 
 
+class BdistWheelBuild(bdist_wheel):
+    def run(self):
+        torch_dependencies = ["libc10.so", "libtorch.so", "libtorch_cpu.so", "libtorch_python.so"]
+        cann_dependencies = ["libhccl.so", "libascendcl.so", "libacl_op_compiler.so", "libge_runner.so",
+                             "libgraph.so", "libacl_tdt_channel.so", "libfmk_parser.so", "libascend_protobuf.so"]
+        other_dependencies = ["libtorch_npu.so", "libnpu_profiler.so", "libgomp.so.1"]
+
+        dependencies = torch_dependencies + cann_dependencies + other_dependencies
+
+        self.run_command('egg_info')
+        bdist_wheel.run(self)
+
+        if is_manylinux:
+            file = glob.glob(os.path.join(self.dist_dir, "*linux*.whl"))[0]
+
+            auditwheel_cmd = ["auditwheel", "-v", "repair", "-w", self.dist_dir, file]
+            for i in dependencies:
+                auditwheel_cmd += ["--exclude", i]
+
+            try:
+                subprocess.run(auditwheel_cmd, check=True, stdout=subprocess.PIPE)
+            finally:
+                os.remove(file)
+
+
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
@@ -439,12 +465,66 @@ else:
     extra_compile_args += ['-DNDEBUG']
     extra_link_args += ['-Wl,-z,now,-s']
 
+# valid manylinux tags
+manylinux_tags = [
+    "manylinux1_x86_64",
+    "manylinux2010_x86_64",
+    "manylinux2014_x86_64",
+    "manylinux2014_aarch64",
+    "manylinux_2_5_x86_64",
+    "manylinux_2_12_x86_64",
+    "manylinux_2_17_x86_64",
+    "manylinux_2_17_aarch64",
+    "manylinux_2_24_x86_64",
+    "manylinux_2_24_aarch64",
+    "manylinux_2_27_x86_64",
+    "manylinux_2_27_aarch64",
+    "manylinux_2_28_x86_64",
+    "manylinux_2_28_aarch64",
+    "manylinux_2_31_x86_64",
+    "manylinux_2_31_aarch64",
+    "manylinux_2_34_x86_64",
+    "manylinux_2_34_aarch64",
+    "manylinux_2_35_x86_64"
+    "manylinux_2_35_aarch64",
+]
+is_manylinux = os.environ.get("AUDITWHEEL_PLAT", None) in manylinux_tags
+
+readme = os.path.join(BASE_DIR, "README.md")
+if not os.path.exists(readme):
+    raise FileNotFoundError("Unable to find 'README.md'")
+with open(readme, encoding="utf-8") as fdesc:
+    long_description = fdesc.read()
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
 
 setup(
         name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
         version=VERSION,
         description='NPU bridge for PyTorch',
+        long_description=long_description,
+        long_description_content_type="text/markdown",
         url='https://gitee.com/ascend/pytorch',
+        download_url="https://gitee.com/ascend/pytorch/tags",
+        license="BSD License",
+        classifiers=classifiers,
         packages=["torch_npu"],
         libraries=[('torch_npu', {'sources': list()})],
         package_dir={'': os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))},
@@ -470,7 +550,8 @@ setup(
             'build_clib': CPPLibBuild,
             'build_ext': Build,
             'build_py': PythonPackageBuild,
+            'bdist_wheel': BdistWheelBuild,
             'egg_info': EggInfoBuild,
-            'clean': Clean,
-            'install': InstallCmd
+            'install': InstallCmd,
+            'clean': Clean
         })
