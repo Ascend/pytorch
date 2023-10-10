@@ -2,11 +2,7 @@
 
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
-#ifdef USE_GEN_HEADER
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
 
 namespace torch_npu {
 namespace utils {

@@ -420,11 +420,7 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#ifdef USE_GEN_HEADER
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
 """
     static_template = CodeTemplate(
         """\

@@ -1,11 +1,7 @@
 #include <torch/csrc/dynamo/compiled_autograd.h>
 
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-#ifdef USE_GEN_HEADER
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
 
 // ${generated_comment}
 

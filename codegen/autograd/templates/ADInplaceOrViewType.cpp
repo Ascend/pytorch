@@ -2,11 +2,7 @@
 #include "torch/csrc/autograd/VariableTypeUtils.h"
 #include <torch/library.h>
 
-#ifdef USE_GEN_HEADER
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
 
 // ${generated_comment}
 $ops_headers

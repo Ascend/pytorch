@@ -183,18 +183,6 @@ def build_stub(base_dir):
         sys.exit(1)
 
 
-def check_opplugin_valid(base_dir):
-    # build with submodule of op_plugin, if path of op-plugin is valid
-    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
-    return os.path.exists(op_plugin_path)
-
-
-def check_opplugin_codegen(base_dir):
-    # Use the generated OpInterface.h if path of gencode.sh in op-plugin is valid
-    op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/gencode.sh')
-    return os.path.exists(op_plugin_path)
-
-
 def check_torchair_valid(base_dir):
     # build with submodule of torchair, if path of torchair is valid
     torchair_path = os.path.join(base_dir, 'third_party/torchair/torchair')
@@ -293,11 +281,6 @@ class CPPLibBuild(build_clib, object):
             '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
-
-        if check_opplugin_valid(BASE_DIR):
-            cmake_args.append('-DBUILD_OPPLUGIN=on')
-            if check_opplugin_codegen(BASE_DIR):
-                cmake_args.append('-DBUILD_NEW_HEADER=on')
 
         if DISABLE_TORCHAIR == 'FALSE':
             if check_torchair_valid(BASE_DIR):
