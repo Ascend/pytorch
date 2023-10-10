@@ -60,13 +60,13 @@ struct NPUMethods : public DeviceStubs {
     static auto stream = c10_npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));
-    ASCEND_LOGI("aclrtRecordEvent is successfully executed, *event1=%p.", *event1);
+    ASCEND_LOGI("aclrtRecordEvent is successfully executed.");
   }
   float elapsed(const aclrtEvent& event1, const aclrtEvent& event2) const override {
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event1));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event1=%p.", event1);
+    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed for event1.");
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event2));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event2=%p.", event2);
+    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed for event2.");
     float ms;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
     return ms*1000.0;

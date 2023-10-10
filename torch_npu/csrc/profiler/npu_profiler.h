@@ -63,7 +63,7 @@ bool profDataReportEnable();
 
 void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &activities);
 
-void startNpuProfiler(const NpuProfilerConfig &config, const std::set<NpuActivityType> & activities, const std::unordered_set<at::RecordScope> &scops = {});
+void startNpuProfiler(const NpuProfilerConfig &config, const std::set<NpuActivityType> &activities, const std::unordered_set<at::RecordScope> &scops = {});
 
 void stopNpuProfiler();
 
