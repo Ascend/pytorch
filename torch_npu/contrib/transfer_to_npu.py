@@ -118,6 +118,13 @@ def wrapper_profiler(fn):
     return decorated
 
 
+def jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
+    msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it, ' \
+          'if you need to enable torch.jit.script, please do not use transfer_to_npu.'
+    warnings.warn(msg, RuntimeWarning)
+    return obj
+
+
 def patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
@@ -201,6 +208,8 @@ def init():
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
     # torch.utils.data.DataLoader
     torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
+
+    torch.jit.script = jit_script
 
 
 init()
