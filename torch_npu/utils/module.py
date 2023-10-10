@@ -100,11 +100,10 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
-        if "MultiheadAttention" in str(class_name) and \
-                hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
-                hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
-                hasattr(module,"v_proj_weight") and module.v_proj_weight is not None and \
-                not torch.npu.get_mm_bmm_format_nd():
+
+        if issubclass(class_name, torch.nn.MultiheadAttention) and \
+           module.q_proj_weight is not None and \
+           not torch.npu.get_mm_bmm_format_nd():
             module.q_proj_weight.data = module.q_proj_weight.data.to(device)
             module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
             module.k_proj_weight.data = module.k_proj_weight.data.to(device)
@@ -226,7 +225,7 @@ def ddp_forward(self, *inputs, **kwargs):
 
 def lstm_forward(self, input, hx=None):
     orig_input = input
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
+    # isinstance check needs to be in conditional for TorchScript to compile
     batch_sizes = None
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input, batch_sizes, sorted_indices, unsorted_indices = input
@@ -277,22 +276,20 @@ def lstm_forward(self, input, hx=None):
     else:
         if batch_sizes.device != input.device:
             batch_sizes_npu = batch_sizes.to(input.device)
-            result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
+            result_tmp = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
             # when pack-lstm-pad，remain valid pads in T0 because lstm can only support fixed length in npu.
             if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
-                result = list(result)
-                shape = [result[0].shape[0] * result[0].shape[1]]
-                if result[0].dim() > 2:
-                    shape = shape + list(result[0].shape[2:])
-                result[0] = result[0].reshape(shape)
-                result = tuple(result)
+                shape = [result_tmp[0].shape[0] * result_tmp[0].shape[1]]
+                if result_tmp[0].dim() > 2:
+                    shape = shape + list(result_tmp[0].shape[2:])
+                result = result_tmp[0].reshape(shape) + result_tmp[1:]
         else:
             result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
     output = result[0]
     hidden = result[1:]
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
+    # isinstance check needs to be in conditional for TorchScript to compile
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         output_packed = torch.nn.utils.rnn.PackedSequence(output, batch_sizes, sorted_indices, unsorted_indices)
         return output_packed, self.permute_hidden(hidden, unsorted_indices)
@@ -674,7 +671,7 @@ def gru_forward(self, input_tensor, hx=None):
                 start = 0
                 cur = start
                 shape = [1] + list(result[0].shape[1:])
-                pad_tensor = torch.zeros(shape, device = input_tensor.device)
+                pad_tensor = torch.zeros(shape, device=input_tensor.device)
                 cat_list = []
                 for i in batch_list:
                     if (i < batch_list[0]):

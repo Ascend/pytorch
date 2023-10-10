@@ -13,14 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-import torch_npu
 import os
-import torch.distributed.launcher.api
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Union
+
+import torch
+import torch.distributed.launcher.api
 from torch.distributed.elastic.multiprocessing import Std
-from dataclasses import dataclass, field
+
+import torch_npu
 
 @dataclass
 class LaunchConfig:
@@ -34,7 +35,7 @@ class LaunchConfig:
     rdzv_configs: Dict[str, Any] = field(default_factory=dict)
     rdzv_timeout: int = -1
     max_restarts: int = 3
-    monitor_interval: float = 30
+    monitor_interval: float = 30.0
     start_method: str = "spawn"
     log_dir: Optional[str] = None
     redirects: Union[Std, Dict[int, Std]] = Std.NONE

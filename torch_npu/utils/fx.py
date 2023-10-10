@@ -43,6 +43,7 @@ class _CustomBuiltin(NamedTuple):
 
 _custom_builtins: Dict[str, _CustomBuiltin] = {}
 
+
 def _register_custom_builtin(name: str, import_str: str, obj: Any):
     _custom_builtins[name] = _CustomBuiltin(import_str, obj)
 
@@ -54,6 +55,7 @@ _register_custom_builtin('device', 'from torch import device', torch.device)
 _register_custom_builtin('fx_pytree', 'import torch.fx._pytree as fx_pytree', fx_pytree)
 _register_custom_builtin('pytree', 'import torch.utils._pytree as pytree', pytree)
 _register_custom_builtin('torch_npu', 'import torch_npu', torch_npu)
+
 
 def to_folder(self, folder: Union[str, os.PathLike], module_name : str = "FxModule"):
     """Dumps out module to ``folder`` with ``module_name`` so that it can be

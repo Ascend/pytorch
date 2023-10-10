@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import torch
-
 from torch._tensor_str import _Formatter as SrcFormatter
 from torch._tensor_str import PRINT_OPTS, _tensor_str_with_formatter, _add_suffixes, get_summarized_data
 from torch.overrides import has_torch_function_unary, handle_torch_function
@@ -29,6 +28,7 @@ class _Formatter(SrcFormatter):
         self.sci_mode = False
         self.max_width = 1
         super(_Formatter, self).__init__(tensor)
+
 
 def _tensor_str(self, indent):
     if self.numel() == 0:
@@ -68,6 +68,7 @@ def _tensor_str(self, indent):
         self = self.to(device)
     return rst
 
+
 def _str_intern(inp):
     prefix = 'tensor('
     indent = len(prefix)
@@ -76,7 +77,7 @@ def _str_intern(inp):
 
     if self.device.type != torch._C._get_default_device()\
             or (self.device.type == torch_npu.npu.native_device and torch.npu.current_device() != self.device.index):
-        suffixes.append('device=\'' + str(torch_npu.npu.npu_device) + ':'+ str(torch.npu.current_device())+'\'')
+        suffixes.append('device=\'' + str(torch_npu.npu.npu_device) + ':' + str(torch.npu.current_device()) + '\'')
 
     _default_complex_dtype = torch.cdouble if torch.get_default_dtype() == torch.double else torch.cfloat
     has_default_dtype = self.dtype in (torch.get_default_dtype(), _default_complex_dtype, torch.int64, torch.bool)
@@ -152,9 +153,11 @@ def _str_intern(inp):
 
     return _add_suffixes(prefix + tensor_str, suffixes, indent, force_newline=self.is_sparse)
 
+
 def _str(self):
     with torch.no_grad():
         return _str_intern(self)
+
 
 class Tensor(torch.Tensor):
     def __deepcopy__(self, memo):
@@ -220,6 +223,7 @@ class Tensor(torch.Tensor):
         else:
             self.storage().share_memory_()
         return self
+
 
 def add_str_methods():
     torch._tensor_str._str = _str

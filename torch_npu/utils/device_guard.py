@@ -46,6 +46,8 @@ def torch_device_guard(func):
     return wrapper
 
 env_device_cnt = None
+
+
 def check_is_valid_ordinal(arg):
     global env_device_cnt
     if env_device_cnt is None:

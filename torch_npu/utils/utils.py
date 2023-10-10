@@ -17,7 +17,7 @@ from torch.random import manual_seed as torch_manual_seed, seed as torch_seed
 import torch_npu
 
 
-def manual_seed(seed):
+def manual_seed(seed: int) -> None:
     r"""Sets the seed for generating random numbers. Returns a
     `torch.Generator` object.
 

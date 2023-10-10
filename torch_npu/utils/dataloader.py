@@ -30,6 +30,7 @@ import torch_npu
 
 MP_STATUS_CHECK_INTERVAL = 5.0
 
+
 def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
     # This setting is thread local, and prevents the copy in pin_memory from
     # consuming all CPU cores.
@@ -63,6 +64,7 @@ def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
                 continue
         del r  # save memory
 
+
 def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                   auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                   num_workers, persistent_workers):
@@ -74,6 +76,7 @@ def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
     _utils.worker._worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                                auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                                num_workers, persistent_workers)
+
 
 class DataLoader(SrcDataLoader):
     def _get_iterator(self) -> '_BaseDataLoaderIter':
@@ -91,6 +94,7 @@ class DataLoader(SrcDataLoader):
 
         super(SrcDataLoader, self).__setattr__(attr, val)
 
+
 class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
     def __init__(self, loader):
         super(_SingleProcessDataLoaderIter, self).__init__(loader)
@@ -100,6 +104,7 @@ class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
 
         self._dataset_fetcher = _DatasetKind.create_fetcher(
             self._dataset_kind, self._dataset, self._auto_collation, self._collate_fn, self._drop_last)
+
 
 class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
     r"""Iterates once over the DataLoader's dataset, as specified by the sampler"""
@@ -251,10 +256,6 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
                 # `Event.set()`. So we need to guard this with SIGCHLD handler,
                 # and remove pids from the C side data structure only at the
                 # end.
-                #
-                # FIXME: Unfortunately, for Windows, we are missing a worker
-                #        error detection mechanism here in this function, as it
-                #        doesn't provide a SIGCHLD handler.
                 if self._worker_pids_set:
                     _utils.signal_handling._remove_worker_pids(id(self))
                     self._worker_pids_set = False
@@ -277,7 +278,8 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
 
     def __del__(self):
         self._shutdown_workers()
-        
+
+
 def add_dataloader_method():
     torch.utils.data.DataLoader = DataLoader
     torch.utils.data.dataloader.DataLoader = DataLoader

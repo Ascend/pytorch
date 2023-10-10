@@ -65,13 +65,13 @@ def _reduce_ex(self, proto):
         if self.device.type == 'npu':
             npu_storage_format = torch_npu.get_npu_format(self)
             tmp_tensor = self.cpu()
-            arg_npu  = (tmp_tensor.storage(),
-                        tmp_tensor.storage_offset(),
-                        tuple(tmp_tensor.size()),
-                        tmp_tensor.stride(),
-                        tmp_tensor.requires_grad,
-                        backward_hooks,
-                        npu_storage_format)
+            arg_npu = (tmp_tensor.storage(),
+                       tmp_tensor.storage_offset(),
+                       tuple(tmp_tensor.size()),
+                       tmp_tensor.stride(),
+                       tmp_tensor.requires_grad,
+                       backward_hooks,
+                       npu_storage_format)
             return (_rebuild_npu_tensor, arg_npu)
         return self._reduce_ex_internal(proto)
     relevant_args = (self,)
