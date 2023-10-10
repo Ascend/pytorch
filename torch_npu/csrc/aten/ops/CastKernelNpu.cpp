@@ -49,7 +49,7 @@ namespace at_npu
         return self.clone();
       }
       // calculate the output size
-      auto outputSize = input_same_output_size(self);
+      auto outputSize = self.sizes();
 
       // construct the output tensor of the NPU
       at::Tensor result =
