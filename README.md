@@ -25,7 +25,7 @@ pip3 install torch==2.1.0
 **For x86:**
 
 ```Python
-pip3 install torch==2.1.0+cpu
+pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 2. **Install torch-npu dependencies**
@@ -102,7 +102,7 @@ ln -s /opt/_internal/cpython-3.8.1/bin/pip3.8 /usr/local/bin/pip3.8
 ln -s /opt/_internal/cpython-3.8.1/bin/python3.8 /usr/local/bin/python3.8
 pip3.8 install pyyaml
 pip3.8 install setuptools
-pip3.8 install torch==2.1.0+cpu
+pip3.8 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 #### Compile torch-npu
