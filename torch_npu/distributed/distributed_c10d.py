@@ -173,10 +173,10 @@ class Backend(object):
         .. note:: This support of 3rd party backend is experimental and subject to change.
 
         """
-        assert not hasattr(Backend, name.upper()), (
-            f"{name.upper()} c10d backend already exist")
-        assert name.upper() not in Backend._plugins, (
-            f"{name.upper()} c10d backend creator function already exist")
+        if hasattr(Backend, name.upper()):
+            raise RuntimeError(f"{name.upper()} c10d backend already exist")
+        if name.upper() in Backend._plugins:
+            raise RuntimeError(f"{name.upper()} c10d backend creator function already exist")
 
         setattr(Backend, name.upper(), name.upper())
         Backend._plugins[name.upper()] = func
@@ -478,7 +478,8 @@ def get_backend(group=None):
     if _rank_not_in_group(pg):
         raise RuntimeError("Invalid process group specified")
     pg_store = _pg_map.get(pg, None)
-    assert pg_store is not None
+    if pg_store is None:
+        raise RuntimeError('pg_store is None')
     return pg_store[0]
 
 
@@ -561,12 +562,14 @@ def init_process_group(backend, init_method=None, timeout=default_pg_timeout,
         raise RuntimeError("trying to initialize the default process group "
                            "twice!")
 
-    assert (store is None) or (init_method is None), \
-        "Cannot specify both init_method and store."
+    if not ((store is None) or (init_method is None)):
+        raise RuntimeError("Cannot specify both init_method and store.")
 
     if store is not None:
-        assert world_size > 0, 'world_size must be positive if using store'
-        assert rank >= 0, 'rank must be non-negative if using store'
+        if not (world_size > 0):
+            raise RuntimeError('world_size must be positive if using store')
+        if not (rank >= 0):
+            raise RuntimeError('rank must be non-negative if using store')
     elif init_method is None:
         init_method = "env://"
 
@@ -717,7 +720,8 @@ def destroy_process_group(group=None):
     else:
         pg = group
 
-    assert pg is not None
+    if pg is None:
+        raise RuntimeError('process group is None')
     if _pg_map.get(pg, None) is None:
         raise RuntimeError("Invalid process group specified")
 
