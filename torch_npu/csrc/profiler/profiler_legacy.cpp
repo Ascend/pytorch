@@ -298,7 +298,7 @@ std::string ProfilerThreadLocalState::getNvtxStr(
 
 RangeEventList& ProfilerThreadLocalState::getEventList(int64_t thread_id) {
   if (thread_id < 0) {
-    thread_id = at::RecordFunction::currentThreadId();
+    thread_id = static_cast<int64_t>(at::RecordFunction::currentThreadId());
   }
   RangeEventList* list_ptr = nullptr;
   std::lock_guard<std::mutex> guard(state_mutex_);
