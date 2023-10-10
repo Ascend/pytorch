@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <linux/limits.h>
 #include <libgen.h>
+#include <fcntl.h>
 
 #include <stdint.h>
 
@@ -91,16 +92,36 @@ public:
 
   static std::string DirName(const std::string &path) {
     if (path.empty()) {
-      return ".";
+      return "";
     }
-    char *path_c = const_cast<char *>(path.data());
-    return std::string(dirname(path_c));
+    std::string temp_path = path;
+    char *path_c = dirname(const_cast<char *>(temp_path.data()));
+    return path_c ? std::string(path_c) : "";
   }
 
   static int64_t GetClockMonotonicRawNs() {
     struct timespec ts = {0};
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
     return static_cast<int64_t>(ts.tv_sec) * 1000000000 + static_cast<int64_t>(ts.tv_nsec);
+  }
+
+  static bool CreateFile(const std::string &path) {
+    if (path.empty() || path.size() > PATH_MAX || !CreateDir(DirName(path))) {
+      return false;
+    }
+    int fd = creat(path.c_str(), S_IRUSR | S_IWUSR | S_IRGRP);
+    return (fd < 0 || close(fd) != 0) ? false : true;
+  }
+
+  static bool IsSoftLink(const std::string &path) {
+    if (path.empty() || path.size() > PATH_MAX || !IsFileExist(path)) {
+      return false;
+    }
+    struct stat st{};
+    if (lstat(path.c_str(), &st) != 0) {
+      return false;
+    }
+    return S_ISLNK(st.st_mode);
   }
 };
 } // profiler
