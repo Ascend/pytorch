@@ -213,12 +213,9 @@ if (DEFINED BUILD_LIBTORCH)
 endif()
 
 set(OPS_PLUGIN_SRCS)
-if (DEFINED BUILD_OPPLUGIN)
-  # Add subdirectory of op-plugin
-  add_definitions(-DUSE_OPPLUGIN)
-  include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
-endif()
+# Add subdirectory of op-plugin
+include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
 
 if (DEFINED BUILD_LIBTORCH)
   set(CPP_SRCS ${ATEN_SRCS} ${CORE_SRCS} ${OPS_PLUGIN_SRCS} ${FRAMEWORK_SRCS} ${NPU_CPP_LIBS_SRCS})

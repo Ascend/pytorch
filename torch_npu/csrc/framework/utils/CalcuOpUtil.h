@@ -112,35 +112,10 @@ public:
 
   static void CheckMemoryOverLaps(c10::ArrayRef<at::Tensor> inputs,
                                   c10::ArrayRef<at::Tensor> outputs);
-  static int64_t MakeWrapDim(int64_t dim, int64_t dim_post_expr);
-  static bool IsTransposeLastTwoDims(const at::Tensor &tensor);
-  static bool IsMmTranspose(const at::Tensor &tensor);
   static bool IsScalarWrappedToTensor(const at::Tensor &tensor);
-  static bool IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2);
-  static bool IsTransposeInnerAxis(const at::Tensor &self);
-  static bool IsTransposeBothInnerAxis(const at::Tensor &self, const at::Tensor &mat2);
-  static void InsertInputPad(at::Tensor &self, at::Tensor &mat2);
-  static bool IsHalfFloatDtype(const at::Tensor &tensor);
-  static int64_t Ceil(int64_t x, int64_t y);
-  static int64_t CeilDiv(int64_t x, int64_t y);
-  static bool IsScalarOne(const c10::Scalar &scalar);
   static float GetScalarFloatValue(const c10::Scalar &scalar);
   static int64_t GetTensorNpuFormat(const at::Tensor &tensor);
-  static string GetReductionStr(int64_t reduction);
-  static c10::SmallVector<at::Tensor, N>
-  ConvertTensorListToSmallVector(at::TensorList tensors);
-  static c10::SmallVector<int64_t, N>
-  ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray);
-  static c10::SmallVector<int64_t, N>
-  GetDimlistForTensor(const at::Tensor &self);
-  static int64_t CompletePad(int64_t s_size, int64_t p_size, int64_t k_size,
-                             int64_t stride);
-  static c10::SmallVector<int64_t, 3>
-  ComputeOutputSize(c10::IntArrayRef input_size,
-                      c10::optional<c10::IntArrayRef> output_size,
-                      c10::optional<c10::ArrayRef<double>> scale_factors);
-  static c10::optional<double>
-  GetScaleValue(c10::optional<c10::ArrayRef<double>> scales, int idx);
+  static c10::SmallVector<int64_t, SHAPE_SIZE> ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray);
   // used by aclnn to reduce time cost of alloc workspace
   static at::Tensor UnsafeEmptyWorkspace(uint64_t size);
   static int8_t GetCubeMathType(bool allowHf32);

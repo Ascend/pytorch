@@ -18,7 +18,6 @@
 
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/contiguous/contiguous_register.h"
-#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include <ATen/record_function.h>
 

@@ -26,6 +26,7 @@ namespace native {
 
 const int8_t ALLOW_FP32_DOWN_PRECISION = 1;
 const int8_t KEEP_DTYPE = 0;
+const int SIZE = 8;
 
 using torch::autograd::AutogradContext;
 using torch::autograd::Function;

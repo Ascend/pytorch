@@ -22,9 +22,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-#ifdef USE_OPPLUGIN
 #include "op_plugin/OpInterface.h"
-#endif
 
 // ${generated_comment}
 

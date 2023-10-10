@@ -24,9 +24,7 @@
 #include <ATen/Operators.h>
 $ops_headers
 #endif
-#ifdef USE_OPPLUGIN
 #include "op_plugin/OpInterface.h"
-#endif
 
 using namespace at;
 using torch::autograd::CreationMeta;
