@@ -16,6 +16,7 @@ import math
 import torch
 import torch_npu
 
+
 def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
     """Using NPU custom operator to replace the native writing method to improve performance
 

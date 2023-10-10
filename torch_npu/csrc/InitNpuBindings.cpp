@@ -52,7 +52,7 @@ void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
   }
 }
 
-PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
+PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
 {
   // cudaFree is blocking and will synchronize across all kernels executing
   // on the current device, while aclrtFree Free device memory immediately.
@@ -124,7 +124,7 @@ static std::vector<PyMethodDef> methods;
 
 extern "C"
 
-PyObject* initModule(){
+PyObject* initModule() {
   at::internal::lazy_init_num_threads();
 
   AddPyMethodDefs(methods, TorchNpuMethods);
@@ -159,6 +159,6 @@ PyObject* initModule(){
   return module;
 }
 
-PyMODINIT_FUNC PyInit__C(void){
+PyMODINIT_FUNC PyInit__C(void) {
   return initModule();
 }

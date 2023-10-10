@@ -26,6 +26,7 @@ from ..function import matmul_transpose
 
 dropout_class = NpuCachedDropout
 
+
 def quant_noise(module, p, block_size):
     """
     Wraps modules and applies quantization noise to the weights for
@@ -125,16 +126,16 @@ def quant_noise(module, p, block_size):
     module.register_forward_pre_hook(_forward_pre_hook)
     return module
 
+
 class NpuLinear(nn.Linear):
     def forward(self, input2):
         input_shape = input2.size()
         if input2.dim() == 3:
             input2 = input2.view(-1, self.in_features)
-            return torch.npu_linear(input2,self.weight, self.bias).view(input_shape[0],
-                                                                       input_shape[1],
-                                                                       self.out_features)
+            return torch.npu_linear(input2, self.weight, self.bias).view(
+                input_shape[0], input_shape[1], self.out_features)
         elif input2.dim() == 2:
-            return torch.npu_linear(input2, self.weight,self.bias)
+            return torch.npu_linear(input2, self.weight, self.bias)
         else:
             raise RuntimeError('not support this dim')
 
@@ -146,6 +147,7 @@ class MHAConfig:
     def set_fussion(cls):
         from torch import npu_multi_head_attention
         cls.use_fussion_mha = True
+
 
 def Matmul_transpose(tensor1, tensor2):
     return matmul_transpose.MatmulApply.apply(tensor1, tensor2)
@@ -352,7 +354,7 @@ class MultiheadAttention(nn.Module):
         # is None
         elif prev_key_padding_mask is not None:
             filler = torch.zeros(
-                (batch_size, key_padding_mask.size(1),key_padding_mask.size(2),
+                (batch_size, key_padding_mask.size(1), key_padding_mask.size(2),
                  src_len - prev_key_padding_mask.size(3)),
                 device=prev_key_padding_mask.device,
             )
@@ -361,7 +363,7 @@ class MultiheadAttention(nn.Module):
             )
         elif key_padding_mask is not None:
             filler = torch.zeros(
-                (batch_size, key_padding_mask.size(1),key_padding_mask.size(2)
+                (batch_size, key_padding_mask.size(1), key_padding_mask.size(2)
                  , src_len - key_padding_mask.size(3)),
                 device=key_padding_mask.device,
             )
