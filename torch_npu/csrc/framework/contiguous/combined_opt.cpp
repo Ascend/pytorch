@@ -19,7 +19,6 @@
 #include <map>
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
-#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 
 namespace at_npu {
 namespace native {
@@ -91,8 +90,8 @@ private:
       return false;
     }
     RECORD_FUNCTION("contiguous_h_match", std::vector<c10::IValue>({tensor}));
-    StorageDescHelper::SetDesc(tensor, array_to_small_vector(tensor.sizes()),
-                               array_to_small_vector(tensor.strides()));
+    StorageDescHelper::SetDesc(tensor, CalcuOpUtil::ConvertIntArrayRefToSmallVector(tensor.sizes()),
+                               CalcuOpUtil::ConvertIntArrayRefToSmallVector(tensor.strides()));
     return true;
   }
 
@@ -302,9 +301,9 @@ Inference order: permute, select, slice.
 
     c10::SmallVector<FormatShape, 2> stack_shape_stride_part;
     stack_shape_stride_part.emplace_back(
-        array_to_small_vector(tensor_desc.sizes_));
+        CalcuOpUtil::ConvertIntArrayRefToSmallVector(tensor_desc.sizes_));
     stack_shape_stride_part.emplace_back(
-        array_to_small_vector(tensor_desc.strides_));
+        CalcuOpUtil::ConvertIntArrayRefToSmallVector(tensor_desc.strides_));
 
     shape_stride_stacks.emplace_back(stack_shape_stride_part);
     offset_stacks.emplace_back(infer_offset);

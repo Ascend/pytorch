@@ -238,161 +238,9 @@ void CalcuOpUtil::CheckMemoryOverLaps(
   }
 }
 
-string CalcuOpUtil::GetReductionStr(int64_t reduction) {
-  string reductionStr;
-  if (reduction == at::Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == at::Reduction::Mean) {
-    reductionStr = "mean";
-  } else {
-    reductionStr = "sum";
-  }
-
-  return reductionStr;
-}
-
-int64_t CalcuOpUtil::MakeWrapDim(int64_t dim, int64_t dim_post_expr) {
-  if (dim_post_expr <= 0) {
-    dim_post_expr = 1; // this will make range [-1, 0]
-  }
-  if (dim < 0) {
-    dim += dim_post_expr;
-  }
-  return dim;
-}
-
-bool CalcuOpUtil::IsTransposeLastTwoDims(const at::Tensor &tensor) {
-  if (tensor.dim() < 2 || tensor.dim() > 3) {
-    return false;
-  }
-  int64_t numel = 1;
-  auto storageSize = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)
-                         ->get_npu_desc()
-                         .storage_sizes_;
-
-  for (int i = 0; i < storageSize.size(); i++) {
-    numel *= storageSize[i];
-  }
-
-  int64_t dim1 = tensor.dim() - 1;
-  int64_t dim2 = tensor.dim() - 2;
-
-  auto tensor_desc =
-      torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc();
-  if (tensor.stride(dim2) == 1 && tensor.stride(dim1) == tensor.size(dim2) &&
-      tensor.size(dim1) == tensor_desc.base_sizes_[dim2] &&
-      tensor.size(dim2) == tensor_desc.base_sizes_[dim1] &&
-      tensor.numel() == numel &&
-      tensor_desc.base_sizes_.size() == tensor.dim()) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-bool CalcuOpUtil::IsMmTranspose(const at::Tensor &tensor) {
-  if (tensor.dim() < 2 || tensor.dim() > 3) {
-    return false;
-  }
-  int64_t dim1 = tensor.dim() - 1;
-  int64_t dim2 = tensor.dim() - 2;
-
-  if (tensor.stride(dim2) == 1 && tensor.stride(dim1) == tensor.size(dim2)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-bool CalcuOpUtil::IsNdToNzOnTheFly(const at::Tensor &self, const at::Tensor &mat2) {
-  const static int64_t kInnerAxisMinLimit = 128;
-  const static int64_t kInnerAxisMaxLimit = 65535;
-  if (self.dim() < 2 || mat2.dim() < 2) {
-    return false;
-  }
-  // get inner axis of input after transpose.
-  int64_t self_inner_axis = self.size(self.dim() - 1);
-  int64_t self_outer_axis = self.size(self.dim() - 2);
-  int64_t mat2_inner_axis = mat2.size(mat2.dim() - 1);
-  int64_t mat2_outer_axis = mat2.size(mat2.dim() - 2);
-  if (IsTransposeLastTwoDims(self)) {
-    self_inner_axis = self.size(self.dim() - 2);
-    self_outer_axis = self.size(self.dim() - 1);
-  }
-  if (IsTransposeLastTwoDims(mat2)) {
-    mat2_inner_axis = mat2.size(mat2.dim() - 2);
-    mat2_outer_axis = mat2.size(mat2.dim() - 1);
-  }
-  if (self_inner_axis * self_outer_axis <= kInnerAxisMaxLimit &&
-      mat2_inner_axis * mat2_outer_axis <= kInnerAxisMaxLimit) {
-    // too small tensor size
-    return true;
-  }
-  // self inner_axis and mat2_inner_axis both in [128, 65535] or in (0, 128) and is multi of 16
-  return ((self_inner_axis >= kInnerAxisMinLimit && self_inner_axis <= kInnerAxisMaxLimit) ||
-          (self_inner_axis < kInnerAxisMinLimit && !(self_inner_axis & 0xF))) &&
-         ((mat2_inner_axis >= kInnerAxisMinLimit && mat2_inner_axis <= kInnerAxisMaxLimit) ||
-          (mat2_inner_axis < kInnerAxisMinLimit && !(mat2_inner_axis & 0xF)));
-}
-
-bool CalcuOpUtil::IsTransposeInnerAxis(const at::Tensor &self) {
-  const static int64_t kInnerAxisMinBytes = 256;
-  const static int64_t kInnerAxisMaxLimit = 65535;
-  if (c10_npu::GetSocVersion() < c10_npu::SocVersion::Ascend910B1 || self.dim() < 2 ||
-      (self.scalar_type() != at::ScalarType::Half && self.scalar_type() != at::ScalarType::Float)) {
-    return false;
-  }
-  int64_t data_type = elementSize(self.scalar_type());
-  int64_t self_inner_axis = self.size(self.dim() - 1);
-  int64_t self_outer_axis = self.size(self.dim() - 2);
-  if (IsMmTranspose(self)) {
-    self_inner_axis = self.size(self.dim() - 2);
-    self_outer_axis = self.size(self.dim() - 1);
-  }
-  if (self_inner_axis == 1 && self_outer_axis > kInnerAxisMaxLimit) {
-    return true;
-  }
-  if (self_inner_axis * self_outer_axis <= kInnerAxisMaxLimit) {
-    // too small tensor size
-    return false;
-  }
-  return ((self_inner_axis > kInnerAxisMaxLimit) ||
-          (self_inner_axis * data_type < kInnerAxisMinBytes && bool((self_inner_axis * data_type) & 0x1F))) &&
-         ((self_outer_axis * data_type >= kInnerAxisMinBytes && self_outer_axis <= kInnerAxisMaxLimit) ||
-          (self_outer_axis * data_type < kInnerAxisMinBytes && !((self_outer_axis * data_type) & 0x1F)));
-}
-
-bool CalcuOpUtil::IsTransposeBothInnerAxis(const at::Tensor &self, const at::Tensor &mat2) {
-  const static int64_t kInnerAxisMaxLimit = 65535;
-  int64_t self_inner_axis = self.size(self.dim() - 1);
-  int64_t self_outer_axis = self.size(self.dim() - 2);
-  int64_t mat2_inner_axis = mat2.size(mat2.dim() - 1);
-  int64_t mat2_outer_axis = mat2.size(mat2.dim() - 2);
-  if (IsTransposeLastTwoDims(self)) {
-    self_inner_axis = self.size(self.dim() - 2);
-    self_outer_axis = self.size(self.dim() - 1);
-  }
-  if (IsTransposeLastTwoDims(mat2)) {
-    mat2_inner_axis = mat2.size(mat2.dim() - 2);
-    mat2_outer_axis = mat2.size(mat2.dim() - 1);
-  }
-  return self_inner_axis > kInnerAxisMaxLimit && self_outer_axis <= kInnerAxisMaxLimit &&
-         mat2_inner_axis > kInnerAxisMaxLimit && mat2_outer_axis <= kInnerAxisMaxLimit;
-}
-
 bool CalcuOpUtil::IsScalarWrappedToTensor(const at::Tensor &tensor) {
   return tensor.unsafeGetTensorImpl()->is_wrapped_number() &&
          (!at_npu::key::isDeviceTensor(tensor));
-}
-
-bool CalcuOpUtil::IsScalarOne(const c10::Scalar &scalar) {
-  if (scalar.isIntegral(false)) {
-    return scalar.toInt() == 1;
-  } else if (scalar.isFloatingPoint()) {
-    return fabs(scalar.toFloat() - 1.0) < EPSILON;
-  } else {
-    return false;
-  }
 }
 
 float CalcuOpUtil::GetScalarFloatValue(const c10::Scalar &scalar) {
@@ -406,82 +254,14 @@ float CalcuOpUtil::GetScalarFloatValue(const c10::Scalar &scalar) {
   return value;
 }
 
-c10::SmallVector<at::Tensor, N> CalcuOpUtil::ConvertTensorListToSmallVector(
-    at::TensorList tensors) {
-  c10::SmallVector<at::Tensor, N> tensorVec;
-  for (int i = 0; i < tensors.size(); i++) {
-    tensorVec.emplace_back(tensors[i]);
-  }
-
-  return tensorVec;
-}
-
-c10::SmallVector<int64_t, N> CalcuOpUtil::ConvertIntArrayRefToSmallVector(
+c10::SmallVector<int64_t, SHAPE_SIZE> CalcuOpUtil::ConvertIntArrayRefToSmallVector(
     c10::IntArrayRef intArray) {
-  c10::SmallVector<int64_t, N> intVec;
+  c10::SmallVector<int64_t, SHAPE_SIZE> intVec;
   for (int i = 0; i < intArray.size(); i++) {
     intVec.emplace_back(intArray[i]);
   }
 
   return intVec;
-}
-
-c10::SmallVector<int64_t, N> CalcuOpUtil::GetDimlistForTensor(
-    const at::Tensor &self) {
-  c10::SmallVector<int64_t, N> dimList = {};
-  for (int64_t i = 0; i < self.dim(); i++) {
-    dimList.emplace_back(i);
-  }
-  return dimList;
-}
-
-int64_t CalcuOpUtil::CompletePad(int64_t s_size, int64_t p_size, int64_t k_size,
-                                 int64_t stride) {
-  int64_t needpads = 0;
-  int64_t sizeP = s_size + p_size * 2;
-  int64_t leftLen = sizeP - k_size;
-  if (stride == 0) {
-    AT_ERROR("CompletePad stride is zero!");
-  }
-  auto reminder = leftLen % stride;
-  if (reminder != 0) {
-    needpads = stride - reminder;
-  }
-  return needpads;
-}
-
-c10::SmallVector<int64_t, 3> CalcuOpUtil::ComputeOutputSize(
-    c10::IntArrayRef input_size, // Full input tensor size.
-    at::OptionalIntArrayRef output_size,
-    c10::optional<c10::ArrayRef<double>> scale_factors) {
-  const auto spatial_dimensions = static_cast<int64_t>(input_size.size()) - 2;
-  if (output_size) {
-    TORCH_CHECK(!scale_factors,
-                "Must specify exactly one of output_size and scale_factors");
-    TORCH_CHECK(static_cast<int64_t>(output_size->size()) == spatial_dimensions);
-    return {output_size->data(), output_size->data() + output_size->size()};
-  }
-  if (scale_factors) {
-    TORCH_CHECK(!output_size,
-                "Must specify exactly one of output_size and scale_factors");
-    TORCH_CHECK(static_cast<int64_t>(scale_factors->size()) == spatial_dimensions);
-    c10::SmallVector<int64_t, 3> ret;
-    for (const auto i : c10::irange(spatial_dimensions)) {
-      ret.push_back(static_cast<double>(input_size[i + 2]) *
-                    scale_factors.value()[i]);
-    }
-    return ret;
-  }
-  TORCH_CHECK(false,
-              "Must specify exactly one of output_size and scale_factors");
-}
-
-c10::optional<double> CalcuOpUtil::GetScaleValue(
-    c10::optional<c10::ArrayRef<double>> scales, int idx) {
-  if (!scales) {
-    return c10::nullopt;
-  }
-  return scales->at(idx);
 }
 
 using aclCubeMathType = enum:int8_t {
