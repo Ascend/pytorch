@@ -29,7 +29,7 @@ class IntegrateParser(BaseViewParser):
     }
 
     def __init__(self, profiler_path: str):
-        self._profiler_path = profiler_path
+        super().__init__(profiler_path)
 
     def generate_view(self, output_path: str, **kwargs) -> None:
         for cann_data_enum, parser_bean in ProfilerConfig().get_parser_bean():

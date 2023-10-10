@@ -32,6 +32,7 @@ class KernelViewParser(BaseViewParser):
     def _project_map_for_headers(cls, input_headers: list):
         project_map_dict = {CsvHeaders.OP_SUMMARY_SHOW_HEADERS[i]: CsvHeaders.OP_SUMMARY_KERNEL_BASE_HEADERS[i] for i in
                             range(len(CsvHeaders.OP_SUMMARY_SHOW_HEADERS))}
+
         output_headers = []
         for header in input_headers:
             if header in project_map_dict:
