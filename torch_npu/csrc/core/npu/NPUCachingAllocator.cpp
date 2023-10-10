@@ -1372,6 +1372,7 @@ class THNCachingAllocator {
 
     Block* block = get_allocated_block(ptr.get());
     // block must not be null reaching here
+    TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found");
     device_allocator[block->device]->recordStream(block, stream);
   }
 
