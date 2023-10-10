@@ -121,6 +121,10 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
     return;
   }
   std::string absPath = Utils::RelativeToAbsPath(path);
+  if (Utils::IsSoftLink(absPath)) {
+    NPU_LOGE("Path %s is soft link.", absPath.c_str());
+    return;
+  }
   if (!Utils::IsFileExist(absPath) && !Utils::CreateDir(absPath)) {
     NPU_LOGE("Path %s not exist and create failed.", absPath.c_str());
     return;
