@@ -157,6 +157,9 @@ extern HcclResult HcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
 extern HcclResult HcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
     HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream);
 
+extern HcclResult HcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType sendType,
+    const void *recvBuf, uint64_t recvCount, HcclDataType recvType, HcclComm comm, aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

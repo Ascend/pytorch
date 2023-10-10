@@ -28,6 +28,7 @@ REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclAlltoAllV)
 LOAD_FUNCTION(HcclReduce)
 LOAD_FUNCTION(HcclGetCommAsyncError)
+LOAD_FUNCTION(HcclAlltoAll)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -67,6 +68,24 @@ HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError) {
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclGetCommAsyncError");
     auto ret = func(comm, asyncError);
+    return ret;
+}
+
+HcclResult hcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType sendType,
+    const void *recvBuf, uint64_t recvCount, HcclDataType recvType,
+    HcclComm comm, aclrtStream stream)
+{
+    typedef HcclResult(*HcclAlltoAllFunc)(
+        const void *, uint64_t, HcclDataType,
+        const void *, uint64_t, HcclDataType,
+        HcclComm, aclrtStream);
+    static HcclAlltoAllFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclAlltoAllFunc)GET_FUNC(HcclAlltoAll);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAll");
+    auto ret = func(sendBuf, sendCount, sendType,
+                    recvBuf, recvCount, recvType, comm, stream);
     return ret;
 }
 
