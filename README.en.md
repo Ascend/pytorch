@@ -52,7 +52,8 @@ Install the official torch package, and then compile and install the plugin.
 
 ```sh
 #x86_64
-pip3 install torch==1.8.1+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
+pip3 install torch==1.8.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
+# If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
 
 #AArch64
 #The community does not provide the CPU installation package of the ARM architecture. For details, see the first FAQ to compile and install PyTorch using the source code.
