@@ -115,6 +115,7 @@ def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwa
     ]
     return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
 
+
 def sample_inputs_binary_cross_entropy_with_logits(
     op_info, device, dtype, requires_grad, **kwargs
 ):
@@ -144,6 +145,7 @@ def sample_inputs_binary_cross_entropy_with_logits(
             kwargs=kwargs,
         )
 
+
 def sample_inputs_mm_custom(self, device, dtype, requires_grad, **kwargs):
     make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
 
@@ -155,16 +157,17 @@ def sample_inputs_mm_custom(self, device, dtype, requires_grad, **kwargs):
     for torch_sample in common_methods_invocations.sample_inputs_mm(self, device, dtype, requires_grad, **kwargs):
         yield torch_sample
 
+
 def sample_inputs_median_custom(self, device, dtype, requires_grad, **kwargs):
     make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
 
     empty_tensor_shape = [(2, 0), (0, 2)]
     for shape in empty_tensor_shape:
         yield common_methods_invocations.SampleInput(make_arg(shape))
-    
-    for torch_sample in common_methods_invocations.sample_inputs_reduction\
-        (self, device, dtype, requires_grad, **kwargs):
-        yield torch_sample
+
+    yield from common_methods_invocations.sample_inputs_reduction(
+        self, device, dtype, requires_grad, **kwargs
+    )
 
 
 op_db: List[OpInfo] = [
@@ -1439,7 +1442,7 @@ op_db: List[OpInfo] = [
         skips=(
             # the framework does not support the conversion of dtype parameter
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
-            dtypes=[torch.float16, ]),
+            dtypes=[torch.float16]),
         ),
     ),
     OpInfo(
@@ -1452,7 +1455,7 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32,]),
+            dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
@@ -1465,7 +1468,7 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32,]),
+            dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
@@ -1628,7 +1631,7 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.int32, torch.int64, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32, ]),
+            dtypes=[torch.float32]),
         ),
     ),  
     UnaryUfuncInfo(

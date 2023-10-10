@@ -42,7 +42,7 @@ import numpy as np
 
 from torch._six import string_classes, inf
 
-from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices, IS_WINDOWS
+from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices
 from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
 
 # Environment variables set in ci script.
