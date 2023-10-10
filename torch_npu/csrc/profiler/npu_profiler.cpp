@@ -136,7 +136,9 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
   if (activities.count(NpuActivityType::NPU)) {
     npu_trace = true;
   }
-  ProfilerMgr::GetInstance()->Init(Utils::RealPath(absPath), npu_trace);
+  std::string realPath = Utils::RealPath(absPath);
+  TORCH_CHECK(!realPath.empty(), "Invalid path", path);
+  ProfilerMgr::GetInstance()->Init(realPath, npu_trace);
 }
 
 static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) {

@@ -180,6 +180,7 @@ void PutMarkStamp(const std::string &opName) {
     g_markStamp.nodes[index].startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
     g_markStamp.nodes[index].endTime = g_markStamp.nodes[index].startTime;
     std::strncpy(g_markStamp.nodes[index].message, opName.c_str(), OP_NAME_LEN);
+    g_markStamp.nodes[index].message[OP_NAME_LEN - 1] = '\0';
     // report data
     if ((index & (ONCE_REPORT_NUM - 1)) == (ONCE_REPORT_NUM - 1)) {
       int ret = at_npu::native::AclprofReportStamp("torch_cann_op", strlen("torch_cann_op"),
@@ -404,6 +405,7 @@ void PushStartTime(at::RecordFunction& fn) {
     node->startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
     int nameLen = strlen(fn.name());
     std::strncpy(node->message, fn.name(), OP_NAME_LEN);
+    node->message[OP_NAME_LEN - 1] = '\0';
     fn.setForwardThreadId(reinterpret_cast<uint64_t>(node));
   }
 }
