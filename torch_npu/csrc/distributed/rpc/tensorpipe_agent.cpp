@@ -1,15 +1,15 @@
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_agent.h"
 
+#include <limits>
+#include <thread>
+#include <tuple>
+#include <utility>
+
 #include <c10/core/StreamGuard.h>
 #include <c10/util/irange.h>
 #include <torch/csrc/distributed/rpc/agent_utils.h>
 #include <torch/csrc/distributed/rpc/utils.h>
 #include <unistd.h>
-
-#include <limits>
-#include <thread>
-#include <tuple>
-#include <utility>
 
 #include "third_party/Tensorpipe/tensorpipe/common/device_id.h"
 #include "third_party/Tensorpipe/tensorpipe/tensorpipe.h"
@@ -23,7 +23,7 @@ namespace rpc {
 
 namespace {
 
-// An environment variable along the lines of GLOO_ and NCCL_SOCKET_IFNAME that
+// An environment variable along the lines of GLOO_ and HCCL_SOCKET_IFNAME that
 // allows the user to specify a device to bind to, instead of binding to the
 // address that the hostname resolves to.
 const std::string kSocketIfnameEnvVar = "TP_SOCKET_IFNAME";
@@ -185,7 +185,7 @@ std::unique_ptr<TransportRegistration> makeUvTransport()
 }
 
 // The UV transport is implemented using standard TCP connections. It leverages
-// libuv (https://github.com/libuv/libuv) in order to be cross-platform.
+// libuv in order to be cross-platform.
 C10_REGISTER_CREATOR(TensorPipeTransportRegistry, uv, makeUvTransport);
 
 #if TENSORPIPE_HAS_SHM_TRANSPORT
@@ -591,8 +591,7 @@ void TensorPipeAgent::sendCompletedResponseMessage(std::shared_ptr<tensorpipe_np
                     responseMessage = createExceptionResponse(
                         c10::str("RPC detected that a user-function output tensor on device ", device,
                                  ". This device is not one of the input tensor devices: ", oss.str(),
-                                 "which is not yet supported. Please file a feature request "
-                                 "issue in PyTorch GitHub repo."),
+                                 "which is not yet supported."),
                         messageId);
                     break;
                 }
@@ -600,30 +599,30 @@ void TensorPipeAgent::sendCompletedResponseMessage(std::shared_ptr<tensorpipe_np
         }
 
         pipeWrite(pipe, std::move(responseMessage), std::move(devices), std::move(streams),
-                    [this, pipe, messageId](const tensorpipe_npu::Error &error) {
-                        if (error) {
-                            LOG(WARNING) << "RPC agent for " << workerInfo_.name_
-                                        << " encountered error when sending response to request #" << messageId << " to "
-                                        << pipe->getRemoteName() << ": " << error.what();
-                            return;
-                        }
+            [this, pipe, messageId](const tensorpipe_npu::Error &error) {
+                if (error) {
+                    LOG(WARNING) << "RPC agent for " << workerInfo_.name_
+                                 << " encountered error when sending response to request #" << messageId << " to "
+                                 << pipe->getRemoteName() << ": " << error.what();
+                    return;
+                }
 
-                        VLOG(1) << "RPC agent for " << workerInfo_.name_ << " done sending response to request #"
-                                << messageId << " to " << pipe->getRemoteName();
-                    });
+                VLOG(1) << "RPC agent for " << workerInfo_.name_ << " done sending response to request #"
+                        << messageId << " to " << pipe->getRemoteName();
+            });
     } else {
         pipeWrite(pipe, createExceptionResponse(futureResponseMessage.tryRetrieveErrorMessage(), messageId), {},
-                    std::move(streams), [this, pipe, messageId](const tensorpipe_npu::Error &error) {
-                        if (error) {
-                            LOG(WARNING) << "RPC agent for " << workerInfo_.name_
-                                        << " encountered error when sending response to request #" << messageId << " to "
-                                        << pipe->getRemoteName() << ": " << error.what();
-                            return;
-                        }
+            std::move(streams), [this, pipe, messageId](const tensorpipe_npu::Error &error) {
+                if (error) {
+                    LOG(WARNING) << "RPC agent for " << workerInfo_.name_
+                                 << " encountered error when sending response to request #" << messageId << " to "
+                                 << pipe->getRemoteName() << ": " << error.what();
+                    return;
+                }
 
-                        VLOG(1) << "RPC agent for " << workerInfo_.name_ << " done sending response to request #"
-                                << messageId << " to " << pipe->getRemoteName();
-                    });
+                VLOG(1) << "RPC agent for " << workerInfo_.name_ << " done sending response to request #"
+                        << messageId << " to " << pipe->getRemoteName();
+            });
     }
 }
 
@@ -798,8 +797,8 @@ c10::intrusive_ptr<JitFuture> TensorPipeAgent::send(const WorkerInfo &toWorkerIn
                     // This is expected.
                 } else {
                     LOG(WARNING) << "RPC agent for " << workerInfo_.name_
-                                << " encountered error when sending outgoing request #" << messageId << " to "
-                                << clientPipe.pipe_->getRemoteName() << ": " << error.what();
+                                 << " encountered error when sending outgoing request #" << messageId << " to "
+                                 << clientPipe.pipe_->getRemoteName() << ": " << error.what();
                 }
                 handleClientError(clientPipe, error);
                 return;
@@ -816,8 +815,8 @@ c10::intrusive_ptr<JitFuture> TensorPipeAgent::send(const WorkerInfo &toWorkerIn
                         // This is expected.
                     } else {
                         LOG(WARNING) << "RPC agent for " << workerInfo_.name_
-                                    << " encountered error when reading incoming response from "
-                                    << clientPipe.pipe_->getRemoteName() << ": " << error.what();
+                                     << " encountered error when reading incoming response from "
+                                     << clientPipe.pipe_->getRemoteName() << ": " << error.what();
                     }
                     handleClientError(clientPipe, error);
                     return;

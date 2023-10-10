@@ -7,12 +7,9 @@ from torch.distributed.rpc import api
 from torch.distributed.rpc import constants as rpc_constants
 
 
-# ==== New Help Functions ====
 def _get_device_count_info():
     # Function used to replace torch.cuda.device_count in torch_npu
     device_count = dict()
-    cuda_device_count = torch.cuda.device_count()
-    device_count["cuda"] = cuda_device_count
     # Whether a third-party device is registered, and if so,
     # the information of the third-party device is also stored in device_count dictionary
     custom_backend_name = _get_privateuse1_backend_name()
@@ -29,7 +26,6 @@ def _init_device_state(custom_backend_name):
         getattr(torch, custom_backend_name).init()
 
 
-# ==== Modified Help Functions ====
 def _tensorpipe_validate_devices(devices, device_count):
     return all(
         d.type == "cpu" or (0 <= d.index < device_count.get(d.type, 0))
@@ -171,7 +167,6 @@ def _set_devices_and_reverse_device_map(agent):
                      args=(my_worker_info, all_devices[worker_name], reverse_device_maps, True))
 
 
-# ==== imported and used by other .py files ====
 def _backend_type_repr(self):
     return "BackendType." + self.name
 
@@ -192,7 +187,6 @@ def init_backend(backend, *args, **kwargs):
     return backend.value.init_backend_handler(*args, **kwargs)
 
 
-# ==== Backend Registration ====
 # Backend Option Handler
 def _npu_tensorpipe_construct_rpc_backend_options_handler(
     rpc_timeout,

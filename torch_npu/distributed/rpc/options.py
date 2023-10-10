@@ -13,10 +13,9 @@ __all__ = ["NPUTensorPipeRpcBackendOptions"]
 
 def _to_device(device: DeviceType) -> torch.device:
     device = torch.device(device)
-    if device.type != "cuda" and \
-            device.type != _get_privateuse1_backend_name():
+    if device.type != _get_privateuse1_backend_name():
         raise ValueError(
-            "`set_devices` expect a list of CUDA devices or "
+            "`set_devices` expect a list of "
             f"{_get_privateuse1_backend_name()} devices, but got "
             f"device type {device.type}."
         )

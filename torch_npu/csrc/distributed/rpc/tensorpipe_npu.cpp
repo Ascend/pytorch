@@ -1,9 +1,9 @@
+#include <iostream>
+
 #include <tensorpipe/tensorpipe.h>
 #include <tensorpipe/tensorpipe_npu.h>
 #include <torch_npu/csrc/distributed/rpc/tensorpipe_agent.h>
 #include <torch_npu/csrc/distributed/rpc/tensorpipe_utils.h>
-
-#include <iostream>
 
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"

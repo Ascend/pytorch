@@ -1,13 +1,14 @@
 #pragma once
 
+#include <atomic>
+#include <thread>
+
 #include <c10/core/thread_pool.h>
 #include <c10/util/strong_type.h>
 #include <torch/csrc/distributed/rpc/agent_utils.h>
 #include <torch/csrc/distributed/rpc/rpc_agent.h>
 #include <torch/csrc/distributed/rpc/tensorpipe_agent.h>
 
-#include <atomic>
-#include <thread>
 #include <torch/csrc/distributed/c10d/PrefixStore.hpp>
 #include <torch/csrc/distributed/c10d/Store.hpp>
 
@@ -110,7 +111,7 @@ struct AggregatedNetworkData {
 // TensorPipeAgent leverages TensorPipe to transparently move tensors and
 // payloads through the fastest available transport or channel. It acts like
 // a hybrid RPC transport, providing shared memory (linux) and TCP (linux
-// & mac) support. CUDA support is in progress.
+// & mac) support.
 class TensorPipeAgent : public RpcAgent {
 public:
     TensorPipeAgent(const c10::intrusive_ptr<::c10d::Store> &store, std::string selfName, worker_id_t selfId,
