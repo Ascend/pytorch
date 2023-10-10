@@ -275,12 +275,10 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const std::vector<at::Device>& devices)
   hcclComms_.resize(devices.size());
 }
 
-ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
+ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w, bool makeWeak)
     : Work(w.rank_, w.opType_),
-      npuEvents_(w.npuEvents_),
+      makeWeak_(makeWeak),
       devices_(w.devices_),
-      hcclStartEvents_(w.hcclStartEvents_),
-      hcclEndEvents_(w.hcclEndEvents_),
       hcclComms_(w.hcclComms_),
       blockingWait_(w.blockingWait_),
       opTimeout_(w.opTimeout_),
@@ -288,6 +286,13 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
       seq_(w.seq_),
       startTraceUpdated_(w.startTraceUpdated_),
       store_(w.store_) {
+  if (makeWeak) {
+    npuEventsWeak_ = w.npuEvents_;
+    hcclStartEventsWeak_ = w.hcclStartEvents_;
+  } else {
+    npuEvents_ = w.npuEvents_;
+    hcclStartEvents_ = w.hcclStartEvents_;
+  }
   exception_ = w.exception_;
 }
 
@@ -338,9 +343,13 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution() {
 }
 
 bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
+  auto hcclStartEvents = (makeWeak_ ? hcclStartEventsWeak_.lock() : hcclStartEvents_);
+  if (hcclStartEvents == nullptr) {
+    return true;
+  }
   for (const auto i : c10::irange(devices_.size())) {
     // Checking the work's corresponding NPU events' status
-    if (!(*hcclStartEvents_)[i].query()) {
+    if (!(*hcclStartEvents)[i].query()) {
       return false;
     }
   }
@@ -349,10 +358,14 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
 
 // check if HCCL task is finished
 bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
+  auto npuEvents = (makeWeak_ ? npuEventsWeak_.lock() : npuEvents_);
+  if (npuEvents == nullptr) {
+    return true;
+  }
   try {
     for (const auto i : c10::irange(devices_.size())) {
       // Checking the work's corresponding CUDA events' status
-      if (!(*npuEvents_)[i].query()) {
+      if (!(*npuEvents)[i].query()) {
         return false;
       }
     }
@@ -379,10 +392,14 @@ void ProcessGroupHCCL::WorkHCCL::checkAndThrowException() {
 
 // Waiting on the work's corresponding NPU events
 void ProcessGroupHCCL::WorkHCCL::synchronize() {
+  auto npuEvents = (makeWeak_ ? npuEventsWeak_.lock() : npuEvents_);
+  if (npuEvents == nullptr) {
+    return;
+  }
   for (const auto i : c10::irange(devices_.size())) {
     auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
     // Block the current stream on the HCCL stream
-    (*npuEvents_)[i].block(currentStream);
+    (*npuEvents)[i].block(currentStream);
     // If we use the work to do barrier, we should block here
     if (!barrierTensors_.empty()) {
       c10_npu::NPUGuard npuGuard(devices_[i]);
@@ -835,8 +852,8 @@ void ProcessGroupHCCL::workCleanupLoop() {
           if (!terminateProcessGroup_.load()) {
             work.handleHCCLGuard(asyncErrorHandling_);
           }
-          doneWorks.push_back(std::move(*it));
-          workTemp_.emplace_back(work);
+          doneWorks.emplace_back(std::move(*it), true);
+          workTemp_.emplace_back(work, true);
           it = workMetaList_.erase(it);
         } else {
           // Increment the iterator if the current WorkNCCL object is not
@@ -856,7 +873,7 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
     // View tensors' destruction invokes autograd_meta, which
     // needs to be destructed in user thread. Otherwise will
     // get deadlock. Here we enqueue work without outputs_.
-    workMetaList_.emplace_back(*work);
+    workMetaList_.emplace_back(*work, true);
   }
 }
 

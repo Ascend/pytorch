@@ -82,8 +82,7 @@ public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
     explicit WorkHCCL(const std::vector<at::Device>& devices);
-    explicit WorkHCCL(const WorkHCCL& w);
-    WorkHCCL& operator=(const WorkHCCL& w) = default;
+    explicit WorkHCCL(const WorkHCCL& w, bool makeWeak);
     virtual ~WorkHCCL();
 
     // Checks if the HCCL kernel has started to execute.
@@ -117,9 +116,11 @@ public:
     bool timedOut();
 
   protected:
-
+    bool makeWeak_ = false;
     // The NPU events tracking this work item on multiple NPU devices
     std::shared_ptr<std::vector<c10_npu::NPUEvent>> npuEvents_;
+
+    std::weak_ptr<std::vector<c10_npu::NPUEvent>> npuEventsWeak_;
 
     // The cached list of NPU devices to operate on.
     // HCCL support one device per rank only
@@ -134,6 +135,8 @@ public:
     // multiple runtime devices. These start npu events are needed by desync
     // debugging if enabled.
     std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
+
+    std::weak_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEventsWeak_;
 
     // The end npu events of HCCL operator tracking this work item on
     // multiple npu devices.
