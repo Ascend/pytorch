@@ -1,5 +1,4 @@
 from functools import wraps
-import gc
 import itertools
 import os
 import types
@@ -42,8 +41,6 @@ from torch.distributed.fsdp.api import (
     StateDictSettings,
     StateDictType,
 )
-
-gc.disable()
 
 
 class FSDPTestConfig(object):
