@@ -165,7 +165,8 @@ class NpuFusedOptimizerBase(Optimizer):
         return self.grads_all_group_combined
 
     def _clip_grad_norm_fused_(self, combined_grads, combined_grads_masks, max_norm, norm_type):
-        assert len(combined_grads) == len(combined_grads_masks)
+        if len(combined_grads) != len(combined_grads_masks):
+            raise ValueError("Length of combined_grads and combined_grads_masks must be equal.")
         if len(combined_grads) == 0 or all(i is None for i in combined_grads):
             return torch.tensor(0.)
 
@@ -205,7 +206,8 @@ class NpuFusedOptimizerBase(Optimizer):
 
     def _maybe_init_combined_grads_masks(self):
         # Create a mask to ensure the padded data to be zero in case of combining tensors with NPU-private format.
-        assert self.is_params_grads_combined
+        if not self.is_params_grads_combined:
+            raise ValueError("Value of param 'is_params_grads_combined' must be True")
 
         combined_grads_masks = []
         for params_group_one_dtype in self.params_all_group:

@@ -49,7 +49,8 @@ def default_schedule(_: int):
 
 
 def register_hook(model, hook, **kwargs):
-    assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
+    if not hasattr(model, "named_modules"):
+        raise RuntimeError("Please register hooks to nn.Module.")
 
     seed = kwargs.get('seed', 1234)
     seed_all(seed)
