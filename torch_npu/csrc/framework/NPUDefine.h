@@ -12,20 +12,20 @@ namespace at_npu
 
     struct ACL_PARAMS
     {
-      ACL_PARAMS()
-      {
-        input_desc = nullptr;
-        input_data_buf = nullptr;
-        output_desc = nullptr;
-        output_data_buf = nullptr;
-      }
+        ACL_PARAMS()
+        {
+          input_desc = nullptr;
+          input_data_buf = nullptr;
+          output_desc = nullptr;
+          output_data_buf = nullptr;
+        }
 
-      int input_num;
-      const aclTensorDesc **input_desc;
-      const aclDataBuffer **input_data_buf;
-      int output_num;
-      const aclTensorDesc **output_desc;
-      aclDataBuffer **output_data_buf;
+        int input_num{0};
+        const aclTensorDesc **input_desc;
+        const aclDataBuffer **input_data_buf;
+        int output_num{0};
+        const aclTensorDesc **output_desc;
+        aclDataBuffer **output_data_buf;
     };
 
     struct ACL_DYNAMIC_PARAMS
