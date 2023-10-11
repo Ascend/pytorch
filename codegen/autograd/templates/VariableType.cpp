@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-#include "op_plugin/OpInterface.h"
+#include "torch_npu/csrc/aten/CustomRedispatch.h"
 
 
 // ${generated_comment}
@@ -57,7 +57,11 @@ ${type_derived_method_definitions}
 namespace {
 
 TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
-  ${wrapper_registrations}
+    ${wrapper_registrations_aten}
+}
+
+TORCH_LIBRARY_IMPL(npu, AutogradPrivateUse1, m) {
+    ${wrapper_registrations_npu}
 }
 
 }

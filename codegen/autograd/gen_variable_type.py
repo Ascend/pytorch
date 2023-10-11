@@ -57,7 +57,7 @@ def gen_variable_type(
         },
         env_callable=gen_variable_type_func,
         num_shards=1,
-        sharded_keys={'type_derived_method_definitions', 'wrapper_registrations'}
+        sharded_keys={'type_derived_method_definitions', 'wrapper_registrations_aten', 'wrapper_registrations_npu'}
     )
 
 
@@ -112,15 +112,15 @@ def gen_variable_type_func(
         type_definition = re.sub(try_jit_decomposition_pattern, r"\1", type_definition, flags=re.DOTALL)
         type_definition = re.sub(use_count_pattern, "", type_definition, flags=re.DOTALL)
         if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
-            if str(f.func.name) in NPU_NATIVEFUNCTIONS:
-                type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
-            else:
-                type_definition = type_definition.replace('at::redispatch', 'op_plugin')
-            type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
-        
-        wrapper_registration = gen_wrapper_registration(f, "Default")
+            type_definition = type_definition.replace('at::redispatch', 'at_npu::redispatch')
 
+        wrapper_registration = gen_wrapper_registration(f, "Default")
         result[f"type_derived_method_definitions"] = [type_definition]
-        result[f"wrapper_registrations"] = [wrapper_registration]
+        if str(f.func.name) in NPU_AUTOGRAD_FUNCTION:
+            result[f"wrapper_registrations_aten"] = []
+            result[f"wrapper_registrations_npu"] = [wrapper_registration]
+        else:
+            result[f"wrapper_registrations_aten"] = [wrapper_registration]
+            result[f"wrapper_registrations_npu"] = []
 
     return result
