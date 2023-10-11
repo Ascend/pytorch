@@ -534,7 +534,7 @@ protected:
     at::Tensor resultTensor;
     // whether we should divide by the initial world_size or the no. of
     // remaining DDP ranks.
-    bool useStaticWorldSize;
+    bool useStaticWorldSize = false;
   };
 
   // Handle for the currently scheduled allreduce in the forward pass, if
