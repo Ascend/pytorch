@@ -27,8 +27,6 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
         weight_decay (float, optional, default=0): weight decay (L2 penalty)
         dampening (float, optional, default=0): dampening for momentum
         nesterov (bool, optional, default=False): enables Nesterov momentum
-
-    __ http://www.cs.toronto.edu/%7Ehinton/absps/momentum.pdf
     """
 
     def __init__(self,

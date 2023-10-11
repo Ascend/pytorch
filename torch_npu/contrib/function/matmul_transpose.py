@@ -9,9 +9,6 @@ class MatmulApply(torch.autograd.Function):
     
     Compute Function:
     attn = (q @ k.transpose(-2, -1))
-    
-    Reference implementation link:
-    https://github.com/huggingface/transformers/blob/d6eeb871706db0d64ab9ffd79f9545d95286b536/src/transformers/models/bert/modeling_bert.py#L331
 
     This interface is faster than the original on NPU.
 

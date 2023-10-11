@@ -28,9 +28,6 @@ class NpuDropPath(nn.Module):
     """Using NPU affinity writing method to replace the native Drop paths in swin_transformer.py.
     
     Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks.)
-    
-    Reference implementation link:
-    https://github.com/rwightman/pytorch-image-models/blob/e7f0db866412b9ae61332c205270c9fc0ef5083c/timm/models/layers/drop.py#L160
 
     .. note::
         Dynamic shapes are not supported.

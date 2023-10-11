@@ -21,9 +21,6 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
         delta (float, optional, default: 0.1): threshold of cosine similarity
         wd_ratio (float, optional, default: 0.1): weight decay ratio for dynamic tuning
         nesterov (bool, optional, default: False): enables Nesterov momentum
-
-    .. _Slowing Down the Weight Norm Increase in Momentum-based Optimizers:
-        https://arxiv.org/abs/2006.08217
     """
 
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,

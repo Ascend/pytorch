@@ -144,9 +144,6 @@ class MultiheadAttention(nn.Module):
     """Multi-headed attention.
 
     See "Attention Is All You Need" for more details.
-    
-    Reference implementation link:
-    https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64
 
     .. note::
         Dynamic shapes are not supported.
@@ -303,8 +300,6 @@ class MultiheadAttention(nn.Module):
             attn = self.multi_attn(query, key, value, key_padding_mask, bsz, tgt_len)
             return attn, None
         else:
-            # Due to the length of the code snippet, it is omitted here, please refer to the following for details:
-            # https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/nlp/mBART_ID2372_for_PyTorch/fairseq/modules/multihead_attention.py#L202
             return None, None
 
     def multi_attn(self, query, key, value, key_padding_mask, bsz, tgt_len):

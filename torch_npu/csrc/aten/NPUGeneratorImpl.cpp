@@ -89,8 +89,7 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
  * internal start in its virtual bitstream viewed as 128-bit chunks, then, when called
  * in a thread, returns one 32-bit chunk at a time from that start in the bitstream.
  * In other words, if the incoming offset is not a multiple of 4, each thread
- * might repeat some previously-generated 32-bit values in the bitstream. See
- * https://github.com/pytorch/pytorch/pull/50169.
+ * might repeat some previously-generated 32-bit values in the bitstream.
  */
 
 /**
