@@ -238,7 +238,7 @@ void syncStreams(
 // exit call back for allreduce error
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
   // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
-  fprintf(stdout, "AllReduce error, see details in Ascend logs.");
+  fprintf(stdout, "Inner error, see details in Ascend logs.");
 }
 
 // Returns exception's what() given an exception_ptr instance.
@@ -1760,62 +1760,97 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
-  uint64_t index = outputTensor.numel() / ranks;
-  if (outputSplitSizes.empty()) {
-    for (int i = 0; i < ranks; i++) {
-      outputSplitSizes.push_back(index);
-    }
-  }
-  index = inputTensor.numel() / ranks;
-  if (inputSplitSizes.empty()) {
-    for (int i = 0; i < ranks; i++) {
-      inputSplitSizes.push_back(index);
-    }
-  }
 
-  int inputSize = inputSplitSizes.size();
-  int outSize = outputSplitSizes.size();
-  uint64_t inputCounts[inputSize];
-  uint64_t inputSpl[inputSize];
-  uint64_t outputCounts[outSize];
-  uint64_t outputSpl[outSize];
-  inputSpl[0] = 0;
-  outputSpl[0] = 0;
-  for (int i = 0; i < outSize; i++) {
-    outputCounts[i] = outputSplitSizes[i];
-    if(i > 0){
-        outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
-    }
-  }
-  for (int i = 0; i < inputSize; i++) {
-    inputCounts[i] = inputSplitSizes[i];
-    if (i > 0) {
-        inputSpl[i] = inputSpl[i-1] + inputCounts[i-1];
-    }
-  }
+  if (inputSplitSizes.empty() && outputSplitSizes.empty()) {
+        // We can use alltoall
+    TORCH_CHECK(
+        outputTensor.numel() == inputTensor.numel() &&
+            outputTensor.type() == inputTensor.type(),
+        "Tensors are not equal in size or data type");
+    TORCH_CHECK(
+        outputTensor.size(0) % ranks == 0,
+        "Tensor's dim 0 does not divide equally across group size");
+    uint64_t output_counts = outputTensor.numel() / ranks;
+    uint64_t input_counts = inputTensor.numel() / ranks;
 
-  check_npu_tensors_different_devices(inputTensors);
-  check_npu_tensors_different_devices(outputTensors);
-  return collective(
-      inputTensors,
-      outputTensors,
-      [&](at::Tensor& input,
-          at::Tensor& output,
-          HcclComm comm,
-          c10_npu::NPUStream& stream) {
+    check_npu_tensors_different_devices(inputTensors);
+    check_npu_tensors_different_devices(outputTensors);
+    return collective(
+        inputTensors,
+        outputTensors,
+        [&](at::Tensor& input,
+            at::Tensor& output,
+            HcclComm comm,
+            c10_npu::NPUStream& stream) {
+          RECORD_FUNCTION("HcclAlltoAll", std::vector<c10::IValue>({input}));
+          return hcclAlltoAll(
+              input.data_ptr(),
+              input_counts,
+              getHcclDataType(input.scalar_type()),
+              output.data_ptr(),
+              output_counts,
+              getHcclDataType(output.scalar_type()),
+              comm,
+              stream.stream());
+        });
+  } else {
+    uint64_t index = outputTensor.numel() / ranks;
+    if (outputSplitSizes.empty()) {
+      for (int i = 0; i < ranks; i++) {
+        outputSplitSizes.push_back(index);
+      }
+    }
+    index = inputTensor.numel() / ranks;
+    if (inputSplitSizes.empty()) {
+      for (int i = 0; i < ranks; i++) {
+        inputSplitSizes.push_back(index);
+      }
+    }
+  
+    int inputSize = inputSplitSizes.size();
+    int outSize = outputSplitSizes.size();
+    uint64_t inputCounts[inputSize];
+    uint64_t inputSpl[inputSize];
+    uint64_t outputCounts[outSize];
+    uint64_t outputSpl[outSize];
+    inputSpl[0] = 0;
+    outputSpl[0] = 0;
+    for (int i = 0; i < outSize; i++) {
+      outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
+      if(i > 0){
+          outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
+      }
+    }
+    for (int i = 0; i < inputSize; i++) {
+      inputCounts[i] = static_cast<uint64_t>(inputSplitSizes[i]);
+      if (i > 0) {
+          inputSpl[i] = inputSpl[i-1] + inputCounts[i-1];
+      }
+    }
+  
+    check_npu_tensors_different_devices(inputTensors);
+    check_npu_tensors_different_devices(outputTensors);
+    return collective(
+        inputTensors,
+        outputTensors,
+        [&](at::Tensor& input,
+            at::Tensor& output,
+            HcclComm comm,
+            c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
-        return hcclAlltoAllV(
-            input.data_ptr(),
-            inputCounts,
-            inputSpl,
-            getHcclDataType(input.scalar_type()),
-            output.data_ptr(),
-            outputCounts,
-            outputSpl,
-            getHcclDataType(output.scalar_type()),
-            comm,
-            stream.stream());
-      });
+          return hcclAlltoAllV(
+              input.data_ptr(),
+              inputCounts,
+              inputSpl,
+              getHcclDataType(input.scalar_type()),
+              output.data_ptr(),
+              outputCounts,
+              outputSpl,
+              getHcclDataType(output.scalar_type()),
+              comm,
+              stream.stream());
+        });
+  }
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
