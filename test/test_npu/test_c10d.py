@@ -80,8 +80,6 @@ class ProcessGroupHCCLTest(TestCase):
         for p in ps:
             p.join(2)
 
-    # Why classmethod? multiprocessing cannot pickle TestCase subclass when in
-    # spawn mode. See https://bugs.python.org/issue33884.
     @classmethod
     def _test_broadcast_process(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):

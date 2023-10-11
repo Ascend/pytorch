@@ -237,7 +237,6 @@ DONT_ENFORCE_SAME_TENSOR_IMPL_OR_STORAGE = {
 DONT_ENFORCE_TENSOR_IMPL_USE_COUNT = {
     # These non-inplace, non-out functions return tensors with use_count > 1
     # Therefore, they MAY (but not necessarily) return one of its inputs as-is
-    # See https://github.com/pytorch/pytorch/issues/60426 for more information
     '_embedding_bag', '_embedding_bag_forward_only',
     'q_per_channel_scales', 'q_per_channel_zero_points',
     'lu_unpack', '_cudnn_rnn_backward',
@@ -1128,7 +1127,6 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 unpacked_arguments=unpacked_arguments))
             fw_grad_setters.append(fw_grad_setter)
 
-        # Set all the grads at the end to avoid: https://github.com/pytorch/pytorch/issues/67367
         content.append('\n'.join(fw_grad_setters))
         return content
 

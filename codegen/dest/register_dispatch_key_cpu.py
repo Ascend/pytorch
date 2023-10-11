@@ -593,7 +593,6 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             # With the expanded context, do the impl call (if not a meta
             # function)
             if self.backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd:
-                # TODO: https://github.com/pytorch/pytorch/issues/53023
                 out_sig_group = CppSignatureGroup.from_native_function(
                     self.g.out, method=False, fallback_binding=f.manual_cpp_binding)
                 out_sig = out_sig_group.most_faithful_signature()
@@ -605,7 +604,6 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                         method=False
                     )
                 )
-                # TODO: I think this means structured won't work with method
                 # only functions (but maybe you're saved by faithful? iunno.)
                 # NB: Originally I wrote this as an at::redispatch call, but
                 # I got in trouble because that meant I needed a DispatchKeySet
@@ -651,8 +649,6 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
 
             sig_body_str = "\n".join(sig_body)
 
-            # For an overview of what this template code looks like, see
-            # https://github.com/pytorch/rfcs/pull/9
             return f"""\
 {self.gen_class(
 f, k,

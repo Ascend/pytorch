@@ -37,7 +37,6 @@ tests, but it could not be found. Install ninja with `pip install ninja`
 or `conda install ninja`.
 """
 
-# https://stackoverflow.com/questions/2549939/get-signal-names-from-numbers-in-python
 SIGNALS_TO_NAMES_DICT = {
     getattr(signal, n): n for n in dir(signal) if n.startswith("SIG") and "_" not in n
 }

@@ -32,9 +32,6 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
     """Using NPU OP to Get box regression transformation deltas
     that can be used to transform the ``bboxes`` into the ``gt_bboxes``.
 
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26
-
     .. note::
         Does not support dynamic shape, because of the semantics of operators, only supports 
         2-dimensional (n, 4) scenes, bboxes and gt_bboxes only support the same shape and the 
@@ -76,11 +73,6 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
                                     normalized_scale=10000.,
                                     ):
     """ Applies an NPU based bboxes's format-encode operation from xyxy to xywh.
-
-    Following the practice in `R-CNN <https://arxiv.org/abs/1311.2524>`.
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py#L98
 
     .. note::
         Because this interface on the NPU is provided for conventional coordinate values,
@@ -130,11 +122,6 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
                                     wh_ratio_clip=16 / 1000,
                                     ):
     """ Applies an NPU based bboxes's format-encode operation from xywh to xyxy.
-
-    Following the practice in `R-CNN <https://arxiv.org/abs/1311.2524>`.
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py#L144
 
     .. note::
         Supports dynamic shape, because of the semantics of operators, only supports 2D (n,4) scenes, 

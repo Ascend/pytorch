@@ -767,9 +767,6 @@ class FullyShardedDataParallel(nn.Module):
     is inspired by `Xu et al.`_ as well as the ZeRO Stage 3 from DeepSpeed_.
     FullyShardedDataParallel is commonly shortened to FSDP.
 
-    .. _`Xu et al.`: https://arxiv.org/abs/2004.13336
-    .. _DeepSpeed: https://www.deepspeed.ai/
-
     Example::
 
         >>> # xdoctest: +SKIP("undefined variables")
@@ -818,8 +815,7 @@ class FullyShardedDataParallel(nn.Module):
         As of PyTorch 1.12, FSDP only offers limited support for shared parameters
         (for example, setting one ``Linear`` layer's weight to another's). In
         particular, modules that share parameters must be wrapped as part of the
-        same FSDP unit. If enhanced shared parameter support is needed for your
-        use case, please ping https://github.com/pytorch/pytorch/issues/77724
+        same FSDP unit.
 
     .. note::
         Inputs into FSDP ``forward`` function will be moved to compute device
@@ -915,8 +911,7 @@ class FullyShardedDataParallel(nn.Module):
             in ``nn.Module``. In particular, this means that if ``is_meta=True`` for any
             module parameters for modules that will be wrapped with FSDP and ``param_init_fn``
             is not specified, we assume your module properly implements a ``reset_paramters()``
-            and will throw errors if not. Note that additionally, we offer support for modules
-            initialized with torchdistX's (https://github.com/pytorch/torchdistX)
+            and will throw errors if not.
             ``deferred_init`` API. In this case, deferred modules would be initialized
             by a default initialization function that calls torchdistX's
             ``materialize_module``, or the passed in ``param_init_fn``, if it is not
@@ -4250,10 +4245,6 @@ class FullyShardedDataParallel(nn.Module):
         Registers a communication hook which is an enhancement that provides a
         flexible hook to users where they can specify how FSDP aggregates gradients
         across multiple workers.
-        This hook can be used to implement several algorithms like
-        `GossipGrad <https://arxiv.org/abs/1803.05880>`_ and gradient compression
-        which involve different communication strategies for
-        parameter syncs while training with :class:`FullyShardedDataParallel`.
 
         .. warning ::
             FSDP communication hook should be registered before running an initial forward pass
@@ -4261,8 +4252,6 @@ class FullyShardedDataParallel(nn.Module):
 
         Args:
             state (object): Passed to the hook to maintain any state information during the training process.
-                            Examples include error feedback in gradient compression,
-                            peers to communicate with next in `GossipGrad <https://arxiv.org/abs/1803.05880>`_, etc.
                             It is locally stored by each worker
                             and shared by all the gradient tensors on the worker.
             hook (Callable): Callable, which has one of the following signatures:

@@ -24,12 +24,6 @@ from .npu_fused_optim_base import NpuFusedOptimizerBase
 class NpuFusedRMSprop(NpuFusedOptimizerBase):
     """Implements NpuFusedRMSprop algorithm.
 
-    Proposed by G. Hinton in his
-    `course <http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf>`_.
-
-    The centered version first appears in `Generating Sequences
-    With Recurrent Neural Networks <https://arxiv.org/pdf/1308.0850v5.pdf>`_.
-
     The implementation here takes the square root of the gradient average before
     adding epsilon (note that TensorFlow interchanges these two operations). The effective
     learning rate is thus :math:`\alpha/(\sqrt{v} + \epsilon)` where :math:`\alpha`

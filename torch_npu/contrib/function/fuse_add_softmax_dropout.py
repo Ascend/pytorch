@@ -20,9 +20,6 @@ import torch_npu
 def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
     """Using NPU custom operator to replace the native writing method to improve performance
 
-    Reference implementation link:
-    https://github.com/huggingface/transformers/blob/7999ec125fc31428ed6879bf01bb013483daf704/src/transformers/models/bert/modeling_bert.py#L346
-
     Examples::
     >>> training = True
     >>> dropout = nn.DropoutWithByteMask(0.1)

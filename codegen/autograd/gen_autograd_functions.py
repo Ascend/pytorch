@@ -308,8 +308,7 @@ MISC_GETTER_DEFS = {
 # These functions have backwards which cannot be traced, and so must have
 # their backward functions traced opaquely.
 # VIEW_FUNCTIONS are not traceable because they use as_strided, which
-# has an untraceable backwards, see
-# https://github.com/pytorch/pytorch/issues/4250
+# has an untraceable backwards.
 # TODO: This is probably not exhaustive, but it's a start
 UNTRACEABLE_FUNCTIONS = VIEW_FUNCTIONS
 

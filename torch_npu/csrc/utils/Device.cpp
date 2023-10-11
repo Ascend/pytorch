@@ -14,9 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// required for old g++ to compile PRId64 macros, see
-// https://github.com/pytorch/pytorch/issues/3571
-// for context
+// required for old g++ to compile PRId64 macros.
 
 #include <torch/csrc/Exceptions.h>
 #include <torch/csrc/utils/object_ptr.h>
@@ -59,7 +57,6 @@ PyObject *TNPDevice_repr(TNPDevice *self)
   if (self->device.has_index()) {
     // `self->device.index()` returns uint8_t which is treated as ascii while printing,
     // hence casting it to uint16_t.
-    // https://stackoverflow.com/questions/19562103/uint8-t-cant-be-printed-with-cout
     oss << ", index=" << static_cast<uint16_t>(self->device.index());
   }
   oss << ")";

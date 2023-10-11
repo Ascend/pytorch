@@ -167,8 +167,6 @@ class TestMuls(TestCase):
                 npu_output = npu_output.astype(np.float)
             self.assertRtolEqual(cpu_output, npu_output)
 
-        # test mul with fp16 tensor * scalar(overflow with fp16 max value), Just test for functional correctness
-        # PR: https://gitee.com/ascend/pytorch/pulls/849
         _, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_output2 = self.npu_op_exec(npu_input2, 65536)
 

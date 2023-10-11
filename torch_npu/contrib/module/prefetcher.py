@@ -20,9 +20,6 @@ import torch
 class Prefetcher(object):
     """Prefetcher using on npu device.
 
-    Origin Code URL:
-    https://github.com/implus/PytorchInsight/blob/master/classification/imagenet_fast.py#L280
-
     Args:
         loder (torch.utils.data.DataLoader or DataLoader like iterator):
             Using to generate inputs after preprocessing.

@@ -87,9 +87,9 @@ def _new_device(*args, **kwargs):
     return torch_npu._C.device(*args, **kwargs)
 
 def _generator(*args, **kwargs):
-  if 'npu' in str(args) or 'npu' in str(kwargs):
-      raise AssertionError(f"Please use torch_npu._C.Generator for npu device.")
-  return torch._C.Generator(*args, **kwargs)
+    if 'npu' in str(args) or 'npu' in str(kwargs):
+        raise AssertionError(f"Please use torch_npu._C.Generator for npu device.")
+    return torch._C.Generator(*args, **kwargs)
 
 def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
     # (Ascend) Disable extension of torch.jit.script

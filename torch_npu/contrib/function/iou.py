@@ -122,9 +122,6 @@ def npu_giou(boxes1,
 
     Returns:
         Tensor: IoU, sized [n, 1].
-
-    .. _Generalized Intersection over Union\: A Metric and A Loss for Bounding Box Regression:
-        https://arxiv.org/abs/1902.09630
     """
 
     assert boxes1.shape == boxes2.shape
@@ -183,8 +180,6 @@ def npu_diou(boxes1,
 
     Returns:
         Tensor: IoU, sized [1, n].
-
-    .. Paper: https://arxiv.org/pdf/1911.08287.pdf
     """
 
     out = torch_npu.npu_diou(boxes1, boxes2, trans, is_cross, mode)

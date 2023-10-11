@@ -39,7 +39,6 @@ class FusedColorJitterApply(object):
     def hue_saturation_matrix(self, hue, saturation):
         """
         Single matrix transform for both hue and saturation change.
-        Matrix taken from https://beesbuzz.biz/code/16-hsv-color-transforms.
         Derived by transforming first to YIQ, then do the modification, and transform back to RGB.
         """
         const_mat = np.array([[0.299, 0.299, 0.299],
@@ -127,11 +126,6 @@ class FusedColorJitter(torch.nn.Module):
         hue (float or tuple of float (min, max)): How much to jitter hue.
             hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
             Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
-
-    .. Reference 1: Affine HSV color manipulation
-        https://beesbuzz.biz/code/16-hsv-color-transforms
-    .. Reference 2: Affine HSV color manipulation
-        https://github.com/NVIDIA/DALI/blob/release_v1.15/dali/operators/image/color/color_twist.h#L155
 
     """
 

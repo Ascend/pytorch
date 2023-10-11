@@ -58,12 +58,9 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
         if t.elem == BaseType(BaseTy.Tensor):
             raise AssertionError(
                 "list of tensor not supported by structured yet; to implement this "
-                "resolve torch::List issue, see "
-                "https://fb.workplace.com/groups/894363187646754/permalink/1149276442155426"
+                "resolve torch::List issue."
             )
-        # TODO: delete these special cases; see tools.codegen.api.cpp--these
-        # must be changed in tandem, but there are problems; see
-        # https://github.com/pytorch/pytorch/pull/51485
+        # must be changed in tandem, but there are problems
         elif str(t.elem) == 'int':
             return NamedCType(binds, BaseCType(intArrayRefT))
         elif str(t.elem) == 'Dimname':

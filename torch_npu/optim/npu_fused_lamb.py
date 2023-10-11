@@ -47,8 +47,6 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
             Adam. Useful for comparison purposes.
         use_global_grad_norm(bool, optional, default=False): use global grad norm
 
-    .. _Large Batch Optimization for Deep Learning: Training BERT in 76 minutes:
-        https://arxiv.org/abs/1904.00962
     """
 
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-6,

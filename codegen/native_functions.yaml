@@ -1372,7 +1372,6 @@
   dispatch: {}
 
 # We need this to be able to properly copy from a CPU to an XLA tensor with different sizes.
-# See https://github.com/pytorch/xla/issues/2881
 - func: _copy_from_and_resize(Tensor self, Tensor dst) -> Tensor
   dispatch: {}
 
@@ -5878,8 +5877,6 @@
 # operator, you might also want to change the `isBlockListedSchema`
 # function in `torch/csrc/jit/frontend/schema_catching.cpp`.
 # The name and overload name of this operator is hardcoded in that
-# function in order to workaround a bug:
-# https://github.com/pytorch/pytorch/issues/47964
 - func: view.dtype(Tensor(a) self, ScalarType dtype) -> Tensor(a)
   variants: method
   device_check: NoCheck
@@ -8521,8 +8518,7 @@
 # [Note about _torch_cuda_cu_linker_symbol_op and torch_cuda_cu]
 # This is a DUMMY function to force the linking against torch_cuda_cu on Windows.
 # Otherwise, the Windows linker will optimize and not include torch_cuda_cu even when we
-# want it to be included. This is similar to what we do with warp_size for torch_cuda_cpp,
-# described as the solution to this issue: https://github.com/pytorch/pytorch/issues/31611
+# want it to be included. This is similar to what we do with warp_size for torch_cuda_cpp
 # This op should NOT be used or exposed or edited or else Windows builds (with BUILD_SPLIT_CUDA) will break.
 - func: _torch_cuda_cu_linker_symbol_op(Tensor self) -> Tensor
   dispatch:

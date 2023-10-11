@@ -1468,7 +1468,6 @@ class Arguments:
 
 
 # Names that validly are __iXXX__ indicating inplace operations.
-# Taken from https://www.python.org/dev/peps/pep-0203/#new-methods
 # NB: PyTorch hasn't actually implemented all of these
 AUGMENTED_ASSIGNMENT_NAMES = ['add', 'sub', 'mul', 'div', 'mod', 'pow', 'lshift', 'rshift', 'and', 'xor', 'or']
 

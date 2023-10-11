@@ -261,7 +261,6 @@ def _cast(value, dtype):
 
 
 # custom_fwd is a decorator that may or may not be used with arguments, following
-# https://github.com/dabeaz/python-cookbook/tree/master/src/9/defining_a_decorator_that_takes_an_optional_argument.
 # this works:
 #     @custom_fwd
 #     def forward(...):

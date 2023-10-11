@@ -213,7 +213,6 @@ class GradScaler(Cuda_GradScaler):
         # There could be hundreds of grads, so we'd like to iterate through them just once.
         # However, we don't know their devices or dtypes in advance.
 
-        # https://stackoverflow.com/questions/5029934/defaultdict-of-defaultdict
         # Google says mypy struggles with defaultdicts type annotations.
         per_device_and_dtype_grads = defaultdict(lambda: defaultdict(list))
         with torch.no_grad():
