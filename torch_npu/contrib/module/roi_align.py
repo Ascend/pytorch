@@ -115,7 +115,8 @@ class ROIAlign(nn.Module):
             input_tensor: NCHW images
             rois: Bx5 boxes. First column is the index into N. The other 4 columns are xyxy.
         """
-        assert rois.dim() == 2 and rois.size(1) == 5
+        if rois.dim() != 2 or rois.size(1) != 5:
+            raise ValueError("Expected rois.dim() == 2 and rois.size(1) == 5")
         return roi_align(
             input_tensor.float(), rois, self.output_size,
             self.spatial_scale, self.sampling_ratio, self.aligned

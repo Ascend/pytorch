@@ -51,8 +51,10 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
         torch.Tensor: Box transformation deltas
     """
 
-    assert bboxes.size(0) == gt_bboxes.size(0)
-    assert bboxes.size(-1) == gt_bboxes.size(-1) == 4
+    if bboxes.size(0) != gt_bboxes.size(0):
+        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)")
+    if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
+        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4")
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
@@ -105,8 +107,10 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
     if stds is None:
         stds = [1., 1., 1., 1.]
 
-    assert bboxes.size(0) == gt_bboxes.size(0)
-    assert bboxes.size(-1) == gt_bboxes.size(-1) == 4
+    if bboxes.size(0) != gt_bboxes.size(0):
+        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)")
+    if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
+        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4")
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
@@ -166,8 +170,10 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
     if max_shape is None:
         max_shape = [9999, 9999]
 
-    assert bboxes.size(0) == pred_bboxes.size(0)
-    assert bboxes.size(-1) == pred_bboxes.size(-1) == 4
+    if bboxes.size(0) != pred_bboxes.size(0):
+        raise ValueError("Expected bboxes.size(0) == pred_bboxes.size(0)")
+    if not (bboxes.size(-1) == pred_bboxes.size(-1) == 4):
+        raise ValueError("Expected bboxes.size(-1) == pred_bboxes.size(-1) == 4")
 
     bboxes = box_dtype_check(bboxes)
     pred_bboxes = box_dtype_check(pred_bboxes)
