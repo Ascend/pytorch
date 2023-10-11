@@ -41,7 +41,7 @@ static std::vector<at::Generator> default_gens_npu;
 * Populates the global variables related to NPU generators
 * Warning: this function must only be called once!
 */
-static void initNPUGenVector(){
+static void initNPUGenVector() {
   num_npus = c10_npu::device_count();
   npu_gens_init_flag.resize(num_npus);
   default_gens_npu.resize(num_npus);
@@ -109,9 +109,9 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
  * NPUGeneratorImpl class implementation
  */
 NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
-  : c10::GeneratorImpl{c10::Device(at_npu::key::NativeDeviceType, device_index),
-              c10::DispatchKeySet(at_npu::key::NativeDispatchKey)} {
-  //at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
+    : c10::GeneratorImpl{c10::Device(at_npu::key::NativeDeviceType, device_index),
+      c10::DispatchKeySet(at_npu::key::NativeDispatchKey)} {
+    // at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
 }
 
 /**
@@ -187,7 +187,6 @@ c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
  * and size of the internal state.
  */
 void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
-  
   static const size_t seed_size = sizeof(uint64_t);
   static const size_t offset_size = sizeof(int64_t);
   static const size_t total_size = seed_size + offset_size;
@@ -297,7 +296,7 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
     uint64_t offset = this->philox_offset_per_thread_;
     this->philox_offset_per_thread_ += increment;
     return PhiloxNpuState(this->seed_, offset);
-  }*/
+  } */
 
   return PhiloxNpuState(this->seed_, 0);
 }

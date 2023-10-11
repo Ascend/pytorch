@@ -45,8 +45,7 @@ namespace native {
     auto storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_;
     size_t itemsize = storage_desc.data_type_.itemsize();
 
-    at::DataPtr new_data;
-    new_data = storage.allocator()->allocate(size);
+    at::DataPtr new_data = storage.allocator()->allocate(size);
     at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
     ptrdiff_t old_size = storage.nbytes();
     storage.set_nbytes(size);
@@ -87,14 +86,14 @@ namespace native {
 
   static void _maybe_npu_storage_resize(at::TensorImpl* self, ptrdiff_t size)
   {
-    if (!self->storage().unsafeGetStorageImpl()){
+    if (!self->storage().unsafeGetStorageImpl()) {
       AT_ERROR("Try to resize a tensor with null storage");
       return;
     }
     _npu_storage_resize_only(*torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()), size);
   }
 
-  at::Tensor NPUNativeFunctions::_npu_storage_resize(const at::Tensor& self, int64_t size){
+  at::Tensor NPUNativeFunctions::_npu_storage_resize(const at::Tensor& self, int64_t size) {
     int64_t new_size_bytes = (size + self.storage_offset()) * self.dtype().itemsize();
     auto* self_impl = self.unsafeGetTensorImpl();
     _maybe_npu_storage_resize(self_impl, new_size_bytes);

@@ -90,7 +90,7 @@ torch_npu::profiler::NPURecordFunction guard;
 }
 
 
-class IgnoreWarningHandler: public c10::WarningHandler {
+class IgnoreWarningHandler : public c10::WarningHandler {
 public:
   void process(
       const c10::SourceLocation& source_location,
@@ -108,7 +108,7 @@ c10::WarningHandler* getIgnoreHandler() {
 // use to ignore the warning info when overriding operator for CPU-implement
 #define WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(enable)                         \
   int enter_warning() {                                                       \
-    if(enable) {                                                              \
+    if (enable) {                                                              \
       c10::Warning::set_warning_handler(getIgnoreHandler());             \
     }                                                                         \
     return 1;                                                                 \

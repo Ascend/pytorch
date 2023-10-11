@@ -119,7 +119,7 @@ inline at::TensorImpl* resize_impl_npu_(
     return self;
   }
 
-  // In graph mode, we cannot justify whether 
+  // In graph mode, we cannot justify whether
   // a tensor is empty only using storage.
   bool is_empty_tensor = false;
   if (self->sizes()[0] == 0) {
@@ -198,7 +198,7 @@ static inline void checkInBoundsForStorage(
 }
 
 inline void setStrided(
-    const at::Tensor& self, 
+    const at::Tensor& self,
     c10::IntArrayRef size, 
     c10::IntArrayRef stride, 
     int64_t storage_offset) {

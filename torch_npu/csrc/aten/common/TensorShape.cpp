@@ -44,8 +44,7 @@ struct InferUnsqueezeGeometryResult {
   at::DimVector sizes;
   at::DimVector strides;
   InferUnsqueezeGeometryResult(c10::IntArrayRef tensor_sizes, c10::IntArrayRef tensor_strides)
-      : sizes(tensor_sizes.begin(), tensor_sizes.end())
-      , strides(tensor_strides.begin(), tensor_strides.end()) {}
+    : sizes(tensor_sizes.begin(), tensor_sizes.end()), strides(tensor_strides.begin(), tensor_strides.end()) {}
 };
 }
 
@@ -62,8 +61,8 @@ std::tuple<at::DimVector, at::DimVector> inferSqueezeGeometry(const at::Tensor &
   at::DimVector sizes;
   at::DimVector strides;
 
-  for(const auto d : c10::irange(tensor.dim())) {
-    if(tensor.sizes()[d] != 1) {
+  for (const auto d : c10::irange(tensor.dim())) {
+    if (tensor.sizes()[d] != 1) {
       sizes.push_back(tensor.sizes()[d]);
       strides.push_back(tensor.strides()[d]);
     }
@@ -76,8 +75,8 @@ std::tuple<at::DimVector, at::DimVector> inferSqueezeGeometry(const at::Tensor& 
   at::DimVector sizes;
   at::DimVector strides;
 
-  for(const auto d : c10::irange(tensor.dim())) {
-    if(d != dim || tensor.sizes()[dim] != 1) {
+  for (const auto d : c10::irange(tensor.dim())) {
+    if (d != dim || tensor.sizes()[dim] != 1) {
       sizes.push_back(tensor.sizes()[d]);
       strides.push_back(tensor.strides()[d]);
     }

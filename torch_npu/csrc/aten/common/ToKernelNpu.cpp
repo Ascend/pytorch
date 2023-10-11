@@ -49,7 +49,6 @@ static inline at::Tensor to_impl_npu(
     bool copy) {
   auto memory_format = options.memory_format_opt().value_or(
       c10::MemoryFormat::Contiguous); // Here cpu's default value is Preserve
-
   if (self.dtype() == options.dtype() && self.layout() == options.layout() &&
       self.device() == options.device() && !copy &&
       (memory_format == c10::MemoryFormat::Preserve ||
@@ -87,10 +86,9 @@ at::Tensor NPUNativeFunctions::to(
   TORCH_CHECK(
       !optional_memory_format.has_value(),
       "NPU not support specify memory_format.");
-  c10::TensorOptions options_;
-  options_ = options_.dtype(dtype)
-                  .layout(layout)
-                  .device(device);
+  c10::TensorOptions options_ = options_.dtype(dtype)
+                                      .layout(layout)
+                                      .device(device);
   TORCH_CHECK(
       !(options_.has_memory_format() && optional_memory_format.has_value()),
       "Cannot set memory_format both in c10::TensorOptions and explicit argument; please delete "
@@ -180,7 +178,6 @@ at::Tensor _to_copy(
     .layout(layout)
     .device(device)
     .pinned_memory(pin_memory);
-
   if (options.has_device()) {
     options = options.device(ensure_has_index(options.device()));
   }
@@ -193,8 +190,7 @@ at::Tensor _to_copy(
 
   if (memory_format == c10::MemoryFormat::Preserve) {
     if (self.is_non_overlapping_and_dense()) {
-      at::Tensor r;
-      r = at::empty_strided(
+      at::Tensor r = at::empty_strided(
           self.sizes(),
           self.strides(),
           options.pinned_memory(pin_out));
