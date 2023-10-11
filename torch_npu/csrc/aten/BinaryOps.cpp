@@ -22,17 +22,14 @@ namespace at_npu {
 namespace native {
 
 at::Tensor true_divide_Tensor(const at::Tensor& self, const at::Tensor& divisor) {
-
   return self.div(divisor);
 }
 
 at::Tensor& true_divide_out_Tensor(const at::Tensor& self, const at::Tensor& divisor, at::Tensor& result) {
-  
   return at::div_out(result, self, divisor);
 }
 
 at::Tensor& true_divide__Tensor(at::Tensor& self, const at::Tensor& divisor) {
-
   return self.div_(divisor);
 }
 

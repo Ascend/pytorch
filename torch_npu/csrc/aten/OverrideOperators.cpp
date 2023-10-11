@@ -91,7 +91,7 @@ torch_npu::profiler::NPURecordFunction guard;
 }
 
 
-class IgnoreWarningHandler: public c10::WarningHandler {
+class IgnoreWarningHandler : public c10::WarningHandler {
 public:
 
   void process(const c10::Warning& warning) {
