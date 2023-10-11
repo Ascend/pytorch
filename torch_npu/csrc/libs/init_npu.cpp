@@ -37,7 +37,6 @@ void init_npu(const at::Device& device) {
 } // namespace torch_npu
 
 
-
 namespace torch {
 namespace npu {
 

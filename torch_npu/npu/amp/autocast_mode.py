@@ -1,18 +1,17 @@
-import warnings
 import functools
 import collections
-from typing import Any, Optional
+from typing import Any
+
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ModuleNotFoundError:
     np = None  # type: ignore[assignment]
 
-from torch.types import _dtype
-
 import torch
 import torch_npu
-from .common import amp_definitely_not_available
+
 
 class autocast(torch.amp.autocast_mode.autocast):
     r"""
@@ -20,7 +19,7 @@ class autocast(torch.amp.autocast_mode.autocast):
     ``torch.npu.amp.autocast(args...)`` is equivalent to ``torch.autocast("npu", args...)``
     """
 
-    def __init__(self, enabled : bool = True, dtype : torch.dtype = torch.float16, cache_enabled : bool = True):
+    def __init__(self, enabled: bool = True, dtype: torch.dtype = torch.float16, cache_enabled: bool = True):
         if torch._jit_internal.is_scripting():
             self._enabled = enabled
             self.device = "npu"
@@ -33,17 +32,15 @@ class autocast(torch.amp.autocast_mode.autocast):
             return self
         return super().__enter__()
 
-    # TODO: discuss a unified TorchScript-friendly API for autocast
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):  # type: ignore[override]
         if torch._jit_internal.is_scripting():
-            return
+            return None
         return super().__exit__(exc_type, exc_val, exc_tb)
 
     def __call__(self, func):
         if torch._jit_internal.is_scripting():
             return func
         return super().__call__(func)
-
 
 
 # Casts Tensors and containers of Tensors.  Special-cases passthroughs for strings and np.ndarrays, which
@@ -97,15 +94,17 @@ def custom_fwd(fwd=None, **kwargs):
         if len(kwargs) == 0:
             cast_inputs = None
         else:
-            assert len(kwargs) == 1
-            cast_inputs = kwargs["cast_inputs"]
+            if len(kwargs) != 1:
+                raise ValueError("More than one keyword argument.")
+            cast_inputs = kwargs.get("cast_inputs", None)
         return functools.partial(custom_fwd, cast_inputs=cast_inputs)
 
     if len(kwargs) == 0:
         cast_inputs = None
     else:
-        assert len(kwargs) == 1
-        cast_inputs = kwargs["cast_inputs"]
+        if len(kwargs) != 1:
+            raise ValueError("More than one keyword argument.")
+        cast_inputs = kwargs.get("cast_inputs", None)
 
     @functools.wraps(fwd)
     def decorate_fwd(*args, **kwargs):
@@ -120,6 +119,7 @@ def custom_fwd(fwd=None, **kwargs):
                     return fwd(*_cast(args, cast_inputs), **_cast(kwargs, cast_inputs))
             else:
                 return fwd(*args, **kwargs)
+
     return decorate_fwd
 
 
@@ -133,8 +133,10 @@ def custom_bwd(bwd):
     Ensures that ``backward`` executes with the same autocast state as ``forward``.
     See the :ref:`example page<amp-custom-examples>` for more detail.
     """
+
     @functools.wraps(bwd)
     def decorate_bwd(*args, **kwargs):
         with autocast(args[0]._fwd_used_autocast):
             return bwd(*args, **kwargs)
+
     return decorate_bwd

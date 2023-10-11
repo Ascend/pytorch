@@ -27,7 +27,8 @@ class _GeneralMultiDeviceReplicator(_MultiDeviceReplicator):
     """
 
     def __init__(self, master_tensor: torch.Tensor) -> None:
-        assert _is_supported_device(master_tensor)
+        if not _is_supported_device(master_tensor):
+            raise ValueError("Device type of master_tensor is not supported.")
         self.master = master_tensor
         self._per_device_tensors: Dict[torch.device, torch.Tensor] = {}
 
@@ -82,13 +83,13 @@ class ShardedGradScaler(GradScaler):
     """
 
     def __init__(
-        self,
-        init_scale: float = 2.0**16,
-        backoff_factor: float = 0.5,
-        growth_factor: float = 2.0,
-        growth_interval: int = 2000,
-        enabled: bool = True,
-        process_group: Optional[ProcessGroup] = dist.group.WORLD,
+            self,
+            init_scale: float = 2.0 ** 16,
+            backoff_factor: float = 0.5,
+            growth_factor: float = 2.0,
+            growth_interval: int = 2000,
+            enabled: bool = True,
+            process_group: Optional[ProcessGroup] = dist.group.WORLD,
     ):
         super().__init__(
             init_scale=init_scale,
@@ -102,16 +103,18 @@ class ShardedGradScaler(GradScaler):
             self._per_optimizer_states = defaultdict(_refresh_per_optimizer_state)
 
     def scale(
-        self, outputs: Union[torch.Tensor, List[torch.Tensor]]
+            self, outputs: Union[torch.Tensor, List[torch.Tensor]]
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         if not self._enabled:
             return outputs
 
         if isinstance(outputs, torch.Tensor):
-            assert _is_supported_device(outputs)
+            if not _is_supported_device(outputs):
+                raise ValueError("Device type of outputs is not supported.")
             if self._scale is None:
                 self._lazy_init_scale_growth_tracker(outputs.device)
-            assert self._scale is not None
+            if self._scale is None:
+                raise RuntimeError("_scale is None.")
             scaled_output = outputs * self._scale.to(
                 device=outputs.device, non_blocking=True
             )
@@ -123,14 +126,16 @@ class ShardedGradScaler(GradScaler):
         stash: List[_GeneralMultiDeviceReplicator] = []
 
         def apply_scale(
-            val: Union[torch.Tensor, abc.Iterable]
+                val: Union[torch.Tensor, abc.Iterable]
         ) -> Union[torch.Tensor, abc.Iterable]:
             if isinstance(val, torch.Tensor):
-                assert _is_supported_device(val)
+                if not _is_supported_device(val):
+                    raise ValueError("Device type of val is not supported.")
                 if len(stash) == 0:
                     if self._scale is None:
                         self._lazy_init_scale_growth_tracker(val.device)
-                    assert self._scale is not None
+                    if self._scale is None:
+                        raise RuntimeError("_scale is None.")
                     stash.append(_GeneralMultiDeviceReplicator(self._scale))
                 scaled_val = val * stash[0].get(val.device)
                 # Here we ensure the return dtype is the same as the outputs dtype.
@@ -149,12 +154,14 @@ class ShardedGradScaler(GradScaler):
         return apply_scale(outputs)  # type: ignore[return-value]
 
     def _foreach_non_finite_check_and_unscale_cpu_(
-        self, grads: List, found_inf: torch.Tensor, inv_scale: torch.Tensor
+            self, grads: List, found_inf: torch.Tensor, inv_scale: torch.Tensor
     ) -> None:
         if len(grads) == 0:
             return
-        assert inv_scale.numel() == 1, "inv_scale must be a 1-element tensor."
-        assert found_inf.numel() == 1, "found_inf must be a 1-element tensor."
+        if inv_scale.numel() != 1:
+            raise ValueError("inv_scale must be a 1-element tensor.")
+        if found_inf.numel() != 1:
+            raise ValueError("found_inf must be a 1-element tensor.")
 
         for grad in grads:
             if grad.device.type != "cpu":
@@ -175,11 +182,11 @@ class ShardedGradScaler(GradScaler):
                 grad.data *= inv_scale.item()
 
     def _unscale_grads_(
-        self,
-        optimizer: SGD,
-        inv_scale: torch.Tensor,
-        found_inf: torch.Tensor,
-        allow_fp16: bool = True,
+            self,
+            optimizer: SGD,
+            inv_scale: torch.Tensor,
+            found_inf: torch.Tensor,
+            allow_fp16: bool = True,
     ) -> Dict[torch.device, torch.Tensor]:
         per_device_inv_scale = _GeneralMultiDeviceReplicator(inv_scale)
         per_device_found_inf = _GeneralMultiDeviceReplicator(found_inf)
@@ -233,7 +240,8 @@ class ShardedGradScaler(GradScaler):
         # ranks may have no (non-zero sized) parameter shards, necessitating the
         # initialization of `per_device_found_inf._per_device_tensors` here
         if not per_device_found_inf._per_device_tensors:
-            assert self._scale is not None
+            if self._scale is None:
+                raise RuntimeError("_scale is None.")
             per_device_found_inf.get(self._scale.device)
         return per_device_found_inf._per_device_tensors
 
@@ -253,7 +261,8 @@ class ShardedGradScaler(GradScaler):
             raise RuntimeError("unscale_() is being called after step().")
 
         # FP32 division can be imprecise for certain compile options, so we carry out the reciprocal in FP64.
-        assert self._scale is not None
+        if self._scale is None:
+            raise RuntimeError("_scale is None.")
         inv_scale = self._scale.double().reciprocal().float()
         found_inf = torch.full(
             (1,), 0.0, dtype=torch.float32, device=self._scale.device
@@ -342,9 +351,12 @@ class ShardedGradScaler(GradScaler):
                 self._scale.fill_(new_scale)  # type: ignore[union-attr]
             else:
                 reason = "new_scale should be a float or a 1-element torch.npu.FloatTensor with requires_grad=False."
-                assert isinstance(new_scale, torch.npu.FloatTensor), reason  # type: ignore[attr-defined]
-                assert new_scale.numel() == 1, reason
-                assert new_scale.requires_grad is False, reason
+                if not isinstance(new_scale, torch.npu.FloatTensor):  # type: ignore[attr-defined]
+                    raise ValueError(reason)
+                if new_scale.numel() != 1:
+                    raise ValueError(reason)
+                if new_scale.requires_grad:
+                    raise ValueError(reason)
                 self._scale.copy_(new_scale)  # type: ignore[union-attr]
         else:
             # Consume shared inf/nan data collected from optimizers to update the scale.
@@ -355,7 +367,8 @@ class ShardedGradScaler(GradScaler):
                 for found_inf in state["found_inf_per_device"].values()
             ]
 
-            assert len(found_infs) > 0, "No inf checks were recorded prior to update."
+            if len(found_infs) <= 0:
+                raise RuntimeError("No inf checks were recorded prior to update.")
 
             found_inf_combined = found_infs[0]
             if len(found_infs) > 1:

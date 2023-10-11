@@ -95,9 +95,9 @@ class Stream(torch_npu._C._NPUStreamBase):
     def _as_parameter_(self):
         return ctypes.c_void_p(self.npu_stream)
 
-    def __eq__(self, o):
-        if isinstance(o, Stream):
-            return super(Stream, self).__eq__(o)
+    def __eq__(self, other):
+        if isinstance(other, Stream):
+            return super(Stream, self).__eq__(other)
         return False
 
     def __hash__(self):
@@ -177,7 +177,6 @@ class Event(torch_npu._C._NPUEventBase):
             `NPU Event documentation`_ for more info.
         """
         super(Event, self).synchronize()
-    
 
     @property
     def _as_parameter_(self):
@@ -188,7 +187,3 @@ class Event(torch_npu._C._NPUEventBase):
             return '<torch_npu.npu.Event {0:#x}>'.format(self._as_parameter_.value)
         else:
             return '<torch_npu.npu.Event uninitialized>'
-
-
-
-        
