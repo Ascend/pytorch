@@ -7,6 +7,7 @@ import subprocess
 import sys
 import traceback
 import platform
+from pathlib import Path
 
 from sysconfig import get_paths
 from distutils.version import LooseVersion
@@ -148,6 +149,9 @@ def run_cmake():
         cmake_args.append('-DBUILD_OPPLUGIN=on')
         cmake_args.append('-DBUILD_NEW_HEADER=on')
 
+    if check_tensorpipe_valid(BASE_DIR):
+        cmake_args.append('-DBUILD_TENSORPIPE=on')
+
     if os.getenv('_GLIBCXX_USE_CXX11_ABI') is not None:
         cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=' + os.getenv('_GLIBCXX_USE_CXX11_ABI'))
 
@@ -161,6 +165,11 @@ def check_opplugin_valid(base_dir):
     # build with submodule of op_plugin, if path of op-plugin is valid
     op_plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin')
     return os.path.exists(op_plugin_path)
+
+
+def check_tensorpipe_valid(base_dir):
+    tensorpipe_path = os.path.join(base_dir, 'third_party/Tensorpipe/tensorpipe')
+    return os.path.exists(tensorpipe_path)
 
 
 def copy_file(infile, outfile, preserve_mode=1, preserve_times=1, link=None, level=1):
@@ -238,6 +247,8 @@ def copy_cmake():
 def build_libtorch_npu():
     clean_generated_files()
     generate_bindings_code(BASE_DIR)
+    if Path(BASE_DIR).joinpath("third_party/Tensorpipe/third_party/acl/libs").exists():
+        build_stub(Path(BASE_DIR).joinpath("third_party/Tensorpipe"))
     build_stub(BASE_DIR)
     run_cmake()
     copy_hpp()
