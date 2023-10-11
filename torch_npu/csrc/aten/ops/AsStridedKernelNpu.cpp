@@ -71,12 +71,11 @@ at::Tensor& stride_copy_out_npu_nocheck(
     at::IntArrayRef output_shape_array(output_shape);
     at::Tensor result_out = OpPreparation::ApplyTensorWithFormat(
         output_shape_array, self.options(), ACL_FORMAT_ND);
-    NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(self));
     cmd.Name("AsStrided")
       .InputWithoutContiguous(self)
       .Input(output_shape_array)
       .Input(output_stride_array)
-      .Input(storage_offset, at::kLong)
+      .Input(at::Scalar(0), at::kLong)
       .Output(result_out)
       .Run();
     std::vector<int64_t> output_perm(tensor_dim);
@@ -89,12 +88,11 @@ at::Tensor& stride_copy_out_npu_nocheck(
   } else {
     // (Ascend) Fix multi-compiling of asstrided op by wrapping attr storage_offset as a NPU Tensor instead of GE Const node.
     // If GE Data node can pass vaule of storage_offset to op, we can switch storage_offset to Data node finally.
-    NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(self));
     cmd.Name("AsStrided")
         .InputWithoutContiguous(self)
         .Input(shape)
         .Input(stride)
-        .Input(storage_offset, at::kLong)
+        .Input(at::Scalar(0), at::kLong)
         .Output(result)
         .Run();
     return result;
