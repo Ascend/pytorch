@@ -125,8 +125,13 @@ inline aclTensor *ConvertType(const at::Tensor &at_tensor) {
   aclDataType acl_data_type = at_npu::native::CalcuOpUtil::ConvertToAclDataType(scalar_data_type);
   c10::SmallVector<int64_t, 5> storageDims;
   // if acl_data_type is ACL_STRING, storageDims is empty.
+  auto itemsize = at_tensor.itemsize();
+  if (itemsize == 0) {
+    AT_ERROR("When ConvertType, tensor item size of cannot be zero.");
+    return nullptr;
+  }
   if (acl_data_type != ACL_STRING) {
-    storageDims.push_back(at_tensor.storage().nbytes() / at_tensor.itemsize());
+    storageDims.push_back(at_tensor.storage().nbytes() / itemsize);
   }
 
   const auto dimNum = at_tensor.sizes().size();

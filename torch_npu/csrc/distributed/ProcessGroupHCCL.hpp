@@ -155,7 +155,7 @@ public:
     std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
 
     // Record the collective sequential number.
-    uint64_t seq_;
+    uint64_t seq_{0};
 
     bool startTraceUpdated_{false};
 
@@ -427,7 +427,7 @@ protected:
     ErrorHandlingMode asyncErrorHandling_ = NoHandling;
 
     // Whether or not to enable timeout root cause analysis.
-    bool desyncDebug_;
+    bool desyncDebug_ = false;
 
     // Condition variable to control how long the  watchdog thread waits.
     std::condition_variable watchdogCV_;

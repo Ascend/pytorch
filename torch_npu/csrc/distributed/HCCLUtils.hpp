@@ -139,7 +139,7 @@ public:
 protected:
     HcclComm hcclComm_;
     mutable std::mutex mutex_;
-    HcclRootInfo hcclId_;
+    HcclRootInfo hcclId_ = {""};
     c10::optional<std::string> commFailureReason_;
     HcclResult hcclAsyncErr_;
 };

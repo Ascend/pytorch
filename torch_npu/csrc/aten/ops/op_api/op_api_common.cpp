@@ -64,8 +64,13 @@ void AddParamToBuf(const at::Tensor &at_tensor) {
     // storage shape
     aclDataType acl_data_type = at_npu::native::CalcuOpUtil::ConvertToAclDataType(st);
     c10::SmallVector<int64_t, 5> storageDims;
+    auto itemsize = at_tensor.itemsize();
+    if (itemsize == 0) {
+        AT_ERROR("When AddParamToBuf, tensor item size of cannot be zero.");
+        return ;
+    }
     if (acl_data_type != ACL_STRING) {
-        storageDims.push_back(at_tensor.storage().nbytes() / at_tensor.itemsize());
+        storageDims.push_back(at_tensor.storage().nbytes() / itemsize);
     }
     MEMCPY_TO_BUF(storageDims.data(), storageDims.size() * sizeof(int64_t));
 
