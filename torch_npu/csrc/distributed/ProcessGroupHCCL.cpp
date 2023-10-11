@@ -266,15 +266,26 @@ const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
 constexpr int64_t kWaitForAbortCommStoreKey = 1000;
 const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 10000;
-const int64_t ProcessGroupHCCL::kWorkCleanupThreadSleepMillis = 10000;
+const int64_t ProcessGroupHCCL::kWorkCleanupThreadSleepMillis = 1000;
 // const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
-ProcessGroupHCCL::WorkHCCL::WorkHCCL(const std::vector<at::Device>& devices)
-    : devices_(devices), workStartTime_(std::chrono::steady_clock::now()) {
+ProcessGroupHCCL::WorkHCCL::WorkHCCL(
+  const std::vector<at::Device>& devices,
+  int rank,
+  c10d::OpType opType,
+  uint64_t seq,
+  bool desyncDebug)
+    : Work(rank, opType),
+      devices_(devices),
+      workStartTime_(std::chrono::steady_clock::now()),
+      seq_(seq) {
   // Creates the npu event wrappers
   // Note: The actual events are lazily created when first recorded to with
   // DEFAULT_FLAGS = npuEventDisableTiming.
-  hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+  if (desyncDebug) {
+    hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+  }
   npuEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+  hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
   hcclComms_.resize(devices.size());
 }
 
@@ -283,6 +294,8 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w, bool makeWeak)
       makeWeak_(makeWeak),
       devices_(w.devices_),
       hcclComms_(w.hcclComms_),
+      hcclStartEvents_(w.hcclStartEvents_),
+      hcclEndEvents_(w.hcclEndEvents_),
       blockingWait_(w.blockingWait_),
       opTimeout_(w.opTimeout_),
       workStartTime_(w.workStartTime_),
@@ -291,10 +304,8 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w, bool makeWeak)
       store_(w.store_) {
   if (makeWeak) {
     npuEventsWeak_ = w.npuEvents_;
-    hcclStartEventsWeak_ = w.hcclStartEvents_;
   } else {
     npuEvents_ = w.npuEvents_;
-    hcclStartEvents_ = w.hcclStartEvents_;
   }
   exception_ = w.exception_;
 }
@@ -346,13 +357,9 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution() {
 }
 
 bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
-  auto hcclStartEvents = (makeWeak_ ? hcclStartEventsWeak_.lock() : hcclStartEvents_);
-  if (hcclStartEvents == nullptr) {
-    return true;
-  }
   for (const auto i : c10::irange(devices_.size())) {
     // Checking the work's corresponding NPU events' status
-    if (!(*hcclStartEvents)[i].query()) {
+    if (!(*hcclStartEvents_)[i].query()) {
       return false;
     }
   }
@@ -361,14 +368,10 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
 
 // check if HCCL task is finished
 bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
-  auto npuEvents = (makeWeak_ ? npuEventsWeak_.lock() : npuEvents_);
-  if (npuEvents == nullptr) {
-    return true;
-  }
   try {
     for (const auto i : c10::irange(devices_.size())) {
       // Checking the work's corresponding CUDA events' status
-      if (!(*npuEvents)[i].query()) {
+      if (!(*hcclEndEvents_)[i].query()) {
         return false;
       }
     }
@@ -632,7 +635,7 @@ void ProcessGroupHCCL::hcclCommWatchdogInternal() {
                       << "] Received HCCL or RTS errors for communicators in the cache: \n"
                       << "HCCL or RTS error: \n"
                       << exceptionMsg;
-                  
+
                    if (blockingWait_ || asyncErrorHandling_ != NoHandling) {
                        LOG(INFO) << "[Rank " << rank_ << "] Aborting communicators that received errors";
                        // We abort HCCL communicators that have received errors from this
@@ -737,6 +740,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
       hcclCommCounter_(0),
       opTimeout_(options->opTimeout),
       terminateWatchdog_(false),
+
       traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
       traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
       terminateProcessGroup_(false) {
@@ -814,7 +818,7 @@ void ProcessGroupHCCL::workCleanupLoop() {
           lock,
           std::chrono::milliseconds(kWorkCleanupThreadSleepMillis),
           [&]() -> bool { return terminateProcessGroup_.load(); });
-    
+
       for (auto it = workMetaList_.begin(); it != workMetaList_.end();) {
         auto& work = *it;
 
@@ -1076,7 +1080,7 @@ std::vector<at::Tensor> create_base_format_tensors(const std::vector<at::Tensor>
     } else {
       auto options = at::TensorOptions().dtype(inputTensors[i].dtype()).device(inputTensors[i].device());
       inputTensors_[i] = at_npu::native::NPUNativeFunctions::empty(
-          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(), 
+          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), options.memory_format_opt());
     }
   }
@@ -1128,12 +1132,19 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
 } // namespace
 
 c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
-    std::vector<at::Device> devices) {
+    std::vector<at::Device> devices,
+    int rank,
+    c10d::OpType opType) {
   if (devices.size() != 1) {
     throw std::runtime_error(
         "ProcessGroupHCCL support one device per process only");
   }
-  return c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(devices);
+  return c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(
+    devices,
+    rank,
+    opType,
+    seq_,
+    desyncDebug_);
 }
 
 ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
@@ -1146,11 +1157,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& outputs,
     Fn fn,
     PreProcess pre,
-    PostProcess post) {
+    PostProcess post,
+    c10d::OpType opType) {
 
   // Bump collective counter
   seq_++;
-  
+
   const auto devices = getDeviceList(inputs);
   const auto key = getKeyFromDevices(devices);
   auto& hcclComms = getHCCLComm(key, devices);
@@ -1159,14 +1171,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   // First let HCCL streams wait for input tensors allocation streams
   syncStreams(devices, hcclEvents_[key], hcclStreams);
   // Work itself will create the events on all NPUs of tensors
-  auto work = initWork(devices);
+  auto work = initWork(devices, rank_, opType);
 
   c10_npu::OptionalNPUGuard npuGuard;
 
   if (desyncDebug_) {
     for (const auto i : c10::irange(devices.size())) {
       c10_npu::NPUStream& hcclStream = hcclStreams[i];
-      (*work->hcclStartEvents_)[i].record(hcclStream);
+      (*work->hcclStartEvents_)[i].recordTimeEvent(hcclStream);
     }
   }
 
@@ -1213,6 +1225,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
       (*work->npuEvents_)[i].record(hcclStream);
       work->hcclComms_[i] = hcclComms[i];
+      (*work->hcclEndEvents_)[i].recordTimeEvent(hcclStream);
     }
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = opTimeout_;
@@ -1228,7 +1241,8 @@ template <typename Fn>
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
-    Fn fn) {
+    Fn fn,
+    c10d::OpType opType) {
   return collective(
       inputs,
       outputs,
@@ -1236,7 +1250,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       [](std::vector<c10_npu::NPUStream>&,
          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
       [](std::vector<c10_npu::NPUStream>&,
-         c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+         c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      opType);
 }
 
 int g_allreduceID = 0;
@@ -1284,7 +1299,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             getHcclReduceOp(opts.reduceOp, input),
             comm,
             stream.stream());
-      });
+      },
+      c10d::OpType::ALLREDUCE);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
@@ -1318,7 +1334,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
                   hccl_comm,
                   output);
               return HCCL_SUCCESS;
-            });
+            },
+        c10d::OpType::ALLREDUCE);
 }
 
 int g_broadcastID = 100000;
@@ -1342,7 +1359,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
             root,
             comm,
             stream.stream());
-      });
+      },
+      c10d::OpType::BROADCAST);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_coalesced(
@@ -1376,7 +1394,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
             rank,
             comm,
             stream.stream());
-      });
+      },
+      c10d::OpType::REDUCE);
 }
 
 #define ADDRESS_ALIGNMENT_BYTE 512
@@ -1473,7 +1492,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
             // See [Sync Streams].
             c10_npu::NPUCachingAllocator::recordStream(
                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-            
+
             if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
               work->recorded_outputs_.push_back(std::make_pair(
                   outputTensors[i][j].storage().getWeakStorageImpl(),
@@ -1484,7 +1503,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
             outputTensors[i][j].copy_(output_tensor_shape, true);
           }
         }
-      });
+      },
+      c10d::OpType::ALLGATHER);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togather(
@@ -1516,7 +1536,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather_togathe
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
-          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {}
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      c10d::OpType::ALLGATHER
       );
 }
 
@@ -1551,7 +1572,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
-          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {}
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      c10d::OpType::ALLGATHER
       );
 }
 
@@ -1607,7 +1629,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
         }
       },
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
-          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      c10d::OpType::REDUCE_SCATTER);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_base(
@@ -1650,7 +1673,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
       [&](std::vector<c10_npu::NPUStream>&,
-          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+          c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+      c10d::OpType::REDUCE_SCATTER);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
@@ -1722,7 +1746,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
             dstRank,
             comm,
             stream.stream());
-      });
+      },
+      c10d::OpType::SEND);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
@@ -1763,7 +1788,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
             tensors[i].copy_(tensors_[i], true);
           }
         }
-      });
+      },
+      c10d::OpType::RECV);
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
@@ -1813,7 +1839,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
               getHcclDataType(output.scalar_type()),
               comm,
               stream.stream());
-        });
+        },
+        c10d::OpType::ALLTOALL);
   } else {
     uint64_t index = outputTensor.numel() / ranks;
     if (outputSplitSizes.empty()) {
@@ -1870,7 +1897,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
               getHcclDataType(output.scalar_type()),
               comm,
               stream.stream());
-        });
+        },
+        c10d::OpType::ALLTOALL);
   }
 }
 
@@ -1959,7 +1987,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
         at::Tensor output_results_shaped = at::reshape(output_results[i], output_tensors[i].sizes());
         output_tensors[i].copy_(output_results_shaped, true);
       }
-      });
+      },
+      c10d::OpType::ALLTOALL);
 }
 
 } // namespace c10d_npu

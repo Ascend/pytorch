@@ -81,7 +81,12 @@ public:
   public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
-    explicit WorkHCCL(const std::vector<at::Device>& devices);
+    explicit WorkHCCL(
+        const std::vector<at::Device>& devices,
+        int rank,
+        c10d::OpType opType,
+        uint64_t seq,
+        bool desyncDebug);
     explicit WorkHCCL(const WorkHCCL& w, bool makeWeak);
     virtual ~WorkHCCL();
 
@@ -135,8 +140,6 @@ public:
     // multiple runtime devices. These start npu events are needed by desync
     // debugging if enabled.
     std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
-
-    std::weak_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEventsWeak_;
 
     // The end npu events of HCCL operator tracking this work item on
     // multiple npu devices.
@@ -362,8 +365,10 @@ protected:
   // virtual std::exception_ptr checkForHCCLErrors(const
   // std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
-  virtual c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> initWork(
-      std::vector<at::Device> devices);
+  virtual  c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> initWork(
+    std::vector<at::Device> devices,
+    int rank,
+    c10d::OpType opType);
 
   static const int64_t kWatchdogThreadSleepMillis;
   static const int64_t kWorkCleanupThreadSleepMillis;
@@ -499,7 +504,7 @@ protected:
 
   // Counting for the sequential number of NCCL collective call.
   uint64_t seq_{0};
-  
+
   const std::string traceKeyStart_;
   const std::string traceKeyEnd_;
 
@@ -523,14 +528,16 @@ private:
   c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
       std::vector<at::Tensor>& input,
       std::vector<at::Tensor>& output,
-      Fn fn);
+      Fn fn,
+      c10d::OpType opType);
   template <typename Fn, typename PreProcess, typename PostProcess>
   c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
       std::vector<at::Tensor>& input,
       std::vector<at::Tensor>& output,
       Fn fn,
       PreProcess pre,
-      PostProcess post);
+      PostProcess post,
+      c10d::OpType opType);
 
     static std::exception_ptr checkForHCCLErrorsInternal(
         const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
