@@ -159,7 +159,7 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input) {
   if (reduceOp == c10d::ReduceOp::SUM && input.scalar_type() == at::kBool) {
     // For bool tensors, map sum to max, which both represent a bitwise or.
     // This is to prevent overflow issues with sum, since we use uint8 to
-    // represent a bool (see ncclDataType mapping).
+    // represent a bool (see HCCLDataType mapping).
     return HCCL_REDUCE_MAX;
   }
   return hcclOp[reduceOp];
@@ -283,15 +283,14 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
   // DEFAULT_FLAGS = npuEventDisableTiming.
   if (desyncDebug) {
     hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
+    hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
   }
   npuEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
-  hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
   hcclComms_.resize(devices.size());
 }
 
-ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w, bool makeWeak)
+ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     : Work(w.rank_, w.opType_),
-      makeWeak_(makeWeak),
       devices_(w.devices_),
       hcclComms_(w.hcclComms_),
       hcclStartEvents_(w.hcclStartEvents_),
@@ -302,11 +301,6 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w, bool makeWeak)
       seq_(w.seq_),
       startTraceUpdated_(w.startTraceUpdated_),
       store_(w.store_) {
-  if (makeWeak) {
-    npuEventsWeak_ = w.npuEvents_;
-  } else {
-    npuEvents_ = w.npuEvents_;
-  }
   exception_ = w.exception_;
 }
 
@@ -398,14 +392,10 @@ void ProcessGroupHCCL::WorkHCCL::checkAndThrowException() {
 
 // Waiting on the work's corresponding NPU events
 void ProcessGroupHCCL::WorkHCCL::synchronize() {
-  auto npuEvents = (makeWeak_ ? npuEventsWeak_.lock() : npuEvents_);
-  if (npuEvents == nullptr) {
-    return;
-  }
   for (const auto i : c10::irange(devices_.size())) {
     auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
     // Block the current stream on the HCCL stream
-    (*npuEvents)[i].block(currentStream);
+    (*npuEvents_)[i].block(currentStream);
     // If we use the work to do barrier, we should block here
     if (!barrierTensors_.empty()) {
       c10_npu::NPUGuard npuGuard(devices_[i]);
@@ -456,7 +446,7 @@ void ProcessGroupHCCL::WorkHCCL::handleHCCLGuard(ErrorHandlingMode asyncErrorHan
         "asynchronous nature of NPU kernels, subsequent NPU operations ",
         "might run on corrupted/incomplete data.");
     LOG(ERROR) << exceptionMsg;
-    C10_LOG_API_USAGE_ONCE("ProcessGroupNCCL.WorkNCCL.handleNCCLGuard");
+    C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.WorkHCCL.handleHCCLGuard");
     if (asyncErrorHandling == TearDown) {
       auto tearDownMsg = c10::str(
           "To avoid data inconsistency, we are taking the entire process down.");
@@ -780,19 +770,19 @@ ProcessGroupHCCL::ProcessGroupHCCL(
 
     if (blockingWait_) {
         if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
-            LOG(INFO) << "[Rank " << rank_ << "] NCCL_BLOCKING_WAIT and "
-                      << "NCCL_ASYNC_ERROR_HANDLING|NCCL_DESYNC_DEBUG"
+            LOG(INFO) << "[Rank " << rank_ << "] HCCL_BLOCKING_WAIT and "
+                      << "HCCL_ASYNC_ERROR_HANDLING|HCCL_DESYNC_DEBUG"
                       << "should not both be enabled. "
-                      << "Only NCCL_BLOCKING_WAIT is being used in this process.";
+                      << "Only HCCL_BLOCKING_WAIT is being used in this process.";
             asyncErrorHandling_ = NoHandling;
             desyncDebug_ = false;
         }
     } else {
         if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
             LOG(INFO) << "[Rank " << rank_
-                      << "] NCCL_DESYNC_DEBUG and NCCL_ASYNC_ERROR_HANDLING "
+                      << "] HCCL_DESYNC_DEBUG and HCCL_ASYNC_ERROR_HANDLING "
                       << "must both be enabled. "
-                      << "Enabling NCCL_ASYNC_ERROR_HANDLING.";
+                      << "Enabling HCCL_ASYNC_ERROR_HANDLING.";
             asyncErrorHandling_ = TearDown;
         }
     }
@@ -855,15 +845,15 @@ void ProcessGroupHCCL::workCleanupLoop() {
             }
           }
           // Handle Exceptions on failed GPU operations and remove completed
-          // workNCCL objects from work vector.
+          // workHCCL objects from work vector.
           if (!terminateProcessGroup_.load()) {
             work.handleHCCLGuard(asyncErrorHandling_);
           }
-          doneWorks.emplace_back(std::move(*it), true);
-          workTemp_.emplace_back(work, true);
+          doneWorks.emplace_back(std::move(*it));
+          workTemp_.emplace_back(work);
           it = workMetaList_.erase(it);
         } else {
-          // Increment the iterator if the current WorkNCCL object is not
+          // Increment the iterator if the current WorkHCCL object is not
           // completed.
           ++it;
         }
@@ -880,7 +870,7 @@ void ProcessGroupHCCL::workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL
     // View tensors' destruction invokes autograd_meta, which
     // needs to be destructed in user thread. Otherwise will
     // get deadlock. Here we enqueue work without outputs_.
-    workMetaList_.emplace_back(*work, true);
+    workMetaList_.emplace_back(*work);
   }
 }
 
@@ -1031,7 +1021,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
   // Hold the lock before modifying the cache.
   std::lock_guard<std::mutex> lock(mutex_);
 
-  // Record the communicators based on ncclUniqueId.
+  // Record the communicators based on HCCLUniqueId.
   hcclIdToCommMap_.emplace(buildHcclUniqueIdStr(hcclID), hcclComms);
 
   // Move the HCCL resource to cache
@@ -1225,7 +1215,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
       (*work->npuEvents_)[i].record(hcclStream);
       work->hcclComms_[i] = hcclComms[i];
-      (*work->hcclEndEvents_)[i].recordTimeEvent(hcclStream);
+      if (desyncDebug_) {
+        (*work->hcclEndEvents_)[i].recordTimeEvent(hcclStream);
+      }
     }
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = opTimeout_;
