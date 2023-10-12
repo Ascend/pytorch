@@ -27,9 +27,6 @@ class _NormBase(SrcNormBase):
     r"""Changed the num_batches_tracked of the batnorm from int64 to int32 to 
     improve the performance of the batchnorm.
 
-    The origin implement is:
-    https://github.com/pytorch/pytorch/blob/56b43f4fec1f76953f15a627694d4bba34588969/torch/nn/modules/batchnorm.py#L48
-
     """
     def __init__(
         self,
@@ -115,7 +112,7 @@ class FastBatchNorm1d(_BatchNorm):
     r"""Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D
     inputs with optional additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -153,7 +150,7 @@ class FastBatchNorm2d(_BatchNorm):
     r"""Applies Batch Normalization over a 4D input1 (a mini-batch of 2D inputs
     with additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -191,7 +188,7 @@ class FastBatchNorm3d(_BatchNorm):
     r"""Applies Batch Normalization over a 5D input1 (a mini-batch of 3D inputs
     with additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -229,7 +226,7 @@ class FastSyncBatchNorm(_BatchNorm):
     r"""Applies Batch Normalization over a N-Dimensional input1 (a mini-batch of [N-2]D inputs
     with additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 

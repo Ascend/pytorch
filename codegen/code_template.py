@@ -35,7 +35,6 @@ class CodeTemplate:
 
     # older versions of Python have a bug where \w* does not work,
     # so we need to replace with the non-shortened version [a-zA-Z0-9_]*
-    # https://bugs.python.org/issue18647
 
     substitution_str = substitution_str.replace(r'\w', r'[a-zA-Z0-9_]')
 

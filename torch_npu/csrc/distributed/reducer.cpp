@@ -384,8 +384,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
           } else {
             // If DDP is running with create_graph=True, gradients require_grad
             // themselves in order to compute higher order derivatives. However,
-            // DDP will not sync up these gradients currently (see
-            // https://github.com/pytorch/pytorch/issues/63812).
+            // DDP will not sync up these gradients currently
             C10_LOG_EVERY_N(WARNING, 1000)
                 << "Using DistributedDataParallel with create_graph=True "
                 << " is not well-supported. The higher-order gradient will "

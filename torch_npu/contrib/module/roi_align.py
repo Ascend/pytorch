@@ -70,9 +70,6 @@ class ROIAlign(nn.Module):
     def __init__(self, output_size, spatial_scale, sampling_ratio, aligned=True):
         """ROIAlign using npu api.
 
-        Origin implement from detectron2 is
-        https://github.com/facebookresearch/detectron2/blob/master/detectron2/layers/roi_align.py#L7
-
         The input parameters of the interface are the same, but due to the different implementation of the operator,
         the accuracy is different from that of CPU and GPU.
 

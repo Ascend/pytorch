@@ -126,7 +126,6 @@ def sample_inputs_logpace(op, device, dtype, requires_grad, **kwargs):
         if dtype == torch.uint8 and end < 0 or start < 0:
             continue
         if nstep == 1 and isinstance(start, float) and not (dtype.is_complex or dtype.is_floating_point):
-            # https://github.com/pytorch/pytorch/issues/82242
             continue
         if base is None:
             yield SampleInput(start, args=(end, nstep), kwargs={"dtype": dtype, "device": device})

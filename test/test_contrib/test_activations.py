@@ -26,9 +26,6 @@ class TestActivations(TestCase):
 
     def cpu_mish(self, input1):
         """
-        Official implementation based on PyTorch link:
-        https://github.com/digantamisra98/Mish/blob/master/Mish/Torch/mish.py
-
         Applies the mish function element-wise:
         mish(x) = x * tanh(softplus(x)) = x * tanh(ln(1 + exp(x)))
         See additional documentation for mish class.
@@ -79,9 +76,6 @@ class TestActivations(TestCase):
 
     def cpu_silu(self, input1):
         """
-        Official implementation based on PyTorch link:
-        https://github.com/digantamisra98/Mish/blob/master/Mish/Torch/mish.py
-
         Applies the mish function element-wise:
         mish(x) = x * tanh(softplus(x)) = x * tanh(ln(1 + exp(x)))
         See additional documentation for mish class.

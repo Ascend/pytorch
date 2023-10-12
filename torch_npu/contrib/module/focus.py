@@ -62,9 +62,6 @@ def fast_slice(x):
 
 class Focus(nn.Module):
     """Using NPU affinity writing method to replace the native Focus in Yolov5.
-    
-    Reference implementation link:
-    https://github.com/ultralytics/yolov5/blob/4d05472d2b50108c0fcfe9208d32cb067a6e21b0/models/common.py#L227
 
     Args:
         c1 (int): Number of channels in the input image.
