@@ -51,5 +51,14 @@ c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tens
     c10::SmallVector<int64_t, SIZE> outputSize = {N, C, Ho, Wo};
     return outputSize;
 }
+
+c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape)
+{
+    c10::SmallVector<int64_t, SIZE> shape_small_vec;
+    for (uint64_t i = 0; i < shape.size(); i++) {
+        shape_small_vec.emplace_back(shape[i]);
+    }
+    return shape_small_vec;
+}
 }  // namespace native
 }  // namespace at_npu

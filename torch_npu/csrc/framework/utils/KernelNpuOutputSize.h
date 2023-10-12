@@ -26,6 +26,7 @@ const int SIZE = 8;
 
 c10::IntArrayRef input_same_output_size(const at::Tensor& input);
 c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor& self,c10::IntArrayRef padding);
+c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape);
 } // namespace native
 } // namespace at_npu
 
