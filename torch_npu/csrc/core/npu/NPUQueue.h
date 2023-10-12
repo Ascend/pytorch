@@ -133,7 +133,7 @@ public:
   NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF,
     const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF,
     const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF);
-  ~NPUCallBackRegisterBuilder(){}
+  ~NPUCallBackRegisterBuilder() {}
 };
 } // namespace register_queue_cb
 
