@@ -1,3 +1,5 @@
+#ifdef USE_RPC_FRAMEWORK
+
 #pragma once
 
 #include <torch/csrc/distributed/rpc/utils.h>
@@ -105,3 +107,5 @@ c10::intrusive_ptr<Message> tensorpipeDeserialize(tensorpipe_npu::Descriptor &&t
 } // namespace rpc
 } // namespace distributed
 } // namespace torch_npu
+
+#endif

@@ -1,3 +1,5 @@
+#ifdef USE_RPC_FRAMEWORK
+
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_agent.h"
 
 #include <limits>
@@ -1303,3 +1305,5 @@ size_t TensorPipeAgent::messageIdToTimeoutMapSize()
 } // namespace rpc
 } // namespace distributed
 } // namespace torch_npu
+
+#endif

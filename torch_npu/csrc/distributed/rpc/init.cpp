@@ -1,3 +1,5 @@
+#ifdef USE_RPC_FRAMEWORK
+
 #include "torch_npu/csrc/distributed/rpc/init.h"
 
 #include <pybind11/chrono.h>
@@ -88,3 +90,5 @@ PyObject *rpc_npu_init(PyObject *_unused, PyObject *noargs)
 } // namespace rpc
 } // namespace distributed
 } // namespace torch_npu
+
+#endif

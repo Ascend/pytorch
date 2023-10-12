@@ -1,3 +1,5 @@
+#ifdef USE_RPC_FRAMEWORK
+
 #include <iostream>
 
 #include <tensorpipe/tensorpipe.h>
@@ -78,3 +80,5 @@ C10_REGISTER_TENSORPIPE_DEVICE_TYPE_CONVERTER(PrivateUse1, TensorpipeNpuConverte
 } // namespace rpc
 } // namespace distributed
 } // namespace torch_npu
+
+#endif

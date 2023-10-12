@@ -1,3 +1,5 @@
+#ifdef USE_RPC_FRAMEWORK
+
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_utils.h"
 
 #include <c10/util/irange.h>
@@ -307,3 +309,5 @@ c10::intrusive_ptr<Message> tensorpipeDeserialize(tensorpipe_npu::Descriptor &&t
 } // namespace rpc
 } // namespace distributed
 } // namespace torch_npu
+
+#endif

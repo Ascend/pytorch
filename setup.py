@@ -30,6 +30,7 @@ THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '2.1.0'
 UNKNOWN = "Unknown"
 DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
+DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
 
 def get_submodule_folders():
     git_modules_path = os.path.join(BASE_DIR, ".gitmodules")
@@ -293,8 +294,9 @@ class CPPLibBuild(build_clib, object):
                 cmake_args.append(f'-DTORCHAIR_INSTALL_PREFIX={torchair_install_prefix}')
                 cmake_args.append(f'-DTORCHAIR_TARGET_PYTHON={sys.executable}')
 
-        if check_tensorpipe_valid(BASE_DIR):
-            cmake_args.append('-DBUILD_TENSORPIPE=on')
+        if DISABLE_RPC == 'FALSE':
+            if check_tensorpipe_valid(BASE_DIR):
+                cmake_args.append('-DBUILD_TENSORPIPE=on')
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 

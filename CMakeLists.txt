@@ -215,6 +215,7 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
 
 if (DEFINED BUILD_TENSORPIPE)
+  add_definitions(-DUSE_RPC_FRAMEWORK)
   set(BUILD_SHARED_LIBS ON)
   add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
   set(BUILD_SHARED_LIBS OFF)
@@ -248,7 +249,10 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
 
-target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/Release/packages/torch_npu/lib/libtensorpipe.so)
+if (DEFINED BUILD_TENSORPIPE)
+  target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/Release/packages/torch_npu/lib/libtensorpipe.so)
+endif()
+
 target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
 
 if (NOT DEFINED BUILD_LIBTORCH)

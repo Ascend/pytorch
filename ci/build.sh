@@ -7,6 +7,7 @@ SUPPORTED_PY_VERSION=(3.8 3.9 3.10)
 PY_VERSION='3.8'                     # Default supported python version is 3.8
 DEFAULT_SCRIPT_ARGS_NUM=1            # Default supported input parameters
 export DISABLE_INSTALL_TORCHAIR=FALSE
+export DISABLE_RPC_FRAMEWORK=FALSE
 
 # Parse arguments inside script
 function parse_script_args() {
@@ -48,6 +49,10 @@ function parse_script_args() {
             ;;
         --disable_torchair)
             export DISABLE_INSTALL_TORCHAIR=TRUE
+            shift
+            ;;
+        --disable_rpc)
+            export DISABLE_RPC_FRAMEWORK=TRUE
             shift
             ;;
         -*)

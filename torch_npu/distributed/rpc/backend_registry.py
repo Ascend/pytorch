@@ -6,6 +6,8 @@ from torch._C import _get_privateuse1_backend_name
 from torch.distributed.rpc import api
 from torch.distributed.rpc import constants as rpc_constants
 
+import torch_npu._C
+
 
 def _get_device_count_info():
     # Function used to replace torch.cuda.device_count in torch_npu
@@ -279,9 +281,15 @@ def _npu_tensorpipe_init_backend_handler(
 
 
 # Backend Reg
-def rpc_backend_reg():
-    rpc.backend_registry.register_backend(
-        "NPU_TENSORPIPE",
-        _npu_tensorpipe_construct_rpc_backend_options_handler,
-        _npu_tensorpipe_init_backend_handler,
-    )
+def is_available() -> bool:
+    return hasattr(torch_npu._C, "_rpc_npu_init")
+
+
+def rpc_backend_registry():
+    if is_available():
+        torch_npu._C._rpc_npu_init()
+        rpc.backend_registry.register_backend(
+            "NPU_TENSORPIPE",
+            _npu_tensorpipe_construct_rpc_backend_options_handler,
+            _npu_tensorpipe_init_backend_handler,
+        )

@@ -400,7 +400,9 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
 // c10d methods on torch._C
 static PyMethodDef methods[] = { // NOLINT
     {"_c10d_npu_init", c10d_npu_init, METH_NOARGS, nullptr},
+#ifdef USE_RPC_FRAMEWORK
     {"_rpc_npu_init", rpc::rpc_npu_init, METH_NOARGS, nullptr},
+#endif
     {nullptr, nullptr, 0, nullptr}};
 
 PyMethodDef* python_functions() {

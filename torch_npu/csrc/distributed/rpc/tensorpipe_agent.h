@@ -1,3 +1,5 @@
+#ifdef USE_RPC_FRAMEWORK
+
 #pragma once
 
 #include <atomic>
@@ -398,3 +400,5 @@ private:
 } // namespace rpc
 } // namespace distributed
 } // namespace torch_npu
+
+#endif
