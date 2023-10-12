@@ -63,7 +63,8 @@ def npu_iou(boxes1,
         Tensor: IoU, sized [N,M].
     """
 
-    assert mode in ["iou", "ptiou"]
+    if mode not in ["iou", "ptiou"]:
+        raise ValueError("Expected mode in [iou, ptiou]")
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)
@@ -124,7 +125,8 @@ def npu_giou(boxes1,
         Tensor: IoU, sized [n, 1].
     """
 
-    assert boxes1.shape == boxes2.shape
+    if boxes1.shape != boxes2.shape:
+        raise ValueError("Expected boxes1.shape == boxes2.shape")
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)
