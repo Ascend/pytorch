@@ -23,6 +23,7 @@ import torch_npu as _VF
 
 Tensor = torch.Tensor
 
+
 def dropout_with_byte_mask(input1, p=0.5, training=True, inplace=False):
     # type: (Tensor, float, bool, bool) -> Tensor
     r"""Applies an NPU compatible dropout_with_byte_mask operation, Only supports npu devices. 

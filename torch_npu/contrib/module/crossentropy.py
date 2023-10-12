@@ -20,9 +20,6 @@ import torch_npu
 class LabelSmoothingCrossEntropy(nn.Module):
     """CrossEntropy with LabelSmoothing using npu api.
 
-    Paper: [Rethinking the Inception Architecture for Computer Vision]
-    https://arxiv.org/pdf/1512.00567.pdf
-
     Args:
         smooth_factor (float): default 0. If label_smoothing using, using 0.1([0, 1]) instead.
         num_classes (float): classes numbers using for onehot.

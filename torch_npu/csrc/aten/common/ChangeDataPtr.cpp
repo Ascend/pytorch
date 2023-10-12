@@ -21,7 +21,6 @@ namespace at_npu {
 namespace native {
 
 int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at::Tensor& src, int64_t offset) {
-
   TORCH_CHECK(
       offset >= 0,
       "Expect offset equal or greater than zero, got: ", offset);

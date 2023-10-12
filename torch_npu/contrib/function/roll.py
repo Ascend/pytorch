@@ -15,6 +15,7 @@
 import torch
 import torch_npu
 
+
 class RollWithIndexSelect(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input1, index_fp, index_bp):
@@ -32,7 +33,9 @@ class RollWithIndexSelect(torch.autograd.Function):
         grad_input = grad.reshape(N, H * W, C).index_select(1, index_bp).reshape(N, H, W, C)
         return grad_input, None, None
 
+
 roll_with_index_select = RollWithIndexSelect.apply
+
 
 def get_roll_index(H, W, shifts, device='cpu'):
     index = torch.arange(0, H * W).reshape(H, W)
@@ -42,11 +45,9 @@ def get_roll_index(H, W, shifts, device='cpu'):
     index_bp = torch.LongTensor(index_bp)
     return [index_fp.to(device), index_bp.to(device)]
 
+
 class NpuRollWithIndexSelect():
     """Using NPU affinity writing method to replace the native roll in swin-transformer.
-
-    Origin implement in torch is
-    https://pytorch.org/docs/stable/generated/torch.roll.html
 
     This interface is faster than the original on NPU.
 
@@ -69,9 +70,12 @@ class NpuRollWithIndexSelect():
         self.index_dict = {}
 
     def __call__(self, x, shifts, dims):
-        assert x.dim() == 4
-        assert len(shifts) == 2
-        assert len(dims) == 2
+        if x.dim() != 4:
+            raise ValueError("Expected x.dim() == 4")
+        if len(shifts) != 2:
+            raise ValueError("Expected len(shifts) == 2")
+        if len(dims) != 2:
+            raise ValueError("Expected len(dims) == 2")
         N, H, W, C = x.shape
         key = (H, W, shifts, dims)
         if key not in self.index_dict:

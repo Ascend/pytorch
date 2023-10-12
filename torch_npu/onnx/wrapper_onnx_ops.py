@@ -518,7 +518,8 @@ class NPULstmOP(torch.autograd.Function):
     def symbolic(g, input: Tensor, weight: Tensor, bias: Tensor, seqMask: Tensor, h: Tensor,
                  c: Tensor, has_biases: bool, num_layers: int,  dropout: float, train: bool,
                  bidirectional: bool, batch_first: bool, flagSeq: bool, direction: bool):
-        assert train is False
+        if train:
+            raise ValueError("Value of param 'train' must be False.")
         return g.op("npu::NPULstm", input, weight, bias, seqMask, h, c, has_biases_i=has_biases,
                     num_layers_i=num_layers, dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, flagSeq_i=flagSeq, direction_i=direction, outputs=8)

@@ -15,19 +15,18 @@
 import torch
 import torch_npu
 
+
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
     return box
+
 
 def npu_single_level_responsible_flags(featmap_size,
                                        gt_bboxes,
                                        stride,
                                        num_base_anchors):
     """Using NPU OP to generate the responsible flags of anchor in a single feature map.
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/anchor/anchor_generator.py#L821
 
     .. note::
         Because of the limitation of NPU op,

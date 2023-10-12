@@ -52,7 +52,6 @@ import torch_npu
 
 
 # This module is wildcard imported from torch.distributed.
-# TODO: specify __all__
 
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
@@ -174,10 +173,10 @@ class Backend(object):
         .. note:: This support of 3rd party backend is experimental and subject to change.
 
         """
-        assert not hasattr(Backend, name.upper()), (
-            f"{name.upper()} c10d backend already exist")
-        assert name.upper() not in Backend._plugins, (
-            f"{name.upper()} c10d backend creator function already exist")
+        if hasattr(Backend, name.upper()):
+            raise RuntimeError(f"{name.upper()} c10d backend already exist")
+        if name.upper() in Backend._plugins:
+            raise RuntimeError(f"{name.upper()} c10d backend creator function already exist")
 
         setattr(Backend, name.upper(), name.upper())
         Backend._plugins[name.upper()] = func
@@ -185,7 +184,6 @@ class Backend(object):
 
 # `_backend`, `dist_backend`, and `reduce_op` are here to maintain backward
 # compatibility with pre-c10d distributed package.
-# TODO: remove them when users are ready to take a hard dependency on PyTorch 1.
 _backend: str = Backend.UNDEFINED
 dist_backend = Backend
 
@@ -480,7 +478,8 @@ def get_backend(group=None):
     if _rank_not_in_group(pg):
         raise RuntimeError("Invalid process group specified")
     pg_store = _pg_map.get(pg, None)
-    assert pg_store is not None
+    if pg_store is None:
+        raise RuntimeError('pg_store is None')
     return pg_store[0]
 
 
@@ -563,12 +562,14 @@ def init_process_group(backend, init_method=None, timeout=default_pg_timeout,
         raise RuntimeError("trying to initialize the default process group "
                            "twice!")
 
-    assert (store is None) or (init_method is None), \
-        "Cannot specify both init_method and store."
+    if not ((store is None) or (init_method is None)):
+        raise RuntimeError("Cannot specify both init_method and store.")
 
     if store is not None:
-        assert world_size > 0, 'world_size must be positive if using store'
-        assert rank >= 0, 'rank must be non-negative if using store'
+        if not (world_size > 0):
+            raise RuntimeError('world_size must be positive if using store')
+        if not (rank >= 0):
+            raise RuntimeError('rank must be non-negative if using store')
     elif init_method is None:
         init_method = "env://"
 
@@ -596,7 +597,7 @@ def init_process_group(backend, init_method=None, timeout=default_pg_timeout,
             # Use a PrefixStore to avoid accidental overrides of keys used by
             # different systems (e.g. RPC) in case the store is multi-tenant.
             store = PrefixStore("default_pg", store)
-        default_pg = _new_process_group_helper(world_size, rank, [], backend, store,  pg_options=pg_options,
+        default_pg = _new_process_group_helper(world_size, rank, [], backend, store, pg_options=pg_options,
                                                group_name=group_name, timeout=timeout)
         _update_default_pg(default_pg)
 
@@ -719,7 +720,8 @@ def destroy_process_group(group=None):
     else:
         pg = group
 
-    assert pg is not None
+    if pg is None:
+        raise RuntimeError('process group is None')
     if _pg_map.get(pg, None) is None:
         raise RuntimeError("Invalid process group specified")
 
@@ -1806,6 +1808,7 @@ def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=F
     else:
         work.wait()
 
+
 def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=False):
     """
     Reduces, then scatters a flattened tensor to all processes in a group.
@@ -1916,7 +1919,7 @@ def all_to_all_single(output_tensor,
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
     input_format = torch_npu.get_npu_format(input_tensor)
     output_format = torch_npu.get_npu_format(output_tensor)
-    judge_format = input_format != 0 and  input_format != 2
+    judge_format = input_format != 0 and input_format != 2
 
     if input_format != output_format:
         raise RuntimeError("Input and output formats should be the same!")
@@ -2062,8 +2065,8 @@ def all_to_all(output_tensor_list,
         work = group.alltoall_base(output_tensor, input_tensor, output_split_sizes, input_split_sizes, opts)
     
     if async_op:
-         output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
-         return work
+        output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
+        return work
     else:
         work.wait()
         output_tensor_list[:] = list(output_tensor.split(output_split_sizes))
@@ -2150,10 +2153,7 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
         This means collectives from one process group should have completed
         execution on the device (not just enqueued since CUDA execution is
         async) before collectives from another process group are enqueued.
-        See `Using multiple NCCL communicators concurrently <https://docs.nvid
-        ia.com/deeplearning/nccl/user-guide/docs/usage/communicators.html#using
-        -multiple-nccl-communicators-concurrently>`_ for more details.
-
+        See `Using multiple NCCL communicators concurrently.
     Args:
         ranks (list[int]): List of ranks of group members. If ``None``, will be
             set to all ranks. Default is ``None``.
@@ -2246,7 +2246,6 @@ def _object_to_tensor(obj):
     byte_storage = torch.ByteStorage.from_buffer(f.getvalue())  # type: ignore[attr-defined]
     # Do not replace `torch.ByteTensor` or `torch.LongTensor` with torch.tensor and specifying dtype.
     # Otherwise, it will casue 100X slowdown.
-    # See: https://github.com/pytorch/pytorch/issues/65696
     byte_tensor = torch.ByteTensor(byte_storage)
     local_size = torch.LongTensor([byte_tensor.numel()])
     return byte_tensor, local_size

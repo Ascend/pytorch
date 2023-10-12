@@ -16,12 +16,10 @@ import torch
 from torch import nn
 import torch_npu
 
+
 class PSROIPool(nn.Module):
     def __init__(self, pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22):
         """ROIAlign using npu api.
-
-        Origin implement is
-        https://github.com/RebornL/RFCN-pytorch.1.0/blob/master/lib/model/roi_layers/ps_roi_pool.py
 
         Args:
             pooled_height (int): pooled_height
@@ -35,15 +33,12 @@ class PSROIPool(nn.Module):
 
         Examples::
             >>> model = PSROIPool(pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22)
-
-        .. _R-FCN\: Object Detection via Region-based Fully Convolutional Networks
-            https://arxiv.org/abs/1605.06409
         """
 
         super(PSROIPool, self).__init__()
 
-        assert (pooled_height == pooled_width == group_size), \
-            "only pooled_height == pooled_width == group_size supported."
+        if not (pooled_height == pooled_width == group_size):
+            raise ValueError("only pooled_height == pooled_width == group_size supported.")
 
         self.group_size = group_size
         self.spatial_scale = spatial_scale

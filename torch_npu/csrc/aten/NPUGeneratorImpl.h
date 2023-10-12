@@ -145,7 +145,7 @@ private:
   NPUGeneratorImpl* clone_impl() const override;
   uint64_t seed_ = c10::default_rng_seed_val;
   uint64_t philox_offset_per_thread_ = 0;
-  int64_t* offset_extragraph_;
+  int64_t* offset_extragraph_ = nullptr;
   uint32_t offset_intragraph_ = 0;
   bool graph_expects_this_gen_ = false;
 };

@@ -112,6 +112,5 @@ at::Tensor empty_strided(c10::IntArrayRef size, c10::IntArrayRef stride, c10::op
   return empty_strided_cpu(size, stride, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
-
 }
 }

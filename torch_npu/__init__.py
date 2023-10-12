@@ -130,7 +130,7 @@ def cann_package_check():
         if cann_version in cann_pytorch_version_map and \
             torch_npu.__version__ not in cann_pytorch_version_map[cann_version]:
             print(f"Warning : CANN package version {cann_version} and PyTorch version {torch_npu.__version__} " \
-                  "is not matched, please check the README in repo of https://gitee.com/ascend/pytorch")
+                  "is not matched, please check the README of the ascend pytorch repo.")
     else:
         print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
 
@@ -148,12 +148,6 @@ def _isinstance(obj, class_or_tuple):
         return builtin_isinstance(obj, class_or_tuple)
     except TypeError as e:
         class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
-        if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
-            type_str = str(obj.type())
-            tensor_type = type_str.split('.')[-1]
-            if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
-                return eval(type_str) in class_tuple
-
         if torch._C.device in class_tuple or torch_npu._C.device in class_tuple:
             return builtin_isinstance(obj, class_tuple + (torch._C.device, torch_npu._C.device))
         raise e
@@ -232,7 +226,8 @@ def _apply_patches(monkey_patches):
             sys.modules[f'{dest_module.__name__}.{last_module_level}'] = patch
             continue
 
-        assert hasattr(patch, '__all__'), "Patch module must have __all__ definition."
+        if not hasattr(patch, '__all__'):
+            raise NotImplementedError("Patch module must have __all__ definition.")
         dest_module = getattr(dest_module, last_module_level)
         for attr in patch.__all__:
             setattr(dest_module, attr, getattr(patch, attr))

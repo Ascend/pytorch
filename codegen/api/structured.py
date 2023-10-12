@@ -60,9 +60,6 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
     elif isinstance(t, ListType):
         if t.elem == BaseType(BaseTy.Tensor):
             return NamedCType(binds, ConstRefCType(BaseCType(iTensorListRefT)))
-        # TODO: delete these special cases; see tools.codegen.api.cpp--these
-        # must be changed in tandem, but there are problems; see
-        # https://github.com/pytorch/pytorch/pull/51485
         elif str(t.elem) == 'int':
             return NamedCType(binds, BaseCType(intArrayRefT))
         elif str(t.elem) == 'Dimname':

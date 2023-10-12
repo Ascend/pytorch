@@ -30,7 +30,8 @@ with open(yaml_path, 'r') as f:
 def get_functional_ops():
     global WrapFunctionalOps
     _all_functional_ops = dir(torch.nn.functional)
-    assert set(WrapFunctionalOps) <= set(_all_functional_ops)
+    if not (set(WrapFunctionalOps) <= set(_all_functional_ops)):
+        raise RuntimeError("Functional ops being wrapped must be a subset of all functional ops.")
     return WrapFunctionalOps
 
 

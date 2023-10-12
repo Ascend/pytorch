@@ -29,6 +29,7 @@ from ..function import matmul_transpose
 
 dropout_class = NpuCachedDropout
 
+
 def quant_noise(module, p, block_size):
     """
     Wraps modules and applies quantization noise to the weights for
@@ -54,28 +55,28 @@ def quant_noise(module, p, block_size):
         return module
 
     # supported modules
-    assert isinstance(module, (nn.Linear, nn.Embedding, nn.Conv2d))
+    if not isinstance(module, (nn.Linear, nn.Embedding, nn.Conv2d)):
+        raise TypeError("Expected isinstance(module, (nn.Linear, nn.Embedding, nn.Conv2d))")
 
     # test whether module.weight has the right sizes wrt block_size
     is_conv = module.weight.ndim == 4
 
     # 2D matrix
     if not is_conv:
-        assert (
-            module.weight.size(1) % block_size == 0
-        ), "Input features must be a multiple of block sizes"
+        if module.weight.size(1) % block_size != 0:
+            raise ValueError("Input features must be a multiple of block sizes")
 
     # 4D matrix
     else:
         # 1x1 convolutions
         if module.kernel_size == (1, 1):
-            assert (
-                module.in_channels % block_size == 0
-            ), "Input channels must be a multiple of block sizes"
+            if module.in_channels % block_size != 0:
+                raise ValueError("Input channels must be a multiple of block sizes")
         # regular convolutions
         else:
             k = module.kernel_size[0] * module.kernel_size[1]
-            assert k % block_size == 0, "Kernel size must be a multiple of block size"
+            if k % block_size != 0:
+                raise ValueError("Kernel size must be a multiple of block size")
 
     def _forward_pre_hook(mod, input1):
         # no noise for evaluation
@@ -128,16 +129,16 @@ def quant_noise(module, p, block_size):
     module.register_forward_pre_hook(_forward_pre_hook)
     return module
 
+
 class NpuLinear(nn.Linear):
     def forward(self, input2):
         input_shape = input2.size()
         if input2.dim() == 3:
             input2 = input2.view(-1, self.in_features)
-            return torch_npu.npu_linear(input2,self.weight, self.bias).view(input_shape[0],
-                                                                       input_shape[1],
-                                                                       self.out_features)
+            return torch_npu.npu_linear(input2, self.weight, self.bias).view(
+                input_shape[0], input_shape[1], self.out_features)
         elif input2.dim() == 2:
-            return torch_npu.npu_linear(input2, self.weight,self.bias)
+            return torch_npu.npu_linear(input2, self.weight, self.bias)
         else:
             raise RuntimeError('not support this dim')
 
@@ -150,6 +151,7 @@ class MHAConfig:
         from torch_npu import npu_multi_head_attention
         cls.use_fussion_mha = True
 
+
 def Matmul_transpose(tensor1, tensor2):
     return matmul_transpose.MatmulApply.apply(tensor1, tensor2)
 
@@ -158,9 +160,6 @@ class MultiheadAttention(nn.Module):
     """Multi-headed attention.
 
     See "Attention Is All You Need" for more details.
-    
-    Reference implementation link:
-    https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64
 
     .. note::
         Dynamic shapes are not supported.
@@ -214,17 +213,15 @@ class MultiheadAttention(nn.Module):
         self.use_dropout_optim = (dropout_class is NpuCachedDropout)
 
         self.head_dim = embed_dim // num_heads
-        assert (
-            self.head_dim * num_heads == self.embed_dim
-        ), "embed_dim must be divisible by num_heads"
+        if self.head_dim * num_heads != self.embed_dim:
+            raise ValueError("embed_dim must be divisible by num_heads")
         self.scaling = self.head_dim ** -0.5
 
         self.self_attention = self_attention
         self.encoder_decoder_attention = encoder_decoder_attention
 
-        assert not self.self_attention or self.qkv_same_dim, (
-            "Self-attention requires query, key and " "value to be of the same size"
-        )
+        if self.self_attention and not self.qkv_same_dim:
+            raise ValueError("Self-attention requires query, key and " "value to be of the same size")
 
         self.k_proj = quant_noise(
             NpuLinear(self.kdim, embed_dim, bias=bias), q_noise, qn_block_size
@@ -318,7 +315,6 @@ class MultiheadAttention(nn.Module):
             return attn, None
         else:
             # Due to the length of the code snippet, it is omitted here, please refer to the following for details:
-            # https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/nlp/mBART_ID2372_for_PyTorch/fairseq/modules/multihead_attention.py#L202
             return None, None
 
     def multi_attn(self, query, key, value, key_padding_mask, bsz, tgt_len):
@@ -355,7 +351,7 @@ class MultiheadAttention(nn.Module):
         # is None
         elif prev_key_padding_mask is not None:
             filler = torch.zeros(
-                (batch_size, key_padding_mask.size(1),key_padding_mask.size(2),
+                (batch_size, key_padding_mask.size(1), key_padding_mask.size(2),
                  src_len - prev_key_padding_mask.size(3)),
                 device=prev_key_padding_mask.device,
             )
@@ -364,7 +360,7 @@ class MultiheadAttention(nn.Module):
             )
         elif key_padding_mask is not None:
             filler = torch.zeros(
-                (batch_size, key_padding_mask.size(1),key_padding_mask.size(2)
+                (batch_size, key_padding_mask.size(1), key_padding_mask.size(2)
                  , src_len - key_padding_mask.size(3)),
                 device=key_padding_mask.device,
             )

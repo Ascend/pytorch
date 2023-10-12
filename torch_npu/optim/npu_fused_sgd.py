@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from collections import defaultdict
+import math
 
 import torch
 from torch.optim.optimizer import required
@@ -42,8 +43,6 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
         weight_decay (float, optional, default=0): weight decay (L2 penalty)
         dampening (float, optional, default=0): dampening for momentum
         nesterov (bool, optional, default=False): enables Nesterov momentum
-
-    __ http://www.cs.toronto.edu/%7Ehinton/absps/momentum.pdf
     """
 
     def __init__(self,
@@ -61,7 +60,7 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
             raise ValueError(
                 "Invalid weight_decay value: {}".format(weight_decay))
         if nesterov and (momentum <= MOMENTUM_MIN
-                         or dampening != DAMPENING_DEFAULT):
+                         or not math.isclose(dampening, DAMPENING_DEFAULT, abs_tol=1e-15)):
             raise ValueError(
                 "Nesterov momentum requires a momentum and zero dampening")
         defaults = dict(lr=lr,

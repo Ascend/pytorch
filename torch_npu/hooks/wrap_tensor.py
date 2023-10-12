@@ -30,7 +30,8 @@ with open(yaml_path, 'r') as f:
 def get_tensor_ops():
     global WrapTensorOps
     _tensor_ops = dir(torch._C._TensorBase)
-    assert set(WrapTensorOps) <= set(_tensor_ops)
+    if not (set(WrapTensorOps) <= set(_tensor_ops)):
+        raise RuntimeError("Tensor ops being wrapped must be a subset of all tensor ops.")
     return WrapTensorOps
 
 

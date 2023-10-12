@@ -15,6 +15,7 @@
 import torch
 import torch_npu
 
+
 class BiLSTM(torch.nn.Module):
     r"""Applies an NPU compatible bidirectional LSTM operation to an input
     sequence.
@@ -22,9 +23,6 @@ class BiLSTM(torch.nn.Module):
     The implementation of this BidirectionalLSTM is mainly based on the principle of bidirectional LSTM.
     Since NPU do not support the parameter bidirectional in torch.nn.lstm to be True,
     we reimplement it by joining two unidirection LSTM together to form a bidirectional LSTM
-
-    Paper: [Bidirectional recurrent neural networks]
-    https://ieeexplore.ieee.org/document/650093
 
     Args:
         input_size: The number of expected features in the input `x`

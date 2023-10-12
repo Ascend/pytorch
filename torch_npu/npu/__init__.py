@@ -20,7 +20,7 @@ __all__ = [
     "get_device_properties", "get_device_capability", "_get_device_index", "is_available", "device", "device_of",
     "stream", "set_stream", "current_stream", "default_stream", "set_sync_debug_mode", "get_sync_debug_mode",
     "init_dump", "utilization", "finalize_dump", "set_dump", "manual_seed", "manual_seed_all",
-    "seed", "seed_all", "initial_seed", "_free_mutex", "caching_allocator_alloc",
+    "seed", "seed_all", "initial_seed", "caching_allocator_alloc",
     "caching_allocator_delete", "set_per_process_memory_fraction", "empty_cache", "memory_stats",
     "memory_stats_as_nested_dict", "reset_accumulated_memory_stats",
     "reset_peak_memory_stats", "reset_max_memory_allocated", "reset_max_memory_cached",
@@ -33,7 +33,7 @@ __all__ = [
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
     "get_rng_state_all", "set_rng_state_all", "is_jit_compile_false",
-    "current_blas_handle",
+    "current_blas_handle", "config", "matmul", "conv",
 ]
 
 from typing import Tuple
@@ -52,7 +52,7 @@ from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
 from .random import (manual_seed, manual_seed_all, seed, seed_all, initial_seed, 
                      get_rng_state_all, set_rng_state_all,
                      get_rng_state, set_rng_state)
-from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete,
+from .memory import (caching_allocator_alloc, caching_allocator_delete,
                      set_per_process_memory_fraction, empty_cache, memory_stats, memory_stats_as_nested_dict,
                      reset_accumulated_memory_stats, reset_peak_memory_stats,
                      reset_max_memory_allocated, reset_max_memory_cached, memory_allocated,

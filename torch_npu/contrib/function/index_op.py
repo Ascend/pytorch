@@ -15,6 +15,7 @@
 import torch
 import torch_npu
 
+
 def npu_fast_condition_index_put(x, condition, value):
     """Using NPU affinity writing method to replace the native writing method in bool type index_put function.
 
@@ -38,7 +39,8 @@ def npu_fast_condition_index_put(x, condition, value):
         torch.Tensor: Box transformation deltas
     """
 
-    assert condition.dtype in [torch.bool]
+    if condition.dtype not in [torch.bool]:
+        raise TypeError("Expected condition.dtype in [torch.bool]")
 
     if value == 0:
         mask = torch.zeros_like(x)

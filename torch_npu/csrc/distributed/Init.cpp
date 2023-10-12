@@ -58,8 +58,7 @@ public:
       default;
   IntrusivePtrNoGilDestructor(c10::intrusive_ptr<T> impl)
       : impl_(std::move(impl)) {}
-  // This ctor is very important; see
-  // https://github.com/pybind/pybind11/issues/2957
+  // This ctor is very important;
   explicit IntrusivePtrNoGilDestructor(T* impl)
       : impl_(c10::intrusive_ptr<T>::unsafe_steal_from_new(impl)) {}
   ~IntrusivePtrNoGilDestructor() {

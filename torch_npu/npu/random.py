@@ -180,7 +180,9 @@ def initial_seed():
     default_generator = torch_npu.npu.default_generators[idx]
     return default_generator.initial_seed()
 
+
 _fork_rng_warned_already = False
+
 
 @contextlib.contextmanager
 def fork_rng(devices=None, enabled=True, _caller="fork_rng", _devices_kw="devices"):
