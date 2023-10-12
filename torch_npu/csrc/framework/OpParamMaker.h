@@ -151,8 +151,8 @@ namespace at_npu
       AclTensorBufferMaker(const at::Tensor *tensor, int64_t offset, int64_t n)
       {
         uint8_t *header = reinterpret_cast<uint8_t *>(tensor->data_ptr()) -
-                          tensor->itemsize() * offset;
-        size_t bufferSize = tensor->itemsize() * n;
+                          tensor->itemsize() * static_cast<uint8_t>(offset);
+        size_t bufferSize = tensor->itemsize() * static_cast<size_t>(n);
         ptr = aclCreateDataBuffer(header, bufferSize);
       }
 
@@ -259,8 +259,8 @@ namespace at_npu
         opName.copy(params.opType, opName.length() + 1);
         params.attr = execParam.attr;
         // make params
-        int inputNum = execParam.inDesc.size();
-        int outputNum = execParam.outDesc.size();
+        int inputNum = static_cast<int>(execParam.inDesc.size());
+        int outputNum = static_cast<int>(execParam.outDesc.size());
 
         size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
         size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);

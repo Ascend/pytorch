@@ -101,7 +101,7 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor &tensor) {
 
   int64_t contiguous_len = 16;
   int64_t c0_len = 16;
-  for (int i = 2; i < torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_.size(); i++) {
+  for (const auto i : c10::irange(2, torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_.size())) {
     contiguous_len *= torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_[i];
   }
   bool is_offset_match = (tensor.storage_offset() % contiguous_len == 0);

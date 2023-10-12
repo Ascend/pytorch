@@ -55,10 +55,10 @@ namespace at_npu
       npuDesc.base_sizes_ = new_size;
 
       // 计算连续场景下size对应的stride值
-      auto dim_ = new_size.size();
+      int64_t dim_ = static_cast<int64_t>(new_size.size());
       c10::SmallVector<int64_t, 5> new_stride(dim_);
       if (dim_ > 0) {
-        int last_idx = dim_ - 1;
+        int64_t last_idx = dim_ - 1;
         new_stride[last_idx] = 1;
         for (auto i = last_idx - 1; i >= 0; --i) {
           new_stride[i] = new_stride[i + 1] * std::max<int64_t>(new_size[i + 1], 1);
@@ -113,7 +113,7 @@ namespace at_npu
       // using string obj "base_size/10/10/10/10/10/" to represent
       auto small_vector_to_str = [](std::string &str, std::string key_name, c10::SmallVector<int64_t, 5> vec) -> void {
         str = key_name;
-        for (int i=0; i<vec.size(); i++) {
+        for (const auto i : c10::irange(vec.size())) {
           str += '/';
           str += std::to_string(vec[i]);
         }
@@ -156,7 +156,7 @@ namespace at_npu
             while ((start < str.size()) && (str[start++] != '/'));
             int end = start;
             c10::SmallVector<int64_t, 5> vec;
-            while (end < str.size()) {
+            while (end < static_cast<int64_t>(str.size())) {
                 if (str[end] != '/') {
                     end++;
                 } else {
