@@ -91,6 +91,9 @@ __all__ = [
     "LongTensor",
     "ShortTensor",
     "current_blas_handle",
+    "config",
+    "matmul",
+    "conv",
 ]
 
 from typing import Tuple
