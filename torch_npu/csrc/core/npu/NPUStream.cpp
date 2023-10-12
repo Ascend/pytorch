@@ -128,7 +128,6 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
 static thread_local LeakyStreamInternals** current_streams = nullptr;
 
 static void initGlobalStreamState() {
-  // TODO device_count(), set to 1 temporarily.
   num_npus = c10_npu::device_count();
   // Check if the number of GPUs matches the expected compile-time max number
   // of GPUs.

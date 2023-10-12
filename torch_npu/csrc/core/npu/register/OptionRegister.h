@@ -20,7 +20,7 @@ public:
   /**
     dctr
     */
-    OptionInterface(OptionCallBack callback=nullptr);
+    OptionInterface(OptionCallBack callback = nullptr);
   /**
     This API is used to store value.
     */

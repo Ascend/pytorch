@@ -25,7 +25,7 @@ C10_REGISTER_GUARD_IMPL(PrivateUse1, NPUGuardImpl);
 
 #define REGISTER_PRIVATEUSE1_BACKEND(name)                                                      \
   int rename_privateuse1_backend() {                                                            \
-    c10::register_privateuse1_backend(#name);                                                   \    
+    c10::register_privateuse1_backend(#name);                                                   \
     c10::SetStorageImplCreate(c10::DeviceType::PrivateUse1, &torch_npu::make_npu_storage_impl); \
     torch::jit::TensorBackendMetaRegistry(c10::DeviceType::PrivateUse1, &torch_npu::npu_info_serialization, &torch_npu::npu_info_deserialization); \
     return 0;                                                                                   \

@@ -26,7 +26,7 @@ public:
 
   explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
 
-  ~NPUStream(){}
+  ~NPUStream() {}
 
   bool operator==(const NPUStream& other) const noexcept {
     return unwrap() == other.unwrap();
