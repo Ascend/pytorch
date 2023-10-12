@@ -24,7 +24,7 @@ class TestComplex(TestCase):
         output = output.numpy()
         return output
 
-    def npu_op_exec(self, input1):
+    def npu_op_exec(self, input1, input2):
         output = torch.complex(input1, input2)
         output = output.to("cpu")
         output = output.numpy()
