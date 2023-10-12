@@ -89,20 +89,6 @@ namespace at_npu
       PROCESS_FUNC customHandler;
     };
 
-    struct BsParams {
-      using PROCESS_FUNC = std::function<void()>;
-      PROCESS_FUNC func = nullptr;
-    };
-
-    struct ExecuteBsParas {
-      char opType[50]{};
-      BsParams paras;
-      ExecuteBsParas() = default;
-      void Release();
-      void Copy(ExecuteBsParas& other);
-      void CopyEx(ExecuteBsParas& other);
-    };
-
     NPUStatus DestroyAclParams(ACL_PARAMS &params);
     void DestroyConstParams(CONST_PARAMS &params);
   } // namespace native

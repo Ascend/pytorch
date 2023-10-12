@@ -299,10 +299,6 @@ void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t cat
   auto param_val = static_cast<c10_npu::queue::CopyParas *>(para->paramVal);
   torch_npu::profiler::reportMarkDataToNpuProfiler(category, c10_npu::queue::CopyParas::COPY_PARAS_MAP[param_val->kind], para->correlation_id);
 }
-void NpuUtils::DqueueCompileExcuteBs(c10_npu::queue::QueueParas * para, uint32_t category){
-  auto param_val = static_cast<at_npu::native::ExecuteBsParas *>(para->paramVal);
-  torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
-}
 
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
   std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
@@ -312,7 +308,6 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
     {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
     {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
     {c10_npu::queue::RESET_EVENT, &DqueueEvent},
-    {c10_npu::queue::LAMBDA_EXECUTE, &DqueueCompileExcuteBs},
   };
   if (!data) {
     return;

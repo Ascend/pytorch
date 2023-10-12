@@ -2,13 +2,13 @@
 #include "torch_npu/csrc/core/npu/NPUQueue.h"
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUEventManager.h"
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 
 #ifndef BUILD_LIBTORCH
@@ -337,20 +337,6 @@ namespace at_npu
       return ret;
     }
 
-    int ExecBsFunc(c10_npu::queue::QueueParas* in, aclrtStream stream) {
-      auto cur_paras = static_cast<ExecuteBsParas* >(in->paramVal);
-      ASCEND_LOGD("Op %s Run.", cur_paras->opType);
-      int ret = 0;
-      try {
-        cur_paras->paras.func();
-      } catch (std::exception& e) {
-        // ERROR RESERVED in BiShengCPP
-        ret = 152;
-        ASCEND_LOGE("Run BiShengCPP OP error err%s", e.what());
-      }
-      return ret;
-    }
-    
     int MemcopyAsyncFunc(c10_npu::queue::QueueParas* in, aclrtStream stream)
     {
       auto cur_paras = static_cast<c10_npu::queue::CopyParas* >(in->paramVal);
@@ -410,8 +396,6 @@ namespace at_npu
       if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         // string or smallvector of struct is used, deconstructor need be called before memset
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->~ExecuteParas();
-      } else if (dstPtr->paramType == c10_npu::queue::LAMBDA_EXECUTE) {
-        (static_cast<ExecuteBsParas* >(dstPtr->paramVal))->~ExecuteBsParas();
       }
 
       dstPtr->paramStream = srcPtr->paramStream;
@@ -421,9 +405,6 @@ namespace at_npu
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         new(dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
-      } else if ((srcPtr->paramType == c10_npu::queue::LAMBDA_EXECUTE)) {
-        new(dstPtr->paramVal) ExecuteBsParas();
-        (static_cast<ExecuteBsParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteBsParas* >(srcPtr->paramVal)));
       } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
         new(dstPtr->paramVal) c10_npu::queue::CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
@@ -462,7 +443,6 @@ namespace at_npu
       {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
       {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
       {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
-      {c10_npu::queue::LAMBDA_EXECUTE, ExecBsFunc},
     };
 
     int AsncExecFunc(void* data) {
@@ -482,8 +462,6 @@ namespace at_npu
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
         (static_cast<ExecuteParas* >(srcPtr->paramVal))->hostMemory.clear();
-      } else if (srcPtr->paramType == c10_npu::queue::LAMBDA_EXECUTE) {
-        (static_cast<ExecuteBsParas* >(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteBsParas* >(srcPtr->paramVal)));
       }
     }
 
@@ -493,14 +471,11 @@ namespace at_npu
       if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
         auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
         cur_paras->Release();
-      } else if (type == c10_npu::queue::LAMBDA_EXECUTE) {
-        auto cur_paras = static_cast<ExecuteBsParas* >(queueParam->paramVal);
-        cur_paras->Release();
       }
     }
 
     REGISTER_QUEUE_FUNC(AsncExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc,
-      CopyReleaseParamFunc, ReleaseParamFunc)
+        CopyReleaseParamFunc, ReleaseParamFunc)
 
     OpCommandImpls *OpCommandImpls::GetInstanceByTid(std::thread::id tid)
     {
@@ -536,6 +511,5 @@ namespace at_npu
           offset >= 0, "OpCommand current offset should not be less than ", offset);
       offset -= 1;
     }
-
   } // namespace native
 } // namespace at_npu
