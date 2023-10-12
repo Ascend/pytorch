@@ -70,10 +70,10 @@ namespace at_npu
       npuDesc.base_sizes_ = new_size;
 
       // 计算连续场景下size对应的stride值
-      auto dim_ = new_size.size();
+      int64_t dim_ = static_cast<int64_t>(new_size.size());
       c10::SmallVector<int64_t, 5> new_stride(dim_);
       if (dim_ > 0) {
-        int last_idx = dim_ - 1;
+        int64_t last_idx = dim_ - 1;
         new_stride[last_idx] = 1;
         for (auto i = last_idx - 1; i >= 0; --i) {
           new_stride[i] = new_stride[i + 1] * std::max<int64_t>(new_size[i + 1], 1);

@@ -57,7 +57,7 @@ private:
     const auto &indexing_size = src_desc.sizes_;
     const auto &indexing_stride = src_desc.strides_;
 
-    for (int64_t i = 0; i < indexing_size.size(); i++) {
+    for (const auto i : c10::irange(indexing_size.size())) {
       // base_stride should not be 0.
       if ((base_stride[i] == 0) || 
           (indexing_stride[i] < base_stride[i]) || 
@@ -68,19 +68,19 @@ private:
 
     // indexing信息获取部分
     // Get step info(for indexing step at index aixs should > 1)
-    for (int64_t i = 0; i < indexing_size.size(); i++) {
+    for (const auto i : c10::irange(indexing_size.size())) {
       step.emplace_back(indexing_stride[i] / base_stride[i]);
     }
 
     // Get start index based on offset and base stride
     int64_t src_offset = src_desc.offset_;
-    for (int64_t i = 0; i < indexing_size.size(); i++) {
+    for (const auto i : c10::irange(indexing_size.size())) {
       start.emplace_back(src_offset / base_stride[i]);
       src_offset = src_offset % base_stride[i];
     }
 
     // infer end index
-    for (int64_t i = 0; i < indexing_size.size(); i++) {
+    for (const auto i : c10::irange(indexing_size.size())) {
       int64_t calculate_end = start[i] + indexing_size[i] * step[i];
       if (calculate_end - step[i] > src_desc.base_sizes_[i]) {
         // Op StrideSlice(Slice) don't support span-axis indexing(slice).
@@ -102,13 +102,13 @@ private:
       return false;
     }
     // case 3
-    for (int64_t i = 0; i < step.size(); i++) {
+    for (const auto i : c10::irange(step.size())) {
       if (step[i] == 1 && indexing_size[i] != base_size[i]) {
         return false;
       }
     }
     // case 4 and 5: step!=1的轴的校验
-    for (int64_t i = 0; i < step.size() - 1; i++) {
+    for (const auto i : c10::irange(step.size())) {
       // 对于非最后一轴的indexing，对应的stride[i]=step[i]*size[i+1]*stride[i+1],（此时最后一轴stride限制为1）
       // 不满足上述条件，需要予以剔除，主要干扰：组合类reshape操作。
       if (step[i] != 1) {
