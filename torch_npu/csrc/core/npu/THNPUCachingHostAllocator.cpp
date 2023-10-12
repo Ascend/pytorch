@@ -81,7 +81,6 @@ struct HostAllocator {
   std::mutex record_mutex;
   std::set<aclrtEvent> complete_events;
 
-
   HostAllocator() : available(BlockComparator) {}
 
   aclError malloc(void** ptr, size_t size) {
@@ -391,7 +390,7 @@ at::Allocator* getTHNPUCachingHostAllocator() {
   return &thnpu_caching_host_allocator;
 }
 
-c10::Allocator* getPinnedMemoryAllocator(){
+c10::Allocator* getPinnedMemoryAllocator() {
   C10_LOG_API_USAGE_ONCE("aten.init.npu");
   c10_npu::NpuSysCtrl::SysStatus status =
       c10_npu::NpuSysCtrl::GetInstance().Initialize();

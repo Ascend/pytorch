@@ -26,33 +26,38 @@ from .npu_fused_optim_base import NpuFusedOptimizerBase
 WARMUP_DEFAULT = 0.002
 DEGREE_DEFAULT = 0.5
 
+
 def _clip_grad_norm_(combined_param, combined_grad, max_norm):
     if combined_param is None or combined_grad is None:
         return
-    norm_type=2.0
-    total_norm = combined_grad.float().abs().pow(norm_type).sum().pow(1./norm_type)
+    norm_type =2.0
+    total_norm = combined_grad.float().abs().pow(norm_type).sum().pow(1. / norm_type)
     clip_coef = max_norm / (total_norm + 1e-6)
     if clip_coef < 1.:
         combined_grad.mul_(clip_coef)
 
+
 def warmup_cosine(x, warmup=WARMUP_DEFAULT):
     if x < warmup:
-        return x/warmup
+        return x / warmup
     return 0.5 * (1.0 + torch.cos(math.pi * x))
+
 
 def warmup_constant(x, warmup=WARMUP_DEFAULT):
     if x < warmup:
-        return x/warmup
+        return x / warmup
     return 1.0
+
 
 def warmup_linear(x, warmup=WARMUP_DEFAULT):
     if x < warmup:
-        return x/warmup
-    return max((x - 1.)/(warmup - 1.), 0.)
-    
+        return x / warmup
+    return max((x - 1.) / (warmup - 1.), 0.)
+
+
 def warmup_poly(x, warmup=WARMUP_DEFAULT, degree=DEGREE_DEFAULT):
     if x < warmup:
-        return x/warmup
+        return x / warmup
     return (1.0 - x)**degree
 
 
@@ -62,6 +67,7 @@ SCHEDULES = {
     'warmup_linear':warmup_linear,
     'warmup_poly':warmup_poly,
 }
+
 
 class NpuFusedBertAdam(NpuFusedOptimizerBase):
     """Implements BERT version of Adam algorithm with weight decay fix. This is the fused version on NPU
