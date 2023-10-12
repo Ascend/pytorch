@@ -6,7 +6,7 @@ from json import JSONDecodeError
 from .prof_common_func.file_manager import FileManager
 from .prof_common_func.path_manager import PathManager
 from .prof_common_func.singleton import Singleton
-from .prof_common_func.constant import Constant
+from .prof_common_func.constant import Constant, print_warn_msg
 from .prof_bean.ai_cpu_bean import AiCpuBean
 from .prof_parse.cann_file_parser import CANNDataEnum, CANNFileParser
 from .prof_bean.l2_cache_bean import L2CacheBean
@@ -41,12 +41,12 @@ class ProfilerConfig:
     def _get_profiler_info_json(cls, profiler_path: str):
         info_file_path = PathManager.get_info_file_path(profiler_path)
         if not info_file_path:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Failed to get profiler info file.")
+            print_warn_msg("Failed to get profiler info file.")
             return {}
         try:
             return json.loads(FileManager.file_read_all(info_file_path, "rt"))
         except JSONDecodeError:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Failed to get profiler info json from file.")
+            print_warn_msg("Failed to get profiler info json from file.")
             return {}
 
     def load_info(self, profiler_path: str):
