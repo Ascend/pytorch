@@ -33,7 +33,7 @@ __all__ = [
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
     "get_rng_state_all", "set_rng_state_all", "is_jit_compile_false",
-    "current_blas_handle",
+    "current_blas_handle", "config", "matmul", "conv",
 ]
 
 from typing import Tuple
