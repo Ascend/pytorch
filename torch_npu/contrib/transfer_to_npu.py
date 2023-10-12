@@ -26,6 +26,7 @@ torch_cuda_fn_white_list = [
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type']
 
+
 def wrapper_cuda(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
@@ -107,7 +108,7 @@ def wrapper_profiler(fn):
     def decorated(*args, **kwargs):
         if kwargs:
             if 'experimental_config' in kwargs.keys() and \
-                type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
+                    type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
                     'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
                     'because it can only be used in cuda, please manually modify the code '
@@ -116,6 +117,12 @@ def wrapper_profiler(fn):
         return fn(*args, **kwargs)
 
     return decorated
+
+
+def jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
+    msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it.'
+    warnings.warn(msg, RuntimeWarning)
+    return obj
 
 
 def patch_cuda():
@@ -201,6 +208,8 @@ def init():
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
     # torch.utils.data.DataLoader
     torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
+
+    torch.jit.script = jit_script
 
 
 init()

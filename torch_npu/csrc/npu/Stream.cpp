@@ -14,7 +14,7 @@
 
 PyObject *THNPStreamClass = nullptr;
 
-static PyObject * THNPStream_pynew(
+static PyObject* THNPStream_pynew(
     PyTypeObject *type, PyObject *args, PyObject *kwargs) {
   HANDLE_TH_ERRORS
 
@@ -74,37 +74,37 @@ static void THNPStream_dealloc(THNPStream *self) {
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject * THNPStream_get_device(THNPStream *self, void *unused) {
+static PyObject* THNPStream_get_device(THNPStream *self, void *unused) {
   HANDLE_TH_ERRORS
   return THPDevice_New(self->npu_stream.device());
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_get_npu_stream(THNPStream *self, void *unused) {
+static PyObject* THNPStream_get_npu_stream(THNPStream *self, void *unused) {
   HANDLE_TH_ERRORS
   return PyLong_FromVoidPtr(self->npu_stream.stream());
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_get_priority(THNPStream *self, void *unused) {
+static PyObject* THNPStream_get_priority(THNPStream *self, void *unused) {
   HANDLE_TH_ERRORS
   TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.");
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_priority_range() {
+static PyObject* THNPStream_priority_range() {
   HANDLE_TH_ERRORS
   TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.");
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_query(THNPStream *self, PyObject *noargs) {
+static PyObject* THNPStream_query(THNPStream *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
   return PyBool_FromLong(self->npu_stream.query());
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_synchronize(THNPStream *self, PyObject *noargs) {
+static PyObject* THNPStream_synchronize(THNPStream *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
   {
     pybind11::gil_scoped_release no_gil;
@@ -114,7 +114,7 @@ static PyObject * THNPStream_synchronize(THNPStream *self, PyObject *noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_set_data_preprocess_stream(THNPStream *self, PyObject *arg) {
+static PyObject* THNPStream_set_data_preprocess_stream(THNPStream *self, PyObject *arg) {
   HANDLE_TH_ERRORS
   {
     pybind11::gil_scoped_release no_gil;
@@ -125,7 +125,7 @@ static PyObject * THNPStream_set_data_preprocess_stream(THNPStream *self, PyObje
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPStream_eq(THNPStream *self, THNPStream *other) {
+static PyObject* THNPStream_eq(THNPStream *self, THNPStream *other) {
   HANDLE_TH_ERRORS
   return PyBool_FromLong(self->npu_stream == other->npu_stream);
   END_HANDLE_TH_ERRORS

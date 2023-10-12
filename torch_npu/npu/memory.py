@@ -5,11 +5,26 @@ import warnings
 import torch_npu
 from . import is_initialized, _get_device_index, _lazy_init
 
-__all__ = ["_free_mutex", "caching_allocator_alloc", "caching_allocator_delete", "empty_cache",
-           "set_per_process_memory_fraction", "memory_stats", "memory_stats_as_nested_dict",
-           "reset_accumulated_memory_stats", "reset_peak_memory_stats", "reset_max_memory_allocated",
-           "reset_max_memory_cached", "memory_allocated", "max_memory_allocated", "memory_reserved",
-           "max_memory_reserved", "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary"]
+__all__ = [
+    "caching_allocator_alloc",
+    "caching_allocator_delete",
+    "set_per_process_memory_fraction",
+    "empty_cache",
+    "memory_stats",
+    "memory_stats_as_nested_dict",
+    "reset_accumulated_memory_stats",
+    "reset_peak_memory_stats",
+    "reset_max_memory_allocated",
+    "reset_max_memory_cached",
+    "memory_allocated",
+    "max_memory_allocated",
+    "memory_reserved",
+    "max_memory_reserved",
+    "memory_cached",
+    "max_memory_cached",
+    "memory_snapshot",
+    "memory_summary"
+]
 
 
 @contextlib.contextmanager
@@ -487,7 +502,7 @@ def memory_summary(device=None, abbreviated=False):
                 formatter(current, current_prefval),
                 formatter(peak, peak_prefval),
                 formatter(allocated, allocated_prefval),
-                formatter(freed, freed_prefval)),)
+                formatter(freed, freed_prefval)), )
 
     metrics_to_display = [
         ("oversize_allocations", "Oversize allocations", _format_count),
@@ -509,7 +524,7 @@ def memory_summary(device=None, abbreviated=False):
             formatter(current, current),
             formatter(peak, peak),
             formatter(allocated, allocated),
-            formatter(freed, freed)),)   
+            formatter(freed, freed)), )
 
     lines.append("=" * 75)
 

@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 
+
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
@@ -16,9 +17,6 @@ def stride_dtype_check(stride):
 def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
     """Using NPU OP to Get box regression transformation deltas
     that can be used to transform the ``bboxes`` into the ``gt_bboxes``.
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26
 
     .. note::
         Does not support dynamic shape, because of the semantics of operators, only supports 
@@ -36,8 +34,10 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
         torch.Tensor: Box transformation deltas
     """
 
-    assert bboxes.size(0) == gt_bboxes.size(0)
-    assert bboxes.size(-1) == gt_bboxes.size(-1) == 4
+    if bboxes.size(0) != gt_bboxes.size(0):
+        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)")
+    if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
+        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4")
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
@@ -62,11 +62,6 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
                                     ):
     """ Applies an NPU based bboxes's format-encode operation from xyxy to xywh.
 
-    Following the practice in `R-CNN <https://arxiv.org/abs/1311.2524>`.
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py#L98
-
     .. note::
         Because this interface on the NPU is provided for conventional coordinate values,
         if the coordinate values have been regularized,
@@ -90,8 +85,10 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
     if stds is None:
         stds = [1., 1., 1., 1.]
 
-    assert bboxes.size(0) == gt_bboxes.size(0)
-    assert bboxes.size(-1) == gt_bboxes.size(-1) == 4
+    if bboxes.size(0) != gt_bboxes.size(0):
+        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)")
+    if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
+        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4")
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
@@ -115,11 +112,6 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
                                     wh_ratio_clip=16 / 1000,
                                     ):
     """ Applies an NPU based bboxes's format-encode operation from xywh to xyxy.
-
-    Following the practice in `R-CNN <https://arxiv.org/abs/1311.2524>`.
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py#L144
 
     .. note::
         Supports dynamic shape, because of the semantics of operators, only supports 2D (n,4) scenes, 
@@ -151,8 +143,10 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
     if max_shape is None:
         max_shape = [9999, 9999]
 
-    assert bboxes.size(0) == pred_bboxes.size(0)
-    assert bboxes.size(-1) == pred_bboxes.size(-1) == 4
+    if bboxes.size(0) != pred_bboxes.size(0):
+        raise ValueError("Expected bboxes.size(0) == pred_bboxes.size(0)")
+    if not (bboxes.size(-1) == pred_bboxes.size(-1) == 4):
+        raise ValueError("Expected bboxes.size(-1) == pred_bboxes.size(-1) == 4")
 
     bboxes = box_dtype_check(bboxes)
     pred_bboxes = box_dtype_check(pred_bboxes)
@@ -193,7 +187,7 @@ def _npu_bbox_coder_encode_xyxy2xywh():
     gt_bboxes = gt_bboxes.npu()
 
     out = npu_bbox_coder_encode_xyxy2xywh(bboxes, gt_bboxes)
-    out = npu_bbox_coder_encode_xyxy2xywh(bboxes/512., gt_bboxes/512., is_normalized=True, normalized_scale=512.)
+    out = npu_bbox_coder_encode_xyxy2xywh(bboxes / 512., gt_bboxes / 512., is_normalized=True, normalized_scale=512.)
     torch.npu.synchronize()
     print('_npu_bbox_coder_encode_xyxy2xywh done. output shape is ', out.shape)
 

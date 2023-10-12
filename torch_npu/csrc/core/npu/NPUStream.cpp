@@ -95,8 +95,7 @@ static inline size_t streamIdIndex(c10::StreamId s) {
 }
 
 c10::StreamId makeStreamId(StreamIdType st, size_t si) {
-  return (static_cast<c10::StreamId>(st) << kStreamsPerPoolBits) |
-      static_cast<c10::StreamId>(si);
+  return static_cast<c10::StreamId>((static_cast<size_t>(st) << kStreamsPerPoolBits) | si);
 }
 
 template <typename T, typename A>
@@ -129,7 +128,6 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
 static thread_local LeakyStreamInternals** current_streams = nullptr;
 
 static void initGlobalStreamState() {
-  // TODO device_count(), set to 1 temporarily.
   num_npus = c10_npu::device_count();
   // Check if the number of GPUs matches the expected compile-time max number
   // of GPUs.
@@ -193,7 +191,7 @@ static void initNPUStreamsOnce() {
   // Inits current streams (thread local) to default streams
   current_streams =
       (LeakyStreamInternals**)malloc(num_npus * sizeof(LeakyStreamInternals*));
-  if (current_streams == nullptr){
+  if (current_streams == nullptr) {
     ASCEND_LOGE("current_streams malloc failed.");
     return;
   }

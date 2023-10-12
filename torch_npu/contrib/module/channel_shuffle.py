@@ -7,8 +7,6 @@ import torch_npu
 class ChannelShuffle(nn.Module):
     r"""Applies an NPU compatible channel shuffle operation.
 
-    The origin implement is https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py#L21
-
     In order to avoid contiguous operation which is not efficient on npu, we replaced the original operation
     with a rewrite of the same semantics. Two discontinuous operations are replaced, transpose and chunk.
 
@@ -94,6 +92,7 @@ class ChannelShuffle(nn.Module):
             else:
                 output = indexselect_full_implementation_forward(x1, x2, self.fp_index)
         return output
+
 
 def indexselect_full_implementation_forward(x1, x2, fp_index):
     x = torch.cat([x1, x2], dim=1)

@@ -15,7 +15,6 @@
 #include <third_party/acl/inc/acl/acl_rt.h>
 
 
-
 namespace c10_npu {
 namespace impl {
 
@@ -46,9 +45,9 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   void uncheckedSetDevice(c10::Device d) const noexcept override {
     int old_device = 0;
     aclError ret = aclrtGetDevice(&old_device);
-    if (ret != ACL_ERROR_NONE){
+    if (ret != ACL_ERROR_NONE) {
       NPU_CHECK_WARN(aclrtSetDevice(d.index()));
-    }else if(old_device != d.index()){
+    } else if (old_device != d.index()) {
       NPU_CHECK_WARN(aclrtSetDevice(d.index()));
     }
   }
@@ -87,8 +86,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
-    int orig_device;
-    NPU_CHECK_WARN(aclrtDestroyEvent(acl_event));
+    NPU_CHECK_WARN(c10_npu::NPUEventManager::GetInstance().LazyDestroy(acl_event));
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, acl_event=%p.", acl_event);
   }
 

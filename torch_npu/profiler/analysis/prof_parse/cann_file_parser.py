@@ -73,8 +73,8 @@ class CANNFileParser:
             return []
         try:
             data = json.loads(data)
-        except JSONDecodeError:
-            raise RuntimeError("Invalid CANN trace data.")
+        except JSONDecodeError as e:
+            raise RuntimeError("Invalid CANN trace data.") from e
         if not isinstance(data, list):
             return []
         if data and not isinstance(data[0], dict):
@@ -87,8 +87,8 @@ class CANNFileParser:
             return {}
         try:
             data = json.loads(data)
-        except JSONDecodeError:
-            raise RuntimeError("Invalid communication data.")
+        except JSONDecodeError as e:
+            raise RuntimeError("Invalid communication data.") from e
         if not isinstance(data, dict):
             return {}
         return data

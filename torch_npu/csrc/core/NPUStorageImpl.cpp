@@ -24,7 +24,7 @@ c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     c10::StorageImpl::use_byte_size_t,
     c10::SymInt size_bytes,
     c10::Allocator* allocator,
-    bool resizable){
+    bool resizable) {
   // Correctly create NPUStorageImpl object.
   c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = c10::make_intrusive<NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),

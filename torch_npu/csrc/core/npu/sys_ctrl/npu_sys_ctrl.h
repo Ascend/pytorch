@@ -61,6 +61,15 @@ public:
         return -1;
     }
 
+    aclrtContext InitializedContext()
+    {
+        if (GetInitFlag()) {
+            return ctx_;
+        }
+        TORCH_CHECK(false, "no npu device context has been initialized!");
+        return nullptr;
+    }
+
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
      void RegisterReleaseFn(ReleaseFn release_fn,
@@ -71,6 +80,7 @@ private:
 private:
     bool init_flag_;
     int device_id_;
+    aclrtContext ctx_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
 

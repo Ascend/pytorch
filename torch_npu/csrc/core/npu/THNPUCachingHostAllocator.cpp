@@ -199,7 +199,6 @@ struct HostAllocator {
     while (!npu_events.empty()) {
       auto& e = npu_events.front();
       EventPool::Event event = std::move(e.first);
-
       if (!event->query()) {
         e.first = std::move(event);
         break;
@@ -355,7 +354,7 @@ at::Allocator* getTHNPUCachingHostAllocator() {
   return &thnpu_caching_host_allocator;
 }
 
-c10::Allocator* getPinnedMemoryAllocator(){
+c10::Allocator* getPinnedMemoryAllocator() {
   C10_LOG_API_USAGE_ONCE("aten.init.npu");
   c10_npu::NpuSysCtrl::SysStatus status =
       c10_npu::NpuSysCtrl::GetInstance().Initialize();

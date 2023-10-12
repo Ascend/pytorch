@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 
+
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
@@ -48,7 +49,8 @@ def npu_iou(boxes1,
         Tensor: IoU, sized [N,M].
     """
 
-    assert mode in ["iou", "ptiou"]
+    if mode not in ["iou", "ptiou"]:
+        raise ValueError("Expected mode in [iou, ptiou]")
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)
@@ -107,12 +109,10 @@ def npu_giou(boxes1,
 
     Returns:
         Tensor: IoU, sized [n, 1].
-
-    .. _Generalized Intersection over Union\: A Metric and A Loss for Bounding Box Regression:
-        https://arxiv.org/abs/1902.09630
     """
 
-    assert boxes1.shape == boxes2.shape
+    if boxes1.shape != boxes2.shape:
+        raise ValueError("Expected boxes1.shape == boxes2.shape")
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)
@@ -168,13 +168,12 @@ def npu_diou(boxes1,
 
     Returns:
         Tensor: IoU, sized [1, n].
-
-    .. Paper: https://arxiv.org/pdf/1911.08287.pdf
     """
 
     out = torch_npu.npu_diou(boxes1, boxes2, trans, is_cross, mode)
 
     return out
+
 
 def npu_ciou(boxes1, 
              boxes2,
@@ -267,7 +266,7 @@ if __name__ == "__main__":
     box1 = box1.float().npu()
     box2 = box2.float().npu()
     iou1 = npu_giou(box1, box2)
-    l = iou1.sum()
-    l.backward()
+    loss = iou1.sum()
+    loss.backward()
     print(iou1.shape, iou1.max(), iou1.min())
     print(iou2.shape, iou2.max(), iou2.min())

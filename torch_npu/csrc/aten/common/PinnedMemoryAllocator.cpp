@@ -29,8 +29,8 @@ at::Tensor NPUNativeFunctions::_pin_memory(const at::Tensor& self, c10::optional
   auto storage = c10::Storage(
       c10::Storage::use_byte_size_t(),
       at::detail::computeStorageNbytes(
-          self.sizes(), 
-          self.strides(), 
+          self.sizes(),
+          self.strides(),
           self.dtype().itemsize()),
       allocator,
       false);

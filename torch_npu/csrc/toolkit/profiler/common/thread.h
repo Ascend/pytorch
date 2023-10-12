@@ -16,7 +16,8 @@ public:
 
   ~Thread() {
     if (is_alive_) {
-      pthread_kill(pid_, 0);
+        (void)pthread_cancel(pid_);
+        (void)pthread_join(pid_, nullptr);
     }
   }
 

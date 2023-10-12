@@ -5,7 +5,7 @@
 namespace torch_npu {
 
 // device init related funcs
-void init_npu(const c10::DeviceIndex device_index=0);
+void init_npu(const c10::DeviceIndex device_index = 0);
 void init_npu(const std::string& device_str);
 void init_npu(const at::Device& device);
 
@@ -16,7 +16,7 @@ namespace torch {
 namespace npu {
 
 // device synchronize
-void synchronize(int64_t device_index=-1);
+void synchronize(int64_t device_index = -1);
 
 } // namespace npu
 } // namespace torch

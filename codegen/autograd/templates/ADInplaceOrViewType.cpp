@@ -2,11 +2,7 @@
 #include "torch/csrc/autograd/VariableTypeUtils.h"
 #include <torch/library.h>
 
-#ifdef USE_GEN_HEADER
-#include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
+#include "torch_npu/csrc/aten/CustomRedispatch.h"
 
 // ${generated_comment}
 $ops_headers
@@ -27,7 +23,7 @@ ${inplace_or_view_method_definitions}
 
 namespace {
 
-TORCH_LIBRARY_IMPL(aten, ADInplaceOrView, m) {
+TORCH_LIBRARY_IMPL(npu, ADInplaceOrView, m) {
   ${inplace_or_view_wrapper_registrations};
 }
 

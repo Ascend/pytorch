@@ -25,7 +25,7 @@ pip3 install torch==2.1.0
 **For x86:**
 
 ```Python
-pip3 install torch==2.1.0+cpu
+pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 2. **Install torch-npu dependencies**
@@ -102,7 +102,7 @@ ln -s /opt/_internal/cpython-3.8.1/bin/pip3.8 /usr/local/bin/pip3.8
 ln -s /opt/_internal/cpython-3.8.1/bin/python3.8 /usr/local/bin/python3.8
 pip3.8 install pyyaml
 pip3.8 install setuptools
-pip3.8 install torch==2.1.0+cpu
+pip3.8 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 #### Compile torch-npu
@@ -173,7 +173,7 @@ print(z)
 </th>
 </tr>
 </thead>
-<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="4" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>7.0.RC1.alpha005</p>
+<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="4" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>7.0.RC1.alpha003</p>
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.2 "><p id="p633892712241"><a name="p633892712241"></a><a name="p633892712241"></a>2.1.0</p>
 </td>

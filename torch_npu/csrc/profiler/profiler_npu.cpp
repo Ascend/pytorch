@@ -46,7 +46,7 @@ struct NPUMethods : public ProfilerStubs {
       *cpu_ns = torch::profiler::impl::getTime();
     }
     TORCH_NPU_CHECK(aclrtRecordEvent(npu_event, stream));
-    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, *event1=%p.", npu_event);
+    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");
   }
 
   float elapsed(
@@ -55,9 +55,9 @@ struct NPUMethods : public ProfilerStubs {
     auto event1 = event1_->get();
     auto event2 = event2_->get();
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event1));
-    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event1=%p.", event1);
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed for event1.");
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event2));
-    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event2=%p.", event2);
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed for event2.");
     float ms;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
     return ms*1000.0;

@@ -42,6 +42,8 @@ _register_npu_backend(_global_backend)
 """
 register custom op impl func for meta and cpu
 """
+
+
 def scatter_update_infer(data, indices, updates, axis):
     return data
 

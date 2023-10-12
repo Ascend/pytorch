@@ -9,11 +9,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-#ifdef USE_GEN_HEADER
-#include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
+#include "torch_npu/csrc/aten/CustomRedispatch.h"
 
 
 // ${generated_comment}
@@ -61,7 +57,11 @@ ${type_derived_method_definitions}
 namespace {
 
 TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
-  ${wrapper_registrations}
+    ${wrapper_registrations_aten}
+}
+
+TORCH_LIBRARY_IMPL(npu, AutogradPrivateUse1, m) {
+    ${wrapper_registrations_npu}
 }
 
 }

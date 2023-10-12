@@ -115,7 +115,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
     NPU_CHECK_ERROR(aclInit(nullptr));
 
-    if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()){
+    if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
         NPU_CHECK_ERROR(aclmdlInitDump());
         ASCEND_LOGD("dump init success");
     }
@@ -127,9 +127,11 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
         NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
-    }else{
+    } else {
         ASCEND_LOGE("Npu device %d has been set before global init.", device_id_);
     }
+
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
@@ -170,10 +172,10 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-
     NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
     NPU_CHECK_ERROR(aclrtSetDevice(device));
-    device_id_= device;
+    device_id_ = device;
+    aclrtGetCurrentContext(&ctx_);
     return INIT_SUCC;
 }
 
@@ -184,7 +186,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
  NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-      (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1)){
+      (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1)) {
      c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
      ASCEND_LOGI("Npu overflow check switch set successfully.");
    }

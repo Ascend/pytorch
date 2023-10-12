@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch_npu
 
+
 def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
     """Less ops than timm version.
     Async generating and applying of random tensor for accelerating.
@@ -10,6 +11,7 @@ def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
     random_tensor.floor_()
     output = x.div(keep_prob) * random_tensor
     return output
+
 
 class DropPathTask:
     def __init__(self, shape, device, dtype, ndim, drop_prob):
@@ -21,13 +23,11 @@ class DropPathTask:
         self.request_count = 0
         self.rand_queue = []
 
+
 class NpuDropPath(nn.Module):
     """Using NPU affinity writing method to replace the native Drop paths in swin_transformer.py.
     
     Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks.)
-    
-    Reference implementation link:
-    https://github.com/rwightman/pytorch-image-models/blob/e7f0db866412b9ae61332c205270c9fc0ef5083c/timm/models/layers/drop.py#L160
 
     .. note::
         Dynamic shapes are not supported.

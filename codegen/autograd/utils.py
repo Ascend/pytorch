@@ -3,7 +3,6 @@ import yaml
 from pathlib import Path
 from typing import List, Dict
 
-from torchgen.yaml_utils import YamlLoader
 from torchgen.model import NativeFunction, FunctionSchema
 from torchgen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
@@ -45,7 +44,7 @@ def filt_npu_autograd_functions(
     npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_functions = set()
     with open(native_functions_path, 'r') as f:
-        es = yaml.load(f, Loader=YamlLoader)
+        es = yaml.safe_load(f)
     for e in es:
         torch_functions.add(e.get('func').split('(')[0])
 

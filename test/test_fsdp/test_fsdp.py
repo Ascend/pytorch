@@ -23,7 +23,7 @@ from torch_npu.npu.amp.sharded_grad_scaler import ShardedGradScaler as NpuSharde
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-from torch.distributed.fsdp.wrap import _FSDPPolicy
+from torch.distributed.fsdp.wrap import _Policy
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.api import (
     BackwardPrefetch,
@@ -47,7 +47,7 @@ class FSDPTestConfig(object):
     def __init__(self) -> None:
         self.sharding_strategy: Optional[ShardingStrategy] = None
         self.cpu_offload: Optional[CPUOffload] = None
-        self.auto_wrap_policy: Optional[Union[Callable, _FSDPPolicy]] = None
+        self.auto_wrap_policy: Optional[Union[Callable, _Policy]] = None
         self.backward_prefetch: Optional[BackwardPrefetch] = BackwardPrefetch.BACKWARD_PRE
         self.mixed_precision: Optional[MixedPrecision] = None
         self.ignored_modules: Optional[Iterable[torch.nn.Module]] = None
@@ -67,7 +67,7 @@ class FSDPTestConfig(object):
         return msg
 
 
-def get_wrap_policies() -> List[_FSDPPolicy]:
+def get_wrap_policies() -> List[_Policy]:
     def always_true_policy(module: torch.nn.Module, recurse: bool, nonwrapped_numel: int) -> bool:
         return True
 

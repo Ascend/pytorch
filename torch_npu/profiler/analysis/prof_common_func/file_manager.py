@@ -22,8 +22,8 @@ class FileManager:
         try:
             with open(file_path, mode) as file:
                 return file.read()
-        except Exception:
-            raise RuntimeError(f"Can't read file: {file_path}")
+        except Exception as e:
+            raise RuntimeError(f"Can't read file: {file_path}") from e
 
     @classmethod
     def read_csv_file(cls, file_path: str, class_bean: any) -> list:
@@ -42,8 +42,8 @@ class FileManager:
                 reader = csv.DictReader(csv_file)
                 for row in reader:
                     result_data.append(class_bean(row))
-        except Exception:
-            raise RuntimeError(f"Failed to read the file: {file_path}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to read the file: {file_path}") from e
         return result_data
 
     @classmethod
@@ -51,15 +51,16 @@ class FileManager:
         if not data:
             return
         file_path = os.path.join(output_path, file_name)
+        cls.make_dir_safety(output_path)
+        cls.create_file_safety(file_path)
         try:
-            with os.fdopen(os.open(file_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY), "w",
-                           newline="") as file:
+            with open(file_path, "w", newline="") as file:
                 writer = csv.writer(file)
                 if headers:
                     writer.writerow(headers)
                 writer.writerows(data)
-        except Exception:
-            raise RuntimeError(f"Can't create file: {file_path}")
+        except Exception as e:
+            raise RuntimeError(f"Can't create file: {file_path}") from e
 
     @classmethod
     def create_json_file(cls, output_path: str, data: list, file_name: str) -> None:
@@ -72,11 +73,12 @@ class FileManager:
     def create_json_file_by_path(cls, output_path: str, data: list, indent: int = None) -> None:
         dir_name = os.path.dirname(output_path)
         cls.make_dir_safety(dir_name)
+        cls.create_file_safety(output_path)
         try:
-            with os.fdopen(os.open(output_path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY), "w") as file:
+            with open(output_path, "w") as file:
                 json.dump(data, file, indent=indent)
-        except Exception:
-            raise RuntimeError(f"Can't create file: {output_path}")
+        except Exception as e:
+            raise RuntimeError(f"Can't create file: {output_path}") from e
 
     @classmethod
     def check_input_path(cls, path):
@@ -132,6 +134,17 @@ class FileManager:
             return
         try:
             os.makedirs(path, mode=Constant.DIR_AUTHORITY)
-            os.chmod(path, Constant.DIR_AUTHORITY)
-        except Exception:
-            raise RuntimeError("Can't create directory: " + path)
+        except Exception as e:
+            raise RuntimeError("Can't create directory: " + path) from e
+
+    @classmethod
+    def create_file_safety(cls, path: str):
+        if os.path.islink(path):
+            msg = f"Invalid path is soft link: {path}"
+            raise RuntimeError(msg)
+        if os.path.exists(path):
+            return
+        try:
+            os.close(os.open(path, os.O_WRONLY | os.O_CREAT, Constant.FILE_AUTHORITY))
+        except Exception as e:
+            raise RuntimeError("Can't create file: " + path) from e

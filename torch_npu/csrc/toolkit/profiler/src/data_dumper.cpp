@@ -5,7 +5,6 @@
 #include <fstream>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 #include "torch_npu/csrc/toolkit/profiler/inc/data_dumper.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
@@ -96,9 +95,8 @@ void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
   std::ofstream file;
   for (auto &data : dataMap) {
     std::string dump_file = path_ + "/" + data.first;
-    if (!Utils::IsFileExist(dump_file)) {
-      int new_file = creat(dump_file.c_str(), S_IRUSR|S_IWUSR|S_IRGRP);
-      close(new_file);
+    if (!Utils::IsFileExist(dump_file) && !Utils::CreateFile(dump_file)) {
+      continue;
     }
     file.open(dump_file, std::ios::out | std::ios::app | std::ios::binary);
     if (!file.is_open()) {

@@ -26,7 +26,7 @@ class TestDataParallelLayers(TestCase):
         os.environ["MASTER_ADDR"] = "127.0.0.1"
         os.environ["MASTER_PORT"] = "29688"
 
-        LOCAL_RANK = int(os.getenv('LOCAL_RANK', 0))  # https://pytorch.org/docs/stable/elastic/run.html
+        LOCAL_RANK = int(os.getenv('LOCAL_RANK', 0))
         RANK = int(os.getenv('RANK', 0))
         WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
         torch.distributed.init_process_group(backend="hccl", rank=RANK, world_size=WORLD_SIZE)

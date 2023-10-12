@@ -103,14 +103,6 @@ def compute_op_definition(f: NativeFunction):
     if enable_opplugin() and is_op_valid(str(f.func.name)):
         impl_name = f"op_plugin::{get_opplugin_wrap_name(f)}"
 
-    from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
-    is_npu_autograd = str(f.func.name) in NPU_AUTOGRAD_FUNCTION
-    if is_npu_autograd:
-        dispatch_key_set = \
-            'c10::DispatchKeySet().add(c10::DispatchKey::AutogradPrivateUse1).add(c10::DispatchKey::PrivateUse1), '
-        args_exprs_str = dispatch_key_set + args_exprs_str
-        impl_name = f"at_npu::autograd::VariableType::{type_wrapper_name(f)}"
-
     check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
     unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \
         if out_num > 1 else ''
