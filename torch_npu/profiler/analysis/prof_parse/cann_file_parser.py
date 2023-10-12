@@ -22,8 +22,9 @@ import shutil
 from enum import Enum
 from json import JSONDecodeError
 
+from ....utils.secure_path_manager import SecurePathManager
 from ..prof_bean.event_bean import EventBean
-from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import Constant, print_warn_msg
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.path_manager import PathManager
 from ..prof_bean.step_trace_bean import StepTraceBean
@@ -146,7 +147,7 @@ class CANNFileParser:
             [self.msprof_path, "--analyze=on", f"--output={self._cann_path}", simplification_cmd],
             capture_output=True, shell=False)
         if completed_analysis.returncode != self.COMMAND_SUCCESS:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Analyze CANN Profiling data failed!")
+            print_warn_msg("Analyze CANN Profiling data failed.")
 
     def get_timeline_all_data(self) -> list:
         timeline_data = []
@@ -198,8 +199,8 @@ class CANNFileParser:
         for root, dirs, files in os.walk(host_data_path):
             prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
         if prof_data_size >= Constant.PROF_WARN_SIZE:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: The parsing time is expected to exceed 30 minutes, "
-                  f"and you can choose to stop the process and use offline parsing.")
+            print_warn_msg("The parsing time is expected to exceed 30 minutes, "
+                           "and you can choose to stop the process and use offline parsing.")
 
     def get_localtime_diff(self) -> float:
         localtime_diff = 0
@@ -213,7 +214,7 @@ class CANNFileParser:
             localtime_diff = float(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - float(
                 info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0)) / Constant.NS_TO_US
         except Exception:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Failed to get CANN localtime diff.")
+            print_warn_msg("Failed to get CANN localtime diff.")
         return localtime_diff
 
     def _file_dispatch(self):
@@ -234,5 +235,5 @@ class CANNFileParser:
             return
         summary_path = os.path.join(device_path, "summary")
         timeline_path = os.path.join(device_path, "timeline")
-        FileManager.remove_file_safety(summary_path)
-        FileManager.remove_file_safety(timeline_path)
+        SecurePathManager.remove_path_safety(summary_path)
+        SecurePathManager.remove_path_safety(timeline_path)

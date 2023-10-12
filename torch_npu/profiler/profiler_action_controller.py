@@ -16,52 +16,58 @@
 
 import os
 import socket
-import time
-from warnings import warn
+from datetime import datetime
 
 import torch.autograd.profiler as prof
 
 from .analysis.npu_profiler import NpuProfiler
 from .scheduler import default_schedule_fn, ProfilerAction
-from .analysis.prof_common_func.constant import Constant
-from .analysis.prof_common_func.file_manager import FileManager
+from .analysis.prof_common_func.constant import Constant, print_warn_msg
+from ..utils.secure_path_manager import SecurePathManager
 
 
 class NpuProfCreator:
-    DEFAULT_PROF_SUFFIX = "{}_{}".format(socket.gethostname(), str(os.getpid()))
 
-    def __init__(self, worker_name: str = None, dir_name: str = "./") -> None:
+    def __init__(self, worker_name: str = None, dir_name: str = None) -> None:
         self._worker_name = worker_name
         self._dir_name = dir_name
+        self._reset_dir_name()
+        self._check_params()
 
     @classmethod
     def __call__(cls, instance: any) -> None:
         try:
             NpuProfiler.analyse(instance._msprofiler_interface.path)
         except Exception:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
+            print_warn_msg("Profiling data parsing failed.")
 
     def create_prof_dir(self) -> str:
-        FileManager.check_input_path(self._dir_name)
         if not self._worker_name:
             self._worker_name = "{}_{}".format(socket.gethostname(), str(os.getpid()))
         worker_span_name = "{}_{}_ascend_pt".format(self._worker_name,
-                                                    time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
+                                                    datetime.utcnow().strftime("%Y%m%d%H%M%S.%f")[:-3])
 
         total_path = os.path.join(self._dir_name, worker_span_name)
-        FileManager.make_dir_safety(total_path)
-        FileManager.check_directory_path_writable(total_path)
+        SecurePathManager.make_dir_safety(total_path)
+        SecurePathManager.check_directory_path_writeable(total_path)
         return total_path
 
-    def create_default_prof_dir(self) -> str:
-        dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
-        dir_name = os.path.join(os.path.abspath(dir_name), Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
-        target_path = "{}_{}_ascend_pt".format(self.DEFAULT_PROF_SUFFIX,
-                                               time.strftime("%Y%m%d%H%M%S", time.localtime(time.time())))
-        target_path = os.path.join(dir_name, target_path)
-        FileManager.make_dir_safety(target_path)
-        FileManager.check_directory_path_writable(target_path)
-        return target_path
+    def _reset_dir_name(self):
+        if not self._dir_name:
+            dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
+            self._dir_name = os.path.join(os.path.abspath(dir_name),
+                                          Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
+        self._dir_name = os.path.realpath(self._dir_name)
+
+    def _check_params(self):
+        if self._worker_name:
+            if not isinstance(self._worker_name, str):
+                print_warn_msg("Invalid parameter worker_name, which must be str type, reset it to default.")
+                self._worker_name = None
+            if len(self._worker_name) > Constant.MAX_WORKER_NAME_LENGTH:
+                print_warn_msg("Invalid parameter worker_name, the length exceeds the threshold, reset it to default.")
+                self._worker_name = None
+        SecurePathManager.check_input_directory_path(self._dir_name)
 
 
 class ActionController:
@@ -79,15 +85,15 @@ class ActionController:
 
     @classmethod
     def _warn_none_follow_record(cls) -> None:
-        warn("Incorrect schedule: RECORD followed by NONE")
+        print_warn_msg("Incorrect schedule: RECORD followed by NONE")
 
     @classmethod
     def _warn_warmup_follow_record(cls) -> None:
-        warn("Incorrect schedule: RECORD followed by WARMUP")
+        print_warn_msg("Incorrect schedule: RECORD followed by WARMUP")
 
     @classmethod
     def _warn_warmup_follow_none(cls) -> None:
-        warn("Incorrect schedule: WARMUP followed by NONE")
+        print_warn_msg("Incorrect schedule: WARMUP followed by NONE")
 
     def transit_action(self):
         self._prev_action = self._current_action
@@ -104,7 +110,7 @@ class ActionController:
         if isinstance(self._on_trace_ready, NpuProfCreator):
             path = self._on_trace_ready.create_prof_dir()
         else:
-            path = NpuProfCreator().create_default_prof_dir()
+            path = NpuProfCreator().create_prof_dir()
         self._msprofiler_interface.set_config(path)
         self._msprofiler_interface.init_profiler()
 
