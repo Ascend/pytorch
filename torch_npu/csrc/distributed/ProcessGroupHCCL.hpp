@@ -58,10 +58,8 @@ constexpr const char* HCCL_BACKEND_NAME = "hccl";
 // provided by ProcessGroupHCCL to check if the HCCL operation of WorkHCCL has
 // finished execution on the NPU (not just scheduled).
 //
-// Example on using the HCCL process group
-//
-//   ProcessGroupHCCL pg(store, rank, size);
-//   std::shared_ptr<WorkNCCL> work = pg.allreduce(tensors);
+// Example on using the HCCL process group, use ProcessGroupHCCL pg(store, rank, size) to create,
+// and use std::shared_ptr<WorkHCCL> work = pg.allreduce(tensors) to start a work.
 //
 //   // At this point, HCCL kernel has already by queued successfully
 //   // Now, let current stream wait for the HCCL to finish, this function is
@@ -204,7 +202,7 @@ public:
       int size,
       const std::string& groupName,
       c10::intrusive_ptr<Options> options = Options::create())
-      : ProcessGroupHCCL(store, rank, size, options) {}
+        : ProcessGroupHCCL(store, rank, size, options) {}
 
   virtual ~ProcessGroupHCCL();
 
@@ -260,7 +258,6 @@ public:
 
   c10::intrusive_ptr<c10d::Work> barrier(
       const c10d::BarrierOptions& opts = c10d::BarrierOptions()) override;
-
 
   // Unsupported Ops
   c10::intrusive_ptr<c10d::Work> gather(
@@ -427,11 +424,7 @@ protected:
 
 private:
   // Helper that encapsulates work shared across all collective communication
-  // primitives.  The callbacks have the following signatures:
-
-  //    HcclResult fn(at::Tensor& input, at::Tensor& output,
-  //                    ncclComm_t, at::cuda::CUDAStream&);
-  //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
+  // primitives.
   template <typename Fn>
   c10::intrusive_ptr<c10d::Work> collective(
       std::vector<at::Tensor>& input,
@@ -444,6 +437,5 @@ private:
       Fn fn,
       PreProcess pre,
       PostProcess post);
-
 };
 } // namespace c10d_npu
