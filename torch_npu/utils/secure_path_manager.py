@@ -162,10 +162,7 @@ class SecurePathManager:
             msg = f"Invalid input path: {path}"
             raise RuntimeError(msg)
 
-        while True:
-            if len(os.path.basename(path)) > cls.MAX_FILE_NAME_LENGTH:
+        path_split_list = path.split("/")
+        for name in path_split_list:
+            if len(name) > cls.MAX_FILE_NAME_LENGTH:
                 raise RuntimeError("Length of input path exceeds the limit.")
-            parent_path = os.path.dirname(path)
-            if parent_path == path:
-                return
-            path = parent_path

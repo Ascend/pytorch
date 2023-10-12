@@ -6,6 +6,7 @@ from torch_npu.npu import _lazy_init
 
 from .analysis.npu_profiler import NpuProfiler
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
+from .analysis.prof_common_func.path_manager import PathManager
 from .experimental_config import _ExperimentalConfig
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
@@ -88,7 +89,7 @@ class profile:
         self._action_controller.trace_ready()
 
     def export_chrome_trace(self, output_path: str):
-        output_path = os.path.realpath(output_path)
+        output_path = PathManager.get_realpath(output_path)
         SecurePathManager.check_input_file_path(output_path)
         file_name = os.path.basename(output_path)
         if not file_name.endswith(".json"):
