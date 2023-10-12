@@ -21,7 +21,6 @@ from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIA
      MultiheadAttention, FusedColorJitter, NpuDropPath, Focus, FastBatchNorm1d, FastBatchNorm2d, \
      FastBatchNorm3d, FastSyncBatchNorm
 
-
 __all__ = [
     # from function
     "npu_iou",
@@ -59,8 +58,4 @@ __all__ = [
     "MultiheadAttention",
     "NpuDropPath",
     "Focus",
-    "FastBatchNorm1d",
-    "FastBatchNorm2d",
-    "FastBatchNorm3d",
-    "FastSyncBatchNorm",
 ]

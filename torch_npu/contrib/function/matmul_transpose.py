@@ -15,7 +15,7 @@
 import torch
 import torch_npu
 
-__all__ = ["MatmulApply"]
+__all__ = []
 
 
 class MatmulApply(torch.autograd.Function):
