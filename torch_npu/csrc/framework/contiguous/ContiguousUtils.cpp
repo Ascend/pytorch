@@ -8,7 +8,7 @@ void ContiguousTensorDesc::refresh_contiguous_using_size_and_stride() {
     is_contiguous_ = true;
   }
   int64_t infer_axis_size = 1;
-  for (int64_t dim = sizes_.size() - 1; dim >= 0; dim--) {
+  for (int64_t dim = static_cast<int64_t>(sizes_.size()) - 1; dim >= 0; dim--) {
     if (sizes_[dim] != 1) {
       if (strides_[dim] == infer_axis_size) {
         infer_axis_size *= sizes_[dim];
@@ -31,14 +31,14 @@ void ContiguousTensorDesc::add_optimization_case(const std::string &opt_case) {
 }
 
 void ContiguousTensorDesc::find_match_optimization_cases() {
-  for (auto i = 0; i < sizes_.size(); i++) {
+  for (const auto i : c10::irange(sizes_.size())) {
     if (strides_[i] == 0) {
       opt_cases_.emplace_back("broadcast");
       return;
     }
   }
 
-  for (auto i = 0; i < strides_.size() - 1; i++) {
+  for (const auto i : c10::irange(strides_.size() - 1)) {
     if (strides_[i] < strides_[i + 1]) {
       opt_cases_.emplace_back("permute");
       return;

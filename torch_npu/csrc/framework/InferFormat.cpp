@@ -69,7 +69,7 @@ aclFormat InferFormat::GuessStorageFormat(const c10::IntArrayRef& size, aclForma
     return ACL_FORMAT_ND;
   }
 
-  int64_t dim = size.size();
+  int64_t dim = static_cast<int64_t>(size.size());
   aclFormat baseFormat = FormatHelper::GetBaseFormat(format);
   bool isBaseFormat = (baseFormat == format);
   // if base format and tensor size is not match, we should reflush them

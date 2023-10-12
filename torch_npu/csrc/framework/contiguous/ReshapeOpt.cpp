@@ -5,8 +5,8 @@ namespace at_npu {
 namespace native {
 
 bool can_use_memecpy_for_NZ_format(const ContiguousTensorDesc &tensor_desc) {
-  int64_t tensor_shape_size = tensor_desc.sizes_.size();
-  int64_t base_shape_size = tensor_desc.base_sizes_.size();
+  int64_t tensor_shape_size = static_cast<int64_t>(tensor_desc.sizes_.size());
+  int64_t base_shape_size = static_cast<int64_t>(tensor_desc.base_sizes_.size());
   // No padding&&offset!=0 at the same time. e.g. x(3, 15, 16)[1:]
   if (((tensor_desc.sizes_[tensor_shape_size - 1] % 16 != 0) ||
        (tensor_desc.sizes_[tensor_shape_size - 2] % 16 != 0)) &&
