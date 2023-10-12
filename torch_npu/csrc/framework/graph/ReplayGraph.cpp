@@ -55,14 +55,14 @@ void ReplayGraphImpl::SetInputGeTensor(ReplayGraphInfo& graphinfo, const at::Ten
             if (NpuUtils::check_match(&inputs[i])) {
                 auto data_ptr = inputs[i].data_ptr();
                 TORCH_CHECK(data_ptr != nullptr, "Input for replay graph must have data ptr");
-                size_t numel = NPUNativeFunctions::get_storage_size(inputs[i]);
+                size_t numel = static_cast<size_t>(NPUNativeFunctions::get_storage_size(inputs[i]));
                 graphinfo.graph_inputs_ge_tensors[idx] = ATenGeBridge::MakeGeTensor(tensor_desc,
                     data_ptr, numel * inputs[i].itemsize());
             } else {
                 auto contiguous_input = NpuUtils::format_contiguous(inputs[i]);
                 auto data_ptr = contiguous_input.data_ptr();
                 TORCH_CHECK(data_ptr != nullptr, "Input for replay graph must have data ptr");
-                size_t numel = NPUNativeFunctions::get_storage_size(contiguous_input);
+                size_t numel = static_cast<size_t>(NPUNativeFunctions::get_storage_size(contiguous_input));
                 graphinfo.graph_inputs_ge_tensors[idx] = ATenGeBridge::MakeGeTensor(tensor_desc,
                     data_ptr, numel * inputs[i].itemsize());
             }
@@ -80,7 +80,7 @@ std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensorAndSetReturnable(Repla
             optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(), options.device_opt(),
             options.pinned_memory_opt(), build_tensor_struct.at_tensor_info[i].storage_desc.npu_format_);
         int64_t idx = build_tensor_struct.mapping[i];
-        size_t numel = NPUNativeFunctions::get_storage_size(tensor);
+        size_t numel = static_cast<size_t>(NPUNativeFunctions::get_storage_size(tensor));
         ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
             build_tensor_struct.at_tensor_info[i].storage_desc,
             build_tensor_struct.graph_desc_info[i].graph_value.GetRealDtype());
@@ -107,7 +107,7 @@ std::vector<at::Tensor> ReplayGraphImpl::SetOutputGeTensor(ReplayGraphInfo& grap
                 graphinfo.assigned_outputs.at_tensor_info.size());
     for (size_t i = 0; i < assigned_outputs.size(); i++) {
         int64_t idx = graphinfo.assigned_outputs.mapping[i];
-        size_t numel = NPUNativeFunctions::get_storage_size(assigned_outputs[i]);
+        size_t numel = static_cast<size_t>(NPUNativeFunctions::get_storage_size(assigned_outputs[i]));
         auto data_ptr = assigned_outputs[i].data_ptr();
         ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
             graphinfo.assigned_outputs.at_tensor_info[i].storage_desc,

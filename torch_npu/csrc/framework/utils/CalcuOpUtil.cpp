@@ -335,13 +335,13 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor &tensor) {
 void CalcuOpUtil::CheckMemoryOverLaps(
     c10::ArrayRef<at::Tensor> inputs,
     c10::ArrayRef<at::Tensor> outputs) {
-  for (int i = 0; i < outputs.size(); i++) {
+  for (const auto i : c10::irange(outputs.size())) {
     if (!outputs[i].defined())
       continue;
 
     assert_no_internal_overlap(outputs[i]);
 
-    for (int j = 0; j < inputs.size(); j++) {
+    for (const auto j : c10::irange(inputs.size())) {
       assert_no_partial_overlap(outputs[i], inputs[j]);
     }
   }
@@ -366,7 +366,7 @@ float CalcuOpUtil::GetScalarFloatValue(const c10::Scalar &scalar) {
 c10::SmallVector<int64_t, SHAPE_SIZE> CalcuOpUtil::ConvertIntArrayRefToSmallVector(
     c10::IntArrayRef intArray) {
   c10::SmallVector<int64_t, SHAPE_SIZE> intVec;
-  for (int i = 0; i < intArray.size(); i++) {
+  for (const auto i : c10::irange(intArray.size())) {
     intVec.emplace_back(intArray[i]);
   }
 
