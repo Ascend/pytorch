@@ -45,7 +45,9 @@ struct NPUEvent {
         NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
         NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
-    } catch (...) {}   // No throw.
+    }
+    // stay consistent with pytorch, no throw
+    catch (...) {}
   }
 
   NPUEvent(const NPUEvent&) = delete;

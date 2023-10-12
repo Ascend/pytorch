@@ -7,7 +7,6 @@
 namespace torch_npu {
 
 class NPUBridge {
-
 public:
   // at::tensor to NPUStorageImpl
   static NPUStorageImpl* GetNpuStorageImpl(const at::Tensor &tensor);
