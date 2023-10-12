@@ -31,7 +31,6 @@ def gen_inplace_or_view_type_env_for_npu(
 # A temporary solution, due to op coupling, temporarily removing symint
 def process_function_(info: DifferentiabilityInfo, template: CodeTemplate) -> str:
     function_codegen = process_function(info, template)
-    print(function_codegen, type(function_codegen))
     if '_symint' in function_codegen:
         function_codegen = function_codegen.replace('_symint', '')
     return function_codegen
