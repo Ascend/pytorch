@@ -39,7 +39,8 @@ def npu_fast_condition_index_put(x, condition, value):
         torch.Tensor: Box transformation deltas
     """
 
-    assert condition.dtype in [torch.bool]
+    if condition.dtype not in [torch.bool]:
+        raise TypeError("Expected condition.dtype in [torch.bool]")
 
     if value == 0:
         mask = torch.zeros_like(x)

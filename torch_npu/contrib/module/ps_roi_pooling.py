@@ -37,8 +37,8 @@ class PSROIPool(nn.Module):
 
         super(PSROIPool, self).__init__()
 
-        assert (pooled_height == pooled_width == group_size), \
-            "only pooled_height == pooled_width == group_size supported."
+        if not (pooled_height == pooled_width == group_size):
+            raise ValueError("only pooled_height == pooled_width == group_size supported.")
 
         self.group_size = group_size
         self.spatial_scale = spatial_scale
