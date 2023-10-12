@@ -92,10 +92,10 @@ namespace at_npu
       c10::SmallVector<int, N> eachListIntNum;
       // Value of each listInt.
       c10::SmallVector<c10::SmallVector<int64_t, N>, N> eachListIntVal;
-      for (int i = 0; i < value.size(); i++)
+      for (const auto i : c10::irange(value.size()))
       {
         c10::SmallVector<int64_t, N> listInt;
-        int64_t valueSize = value[i].size();
+        int64_t valueSize = static_cast<int64_t>(value[i].size());
         listInt.resize(valueSize);
         std::copy(value[i].begin(), value[i].end(), listInt.begin());
         eachListIntVal.emplace_back(listInt);
@@ -258,7 +258,7 @@ namespace at_npu
         aclDataType dataType = aclGetTensorDescType(tensorDesc);
         aclFormat descformat = aclGetTensorDescFormat(tensorDesc);
 
-        int descNumDims = aclGetTensorDescNumDims(tensorDesc);
+        int descNumDims = static_cast<int>(aclGetTensorDescNumDims(tensorDesc));
         std::string descShape = "[";
         for (int j = 0; j < descNumDims; j++) {
           int64_t dimSize = 0;
@@ -438,7 +438,7 @@ namespace at_npu
 
     void* NewFunc(int caption, int& size)
     {
-      size = sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE;
+      size = static_cast<int>(sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE);
       void *ptr = malloc(size * caption);
       TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
       memset(ptr, 0, size * caption);
@@ -505,7 +505,7 @@ namespace at_npu
     void OpCommandImpls::Push(OpCommandImpl *&ptr)
     {
       ++offset;
-      if (objs.size() <= offset)
+      if (static_cast<int32_t>(objs.size()) <= offset)
       {
         OpCommandImpl impl;
         objs.emplace_back(std::move(impl));

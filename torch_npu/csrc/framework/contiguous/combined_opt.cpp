@@ -68,7 +68,7 @@ public:
 
 private:
   bool cases_avoid(const ContiguousTensorDesc &tensor_desc) {
-    for (auto i = 0; i < tensor_desc.sizes_.size(); i++) {
+    for (const auto i : c10::irange(tensor_desc.sizes_.size())) {
       // expand+x,x+expand
       if (tensor_desc.strides_[i] == 0) {
         return true;
@@ -116,7 +116,7 @@ private:
   bool maybe_permute(const ContiguousTensorDesc &tensor_desc) {
     // tensors with nonmonotonic strides will be taken into consideration
     // (Ascend): 对于特殊stride的情况例如：[*,*,1,1]这种，需要进一步分析影响
-    for (auto i = 0; i < tensor_desc.strides_.size() - 1; i++) {
+    for (const auto i : c10::irange(tensor_desc.sizes_.size() - 1)) {
       if (tensor_desc.strides_[i] < tensor_desc.strides_[i + 1]) {
         return true;
       }
@@ -154,7 +154,7 @@ private:
     // tensors with reduced numel will be taken into consideration.
     if (c10::multiply_integers(tensor_desc.sizes_) <
         c10::multiply_integers(tensor_desc.base_sizes_)) {
-      for (auto i = 0; i < tensor_desc.sizes_.size() - 2; i++) {
+      for (const auto i : c10::irange(tensor_desc.sizes_.size() - 2)) {
         if (tensor_desc.strides_[i] % tensor_desc.strides_[i + 1] != 0) {
           return false;
         }
@@ -187,11 +187,11 @@ Inference order: permute, select, slice.
       // Map stride to shape
       std::map<int64_t, int64_t> map_shape_stride;
       std::map<int64_t, int64_t> label_map_shape_stride;
-      for (auto i = 0; i < view_sizes.size(); i++) {
+      for (const auto i : c10::irange(view_sizes.size())) {
         map_shape_stride[view_strides[i]] = view_sizes[i];
       }
       // 除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
-      for (auto i = 0; i < view_sizes.size(); i++) {
+      for (const auto i : c10::irange(view_sizes.size())) {
         if (i == 0) {
           map_shape_stride[view_strides[0]] = view_sizes[0];
         } else if (i != 0 && view_sizes[i] != 1) {
@@ -199,7 +199,7 @@ Inference order: permute, select, slice.
         }
       }
       // stride中有相等的情况，后面相等的stride对应的shape为1
-      for (auto i = 0; i < view_sizes.size(); i++) {
+      for (const auto i : c10::irange(view_sizes.size())) {
         if (label_map_shape_stride[permute_stride_sorted[i]] != true) {
           permute_size_sorted[i] = map_shape_stride[permute_stride_sorted[i]];
           label_map_shape_stride[permute_stride_sorted[i]] = true;
@@ -226,7 +226,7 @@ Inference order: permute, select, slice.
       select_size.emplace_back((int64_t)1);
       select_stride.emplace_back((int64_t)1);
 
-      int64_t i = view_sizes.size() - 1;
+      int64_t i = static_cast<int64_t>(view_sizes.size()) - 1;
       if (view_strides[i] == 1) {
         select_size[i + 1] = view_sizes[i];
         select_stride[i + 1] = 1;
@@ -295,7 +295,7 @@ Inference order: permute, select, slice.
                         int64_t combined_cases_num,
                         ContiguousTensorDesc &tensor_desc) {
     // Only combined_cases_num-combined Ops cases are taken into consideration
-    if (shape_stride_stacks.size() == combined_cases_num) {
+    if (static_cast<int16_t>(shape_stride_stacks.size()) == combined_cases_num) {
       return false;
     }
 
@@ -385,7 +385,7 @@ Inference order: permute, select, slice.
       auto computed_stride =
           StorageDescHelper::ComputeStrideFromShape(stack_shape_stride[0]);
       // Adjust shape according to sorted stride
-      for (auto i = 0; i < stack_shape_stride_pre[0].size(); i++) {
+      for (const auto i : c10::irange(stack_shape_stride_pre[0].size())) {
         // if shape_i equals to shape_j, non-unique keys for "map_stride_shape" would be made;
         // Temporarily, making size[i] * stride[i] to obtain unique keys;
         // (Ascend): explore unique keys for any cases when "shape[i] == shape [j]"
@@ -393,7 +393,7 @@ Inference order: permute, select, slice.
             computed_stride[i];
       }
 
-      for (auto i = 0; i < stack_shape_stride_pre[0].size(); i++) {
+      for (const auto i : c10::irange(stack_shape_stride_pre[0].size())) {
         stack_shape_stride_pre[1][i] =
             map_stride_shape[stack_shape_stride_pre[0][i] *
                              stack_shape_stride_pre[1][i]];

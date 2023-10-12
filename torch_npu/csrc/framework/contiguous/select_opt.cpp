@@ -62,12 +62,12 @@ private:
     // recover src tensor info: shape and stride
     c10::SmallVector<int64_t, MAX_DIM> temp_size;
     c10::SmallVector<int64_t, MAX_DIM> temp_stride;
-    for (int64_t i = 0; i <= select_size.size(); i++) {
+    for (size_t i = 0U; i <= select_size.size(); i++) {
       if (base_size[i] != select_size[i] ||
           base_stride[i] != select_stride[i]) {
         temp_size.emplace_back(base_size[i]);
         temp_stride.emplace_back(base_stride[i]);
-        for (int64_t j = i + 1; j <= select_size.size(); j++) {
+        for (size_t j = i + 1U; j <= select_size.size(); j++) {
           temp_size.emplace_back(select_size[j - 1]);
           temp_stride.emplace_back(select_stride[j - 1]);
           i = j + 1;
@@ -78,7 +78,7 @@ private:
       }
     }
 
-    for (int64_t i = 0; i <= select_size.size(); i++) {
+    for (const auto i : c10::irange(select_size.size())) {
       if (base_size[i] == temp_size[i] && base_stride[i] == temp_stride[i]) {
         continue;
       } else {
@@ -88,8 +88,8 @@ private:
 
     // Collect the select infos for SliceD: dim, start, length
     // confirm the selected dim
-    int64_t dim = base_size.size() - 1;
-    for (int64_t i = 0; i < select_size.size(); i++) {
+    int64_t dim = static_cast<int64_t>(base_size.size()) - 1;
+    for (const auto i : c10::irange(select_size.size())) {
       if (base_size[i] != select_size[i] ||
           base_stride[i] != select_stride[i]) {
         dim = i;
@@ -99,7 +99,7 @@ private:
 
     // Obtain start index and select length
     int64_t int_index = src_desc.offset_ / base_stride[dim];
-    for (int64_t i = 0; i < base_size.size(); i++) {
+    for (const auto i : c10::irange(base_size.size())) {
       if (i == dim) {
         start.emplace_back(int_index);
         length.emplace_back(1);
@@ -122,11 +122,11 @@ private:
                   temp_src.strides());
 
     // construct StridedSlice param
-    auto axis_size = start.size();
+    int64_t axis_size = static_cast<int64_t>(start.size());
     c10::SmallVector<int64_t, MAX_DIM> strides(axis_size, 1);
     c10::SmallVector<int64_t, MAX_DIM> end;
     int64_t shrink_mask = 0;
-    for (auto i = 0; i < axis_size; ++i) {
+    for (int64_t i = 0; i < axis_size; ++i) {
       end.emplace_back(start[i] + length[i]);
       if (length[i] == 1 && temp_src.size(i) != 1) {
         shrink_mask += std::pow(2, i);
