@@ -27,7 +27,7 @@ class NpuProfiler:
     @classmethod
     def analyse(cls, input_path: str, analysis_type: str = Constant.TENSORBOARD_TRACE_HANDLER, output_path: str = None,
                 **kwargs):
-        input_path = os.path.realpath(input_path)
+        input_path = PathManager.get_realpath(input_path)
         cls._check_input_path(input_path)
         profiler_path_list = PathManager.get_profiler_path_list(input_path)
         if not profiler_path_list:
@@ -45,6 +45,6 @@ class NpuProfiler:
             process.join()
 
     @classmethod
-    def _check_input_path(cls, realpath: str):
-        SecurePathManager.check_input_directory_path(realpath)
-        SecurePathManager.check_path_owner_consistent(realpath)
+    def _check_input_path(cls, path: str):
+        SecurePathManager.check_input_directory_path(path)
+        SecurePathManager.check_path_owner_consistent(path)

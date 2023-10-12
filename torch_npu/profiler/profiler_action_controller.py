@@ -21,6 +21,7 @@ from datetime import datetime
 import torch.autograd.profiler as prof
 
 from .analysis.npu_profiler import NpuProfiler
+from .analysis.prof_common_func.path_manager import PathManager
 from .scheduler import default_schedule_fn, ProfilerAction
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
 from ..utils.secure_path_manager import SecurePathManager
@@ -57,7 +58,7 @@ class NpuProfCreator:
             dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
             self._dir_name = os.path.join(os.path.abspath(dir_name),
                                           Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
-        self._dir_name = os.path.realpath(self._dir_name)
+        self._dir_name = PathManager.get_realpath(self._dir_name)
 
     def _check_params(self):
         if self._worker_name:
