@@ -50,7 +50,6 @@ public:
   NPUTensorImpl(NPUTensorImpl&&) = default;
   NPUTensorImpl& operator=(NPUTensorImpl&&) = default;
   ~NPUTensorImpl();
-
 };
 
 }  // namespace torch_npu

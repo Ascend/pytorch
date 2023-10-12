@@ -13,7 +13,7 @@ public:
   aclError QueryAndDestroyEvent();
   aclError LazyDestroy(aclrtEvent npu_event);
   void ClearEvent();
-  ~NPUEventManager(){}
+  ~NPUEventManager() {}
 
 private:
   void run(aclrtEvent event);

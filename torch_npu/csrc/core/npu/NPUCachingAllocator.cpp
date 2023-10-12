@@ -237,7 +237,6 @@ struct AllocParams {
 } // namespace
 
 class CachingAllocatorConfig {
-
  public:
 
   static size_t max_split_size() {
@@ -377,7 +376,6 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
 
 
 class DeviceCachingAllocator {
-
  private:
 
   // lock around all operations
@@ -446,9 +444,9 @@ class DeviceCachingAllocator {
     // First, try to get a block from the existing pool.
     bool block_found =
       // Search pool
-      get_free_block(params)
+      get_free_block(params) ||
       // Trigger callbacks and retry search
-      || (trigger_free_memory_callbacks(params) && get_free_block(params));
+      (trigger_free_memory_callbacks(params) && get_free_block(params));
 
     // Can't reuse an existing block; try to get a new one.
     if (!block_found) {
@@ -458,13 +456,13 @@ class DeviceCachingAllocator {
         garbage_collect_cached_blocks();
       }
       // Attempt allocate
-      block_found = alloc_block(params, false)
+      block_found = alloc_block(params, false) ||
           // Free enough available cached blocks to satisfy alloc and retry
           // alloc.
-          || (release_available_cached_blocks(params) &&
-              alloc_block(params, false))
+          (release_available_cached_blocks(params) &&
+              alloc_block(params, false)) ||
           // Free all non-split cached blocks and retry alloc.
-          || (release_cached_blocks(true) && alloc_block(params, true));
+          (release_cached_blocks(true) && alloc_block(params, true));
     }
 
     if (!block_found) {
@@ -928,15 +926,18 @@ class DeviceCachingAllocator {
       }
     }
     auto it = pool.blocks.lower_bound(&p.search_key);
-    if (it == pool.blocks.end() || (*it)->stream != p.stream())
+    if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
       return false;
+    }
     // Do not return an oversized block for a large request
     if ((p.size() < CachingAllocatorConfig::max_split_size()) &&
-        ((*it)->size >= CachingAllocatorConfig::max_split_size()))
-        return false;
+        ((*it)->size >= CachingAllocatorConfig::max_split_size())) {
+          return false;
+        }
     // Allow oversized block size to be rounded up but within a limit
-    if ((p.size() >= CachingAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer))
-        return false;
+    if ((p.size() >= CachingAllocatorConfig::max_split_size()) && ((*it)->size >= p.size() + kLargeBuffer)) {
+      return false;
+    }
     p.block = *it;
     (*it)->gc_count = 0; // Denote this block has been used
     pool.blocks.erase(it);
@@ -1060,7 +1061,7 @@ class DeviceCachingAllocator {
     auto it = pool.blocks.lower_bound(&key);
     if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
       // No single block is large enough; free multiple oversize blocks, starting with the largest
-      if (it == pool.blocks.begin()){
+      if (it == pool.blocks.begin()) {
         return false;
       }
       size_t totalReleased = 0;
@@ -1275,7 +1276,6 @@ class DeviceCachingAllocator {
 };
 
 class THNCachingAllocator {
-
  private:
 
   std::mutex mutex;
@@ -1299,7 +1299,7 @@ class THNCachingAllocator {
     return &npu_free_mutex;
   }
 
-  Block* get_allocated_block(void* ptr, bool remove=false) {
+  Block* get_allocated_block(void* ptr, bool remove = false) {
     std::lock_guard<std::mutex> lock(mutex);
     auto it = allocated_blocks.find(ptr);
     if (it == allocated_blocks.end()) {
@@ -1391,8 +1391,9 @@ class THNCachingAllocator {
     // we have implemented reference counting based sharing mechanism to
     // guarantee tensors won't be accidentally freed by one process while
     // they are still being used in another
-    if (ptr.get_deleter() != &raw_delete)
+    if (ptr.get_deleter() != &raw_delete) {
       return;
+    }
 
     Block* block = get_allocated_block(ptr.get());
     // block must not be null reaching here

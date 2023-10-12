@@ -17,9 +17,9 @@ struct NPUStorageDesc {
 public:
     struct use_byte_size_t {};
 
-    c10::SmallVector<int64_t,5> base_sizes_;
-    c10::SmallVector<int64_t,5> base_strides_;
-    c10::SmallVector<int64_t,5> storage_sizes_;
+    c10::SmallVector<int64_t, 5> base_sizes_;
+    c10::SmallVector<int64_t, 5> base_strides_;
+    c10::SmallVector<int64_t, 5> storage_sizes_;
     int64_t base_offset_ = 0; // no use
     use_byte_size_t base_dtype_ = {}; // no use
     aclFormat origin_format_ = ACL_FORMAT_UNDEFINED;

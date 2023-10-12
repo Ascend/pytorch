@@ -28,7 +28,7 @@ do {                                                      \
         " NPU error, error code is ", Error,                         \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
-        "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+        "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
@@ -55,7 +55,7 @@ do {                                                      \
           " NPU error, error code is ", Error,                         \
           (err_map.error_code_map.find(Error) !=                       \
           err_map.error_code_map.end() ?                               \
-          "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+          "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
           "\n", c10_npu::acl::AclGetErrMsg());                         \
       }                                                                \
     }                                                                  \
@@ -70,7 +70,7 @@ do {                                                      \
         "[Error]: ",                                                 \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
-        "\n[Error]: " + err_map.error_code_map[Error] : ".") ,       \
+        "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
         "\n", c10_npu::acl::AclGetErrMsg());                         \
     }                                                                \
   } while (0)
@@ -89,7 +89,7 @@ void warn_(
   warn_(                                                     \
       {__func__, __FILE__, static_cast<uint32_t>(__LINE__)}, \
       ::c10::str(__VA_ARGS__),                               \
-      false)                                               
+      false)
 
 #define TORCH_NPU_WARN_ONCE(...)                                              \
   C10_UNUSED static const auto C10_ANONYMOUS_VARIABLE(torch_npu_warn_once_) = \
