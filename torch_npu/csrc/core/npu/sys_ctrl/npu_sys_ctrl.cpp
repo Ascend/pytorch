@@ -31,6 +31,7 @@
 #endif
 
 namespace {
+const uint32_t kMaxOpExecuteTimeOut = 547U;
 const size_t kMaxPathLen = 4096U;
 std::string GetCurDirPath() {
   char buff[kMaxPathLen] = {'\0'};
@@ -130,6 +131,8 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         ASCEND_LOGE("Npu device %d has been set before global init.", device_id_);
     }
 
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
+
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
       NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
@@ -161,6 +164,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   SetHF32DefaultValue();
 
   NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+  NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
   init_flag_ = true;
   ASCEND_LOGD("Npu sys ctrl initialize successfully.");
 
@@ -172,6 +176,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
     NPU_CHECK_ERROR(aclrtSetDevice(device));
     device_id_= device;
+    aclrtGetCurrentContext(&ctx_);
     return INIT_SUCC;
 }
 

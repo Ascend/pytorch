@@ -1,11 +1,8 @@
 #include <torch/csrc/dynamo/compiled_autograd.h>
 
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-#ifdef USE_GEN_HEADER
-#include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
+
+#include "torch_npu/csrc/aten/CustomFunctions.h"
 
 // ${generated_comment}
 
@@ -14,7 +11,7 @@
 // used for forward mode AD formulas as well.
 
 using namespace at_npu::autograd::generated::details;
-using namespace op_plugin;
+using namespace at_npu::native::custom_ops;
 using at::Tensor;
 using at::Scalar;
 using at::IntArrayRef;

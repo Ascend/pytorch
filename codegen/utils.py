@@ -37,9 +37,10 @@ from torchgen.utils import Target
 from torchgen.gen import LineLoader
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
+GLOBAL_OPAPI_INFO_CACHE = set()
 
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
-FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns"]
+FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns", "op_api"]
 
 
 def parse_npu_yaml(custom_path: str) -> Dict:
@@ -235,7 +236,6 @@ return {self_arg_name};
                 impl_name = f"{metadata.cpp_namespace}::{metadata.kernel}"
             else:
                 impl_name = f"{metadata.cpp_namespace}::{self.class_method_name}::{metadata.kernel}"
-
             kernel_sig = kernel_signature(f, self.backend_index)
 
             args_exprs_str = ", ".join(
@@ -303,11 +303,31 @@ const DeviceGuard device_guard(device_or_default(device));"""
                     )
                     if device_of is not None:
                         device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
-
+            op_key = str(f.func.name)
             if enable_opplugin():
-                op_key = str(f.func.name)
                 if op_key in GLOBAL_STRUCTURED_OP_INFO_CACHE:
                     impl_name = f"op_plugin::{GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key]}"
+
+            if is_opapi(op_key) and not is_op_valid(op_key):
+                op_api_impl_name = f"{metadata.cpp_namespace}::NPUNativeOpApiFunctions::{metadata.kernel}"
+                tensor_check_str = ""
+                tensor_check_list = []
+                for a in args:
+                    if a.argument.type.is_tensor_like():
+                        tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name})")
+                if tensor_check_list:
+                    tensor_check_str = f" && {' && '.join(tensor_check_list)}"
+                return_code = f"""\
+if (at_npu::native::env::CheckJitDisable(){tensor_check_str}) {{
+        return {op_api_impl_name}({args_exprs_str});
+    }} else {{
+        return {impl_name}({args_exprs_str});
+    }}
+"""
+            else:
+                return_code = f"""\
+    return {impl_name}({args_exprs_str});
+"""
 
             return f"""\
 namespace {{
@@ -317,7 +337,7 @@ namespace {{
 
 {device_guard}
 {record_func_def}
-return {impl_name}({args_exprs_str});
+{return_code}
 }}
 
 }} // anonymous namespace
@@ -389,3 +409,19 @@ def get_opplugin_wrap_name(func) -> str:
 def gen_custom_yaml_path(original_path, codegen_yaml_filename=CUSTOM_YAML_NAME):
     new_path = os.path.join(os.path.dirname(original_path), codegen_yaml_filename)
     return new_path
+
+
+def update_opapi_info(op_info):
+    global GLOBAL_OPAPI_INFO_CACHE
+    if isinstance(op_info, str):
+        return
+    elif isinstance(op_info, dict):
+        if op_info.get("op_api", False):
+            GLOBAL_OPAPI_INFO_CACHE.add(op_info.get("func").split("(")[0])
+    else:
+        print(f"Warning: Unsupported parameter types, only str and dict is supported, but input is {type(op_info)}")
+
+
+def is_opapi(op_key):
+    global GLOBAL_OPAPI_INFO_CACHE
+    return op_key in GLOBAL_OPAPI_INFO_CACHE

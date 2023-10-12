@@ -74,12 +74,6 @@ class ModulatedDeformConv2dFunction(Function):
 class ModulatedDeformConv(nn.Module):
     r"""Applies an NPU based Modulated Deformable 2D convolution operation.
 
-    Paper link:
-    [Deformable ConvNets v2: More Deformable, Better Results](https://arxiv.org/abs/1811.11168)
-
-    Reference implementation link:
-    https://github.com/open-mmlab/mmcv/blob/master/mmcv/ops/modulated_deform_conv.py
-
     The implementation of this ModulatedDeformConv is mainly based
     on the implementation of mmcv for design and reconstruction.
 

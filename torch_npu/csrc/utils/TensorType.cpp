@@ -59,11 +59,11 @@ static TypeError unavailable_type(const PyTensorType& type) {
   return TypeError("type %s not available. Torch not compiled with npu enabled.", type.name);
 }
 
-static PyObject * Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
+static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
   HANDLE_TH_ERRORS
   auto& tensor_type = *((PyTensorType*)type);
   if (tensor_type.is_npu) {
-    static auto warn_once = [](){
+    static auto warn_once = []() {
         std::cout << "Warning: The torch.npu.*DtypeTensor constructors are no longer recommended. " \
                      "It's best to use methods such as torch.tensor(data, dtype=*, device='npu') " \
                      "to create tensors." << std::endl;
@@ -81,7 +81,7 @@ static PyObject * Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwarg
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * Tensor_instancecheck(PyObject* _self, PyObject* arg) {
+static PyObject* Tensor_instancecheck(PyObject* _self, PyObject* arg) {
   HANDLE_TH_ERRORS
   auto self = (PyTensorType*)_self;
   if (THPVariable_Check(arg)) {
@@ -96,15 +96,15 @@ static PyObject * Tensor_instancecheck(PyObject* _self, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * Tensor_dtype(PyTensorType* self, void *unused) {
+PyObject* Tensor_dtype(PyTensorType* self, void *unused) {
   return torch::autograd::utils::wrap(self->dtype);
 }
 
-PyObject * Tensor_layout(PyTensorType* self, void *unused) {
+PyObject* Tensor_layout(PyTensorType* self, void *unused) {
   return torch::autograd::utils::wrap(self->layout);
 }
 
-PyObject * Tensor_is_npu(PyTensorType* self, void *unused) {
+PyObject* Tensor_is_npu(PyTensorType* self, void *unused) {
   if (self->is_npu) {
     Py_RETURN_TRUE;
   } else {
@@ -112,7 +112,7 @@ PyObject * Tensor_is_npu(PyTensorType* self, void *unused) {
   }
 }
 
-PyObject * Tensor_is_sparse(PyTensorType *self, void *unused) {
+PyObject* Tensor_is_sparse(PyTensorType *self, void *unused) {
   if (self->layout->layout == at::Layout::Strided) {
     Py_RETURN_FALSE;
   } else {
@@ -125,7 +125,7 @@ static struct PyMethodDef metaclass_methods[] = {
   {nullptr}
 };
 
-typedef PyObject *(*getter)(PyObject *, void *);
+using getter = PyObject* (*)(PyObject *, void *);
 
 static struct PyGetSetDef metaclass_properties[] = {
   {"dtype",        (getter)Tensor_dtype, nullptr, nullptr, nullptr},
@@ -216,16 +216,22 @@ static void set_name(PyTensorType& type_obj, const std::string& name) {
 
 static THPObjectPtr get_tensor_dict() {
   auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
-  if (!torch) throw python_error();
+  if (!torch) {
+      throw python_error();
+  }
 
   auto tensor_class = THPObjectPtr(PyObject_GetAttrString(torch, "Tensor"));
-  if (!tensor_class) throw python_error();
+  if (!tensor_class) {
+      throw python_error();
+  }
 
   auto tensor_type = (PyTypeObject*)tensor_class.get();
   TORCH_CHECK(tensor_type->tp_base, "missing base type for Tensor");
 
   auto res = THPObjectPtr(PyDict_New());
-  if (!res) throw python_error();
+  if (!res) {
+      throw python_error();
+  }
 
   if (PyDict_Merge(res.get(), tensor_type->tp_dict, 0) < 0) {
     throw python_error();
@@ -250,7 +256,6 @@ static void initialize_npu_aten_types(std::vector<PyTensorType>& tensor_types) {
     ScalarType scalar_type = declared_types[i].second;
     set_type(tensor_type, backend, scalar_type);
     set_name(tensor_type, get_name(backend, scalar_type));
-
   }
 }
 
@@ -308,7 +313,7 @@ static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) 
 }
 
 // Callback for python part. Used for additional initialization of python classes
-static PyObject * THPModule_initExtension(PyObject *_unused, PyObject *noargs) {
+static PyObject* THPModule_initExtension(PyObject *_unused, PyObject *noargs) {
   HANDLE_TH_ERRORS
   _initialize_python_bindings();
   Py_RETURN_NONE;
@@ -324,6 +329,5 @@ static PyMethodDef TorchNpuExtensionMethods[] = {
 PyMethodDef* npu_extension_functions() {
   return TorchNpuExtensionMethods;
 }
-
 }
 }

@@ -95,8 +95,8 @@ class MemoryViewParser(BaseViewParser):
         """
         try:
             self.ge_record_list = sorted(self.ge_record_list, key=lambda x: x.time_us)
-        except Exception:
-            raise RuntimeError(f"Can't sort records for cann memory record")
+        except Exception as e:
+            raise RuntimeError(f"Can't sort records for cann memory record") from e
         ge_ptr = 0
         pta_ptr = 0
         last_ge_record = None

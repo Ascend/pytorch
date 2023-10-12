@@ -93,7 +93,7 @@ __all__ = [
     "current_blas_handle",
 ]
 
-from typing import Tuple, Union
+from typing import Tuple
 from multiprocessing.util import register_after_fork as _register_after_fork
 import traceback
 import threading
@@ -112,7 +112,7 @@ from .streams import Stream, Event
 
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
-from .backends import *
+from .backends import *  # noqa: F403
 
 # init profiler
 if not torch_npu._C._profiler_init():
@@ -132,20 +132,22 @@ _initialization_lock = threading.Lock()
 _queued_calls = []  # don't invoke these until initialization occurs
 _original_pid = False
 
+
 def _is_in_bad_fork():
     return _is_internal_in_bad_fork
+
 
 def is_initialized():
     r"""Returns whether PyTorch's NPU state has been initialized."""
     return _initialized and not _is_internal_in_bad_fork
 
 
-def _lazy_call(callable):
+def _lazy_call(cb):
     if _initialized:
-        callable()
+        cb()
     else:
         # Don't store the actual traceback to avoid memory cycle
-        _queued_calls.append((callable, traceback.format_stack()))
+        _queued_calls.append((cb, traceback.format_stack()))
 
 
 class DeferredNpuCallError(Exception):
@@ -172,7 +174,7 @@ def _lazy_init():
                 queued_call()
             except Exception as e:
                 msg = (f"NPU call failed lazily at initialization with error: {str(e)}\n\n"
-                        f"NPU call was originally invoked at:\n\n{orig_traceback}")
+                       f"NPU call was originally invoked at:\n\n{orig_traceback}")
                 raise DeferredNpuCallError(msg) from e
 
     global _initialized, _original_pid, _queued_calls
@@ -215,6 +217,7 @@ def _after_fork(arg):
         _is_internal_in_bad_fork = True
         torch._C._npu_set_run_yet_variable_to_false()
 
+
 _register_after_fork(_after_fork, _after_fork)
 
 
@@ -225,10 +228,11 @@ def _get_device(device: Union[int, str, torch.device]) -> torch.device:
         device (torch.device or int): selected device.
     """
     if isinstance(device, str):
-        device = torch.device(device)
+        return torch.device(device)
     elif isinstance(device, int):
-        device = torch.device('npu', device)
+        return torch.device('npu', device)
     return device
+
 
 def _get_generator(device: torch.device) -> torch._C.Generator:
     r"""Return the NPU Generator object for the given device.
@@ -241,6 +245,7 @@ def _get_generator(device: torch.device) -> torch._C.Generator:
     if idx is None:
         idx = current_device()
     return torch.npu.default_generators[idx]
+
 
 def _set_rng_state_offset(offset: int, device: Union[int, str, torch.device] = 'npu') -> None:
     r"""Sets the random number generator state offset of the specified NPU.
@@ -258,6 +263,7 @@ def _set_rng_state_offset(offset: int, device: Union[int, str, torch.device] = '
 
     _lazy_call(cb)
 
+
 def _get_rng_state_offset(device: Union[int, str, torch.device] = 'npu') -> int:
     r"""Returns the random number generator state offset of the specified NPU.
 
@@ -273,10 +279,12 @@ def _get_rng_state_offset(device: Union[int, str, torch.device] = 'npu') -> int:
     default_generator = _get_generator(final_device)
     return default_generator.get_offset()
 
+
 def is_available():
     if (not hasattr(torch_npu._C, '_npu_setDevice')):
         return False
     return device_count() > 0
+
 
 from .random import *  # noqa: F403
 from .memory import *  # noqa: F403
@@ -289,6 +297,7 @@ def _lazy_new(cls, *args, **kwargs):
     # del _NPUBase.__new__
     return super(_NPUBase, cls).__new__(cls, *args, **kwargs)
 
+
 class _NPUBase:
     is_npu = True
     is_sparse = False
@@ -298,6 +307,7 @@ class _NPUBase:
             return super().type(*args, **kwargs)
 
     __new__ = _lazy_new
+
 
 class _NPULegacyStorage(_LegacyStorage):
     @classmethod
@@ -313,6 +323,7 @@ class _NPULegacyStorage(_LegacyStorage):
     def _new_shared_filename(cls, manager, obj, size, *, device=None, dtype=None):
         raise RuntimeError('_new_shared_filename: Not available for NPU storage')
 
+
 class ByteStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
@@ -322,6 +333,7 @@ class ByteStorage(_NPULegacyStorage):
     @classproperty
     def _dtype(self):
         return torch.uint8
+
 
 class DoubleStorage(_NPULegacyStorage):
     @classproperty
@@ -333,6 +345,7 @@ class DoubleStorage(_NPULegacyStorage):
     def _dtype(self):
         return torch.double
 
+
 class FloatStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
@@ -342,6 +355,7 @@ class FloatStorage(_NPULegacyStorage):
     @classproperty
     def _dtype(self):
         return torch.float
+
 
 class HalfStorage(_NPULegacyStorage):
     @classproperty
@@ -353,6 +367,7 @@ class HalfStorage(_NPULegacyStorage):
     def _dtype(self):
         return torch.half
 
+
 class LongStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
@@ -362,6 +377,7 @@ class LongStorage(_NPULegacyStorage):
     @classproperty
     def _dtype(self):
         return torch.long
+
 
 class IntStorage(_NPULegacyStorage):
     @classproperty
@@ -373,6 +389,7 @@ class IntStorage(_NPULegacyStorage):
     def _dtype(self):
         return torch.int
 
+
 class ShortStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
@@ -383,6 +400,7 @@ class ShortStorage(_NPULegacyStorage):
     def _dtype(self):
         return torch.short
 
+
 class CharStorage(_NPULegacyStorage):
     @classproperty
     def dtype(self):
@@ -392,6 +410,7 @@ class CharStorage(_NPULegacyStorage):
     @classproperty
     def _dtype(self):
         return torch.int8
+
 
 class BoolStorage(_NPULegacyStorage):
     @classproperty

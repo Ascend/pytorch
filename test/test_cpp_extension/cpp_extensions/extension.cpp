@@ -1,5 +1,4 @@
 #include <torch/extension.h>
-#include <torch_npu/csrc/aten/NPUNativeFunctions.h>
 
 // test   in  .setup with relative path
 #include <tmp.h>
@@ -13,7 +12,7 @@ Tensor tanh_add(Tensor x, Tensor y) {
 Tensor npu_add(const Tensor& self_, const Tensor& other_) {
   TORCH_INTERNAL_ASSERT(self_.device().type() == c10::DeviceType::PrivateUse1);
   TORCH_INTERNAL_ASSERT(other_.device().type() == c10::DeviceType::PrivateUse1);
-  return at_npu::native::NPUNativeFunctions::add(self_, other_, 1);
+  return at::add(self_, other_, 1);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

@@ -88,7 +88,7 @@ public:
   c10::IntArrayRef strides(int arg) const {
     return operands_[arg].stride_bytes;
   }
-  at::ScalarType dtype(int arg=0) const {
+  at::ScalarType dtype(int arg = 0) const {
     return operands_[arg].current_dtype;
   }
   at::ScalarType common_dtype() const {

@@ -1,6 +1,7 @@
 import torch
 import torch_npu
 
+
 class RollWithIndexSelect(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input1, index_fp, index_bp):
@@ -18,7 +19,9 @@ class RollWithIndexSelect(torch.autograd.Function):
         grad_input = grad.reshape(N, H * W, C).index_select(1, index_bp).reshape(N, H, W, C)
         return grad_input, None, None
 
+
 roll_with_index_select = RollWithIndexSelect.apply
+
 
 def get_roll_index(H, W, shifts, device='cpu'):
     index = torch.arange(0, H * W).reshape(H, W)
@@ -28,11 +31,9 @@ def get_roll_index(H, W, shifts, device='cpu'):
     index_bp = torch.LongTensor(index_bp)
     return [index_fp.to(device), index_bp.to(device)]
 
+
 class NpuRollWithIndexSelect():
     """Using NPU affinity writing method to replace the native roll in swin-transformer.
-
-    Origin implement in torch is
-    https://pytorch.org/docs/stable/generated/torch.roll.html
 
     This interface is faster than the original on NPU.
 

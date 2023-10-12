@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "NPUBlockHandle.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 namespace c10_npu {
@@ -1176,8 +1177,9 @@ class DeviceCachingAllocator {
   }
 
   void insert_events(Block* block) {
-    int prev_device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&prev_device));
+    aclrtContext compiler_ctx = aclrtContext();
+    aclError ret_ctx = aclrtGetCurrentContext(&compiler_ctx);
+    NPU_CHECK_ERROR(aclrtSetCurrentContext(c10_npu::NpuSysCtrl::GetInstance().InitializedContext()));
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
@@ -1197,13 +1199,8 @@ class DeviceCachingAllocator {
       block->event_count++;
       npu_events[stream].emplace_back(std::move(event), block);
     }
-
-    int cur_device = 0;
-    aclError ret = aclrtGetDevice(&cur_device);
-    if (ret != ACL_ERROR_NONE) {
-      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
-    } else if (cur_device != prev_device) {
-      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
+    if (ret_ctx == ACL_ERROR_NONE) {
+      NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx));
     }
   }
 
@@ -1373,6 +1370,7 @@ class THNCachingAllocator {
 
     Block* block = get_allocated_block(ptr.get());
     // block must not be null reaching here
+    TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found");
     device_allocator[block->device]->recordStream(block, stream);
   }
 

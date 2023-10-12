@@ -251,7 +251,6 @@ at::Tensor NPUNativeFunctions::empty_like(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt,
     c10::optional<c10::MemoryFormat> optional_memory_format) {
-
   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                       .device(device_opt)
                                       .layout(layout_opt)
@@ -457,7 +456,6 @@ at::Tensor NPUNativeFunctions::blackman_window(int64_t window_length,
                                                c10::optional<c10::Layout> layout_opt,
                                                c10::optional<c10::Device> device_opt,
                                                c10::optional<bool> pin_memory_opt) {
-
   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                       .device(device_opt)
                                       .layout(layout_opt)
@@ -495,7 +493,6 @@ at::Tensor NPUNativeFunctions::bartlett_window(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-
   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                       .device(device_opt)
                                       .layout(layout_opt)
@@ -526,7 +523,6 @@ at::Tensor NPUNativeFunctions::bartlett_window(int64_t window_length,
                                                c10::optional<c10::Device> device_opt,
                                                c10::optional<bool> pin_memory_opt)
 {
-
   return bartlett_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
@@ -539,7 +535,6 @@ at::Tensor NPUNativeFunctions::hann_window(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt)
 {
-
   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                       .device(device_opt)
                                       .layout(layout_opt)
@@ -569,7 +564,6 @@ at::Tensor NPUNativeFunctions::hamming_window(
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt)
 {
-
   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                       .device(device_opt)
                                       .layout(layout_opt)
@@ -750,7 +744,8 @@ at::Tensor NPUNativeFunctions::tril_indices(
   //    sequentially, and then transpose it.
   // fill the Tensor with correct values
   int64_t i = 0;
-  int64_t r = std::max<int64_t>(0, -offset), c = 0;
+  int64_t r = std::max<int64_t>(0, -offset);
+  int64_t c = 0;
 
   while (i < tril_size) {
     result[i] = r;
@@ -793,7 +788,8 @@ at::Tensor NPUNativeFunctions::triu_indices(
   // not typing std::max with scalar_t as it could be an unsigned type
   // NOTE: no need to check if the returned value of std::max overflows
   // scalar_t, as i and triu_size act as a guard.
-  int64_t c = std::max<int64_t>(0, offset), r = 0;
+  int64_t c = std::max<int64_t>(0, offset);
+  int64_t r = 0;
   while (i < triu_size) {
     result[i] = r;
     result[triu_size + i++] = c;

@@ -276,6 +276,7 @@ def _dummy_type(name):
         class_name = self.__class__.__name__
         raise RuntimeError(
             "Tried to instantiate dummy base class {}".format(class_name))
+
     return type(name, (object,), {"__init__": init_err})
 
 
@@ -344,7 +345,8 @@ def npu_check_overflow(grad):
 
 def clear_npu_overflow_flag():
     if is_support_inf_nan():
-        raise RuntimeError("Unsupported api when soc_version >= Ascend910B1, please use npu_check_overflow")
+        warnings.warn("When soc_version >= Ascend910B1, clear_npu_overflow_flag is useless, please remove it.")
+        return
     float_status = torch.zeros(8).npu()
     torch_npu.npu_clear_float_status(float_status)
 

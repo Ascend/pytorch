@@ -24,9 +24,6 @@ class DropOutTask:
 class NpuCachedDropout(torch.nn.Dropout):
     r"""FairseqDropout using on npu device
 
-    Reference implementation link:
-    https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/fairseq_dropout.py#L16
-
     .. note::
         Dynamic shapes are not supported.
 
@@ -98,7 +95,9 @@ class NpuCachedDropout(torch.nn.Dropout):
 
         model.register_forward_hook(mask_gen_hook_func())
 
+
 NpuFairseqDropout = NpuCachedDropout
+
 
 class PreGenDropoutTask:
     def __init__(self, device, p):

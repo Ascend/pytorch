@@ -87,8 +87,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
-    int orig_device;
-    NPU_CHECK_WARN(aclrtDestroyEvent(acl_event));
+    NPU_CHECK_WARN(c10_npu::NPUEventManager::GetInstance().LazyDestroy(acl_event));
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, acl_event=%p.", acl_event);
   }
 

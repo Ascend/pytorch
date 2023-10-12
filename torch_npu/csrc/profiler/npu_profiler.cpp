@@ -120,6 +120,10 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
     return;
   }
   std::string absPath = Utils::RelativeToAbsPath(path);
+  if (Utils::IsSoftLink(absPath)) {
+    ASCEND_LOGE("Path %s is soft link.", absPath.c_str());
+    return;
+  }
   if (!Utils::IsFileExist(absPath) && !Utils::CreateDir(absPath)) {
     ASCEND_LOGE("Path %s not exist and create failed.", absPath.c_str());
     return;
@@ -132,7 +136,9 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
   if (activities.count(NpuActivityType::NPU)) {
     npu_trace = true;
   }
-  ProfilerMgr::GetInstance()->Init(Utils::RealPath(absPath), npu_trace);
+  std::string realPath = Utils::RealPath(absPath);
+  TORCH_CHECK(!realPath.empty(), "Invalid path", path);
+  ProfilerMgr::GetInstance()->Init(realPath, npu_trace);
 }
 
 static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) {

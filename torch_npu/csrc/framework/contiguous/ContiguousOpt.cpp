@@ -21,8 +21,8 @@ ContiguousTensorDesc TransContiguous::GetTensorDescInfo(
       src_storage_size_inferred = {1};
     }
   } else {
-    src_size_inferred = array_to_small_vector(src.sizes());
-    src_stride_inferred = array_to_small_vector(src.strides());
+    src_size_inferred = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
+    src_stride_inferred = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.strides());
   }
   ContiguousTensorDesc src_desc = {
       src.is_contiguous(),       src_size_inferred,

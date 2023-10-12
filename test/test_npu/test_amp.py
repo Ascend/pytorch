@@ -1,10 +1,9 @@
 from itertools import chain
-import pickle
 
 import torch
+
 import torch_npu
 from torch_npu.npu.amp import GradScaler, autocast
-
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -103,8 +102,6 @@ class TestAmp(TestCase):
 
     # Compares no scaling + no autocasting against scaling + autocasting.
     def test_grad_scaling_autocast(self, device="npu"):
-        try_pickle = False
-
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
                 optimizer.zero_grad()
@@ -117,8 +114,6 @@ class TestAmp(TestCase):
                         self.make_device_overflow()
                     scaler.step(optimizer)
                     scaler.update()
-                    if try_pickle:
-                        scaler = pickle.loads(pickle.dumps(scaler))
                 else:
                     loss.backward()
                     if (not scaler.is_enabled()) or (i != skip_iter):
@@ -126,9 +121,6 @@ class TestAmp(TestCase):
             return scaler
 
         # sets atol=1e-3 because we're comparing pure fp32 arithmetic vs a mixture of fp16 and fp32
-        self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
-        # this will be picked up by try_pickle within run():
-        try_pickle = False    # Need to support the serialization of Scaler.
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
 
     def test_grad_scaling_clipping(self, device="npu"):

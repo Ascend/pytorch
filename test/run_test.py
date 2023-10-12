@@ -18,12 +18,11 @@ import torch_npu
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 CPP_EXTENSIONS_ERROR = """
-Ninja (https://ninja-build.org) is required for some of the C++ extensions
+Ninja is required for some of the C++ extensions
 tests, but it could not be found. Install ninja with `pip install ninja`
 or `conda install ninja`.
 """
 
-# https://stackoverflow.com/questions/2549939/get-signal-names-from-numbers-in-python
 SIGNALS_TO_NAMES_DICT = {
     getattr(signal, n): n for n in dir(signal) if n.startswith("SIG") and "_" not in n
 }

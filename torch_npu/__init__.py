@@ -45,6 +45,8 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, \
      add_storage_methods, add_optim_method, add_serialization_methods, apply_device_patch
 import torch_npu.utils.custom_ops
+import torch_npu.distributed.rpc
+from torch_npu.distributed.rpc.backend_registry import rpc_backend_reg
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from .version import __version__ as __version__
 from .meta import meta_registrations
@@ -103,7 +105,8 @@ def _apply_patches(monkey_patches):
             sys.modules[f'{dest_module.__name__}.{last_module_level}'] = patch
             continue
 
-        assert hasattr(patch, '__all__'), "Patch module must have __all__ definition."
+        if not hasattr(patch, '__all__'):
+            raise NotImplementedError("Patch module must have __all__ definition.")
         dest_module = getattr(dest_module, last_module_level)
         for attr in patch.__all__:
             setattr(dest_module, attr, getattr(patch, attr))
@@ -123,6 +126,7 @@ def apply_class_patches():
     add_serialization_methods()
     add_intercept_methods()
 
+
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
@@ -140,7 +144,7 @@ torch.distributed.is_hccl_available = lambda : True
 torch_npu._C._initExtension()
 
 # init and register hccl backend
-torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout :
+torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout:
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
 # set default device type for gradient checkpointing
@@ -156,5 +160,9 @@ def _npu_shutdown():
 
 # register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
+
+# init and register rpc npu backend
+torch_npu._C._rpc_npu_init()
+rpc_backend_reg()
 
 torch._dynamo.skipfiles.add(torch_npu.utils._device)

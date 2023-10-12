@@ -17,6 +17,7 @@
 #include <torch/csrc/utils/tensor_flatten.h>
 #include <torch/csrc/distributed/c10d/python_comm_hook.h>
 
+#include "torch_npu/csrc/distributed/rpc/init.h"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/distributed/Init.h"
@@ -42,8 +43,6 @@ public:
       default;
   IntrusivePtrNoGilDestructor(c10::intrusive_ptr<T> impl)
       : impl_(std::move(impl)) {}
-  // This ctor is very important; see
-  // https://github.com/pybind/pybind11/issues/2957
   explicit IntrusivePtrNoGilDestructor(T* impl)
       : impl_(c10::intrusive_ptr<T>::unsafe_steal_from_new(impl)) {}
   ~IntrusivePtrNoGilDestructor() {
@@ -401,6 +400,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
 // c10d methods on torch._C
 static PyMethodDef methods[] = { // NOLINT
     {"_c10d_npu_init", c10d_npu_init, METH_NOARGS, nullptr},
+    {"_rpc_npu_init", rpc::rpc_npu_init, METH_NOARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}};
 
 PyMethodDef* python_functions() {

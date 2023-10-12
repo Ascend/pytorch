@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch_npu
 from . import serialization as se
@@ -25,16 +26,20 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
 def _cpu(self):
     """Returns a CPU copy of this storage if it's not already on the CPU"""
     if self.device.type != 'cpu':
-        fake_tensor = torch.tensor([], device=self.device.type)
-        fake_tensor = torch_npu._C._set_storage_with_format(fake_tensor, self)
+        fake_tensor = torch_npu._C._tensor_construct_from_storage(self)
         return fake_tensor.cpu().untyped_storage()
     else: 
         return self
 
 
 def _deepcopy(self, memo):
-    tmp_tensor = torch.tensor([], dtype=self.dtype, device=self._untyped_storage.device).set_(self)
-    return tmp_tensor._typed_storage()
+    if self.device.type != 'cpu':
+        src_tensor = torch_npu._C._tensor_construct_from_storage(self)
+        dst_tensor = src_tensor.clone()
+        dst_tensor = torch_npu.npu_format_cast(dst_tensor, torch_npu.get_npu_format(src_tensor))
+        return dst_tensor._typed_storage()
+    else:
+        return self._new_wrapped_storage(copy.deepcopy(self._untyped_storage, memo))
 
 
 def add_storage_methods():

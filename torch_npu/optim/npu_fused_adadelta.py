@@ -21,7 +21,6 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
             numerical stability
         weight_decay (float, optional, default=0): weight decay (L2 penalty)
 
-    __ https://arxiv.org/abs/1212.5701
     """
 
     def __init__(self, params, lr=1.0, rho=0.9, eps=1e-6, weight_decay=0):

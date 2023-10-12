@@ -97,7 +97,7 @@ at::Tensor empty_strided(c10::IntArrayRef size, c10::IntArrayRef stride, c10::op
   return empty_strided_cpu(size, stride, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
-TORCH_LIBRARY_IMPL(aten, CPU, m){
+TORCH_LIBRARY_IMPL(aten, CPU, m) {
   m.impl("empty.memory_format", TORCH_FN(empty_memory_format));
   m.impl("empty_strided", TORCH_FN(empty_strided));
 }

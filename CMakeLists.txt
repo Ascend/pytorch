@@ -60,7 +60,6 @@ ENDIF()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing")
 # Eigen fails to build with some versions, so convert this to a warning
-# Details at http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1459
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
@@ -86,7 +85,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(notdir $(abspath $<)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 # These flags are not available in GCC-4.8.5. Set only when using clang.
-# Compared against https://gcc.gnu.org/onlinedocs/gcc-4.8.5/gcc/Option-Summary.html
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-partial-specialization")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-typedef-redefinition")
@@ -162,6 +160,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
+include_directories(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
@@ -211,14 +210,14 @@ if (DEFINED BUILD_LIBTORCH)
 endif()
 
 set(OPS_PLUGIN_SRCS)
-if (DEFINED BUILD_OPPLUGIN)
-  add_definitions(-DUSE_OPPLUGIN)
-  if (DEFINED BUILD_NEW_HEADER)
-    add_definitions(-DUSE_GEN_HEADER)
-  endif()
-  # Add subdirectory of op-plugin
-  include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
+# Add subdirectory of op-plugin
+include_directories(${PROJECT_SOURCE_DIR}/third_party/op-plugin)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/op-plugin/op_plugin)
+
+if (DEFINED BUILD_TENSORPIPE)
+  set(BUILD_SHARED_LIBS ON)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/Tensorpipe)
+  set(BUILD_SHARED_LIBS OFF)
 endif()
 
 if (DEFINED BUILD_LIBTORCH)
@@ -249,6 +248,7 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
 
+target_link_libraries(${PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/build/Release/packages/torch_npu/lib/libtensorpipe.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10)
 
 if (NOT DEFINED BUILD_LIBTORCH)

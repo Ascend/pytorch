@@ -1,12 +1,7 @@
 #include <c10/core/Scalar.h>
 #include <ATen/record_function.h>
 
-#ifdef USE_GEN_HEADER
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
-
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
@@ -30,12 +25,12 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
     size = dst_mem_size;
   }
 
-  if(!dst.data_ptr()) {
+  if (!dst.data_ptr()) {
     TORCH_NPU_WARN("copy_d2d_by_memcpy, dst.data_ptr() is null.");
     return;
   }
 
-  if(!src.data_ptr()) {
+  if (!src.data_ptr()) {
     TORCH_NPU_WARN("copy_d2d_by_memcpy, src.data_ptr() is null.");
     return;
   }

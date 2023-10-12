@@ -41,7 +41,8 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
-                           parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path)
+                           parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path,
+                           update_opapi_info, is_opapi)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch, 
                                       gen_custom_functions_dispatch)
 
@@ -125,6 +126,9 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
 
         source_es = parse_npu_yaml(custom_path)
         custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+        supported_es = source_es.get('supported', []) + source_es.get('autograd', []) + custom_es
+        for es in supported_es:
+            update_opapi_info(es)
         custom_es = filed_tag(custom_es)
         for e in custom_es:
             funcs = e.get('func')
@@ -223,18 +227,22 @@ def parse_backend_yaml(
     for item in custom_autograd:
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
-    if (len(yaml_values.keys()) > 0):
-        print(f'Warning: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
-Only the following keys are supported: {", ".join(valid_keys)}')
+    assert len(yaml_values.keys()) == 0, \
+        f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
+Only the following keys are supported: {", ".join(valid_keys)}'
 
     backend_key: Optional[DispatchKey] = None
+    opapi_key = "OpApi"
     if len(supported) > 0:
         with context(lambda: f'The provided value for "backend" must be a valid DispatchKey, but got {backend}.'):
             backend_key = DispatchKey.parse(backend)
 
         backend_idx = create_backend_index(supported, symint_set, backend_key, native_functions_map, cpp_namespace)
+        opapi_backend_idx = create_backend_index([op for op in supported if is_opapi(op)],
+                                                 symint_set, backend_key, native_functions_map, cpp_namespace)
         assert backend_key not in backend_indices
         backend_indices[backend_key] = backend_idx
+        backend_indices[str(backend_key) + opapi_key] = opapi_backend_idx
 
     autograd_key: Optional[DispatchKey] = None
     if len(supported_autograd) > 0:
@@ -244,8 +252,11 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
 
         autograd_idx = create_backend_index(supported_autograd, symint_set,
                                             autograd_key, native_functions_map, cpp_namespace)
+        opapi_autograd_idx = create_backend_index([op for op in supported_autograd if is_opapi(op)],
+                                                  symint_set, autograd_key, native_functions_map, cpp_namespace)
         assert autograd_key not in backend_indices
         backend_indices[autograd_key] = autograd_idx
+        backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
 
     check_op_on_cpu_kernels(supported_tocpu, backend_indices)
     check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
@@ -406,11 +417,10 @@ def gen_dispatcher_registrations(
 #endif
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#ifdef USE_GEN_HEADER
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
 """
     static_template = CodeTemplate(
         """\
@@ -571,6 +581,16 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
             backend_indices,
             grouped_native_functions,
             backend_key,
+            autograd_key,
+        )
+
+        gen_dispatchkey_nativefunc_headers(
+            fm,
+            "NPUNativeOpApiFunctions",
+            cpp_namespace,
+            backend_indices,
+            grouped_native_functions,
+            str(backend_key) + "OpApi",
             autograd_key,
         )
 

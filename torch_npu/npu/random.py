@@ -1,6 +1,5 @@
-from typing import cast, Iterable, List, Union
+from typing import Iterable, Union
 import torch
-from torch import Tensor
 
 import torch_npu
 from . import _lazy_init, _lazy_call, device_count, current_device
@@ -9,6 +8,7 @@ __all__ = ['get_rng_state', 'set_rng_state',
            'get_rng_state_all', 'set_rng_state_all',
            'manual_seed', 'manual_seed_all',
            'seed', 'seed_all', 'initial_seed']
+
 
 def get_rng_state(device: Union[int, str, torch.device] = 'npu') -> torch.Tensor:
     r"""Returns the random number generator state of the specified NPU as a ByteTensor.
@@ -124,6 +124,7 @@ def seed():
         If you are working with a multi-NPU model, this function will only initialize
         the seed on one NPU.  To initialize all NPUs, use :func:`seed_all`.
     """
+
     def cb():
         idx = current_device()
         default_generator = torch_npu.npu.default_generators[idx]
@@ -137,6 +138,7 @@ def seed_all():
     It's safe to call this function if NPU is not available; in that
     case, it is silently ignored.
     """
+
     def cb():
         random_seed = 0
         seeded = False

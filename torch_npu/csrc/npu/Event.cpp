@@ -10,7 +10,7 @@
 
 PyObject *THNPEventClass = nullptr;
 
-static PyObject * THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
+static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
   HANDLE_TH_ERRORS
   unsigned char enable_timing = 0;
   unsigned char blocking = 0;
@@ -41,13 +41,13 @@ static void THNPEvent_dealloc(THNPEvent *self) {
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject * THNPEvent_get_npu_event(THNPEvent *self, void *unused) {
+static PyObject* THNPEvent_get_npu_event(THNPEvent *self, void *unused) {
   HANDLE_TH_ERRORS
   return PyLong_FromVoidPtr(self->npu_event.event());
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPEvent_get_device(THNPEvent *self, void *unused) {
+static PyObject* THNPEvent_get_device(THNPEvent *self, void *unused) {
   HANDLE_TH_ERRORS
   at::optional<at::Device> device = self->npu_event.device();
   if (!device) {
@@ -57,7 +57,7 @@ static PyObject * THNPEvent_get_device(THNPEvent *self, void *unused) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPEvent_record(THNPEvent *self, THNPStream *stream) {
+static PyObject* THNPEvent_record(THNPEvent *self, THNPStream *stream) {
   HANDLE_TH_ERRORS
   self->npu_event.record(stream->npu_stream);
   ASCEND_LOGI("Event: record api is successfully executed, event=%p.", self->npu_event.event());
@@ -65,7 +65,7 @@ static PyObject * THNPEvent_record(THNPEvent *self, THNPStream *stream) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPEvent_wait(THNPEvent *self, THNPStream *stream) {
+static PyObject* THNPEvent_wait(THNPEvent *self, THNPStream *stream) {
   HANDLE_TH_ERRORS
   {
     pybind11::gil_scoped_release no_gil;
@@ -76,19 +76,19 @@ static PyObject * THNPEvent_wait(THNPEvent *self, THNPStream *stream) {
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPEvent_query(THNPEvent *self, PyObject *noargs) {
+static PyObject* THNPEvent_query(THNPEvent *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
   return PyBool_FromLong(self->npu_event.query());
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPEvent_elapsed_time(THNPEvent *self, THNPEvent *other) {
+static PyObject* THNPEvent_elapsed_time(THNPEvent *self, THNPEvent *other) {
   HANDLE_TH_ERRORS
   return PyFloat_FromDouble(self->npu_event.elapsed_time(other->npu_event));
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THNPEvent_synchronize(THNPEvent *self, PyObject *noargs) {
+static PyObject* THNPEvent_synchronize(THNPEvent *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
   {
     pybind11::gil_scoped_release no_gil;

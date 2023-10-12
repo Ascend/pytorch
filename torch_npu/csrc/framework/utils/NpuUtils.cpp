@@ -12,7 +12,6 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
@@ -166,9 +165,9 @@ at::Tensor metadata_convert_match_with_copy_optimize(const at::Tensor &src) {
       src_desc.origin_format_ == ACL_FORMAT_ND && (src.dim() != 0) &&
       !src_desc.base_sizes_.empty()) {
     // 1. directly rewrite their storage description to get matched tensors.
-    src_desc.base_sizes_ = array_to_small_vector(src.sizes());
-    src_desc.base_strides_ = array_to_small_vector(src.strides());
-    src_desc.storage_sizes_ = array_to_small_vector(src.sizes());
+    src_desc.base_sizes_ = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
+    src_desc.base_strides_ = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.strides());
+    src_desc.storage_sizes_ = CalcuOpUtil::ConvertIntArrayRefToSmallVector(src.sizes());
     NpuUtils::RefreshFormat(src);
     return src;
   } else if (TransContiguous::CanOptimize(src, optimizations_reshape)) {

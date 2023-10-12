@@ -24,11 +24,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-#ifdef USE_GEN_HEADER
 #include "op_plugin/OpInterface.h"
-#else
-#include "op_plugin/ops/OpInterface.h"
-#endif
 
 namespace c10d_npu {
 namespace {
@@ -198,7 +194,7 @@ void syncStreams(
 // exit call back for allreduce error
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
   // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
-  fprintf(stdout, "AllReduce error, see details in Ascend logs.");
+  fprintf(stdout, "Inner error, see details in Ascend logs.");
 }
 } // namespace
 
@@ -655,8 +651,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
   syncStreams(devices, hcclEvents_[key], hcclStreams);
   // Work itself will create the events on all NPUs of tensors
   auto work = initWork(devices);
-  // Store references to outputs to be used by WorkHCCL::result and operator<<.
-  work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
   c10_npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams, work);
 
@@ -693,15 +687,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     }
   }
   post(hcclStreams, work);
-
-  {
-    c10_npu::NPUMultiStreamGuard guard(hcclStreams);
-    work->future_ = c10::make_intrusive<at::ivalue::Future>(
-        c10::ListType::create(c10::TensorType::get()),
-        devices);
-
-    work->future_->markCompleted(at::IValue(*work->outputs_));
-  }
 
   for (size_t i = 0; i < inputs.size(); ++i) {
     c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];

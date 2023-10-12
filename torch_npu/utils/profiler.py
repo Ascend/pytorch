@@ -67,8 +67,8 @@ class Profile(object):
 
             try:
                 os.makedirs(self.save_path, exist_ok=True)
-            except Exception:
-                raise ValueError("the path of '%s' is invaild." % (self.save_path))
+            except Exception as e:
+                raise ValueError("the path of '%s' is invaild." % (self.save_path)) from e
 
     def __del__(self):
         if self.count != 0:

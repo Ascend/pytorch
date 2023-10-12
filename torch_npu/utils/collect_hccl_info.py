@@ -1,10 +1,12 @@
 import os
 import subprocess
+import shutil
 import argparse
 
 if 'ASCEND_HOME_PATH' not in os.environ:
     raise RuntimeError("Please run 'source set_env.sh' in the CANN installation path.")
 ascend_dir = os.environ['ASCEND_HOME_PATH']
+
 
 def get_tool_path():
     tool_path = os.path.join(ascend_dir, "tools", "hccl_test")
@@ -14,12 +16,14 @@ def get_tool_path():
         raise RuntimeError("""HCCL test directory doesn't exist.
                            Please check the integrity of CANN package.""")
 
+
 def get_mpi_install_path():
-    try:
-        mpirun_path = subprocess.check_output(args=["which", "mpirun"])
-    except subprocess.CalledProcessError:
-        print("""MPI package not found. Please download from https://www.mpich.org/downloads/. 
-              If package already downloaded, please check and set environment variables.""")
+    mpirun_path = shutil.which("mpirun")
+    if not mpirun_path:
+        raise FileNotFoundError(
+            """MPI package not found. Please download from https://www.mpich.org/downloads/. 
+            If package already downloaded, please check and set environment variables."""
+        )
 
     mpi_install_path_list = mpirun_path.decode().strip().split(os.sep)
     mpi_install_path = os.sep
@@ -28,9 +32,11 @@ def get_mpi_install_path():
         mpi_install_path = os.path.join(mpi_install_path, sub_path)
     return mpi_install_path
 
+
 build_args = ['-C', get_tool_path(),
               'MPI_HOME=' + get_mpi_install_path(),
               'ASCEND_DIR=' + ascend_dir]
+
 
 def is_compiled():
     executable_path = os.path.join(get_tool_path(), 'bin')
@@ -38,11 +44,17 @@ def is_compiled():
         return True
     return False
 
+
 def compile_hccl_test():
+    make_path = shutil.which("make")
+    if not make_path:
+        raise FileNotFoundError("Command 'make' not found. please check and set environment variables.")
+
     try:
-        subprocess.check_call(args=['make'] + build_args, env=os.environ)
+        subprocess.check_call(args=[make_path] + build_args, env=os.environ, shell=False)
     except subprocess.CalledProcessError as err:
         print("HCCL test compile fail. Details listed below: \n", err)
+
 
 """
 -t: test suite type. e.g: -t all_reduce_test denotes running all reduce test.
@@ -77,15 +89,17 @@ parser.add_argument("--c", help="result verification")
 parser.add_argument("--p", default="8", help="num of NPUs per node")
 parser.add_argument("--h", help="help")
 
-#Below are options if multiple nodes tests are enabled
+# Below are options if multiple nodes tests are enabled
 parser.add_argument("--file", help="host file used by mpirun in multi-node cases.")
 
-#option to execute single node test or multi-node test
+# option to execute single node test or multi-node test
 parser.add_argument("--multinode", default="False", help="num of nodes.")
 args = parser.parse_args()
 
+
 def get_exe_hccl_test():
     return os.path.join(get_tool_path(), "bin", args.t)
+
 
 def execute_hccl_test_single_node():
     args_dict = vars(args)
@@ -97,11 +111,11 @@ def execute_hccl_test_single_node():
         exe_args.extend(['-' + key, val])
     if args_dict["multinode"] == "False":
         try:
-            subprocess.check_call(args=["mpirun"] + exe_args)
+            subprocess.check_call(args=[shutil.which("mpirun")] + exe_args, shell=False)
         except subprocess.CalledProcessError as err:
             print("HCCL test executes fail! Details listed below: \n", err)
     else:
-        subprocess.check_call(args=["mpirun", "-f", args_dict["file"]] + exe_args)
+        subprocess.check_call(args=[shutil.which("mpirun"), "-f", args_dict["file"]] + exe_args, shell=False)
 
 
 if __name__ == "__main__":

@@ -160,7 +160,7 @@ static inline void checkInBoundsForStorage(
 }
 
 inline void setStrided(
-    const at::Tensor& self, 
+    const at::Tensor& self,
     c10::IntArrayRef size, 
     c10::IntArrayRef stride, 
     int64_t storage_offset) {
