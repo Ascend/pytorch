@@ -1,24 +1,21 @@
-import os
+import os.path
 import shutil
 import time
-from warnings import warn
 
 from torch_npu.npu import _lazy_init
 
 from .analysis.npu_profiler import NpuProfiler
-from .analysis.prof_common_func.constant import Constant
-from .analysis.prof_common_func.file_manager import FileManager
+from .analysis.prof_common_func.constant import Constant, print_warn_msg
+from .analysis.prof_common_func.path_manager import PathManager
 from .experimental_config import _ExperimentalConfig
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
 from .msprofiler_c_interface import MsProfilerInterface, supported_ms_activities, ProfilerActivity
 from .scheduler import CLOSE_STEP, ProfilerAction
+from ..utils.secure_path_manager import SecurePathManager
 
 
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, use_gzip: bool = False):
-    if dir_name is None:
-        dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
-        dir_name = os.path.join(os.path.abspath(dir_name), Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
     return NpuProfCreator(worker_name, dir_name)
 
 
@@ -44,22 +41,23 @@ class profile:
         self._schedule = schedule
         self._record_shapes = record_shapes
         self._with_flops = with_flops
-        self._record_shapes |= self._with_flops
         if ProfilerActivity.NPU not in self._activities and experimental_config is not None:
-            warn("Experimental config will not be uesd while ProfilerActivity.NPU is not set.")
+            print_warn_msg("Experimental config will not be used while ProfilerActivity.NPU is not set.")
         if experimental_config is None:
             experimental_config = _ExperimentalConfig()
         self._experimental_config = experimental_config
-        self._msprofiler_interface = MsProfilerInterface([self._record_shapes, profile_memory,
-                                                          with_stack, self._with_flops, with_modules,
-                                                          self._experimental_config()], self._activities)
-        self._action_controller = ActionController(self._msprofiler_interface, schedule, self, on_trace_ready)
         self._use_cuda = use_cuda
         self._on_trace_ready = on_trace_ready
         self._profile_memory = profile_memory
         self._with_stack = with_stack
         self._with_modules = with_modules
         self._check_params()
+        self._record_shapes |= self._with_flops
+        self._msprofiler_interface = MsProfilerInterface([self._record_shapes, self._profile_memory,
+                                                          self._with_stack, self._with_flops, self._with_modules,
+                                                          self._experimental_config()], self._activities)
+        self._action_controller = ActionController(self._msprofiler_interface, self._schedule, self,
+                                                   self._on_trace_ready)
         _lazy_init()
 
     def __enter__(self):
@@ -74,7 +72,7 @@ class profile:
             prev_action = self._schedule(prev_step)
             if prev_action == ProfilerAction.NONE:
                 return
-            FileManager.remove_file_safety(self._msprofiler_interface.path)
+            SecurePathManager.remove_path_safety(self._msprofiler_interface.path)
 
     def step(self):
         if self._schedule:
@@ -91,22 +89,28 @@ class profile:
         self._action_controller.trace_ready()
 
     def export_chrome_trace(self, output_path: str):
+        output_path = PathManager.get_realpath(output_path)
+        SecurePathManager.check_input_file_path(output_path)
+        file_name = os.path.basename(output_path)
+        if not file_name.endswith(".json"):
+            raise RuntimeError("Invalid parameter output_path, which must be a json file.")
         if isinstance(self._action_controller._on_trace_ready, NpuProfCreator):
-            print(f"[WARNING] [{os.getpid()}] profiler.py: "
-                  "Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
+            print_warn_msg(
+                "Already generate result files for TensorBoard, export_chrome_trace not producing any effect")
             return
         if not self._msprofiler_interface.path:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Invalid profiling path.")
+            print_warn_msg("Invalid profiling path.")
             return
         try:
             NpuProfiler.analyse(self._msprofiler_interface.path, Constant.EXPORT_CHROME_TRACE, output_path)
         except Exception:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Profiling data parsing failed.")
+            print_warn_msg("Profiling data parsing failed.")
             return
         try:
             shutil.rmtree(self._msprofiler_interface.path)
         except Exception:
-            print(f"[WARNING] [{os.getpid()}] profiler.py: Can't remove directory: {self._msprofiler_interface.path}")
+            msg = f"Can't remove directory: {self._msprofiler_interface.path}"
+            print_warn_msg(msg)
 
     def dump_profiler_info(self):
         if not self._msprofiler_interface:
@@ -134,4 +138,33 @@ class profile:
 
     def _check_params(self):
         if self._use_cuda is not None:
-            warn("This is npu environment, use_cuda is invalid")
+            print_warn_msg("This is npu environment, use_cuda is invalid")
+        if len(self._activities) > 2:
+            print_warn_msg(
+                "Invalid parameter activities, which must be a list less than 2 in length, reset it to default.")
+            self._activities = supported_ms_activities()
+        for activities in self._activities:
+            if activities in (ProfilerActivity.CPU, ProfilerActivity.NPU):
+                continue
+            print_warn_msg("Invalid parameter activities, which only supported CPU and NPU, reset it to default.")
+            self._activities = supported_ms_activities()
+            break
+        if not isinstance(self._record_shapes, bool):
+            print_warn_msg("Invalid parameter record_shapes, which must be of boolean type, reset it to False.")
+            self._record_shapes = False
+        if not isinstance(self._profile_memory, bool):
+            print_warn_msg("Invalid parameter profile_memory, which must be of boolean type, reset it to False.")
+            self._profile_memory = False
+        if not isinstance(self._with_stack, bool):
+            print_warn_msg("Invalid parameter with_stack, which must be of boolean type, reset it to False.")
+            self._with_stack = False
+        if not isinstance(self._with_modules, bool):
+            print_warn_msg("Invalid parameter with_modules, which must be of boolean type, reset it to False.")
+            self._with_modules = False
+        if not isinstance(self._with_flops, bool):
+            print_warn_msg("Invalid parameter with_flops, which must be of boolean type, reset it to False.")
+            self._with_flops = False
+        if not isinstance(self._experimental_config, _ExperimentalConfig):
+            print_warn_msg("Invalid parameter experimental_config, which must be instance of _ExperimentalConfig, "
+                           "reset it to default.")
+            self._experimental_config = _ExperimentalConfig()
