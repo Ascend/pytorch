@@ -114,3 +114,10 @@ class PathManager:
         for sub_file in sub_files:
             file_list.append(os.path.join(_path, sub_file))
         return file_list
+
+    @classmethod
+    def get_realpath(cls, path: str) -> str:
+        if os.path.islink(path):
+            msg = f"Invalid input path is a soft chain: {path}"
+            raise RuntimeError(msg)
+        return os.path.realpath(path)
