@@ -110,6 +110,18 @@ struct NPUEvent {
     was_recorded_ = true;
   }
 
+  void recordTimeEvent(const NPUStream& stream) {
+    if (!is_created_) {
+      createInfiniteEvent(stream.device_index());
+    }
+
+    TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
+        " does not match recording stream's device ", stream.device_index(), ".");
+    NPUGuard guard(device_index_);
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchRecordEventTask(event_, stream));
+    was_recorded_ = true;
+  }
+
   void reset(const NPUStream& stream) {
     if (is_created_) {
       NPUGuard guard(stream.device_index());
@@ -165,6 +177,14 @@ private:
     device_index_ = device_index;
     NPUGuard guard(device_index_);
     NPU_CHECK_ERROR(aclrtCreateEvent(&event_));
+    ASCEND_LOGI("aclrtCreateEvent is successfully executed, event_=%p.", event_);
+    is_created_ = true;
+  }
+
+  void createInfiniteEvent(c10::DeviceIndex device_index) {
+    device_index_ = device_index;
+    NPUGuard guard(device_index_);
+    NPU_CHECK_ERROR(aclrtCreateEventWithFlag(&event_, 0x02U));
     ASCEND_LOGI("aclrtCreateEvent is successfully executed, event_=%p.", event_);
     is_created_ = true;
   }
