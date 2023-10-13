@@ -50,14 +50,14 @@ void AddParamToBuf(const at::Tensor &at_tensor) {
         return;
     }
     // view shape
-    MEMCPY_TO_BUF(at_tensor.sizes().data(), at_tensor.sizes().size() * sizeof(int64_t));
+    MEMCPY_TO_BUF(at_tensor.sizes().data(), static_cast<int>(at_tensor.sizes().size() * sizeof(int64_t)));
     // data type
     auto st = at_tensor.scalar_type();
     MEMCPY_TO_BUF(&st, sizeof(st));
     // seperator
     MEMCPY_TO_BUF(",", 1);
     // strides
-    MEMCPY_TO_BUF(at_tensor.strides().data(), at_tensor.sizes().size() * sizeof(int64_t));
+    MEMCPY_TO_BUF(at_tensor.strides().data(), static_cast<int>(at_tensor.sizes().size() * sizeof(int64_t)));
     // offset
     auto so = at_tensor.storage_offset();
     MEMCPY_TO_BUF(&so, sizeof(so));
@@ -72,7 +72,7 @@ void AddParamToBuf(const at::Tensor &at_tensor) {
     if (acl_data_type != ACL_STRING) {
         storageDims.push_back(at_tensor.storage().nbytes() / itemsize);
     }
-    MEMCPY_TO_BUF(storageDims.data(), storageDims.size() * sizeof(int64_t));
+    MEMCPY_TO_BUF(storageDims.data(), static_cast<int>(storageDims.size() * sizeof(int64_t)));
 
     AddTensorAddrToCachedListFunc(at_tensor.storage().data());
 }
@@ -107,11 +107,11 @@ void AddParamToBuf(const at::Scalar &at_scalar) {
 }
 
 void AddParamToBuf(const at::IntArrayRef &at_array) {
-    MEMCPY_TO_BUF(at_array.data(), at_array.size() * sizeof(int64_t));
+    MEMCPY_TO_BUF(at_array.data(), static_cast<int>(at_array.size() * sizeof(int64_t)));
 }
 
 void AddParamToBuf(const at::ArrayRef<bool> &at_array) {
-    MEMCPY_TO_BUF(at_array.data(), at_array.size() * sizeof(bool));
+    MEMCPY_TO_BUF(at_array.data(), static_cast<int>(at_array.size() * sizeof(bool)));
 }
 
 void AddParamToBuf(const at::TensorList &at_tensor_list) {
@@ -151,7 +151,7 @@ void AddParamToBuf(const at::ScalarType scalar_type) {
 }
 
 void AddParamToBuf(const string& s) {
-    MEMCPY_TO_BUF(s.c_str(), s.size());
+    MEMCPY_TO_BUF(s.c_str(), static_cast<int>(s.size()));
 }
 
 void AddParamToBuf() {}

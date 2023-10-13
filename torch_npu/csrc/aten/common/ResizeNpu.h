@@ -46,19 +46,21 @@ static void storage_resize_npu(
     new_data = storage.allocator()->allocate(size);
   }
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
-  ptrdiff_t old_size = storage.nbytes();
+  ptrdiff_t old_size = static_cast<ptrdiff_t>(storage.nbytes());
   storage.set_nbytes(size);
 
   if (itemsize == 0) {
     AT_ERROR("When resizing, item size of storage cannot be zero.");
     return;
   }
-  if ((size % itemsize) != 0) {
+  if ((size % static_cast<ptrdiff_t>(itemsize)) != 0) {
     AT_ERROR("The specified storage nbytes cannot be divided by item size.",
              "Please check the input parameter size.");
     return;
   }
-  std::vector<int64_t> resize_shape = {size/itemsize};
+  std::vector<int64_t> resize_shape = {
+      size/static_cast<ptrdiff_t>(itemsize)
+  };
   // It is necessary to properly refresh the storage according to sizes and strides,
   // not just new sizes.
   StorageDescHelper::UpdateDesc(
@@ -66,8 +68,8 @@ static void storage_resize_npu(
 
   if (old_data != nullptr) {
     ptrdiff_t copy_size = old_size;
-    if (storage.nbytes() < copy_size) {
-      copy_size = storage.nbytes();
+    if (static_cast<ptrdiff_t>(storage.nbytes()) < copy_size) {
+      copy_size = static_cast<ptrdiff_t>(storage.nbytes());
     }
     if (copy_size > 0) {
       aclError error = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
@@ -94,12 +96,12 @@ static inline void maybe_resize_storage_npu(
       AT_ERROR("Try to resize a tensor with null storage");
     }
     int64_t new_size_bytes =
-        (new_size + self->storage_offset()) * self->dtype().itemsize();
+        (new_size + self->storage_offset()) * static_cast<int64_t>(self->dtype().itemsize());
     int64_t old_size_bytes;
     if ((c10_npu::NpuRunMode::IsGraphMode()) && (!is_empty_tensor)) {
-      old_size_bytes = GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl());
+      old_size_bytes = static_cast<int64_t>(GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl()));
     } else {
-      old_size_bytes = self->storage().nbytes();
+      old_size_bytes = static_cast<int64_t>(self->storage().nbytes());
     }
 
     if (new_size_bytes > old_size_bytes) {
@@ -166,8 +168,8 @@ static inline void checkInBoundsForStorage(
     const caffe2::TypeMeta data_type,
     const c10::Storage& new_storage) {
   int64_t storage_size_bytes =
-      at::detail::computeStorageNbytes(size, stride, data_type.itemsize());
-  int64_t storage_offset_bytes = storage_offset * data_type.itemsize();
+      static_cast<int64_t>(at::detail::computeStorageNbytes(size, stride, data_type.itemsize()));
+  int64_t storage_offset_bytes = storage_offset * static_cast<int64_t>(data_type.itemsize());
   if (storage_size_bytes == 0) {
     // NB: (a tensor with arbitrary 0 dims)'s storage can have any numel.
     return;
@@ -175,9 +177,9 @@ static inline void checkInBoundsForStorage(
 
   int64_t new_storage_size_bytes;
   if (c10_npu::NpuRunMode::IsGraphMode()) {
-    new_storage_size_bytes = GraphUtils::GetTensorCapacity(new_storage.unsafeGetStorageImpl());
+    new_storage_size_bytes = static_cast<int64_t>(GraphUtils::GetTensorCapacity(new_storage.unsafeGetStorageImpl()));
   } else {
-    new_storage_size_bytes = new_storage.nbytes();
+    new_storage_size_bytes = static_cast<int64_t>(new_storage.nbytes());
   }
   
   TORCH_CHECK(

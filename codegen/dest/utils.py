@@ -117,7 +117,7 @@ auto cpu_ret = {func_call};
         elif sig.returns_type().cpp_type() == 'void':
             if str(sig.func.arguments.self_arg.argument.type) == 'Tensor[]':
                 ret_code += f"""\n \
-  for (int i = 0; i < {self_arg_name}.size(); i++) {{
+  for (size_t i = 0; i < {self_arg_name}.size(); i++) {{
    {self_arg_name}[i].copy_({self_arg_name}_cpu[i]);
   }}\n
 """

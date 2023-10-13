@@ -140,7 +140,7 @@ PyObject *TNPDevice_index(TNPDevice *self, PyObject *noargs)
 static Py_ssize_t TNPDevice_hash(TNPDevice *self)
 {
   HANDLE_TH_ERRORS
-  return static_cast<Py_ssize_t>(std::hash<at::Device>{}(self->device) % std::numeric_limits<Py_ssize_t>::max());
+  return static_cast<Py_ssize_t>(static_cast<Py_ssize_t>(std::hash<at::Device>{}(self->device)) % std::numeric_limits<Py_ssize_t>::max());
   END_HANDLE_TH_ERRORS_RET(-1)
 }
 

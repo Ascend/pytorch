@@ -192,7 +192,7 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
 PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index) {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate");
-  int32_t device = THPUtils_unpackUInt32(device_index);
+  int32_t device = static_cast<int32_t>(THPUtils_unpackUInt32(device_index));
   aclrtUtilizationInfo util_info;
   util_info.cubeUtilization = 0;
   util_info.vectorUtilization = 0;
@@ -602,8 +602,8 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
   if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
     throw torch::TypeError("prof_start npu_event type or aicore_metrics set error.");
   }
-  uint64_t npu_event = THPUtils_unpackLong(value_1);
-  uint64_t aicore_metrics = THPUtils_unpackLong(value_2);
+  uint64_t npu_event = static_cast<uint64_t>(THPUtils_unpackLong(value_1));
+  uint64_t aicore_metrics = static_cast<uint64_t>(THPUtils_unpackLong(value_2));
   pybind11::gil_scoped_release no_gil;
   torch_npu::profiler::NpuProfiling::Instance().Start(npu_event, aicore_metrics);
   Py_RETURN_NONE;
@@ -663,8 +663,8 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   if (dump_path == nullptr) {
     throw torch::TypeError("e2eProfiler path can not be nullptr.");
   }
-  uint64_t npu_event = THPUtils_unpackLong(value_2);
-  uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
+  uint64_t npu_event = static_cast<uint64_t>(THPUtils_unpackLong(value_2));
+  uint64_t aicore_metrics = static_cast<uint64_t>(THPUtils_unpackLong(value_3));
   pybind11::gil_scoped_release no_gil;
   bool call_stack = THPUtils_unpackBool(value_4);
   torch_npu::profiler::InitE2eProfiler(dump_path, npu_event, aicore_metrics, call_stack);
