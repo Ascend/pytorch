@@ -250,7 +250,7 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
             kernel_value = kernel_value.t().contiguous()
 
             norm_shape = [x.shape[-1]]
-            new_shape = (int(x.shape[0]/seq_len), seq_len, num_heads, int(x.shape[1]/num_heads))
+            new_shape = (int(x.shape[0] / seq_len), seq_len, num_heads, int(x.shape[1] / num_heads))
 
             norm, mean, variance = torch.native_layer_norm(x, norm_shape, gamma, beta, eps=1e-05)
             q_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
