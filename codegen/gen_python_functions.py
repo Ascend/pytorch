@@ -717,7 +717,8 @@ def parse_native_yaml(path: str) -> List[NativeFunction]:
             f_str.write(line)
     f_str.seek(0)
     es = yaml.safe_load(f_str)
-    assert isinstance(es, list)
+    if not isinstance(es, list):
+        raise TypeError("es is not list")
     rs: List[NativeFunction] = []
     with_device_base_operator = set()
 
