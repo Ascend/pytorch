@@ -136,7 +136,7 @@ class NPUMultiHeadAttentionOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_multi_head_attention(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, query: Tensor, key: Tensor, value: Tensor, query_weight: Tensor,  key_weight: Tensor,
+    def symbolic(g, query: Tensor, key: Tensor, value: Tensor, query_weight: Tensor, key_weight: Tensor,
                  value_weight: Tensor, attn_mask: Tensor, out_proj_weight: Tensor, query_bias: Tensor,
                  key_bias: Tensor, value_bias: Tensor, out_proj_bias: Tensor, dropout_mask: Tensor,
                  attn_head_num: int, attn_dim_per_head: int, src_len: int, tgt_len: int, dropout_prob: float,
@@ -189,12 +189,12 @@ class NPUDeformableConv2dOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_deformable_conv2d(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, input: Tensor, weight: Tensor, offset: Tensor, bias: Optional[Tensor], kernel_size: List[int],
+    def symbolic(g, inputs: Tensor, weight: Tensor, offset: Tensor, bias: Optional[Tensor], kernel_size: List[int],
                  stride: List[int], padding: List[int], dilation: List[int] = [1, 1, 1, 1], groups: int = 1,
                  deformable_groups: int = 1, modulated: bool = True):
         if bias is None:
             bias = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
-        return g.op("npu::NPUDeformableConv2d", input, weight, offset, bias, kernel_sizes_i=kernel_size,
+        return g.op("npu::NPUDeformableConv2d", inputs, weight, offset, bias, kernel_sizes_i=kernel_size,
                     strides_i=stride, paddings_i=padding, dilations_i=dilation, groups_i=groups,
                     deformable_groups_i=deformable_groups, modulated_i=modulated, outputs=2)
 
@@ -292,14 +292,14 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_sign_bits_unpack(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, input: Tensor, size: int, dtype: torch.dtype):
+    def symbolic(g, inputs: Tensor, size: int, dtype: torch.dtype):
         if dtype == torch.float32:
             dtype = 0
         elif dtype == torch.float16:
             dtype = 1
         else:
             raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")    
-        return g.op("npu::NPUSignBitsUnpack", input, size_i=size, dtype_i=dtype)
+        return g.op("npu::NPUSignBitsUnpack", inputs, size_i=size, dtype_i=dtype)
 
 
 class NPUPtiouOP(torch.autograd.Function):
@@ -373,8 +373,8 @@ class NPUNmsWithMaskOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_nms_with_mask(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, input: Tensor, iou_threshold: float):
-        return g.op("npu::NPUNmsWithMask", input, iou_threshold_f=iou_threshold, outputs=3)
+    def symbolic(g, inputs: Tensor, iou_threshold: float):
+        return g.op("npu::NPUNmsWithMask", inputs, iou_threshold_f=iou_threshold, outputs=3)
 
 
 class NPURotatedIouOP(torch.autograd.Function):
@@ -515,8 +515,8 @@ class NPULstmOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_lstm(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, input: Tensor, weight: Tensor, bias: Tensor, seqMask: Tensor, h: Tensor,
-                 c: Tensor, has_biases: bool, num_layers: int,  dropout: float, train: bool,
+    def symbolic(g, inputs: Tensor, weight: Tensor, bias: Tensor, seqMask: Tensor, h: Tensor,
+                 c: Tensor, has_biases: bool, num_layers: int, dropout: float, train: bool,
                  bidirectional: bool, batch_first: bool, flagSeq: bool, direction: bool):
         if train:
             raise ValueError("Value of param 'train' must be False.")
@@ -532,14 +532,14 @@ class NPULstmCellOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_lstm_cell(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, input: Tensor, w_ih: Tensor, w_hh: Tensor, h: Tensor, c: Tensor,
+    def symbolic(g, inputs: Tensor, w_ih: Tensor, w_hh: Tensor, h: Tensor, c: Tensor,
                  b_ih: Tensor = None, b_hh: Tensor = None):
         dtype = torch.float
         if b_ih is None:
             b_ih = g.op("Constant", value_t=torch.tensor([]).to(dtype))
         if b_hh is None:
             b_hh = g.op("Constant", value_t=torch.tensor([]).to(dtype))
-        return g.op("npu::NPULstmCell", input, w_ih, w_hh, h, c, b_ih, b_hh, outputs=8)
+        return g.op("npu::NPULstmCell", inputs, w_ih, w_hh, h, c, b_ih, b_hh, outputs=8)
 
 
 class NPUGruOP(torch.autograd.Function):
@@ -549,11 +549,11 @@ class NPUGruOP(torch.autograd.Function):
         return torch_npu._C._VariableFunctionsClass.npu_gru(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, input: Tensor, hx: Tensor, weight_input: Tensor, weight_hidden: Tensor,
+    def symbolic(g, inputs: Tensor, hx: Tensor, weight_input: Tensor, weight_hidden: Tensor,
                  bias_input: Tensor, bias_hidden: Tensor, seq_length: Tensor, has_biases: bool,
                  num_layers: int, dropout: float, train: bool, bidirectional: bool,
                  batch_first: bool):
-        return g.op("npu::NPUGru", input, hx, weight_input, weight_hidden, bias_input,
+        return g.op("npu::NPUGru", inputs, hx, weight_input, weight_hidden, bias_input,
                     bias_hidden, seq_length, has_biases_i=has_biases, num_layers_i=num_layers,
                     dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, outputs=6)
@@ -667,7 +667,7 @@ def wrapper_npu_fast_gelu(self):
 
 
 def wrapper_npu_fused_attention_score(query_layer, key_layer, value_layer, attention_mask,
-                                      scale, keep_prob,  query_transpose=False, key_transpose=False,
+                                      scale, keep_prob, query_transpose=False, key_transpose=False,
                                       bmm_score_transpose_a=False, bmm_score_transpose_b=False,
                                       value_transpose=False, dx_transpose=False):
     return NPUFusedAttentionScoreOP.apply(query_layer, key_layer, value_layer, attention_mask,
@@ -698,9 +698,9 @@ def wrapper_npu_giou(self, gtboxes, trans=False, is_cross=False, mode=0):
     return NPUGiouOP.apply(self, gtboxes, trans, is_cross, mode)
 
 
-def wrapper_npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding,
+def wrapper_npu_deformable_conv2d(inputs, weight, offset, bias, kernel_size, stride, padding,
                                   dilation=[1, 1, 1, 1], groups=1, deformable_groups=1, modulated=True):
-    return NPUDeformableConv2dOP.apply(input, weight, offset, bias, kernel_size, stride,
+    return NPUDeformableConv2dOP.apply(inputs, weight, offset, bias, kernel_size, stride,
                                        padding, dilation, groups, deformable_groups, modulated)
 
 
@@ -731,7 +731,7 @@ def wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_perce
 
 
 def wrapper_npu_fused_attention_score_fwd(query_layer, key_layer, value_layer, attention_mask,
-                                          scale, keep_prob,  query_transpose=False, key_transpose=False,
+                                          scale, keep_prob, query_transpose=False, key_transpose=False,
                                           bmm_score_transpose_a=False, bmm_score_transpose_b=False,
                                           value_transpose=False, dx_transpose=False):
     return NPUFusedAttentionScoreFwdOP.apply(query_layer, key_layer, value_layer, attention_mask,
@@ -740,8 +740,8 @@ def wrapper_npu_fused_attention_score_fwd(query_layer, key_layer, value_layer, a
                                              value_transpose, dx_transpose)
 
 
-def wrapper_npu_sign_bits_unpack(input, size, dtype):
-    return NPUSignBitsUnpackOP.apply(input, size, dtype)
+def wrapper_npu_sign_bits_unpack(inputs, size, dtype):
+    return NPUSignBitsUnpackOP.apply(inputs, size, dtype)
 
 
 def wrapper_npu_ptiou(bboxes, gtboxes, mode=0):
@@ -770,8 +770,8 @@ def wrapper_npu_bounding_box_encode(anchor_box, ground_truth_box, means0, means1
                                         means2, means3, stds0, stds1, stds2, stds3)
 
 
-def wrapper_npu_nms_with_mask(input, iou_threshold):
-    return NPUNmsWithMaskOP.apply(input, iou_threshold)
+def wrapper_npu_nms_with_mask(inputs, iou_threshold):
+    return NPUNmsWithMaskOP.apply(inputs, iou_threshold)
 
 
 def wrapper_npu_rotated_iou(self, query_boxes, trans=False, mode=0, is_cross=True,
@@ -814,13 +814,13 @@ def wrapper_npu_sign_bits_pack(self, size):
     return NPUSignBitsPackOP.apply(self, size)
 
 
-def wrapper_npu_lstm_cell(input, w_ih, w_hh, h, c, b_ih=None, b_hh=None):
-    return NPULstmCellOP.apply(input, w_ih, w_hh, h, c, b_ih, b_hh)
+def wrapper_npu_lstm_cell(inputs, w_ih, w_hh, h, c, b_ih=None, b_hh=None):
+    return NPULstmCellOP.apply(inputs, w_ih, w_hh, h, c, b_ih, b_hh)
 
 
-def wrapper_npu_lstm(input, weight, bias, seqMask, h, c, has_biases, num_layers,
+def wrapper_npu_lstm(inputs, weight, bias, seqMask, h, c, has_biases, num_layers,
                      dropout, train, bidirectional, batch_first, flagSeq, direction):
-    return NPULstmOP.apply(input, weight, bias, seqMask, h, c, has_biases, num_layers,
+    return NPULstmOP.apply(inputs, weight, bias, seqMask, h, c, has_biases, num_layers,
                            dropout, train, bidirectional, batch_first, flagSeq, direction)
 
 
@@ -832,9 +832,9 @@ def wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
 
-def wrapper_npu_gru(input, hx, weight_input, weight_hidden, bias_input, bias_hidden,
+def wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                     seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first):
-    return NPUGruOP.apply(input, hx, weight_input, weight_hidden, bias_input, bias_hidden,
+    return NPUGruOP.apply(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                           seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first)
 
 
