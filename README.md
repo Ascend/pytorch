@@ -54,73 +54,32 @@ pip3 install torch_npu-2.1.0rc1-cp38-cp38-linux_aarch64.whl
 
 In some special scenarios, users may need to compile **torch-npu** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps:
 
-#### For Aarch64
-
-1. **Pull Docker Images**
-
-```Shell
-docker pull quay.io/pypa/manylinux2014_aarch64:latest
-```
-
-2. **Enter Docker Container**
-
-```Shell
-docker run -it --network=host quay.io/pypa/manylinux2014_aarch64 bash
-```
-
-3. **Configure Container Environment**
-
-Take **Python 3.8** as an example.
-
-```Shell
-ln -s /opt/_internal/cpython-3.8.17/bin/pip3.8 /usr/local/bin/pip3.8
-pip3.8 install pyyaml
-pip3.8 install setuptools
-pip3.8 install torch==2.1.0
-```
-
-#### For x86
-
-1. **Pull Docker Images**
-
-```Shell
-docker pull pytorch/manylinux-builder:cpu
-```
-
-2. **Enter Docker Container**
-
-```Shell
-docker run -it --network=host pytorch/manylinux-builder bash
-```
-
-3. **Configure Container Environment**
-
-Take **Python 3.8** as an example.
-
-```Shell
-ln -s /opt/_internal/cpython-3.8.1/bin/pip3.8 /usr/local/bin/pip3.8
-ln -s /opt/_internal/cpython-3.8.1/bin/python3.8 /usr/local/bin/python3.8
-pip3.8 install pyyaml
-pip3.8 install setuptools
-pip3.8 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
-```
-
-#### Compile torch-npu
-
-Please refer to [Ascend Auxiliary Software](#ascend-auxiliary-software) to obtain the corresponding code branch or tag of torch-npu.
-
-1. **Clone torch-npu in Docker Container**
+1. **Clone torch-npu**
 
 ```Shell
 git clone https://github.com/ascend/pytorch.git -b v2.1.0-5.0.rc3 --depth 1
 ```
 
-2. **Compile torch-npu**
-
-Take **Python 3.8** as an example to compile torch-npu.
+2. **Build Docker Image**
 
 ```Shell
-cd pytorch
+cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
+docker build -t manylinux-builder:v1 .
+```
+
+3. **Enter Docker Container**
+
+```Shell
+docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+# {code_path} is the torch_npu source code path
+```
+
+3. **Compile torch-npu**
+
+Take **Python 3.8** as an example.
+
+```Shell
+cd /home/pytorch
 bash ci/build.sh --python=3.8
 ```
 

@@ -344,6 +344,8 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 ## 使用源码编译安装PyTorch框架。
 
+***docker容器编译安装参考[链接](https://gitee.com/ascend/pytorch/blob/master/ci/docker/README.md)<a name="section1832663918540"></a>**
+
 **安装依赖<a name="section1832663918540"></a>**
 
 选择编译安装方式安装时需要安装系统依赖。此处以CentOS与Ubuntu操作系统为例目前支持CentOS与Ubuntu操作系统。
