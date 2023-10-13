@@ -340,7 +340,8 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
         exponential_average_factor = self.momentum
 
     if self.training and self.track_running_stats:
-        assert self.num_batches_tracked is not None
+        if self.num_batches_tracked is None:
+            raise ValueError("self.num_batches_tracked is None")
         self.num_batches_tracked.add_(1)
         if self.momentum is None:  # use cumulative moving average
             exponential_average_factor = 1.0 / self.num_batches_tracked.item()
@@ -384,7 +385,8 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             input1, running_mean, running_var, self.weight, self.bias,
             bn_training, exponential_average_factor, self.eps)
     else:
-        assert bn_training
+        if not bn_training:
+            raise ValueError("not bn_training")
         return sync_batch_norm.apply(
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
@@ -394,10 +396,9 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
     """
     Sets config variables for internal usage.
     """
-    assert isinstance(ddp, torch.nn.parallel.DistributedDataParallel), (
-        "DDP join hook requires passing in a DistributedDataParallel "
-        "instance as the state"
-    )
+    if not isinstance(ddp, torch.nn.parallel.DistributedDataParallel):
+        raise TypeError("DDP join hook requires passing in a DistributedDataParallel "
+                        "instance as the state")
     self.ddp = ddp
     self.ddp._divide_by_initial_world_size = divide_by_initial_world_size
     super(torch.nn.parallel.distributed._DDPJoinHook, self).__init__()

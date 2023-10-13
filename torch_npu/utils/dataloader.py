@@ -99,8 +99,10 @@ class _SingleProcessDataLoaderIter(SrcSingleProcessDataLoaderIter):
     def __init__(self, loader):
         super(_SingleProcessDataLoaderIter, self).__init__(loader)
         self._pin_memory = loader.pin_memory and torch_npu.npu.is_available()
-        assert self._timeout == 0
-        assert self._num_workers == 0
+        if self._timeout != 0:
+            raise ValueError("self._timeout != 0")
+        if self._num_workers != 0:
+            raise ValueError("self._num_workers != 0")
 
         self._dataset_fetcher = _DatasetKind.create_fetcher(
             self._dataset_kind, self._dataset, self._auto_collation, self._collate_fn, self._drop_last)
@@ -127,8 +129,10 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
         self._num_yielded = 0
         self._profile_name = "enumerate(DataLoader)#{}.__next__".format(self.__class__.__name__)
 
-        assert self._num_workers > 0
-        assert self._prefetch_factor > 0
+        if self._num_workers <= 0:
+            raise ValueError("self._num_workers <= 0")
+        if self._prefetch_factor <= 0:
+            raise ValueError("self._prefetch_factor <= 0")
 
         worker_loop = _utils.worker._worker_loop
         daemon = True

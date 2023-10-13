@@ -229,7 +229,7 @@ class GradScaler(Cuda_GradScaler):
                             [grads_combined_one_dtype],
                             per_device_found_inf.get(device),
                             per_device_inv_scale.get(device))
-                        if per_device_found_inf.get(device)[0].item() > 0:
+                        if per_device_found_inf.get(device).item() > 0:
                             self._has_overflow = True
                     else:
                         grads_combined_one_dtype.mul_(
