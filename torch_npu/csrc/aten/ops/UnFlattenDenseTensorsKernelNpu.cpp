@@ -19,7 +19,7 @@ std::vector<at::Tensor> NPUNativeFunctions::unflatten_dense_tensors(const at::Te
       outputs.push_back(at::empty({0}, flat.options()));
     } else {
       outputs.push_back(flat.narrow(0, offset, numel).view(tensor.sizes()));
-      offset += numel;
+      offset += static_cast<size_t>(numel);
     }
   }
   return outputs;

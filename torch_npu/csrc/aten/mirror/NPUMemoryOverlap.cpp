@@ -52,9 +52,9 @@ MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImp
     }
     if (a->storage().data() == b->storage().data()) {
       const auto a_begin = static_cast<const char*>(a->data());
-      const auto a_end = a_begin + a->numel() * a->itemsize();
+      const auto a_end = a_begin + a->numel() * static_cast<int64_t>(a->itemsize());
       const auto b_begin = static_cast<const char*>(b->data());
-      const auto b_end = b_begin + b->numel() * b->itemsize();
+      const auto b_end = b_begin + b->numel() * static_cast<int64_t>(b->itemsize());
 
       if (a_begin == b_begin && a_end == b_end) {
         return MemOverlapStatus::FULL;

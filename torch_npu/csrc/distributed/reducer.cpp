@@ -1528,7 +1528,7 @@ void Reducer::sync_bucket_indices(
   for (const auto i : c10::irange(num_buckets)) {
     auto bucket_size = bucket_indices.at(i).size();
     bucket_sizes.push_back(bucket_size);
-    total_size += bucket_size;
+    total_size += static_cast<int64_t>(bucket_size);
   }
 
   at::TensorOptions options;
@@ -1543,10 +1543,10 @@ void Reducer::sync_bucket_indices(
   for (const auto i : c10::irange(num_buckets)) {
     const auto& bucket_size = bucket_indices.at(i).size();
     for (const auto j : c10::irange(bucket_size)) {
-      indices_accessor[indices_accessor_Index++] = bucket_indices[i][j];
+      indices_accessor[indices_accessor_Index++] = static_cast<int>(bucket_indices[i][j]);
     }
   }
-  indices_accessor[indices_accessor_Index] = num_buckets;
+  indices_accessor[indices_accessor_Index] = static_cast<int>(num_buckets);
 
   // Copy CPU tensor to device tensor, as the process_group_ could be NCCL and
   // it can only broadcast device tensors.
@@ -1557,7 +1557,7 @@ void Reducer::sync_bucket_indices(
   indices_tensor.copy_(indices_tensor_list.front(), false);
 
   // Update num_buckets after receiving it from rank 0
-  num_buckets = indices_accessor[indices_accessor_Index];
+  num_buckets = static_cast<size_t>(indices_accessor[indices_accessor_Index]);
 
   // Broadcast bucket_sizes
   auto bucket_sizes_tensor = at::empty({(int64_t)num_buckets}, at::kInt);
@@ -1566,7 +1566,7 @@ void Reducer::sync_bucket_indices(
     // For rank != 0, it is possible that local num buckets bucket_sizes.size()
     // is smaller than broadcasted num_buckets
     bucket_sizes_accessor[i] =
-        bucket_sizes.at(std::min(i, (bucket_sizes.size() - 1)));
+        static_cast<int>(bucket_sizes.at(std::min(i, (bucket_sizes.size() - 1))));
   }
   auto bucket_sizes_tensor_device = at::empty({(int64_t)num_buckets}, options);
   bucket_sizes_tensor_device.copy_(bucket_sizes_tensor, true);
@@ -1950,7 +1950,7 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
     auto key = BucketKey(tensor.scalar_type(), tensor.device());
     auto& bucket = buckets[key];
     bucket.indices.push_back(tensor_index);
-    bucket.size += physical_numel(tensor) * tensor.element_size();
+    bucket.size += static_cast<size_t>(physical_numel(tensor) * tensor.element_size());
 
     // Initialize bucket size limit iterator if necessary.
     if (bucket_size_limit_iterators.count(key) == 0) {
@@ -2024,7 +2024,7 @@ void verify_params_across_processes(
     const c10::optional<std::weak_ptr<c10d::Logger>>& logger) {
   size_t i = 0;
   for (const auto& t : params) {
-    i += 2 * t.dim();
+    i += static_cast<size_t>(2 * t.dim());
   }
   at::TensorOptions options;
   options = options.dtype(at::kLong);

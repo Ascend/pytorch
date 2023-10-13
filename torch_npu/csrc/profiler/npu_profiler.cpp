@@ -86,7 +86,7 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
     size_t total_reserved,
     c10::Device device) {
     if (config_.profile_memory) {
-      static thread_local uint64_t tid = syscall(SYS_gettid);
+      static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
       std::unique_ptr<torch_npu::toolkit::profiler::MemoryData> data = std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
         0, "torch.memory_usage",
         reinterpret_cast<int64_t>(ptr),
@@ -246,7 +246,7 @@ void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint
   if (!ProfilerMgr::GetInstance()->ReportEnable()) {
     return;
   }
-  static thread_local uint64_t tid = syscall(SYS_gettid);
+  static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
   std::unique_ptr<torch_npu::toolkit::profiler::OpMarkData> data = std::make_unique<torch_npu::toolkit::profiler::OpMarkData>(
     0, "torch.op_mark",
     Utils::GetClockMonotonicRawNs(),
