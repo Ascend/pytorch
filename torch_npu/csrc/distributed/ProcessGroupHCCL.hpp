@@ -65,7 +65,7 @@ enum ErrorHandlingMode { NoHandling = 0, TearDown = 1, CleanUpOnly = 2};
 // Example on using the HCCL process group
 //
 //   ProcessGroupHCCL pg(store, rank, size);
-//   std::shared_ptr<WorkNCCL> work = pg.allreduce(tensors);
+//   std::shared_ptr<WorkHCCL> work = pg.allreduce(tensors);
 //
 //   // At this point, HCCL kernel has already by queued successfully
 //   // Now, let current stream wait for the HCCL to finish, this function is
@@ -87,7 +87,8 @@ public:
         c10d::OpType opType,
         uint64_t seq,
         bool desyncDebug);
-    explicit WorkHCCL(const WorkHCCL& w, bool makeWeak);
+    explicit WorkHCCL(const WorkHCCL& w);
+    WorkHCCL& operator=(const WorkHCCL& w) = default;
     virtual ~WorkHCCL();
 
     // Checks if the HCCL kernel has started to execute.
@@ -121,11 +122,9 @@ public:
     bool timedOut();
 
   protected:
-    bool makeWeak_ = false;
+
     // The NPU events tracking this work item on multiple NPU devices
     std::shared_ptr<std::vector<c10_npu::NPUEvent>> npuEvents_;
-
-    std::weak_ptr<std::vector<c10_npu::NPUEvent>> npuEventsWeak_;
 
     // The cached list of NPU devices to operate on.
     // HCCL support one device per rank only
@@ -200,7 +199,7 @@ public:
     }
 
     std::chrono::milliseconds opTimeout;
-    // Schedule NCCL operations on high priority CUDA streams
+    // Schedule HCCL operations on high priority CUDA streams
     bool is_high_priority_stream;
   };
 
@@ -215,7 +214,7 @@ public:
   // doesn't create any HCCL communicators. A single HCCL communicator can
   // only be used on a specific set of devices, and are therefore created
   // on-demand when a collective runs. If another collective is executed later,
-  // against a different set of devices, the process group creates another NCCL
+  // against a different set of devices, the process group creates another HCCL
   // communicator. These HCCL communicators are cached and reused if possible.
   ProcessGroupHCCL(
       const c10::intrusive_ptr<c10d::Store>& store,
@@ -356,7 +355,7 @@ protected:
   void broadcastMasterID(HcclRootInfo* hcclID);
 
   // Helper that either looks up the cached HCCL communicators or creates
-  // a new set of NCCL communicators as a cache entry
+  // a new set of HCCL communicators as a cache entry
   std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
       const std::string& devicesKey,
       const std::vector<at::Device>& devices);
@@ -384,7 +383,7 @@ protected:
 
   // The HCCL communicator that the process group has cached.
   // The key is a list of NPU devices that an operation is operating on
-  // The NPU devices are stored in a device sequence and the cache NCCL
+  // The NPU devices are stored in a device sequence and the cache HCCL
   // communicator is associated with this NPU device sequence
 
   // e.g. If the process group op only uses device 0, then the value of
@@ -409,10 +408,10 @@ protected:
   // Mutex to guard maps like devHCCLCommMap_.
   std::mutex mutex_;
 
-  // Mutex to guard devNCCLCommMap_.
+  // Mutex to guard devHCCLCommMap_.
   std::mutex devHCCLCommMapLock_;
 
-  // Watchdog thread which looks for errors on the cached NCCL communicators.
+  // Watchdog thread which looks for errors on the cached HCCL communicators.
   std::thread hcclCommWatchdogThread_;
 
   // Whether or not we should terminate the watchdog thread.
@@ -423,7 +422,7 @@ protected:
 
   std::unordered_set<std::string> abortedComms_;
 
-  // Map from ncclUniqueId to appropriate communicator.
+  // Map from HCCLUniqueId to appropriate communicator.
   std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
       hcclIdToCommMap_;
 
@@ -453,7 +452,7 @@ protected:
     // Condition Variable for timeout thread sleep
     std::condition_variable workMetaListCV_;
 
-    // The NPU steams used by NCCL kernels
+    // The NPU steams used by HCCL kernels
     std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
         hcclStreams_;
 
@@ -481,7 +480,7 @@ protected:
 
   // For each group with the "group name" (which is the key), we need to
   // keep track of a unique process group ID when creating a new
-  // ProcessGroupNCCL for this "group name". Therefore, the value of this
+  // ProcessGroupHCCL for this "group name". Therefore, the value of this
   // map keeps the unique ProcessGroupHCCL's ID for a specific group with
   // the "group name". The reason we need a per-group process group ID counter
   // is that different group can have different ranks and we need ensure that
@@ -497,12 +496,12 @@ protected:
 
   // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
 
-  // The number of active ncclGroupStart() calls. This counter will be increased
-  // by 1 when ncclGroupStart() is called and decreased by 1 when ncclGroupEnd()
+  // The number of active HCCLGroupStart() calls. This counter will be increased
+  // by 1 when HCCLGroupStart() is called and decreased by 1 when HCCLGroupEnd()
   // is called.
   static thread_local uint64_t hcclActiveGroupCounter_;
 
-  // Counting for the sequential number of NCCL collective call.
+  // Counting for the sequential number of HCCL collective call.
   uint64_t seq_{0};
 
   const std::string traceKeyStart_;
@@ -516,7 +515,7 @@ private:
   // primitives.  The callbacks have the following signatures:
 
   //    HcclResult fn(at::Tensor& input, at::Tensor& output,
-  //                    ncclComm_t, at::cuda::CUDAStream&);
+  //                    HCCLComm_t, at::cuda::CUDAStream&);
   //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
 
   void abortTimedOutCollectives(

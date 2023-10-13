@@ -315,7 +315,7 @@ size_t CachingAllocatorConfig::parseMaxSplitSize(
     size_t i) {
   consumeToken(config, ++i, ':');
   if (++i < config.size()) {
-    size_t val1 = stoi(config[i]);
+    size_t val1 = static_cast<size_t>(stoi(config[i]));
     TORCH_CHECK(
         val1 > kLargeBuffer / (1024 * 1024),
         "CachingAllocator option max_split_size_mb too small, must be > ",
@@ -418,7 +418,7 @@ class DeviceCachingAllocator {
   DeviceCachingAllocator() :
     large_blocks(BlockComparator, false),
     small_blocks(BlockComparator, true) {
-    stats.max_split_size = CachingAllocatorConfig::max_split_size();
+    stats.max_split_size = static_cast<int64_t>(CachingAllocatorConfig::max_split_size());
   }
 
   // All public methods (except the above) acquire the allocator mutex.
@@ -829,7 +829,7 @@ class DeviceCachingAllocator {
 
     const std::array<Block*, 2> merge_candidates = {block->prev, block->next};
     for (Block* merge_candidate : merge_candidates) {
-      const int64_t subsumed_size = try_merge_blocks(block, merge_candidate, pool);
+      const int64_t subsumed_size = static_cast<int64_t>(try_merge_blocks(block, merge_candidate, pool));
       if (subsumed_size > 0) {
         net_change_inactive_split_blocks -= 1;
         net_change_inactive_split_size -= subsumed_size;
@@ -841,7 +841,7 @@ class DeviceCachingAllocator {
 
     if (block->is_split()) {
       net_change_inactive_split_blocks += 1;
-      net_change_inactive_split_size += block->size;
+      net_change_inactive_split_size += static_cast<int64_t>(block->size);
     }
 
     StatTypes stat_types = {false};
@@ -1313,7 +1313,7 @@ class THNCachingAllocator {
   }
 
   void init(int device_count) {
-    int size = device_allocator.size();
+    int size = static_cast<int>(device_allocator.size());
     if (size < device_count) {
       device_allocator.resize(device_count);
       for (const auto i : c10::irange(size, device_count)) {
@@ -1360,13 +1360,13 @@ class THNCachingAllocator {
   }
 
   void emptyCache(bool check_error) {
-    int count = device_allocator.size();
+    int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++)
       device_allocator[i]->emptyCache(check_error);
   }
 
   void THNSetShutdownStats() {
-    int count = device_allocator.size();
+    int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++)
       device_allocator[i]->devSetShutdownStats();
   }
@@ -1414,7 +1414,7 @@ class THNCachingAllocator {
 
   std::vector<SegmentInfo> snapshot() {
     std::vector<SegmentInfo> result;
-    int count = device_allocator.size();
+    int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++) {
       auto snap = device_allocator[i]->snapshot();
       result.insert(result.end(), snap.begin(), snap.end());

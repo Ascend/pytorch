@@ -47,18 +47,18 @@ namespace native {
 
     at::DataPtr new_data = storage.allocator()->allocate(size);
     at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
-    ptrdiff_t old_size = storage.nbytes();
+    ptrdiff_t old_size = (ptrdiff_t)storage.nbytes();
     storage.set_nbytes(size);
 
     if (itemsize == 0) {
       AT_ERROR("When resizing, item size of storage cannot be zero.");
       return;
     }
-    if ((size % itemsize) != 0) {
+    if ((size % (ptrdiff_t)itemsize) != 0) {
       AT_ERROR("The storage nbytes cannot be divided by item size, please check the specified size.");
       return;
     }
-    std::vector<int64_t> resize_shape = {size/itemsize};
+    std::vector<int64_t> resize_shape = {size/(ptrdiff_t)itemsize};
     // It is necessary to properly refresh the storage according to sizes and strides,
     // not just new sizes.
     at_npu::native::StorageDescHelper::UpdateDesc(
@@ -66,8 +66,8 @@ namespace native {
     
     if (old_data != nullptr) {
       ptrdiff_t copy_size = old_size;
-      if (storage.nbytes() < copy_size) {
-        copy_size = storage.nbytes();
+      if ((ptrdiff_t)storage.nbytes() < copy_size) {
+        copy_size = (ptrdiff_t)storage.nbytes();
       }
       if (copy_size > 0) {
         aclError error = at_npu::native::CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
@@ -94,7 +94,7 @@ namespace native {
   }
 
   at::Tensor NPUNativeFunctions::_npu_storage_resize(const at::Tensor& self, int64_t size) {
-    int64_t new_size_bytes = (size + self.storage_offset()) * self.dtype().itemsize();
+    int64_t new_size_bytes = (size + self.storage_offset()) * static_cast<int64_t>(self.dtype().itemsize());
     auto* self_impl = self.unsafeGetTensorImpl();
     _maybe_npu_storage_resize(self_impl, new_size_bytes);
     return self;
