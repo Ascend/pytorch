@@ -483,7 +483,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
 
   for (size_t i = 0; i < devices.size(); ++i) {
     int numRanks = getSize();
-    int rank = getRank() * devices.size() + i;
+    int rank = getRank() * static_cast<int>(devices.size()) + static_cast<int>(i);
 
     npuGuard.set_index(devices[i].index());
     hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
@@ -832,17 +832,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
   check_npu_tensors_different_devices(inputTensors);
   auto inputTensors_ = cast_to_origin_format(inputTensors);
 
-  int outsize = outputTensors[0].size();
+  int outsize = static_cast<int>(outputTensors[0].size());
   uint64_t output_nums[outsize];
   for (const auto i : c10::irange(outputTensors.size())) {
     for (const auto j : c10::irange(outsize)) {
-      output_nums[j] = outputTensors[0][j].numel();
+      output_nums[j] = static_cast<uint64_t>(outputTensors[0][j].numel());
     }
   }
 
   std::vector<at::Tensor> byte_alignment_inputTensors_ = {byte_alignment(inputTensors_[0])};
   std::vector<at::Tensor> byte_alignment_outputTensors_;
-  for (int i = 0; i < outputTensors[0].size(); i++) {
+  for (unsigned int i = 0; i < outputTensors[0].size(); i++) {
     byte_alignment_outputTensors_.push_back(byte_alignment(outputTensors[0][i]));
   }
   std::vector<std::vector<at::Tensor>> byte_alignment_outputTensors;
@@ -1186,7 +1186,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
-  uint64_t index = inputTensor.numel() / ranks;
+  uint64_t index = static_cast<uint64_t>(inputTensor.numel() / ranks);
   if (outputSplitSizes.empty()) {
     for (int i = 0; i < ranks; i++) {
       inputSplitSizes.push_back(index);
@@ -1194,8 +1194,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     }
   }
 
-  int inputSize = inputSplitSizes.size();
-  int outSize = outputSplitSizes.size();
+  int inputSize = static_cast<int>(inputSplitSizes.size());
+  int outSize = static_cast<int>(outputSplitSizes.size());
   uint64_t inputCounts[inputSize];
   uint64_t inputSpl[inputSize];
   uint64_t outputCounts[outSize];
@@ -1203,13 +1203,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   inputSpl[0] = 0;
   outputSpl[0] = 0;
   for (int i = 0; i < outSize; i++) {
-    outputCounts[i] = outputSplitSizes[i];
+    outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
     if(i > 0){
         outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
     }
   }
   for (int i = 0; i < inputSize; i++) {
-    inputCounts[i] = inputSplitSizes[i];
+    inputCounts[i] = static_cast<uint64_t>(inputSplitSizes[i]);
     if (i > 0) {
         inputSpl[i] = inputSpl[i-1] + inputCounts[i-1];
     }
