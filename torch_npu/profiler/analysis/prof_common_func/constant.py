@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from datetime import datetime
+
 
 class Constant(object):
     INVALID_VALUE = -1
@@ -29,6 +32,8 @@ class Constant(object):
     MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10
     MAX_CSV_SIZE = 1024 * 1024 * 1024 * 5
     MAX_PATH_LENGTH = 4096
+    MAX_WORKER_NAME_LENGTH = 226
+    MAX_FILE_NAME_LENGTH = 255
     PROF_WARN_SIZE = 1024 * 1024 * 400
 
     # tlv constant struct
@@ -98,3 +103,17 @@ class Constant(object):
     FWK_END_TIME = "collectionTimeEnd"
     FWK_END_MONOTONIC = "MonotonicTimeEnd"
 
+
+def print_info_msg(message: str):
+    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{time_str} [INFO] [{os.getpid()}] profiler.py: {message}")
+
+
+def print_warn_msg(message: str):
+    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{time_str} [WARNING] [{os.getpid()}] profiler.py: {message}")
+
+
+def print_error_msg(message: str):
+    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{time_str} [ERROR] [{os.getpid()}] profiler.py: {message}")
