@@ -45,7 +45,7 @@ def run_tests():
         test_report_path = os.path.join(TEST_REPORT_PATH, test_filename)
         verbose = '--verbose' in argv or '-v' in argv
         if verbose:
-            print('Test results will be stored in {}'.format(test_report_path))
+            print(f'Test results will be stored in {test_report_path}')
         unittest.main(argv=argv, testRunner=xmlrunner.XMLTestRunner(output=test_report_path,
                                                                     verbosity=2 if verbose else 1))
     else:
@@ -502,18 +502,6 @@ class TestCase(expecttest.TestCase):
     def assertExpectedStripMangled(self, s, subname=None):
         s = re.sub(r'__torch__[^ ]+', '', s)
         self.assertExpected(s, subname)
-
-    # returns captured stderr
-    @staticmethod
-    def runWithPytorchAPIUsageStderr(code):
-        env = os.environ.copy()
-        env["PYTORCH_API_USAGE_STDERR"] = "1"
-        pipes = subprocess.Popen(
-            [sys.executable, '-c', code],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env)
-        return pipes.communicate()[1].decode('ascii')
 
     def run(self, result=None):
         # run test to precompile operators

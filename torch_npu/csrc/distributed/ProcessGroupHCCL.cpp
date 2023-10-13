@@ -158,10 +158,13 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors) {
 
 // Return device with ordinal given by input rank.
 at::Device getDeviceForRank(int rank) {
-  TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
-  auto numNPUs = c10_npu::device_count();
-  int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
-  return at::Device(c10::DeviceType::PrivateUse1, deviceIdx);
+    TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
+    auto numNPUs = c10_npu::device_count();
+    if (numNPUs == 0) {
+        AT_ERROR("Number of NPU devices on the machine is zero. Please check it");
+    }
+    int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
+    return at::Device(c10::DeviceType::PrivateUse1, deviceIdx);
 }
 
 // [Sync Streams] Helper that lets the input hcclStreams to wait for the current

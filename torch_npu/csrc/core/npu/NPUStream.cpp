@@ -176,12 +176,11 @@ static void initDeviceStreamState(c10::DeviceIndex device_index) {
 static void initNPUStreamsOnce() {
   // Inits default and secondary streams (once, globally)
   if (initialize_flag == 0) {
-    mtx.lock();
+    std::lock_guard<std::mutex> lock(mtx);
     if (initialize_flag == 0) {
       initGlobalStreamState();
       initialize_flag = 1;
     }
-    mtx.unlock();
   }
 
   if (current_streams) {
