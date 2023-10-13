@@ -55,7 +55,7 @@ def parse_npu_yaml(custom_path: str) -> Dict:
             f_str.write(line)
 
     f_str.seek(0)
-    source_es = yaml.load(f_str, Loader=LineLoader)
+    source_es = yaml.safe_load(f_str)
     return source_es
 
 

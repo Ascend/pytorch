@@ -112,17 +112,14 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
         valid_tags = parse_tags_yaml(tag_path)
         with open(path, 'r') as f:
-            es = yaml.load(f, Loader=LineLoader)
+            es = yaml.safe_load(f)
         assert isinstance(es, list)
         rs: List[NativeFunction] = []
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
-            funcs = e.get('func')
-            loc = Location(path, e["__line__"])
-            with context(lambda: f'in {loc}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e, loc, valid_tags)
-                rs.append(func)
-                BackendIndex.grow_index(bs, m)
+            func, m = NativeFunction.from_yaml(e, "Location", valid_tags)
+            rs.append(func)
+            BackendIndex.grow_index(bs, m)
 
         source_es = parse_npu_yaml(custom_path)
         custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
@@ -131,12 +128,9 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
             update_opapi_info(es)
         custom_es = filed_tag(custom_es)
         for e in custom_es:
-            funcs = e.get('func')
-            loc = Location(custom_path, e["__line__"])
-            with context(lambda: f'in {loc}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e, loc, valid_tags)
-                rs.append(func)
-                BackendIndex.grow_index(bs, m)
+            func, m = NativeFunction.from_yaml(e, "Location", valid_tags)
+            rs.append(func)
+            BackendIndex.grow_index(bs, m)
 
         error_check_native_functions(rs)
         # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.

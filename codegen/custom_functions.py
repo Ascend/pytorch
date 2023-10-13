@@ -51,16 +51,13 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
             f_str.write(line)
 
     f_str.seek(0)
-    custom_es = yaml.load(f_str, Loader=LineLoader)
+    custom_es = yaml.safe_load(f_str)
     custom_es = filed_tag(custom_es)
     for e_with_vars in custom_es:
-        funcs = e_with_vars.get('func')
-        loc = Location(custom_path, e_with_vars["__line__"])
-        with context(lambda: f'in {loc}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e_with_vars, loc, valid_tags)
-            func.variants.discard(Variant.method)
-            rs.append(func)
-            BackendIndex.grow_index(bs, m)
+        func, m = NativeFunction.from_yaml(e_with_vars, "Location", valid_tags)
+        func.variants.discard(Variant.method)
+        rs.append(func)
+        BackendIndex.grow_index(bs, m)
 
     error_check_native_functions(rs)
     # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.
