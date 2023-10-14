@@ -33,15 +33,15 @@ using namespace at_npu::autograd::generated;
 using torch::autograd::CreationMeta;
 using torch::autograd::as_view;
 
-namespace at_npu { 
-namespace autograd { 
+namespace at_npu {
+namespace autograd {
 namespace VariableType {
 
 std::vector<at::DeprecatedTypeProperties*> allTypesForBackends(at::ArrayRef<at::Backend> backends) {
   std::vector<DeprecatedTypeProperties*> res;
   res.reserve(backends.size());
   for (auto p : backends) {
-    for(const auto s : c10::irange(static_cast<int64_t>(ScalarType::NumOptions))) {
+    for (const auto s : c10::irange(static_cast<int64_t>(ScalarType::NumOptions))) {
       auto& type = getDeprecatedTypeProperties(static_cast<Backend>(p), static_cast<ScalarType>(s));
       res.emplace_back(&type);
     }

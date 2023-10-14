@@ -182,7 +182,7 @@ template <typename F, typename Tuple, size_t... Is>
 void apply_with_idx_impl(
     const F& f,
     Tuple& t,
-    std::index_sequence<Is...> /*indices*/) {
+    std::index_sequence<Is...> /* indices */) {
   (void)std::initializer_list<int>{(f(std::get<Is>(t), Is), 0)...};
 }
 
