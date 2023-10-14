@@ -283,7 +283,7 @@ def lstm_forward(self, input, hx=None):
                 shape = [result_tmp[0].shape[0] * result_tmp[0].shape[1]]
                 if result_tmp[0].dim() > 2:
                     shape = shape + list(result_tmp[0].shape[2:])
-                result = result_tmp[0].reshape(shape) + result_tmp[1:]
+                result = (result_tmp[0].reshape(shape), ) + result_tmp[1:]
         else:
             result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
