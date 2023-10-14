@@ -195,15 +195,15 @@ class NpuPreGenDropout(torch.nn.Dropout):
         for p in cls.prob:
             init_task = PreGenDropoutTask(model_device, p)
 
-            init_task.mask = torch.npu_dropout_gen_mask([init_task.max_mb, 1024, 1024], p=p, dtype=torch.float32
-                                                        , device=model_device)
+            init_task.mask = torch.npu_dropout_gen_mask([init_task.max_mb, 1024, 1024], p=p, dtype=torch.float32,
+                                                        device=model_device)
             cls.task_dict[p] = init_task
 
         def mask_gen_hook_func():
             def hook_function(module, inputs, outputs):
                 for task in cls.task_dict.values():
-                    task.mask = torch.npu_dropout_gen_mask([task.max_mb, 1024, 1024], p=task.p, dtype=torch.float32
-                                                           , device=task.device)
+                    task.mask = torch.npu_dropout_gen_mask([task.max_mb, 1024, 1024], p=task.p, dtype=torch.float32,
+                                                           device=task.device)
                     task.idx = 0
 
             return hook_function

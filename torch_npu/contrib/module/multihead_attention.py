@@ -356,8 +356,8 @@ class MultiheadAttention(nn.Module):
             )
         elif key_padding_mask is not None:
             filler = torch.zeros(
-                (batch_size, key_padding_mask.size(1), key_padding_mask.size(2)
-                 , src_len - key_padding_mask.size(3)),
+                (batch_size, key_padding_mask.size(1), key_padding_mask.size(2),
+                 src_len - key_padding_mask.size(3)),
                 device=key_padding_mask.device,
             )
             new_key_padding_mask = torch.cat(

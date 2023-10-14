@@ -275,9 +275,9 @@ void PutPipelineStamp(uint32_t category, const std::string &op_name) {
     std::lock_guard<std::mutex> lk(g_pipelineStampMtx);
     int index = g_pipelineStamp.idleNodeInd;
     g_pipelineStamp.idleNodeInd = (g_pipelineStamp.idleNodeInd + 1) & (STAMP_QUEUE_LEN - 1);
-    static thread_local int tid = static_cast<int>(syscall(SYS_gettid));
+    static thread_local int tid = syscall(SYS_gettid);
     g_pipelineStamp.nodes[index].threadId = tid;
-    g_pipelineStamp.nodes[index].category = category;
+    g_pipelineStamp.nodes[index].category = static_cast<int>(category);
     g_pipelineStamp.nodes[index].eventType = 0;
     g_pipelineStamp.nodes[index].startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
     g_pipelineStamp.nodes[index].endTime = g_pipelineStamp.nodes[index].startTime;

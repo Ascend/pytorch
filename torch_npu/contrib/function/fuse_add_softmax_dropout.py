@@ -49,7 +49,7 @@ def fuse_add_softmax_dropout(training, dropout, attn_mask, attn_scores, attn_hea
         if training:
             drop_p = p
         else:
-            drop_p = 0
+            drop_p = 0.
         _, _, attn_probs = torch.npu_dropout_with_add_softmax(attn_scores, attn_mask,
                                                                 1 / math.sqrt(attn_head_size), drop_p, -1)
     else:                  
