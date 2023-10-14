@@ -52,7 +52,6 @@ namespace at_npu
       using shapeInfer = std::function<FormatShape(c10::IntArrayRef dims)>;
       typedef struct FormatInfo_
       {
-
         aclFormat format = ACL_FORMAT_ND;
         aclFormat baseFormat = ACL_FORMAT_ND;
         shapeInfer func = nullptr;

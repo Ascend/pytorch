@@ -234,7 +234,8 @@ namespace at_npu
       // eg: size: [2,3,4,5] format: nd
       // we will return [NCHW, NCHW] because 4 dim tensor must be nchw,
       // then the tensor used to be the input of conv2d will not make mistake
-      aclFormat baseFormat, npuFormat;
+      aclFormat baseFormat;
+      aclFormat npuFormat;
       std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(size, format);
       npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size);
       npu_desc.origin_format_ = baseFormat;

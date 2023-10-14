@@ -139,7 +139,6 @@ namespace at_npu
 
     private:
       aclTensorDesc *desc = nullptr;
-
     }; // class AclTensorDescMaker
 
     //
@@ -186,7 +185,6 @@ namespace at_npu
 
     private:
       aclDataBuffer *ptr = nullptr;
-
     }; // class AclTensorBufferMaker
 
     using PROC_FUNC = std::function<int()>;
@@ -268,7 +266,7 @@ namespace at_npu
         size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
         size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
 
-        size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen + 
+        size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen +
                               outputTensorDescArrLen + outputDataBuffArrLen;
 
         char* basePtr = static_cast<char* >(malloc(totalMemLen));
@@ -363,11 +361,11 @@ namespace at_npu
     private:
       struct AclExecParam
       {
-        c10::SmallVector<const aclTensorDesc *, N> inDesc;   // owned
-        c10::SmallVector<const aclDataBuffer *, N> inBuffer; // owned
-        c10::SmallVector<const aclTensorDesc *, N> outDesc;  // owned
-        c10::SmallVector<aclDataBuffer *, N> outBuffer;      // owned
-        c10::SmallVector<at::Tensor, N> hostMem;   
+        c10::SmallVector<const aclTensorDesc*, N> inDesc;   // owned
+        c10::SmallVector<const aclDataBuffer*, N> inBuffer; // owned
+        c10::SmallVector<const aclTensorDesc*, N> outDesc;  // owned
+        c10::SmallVector<aclDataBuffer*, N> outBuffer;      // owned
+        c10::SmallVector<at::Tensor, N> hostMem;
         aclopAttr *attr = nullptr;
         PROC_FUNC customHandler = nullptr;
       };
@@ -381,10 +379,10 @@ namespace at_npu
       }
 
       aclError InnerRun(
-        const string &name, 
-        AclExecParam &params, 
-        bool sync, 
-        c10::SmallVector<int64_t, N> &sync_index, 
+        const string &name,
+        AclExecParam &params,
+        bool sync,
+        c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor
       );
 
