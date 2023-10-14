@@ -55,7 +55,8 @@ def _pack_kwargs(*args: Any, **kwargs: Any) -> Tuple[Tuple[Any, ...], Tuple[str,
 
 def _unpack_kwargs(flat_args: Tuple[Any, ...], kwarg_keys: Tuple[str, ...]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
     """See _pack_kwargs."""
-    assert len(kwarg_keys) <= len(flat_args), f"too many keys {len(kwarg_keys)} vs. {len(flat_args)}"
+    if not (len(kwarg_keys) <= len(flat_args)):
+        raise RuntimeError(f"too many keys {len(kwarg_keys)} vs. {len(flat_args)}")
     if len(kwarg_keys) == 0:
         return flat_args, {}
     args = flat_args[: -len(kwarg_keys)]

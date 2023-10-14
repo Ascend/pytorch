@@ -85,7 +85,8 @@ class EventList(list):
         self._profile_memory = profile_memory
         self._tree_built = False
         self._with_flops = with_flops
-        assert not (self._use_cuda and self._use_npu), "use_cuda and use_npu can't be True simultaneously."
+        if self._use_cuda and self._use_npu:
+            raise RuntimeError("use_cuda and use_npu can't be True simultaneously.")
 
     def _build_tree(self):
         self._populate_cpu_children()
@@ -170,11 +171,8 @@ class EventList(list):
                         current_events.pop()
                     else:
                         parent.append_cpu_child(event)
-                        assert (
-                            event.cpu_parent is None
-                        ), "There is already a CPU parent event for {}".format(
-                            event.key
-                        )
+                        if not (event.cpu_parent is None):
+                            raise RuntimeError("There is already a CPU parent event for {}".format(event.key))
                         event.set_cpu_parent(parent)
                         break
 
@@ -199,7 +197,8 @@ class EventList(list):
         for evt in self:
             p = bw_parent(evt)
             if p is not None:
-                assert p.fwd_thread is not None
+                if p.fwd_thread is None:
+                    raise RuntimeError('fwd_thread is None')
                 t = (p.sequence_nr, p.fwd_thread)
                 if t in fwd_stacks:
                     evt.stack = fwd_stacks[t]
@@ -376,7 +375,8 @@ class EventList(list):
         Returns:
             An EventList containing FunctionEventAvg objects.
         """
-        assert self._tree_built
+        if not (self._tree_built):
+            raise RuntimeError('the parameter of built tree is false')
         stats: Dict[Tuple[str, ...], FunctionEventAvg] = defaultdict(FunctionEventAvg)
 
         def get_key(event, group_by_input_shapes, group_by_stack_n) -> Tuple[str, ...]:
@@ -517,8 +517,8 @@ class profile(object):
         self.use_cpu = use_cpu
         self.kineto_results = None
         if not self.use_cpu:
-            assert use_kineto, \
-                "Device-only events supported only with Kineto (use_kineto=True)"
+            if not use_kineto:
+                raise RuntimeError("Device-only events supported only with Kineto (use_kineto=True)")
 
         self.profiler_kind = None
         self.kineto_activities = set()
@@ -532,7 +532,8 @@ class profile(object):
 
 
     def config(self):
-        assert self.profiler_kind is not None
+        if self.profiler_kind is None:
+            raise RuntimeError("profiler_kind is None")
         return torch_npu._C._profiler.ProfilerConfig(
             self.profiler_kind,
             self.record_shapes,
@@ -551,7 +552,8 @@ class profile(object):
         return self
 
     def _prepare_kineto_trace(self):
-        assert self.kineto_activities
+        if not self.kineto_activities:
+            raise RuntimeError('kineto_activities is None')
         self.entered = True
         torch_npu._C._profiler._prepare_profiler(self.config(), self.kineto_activities)
 
@@ -585,7 +587,8 @@ class profile(object):
 
     def table(self, sort_by=None, row_limit=100, max_src_column_width=75, header=None, top_level_events_only=False):
         self._check_finish()
-        assert self.function_events is not None
+        if (self.function_events is None):
+            raise RuntimeError('function_events is None')
         return self.function_events.table(
             sort_by=sort_by, row_limit=row_limit, max_src_column_width=max_src_column_width, header=header,
             top_level_events_only=top_level_events_only
@@ -597,25 +600,30 @@ class profile(object):
         if self.kineto_results is not None:
             raise RuntimeError("not support for kineto.")
         else:
-            assert self.function_events is not None
+            if (self.function_events is None):
+                raise RuntimeError('function_events is None')
             return self.function_events.export_chrome_trace(path)
     export_chrome_trace.__doc__ = EventList.export_chrome_trace.__doc__
 
     def export_stacks(self, path: str, metric: str = "self_cpu_time_total"):
         self._check_finish()
-        assert self.function_events is not None, "Expected profiling results"
-        assert self.with_stack, "export_stacks() requires with_stack=True"
+        if (self.function_events is None):
+            raise RuntimeError("Expected profiling results")
+        if not (self.with_stack):
+            raise RuntimeError("export_stacks() requires with_stack=True")
         return self.function_events.export_stacks(path, metric)
 
     def key_averages(self, group_by_input_shape=False, group_by_stack_n=0):
         self._check_finish()
-        assert self.function_events is not None, "Expected profiling results"
+        if (self.function_events is None):
+            raise RuntimeError("Expected profiling results")
         return self.function_events.key_averages(group_by_input_shape, group_by_stack_n)
     key_averages.__doc__ = EventList.key_averages.__doc__
 
     def total_average(self):
         self._check_finish()
-        assert self.function_events is not None, "Expected profiling results"
+        if (self.function_events is None):
+            raise RuntimeError("Expected profiling results")
         return self.function_events.total_average()
     total_average.__doc__ = EventList.total_average.__doc__
 
@@ -625,7 +633,8 @@ class profile(object):
         all self times across all the events.
         """
         self._check_finish()
-        assert self.function_events is not None
+        if (self.function_events is None):
+            raise RuntimeError("function_events is None")
         return self.function_events.self_cpu_time_total
 
 
@@ -750,7 +759,8 @@ def format_time(time_us):
 def format_time_share(time_us, total_time_us):
     """Defines how to format time in FunctionEvent"""
     if total_time_us == 0:
-        assert time_us == 0, "Expected time_us == 0 but got {}".format(time_us)
+        if not (time_us == 0):
+            raise RuntimeError("Expected time_us == 0 but got {}".format(time_us))
         return "NaN"
     return '{:.2f}%'.format(time_us * 100.0 / total_time_us)
 
@@ -844,7 +854,8 @@ class FunctionEvent(FormattedTimesMixin):
         self.flops: Optional[float] = flops
 
     def append_kernel(self, name, device, start, end):
-        assert self.device_type == DeviceType.CPU
+        if not (self.device_type == DeviceType.CPU):
+            raise RuntimeError('device_type is not CPU')
         self.kernels.append(Kernel(name, device, Interval(start, end)))
 
     def append_cpu_child(self, child):
@@ -853,9 +864,12 @@ class FunctionEvent(FormattedTimesMixin):
         One is supposed to append only direct children to the event to have
         correct self cpu time being reported.
         """
-        assert(self.device_type == DeviceType.CPU)
-        assert(isinstance(child, FunctionEvent))
-        assert(child.device_type == DeviceType.CPU)
+        if not (self.device_type == DeviceType.CPU):
+            raise RuntimeError('self device_type is not CPU')
+        if not (isinstance(child, FunctionEvent)):
+            raise RuntimeError('child is not an instance of FunctionEvent')
+        if not (child.device_type == DeviceType.CPU):
+            raise RuntimeError('child device_type is not CPU')
         self.cpu_children.append(child)
 
     def set_cpu_parent(self, parent):
@@ -865,9 +879,12 @@ class FunctionEvent(FormattedTimesMixin):
         the child's range interval is completely inside the parent's. We use
         this connection to determine the event is from top-level op or not.
         """
-        assert(self.device_type == DeviceType.CPU)
-        assert(isinstance(parent, FunctionEvent))
-        assert(parent.device_type == DeviceType.CPU)
+        if not (self.device_type == DeviceType.CPU):
+            raise RuntimeError('self device_type is not CPU')
+        if not (isinstance(parent, FunctionEvent)):
+            raise RuntimeError('child is not an instance of FunctionEvent')
+        if not (parent.device_type == DeviceType.CPU):
+            raise RuntimeError('child device_type is not CPU')
         self.cpu_parent = parent
 
     # Note: async events don't have children, are not used when computing 'self'
@@ -917,7 +934,8 @@ class FunctionEvent(FormattedTimesMixin):
                 # each legacy cpu events has a single (fake) kernel
                 return sum(kinfo.interval.elapsed_us() for kinfo in self.kernels)
         else:
-            assert self.device_type == DeviceType.CUDA
+            if not (self.device_type == DeviceType.CUDA):
+                raise RuntimeError('self device_type is not CUDAs')
             return self.time_range.elapsed_us()
 
     @property
@@ -928,7 +946,8 @@ class FunctionEvent(FormattedTimesMixin):
             return self.cuda_time_total - \
                 sum([child.cuda_time_total for child in self.cpu_children])
         else:
-            assert(self.device_type == DeviceType.CUDA)
+            if not (self.device_type == DeviceType.CUDA):
+                raise RuntimeError('self device_type is not CUDAs')
             return self.cuda_time_total
 
     @property
@@ -936,11 +955,13 @@ class FunctionEvent(FormattedTimesMixin):
         if self.is_async:
             return 0
         if self.device_type == DeviceType.CPU:
-            assert self.is_legacy, "profiling with NPU only support for legacy."
+            if not self.is_legacy:
+                raise RuntimeError("profiling with NPU only support for legacy.")
             # each legacy cpu events has a single (fake) kernel
             return sum(kinfo.interval.elapsed_us() for kinfo in self.kernels)
         else:
-            assert self.device_type == DeviceType.NPU
+            if not (self.device_type == DeviceType.NPU):
+                raise RuntimeError('self device_type is not NPU')
             return self.time_range.elapsed_us()
 
     @property
@@ -951,7 +972,8 @@ class FunctionEvent(FormattedTimesMixin):
             return self.npu_time_total - \
                 sum([child.npu_time_total for child in self.cpu_children])
         else:
-            assert(self.device_type == DeviceType.NPU)
+            if not (self.device_type == DeviceType.NPU):
+                raise RuntimeError('self device_type is not NPU')
             return self.npu_time_total
 
     @property
@@ -1045,8 +1067,10 @@ class FunctionEventAvg(FormattedTimesMixin):
             self.device_type = other.device_type
             self.is_legacy = other.is_legacy
 
-        assert isinstance(other, (FunctionEvent, FunctionEventAvg))
-        assert other.key == self.key
+        if not (isinstance(other, (FunctionEvent, FunctionEventAvg))):
+            raise RuntimeError('other is not an instance of (FunctionEvent, FunctionEventAvg)')
+        if not (other.key == self.key):
+            raise RuntimeError('other.key != self.key')
         self.cpu_time_total += other.cpu_time_total
         self.self_cpu_time_total += other.self_cpu_time_total
         self.cpu_memory_usage += other.cpu_memory_usage
@@ -1161,11 +1185,13 @@ def parse_kineto_results(result):
     mem_records = []
     for record in itertools.chain(*result.legacy_events()):
         if record.kind() == 'mark' and record.name() == '__start_profile':
-            assert start_record is None
+            if start_record is not None:
+                raise RuntimeError('start_record is not None')
             start_record = record
         if record.kind() == 'memory_alloc':
             mem_records.append([record, False])
-    assert start_record is not None, "Invalid profiler output, __start_profile is missing"
+    if start_record is None:
+        raise RuntimeError("Invalid profiler output, __start_profile is missing")
 
     # Create and return FunctionEvent list
     function_events = []
@@ -1282,8 +1308,10 @@ def parse_legacy_records(thread_records):
     # adding the difference in CPU time between the profiler start event
     # and the CPU time of the cuda start event for the device
     def adjusted_time(device_record, device_records_map):
-        assert device_record.device() != -1
-        assert start_record is not None
+        if not (device_record.device() != -1):
+            raise RuntimeError('device is -1')
+        if start_record is None:
+            raise('start_record is None')
         if device_record.has_cuda():
             cuda_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
             return cuda_time_0.cuda_elapsed_us(device_record) + start_record.cpu_elapsed_us(cuda_time_0)
@@ -1300,20 +1328,23 @@ def parse_legacy_records(thread_records):
             start_record = record
         elif '__cuda_start_event' in name:
             # N.B.: Each CUDA device has its own __cuda_start_event.
-            assert record.device() != -1
+            if not (record.device() != -1):
+                raise RuntimeError('device is -1')
             # key for cuda_records is (node_id, device) in case of multiple nodes
             # having the same device
             cuda_records[(record.node_id(), record.device())] = record
             profiler_type = DeviceType.CUDA
         elif '__npu_start_event' in name:
             # N.B.: Each NPU device has its own __npu_start_event.
-            assert record.device() != -1
+            if not (record.device() != -1):
+                raise RuntimeError('device is -1')
             # key for npu_records is (node_id, device) in case of multiple nodes
             # having the same device
             npu_records[(record.node_id(), record.device())] = record
             profiler_type = DeviceType.NPU
 
-    assert start_record is not None and not start_record.is_remote()
+    if not (start_record is not None and not start_record.is_remote()):
+        raise RuntimeError('start_record is None or start_record is_remote')
 
     for thread_record_list in thread_records:
         # accumulated memory allocations per handle
@@ -1350,12 +1381,11 @@ def parse_legacy_records(thread_records):
                 cuda_memory_allocs[record_key] = 0
                 npu_memory_allocs[record_key] = 0
             elif record.kind() == 'pop':
-                assert (
-                    record_key in range_starts
-                ), """Expected record with key {} to exist in range_starts.
-                    This means that the pop event did not have a corresponding push.""".format(
-                    record_key
-                )
+                if not (record_key in range_starts):
+                    raise RuntimeError("""Expected record with key {} to exist in range_starts.
+                        This means that the pop event did not have a corresponding push.""".format(
+                        record_key)
+                    )
 
                 start = range_starts[record_key]
 
@@ -1415,7 +1445,8 @@ def parse_legacy_records(thread_records):
             elif record.kind() == 'memory_alloc':
                 num_open_handles_cpu = len(cpu_memory_allocs)
                 num_open_handles_cuda = len(cuda_memory_allocs)
-                assert num_open_handles_cpu == num_open_handles_cuda
+                if not (num_open_handles_cpu == num_open_handles_cuda):
+                    raise RuntimeError('num_open_handles_cpu not equal num_open_handles_cuda')
                 for handle in cpu_memory_allocs.keys():
                     cpu_memory_allocs[handle] += record.cpu_memory_usage()
                 for handle in cuda_memory_allocs.keys():
@@ -1585,9 +1616,11 @@ def build_table(
             'TFLOPS',
             'PFLOPS',
         ]
-        assert flops > 0
+        if not(flops > 0):
+            raise RuntimeError('flops not > 0')
         log_flops = max(0, min(math.log10(flops) / 3, float(len(flop_headers) - 1)))
-        assert log_flops >= 0 and log_flops < len(flop_headers)
+        if not (log_flops >= 0 and log_flops < len(flop_headers)):
+            raise RuntimeError('log_flops < 0 or log_flops >= length of flop_headers')
         return (pow(10, (math.floor(log_flops) * -3.0)), flop_headers[int(log_flops)])
 
     add_column(name_column_width)
