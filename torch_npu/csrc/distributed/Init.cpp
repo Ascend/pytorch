@@ -132,7 +132,7 @@ public:
     auto output_tensors = torch::utils::unflatten_dense_tensors(
         flat_tensor_.front(), cast_tensors_);
     TORCH_INTERNAL_ASSERT(output_tensors.size() == bucket_tensors_.size());
-    for(const auto i : c10::irange(output_tensors.size())) {
+    for (const auto i : c10::irange(output_tensors.size())) {
       bucket_tensors_[i].copy_(output_tensors[i], true);
     }
   }
@@ -295,7 +295,6 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
            py::arg("reducer"),
            py::arg("comm_hook_type"));
 
-
   shared_ptr_class_<c10d_npu::Reducer>(module, "Reducer")
       .def(py::init<
                std::vector<at::Tensor>,
@@ -333,7 +332,7 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
       .def("get_backward_stats", &c10d_npu::Reducer::get_backward_stats)
       .def("_install_post_backward_futures", [](::c10d_npu::Reducer& reducer, const std::vector<std::shared_ptr<torch::jit::PythonFutureWrapper>>& futs) {
               c10::List<c10::intrusive_ptr<c10::ivalue::Future>> futures(c10::FutureType::create(c10::TensorType::get()));
-              for (const auto & fut : futs) {
+              for (const auto& fut : futs) {
               futures.push_back(fut->fut);
               }
               reducer.install_futures(std::move(futures));
@@ -382,7 +381,6 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
              std::weak_ptr<::c10d::Logger> logger_weakref = logger;
              reducer.set_logger(logger_weakref);
            });
-
 
   py::module_ dist = py::module_::import("torch.distributed");
   auto processGroupHCCL = intrusive_ptr_no_gil_destructor_class_<::c10d_npu::ProcessGroupHCCL>(

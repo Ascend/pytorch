@@ -18,7 +18,6 @@ c10::intrusive_ptr<c10::ivalue::Future> AllReduceCommHook::runHook(
 
 c10::intrusive_ptr<c10::ivalue::Future> FP16CompressCommHook::runHook(
     GradBucket& bucket) {
-
   auto compressed_tensor = bucket.getBufferRef().to(torch::kFloat16);
   // Apply the division first to avoid overflow.
   compressed_tensor /= state_->getSize();

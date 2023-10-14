@@ -69,7 +69,7 @@ c10d::DebugLevel debug_level() noexcept {
 
 } // namespace
 
-C10_DEFINE_TYPED_REGISTRY( // NOLINT
+C10_DEFINE_TYPED_REGISTRY(
     TimerRegistry,
     c10::DeviceType,
     Timer,
@@ -284,8 +284,7 @@ bool Reducer::ddp_graph_static() {
 
 void Reducer::initialize_local_used_map() {
   const auto variable_count = params_.size();
-  at::TensorOptions options;
-  options = options.dtype(at::kInt);
+  at::TensorOptions options = options.dtype(at::kInt);
 
   // Deliberately don't pin the memory even if local_used_map_dev_ will
   // be cuda. See Note [local_used_map_ -> local_used_map_dev copying]
@@ -390,7 +389,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
                 << " is not well-supported. The higher-order gradient will "
                 << " not be synchronized across ranks, and backpropagation "
                 << " through all_reduce operations will not occur.";
-            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
+            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
           }
         } else {
           at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
@@ -679,9 +678,7 @@ void Reducer::checkAndRaiseMarkedTwiceError(size_t index) {
   // Something is wrong if all variables contained in this bucket replica have
   // already been marked as ready.
   // We don't expect the same variable to be marked ready twice.
-  bool marked_twice =
-      perIterationReadyParams_.find(index) != perIterationReadyParams_.end();
-
+  bool marked_twice = perIterationReadyParams_.find(index) != perIterationReadyParams_.end();
   if (marked_twice) {
     // Report index of param that has been marked twice. In debug mode, also
     // report fully qualified parameter name.
@@ -844,7 +841,6 @@ void Reducer::all_reduce_bucket(Bucket& bucket) {
         variables_for_bucket);
     bucket.future_work = run_comm_hook(grad_bucket);
   }
-  
 }
 
 std::vector<at::Tensor> Reducer::get_variables_for_bucket(
@@ -1546,8 +1542,7 @@ void Reducer::sync_bucket_indices(
     total_size += static_cast<int64_t>(bucket_size);
   }
 
-  at::TensorOptions options;
-  options = options.dtype(at::kInt);
+  at::TensorOptions options = options.dtype(at::kInt);
   options = options.device(params_[0].device());
 
   // Group indices and num_bucket together into indices_tensor
@@ -1641,7 +1636,6 @@ bool Reducer::rebuild_buckets() {
   std::vector<size_t> per_bucket_size_limits;
   auto ddp_set_last_bucket_as_small =
       (c10d::parse_env("DDP_SET_LAST_BUCKET_CAP").compare("1") == 0);
-
   if (ddp_set_last_bucket_as_small) {
     // Reverse so that first_bucket_bytes_cap_ (smaller bucket) becomes the last
     // bucket. We cannot simply pass in {bucket_bytes_cap_, first_bucket_bytes_cap}
@@ -1708,20 +1702,17 @@ void Reducer::register_builtin_comm_hook(
       logger_,
       "register_builtin_comm_hook or register_comm_hook can only be called once.");
 
-  switch (comm_hook_type) {
-    case c10d::BuiltinCommHookType::ALLREDUCE:
-      comm_hook_ =
-          std::make_unique<c10d::AllReduceCommHook>(process_group_);
-      LOG(INFO) << "Built-in communication hook ALLREDUCE is registered.";
-      break;
-    case c10d::BuiltinCommHookType::FP16_COMPRESS:
-      comm_hook_ =
-          std::make_unique<c10d::FP16CompressCommHook>(process_group_);
-      LOG(INFO) << "Built-in communication hook FP16_COMPRESS is registered.";
-      break;
-    default:
-      TORCH_WARN_ONCE(
-          "Unknown built-in DDP comm hook type is provided. No comm hook will be used.");
+    switch (comm_hook_type) {
+        case c10d::BuiltinCommHookType::ALLREDUCE:
+            comm_hook_ =std::make_unique<c10d::AllReduceCommHook>(process_group_);
+            LOG(INFO) << "Built-in communication hook ALLREDUCE is registered.";
+            break;
+        case c10d::BuiltinCommHookType::FP16_COMPRESS:
+            comm_hook_ =std::make_unique<c10d::FP16CompressCommHook>(process_group_);
+            LOG(INFO) << "Built-in communication hook FP16_COMPRESS is registered.";
+            break;
+        default:
+            TORCH_WARN_ONCE("Unknown built-in DDP comm hook type is provided. No comm hook will be used.");
   }
 }
 
@@ -2025,7 +2016,7 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
   bucket_indices.reserve(result.size());
   std::vector<size_t> per_bucket_size_limits;
   per_bucket_size_limits.reserve(result.size());
-  for (const auto & bucket_indices_with_size : result) {
+  for (const auto& bucket_indices_with_size : result) {
     bucket_indices.emplace_back(std::get<0>(bucket_indices_with_size));
     per_bucket_size_limits.emplace_back(std::get<1>(bucket_indices_with_size));
   }
@@ -2042,8 +2033,7 @@ void verify_params_across_processes(
   for (const auto& t : params) {
     i += static_cast<size_t>(2 * t.dim());
   }
-  at::TensorOptions options;
-  options = options.dtype(at::kLong);
+  at::TensorOptions options = options.dtype(at::kLong);
   auto metadata = at::empty({static_cast<long>(i)}, options);
 
   // Technically, process 0 is the broadcast source, so only process 0 needs
@@ -2082,7 +2072,6 @@ void verify_params_across_processes(
       } else {
         TORCH_CHECK(sz == control_accessor[i++], msg)
       }
-
     }
     for (const auto& str : t.strides()) {
       auto msg = c10::str("params[", p, "] in this process",

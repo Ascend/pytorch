@@ -88,7 +88,7 @@ std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
 
-int64_t physical_numel(at::Tensor& self){
+int64_t physical_numel(at::Tensor& self) {
   auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
@@ -120,9 +120,9 @@ HcclDataType getHcclDataType(at::ScalarType type) {
   }
 }
 
-std::string getHcclDataTypeSerialString(HcclDataType type){
+std::string getHcclDataTypeSerialString(HcclDataType type) {
   const auto &iter = kHcclDataTypeToStringMap.find(type);
-  if (iter != kHcclDataTypeToStringMap.end()){
+  if (iter != kHcclDataTypeToStringMap.end()) {
     return iter->second;
   } else {
     TORCH_WARN_ONCE("Can not serialize undefined hccl data type.");
@@ -178,6 +178,7 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors) {
 at::Device getDeviceForRank(int rank) {
   TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
   auto numNPUs = c10_npu::device_count();
+  TORCH_CHECK(numNPUs > 0, "Invalid device number ", numNPUs);
   int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
   return at::Device(at_npu::key::NativeDeviceType, deviceIdx);
 }
@@ -626,7 +627,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 
 ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
     : opTimeout(kProcessGroupHCCLOpTimeoutMillis),
-    is_high_priority_stream(is_high_priority_stream){}
+    is_high_priority_stream(is_high_priority_stream) {}
 
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
@@ -1186,6 +1187,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
+  TORCH_CHECK(ranks > 0, "Invalid ranks ", ranks);
   uint64_t index = static_cast<uint64_t>(inputTensor.numel() / ranks);
   if (outputSplitSizes.empty()) {
     for (int i = 0; i < ranks; i++) {
@@ -1204,7 +1206,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   outputSpl[0] = 0;
   for (int i = 0; i < outSize; i++) {
     outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
-    if(i > 0){
+    if (i > 0) {
         outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
     }
   }
