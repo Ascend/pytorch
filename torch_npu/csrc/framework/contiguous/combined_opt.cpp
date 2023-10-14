@@ -84,7 +84,6 @@ private:
       return false;
     }
     auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc();
-
     if ((c10::multiply_integers(tensor.sizes()) !=
          c10::multiply_integers(npu_desc.base_sizes_)) ||
         (tensor.storage_offset() != npu_desc.base_offset_)) {
@@ -446,7 +445,6 @@ Inference order: permute, select, slice.
     // If the first tensor cannnot be reconstructed==>exit
     return false;
   }
-
 }; // class combinedContiguousOpt
 
 REGISTER_COPY_OPT(combined, CombinedContiguousOpt)

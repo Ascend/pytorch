@@ -123,7 +123,7 @@ namespace at_npu
 
     void SetDeterministic() {
       auto deterministicalgorithmsstatus =  at::globalContext().deterministicAlgorithms();
-      if(deterministicaclnn_oldstatus != deterministicalgorithmsstatus){
+      if(deterministicaclnn_oldstatus != deterministicalgorithmsstatus) {
         NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicalgorithmsstatus ? "1" : "0"));
         NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicalgorithmsstatus ? 1 : 0));
         deterministicaclnn_oldstatus = deterministicalgorithmsstatus;
@@ -473,12 +473,12 @@ namespace at_npu
     using Func = int(*)(c10_npu::queue::QueueParas*, aclrtStream);
     using AsyncFuncMap = std::map<c10_npu::queue::QueueParamType, Func>;
     AsyncFuncMap funcMap = {
-      {c10_npu::queue::COMPILE_AND_EXECUTE, ExecFunc},
-      {c10_npu::queue::ASYNC_MEMCPY, MemcopyAsyncFunc},
-      {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
-      {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
-      {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
-      {c10_npu::queue::RESET_EVENT, ResetEventFunc},
+        {c10_npu::queue::COMPILE_AND_EXECUTE, ExecFunc},
+        {c10_npu::queue::ASYNC_MEMCPY, MemcopyAsyncFunc},
+        {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
+        {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
+        {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
+        {c10_npu::queue::RESET_EVENT, ResetEventFunc},
     };
 
     int AsncExecFunc(void* data) {

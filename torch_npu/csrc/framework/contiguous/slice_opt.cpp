@@ -129,7 +129,6 @@ private:
     custom_ops::npu_slice_out(temp_src, offsets, size, self);
     return;
   }
-
 }; // class SliceContiguousOpt
 
 REGISTER_COPY_OPT(slice, SliceContiguousOpt)

@@ -221,7 +221,7 @@ OpCommand& OpCommand::Output(
       if (!resultTypeDefined && commonType.has_value() &&
           output.scalar_type() != commonType.value()) {
         output = custom_ops::npu_dtype_cast(output, commonType.value());
-      } 
+      }
   )
   outputTensor.emplace_back(output);
   return AddOutput(output, realType);
@@ -278,7 +278,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      at::ScalarType forceScaleType,
                                      const string &descName,
                                      const string &realData) {
-  std::tuple < aclTensorDesc * , aclDataBuffer *> res;
+  std::tuple <aclTensorDesc*, aclDataBuffer*> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
   }
@@ -301,8 +301,12 @@ OpCommand& OpCommand::AddHostTensorInput(
     CompileType compileType,
     const string& realDtype,
     const string& descName) {
-  std::tuple < aclTensorDesc *, aclDataBuffer *> res;
-  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype, descName);
+  std::tuple <aclTensorDesc*, aclDataBuffer*> res = OpCmdHelper::CovertHostTensorToAclInput(
+      tensor,
+      tensor.scalar_type(),
+      compileType,
+      realDtype,
+      descName);
   aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
   return *this;
 }

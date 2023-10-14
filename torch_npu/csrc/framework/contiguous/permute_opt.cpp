@@ -209,7 +209,6 @@ private:
       }
     }
   }
-
 }; // class PermuteContiguousOpt
 
 REGISTER_COPY_OPT(permute, PermuteContiguousOpt)
