@@ -287,7 +287,8 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
                 if "-packages" in directory:
                     install_directory = os.path.join(root, directory)
 
-        assert install_directory, "install_directory must not be empty"
+        if not install_directory:
+            raise RuntimeError("install_directory must not be empty")
         os.environ["PYTHONPATH"] = os.pathsep.join([install_directory, python_path])
         return run_test(test_module, test_cpp_extensions_directory, options)
     finally:
@@ -302,7 +303,8 @@ def run_cpp_extensions(test, test_directory, options):
 
     for use_ninja in [True, False]:
         return_code = _test_cpp_extensions_aot(test_directory, options, use_ninja)
-        assert isinstance(return_code, int) and not isinstance(return_code, bool), "Return code should be an integer"
+        if not (isinstance(return_code, int) and not isinstance(return_code, bool)):
+            raise RuntimeError("Return code should be an integer")
         if return_code != 0:
             return return_code
 
@@ -322,7 +324,8 @@ def run_test_module(test: str, test_directory: str, options) -> Optional[str]:
     handler = CUSTOM_HANDLERS.get(test_module, run_test)
 
     return_code = handler(test, test_directory, options)
-    assert isinstance(return_code, int) and not isinstance(return_code, bool), "Return code should be an integer"
+    if not (isinstance(return_code, int) and not isinstance(return_code, bool)):
+        raise RuntimeError("Return code should be an integer")
     if return_code == 0:
         return None
     
