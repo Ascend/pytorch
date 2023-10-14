@@ -114,7 +114,7 @@ struct PhiloxNpuState {
 
   uint64_t seed_;
   Payload offset_;
-  uint32_t offset_intragraph_;
+  uint32_t offset_intragraph_{0};
   bool captured_ = false;
 };
 

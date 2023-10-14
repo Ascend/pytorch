@@ -112,8 +112,7 @@ static inline size_t streamIdIndex(c10::StreamId s) {
 }
 
 c10::StreamId makeStreamId(StreamIdType st, size_t si) {
-  return ((uint32_t)static_cast<c10::StreamId>(st) << kStreamsPerPoolBits) |
-      static_cast<c10::StreamId>(si);
+  return static_cast<c10::StreamId>((static_cast<size_t>(st) << kStreamsPerPoolBits) | si);
 }
 
 template <typename T, typename A>
