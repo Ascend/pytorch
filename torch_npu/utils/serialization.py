@@ -36,7 +36,7 @@ def _warn_legacy_serialization(warn_massages, key_flag:str):
 
 def _remap_result(cpu_result, map_location):
     def traverse_dict(_dict) -> dict:
-        for key,val in _dict.items():
+        for key, val in _dict.items():
             if isinstance(val, torch.Tensor):
                 _dict[key] = val.to(map_location)
             elif isinstance(val, tuple):
@@ -193,7 +193,9 @@ def load(
 
             if map_location is not None and isinstance(map_location, (torch.device, str)):
                 cpu_result = _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
-                if (isinstance(map_location, str) and "cpu" in map_location) or (isinstance(map_location, torch.device) and "cpu" in map_location.type):
+                if isinstance(map_location, str) and "cpu" in map_location:
+                    return cpu_result
+                if isinstance(map_location, torch.device) and "cpu" in map_location.type:
                     return cpu_result
                 return _remap_result(cpu_result, map_location)
             else:
@@ -214,7 +216,7 @@ def save(
             "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
         )
         _warn_legacy_serialization(warn_massage, "save")
-    return torch.serialization.save(obj, f, pickle_module,pickle_protocol, True, _disable_byteorder_record)
+    return torch.serialization.save(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
 
 
 def add_serialization_methods():

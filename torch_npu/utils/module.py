@@ -40,6 +40,7 @@ def npu(self, device=None):
             self.cast_weight(device)
     return self._apply(lambda t: t.npu(device))
 
+
 def to(self, *args, **kwargs):
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
 
@@ -69,11 +70,9 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
-        if "MultiheadAttention" in str(class_name) and \
-                hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
-                hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
-                hasattr(module,"v_proj_weight") and module.v_proj_weight is not None and \
-                not torch.npu.get_mm_bmm_format_nd():
+        if issubclass(class_name, torch.nn.MultiheadAttention) and \
+           module.q_proj_weight is not None and \
+           not torch.npu.get_mm_bmm_format_nd():
             module.q_proj_weight.data = module.q_proj_weight.data.to(device)
             module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
             module.k_proj_weight.data = module.k_proj_weight.data.to(device)
@@ -110,7 +109,7 @@ def cast_weight(self, device):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
 
-    if device is None or not "npu" in str(device):
+    if device is None or "npu" not in str(device):
         return
 
     current_class = self.__class__
@@ -126,7 +125,6 @@ def cast_weight(self, device):
 
 def lstm_forward(self, input, hx=None):
     orig_input = input
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input, batch_sizes, sorted_indices, unsorted_indices = input
         max_batch_size = batch_sizes[0]
@@ -159,22 +157,20 @@ def lstm_forward(self, input, hx=None):
     else:
         if batch_sizes.device != input.device:
             batch_sizes_npu = batch_sizes.to(input.device)
-            result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
+            result_tmp = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
-            # 根据TMG决策，pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
+            # pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
             if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
-                result = list(result)
-                shape = [result[0].shape[0] * result[0].shape[1]]
-                if result[0].dim() > 2:
-                    shape = shape + list(result[0].shape[2:])
-                result[0] = result[0].reshape(shape)
-                result = tuple(result)
+                shape = [result_tmp[0].shape[0] * result_tmp[0].shape[1]]
+                if result_tmp[0].dim() > 2:
+                    shape = shape + list(result_tmp[0].shape[2:])
+                result = (result_tmp[0].reshape(shape), ) + result_tmp[1:]
         else:
             result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
     output = result[0]
     hidden = result[1:]
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
+
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         output_packed = torch.nn.utils.rnn.PackedSequence(output, batch_sizes, sorted_indices, unsorted_indices)
         return output_packed, self.permute_hidden(hidden, unsorted_indices)
@@ -199,7 +195,8 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
         exponential_average_factor = self.momentum
 
     if self.training and self.track_running_stats:
-        assert self.num_batches_tracked is not None
+        if self.num_batches_tracked is None:
+            raise ValueError("self.num_batches_tracked is None")
         self.num_batches_tracked.add_(1)
         if self.momentum is None:  # use cumulative moving average
             exponential_average_factor = 1.0 / self.num_batches_tracked.item()
@@ -243,7 +240,8 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             input1, running_mean, running_var, self.weight, self.bias,
             bn_training, exponential_average_factor, self.eps)
     else:
-        assert bn_training
+        if not bn_training:
+            raise ValueError("not bn_training")
         return sync_batch_norm.apply(
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
