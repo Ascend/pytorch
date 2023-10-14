@@ -48,7 +48,6 @@ void set_storage_nd_npu(
     int nDimension,
     c10::IntArrayRef size,
     c10::IntArrayRef stride) {
-
   at::native::checkSetStorage(self, storage, storage_offset, size, stride);
 
   if (storage_offset < 0) {

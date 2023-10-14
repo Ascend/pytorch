@@ -170,7 +170,7 @@ npu_functions = {
     "decode_jpeg", "crop_and_resize", "reverse", "image_normalize", "image_normalize_", "img_to_tensor", 
     "_conv_depthwise2d_backward", "slow_conv_dilated2d_backward", "slow_conv_transpose2d_backward", 
     "batch_norm_reduce", "batch_norm_gather_stats_update", "format_contiguous", "check_match", 
-    "check_memory_overlaps", "get_storage_size", "bscpp_add", "_dropout_with_byte_mask", "empty_with_format"
+    "check_memory_overlaps", "get_storage_size", "_dropout_with_byte_mask", "empty_with_format"
 }
 
 

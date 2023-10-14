@@ -35,7 +35,6 @@ class CodeTemplate:
 
     # older versions of Python have a bug where \w* does not work,
     # so we need to replace with the non-shortened version [a-zA-Z0-9_]*
-    # https://bugs.python.org/issue18647
 
     substitution_str = substitution_str.replace(r'\w', r'[a-zA-Z0-9_]')
 
@@ -58,7 +57,8 @@ class CodeTemplate:
             env = {}
 
         def lookup(v: str) -> object:
-            assert env is not None
+            if env is None:
+                raise ValueError("env is None")
             return kwargs[v] if v in kwargs else env[v]
 
         def indent_lines(indent: str, v: Sequence[object]) -> str:

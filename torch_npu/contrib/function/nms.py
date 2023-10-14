@@ -24,9 +24,6 @@ def npu_multiclass_nms(multi_bboxes,
                        score_factors=None):
     """NMS for multi-class bboxes using npu api.
 
-    Origin implement from mmdetection is
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/post_processing/bbox_nms.py#L7
-
     This interface is similar to the original interface, but not exactly the same.
 
     .. note::
@@ -85,9 +82,6 @@ def npu_batched_multiclass_nms(
         max_num=50,
         score_factors=None):
     """NMS for batched multi-class bboxes using npu api.
-
-    Origin implement from mmdetection is
-    https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/post_processing/bbox_nms.py#L7
 
     This interface is similar to the original interface, but not exactly the same.
     This interface implements the nms method under batch.

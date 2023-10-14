@@ -39,7 +39,6 @@ class FusedColorJitterApply(object):
     def hue_saturation_matrix(self, hue, saturation):
         """
         Single matrix transform for both hue and saturation change.
-        Matrix taken from https://beesbuzz.biz/code/16-hsv-color-transforms.
         Derived by transforming first to YIQ, then do the modification, and transform back to RGB.
         """
         const_mat = np.array([[0.299, 0.299, 0.299],

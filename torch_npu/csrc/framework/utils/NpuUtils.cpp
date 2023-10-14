@@ -117,7 +117,7 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor &tensor) {
 
   int64_t contiguous_len = 16;
   int64_t c0_len = 16;
-  for (int i = 2; i < torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_.size(); i++) {
+  for (const auto i : c10::irange(2, torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_.size())) {
     contiguous_len *= torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_[i];
   }
   bool is_offset_match = (tensor.storage_offset() % contiguous_len == 0);
@@ -315,10 +315,6 @@ void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t cat
   auto param_val = static_cast<c10_npu::queue::CopyParas *>(para->paramVal);
   torch_npu::profiler::reportMarkDataToNpuProfiler(category, c10_npu::queue::CopyParas::COPY_PARAS_MAP[param_val->kind], para->correlation_id);
 }
-void NpuUtils::DqueueCompileExcuteBs(c10_npu::queue::QueueParas * para, uint32_t category){
-  auto param_val = static_cast<at_npu::native::ExecuteBsParas *>(para->paramVal);
-  torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
-}
 
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
   std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
@@ -328,7 +324,6 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
     {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
     {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
     {c10_npu::queue::RESET_EVENT, &DqueueEvent},
-    {c10_npu::queue::LAMBDA_EXECUTE, &DqueueCompileExcuteBs},
   };
   if (!data) {
     return;

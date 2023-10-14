@@ -1,4 +1,5 @@
-// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -13,7 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 
-#include "torch_npu/csrc/libs/init_npu.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+namespace at_npu {
+namespace native {
+c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape) {
+  c10::SmallVector<int64_t, SIZE> shape_small_vec;
+  for (int i = 0; i < shape.size(); i++) {
+    shape_small_vec.emplace_back(shape[i]);
+  }
+  return shape_small_vec;
+}
+}  // namespace native
+}  // namespace at_npu

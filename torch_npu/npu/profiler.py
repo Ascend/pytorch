@@ -667,8 +667,7 @@ class record_function(ContextDecorator):
         self.name: str = name
         # Whether or not we should run record function's end callbacks when exiting.
         self.run_callbacks_on_exit: bool = True
-        # Stores underlying RecordFunction as a tensor. TODO: move to custom
-        # class (https://github.com/pytorch/pytorch/issues/35026).
+        # Stores underlying RecordFunction as a tensor.
         self.handle = None
 
     def __enter__(self):

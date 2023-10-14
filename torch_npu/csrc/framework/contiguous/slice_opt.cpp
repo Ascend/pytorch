@@ -79,7 +79,7 @@ private:
     if (view_sizes.size() != base_sizes.size()) {
       return false;
     }
-    for (auto i = 0; i < view_sizes.size(); i++) {
+    for (const auto i : c10::irange(view_sizes.size())) {
       if (view_sizes[i] == base_sizes[i]) {
         narrow_dims.emplace_back(0);
       } else if (view_sizes[i] < base_sizes[i]) {
@@ -94,14 +94,14 @@ private:
     offsets.clear();
     int64_t storage_offsets = src_desc.offset_;
     // src.storage_offset() == start[narrow_dims[i]]*stride[narrow_dims[i]]
-    for (auto i = 0; i < view_strides.size(); i++) {
+    for (const auto i : c10::irange(view_strides.size())) {
       offsets.emplace_back(storage_offsets / view_strides[i]);
       storage_offsets = storage_offsets % view_strides[i];
     }
     if (storage_offsets != 0) {
       return false;
     }
-    for (auto i = 0; i < offsets.size(); i++) {
+    for (const auto i : c10::irange(offsets.size())) {
       if ((offsets[i] + view_sizes[i]) > base_sizes[i]) {
         // In narrow calculation, (start + length) <= cur_size
         return false;
@@ -129,7 +129,6 @@ private:
     custom_ops::npu_slice_out(temp_src, offsets, size, self);
     return;
   }
-
 }; // class SliceContiguousOpt
 
 REGISTER_COPY_OPT(slice, SliceContiguousOpt)

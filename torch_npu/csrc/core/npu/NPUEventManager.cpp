@@ -80,19 +80,18 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
 }
 
 void NPUEventManager::ClearEvent() {
-
   if (thread_pool_ != nullptr) {
     thread_pool_->waitWorkComplete();
   }
 
-  while(!npu_events_.empty()) {
+  while (!npu_events_.empty()) {
     aclrtEvent event = npu_events_.front();
     auto err = aclrtDestroyEvent(event);
     if (err != ACL_ERROR_NONE) {
       NPU_CHECK_WARN(err);
     } else {
       ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p.", event);
-    }    
+    }
     npu_events_.pop_front();
   }
 }

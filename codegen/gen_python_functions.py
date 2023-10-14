@@ -588,11 +588,7 @@ def sort_overloads(
     def is_arg_smaller(t1: Type, t2: Type) -> bool:
         return (str(t1) == 'Scalar' and str(t2) == 'Tensor' or
                 'Dimname' in str(t1) and 'Dimname' not in str(t2) or
-                # In the discussion https://github.com/pytorch/pytorch/issues/54555 it has been
-                # discussed why it is important to prioritize int/int? over int[]
                 str(t1) == 'int[]' and (str(t2) == 'int' or str(t2) == 'int?') or
-                # TensorList currently throws an error during argument parsing, that's why it needs to be
-                # last in signature ordering. See discussion: https://github.com/pytorch/pytorch/issues/58087
                 str(t1) == 'Tensor[]' and str(t2).find("[]") != -1)
 
     def is_smaller(s1: PythonSignature, s2: PythonSignature) -> bool:
@@ -721,7 +717,8 @@ def parse_native_yaml(path: str) -> List[NativeFunction]:
             f_str.write(line)
     f_str.seek(0)
     es = yaml.safe_load(f_str)
-    assert isinstance(es, list)
+    if not isinstance(es, list):
+        raise TypeError("es is not list")
     rs: List[NativeFunction] = []
     with_device_base_operator = set()
 

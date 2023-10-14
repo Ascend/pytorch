@@ -49,9 +49,6 @@ def get_roll_index(H, W, shifts, device='cpu'):
 class NpuRollWithIndexSelect():
     """Using NPU affinity writing method to replace the native roll in swin-transformer.
 
-    Origin implement in torch is
-    https://pytorch.org/docs/stable/generated/torch.roll.html
-
     This interface is faster than the original on NPU.
 
     Args:
@@ -73,9 +70,12 @@ class NpuRollWithIndexSelect():
         self.index_dict = {}
 
     def __call__(self, x, shifts, dims):
-        assert x.dim() == 4
-        assert len(shifts) == 2
-        assert len(dims) == 2
+        if x.dim() != 4:
+            raise ValueError("Expected x.dim() == 4")
+        if len(shifts) != 2:
+            raise ValueError("Expected len(shifts) == 2")
+        if len(dims) != 2:
+            raise ValueError("Expected len(dims) == 2")
         N, H, W, C = x.shape
         key = (H, W, shifts, dims)
         if key not in self.index_dict:

@@ -154,7 +154,6 @@ namespace at_npu
 
     private:
       aclTensorDesc *desc = nullptr;
-
     }; // class AclTensorDescMaker
 
     //
@@ -166,8 +165,8 @@ namespace at_npu
       AclTensorBufferMaker(const at::Tensor *tensor, int64_t offset, int64_t n)
       {
         uint8_t *header = reinterpret_cast<uint8_t *>(tensor->data_ptr()) -
-                          tensor->itemsize() * offset;
-        size_t bufferSize = tensor->itemsize() * n;
+                          tensor->itemsize() * static_cast<uint8_t>(offset);
+        size_t bufferSize = tensor->itemsize() * static_cast<size_t>(n);
         ptr = aclCreateDataBuffer(header, bufferSize);
       }
 
@@ -201,7 +200,6 @@ namespace at_npu
 
     private:
       aclDataBuffer *ptr = nullptr;
-
     }; // class AclTensorBufferMaker
 
     using PROC_FUNC = std::function<int()>;
@@ -274,8 +272,8 @@ namespace at_npu
         opName.copy(params.opType, opName.length() + 1);
         params.attr = execParam.attr;
         // make params
-        int inputNum = execParam.inDesc.size();
-        int outputNum = execParam.outDesc.size();
+        int inputNum = static_cast<int>(execParam.inDesc.size());
+        int outputNum = static_cast<int>(execParam.outDesc.size());
 
         size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
         size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
@@ -283,7 +281,7 @@ namespace at_npu
         size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
         size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
 
-        size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen + 
+        size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen +
                               outputTensorDescArrLen + outputDataBuffArrLen;
 
         char* basePtr = static_cast<char* >(malloc(totalMemLen));
@@ -378,11 +376,11 @@ namespace at_npu
     private:
       struct AclExecParam
       {
-        c10::SmallVector<const aclTensorDesc *, N> inDesc;   // owned
-        c10::SmallVector<const aclDataBuffer *, N> inBuffer; // owned
-        c10::SmallVector<const aclTensorDesc *, N> outDesc;  // owned
-        c10::SmallVector<aclDataBuffer *, N> outBuffer;      // owned
-        c10::SmallVector<at::Tensor, N> hostMem;   
+        c10::SmallVector<const aclTensorDesc*, N> inDesc;   // owned
+        c10::SmallVector<const aclDataBuffer*, N> inBuffer; // owned
+        c10::SmallVector<const aclTensorDesc*, N> outDesc;  // owned
+        c10::SmallVector<aclDataBuffer*, N> outBuffer;      // owned
+        c10::SmallVector<at::Tensor, N> hostMem;
         aclopAttr *attr = nullptr;
         PROC_FUNC customHandler = nullptr;
       };
@@ -396,10 +394,10 @@ namespace at_npu
       }
 
       aclError InnerRun(
-        const string &name, 
-        AclExecParam &params, 
-        bool sync, 
-        c10::SmallVector<int64_t, N> &sync_index, 
+        const string &name,
+        AclExecParam &params,
+        bool sync,
+        c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor
       );
 

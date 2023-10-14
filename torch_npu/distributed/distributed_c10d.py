@@ -2153,10 +2153,7 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
         This means collectives from one process group should have completed
         execution on the device (not just enqueued since CUDA execution is
         async) before collectives from another process group are enqueued.
-        See `Using multiple NCCL communicators concurrently <https://docs.nvid
-        ia.com/deeplearning/nccl/user-guide/docs/usage/communicators.html#using
-        -multiple-nccl-communicators-concurrently>`_ for more details.
-
+        See `Using multiple NCCL communicators concurrently.
     Args:
         ranks (list[int]): List of ranks of group members. If ``None``, will be
             set to all ranks. Default is ``None``.
@@ -2249,7 +2246,6 @@ def _object_to_tensor(obj):
     byte_storage = torch.ByteStorage.from_buffer(f.getvalue())  # type: ignore[attr-defined]
     # Do not replace `torch.ByteTensor` or `torch.LongTensor` with torch.tensor and specifying dtype.
     # Otherwise, it will casue 100X slowdown.
-    # See: https://github.com/pytorch/pytorch/issues/65696
     byte_tensor = torch.ByteTensor(byte_storage)
     local_size = torch.LongTensor([byte_tensor.numel()])
     return byte_tensor, local_size

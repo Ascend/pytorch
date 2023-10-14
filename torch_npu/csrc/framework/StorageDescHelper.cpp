@@ -70,10 +70,10 @@ namespace at_npu
       npuDesc.base_sizes_ = new_size;
 
       // 计算连续场景下size对应的stride值
-      auto dim_ = new_size.size();
+      int64_t dim_ = static_cast<int64_t>(new_size.size());
       c10::SmallVector<int64_t, 5> new_stride(dim_);
       if (dim_ > 0) {
-        int last_idx = dim_ - 1;
+        int64_t last_idx = dim_ - 1;
         new_stride[last_idx] = 1;
         for (auto i = last_idx - 1; i >= 0; --i) {
           new_stride[i] = new_stride[i + 1] * std::max<int64_t>(new_size[i + 1], 1);
@@ -162,7 +162,8 @@ namespace at_npu
       // eg: size: [2,3,4,5] format: nd
       // we will return [NCHW, NCHW] because 4 dim tensor must be nchw,
       // then the tensor used to be the input of conv2d will not make mistake
-      aclFormat baseFormat, npuFormat;
+      aclFormat baseFormat;
+      aclFormat npuFormat;
       std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(size, format);
       npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size);
       npu_desc.origin_format_ = baseFormat;

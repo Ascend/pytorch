@@ -188,39 +188,39 @@ namespace at_npu
         AT_ASSERT(dims.size() <= 4, "input dim > 4 when InferShapeLessTo4");
         switch (dims.size())
         {
-        case 0:
-          res[0] = 1;
-          res[1] = 1;
-          res[2] = 1;
-          res[3] = 1;
-          break;
-        case 1:      // RESHAPE_TYPE_C
-          res[0] = 1;
-          res[1] = dims[0];
-          res[2] = 1;
-          res[3] = 1;
-          break;
-        case 2:      // RESHAPE_TYPE_CH
-          res[0] = 1;
-          res[1] = dims[0];
-          res[2] = dims[1];
-          res[3] = 1;
-          break;
-        case 3:      // RESHAPE_TYPE_CHW
-          res[0] = 1;
-          res[1] = dims[0];
-          res[2] = dims[1];
-          res[3] = dims[2];
-          break;
-        case 4:
-          res[0] = dims[0];
-          res[1] = dims[1];
-          res[2] = dims[2];
-          res[3] = dims[3];
-          break;
-        default:
-          AT_ERROR("dims of NCHW shape should not be greater than 4, which is ",
-                   dims.size());
+          case 0:
+            res[0] = 1;
+            res[1] = 1;
+            res[2] = 1;
+            res[3] = 1;
+            break;
+          case 1:      // RESHAPE_TYPE_C
+            res[0] = 1;
+            res[1] = dims[0];
+            res[2] = 1;
+            res[3] = 1;
+            break;
+          case 2:      // RESHAPE_TYPE_CH
+            res[0] = 1;
+            res[1] = dims[0];
+            res[2] = dims[1];
+            res[3] = 1;
+            break;
+          case 3:      // RESHAPE_TYPE_CHW
+            res[0] = 1;
+            res[1] = dims[0];
+            res[2] = dims[1];
+            res[3] = dims[2];
+            break;
+          case 4:
+            res[0] = dims[0];
+            res[1] = dims[1];
+            res[2] = dims[2];
+            res[3] = dims[3];
+            break;
+          default:
+            AT_ERROR("dims of NCHW shape should not be greater than 4, which is ",
+                     dims.size());
         }
         return res;
       }

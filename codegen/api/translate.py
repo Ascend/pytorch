@@ -113,9 +113,6 @@ def translate(
 
         # While we're at it, do some simple forward inference, looking through
         # constructors.
-        # TODO: My kingdom for a pattern matcher
-        # https://www.python.org/dev/peps/pep-0634/
-        # TODO: This could get us in recomputation trouble if b.expr is nontrivial
         t = b.type
         if isinstance(t, ConstRefCType) and isinstance(t.elem, OptionalCType) and \
                 isinstance(t.elem.elem, BaseCType) and str(t.elem.elem.type) == 'at::Tensor':
@@ -260,8 +257,6 @@ Check this module for more information.
                 )
                 return f"{argname}.has_value() ? c10::make_optional(C10_AS_INTARRAYREF_SLOW(*{argname})) : c10::nullopt"
         elif goal.type == BaseCType(optionalSymIntArrayRefT):
-            # TODO: You might also want to solve this from longSymVec_ctype or
-            # an optional version of it
             argname = direct_solve(
                 NamedCType(goal.name, BaseCType(optionalIntArrayRefT))
             )

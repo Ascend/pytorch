@@ -47,7 +47,7 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
             f_str.write(line)
 
     f_str.seek(0)
-    custom_es = yaml.load(f_str, Loader=YamlLoader)
+    custom_es = yaml.safe_load(f_str)
     custom_es = filed_tag(custom_es)
     for e_with_vars in custom_es:
         funcs = e_with_vars.get('func')

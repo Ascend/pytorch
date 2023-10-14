@@ -20,8 +20,8 @@ namespace at_npu {
 namespace native {
 
 bool can_use_memecpy_for_NZ_format(const ContiguousTensorDesc &tensor_desc) {
-  int64_t tensor_shape_size = tensor_desc.sizes_.size();
-  int64_t base_shape_size = tensor_desc.base_sizes_.size();
+  int64_t tensor_shape_size = static_cast<int64_t>(tensor_desc.sizes_.size());
+  int64_t base_shape_size = static_cast<int64_t>(tensor_desc.base_sizes_.size());
   // No padding&&offset!=0 at the same time. e.g. x(3, 15, 16)[1:]
   if (((tensor_desc.sizes_[tensor_shape_size - 1] % 16 != 0) ||
        (tensor_desc.sizes_[tensor_shape_size - 2] % 16 != 0)) &&
@@ -43,22 +43,23 @@ bool can_use_memcpy_for_other_format(const ContiguousTensorDesc &tensor_desc) {
   if (tensor_desc.sizes_.size() < 2) {
     return false;
   }
+
   switch (tensor_desc.npu_format_) {
-  case ACL_FORMAT_FRACTAL_NZ:
-    return can_use_memecpy_for_NZ_format(tensor_desc);
-  // (Ascend): 5HD format can also be optimized likes NZ format
-  default:
-    // For other format, make sure that copy the whole memory.
-    // Moreover, storage size expanding caused by padding could be avoided
-    if (!(tensor_desc.base_sizes_ == tensor_desc.sizes_)) {
-      return false;
-    }
-    // Make sure no pandding happens
-    if (c10::multiply_integers(tensor_desc.sizes_) !=
-        c10::multiply_integers(tensor_desc.storage_sizes_)) {
-      return false;
-    }
-    return true;
+    case ACL_FORMAT_FRACTAL_NZ:
+      return can_use_memecpy_for_NZ_format(tensor_desc);
+    // (Ascend): 5HD format can also be optimized likes NZ format
+    default:
+      // For other format, make sure that copy the whole memory.
+      // Moreover, storage size expanding caused by padding could be avoided
+      if (!(tensor_desc.base_sizes_ == tensor_desc.sizes_)) {
+        return false;
+      }
+      // Make sure no pandding happens
+      if (c10::multiply_integers(tensor_desc.sizes_) !=
+          c10::multiply_integers(tensor_desc.storage_sizes_)) {
+        return false;
+      }
+      return true;
   }
 }
 

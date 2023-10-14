@@ -63,7 +63,7 @@ private:
     auto view_strides = src_desc.strides_;
 
     c10::SmallVector<int64_t, MAX_DIM> indexes;
-    for (auto i = 0; i < src_desc.sizes_.size(); i++) {
+    for (const auto i : c10::irange(src_desc.sizes_.size())) {
       indexes.emplace_back(i);
     }
 
@@ -74,8 +74,8 @@ private:
     }
 
     // Reorder axes of shape and stride in descending order
-    for (auto i = 0; i < src_desc.sizes_.size() - 1; i++) {
-      for (auto j = i + 1; j < src_desc.sizes_.size(); j++) {
+    for (const auto i : c10::irange(src_desc.sizes_.size() - 1)) {
+      for (const auto j : c10::irange(i + 1, src_desc.sizes_.size())) {
         bool need_swap = (view_strides[i] < view_strides[j]) ||
                          (view_strides[i] == view_strides[j] &&
                           view_sizes[i] < view_sizes[j]);
@@ -89,7 +89,7 @@ private:
 
     // After reordering, check whether the shape and stride match
     auto current_stride = 1;
-    for (int64_t i = src_desc.sizes_.size() - 1; i >= 0; i--) {
+    for (size_t i = src_desc.sizes_.size() - 1U; i >= 0U; i--) {
       if (current_stride != view_strides[i]) {
         NPU_LOGD("After reordering, shape and stride still do not match, and "
                  "permute pattern cannot be used.");
@@ -109,7 +109,7 @@ private:
       sizes.emplace_back(ele);
     }
     perm = indexes;
-    for (int64_t i = 0; i < src_desc.sizes_.size(); i++) {
+    for (const auto i : c10::irange(src_desc.sizes_.size())) {
       perm[indexes[i]] = i;
     }
     return true;
@@ -125,10 +125,10 @@ private:
     }
 
     // Gather index
-    for (auto i = 0; i < perm.size(); i++) {
+    for (size_t i = 0U; i < perm.size(); i++) {
       auto temp_perm_i = perm[i];
       auto temp_sizes_i = sizes[perm[i]];
-      for (auto j = i + 1; j < perm.size(); j++) {
+      for (size_t j = i + 1U; j < perm.size(); j++) {
         if (perm[i] + 1 == perm[j]) {
           temp_sizes_i *= sizes[perm[j]];
           ++i;
@@ -151,11 +151,11 @@ private:
 
     // Calculate new perm and shape
     c10::SmallVector<int64_t, MAX_DIM> perm_indexes;
-    for (auto i = 0; i < optimized_perm.size(); i++) {
+    for (const auto i : c10::irange(optimized_perm.size())) {
       perm_indexes.emplace_back(i);
     }
-    for (auto i = 0; i < optimized_perm.size() - 1; i++) {
-      for (auto j = i + 1; j < optimized_perm.size(); j++) {
+    for (const auto i : c10::irange(optimized_perm.size() - 1)) {
+      for (const auto j : c10::irange(i + 1, optimized_perm.size())) {
         if (optimized_perm[i] > optimized_perm[j]) {
           std::swap(optimized_perm[i], optimized_perm[j]);
           std::swap(perm_indexes[i], perm_indexes[j]);
@@ -163,18 +163,17 @@ private:
       }
     }
     perm = perm_indexes;
-    for (auto i = 0; i < perm_indexes.size(); i++) {
+    for (const auto i : c10::irange(perm_indexes.size())) {
       perm[perm_indexes[i]] = i;
     }
     sizes = optimized_sizes;
-    for (auto i = 0; i < perm_indexes.size(); i++) {
+    for (const auto i : c10::irange(perm_indexes.size())) {
       sizes[i] = optimized_sizes[perm_indexes[i]];
     }
   }
 
   template <typename T> void squeeze_shape_and_stride(T &shape, T &stride) {
-    auto shape_size = shape.size();
-    for (auto i = 0; i < shape_size; i++) {
+    for (const auto i : c10::irange(shape.size())) {
       if (shape[i] == 1) {
         shape.erase(shape.begin() + i);
         stride.erase(stride.begin() + i);
@@ -182,7 +181,6 @@ private:
       }
     }
   }
-
 }; // class PermuteContiguousOpt
 
 REGISTER_COPY_OPT(permute, PermuteContiguousOpt)

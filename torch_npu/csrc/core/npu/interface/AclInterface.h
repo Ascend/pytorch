@@ -8,22 +8,25 @@
 
 namespace c10_npu {
 namespace acl {
-typedef enum aclrtEventWaitStatus {
+enum aclrtEventWaitStatus {
     ACL_EVENT_WAIT_STATUS_COMPLETE  = 0,
     ACL_EVENT_WAIT_STATUS_NOT_READY = 1,
     ACL_EVENT_WAIT_STATUS_RESERVED  = 0xffff,
-} aclrtEventWaitStatus;
+};
+using aclrtEventWaitStatus = enum aclrtEventWaitStatus;
 
-typedef enum aclrtEventRecordedStatus {
-    ACL_EVENT_RECORDED_STATUS_NOT_READY  = 0,
-    ACL_EVENT_RECORDED_STATUS_COMPLETE = 1,
-} aclrtEventRecordedStatus;
+enum aclrtEventRecordedStatus {
+    ACL_EVENT_RECORDED_STATUS_NOT_READY = 0,
+    ACL_EVENT_RECORDED_STATUS_COMPLETE  = 1,
+};
+using aclrtEventRecordedStatus = enum aclrtEventRecordedStatus;
 
-typedef enum aclrtStreamStatus {
+enum aclrtStreamStatus {
     ACL_STREAM_STATUS_COMPLETE  = 0,
     ACL_STREAM_STATUS_NOT_READY = 1,
     ACL_STREAM_STATUS_RESERVED  = 0xFFFF,
-} aclrtStreamStatus;
+};
+using aclrtStreamStatus = enum aclrtStreamStatus;
 
 /**
   aclprofStepInfo is provide by acl, it used to be store dispatch op info.
@@ -106,7 +109,7 @@ aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
 aclError AclProfilingStop(const aclprofConfig *profilerConfig);
 aclError AclProfilingFinalize();
-aclprofConfig * AclProfilingCreateConfig(
+aclprofConfig *AclProfilingCreateConfig(
     uint32_t *deviceIdList,
     uint32_t deviceNums,
     aclprofAicoreMetrics aicoreMetrics,

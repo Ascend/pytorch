@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
 from collections import defaultdict
 from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar, Optional, Dict
@@ -21,7 +22,7 @@ from enum import Enum
 import contextlib
 import textwrap
 import yaml
-import os
+
 
 # Safely load fast C Yaml loader/dumper if they are available
 try:
@@ -46,8 +47,8 @@ FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns"]
 MANUAL_OPS = ["argmin", "argmax", "nan_to_num", "nan_to_num_",
               "nan_to_num.out", "_embedding_bag_dense_backward"]
 
+
 # A custom loader for YAML that errors on duplicate keys.
-# This doesn't happen by default: see https://github.com/yaml/pyyaml/issues/165
 class YamlLoader(Loader):
     def construct_mapping(self, node, deep=False):  # type: ignore[no-untyped-def]
         mapping = []
@@ -84,7 +85,7 @@ Target = Enum('Target', (
 # occurrence of a parameter in the derivative formula
 IDENT_REGEX = r'(^|\W){}($|\W)'
 
-# TODO: Use a real parser here; this will get bamboozled
+
 def split_name_params(schema: str) -> Tuple[str, List[str]]:
     m = re.match(r'(\w+)(\.\w+)?\((.*)\)', schema)
     if m is None:
@@ -98,6 +99,7 @@ S = TypeVar('S')
 # These two functions purposely return generators in analogy to map()
 # so that you don't mix up when you need to list() them
 
+
 # Map over function that may return None; omit Nones from output sequence
 def map_maybe(func: Callable[[T], Optional[S]], xs: Iterable[T]) -> Iterator[S]:
     for x in xs:
@@ -105,11 +107,13 @@ def map_maybe(func: Callable[[T], Optional[S]], xs: Iterable[T]) -> Iterator[S]:
         if r is not None:
             yield r
 
+
 # Map over function that returns sequences and cat them all together
 def concat_map(func: Callable[[T], Sequence[S]], xs: Iterable[T]) -> Iterator[S]:
     for x in xs:
         for r in func(x):
             yield r
+
 
 # Conveniently add error context to exceptions raised.  Lets us
 # easily say that an error occurred while processing a specific
@@ -119,7 +123,6 @@ def context(msg_fn: Callable[[], str]) -> Iterator[None]:
     try:
         yield
     except Exception as e:
-        # TODO: this does the wrong thing with KeyError
         msg = msg_fn()
         msg = textwrap.indent(msg, '  ')
         msg = f'{e.args[0]}\n{msg}' if e.args else msg
@@ -140,7 +143,12 @@ def parse_npu_yaml(custom_path: str, use_line_loader=True) -> List:
 def merge_yaml(base_data, additional_data):
     """Merge two YAML data structures. If there's a conflict, the base data will take precedence."""
     map_dict = {"official": "supported"}
-    key_map = lambda x: map_dict.get(x, x)
+    
+    def key_map(x):
+        if x in map_dict:
+            return map_dict[x]
+        else:
+            return x
     if isinstance(base_data, dict):
         for key, value in additional_data.items():
             if key_map(key) not in base_data:

@@ -1,4 +1,5 @@
-// Copyright (c) 2023 Huawei Technologies Co., Ltd
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -13,25 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef __PLUGIN_NATIVE_NPU_UTILS_KERNEL_NPU_OUTPUT_SIZE__
+#define __PLUGIN_NATIVE_NPU_UTILS_KERNEL_NPU_OUTPUT_SIZE__
 
-#include <c10/core/Device.h>
-#include <c10/util/Exception.h>
+#include <ATen/ATen.h>
 
-#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+namespace at_npu {
+namespace native {
+// npu tensor max size
+const int SIZE = 8;
+c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape);
+} // namespace native
+} // namespace at_npu
 
-
-namespace torch_npu {
-
-// device init related funcs
-void init_npu(const c10::DeviceIndex device_index=0);
-void init_npu(const std::string& device_str);
-void init_npu(const at::Device& device);
-
-// device finalize related funcs
-void finalize_npu();
-
-bool is_npu_device(const at::Device& device);
-c10::DeviceIndex current_device();
-
-} // namespace torch_npu
+#endif

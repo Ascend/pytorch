@@ -20,7 +20,7 @@ public:
   void IncreaseUnrecordedCount(aclrtEvent event);
   void DecreaseUnrecordedCount(aclrtEvent event);
   bool IsEventRecorded(aclrtEvent event);
-  ~NPUEventManager(){}
+  ~NPUEventManager() {}
 
 private:
   void run(aclrtEvent event);

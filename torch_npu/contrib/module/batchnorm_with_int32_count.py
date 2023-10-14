@@ -27,9 +27,6 @@ class _NormBase(SrcNormBase):
     r"""Changed the num_batches_tracked of the batnorm from int64 to int32 to 
     improve the performance of the batchnorm.
 
-    The origin implement is:
-    https://github.com/pytorch/pytorch/blob/56b43f4fec1f76953f15a627694d4bba34588969/torch/nn/modules/batchnorm.py#L48
-
     """
     def __init__(
         self,
@@ -101,8 +98,10 @@ class _BatchNorm(_NormBase):
         passed when the update should occur (i.e. in training mode when they are tracked), or when buffer stats are
         used for normalization (i.e. in eval mode when buffers are not None).
         """
-        assert self.running_mean is None or isinstance(self.running_mean, torch.Tensor)
-        assert self.running_var is None or isinstance(self.running_var, torch.Tensor)
+        if (self.running_mean is not None) and not isinstance(self.running_mean, torch.Tensor):
+            raise RuntimeError("Expected self.running_mean is None or isinstance(self.running_mean, torch.Tensor)")
+        if (self.running_var is not None) and not isinstance(self.running_var, torch.Tensor):
+            raise RuntimeError("Expected self.running_var is None or isinstance(self.running_var, torch.Tensor)")
         return F.batch_norm(
             input1,
             # If buffers are not to be tracked, ensure that they won't be updated
@@ -115,7 +114,7 @@ class FastBatchNorm1d(_BatchNorm):
     r"""Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D
     inputs with optional additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -153,7 +152,7 @@ class FastBatchNorm2d(_BatchNorm):
     r"""Applies Batch Normalization over a 4D input1 (a mini-batch of 2D inputs
     with additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -191,7 +190,7 @@ class FastBatchNorm3d(_BatchNorm):
     r"""Applies Batch Normalization over a 5D input1 (a mini-batch of 3D inputs
     with additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -229,7 +228,7 @@ class FastSyncBatchNorm(_BatchNorm):
     r"""Applies Batch Normalization over a N-Dimensional input1 (a mini-batch of [N-2]D inputs
     with additional channel dimension) as described in the paper
     `Batch Normalization: Accelerating Deep Network Training by Reducing
-    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`__ .
+    Internal Covariate Shift
 
     .. math::
 
@@ -306,7 +305,8 @@ class FastSyncBatchNorm(_BatchNorm):
             exponential_average_factor = self.momentum
 
         if self.training and self.track_running_stats:
-            assert self.num_batches_tracked is not None
+            if self.num_batches_tracked is None:
+                raise ValueError("Expected self.num_batches_tracked is not None")
             self.num_batches_tracked.add_(1)
             if self.momentum is None:  # use cumulative moving average
                 exponential_average_factor = 1.0 / self.num_batches_tracked.item()
@@ -357,7 +357,8 @@ class FastSyncBatchNorm(_BatchNorm):
                 self.eps,
             )
         else:
-            assert bn_training
+            if not bn_training:
+                raise ValueError("Expected bn_training")
             return sync_batch_norm.apply(
                 input1,
                 self.weight,

@@ -27,20 +27,20 @@ namespace at_npu
 
     struct ACL_PARAMS
     {
-      ACL_PARAMS()
-      {
-        input_desc = nullptr;
-        input_data_buf = nullptr;
-        output_desc = nullptr;
-        output_data_buf = nullptr;
-      }
+        ACL_PARAMS()
+        {
+          input_desc = nullptr;
+          input_data_buf = nullptr;
+          output_desc = nullptr;
+          output_data_buf = nullptr;
+        }
 
-      int input_num;
-      const aclTensorDesc **input_desc;
-      const aclDataBuffer **input_data_buf;
-      int output_num;
-      const aclTensorDesc **output_desc;
-      aclDataBuffer **output_data_buf;
+        int input_num{0};
+        const aclTensorDesc **input_desc;
+        const aclDataBuffer **input_data_buf;
+        int output_num{0};
+        const aclTensorDesc **output_desc;
+        aclDataBuffer **output_data_buf;
     };
 
     struct ACL_DYNAMIC_PARAMS
@@ -102,20 +102,6 @@ namespace at_npu
       void Copy(ExecuteParas &other);
       void CopyEx(ExecuteParas& other);
       PROCESS_FUNC customHandler;
-    };
-
-    struct BsParams {
-      using PROCESS_FUNC = std::function<void()>;
-      PROCESS_FUNC func = nullptr;
-    };
-
-    struct ExecuteBsParas {
-      char opType[50]{};
-      BsParams paras;
-      ExecuteBsParas() = default;
-      void Release();
-      void Copy(ExecuteBsParas& other);
-      void CopyEx(ExecuteBsParas& other);
     };
 
     NPUStatus DestroyAclParams(ACL_PARAMS &params);
