@@ -80,7 +80,7 @@ private:
 private:
     bool init_flag_;
     int device_id_;
-    aclrtContext ctx_;
+    aclrtContext ctx_{nullptr};
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
 

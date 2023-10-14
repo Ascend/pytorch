@@ -117,7 +117,7 @@ public:
     std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
 
     // Record the collective sequential number.
-    uint64_t seq_;
+    uint64_t seq_{0};
 
     // Temporarily not implemented
     // virtual std::exception_ptr checkForHCCLErrors(const
