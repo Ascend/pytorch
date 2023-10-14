@@ -113,7 +113,7 @@ std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
 
-int64_t physical_numel(at::Tensor& self){
+int64_t physical_numel(at::Tensor& self) {
   auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
@@ -145,9 +145,9 @@ HcclDataType getHcclDataType(at::ScalarType type) {
   }
 }
 
-std::string getHcclDataTypeSerialString(HcclDataType type){
+std::string getHcclDataTypeSerialString(HcclDataType type) {
   const auto &iter = kHcclDataTypeToStringMap.find(type);
-  if (iter != kHcclDataTypeToStringMap.end()){
+  if (iter != kHcclDataTypeToStringMap.end()) {
     return iter->second;
   } else {
     TORCH_WARN_ONCE("Can not serialize undefined hccl data type.");
@@ -458,7 +458,7 @@ void ProcessGroupHCCL::WorkHCCL::handleHCCLGuard(ErrorHandlingMode asyncErrorHan
 
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
-  if (!c10_npu::NpuRunMode::IsGraphMode()){
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
     synchronize();
   }
   // Always return true, because abort API is not implemented.
@@ -1139,7 +1139,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 
 ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
     : opTimeout(kProcessGroupHCCLOpTimeoutMillis),
-    is_high_priority_stream(is_high_priority_stream){}
+    is_high_priority_stream(is_high_priority_stream) {}
 
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
@@ -1149,7 +1149,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     PreProcess pre,
     PostProcess post,
     c10d::OpType opType) {
-
   // Bump collective counter
   seq_++;
 
@@ -1629,7 +1628,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     const c10d::ReduceScatterOptions& opts) {
-
   if (inputTensor.dtype() != outputTensor.dtype()) {
     TORCH_CHECK(false, "input tensor must be the same type as the output tensor.");
   }
@@ -1799,7 +1797,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
-
+  TORCH_CHECK(ranks > 0, "Invalid ranks", ranks);
   if (inputSplitSizes.empty() && outputSplitSizes.empty()) {
         // We can use alltoall
     TORCH_CHECK(
@@ -1857,7 +1855,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
     outputSpl[0] = 0;
     for (int i = 0; i < outSize; i++) {
       outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
-      if(i > 0){
+      if (i > 0) {
           outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
       }
     }
@@ -1907,12 +1905,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
   for (size_t i = 0; i < input_tensors.size(); i++) {
     int64_t inputlist_tensor_size = input_tensors[i].numel();
     input_split_sizes.push_back(inputlist_tensor_size);
-    input_tensors_after.push_back(at::reshape(input_tensors[i],{inputlist_tensor_size,1}));
+    input_tensors_after.push_back(at::reshape(input_tensors[i], {inputlist_tensor_size,1}));
   }
 
   for (size_t i = 0; i < output_tensors.size(); i++) {
     output_split_sizes.push_back(output_tensors[i].numel());
-    output_tensors_after.push_back(at::reshape(output_tensors[i],{output_tensors[i].numel(),1}));
+    output_tensors_after.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(),1}));
   }
 
   int ranks = getSize();

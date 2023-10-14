@@ -81,7 +81,7 @@ public:
             HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
         c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
             comm->destropyHcclComm();
-        }, c10_npu::ReleasePriority::PriorityMiddle);
+            }, c10_npu::ReleasePriority::PriorityMiddle);
 
         comm->hcclId_ = rootInfo;
         return comm;

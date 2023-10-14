@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -357,7 +357,7 @@ protected:
           value,
       "");
 #endif
-  void runGradCallbackForVariable(at::Tensor& variable, GradCallback&& cb);
+  void runGradCallbackForVariable(at::Tensor& variable, GradCallback && cb);
 
   // A bucket replica represents [1..N] gradients to be reduced,
   // with the same dtype, on the same device.
@@ -403,7 +403,6 @@ protected:
     // Number of tensors to be added before this bucket is complete.
     // This is reset to `variables.size()` every iteration.
     size_t pending;
-
   };
 
   // This function is called inside `initialize_buckets`, it initializes both
@@ -523,7 +522,7 @@ protected:
     ContextPtr context_ptr_holder;
     std::atomic<ContextPtr::element_type*> context_ptr{nullptr};
 
-    void set(ContextPtr&& new_context_ptr);
+    void set(ContextPtr && new_context_ptr);
   };
   RpcContext rpc_context_;
 #endif

@@ -70,7 +70,7 @@ c10d::DebugLevel debug_level() noexcept {
 
 } // namespace
 
-C10_DEFINE_TYPED_REGISTRY( // NOLINT
+C10_DEFINE_TYPED_REGISTRY(
     TimerRegistry,
     c10::DeviceType,
     Timer,
@@ -285,8 +285,7 @@ bool Reducer::ddp_graph_static() {
 
 void Reducer::initialize_local_used_map() {
   const auto variable_count = params_.size();
-  at::TensorOptions options;
-  options = options.dtype(at::kInt);
+  at::TensorOptions options = options.dtype(at::kInt);
 
   // Deliberately don't pin the memory even if local_used_map_dev_ will
   // be cuda. See Note [local_used_map_ -> local_used_map_dev copying]
@@ -392,7 +391,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
                   << " is not well-supported. The higher-order gradient will "
                   << " not be synchronized across ranks, and backpropagation "
                   << " through all_reduce operations will not occur.";
-              at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
+              at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
             }
           } else {
             at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
@@ -409,7 +408,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
           auto out = at::empty_like(grad);
           std::vector<at::Tensor> output{out};
           grad.div_(process_group_->getSize());
-          c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL> process_group_hccl = 
+          c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL> process_group_hccl =
             c10::dynamic_intrusive_pointer_cast<::c10d_npu::ProcessGroupHCCL>(process_group_);
           bucket.work = process_group_hccl->allreduce_out(input, output, bucket_index.bucket_index);
           grad = out;
@@ -704,9 +703,7 @@ void Reducer::checkAndRaiseMarkedTwiceError(size_t index) {
   // Something is wrong if all variables contained in this bucket replica have
   // already been marked as ready.
   // We don't expect the same variable to be marked ready twice.
-  bool marked_twice =
-      perIterationReadyParams_.find(index) != perIterationReadyParams_.end();
-
+  bool marked_twice = (perIterationReadyParams_.find(index) != perIterationReadyParams_.end());
   if (marked_twice) {
     // Report index of param that has been marked twice. In debug mode, also
     // report fully qualified parameter name.
@@ -877,8 +874,7 @@ void Reducer::all_reduce_bucket(Bucket& bucket) {
         bucket.replicas[0].sizes_vec,
         variables_for_bucket);
     bucket.future_work = run_comm_hook(grad_bucket);
-  }
-  
+  }  
 }
 
 std::vector<at::Tensor> Reducer::get_variables_for_bucket(
@@ -1586,8 +1582,7 @@ void Reducer::sync_bucket_indices(
     total_size += static_cast<int64_t>(bucket_size);
   }
 
-  at::TensorOptions options;
-  options = options.dtype(at::kInt);
+  at::TensorOptions options = options.dtype(at::kInt);
   options = options.device(params_[0].device());
 
   // Group indices and num_bucket together into indices_tensor
@@ -1679,9 +1674,7 @@ bool Reducer::rebuild_buckets() {
   bucket_size_limits.push_back(first_bucket_bytes_cap_);
   bucket_size_limits.push_back(bucket_bytes_cap_);
   std::vector<size_t> per_bucket_size_limits;
-  auto ddp_set_last_bucket_as_small =
-      (c10d::parse_env("DDP_SET_LAST_BUCKET_CAP").compare("1") == 0);
-
+  auto ddp_set_last_bucket_as_small = (c10d::parse_env("DDP_SET_LAST_BUCKET_CAP").compare("1") == 0);
   if (ddp_set_last_bucket_as_small) {
     // Reverse so that first_bucket_bytes_cap_ (smaller bucket) becomes the last
     // bucket. We cannot simply pass in {bucket_bytes_cap_, first_bucket_bytes_cap}
@@ -2065,7 +2058,7 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
   bucket_indices.reserve(result.size());
   std::vector<size_t> per_bucket_size_limits;
   per_bucket_size_limits.reserve(result.size());
-  for (const auto & bucket_indices_with_size : result) {
+  for (const auto& bucket_indices_with_size : result) {
     bucket_indices.emplace_back(std::get<0>(bucket_indices_with_size));
     per_bucket_size_limits.emplace_back(std::get<1>(bucket_indices_with_size));
   }
@@ -2082,8 +2075,7 @@ void verify_params_across_processes(
   for (const auto& t : params) {
     i += static_cast<size_t>(2 * t.dim());
   }
-  at::TensorOptions options;
-  options = options.dtype(at::kLong);
+  at::TensorOptions options = options.dtype(at::kLong);
   auto metadata = at::empty({static_cast<long>(i)}, options);
 
   // Technically, process 0 is the broadcast source, so only process 0 needs
@@ -2122,7 +2114,6 @@ void verify_params_across_processes(
       } else {
         TORCH_CHECK(sz == control_accessor[i++], msg)
       }
-
     }
     for (const auto& str : t.strides()) {
       auto msg = c10::str("params[", p, "] in this process",
