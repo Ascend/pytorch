@@ -29,8 +29,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '2.1.0'
 UNKNOWN = "Unknown"
-DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
-DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
+DISABLE_TORCHAIR = "TRUE"
+if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:
+    DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
+DISABLE_RPC = "TRUE" 
+if os.environ.get("DISABLE_RPC_FRAMEWORK") is not None:
+    DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
 
 def get_submodule_folders():
     git_modules_path = os.path.join(BASE_DIR, ".gitmodules")
