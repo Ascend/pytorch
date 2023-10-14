@@ -40,9 +40,9 @@ roll_with_index_select = RollWithIndexSelect.apply
 def get_roll_index(H, W, shifts, device='cpu'):
     index = torch.arange(0, H * W).reshape(H, W)
     index_fp = torch.roll(index, shifts=shifts, dims=(0, 1)).reshape(-1).long()
-    index_bp = {i:idx for idx, i in enumerate(index_fp.numpy().tolist())}
-    index_bp = [index_bp[i] for i in range(H * W)]
-    index_bp = torch.LongTensor(index_bp)
+    index_bp_dict = {i:idx for idx, i in enumerate(index_fp.numpy().tolist())}
+    index_bp_list = [index_bp_dict[i] for i in range(H * W)]
+    index_bp = torch.LongTensor(index_bp_list)
     return [index_fp.to(device), index_bp.to(device)]
 
 
