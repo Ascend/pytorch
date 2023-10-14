@@ -67,7 +67,7 @@ c10d::DebugLevel debug_level() noexcept {
 
 } // namespace
 
-C10_DEFINE_TYPED_REGISTRY( // NOLINT
+C10_DEFINE_TYPED_REGISTRY(
     TimerRegistry,
     c10::DeviceType,
     Timer,
@@ -129,7 +129,7 @@ Reducer::Reducer(
     }
   }
 
-  // For CUDA, record events only for single device module.
+  // For NPU, record events only for single device module.
   c10::Device device = params_[0].device();
   if (!(device.type() == c10::DeviceType::PrivateUse1 && is_multi_device_module_)) {
     timer_ = TimerRegistry()->Create(device.type(), device);
@@ -282,8 +282,7 @@ bool Reducer::ddp_graph_static() {
 
 void Reducer::initialize_local_used_map() {
   const auto variable_count = params_.size();
-  at::TensorOptions options;
-  options = options.dtype(at::kInt);
+  at::TensorOptions options = options.dtype(at::kInt);
 
   // Deliberately don't pin the memory even if local_used_map_dev_ will
   // be cuda. See Note [local_used_map_ -> local_used_map_dev copying]
@@ -377,7 +376,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
                 << " is not well-supported. The higher-order gradient will "
                 << " not be synchronized across ranks, and backpropagation "
                 << " through all_reduce operations will not occur.";
-            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
+            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
           }
         } else {
           at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
@@ -1531,8 +1530,7 @@ void Reducer::sync_bucket_indices(
     total_size += static_cast<int64_t>(bucket_size);
   }
 
-  at::TensorOptions options;
-  options = options.dtype(at::kInt);
+  at::TensorOptions options = options.dtype(at::kInt);
   options = options.device(params_[0].device());
 
   // Group indices and num_bucket together into indices_tensor
@@ -1685,27 +1683,23 @@ void Reducer::register_comm_hook(std::unique_ptr<c10d::CommHookInterface> iface)
 }
 
 // See Note [DDP Communication Hook]
-void Reducer::register_builtin_comm_hook(
-    c10d::BuiltinCommHookType comm_hook_type) {
+void Reducer::register_builtin_comm_hook(c10d::BuiltinCommHookType comm_hook_type) {
   REDUCER_CHECK(
       comm_hook_ == nullptr,
       logger_,
       "register_builtin_comm_hook or register_comm_hook can only be called once.");
 
   switch (comm_hook_type) {
-    case c10d::BuiltinCommHookType::ALLREDUCE:
-      comm_hook_ =
-          std::make_unique<c10d::AllReduceCommHook>(process_group_);
-      LOG(INFO) << "Built-in communication hook ALLREDUCE is registered.";
-      break;
-    case c10d::BuiltinCommHookType::FP16_COMPRESS:
-      comm_hook_ =
-          std::make_unique<c10d::FP16CompressCommHook>(process_group_);
-      LOG(INFO) << "Built-in communication hook FP16_COMPRESS is registered.";
-      break;
-    default:
-      TORCH_WARN_ONCE(
-          "Unknown built-in DDP comm hook type is provided. No comm hook will be used.");
+      case c10d::BuiltinCommHookType::ALLREDUCE:
+        comm_hook_ = std::make_unique<c10d::AllReduceCommHook>(process_group_);
+        LOG(INFO) << "Built-in communication hook ALLREDUCE is registered.";
+        break;
+      case c10d::BuiltinCommHookType::FP16_COMPRESS:
+        comm_hook_ =std::make_unique<c10d::FP16CompressCommHook>(process_group_);
+        LOG(INFO) << "Built-in communication hook FP16_COMPRESS is registered.";
+        break;
+      default:
+        TORCH_WARN_ONCE("Unknown built-in DDP comm hook type is provided. No comm hook will be used.");
   }
 }
 
@@ -2026,8 +2020,7 @@ void verify_params_across_processes(
   for (const auto& t : params) {
     i += static_cast<size_t>(2 * t.dim());
   }
-  at::TensorOptions options;
-  options = options.dtype(at::kLong);
+  at::TensorOptions options = options.dtype(at::kLong);
   auto metadata = at::empty({static_cast<long>(i)}, options);
 
   // Technically, process 0 is the broadcast source, so only process 0 needs
