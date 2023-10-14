@@ -20,7 +20,7 @@ namespace at_npu {
 namespace native {
 c10::SmallVector<int64_t, SIZE> array_to_small_vector(c10::IntArrayRef shape) {
   c10::SmallVector<int64_t, SIZE> shape_small_vec;
-  for (int i = 0; i < shape.size(); i++) {
+  for (size_t i = 0; i < shape.size(); i++) {
     shape_small_vec.emplace_back(shape[i]);
   }
   return shape_small_vec;

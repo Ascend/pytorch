@@ -153,7 +153,7 @@ namespace at_npu
 
         auto str_to_small_vector = [](std::string str) -> c10::SmallVector<int64_t, 5> {
             int start = 0;
-            while ((start < str.size()) && (str[start++] != '/'));
+            while ((start < static_cast<int64_t>(str.size())) && (str[start++] != '/'));
             int end = start;
             c10::SmallVector<int64_t, 5> vec;
             while (end < static_cast<int64_t>(str.size())) {

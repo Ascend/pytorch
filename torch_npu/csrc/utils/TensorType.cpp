@@ -177,20 +177,20 @@ static void py_initialize_tensor_type(PyTypeObject& type, const char* name, PyOb
 }
 
 static std::string get_module(Backend backend) {
-  switch (backend) {
-    case Backend::CPU:
-      return "torch";
-    case Backend::CUDA:
-      return "torch.cuda";
-    case Backend::SparseCPU:
-      return "torch.sparse";
-    case Backend::SparseCUDA:
-      return "torch.cuda.sparse";
-    case Backend::PrivateUse1:
-      return "torch." + c10::get_privateuse1_backend();
-    default:
-      AT_ERROR("invalid backend: ", c10::toString(backend));
-  }
+    switch (backend) {
+        case Backend::CPU:
+            return "torch";
+        case Backend::CUDA:
+            return "torch.cuda";
+        case Backend::SparseCPU:
+            return "torch.sparse";
+        case Backend::SparseCUDA:
+            return "torch.cuda.sparse";
+        case Backend::PrivateUse1:
+            return "torch." + c10::get_privateuse1_backend();
+        default:
+            AT_ERROR("invalid backend: ", c10::toString(backend));
+    }
 }
 
 static std::string get_name(Backend backend, ScalarType scalarType) {
