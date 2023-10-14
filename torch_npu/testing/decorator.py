@@ -134,8 +134,10 @@ def instantiate_ops_tests(op_db):
 class Dtypes(object):
 
     def __init__(self, *args):
-        assert args is not None and len(args) != 0, "No dtypes given"
-        assert all(isinstance(arg, torch.dtype) for arg in args), "Unknown dtype in {0}".format(str(args))
+        if args is None or len(args) == 0:
+            raise ValueError("No dtypes given")
+        if not all(isinstance(arg, torch.dtype) for arg in args):
+            raise ValueError("Unknown dtype in {0}".format(str(args)))
         self.args = args
 
     def __call__(self, fn):
@@ -146,7 +148,8 @@ class Dtypes(object):
 class Formats(object):
 
     def __init__(self, *args):
-        assert args is not None and len(args) != 0, "No formats given"
+        if args is None or len(args) == 0:
+            raise ValueError("No formats given")
         self.args = args
 
     def __call__(self, fn):

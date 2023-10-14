@@ -27,6 +27,7 @@ import torch_npu
 
 _register_custom_builtin('torch_npu', 'import torch_npu', torch_npu)
 
+
 def to_folder(self, folder: Union[str, os.PathLike], module_name : str = "FxModule"):
     """Dumps out module to ``folder`` with ``module_name`` so that it can be
     imported with ``from <folder> import <module_name>``

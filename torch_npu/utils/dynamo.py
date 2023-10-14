@@ -45,9 +45,9 @@ class NpuNullBackendCtx:
                                      for name in self.tensor_method_names]
         builtins.isinstance = builtin_isinstance
         torch.device = torch._C.device
-        [setattr(torch,name,getattr(torch._C._VariableFunctions, name))
+        [setattr(torch, name, getattr(torch._C._VariableFunctions, name))
          for name in self.torch_func_names]
-        [setattr(torch.Tensor,name,getattr(torch._C._TensorBase, name))
+        [setattr(torch.Tensor, name, getattr(torch._C._TensorBase, name))
          for name in self.tensor_method_names]
         allowed_functions._builtin_function_ids.add(id(builtin_isinstance))
         return self.enter_result

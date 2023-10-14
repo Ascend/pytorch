@@ -103,11 +103,13 @@ class BinaryUfuncInfo(OpInfo, Of_BinaryUfuncInfo):
                  name,
                  sample_inputs_func=common_methods_invocations.sample_inputs_elementwise_binary,
                  **kwargs):
-        super().__init__(name,sample_inputs_func=sample_inputs_func, **kwargs)
+        super().__init__(name, sample_inputs_func=sample_inputs_func, **kwargs)
+
 
 class ReductionOpInfo(OpInfo, Of_ReductionOpInfo):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
+
 
 def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwargs):
     cases = [
@@ -116,6 +118,7 @@ def sample_inputs_normal_tensor_second(self, device, dtype, requires_grad, **kwa
         ([5, 6, 7, 8], [5, 6, 7, 8], {})
     ]
     return sample_inputs_normal_common(self, device, dtype, requires_grad, cases, **kwargs)
+
 
 def sample_inputs_logpace(op, device, dtype, requires_grad, **kwargs):
     ends = (-3, 0, 1.2, 2, 4)
@@ -134,6 +137,7 @@ def sample_inputs_logpace(op, device, dtype, requires_grad, **kwargs):
 
     yield SampleInput(1, args=(3, 1, 2.))
 
+
 def sample_inputs_median_custom(self, device, dtype, requires_grad, **kwargs):
     make_arg = partial(make_tensor, device=device, dtype=dtype, requires_grad=requires_grad)
 
@@ -141,9 +145,9 @@ def sample_inputs_median_custom(self, device, dtype, requires_grad, **kwargs):
     for shape in empty_tensor_shape:
         yield common_methods_invocations.SampleInput(make_arg(shape))
     
-    for torch_sample in common_methods_invocations.sample_inputs_reduction\
-        (self, device, dtype, requires_grad, **kwargs):
-        yield torch_sample
+    yield from common_methods_invocations.sample_inputs_reduction(
+        self, device, dtype, requires_grad, **kwargs
+    )
 
 
 op_db: List[OpInfo] = [
@@ -1013,7 +1017,7 @@ op_db: List[OpInfo] = [
         skips=(
             # Precision issue caused by different implementation on CPU (native_group_norm) and XLA (math_group_norm)
             # torch_npu continues to use the one of XLA backend
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.float16,]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.float16]),
         ),
     ),
     OpInfo(
@@ -1488,7 +1492,7 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32,]),
+            dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
@@ -1501,7 +1505,7 @@ op_db: List[OpInfo] = [
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', 
             dtypes=[torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', 
-            dtypes=[torch.float32,]),
+            dtypes=[torch.float32]),
         ),
     ),
     OpInfo(

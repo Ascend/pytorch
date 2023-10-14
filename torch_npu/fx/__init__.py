@@ -15,3 +15,5 @@
 
 
 from .symbolic_trace import symbolic_trace, NpuTracer
+
+__all__ = ["symbolic_trace", "NpuTracer"]

@@ -101,6 +101,7 @@ class NpuStorage(object):
 
 storage_impl = torch.Tensor.storage
 
+
 def _storage(self):
     if torch_npu._C.is_npu(self):
         return NpuStorage(torch_npu.get_storage_size(self))

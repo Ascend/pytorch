@@ -27,6 +27,7 @@ CKPT_OVERFLOW_FLAG = False
 CKPT_CONST_VAR = None
 FLAG_SUPPORT_INF_NAN = False
 
+
 def detach_variable(inputs: Tuple[Any, ...]) -> Tuple[torch.Tensor, ...]:
     if isinstance(inputs, tuple):
         out = []
@@ -172,10 +173,10 @@ class CheckpointFunction(torch.autograd.Function):
         # run backward() with only tensor that requires grad
         outputs_with_grad = []
         args_with_grad = []
-        for i in range(len(outputs)):
-            if torch.is_tensor(outputs[i]) and outputs[i].requires_grad:
-                outputs_with_grad.append(outputs[i])
-                args_with_grad.append(args[i])
+        for output, arg in zip(outputs, args):
+            if torch.is_tensor(output) and output.requires_grad:
+                outputs_with_grad.append(output)
+                args_with_grad.append(arg)
         if len(outputs_with_grad) == 0:
             raise RuntimeError(
                 "none of output has requires_grad=True,"
@@ -346,6 +347,7 @@ def checkpoint_sequential(functions, segments, input, **kwargs):
                            preserve_rng_state=preserve)
     return run_function(end + 1, len(functions) - 1, functions)(input)
 
+
 def _checkpoint_without_reentrant(function, preserve_rng_state=True, *args):
     """Checkpointining without re-entrant autograd
     Args:
@@ -420,6 +422,7 @@ def _checkpoint_without_reentrant(function, preserve_rng_state=True, *args):
                 "if you need this feature.")
 
     return output
+
 
 def add_checkpoint_methods():
     r"""Overwrite the original functions for pulg-in adaptation."""

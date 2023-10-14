@@ -38,6 +38,7 @@ from torch_npu.utils.tensor_methods import torch_device_guard
 
 logger = logging.getLogger(__name__)
 
+
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
 
@@ -57,6 +58,7 @@ def npu(self, device=None):
         with torch.no_grad():
             self.cast_weight(device)
     return self._apply(lambda t: t.npu(device))
+
 
 def to(self, *args, **kwargs):
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
@@ -87,11 +89,9 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
-        if "MultiheadAttention" in str(class_name) and \
-                hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
-                hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
-                hasattr(module,"v_proj_weight") and module.v_proj_weight is not None and \
-                not torch.npu.get_mm_bmm_format_nd():
+        if issubclass(class_name, torch.nn.MultiheadAttention) and \
+           module.q_proj_weight is not None and \
+           not torch.npu.get_mm_bmm_format_nd():
             module.q_proj_weight.data = module.q_proj_weight.data.to(device)
             module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
             module.k_proj_weight.data = module.k_proj_weight.data.to(device)
@@ -213,7 +213,6 @@ def ddp_forward(self, *inputs, **kwargs):
 
 def lstm_forward(self, input, hx=None):
     orig_input = input
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input, batch_sizes, sorted_indices, unsorted_indices = input
         max_batch_size = batch_sizes[0]
@@ -246,22 +245,19 @@ def lstm_forward(self, input, hx=None):
     else:
         if batch_sizes.device != input.device:
             batch_sizes_npu = batch_sizes.to(input.device)
-            result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
+            result_tmp = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
-            # 根据TMG决策，pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
+            # pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
             if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
-                result = list(result)
-                shape = [result[0].shape[0] * result[0].shape[1]]
-                if result[0].dim() > 2:
-                    shape = shape + list(result[0].shape[2:])
-                result[0] = result[0].reshape(shape)
-                result = tuple(result)
+                shape = [result_tmp[0].shape[0] * result_tmp[0].shape[1]]
+                if result_tmp[0].dim() > 2:
+                    shape = shape + list(result_tmp[0].shape[2:])
+                result = (result_tmp[0].reshape(shape), ) + result_tmp[1:]
         else:
             result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
     output = result[0]
     hidden = result[1:]
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         output_packed = torch.nn.utils.rnn.PackedSequence(output, batch_sizes, sorted_indices, unsorted_indices)
         return output_packed, self.permute_hidden(hidden, unsorted_indices)
@@ -309,7 +305,8 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
         exponential_average_factor = self.momentum
 
     if self.training and self.track_running_stats:
-        assert self.num_batches_tracked is not None
+        if self.num_batches_tracked is None:
+            raise ValueError("self.num_batches_tracked is None")
         self.num_batches_tracked.add_(1)
         if self.momentum is None:  # use cumulative moving average
             exponential_average_factor = 1.0 / self.num_batches_tracked.item()
@@ -353,7 +350,8 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             input1, running_mean, running_var, self.weight, self.bias,
             bn_training, exponential_average_factor, self.eps)
     else:
-        assert bn_training
+        if not bn_training:
+            raise ValueError("not bn_training")
         return sync_batch_norm.apply(
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
@@ -363,10 +361,9 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
     """
     Sets config variables for internal usage.
     """
-    assert isinstance(ddp, torch.nn.parallel.DistributedDataParallel), (
-        "DDP join hook requires passing in a DistributedDataParallel "
-        "instance as the state"
-    )
+    if not isinstance(ddp, torch.nn.parallel.DistributedDataParallel):
+        raise TypeError("DDP join hook requires passing in a DistributedDataParallel "
+                        "instance as the state")
     self.ddp = ddp
     self.ddp._divide_by_initial_world_size = divide_by_initial_world_size
     super(torch.nn.parallel.distributed._DDPJoinHook, self).__init__()
@@ -580,22 +577,22 @@ def _lazynormbase__init__(self, eps=1e-5, momentum=0.1, affine=True, track_runni
         self.num_batches_tracked = torch.tensor(
             0, dtype=torch.int32, **{k: v for k, v in factory_kwargs.items() if k != 'dtype'})
 
+
 def gru_forward(self, input_tensor, hx=None):
     if not torch.jit.is_scripting():
-            if self._weights_have_changed():
-                self._init_flat_weights()
+        if self._weights_have_changed():
+            self._init_flat_weights()
 
     orig_input = input_tensor
 
-    # xxx: isinstance check needs to be in conditional for TorchScript to compile
     if isinstance(orig_input, PackedSequence):
         input_tensor, batch_sizes, sorted_indices, unsorted_indices = input_tensor
         max_batch_size = batch_sizes[0]
         max_batch_size = int(max_batch_size)
     else:
         batch_sizes = None
-        assert (input_tensor.dim() in (2, 3)), \
-            f"GRU: Expected input to be 2-D or 3-D but received {input.dim()}-D tensor"
+        if input_tensor.dim() not in (2, 3):
+            raise ValueError(f"GRU: Expected input to be 2-D or 3-D but received {input.dim()}-D tensor")
 
         is_batched = input_tensor.dim() == 3
         batch_dim = 0 if self.batch_first else 1
@@ -651,7 +648,7 @@ def gru_forward(self, input_tensor, hx=None):
                 start = 0
                 cur = start
                 shape = [1] + list(result[0].shape[1:])
-                pad_tensor = torch.zeros(shape, device = input_tensor.device)
+                pad_tensor = torch.zeros(shape, device=input_tensor.device)
                 cat_list = []
                 for i in batch_list:
                     if (i < batch_list[0]):
@@ -680,9 +677,11 @@ def gru_forward(self, input_tensor, hx=None):
             hidden = hidden.squeeze(1)
         return output, self.permute_hidden(hidden, unsorted_indices)
 
+
 @torch_device_guard
 def _parse_to(*args, **kwargs):
     return torch_parse_to(*args, **kwargs)
+
 
 def apply_module_patch():
     torch.nn.Module.npu = npu

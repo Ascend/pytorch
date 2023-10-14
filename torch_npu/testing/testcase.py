@@ -42,7 +42,7 @@ import numpy as np
 
 from torch import inf
 
-from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices, IS_WINDOWS
+from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices
 from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
 
 # Environment variables set in ci script.
@@ -108,7 +108,8 @@ class TestCase(expecttest.TestCase):
     def genSparseTensor(self, size, sparse_dim, nnz, is_uncoalesced, device='cpu'):
         # Assert not given impossible combination, where the sparse dims have
         # empty numel, but nnz > 0 makes the indices containing values.
-        assert all(size[d] > 0 for d in range(sparse_dim)) or nnz == 0, 'invalid arguments'
+        if not all(size[d] > 0 for d in range(sparse_dim)) and nnz != 0:
+            raise ValueError('invalid arguments')
 
         v_size = [nnz] + list(size[sparse_dim:])
         v = torch.randn(*v_size, device=device)
@@ -124,10 +125,6 @@ class TestCase(expecttest.TestCase):
         if not is_uncoalesced:
             x = x.coalesce()
         else:
-            # FIXME: `x` is a sparse view of `v`. Currently rebase_history for
-            #        sparse views is not implemented, so this workaround is
-            #        needed for inplace operations done on `x`, e.g., copy_().
-            #        Remove after implementing something equivalent to CopySlice for sparse views.
             # NOTE: We do clone() after detach() here because we need to be able to change size/storage of x afterwards
             x = x.detach().clone()
         return x, x._indices().clone(), x._values().clone()
@@ -263,8 +260,6 @@ class TestCase(expecttest.TestCase):
                     inf_sign = inf_mask.sign()
                     self.assertTrue(torch.equal(inf_sign, torch.isinf(b).sign()), message)
                     diff[inf_mask] = 0
-            # TODO: implement abs on CharTensor (int8)
-            # TODO: modify abs to return float/double for ComplexFloat/ComplexDouble
             if diff.is_signed() and diff.dtype != torch.int8:
                 diff = diff.abs()
                 # if diff is complex, the imaginary component for diff will be 0
@@ -437,7 +432,6 @@ class TestCase(expecttest.TestCase):
                 return
         raise AssertionError("object not found in iterable")
 
-    # TODO: Support context manager interface
     # NB: The kwargs forwarding to callable robs the 'subname' parameter.
     # If you need it, manually apply your call_fn in a lambda instead.
     def assertExpectedRaises(self, exc_type, call_fn, *args, **kwargs):
@@ -521,18 +515,6 @@ class TestCase(expecttest.TestCase):
         s = re.sub(r'__torch__[^ ]+', '', s)
         self.assertExpected(s, subname)
 
-    # returns captured stderr
-    @staticmethod
-    def runWithPytorchAPIUsageStderr(code):
-        env = os.environ.copy()
-        env["PYTORCH_API_USAGE_STDERR"] = "1"
-        pipes = subprocess.Popen(
-            [sys.executable, '-c', code],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env)
-        return pipes.communicate()[1].decode('ascii')
-
     def run(self, result=None):
         # run test to precompile operators
         super(TestCase, self).run(result)
@@ -548,11 +530,11 @@ class TestCase(expecttest.TestCase):
                 methodId = strclass(self.__class__) + "." + self._testMethodName
                 baseline = PerfBaseline.get_baseline(methodId)
 
-                if baseline and runtime > baseline*1.2:
-                        errMsg = "Performance test failed. Performance baseline: " \
-                                + str(baseline) + "s, current time: " + str(runtime) + "s"
-                        perfErr = (self.failureException, self.failureException(errMsg), None)
-                        self._feedErrorsToResult(result, [(self, perfErr)])
+                if baseline and runtime > baseline * 1.2:
+                    errMsg = "Performance test failed. Performance baseline: " \
+                            + str(baseline) + "s, current time: " + str(runtime) + "s"
+                    perfErr = (self.failureException, self.failureException(errMsg), None)
+                    self._feedErrorsToResult(result, [(self, perfErr)])
 
-                if baseline is None or runtime < baseline*0.9:
+                if baseline is None or runtime < baseline * 0.9:
                     PerfBaseline.set_baseline(methodId, runtime)
