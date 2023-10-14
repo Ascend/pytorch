@@ -78,7 +78,7 @@ private:
     bool is_soc_match;
     std::string soc_name_;
     int device_id_;
-    aclrtContext ctx_;
+    aclrtContext ctx_{nullptr};
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
 } // namespace c10_npu

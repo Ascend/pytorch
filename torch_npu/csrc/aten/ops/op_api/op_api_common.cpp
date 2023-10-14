@@ -252,8 +252,8 @@ uint64_t MurmurHash(const void *key, const int len, const uint32_t seed = 0xdead
             k1 *= c1; k1 = ROTL64(k1, 31); k1 *= c2; h1 ^= k1;
     };
 
-    h1 ^= len;
-    h2 ^= len;
+    h1 ^= static_cast<size_t>(len);
+    h2 ^= static_cast<size_t>(len);
 
     h1 += h2;
     h2 += h1;

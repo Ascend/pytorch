@@ -23,7 +23,7 @@ template<typename T>
 void encodeFixedData(const std::vector<T> &datas, std::vector<uint8_t> &result) {
   for (auto data : datas) {
     for (size_t i = 0; i < sizeof(T); ++i) {
-      result.push_back((data >> (i * 8)) & 0xff);
+      result.push_back((static_cast<size_t>(data) >> (i * 8)) & 0xff);
     }
   }
 }

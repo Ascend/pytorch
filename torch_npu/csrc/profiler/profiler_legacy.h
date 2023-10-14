@@ -354,7 +354,7 @@ private:
   at::StringView name_;
   EventKind kind_;
   uint64_t thread_id_;
-  uint64_t fwd_thread_id_;
+  uint64_t fwd_thread_id_{0};
   at::RecordFunctionHandle handle_ {0};
   std::vector<std::vector<int64_t>> shapes_;
   int64_t cpu_memory_usage_ = 0;
@@ -369,8 +369,8 @@ private:
   int64_t sequence_nr_ = -1;
 
   std::vector<std::string> stack_;
-  uint8_t scope_;
-  uint64_t correlation_id_;
+  uint8_t scope_{0};
+  uint64_t correlation_id_{0};
   // Extra arguments for computing op flops
   std::unordered_map<std::string, c10::IValue> extra_args_;
   uint64_t flops_ = 0;
