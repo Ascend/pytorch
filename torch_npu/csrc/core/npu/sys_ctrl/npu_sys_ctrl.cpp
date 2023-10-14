@@ -41,10 +41,9 @@ std::string GetCurDirPath() {
 
 void MakeCompileCacheDirAndSetOption() {
   char* compile_cache_mode_val = std::getenv("ACL_OP_COMPILER_CACHE_MODE");
-  char* compile_cache_dir_val = std::getenv("ACL_OP_COMPILER_CACHE_DIR");
-
   std::string compile_cache_mode = (compile_cache_mode_val == nullptr) ? std::string("enable")
-                                                                       : std::string(compile_cache_mode_val);
+                                                                      : std::string(compile_cache_mode_val);
+  char* compile_cache_dir_val = std::getenv("ACL_OP_COMPILER_CACHE_DIR");
   std::string compile_cache_dir = (compile_cache_dir_val == nullptr) ? GetCurDirPath() + "/cache"
                                                                      : std::string(compile_cache_dir_val);
   // mode : 750
