@@ -38,41 +38,41 @@ private:
                                        at::Tensor &self) {
     RECORD_FUNCTION("contiguous_h_memRepoint", std::vector<c10::IValue>({src}));
     switch (src.scalar_type()) {
-    case at::ScalarType::Half:
-      ResetDataPtr(src, self,
-                   static_cast<at::Half *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::BFloat16:
-      ResetDataPtr(src, self,
-                   static_cast<at::BFloat16 *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::Float:
-      ResetDataPtr(src, self,
-                   static_cast<float *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::Byte:
-      ResetDataPtr(src, self,
-                   static_cast<uint8_t *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::Char:
-      ResetDataPtr(src, self,
-                   static_cast<int8_t *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::Short:
-      ResetDataPtr(src, self,
-                   static_cast<int16_t *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::Int:
-      ResetDataPtr(src, self,
-                   static_cast<int *>(src.storage().data_ptr().get()));
-      return true;
-    case at::ScalarType::Long:
-      ResetDataPtr(src, self,
-                   static_cast<int64_t *>(src.storage().data_ptr().get()));
-      return true;
-    default:
-      // Turn to conducting d2dCopyAsync for other dtypes.
-      return false;
+        case at::ScalarType::Half:
+            ResetDataPtr(src, self,
+                         static_cast<at::Half *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::BFloat16:
+            ResetDataPtr(src, self,
+                         static_cast<at::BFloat16 *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Float:
+            ResetDataPtr(src, self,
+                         static_cast<float *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Byte:
+            ResetDataPtr(src, self,
+                         static_cast<uint8_t *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Char:
+            ResetDataPtr(src, self,
+                         static_cast<int8_t *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Short:
+            ResetDataPtr(src, self,
+                         static_cast<int16_t *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Int:
+            ResetDataPtr(src, self,
+                         static_cast<int *>(src.storage().data_ptr().get()));
+            return true;
+        case at::ScalarType::Long:
+            ResetDataPtr(src, self,
+                         static_cast<int64_t *>(src.storage().data_ptr().get()));
+            return true;
+        default:
+            // Turn to conducting d2dCopyAsync for other dtypes.
+            return false;
     }
   }
 

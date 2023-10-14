@@ -4,6 +4,7 @@ from torch.autograd.function import Function
 
 import torch_npu
 
+
 class SyncBatchNorm(Function):
 
     @staticmethod

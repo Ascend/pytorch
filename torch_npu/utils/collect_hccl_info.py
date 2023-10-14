@@ -52,8 +52,8 @@ def compile_hccl_test():
 
     try:
         subprocess.check_call(args=[make_path] + build_args, env=os.environ, shell=False)
-    except subprocess.CalledProcessError as err:
-        print("HCCL test compile fail. Details listed below: \n", err)
+    except subprocess.CalledProcessError:
+        print("HCCL test compile fail.")
 
 
 """
@@ -106,14 +106,16 @@ def execute_hccl_test_single_node():
     comm_op_type = get_exe_hccl_test()
     exe_args = [comm_op_type]
     for key, val in args_dict.items():
-        if key == "t" or val is None or key == 'multinode' or key == "file":
+        if key == "t" or val is None:
+            continue
+        if key == 'multinode' or key == "file":
             continue
         exe_args.extend(['-' + key, val])
     if args_dict["multinode"] == "False":
         try:
             subprocess.check_call(args=[shutil.which("mpirun")] + exe_args, shell=False)
-        except subprocess.CalledProcessError as err:
-            print("HCCL test executes fail! Details listed below: \n", err)
+        except subprocess.CalledProcessError:
+            print("HCCL test executes fail.")
     else:
         subprocess.check_call(args=[shutil.which("mpirun"), "-f", args_dict["file"]] + exe_args, shell=False)
 

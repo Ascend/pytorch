@@ -44,12 +44,12 @@ private:
 
     for (const auto i : c10::irange(indexing_size.size())) {
       // base_stride should not be 0.
-      if ((base_stride[i] == 0) || 
-          (indexing_stride[i] < base_stride[i]) || 
+      if ((base_stride[i] == 0) ||
+          (indexing_stride[i] < base_stride[i]) ||
           ((indexing_stride[i] % base_stride[i]) != 0)) {
         return false;
       }
-    } 
+    }
 
     // indexing信息获取部分
     // Get step info(for indexing step at index aixs should > 1)

@@ -13,30 +13,7 @@ import tempfile
 import torch
 import numpy as np
 
-from torch.testing._internal.common_utils import TEST_MKL
-
 import torch_npu
-
-IS_WINDOWS = sys.platform == "win32"
-
-
-if IS_WINDOWS:
-    @contextmanager
-    def TemporaryFileName():
-        # Ideally we would like to not have to manually delete the file, but NamedTemporaryFile
-        # opens the file, and it cannot be opened multiple times in Windows. To support Windows,
-        # close the file after creation and try to remove it manually
-        f = tempfile.NamedTemporaryFile(delete=False)
-        try:
-            f.close()
-            yield f.name
-        finally:
-            os.unlink(f.name)
-else:
-    @contextmanager  # noqa: T484
-    def TemporaryFileName():
-        with tempfile.NamedTemporaryFile() as f:
-            yield f.name
 
 
 @contextmanager
@@ -120,6 +97,7 @@ def __generate_2args_broadcast_cases(device=None):
 
     yield cpu_x, cpu_y, npu_x, npu_y
 
+
 def test_2args_broadcast(fn):
     output_list = []
     for cpu_x, cpu_y, npu_x, npu_y in __generate_2args_broadcast_cases():
@@ -144,7 +122,7 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
         x = np.random.uniform(min_value, max_value, shape).astype(np.float32)
 
     else:
-        x = np.random.randint(min_value, max_value+1, size = shape).astype(np.int32)
+        x = np.random.randint(min_value, max_value + 1, size=shape).astype(np.int32)
 
     if no_zero:
         ones = np.ones_like(x)
@@ -175,6 +153,7 @@ def check_operators_in_prof(expected_operators, prof, unexpected_operators=None)
         return True
     return False
 
+
 def skipIfUnsupportMultiNPU(npu_number_needed):
     def skip_dec(func):
         def wrapper(self):
@@ -183,6 +162,7 @@ def skipIfUnsupportMultiNPU(npu_number_needed):
             return func(self)
         return wrapper
     return skip_dec
+
 
 class SkipIfNoLapack(object):
 
@@ -207,16 +187,17 @@ class SkipIfNotRegistered(object):
         @SkipIfNotRegistered('MyOp', 'MyOp is not linked!')
             This will check if 'MyOp' is in the caffe2.python.core
     """
-    def __call__(op_name, message):
+    def __call__(self, message):
         try:
             from caffe2.python import core
-            skipper = unittest.skipIf(op_name not in core._REGISTERED_OPERATORS, message)
+            skipper = unittest.skipIf(self not in core._REGISTERED_OPERATORS, message)
         except ImportError:
             skipper = unittest.skip("Cannot import `caffe2.python.core`")
         return skipper
 
 PERF_TEST_ENABLE = (os.getenv('PERF_TEST_ENABLE', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
 PERF_BASELINE_FILE = os.getenv("PERF_BASELINE_FILE", default=os.path.join(os.getcwd(), "performance_baseline.json"))
+
 
 class Baseline(object):
 

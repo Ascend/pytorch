@@ -70,7 +70,7 @@ std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
 
-int64_t physical_numel(at::Tensor& self){
+int64_t physical_numel(at::Tensor& self) {
   auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
@@ -102,9 +102,9 @@ HcclDataType getHcclDataType(at::ScalarType type) {
   }
 }
 
-std::string getHcclDataTypeSerialString(HcclDataType type){
+std::string getHcclDataTypeSerialString(HcclDataType type) {
   const auto &iter = kHcclDataTypeToStringMap.find(type);
-  if (iter != kHcclDataTypeToStringMap.end()){
+  if (iter != kHcclDataTypeToStringMap.end()) {
     return iter->second;
   } else {
     TORCH_NPU_WARN_ONCE("Can not serialize undefined hccl data type.");
@@ -158,13 +158,11 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors) {
 
 // Return device with ordinal given by input rank.
 at::Device getDeviceForRank(int rank) {
-    TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
-    auto numNPUs = c10_npu::device_count();
-    if (numNPUs == 0) {
-        AT_ERROR("Number of NPU devices on the machine is zero. Please check it");
-    }
-    int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
-    return at::Device(c10::DeviceType::PrivateUse1, deviceIdx);
+  TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
+  auto numNPUs = c10_npu::device_count();
+  TORCH_CHECK(numNPUs > 0, "Invalid device number", numNPUs);
+  int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
+  return at::Device(c10::DeviceType::PrivateUse1, deviceIdx);
 }
 
 // [Sync Streams] Helper that lets the input hcclStreams to wait for the current
@@ -557,7 +555,7 @@ std::vector<at::Tensor> create_base_format_tensors(const std::vector<at::Tensor>
     } else {
       auto options = at::TensorOptions().dtype(inputTensors[i].dtype()).device(inputTensors[i].device());
       inputTensors_[i] = at_npu::native::NPUNativeFunctions::empty(
-          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(), 
+          inputTensors[i].sizes(), options.dtype().toScalarType(), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), options.memory_format_opt());
     }
   }
@@ -620,7 +618,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
 ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
     : c10d::Backend::Options(HCCL_BACKEND_NAME),
       opTimeout(kProcessGroupHCCLOpTimeoutMillis),
-      is_high_priority_stream(is_high_priority_stream){}
+      is_high_priority_stream(is_high_priority_stream) {}
 
 int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
   at::Device device = getDeviceForRank(rankid);
@@ -631,7 +629,7 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
       hcclComms.size());
   auto ret_hcom = hcclComms[0]->getHcclComm();
   int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
-  return hccl_comm; 
+  return hccl_comm;
 }
 
 template <typename Fn, typename PreProcess, typename PostProcess>
@@ -641,7 +639,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     Fn fn,
     PreProcess pre,
     PostProcess post) {
-
   // Bump collective counter
   seq_++;
   
@@ -1027,7 +1024,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     const c10d::ReduceScatterOptions& opts) {
-
   if (inputTensor.dtype() != outputTensor.dtype()) {
     TORCH_CHECK(false, "input tensor must be the same type as the output tensor.");
   }
@@ -1195,6 +1191,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   auto inputTensors_ = cast_to_origin_format(inputTensors);
   auto outputTensors_ = cast_to_origin_format(outputTensors);
   int ranks = getSize();
+  TORCH_CHECK(ranks > 0, "Invalid ranks", ranks);
   uint64_t index = static_cast<uint64_t>(inputTensor.numel() / ranks);
   if (outputSplitSizes.empty()) {
     for (int i = 0; i < ranks; i++) {
@@ -1213,7 +1210,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   outputSpl[0] = 0;
   for (int i = 0; i < outSize; i++) {
     outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
-    if(i > 0){
+    if (i > 0) {
         outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
     }
   }
@@ -1341,7 +1338,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
           output_results = at::split(out_tensors[0], output_split_sizes, 0);
 	  for (int i = 0; i < output_results.size(); i++) {
 	    output_tensors[i].copy_(at::reshape(output_results[i], output_tensors[i].sizes()), true);
-	  } 
+	  }
       });
 }
 

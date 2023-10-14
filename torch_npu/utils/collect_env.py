@@ -42,6 +42,7 @@ SystemEnv = namedtuple('SystemEnv', [
     'npu_count_info',
 ])
 
+
 def get_cann_version():
     ascend_home_path = os.environ.get("ASCEND_HOME_PATH", "")
     cann_version = "not known"
@@ -56,12 +57,14 @@ def get_cann_version():
                 break
     return cann_version
 
+
 def get_npu_board_info(run_lambda):
     npu_smi = " npu-smi info -t board -i 0"
     rc, out, _ = run_lambda(npu_smi)
     if rc != 0:
         return "not known"
     return out
+
 
 def get_npu_mapping_info(run_lambda):
     npu_smi = " npu-smi info -m"
@@ -70,12 +73,14 @@ def get_npu_mapping_info(run_lambda):
         return "not known"
     return out
 
+
 def get_npu_count_info(run_lambda):
     npu_smi = " npu-smi info -l"
     rc, out, _ = run_lambda(npu_smi)
     if rc != 0:
         return "not known"
     return out
+
 
 def get_torch_npu_version():
     try:
@@ -89,6 +94,7 @@ def get_torch_npu_version():
         if hasattr(torch_npu, "version") and hasattr(torch_npu.version, "git_version"):
             torch_npu_version_str = torch_npu_version_str + "+git" + torch_npu.version.git_version[:7]
     return torch_npu_version_str
+
 
 def get_env_info():
     run_lambda = torch_collect_env.run

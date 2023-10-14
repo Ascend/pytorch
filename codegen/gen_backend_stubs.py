@@ -57,12 +57,12 @@ def create_backend_index(backend_ops: List[str],
     metadata: Dict[OperatorName, BackendMetadata] = {}
     for op in backend_ops:
         op_name = OperatorName.parse(op)
-        assert op_name in native_funcs_map, f"Found an invalid operator name: {op_name}"
+        if op_name not in native_funcs_map:
+            raise KeyError(f"Found an invalid operator name: {op_name}")
         # See Note [External Backends Follow Dispatcher API]
         kernel_name = dispatcher.name(native_funcs_map[op_name].func)
         if op in symint_ops:
             kernel_name += "_symint"
-        # TODO: allow structured external backends later.
         m = BackendMetadata(kernel=kernel_name, structured=False, cpp_namespace=cpp_namespace)
         metadata[op_name] = m
     return BackendIndex(
@@ -86,19 +86,31 @@ def check_grouped_native_functions(
             backward_kernels = [] if autograd_key is None else \
                 [m for m in [backend_indices[autograd_key].get_kernel(g)] if m is not None]
         else:
-            forward_kernels = [] if backend_key is None else [m for m in [
-                backend_indices[backend_key].get_kernel(f) for f in g.functions()]
-                if m is not None]
-            backward_kernels = [] if autograd_key is None else [m for m in [
-                backend_indices[autograd_key].get_kernel(f) for f in g.functions()]
-                if m is not None]
+            if backend_key is None:
+                forward_kernels = []
+            else:
+                forward_kernels = []
+                for f in g.functions():
+                    kernel = backend_indices[backend_key].get_kernel(f)
+                    if kernel is not None:
+                        forward_kernels.append(kernel)
+            if autograd_key is None:
+                backward_kernels = []
+            else:
+                backward_kernels = []
+                for f in g.functions():
+                    kernel = backend_indices[autograd_key].get_kernel(f)
+                    if kernel is not None:
+                        backward_kernels.append(kernel)
 
         forward_kernels = [f for f in forward_kernels if f is not None]
         backward_kernels = [f for f in backward_kernels if f is not None]
-        assert len(forward_kernels) == 0 or len(backward_kernels) == 0, \
-            f'Currently, all variants of an op must either be registered to a backend key, or to a backend\'s \
-autograd key. They cannot be mix and matched. If this is something you need, feel free to create an issue! \
-{forward_kernels[0].kernel} is listed under "supported", but {backward_kernels[0].kernel} is listed under "autograd".'
+
+        if len(forward_kernels) != 0 and len(backward_kernels) != 0:
+            raise ValueError(f'Currently, all variants of an op must either be registered to a backend key, \
+                             or to a backend\'s autograd key. They cannot be mix and matched. If this is \
+                             something you need, feel free to create an issue! {forward_kernels[0].kernel} \
+                             is listed under "supported", but {backward_kernels[0].kernel} is listed under "autograd".')
 
 
 _GLOBAL_PARSE_NATIVE_YAML_CACHE = {}
@@ -113,7 +125,8 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
         valid_tags = parse_tags_yaml(tag_path)
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
-        assert isinstance(es, list)
+        if not isinstance(es, list):
+            raise TypeError("es is not list")
         rs: List[NativeFunction] = []
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
@@ -165,30 +178,36 @@ def parse_backend_yaml(
         backend_indices: Dict[DispatchKey, BackendIndex]
 ) -> ParsedExternalYaml:
 
-    native_functions_map: Dict[OperatorName, NativeFunction] = {
-        f.func.name: f
-        for f in concatMap(lambda f: [f] if isinstance(f, NativeFunction)
-                            else list(f.functions()), grouped_native_functions)
-    }
+    native_functions_map = {}
+    for f in grouped_native_functions:
+        if isinstance(f, NativeFunction):
+            native_functions_map[f.func.name] = f
+        else:
+            for func in f.functions():
+                native_functions_map[func.func.name] = func
 
     with open(backend_yaml_path, 'r') as f:
         yaml_values = yaml.safe_load(f)
-    assert isinstance(yaml_values, dict)
+    if not isinstance(yaml_values, dict):
+        raise TypeError("yaml_values is not dict")
 
     valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'PrivateUse1' if yaml_backend == 'NPU' else yaml_backend
-    assert true_backend is not None, 'You must provide a value for "backend"'
+    if true_backend is None:
+        raise ValueError("You must provide a value for 'backend'")
     backend = "NPU"
 
     cpp_namespace = yaml_values.pop('cpp_namespace', None)
-    assert cpp_namespace is not None, 'You must provide a value for "cpp_namespace"'
+    if cpp_namespace is None:
+        raise ValueError("You must provide a value for 'cpp_namespace'")
 
     supported = yaml_values.pop('supported', [])
     if supported is None:
         supported = []  # Allow an empty list of supported ops
-    assert isinstance(supported, list), f'expected "supported" to be a list, but got type {type(supported)}'
+    if not isinstance(supported, list):
+        raise TypeError(f'expected "supported" to be a list, but got type {type(supported)}')
 
     symint = yaml_values.pop("symint", [])
     if symint is None:
@@ -200,30 +219,34 @@ def parse_backend_yaml(
     symint_set = set(symint)
 
     supported_autograd = yaml_values.pop('autograd', [])
-    assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
-
+    if not isinstance(supported_autograd, list):
+        raise TypeError(f'expected "autograd" to be a list, but got: {supported_autograd}')
     supported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported]
     supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
 
     supported_tocpu = yaml_values.pop('tocpu', [])
-    assert isinstance(supported_tocpu, list), f'expected "tocpu" to be a list, but got: {supported_tocpu}'
+    if not isinstance(supported_tocpu, list):
+        raise TypeError(f'expected "tocpu" to be a list, but got: {supported_tocpu}')
 
     custom = yaml_values.pop('custom', [])
-    assert isinstance(custom, list), f'expected "autograd" to be a list, but got: {custom}'
+    if not isinstance(custom, list):
+        raise TypeError(f'expected "autograd" to be a list, but got: {custom}')
+    
     for item in custom:
         try:
             supported.append(item['func'][:item['func'].index('(')])
-        except ValueError:
-            raise Exception(f'Wrong format for function: {item["func"]}')
+        except ValueError as e:
+            raise Exception(f'Wrong format for function: {item["func"]}') from e
 
     custom_autograd = yaml_values.pop('custom_autograd', [])
-    assert isinstance(custom_autograd, list), f'expected "autograd" to be a list, but got: {custom_autograd}'
+    if not isinstance(custom_autograd, list):
+        raise TypeError(f'expected "autograd" to be a list, but got: {custom_autograd}')
     for item in custom_autograd:
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
-    assert len(yaml_values.keys()) == 0, \
-        f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
-Only the following keys are supported: {", ".join(valid_keys)}'
+    if (len(yaml_values.keys()) > 0):
+        raise KeyError(f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
+                       Only the following keys are supported: {", ".join(valid_keys)}')
 
     backend_key: Optional[DispatchKey] = None
     opapi_key = "OpApi"
@@ -234,7 +257,8 @@ Only the following keys are supported: {", ".join(valid_keys)}'
         backend_idx = create_backend_index(supported, symint_set, backend_key, native_functions_map, cpp_namespace)
         opapi_backend_idx = create_backend_index([op for op in supported if is_opapi(op)],
                                                  symint_set, backend_key, native_functions_map, cpp_namespace)
-        assert backend_key not in backend_indices
+        if backend_key in backend_indices:
+            raise KeyError("backend_key should not be in backend_indices.")
         backend_indices[backend_key] = backend_idx
         backend_indices[str(backend_key) + opapi_key] = opapi_backend_idx
 
@@ -248,7 +272,8 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
                                             autograd_key, native_functions_map, cpp_namespace)
         opapi_autograd_idx = create_backend_index([op for op in supported_autograd if is_opapi(op)],
                                                   symint_set, autograd_key, native_functions_map, cpp_namespace)
-        assert autograd_key not in backend_indices
+        if autograd_key in backend_indices:
+            raise KeyError("autograd_key should not be in backend_indices.")
         backend_indices[autograd_key] = autograd_idx
         backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
 
@@ -273,8 +298,8 @@ def op_plugin_kernel_conut(op_plugin_ops_dir: str):
     try:
         with open(file_path, 'r') as f:
             backend_defns = f.read()
-    except IOError:
-        raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}')
+    except IOError as e:
+        raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}') from e
 
     kernel_defn_regex = rf'\w+(?=\()'
     actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
@@ -309,61 +334,6 @@ def check_op_plugin_kernels(
         if expect_op_plugin_kernel_count > actual_kernel_counts[wrap_name]:
             return False
     return True
-
-
-# Double-check the functions we supported to see whether there exists something mismatch.
-def error_on_missing_kernels(
-        native_functions: Sequence[NativeFunction],
-        backend_indices: Dict[DispatchKey, BackendIndex],
-        backend_key: DispatchKey,
-        autograd_key: DispatchKey,
-        kernel_def_file_path: str,
-        op_plugin_kernel_def_file_path: str,
-) -> None:
-    # Do not check when opplugin keeps two headers
-    return
-    class_name: Optional[str] = backend_indices[backend_key].native_function_class_name()
-    assert class_name is not None
-
-    actual_backend_kernel_name_counts = pta_kernel_conut(class_name, kernel_def_file_path)
-    actual_kernel_counts_op_plugin = op_plugin_kernel_conut(op_plugin_kernel_def_file_path)
-    expected_backend_op_names: Dict[OperatorName, str] = dict(
-        list(
-            concatMap(
-                lambda index: [(op_name, metadata.kernel) for op_name, metadata in index.items()],
-                [backend_indices[backend_key].index] + [backend_indices[autograd_key].index],
-            )
-        )
-    )
-    expected_backend_native_funcs: List[NativeFunction] = \
-        [f for f in native_functions if f.func.name in expected_backend_op_names]
-    expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
-    expected_kernel_counts_op_plugin: Dict[str, List[NativeFunction]] = defaultdict(list)
-    for native_f in expected_backend_native_funcs:
-        expected_backend_kernel_name_counts[expected_backend_op_names[native_f.func.name]].append(native_f)
-        expected_kernel_counts_op_plugin[get_opplugin_wrap_name(native_f)].append(native_f)
-
-    missing_kernels_err_msg = ""
-    for expected_name, funcs in expected_backend_kernel_name_counts.items():
-        expected_overload_count = len(funcs)
-        actual_overload_count = actual_backend_kernel_name_counts[expected_name]
-
-        if expected_overload_count != actual_overload_count and \
-            (not check_op_plugin_kernels(funcs, expected_kernel_counts_op_plugin, actual_kernel_counts_op_plugin)):
-            def create_decl(f: NativeFunction) -> str:
-                with native_function_manager(f):
-                    return DispatcherSignature.from_schema(f.func).decl()
-            expected_schemas_str = '\n'.join([create_decl(f) for f in funcs])
-            expected_schemas_str_op = '\n'.join(
-                [create_decl(f).replace(str(f.func.name), get_opplugin_wrap_name(f)) for f in funcs])
-            missing_kernels_err_msg += f"""
-{class_name} or op_plugin is missing a kernel definition for {expected_name}.
-The expected function schemas for the missing operator in torch_npu are:
-{expected_schemas_str}
-The expected function schemas for the missing operator in op_plugin are:
-{expected_schemas_str_op}
-"""
-    assert missing_kernels_err_msg == "", missing_kernels_err_msg
 
 
 def main() -> None:
@@ -565,9 +535,6 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         autograd_dispatch_key: DispatchKey = autograd_key
         class_name = backend_indices[backend_dispatch_key].native_function_class_name()
 
-        if (impl_path is not None) and (op_plugin_impl_path is not None):
-            error_on_missing_kernels(native_functions, backend_indices, backend_key, autograd_key,
-                                     impl_path, op_plugin_impl_path)
         gen_dispatchkey_nativefunc_headers(
             fm,
             class_name,

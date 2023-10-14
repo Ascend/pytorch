@@ -31,7 +31,7 @@ public:
     c10_npu::NPUEvent& start_event = getEvent(start);
     c10_npu::NPUEvent& end_event = getEvent(end);
     // It is possible users did not call backward or run codes in
-    // no-sync mode, in this case, some npuEvents like "backward_compute_end", 
+    // no-sync mode, in this case, some npuEvents like "backward_compute_end",
     // "backward_comm_start" or "backward_comm_end" will not be recorded.
     // npuEvent is created when it is first time to be recorded.
     // If it is never recorded/created, skip synchronize and calculation.
@@ -74,18 +74,18 @@ private:
 
   c10_npu::NPUEvent& getEvent(Event event) {
     switch (event) {
-      case Event::kForwardStart:
-        return forward_start;
-      case Event::kBackwardComputeStart:
-        return backward_compute_start;
-      case Event::kBackwardComputeEnd:
-        return backward_compute_end;
-      case Event::kBackwardCommStart:
-        return backward_comm_start;
-      case Event::kBackwardCommEnd:
-        return backward_comm_end;
-      default:
-        TORCH_INTERNAL_ASSERT(false);
+        case Event::kForwardStart:
+          return forward_start;
+        case Event::kBackwardComputeStart:
+          return backward_compute_start;
+        case Event::kBackwardComputeEnd:
+          return backward_compute_end;
+        case Event::kBackwardCommStart:
+          return backward_comm_start;
+        case Event::kBackwardCommEnd:
+          return backward_comm_end;
+        default:
+          TORCH_INTERNAL_ASSERT(false);
     }
   }
 };

@@ -62,7 +62,12 @@ def parse_npu_yaml(custom_path: str) -> Dict:
 def merge_yaml(base_data, additional_data):
     """Merge two YAML data structures. If there's a conflict, the base data will take precedence."""
     map_dict = {"official": "supported"}
-    key_map = lambda x: map_dict.get(x, x)
+    
+    def key_map(x):
+        if x in map_dict:
+            return map_dict[x]
+        else:
+            return x
     if isinstance(base_data, dict):
         for key, value in additional_data.items():
             if key_map(key) not in base_data:
@@ -98,6 +103,7 @@ def filed_tag(custom_es):
             e.pop(field, None)
     return custom_es
 
+
 def parse_opplugin_yaml(custom_path: str) -> Dict:
 
     source_es = parse_npu_yaml(custom_path)
@@ -120,7 +126,8 @@ def parse_opplugin_yaml(custom_path: str) -> Dict:
     global GLOBAL_STRUCTURED_OP_INFO_CACHE
     for x in support_ops:
         funcs = x.get("func", None)
-        assert isinstance(funcs, str), f'not a str : {funcs}'
+        if not isinstance(funcs, str):
+            raise TypeError(f'not a str : {funcs}')
         func = FunctionSchema.parse(funcs)
         wrap_name = cpp.name(func)
         op_key = str(func.name)
@@ -138,6 +145,7 @@ def parse_opplugin_yaml(custom_path: str) -> Dict:
 def rename_privateuse1_dispatch_key():
     # rename DispatcherKey about PrivateUse1
     custom_backend = "NPU"
+
     def PrivateUse1Str(self):
         return self.name.replace("PrivateUse1", custom_backend)
 
@@ -215,7 +223,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
         elif self.target is Target.ANONYMOUS_DEFINITION:
             # short circuit for inplace_meta
             if inplace_meta:
-                assert f.func.arguments.self_arg is not None
+                if f.func.arguments.self_arg is None:
+                    raise ValueError("f.func.arguments.self_arg is None")
                 self_arg_name = f.func.arguments.self_arg.argument.name
                 return f"""
 {returns_type} {name}({args_str}) {{
@@ -364,9 +373,8 @@ def arguments(
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
     args.extend(arguments.non_out)
     args.extend(arguments.out)
-    return [
-        r.no_default() if faithful else r
-        for a in args
+    result = []
+    for a in args:
         for r in cpp.argument(
             a,
             faithful=faithful,
@@ -374,8 +382,12 @@ def arguments(
             method=method,
             has_tensor_options=arguments.tensor_options is not None,
             cpp_no_default_args=cpp_no_default_args,
-        )
-    ]
+        ):
+            if faithful:
+                result.append(r.no_default())
+            else:
+                result.append(r)
+    return result
 
 
 def add_header_to_template_file():

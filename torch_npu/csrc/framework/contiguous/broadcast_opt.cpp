@@ -88,7 +88,6 @@ private:
     }
     return false;
   }
-
 }; // class BroadcastContiguousOpt
 
 REGISTER_COPY_OPT(broadcast, BroadcastContiguousOpt)
