@@ -48,7 +48,8 @@ def instantiate_tests(arg=None, **kwargs):
                     test_name += ("_" + str(v).split('.')[1])
                 for _func_key in func_args:
                     if k in _func_key:
-                        assert func_key is None, f"Multiple matches for {k}"
+                        if func_key is not None:
+                            raise ValueError(f"Multiple matches for {k}")
                         func_key = _func_key
                 new_kwargs[func_key] = v
             setattr(cls, test_name, feed_data(func, test_name, **new_kwargs))

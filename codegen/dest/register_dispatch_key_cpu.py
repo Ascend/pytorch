@@ -163,13 +163,13 @@ class RegisterDispatchKeyCPU:
     def gen_structured(self, g: NativeFunctionsGroup) -> List[str]:
         metadata = self.backend_index.get_kernel(g)
         if self.backend_index.dispatch_key == DispatchKey.Meta:
-            assert not self.backend_index.has_kernel(g.out), \
-                "Do not explicitly specify Meta dispatch key on structured " \
-                "functions, they will be automatically generated for you"
+            if self.backend_index.has_kernel(g.out):
+                raise ValueError("Do not explicitly specify Meta dispatch key on structured " \
+                                 "functions, they will be automatically generated for you")
         elif self.backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd:
-            assert not self.backend_index.has_kernel(g.out), \
-                "Do not explicitly specify CompositeExplicitAutograd dispatch key on structured " \
-                "functions, they will be automatically generated for you"
+            if self.backend_index.has_kernel(g.out):
+                raise ValueError("Do not explicitly specify CompositeExplicitAutograd dispatch key on structured " \
+                                 "functions, they will be automatically generated for you")
         elif metadata is None or not metadata.structured:
             return list(map_maybe(lambda f: self.gen_unstructured(f, g), g.functions()))
 
@@ -255,9 +255,9 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             elif self.target is Target.ANONYMOUS_DEFINITION:
                 # short circuit for inplace_meta
                 if inplace_meta:
-                    assert f.func.arguments.self_arg is not None
+                    if f.func.arguments.self_arg is None:
+                        raise ValueError("f.func.arguments.self_arg is None")
                     self_arg_name = f.func.arguments.self_arg.argument.name
-                    # TODO: handle in place on tensor list
                     return f"""
 {returns_type} {name}({args_str}) {{
   TORCH_CHECK_NOT_IMPLEMENTED({self_arg_name}.is_meta(),
@@ -389,7 +389,8 @@ if (C10_UNLIKELY(maybe_proxy.has_value())) {
             create_proxy = ""
 
         if k is SchemaKind.functional:
-            assert self.backend_index.dispatch_key == DispatchKey.CPU
+            if self.backend_index.dispatch_key != DispatchKey.CPU:
+                raise KeyError("dispatch_key != DispatchKey.CPU")
             return f"""{maybe_set_guard_line}
 outputs_[output_idx] = create_out(sizes, strides, options);"""
         elif k is SchemaKind.inplace:
@@ -427,6 +428,7 @@ resize_out(out, sizes, strides, options);
             )
         else:
             assert_never(k)
+        return ""
 
     def gen_class(
         self,
@@ -477,7 +479,8 @@ resize_out(out, sizes, strides, options);
 
     @method_with_native_function
     def gen_one(self, f: NativeFunction) -> Optional[str]:
-        assert not f.manual_kernel_registration
+        if f.manual_kernel_registration:
+            raise ValueError("f.manual_kernel_registration")
 
         if self.target is Target.REGISTRATION and not self.selector.is_native_function_selected(f):
             return None
@@ -540,7 +543,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             # Initialize the class corresponding to this structured
             # operator; feeding it the output argument(s) if it is known
             metadata = self.backend_index.get_kernel(self.g)
-            assert metadata is not None
+            if metadata is None:
+                raise ValueError("metadata is None")
             class_name = f"structured_{metadata.kernel}_{k.name}"
             parent_class = f"at::native::structured_{metadata.kernel}"
 
@@ -606,7 +610,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             # add it to the context
             out_args = structured.out_arguments(self.g)
             for i, out_arg in enumerate(out_args):
-                assert ConstRefCType(BaseCType(tensorT)) == out_arg.nctype.type
+                if ConstRefCType(BaseCType(tensorT)) != out_arg.nctype.type:
+                    raise ValueError("ConstRefCType(BaseCType(tensorT)) != out_arg.nctype.type")
 
                 if k is SchemaKind.out:
                     expr = f"op.maybe_get_output({i})"
@@ -655,7 +660,6 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 sig_body.append(f"op.impl({', '.join(tmp_arr)});")
 
             # Destructively return the final tensors
-            # TODO: Do this in translate instead
             if k is SchemaKind.functional:
                 if len(f.func.returns) == 1:
                     ret_expr = "std::move(op.outputs_[0]).take()"  # small optimization

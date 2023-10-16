@@ -288,9 +288,9 @@ def match_differentiability_info(
                     continue
 
                 for saved_input in derivative.saved_inputs:
-                    assert 'strides_or_error' not in saved_input.expr, (
-                        "Calling '.strides()' in the 'self' derivative formula of an "
-                        f"in-place function is not supported: {f.func}")
+                    if 'strides_or_error' in saved_input.expr:
+                        raise KeyError("Calling '.strides()' in the 'self' derivative formula of an "
+                                       f"in-place function is not supported: {f.func}")
 
     result: List[NativeFunctionWithDifferentiabilityInfo] = []
     for f in native_functions:
@@ -329,7 +329,8 @@ def match_differentiability_info(
             #     inplace as it should. So add some code that makes sure that we do so if the forward grad
             #     already exists.
 
-            assert len(info.forward_derivatives) == 1  # Only single output inplace should exist
+            if len(info.forward_derivatives) != 1:
+                raise ValueError("len(info.forward_derivatives) != 1")
             fw_info = info.forward_derivatives[0]
             formula = fw_info.formula
 
@@ -339,9 +340,10 @@ def match_differentiability_info(
                 return re.sub(IDENT_REGEX.format(f'self{postfix}'), repl, formula)
 
             if re.search(IDENT_REGEX.format("self_p"), formula):
-                assert not is_exact_match, (f'The formula for "{f.func.name}" is using the original value of self'
-                    ' that is being modified inplace. This would lead to wrong forward '
-                    'gradients. Please use "result" in the formula only.')
+                if is_exact_match:
+                    raise ValueError(f'The formula for "{f.func.name}" is using the original value of self'
+                                     ' that is being modified inplace. This would lead to wrong forward '
+                                     'gradients. Please use "result" in the formula only.')
                 # When the original formula is out of place, we save a clone of the primal
                 # value to be able to access this value if needed
                 # replace "self_p"/"self_t" from the formula by "original_self_p"/"original_self_t"

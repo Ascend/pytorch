@@ -54,7 +54,8 @@ class YamlLoader(Loader):
         mapping = []
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)  # type: ignore[no-untyped-call]
-            assert key not in mapping, f"Found a duplicate key in the yaml. key={key}, line={node.start_mark.line}"
+            if key in mapping:
+                raise KeyError(f"Found a duplicate key in the yaml. key={key}, line={node.start_mark.line}")
             mapping.append(key)
         mapping = super().construct_mapping(node, deep=deep)  # type: ignore[no-untyped-call]
         return mapping
@@ -217,7 +218,8 @@ def parse_opplugin_yaml(custom_path: str) -> None:
     global GLOBAL_STRUCTURED_OP_INFO_CACHE
     for x in support_ops:
         funcs = x.get("func", None)
-        assert isinstance(funcs, str), f'not a str : {funcs}'
+        if not isinstance(funcs, str):
+            raise TypeError(f'not a str : {funcs}')
         func = FunctionSchema.parse(funcs)
         wrap_name = cpp.name(func)
         op_key = str(func.name)

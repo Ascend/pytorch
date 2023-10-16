@@ -77,31 +77,36 @@ class SelectiveBuilder:
                 ",".join(top_level_keys - valid_top_level_keys),
             ))
         include_all_operators = data.get('include_all_operators', False)
-        assert isinstance(include_all_operators, bool)
+        if not isinstance(include_all_operators, bool):
+            raise TypeError("include_all_operators is not bool")
 
         debug_info = None
         if 'debug_info' in data:
             di_list = data['debug_info']
-            assert isinstance(di_list, list)
+            if not isinstance(di_list, list):
+                raise TypeError("di_list is not list")
 
             debug_info = tuple(map(lambda x: str(x), di_list))
 
         operators = {}
         operators_dict = data.get('operators', {})
-        assert isinstance(operators_dict, dict)
+        if not isinstance(operators_dict, dict):
+            raise TypeError("operators_dict is not dict")
 
         for (k, v) in operators_dict.items():
             operators[k] = SelectiveBuildOperator.from_yaml_dict(k, v)
 
         kernel_metadata = {}
         kernel_metadata_dict = data.get('kernel_metadata', {})
-        assert isinstance(kernel_metadata_dict, dict)
+        if not isinstance(kernel_metadata_dict, dict):
+            raise TypeError("kernel_metadata_dict is not dict")
 
         for (k, v) in kernel_metadata_dict.items():
             kernel_metadata[str(k)] = list(map(lambda dtype: str(dtype), v))
 
         include_all_kernel_dtypes = data.get('include_all_kernel_dtypes', False)
-        assert isinstance(include_all_kernel_dtypes, bool)
+        if not isinstance(include_all_kernel_dtypes, bool):
+            raise TypeError("include_all_kernel_dtypes is not bool")
 
         return SelectiveBuilder(
             include_all_operators,

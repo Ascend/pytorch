@@ -73,21 +73,26 @@ class SelectiveBuildOperator():
             ))
 
         if 'name' in op_info:
-            assert op_name == op_info['name']
+            if op_name != op_info['name']:
+                raise ValueError("op_name != op_info['name']")
 
         is_root_operator = op_info.get('is_root_operator', True)
-        assert isinstance(is_root_operator, bool)
+        if not isinstance(is_root_operator, bool):
+            raise TypeError("is_root_operator is not bool")
 
         is_used_for_training = op_info.get('is_used_for_training', True)
-        assert isinstance(is_used_for_training, bool)
+        if not isinstance(is_used_for_training, bool):
+            raise TypeError("is_used_for_training is not bool")
 
         include_all_overloads = op_info.get('include_all_overloads', True)
-        assert isinstance(include_all_overloads, bool)
+        if not isinstance(include_all_overloads, bool):
+            raise TypeError("include_all_overloads is not bool")
 
         debug_info: Optional[Tuple[str, ...]] = None
         if 'debug_info' in op_info:
             di_list = op_info['debug_info']
-            assert isinstance(di_list, list)
+            if not isinstance(di_list, list):
+                raise TypeError("di_list is not list")
             debug_info = tuple(map(lambda x: str(x), di_list))
 
         return SelectiveBuildOperator(

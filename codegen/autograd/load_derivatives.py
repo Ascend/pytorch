@@ -66,7 +66,8 @@ def load_derivatives(
         functions_by_schema: Dict[str, NativeFunction] = dict()
         for function in functions:
             functions_by_signature[function.func.signature()].append(function)
-            assert str(function.func) not in functions_by_schema
+            if str(function.func) in functions_by_schema:
+                raise KeyError("str(function.func) in functions_by_schema")
             functions_by_schema[str(function.func)] = function
 
         # Keep track of how many of which ops we've seen so we can
@@ -121,7 +122,8 @@ def create_derivative(f: NativeFunction, formula: str, var_names: Tuple[str, ...
 
 
 def create_forward_derivative(f: NativeFunction, formula: str, names: Tuple[str, ...]) -> ForwardDerivative:
-    assert len(names) == 1, "Forward derivatives can define gradients for only one output at a time"
+    if len(names) != 1:
+        raise ValueError("Forward derivatives can define gradients for only one output at a time")
     var_name = names[0]
     var_type: Optional[Type] = None
     for r in f.func.returns:
@@ -131,7 +133,8 @@ def create_forward_derivative(f: NativeFunction, formula: str, names: Tuple[str,
     # Handle default return names
     if var_type is None:
         if var_name == "result":
-            assert len(f.func.returns) == 1
+            if len(f.func.returns) != 1:
+                ValueError("len(f.func.returns) != 1")
             var_type = f.func.returns[0].type
         else:
             res = re.findall(r"^result(\d+)$", var_name)
@@ -139,7 +142,8 @@ def create_forward_derivative(f: NativeFunction, formula: str, names: Tuple[str,
                 arg_idx = int(res[0])
                 var_type = f.func.returns[arg_idx].type
 
-    assert var_type is not None, "No matching output for forward derivative definition"
+    if var_type is None:
+        raise ValueError("No matching output for forward derivative definition")
     return ForwardDerivative(
         formula=formula,
         var_name=var_name,
@@ -247,7 +251,8 @@ def postprocess_forward_derivatives(
             # the vector where all the differentiable inputs are stacked.
 
             diff_arg_names = [arg.name for arg in args_with_derivatives]
-            assert len(diff_arg_names) > 0
+            if len(diff_arg_names) <= 0:
+                ValueError("len(diff_arg_names) <= 0")
 
             # Do replacement of input variables
             new_args = []
@@ -260,7 +265,8 @@ def postprocess_forward_derivatives(
             if Variant.function in f.variants:
                 fw_formula = "at::{}({})".format(defn_name, ", ".join(new_args))
             else:
-                assert Variant.method in f.variants
+                if Variant.method not in f.variants:
+                    raise KeyError("Variant.method not in f.variants")
                 fw_formula = "{}.{}({})".format(new_args[0], defn_name, ", ".join(new_args[1:]))
 
             # All of the input tangents are always used so all of them are required here.
@@ -309,7 +315,8 @@ def create_differentiability_info(
             if cpp.name(f.func) == name:
                 return f
         # some functions only have in-place variants
-        assert name + '_' == cpp.name(functions[0].func)
+        if name + '_' != cpp.name(functions[0].func):
+            raise ValueError("name + '_' != cpp.name(functions[0].func)")
         return functions[0]
 
     def split_names(raw_names: str) -> Tuple[str, ...]:
@@ -337,7 +344,8 @@ def create_differentiability_info(
         # "grads" should be no fewer than the number of indices we see
         # inside "grads". They may not be equal because we may use
         # "grads" without an index.
-        assert num_grads_uses >= len(used_grads_indices)
+        if num_grads_uses < len(used_grads_indices):
+            raise ValueError("num_grads_uses < len(used_grads_indices)")
         # Thus if the number is equal, every use of grads is also
         # indexed.
         only_used_grads_indices = num_grads_uses == len(used_grads_indices)
@@ -529,9 +537,9 @@ def saved_variables(
 ) -> Tuple[str, Tuple[SavedAttribute, ...]]:
 
     def stride_expr(name: str) -> str:
-        assert var_names == (name,), (
-            'Replacement for ".strides()" is currently only supported for single derivatives of the same tensor '
-            'that ".strides()" is being called on.')
+        if var_names != (name,):
+            raise ValueError('Replacement for ".strides()" is currently only supported for single derivatives of the same tensor '
+                             'that ".strides()" is being called on.')
         return f'strides_or_error({name}, "{name}")'
 
     REPLACEMENTS: List[Tuple[str, Dict[str, Any]]] = [
