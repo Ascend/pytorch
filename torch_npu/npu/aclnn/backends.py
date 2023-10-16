@@ -13,11 +13,10 @@
 # limitations under the License.
 
 import sys
-import os
 import warnings
-import torch_npu._C
 
 from torch.backends import ContextProp, PropModule
+import torch_npu._C
 
 
 def version():

@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib
+import warnings
+from typing import Union
+
 import torch
 import torch_npu._C
-import warnings
-
-from typing import Union
 
 
 def preferred_linalg_library(backend: Union[None, str, torch._C._LinalgBackend] = None) -> torch._C._LinalgBackend:

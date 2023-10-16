@@ -141,6 +141,7 @@ def seed():
         If you are working with a multi-NPU model, this function will only initialize
         the seed on one NPU.  To initialize all NPUs, use :func:`seed_all`.
     """
+
     def cb():
         idx = current_device()
         default_generator = torch_npu.npu.default_generators[idx]
@@ -154,6 +155,7 @@ def seed_all():
     It's safe to call this function if NPU is not available; in that
     case, it is silently ignored.
     """
+
     def cb():
         random_seed = 0
         seeded = False

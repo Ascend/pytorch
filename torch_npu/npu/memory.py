@@ -497,7 +497,7 @@ def memory_summary(device=None, abbreviated=False):
                 formatter(current, current_prefval),
                 formatter(peak, peak_prefval),
                 formatter(allocated, allocated_prefval),
-                formatter(freed, freed_prefval)),)
+                formatter(freed, freed_prefval)), )
 
     metrics_to_display = [
         ("oversize_allocations", "Oversize allocations", _format_count),
@@ -519,7 +519,7 @@ def memory_summary(device=None, abbreviated=False):
             formatter(current, current),
             formatter(peak, peak),
             formatter(allocated, allocated),
-            formatter(freed, freed)),)   
+            formatter(freed, freed)), )
 
     lines.append("=" * 75)
 
