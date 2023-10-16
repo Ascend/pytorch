@@ -4,7 +4,6 @@ import warnings
 
 from torch._dynamo import register_backend as _register_backend
 from torch._dynamo.backends.registry import _BACKENDS
-
 from torch.library import Library, impl
 
 
@@ -37,17 +36,3 @@ def _register_npu_backend(backend):
 
 
 _register_npu_backend(_global_backend)
-
-
-"""
-register custom op impl func for meta and cpu
-"""
-
-
-def scatter_update_infer(data, indices, updates, axis):
-    return data
-
-
-_lib = Library("npu", "IMPL")
-_lib.impl("scatter_update", scatter_update_infer, 'CPU')
-_lib.impl("scatter_update", scatter_update_infer, 'Meta')

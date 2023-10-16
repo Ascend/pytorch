@@ -15,6 +15,16 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
     return torch.empty_like(query, dtype=query.dtype)
 
 
+@impl(m, "scatter_update")
+def npu_scatter_update_forward(data, indices, updates, axis):
+    return torch.empty_like(data, dtype=data.dtype)
+
+
+@impl(m, "npu_rotary_mul")
+def npu_rotary_mul_forward(embedding, cosine, sine):
+    return torch.empty_like(embedding, dtype=embedding.dtype)
+
+
 @impl(m, "fast_gelu")
 def fast_gelu_meta(self):
     return torch.empty_like(self, dtype=self.dtype)
