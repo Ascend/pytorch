@@ -92,7 +92,8 @@ class TestCase(expecttest.TestCase):
     def genSparseTensor(self, size, sparse_dim, nnz, is_uncoalesced, device='cpu'):
         # Assert not given impossible combination, where the sparse dims have
         # empty numel, but nnz > 0 makes the indices containing values.
-        assert all(size[d] > 0 for d in range(sparse_dim)) or nnz == 0, 'invalid arguments'
+        if not (all(size[d] > 0 for d in range(sparse_dim)) or nnz == 0):
+            raise RuntimeError('invalid arguments')
 
         v_size = [nnz] + list(size[sparse_dim:])
         v = torch.randn(*v_size, device=device)

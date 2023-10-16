@@ -32,7 +32,8 @@ def instantiate_tests(arg=None, **kwargs):
                     test_name += ("_" + str(v).split('.')[1])
                 for _func_key in func_args:
                     if k in _func_key:
-                        assert func_key is None, f"Multiple matches for {k}"
+                        if func_key is not None:
+                            raise RuntimeError(f"Multiple matches for {k}")
                         func_key = _func_key
                 new_kwargs[func_key] = v
             setattr(cls, test_name, feed_data(func, test_name, **new_kwargs))
@@ -118,8 +119,10 @@ def instantiate_ops_tests(op_db):
 class Dtypes(object):
 
     def __init__(self, *args):
-        assert args is not None and len(args) != 0, "No dtypes given"
-        assert all(isinstance(arg, torch.dtype) for arg in args), "Unknown dtype in {0}".format(str(args))
+        if (args is None or len(args) == 0):
+            raise RuntimeError("No dtypes given")
+        if not all(isinstance(arg, torch.dtype) for arg in args):
+            raise RuntimeError("Unknown dtype in {0}".format(str(args)))
         self.args = args
 
     def __call__(self, fn):
@@ -130,7 +133,8 @@ class Dtypes(object):
 class Formats(object):
 
     def __init__(self, *args):
-        assert args is not None and len(args) != 0, "No formats given"
+        if args is None or len(args) == 0:
+            raise RuntimeError("No formats given")
         self.args = args
 
     def __call__(self, fn):

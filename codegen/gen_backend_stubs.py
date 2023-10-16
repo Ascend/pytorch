@@ -212,9 +212,8 @@ def parse_backend_yaml(
     symint = yaml_values.pop("symint", [])
     if symint is None:
         symint = []
-    assert isinstance(
-        symint, list
-    ), f'expected "symint" to be a list, but got: {supported} (of type {type(supported)})'
+    if not (isinstance(symint, list)):
+        raise RuntimeError(f'expected "symint" to be a list, but got: {supported} (of type {type(supported)})')
     symint = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in symint]  
     symint_set = set(symint)
 
