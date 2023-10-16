@@ -119,31 +119,3 @@ def npu_batched_multiclass_nms(
                                                                               max_num, max_num)
 
     return torch.cat([nmsed_boxes, nmsed_scores[..., None]], -1), nmsed_classes
-
-
-if __name__ == '__main__':
-    print('test npu_multiclass_nms')
-    boxes = torch.randint(1, 255, size=(1000, 4))
-    scores = torch.randn(1000, 81)
-
-    torch.npu.set_device(0)
-    boxes = boxes.npu().half()
-    scores = scores.npu().half()
-
-    det_bboxes, det_labels = npu_multiclass_nms(boxes, scores)
-    print(det_bboxes.shape)
-    print(det_labels.shape)
-
-
-    print('test npu_batched_multiclass_nms')
-    boxes = torch.randint(1, 255, size=(4, 200, 80, 4))
-    scores = torch.randn(4, 200, 81)
-
-    torch.npu.set_device(0)
-    boxes = boxes.npu().half()
-    scores = scores.npu().half()
-
-    det_bboxes, det_labels = npu_batched_multiclass_nms(boxes, scores)
-    print(det_bboxes.shape)
-    print(det_labels.shape)
-
