@@ -109,7 +109,7 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   };
   auto num_npus = c10_npu::device_count();
   auto default_npu_generators = PyTuple_New(static_cast<Py_ssize_t>(num_npus));
-  for(int i = 0; i < num_npus; i++) {
+  for (int i = 0; i < num_npus; i++) {
     auto gen = at_npu::detail::getDefaultNPUGenerator(i);
     auto cast_gen = (THPGenerator*)THPGenerator_initDefaultGenerator(gen);
     // This reference is meant to be given away, so no need to incref here.
@@ -147,7 +147,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
 
   int pre_device = 0;
   auto ret = aclrtGetDevice(&pre_device);
-  if (ret != ACL_ERROR_NONE){
+  if (ret != ACL_ERROR_NONE) {
       NPU_CHECK_ERROR(aclrtSetDevice(device));
   } else if (pre_device != device) {
       c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
@@ -176,7 +176,7 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
   HANDLE_TH_ERRORS
   PyObject *value_1 = nullptr;
   PyObject *value_2 = nullptr;
-  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
+  if (!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
     throw torch::TypeError("device id or peer device id error.");
   }
   int32_t device_id = THPUtils_unpackInt(value_1);
@@ -212,7 +212,7 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_getCurrentStream_wrap(
+PyObject* THNPModule_getCurrentStream_wrap(
     PyObject * /* unused */, PyObject *device_index) {
   HANDLE_TH_ERRORS
   THPUtils_assert(
@@ -234,7 +234,7 @@ PyObject * THNPModule_getCurrentStream_wrap(
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObject *device_index) {
+PyObject* THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObject *device_index) {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDefaultStream");
   int64_t device = THPUtils_unpackLong(device_index);
@@ -301,12 +301,12 @@ PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_setMemoryFraction(PyObject *_unused, PyObject *args)
+PyObject* THNPModule_setMemoryFraction(PyObject *_unused, PyObject *args)
 {
   HANDLE_TH_ERRORS
   PyObject* fraction_o = nullptr;
   PyObject* device_o = nullptr;
-  if(!PyArg_ParseTuple(args, "OO", &fraction_o, &device_o)) {
+  if (!PyArg_ParseTuple(args, "OO", &fraction_o, &device_o)) {
     THPUtils_invalidArguments(
         args,
         nullptr,
@@ -323,7 +323,7 @@ PyObject * THNPModule_setMemoryFraction(PyObject *_unused, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
+PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
   c10_npu::NPUCachingAllocator::emptyCache();
@@ -331,7 +331,7 @@ PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
   Py_RETURN_NONE;
 }
 
-PyObject * THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
+PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
 {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to memory_allocated");
@@ -384,7 +384,7 @@ PyObject * THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_resetAccumulatedMemoryStats(PyObject *_unused, PyObject *arg)
+PyObject* THNPModule_resetAccumulatedMemoryStats(PyObject *_unused, PyObject *arg)
 {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_accumulated_memory_stats");
@@ -394,7 +394,7 @@ PyObject * THNPModule_resetAccumulatedMemoryStats(PyObject *_unused, PyObject *a
   Py_RETURN_NONE;
 }
 
-PyObject * THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
+PyObject* THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
 {
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_peak_memory_stats");
@@ -404,7 +404,7 @@ PyObject * THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
   Py_RETURN_NONE;
 }
 
-PyObject * THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
+PyObject* THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
 
@@ -443,11 +443,11 @@ PyObject * THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *args){
+PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *args){
   HANDLE_TH_ERRORS
   PyObject* size_o = nullptr;
   PyObject* stream_o = nullptr;
-  if(!PyArg_ParseTuple(args, "OO", &size_o, &stream_o)) {
+  if (!PyArg_ParseTuple(args, "OO", &size_o, &stream_o)) {
     THPUtils_invalidArguments(
         args,
         nullptr,
@@ -463,7 +463,7 @@ PyObject * THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject 
   END_HANDLE_TH_ERRORS
 }
 
-PyObject * THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj){
+PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj){
   HANDLE_TH_ERRORS
   void* mem_ptr = PyLong_AsVoidPtr(obj);
   c10_npu::NPUCachingAllocator::raw_delete(mem_ptr);
@@ -478,7 +478,7 @@ PyObject * THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject
 // by the thread that owns the mutex (obviously there can be only one such thread).
 static PyGILState_STATE npuMutexGILState;
 
-PyObject * THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
+PyObject* THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
 {
   auto mutex = c10_npu::NPUCachingAllocator::getFreeMutex();
   // This has to be a busy loop because we **absolutely need to** hold the GIL
@@ -499,7 +499,7 @@ PyObject * THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
   Py_RETURN_NONE;
 }
 
-PyObject * THNPModule_npuUnlockMutex(PyObject *module, PyObject *noargs)
+PyObject* THNPModule_npuUnlockMutex(PyObject *module, PyObject *noargs)
 {
   auto mutex = c10_npu::NPUCachingAllocator::getFreeMutex();
   PyGILState_Release(npuMutexGILState);
@@ -576,7 +576,7 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
 
   PyObject *value_1 = nullptr;
   PyObject *value_2 = nullptr;
-  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
+  if (!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
     throw torch::TypeError("prof_start npu_event type or aicore_metrics set error.");
   }
   uint64_t npu_event = static_cast<uint64_t>(THPUtils_unpackLong(value_1));
@@ -594,7 +594,7 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   PyObject *value_2 = nullptr;
   PyObject *value_3 = nullptr;
   PyObject *value_4 = nullptr;
-  if(!PyArg_ParseTuple(args, "OOOO", &value_1, &value_2, &value_3, &value_4)) {
+  if (!PyArg_ParseTuple(args, "OOOO", &value_1, &value_2, &value_3, &value_4)) {
     throw torch::TypeError("e2eProfiler set path or option error.");
   }
   const char *dump_path = PyUnicode_AsUTF8(value_1);
@@ -656,7 +656,7 @@ PyObject* THNPModule_check_overflow_npu(
     PyObject* self,
     PyObject* noargs) {
   HANDLE_TH_ERRORS
-  auto has_overflow=torch_npu::utils::OverflowUtil::GetInstance()->CheckOverflowNpu();
+  auto has_overflow = torch_npu::utils::OverflowUtil::GetInstance()->CheckOverflowNpu();
   if (has_overflow)
   {
     Py_RETURN_TRUE;

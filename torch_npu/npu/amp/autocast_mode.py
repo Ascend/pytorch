@@ -20,6 +20,7 @@ import collections
 from typing import Any, Optional
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ModuleNotFoundError:
     np = None  # type: ignore[assignment]
@@ -28,6 +29,7 @@ from torch.types import _dtype
 
 import torch
 from .common import amp_definitely_not_available
+
 
 class npu_autocast(torch.amp.autocast_mode.autocast):
     r"""
@@ -155,15 +157,16 @@ class npu_autocast(torch.amp.autocast_mode.autocast):
         dtype(torch_dtype, optional):  Whether to use torch.float16 or torch.bfloat16.
         cache_enabled(bool, optional, default=True):  Whether the weight cache inside autocast should be enabled.
     """
-    def __init__(self, device_type : str,
-                 dtype : Optional[_dtype] = None,
-                 enabled : bool = True,
-                 cache_enabled : Optional[bool] = None):
+    def __init__(self, device_type: str,
+                 dtype: Optional[_dtype] = None,
+                 enabled: bool = True,
+                 cache_enabled: Optional[bool] = None):
         if torch._jit_internal.is_scripting():
             self._enabled = enabled
             self.device = device_type
             self.fast_dtype = dtype
-            assert dtype is not None
+            if dtype is None:
+                raise ValueError("dtype is None.")
             return
         self.device = device_type
         if self.device == 'npu':
@@ -200,13 +203,14 @@ class npu_autocast(torch.amp.autocast_mode.autocast):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
         if torch._jit_internal.is_scripting():
-            return
+            return None
         return super().__exit__(exc_type, exc_val, exc_tb)
 
     def __call__(self, func):
         if torch._jit_internal.is_scripting():
             return func
         return super().__call__(func)
+
 
 class autocast(npu_autocast):
     r"""
@@ -236,6 +240,7 @@ class autocast(npu_autocast):
         if torch._jit_internal.is_scripting():
             return func
         return super().__call__(func)
+
 
 # Casts Tensors and containers of Tensors.  Special-cases passthroughs for strings and np.ndarrays, which
 # may be falsely detected as "Iterables."
@@ -312,10 +317,12 @@ def custom_bwd(bwd):
     Ensures that ``backward`` executes with the same autocast state as ``forward``.
     See the :ref:`example page<amp-custom-examples>` for more detail.
     """
+
     @functools.wraps(bwd)
     def decorate_bwd(*args, **kwargs):
         with autocast(enabled=args[0]._fwd_used_autocast, dtype=args[0]._dtype):
             return bwd(*args, **kwargs)
+
     return decorate_bwd
 
 

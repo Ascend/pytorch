@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import contextlib
+from typing import Union
+import warnings
+
 import torch
 import torch_npu._C
-from typing import Union
-
-import warnings
 
 
 def flash_sdp_enabled() -> bool:
