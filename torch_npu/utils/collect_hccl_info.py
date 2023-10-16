@@ -21,7 +21,7 @@ def get_mpi_install_path():
     mpirun_path = shutil.which("mpirun")
     if not mpirun_path:
         raise FileNotFoundError(
-            """MPI package not found. Please download from https://www.mpich.org/downloads/. 
+            """MPI package not found. Please download from official website. 
             If package already downloaded, please check and set environment variables."""
         )
 
