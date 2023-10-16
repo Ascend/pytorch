@@ -13,7 +13,6 @@ SystemEnv = namedtuple('SystemEnv', [
     'torch_version',
     'torch_npu_version',
     'is_debug_build',
-    'cuda_compiled_version',
     'gcc_version',
     'clang_version',
     'cmake_version',
@@ -21,18 +20,9 @@ SystemEnv = namedtuple('SystemEnv', [
     'libc_version',
     'python_version',
     'python_platform',
-    'is_cuda_available',
-    'cuda_runtime_version',
-    'cuda_module_loading',
-    'nvidia_driver_version',
-    'nvidia_gpu_models',
-    'cudnn_version',
     'pip_version',  # 'pip' or 'pip3'
     'pip_packages',
     'conda_packages',
-    'hip_compiled_version',
-    'hip_runtime_version',
-    'miopen_runtime_version',
     'caching_allocator_config',
     'is_xnnpack_available',
     'cpu_info',
@@ -103,16 +93,6 @@ def get_env_info():
 
     version_str = torch.__version__
     debug_mode_str = str(torch.version.debug)
-    cuda_available_str = str(torch.cuda.is_available())
-    cuda_version_str = torch.version.cuda
-    if not hasattr(torch.version, 'hip') or torch.version.hip is None:  # cuda version
-        hip_compiled_version = hip_runtime_version = miopen_runtime_version = 'N/A'
-    else:  # HIP version
-        cfg = torch._C._show_config().split('\n')
-        hip_runtime_version = [s.rsplit(None, 1)[-1] for s in cfg if 'HIP Runtime' in s][0]
-        miopen_runtime_version = [s.rsplit(None, 1)[-1] for s in cfg if 'MIOpen' in s][0]
-        cuda_version_str = 'N/A'
-        hip_compiled_version = torch.version.hip
 
     sys_version = sys.version.replace("\n", " ")
 
@@ -122,17 +102,6 @@ def get_env_info():
         is_debug_build=debug_mode_str,
         python_version='{} ({}-bit runtime)'.format(sys_version, sys.maxsize.bit_length() + 1),
         python_platform=torch_collect_env.get_python_platform(),
-        is_cuda_available=cuda_available_str,
-        cuda_compiled_version=cuda_version_str,
-        cuda_runtime_version=torch_collect_env.get_running_cuda_version(run_lambda),
-        cuda_module_loading=torch_collect_env.get_cuda_module_loading_config() 
-            if hasattr(torch_collect_env, "get_cuda_module_loading_config") else "not known",
-        nvidia_gpu_models=torch_collect_env.get_gpu_info(run_lambda),
-        nvidia_driver_version=torch_collect_env.get_nvidia_driver_version(run_lambda),
-        cudnn_version=torch_collect_env.get_cudnn_version(run_lambda),
-        hip_compiled_version=hip_compiled_version,
-        hip_runtime_version=hip_runtime_version,
-        miopen_runtime_version=miopen_runtime_version,
         pip_version=pip_version,
         pip_packages=pip_list_output,
         conda_packages=torch_collect_env.get_conda_packages(run_lambda),
@@ -156,9 +125,6 @@ env_info_fmt = """
 PyTorch version: {torch_version}
 Torch-npu version: {torch_npu_version}
 Is debug build: {is_debug_build}
-CUDA used to build PyTorch: {cuda_compiled_version}
-ROCM used to build PyTorch: {hip_compiled_version}
-
 OS: {os}
 GCC version: {gcc_version}
 Clang version: {clang_version}
@@ -167,14 +133,6 @@ Libc version: {libc_version}
 
 Python version: {python_version}
 Python platform: {python_platform}
-Is CUDA available: {is_cuda_available}
-CUDA runtime version: {cuda_runtime_version}
-CUDA_MODULE_LOADING set to: {cuda_module_loading}
-GPU models and configuration: {nvidia_gpu_models}
-Nvidia driver version: {nvidia_driver_version}
-cuDNN version: {cudnn_version}
-HIP runtime version: {hip_runtime_version}
-MIOpen runtime version: {miopen_runtime_version}
 Is XNNPACK available: {is_xnnpack_available}
 
 CPU:
@@ -231,25 +189,6 @@ def pretty_str(envinfo):
         return string
 
     mutable_dict = envinfo._asdict()
-
-    # If nvidia_gpu_models is multiline, start on the next line
-    mutable_dict['nvidia_gpu_models'] = \
-        maybe_start_on_next_line(envinfo.nvidia_gpu_models)
-
-    # If the machine doesn't have CUDA, report some fields as 'No CUDA'
-    dynamic_cuda_fields = [
-        'cuda_runtime_version',
-        'nvidia_gpu_models',
-        'nvidia_driver_version',
-    ]
-    all_cuda_fields = dynamic_cuda_fields + ['cudnn_version']
-    all_dynamic_cuda_fields_missing = all(
-        mutable_dict[field] is None for field in dynamic_cuda_fields)
-    if not torch.cuda.is_available() and all_dynamic_cuda_fields_missing:
-        for field in all_cuda_fields:
-            mutable_dict[field] = 'No CUDA'
-        if envinfo.cuda_compiled_version is None:
-            mutable_dict['cuda_compiled_version'] = 'None'
 
     # Replace True with Yes, False with No
     mutable_dict = replace_bools(mutable_dict)
