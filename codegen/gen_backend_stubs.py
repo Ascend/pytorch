@@ -28,12 +28,10 @@ from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
 from codegen.selective_build.selector import SelectiveBuilder
 from codegen.utils import (Target, concat_map, context, parse_npu_yaml,
                            get_opplugin_wrap_name, parse_opplugin_yaml,
-                           merge_custom_yaml, gen_custom_yaml_path, filed_tag)
-from codegen.context import native_function_manager
+                           merge_custom_yaml, gen_custom_yaml_path, filed_tag, PathManager)
 import codegen.dest as dest
 import codegen.dest.utils as utils
 import codegen.api.dispatcher as dispatcher
-from codegen.api.signature import DispatcherSignature
 from codegen.custom_functions import gen_custom_functions, gen_custom_registration, parse_custom_yaml
 
 
@@ -104,6 +102,7 @@ ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
+        PathManager.check_directory_path_readable(path)
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
         if not isinstance(es, list):
@@ -159,6 +158,7 @@ def parse_backend_yaml(
             for func in f.functions():
                 native_functions_map[func.func.name] = func
 
+    PathManager.check_directory_path_readable(backend_yaml_path)
     with open(backend_yaml_path, 'r') as f:
         yaml_values = yaml.safe_load(f)
     if not isinstance(yaml_values, dict):
@@ -272,6 +272,7 @@ def check_op_on_cpu_kernels(
 def op_plugin_kernel_conut(op_plugin_ops_dir: str):
     actual_backend_kernel_name_counts = Counter()
     file_path = os.path.join(op_plugin_ops_dir, "OpInterface.h")
+    PathManager.check_directory_path_readable(file_path)
     try:
         with open(file_path, 'r') as f:
             backend_defns = f.read()
@@ -290,6 +291,7 @@ def pta_kernel_conut(class_name: str, pta_op_dir: str):
             if not filename.endswith('.cpp'):
                 continue
             file_path = os.path.join(cur_dir, filename)
+            PathManager.check_directory_path_readable(file_path)
             try:
                 with open(file_path, 'r') as f:
                     backend_defns = f.read()

@@ -16,6 +16,7 @@
 
 import os
 import re
+import stat
 from collections import defaultdict
 from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar, Optional, Dict
 from enum import Enum
@@ -86,6 +87,46 @@ Target = Enum('Target', (
 IDENT_REGEX = r'(^|\W){}($|\W)'
 
 
+class PathManager:
+
+    @classmethod
+    def check_path_owner_consistent(cls, path: str):
+        """
+        Function Description:
+            check whether the path belong to process owner
+        Parameter:
+            path: the path to check
+        Exception Description:
+            when invalid path, prompt the user
+        """
+
+        if not os.path.exists(path):
+            msg = f"The path does not exist: {path}"
+            raise RuntimeError(msg)
+        if os.stat(path).st_uid != os.getuid():
+            check_msg = input("The path does not belong to you, do you want to continue? [y/n]")
+            if check_msg.lower() != "y":
+                raise RuntimeError("The user chose not to continue.")
+
+    @classmethod
+    def check_directory_path_readable(cls, path):
+        """
+        Function Description:
+            check whether the path is writable
+        Parameter:
+            path: the path to check
+        Exception Description:
+            when invalid data throw exception
+        """
+        cls.check_path_owner_consistent(path)
+        if os.path.islink(path):
+            msg = f"Invalid path is a soft chain: {path}"
+            raise RuntimeError(msg)
+        if not os.access(path, os.R_OK):
+            msg = f"The path permission check failed: {path}"
+            raise RuntimeError(msg)
+
+
 def split_name_params(schema: str) -> Tuple[str, List[str]]:
     m = re.match(r'(\w+)(\.\w+)?\((.*)\)', schema)
     if m is None:
@@ -134,6 +175,7 @@ def parse_npu_yaml(custom_path: str, use_line_loader=True) -> List:
     if not os.path.exists(custom_path):
         return {}
 
+    PathManager.check_directory_path_readable(custom_path)
     with open(custom_path, 'r') as yaml_file:
         source_es = yaml.safe_load(yaml_file)
 
@@ -184,8 +226,9 @@ def merge_custom_yaml(pta_path, op_plugin_path):
 
     merged_yaml = merge_yaml(pta_es, op_es)
     merged_yaml_path = gen_custom_yaml_path(pta_path)
-    with open(merged_yaml_path, 'w') as outfile:
+    with os.fdopen(os.open(merged_yaml_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as outfile:
         yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
+    os.chmod(merged_yaml_path, 0o550)
     return merged_yaml
 
 

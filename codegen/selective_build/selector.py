@@ -23,6 +23,8 @@ from codegen.model import NativeFunction
 from codegen.selective_build.operator import (
     SelectiveBuildOperator, merge_debug_info, merge_operator_dicts,
     strip_operator_overload_name)
+from codegen.utils import PathManager
+
 
 # A SelectiveBuilder holds information extracted from the selective build
 # YAML specification.
@@ -118,6 +120,7 @@ class SelectiveBuilder:
 
     @staticmethod
     def from_yaml_path(config_path: str) -> 'SelectiveBuilder':
+        PathManager.check_directory_path_readable(config_path)
         with open(config_path, 'r') as f:
             contents = yaml.safe_load(f)
             return SelectiveBuilder.from_yaml_dict(contents)

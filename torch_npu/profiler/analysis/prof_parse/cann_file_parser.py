@@ -22,11 +22,11 @@ import shutil
 from enum import Enum
 from json import JSONDecodeError
 
-from ....utils.secure_path_manager import SecurePathManager
+from ....utils.path_manager import PathManager
 from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant, print_warn_msg
 from ..prof_common_func.file_manager import FileManager
-from ..prof_common_func.path_manager import PathManager
+from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_bean.step_trace_bean import StepTraceBean
 
 
@@ -78,7 +78,7 @@ class CANNFileParser:
     }
 
     def __init__(self, profiler_path: str):
-        self._cann_path = PathManager.get_cann_path(profiler_path)
+        self._cann_path = ProfilerPathManager.get_cann_path(profiler_path)
         self._file_dict = {}
         self._file_dispatch()
         self.msprof_path = shutil.which("msprof")
@@ -191,7 +191,7 @@ class CANNFileParser:
     def check_prof_data_size(self):
         if not self._cann_path:
             return
-        device_data_path = os.path.join(PathManager.get_device_path(self._cann_path), "data")
+        device_data_path = os.path.join(ProfilerPathManager.get_device_path(self._cann_path), "data")
         host_data_path = os.path.join(self._cann_path, "host", "data")
         prof_data_size = 0
         for root, dirs, files in os.walk(device_data_path):
@@ -206,7 +206,7 @@ class CANNFileParser:
         localtime_diff = 0
         if not self._cann_path:
             return localtime_diff
-        start_info_path = PathManager.get_start_info_path(self._cann_path)
+        start_info_path = ProfilerPathManager.get_start_info_path(self._cann_path)
         if not start_info_path:
             return localtime_diff
         try:
@@ -218,9 +218,9 @@ class CANNFileParser:
         return localtime_diff
 
     def _file_dispatch(self):
-        all_file_list = PathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
-        all_file_list += PathManager.get_device_all_file_list_by_type(self._cann_path, self.TIMELINE)
-        all_file_list += PathManager.get_analyze_all_file(self._cann_path, self.ANALYZE)
+        all_file_list = ProfilerPathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
+        all_file_list += ProfilerPathManager.get_device_all_file_list_by_type(self._cann_path, self.TIMELINE)
+        all_file_list += ProfilerPathManager.get_analyze_all_file(self._cann_path, self.ANALYZE)
         for file_path in all_file_list:
             if not os.path.isfile(file_path):
                 continue
@@ -230,10 +230,10 @@ class CANNFileParser:
                         self._file_dict.setdefault(data_type, set()).add(file_path)
 
     def _del_summary_and_timeline_data(self):
-        device_path = PathManager.get_device_path(self._cann_path)
+        device_path = ProfilerPathManager.get_device_path(self._cann_path)
         if not device_path:
             return
         summary_path = os.path.join(device_path, "summary")
         timeline_path = os.path.join(device_path, "timeline")
-        SecurePathManager.remove_path_safety(summary_path)
-        SecurePathManager.remove_path_safety(timeline_path)
+        PathManager.remove_path_safety(summary_path)
+        PathManager.remove_path_safety(timeline_path)

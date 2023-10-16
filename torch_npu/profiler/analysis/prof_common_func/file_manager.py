@@ -17,14 +17,14 @@ import csv
 import json
 import os.path
 
-from ....utils.secure_path_manager import SecurePathManager
+from ....utils.path_manager import PathManager
 from ..prof_common_func.constant import Constant, print_warn_msg
 
 
 class FileManager:
     @classmethod
     def file_read_all(cls, file_path: str, mode: str = "r") -> any:
-        SecurePathManager.check_directory_path_readable(file_path)
+        PathManager.check_directory_path_readable(file_path)
         if not os.path.isfile(file_path):
             return ''
         file_size = os.path.getsize(file_path)
@@ -42,7 +42,7 @@ class FileManager:
 
     @classmethod
     def read_csv_file(cls, file_path: str, class_bean: any) -> list:
-        SecurePathManager.check_directory_path_readable(file_path)
+        PathManager.check_directory_path_readable(file_path)
         if not os.path.isfile(file_path):
             return []
         file_size = os.path.getsize(file_path)
@@ -67,9 +67,9 @@ class FileManager:
         if not data:
             return
         file_path = os.path.join(output_path, file_name)
-        SecurePathManager.make_dir_safety(output_path)
-        SecurePathManager.create_file_safety(file_path)
-        SecurePathManager.check_directory_path_writeable(file_path)
+        PathManager.make_dir_safety(output_path)
+        PathManager.create_file_safety(file_path)
+        PathManager.check_directory_path_writeable(file_path)
         try:
             with open(file_path, "w", newline="") as file:
                 writer = csv.writer(file)
@@ -89,9 +89,9 @@ class FileManager:
     @classmethod
     def create_json_file_by_path(cls, output_path: str, data: list, indent: int = None) -> None:
         dir_name = os.path.dirname(output_path)
-        SecurePathManager.make_dir_safety(dir_name)
-        SecurePathManager.create_file_safety(output_path)
-        SecurePathManager.check_directory_path_writeable(output_path)
+        PathManager.make_dir_safety(dir_name)
+        PathManager.create_file_safety(output_path)
+        PathManager.check_directory_path_writeable(output_path)
         try:
             with open(output_path, "w") as file:
                 json.dump(data, file, indent=indent)

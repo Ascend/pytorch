@@ -19,14 +19,14 @@ import re
 from ..prof_common_func.binary_decoder import BinaryDecoder
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.file_tag import FileTag
-from ..prof_common_func.path_manager import PathManager
+from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_common_func.tlv_decoder import TLVDecoder
 from ..prof_config.fwk_file_parser_config import FwkFileParserConfig
 
 
 class FwkFileParser:
     def __init__(self, profiler_path: str):
-        self._fwk_path = PathManager.get_fwk_path(profiler_path)
+        self._fwk_path = ProfilerPathManager.get_fwk_path(profiler_path)
         self._file_list = {}
         self._file_dispatch()
 

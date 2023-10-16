@@ -21,10 +21,10 @@ from datetime import datetime
 import torch.autograd.profiler as prof
 
 from .analysis.npu_profiler import NpuProfiler
-from .analysis.prof_common_func.path_manager import PathManager
+from .analysis.prof_common_func.path_manager import ProfilerPathManager
 from .scheduler import default_schedule_fn, ProfilerAction
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
-from ..utils.secure_path_manager import SecurePathManager
+from ..utils.path_manager import PathManager
 
 
 class NpuProfCreator:
@@ -49,16 +49,16 @@ class NpuProfCreator:
                                                     datetime.utcnow().strftime("%Y%m%d%H%M%S.%f")[:-3])
 
         total_path = os.path.join(self._dir_name, worker_span_name)
-        SecurePathManager.make_dir_safety(total_path)
-        SecurePathManager.check_directory_path_writeable(total_path)
+        PathManager.make_dir_safety(total_path)
+        PathManager.check_directory_path_writeable(total_path)
         return total_path
 
     def _reset_dir_name(self):
         if not self._dir_name:
             dir_name = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
-            self._dir_name = os.path.join(os.path.abspath(dir_name),
+            self._dir_name = os.path.join(os.path.realpath(dir_name),
                                           Constant.PROFILING_WORK_PATH) if dir_name else os.getcwd()
-        self._dir_name = PathManager.get_realpath(self._dir_name)
+        self._dir_name = ProfilerPathManager.get_realpath(self._dir_name)
 
     def _check_params(self):
         if self._worker_name:
@@ -68,7 +68,7 @@ class NpuProfCreator:
             if len(self._worker_name) > Constant.MAX_WORKER_NAME_LENGTH:
                 print_warn_msg("Invalid parameter worker_name, the length exceeds the threshold, reset it to default.")
                 self._worker_name = None
-        SecurePathManager.check_input_directory_path(self._dir_name)
+        PathManager.check_input_directory_path(self._dir_name)
 
 
 class ActionController:

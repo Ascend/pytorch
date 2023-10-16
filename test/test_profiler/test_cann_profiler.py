@@ -21,6 +21,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.utils.path_manager import PathManager
 
 
 class SmallModel(torch.nn.Module):
@@ -59,7 +60,7 @@ def run_small_model():
 
 def setUp(results_path, use_e2e_profiler=False):
     if not os.path.exists(results_path):
-        os.makedirs(results_path)
+        PathManager.make_dir_safety(results_path)
     if not use_e2e_profiler:
         torch.npu.prof_init(results_path)
     tensor = torch.rand(2,3).npu()

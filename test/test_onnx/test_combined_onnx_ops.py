@@ -24,16 +24,17 @@ from torch.nn import init
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 import torch_npu.onnx
+from torch_npu.utils.path_manager import PathManager
 
 
 class TestOnnxOps(TestCase):
 
     test_onnx_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "test_onnx_combined")
+        os.path.realpath(os.path.dirname(__file__)), "test_onnx_combined")
 
     @classmethod
     def setUpClass(cls):
-        os.makedirs(TestOnnxOps.test_onnx_path, exist_ok=True)
+        PathManager.make_dir_safety(TestOnnxOps.test_onnx_path)
 
     @classmethod
     def tearDownClass(cls):

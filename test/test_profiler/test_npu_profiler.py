@@ -20,6 +20,7 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.utils.path_manager import PathManager
 
 worker_id = 1
 
@@ -206,10 +207,11 @@ class TestNpuProfiler(TestCase):
     def _check_trace_view_keywords(self, worker_name: str, keywords: list) -> bool:
         if not self._has_view_result(worker_name, self.TRACE_FILE_NAME):
             return False
-        trace_path = os.path.join(self._get_tensorboard_output(worker_name), self.TRACE_FILE_NAME)
+        trace_path = os.path.realpath(os.path.join(self._get_tensorboard_output(worker_name), self.TRACE_FILE_NAME))
         file_size = os.path.getsize(trace_path)
         if file_size <= 0:
             return False
+        PathManager.check_directory_path_readable(trace_path)
         with open(trace_path, "rt") as file:
             all_data = file.read()
             return all(all_data.find(keyword) != -1 for keyword in keywords)
