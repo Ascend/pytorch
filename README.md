@@ -37,17 +37,21 @@ pip3 install pyyaml
 pip3 install setuptools
 ```
 
+If the installation fails, use the download link or visit the [PyTorch official website](https://pytorch.org/) to download the installation package of the corresponding version.
+
+| OS arch | Python version | link                                                         |
+| ------- | -------------- | ------------------------------------------------------------ |
+| x86     | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=9e5cfd931a65b38d222755a45dabb53b836be31bc620532bc66fee77e3ff67dc) |
+| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=86cc28df491fa84738affe752f9870791026565342f69e4ab63e5b935f00a495) |
+| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=5077921fc2b54e69a534f3a9c0b98493c79a5547c49d46f5e77e42da3610e011) |
+| aarch64 | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=761822761fffaa1c18a62c5deb13abaa780862577d3eadc428f1daa632536905) |
+| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=de7d63c6ecece118684415a3dbd4805af4a4c1ee1490cccf7405d8c240a481b4) |
+| aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=a04a0296d47f28960f51c18c5489a8c3472f624ec3b5bcc8e2096314df8c3342) |
+
 3. **Install torch-npu**
 
-Take **Aarch64** architecture and **Python 3.8** as an example.
-
->![](figures/icon-note.gif) **NOTE:**
->It will be supported to install torch_npu directly from pypi through pip recently.
-
-```Python
-wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc3-pytorch2.1.0/torch_npu-2.1.0rc1-cp38-cp38-linux_aarch64.whl
-
-pip3 install torch_npu-2.1.0rc1-cp38-cp38-linux_aarch64.whl
+```
+pip3 install torch-npu==2.1.0rc1
 ```
 
 ### From Source
@@ -56,32 +60,32 @@ In some special scenarios, users may need to compile **torch-npu** by themselves
 
 1. **Clone torch-npu**
 
-```Shell
-git clone https://github.com/ascend/pytorch.git -b v2.1.0-5.0.rc3 --depth 1
-```
+   ```
+   git clone https://github.com/ascend/pytorch.git -b v2.1.0-5.0.rc3 --depth 1
+   ```
 
 2. **Build Docker Image**
 
-```Shell
-cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
-docker build -t manylinux-builder:v1 .
-```
+   ```
+   cd pytorch/ci/docker/{arch} # {arch} for X86 or ARM
+   docker build -t manylinux-builder:v1 .
+   ```
 
 3. **Enter Docker Container**
 
-```Shell
-docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
-# {code_path} is the torch_npu source code path
-```
+   ```
+   docker run -it -v /{code_path}/pytorch:/home/pytorch manylinux-builder:v1 bash
+   # {code_path} is the torch_npu source code path
+   ```
 
-3. **Compile torch-npu**
+4. **Compile torch-npu**
 
-Take **Python 3.8** as an example.
+   Take **Python 3.8** as an example.
 
-```Shell
-cd /home/pytorch
-bash ci/build.sh --python=3.8
-```
+   ```
+   cd /home/pytorch
+   bash ci/build.sh --python=3.8
+   ```
 
 ## Getting Started
 
@@ -113,7 +117,6 @@ print(z)
 
 | PyTorch Version | Python Version                                            |
 | ------------- | :----------------------------------------------------------- |
-| PyTorch1.8.1  | Python3.7.x(>=3.7.5),Python3.8.x,Python3.9.x               |
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5),Python3.8.x,Python3.9.x,Python3.10.x |
 | PyTorch2.0.1  | Python3.8.x,Python3.9.x,Python3.10.x                       |
 | PyTorch2.1.0  | Python3.8.x,Python3.9.x,Python3.10.x                       |
@@ -132,7 +135,7 @@ print(z)
 </th>
 </tr>
 </thead>
-<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="4" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>7.0.RC1.alpha003</p>
+<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="3" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>7.0.RC1.alpha003</p>
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.2 "><p id="p633892712241"><a name="p633892712241"></a><a name="p633892712241"></a>2.1.0</p>
 </td>
@@ -159,15 +162,6 @@ print(z)
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1879185852316"><a name="p1879185852316"></a><a name="p1879185852316"></a>v1.11.0-5.0.rc3</p>
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p987915814231"><a name="p987915814231"></a><a name="p987915814231"></a>-</p>
-</td>
-</tr>
-<tr id="row322014326227"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p14339122712242"><a name="p14339122712242"></a><a name="p14339122712242"></a>1.8.1</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p3879135814233"><a name="p3879135814233"></a><a name="p3879135814233"></a>1.8.1.post3</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p48792058152316"><a name="p48792058152316"></a><a name="p48792058152316"></a>v1.8.1.rc3</p>
-</td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p18879145882312"><a name="p18879145882312"></a><a name="p18879145882312"></a>-</p>
 </td>
 </tr>
 <tr id="row92207321228"><td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.1 "><p id="p5879195862316"><a name="p5879195862316"></a><a name="p5879195862316"></a>CANN 6.3.RC3.1</p>
@@ -394,17 +388,18 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ## Maintenance Status of Existing Branches
 
-| **Branch Name** | **Status** | **Launch Date** | **Subsequent Status**                  | **EOL Date** |
-|-----------------|------------|-----------------|----------------------------------------|--------------|
-| **v2.0.2**      | EOL          | 2021/7/29     | N/A                                    |              |
-| **v2.0.3**      | EOL          | 2021/10/15    | N/A                                    |              |
-| **v2.0.4**      | EOL          | 2022/1/15     | N/A                                    |              |
-| **v3.0.rc1**    | EOL          | 2022/4/10     | N/A                                    |              |
-| **v3.0.rc2**    | UnMaintained | 2022/7/15     | EOL 2023-10-15 estimated               |              |
-| **v3.0.rc3**    | Maintained   | 2022/10/20    | Unmaintained <br> 2023-10-20 estimated |              |
-| **v3.0.0**      | Maintained   | 2023/1/18     | Unmaintained <br> 2024-1-18 estimated  |              |
-| **v5.0.rc1**    | Maintained   | 2023/4/19     | Unmaintained <br> 2024-4-19 estimated  |              |
-| **v5.0.rc2**    | Maintained   | 2023/7/19     | Unmaintained <br> 2024-7-19 estimated  |              |
+| **Branch Name** | **Status** | **Launch Date** | **Subsequent Status**                   | **EOL Date** |
+| --------------- | ---------- | --------------- | --------------------------------------- | ------------ |
+| **v2.0.2**      | EOL        | 2021/7/29       | N/A                                     |              |
+| **v2.0.3**      | EOL        | 2021/10/15      | N/A                                     |              |
+| **v2.0.4**      | EOL        | 2022/1/15       | N/A                                     |              |
+| **v3.0.rc1**    | EOL        | 2022/4/10       | N/A                                     |              |
+| **v3.0.rc2**    | EOL        | 2022/7/15       | N/A                                     |              |
+| **v3.0.rc3**    | Maintained | 2022/10/20      | Unmaintained <br> 2023-10-20 estimated  |              |
+| **v3.0.0**      | Maintained | 2023/1/18       | Unmaintained <br> 2024-1-18 estimated   |              |
+| **v5.0.rc1**    | Maintained | 2023/4/19       | Unmaintained <br> 2024-4-19 estimated   |              |
+| **v5.0.rc2**    | Maintained | 2023/7/19       | Unmaintained <br> 2024-7-19 estimated   |              |
+| **v5.0.rc3**    | Maintained | 2023/10/15      | Unmaintained <br> 2024-10-15 estimated  |              |
 
 ## License
 
