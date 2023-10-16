@@ -22,8 +22,6 @@ from enum import Enum, auto
 import itertools
 
 
-# A little trick from https://github.com/python/mypy/issues/6366
-# for getting mypy to do exhaustiveness checking
 def assert_never(x: NoReturn) -> NoReturn:
     raise AssertionError("Unhandled type: {}".format(type(x).__name__))
 

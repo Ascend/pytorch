@@ -19,9 +19,7 @@ class TracingConfig:
         tracer (torch.fx.Tracer): An instance of ``torch.fx.Tracer`` that will
             be used to perform symbolic tracing. ``tracer`` is default to be
             ``torch.fx.Tracer()``, but can also be instance of some child class
-            of ``torch.fx.Tracer``. For example, one may want to use
-            ``HFTracer`` for models in Transformers: .. _Transformers:
-            https://huggingface.co/docs/transformers/index
+            of ``torch.fx.Tracer``.
         concrete_args (Optional[Dict[str, Any]]): Concrete arguments that should
             not be treated as ``torch.fx.Proxy`` when tracing the forward
             function. ``concrete_args`` allows one to partially specialize the

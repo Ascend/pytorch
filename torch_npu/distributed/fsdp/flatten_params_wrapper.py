@@ -60,9 +60,8 @@ def _pre_load_state_dict_hook(
 class FlattenParamsWrapper(nn.Module):
     """
     This is a wrapper for flattening parameters in a ``nn.Module`` 's subtree
-    into a single flattened parameter and is based on [1]. This is used for
+    into a single flattened parameter. This is used for
     :class:`FullyShardedDataParallel` 's recursive wrapping.
-    [1] https://github.com/SsnL/PyTorch-Reparam-Module
 
     Args:
         module (nn.Module): Module to wrap.

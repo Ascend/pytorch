@@ -48,7 +48,6 @@ MANUAL_OPS = ["argmin", "argmax", "nan_to_num", "nan_to_num_",
 
 
 # A custom loader for YAML that errors on duplicate keys.
-# This doesn't happen by default: see https://github.com/yaml/pyyaml/issues/165
 class YamlLoader(Loader):
     def construct_mapping(self, node, deep=False):  # type: ignore[no-untyped-def]
         mapping = []

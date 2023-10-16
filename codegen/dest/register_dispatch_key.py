@@ -751,8 +751,6 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
 
             sig_body_str = "\n".join(sig_body)
 
-            # For an overview of what this template code looks like, see
-            # https://github.com/pytorch/rfcs/pull/9
             return f"""\
 {self.gen_class(
 f, k,
