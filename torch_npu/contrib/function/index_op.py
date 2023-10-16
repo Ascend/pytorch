@@ -37,38 +37,3 @@ def npu_fast_condition_index_put(x, condition, value):
 
     x = torch.where(condition, mask, x)
     return x
-
-
-def _npu_fast_condition_index_put_test():
-    x = torch.randn(128, 8192).npu()
-    condition = x < 0.5
-    value = 0.
-    repeat_time = 100
-    x1 = copy.deepcopy(x)
-
-    x1[condition] = value
-    torch.npu.synchronize()
-    t1 = time.time()
-    for _ in range(repeat_time):
-        x1[condition] = value
-    torch.npu.synchronize()
-    print('x1[condition] = value time: %.4fms' % ((time.time() - t1) / repeat_time * 1000))
-
-    x1_opt = npu_fast_condition_index_put(x, condition, value)
-    torch.npu.synchronize()
-    t2 = time.time()
-    for _ in range(repeat_time):
-        x1_opt = npu_fast_condition_index_put(x, condition, value)
-    torch.npu.synchronize()
-    print('x1_opt = npu_fast_condition_index_put(x, condition, value) time: %.4fms' % (
-            (time.time() - t2) / repeat_time * 1000))
-
-    print('DIFF: ', (x1 - x1_opt).sum())
-
-if __name__ == "__main__":
-    import copy
-    import time
-
-    torch.npu.set_device(0)
-
-    _npu_fast_condition_index_put_test()

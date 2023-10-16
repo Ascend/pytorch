@@ -153,11 +153,3 @@ class FusedColorJitter(torch.nn.Module):
         format_string += ', saturation={0}'.format(self.saturation)
         format_string += ', hue={0})'.format(self.hue)
         return format_string
-
-
-if __name__ == '__main__':
-    from PIL import Image
-
-    image = Image.fromarray(torch.randint(0, 256, size=(224, 224, 3)).numpy().astype(np.uint8))
-    fcj = FusedColorJitter(0.1, 0.1, 0.1, 0.1)
-    image = fcj(image)
