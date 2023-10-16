@@ -52,7 +52,7 @@ def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeF
                    [](const Tensor & temp) {{ return temp.cpu(); }});
 """
         else:
-            assert False, f'Do not support cur type {arg.type}'
+            raise TypeError(f'Do not support cur type {arg.type}')
 
     return convert, args_names
 
@@ -76,7 +76,8 @@ auto cpu_ret = {func_call};
             ret_code += f"auto cpu_ret = {func_call}; \n  "
             tuple_ele_names: List[str] = []
             for i, e in enumerate(sig.returns_type().elems):
-                assert e.cpp_type() == 'at::Tensor' or type(e) == BaseCppType, f'do not support cur type {e.cpp_type()}'
+                if e.cpp_type() != 'at::Tensor' and type(e) != BaseCppType:
+                    raise TypeError(f'do not support cur type {e.cpp_type()}')
                 if str(e.type) == 'at::Tensor':
                     ret_code += f"auto xla_tuple_ele_{i} = ::std::get<{i}>(cpu_ret).toBackend(Backend::{backend}); \n  "
                     tuple_ele_names.append(f"xla_tuple_ele_{i}")
@@ -86,7 +87,7 @@ auto cpu_ret = {func_call};
             tuple_ele_names_str = ','.join(_ for _ in tuple_ele_names)
             ret_code += f"return ::std::make_tuple({tuple_ele_names_str});"
         else:
-            assert False, f'Do not support cur type {sig.returns_type()}'
+            raise TypeError(f'Do not support cur type {sig.returns_type()}')
 
     elif sig.func.kind() == SchemaKind.out:
         out_names = [_.name for _ in sig.func.arguments.out]
@@ -98,14 +99,15 @@ auto cpu_ret = {func_call};
         elif type(sig.returns_type()) == TupleCType:
             return_types: List[str] = []
             for i, e in enumerate(sig.returns_type().elems):
-                assert e.cpp_type() == 'at::Tensor &', f'Do not support cur type {e.cpp_type()}'
+                if e.cpp_type() != 'at::Tensor &':
+                    raise TypeError(f'Do not support cur type {e.cpp_type()}')
                 return_types.append(e.cpp_type())
             tuple_args_str = ','.join(_ for _ in out_names)
             return_type_str = ','.join(_ for _ in return_types)
             ret_code += f"::std::tuple<{return_type_str}> ret_xla({tuple_args_str});\n  " \
                         f"return ret_xla;"
         else:
-            assert False, f'Do not support cur type {sig.returns_type()}'
+            raise TypeError(f'Do not support cur type {sig.returns_type()}')
 
     elif sig.func.kind() == SchemaKind.inplace:
         ret_code = f"{func_call};\n  "
@@ -126,8 +128,8 @@ auto cpu_ret = {func_call};
                 ret_code += f"{self_arg_name}.copy_({self_arg_name}_cpu);\n  "
                 ret_code += f"return;"
         else:
-            assert False, f'Do not support cur type {sig.returns_type()}'
+            raise TypeError(f'Do not support cur type {sig.returns_type()}')
     else:
-        assert False, f'Do not support cur func type {sig.func.kind()}'
+        raise TypeError(f'Do not support cur func type {sig.func.kind()}')
 
     return ret_code

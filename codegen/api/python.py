@@ -627,7 +627,8 @@ def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
             'Dimname': f'DimnameList[{size}]' if size is not None else 'DimnameList'
         }
         if str(t.elem) == 'bool':
-            assert t.size is not None
+            if t.size is None:
+                raise ValueError("t.size is None.")
             return f'::std::array<bool,{t.size}>'
         elif str(t.elem) in list_dict:
             return list_dict[str(t.elem)]

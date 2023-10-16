@@ -213,7 +213,8 @@ def unpack_args(f: NativeFunction) -> Tuple[List[str], List[Binding]]:
                                       has_tensor_options=False)]
 
     for i, binding in enumerate(bindings):
-        assert not isinstance(binding.argument, SelfArgument)
+        if isinstance(binding.argument, SelfArgument):
+            raise ValueError("binding.argument is SelfArgument")
         if isinstance(binding.argument, TensorOptionsArguments):
             raise RuntimeError("VariableKernel shouldn't take TensorOptions")
 
@@ -393,7 +394,8 @@ def emit_inplace_or_view_body(fn: NativeFunctionWithDifferentiabilityInfo) -> Li
         for r in cpp.return_names(f):
             inplace_view_body.append(f'increment_version({r});')
     else:
-        assert(get_view_info(f) is not None)
+        if get_view_info(f) is None:
+            raise ValueError("get_view_info(f) is None")
         inplace_view_body.append(VIEW_REDISPATCH.substitute(
             assign_return_values='auto ' + TMP_VAR + ' = ',
             unambiguous_name=f.func.name.unambiguous_name(),
@@ -401,7 +403,8 @@ def emit_inplace_or_view_body(fn: NativeFunctionWithDifferentiabilityInfo) -> Li
         ))
         call, rhs_value = emit_view_body(fn, TMP_VAR)
         inplace_view_body.append(call)
-        assert rhs_value is not None
+        if rhs_value is None:
+            raise ValueError("rhs_value is None")
         inplace_view_body.append(
             ASSIGN_RETURN_VALUE.substitute(return_values=tie_return_values(f), rhs_value=rhs_value))
     if f.func.returns:

@@ -51,7 +51,8 @@ class HcomAllGatherTest(TestCase):
 
         for i in range(world_size):
             max_diff = abs(outputs[i].cpu() - input1).max()
-            assert(max_diff < 0.001)
+            if max_diff >= 0.001:
+                raise ValueError("max_diff >= 0.001")
 
     def _test_multiprocess(self, f, init_pg, input1, world_size):
         ctx = mp.get_context('spawn')

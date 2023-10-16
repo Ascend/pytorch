@@ -69,7 +69,8 @@ def valuetype_type(t: Type, *, binds: ArgName) -> Optional[NamedCType]:
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):
         if str(t.elem) == 'bool':
-            assert t.size is not None
+            if t.size is None:
+                raise ValueError("t.size is None")
             return NamedCType(binds, ArrayCType(BaseCType(boolT), t.size))
         else:
             return None
@@ -150,7 +151,8 @@ def returntype_type(t: Type, *, mutable: bool) -> CType:
             return BaseCType(scalarT)
     elif isinstance(t, ListType):
         elem = returntype_type(t.elem, mutable=mutable)
-        assert t.size is None, f"fixed size list returns not supported: {t}"
+        if t.size is not None:
+            raise ValueError(f"fixed size list returns not supported: {t}")
         return VectorCType(elem)
 
     raise AssertionError(f"unrecognized return type {t}")
@@ -174,8 +176,9 @@ def return_names(f: NativeFunction, *, fallback_name: str = 'result') -> Sequenc
         # If we have an inplace function, the return argument is
         # implicitly named self.
         # TODO: Consider incorporating this into the data model
-        if f.func.name.name.inplace:
-            assert i == 0, "illegal inplace function with multiple returns"
+        if f.func.name.name.inplace:         
+            if i != 0:
+                raise ValueError("illegal inplace function with multiple returns")
             func_name = 'self'
         # If we are out function, the func_name is the name of the
         # corresponding output function (r.name will get recorded
@@ -284,7 +287,8 @@ def argument(
         else:
             default = None
             # Enforced by NativeFunction.__post_init__
-            assert 'options' not in cpp_no_default_args
+            if 'options' in cpp_no_default_args:
+                raise KeyError("'options' in cpp_no_default_args")
             if all(x.default == "None" for x in a.all()):
                 default = '{}'
             elif a.dtype.default == "long":

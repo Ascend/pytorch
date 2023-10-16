@@ -237,13 +237,13 @@ class RegisterDispatchKey:
     def gen_structured(self, g: NativeFunctionsGroup) -> List[str]:
         metadata = self.backend_index.get_kernel(g)
         if self.backend_index.dispatch_key == DispatchKey.Meta:
-            assert not self.backend_index.has_kernel(g.out), \
-                "Do not explicitly specify Meta dispatch key on structured " \
-                "functions, they will be automatically generated for you"
+            if self.backend_index.has_kernel(g.out):
+                raise ValueError("Do not explicitly specify Meta dispatch key on structured " \
+                                 "functions, they will be automatically generated for you")
         elif self.backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd:
-            assert not self.backend_index.has_kernel(g.out), \
-                "Do not explicitly specify CompositeExplicitAutograd dispatch key on structured " \
-                "functions, they will be automatically generated for you"
+            if self.backend_index.has_kernel(g.out):
+                raise ValueError("Do not explicitly specify CompositeExplicitAutograd dispatch key on structured " \
+                                 "functions, they will be automatically generated for you")
         elif metadata is None or not metadata.structured:
             return list(map_maybe(lambda f: self.gen_unstructured(f, g), g.functions()))
 
@@ -315,9 +315,9 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             elif self.target is Target.ANONYMOUS_DEFINITION:
                 # short circuit for inplace_meta
                 if inplace_meta:
-                    assert f.func.arguments.self_arg is not None
+                    if f.func.arguments.self_arg is None:
+                        raise ValueError("f.func.arguments.self_arg is None")
                     self_arg_name = f.func.arguments.self_arg.argument.name
-                    # TODO: handle in place on tensor list
                     return f"""
 {returns_type} {name}({args_str}) {{
   TORCH_CHECK_NOT_IMPLEMENTED({self_arg_name}.is_meta(),
@@ -483,9 +483,12 @@ if (C10_UNLIKELY(current_device.has_value())) {
             maybe_set_guard_line = maybe_set_guard = ''
 
         if k is SchemaKind.functional:
-            assert self.backend_index.dispatch_key in (
+            if self.backend_index.dispatch_key not in (
                 DispatchKey.Meta, DispatchKey.CPU, DispatchKey.CUDA,
-                DispatchKey.CompositeExplicitAutograd)
+                DispatchKey.CompositeExplicitAutograd):
+                raise KeyError("dispatch_key not in DispatchKey.Meta, \
+                               DispatchKey.CPU, DispatchKey.CUDA, \
+                               DispatchKey.CompositeExplicitAutograd")
             return f"""{maybe_set_guard_line}
 outputs_[output_idx] = create_out(sizes, strides, options);"""
         elif k is SchemaKind.inplace:
@@ -553,7 +556,8 @@ resize_out(out, sizes, strides, options);"""
 
     @method_with_native_function
     def gen_one(self, f: NativeFunction) -> Optional[str]:
-        assert not f.manual_kernel_registration
+        if f.manual_kernel_registration:
+            raise ValueError("f.manual_kernel_registration")
 
         if self.target is Target.REGISTRATION and not self.selector.is_native_function_selected(f):
             return None
@@ -624,7 +628,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 parent_class = f"at::meta::structured_{meta.name(self.g)}"
             else:
                 metadata = self.backend_index.get_kernel(self.g)
-                assert metadata is not None
+                if metadata is None:
+                    raise ValueError("metadata is None")
                 class_name = f"structured_{metadata.kernel}_{k.name}"
                 parent_class = f"{self.cpp_namespace}::structured_{metadata.kernel}"
 
@@ -682,7 +687,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
             out_args = structured.out_arguments(self.g)
             maybe_star = '*' if k is SchemaKind.functional else ''
             for i, out_arg in enumerate(out_args):
-                assert ConstRefCType(BaseCType(tensorT)) == out_arg.nctype.type
+                if ConstRefCType(BaseCType(tensorT)) != out_arg.nctype.type:
+                    raise ValueError("ConstRefCType(BaseCType(tensorT)) != out_arg.nctype.type")
                 context.append(Expr(
                     expr=f"{maybe_star}op.outputs_[{i}]",
                     # TODO: Stop hardcoding that the output type is a Tensor.  Note

@@ -633,7 +633,8 @@ def gen_variable_type_func(
             wrapper_registration = gen_wrapper_registration(f)
 
     # See Note [Manual Backend kernels]
-    assert (name in MANUAL_BACKEND) == f.manual_kernel_registration
+    if (name in MANUAL_BACKEND) != f.manual_kernel_registration:
+        raise ValueError("(name in MANUAL_BACKEND) == f.manual_kernel_registration")
 
     return {
         'type_derived_method_definitions': [type_definition],
@@ -643,7 +644,8 @@ def gen_variable_type_func(
 
 @with_native_function_with_differentiability_info
 def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
-    assert dispatch_strategy(fn) == 'use_derived'
+    if dispatch_strategy(fn) != 'use_derived':
+        raise ValueError("dispatch_strategy(fn) != 'use_derived'")
     f = fn.func
     info = fn.info
     fw_derivatives = fn.fw_derivatives
@@ -712,7 +714,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
         # We don't want to save tensors if we know that they will never be used
         # when computing the derivative, so we add guards to those statements
         def guard_for(arg: SavedAttribute) -> Optional[str]:
-            assert info is not None
+            if info is None:
+                raise ValueError(info is None)
 
             # It's hard to determine the edge offset if we have TensorLists
             if has_tensorlist_arg:
@@ -739,7 +742,6 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             # We want to emit simple guards, so we only allow that if checking one
             # input is enough to determine whether we need that value
             used_in = [d for d in info.derivatives if arg in d.saved_inputs]
-            assert len(used_in) > 0
             if len(used_in) != 1:
                 return None
             derivative = used_in[0]
@@ -857,7 +859,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 if var == 'self' and inplace:
                     stmts_prepend = 'if (!original_self.has_value()) original_self = self.clone()'
                     var = 'original_self.value()'
-                    assert not is_output
+                    if is_output:
+                        raise ValueError("is_output")
                 if inplace and is_output:
                     var = 'self'
                     is_inplace_view = f'{var}.is_view()'
@@ -914,7 +917,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             rhs_value = var
         else:
             rhs_value = f'std::move({var})'
-        assert rhs_value is not None
+        if rhs_value is None:
+            raise ValueError(rhs_value is None)
         call += ASSIGN_RETURN_VALUE.substitute(return_values=tie_return_values(f),
                                                rhs_value=rhs_value)
         return call
@@ -947,7 +951,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 stmts_after_call += [ENFORCE_SAME_TENSOR_STORAGE.substitute(tensor_name=arg, out_tensor_name=arg),
                                      ENFORCE_SAME_TENSOR_IMPL.substitute(tensor_name=arg)]
 
-        assert (stmts_before_call and stmts_after_call) or (not stmts_before_call and not stmts_after_call)
+        if not (stmts_before_call and stmts_after_call) or (not stmts_before_call and not stmts_after_call):
+            raise ValueError("not (stmts_before_call and stmts_after_call) or (not stmts_before_call and not stmts_after_call).")
 
         # Check properties of outputs (enforce (2), (3))
         if not f.func.kind() in (SchemaKind.inplace, SchemaKind.out):
@@ -960,7 +965,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 if noref_cpp_type == BaseCType(tensorT):
                     if aliased_arg_name is not None:
                         msg = "Expect non-CompositeImplicitAutograd view function {base} to return single output"
-                        assert i == 0, msg
+                        if i != 0:
+                            raise ValueError(msg)
                         stmts_after_call += [ENFORCE_SAME_TENSOR_STORAGE.substitute(tensor_name=aliased_arg_name,
                                                                                     out_tensor_name=ret_name)]
                     else:
@@ -1031,7 +1037,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
     def emit_any_requires_grad() -> List[str]:
         extra_condition = ''
         if fn.info and fn.info.output_differentiability_conditions:
-            assert len(fn.info.output_differentiability_conditions) == 1
+            if len(fn.info.output_differentiability_conditions) != 1:
+                raise ValueError("len(fn.info.output_differentiability_conditions) != 1")
             extra_condition = \
                 f'_any_requires_grad &= ({fn.info.output_differentiability_conditions[0]});'
         return [SETUP_ANY_REQUIRES_GRAD.substitute(
@@ -1044,7 +1051,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
     def emit_any_has_forward_grad() -> List[str]:
         content: List[str] = []
         for derivative in fw_derivatives:
-            assert derivative.required_inputs_fw_grad is not None
+            if derivative.required_inputs_fw_grad is None:
+                raise ValueError("derivative.required_inputs_fw_grad is None")
             requires_fw_grad = " || ".join([FW_DERIVATIVE_CHECK_TEMPLATE.substitute(req_inp=inp.name)
                                            for inp in differentiable_inputs 
                                            if inp.name in derivative.required_inputs_fw_grad])
@@ -1060,7 +1068,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 requires_fw_grad = "true"
 
             if fn.info and fn.info.output_differentiability_conditions:
-                assert len(fn.info.output_differentiability_conditions) == 1
+                if len(fn.info.output_differentiability_conditions) != 1:
+                    raise ValueError("len(fn.info.output_differentiability_conditions) != 1")
                 requires_fw_grad = \
                     f'({fn.info.output_differentiability_conditions[0]}) && ({requires_fw_grad})'
 
@@ -1083,7 +1092,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 # TODO update this when inplace namings are unified
                 res = "self"
 
-            assert derivative.required_inputs_fw_grad is not None
+            if derivative.required_inputs_fw_grad is None:
+                raise ValueError("derivative.required_inputs_fw_grad is None")
 
             unpacked_arguments = ""
             for inp in differentiable_inputs:
@@ -1181,12 +1191,12 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             if len(fw_derivatives) == 0:
                 body.append(emit_forbid_fw_derivatives())
             else:
-                assert len(fw_derivatives) == len(differentiable_outputs), (
-                    "Expected the number of forward derivatives implemented to match the "
-                    "number of differentiable outputs. NB: This only applies when at least "
-                    "one forward derivative is implemented. Not implementing any forward "
-                    "derivatives is also okay, and we would require inputs to the op to "
-                    "not have associated tangents in that case.")
+                if len(fw_derivatives) != len(differentiable_outputs):
+                    ValueError("Expected the number of forward derivatives implemented to match the "
+                               "number of differentiable outputs. NB: This only applies when at least "
+                               "one forward derivative is implemented. Not implementing any forward "
+                               "derivatives is also okay, and we would require inputs to the op to "
+                               "not have associated tangents in that case.")
 
     if requires_derivative:
         # Save only after the forward AD has been set up
@@ -1197,7 +1207,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
         # so we can keep the generated code easy. If you need to
         # `reset_grad_accumulator` in an operator that's not `inplace`, you can
         # remove this assert but the code generation will get more elaborate
-        assert inplace
+        if not inplace:
+            raise ValueError("not inplace")
         body.append('reset_grad_accumulator(self);')
     if not returns_void:
         body.append(f'return {get_return_value(f)};')
