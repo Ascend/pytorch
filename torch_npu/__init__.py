@@ -126,6 +126,10 @@ def apply_class_patches():
     add_intercept_methods()
 
 
+def apply_test_patchs():
+    update_skip_list()
+    OpInfo.get_decorators = get_decorators
+
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
@@ -150,6 +154,11 @@ torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, gro
 from torch.utils.checkpoint import DefaultDeviceType
 DefaultDeviceType.set_device_type("npu")
 del DefaultDeviceType
+
+#apply test_ops related patch
+from torch.testing._internal.opinfo.core import OpInfo
+from torch_npu.testing.npu_testing_utils import update_skip_list, get_decorators
+apply_test_patchs()
 
 
 # NPU exit, need to synchronize devices

@@ -19,6 +19,7 @@ fi
 
 op_plugin_config_path=$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir
 source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
+testing_source_yaml="$CDIR/test/ops_unsupport_list.yaml"
 
 op_plugin_functions_yaml_path="$op_plugin_config_path/npu_native_functions.yaml"
 
@@ -33,3 +34,5 @@ ${python_execute} -m codegen.autograd.gen_autograd \
   --out_dir="$CDIR/torch_npu/csrc/aten" \
   --autograd_dir="$CDIR/codegen/autograd" \
   --npu_native_function_dir="$source_yaml"
+
+${python_execute} -m codegen.codegen_ops_info
