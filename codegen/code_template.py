@@ -16,6 +16,8 @@
 
 import re
 from typing import Match, Optional, Sequence, Mapping
+from codegen.utils import PathManager
+
 
 # match $identifier or ${identifier} and replace with value in env
 # If this identifier is at the beginning of whitespace on a line
@@ -45,6 +47,7 @@ class CodeTemplate:
 
     @staticmethod
     def from_file(filename: str) -> 'CodeTemplate':
+        PathManager.check_directory_path_readable(filename)
         with open(filename, 'r') as f:
             return CodeTemplate(f.read(), filename)
 

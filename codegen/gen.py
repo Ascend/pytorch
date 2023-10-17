@@ -26,7 +26,7 @@ from codegen.code_template import CodeTemplate
 from codegen.model import (FunctionSchema, NativeFunction,
                            NativeFunctionsGroup, OperatorName,
                            SchemaKind, assert_never)
-from codegen.utils import concat_map
+from codegen.utils import concat_map, PathManager
 
 T = TypeVar('T')
 
@@ -122,14 +122,16 @@ class FileManager:
     @staticmethod
     def _write_if_changed(filename: str, contents: str) -> None:
         old_contents: Optional[str]
+        filepath = os.path.realpath(filename)
         try:
-            with open(filename, 'r') as f:
+            with open(filepath, 'r') as f:
                 old_contents = f.read()
         except IOError:
             old_contents = None
         if contents != old_contents:
-            with os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as f:
+            with os.fdopen(os.open(filepath, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as f:
                 f.write(contents)
+            os.chmod(filepath, 0o550)
 
     def write_with_template(self, filename: str, template_fn: str,
                             env_callable: Callable[[], Union[str, Dict[str, Any]]]) -> None:

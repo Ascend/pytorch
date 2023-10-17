@@ -19,6 +19,8 @@ import inspect
 import os
 import warnings
 import torch_npu._C
+from torch_npu.utils.path_manager import PathManager
+
 
 # this file is used to enhance the npu frontend API by set_option or other.
 
@@ -74,8 +76,8 @@ def init_dump():
 
 def set_dump(cfg_file):
     if not os.path.exists(cfg_file):
-        raise AssertionError("cfg_file %s path does not exists." % (cfg_file))
-    cfg_file = os.path.abspath(cfg_file)
+        raise AssertionError("cfg_file %s path does not exists."%(cfg_file))
+    cfg_file = os.path.realpath(cfg_file)
     option = {"mdldumpconfigpath": cfg_file}
     torch_npu._C._npu_setOption(option)
 
@@ -93,7 +95,7 @@ def set_compile_mode(jit_compile=False):
 def set_aoe(dump_path):
     if not os.path.exists(dump_path):
         try:
-            os.makedirs(dump_path)
+            PathManager.make_dir_safety(dump_path)
         except TypeError:
             raise TypeError("Type of dump_path is invalid.") from None
         except OSError:
@@ -207,7 +209,7 @@ class profile(object):
                  config=profileConfig()):
         if profiler_result_path is None:
             profiler_result_path = os.getenv("ASCEND_WORK_PATH", default=None)
-            profiler_result_path = os.path.join(os.path.abspath(profiler_result_path), "profiling_data") \
+            profiler_result_path = os.path.join(os.path.realpath(profiler_result_path), "profiling_data") \
                 if profiler_result_path else os.getcwd()
         self.result_path = profiler_result_path
         self.use_e2e_profiler = use_e2e_profiler
@@ -216,7 +218,7 @@ class profile(object):
         self.config = config
         self.entered = False
         try:
-            os.makedirs(self.result_path, exist_ok=True)
+            PathManager.make_dir_safety(self.result_path)
         except TypeError:
             raise TypeError("Type of result_path is invalid.") from None
         except OSError:
@@ -246,8 +248,8 @@ class profile(object):
 
 def prof_init(path):
     if not os.path.exists(path):
-        raise AssertionError("profiler_result_path: %s not exists." % (path))
-    profiler_result_path = os.path.abspath(path)
+        raise AssertionError("profiler_result_path: %s not exists."%(path))
+    profiler_result_path = os.path.realpath(path)
     option = {"profilerResultPath": profiler_result_path}
     torch_npu._C._npu_setOption(option)
 

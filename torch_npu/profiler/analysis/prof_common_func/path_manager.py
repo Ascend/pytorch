@@ -19,7 +19,7 @@ import re
 from ..prof_common_func.constant import Constant
 
 
-class PathManager:
+class ProfilerPathManager:
     @classmethod
     def get_fwk_path(cls, profiler_path: str) -> str:
         fwk_path = os.path.join(profiler_path, Constant.FRAMEWORK_DIR)

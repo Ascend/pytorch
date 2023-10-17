@@ -59,8 +59,8 @@ class MsProfilerInterface:
     def dump_info(self, total_info: dict):
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             rank_id = torch.distributed.get_rank()
-            path = os.path.join(os.path.abspath(self.path), f'profiler_info_{rank_id}.json')
+            path = os.path.join(os.path.realpath(self.path), f'profiler_info_{rank_id}.json')
             total_info["rank_id"] = rank_id
         else:
-            path = os.path.join(os.path.abspath(self.path), 'profiler_info.json')
+            path = os.path.join(os.path.realpath(self.path), 'profiler_info.json')
         FileManager.create_json_file_by_path(path, total_info, indent=4)

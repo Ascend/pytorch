@@ -21,7 +21,6 @@
 
 
 import argparse
-import os
 import re
 from collections import defaultdict, namedtuple
 from typing import Dict, Optional, List, Tuple, Set, Sequence, Callable
@@ -46,8 +45,8 @@ from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
                            Type, Variant, BackendIndex,
                            BackendMetadata, DispatchKey, OperatorName)
-from codegen.utils import (context, parse_npu_yaml, parse_opplugin_yaml,
-                           gen_custom_yaml_path, filed_tag)
+from codegen.utils import (context, parse_npu_yaml, gen_custom_yaml_path,
+                           filed_tag, parse_opplugin_yaml, PathManager)
 from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
 
 # These functions require manual Python bindings or are not exposed to Python
@@ -247,6 +246,7 @@ def _${name}(*args, **kwargs):
     })
 
     def query_methods(filepath):
+        PathManager.check_directory_path_readable(filepath)
         with open(filepath, 'r', encoding='UTF-8') as f:
             read_lines = f.readlines()
         def_methods = []
@@ -712,6 +712,7 @@ return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad
 def parse_native_yaml(path: str) -> List[NativeFunction]:
     from io import StringIO
     f_str = StringIO()
+    PathManager.check_directory_path_readable(path)
     with open(path, 'r') as f:
         for line in f:
             f_str.write(line)
