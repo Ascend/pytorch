@@ -19,7 +19,7 @@ import re
 from json import JSONDecodeError
 
 from .prof_common_func.file_manager import FileManager
-from .prof_common_func.path_manager import PathManager
+from .prof_common_func.path_manager import ProfilerPathManager
 from .prof_common_func.singleton import Singleton
 from .prof_common_func.constant import Constant, print_warn_msg
 from .prof_bean.ai_cpu_bean import AiCpuBean
@@ -59,7 +59,7 @@ class ProfilerConfig:
 
     @classmethod
     def _get_profiler_info_json(cls, profiler_path: str):
-        info_file_path = PathManager.get_info_file_path(profiler_path)
+        info_file_path = ProfilerPathManager.get_info_file_path(profiler_path)
         if not info_file_path:
             print_warn_msg("Failed to get profiler info file.")
             return {}
@@ -76,7 +76,7 @@ class ProfilerConfig:
         self.load_timediff_info(profiler_path, info_json)
 
     def load_is_cluster(self, profiler_path: str):
-        info_file_path = PathManager.get_info_file_path(profiler_path)
+        info_file_path = ProfilerPathManager.get_info_file_path(profiler_path)
         if info_file_path:
             self._is_cluster = re.match(r"^profiler_info_\d+\.json", os.path.basename(info_file_path))
 

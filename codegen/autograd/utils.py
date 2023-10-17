@@ -21,7 +21,7 @@ from codegen.api import cpp
 from codegen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
     DifferentiabilityInfo)
-from codegen.utils import CUSTOM_YAML_NAME, enable_opplugin
+from codegen.utils import CUSTOM_YAML_NAME, enable_opplugin, PathManager
 from codegen.model import NativeFunction, SchemaKind
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 from .load_derivatives import load_derivatives
@@ -72,6 +72,7 @@ def filt_npu_autograd_functions(
     npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_functions = set()
+    PathManager.check_directory_path_readable(native_functions_path)
     with open(native_functions_path, 'r') as f:
         es = yaml.safe_load(f)
     for e in es:

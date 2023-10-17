@@ -22,6 +22,7 @@ import threading
 import queue
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
+from torch_npu.utils.path_manager import PathManager
 
 BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
@@ -148,6 +149,7 @@ class TestMgr():
         }
 
     def load(self, modify_files):
+        PathManager.check_directory_path_readable(modify_files)
         with open(modify_files) as f:
             for line in f:
                 line = line.strip()

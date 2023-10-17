@@ -37,7 +37,7 @@ from codegen.api import cpp
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 from codegen.context import with_native_function
 from codegen.model import FunctionSchema, NativeFunction, Variant, Type
-from codegen.utils import IDENT_REGEX, split_name_params
+from codegen.utils import IDENT_REGEX, split_name_params, PathManager
 
 
 _GLOBAL_LOAD_DERIVATIVE_CACHE = {}
@@ -52,7 +52,7 @@ def load_derivatives(
     global _GLOBAL_LOAD_DERIVATIVE_CACHE
     key = (derivatives_yaml_path, native_yaml_path)
     if key not in _GLOBAL_LOAD_DERIVATIVE_CACHE:
-
+        PathManager.check_directory_path_readable(derivatives_yaml_path)
         with open(derivatives_yaml_path, 'r') as f:
             definitions = yaml.safe_load(f)
         

@@ -20,6 +20,7 @@ import torch
 
 from torch_npu.testing.testcase import TestCase, run_tests
 import torch_npu.onnx
+from torch_npu.utils.path_manager import PathManager
 
 #acl format
 FORMAT_ND = 2
@@ -28,16 +29,16 @@ FORMAT_NZ = 29
 class TestOnnxOps(TestCase):
 
     test_onnx_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "test_onnx_wrapper_ops")
+        os.path.realpath(os.path.dirname(__file__)), "test_onnx_wrapper_ops")
 
     @classmethod
     def setUpClass(cls):
-        os.makedirs(TestOnnxOps.test_onnx_path, exist_ok=True)
+        PathManager.make_dir_safety(TestOnnxOps.test_onnx_path)
 
     @classmethod
     def tearDownClass(cls):
         assert os.path.exists(TestOnnxOps.test_onnx_path)
-        shutil.rmtree(TestOnnxOps.test_onnx_path, ignore_errors=True)
+        PathManager.remove_path_safety(TestOnnxOps.test_onnx_path)
 
     def onnx_export(self, model, inputs, onnx_model_name,
                     input_names=None, output_names=None):

@@ -17,7 +17,6 @@ import os
 import re
 import sys
 import builtins
-import inspect
 import types
 import atexit
 import traceback
@@ -64,7 +63,7 @@ from torch_npu.contrib.function import fusion_attention
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
     serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
-    add_fx_methods, add_checkpoint_methods, add_launch_methods
+    add_fx_methods, add_checkpoint_methods, add_launch_methods, path_manager
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 from torch_npu.distributed import fsdp_patches
@@ -91,7 +90,8 @@ def get_cann_version(ascend_home_path):
             break
         install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
         if install_files:
-            filepath = os.path.join(dirpath, install_files[0])
+            filepath = os.path.realpath(os.path.join(dirpath, install_files[0]))
+            path_manager.PathManager.check_directory_path_readable(filepath)
             with open(filepath, "r") as f:
                 for line in f:
                     if line.find("version") != -1:

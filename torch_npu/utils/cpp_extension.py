@@ -22,7 +22,7 @@ import torch.utils.cpp_extension as TorchExtension
 
 import torch_npu
 
-PYTORCH_NPU_INSTALL_PATH = os.path.dirname(os.path.abspath(torch_npu.__file__))
+PYTORCH_NPU_INSTALL_PATH = os.path.dirname(os.path.realpath(torch_npu.__file__))
 
 
 def NpuExtension(name, sources, *args, **kwargs):
