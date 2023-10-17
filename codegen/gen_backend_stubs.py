@@ -42,7 +42,7 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
                            parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path,
-                           update_opapi_info, is_opapi)
+                           update_opapi_info, is_opapi, PathManager)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch, 
                                       gen_custom_functions_dispatch)
 
@@ -123,6 +123,7 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
         valid_tags = parse_tags_yaml(tag_path)
+        PathManager.check_directory_path_readable(path)
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
         if not isinstance(es, list):
@@ -186,6 +187,7 @@ def parse_backend_yaml(
             for func in f.functions():
                 native_functions_map[func.func.name] = func
 
+    PathManager.check_directory_path_readable(backend_yaml_path)
     with open(backend_yaml_path, 'r') as f:
         yaml_values = yaml.safe_load(f)
     if not isinstance(yaml_values, dict):
@@ -294,6 +296,7 @@ def check_op_on_cpu_kernels(
 def op_plugin_kernel_conut(op_plugin_ops_dir: str):
     actual_backend_kernel_name_counts = Counter()
     file_path = os.path.join(op_plugin_ops_dir, "OpInterface.h")
+    PathManager.check_directory_path_readable(file_path)
     try:
         with open(file_path, 'r') as f:
             backend_defns = f.read()
@@ -312,6 +315,7 @@ def pta_kernel_conut(class_name: str, pta_op_dir: str):
             if not filename.endswith('.cpp'):
                 continue
             file_path = os.path.join(cur_dir, filename)
+            PathManager.check_directory_path_readable(file_path)
             try:
                 with open(file_path, 'r') as f:
                     backend_defns = f.read()

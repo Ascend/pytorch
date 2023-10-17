@@ -4,20 +4,21 @@ import shutil
 import torch
 import torch_npu.jit
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.utils.path_manager import PathManager
 
 
 class TestJitOpsFusion(TestCase):
     test_jit_model_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), "test_jit_fusion")
+        os.path.realpath(os.path.dirname(__file__)), "test_jit_fusion")
 
     @classmethod
     def setUpClass(cls):
-        os.makedirs(TestJitOpsFusion.test_jit_model_path, exist_ok=True)
+        PathManager.make_dir_safety(TestJitOpsFusion.test_jit_model_path)
 
     @classmethod
     def tearDownClass(cls):
         assert os.path.exists(TestJitOpsFusion.test_jit_model_path)
-        shutil.rmtree(TestJitOpsFusion.test_jit_model_path, ignore_errors=True)
+        PathManager.remove_path_safety(TestJitOpsFusion.test_jit_model_path)
 
     def test_func_fast_gelu(self):
         def ori_func(x):

@@ -14,6 +14,8 @@ import torch
 import numpy as np
 
 import torch_npu
+from torch_npu.utils.path_manager import PathManager
+
 
 
 @contextmanager
@@ -196,7 +198,10 @@ class SkipIfNotRegistered(object):
         return skipper
 
 PERF_TEST_ENABLE = (os.getenv('PERF_TEST_ENABLE', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
-PERF_BASELINE_FILE = os.getenv("PERF_BASELINE_FILE", default=os.path.join(os.getcwd(), "performance_baseline.json"))
+PERF_BASELINE_FILE = os.path.realpath(
+    os.getenv("PERF_BASELINE_FILE", default=os.path.join(os.getcwd(), "performance_baseline.json"))
+)
+
 
 
 class Baseline(object):
@@ -206,6 +211,7 @@ class Baseline(object):
         self._baselineFile = baselineFile
         self._mutex = threading.Lock()
         if os.path.exists(self._baselineFile):
+            PathManager.check_directory_path_readable(self._baselineFile)
             with open(self._baselineFile, "r") as f:
                 self._baseline = json.load(f)
 
@@ -221,7 +227,9 @@ class Baseline(object):
             with os.fdopen(os.open(self._baselineFile, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
                 json.dump(self._baseline, f)
 
+
 PerfBaseline = Baseline(PERF_BASELINE_FILE)
+
 
 @atexit.register
 def dump_baseline():

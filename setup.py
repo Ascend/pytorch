@@ -25,7 +25,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 from wheel.bdist_wheel import bdist_wheel
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '2.1.0'
 UNKNOWN = "Unknown"
@@ -99,6 +99,7 @@ def generate_torch_npu_version():
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
         f.write("git_version = {}\n".format(repr(sha)))
+    os.chmod(version_path, 0o550)
 
 
 generate_torch_npu_version()
@@ -161,7 +162,7 @@ def _get_build_mode():
 def get_pytorch_dir():
     try:
         import torch
-        return os.path.dirname(os.path.abspath(torch.__file__))
+        return os.path.dirname(os.path.realpath(torch.__file__))
     except Exception:
         _, _, exc_traceback = sys.exc_info()
         frame_summary = traceback.extract_tb(exc_traceback)[-1]
@@ -241,7 +242,13 @@ class Clean(distutils.command.clean.clean):
                 # Ignore lines which begin with '#'.
             else:
                 for filename in glob.glob(wildcard):
-                    shutil.rmtree(filename, ignore_errors=True)
+                    if os.path.islink(filename):
+                        raise RuntimeError(f"Failed to remove path: {filename}")
+                    if os.path.exists(filename):
+                        try:
+                            shutil.rmtree(filename, ignore_errors=True)
+                        except Exception as err:
+                            raise RuntimeError(f"Failed to remove path: {filename}") from err
         f_ignore.close()
 
         # It's an old-style class in Python 2.7...
@@ -283,10 +290,10 @@ class CPPLibBuild(build_clib, object):
 
         cmake_args = [
             '-DCMAKE_BUILD_TYPE=' + get_build_type(),
-            '-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_lib_path),
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + os.path.abspath(output_lib_path),
-            '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.abspath(output_lib_path),
-            '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
+            '-DCMAKE_INSTALL_PREFIX=' + os.path.realpath(output_lib_path),
+            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
+            '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
+            '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.realpath(output_lib_path),
             '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]

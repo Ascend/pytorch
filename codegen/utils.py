@@ -15,6 +15,7 @@
 
 from collections import defaultdict
 import os
+import re
 import sys
 import stat
 import traceback
@@ -43,11 +44,52 @@ CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
 FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns", "op_api"]
 
 
+class PathManager:
+
+    @classmethod
+    def check_path_owner_consistent(cls, path: str):
+        """
+        Function Description:
+            check whether the path belong to process owner
+        Parameter:
+            path: the path to check
+        Exception Description:
+            when invalid path, prompt the user
+        """
+
+        if not os.path.exists(path):
+            msg = f"The path does not exist: {path}"
+            raise RuntimeError(msg)
+        if os.stat(path).st_uid != os.getuid():
+            check_msg = input("The path does not belong to you, do you want to continue? [y/n]")
+            if check_msg.lower() != "y":
+                raise RuntimeError("The user chose not to continue.")
+
+    @classmethod
+    def check_directory_path_readable(cls, path):
+        """
+        Function Description:
+            check whether the path is writable
+        Parameter:
+            path: the path to check
+        Exception Description:
+            when invalid data throw exception
+        """
+        cls.check_path_owner_consistent(path)
+        if os.path.islink(path):
+            msg = f"Invalid path is a soft chain: {path}"
+            raise RuntimeError(msg)
+        if not os.access(path, os.R_OK):
+            msg = f"The path permission check failed: {path}"
+            raise RuntimeError(msg)
+
+
 def parse_npu_yaml(custom_path: str) -> Dict:
     if not os.path.exists(custom_path):
         return {}
     from io import StringIO
     f_str = StringIO()
+    PathManager.check_directory_path_readable(custom_path)
     with open(custom_path, 'r') as f:
         for line in f:
             if ':' not in line:
@@ -82,15 +124,18 @@ def merge_yaml(base_data, additional_data):
 
 
 def merge_custom_yaml(pta_path, op_plugin_path):
+    PathManager.check_directory_path_readable(pta_path)
     with open(pta_path, 'r') as pta_file:
         pta_es = yaml.safe_load(pta_file)
+    PathManager.check_directory_path_readable(op_plugin_path)
     with open(op_plugin_path, 'r') as op_plugin_file:
         op_es = yaml.safe_load(op_plugin_file)
 
     merged_yaml = merge_yaml(pta_es, op_es)
     merged_yaml_path = gen_custom_yaml_path(pta_path)
-    with open(merged_yaml_path, 'w') as outfile:
+    with os.fdopen(os.open(merged_yaml_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as outfile:
         yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
+    os.chmod(merged_yaml_path, 0o550)
     return merged_yaml
 
 
@@ -164,7 +209,7 @@ def get_torchgen_dir():
     # get path of torchgen, then get tags.yaml and native_functions.yaml
     try:
         import torchgen
-        return os.path.dirname(os.path.abspath(torchgen.__file__))
+        return os.path.dirname(os.path.realpath(torchgen.__file__))
     except Exception:
         _, _, exc_traceback = sys.exc_info()
         frame_summary = traceback.extract_tb(exc_traceback)[-1]
@@ -393,6 +438,7 @@ def arguments(
 def add_header_to_template_file():
     torchgen_path = get_torchgen_dir()
     template_dir = os.path.join(torchgen_path, "packaged/ATen/templates/DispatchKeyNativeFunctions.h")
+    PathManager.check_directory_path_readable(template_dir)
     with open(template_dir, "r") as file:
         template_content = file.read()
     if "#include <ATen/ATen.h>" not in template_content:
@@ -404,7 +450,7 @@ def add_header_to_template_file():
 
 def enable_opplugin() -> bool:
     # enable op_plugin, if path of third_party/op-plugin is valid.
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.realpath(__file__))
     op_plugin_path = os.path.join(base_dir, '../third_party/op-plugin/op_plugin')
     return os.path.exists(op_plugin_path)
 

@@ -11,8 +11,8 @@ from torchgen.utils import concatMap, context
 from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
-from torchgen.packaged.autograd.gen_trace_type import type_wrapper_name
-from codegen.utils import (enable_opplugin, is_op_valid, filed_tag, get_opplugin_wrap_name)
+from codegen.utils import (enable_opplugin, is_op_valid, filed_tag, get_opplugin_wrap_name, PathManager)
+
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
@@ -37,6 +37,7 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
     # Filter the custom native yaml file, and extract the functions we defined.
     from io import StringIO
     f_str = StringIO()
+    PathManager.check_directory_path_readable(custom_path)
     with open(custom_path, 'r') as f:
         for line in f:
             if line.split(':')[0] in ['backend', 'cpp_namespace', 'extra_headers',

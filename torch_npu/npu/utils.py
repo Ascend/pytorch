@@ -1,3 +1,4 @@
+import os
 from typing import Any
 from functools import lru_cache
 import warnings
@@ -293,7 +294,8 @@ def init_dump():
 
 def set_dump(cfg_file):
     torch_npu.npu._lazy_init()
-    return torch_npu._C._npu_setDump(cfg_file)
+    cfg_file_path = os.path.realpath(cfg_file)
+    return torch_npu._C._npu_setDump(cfg_file_path)
 
 
 def finalize_dump():

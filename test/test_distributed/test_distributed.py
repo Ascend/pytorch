@@ -24,6 +24,7 @@ from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.utils.path_manager import PathManager
 
 try:
     import torchvision
@@ -144,7 +145,9 @@ class Barrier(object):
             arrived = 0
             with _lock():
                 for f_name in os.listdir(barrier_dir):
-                    with open(os.path.join(barrier_dir, f_name), "r") as f:
+                    file_path = os.path.join(barrier_dir, f_name)
+                    PathManager.check_directory_path_readable(file_path)
+                    with open(file_path, "r") as f:
                         data = f.read()
                         if int(data) >= cls.barrier_id:
                             arrived += 1

@@ -8,6 +8,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.utils.path_manager import PathManager
 
 
 def i8(c):
@@ -90,7 +91,9 @@ class TestDecodeJpeg(TestCase):
             self.fail("device error")
 
     def test_decode_jpeg(self):
-        with open("./test.jpg", "rb") as f:
+        test_path = os.path.realpath('./test.jpg')
+        PathManager.check_directory_path_readable(test_path)
+        with open(test_path, "rb") as f:
             f.seek(0)
             image_shape = extract_jpeg_shpae(f)
 

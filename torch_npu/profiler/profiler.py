@@ -6,13 +6,13 @@ from torch_npu.npu import _lazy_init
 
 from .analysis.npu_profiler import NpuProfiler
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
-from .analysis.prof_common_func.path_manager import PathManager
+from .analysis.prof_common_func.path_manager import ProfilerPathManager
 from .experimental_config import _ExperimentalConfig
 from .profiler_action_controller import ActionController
 from .profiler_action_controller import NpuProfCreator
 from .msprofiler_c_interface import MsProfilerInterface, supported_ms_activities, ProfilerActivity
 from .scheduler import CLOSE_STEP, ProfilerAction
-from ..utils.secure_path_manager import SecurePathManager
+from ..utils.path_manager import PathManager
 
 
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, use_gzip: bool = False):
@@ -72,7 +72,7 @@ class profile:
             prev_action = self._schedule(prev_step)
             if prev_action == ProfilerAction.NONE:
                 return
-            SecurePathManager.remove_path_safety(self._msprofiler_interface.path)
+            PathManager.remove_path_safety(self._msprofiler_interface.path)
 
     def step(self):
         if self._schedule:
@@ -89,8 +89,8 @@ class profile:
         self._action_controller.trace_ready()
 
     def export_chrome_trace(self, output_path: str):
-        output_path = PathManager.get_realpath(output_path)
-        SecurePathManager.check_input_file_path(output_path)
+        output_path = ProfilerPathManager.get_realpath(output_path)
+        PathManager.check_input_file_path(output_path)
         file_name = os.path.basename(output_path)
         if not file_name.endswith(".json"):
             raise RuntimeError("Invalid parameter output_path, which must be a json file.")

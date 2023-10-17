@@ -18,7 +18,7 @@ import re
 import shutil
 
 
-class SecurePathManager:
+class PathManager:
     MAX_PATH_LENGTH = 4096
     MAX_FILE_NAME_LENGTH = 255
     DATA_FILE_AUTHORITY = 0o640
@@ -73,7 +73,7 @@ class SecurePathManager:
             msg = f"The path does not exist: {path}"
             raise RuntimeError(msg)
         if os.stat(path).st_uid != os.getuid():
-            check_msg = input("The path may be insecure because it not belong to you, do you want to continue? [y/n]")
+            check_msg = input("The path may does not belong to you, do you want to continue? [y/n]")
             if check_msg.lower() != "y":
                 raise RuntimeError("The user chose not to continue.")
 

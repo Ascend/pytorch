@@ -5,6 +5,7 @@ from functools import wraps
 
 import torch
 import torch_npu
+from torch_npu.utils.path_manager import PathManager
 from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api, unsupported_nested_api
 
 
@@ -24,7 +25,8 @@ def get_cann_version(ascend_home_path):
             break
         install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
         if install_files:
-            filepath = os.path.join(dirpath, install_files[0])
+            filepath = os.path.realpath(os.path.join(dirpath, install_files[0]))
+            PathManager.check_directory_path_readable(filepath)
             with open(filepath, "r") as f:
                 for line in f:
                     if line.find("version") != -1:

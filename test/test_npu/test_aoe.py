@@ -4,7 +4,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-
+from torch_npu.utils.path_manager import PathManager
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel, out_channel):
@@ -25,14 +25,14 @@ class TestAoe(TestCase):
     @classmethod
     def setUpClass(cls):
         if os.path.exists(TestAoe.results_path):
-            shutil.rmtree(TestAoe.results_path)
-        os.makedirs(TestAoe.results_path)
+            PathManager.remove_path_safety(TestAoe.results_path)
+        PathManager.make_dir_safety(TestAoe.results_path)
         TestAoe.enable_aoe()
     
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestAoe.results_path):
-            shutil.rmtree(TestAoe.results_path)
+            PathManager.remove_path_safety(TestAoe.results_path)
 
     @classmethod
     def enable_aoe(cls):

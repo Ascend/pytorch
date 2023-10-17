@@ -6,6 +6,7 @@ from collections import namedtuple
 
 import torch
 from torch.utils import collect_env as torch_collect_env
+from torch_npu.utils.path_manager import PathManager
 
 
 # System Environment Information
@@ -41,7 +42,8 @@ def get_cann_version():
         if len(install_files) == 0:
             install_files = [file for file in filenames if re.match(r"version*.cfg", file)]
         if install_files:
-            filepath = os.path.join(dirpath, install_files[0])
+            filepath = os.path.realpath(os.path.join(dirpath, install_files[0]))
+            PathManager.check_directory_path_readable(filepath)
             with open(filepath, "r") as f:
                 cann_version = " ".join(f.readlines())
                 break

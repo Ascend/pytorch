@@ -9,7 +9,7 @@ from torchgen.api.autograd import (
 )
 from torchgen.packaged.autograd.load_derivatives import load_derivatives
 
-from codegen.utils import get_torchgen_dir, CUSTOM_YAML_NAME
+from codegen.utils import get_torchgen_dir, CUSTOM_YAML_NAME, PathManager
 from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 
 
@@ -42,6 +42,7 @@ def filt_npu_autograd_functions(
 ) :
     npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_functions = set()
+    PathManager.check_directory_path_readable(native_functions_path)
     with open(native_functions_path, 'r') as f:
         es = yaml.safe_load(f)
     for e in es:
