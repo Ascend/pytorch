@@ -20,7 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
-class TestKlDivBackward(TestCase):  
+class TestKlDivBackward(TestCase):
     def cpu_op_exec(self, input1, input2, reduction):
         input1.requires_grad = True
         output = torch.kl_div(input1, input2, reduction=reduction)
@@ -35,7 +35,7 @@ class TestKlDivBackward(TestCase):
         output = output.cpu()
         output = output.detach().numpy()
         return output, input1.grad
-    
+
     def test_kl_div_backward_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[torch.float16, 0, (192, 8)], [torch.float16, 0, (192, 8)], 1],
@@ -47,8 +47,8 @@ class TestKlDivBackward(TestCase):
         for item in shape_format:
             x = torch.randn(item[0][2])
             y = torch.randn(item[1][2])
-            cpu_input = F.log_softmax(x, dim = 0)
-            cpu_target = F.softmax(y, dim = 0)
+            cpu_input = F.log_softmax(x, dim=0)
+            cpu_target = F.softmax(y, dim=0)
             npu_input = cpu_input.npu()
             npu_target = cpu_target.npu()
             reduction = item[2]
@@ -68,14 +68,14 @@ class TestKlDivBackward(TestCase):
         for item in shape_format:
             x = torch.randn(item[0][2])
             y = torch.randn(item[1][2])
-            cpu_input = F.log_softmax(x, dim = 0).to(item[0][0])
-            cpu_target = F.softmax(y, dim = 0).to(item[1][0])
+            cpu_input = F.log_softmax(x, dim=0).to(item[0][0])
+            cpu_target = F.softmax(y, dim=0).to(item[1][0])
             npu_input = cpu_input.npu()
             npu_target = cpu_target.npu()
             reduction = item[2]
             cpu_output, cpu_input_grad = self.cpu_op_exec(
-                cpu_input.to(torch.float32), 
-                cpu_target.to(torch.float32), 
+                cpu_input.to(torch.float32),
+                cpu_target.to(torch.float32),
                 reduction)
             npu_output, npu_input_grad = self.npu_op_exec(npu_input, npu_target, reduction)
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output)

@@ -105,5 +105,6 @@ class TestHannWindow(TestCase):
             npu_output = self.npu_op_exec_periodic(item[0], item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
+
 if __name__ == "__main__":
     run_tests()

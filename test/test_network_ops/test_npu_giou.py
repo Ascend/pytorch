@@ -22,6 +22,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestNpuGiou(TestCase):
     def generate_giou_data(self, n, m, dtype):
         data_bboxes = np.array([]).astype(dtype)
@@ -125,6 +126,7 @@ class TestNpuGiou(TestCase):
                 self.assertRtolEqual(cpu_output, npu_output, prec16=1e-2)
             else:
                 self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -21,8 +21,9 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestOnesLike(TestCase):
-    
+
     def cpu_op_exec(self, input1):
         output = torch.ones_like(input1)
         output = output.numpy()
@@ -33,7 +34,7 @@ class TestOnesLike(TestCase):
         output = output.to('cpu')
         output = output.numpy()
         return output
-    
+
     def test_ones_like_shape_format(self):
         shape_format = [
             [np.float32, -1, (3, )],
@@ -58,7 +59,6 @@ class TestOnesLike(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-
     def test_ones_like_float16_shape_format(self):
         shape_format = [
             [np.float16, -1, (3, )],
@@ -78,6 +78,7 @@ class TestOnesLike(TestCase):
             cpu_output = cpu_output.astype(np.float16)
 
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
+
 if __name__ == "__main__":
     run_tests()

@@ -153,6 +153,5 @@ class TestReciprocal(TestCase):
         self.reciprocal_result(shape_format)
 
 
-
 if __name__ == "__main__":
     run_tests()

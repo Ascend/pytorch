@@ -49,7 +49,7 @@ class TestNe(TestCase):
         output = input3.to("cpu")
         output = output.numpy()
         return output
-    
+
     def test_ne_shape_format_int32(self):
         dtype_list = [np.int32]
         format_list = [0, 3]
@@ -61,7 +61,7 @@ class TestNe(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
 
     def test_ne_shape_format_fp32(self):
@@ -75,9 +75,9 @@ class TestNe(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
-            
+
     def test_ne_shape_format_fp16(self):
         dtype_list = [np.float16]
         format_list = [0, 3]
@@ -92,7 +92,7 @@ class TestNe(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
                 cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ne_inp_shape_format(self):
@@ -110,7 +110,7 @@ class TestNe(TestCase):
                 cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
-            cpu_output = cpu_output.astype(npu_output.dtype)           
+            cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ne_inp_scalar_shape_format(self):
@@ -126,7 +126,7 @@ class TestNe(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, 5)
             npu_output = self.npu_op_inplace_exec(npu_input1, 5)
-            cpu_output = cpu_output.astype(npu_output.dtype)   
+            cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ne_out_shape_format_fp32(self):
@@ -140,7 +140,7 @@ class TestNe(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -10, 10)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2)
-            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)           
+            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
     def test_ne_scalar_out_shape_format_fp32(self):

@@ -21,6 +21,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestNpuGiouBackward(TestCase):
     def generate_giou_data(self, n, m, dtype):
         data_bboxes1 = np.array([]).astype(dtype)
@@ -60,9 +61,9 @@ class TestNpuGiouBackward(TestCase):
         is_trans_list1 = [True]
         mode_list1 = ["iou"]
         shape_format1 = [[j, k, m]
-                        for j in shape_list1
-                        for k in is_trans_list1
-                        for m in mode_list1]
+                         for j in shape_list1
+                         for k in is_trans_list1
+                         for m in mode_list1]
 
         for item in shape_format1:
             mode_digit = 0 if item[-1] == "iou" else 1
@@ -79,6 +80,7 @@ class TestNpuGiouBackward(TestCase):
             _, npu_grad1, npu_grad2 = self.npu_op_exec(list1[2], list1[3], item[1], is_cross, mode_digit)
             self.assertRtolEqual(expected_cpu_grad1, npu_grad1)
             self.assertRtolEqual(expected_cpu_grad2, npu_grad2)
+
 
 if __name__ == "__main__":
     run_tests()

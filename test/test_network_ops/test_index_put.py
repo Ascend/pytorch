@@ -151,7 +151,7 @@ class TestIndexPut(TestCase):
     def test_index_put_tensor_fp32(self):
         cinput = torch.randn(4, 4, 4, 4)
         ninput = cinput.npu()
-        value = torch.tensor([100, 200, 300, 400], dtype = torch.float32)
+        value = torch.tensor([100, 200, 300, 400], dtype=torch.float32)
         cinput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value
         ninput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value.npu()
         self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())
@@ -198,6 +198,7 @@ class TestIndexPut(TestCase):
         npu_input1 = torch.arange(0, 4).npu()
         with self.assertRaisesRegex(RuntimeError, "shape mismatch"):
             npu_input1[npu_input1 > -1] = torch.tensor([1, 2, 3]).npu()
+
 
 if __name__ == "__main__":
     run_tests()

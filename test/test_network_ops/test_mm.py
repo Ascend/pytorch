@@ -24,16 +24,16 @@ class TestMM(TestCase):
         dtype_list = [np.float16, np.float32]
         format_list = [2, 29]
         shape_list = [
-                      [8, 16],
-                      [8, 15],
-                      [7, 16],
-                      [7, 15]
-                      ]
+            [8, 16],
+            [8, 15],
+            [7, 16],
+            [7, 15]
+        ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
 
-        for item in shape_format: 
+        for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 1)
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
@@ -45,24 +45,24 @@ class TestMM(TestCase):
         dtype_list = [np.float16, np.float32]
         format_list = [2, 29]
         shape_list = [
-                      [2, 7, 5],
-                      [2, 8, 5],
-                      [2, 8, 8],
-                      [2, 7, 8]
-                      ]
+            [2, 7, 5],
+            [2, 8, 5],
+            [2, 8, 8],
+            [2, 7, 8]
+        ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
 
-        for item in shape_format: 
+        for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 1)
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
             res_shape = [cpu_input.shape[0] * cpu_input.shape[1], cpu_input.shape[2]]
-            npu_out = torch.mm(npu_input.view(res_shape[0], res_shape[1]), \
-                npu_input.view(res_shape[0], res_shape[1]).t())
-            cpu_out = torch.mm(cpu_input.view(res_shape[0], res_shape[1]), \
-                cpu_input.view(res_shape[0], res_shape[1]).t())
+            npu_out = torch.mm(npu_input.view(res_shape[0], res_shape[1]),
+                               npu_input.view(res_shape[0], res_shape[1]).t())
+            cpu_out = torch.mm(cpu_input.view(res_shape[0], res_shape[1]),
+                               cpu_input.view(res_shape[0], res_shape[1]).t())
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy(), prec=1.e-3, prec16=1.e-3)
 
 

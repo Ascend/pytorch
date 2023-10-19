@@ -22,6 +22,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestNpudiou(TestCase):
     def generate_diou_data(self, n, m, dtype):
         data_bboxes = np.array([]).astype(dtype)
@@ -41,7 +42,7 @@ class TestNpudiou(TestCase):
         list1 = [cpu_input1, cpu_input2, npu_input1, npu_input2]
         return list1
 
-    def cpu_op_exec(self, box1, box2, trans=False, is_cross=False, mode="iou",eps=1e-9):
+    def cpu_op_exec(self, box1, box2, trans=False, is_cross=False, mode="iou", eps=1e-9):
         box3 = box1.numpy()
         dtype = box3.dtype
         _, n = box1.shape
@@ -64,11 +65,11 @@ class TestNpudiou(TestCase):
             rho2 = ((b2_x1[i] + b2_x2[j] - b1_x1[i] - b1_x2[j]) ** 2 +
                     (b2_y1[i] + b2_y2[j] - b1_y1[i] - b1_y2[j]) ** 2) / 4
             inter_area = (torch.min(b1_x2[i], b2_x2[j]) - torch.max(b1_x1[i], b2_x1[j])).clamp(0) * \
-            (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
+                (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
             w1, h1 = b1_x2[i] - b1_x1[i], b1_y2[i] - b1_y1[i] + eps
             w2, h2 = b2_x2[j] - b2_x1[j], b2_y2[j] - b2_y1[j] + eps
             union_area = w1 * h1 + w2 * h2 - inter_area + eps
-            diou_ij = inter_area / union_area - ( rho2 / c2)
+            diou_ij = inter_area / union_area - (rho2 / c2)
             if not is_cross:
                 if i == j:
                     diou_res = np.append(diou_res, diou_ij)
@@ -119,6 +120,7 @@ class TestNpudiou(TestCase):
                 self.assertRtolEqual(cpu_output, npu_output, prec16=1e-2)
             else:
                 self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

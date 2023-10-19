@@ -117,7 +117,7 @@ class TestPut(TestCase):
             for i in item[2]:
                 maxVal = maxVal * i
             accumulate = True
-            if np.random.randint(0,999) % 2 == 1:
+            if np.random.randint(0, 999) % 2 == 1:
                 accumulate = False
 
             input_x_cpu, input_x_npu = create_common_tensor(item, 1, 100)
@@ -127,7 +127,7 @@ class TestPut(TestCase):
             source_npu = source_cpu.npu()
             cpu_output = self.cpu_op_exec(input_x_cpu, index_cpu, source_cpu, accumulate)
             npu_output = self.npu_op_exec(input_x_npu, index_npu, source_npu, accumulate)
-            self.assertRtolEqual(cpu_output, npu_output)  
+            self.assertRtolEqual(cpu_output, npu_output)
 
 
 if __name__ == "__main__":

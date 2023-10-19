@@ -21,8 +21,8 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestPrelu(TestCase):
-    
-    def cpu_op_exec(self, input1, input2):        
+
+    def cpu_op_exec(self, input1, input2):
         output = input1.prelu(input2)
         return output.numpy()
 
@@ -40,13 +40,13 @@ class TestPrelu(TestCase):
             [[np.float16, 0, [1, 1]], [np.float16, 0, 1]],
             [[np.float16, 0, [2, 2]], [np.float16, 0, 1]]
         ]
-        for item in shape_format:          
+        for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 10)
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 10)
             if cpu_input1.dtype == torch.float16:
-                cpu_input1 = cpu_input1.to(torch.float32)     
+                cpu_input1 = cpu_input1.to(torch.float32)
             if cpu_input2.dtype == torch.float16:
-                cpu_input2 = cpu_input2.to(torch.float32) 
+                cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             cpu_output = cpu_output.astype(npu_output.dtype)

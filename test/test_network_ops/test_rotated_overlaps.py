@@ -20,6 +20,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestRotatedOverlaps(TestCase):
     def generate_rto_data(self, item):
         np.random.seed(1234)
@@ -67,7 +68,7 @@ class TestRotatedOverlaps(TestCase):
             [[1, 3, 5], [1, 2, 5]],
         ]
         is_trans_list = [False]
-        shape_format = [[[dtype, -1, m[0]],[dtype, -1, m[1]], k]
+        shape_format = [[[dtype, -1, m[0]], [dtype, -1, m[1]], k]
                         for m in shape_list
                         for k in is_trans_list]
 
@@ -81,11 +82,11 @@ class TestRotatedOverlaps(TestCase):
     def test_rotated_overlaps_shape_format_fp16(self, device="npu"):
         dtype = np.float16
         shape_list = [
-                    [[1, 3, 5], [1, 4, 5]],
-                ]
+            [[1, 3, 5], [1, 4, 5]],
+        ]
         # true is xyxyt, false is xywh format
         is_trans_list = [False]
-        shape_format = [[[dtype, -1, m[0]],[dtype, -1, m[1]], k]
+        shape_format = [[[dtype, -1, m[0]], [dtype, -1, m[1]], k]
                         for m in shape_list
                         for k in is_trans_list]
         for item in shape_format:

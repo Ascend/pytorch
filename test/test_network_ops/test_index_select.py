@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -37,7 +37,7 @@ class TestIndexSelect(TestCase):
 
     def cpu_op_out_exec(self, input1, axis, indices, output):
         '''the shape of input:float16, float32,int8,uint8,int32,uint32,int16,uint16,int64,uint64,'''
-        torch.index_select(input1, dim=axis, index=indices,out=output)
+        torch.index_select(input1, dim=axis, index=indices, out=output)
         output = output.numpy()
         return output
 

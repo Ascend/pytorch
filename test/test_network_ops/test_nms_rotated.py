@@ -96,7 +96,7 @@ class TestNpuNmsRotated(TestCase):
 
     def triangle_area(self, a, b, c):
         return (a[INDEX_X] - c[INDEX_X]) * (b[INDEX_Y] - c[INDEX_Y]) - (a[INDEX_Y] - c[INDEX_Y]) * (
-                b[INDEX_X] - c[INDEX_X])
+            b[INDEX_X] - c[INDEX_X])
 
     def contour_area(self, inter_pts, num):
         area = 0.0
@@ -204,7 +204,7 @@ class TestNpuNmsRotated(TestCase):
         # Step 3:
         # Sort point 1 ~ num according to their relative cross-product values
         # (essentially sorting according to angles)
-        ordered_pts = ordered_pts.tolist() 
+        ordered_pts = ordered_pts.tolist()
         ordered_pts[1:] = sorted(ordered_pts[1:], key=functools.cmp_to_key(self.tcmp))
         ordered_pts = torch.tensor(ordered_pts)
 
@@ -269,7 +269,7 @@ class TestNpuNmsRotated(TestCase):
         # Special case of overlap = 0
         if shifted_a.size < EPS or shifted_b.size < EPS:
             return 0.
-        
+
         # Specical case of rect1 == rect2
         if self.is_same_rect(pts1, pts2):
             return 1.0
@@ -334,7 +334,7 @@ class TestNpuNmsRotated(TestCase):
                  [[np.float16, 0, [20, 5]], [np.float16, 0, [20]], 0.2, 0],
                  [[np.float16, 0, [20, 5]], [np.float16, 0, [20]], 0.2, 1]]
 
-        for item in items:         
+        for item in items:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100., 100.)
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0., 1.)
             iou_threshold = item[2]

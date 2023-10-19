@@ -43,12 +43,12 @@ class TestNpuBertApplyAdam(TestCase):
         global_grad_norm = 0.
 
         var_out, m_out, v_out = torch_npu.npu_bert_apply_adam(
-            lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, out = (var_in, m_in, v_in))
+            lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, out=(var_in, m_in, v_in))
 
         self.assertRtolEqual(var_out[:3].cpu(), var_ans)
         self.assertRtolEqual(m_out[:3].cpu(), m_ans)
         self.assertRtolEqual(v_out[:3].cpu(), v_ans)
-    
+
     def test_npu_bert_apply_adam_out(self):
         seed = 3
         torch.npu.manual_seed(seed)
@@ -76,7 +76,7 @@ class TestNpuBertApplyAdam(TestCase):
 
         var_out, m_out, v_out = torch_npu.npu_bert_apply_adam(
             lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm,
-            weight_decay, step_size, adam_mode, out = (var_in, m_in, v_in))
+            weight_decay, step_size, adam_mode, out=(var_in, m_in, v_in))
 
         self.assertRtolEqual(var_out[:3].cpu(), var_ans)
         self.assertRtolEqual(m_out[:3].cpu(), m_ans)

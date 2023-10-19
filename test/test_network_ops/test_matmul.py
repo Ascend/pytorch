@@ -62,7 +62,7 @@ class TestMatMul(TestCase):
 
     def test_matmul_backward_shape_format_fp16_case1(self, device="npu"):
         shape_format = [
-            # mat1 1dim, mat2 1dim       
+            # mat1 1dim, mat2 1dim
             [[np.float16, 2, [5]], [np.float16, 2, [5]]],
             [[np.float16, 2, [16]], [np.float16, 2, [16]]],
         ]
@@ -97,7 +97,7 @@ class TestMatMul(TestCase):
 
     def test_matmul_backward_shape_format_fp16_case6(self, device="npu"):
         shape_format = [
-            # mat1 >2dim, mat2 2dim       
+            # mat1 >2dim, mat2 2dim
             [[np.float16, 2, [5, 7, 10]], [np.float16, 2, [10, 16]]],
             [[np.float16, 2, [5, 10, 20, 30]], [np.float16, 2, [30, 25]]],
             [[np.float16, 2, [2, 5, 7, 8, 9, 10]], [np.float16, 2, [10, 16]]],
@@ -106,7 +106,7 @@ class TestMatMul(TestCase):
 
     def test_matmul_backward_shape_format_fp16_case7(self, device="npu"):
         shape_format = [
-            # mat1 1dim, mat2 >2dim       
+            # mat1 1dim, mat2 >2dim
             [[np.float16, 2, [3, ]], [np.float16, 2, [2, 3, 2]]],
             [[np.float16, 2, [20]], [np.float16, 2, [5, 10, 20, 30]]]
         ]
@@ -114,7 +114,7 @@ class TestMatMul(TestCase):
 
     def test_matmul_backward_shape_format_fp16_case8(self, device="npu"):
         shape_format = [
-            # mat1 2dim, mat2 >2dim       
+            # mat1 2dim, mat2 >2dim
             [[np.float16, 2, [2, 3]], [np.float16, 2, [2, 3, 2]]],
             [[np.float16, 2, [44, 20]], [np.float16, 2, [5, 10, 20, 30]]],
             [[np.float16, 2, [75, 50]], [np.float16, 2, [2, 3, 40, 50, 60]]],
@@ -134,7 +134,7 @@ class TestMatMul(TestCase):
     def test_matmul_allow_hf32(self, device="npu"):
         torch.npu.matmul.allow_hf32 = True
         shape_format = [
-            # mat1 1dim, mat2 1dim       
+            # mat1 1dim, mat2 1dim
             [[np.float16, 2, [5]], [np.float16, 2, [5]]],
             [[np.float16, 2, [16]], [np.float16, 2, [16]]],
         ]

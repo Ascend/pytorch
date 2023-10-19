@@ -21,6 +21,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestOnes(TestCase):
     def cpu_op_exec(self, shape, dtype):
         output = torch.ones(size=shape, dtype=dtype)
@@ -33,19 +34,19 @@ class TestOnes(TestCase):
         output = output.detach().numpy()
         return output
 
-    def cpu_op_name_exec(self,shape,name,dtype):
+    def cpu_op_name_exec(self, shape, name, dtype):
         output = torch.ones(size=shape, names=name, dtype=dtype)
         output = output.detach().numpy()
         return output
 
-    def npu_op_name_exec(self, shape, name,dtype):
+    def npu_op_name_exec(self, shape, name, dtype):
         output = torch.ones(size=shape, names=name, device='npu', dtype=dtype)
         output = output.to("cpu")
         output = output.detach().numpy()
         return output
 
     def cpu_op_out_exec(self, shape, output, dtype):
-        torch.ones(size=shape, dtype=dtype, out = output)
+        torch.ones(size=shape, dtype=dtype, out=output)
         return output
 
     def npu_op_out_exec(self, shape, output, dtype):
@@ -55,11 +56,11 @@ class TestOnes(TestCase):
 
     def test_ones_format(self, device="npu"):
         shape_format = [
-                [(2, 3, 4, 1, 5), torch.float32],
-                [(1, 100, 7), torch.int32],
-                [(10, 1, 7), torch.int8],
-                [(1, 2, 7), torch.uint8],
-                [(33, 44, 55), torch.float16],
+            [(2, 3, 4, 1, 5), torch.float32],
+            [(1, 100, 7), torch.int32],
+            [(10, 1, 7), torch.int8],
+            [(1, 2, 7), torch.uint8],
+            [(33, 44, 55), torch.float16],
         ]
         for item in shape_format:
             cpu_output = self.cpu_op_exec(item[0], item[1])
@@ -69,14 +70,14 @@ class TestOnes(TestCase):
 
     def test_ones_out_format(self, device="npu"):
         shape_format = [
-                [(2, 3, 4, 1, 5), torch.float32],
-                [(1, 100, 7), torch.int32],
-                [(10, 1, 7), torch.int8],
-                [(1, 2, 7), torch.uint8],
-                [(33, 44, 55), torch.float16],
+            [(2, 3, 4, 1, 5), torch.float32],
+            [(1, 100, 7), torch.int32],
+            [(10, 1, 7), torch.int8],
+            [(1, 2, 7), torch.uint8],
+            [(33, 44, 55), torch.float16],
         ]
         for item in shape_format:
-            cpu_out = torch.randn(item[0],dtype=torch.float32)
+            cpu_out = torch.randn(item[0], dtype=torch.float32)
             cpu_out = cpu_out.to(item[1])
             npu_out = cpu_out.to('npu')
             cpu_output = self.cpu_op_out_exec(item[0], cpu_out, item[1])
@@ -86,17 +87,18 @@ class TestOnes(TestCase):
 
     def test_ones_name_format(self, device="npu"):
         shape_format = [
-                [(2, 3, 4, 1, 5), ('A','B','C','D','E'),torch.float32],
-                [(1, 100, 7), ('C','H','W'),torch.int32],
-                [(10, 1, 7), ('C','H','W'), torch.int8],
-                [(1, 2, 7), ('C','H','W'), torch.uint8],
-                [(33, 44, 55), ('C','H','W'),torch.float16],
+            [(2, 3, 4, 1, 5), ('A', 'B', 'C', 'D', 'E'), torch.float32],
+            [(1, 100, 7), ('C', 'H', 'W'), torch.int32],
+            [(10, 1, 7), ('C', 'H', 'W'), torch.int8],
+            [(1, 2, 7), ('C', 'H', 'W'), torch.uint8],
+            [(33, 44, 55), ('C', 'H', 'W'), torch.float16],
         ]
         for item in shape_format:
             cpu_output = self.cpu_op_name_exec(item[0], item[1], item[2])
             npu_output = self.npu_op_name_exec(item[0], item[1], item[2])
 
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

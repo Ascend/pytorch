@@ -18,6 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestNmsWithMask(TestCase):
     def npu_op_exec(self, input1, iou_threshold):
         npu_output1, npu_output2, npu_output3, = torch_npu.npu_nms_with_mask(input1, iou_threshold)
@@ -39,5 +40,6 @@ class TestNmsWithMask(TestCase):
         self.assertRtolEqual(eq_output2, npu_output2)
         self.assertRtolEqual(eq_output3, npu_output3)
 
+
 if __name__ == "__main__":
-    run_tests() 
+    run_tests()
