@@ -21,21 +21,21 @@ class TestEmbedding(TestCase):
 
     def test_shape_nz_format(self):
         shape_format = [
-                        [[np.float32, 29, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float32, 29, [40, 1024]], [np.int64, 0, [40]]],
-                        [[np.float32, 29, [40000, 1024]], [np.int64, 0, [3125]]],
-                        [[np.float32, 29, [40000, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, 29, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float16, 29, [40, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, 29, [33712, 1024]], [np.int64, 0, [64, 7]]],
-                        [[np.float32, 29, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float32, 29, [40, 1024]], [np.int64, 0, [40]]],
-                        [[np.float32, 29, [40000, 1024]], [np.int64, 0, [3125]]],
-                        [[np.float32, 29, [40000, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, 29, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float16, 29, [40, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, 29, [33712, 1024]], [np.int64, 0, [64, 7]]]
-                        ]
+            [[np.float32, 29, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float32, 29, [40, 1024]], [np.int64, 0, [40]]],
+            [[np.float32, 29, [40000, 1024]], [np.int64, 0, [3125]]],
+            [[np.float32, 29, [40000, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, 29, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float16, 29, [40, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, 29, [33712, 1024]], [np.int64, 0, [64, 7]]],
+            [[np.float32, 29, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float32, 29, [40, 1024]], [np.int64, 0, [40]]],
+            [[np.float32, 29, [40000, 1024]], [np.int64, 0, [3125]]],
+            [[np.float32, 29, [40000, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, 29, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float16, 29, [40, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, 29, [33712, 1024]], [np.int64, 0, [64, 7]]]
+        ]
         for item in shape_format:
             weight_cpu, weight_npu = create_common_tensor(item[0], 1, 1)
             indices_cpu, indices_npu = create_common_tensor(item[1], 0, 1)
@@ -51,21 +51,21 @@ class TestEmbedding(TestCase):
 
     def test_shape_format(self):
         shape_format = [
-                        [[np.float32, 0, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float32, 0, [40, 1024]], [np.int64, 0, [40]]],
-                        [[np.float32, 0, [40000, 1024]], [np.int64, 0, [3125]]],
-                        [[np.float32, 0, [40000, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, 0, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float16, 0, [40, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, 0, [33712, 1024]], [np.int64, 0, [64, 7]]],
-                        [[np.float32, -1, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float32, -1, [40, 1024]], [np.int64, 0, [40]]],
-                        [[np.float32, -1, [40000, 1024]], [np.int64, 0, [3125]]],
-                        [[np.float32, -1, [40000, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, -1, [40, 32]], [np.int64, 0, [40]]],
-                        [[np.float16, -1, [40, 1024]], [np.int64, 0, [128, 8]]],
-                        [[np.float16, -1, [33712, 1024]], [np.int64, 0, [64, 7]]]
-                        ]
+            [[np.float32, 0, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float32, 0, [40, 1024]], [np.int64, 0, [40]]],
+            [[np.float32, 0, [40000, 1024]], [np.int64, 0, [3125]]],
+            [[np.float32, 0, [40000, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, 0, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float16, 0, [40, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, 0, [33712, 1024]], [np.int64, 0, [64, 7]]],
+            [[np.float32, -1, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float32, -1, [40, 1024]], [np.int64, 0, [40]]],
+            [[np.float32, -1, [40000, 1024]], [np.int64, 0, [3125]]],
+            [[np.float32, -1, [40000, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, -1, [40, 32]], [np.int64, 0, [40]]],
+            [[np.float16, -1, [40, 1024]], [np.int64, 0, [128, 8]]],
+            [[np.float16, -1, [33712, 1024]], [np.int64, 0, [64, 7]]]
+        ]
         for item in shape_format:
             weight_cpu, weight_npu = create_common_tensor(item[0], 1, 1)
             indices_cpu, indices_npu = create_common_tensor(item[1], 0, 1)

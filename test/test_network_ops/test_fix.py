@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestFix(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.fix(input1)
@@ -93,13 +94,13 @@ class TestFix(TestCase):
             [[np.float16, -1, (4, 3, 1)]],
             [[np.float16, -1, (2, 3, 4, 5)]],
             [[np.float16, -1, (10,)]],
-        ] 
+        ]
 
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -5, 5)
             cpu_output = cpu_op_exec_fp16(cpu_input1)
             npu_output = self.npu_op_exec(npu_input1)
-            self.assertRtolEqual(cpu_output, npu_output)  
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_fix_out_format(self):
         shape_format = [
@@ -125,5 +126,5 @@ class TestFix(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     run_tests()

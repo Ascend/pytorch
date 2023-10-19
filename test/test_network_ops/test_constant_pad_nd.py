@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torch_npu
- 
+
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -35,15 +35,15 @@ class TestConstantPadNd(TestCase):
         # Note: only fp16 suppport fill any float value currently!
         dtype_list = [np.float16]
         format_list = [0]
-        pad_list = [(1,2,2,2),(1,2)]
-        shape_list = [(16,128), (1,2,16,128)]
+        pad_list = [(1, 2, 2, 2), (1, 2)]
+        shape_list = [(16, 128), (1, 2, 16, 128)]
         value_list = [0.5, 1.47]
         shape_format = [
             [[i, j, k], l, m] for i in dtype_list
-                              for j in format_list
-                              for k in shape_list
-                              for l in pad_list
-                              for m in value_list
+            for j in format_list
+            for k in shape_list
+            for l in pad_list
+            for m in value_list
         ]
         self.constant_pad_nd_shape_format(shape_format)
 
@@ -51,24 +51,24 @@ class TestConstantPadNd(TestCase):
         # Note: only fp16 suppport fill any float value currently!
         dtype_list = [np.float16]
         format_list = [3]
-        pad_list = [(1,2,2,2),(1,2)]
-        shape_list = [(1,2,16,128)]
+        pad_list = [(1, 2, 2, 2), (1, 2)]
+        shape_list = [(1, 2, 16, 128)]
         value_list = [0.5, 1.47]
         shape_format = [
             [[i, j, k], l, m] for i in dtype_list
-                              for j in format_list
-                              for k in shape_list
-                              for l in pad_list
-                              for m in value_list
+            for j in format_list
+            for k in shape_list
+            for l in pad_list
+            for m in value_list
         ]
         self.constant_pad_nd_shape_format(shape_format)
 
     def test_constant_pad_nd_shape_1d(self):
         dtype_list = [np.float16, np.float32]
         format_list = [0]
-        pad_list = [(1,2)]
+        pad_list = [(1, 2)]
         shape_format = [
-            [[i, j, [18]], k]  for i in dtype_list for j in format_list for k in pad_list
+            [[i, j, [18]], k] for i in dtype_list for j in format_list for k in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)
@@ -76,21 +76,21 @@ class TestConstantPadNd(TestCase):
     def test_constant_pad_nd_shape_nd(self):
         dtype_list = [np.float16, np.float32]
         format_list = [0]
-        pad_list = [(1,2,2,2),(1,2)]
-        shape_list = [(16,128), (2,16,128), (1,2,16,128)]
+        pad_list = [(1, 2, 2, 2), (1, 2)]
+        shape_list = [(16, 128), (2, 16, 128), (1, 2, 16, 128)]
         shape_format = [
-            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list
+            [[i, j, k], l] for i in dtype_list for j in format_list for k in shape_list for l in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)
-    
+
     def test_constant_pad_nd_shape_1_nd(self):
         dtype_list = [np.float16, np.float32]
         format_list = [3]
-        pad_list = [(1,2,2,2),(1,2)]
-        shape_list = [(1,2,16,128)]
+        pad_list = [(1, 2, 2, 2), (1, 2)]
+        shape_list = [(1, 2, 16, 128)]
         shape_format = [
-            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list
+            [[i, j, k], l] for i in dtype_list for j in format_list for k in shape_list for l in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)
@@ -98,13 +98,14 @@ class TestConstantPadNd(TestCase):
     def test_constant_pad_nd_shape_nd_int32(self):
         dtype_list = [np.int32]
         format_list = [0]
-        pad_list = [(1,2,2,2),(1,2)]
-        shape_list = [(16,128), (2,16,128), (1,2,16,128)]
+        pad_list = [(1, 2, 2, 2), (1, 2)]
+        shape_list = [(16, 128), (2, 16, 128), (1, 2, 16, 128)]
         shape_format = [
-            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list
+            [[i, j, k], l] for i in dtype_list for j in format_list for k in shape_list for l in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)
+
 
 if __name__ == "__main__":
     run_tests()

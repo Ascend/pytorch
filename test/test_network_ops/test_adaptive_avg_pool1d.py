@@ -17,12 +17,12 @@ class TestAdaptiveAvgPool1d(TestCase):
         m = nn.AdaptiveAvgPool1d(output_size).npu()
         output = m(input1)
         return output.cpu()
-    
+
     def test_AdaptiveAvgPool1d_shape_format_fp16(self, device="npu"):
         shape_format = [
-                [np.float16, 0, (64, 10, 16)],
-                [np.float16, -1, (256, 2048, 8)],
-                [np.float16, 3, (32, 16, 16)]
+            [np.float16, 0, (64, 10, 16)],
+            [np.float16, -1, (256, 2048, 8)],
+            [np.float16, 3, (32, 16, 16)]
         ]
         output_list = [(4), (3)]
         for item in shape_format:
@@ -34,9 +34,9 @@ class TestAdaptiveAvgPool1d(TestCase):
 
     def test_AdaptiveAvgPool1d_shape_format_fp32(self, device="npu"):
         shape_format = [
-                [np.float32, 0, (64, 10, 16)],
-                [np.float32, -1, (256, 2048, 8)],
-                [np.float32, 3, (32, 16, 16)]
+            [np.float32, 0, (64, 10, 16)],
+            [np.float32, -1, (256, 2048, 8)],
+            [np.float32, 3, (32, 16, 16)]
         ]
         output_list = [(4), (3), (1)]
         for item in shape_format:

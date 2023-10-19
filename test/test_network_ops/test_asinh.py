@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestAsinh(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.asinh(input1)
@@ -36,7 +37,7 @@ class TestAsinh(TestCase):
 
     def test_asinh_common_shape_format(self):
         shape_format1 = [
-                [[np.float32, 0, (5, 3)]],
+            [[np.float32, 0, (5, 3)]],
         ]
         for item in shape_format1:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)
@@ -46,7 +47,7 @@ class TestAsinh(TestCase):
 
     def test_asinh_out_common_shape_format(self):
         shape_format1 = [
-                [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
+            [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
         ]
         for item in shape_format1:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)
@@ -57,7 +58,7 @@ class TestAsinh(TestCase):
 
     def test_asinh_inp_common_shape_format(self):
         shape_format1 = [
-                [[np.float32, 0, (5, 3)]],
+            [[np.float32, 0, (5, 3)]],
         ]
         for item in shape_format1:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)

@@ -39,63 +39,63 @@ class TestCosh(TestCase):
 
     def test_cosh_float16_1(self):
         npu_input1 = self.generate_single_data(-2, 2,
-                    ((65535, 1, 1, 1)), np.float16)
+                                               ((65535, 1, 1, 1)), np.float16)
         cpu_output = self.cpu_op_exec_fp16(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float16_2(self):
         npu_input1 = self.generate_single_data(-2, 2,
-                    ((1, 1, 1, 8192)), np.float16)
+                                               ((1, 1, 1, 8192)), np.float16)
         cpu_output = self.cpu_op_exec_fp16(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float16_3(self):
         npu_input1 = self.generate_single_data(-2, 2,
-                    ((1, 1, 1, 65535)), np.float16)
+                                               ((1, 1, 1, 65535)), np.float16)
         cpu_output = self.cpu_op_exec_fp16(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float16_4(self):
         npu_input1 = self.generate_single_data(-2, 2,
-                    ((1, 1, 1, 524288)), np.float16)
+                                               ((1, 1, 1, 524288)), np.float16)
         cpu_output = self.cpu_op_exec_fp16(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float16_5(self):
         npu_input1 = self.generate_single_data(-2, 2,
-                    ((1, 1, 1, 786432)), np.float16)
+                                               ((1, 1, 1, 786432)), np.float16)
         cpu_output = self.cpu_op_exec_fp16(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float16_6(self):
         npu_input1 = self.generate_single_data(-5, 5,
-                    ((1, 1, 1, 786432)), np.float16)
+                                               ((1, 1, 1, 786432)), np.float16)
         cpu_output = self.cpu_op_exec_fp16(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_1(self):
         npu_input1 = self.generate_single_data(-1.1754943508e-38,
-                    -1.1754943508e-38, ((1, 31, 149, 2)), np.float32)
+                                               -1.1754943508e-38, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_2(self):
         npu_input1 = self.generate_single_data(-0.000030517578125,
-                    0.000030517578125, ((2, 32, 149, 31)), np.float32)
+                                               0.000030517578125, ((2, 32, 149, 31)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_3(self):
         npu_input1 = self.generate_single_data(-9.313225746154785e-10,
-                    9.313225746154785e-10, ((184965, 1)), np.float32)
+                                               9.313225746154785e-10, ((184965, 1)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
@@ -108,43 +108,43 @@ class TestCosh(TestCase):
 
     def test_cosh_float32_5(self):
         npu_input1 = self.generate_single_data(-9.313225746154785e-10,
-                    9.313225746154785e-10, ((1, 31, 149, 2)), np.float32)
+                                               9.313225746154785e-10, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_6(self):
         npu_input1 = self.generate_single_data(-0.000000000000000000000000000000000000011754943508,
-                                          0.000000000000000000000000000000000000011754943508,
-                                          ((2, 31, 149, 2)),
-                                          np.float32)
+                                               0.000000000000000000000000000000000000011754943508,
+                                               ((2, 31, 149, 2)),
+                                               np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_7(self):
         npu_input1 = self.generate_single_data(0.000000000000000000000000000000000000011754943508,
-                                          0.000000000000000000000000000000000000011754943508,
-                                          ((4, 31, 149, 2)),
-                                          np.float32)
+                                               0.000000000000000000000000000000000000011754943508,
+                                               ((4, 31, 149, 2)),
+                                               np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_8(self):
         npu_input1 = self.generate_single_data(-0.000000000000000000000000000000000000011754943508,
-                                          -0.000000000000000000000000000000000000011754943508,
-                                          ((2048, 31, 1, 2)),
-                                          np.float32)
+                                               -0.000000000000000000000000000000000000011754943508,
+                                               ((2048, 31, 1, 2)),
+                                               np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cosh_float32_9(self):
         npu_input1 = self.generate_single_data(-0.000000000000000000000000000000000000011754943508,
-                                          0.000000000000000000000000000000000000011754943508,
-                                          ((8, 7, 149)),
-                                          np.float32)
+                                               0.000000000000000000000000000000000000011754943508,
+                                               ((8, 7, 149)),
+                                               np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)

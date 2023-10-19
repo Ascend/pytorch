@@ -20,10 +20,10 @@ class TestAdaptiveAvgPool3d(TestCase):
 
     def test_adaptive_avg_pool3d_shape_format_fp16(self, device="npu"):
         shape_format = [
-                [np.float16, -1, (64, 10, 16, 32)],
-                [np.float16, -1, (4, 16, 8, 4, 2)],
-                [np.float16, -1, (2, 16, 4, 32)],
-                [np.float16, -1, (4, 16, 8, 4, 16)]
+            [np.float16, -1, (64, 10, 16, 32)],
+            [np.float16, -1, (4, 16, 8, 4, 2)],
+            [np.float16, -1, (2, 16, 4, 32)],
+            [np.float16, -1, (4, 16, 8, 4, 16)]
         ]
         output_list = [(1, 1, 1)]
         for item in shape_format:
@@ -37,10 +37,10 @@ class TestAdaptiveAvgPool3d(TestCase):
 
     def test_adaptive_avg_pool3d_shape_format_fp32(self, device="npu"):
         shape_format = [
-                [np.float32, -1, (64, 10, 16, 32)],
-                [np.float32, -1, (4, 2, 2, 4, 316)],
-                [np.float32, -1, (2, 16, 4, 32)],
-                [np.float32, -1, (4, 16, 8, 4, 16)]
+            [np.float32, -1, (64, 10, 16, 32)],
+            [np.float32, -1, (4, 2, 2, 4, 316)],
+            [np.float32, -1, (2, 16, 4, 32)],
+            [np.float32, -1, (4, 16, 8, 4, 16)]
         ]
         output_list = [(1, 1, 1)]
         for item in shape_format:
@@ -53,5 +53,3 @@ class TestAdaptiveAvgPool3d(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-
-

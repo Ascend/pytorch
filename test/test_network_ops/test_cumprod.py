@@ -17,7 +17,7 @@ class TestCumprod(TestCase):
         output = torch.cumprod(input1, dim)
         output = output.to("cpu").numpy()
         return output
-    
+
     def npu_op_out_exec(self, input1, input2, dim):
         torch.cumprod(input1, dim, out=input2)
         output = input2.to("cpu").numpy()

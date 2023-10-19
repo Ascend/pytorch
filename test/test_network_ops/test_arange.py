@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestArange(TestCase):
     def test_arange_default(self):
         shape_format = [
@@ -15,9 +16,9 @@ class TestArange(TestCase):
 
         for item in shape_format:
             cpu_output_default = torch.arange(item[0], item[1], item[2],
-                device="cpu").numpy()
+                                              device="cpu").numpy()
             npu_output_default = torch.arange(item[0], item[1], item[2],
-                device="npu").cpu().numpy()
+                                              device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output_default, npu_output_default)
 
     def test_arange(self):
@@ -29,9 +30,9 @@ class TestArange(TestCase):
 
         for item in shape_format:
             cpu_output = torch.arange(item[0], item[1], item[2], dtype=item[3],
-                device="cpu").numpy()
+                                      device="cpu").numpy()
             npu_output = torch.arange(item[0], item[1], item[2], dtype=item[3],
-                device="npu").cpu().numpy()
+                                      device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_arange_out(self):
@@ -44,9 +45,9 @@ class TestArange(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[4], 0, 10)
             cpu_output = torch.arange(item[0], item[1], item[2],
-                dtype=item[3], device="cpu").numpy()
-            npu_output = torch.arange(item[0], item[1], item[2], out = npu_input1,
-                dtype=item[3], device="npu").cpu().numpy()
+                                      dtype=item[3], device="cpu").numpy()
+            npu_output = torch.arange(item[0], item[1], item[2], out=npu_input1,
+                                      dtype=item[3], device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
 

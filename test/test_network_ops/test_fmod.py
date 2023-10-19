@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestFmod(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.fmod(input1, input2)
@@ -98,6 +99,7 @@ class TestFmod(TestCase):
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
         npu_output = self.npu_op_exec(npu_input2, npu_input4)
         self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

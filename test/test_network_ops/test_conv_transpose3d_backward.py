@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestConvTranspose3dBackward(TestCase):
     weight_grad = []
     input_grad = []
@@ -15,7 +16,7 @@ class TestConvTranspose3dBackward(TestCase):
 
     def getInputGrad(self, grad):
         self.input_grad.append(grad.to("cpu"))
-    
+
     def cpu_op_exec(self, input1, weight, bias1):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.getInputGrad(grad))
@@ -27,7 +28,7 @@ class TestConvTranspose3dBackward(TestCase):
         grads = torch.ones_like(res_forward).float()
         res_forward.backward(grads, retain_graph=True)
         return res_forward
-    
+
     def npu_op_exec(self, input1, weight, bias1):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.getInputGrad(grad))

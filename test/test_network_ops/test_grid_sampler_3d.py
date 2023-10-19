@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestGridSampler3D(TestCase):
     def exec_grid_sampler3d_fp32(self, interpolation_mode, padding_mode, align_corners):
         format_list = [2]
@@ -17,9 +18,9 @@ class TestGridSampler3D(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_sample, npu_sample = create_common_tensor(sample_format, -1, 1)
             cpu_output = self.op_exec_com(0,
-                cpu_input, cpu_sample, interpolation_mode, padding_mode, align_corners)
+                                          cpu_input, cpu_sample, interpolation_mode, padding_mode, align_corners)
             npu_output = self.op_exec_com(1,
-                npu_input, npu_sample, interpolation_mode, padding_mode, align_corners)
+                                          npu_input, npu_sample, interpolation_mode, padding_mode, align_corners)
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_grid_sampler3d_fp32(self, device="npu"):

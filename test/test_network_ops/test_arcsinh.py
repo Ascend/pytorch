@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestArcsinh(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.arcsinh(input1)
@@ -36,7 +37,7 @@ class TestArcsinh(TestCase):
 
     def test_arcsinh_common_shape_format(self):
         shape_format = [
-                [[np.float32, 0, (5, 3)]],
+            [[np.float32, 0, (5, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)
@@ -46,7 +47,7 @@ class TestArcsinh(TestCase):
 
     def test_arcsinh_out_common_shape_format(self):
         shape_format = [
-                [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
+            [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)
@@ -57,7 +58,7 @@ class TestArcsinh(TestCase):
 
     def test_arcsinh_inp_common_shape_format(self):
         shape_format = [
-                [[np.float32, 0, (5, 3)]],
+            [[np.float32, 0, (5, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)

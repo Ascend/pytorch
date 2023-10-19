@@ -1,8 +1,9 @@
-import torch 
-import numpy as np 
+import torch
+import numpy as np
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests 
+from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestExp2(TestCase):
     def cpu_op_exec(self, input1):
@@ -15,7 +16,7 @@ class TestExp2(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def npu_inp_op_exec(self, input1):
         input1.exp2_()
         output = input1.to("cpu")
@@ -23,7 +24,7 @@ class TestExp2(TestCase):
         return output
 
     def npu_op_exec_out(self, input1, out):
-        torch.exp2(input1, out = out)
+        torch.exp2(input1, out=out)
         output = out.to("cpu")
         output = output.numpy()
         return output
@@ -71,7 +72,7 @@ class TestExp2(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_inp_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_exp2_inp_shape_format_fp32(self):
         format_list = [0, 2, 3]
         shape_list = [[5], [2, 4], [2, 2, 4], [2, 3, 3, 4]]
@@ -83,7 +84,7 @@ class TestExp2(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_inp_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_exp2_inp_uncon_shape_format_fp32(self):
         format_list = [0, 2, 3]
         shape_list = [[8, 6]]
@@ -97,7 +98,7 @@ class TestExp2(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1)
             npu_output = self.npu_inp_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_exp2_inp_uncon_shape_format_fp16(self):
         format_list = [0, 2, 3]
         shape_list = [[8, 6]]
@@ -113,6 +114,7 @@ class TestExp2(TestCase):
             npu_output = self.npu_inp_op_exec(npu_input1)
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

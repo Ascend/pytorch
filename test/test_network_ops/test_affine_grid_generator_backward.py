@@ -21,7 +21,7 @@ class TestAffineGridGeneratorBackward(TestCase):
             npu_input1.requires_grad = True
             npu_output = self.npu_op_exec(npu_input1, size)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_affine_grid_generator_backward_fp16(self, device="npu"):
         shape_list = [[100, 2, 3], [10, 2, 3]]
         shape_format = [
@@ -37,7 +37,7 @@ class TestAffineGridGeneratorBackward(TestCase):
             npu_input1.requires_grad = True
             npu_output = self.npu_op_exec(npu_input1, size)
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output.astype(np.float16))
-    
+
     def cpu_op_exec(self, input1, size):
         out = F.affine_grid(input1, size, True)
         input1.requires_grad = True

@@ -20,10 +20,10 @@ class TestFlip(TestCase):
 
     def test_flip_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, [2,2,2]], [0]],
-                [[np.float32, 0, [2,2,2,4]], [-2]],
-                [[np.int32, 0, [2,2,2]], [0,1]],
-                [[np.int32, 0, [2,2,2,4]], [-1,1]],
+            [[np.float32, 0, [2, 2, 2]], [0]],
+            [[np.float32, 0, [2, 2, 2, 4]], [-2]],
+            [[np.int32, 0, [2, 2, 2]], [0, 1]],
+            [[np.int32, 0, [2, 2, 2, 4]], [-1, 1]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -33,4 +33,4 @@ class TestFlip(TestCase):
 
 
 if __name__ == "__main__":
-	run_tests()
+    run_tests()

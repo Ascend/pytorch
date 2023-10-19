@@ -137,7 +137,7 @@ class TestGreaterEqual(TestCase):
         shape_list = [(5, 3), (2, 3, 4)]
         scalar_list = [True, False]
         shape_format = [
-            [[np.int32, i, j], k] for i in format_list for j in shape_list 
+            [[np.int32, i, j], k] for i in format_list for j in shape_list
             for k in scalar_list
         ]
         for item in shape_format:
@@ -281,4 +281,4 @@ class TestGreaterEqual(TestCase):
 
 
 if __name__ == '__main__':
-    run_tests() 
+    run_tests()

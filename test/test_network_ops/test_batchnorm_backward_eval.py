@@ -21,10 +21,11 @@ class Model(nn.Module):
         x = self.op3(x)
         return x
 
+
 class TestBn2dEval(TestCase):
     def test_batchnorm_backward_eval(self, device="npu"):
         model = Model(in_channels=64)
-        cpu_tensor = torch.randn(32,64,14,14)
+        cpu_tensor = torch.randn(32, 64, 14, 14)
         npu_tensor = cpu_tensor.npu()
         cpu_tensor.requires_grad = True
         npu_tensor.requires_grad = True
@@ -48,14 +49,14 @@ class TestBn2dEval(TestCase):
                 npu_grad_list.append(module.grad.cpu())
 
             cpu_grad = cpu_tensor.grad
-            npu_grad = npu_tensor.grad            
+            npu_grad = npu_tensor.grad
             # TODO(ascend): Insufficient precision
-            #精度未满足 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.cpu().numpy())
+            # 精度未满足 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.cpu().numpy())
             self.assertRtolEqual(cpu_grad.numpy(), npu_grad.cpu().numpy(), 0.01)
 
             for cpu_grad, npu_grad in zip(cpu_grad_list, npu_grad_list):
                 # TODO(ascend): Insufficient precision
-                #精度未满足 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy())
+                # 精度未满足 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy())
                 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy(), 0.1)
 
 

@@ -5,6 +5,7 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestGruBackward(TestCase):
 
     def test_gru_backward(self):

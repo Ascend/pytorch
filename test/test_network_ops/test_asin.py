@@ -5,19 +5,20 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestAsin(TestCase):
-    def cpu_op_exec(self,input1):
+    def cpu_op_exec(self, input1):
         output = torch.asin(input1)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self,input1):
+    def npu_op_exec(self, input1):
         output = torch.asin(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def npu_op_exec_out(self,input1, input2):
+    def npu_op_exec_out(self, input1, input2):
         torch.asin(input1, out=input2)
         output = input2.to("cpu")
         output = output.numpy()
@@ -25,7 +26,7 @@ class TestAsin(TestCase):
 
     def test_asin_common_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (5,3)]],
+            [[np.float32, 0, (5, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)
@@ -35,7 +36,7 @@ class TestAsin(TestCase):
 
     def test_asin_out_common_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (4,3)],    [np.float32, 0, (4,3)]],
+            [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)

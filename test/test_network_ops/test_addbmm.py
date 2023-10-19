@@ -47,9 +47,8 @@ class TestAddbmm(TestCase):
         output = output.numpy()
         return output
 
-
     def cpu_op_transpose_exec(self, input1, input2, input3, scalar1, scalar2):
-        input3_t = np.transpose(input3,(0,2,1))
+        input3_t = np.transpose(input3, (0, 2, 1))
         output = torch.addbmm(input1, input2, input3_t, beta=scalar1, alpha=scalar2)
         output = output.numpy()
         return output
@@ -58,7 +57,7 @@ class TestAddbmm(TestCase):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
         input3 = input3.to("npu")
-        input3_t = np.transpose(input3,(0,2,1))
+        input3_t = np.transpose(input3, (0, 2, 1))
         output = torch.addbmm(input1, input2, input3_t, beta=scalar1, alpha=scalar2)
         output = output.to("cpu")
         output = output.numpy()

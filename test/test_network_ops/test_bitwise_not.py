@@ -19,7 +19,7 @@ class Test_Bitwise_Not(TestCase):
 
     def cpu_op_exec(self, input1):
         output = torch.bitwise_not(input1)
-        if output.dtype not in [torch.int32, torch.int8, torch.bool]: 
+        if output.dtype not in [torch.int32, torch.int8, torch.bool]:
             output = output.to(torch.int32)
         output = output.numpy()
         return output
@@ -28,7 +28,7 @@ class Test_Bitwise_Not(TestCase):
         input1 = input1.to("npu")
         output = torch.bitwise_not(input1)
         output = output.to("cpu")
-        if output.dtype not in [torch.int32, torch.int8, torch.bool]: 
+        if output.dtype not in [torch.int32, torch.int8, torch.bool]:
             output = output.to(torch.int32)
         output = output.numpy()
         return output
@@ -36,9 +36,9 @@ class Test_Bitwise_Not(TestCase):
     def npu_op_exec_out(self, input1, input2):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
-        torch.bitwise_not(input1, out = input2)
+        torch.bitwise_not(input1, out=input2)
         output = input2.to("cpu")
-        if output.dtype not in [torch.int32, torch.int8, torch.bool]: 
+        if output.dtype not in [torch.int32, torch.int8, torch.bool]:
             output = output.to(torch.int32)
         output = output.numpy()
         return output
@@ -60,7 +60,7 @@ class Test_Bitwise_Not(TestCase):
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test_bitwise_not_int64(self, device="npu"):
         npu_input1 = self.generate_data(0, 355553, (2, 3), np.int64)
         cpu_output = self.cpu_op_exec(npu_input1)
@@ -72,7 +72,7 @@ class Test_Bitwise_Not(TestCase):
             [[0, 2342, [2, 3], np.int16], [0, 2342, [10, 20], np.int16]],
             [[0, 34222, [2, 3], np.int32], [0, 34222, [10, 20], np.int32]],
             [[0, 355553, [2, 3], np.int64], [0, 355553, [1, 1], np.int64]],
-            ]
+        ]
         for item in shape_format:
             npu_input1 = self.generate_data(item[0][0], item[0][1], item[0][2], item[0][3])
             npu_input2 = self.generate_data(item[1][0], item[1][1], item[1][2], item[1][3])

@@ -17,10 +17,10 @@ class TestFastGelu(TestCase):
         return output_grad, output
 
     def test_fastgelu(self, device="npu"):
-        input1    = torch.tensor([1.,2.,3.,4.]).npu()
+        input1 = torch.tensor([1., 2., 3., 4.]).npu()
         exoutputgrad = torch.tensor([1.0677795, 1.0738151, 1.0245483, 1.0064018])
         exoutput = torch.tensor([0.8458, 1.9357, 2.9819, 3.9956])
-        outputgrad, output   = self.npu_op_exec(input1)
+        outputgrad, output = self.npu_op_exec(input1)
         self.assertRtolEqual(exoutputgrad.numpy(), outputgrad)
         self.assertRtolEqual(exoutput.numpy(), output)
 

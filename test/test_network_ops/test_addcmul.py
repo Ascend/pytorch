@@ -29,10 +29,10 @@ class TestAddCMul(TestCase):
         output = torch.addcmul(input1, input2, input3, value=scalar)
         output = output.numpy()
         return output
-    
+
     def cpu_op_exec_out(self, input1, input2, input3, scalar, output_y):
         output = output_y
-        torch.addcmul(input1, input2, input3, value = scalar, out = output_y)
+        torch.addcmul(input1, input2, input3, value=scalar, out=output_y)
         output = output.numpy()
         return output
 
@@ -66,7 +66,7 @@ class TestAddCMul(TestCase):
         cpu_output = self.cpu_op_exec(input1, input2, input3, 0.5)
         npu_output = self.npu_op_exec(input1, input2, input3, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_addcmul_3_3_float16(self, device="npu"):
         input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float16)
         input1_cpu = input1.float()

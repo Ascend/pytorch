@@ -10,11 +10,11 @@ class TestBitwiseAnd(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         input2 = np.random.uniform(min_d, max_d, shape).astype(dtype)
-        #modify from numpy.ndarray to torch.tensor
+        # modify from numpy.ndarray to torch.tensor
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
         return npu_input1, npu_input2
-        
+
     def generate_bool_data(self, min_d, max_d, shape):
         input1 = np.random.uniform(min_d, max_d, shape)
         input2 = np.random.uniform(min_d, max_d, shape)
@@ -30,16 +30,16 @@ class TestBitwiseAnd(TestCase):
         input2 = input2.astype(np.bool)
         input1 = input1.reshape(shape)
         input2 = input2.reshape(shape)
-        #modify from numpy.ndarray to torch.tensor
+        # modify from numpy.ndarray to torch.tensor
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
         return npu_input1, npu_input2
-        
-    def generate_single_data(self, min_d, max_d, shape, dtype): 
-        input1 = np.random.uniform(min_d, max_d, shape).astype(dtype) 
-        npu_input1 = torch.from_numpy(input1) 
-        return npu_input1 
-     
+
+    def generate_single_data(self, min_d, max_d, shape, dtype):
+        input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
+        npu_input1 = torch.from_numpy(input1)
+        return npu_input1
+
     def generate_single_bool_data(self, min_d, max_d, shape):
         input1 = np.random.uniform(min_d, max_d, shape)
         input1 = input1.reshape(-1)
@@ -48,77 +48,77 @@ class TestBitwiseAnd(TestCase):
                 input1[i] = 0
         input1 = input1.astype(np.bool)
         input1 = input1.reshape(shape)
-        #modify from numpy.ndarray to torch.tensor
+        # modify from numpy.ndarray to torch.tensor
         npu_input1 = torch.from_numpy(input1)
         return npu_input1
-     
-    def generate_three_data(self, min_d, max_d, shape, dtype): 
-        input1 = np.random.uniform(min_d, max_d, shape).astype(dtype) 
-        input2 = np.random.uniform(min_d, max_d, shape).astype(dtype) 
-        input3 = np.random.uniform(min_d, max_d, shape).astype(dtype) 
-        #modify from numpy.ndarray to torch.tensor 
-        npu_input1 = torch.from_numpy(input1) 
-        npu_input2 = torch.from_numpy(input2) 
-        npu_input3 = torch.from_numpy(input3) 
-        return npu_input1, npu_input2, npu_input3 
-    
-    def npu_op_exec_out(self, input1, input2, input3): 
-        input1 = input1.to("npu") 
-        input2 = input2.to("npu") 
-        output = input3.to("npu") 
-        torch.bitwise_and(input1, input2, out = output) 
+
+    def generate_three_data(self, min_d, max_d, shape, dtype):
+        input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
+        input2 = np.random.uniform(min_d, max_d, shape).astype(dtype)
+        input3 = np.random.uniform(min_d, max_d, shape).astype(dtype)
+        # modify from numpy.ndarray to torch.tensor
+        npu_input1 = torch.from_numpy(input1)
+        npu_input2 = torch.from_numpy(input2)
+        npu_input3 = torch.from_numpy(input3)
+        return npu_input1, npu_input2, npu_input3
+
+    def npu_op_exec_out(self, input1, input2, input3):
+        input1 = input1.to("npu")
+        input2 = input2.to("npu")
+        output = input3.to("npu")
+        torch.bitwise_and(input1, input2, out=output)
         output = output.to("cpu")
         if output.dtype != torch.int32:
-            output = output.to(torch.int32) 
-        output = output.numpy() 
-        return output 
+            output = output.to(torch.int32)
+        output = output.numpy()
+        return output
 
-    def npu_mix_op_exec(self, input1, input2): 
-        input1 = input1.to("npu") 
-        input2 = input2.to("npu") 
-        output = torch.bitwise_and(input1, input2) 
+    def npu_mix_op_exec(self, input1, input2):
+        input1 = input1.to("npu")
+        input2 = input2.to("npu")
+        output = torch.bitwise_and(input1, input2)
         output = output.to("cpu")
-        output = output.numpy() 
+        output = output.numpy()
         return output
 
-    def cpu_op_exec(self, input1, input2): 
-        output = torch.bitwise_and(input1, input2) 
+    def cpu_op_exec(self, input1, input2):
+        output = torch.bitwise_and(input1, input2)
         if output.dtype != torch.int32:
             output = output.to(torch.int32)
-        output = output.numpy() 
-        return output 
-     
-    def cpu_op_exec_out(self, input1, input2, output): 
-        torch.bitwise_and(input1, input2, out = output) 
-        if output.dtype != torch.int32:
-            output = output.to(torch.int32)
-        output = output.numpy() 
-        return output 
-
-    def cpu_op_exec_scalar(self, input1, scalar): 
-        output = torch.bitwise_and(input1, scalar) 
-        if output.dtype != torch.int32:
-            output = output.to(torch.int32)
-        output = output.numpy() 
+        output = output.numpy()
         return output
 
-    def cpu_op_exec_scalar_out(self, input1, scalar, output): 
-        torch.bitwise_and(input1, scalar, out = output) 
+    def cpu_op_exec_out(self, input1, input2, output):
+        torch.bitwise_and(input1, input2, out=output)
         if output.dtype != torch.int32:
             output = output.to(torch.int32)
-        output = output.numpy() 
-        return output 
+        output = output.numpy()
+        return output
 
-    def npu_op_exec_scalar_out(self, input1, input2, output): 
-        input1 = input1.to("npu") 
-        output = output.to("npu") 
-        torch.bitwise_and(input1, input2, out = output) 
-        output = output.to("cpu") 
+    def cpu_op_exec_scalar(self, input1, scalar):
+        output = torch.bitwise_and(input1, scalar)
         if output.dtype != torch.int32:
             output = output.to(torch.int32)
-        output = output.numpy() 
-        return output 
-     
+        output = output.numpy()
+        return output
+
+    def cpu_op_exec_scalar_out(self, input1, scalar, output):
+        torch.bitwise_and(input1, scalar, out=output)
+        if output.dtype != torch.int32:
+            output = output.to(torch.int32)
+        output = output.numpy()
+        return output
+
+    def npu_op_exec_scalar_out(self, input1, input2, output):
+        input1 = input1.to("npu")
+        output = output.to("npu")
+        torch.bitwise_and(input1, input2, out=output)
+        output = output.to("cpu")
+        if output.dtype != torch.int32:
+            output = output.to(torch.int32)
+        output = output.numpy()
+        return output
+
     def bitwise_and_tensor_out_result(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
@@ -158,26 +158,26 @@ class TestBitwiseAnd(TestCase):
         ]
         self.bitwise_and_scalar_out_result(shape_format)
 
-    def test_bitwise_and_bool_scalar(self, device="npu"): 
-        npu_input1, npu_input2 = self.generate_data(0, 100, (2,3), np.int32) 
-        cpu_output = self.cpu_op_exec_out(npu_input1, True,npu_input1) 
-        npu_output = self.npu_op_exec_scalar_out(npu_input1, True,npu_input1) 
-        self.assertRtolEqual(cpu_output, npu_output) 
-
-    def test_bitwise_and_int16_diff(self, device="npu"): 
-        npu_input1 = self.generate_single_data(0, 100, (1,6), np.int16) 
-        npu_input2 = self.generate_single_data(0, 100, (1,1), np.int16)
-        cpu_output = self.cpu_op_exec_out(npu_input1, npu_input2, npu_input1) 
-        npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input1)
-        self.assertRtolEqual(cpu_output, npu_output) 
-    
-    def test_bitwise_and_mix_dtype(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (1,6), np.int32) 
-        npu_input3, npu_input4 = self.generate_data(0, 100, (1,6), np.int16) 
-        cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
-        npu_output = self.npu_mix_op_exec(npu_input1, npu_input3) 
+    def test_bitwise_and_bool_scalar(self, device="npu"):
+        npu_input1, npu_input2 = self.generate_data(0, 100, (2, 3), np.int32)
+        cpu_output = self.cpu_op_exec_out(npu_input1, True, npu_input1)
+        npu_output = self.npu_op_exec_scalar_out(npu_input1, True, npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
- 
-if __name__ == '__main__': 
-    run_tests() 
+    def test_bitwise_and_int16_diff(self, device="npu"):
+        npu_input1 = self.generate_single_data(0, 100, (1, 6), np.int16)
+        npu_input2 = self.generate_single_data(0, 100, (1, 1), np.int16)
+        cpu_output = self.cpu_op_exec_out(npu_input1, npu_input2, npu_input1)
+        npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input1)
+        self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_bitwise_and_mix_dtype(self, device="npu"):
+        npu_input1, npu_input2 = self.generate_data(0, 100, (1, 6), np.int32)
+        npu_input3, npu_input4 = self.generate_data(0, 100, (1, 6), np.int16)
+        cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
+        npu_output = self.npu_mix_op_exec(npu_input1, npu_input3)
+        self.assertRtolEqual(cpu_output, npu_output)
+
+
+if __name__ == '__main__':
+    run_tests()

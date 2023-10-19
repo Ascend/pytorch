@@ -31,11 +31,10 @@ class Test_AmpForeachNonFiniteCheckAndUnscale_(TestCase):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
         input3 = input3.to("npu")
-        torch._amp_foreach_non_finite_check_and_unscale_((input1,),input2,input3)
+        torch._amp_foreach_non_finite_check_and_unscale_((input1,), input2, input3)
         input1 = input1.to("cpu")
         input1 = input1.numpy()
         return input1
-
 
     def test_AmpForeachNonFiniteCheckAndUnscale_float32_case1(self, device='npu'):
         params = [(0, 100, (4, 3), np.float32, 1.5),

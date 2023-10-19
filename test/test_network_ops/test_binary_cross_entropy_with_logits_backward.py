@@ -18,6 +18,7 @@ def generate_data(min1, max1, shape, dtype):
     target = target.to(output.dtype)
     return output, target
 
+
 class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
     def generate_one_input(self, lower, upper, shape, dtype):
         x = np.random.uniform(lower, upper, shape).astype(dtype)
@@ -47,8 +48,8 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
 
     def cpu_op_exec_module(self, input1, target, weight=None, pos_weight=None, reduction="mean"):
         input1.requires_grad_(True)
-        criterion  = torch.nn.BCEWithLogitsLoss(weight=weight, pos_weight=pos_weight,
-                                                                   reduction=reduction)
+        criterion = torch.nn.BCEWithLogitsLoss(weight=weight, pos_weight=pos_weight,
+                                               reduction=reduction)
         res = criterion(input1, target)
         res.sum().backward()
         return res.detach().numpy(), input1.grad.numpy()
@@ -62,11 +63,11 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
         if pos_weight is not None:
             pos_weight = pos_weight.to("npu")
 
-        criterion  = torch.nn.BCEWithLogitsLoss(weight=weight, pos_weight=pos_weight,
-                                                                   reduction=reduction)
+        criterion = torch.nn.BCEWithLogitsLoss(weight=weight, pos_weight=pos_weight,
+                                               reduction=reduction)
         criterion = criterion.to("npu")
         res = criterion(input1, target)
-        res.sum().backward()                                                        
+        res.sum().backward()
         res = res.to("cpu")
         return res.detach().numpy(), input1.grad.cpu().numpy()
 
@@ -94,24 +95,24 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
 
     def test_binary_cross_with_logits_backward_module_float32(self):
         for shape, weight_shape, pos_weight_shape, reduction in [
-           ((10, 64), None, None, "mean"),
-           ((10, 64), (10, 1), None, "mean"),
-           ((10, 64), None, (64,), "mean"),
-           ((10, 64), None, None, "none"),
-           ((10, 64), (10, 1), None, "none"),
-           ((10, 64), None, (64,), "none"),
-           ((10, 64), None, None, "sum"),
-           ((10, 64), (10, 1), None, "sum"),
-           ((10, 64), None, (64,), "sum"),
-           ((10, 64), (10, 64), (10, 64), "sum"),
-           ((10, 64), (10, 64), (10, 64), "mean"),
-           ((10, 64), (10, 64), (10, 64), "none") 
+            ((10, 64), None, None, "mean"),
+            ((10, 64), (10, 1), None, "mean"),
+            ((10, 64), None, (64,), "mean"),
+            ((10, 64), None, None, "none"),
+            ((10, 64), (10, 1), None, "none"),
+            ((10, 64), None, (64,), "none"),
+            ((10, 64), None, None, "sum"),
+            ((10, 64), (10, 1), None, "sum"),
+            ((10, 64), None, (64,), "sum"),
+            ((10, 64), (10, 64), (10, 64), "sum"),
+            ((10, 64), (10, 64), (10, 64), "mean"),
+            ((10, 64), (10, 64), (10, 64), "none")
         ]:
             input1 = self.generate_one_input(0, 10, shape, np.float32)
             target = torch.empty(shape, dtype=torch.float32).random_(2)
             weight = None
             pos_weight = None
-            
+
             if weight_shape is not None:
                 weight = self.generate_one_input(0, 10, weight_shape, np.float32)
             if pos_weight_shape is not None:
@@ -130,18 +131,18 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
 
     def test_binary_cross_with_logits_backward_module_float16(self):
         for shape, weight_shape, pos_weight_shape, reduction in [
-           ((10, 64), None, None, "mean"),
-           ((10, 64), (10, 1), None, "mean"),
-           ((10, 64), None, (64,), "mean"),
-           ((10, 64), None, None, "none"),
-           ((10, 64), (10, 1), None, "none"),
-           ((10, 64), None, (64,), "none"),
-           ((10, 64), None, None, "sum"),
-           ((10, 64), (10, 1), None, "sum"),
-           ((10, 64), None, (64,), "sum"),
-           ((10, 64), (10, 64), (10, 64), "sum"),
-           ((10, 64), (10, 64), (10, 64), "mean"),
-           ((10, 64), (10, 64), (10, 64), "none") 
+            ((10, 64), None, None, "mean"),
+            ((10, 64), (10, 1), None, "mean"),
+            ((10, 64), None, (64,), "mean"),
+            ((10, 64), None, None, "none"),
+            ((10, 64), (10, 1), None, "none"),
+            ((10, 64), None, (64,), "none"),
+            ((10, 64), None, None, "sum"),
+            ((10, 64), (10, 1), None, "sum"),
+            ((10, 64), None, (64,), "sum"),
+            ((10, 64), (10, 64), (10, 64), "sum"),
+            ((10, 64), (10, 64), (10, 64), "mean"),
+            ((10, 64), (10, 64), (10, 64), "none")
         ]:
             input1 = self.generate_one_input(0, 10, shape, np.float16)
             target = torch.empty(shape, dtype=torch.float16).random_(2)
@@ -151,14 +152,14 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
             weight_32 = None
             pos_weight = None
             pos_weight_32 = None
-            
+
             if weight_shape is not None:
                 weight = self.generate_one_input(0, 10, weight_shape, np.float16)
                 weight_32 = weight.type(torch.float32)
             if pos_weight_shape is not None:
                 pos_weight = self.generate_one_input(0, 10, pos_weight_shape, np.float16)
                 pos_weight_32 = pos_weight.type(torch.float32)
-                
+
             npu_output, npu_grad = self.npu_op_exec_module(input1, target,
                                                            weight=weight,
                                                            pos_weight=pos_weight,
@@ -172,6 +173,6 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
+
 if __name__ == "__main__":
     run_tests()
-

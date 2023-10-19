@@ -62,16 +62,16 @@ class TestConv2d(TestCase):
                 weight_cpu = weight_cpu.to(torch.float32)
             kernel_size = (item[1][2][2], item[1][2][3])
             assert item[0][2][1]/item[6] == item[1][2][1], \
-            "ilegal parameters: con2d in_channels//groups must equal to weight.size[1]."
+                "ilegal parameters: con2d in_channels//groups must equal to weight.size[1]."
             cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1],
-                                         item[1][2][0], kernel_size=kernel_size,
-                                         padding=item[2], stride=item[3],
-                                         dilation=item[4], bias=item[5], groups=item[6])
+                                          item[1][2][0], kernel_size=kernel_size,
+                                          padding=item[2], stride=item[3],
+                                          dilation=item[4], bias=item[5], groups=item[6])
             weight_npu = weight_npu.to("cpu")
             npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1],
-                                         item[1][2][0], kernel_size=kernel_size,
-                                         padding=item[2], stride=item[3],
-                                         dilation=item[4], bias=item[5], groups=item[6])
+                                          item[1][2][0], kernel_size=kernel_size,
+                                          padding=item[2], stride=item[3],
+                                          dilation=item[4], bias=item[5], groups=item[6])
 
             npu_output = npu_output.to(torch.float16)
             cpu_output = cpu_output.to(torch.float16)
@@ -85,22 +85,22 @@ class TestConv2d(TestCase):
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
 
     def test_conv2d_backward_shape_format_fp16(self):
-        shape_format = [  # input, weight, padding, stride, dilation, bias, groups            
+        shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             # shuflenet
             [[np.float16, 3, [1024, 232, 7, 7]], [np.float16, 4, [232, 232, 1, 1]], 0, 1, 1, None, 1],
             [[np.float16, 0, [1024, 116, 14, 14]], [np.float16, 4, [116, 116, 1, 1]], 0, 1, 1, None, 1],
-            [[np.float16, 0, [4, 8, 300, 40]], [np.float16, 0, [16, 8, 3, 3]], [2,1], 1, 1, None, 1], 
-            [[np.float16, 0, [4, 64, 150, 10]], [np.float16, 0, [32, 64, 1, 1]], 0, 1, 1, None, 1], 
-            [[np.float16, 0, [4, 128, 75, 10]], [np.float16, 0, [64, 128, 1, 1]], 0, 1, 1, None, 1], 
-            [[np.float16, 0, [4, 256, 75, 5]], [np.float16, 0, [128, 256, 3, 3]], [2,1], 1, 1, None, 1], 
-            [[np.float16, 0, [4, 384, 75, 1]], [np.float16, 0, [192, 384, 3, 1]], 0, 1, 1, None, 1], 
-            [[np.float16, 0, [4, 384, 1, 75]], [np.float16, 0, [192, 384, 1, 3]], 0, 1, 1, None, 1], 
-            [[np.float16, 3, [4, 256, 75, 5]], [np.float16, 4, [128, 256, 3, 3]], [2,1], 1, 1, None, 1], 
-            [[np.float16, 3, [4, 384, 75, 1]], [np.float16, 4, [192, 384, 3, 1]], 0, 1, 1, None, 1], 
-            [[np.float16, 3, [4, 384, 1, 75]], [np.float16, 4, [192, 384, 1, 3]], 0, 1, 1, None, 1], 
-            [[np.float16, 0, [4, 256, 75, 5]], [np.float16, 4, [128, 256, 3, 3]], [2,1], 1, 1, None, 1], 
-            [[np.float16, 0, [4, 384, 75, 1]], [np.float16, 4, [192, 384, 3, 1]], 0, 1, 1, None, 1], 
-            [[np.float16, 0, [4, 384, 1, 75]], [np.float16, 4, [192, 384, 1, 3]], 0, 1, 1, None, 1], 
+            [[np.float16, 0, [4, 8, 300, 40]], [np.float16, 0, [16, 8, 3, 3]], [2, 1], 1, 1, None, 1],
+            [[np.float16, 0, [4, 64, 150, 10]], [np.float16, 0, [32, 64, 1, 1]], 0, 1, 1, None, 1],
+            [[np.float16, 0, [4, 128, 75, 10]], [np.float16, 0, [64, 128, 1, 1]], 0, 1, 1, None, 1],
+            [[np.float16, 0, [4, 256, 75, 5]], [np.float16, 0, [128, 256, 3, 3]], [2, 1], 1, 1, None, 1],
+            [[np.float16, 0, [4, 384, 75, 1]], [np.float16, 0, [192, 384, 3, 1]], 0, 1, 1, None, 1],
+            [[np.float16, 0, [4, 384, 1, 75]], [np.float16, 0, [192, 384, 1, 3]], 0, 1, 1, None, 1],
+            [[np.float16, 3, [4, 256, 75, 5]], [np.float16, 4, [128, 256, 3, 3]], [2, 1], 1, 1, None, 1],
+            [[np.float16, 3, [4, 384, 75, 1]], [np.float16, 4, [192, 384, 3, 1]], 0, 1, 1, None, 1],
+            [[np.float16, 3, [4, 384, 1, 75]], [np.float16, 4, [192, 384, 1, 3]], 0, 1, 1, None, 1],
+            [[np.float16, 0, [4, 256, 75, 5]], [np.float16, 4, [128, 256, 3, 3]], [2, 1], 1, 1, None, 1],
+            [[np.float16, 0, [4, 384, 75, 1]], [np.float16, 4, [192, 384, 3, 1]], 0, 1, 1, None, 1],
+            [[np.float16, 0, [4, 384, 1, 75]], [np.float16, 4, [192, 384, 1, 3]], 0, 1, 1, None, 1],
         ]
         self.conv2d_backward_result(shape_format)
 

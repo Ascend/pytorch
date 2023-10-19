@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestBatchMatMulV2(TestCase):
     def cpu_op_exec(self, input1, input2):
         input1.requires_grad = True
@@ -47,11 +48,11 @@ class TestBatchMatMulV2(TestCase):
         format_list = [0, 3, 29]
         shape_list = [(1, 3, 2)]
         shape_format1 = [[np.float16, i, j]
-                            for i in format_list for j in shape_list]
+                         for i in format_list for j in shape_list]
         format_list = [0, 3, 29]
         shape_list = [(1, 2, 3)]
         shape_format2 = [[np.float16, i, j]
-                            for i in format_list for j in shape_list]
+                         for i in format_list for j in shape_list]
         shape_format = [[i, j] for i in shape_format1 for j in shape_format2]
         self.bmm_auto_list_exec(shape_format)
 
@@ -59,11 +60,11 @@ class TestBatchMatMulV2(TestCase):
         format_list = [0, 3, 29]
         shape_list = [(1, 3, 2)]
         shape_format1 = [[np.float32, i, j]
-                            for i in format_list for j in shape_list]
+                         for i in format_list for j in shape_list]
         format_list = [0, 3, 29]
         shape_list = [(1, 2, 3)]
         shape_format2 = [[np.float32, i, j]
-                            for i in format_list for j in shape_list]
+                         for i in format_list for j in shape_list]
         shape_format = [[i, j] for i in shape_format1 for j in shape_format2]
         self.bmm_auto_list_exec(shape_format)
 

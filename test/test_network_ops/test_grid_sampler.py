@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestGridSampler(TestCase):
     def test_grid_sampler_fp32(self):
         format_list = [0]
@@ -53,6 +54,6 @@ class TestGridSampler(TestCase):
         output = output.astype(np.float16)
         return output
 
+
 if __name__ == "__main__":
     run_tests()
-    

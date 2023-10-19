@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestGridSampler(TestCase):
     def cpu_op_exec(self, input1, sample):
         input1.requires_grad = True
@@ -56,6 +57,6 @@ class TestGridSampler(TestCase):
         sample_format = [np.float16, 0, [1, 2, 2, 2]]
         self.result_grid_sampler(shape_format, sample_format)
 
-        
+
 if __name__ == "__main__":
     run_tests()

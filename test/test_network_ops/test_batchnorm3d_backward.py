@@ -7,7 +7,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestBn2d(TestCase):
-    def cpu_op_exec(self,input1, dim):
+    def cpu_op_exec(self, input1, dim):
         input1.requires_grad_(True)
         m = torch.nn.BatchNorm3d(dim)
         input_cpu = m(input1)
@@ -19,7 +19,7 @@ class TestBn2d(TestCase):
         output = output.detach().numpy()
         return output,  input_cpu
 
-    def npu_op_exec_new(self,input1, dim):
+    def npu_op_exec_new(self, input1, dim):
         w = torch.ones_like(input1)
         w = w.to("npu")
         m = torch.nn.BatchNorm3d(dim)
@@ -36,7 +36,7 @@ class TestBn2d(TestCase):
 
     def test_batchnorm3d_shape_format_fp16(self):
         format_list = [30]
-        shape_list = [[256, 164, 7, 7, 7],[148, 16, 28, 28, 28]]
+        shape_list = [[256, 164, 7, 7, 7], [148, 16, 28, 28, 28]]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
         ]
@@ -68,4 +68,3 @@ class TestBn2d(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-

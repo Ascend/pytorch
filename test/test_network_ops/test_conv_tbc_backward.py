@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torch_npu
- 
+
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -42,10 +42,10 @@ class TestConvTbcBackward(TestCase):
         npu_output = npu_output.detach().numpy()
         return npu_output, bias1.grad.to("cpu")
 
-    def test_conv_tbc_backward_shape_format(self):  
+    def test_conv_tbc_backward_shape_format(self):
         shape_format = [  # input(TBC1), weight(Lc1c0), bias(c0), pad
             [[np.float16, -1, (5, 1, 2)], [np.float16, -1, (1, 2, 2)], [np.float16, -1, (2)], 0],
-            
+
         ]
         for item in shape_format:
             self.input_grad.clear()
@@ -69,6 +69,7 @@ class TestConvTbcBackward(TestCase):
             self.assertRtolEqual(cpu_bias, npu_bias)
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy(), 1e-1)
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy(), 1e-1)
+
 
 if __name__ == "__main__":
     run_tests()

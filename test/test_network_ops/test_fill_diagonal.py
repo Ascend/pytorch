@@ -77,7 +77,6 @@ class TestFillDiagonal(TestCase):
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-
     def test_fill_diagonal_false_shape_format_fp32(self, device="npu"):
         format_list1 = [0, 3]
         shape_list1 = ([7, 3], [3, 3, 3])
