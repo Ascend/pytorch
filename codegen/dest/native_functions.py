@@ -33,6 +33,9 @@ def gen_unstructured(f: NativeFunction, backend_index: BackendIndex) -> Optional
         return None
     else:
         prefix = 'static' if backend_index.external else 'TORCH_API'
+        name = sig.name()
+        if (name == 'npu_dtype_cast') or (name == 'npu_slice_out'):
+            prefix = '__attribute__((__visibility__("default"))) ' + prefix
         return f"{prefix} {sig.decl(name=metadata.kernel)};"
 
 @with_native_function_and_index

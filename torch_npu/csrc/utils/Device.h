@@ -22,6 +22,7 @@
 
 #include <torch/csrc/python_headers.h>
 #include <torch/csrc/Export.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 #include <ATen/Device.h>
 
@@ -40,4 +41,4 @@ inline bool TNPDevice_Check(PyObject *obj) {
 
 PyObject * TNPDevice_New(const at::Device& device);
 
-void TNPDevice_init(PyObject *module);
+TORCH_NPU_API void TNPDevice_init(PyObject *module);

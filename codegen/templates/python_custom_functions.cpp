@@ -52,6 +52,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/utils/DeviceParser.h"
@@ -516,7 +517,7 @@ static PyTypeObject THPVariableFunctions = {
   0                                      /* tp_new */
 };
 
-void initTorchFunctions(PyObject* module) {
+TORCH_NPU_API void initTorchFunctions(PyObject* module) {
   if (PyType_Ready(&THPVariableFunctions) < 0) {
     throw python_error();
   }

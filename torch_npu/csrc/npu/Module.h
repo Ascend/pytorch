@@ -16,10 +16,11 @@
 
 #ifndef THNP_NPU_MODULE_INC
 #define THNP_NPU_MODULE_INC
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 void THNPModule_setDevice(int idx);
-void RegisterNPUDeviceProperties(PyObject *module);
-void BindGetDeviceProperties(PyObject *module);
+TORCH_NPU_API void RegisterNPUDeviceProperties(PyObject *module);
+TORCH_NPU_API void BindGetDeviceProperties(PyObject *module);
 PyObject *THNPModule_getDevice_wrap(PyObject *self);
 PyObject *THNPModule_setDevice_wrap(PyObject *self, PyObject *arg);
 PyObject *THNPModule_getDeviceName_wrap(PyObject *self, PyObject *arg);

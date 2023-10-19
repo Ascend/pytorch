@@ -18,6 +18,7 @@
 #include <torch/csrc/utils/cuda_enabled.h>
 #include <torch/csrc/utils/tensor_new.h>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
 
@@ -28,7 +29,7 @@ namespace utils {
 // torch.npu.DoubleTensor, etc. and binds them in their containing modules.
 void _initialize_python_bindings();
 
-PyMethodDef* npu_extension_functions();
+TORCH_NPU_API PyMethodDef* npu_extension_functions();
 
 }
 }

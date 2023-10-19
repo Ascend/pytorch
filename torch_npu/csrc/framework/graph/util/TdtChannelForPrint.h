@@ -24,6 +24,7 @@
 #include <c10/util/intrusive_ptr.h>
 
 #include "torch_npu/csrc/core/NPUTensorImpl.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/framework/graph/tools/NPUTdtDataset.h"
@@ -34,11 +35,11 @@ namespace native {
 using TupleToPrint = std::tuple<std::vector<at::Tensor>, std::string>;
 class TdtChannelForPrint {
 public:
-  static TdtChannelForPrint& GetInstance();
+  TORCH_NPU_API static TdtChannelForPrint& GetInstance();
 
   bool Init(int64_t capacity);
 
-  void Finalize() {
+  TORCH_NPU_API void Finalize() {
     std::lock_guard<std::mutex> lock(channel_mutex_);
     if (channel_ != nullptr) {
       delete channel_;

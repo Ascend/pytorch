@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #pragma once
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/framework/graph/cache/GraphCacher.h"
 #include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
 #include <c10/core/StorageImpl.h>
@@ -87,7 +88,7 @@ public:
     verbose_ = verbose;
   }
 
-  void Finalize();
+  TORCH_NPU_API void Finalize();
 
 private:
   GraphExecutor() = default;
