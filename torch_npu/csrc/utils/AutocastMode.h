@@ -1,9 +1,10 @@
 #include <torch/csrc/utils/python_stub.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 namespace autocast {
 
-PyMethodDef* autocast_mode_functions();
+TORCH_NPU_API PyMethodDef* autocast_mode_functions();
 
 }
 }

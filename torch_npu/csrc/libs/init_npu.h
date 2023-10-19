@@ -1,13 +1,14 @@
 #pragma once
 
 #include <c10/core/Device.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
 
 // device init related funcs
-void init_npu(const c10::DeviceIndex device_index = 0);
-void init_npu(const std::string& device_str);
-void init_npu(const at::Device& device);
+TORCH_NPU_API void init_npu(const c10::DeviceIndex device_index = 0);
+TORCH_NPU_API void init_npu(const std::string& device_str);
+TORCH_NPU_API void init_npu(const at::Device& device);
 
 } // namespace torch_npu
 
@@ -16,7 +17,7 @@ namespace torch {
 namespace npu {
 
 // device synchronize
-void synchronize(int64_t device_index = -1);
+TORCH_NPU_API void synchronize(int64_t device_index = -1);
 
 } // namespace npu
 } // namespace torch
@@ -25,7 +26,7 @@ void synchronize(int64_t device_index = -1);
 namespace c10 {
 namespace npu {
 
-DeviceIndex current_device();
+C10_NPU_API DeviceIndex current_device();
 
 } // namespace npu
 } // namespace c10

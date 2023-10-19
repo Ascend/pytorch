@@ -12,6 +12,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_op.h"
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
@@ -43,7 +44,7 @@ namespace at_npu
     {
     public:
       static bool check_match(const at::Tensor *tensor);
-      static at::Tensor format_contiguous(const at::Tensor &src);
+      TORCH_NPU_API static at::Tensor format_contiguous(const at::Tensor &src);
       static at::Tensor format_contiguous_add_copy_optimize(const at::Tensor &src);
       static void RefreshFormat(const at::Tensor &tensor);
       static void format_fresh_view(

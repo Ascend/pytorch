@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include "c10/macros/Export.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #define NpuSysStatus c10_npu::NpuSysCtrl::SysStatus
 
@@ -33,7 +34,7 @@ public:
     };
 
     // Get NpuSysCtrl singleton instance
-     static NpuSysCtrl& GetInstance();
+     C10_NPU_API static NpuSysCtrl& GetInstance();
 
     // Environment Initialize, return SysStatus
      SysStatus Initialize(int device_id = -1);
@@ -48,10 +49,10 @@ public:
      SysStatus OverflowSwitchEnable();
 
     // Environment Finalize, return SysStatus
-     SysStatus Finalize();
+     C10_NPU_API SysStatus Finalize();
 
     // Get Init_flag
-     bool GetInitFlag();
+     C10_NPU_API bool GetInitFlag();
 
     int InitializedDeviceID() {
         if (GetInitFlag()) {

@@ -782,6 +782,6 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_tensor_construct_from_storage", (PyCFunction)THNPModule_tensor_construct_from_storage, METH_VARARGS, nullptr},
     {nullptr}};
 
-PyMethodDef* THNPModule_get_methods() {
+TORCH_NPU_API PyMethodDef* THNPModule_get_methods() {
   return THNPModule_methods;
 }
