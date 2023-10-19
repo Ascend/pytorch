@@ -61,7 +61,7 @@ class TestAll(TestCase):
         output = input1.all(dim=dim)
         output = output.to("cpu").numpy()
         return output
-    
+
     def npu_op_out_exec(self, input1, dim, output):
         torch.all(input1, dim=dim, keepdim=False, out=output)
         output = output.to("cpu").numpy()

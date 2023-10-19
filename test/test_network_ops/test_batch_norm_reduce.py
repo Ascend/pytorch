@@ -20,6 +20,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 class TestBatchNormReduce(TestCase):
     def cuda_op_exec(self, input_data):
         cpu_sum = torch.sum(input_data, dim=[0, 2, 3])
@@ -45,6 +46,7 @@ class TestBatchNormReduce(TestCase):
 
             self.assertRtolEqual(cpu_output[0], npu_outputfp32[0])
             self.assertRtolEqual(cpu_output[1], npu_outputfp32[1], 1e-2)
+
 
 if __name__ == "__main__":
     run_tests()

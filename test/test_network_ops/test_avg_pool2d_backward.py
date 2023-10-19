@@ -97,5 +97,6 @@ class TestAvgPool2dBackward(TestCase):
         npu_output_grad, _ = self.npu_op_exec(npu_input)
         self.assertRtolEqual(cpu_output_grad, npu_output_grad, 0.0009)
 
+
 if __name__ == "__main__":
     run_tests()

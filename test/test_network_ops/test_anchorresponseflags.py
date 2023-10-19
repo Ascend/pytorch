@@ -39,7 +39,7 @@ class TestAnchorResponseFlags(TestCase):
         out = torch_npu.npu_anchor_response_flags(input_npu, featmap_size, strides, num_base_anchors)
         out = out.to("cpu")
         return out.detach().numpy()
-        
+
     def test_anchor_response_flags(self, device="npu"):
         shape_format = [
             [[np.float32, -1, [100, 4]], [60, 60], [2, 2], 9],

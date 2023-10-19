@@ -42,12 +42,12 @@ class TestGridSampler2D(TestCase):
 
     def test_grid_sampler_2d_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (1,2,4,20)],[np.float32, 0, (1,10,8,2)]],
-                [[np.float32, 0, (1,4,64, 10)],[np.float32, 0, (1,2,32,2)]],
-                [[np.float32, 0, (2, 2048, 7, 7)],[np.float32, 0, (2, 2048, 14, 2)]],
-                [[np.float32, 4, (32, 1, 3, 3)],[np.float32, 4, (32, 20, 30, 2)]],
-                [[np.float32, 29, (1,2,10, 128)],[np.float32, 4, (1, 10, 5, 2)]]     
-                ]
+            [[np.float32, 0, (1, 2, 4, 20)], [np.float32, 0, (1, 10, 8, 2)]],
+            [[np.float32, 0, (1, 4, 64, 10)], [np.float32, 0, (1, 2, 32, 2)]],
+            [[np.float32, 0, (2, 2048, 7, 7)], [np.float32, 0, (2, 2048, 14, 2)]],
+            [[np.float32, 4, (32, 1, 3, 3)], [np.float32, 4, (32, 20, 30, 2)]],
+            [[np.float32, 29, (1, 2, 10, 128)], [np.float32, 4, (1, 10, 5, 2)]]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
             cpu_grid, npu_grid = create_common_tensor(item[1], -1, 1)
@@ -57,12 +57,12 @@ class TestGridSampler2D(TestCase):
 
     def test_grid_sampler_2d_fp16_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float16, 0, (1,2,4,20)],[np.float16, 0, (1,10,8,2)]],
-                [[np.float16, 0, (1,4,64, 10)],[np.float16, 0, (1,2,32,2)]],
-                [[np.float16, 0, (2, 2048, 7, 7)],[np.float16, 0, (2, 2048, 14, 2)]],
-                [[np.float16, 4, (32, 1, 3, 3)],[np.float16, 4, (32, 20, 30, 2)]],
-                [[np.float16, 29, (1,2,10, 128)],[np.float16, 4, (1, 10, 5, 2)]]
-                ]
+            [[np.float16, 0, (1, 2, 4, 20)], [np.float16, 0, (1, 10, 8, 2)]],
+            [[np.float16, 0, (1, 4, 64, 10)], [np.float16, 0, (1, 2, 32, 2)]],
+            [[np.float16, 0, (2, 2048, 7, 7)], [np.float16, 0, (2, 2048, 14, 2)]],
+            [[np.float16, 4, (32, 1, 3, 3)], [np.float16, 4, (32, 20, 30, 2)]],
+            [[np.float16, 29, (1, 2, 10, 128)], [np.float16, 4, (1, 10, 5, 2)]]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
             cpu_grid, npu_grid = create_common_tensor(item[1], -3, 3)
@@ -70,6 +70,6 @@ class TestGridSampler2D(TestCase):
             npu_output = self.npu_op_exec(npu_input, npu_grid)
             self.assertRtolEqual(cpu_output, npu_output)
 
+
 if __name__ == "__main__":
     run_tests()
-    

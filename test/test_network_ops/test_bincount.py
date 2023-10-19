@@ -15,29 +15,30 @@
 import torch
 import numpy as np
 import torch_npu
- 
+
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestBincount(TestCase):
-    def cpu_op_exec(self, x): 
-        output = torch.bincount(x) 
+    def cpu_op_exec(self, x):
+        output = torch.bincount(x)
         return output.numpy()
-     
-    def npu_op_exec(self, x): 
+
+    def npu_op_exec(self, x):
         output = torch.bincount(x)
         output = output.cpu()
         return output.numpy()
 
-    def cpu_op_exec_with_weights(self, x, weights): 
-        output = torch.bincount(x, weights) 
-        return output.numpy() 
-     
-    def npu_op_exec_with_weights(self, x, weights): 
+    def cpu_op_exec_with_weights(self, x, weights):
+        output = torch.bincount(x, weights)
+        return output.numpy()
+
+    def npu_op_exec_with_weights(self, x, weights):
         output = torch.bincount(x, weights)
         output = output.cpu()
         return output.numpy()
-     
+
     def test_bincount(self, device="npu"):
         input_param = [
             [np.int8, -1, [0]],
@@ -57,5 +58,6 @@ class TestBincount(TestCase):
             npu_output = self.npu_op_exec_with_weights(npu_input, npu_weight)
             self.assertRtolEqual(cpu_output, npu_output)
 
-if __name__ == '__main__': 
-    run_tests() 
+
+if __name__ == '__main__':
+    run_tests()

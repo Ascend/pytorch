@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -23,6 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 class TestConvTranspose3dBackward(TestCase):
     weight_grad = []
     input_grad = []
@@ -32,7 +33,7 @@ class TestConvTranspose3dBackward(TestCase):
 
     def getInputGrad(self, grad):
         self.input_grad.append(grad.to("cpu"))
-    
+
     def cpu_op_exec(self, input1, weight, bias1):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.getInputGrad(grad))
@@ -44,7 +45,7 @@ class TestConvTranspose3dBackward(TestCase):
         grads = torch.ones_like(res_forward).float()
         res_forward.backward(grads, retain_graph=True)
         return res_forward
-    
+
     def npu_op_exec(self, input1, weight, bias1):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.getInputGrad(grad))

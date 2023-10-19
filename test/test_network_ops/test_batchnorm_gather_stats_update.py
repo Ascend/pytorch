@@ -54,7 +54,7 @@ class TestBatchNormGatherStatsUpdate(TestCase):
     def create_counts_tensor(self, item):
         dtype = item[0]
         npu_format = item[1]
-        if dtype != torch.float32: 
+        if dtype != torch.float32:
             data = [4, 5, 3, 2]
         else:
             data = [4, 5, 6, 4]
@@ -69,9 +69,9 @@ class TestBatchNormGatherStatsUpdate(TestCase):
     def test_batch_norm_gather_stats_update(self):
         np.random.seed(1234)
         shape_format = [
-            [[np.float32, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]], \
+            [[np.float32, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]],
              [np.float32, -1, [3]], [np.float32, -1, [3]], 1e-3, 1e-5, [np.float32, -1, [4]]],
-            [[np.float16, -1, [16, 3, 12, 12]], [np.float16, -1, [4, 3]], [np.float16, -1, [4, 3]], \
+            [[np.float16, -1, [16, 3, 12, 12]], [np.float16, -1, [4, 3]], [np.float16, -1, [4, 3]],
              [np.float16, -1, [3]], [np.float16, -1, [3]], 1e-2, 1e-4, [np.float16, -1, [4]]],
         ]
 
@@ -85,7 +85,7 @@ class TestBatchNormGatherStatsUpdate(TestCase):
             cpu_running_mean, npu_running_mean = create_common_tensor(item[3], 0, 1)
             cpu_running_var, npu_running_var = create_common_tensor(item[4], 0, 1)
 
-            cpu_output = self.expect_cpu_out(cpu_sum, cpu_square_sum, 
+            cpu_output = self.expect_cpu_out(cpu_sum, cpu_square_sum,
                                              cpu_running_mean, cpu_running_var,
                                              item[-3], item[-2], cpu_counts)
 

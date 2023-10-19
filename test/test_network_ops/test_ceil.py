@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -30,7 +30,7 @@ class TestCeil(TestCase):
         npu_output = npu_output.to("cpu")
 
         self.assertRtolEqual(cpu_output, npu_output)
-       
+
     def cpu_op_exec(self, input1):
         output = torch.ceil(input1)
         return output
@@ -42,11 +42,11 @@ class TestCeil(TestCase):
 
     def test_ceil_shape_format(self, device="npu"):
         shape_format = [
-                [np.float32, 0,  10               ],
-                [np.float32, 0,  (64, 10)         ],
-                [np.float32, 3,  (256, 2048, 7, 7)],
-                [np.float32, 4,  (32, 1, 3, 3)    ], 
-                [np.float32, 29, (10, 128)        ],
+            [np.float32, 0,  10],
+            [np.float32, 0,  (64, 10)],
+            [np.float32, 3,  (256, 2048, 7, 7)],
+            [np.float32, 4,  (32, 1, 3, 3)],
+            [np.float32, 29, (10, 128)],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)

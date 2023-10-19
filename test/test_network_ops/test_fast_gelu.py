@@ -26,9 +26,9 @@ class TestFastGelu(TestCase):
         return output
 
     def test_fastgelu(self, device="npu"):
-        input1    = torch.tensor([1.,2.,3.,4.]).npu()
+        input1 = torch.tensor([1., 2., 3., 4.]).npu()
         exoutput = torch.tensor([0.8458, 1.9357, 2.9819, 3.9956])
-        output   = self.npu_op_exec(input1)
+        output = self.npu_op_exec(input1)
         self.assertRtolEqual(exoutput.numpy(), output)
 
 

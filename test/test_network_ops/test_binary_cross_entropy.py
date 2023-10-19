@@ -22,6 +22,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 LOWER = 0
 UPPER = 1
 
+
 class TestBinaryCrossEntropy(TestCase):
 
     def generate_input(self, lower, upper, shape, dtype):
@@ -48,16 +49,16 @@ class TestBinaryCrossEntropy(TestCase):
 
     def test_binary_cross_entropy_float32(self, device="npu"):
         for shape, weight_shape, reduction in [
-           ((10, 64), None,     "mean"),
-           ((10, 64), (10, 1),  "mean"),
-           ((10, 64), None,     "mean"),
-           ((10, 64), (10, 64), "mean"),
-           ((10, 64), (10, 64), "sum" ),
-           ((10, 64), (10, 64), "none")
+            ((10, 64), None,     "mean"),
+            ((10, 64), (10, 1),  "mean"),
+            ((10, 64), None,     "mean"),
+            ((10, 64), (10, 64), "mean"),
+            ((10, 64), (10, 64), "sum"),
+            ((10, 64), (10, 64), "none")
         ]:
             predict = self.generate_input(LOWER, UPPER, shape, np.float32)
-            target  = torch.empty(shape, dtype=torch.float32).random_(2)
-            weight  = None
+            target = torch.empty(shape, dtype=torch.float32).random_(2)
+            weight = None
             if weight_shape is not None:
                 weight = self.generate_input(LOWER, UPPER, weight_shape, np.float32)
             cpu_output = self.cpu_op_exec(predict, target, weight=weight, reduction=reduction)
@@ -66,9 +67,9 @@ class TestBinaryCrossEntropy(TestCase):
 
     def test_binary_cross_entropy_float16(self, device="npu"):
         for shape, weight_shape, reduction in [
-           ((10, 64), (10, 64), "sum"),
-           ((10, 64), (10, 64), "mean"),
-           ((10, 64), (10, 64), "none")
+            ((10, 64), (10, 64), "sum"),
+            ((10, 64), (10, 64), "mean"),
+            ((10, 64), (10, 64), "none")
         ]:
             predict = self.generate_input(LOWER, UPPER, shape, np.float16)
             target = torch.empty(shape, dtype=torch.float16).random_(2)

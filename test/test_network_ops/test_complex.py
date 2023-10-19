@@ -18,6 +18,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestComplex(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.complex(input1, input2)
@@ -47,6 +48,7 @@ class TestComplex(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(torch.real(torch.from_numpy(cpu_output)), torch.real(torch.from_numpy(npu_output)))
             self.assertRtolEqual(torch.imag(torch.from_numpy(cpu_output)), torch.imag(torch.from_numpy(npu_output)))
+
 
 if __name__ == "__main__":
     run_tests()

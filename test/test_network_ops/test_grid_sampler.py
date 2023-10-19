@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -20,6 +20,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestGridSampler(TestCase):
     def test_grid_sampler_fp32(self):
@@ -69,6 +70,6 @@ class TestGridSampler(TestCase):
         output = output.astype(np.float16)
         return output
 
+
 if __name__ == "__main__":
     run_tests()
-    

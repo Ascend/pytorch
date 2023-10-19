@@ -21,19 +21,20 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestGru(TestCase):
     def test_gru(self, device="npu"):
         shape_format = [
-                        [[np.float16, (1, 3, 2)], [np.float16, (1, 3, 2)], 2, 2, 1, False, True, False],
-                        [[np.float32, (2, 1, 1)], [np.float32, (1, 2, 2)], 1, 2, 1, False, False, True],
-                        [[np.float16, (1, 3, 1)], [np.float16, (2, 3, 2)], 1, 2, 2, False, True, False],
-                        [[np.float32, (1, 1, 2)], [np.float32, (1, 1, 3)], 2, 3, 1, False, False, False],
-                        [[np.float16, (1, 1, 1)], [np.float16, (3, 1, 1)], 1, 1, 3, False, True, True],
+            [[np.float16, (1, 3, 2)], [np.float16, (1, 3, 2)], 2, 2, 1, False, True, False],
+            [[np.float32, (2, 1, 1)], [np.float32, (1, 2, 2)], 1, 2, 1, False, False, True],
+            [[np.float16, (1, 3, 1)], [np.float16, (2, 3, 2)], 1, 2, 2, False, True, False],
+            [[np.float32, (1, 1, 2)], [np.float32, (1, 1, 3)], 2, 3, 1, False, False, False],
+            [[np.float16, (1, 1, 1)], [np.float16, (3, 1, 1)], 1, 1, 3, False, True, True],
         ]
 
         for item in shape_format:
             cpu_gru = torch.nn.GRU(input_size=item[2], hidden_size=item[3], num_layers=item[4],
-                bidirectional=item[5], bias=item[-2], batch_first=item[-1])
+                                   bidirectional=item[5], bias=item[-2], batch_first=item[-1])
             npu_gru = copy.deepcopy(cpu_gru).npu()
 
             input1 = np.random.uniform(0, 1, item[0][1]).astype(item[0][0])
@@ -55,9 +56,9 @@ class TestGru(TestCase):
 
             if item[0][0] == np.float16:
                 self.assertRtolEqual(cpu_output_y.detach().numpy().astype(np.float16),
-                    npu_output_y.cpu().detach().numpy())
+                                     npu_output_y.cpu().detach().numpy())
                 self.assertRtolEqual(cpu_output_h.detach().numpy().astype(np.float16),
-                    npu_output_h.cpu().detach().numpy())
+                                     npu_output_h.cpu().detach().numpy())
             else:
                 # Ascend: fp33 isn't enough precision, relaxation of precision requirement temporary
                 self.assertRtolEqual(cpu_output_y.detach().numpy(), npu_output_y.cpu().detach().numpy(), prec=1.e-1)
@@ -80,9 +81,9 @@ class TestGru(TestCase):
         GRU_cpu = torch.nn.GRU(embedding_size, hidden_size, batch_first=True)
         GRU_npu = copy.deepcopy(GRU_cpu).npu()
 
-        input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
-        lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
-        pad_token = 0        
+        input_seq = sorted(input_seq, key=lambda tp: len(tp), reverse=True)
+        lengths = sorted(lengths, key=lambda tp: tp, reverse=True)
+        pad_token = 0
         pad_seqs = []
         for i, j in zip(input_seq, lengths):
             pad_seqs.append(self.pad_seq(pad_token, i, j, max_len))

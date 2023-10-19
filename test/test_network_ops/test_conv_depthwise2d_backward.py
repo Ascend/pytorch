@@ -106,7 +106,7 @@ class TestConvDepthwise2d(TestCase):
             [[np.float32, 3, [256, 32, 112, 112]], [np.float32, 0, [32, 1, 3, 3]], 1, 1, 1, None],
             [[np.float32, 3, [256, 96, 112, 112]], [np.float32, 0, [96, 1, 3, 3]], 1, 2, 1, None],
         ]
-        #conv类算子不支持fp32数据的精度要求
+        # conv类算子不支持fp32数据的精度要求
 
 
 if __name__ == "__main__":

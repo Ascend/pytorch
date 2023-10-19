@@ -56,13 +56,13 @@ class TestConv3dBackward(TestCase):
     def test_conv3d_backward_shape_format_fp32(self):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             [[np.float32, 30, [128, 128, 4, 14, 14]],
-             [np.float32, 30, [128, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
+             [np.float32, 30, [128, 128, 3, 3, 3]], [1, 1, 1], [1, 1, 1], 1, None, 1],
             [[np.float32, 30, [128, 64, 4, 14, 14]],
-             [np.float32, 30, [128, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
+             [np.float32, 30, [128, 64, 3, 3, 3]], [1, 1, 1], [2, 2, 2], 1, None, 1],
             [[np.float32, 30, [128, 256, 2, 7, 7]],
-             [np.float32, 30, [256, 256, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
+             [np.float32, 30, [256, 256, 3, 3, 3]], [1, 1, 1], [1, 1, 1], 1, None, 1],
             [[np.float32, 30, [128, 256, 2, 7, 7]],
-             [np.float32, 30, [512, 256, 1, 1, 1]], 0, [2,2,2], 1, None, 1]
+             [np.float32, 30, [512, 256, 1, 1, 1]], 0, [2, 2, 2], 1, None, 1]
         ]
         for item in shape_format:
             self.weight_grad.clear()
@@ -73,15 +73,15 @@ class TestConv3dBackward(TestCase):
             weight_cpu, weight_npu = create_common_tensor(item[1], 0, 1)
             if weight_cpu.dtype == torch.float16:
                 weight_cpu = weight_cpu.to(torch.float32)
-            kernel_size = (item[1][2][2], item[1][2][3],item[1][2][4])
+            kernel_size = (item[1][2][2], item[1][2][3], item[1][2][4])
             cpu_output = self.op_exec(0, input_cpu, weight_cpu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                          padding=item[2], stride=item[3], dilation=item[4], bias=item[5],
-                                          groups=item[6])
+                                      padding=item[2], stride=item[3], dilation=item[4], bias=item[5],
+                                      groups=item[6])
             weight_npu = weight_npu.to("cpu")
 
             npu_output = self.op_exec(1, input_npu, weight_npu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                          padding=item[2], stride=item[3], dilation=item[4], bias=item[5],
-                                          groups=item[6])
+                                      padding=item[2], stride=item[3], dilation=item[4], bias=item[5],
+                                      groups=item[6])
 
             npu_output = npu_output.to(torch.float16)
             cpu_output = cpu_output.to(torch.float16)

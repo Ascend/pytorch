@@ -25,16 +25,16 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestBroadCastTensors(TestCase):
     def cpu_op_exec(self, input1, input2):
-        output1, output2 = torch.broadcast_tensors(input1,input2);
+        output1, output2 = torch.broadcast_tensors(input1, input2)
         return output1.numpy(), output2.numpy()
 
     def npu_op_exec(self, input1, input2, npu_format=None):
-        input1 =input1.npu()
-        input2 =input2.npu()
+        input1 = input1.npu()
+        input2 = input2.npu()
         if npu_format is not None:
-            input1 = torch.npu_format_cast(input1,npu_format)
-            input2 = torch.npu_format_cast(input2,npu_format)
-        output1, output2 = torch.broadcast_tensors(input1,input2);
+            input1 = torch.npu_format_cast(input1, npu_format)
+            input2 = torch.npu_format_cast(input2, npu_format)
+        output1, output2 = torch.broadcast_tensors(input1, input2)
         return output1.cpu().numpy(), output2.cpu().numpy()
 
     def test_broadcast_tensors_common_shape_format(self, device='npu'):
@@ -44,8 +44,8 @@ class TestBroadCastTensors(TestCase):
             [[3, 1], (1, 3), torch.float32],
         ]
         for item in shape_format:
-            cpu_input1 =  torch.randn(item[0], dtype=item[2])
-            cpu_input2 =  torch.randn(item[1], dtype=item[2])
+            cpu_input1 = torch.randn(item[0], dtype=item[2])
+            cpu_input2 = torch.randn(item[1], dtype=item[2])
             cpu_output1, cpu_output2 = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output1, npu_output2 = self.npu_op_exec(cpu_input1, cpu_input2)
             self.assertRtolEqual(cpu_output1, npu_output1)
@@ -57,8 +57,8 @@ class TestBroadCastTensors(TestCase):
             [[1, 18], (10, 1), torch.float32],
         ]
         for item in shape_format:
-            cpu_input1 =  torch.randn(item[0], dtype=item[2])[:,::2]
-            cpu_input2 =  torch.randn(item[1], dtype=item[2])[::2,:]
+            cpu_input1 = torch.randn(item[0], dtype=item[2])[:, ::2]
+            cpu_input2 = torch.randn(item[1], dtype=item[2])[::2, :]
             cpu_output1, cpu_output2 = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output1, npu_output2 = self.npu_op_exec(cpu_input1, cpu_input2)
             self.assertRtolEqual(cpu_output1, npu_output1)
@@ -66,16 +66,16 @@ class TestBroadCastTensors(TestCase):
 
     def test_broadcast_tensors_format(self, device='npu'):
         shape_format = [
-            [[2,3,4], (3, 1), torch.float32, 0],
-            [[2,3,4], (3, 1), torch.float32, 2],
-            [[2,3,4], (3, 1), torch.float32, 3],
-            [[2,3,4], (3, 1), torch.float32, 4],
-            [[2,3,4], (3, 1), torch.float32, 29],
-            [[2,3,4], (3, 1), torch.float32, 30],
+            [[2, 3, 4], (3, 1), torch.float32, 0],
+            [[2, 3, 4], (3, 1), torch.float32, 2],
+            [[2, 3, 4], (3, 1), torch.float32, 3],
+            [[2, 3, 4], (3, 1), torch.float32, 4],
+            [[2, 3, 4], (3, 1), torch.float32, 29],
+            [[2, 3, 4], (3, 1), torch.float32, 30],
         ]
         for item in shape_format:
-            cpu_input1 =  torch.randn(item[0], dtype=item[2])[:,::2]
-            cpu_input2 =  torch.randn(item[1], dtype=item[2])[::2,:]
+            cpu_input1 = torch.randn(item[0], dtype=item[2])[:, ::2]
+            cpu_input2 = torch.randn(item[1], dtype=item[2])[::2, :]
             cpu_output1, cpu_output2 = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_format = item[3]
             npu_output1, npu_output2 = self.npu_op_exec(cpu_input1, cpu_input2, npu_format)

@@ -56,5 +56,6 @@ class TestCopy(TestCase):
         with self.assertRaises(RuntimeError):
             F.silu(x, inplace=True)
 
+
 if __name__ == "__main__":
     run_tests()

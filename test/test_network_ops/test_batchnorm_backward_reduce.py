@@ -20,6 +20,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 class TestBatchNormBackwardReduce(TestCase):
     def expect_result(self):
         cpu_output0 = np.array([449.18185, 464.78906, 471.87485], dtype=np.float32)
@@ -31,9 +32,9 @@ class TestBatchNormBackwardReduce(TestCase):
 
     def npu_op_exec(self, *args):
         npu_sum_dy, npu_sum_dy_xmu, npu_grad_weight, npu_grad_bias = \
-                                        torch.batch_norm_backward_reduce(*args)
+            torch.batch_norm_backward_reduce(*args)
         list2 = [npu_sum_dy.cpu().numpy(), npu_sum_dy_xmu.cpu().numpy(),
-                npu_grad_weight.cpu().numpy(), npu_grad_bias.cpu().numpy()]
+                 npu_grad_weight.cpu().numpy(), npu_grad_bias.cpu().numpy()]
         return list2
 
     @graph_mode
@@ -41,7 +42,7 @@ class TestBatchNormBackwardReduce(TestCase):
         np.random.seed(1234)
         shape_format = [
             [[np.float16, -1, [1, 3, 9, 9]], [np.float32, -1, [3]],
-                                 True, True, True],
+             True, True, True],
         ]
         for item in shape_format:
             _, npu_grad_output_fp16 = create_common_tensor(item[0], 1, 10)
@@ -53,13 +54,13 @@ class TestBatchNormBackwardReduce(TestCase):
             npu_input1_fp32 = npu_input1_fp16.float()
 
             npu_output_fp16 = self.npu_op_exec(npu_grad_output_fp16,
-                                npu_input1_fp16, npu_mean,
-                                npu_invstd, npu_weight,
-                                *item[-3:])
+                                               npu_input1_fp16, npu_mean,
+                                               npu_invstd, npu_weight,
+                                               *item[-3:])
             npu_output_fp32 = self.npu_op_exec(npu_grad_output_fp32,
-                                npu_input1_fp32, npu_mean,
-                                npu_invstd, npu_weight,
-                                *item[-3:])
+                                               npu_input1_fp32, npu_mean,
+                                               npu_invstd, npu_weight,
+                                               *item[-3:])
             for out16, out32 in zip(npu_output_fp16, npu_output_fp32):
                 self.assertRtolEqual(out16, out32)
 
@@ -68,7 +69,7 @@ class TestBatchNormBackwardReduce(TestCase):
         np.random.seed(1234)
         shape_format = [
             [[np.float32, -1, [1, 3, 9, 9]], [np.float32, -1, [3]],
-                                 True, True, True],
+             True, True, True],
         ]
         for item in shape_format:
             _, npu_grad_output = create_common_tensor(item[0], 1, 10)
@@ -79,14 +80,15 @@ class TestBatchNormBackwardReduce(TestCase):
 
             list1 = self.expect_result()
             list2 = self.npu_op_exec(npu_grad_output,
-                                npu_input1, npu_mean,
-                                npu_invstd, npu_weight,
-                                *item[-3:])
+                                     npu_input1, npu_mean,
+                                     npu_invstd, npu_weight,
+                                     *item[-3:])
 
             self.assertRtolEqual(list1[0], list2[0])
             self.assertRtolEqual(list1[1], list2[1])
             self.assertRtolEqual(list1[2], list2[2])
             self.assertRtolEqual(list1[3], list2[3])
+
 
 if __name__ == "__main__":
     run_tests()

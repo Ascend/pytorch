@@ -29,16 +29,16 @@ class TestEmbeddingBagBackward(TestCase):
         grads = torch.ones_like(m)
         m.backward(grads)
         output = embedding_matrix.grad.numpy()
-        
+
         return output
 
     def npu_op_exec(self, input1, embedding_matrix, offsets):
         embedding_matrix.requires_grad_()
         m = nn.functional.embedding_bag(input1, embedding_matrix, offsets).npu()
         grads = torch.ones_like(m)
-        m.backward(grads)        
+        m.backward(grads)
         output = embedding_matrix.grad.cpu().numpy()
-        
+
         return output
 
     def test_embedding_bag_backward_shape_format(self):
@@ -70,6 +70,7 @@ class TestEmbeddingBagBackward(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input, cpu_embedding_matrix, cpu_offsets)
             npu_output = self.npu_op_exec(npu_input, npu_embedding_matrix, npu_offsets)
             self.assertEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

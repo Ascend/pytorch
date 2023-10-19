@@ -30,7 +30,7 @@ class TestDropOutBackward(TestCase):
         out_grad = out_grad.detach().numpy()
         out = out.detach().numpy()
         return out_grad, out
-    
+
     def npu_op_exec(self, input1):
         input1.requires_grad = True
         out = torch.nn.Dropout(0.5)(input1)

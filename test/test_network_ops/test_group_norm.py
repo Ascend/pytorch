@@ -111,5 +111,6 @@ class TestGroupNormBackward(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
+
 if __name__ == "__main__":
     run_tests()

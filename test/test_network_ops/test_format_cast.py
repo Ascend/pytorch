@@ -30,7 +30,7 @@ class TestFormatCast(TestCase):
         if format1 != -1:
             npu_input = torch_npu.npu_format_cast(npu_input, format1)
         return npu_input
-    
+
     def check_result(self, expectValue, retTensor):
         if torch_npu.get_npu_format(retTensor) != expectValue:
             print("expectValue: ", expectValue, " resultValue: ", torch_npu.get_npu_format(retTensor))
@@ -52,8 +52,8 @@ class TestFormatCast(TestCase):
         dst_shape_format = [
             [np.float16, 3, (2, 2, 4, 4)],
             [np.float16, 4, (2, 2, 4, 4)],
-            [np.float16, 29, (2, 2, 4, 4)], 
-            [np.float16, 30, (2, 2 ,2 , 4, 4)],
+            [np.float16, 29, (2, 2, 4, 4)],
+            [np.float16, 30, (2, 2, 2, 4, 4)],
         ]
 
         for i in src_shape_format:
@@ -83,7 +83,7 @@ class TestFormatCast(TestCase):
             npu_tensor = torch_npu.npu_format_cast(npu_tensor, npu_format)
             self.check_result(npu_format, npu_tensor)
 
-        npu_tensor = npu_tensor.view(2,2,2,2,4).clone()
+        npu_tensor = npu_tensor.view(2, 2, 2, 2, 4).clone()
 
         npu_format_list = [30, 33, 30, 2, 33, 2, 30, 32, 30, 2, 32, 2]
         for npu_format in npu_format_list:
@@ -110,14 +110,14 @@ class TestFormatCast(TestCase):
             npu_tensor = torch_npu.npu_format_cast_(npu_tensor, npu_format)
             self.check_result(npu_format, npu_tensor)
 
-        npu_tensor = npu_tensor.view(2,2,2,2,4).clone()
+        npu_tensor = npu_tensor.view(2, 2, 2, 2, 4).clone()
 
         npu_format_list = [30, 33, 30, 2, 33, 2, 30, 32, 30, 2, 32, 2]
         for npu_format in npu_format_list:
             npu_tensor = torch_npu.npu_format_cast_(npu_tensor, npu_format)
             self.check_result(npu_format, npu_tensor)
 
-    # UT for view + transdata scene 
+    # UT for view + transdata scene
     def test_format_cast_val(self, device="npu"):
         shape_format = [np.float32, -1, (10, 4)]
         npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)

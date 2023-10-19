@@ -91,7 +91,7 @@ class TestBatchNorm(TestCase):
             cpu_output = self.cpu_op_exec_3d(cpu_input1, item[0][2][1], item[1])
             npu_output = self.npu_op_exec_new_3d(npu_input1, item[0][2][1], item[1])
             self.assertRtolEqual(cpu_output, npu_output)
-            
+
 
 if __name__ == "__main__":
     run_tests()
