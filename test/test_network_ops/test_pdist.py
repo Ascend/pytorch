@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestPdist(TestCase):
     def cpu_op_exec_default(self, input1):
         stype = input1.dtype
@@ -82,6 +83,7 @@ class TestPdist(TestCase):
             cpu_output = self.cpu_op_exec_default(cpu_input1)
             npu_output = self.npu_op_exec_default(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

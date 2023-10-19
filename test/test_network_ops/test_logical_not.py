@@ -71,7 +71,7 @@ class TestLogicalNot(TestCase):
             cpu_input, npu_input = create_common_tensor(item[0], 1, 10)
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_op_exec(npu_input)
-            self.assertRtolEqual(cpu_output, npu_output)  
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_logical_not_out_common_shape_format(self):
         shape_format = [

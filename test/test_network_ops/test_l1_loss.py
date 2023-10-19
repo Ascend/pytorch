@@ -67,5 +67,6 @@ class TestL1Loss(TestCase):
         npu_output = self.npu_op_exec(predict, target, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
 
+
 if __name__ == '__main__':
     run_tests()

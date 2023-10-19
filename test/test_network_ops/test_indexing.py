@@ -25,8 +25,8 @@ class TestIndexing(TestCase):
 
     @Dtypes(torch.float, torch.half, torch.int32, torch.uint8, torch.int8, torch.int16, torch.long, torch.cfloat)
     def test_indexing(self, dtype):
-        input1 = torch.tensor([[1, 2, 3, 4],[5, 6, 7, 8]], dtype=dtype).to("npu")
-        expect_output = torch.tensor([[1, 2],[5, 6]], dtype=dtype)
+        input1 = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]], dtype=dtype).to("npu")
+        expect_output = torch.tensor([[1, 2], [5, 6]], dtype=dtype)
         output = torch.npu_indexing(input1, [0, 0], [2, 2], [1, 1])
         if dtype == torch.cfloat:
             self.assertRtolEqual(expect_output.float(), output.cpu().float())

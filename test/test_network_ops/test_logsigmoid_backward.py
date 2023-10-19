@@ -22,18 +22,22 @@ from torch_npu.testing.common_utils import create_common_tensor
 cpu_input_grad = None
 npu_input_grad = None
 
+
 def cpu_input_grad_hook(grad):
     global cpu_input_grad
     cpu_input_grad = grad.numpy()
+
 
 def cpu_float16_input_grad_hook(grad):
     global cpu_input_grad
     cpu_input_grad = grad.numpy()
     cpu_input_grad = cpu_input_grad.astype(np.float16)
 
+
 def npu_input_grad_hook(grad):
     global npu_input_grad
     npu_input_grad = grad.cpu().numpy()
+
 
 class TestLogSigmoidBackward(TestCase):
     def cpu_op_exec(self, input1):
@@ -84,6 +88,7 @@ class TestLogSigmoidBackward(TestCase):
             cpu_op_exec_fp16(cpu_input1)
             self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
+
 
 if __name__ == "__main__":
     run_tests()

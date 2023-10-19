@@ -18,6 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestNmsV4(TestCase):
     def generate_data(self, min1, max1, shape, dtype):
         input1 = np.random.uniform(min1, max1, shape).astype(dtype)
@@ -40,6 +41,7 @@ class TestNmsV4(TestCase):
         scores_threshold = torch.tensor(0.3)
 
         npu_output = self.npu_op_exec(boxes, scores, max_output_size, iou_threshold, scores_threshold)
+
 
 if __name__ == "__main__":
     run_tests()

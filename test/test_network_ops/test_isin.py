@@ -60,44 +60,49 @@ class Testisin(TestCase):
         return output
 
     def test_isin_int(self):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.int32, scalar_type='int')
+        npu_input1, npu_input2 = self.generate_data(0, 100, (4, 3), np.int32, scalar_type='int')
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output,npu_output)
+        self.assertRtolEqual(cpu_output, npu_output)
 
     def test_isin_float(self):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,), np.float, scalar_type='float')
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output,npu_output)
+        self.assertRtolEqual(cpu_output, npu_output)
 
     def test_isin_int_float(self):
-        npu_input1, npu_input2 = self.generate_data(-100, 100, (4,3,2), np.int32, scalar_type='float')
+        npu_input1, npu_input2 = self.generate_data(-100, 100, (4, 3, 2), np.int32, scalar_type='float')
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output,npu_output)
+        self.assertRtolEqual(cpu_output, npu_output)
 
     def test_isin_float_int(self):
-        npu_input1, npu_input2 = self.generate_data(10, 20, (4,3), np.float32, scalar_type='int')
+        npu_input1, npu_input2 = self.generate_data(10, 20, (4, 3), np.float32, scalar_type='int')
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
-        self.assertRtolEqual(cpu_output,npu_output)
+        self.assertRtolEqual(cpu_output, npu_output)
 
     def test_isin_invert_false(self):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3,2), np.float32)
+        npu_input1, npu_input2 = self.generate_data(0, 100, (4, 3, 2), np.float32)
         assume_unique = False
         invert = False
-        cpu_output = self.cpu_op_exec_assume_unique_invert(npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
-        npu_output = self.npu_op_exec_tensor_need_to_npu_assume_unique_invert(npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
-        self.assertRtolEqual(cpu_output,npu_output)
+        cpu_output = self.cpu_op_exec_assume_unique_invert(
+            npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
+        npu_output = self.npu_op_exec_tensor_need_to_npu_assume_unique_invert(
+            npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
+        self.assertRtolEqual(cpu_output, npu_output)
 
     def test_isin_invert_true(self):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3,2), np.float32)
+        npu_input1, npu_input2 = self.generate_data(0, 100, (4, 3, 2), np.float32)
         assume_unique = False
         invert = True
-        cpu_output = self.cpu_op_exec_assume_unique_invert(npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
-        npu_output = self.npu_op_exec_tensor_need_to_npu_assume_unique_invert(npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
-        self.assertRtolEqual(cpu_output,npu_output)
+        cpu_output = self.cpu_op_exec_assume_unique_invert(
+            npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
+        npu_output = self.npu_op_exec_tensor_need_to_npu_assume_unique_invert(
+            npu_input1, npu_input2, assume_unique=assume_unique, invert=invert)
+        self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

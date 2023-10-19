@@ -27,20 +27,20 @@ class TestMaskedSelect(TestCase):
 
     def get_mask(self):
         mask = torch.tensor([[
-         [ True, False,  True,  True, False],
-         [ True, False, False,  True, False],
-         [False, False, False, False, False],
-         [ True, False, False, False, False]],
+            [True, False,  True,  True, False],
+            [True, False, False,  True, False],
+            [False, False, False, False, False],
+            [True, False, False, False, False]],
 
-        [[ True, False, False, False,  True],
-         [False,  True, False,  True,  True],
-         [False,  True, False,  True,  True],
-         [False, False, False, False, False]],
+            [[True, False, False, False,  True],
+             [False,  True, False,  True,  True],
+             [False,  True, False,  True,  True],
+             [False, False, False, False, False]],
 
-        [[False,  True,  True, False,  True],
-         [False,  True,  True,  True,  True],
-         [False,  True, False,  True, False],
-         [False,  True,  True, False, False]]])
+            [[False,  True,  True, False,  True],
+             [False,  True,  True,  True,  True],
+             [False,  True, False,  True, False],
+             [False,  True,  True, False, False]]])
         return mask
 
     def cpu_op_exec(self, input1, mask):
@@ -109,7 +109,7 @@ class TestMaskedSelect(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input, mask)
             npu_output = self.npu_op_exec(npu_input, mask)
             self.assertRtolEqual(cpu_output, npu_output)
-            
+
     def test_maskedselect_shape_format_int(self):
         dtype_list = [np.int32, np.int64]
         format_list = [0]
@@ -118,7 +118,7 @@ class TestMaskedSelect(TestCase):
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
         mask = self.get_mask()
-        
+
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_output = self.cpu_op_exec(cpu_input, mask)

@@ -23,14 +23,14 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestLstmCellBackward(TestCase):
-     # shape_format:[[dtype, (batch_size, input_size), input_size, hidden_size]
+    # shape_format:[[dtype, (batch_size, input_size), input_size, hidden_size]
     shape_format = [
-                    [[np.float16, (32, 64)], 64, 32],
-                    [[np.float16, (114, 34)], 34, 64],
-                    [[np.float16, (36, 128)], 128, 17],
-                    [[np.float32, (32, 64)], 64, 32],
-                    [[np.float32, (114, 34)], 34, 64],
-                    [[np.float32, (36, 128)], 128, 17],
+        [[np.float16, (32, 64)], 64, 32],
+        [[np.float16, (114, 34)], 34, 64],
+        [[np.float16, (36, 128)], 128, 17],
+        [[np.float32, (32, 64)], 64, 32],
+        [[np.float32, (114, 34)], 34, 64],
+        [[np.float32, (36, 128)], 128, 17],
     ]
 
     def lstm_cell_backward_result(self, item):
@@ -43,8 +43,8 @@ class TestLstmCellBackward(TestCase):
         cpu_lstm.weight_hh.data = cpu_lstm.weight_hh.half().float()
 
         input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float16)
-        h0=np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float16)
-        c0=np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float16)
+        h0 = np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float16)
+        c0 = np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float16)
 
         cpu_input1 = torch.from_numpy(input1).float()
         cpu_h0 = torch.from_numpy(h0).float()
@@ -103,7 +103,7 @@ class TestLstmCellBackward(TestCase):
             self.assertRtolEqual(cpu_dh.numpy(), npu_dh.cpu().to(torch.float).numpy(), prec=1.e-3)
 
     def test_lstm_cell_dc(self):
-        for item in self.shape_format: 
+        for item in self.shape_format:
             cpu_out, npu_out, _, _ = self.lstm_cell_backward_result(item)
             cpu_dc = cpu_out[2]
             npu_dc = npu_out[2]
@@ -111,7 +111,7 @@ class TestLstmCellBackward(TestCase):
 
     def test_lstm_cell_db(self):
         for item in self.shape_format:
-            _, nout , cpu_lstm, npu_lstm = self.lstm_cell_backward_result(item)
+            _, nout, cpu_lstm, npu_lstm = self.lstm_cell_backward_result(item)
             cpu_db_ih = cpu_lstm.bias_ih.grad
             cpu_db_hh = cpu_lstm.bias_hh.grad
             npu_db_ih = npu_lstm.bias_ih.grad
@@ -123,8 +123,8 @@ class TestLstmCellBackward(TestCase):
             self.assertRtolEqual(cpu_db_hh.numpy(), npu_db_hh.cpu().to(torch.float).numpy(), prec=0.006)
 
     def test_lstm_cell_dw(self):
-        for item in self.shape_format:   
-            _, _ , cpu_lstm, npu_lstm = self.lstm_cell_backward_result(item)
+        for item in self.shape_format:
+            _, _, cpu_lstm, npu_lstm = self.lstm_cell_backward_result(item)
             cpu_dw_ih = cpu_lstm.weight_ih.grad
             cpu_dw_hh = cpu_lstm.weight_hh.grad
             npu_dw_ih = npu_lstm.weight_ih.grad

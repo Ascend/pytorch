@@ -23,6 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 class TestMishBackward(TestCase):
     def npu_op_exec(self, input1):
         input1.requires_grad = True
@@ -52,6 +53,7 @@ class TestMishBackward(TestCase):
         ep_output_grad, ep_npu_output = self.cpu_op_exec(cpu_input)
         self.assertRtolEqual(ep_output_grad, output_grad)
         self.assertRtolEqual(ep_npu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -17,7 +17,9 @@ import numpy as np
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
-#affine = False,目前测试报错。所以本UT未做affine=False测试
+# affine = False,目前测试报错。所以本UT未做affine=False测试
+
+
 class TestBatchNormSub_(TestCase):
     def cpu_op_exec(self, input1, num_features, affine):
         m = torch.nn.BatchNorm2d(num_features, affine=affine)
@@ -61,11 +63,11 @@ class TestBatchNormSub_(TestCase):
         out3 = out3.to("cpu").detach().numpy()
         out4 = out4.to("cpu").detach().numpy()
         return out1, out2, out3, out4
-    
+
     @graph_mode
     def test_batchnorm_shape_format(self):
         shape_format = [[[np.float32, -1, (10, 100, 14, 14)], True]]
-        
+
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 10)
             cpu_output1, cpu_output2, cpu_output3, cpu_output4 = \
@@ -77,6 +79,6 @@ class TestBatchNormSub_(TestCase):
             self.assertRtolEqual(cpu_output3, npu_output3)
             self.assertRtolEqual(cpu_output4, npu_output4)
 
+
 if __name__ == "__main__":
     run_tests()
-

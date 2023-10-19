@@ -27,14 +27,14 @@ from torch_npu.testing.decorator import graph_mode
 class TestMaxPool3dWithIndices(TestCase):
     def cpu_op_exec(self, inputCpu, kernel_size, stride, padding, dilation, ceil_mode):
         dataCpu, argMaxCpu = F.max_pool3d_with_indices(inputCpu, kernel_size=kernel_size,
-                             stride=stride, padding=padding, dilation=dilation,
-                             ceil_mode=ceil_mode, return_indices=True)
-        return dataCpu,argMaxCpu
+                                                       stride=stride, padding=padding, dilation=dilation,
+                                                       ceil_mode=ceil_mode, return_indices=True)
+        return dataCpu, argMaxCpu
 
     def npu_op_exec(self, inputNpu, kernel_size, stride, padding, dilation, ceil_mode):
         dataNpu, argMaxNpu = F.max_pool3d_with_indices(inputNpu, kernel_size=kernel_size,
-                             stride=stride, padding=padding, dilation=dilation,
-                             ceil_mode=ceil_mode, return_indices=True)
+                                                       stride=stride, padding=padding, dilation=dilation,
+                                                       ceil_mode=ceil_mode, return_indices=True)
         output1 = dataNpu.to("cpu").detach()
         output2 = argMaxNpu.to("cpu").detach()
         return output1, output2

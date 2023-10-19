@@ -60,7 +60,7 @@ class TestMaskedFill(TestCase):
                       torch.tensor(1.25, dtype=torch.float32),
                       torch.tensor(5, dtype=torch.int32),
                       torch.tensor(5, dtype=torch.int64)]
-                      
+
         shape_format = [[[np.float16, i, j], v] for i in format_list for j in shape_list for v in value_list]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
@@ -84,7 +84,7 @@ class TestMaskedFill(TestCase):
                       torch.tensor(1.25, dtype=torch.float32),
                       torch.tensor(5, dtype=torch.int32),
                       torch.tensor(5, dtype=torch.int64)]
-                      
+
         shape_format = [[[np.float32, i, j], v] for i in format_list for j in shape_list for v in value_list]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
@@ -105,7 +105,7 @@ class TestMaskedFill(TestCase):
                       torch.tensor(1.25, dtype=torch.float32),
                       torch.tensor(5, dtype=torch.int32),
                       torch.tensor(5, dtype=torch.int64)]
-                      
+
         shape_format = [[[np.int32, i, j], v] for i in format_list for j in shape_list for v in value_list]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
@@ -126,7 +126,7 @@ class TestMaskedFill(TestCase):
                       torch.tensor(1.25, dtype=torch.float32),
                       torch.tensor(5, dtype=torch.int32),
                       torch.tensor(5, dtype=torch.int64)]
-                      
+
         shape_format = [[[np.int64, i, j], v] for i in format_list for j in shape_list for v in value_list]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)

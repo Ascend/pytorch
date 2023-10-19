@@ -29,32 +29,33 @@ PrescsionTableFP16 = [
     [10000, 1e2, 0.04], [10000, 1e3, 0.04], [10000, 1e4, 0.04], [10000, 1e5, 0.04], [10000, 1e6, 0.04],
 ]
 
+
 class TestMatMul(TestCase):
     def assertRtolEqualMatmul(self, x, y):
         def getFp16Precsion(D_range, K_range):
-            prec16=1e-3
+            prec16 = 1e-3
             for elm in PrescsionTableFP16:
-                if elm[0]==D_range and elm[1]==K_range:
+                if elm[0] == D_range and elm[1] == K_range:
                     return elm[2]
             return prec16
 
         D = np.amax(np.maximum(np.abs(x), np.abs(y))) if (x.size and y.size) else 1
         D_range = 10000
-        D_range = 10000 if (D>1000) else D_range
-        D_range = 1000 if (D<=1000) else D_range
-        D_range = 100 if (D<=100) else D_range
-        D_range = 50 if (D<=50) else D_range
-        D_range = 2 if (D<=2) else D_range
+        D_range = 10000 if (D > 1000) else D_range
+        D_range = 1000 if (D <= 1000) else D_range
+        D_range = 100 if (D <= 100) else D_range
+        D_range = 50 if (D <= 50) else D_range
+        D_range = 2 if (D <= 2) else D_range
 
         Kx = max(x.shape) if x.shape else 1
         Ky = max(y.shape) if y.shape else 1
         K = max(Kx, Ky)
         K_range = 1e6
-        K_range = 1e6 if (K>1e5) else K_range
-        K_range = 1e5 if (K<=1e5) else K_range
-        K_range = 1e4 if (K<=1e4) else K_range
-        K_range = 1e3 if (K<=1e3) else K_range
-        K_range = 1e2 if (K<=1e2) else K_range
+        K_range = 1e6 if (K > 1e5) else K_range
+        K_range = 1e5 if (K <= 1e5) else K_range
+        K_range = 1e4 if (K <= 1e4) else K_range
+        K_range = 1e3 if (K <= 1e3) else K_range
+        K_range = 1e2 if (K <= 1e2) else K_range
 
         prec16 = 1e-3
         if x.dtype == np.float16 or x.dtype == np.float32:
@@ -112,8 +113,8 @@ class TestMatMul(TestCase):
     def test_matmul_backward_shape_format_fp16_case3(self):
         shape_format = [
             # mat1 1dim, mat2 2dim
-            [[np.float16, 2, [5]], [np.float16, 2, [5,6]]],
-            [[np.float16, 2, [5]], [np.float16, 2, [5,5]]],
+            [[np.float16, 2, [5]], [np.float16, 2, [5, 6]]],
+            [[np.float16, 2, [5]], [np.float16, 2, [5, 5]]],
 
         ]
         self.matmul_backward_result(shape_format)
@@ -121,51 +122,51 @@ class TestMatMul(TestCase):
     def test_matmul_backward_shape_format_fp16_case4(self):
         shape_format = [
             # mat1 1dim, mat2 2dim
-            [[np.float16, 2, [5,7]], [np.float16, 2, [7,10]]],
-            [[np.float16, 2, [5,10]], [np.float16, 2, [10,20]]],
+            [[np.float16, 2, [5, 7]], [np.float16, 2, [7, 10]]],
+            [[np.float16, 2, [5, 10]], [np.float16, 2, [10, 20]]],
         ]
         self.matmul_backward_result(shape_format)
 
     def test_matmul_backward_shape_format_fp16_case5(self):
         shape_format = [
             # mat1 1dim, mat2 2dim
-            [[np.float16, 2, [4,5,10]], [np.float16, 2, [10]]],
-            [[np.float16, 2, [5,10,20,30]], [np.float16, 2, [30]]],
-            [[np.float16, 2, [20,30,40,50,60]], [np.float16, 2, [60]]],
-            [[np.float16, 2, [2,3,4,5,6,8]], [np.float16, 2, [8]]],
+            [[np.float16, 2, [4, 5, 10]], [np.float16, 2, [10]]],
+            [[np.float16, 2, [5, 10, 20, 30]], [np.float16, 2, [30]]],
+            [[np.float16, 2, [20, 30, 40, 50, 60]], [np.float16, 2, [60]]],
+            [[np.float16, 2, [2, 3, 4, 5, 6, 8]], [np.float16, 2, [8]]],
         ]
         self.matmul_backward_result(shape_format)
 
     def test_matmul_backward_shape_format_fp16_case6(self):
         shape_format = [
             # mat1 >2dim, mat2 2dim
-            [[np.float16, 2, [5,7,10]], [np.float16, 2, [10,16]]],
-            [[np.float16, 2, [5,10,20,30]], [np.float16, 2, [30,25]]],
-            [[np.float16, 2, [2,5,7,8,9,10]], [np.float16, 2, [10,16]]],
+            [[np.float16, 2, [5, 7, 10]], [np.float16, 2, [10, 16]]],
+            [[np.float16, 2, [5, 10, 20, 30]], [np.float16, 2, [30, 25]]],
+            [[np.float16, 2, [2, 5, 7, 8, 9, 10]], [np.float16, 2, [10, 16]]],
         ]
         self.matmul_backward_result(shape_format)
 
     def test_matmul_backward_shape_format_fp16_case7(self):
         shape_format = [
             # mat1 1dim, mat2 >2dim
-            [[np.float16, 2, [3,]], [np.float16, 2, [2,3,2]]],
-            [[np.float16, 2, [20]], [np.float16, 2, [5,10,20,30]]],
+            [[np.float16, 2, [3,]], [np.float16, 2, [2, 3, 2]]],
+            [[np.float16, 2, [20]], [np.float16, 2, [5, 10, 20, 30]]],
         ]
         self.matmul_backward_result(shape_format)
 
     def test_matmul_backward_shape_format_fp16_case8(self):
         shape_format = [
             # mat1 2dim, mat2 >2dim
-            [[np.float16, 2, [2,3]], [np.float16, 2, [2,3,2]]],
-            [[np.float16, 2, [44,20]], [np.float16, 2, [5,10,20,30]]],
-            [[np.float16, 2, [75,50]], [np.float16, 2, [2,3,40,50,60]]],
+            [[np.float16, 2, [2, 3]], [np.float16, 2, [2, 3, 2]]],
+            [[np.float16, 2, [44, 20]], [np.float16, 2, [5, 10, 20, 30]]],
+            [[np.float16, 2, [75, 50]], [np.float16, 2, [2, 3, 40, 50, 60]]],
         ]
         self.matmul_backward_result(shape_format)
 
     def test_matmul_backward_shape_format_fp16_case9(self):
         shape_format = [
-            [[np.float16, 2, [5,7,10]], [np.float16, 2, [5,10,15]]],
-            [[np.float16, 2, [68,75,16]], [np.float16, 2, [68,16,43]]],
+            [[np.float16, 2, [5, 7, 10]], [np.float16, 2, [5, 10, 15]]],
+            [[np.float16, 2, [68, 75, 16]], [np.float16, 2, [68, 16, 43]]],
         ]
         self.matmul_backward_result(shape_format)
 
@@ -197,6 +198,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         torch.npu.matmul.allow_hf32 = False
+
 
 if __name__ == "__main__":
     run_tests()

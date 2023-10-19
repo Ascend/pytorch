@@ -243,8 +243,8 @@ class TestIndex(TestCase):
         npu_output1 = self.npu_op_exec(npu_input1, index)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-        cpu_input2 = torch.randn(15,5)
-        cpu_index2 = torch.randn(15,5) > 0.5
+        cpu_input2 = torch.randn(15, 5)
+        cpu_index2 = torch.randn(15, 5) > 0.5
         npu_index2 = cpu_index2.npu()
         cpu_output2 = self.cpu_op_exec(cpu_input2, cpu_index2)
         npu_output2 = self.npu_op_exec(cpu_input2, npu_index2)

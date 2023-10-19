@@ -173,5 +173,6 @@ class TestRsub(TestCase):
         n_out = 1 - s_npu
         self.assertRtolEqual(c_out.numpy(), n_out.numpy())
 
+
 if __name__ == "__main__":
     run_tests()

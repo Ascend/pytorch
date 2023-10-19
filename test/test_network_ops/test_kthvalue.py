@@ -129,7 +129,7 @@ class TestKthvalues(TestCase):
         torch.kthvalue(x.to("npu"), k, dim, keepdim, out=(npu_y, npu_indices))
         self.assertRtolEqual(cpu_y.numpy(), npu_y.to("cpu").numpy())
         self.assertRtolEqual(cpu_indices.numpy().astype(np.int32), npu_indices.to("cpu").numpy().astype(np.int32))
-    
+
     def test_kthvalues_dimname(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.float32)
         x.names = ['A', 'B', 'C', 'D']

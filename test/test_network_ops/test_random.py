@@ -1,5 +1,5 @@
 # Copyright (c) 2022 Huawei Technologies Co., Ltd
-# Copyright (c) 2022, Facebook CORPORATION. 
+# Copyright (c) 2022, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -55,7 +55,7 @@ class TestRandom(TestCase):
             if to_ <= from_:
                 self.assertRaisesRegex(
                     RuntimeError,
-                    "random_ expects 'from' to be less than 'to', but got from=" \
+                    "random_ expects 'from' to be less than 'to', but got from="
                     + str(from_) + " >= to=" + str(to_),
                     lambda: t.random_(from_, to_)
                 )
@@ -147,31 +147,31 @@ class TestRandom(TestCase):
         to_ = 800
 
         size = [10]
-        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
         t.random_(from_, to_)
         self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
         self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
 
-        size = [10,8]
-        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        size = [10, 8]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
         t.random_(from_, to_)
         self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
         self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
 
-        size = [10,8,7]
-        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        size = [10, 8, 7]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
         t.random_(from_, to_)
         self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
         self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
-        
-        size = [10,8,7,5]
-        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+
+        size = [10, 8, 7, 5]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
         t.random_(from_, to_)
         self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
         self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
-        
-        size = [10,8,7,5,2]
-        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+
+        size = [10, 8, 7, 5, 2]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
         t.random_(from_, to_)
         self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
         self.assertTrue(from_ <= t.to(torch.double).max() <= to_)

@@ -22,6 +22,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 class TestHardtanhBackward(TestCase):
     def cpu_op_exec(self, input1, min1, max1):
         w = torch.ones_like(input1)
@@ -44,7 +45,7 @@ class TestHardtanhBackward(TestCase):
     @graph_mode
     def test_floor_shape_format(self):
         shape_format = [
-                [[np.float32, 0, (64, 10)], 0, 1],
+            [[np.float32, 0, (64, 10)], 0, 1],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 2)
@@ -53,6 +54,6 @@ class TestHardtanhBackward(TestCase):
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
             self.assertRtolEqual(cpu_res, npu_res)
 
+
 if __name__ == "__main__":
     run_tests()
-    

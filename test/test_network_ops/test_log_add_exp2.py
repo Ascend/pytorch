@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestLogAddExp2(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.logaddexp2(input1, input2)
@@ -32,13 +33,13 @@ class TestLogAddExp2(TestCase):
         return output
 
     def npu_op_exec_out(self, input1, input2, out):
-        torch.logaddexp2(input1, input2, out = out)
+        torch.logaddexp2(input1, input2, out=out)
         output = out.to("cpu")
         output = output.numpy()
         return output
 
     def test_logaddexp2_common_shape_format(self):
-        shape_format =[
+        shape_format = [
             [[np.float16, 0, [1, 2, 3, 4]], [np.float16, 0, [1, 2, 3, 4]]],
             [[np.float16, 0, [2, 4]], [np.float16, 0, [2, 4]]],
             [[np.float32, 0, [7, 35, 90]], [np.float32, 0, [7, 35, 90]]],
@@ -62,6 +63,7 @@ class TestLogAddExp2(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -50,7 +50,7 @@ class TestIFMR(TestCase):
                              1).sum().astype(pre_mode)
         max_init = max_index / bins_num * (data_max - data_min) + data_min
         min_init = min_index / bins_num * (data_max - data_min) + data_min
-        
+
         step = np.arange(search_range1,
                          search_range2,
                          search_step,
@@ -96,15 +96,15 @@ class TestIFMR(TestCase):
 
         cdf = cdf.to('npu')
         scale, offset = torch_npu.npu_ifmr(input_data,
-                                       min_value,
-                                       max_value,
-                                       cdf,
-                                       min_percentile=0.999999,
-                                       max_percentile=0.999999,
-                                       search_start=0.7,
-                                       search_end=1.3,
-                                       search_step=0.01,
-                                       with_offset=with_offset)
+                                           min_value,
+                                           max_value,
+                                           cdf,
+                                           min_percentile=0.999999,
+                                           max_percentile=0.999999,
+                                           search_start=0.7,
+                                           search_end=1.3,
+                                           search_step=0.01,
+                                           with_offset=with_offset)
 
         return scale, offset
 

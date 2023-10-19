@@ -42,7 +42,7 @@ class TestLayerNorm(TestCase):
         input1.requires_grad_(True)
         input1.retain_grad()
         input1 = input1.npu()
-        m = torch.nn.LayerNorm(normalized_shape = normalized_shape).npu() 
+        m = torch.nn.LayerNorm(normalized_shape=normalized_shape).npu()
         m.weight.register_hook(lambda grad: self.getWeightGrad(grad))
         res = m(input1)
         w = torch.ones_like(res)
@@ -55,19 +55,19 @@ class TestLayerNorm(TestCase):
 
     def test_layernorm_shape_format(self, device="npu"):
         shape_format = [
-                [np.float32, 3, [256, 32, 112, 112]],
-                [np.float16, 3, [256, 672, 7, 7]],
-                [np.float16, 3, [256, 288, 14, 14]],
-                [np.float16, 3, [1024, 58, 28, 28]],
-                [np.float16, 3, [1024, 116, 14, 14]],
-                [np.float16, 3, [1024, 24, 112, 112]],
-                [np.float16, 0, [1024, 58, 56, 56]],
-                [np.float16, 0, [1024, 58, 56, 56]],
-                [np.float16, 2, [1024, 24, 28, 28]],
-                [np.float16, 2, [1024, 116, 28, 28]],
-                [np.float16, 29, [1024, 232, 7, 7]],
-                [np.float16, 29, [1024, 232, 14, 14]],
-         ]
+            [np.float32, 3, [256, 32, 112, 112]],
+            [np.float16, 3, [256, 672, 7, 7]],
+            [np.float16, 3, [256, 288, 14, 14]],
+            [np.float16, 3, [1024, 58, 28, 28]],
+            [np.float16, 3, [1024, 116, 14, 14]],
+            [np.float16, 3, [1024, 24, 112, 112]],
+            [np.float16, 0, [1024, 58, 56, 56]],
+            [np.float16, 0, [1024, 58, 56, 56]],
+            [np.float16, 2, [1024, 24, 28, 28]],
+            [np.float16, 2, [1024, 116, 28, 28]],
+            [np.float16, 29, [1024, 232, 7, 7]],
+            [np.float16, 29, [1024, 232, 14, 14]],
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 1, 100)
             if cpu_input.dtype == torch.float16:
@@ -82,7 +82,7 @@ class TestLayerNorm(TestCase):
 
             self.assertRtolEqual(cpu_grad_output, npu_grad_output)
             # TODO(ascend): Insufficient precision
-            #npu_grad_weight精度未满足要求
+            # npu_grad_weight精度未满足要求
             self.assertRtolEqual(cpu_grad_weight, npu_grad_weight)
             self.assertRtolEqual(cpu_grad_bias, npu_grad_bias)
 

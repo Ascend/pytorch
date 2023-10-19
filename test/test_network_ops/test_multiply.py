@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestMultiply(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.multiply(input1, input2)
@@ -30,23 +31,23 @@ class TestMultiply(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def cpu_op_out_exec(self, input1, input2, input3):
-        torch.multiply(input1, input2, out = input3)
+        torch.multiply(input1, input2, out=input3)
         input3 = input3.numpy()
         return input3
 
     def npu_op_out_exec(self, input1, input2, input3):
-        torch.multiply(input1, input2, out = input3)
+        torch.multiply(input1, input2, out=input3)
         input3 = input3.to("cpu")
         input3 = input3.numpy()
         return input3
-    
+
     def cpu_inp_op_exec(self, input1, input2):
         input1.multiply_(input2)
         output = input1.numpy()
         return output
-    
+
     def npu_inp_op_exec(self, input1, input2):
         input1.multiply_(input2)
         output = input1.to("cpu")
@@ -94,7 +95,7 @@ class TestMultiply(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1 > 50, cpu_input2 > 50)
             npu_output = self.npu_op_exec(npu_input1 > 50, npu_input2 > 50)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_multiply_shape_format_out_fp32(self):
         format_list = [0]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -125,7 +126,7 @@ class TestMultiply(TestCase):
         npu_output_scalar = self.npu_inp_op_exec(npu_input1, 2)
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_output_scalar, npu_output_scalar)
-    
+
     def test_multiply_inp_shape_format_bool(self):
         format_list = [0, 3, 4, 29]
         shape_list = [[1], (64, 10), (32, 3, 3), (256, 2048, 7, 7)]

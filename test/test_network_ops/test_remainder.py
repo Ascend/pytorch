@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestRemainder(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.remainder(input1, input2)
@@ -207,19 +208,20 @@ class TestRemainder(TestCase):
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
         npu_output = self.npu_op_exec(npu_input1, npu_input3)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test_remainder_mix_dtype_2(self, device="npu"):
         npu_input1, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         npu_input3 = torch.tensor(3).int()
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
         npu_output = self.npu_op_exec(npu_input1, npu_input3)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test_remainder_scalar_shape_format_fp32_out_4d(self, device="npu"):
         format_list = [0]
         shape_format = [[np.float32, i, [4, 18, 32, 128]] for i in format_list
                         ]
         self.remainder_out_result(shape_format)
+
 
 if __name__ == "__main__":
     run_tests()

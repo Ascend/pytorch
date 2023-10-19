@@ -23,6 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestIm2colBackward(TestCase):
 
     @graph_mode

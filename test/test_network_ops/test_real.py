@@ -18,6 +18,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestReal(TestCase):
     def cpu_op_exec(self, input1):
         output = input1.real
@@ -45,6 +46,7 @@ class TestReal(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

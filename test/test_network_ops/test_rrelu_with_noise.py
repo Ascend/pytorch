@@ -21,6 +21,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestRreluWithNoise(TestCase):
 
     def op_exec_cpu(self, input1, input2, lower, upper, train):
@@ -57,8 +58,8 @@ class TestRreluWithNoise(TestCase):
 
     def test_rrelu(self):
         shape_format = [
-            [[np.float16, 2, [5,7,10]], [np.float16, 2, [5,7,10]]],
-            [[np.float32, 2, [5,6]], [np.float32, 2, [5,6]]],
+            [[np.float16, 2, [5, 7, 10]], [np.float16, 2, [5, 7, 10]]],
+            [[np.float32, 2, [5, 6]], [np.float32, 2, [5, 6]]],
         ]
         self.check_forward_backward(shape_format, lower=0.1, upper=0.3, train=False)
         self.check_forward_backward(shape_format, lower=0.1, upper=0.1, train=True)

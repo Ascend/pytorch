@@ -22,6 +22,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestNpuDiouBackward(TestCase):
     def generate_diou_data(self, n, m, dtype):
         data_bboxes1 = np.array([]).astype(dtype)
@@ -41,7 +42,7 @@ class TestNpuDiouBackward(TestCase):
         list1 = [cpu_input1, cpu_input2, npu_input1, npu_input2]
         return list1
 
-    def cpu_op_exec(self, box1, box2, trans=False, is_cross=False, mode="iou",eps=1e-9):
+    def cpu_op_exec(self, box1, box2, trans=False, is_cross=False, mode="iou", eps=1e-9):
         if box1.dtype == torch.half:
             box1 = box1.astype(torch.float32)
             box2 = box2.astype(torch.float32)
@@ -64,17 +65,17 @@ class TestNpuDiouBackward(TestCase):
             rho2 = ((b2_x1[i] + b2_x2[j] - b1_x1[i] - b1_x2[j]) ** 2 +
                     (b2_y1[i] + b2_y2[j] - b1_y1[i] - b1_y2[j]) ** 2) / 4
             inter_area = (torch.min(b1_x2[i], b2_x2[j]) - torch.max(b1_x1[i], b2_x1[j])).clamp(0) * \
-            (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
+                (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
             w1, h1 = b1_x2[i] - b1_x1[i], b1_y2[i] - b1_y1[i] + eps
             w2, h2 = b2_x2[j] - b2_x1[j], b2_y2[j] - b2_y1[j] + eps
             union_area = w1 * h1 + w2 * h2 - inter_area + eps
-            diou_ij = inter_area / union_area - ( rho2 / c2)
+            diou_ij = inter_area / union_area - (rho2 / c2)
             return diou_ij
-        
-    def cpu_in(self, box1, box2,trans, is_cross, mode):
+
+    def cpu_in(self, box1, box2, trans, is_cross, mode):
         box1.requires_grad = True
         box2.requires_grad = True
-        diou_ij = self.cpu_op_exec(box1, box2,trans, is_cross, mode)
+        diou_ij = self.cpu_op_exec(box1, box2, trans, is_cross, mode)
         diou_ij.backward(torch.ones_like(diou_ij))
         box1_grad = box1.grad
         box2_grad = box2.grad
@@ -102,9 +103,9 @@ class TestNpuDiouBackward(TestCase):
         is_trans_list1 = [True]
         mode_list1 = ["iou"]
         shape_format1 = [[j, k, m]
-                        for j in shape_list1
-                        for k in is_trans_list1
-                        for m in mode_list1]
+                         for j in shape_list1
+                         for k in is_trans_list1
+                         for m in mode_list1]
 
         for item in shape_format1:
             mode_digit = 0 if item[-1] == "iou" else 1
@@ -114,6 +115,7 @@ class TestNpuDiouBackward(TestCase):
             _, npu_grad1, npu_grad2 = self.npu_op_exec(list1[2], list1[3], item[1], is_cross, mode_digit)
             self.assertRtolEqual(cpu_grad1, npu_grad1)
             self.assertRtolEqual(cpu_grad2, npu_grad2)
+
 
 if __name__ == "__main__":
     run_tests()

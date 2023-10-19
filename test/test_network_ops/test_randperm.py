@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -23,7 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestRandperm(TestCase):
-    
+
     def cpu_op_exec(self, input1, dtype):
         output = torch.randperm(input1, dtype=dtype, device='cpu')
         output = output.sum()

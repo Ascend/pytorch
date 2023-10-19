@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestMinBackward(TestCase):
     def cpu_op_other_exec(self, input1, input2):
         input1.requires_grad = True
@@ -112,6 +113,7 @@ class TestMinBackward(TestCase):
                         keepdim_list
                         ]
         self.min_result_other(shape_format)
+
 
 if __name__ == "__main__":
     run_tests()
