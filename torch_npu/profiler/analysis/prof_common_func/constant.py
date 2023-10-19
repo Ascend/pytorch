@@ -103,6 +103,13 @@ class Constant(object):
     FWK_END_TIME = "collectionTimeEnd"
     FWK_END_MONOTONIC = "MonotonicTimeEnd"
 
+    # profiler start info
+    START_INFO = "start_info"
+    SysCntFreq = "freq"
+    StartCnt = "start_cnt"
+    StartMonotonic = "start_monotonic"
+    SyscntEable = "syscnt_enable"
+
 
 def print_info_msg(message: str):
     time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")

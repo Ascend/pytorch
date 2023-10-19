@@ -87,10 +87,10 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
     c10::Device device) {
     if (config_.profile_memory) {
       static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
-      std::unique_ptr<torch_npu::toolkit::profiler::MemoryData> data = std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
+      auto data = std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
         0, "torch.memory_usage",
         reinterpret_cast<int64_t>(ptr),
-        Utils::GetClockMonotonicRawNs(),
+        static_cast<int64_t>(Utils::GetClockTime()),
         alloc_size,
         static_cast<int64_t>(total_allocated),
         static_cast<int64_t>(total_reserved),
@@ -153,7 +153,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             auto ctx_ptr = state_ptr->newOpEvent();
             auto data_ptr = ctx_ptr->data_;
             data_ptr->process_id = g_pid;
-            data_ptr->start_ns = Utils::GetClockMonotonicRawNs();
+            data_ptr->start_ns = static_cast<int64_t>(Utils::GetClockTime());
             static thread_local uint64_t tid = syscall(SYS_gettid);
             data_ptr->start_thread_id = tid;
             data_ptr->sequence_number = fn.seqNr();
@@ -185,7 +185,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             auto *npu_profiler_ctx_ptr = static_cast<NpuObserverContext *>(ctx_ptr);
             TORCH_INTERNAL_ASSERT(npu_profiler_ctx_ptr != nullptr);
             auto data_ptr = npu_profiler_ctx_ptr->data_;
-            data_ptr->end_ns = Utils::GetClockMonotonicRawNs();
+            data_ptr->end_ns = static_cast<int64_t>(Utils::GetClockTime());
             static thread_local uint64_t tid = syscall(SYS_gettid);
             data_ptr->end_thread_id = tid;
           }
@@ -247,7 +247,7 @@ void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint
   static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
   std::unique_ptr<torch_npu::toolkit::profiler::OpMarkData> data = std::make_unique<torch_npu::toolkit::profiler::OpMarkData>(
     0, "torch.op_mark",
-    Utils::GetClockMonotonicRawNs(),
+    static_cast<int64_t>(Utils::GetClockTime()),
     category,
     correlation_id,
     tid,
