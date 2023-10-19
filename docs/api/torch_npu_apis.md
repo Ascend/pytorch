@@ -9528,8 +9528,8 @@ Take torch.cuda.set_device as an example.
 ```Python
 ...
 
-torch.cuda.set_device("cuda:0")
-# torch.npu.set_device("cuda:0")
+# torch.cuda.set_device("cuda:0")
+torch.npu.set_device("npu:0")
 
 ...
 ```
