@@ -98,6 +98,17 @@ class NPUFastGeluOP(torch.autograd.Function):
         return g.op("npu::NPUFastGelu", self)
 
 
+class NPUGeGluOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_geglu(*args, **kwargs)
+    
+    @staticmethod
+    def symbolic(g, self: torch.Tensor, dim: int = -1, approximate: int = 1):
+        return g.op("npu::NPUGeGlu", self, dim_i=dim, approximate_i=approximate, outputs=2)
+
+
 class NPUFusedAttentionScoreOP(torch.autograd.Function):
 
     @staticmethod
@@ -665,6 +676,10 @@ def wrapper_npu_fast_gelu(self):
     return NPUFastGeluOP.apply(self)
 
 
+def wrapper_npu_geglu(self, dim=-1, approximate=1):
+    return NPUGeGluOP.apply(self, dim, approximate)
+
+
 def wrapper_npu_fused_attention_score(query_layer, key_layer, value_layer, attention_mask,
                                       scale, keep_prob,  query_transpose=False, key_transpose=False,
                                       bmm_score_transpose_a=False, bmm_score_transpose_b=False,
@@ -861,6 +876,7 @@ def add_onnx_ops():
     torch_npu.npu_batch_nms = wrapper_npu_batch_nms
     torch_npu.fast_gelu = wrapper_npu_fast_gelu
     torch_npu.npu_fast_gelu = wrapper_npu_fast_gelu
+    torch_npu.npu_geglu = wrapper_npu_geglu
     torch_npu.npu_fused_attention_score = wrapper_npu_fused_attention_score
     torch_npu.npu_ciou = wrapper_npu_ciou
     torch_npu.npu_multi_head_attention = wrapper_npu_multi_head_attention
