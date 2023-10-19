@@ -24,7 +24,7 @@ from torch_npu.testing.common_utils import check_operators_in_prof
 
 
 class TestViewCopy(TestCase):
-    
+
     def inplce_op_exec_1(self, input1, input2):
         input1[:, :, :1].copy_(input2[:, :, :1])
 
@@ -53,7 +53,7 @@ class TestViewCopy(TestCase):
         input1[:, :, :, :2].copy_(input2[1:2, :, :, 1:2])
         res = input1 + input1
         return res
-    
+
     @graph_mode
     def test_viewcopy_last_dim(self):
         dtype_list = [np.uint8, np.int8, np.int16, np.int32, np.float32, np.double]
@@ -70,7 +70,7 @@ class TestViewCopy(TestCase):
             self.inplce_op_exec_1(npu_input1, npu_input2)
             npu_input1_tocpu = npu_input1.cpu()
             self.assertRtolEqual(cpu_input1, npu_input1_tocpu)
-            
+
             self.inplce_op_exec_2(cpu_input1, cpu_input2)
             self.inplce_op_exec_2(npu_input1, npu_input2)
             npu_input1_tocpu = npu_input1.cpu()
@@ -97,7 +97,6 @@ class TestViewCopy(TestCase):
             self.inplce_op_exec_4(npu_input1, npu_input2)
             npu_input1_tocpu = npu_input1.cpu()
             self.assertRtolEqual(cpu_input1, npu_input1_tocpu)
-
 
     @graph_mode
     def test_viewcopy_compute(self):

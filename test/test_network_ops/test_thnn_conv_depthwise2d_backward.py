@@ -23,7 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-#TODO:The accuracy of the operator is not up to standard
+# TODO:The accuracy of the operator is not up to standard
 class TestThnnConvDepthwise2d(TestCase):
     weight_grad = []
     input_grad = []
@@ -53,7 +53,7 @@ class TestThnnConvDepthwise2d(TestCase):
 
         return cpuOutput
 
-    def op_exec_npu(self, input1, weight1, in_channels, out_channels, kernel_size, 
+    def op_exec_npu(self, input1, weight1, in_channels, out_channels, kernel_size,
                     padding=0, stride=1, dilation=1, bias=True):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))

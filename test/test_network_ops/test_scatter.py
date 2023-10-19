@@ -28,10 +28,10 @@ class TestScatter(TestCase):
         cpu_output = input1.scatter(dim, index, src)
         return cpu_output.numpy()
 
-    def npu_op_exec(self, shape, dim, index, src, isTensor = True):
+    def npu_op_exec(self, shape, dim, index, src, isTensor=True):
         input1 = torch.zeros(shape).npu()
         index = index.npu()
-        if (isTensor) :
+        if (isTensor):
             src = src.npu()
         npu_output = input1.scatter(dim, index, src)
         npu_output = npu_output.cpu()
@@ -42,10 +42,10 @@ class TestScatter(TestCase):
         input1.scatter_(dim, index, src)
         return input1.numpy()
 
-    def npu_op_exec_inplace(self, shape, dim, index, src, isTensor = True):
+    def npu_op_exec_inplace(self, shape, dim, index, src, isTensor=True):
         input1 = torch.zeros(shape).npu()
         index = index.npu()
-        if (isTensor) :
+        if (isTensor):
             src = src.npu()
         input1.scatter_(dim, index, src)
         input1 = input1.cpu()
@@ -53,10 +53,10 @@ class TestScatter(TestCase):
 
     def test_scatter_shape_format(self):
         shape_format = [
-                [0, [3, 5], [np.float32, 0, [2, 5]]],
-                [0, [3, 5], [np.float32, 3, [2, 5]]],
-                [1, [3, 5], [np.float16, 0, [2, 5]]],
-                [-1, [3, 5], [np.float16, 0, [2, 5]]],
+            [0, [3, 5], [np.float32, 0, [2, 5]]],
+            [0, [3, 5], [np.float32, 3, [2, 5]]],
+            [1, [3, 5], [np.float16, 0, [2, 5]]],
+            [-1, [3, 5], [np.float16, 0, [2, 5]]],
         ]
         index = torch.tensor([[0, 1, 2, 0, 0], [2, 0, 0, 1, 2]])
         for item in shape_format:
@@ -114,6 +114,7 @@ class TestScatter(TestCase):
         cpu_output = torch.scatter(ca, dim, cb, 10)
         npu_output = torch.scatter(na, dim, nb, 10)
         self.assertRtolEqual(cpu_output, npu_output.cpu())
+
 
 if __name__ == "__main__":
     run_tests()

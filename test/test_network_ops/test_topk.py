@@ -36,7 +36,7 @@ class TestTopK(TestCase):
         return output, indices
 
     def npu_op_exec_out(self, input1, k, output, indices):
-        torch.topk(input1, k, out = (output, indices))
+        torch.topk(input1, k, out=(output, indices))
         output = output.to("cpu").numpy()
         indices = indices.to("cpu").numpy().astype(np.int32)
         return output, indices
@@ -50,7 +50,7 @@ class TestTopK(TestCase):
             npu_output, npu_indices = self.npu_op_exec(npu_input, 5)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
-    
+
     def topk_large_result(self, shape_format):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 65504)
@@ -101,63 +101,63 @@ class TestTopK(TestCase):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [18]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-    
+
     def test_topk_shape_format_fp16_large_1d(self):
         format_list = [-1]
         shape_format = [
             [np.float16, i, [104857600]] for i in format_list
-        ]        
+        ]
         self.topk_large_result(shape_format)
-        
+
     def test_topk_shape_format_fp32_1d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [18]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-        
+
     def test_topk_shape_format_fp16_2d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [5, 256]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-        
+
     def test_topk_shape_format_fp32_2d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [5, 256]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-        
+
     def test_topk_shape_format_fp16_3d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [32, 8, 8]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-        
+
     def test_topk_shape_format_fp32_3d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [32, 8, 8]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-        
+
     def test_topk_shape_format_fp16_4d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [64, 112, 7, 7]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
-        
+
     def test_topk_shape_format_fp32_4d(self):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [64, 112, 7, 7]] for i in format_list
-        ]        
+        ]
         self.topk_result(shape_format)
 
 

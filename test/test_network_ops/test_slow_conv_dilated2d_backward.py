@@ -20,11 +20,14 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import graph_mode
 
+
 def get_weight_grad(self, grad):
     self.weight_grad.append(grad.to("cpu"))
 
+
 def get_input_grad(self, grad):
     self.input_grad.append(grad.to("cpu"))
+
 
 class TestSlowConvDilated2dBackward(TestCase):
     weight_grad = []
@@ -73,14 +76,14 @@ class TestSlowConvDilated2dBackward(TestCase):
         input_grad = []
 
         shape_format = [
-                [dtype, 0, (64, 1, 16, 14)],
-                [dtype, 3, (256, 1, 8, 8)],
-                [dtype, 4, (32, 1, 8, 8)],
-                [dtype, 0, (10, 1, 16, 16)],
-                [dtype, 0, (64, 1, 16, 14)],
-                [dtype, 3, (256, 1, 8, 8)],
-                [dtype, 4, (32, 1, 8, 8)],
-                [dtype, 0, (10, 1, 16, 16)]
+            [dtype, 0, (64, 1, 16, 14)],
+            [dtype, 3, (256, 1, 8, 8)],
+            [dtype, 4, (32, 1, 8, 8)],
+            [dtype, 0, (10, 1, 16, 16)],
+            [dtype, 0, (64, 1, 16, 14)],
+            [dtype, 3, (256, 1, 8, 8)],
+            [dtype, 4, (32, 1, 8, 8)],
+            [dtype, 0, (10, 1, 16, 16)]
         ]
 
         for item in shape_format:

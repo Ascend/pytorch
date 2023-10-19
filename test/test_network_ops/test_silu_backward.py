@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 def input_grad_hook(grad):
     global input_grad
     input_grad = grad
@@ -33,18 +34,18 @@ def npu_input_grad_hook(grad):
 
 
 class TestSiluBackward(TestCase):
-    def cpu_op_exec(self, input1, is_contiguous = True):
-        if is_contiguous is False :
-            input1 = input1.as_strided([2,2], [1,2], 1)
+    def cpu_op_exec(self, input1, is_contiguous=True):
+        if is_contiguous is False:
+            input1 = input1.as_strided([2, 2], [1, 2], 1)
         input1.requires_grad = True
         input1.register_hook(input_grad_hook)
         output = F.silu(input1)
         z = output.sum()
         z.backward()
 
-    def npu_op_exec(self, input1, is_contiguous = True):
-        if is_contiguous is False :
-            input1 = input1.as_strided([2,2], [1,2], 1)
+    def npu_op_exec(self, input1, is_contiguous=True):
+        if is_contiguous is False:
+            input1 = input1.as_strided([2, 2], [1, 2], 1)
         input1.requires_grad = True
         input1.register_hook(npu_input_grad_hook)
 
@@ -53,7 +54,7 @@ class TestSiluBackward(TestCase):
         z.backward()
         input1 = input1.cpu()
 
-    def test_silu_backward_shape_format_fp32(self):   
+    def test_silu_backward_shape_format_fp32(self):
         format_list = [0, 3, 4, 29]
         shape_list = [(256, 2048, 7, 7)]
         shape_format = [

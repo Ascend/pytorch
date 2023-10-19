@@ -123,6 +123,5 @@ class TestSoftMax(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
 
-
 if __name__ == "__main__":
     run_tests()

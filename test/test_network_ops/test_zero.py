@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestZero(TestCase):
     def cpu_op_exec(self, input1):
         torch.zero_(input1)
@@ -102,6 +103,7 @@ class TestZero(TestCase):
         format_list = [-1, 0]
         shape_format = [[np.int32, i, [64, 112, 7, 7]] for i in format_list]
         self.zero_result(shape_format)
+
 
 if __name__ == "__main__":
     run_tests()

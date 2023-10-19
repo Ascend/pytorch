@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -42,9 +42,9 @@ class TestUniqueConsecutive(TestCase):
             if item[0][0] == torch.float16:
                 cpu_input = cpu_input.float()
 
-            cpu_output, cpu_idx, cpu_counts = torch.unique_consecutive(cpu_input, return_inverse=True, 
+            cpu_output, cpu_idx, cpu_counts = torch.unique_consecutive(cpu_input, return_inverse=True,
                                                                        return_counts=True, dim=item[1])
-            npu_output, npu_idx, npu_counts = torch.unique_consecutive(npu_input, return_inverse=True, 
+            npu_output, npu_idx, npu_counts = torch.unique_consecutive(npu_input, return_inverse=True,
                                                                        return_counts=True, dim=item[1])
 
             if item[0][0] == torch.float16:

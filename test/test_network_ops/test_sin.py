@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestSin(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.sin(input1)
@@ -39,7 +40,7 @@ class TestSin(TestCase):
 
     def test_sin_common_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (5,3)]],
+            [[np.float32, 0, (5, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
@@ -49,12 +50,12 @@ class TestSin(TestCase):
 
     def test_sin_out_common_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float16, -1, (4, 3, 128, 128)], [np.float16, -1, (4, 3, 128, 128)]],
-                [[np.float16, 0, (4, 3, 128, 128)], [np.float16, 0, (10, 3, 64, 128)]],
-                [[np.float16, 0, (4, 3, 128, 128)], [np.float16, 0, (2, 3, 256, 128)]],
-                [[np.float32, 0, (4, 3, 128, 128)], [np.float32, 0, (4, 3, 128, 128)]],
-                [[np.float32, 0, (4, 3, 128, 128)], [np.float32, 0, (8, 3, 64, 128)]],
-                [[np.float32, -1, (4, 3, 128, 128)], [np.float32, -1, (4, 3, 256, 64)]],
+            [[np.float16, -1, (4, 3, 128, 128)], [np.float16, -1, (4, 3, 128, 128)]],
+            [[np.float16, 0, (4, 3, 128, 128)], [np.float16, 0, (10, 3, 64, 128)]],
+            [[np.float16, 0, (4, 3, 128, 128)], [np.float16, 0, (2, 3, 256, 128)]],
+            [[np.float32, 0, (4, 3, 128, 128)], [np.float32, 0, (4, 3, 128, 128)]],
+            [[np.float32, 0, (4, 3, 128, 128)], [np.float32, 0, (8, 3, 64, 128)]],
+            [[np.float32, -1, (4, 3, 128, 128)], [np.float32, -1, (4, 3, 256, 64)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)

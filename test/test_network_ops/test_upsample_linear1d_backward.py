@@ -159,4 +159,3 @@ class TestUpsampleLinear1DBackward(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-

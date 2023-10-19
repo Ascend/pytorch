@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -261,7 +261,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         keepdim_list = [True, False]
 
-        for item in itertools.product( unbiased_list, keepdim_list):
+        for item in itertools.product(unbiased_list, keepdim_list):
             cpu_input1, npu_input1 = create_common_tensor((np.float16, -1, shape), 0, 100)
             cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output1 = self.cpu_op_dim_exec(cpu_input1, 0, item[0], item[1])

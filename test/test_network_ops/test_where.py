@@ -113,12 +113,12 @@ class TestWhere(TestCase):
         format_list = [0, 3, 4, 29]
         shape_format = [[np.float16, i, [5, 256]] for i in format_list]
         self.where_result(shape_format)
-        
+
     def test_where_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [[np.float16, i, [32, 3, 3]] for i in format_list]
         self.where_result(shape_format)
-        
+
     def test_where_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [[np.float16, i, [64, 112, 7, 7]] for i in format_list]

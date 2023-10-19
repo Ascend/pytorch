@@ -61,14 +61,14 @@ class TestAminmax(TestCase):
 
     def test__aminmax_shape_format(self):
         shape_format = [
-                        [np.float16, 0, [256, 1000]],
-                        [np.float32, 0, [1000]],
-                        [np.int8, 0, [256, 1000, 4, 4]],
-                        [np.int16, 0, [1000, 128, 3]],
-                        [np.int32, 0, [256]],
-                        [np.uint8, 0, [100, 128, 1000]],
-                        [np.int64, 0, [100, 128, 1000]],
-                       ]
+            [np.float16, 0, [256, 1000]],
+            [np.float32, 0, [1000]],
+            [np.int8, 0, [256, 1000, 4, 4]],
+            [np.int16, 0, [1000, 128, 3]],
+            [np.int32, 0, [256]],
+            [np.uint8, 0, [100, 128, 1000]],
+            [np.int64, 0, [100, 128, 1000]],
+        ]
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -83,9 +83,9 @@ class TestAminmax(TestCase):
 
     def test__aminmax_dim_shape_format(self):
         shape_format = [
-                        [np.float16, 0, [64, 4]],
-                        [np.float32, 0, [32, 4, 16, 8]],
-                       ]
+            [np.float16, 0, [64, 4]],
+            [np.float32, 0, [32, 4, 16, 8]],
+        ]
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -125,6 +125,7 @@ class TestAminmax(TestCase):
 
             self.assertRtolEqual(cpu_output0.astype(npu_output0.dtype), npu_output0)
             self.assertRtolEqual(cpu_output1.astype(npu_output1.dtype), npu_output1)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -56,5 +56,6 @@ class TestUnique(TestCase):
             self.assertRtolEqual(cpu_output_y, npu_output_y.cpu().numpy())
             self.assertRtolEqual(cpu_yInverse.numpy(), npu_yInverse.cpu().numpy())
 
+
 if __name__ == "__main__":
     run_tests()

@@ -61,8 +61,8 @@ class Testcdist(TestCase):
             [-0.1, 0.1, [100, 200], [100, 200], np.float16],
             [-10, 10, [100, 20, 30], [100, 20, 1], np.float16],
             [-0.01, 0.01, [100, 20, 30], [100, 20, 30], np.float16],
-            [-0.001, 0.001, [10,20,30,4], [10,20,30,4], np.float16],
-            [-0.001, 0.001, [10,20,3,4,5], [10,20,3,4,5], np.float16],
+            [-0.001, 0.001, [10, 20, 30, 4], [10, 20, 30, 4], np.float16],
+            [-0.001, 0.001, [10, 20, 3, 4, 5], [10, 20, 3, 4, 5], np.float16],
         ]
         reduction_list = ['none', 'mean', 'sum']
         for item, reduction in itertools.product(shape_format, reduction_list):
@@ -78,8 +78,8 @@ class Testcdist(TestCase):
             [-0.1, 0.1, [100, 200], [100, 200], np.float32],
             [-10, 10, [100, 20, 30], [100, 20, 1], np.float32],
             [-0.01, 0.01, [100, 20, 30], [100, 20, 30], np.float32],
-            [-0.001, 0.001, [10,20,30,4], [10,20,30,4], np.float32],
-            [-0.001, 0.001, [10,20,3,4,5], [10,20,3,4,5], np.float32],
+            [-0.001, 0.001, [10, 20, 30, 4], [10, 20, 30, 4], np.float32],
+            [-0.001, 0.001, [10, 20, 3, 4, 5], [10, 20, 3, 4, 5], np.float32],
         ]
         reduction_list = ['none', 'mean', 'sum']
         for item, reduction in itertools.product(shape_format, reduction_list):

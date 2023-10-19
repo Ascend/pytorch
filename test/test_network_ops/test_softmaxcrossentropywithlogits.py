@@ -25,8 +25,8 @@ class TestSoftmaxCrossentropyWithLogits(TestCase):
         return output
 
     def test_softmaxcross(self, device="npu"):
-        input1 = torch.tensor([[1.,2.,3.,4.]]).npu()
-        label = torch.tensor([[1.,2.,3.,4.]]).npu()
+        input1 = torch.tensor([[1., 2., 3., 4.]]).npu()
+        label = torch.tensor([[1., 2., 3., 4.]]).npu()
         exresult = torch.tensor([14.4019])
         output = self.npu_op_exec(input1, label)
         self.assertRtolEqual(exresult.numpy(), output)

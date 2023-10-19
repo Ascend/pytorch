@@ -22,7 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestViewAs(TestCase):
-    
+
     def cpu_op_real_exec(self, input1):
         real = input1.numpy().real
         imag = input1.numpy().imag
