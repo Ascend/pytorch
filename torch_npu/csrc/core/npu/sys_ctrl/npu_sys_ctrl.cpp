@@ -48,33 +48,29 @@
 
 namespace {
 const size_t kMaxPathLen = 4096U;
-std::string GetCurDirPath() {
-  char buff[kMaxPathLen] = {'\0'};
-  GetCurrentDirPath(buff, kMaxPathLen);
-  return std::string(buff);
-}
 
 void MakeCompileCacheDirAndSetOption() {
   char* compile_cache_mode_val = std::getenv("ACL_OP_COMPILER_CACHE_MODE");
-  char* compile_cache_dir_val = std::getenv("ACL_OP_COMPILER_CACHE_DIR");
-
   std::string compile_cache_mode = (compile_cache_mode_val == nullptr) ? std::string("enable")
-                                                                       : std::string(compile_cache_mode_val);
-  std::string compile_cache_dir = (compile_cache_dir_val == nullptr) ? GetCurDirPath() + "/cache"
-                                                                     : std::string(compile_cache_dir_val);
-  // mode : 750
-  auto ret = Mkdir(compile_cache_dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP);
-  if (ret == -1) {
-    if (errno != EEXIST) {
-      TORCH_WARN("make compile cache directory error: ", strerror(errno));
-      return;
-    }
-  }
+                                                                      : std::string(compile_cache_mode_val);
   if (compile_cache_mode != "enable" && compile_cache_mode != "disable" && compile_cache_mode != "force") {
     compile_cache_mode = std::string("enable");
   }
   c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", compile_cache_mode);
-  c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
+
+  char* compile_cache_dir_val = std::getenv("ACL_OP_COMPILER_CACHE_DIR");
+  if (compile_cache_dir_val != nullptr) {
+    std::string compile_cache_dir = std::string(compile_cache_dir_val);
+    // mode : 750
+    auto ret = Mkdir(compile_cache_dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP);
+    if (ret == -1) {
+      if (errno != EEXIST) {
+        TORCH_WARN("make compile cache directory error: ", strerror(errno));
+        return;
+      }
+    }
+    c10_npu::option::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
+  }
 }
 
 void GetAndSetDefaultJitCompileByAcl() {
