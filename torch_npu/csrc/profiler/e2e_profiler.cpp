@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 std::atomic<bool> global_enable_profiling(false);
 
 std::atomic<bool>& get_global_enable_profiling() {
@@ -199,7 +200,7 @@ void PutMarkStamp(const std::string &opName) {
     static thread_local int tid = syscall(SYS_gettid);
     g_markStamp.nodes[index].threadId = tid;
     g_markStamp.nodes[index].eventType = 0;
-    g_markStamp.nodes[index].startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
+    g_markStamp.nodes[index].startTime = static_cast<unsigned long long>(torch_npu::toolkit::profiler::Utils::GetClockTime());
     g_markStamp.nodes[index].endTime = g_markStamp.nodes[index].startTime;
     std::strncpy(g_markStamp.nodes[index].message, opName.c_str(), OP_NAME_LEN);
     // report data
@@ -279,7 +280,7 @@ void PutPipelineStamp(uint32_t category, const std::string &op_name) {
     g_pipelineStamp.nodes[index].threadId = tid;
     g_pipelineStamp.nodes[index].category = static_cast<int>(category);
     g_pipelineStamp.nodes[index].eventType = 0;
-    g_pipelineStamp.nodes[index].startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
+    g_pipelineStamp.nodes[index].startTime = static_cast<unsigned long long>(torch_npu::toolkit::profiler::Utils::GetClockTime());
     g_pipelineStamp.nodes[index].endTime = g_pipelineStamp.nodes[index].startTime;
     std::strncpy(g_pipelineStamp.nodes[index].message, op_name.c_str(), OP_NAME_LEN);
     if ((index & (ONCE_REPORT_NUM - 1)) == (ONCE_REPORT_NUM - 1)) {
@@ -489,7 +490,7 @@ void PushStartTime(at::RecordFunction& fn) {
     }
     static thread_local int tid = syscall(SYS_gettid);
     node->threadId = tid;
-    node->startTime = static_cast<unsigned long long>(getClockMonotonicRaw());
+    node->startTime = static_cast<unsigned long long>(torch_npu::toolkit::profiler::Utils::GetClockTime());
     int nameLen = strlen(fn.name());
     std::strncpy(node->message, fn.name(), OP_NAME_LEN);
     fn.setForwardThreadId(reinterpret_cast<uint64_t>(node));
@@ -503,7 +504,7 @@ void PopEndTime(const at::RecordFunction& fn) {
     at_npu::native::AclprofDestroyStamp((void*)fn.forwardThreadId());
   } else {
     struct Stamp *node = reinterpret_cast<struct Stamp *>(fn.forwardThreadId());
-    node->endTime = static_cast<unsigned long long>(getClockMonotonicRaw());
+    node->endTime = static_cast<unsigned long long>(torch_npu::toolkit::profiler::Utils::GetClockTime());
     node->eventType = 2;  // msproftx data envent type: START_OR_STOP
     PutRangeStamp(node);
   }

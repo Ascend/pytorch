@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include <string>
+#include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 
 namespace torch_npu {
 namespace toolkit {
@@ -99,10 +100,41 @@ public:
     return path_c ? std::string(path_c) : "";
   }
 
-  static int64_t GetClockMonotonicRawNs() {
+  static uint64_t GetClockMonotonicRawNs() {
     struct timespec ts = {0};
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-    return static_cast<int64_t>(ts.tv_sec) * 1000000000 + static_cast<int64_t>(ts.tv_nsec);
+    return static_cast<uint64_t>(ts.tv_sec) * 1000000000 + static_cast<uint64_t>(ts.tv_nsec); // 1000000000为秒转换为纳秒的倍数
+  }
+
+  static uint64_t getClockSyscnt() {
+    uint64_t cycles;
+#if defined(__aarch64__)
+    asm volatile("mrs %0, cntvct_el0" : "=r"(cycles));
+#elif defined(__x86_64__)
+    constexpr uint32_t uint32Bits = 32U;
+    uint32_t hi = 0;
+    uint32_t lo = 0;
+    __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+    cycles = (static_cast<uint64_t>(lo)) | ((static_cast<uint64_t>(hi)) << uint32Bits);
+#elif defined(__arm__)
+    const uint32_t uint32Bits = 32U;
+    uint32_t hi = 0;
+    uint32_t lo = 0;
+    asm volatile("mrrc p15, 1, %0, %1, c14" : "=r"(lo), "=r"(hi));
+    cycles = (static_cast<uint64_t>(lo)) | ((static_cast<uint64_t>(hi)) << uint32Bits);
+#else
+    cycles = 0;
+#endif
+    return cycles;
+  }
+
+  static uint64_t GetClockTime() {
+    static const bool isSupportSysCnt = at_npu::native::isSyscntEnable();
+    if (isSupportSysCnt) {
+      return getClockSyscnt();
+    } else {
+      return GetClockMonotonicRawNs();
+    }
   }
 
   static bool CreateFile(const std::string &path) {
