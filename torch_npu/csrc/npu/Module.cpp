@@ -776,6 +776,6 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
     {nullptr}};
 
-PyMethodDef* THNPModule_get_methods() {
+TORCH_NPU_API PyMethodDef* THNPModule_get_methods() {
   return THNPModule_methods;
 }

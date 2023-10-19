@@ -16,6 +16,7 @@
 #ifndef __PULGIN_NATIVE_NPU_UTILS_OP_PREPARATION__
 #define __PULGIN_NATIVE_NPU_UTILS_OP_PREPARATION__
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 
@@ -60,10 +61,10 @@ public:
   static int8_t get_cube_math_type(bool allowHf32);
 
   // DEPRECATED: ApplyTensor will be deprecated, please use apply_tensor instead.
-  static at::Tensor ApplyTensor(const at::Tensor &src);
-  static at::Tensor ApplyTensor(const at::Tensor &src, c10::IntArrayRef sizes);
-  static at::Tensor ApplyTensor(const at::Tensor &src, const c10::TensorOptions &options);
-  static at::Tensor ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options, const at::Tensor &src);
+  TORCH_NPU_API static at::Tensor ApplyTensor(const at::Tensor &src);
+  TORCH_NPU_API static at::Tensor ApplyTensor(const at::Tensor &src, c10::IntArrayRef sizes);
+  TORCH_NPU_API static at::Tensor ApplyTensor(const at::Tensor &src, const c10::TensorOptions &options);
+  TORCH_NPU_API static at::Tensor ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options, const at::Tensor &src);
   // DEPRECATED: ApplyTensorWithFormat will be deprecated, please use apply_tensor_with_format instead.
   static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, int64_t format, bool keep_format = false);
   static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,

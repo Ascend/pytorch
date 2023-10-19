@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
@@ -43,19 +44,16 @@ namespace at_npu
     class OpAttrMaker
     {
     public:
-      static void Set(aclopAttr *attr, const string &name, bool value);
-      static void Set(aclopAttr *attr, const string &name, int64_t value);
-      static void Set(aclopAttr *attr, const string &name, float value);
-      static void Set(aclopAttr *attr, const string &name, string value);
-      static void Set(aclopAttr *attr, const string &name, c10::IntArrayRef value);
-      static void Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value);
-      static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
-      static void Set(aclopAttr *attr, const string &name, c10::Scalar value);
-      static void Set(aclopAttr* attr, const string& name, at::ScalarType value);
-      static void Set(
-          aclopAttr *attr,
-          const string &name,
-          at::ArrayRef<c10::IntArrayRef> value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, bool value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, int64_t value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, float value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, string value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, c10::IntArrayRef value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, at::ArrayRef<uint8_t> value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, c10::Scalar value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, at::ScalarType value);
+      TORCH_NPU_API static void Set(aclopAttr *attr, const string &name, at::ArrayRef<c10::IntArrayRef> value);
     }; // class OpAttrMaker
 
     class AclTensorDescMaker
@@ -412,9 +410,9 @@ namespace at_npu
     class OpCommandImpls
     {
     public:
-      static OpCommandImpls *GetInstanceByTid(std::thread::id tid);
-      void Push(OpCommandImpl *&ptr);
-      void Pop();
+      TORCH_NPU_API static OpCommandImpls *GetInstanceByTid(std::thread::id tid);
+      TORCH_NPU_API void Push(OpCommandImpl *&ptr);
+      TORCH_NPU_API void Pop();
 
     private:
       int32_t offset = -1;

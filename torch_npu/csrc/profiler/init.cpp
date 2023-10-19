@@ -27,6 +27,7 @@
 #include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include <torch/csrc/autograd/utils/python_arg_parsing.h>
 #include <torch/csrc/utils/pycfunction_helpers.h>
+#include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/profiler/profiler.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 

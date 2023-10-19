@@ -22,6 +22,8 @@
 
 #include <ATen/Device.h>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 struct TORCH_API TNPDevice {
@@ -37,4 +39,4 @@ inline bool TNPDevice_Check(PyObject *obj) {
 
 PyObject * TNPDevice_New(const at::Device& device);
 
-void TNPDevice_init(PyObject *module);
+TORCH_NPU_API void TNPDevice_init(PyObject *module);

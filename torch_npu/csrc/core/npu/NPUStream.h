@@ -142,7 +142,7 @@ aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
 NPUStatus emptyAllNPUStream();
 
-bool npuSynchronizeDevice(bool check_error = true);
+C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);
 
 void enCurrentNPUStream(
     void* cur_paras,

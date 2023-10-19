@@ -31,6 +31,7 @@
 #include <c10/core/DeviceType.h>
 #include <c10/util/Exception.h>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/npu/Stream.h"
@@ -42,7 +43,7 @@ namespace utils {
 
 const char* _backend_to_string_npu(const at::Backend& backend);
 
-PyMethodDef* tensor_functions();
+TORCH_NPU_API PyMethodDef* tensor_functions();
 
 }
 }

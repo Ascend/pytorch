@@ -15,6 +15,7 @@
 #ifndef __PULGIN_NATIVE_UTILS_OP_COMMAND__
 #define __PULGIN_NATIVE_UTILS_OP_COMMAND__
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -37,19 +38,19 @@ struct UnifiedResult {
 
 class OpCommand {
 public:
-  OpCommand() {
+  TORCH_NPU_API OpCommand() {
     aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
     aclCmds->Push(aclCmd);
     aclCmd->SetCustomHandler(nullptr);
   }
-  ~OpCommand() {}
+  TORCH_NPU_API ~OpCommand() {}
 
   OpCommand(const OpCommand &other) = delete;
   OpCommand(OpCommand &&other) = delete;
   OpCommand &operator=(const OpCommand &) = delete;
   OpCommand &operator=(OpCommand &&) = delete;
 
-  OpCommand& Name(const string &name);
+  TORCH_NPU_API OpCommand& Name(const string &name);
 
   OpCommand& SetCustomHandler(PROC_FUNC func);
 
@@ -60,10 +61,10 @@ public:
   OpCommand& Expect(UnifiedResult unified_result);
 
   // None Input
-  OpCommand& Input();
+  TORCH_NPU_API OpCommand& Input();
 
   // Tensor Input which need contiguous
-  OpCommand& Input(
+  TORCH_NPU_API OpCommand& Input(
       const at::Tensor &input,
       const string &descName = "",
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
@@ -76,7 +77,7 @@ public:
 
   // ArrayRef Input, usually hostmemory input, we will do h2d in launch kernel
   template <typename T>
-  OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
+  TORCH_NPU_API OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
                    at::ScalarType toType,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "",
@@ -89,20 +90,20 @@ public:
   }
   
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
-  OpCommand& Input(const c10::IntArrayRef &dimListRef,
+  TORCH_NPU_API OpCommand& Input(const c10::IntArrayRef &dimListRef,
                    at::ScalarType toType = at::kLong,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "",
                    const string& descName = "");
 
   // DoubleArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
-  OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
+  TORCH_NPU_API OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
                    at::ScalarType toType = at::kDouble,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "");
 
   // Scalar Input, we will do h2d in launch kernel
-  OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
+  TORCH_NPU_API OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
                  CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
 
   // A list of Tensor
@@ -111,7 +112,7 @@ public:
   OpCommand& InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type);
 
   // Output Tensor
-  OpCommand& Output(
+  TORCH_NPU_API OpCommand& Output(
       at::Tensor &output,
       const string &descName = "",
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
@@ -119,14 +120,14 @@ public:
 
   // Attr
   template<typename dataType>
-  OpCommand& Attr(const string &name, dataType value) {
+  TORCH_NPU_API OpCommand& Attr(const string &name, dataType value) {
     aclCmd->AddAttr(name, value);
     return *this;
   }
 
   // Attr depend on condition
   template<typename dataType>
-  OpCommand& Attr(const string &name, dataType value, bool cond) {
+  TORCH_NPU_API OpCommand& Attr(const string &name, dataType value, bool cond) {
     if (!cond) {
       return *this;
     }
@@ -134,11 +135,11 @@ public:
   }
 
   // Run a single op
-  void Run();
+  TORCH_NPU_API void Run();
 
-  OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
+  TORCH_NPU_API OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
 
-  OpCommand& Sync();
+  TORCH_NPU_API OpCommand& Sync();
 
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,

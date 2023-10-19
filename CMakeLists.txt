@@ -217,6 +217,11 @@ else()
 endif()
 
 add_library(${PLUGIN_NAME} SHARED ${CPP_SRCS})
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-fvisibility=hidden" COMPILER_SUPPORTS_HIDDEN_VISIBILITY)
+if(${COMPILER_SUPPORTS_HIDDEN_VISIBILITY})
+  target_compile_options(${PLUGIN_NAME} PRIVATE "-fvisibility=hidden")
+endif()
 
 link_directories(${PYTORCH_INSTALL_DIR}/lib)
 link_directories(${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs)
