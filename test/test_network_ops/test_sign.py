@@ -115,5 +115,6 @@ class TestSign(TestCase):
         shape_format = [[np.int32, i, [64, 112, 7, 7]] for i in format_list]
         self.sign_result(shape_format)
 
+
 if __name__ == "__main__":
     run_tests()

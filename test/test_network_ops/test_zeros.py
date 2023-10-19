@@ -6,6 +6,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestZeros(TestCase):
     def cpu_op_exec(self, input1, dtype):
         output = torch.zeros(input1.size(), dtype=dtype, device="cpu")
@@ -130,6 +131,7 @@ class TestZeros(TestCase):
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.int32, i, [64, 112, 7, 7]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
+
 
 if __name__ == "__main__":
     run_tests()

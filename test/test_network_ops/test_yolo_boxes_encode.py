@@ -9,14 +9,14 @@ class TestYoloBoxesEncode(TestCase):
         out = torch_npu.npu_yolo_boxes_encode(anchor_boxes, gt_bboxes, stride, impl_mode)
         out = out.to("cpu")
         return out.detach().numpy()
-        
+
     def test_yolo_boxes_encode(self, device="npu"):
         torch.manual_seed(1234)
         anchor_boxes_list = [(2, 4)]
-        gt_bboxes_list = [(2 ,4)]
+        gt_bboxes_list = [(2, 4)]
         stride_list = [[2, 2]]
         expect_cpu_list = [[[0.7921727, 0.5314963, -0.74224466, -13.815511],
-                          [0.7360072, 0.58343244, 4.3334002, -0.51378196]]]
+                            [0.7360072, 0.58343244, 4.3334002, -0.51378196]]]
 
         shape_format = [[i, j, k, h] for i in anchor_boxes_list
                         for j in gt_bboxes_list for k in stride_list for h in expect_cpu_list]

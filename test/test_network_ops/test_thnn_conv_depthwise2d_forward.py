@@ -80,16 +80,16 @@ class TestThnnConvDepthwise2d(TestCase):
             weight_cpu = weight_cpu.to(torch.float32)
         kernel_size = (item[1][2][2], item[1][2][3])
         cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                        padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
+                                      padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
         weight_npu = weight_npu.to("cpu")
         npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                        padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
+                                      padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
         cpu_output = cpu_output.to(npu_output.dtype)
 
         if item[5] is True:
-            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy(), 0.005 )
+            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy(), 0.005)
         else:
-            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy() )
+            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
 
     def test_thnn_conv_depthwise2d_0(self, device="npu"):
         item = self.thnn_conv_depthwise2d_format(0)

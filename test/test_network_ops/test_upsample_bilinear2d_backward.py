@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestUpsampleBilinear2dBackward(TestCase):
     def cpu_op_exec(self, inputs, shapes):
         inputs.requires_grad_(True)

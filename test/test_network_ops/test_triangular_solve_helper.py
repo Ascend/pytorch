@@ -41,6 +41,6 @@ class TestTriangularSolveHelper(TestCase):
         out = [c, d]
         output = torch.triangular_solve(a, b.tril().npu(), upper=False, transpose=True, unitriangular=False, out=out)
 
+
 if __name__ == "__main__":
     run_tests()
-

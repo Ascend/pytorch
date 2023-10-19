@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestSoftplusBackward(TestCase):
     def cpu_op_exec(self, input1, beta1, threshold1):
         input1.requires_grad = True
@@ -81,6 +82,7 @@ class TestSoftplusBackward(TestCase):
                 npu_output, npu_input_grad = self.npu_default_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output)
             self.assertRtolEqual(cpu_input_grad.to(torch.float16), npu_input_grad.cpu())
+
 
 if __name__ == "__main__":
     run_tests()

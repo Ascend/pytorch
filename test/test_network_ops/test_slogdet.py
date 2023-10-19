@@ -23,9 +23,9 @@ class TestSlogdet(TestCase):
 
     def test_slogdet_shape_format(self, device="npu"):
         shape_format = [
-                [np.float32, -1, (3, 3)],
-                [np.float32, -1, (4, 3, 3)],
-                [np.float32, -1, (5, 5, 5, 5)],
+            [np.float32, -1, (3, 3)],
+            [np.float32, -1, (4, 3, 3)],
+            [np.float32, -1, (5, 5, 5, 5)],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, -100, 100)

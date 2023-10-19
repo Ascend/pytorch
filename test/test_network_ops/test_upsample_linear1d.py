@@ -32,7 +32,7 @@ class TestUpsampleLinear1D(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-        
+
     def creat_shape_format1(self):
         test_cases = [
             [[np.float16, 0, (1, 1, 1, 2)], [4, ], True],
@@ -93,8 +93,8 @@ class TestUpsampleLinear1D(TestCase):
             size = item[1]
             align_corners = item[2]
 
-            npu_output ,npu_out_result = self.npu_op_exec(npu_input, size, align_corners)
-            cpu_output ,cpu_out_result = self.cpu_op_exec(cpu_input, size, align_corners)
+            npu_output, npu_out_result = self.npu_op_exec(npu_input, size, align_corners)
+            cpu_output, cpu_out_result = self.cpu_op_exec(cpu_input, size, align_corners)
 
             cpu_output = cpu_output.astype(npu_output.dtype)
             cpu_out_result = cpu_out_result.astype(npu_out_result.dtype)
@@ -123,8 +123,7 @@ class TestUpsampleLinear1D(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
 
             self.assertRtolEqual(cpu_output, npu_output)
-            
+
 
 if __name__ == "__main__":
     run_tests()
-

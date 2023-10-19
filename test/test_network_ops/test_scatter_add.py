@@ -16,7 +16,7 @@ class TestScatterAdd(TestCase):
         input1.scatter_add_(dim, index, src)
         input1 = input1.to("cpu")
         output = input1.numpy()
-        return output        
+        return output
 
     def cpu_op_exec(self, input1, dim, index, src):
         output = torch.scatter_add(input1, dim, index, src)
@@ -24,20 +24,20 @@ class TestScatterAdd(TestCase):
         return output
 
     def npu_op_exec(self, input1,  dim, index, src):
-        output = torch.scatter_add(input1,dim, index, src)
+        output = torch.scatter_add(input1, dim, index, src)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def test_scatter_add_common_shape_format(self, device="npu"):
         shape_format = [
-                [0, [np.int64, 0, [10, 20]], [np.float32, 0, [10, 20]], [np.float32, 0, [10, 20]]],
-                [1, [np.int64, 0, [10, 20]], [np.float32, 0, [10, 20]], [np.float32, 0, [10, 20]]],
-                [0, [np.int64, 0, [2, 6]], [np.float32, 0, [2, 6]], [np.float32, 0, [2, 6]]],
-                [1, [np.int64, 0, [2, 6]], [np.float32, 0, [2, 6]], [np.float32, 0, [2, 6]]],
-                [0, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
-                [1, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
-                [2, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
+            [0, [np.int64, 0, [10, 20]], [np.float32, 0, [10, 20]], [np.float32, 0, [10, 20]]],
+            [1, [np.int64, 0, [10, 20]], [np.float32, 0, [10, 20]], [np.float32, 0, [10, 20]]],
+            [0, [np.int64, 0, [2, 6]], [np.float32, 0, [2, 6]], [np.float32, 0, [2, 6]]],
+            [1, [np.int64, 0, [2, 6]], [np.float32, 0, [2, 6]], [np.float32, 0, [2, 6]]],
+            [0, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
+            [1, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
+            [2, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
         ]
 
         for item in shape_format:
@@ -52,7 +52,7 @@ class TestScatterAdd(TestCase):
             cpu_inp_output = self.cpu_op_exec_inp(cpu_input3, item[0], cpu_input1, cpu_input2)
             npu_inp_output = self.npu_op_exec_inp(npu_input3, item[0], npu_input1, npu_input2)
             self.assertRtolEqual(cpu_inp_output, npu_inp_output)
-    
+
     def test_scatter_add_float16_shape_format(self, device="npu"):
         def cpu_op_exec_inp_fp16(input1, dim, index, src):
             input1 = input1.to(torch.float32)
@@ -61,21 +61,21 @@ class TestScatterAdd(TestCase):
             output = input1.numpy()
             output = output.astype(np.float16)
             return output
-        
+
         def cpu_op_exec_fp16(input1, dim, index, src):
-            output = torch.scatter_add(input1,dim, index, src)
+            output = torch.scatter_add(input1, dim, index, src)
             output = output.numpy()
             output = output.astype(np.float16)
             return output
-        
+
         shape_format = [
-                [0, [np.int64, 0, [10, 20]], [np.float16, 0, [10, 20]], [np.float16, 0, [10, 20]]],
-                [1, [np.int64, 0, [10, 20]], [np.float16, 0, [10, 20]], [np.float16, 0, [10, 20]]],
-                [0, [np.int64, 0, [2, 6]], [np.float16, 0, [2, 6]], [np.float16, 0, [2, 6]]],
-                [1, [np.int64, 0, [2, 6]], [np.float16, 0, [2, 6]], [np.float16, 0, [2, 6]]],
-                [0, [np.int64, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]]],
-                [1, [np.int64, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]]],
-                [2, [np.int64, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]]],
+            [0, [np.int64, 0, [10, 20]], [np.float16, 0, [10, 20]], [np.float16, 0, [10, 20]]],
+            [1, [np.int64, 0, [10, 20]], [np.float16, 0, [10, 20]], [np.float16, 0, [10, 20]]],
+            [0, [np.int64, 0, [2, 6]], [np.float16, 0, [2, 6]], [np.float16, 0, [2, 6]]],
+            [1, [np.int64, 0, [2, 6]], [np.float16, 0, [2, 6]], [np.float16, 0, [2, 6]]],
+            [0, [np.int64, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]]],
+            [1, [np.int64, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]]],
+            [2, [np.int64, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]], [np.float16, 0, [10, 20, 30]]],
         ]
 
         for item in shape_format:

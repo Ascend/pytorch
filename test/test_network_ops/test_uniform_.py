@@ -7,8 +7,8 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestUniform(TestCase):
     def test_uniform(self):
         shape_format = [
-           [(20,300), -100, 100, torch.float32],
-           [(20,300), -100, 100, torch.float16]
+            [(20, 300), -100, 100, torch.float32],
+            [(20, 300), -100, 100, torch.float16]
         ]
 
         for item in shape_format:
@@ -16,10 +16,10 @@ class TestUniform(TestCase):
             input1.uniform_(item[1], item[2])
             self.assertTrue(item[1] <= input1.min())
             self.assertTrue(item[2] >= input1.max())
-    
+
     def test_uniform_trans(self):
         shape_format = [
-           [(20,300), -100, 100, torch.float32],
+            [(20, 300), -100, 100, torch.float32],
         ]
 
         for item in shape_format:

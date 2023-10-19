@@ -8,12 +8,12 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestThreshold(TestCase):
 
-    def cpu_op_exec(self,input1, threshold, value):
+    def cpu_op_exec(self, input1, threshold, value):
         output = torch.nn.functional.threshold(input1, threshold, value)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self,input1, threshold, value):
+    def npu_op_exec(self, input1, threshold, value):
         output = torch.nn.functional.threshold(input1, threshold, value)
         output = output.to("cpu")
         output = output.numpy()
@@ -21,8 +21,8 @@ class TestThreshold(TestCase):
 
     def test_threshold_common_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (1,5)], [1.0], [20.0]],
-                [[np.int32, 0, (1,5)], [2], [20]],
+            [[np.float32, 0, (1, 5)], [1.0], [20.0]],
+            [[np.int32, 0, (1, 5)], [2], [20]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 3)
@@ -45,8 +45,8 @@ class TestThreshold(TestCase):
             return output
 
         shape_format = [
-                [[np.float32, 0, (1,5)], [1.0], [20.0]],
-                [[np.int32, 0, (1,5)], [2], [20]],
+            [[np.float32, 0, (1, 5)], [1.0], [20.0]],
+            [[np.int32, 0, (1, 5)], [2], [20]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 3)

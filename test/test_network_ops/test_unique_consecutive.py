@@ -25,9 +25,9 @@ class TestUniqueConsecutive(TestCase):
             if item[0][0] == torch.float16:
                 cpu_input = cpu_input.float()
 
-            cpu_output, cpu_idx, cpu_counts = torch.unique_consecutive(cpu_input, return_inverse=True, 
+            cpu_output, cpu_idx, cpu_counts = torch.unique_consecutive(cpu_input, return_inverse=True,
                                                                        return_counts=True, dim=item[1])
-            npu_output, npu_idx, npu_counts = torch.unique_consecutive(npu_input, return_inverse=True, 
+            npu_output, npu_idx, npu_counts = torch.unique_consecutive(npu_input, return_inverse=True,
                                                                        return_counts=True, dim=item[1])
 
             if item[0][0] == torch.float16:

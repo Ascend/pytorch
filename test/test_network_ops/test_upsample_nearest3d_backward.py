@@ -6,20 +6,22 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 # 3d need input1's dim is 5
+
+
 class TestUpsamleNearest3DBackward(TestCase):
     def get_format_fp16(self):
         shape_format = [
             [[np.float16, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
             [[np.float16, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
         ]
-        return shape_format    
+        return shape_format
 
     def get_format_fp32(self):
         shape_format = [
             [[np.float32, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
             [[np.float32, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
         ]
-        return shape_format  
+        return shape_format
 
     def cpu_op_exec(self, input1, size):
         input1.requires_grad_(True)
@@ -109,13 +111,13 @@ class TestUpsamleNearest3DBackward(TestCase):
         shape_list = [(5, 3, 2, 6, 4), (2, 3, 6, 2, 4)]
         scalar_list = [[10, 10, 10]]
         shape_format = [
-            [[d, f, s], sc] for d in dtype_list for f in format_list 
+            [[d, f, s], sc] for d in dtype_list for f in format_list
             for s in shape_list for sc in scalar_list
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
             cpu_input = cpu_input.to(torch.float32)
-            size = item[1]            
+            size = item[1]
             cpu_output = self.cpu_op_exec(cpu_input, size)
             npu_output = self.npu_op_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
@@ -138,6 +140,7 @@ class TestUpsamleNearest3DBackward(TestCase):
         npu_out.backward(torch.ones_like(npu_out))
         self.assertRtolEqual(cpu_x.grad, npu_x.grad.cpu())
         self.assertRtolEqual(cpu_out.detach(), npu_out.cpu().detach())
+
 
 if __name__ == "__main__":
     run_tests()

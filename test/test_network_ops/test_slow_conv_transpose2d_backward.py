@@ -34,7 +34,6 @@ class TestSlowConvTranspose2dBackward(TestCase):
         res_forward = res_forward.detach().numpy()
         return res_forward
 
-
     def npu_op_exec(self, input1, weight, bias, kernel_size):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))
@@ -52,8 +51,8 @@ class TestSlowConvTranspose2dBackward(TestCase):
 
     def test_slow_conv_transpose2d_backward_shape_format_fp16(self):
         shape_format = [
-                [[np.float16, 0, (1, 12, 20, 20)], [np.float16, 0, (12, 12, 3, 3)], [np.float16, 0, 12]],
-                [[np.float16, 0, (1, 4, 5, 5)], [np.float16, 0, (4, 4, 3, 3)], [np.float16, 0, 4]]
+            [[np.float16, 0, (1, 12, 20, 20)], [np.float16, 0, (12, 12, 3, 3)], [np.float16, 0, 12]],
+            [[np.float16, 0, (1, 4, 5, 5)], [np.float16, 0, (4, 4, 3, 3)], [np.float16, 0, 4]]
         ]
         for item in shape_format:
             # Note:when bias is True, the value range is both pos and neg which will be not enough precision!
@@ -82,8 +81,8 @@ class TestSlowConvTranspose2dBackward(TestCase):
 
     def test_slow_conv_transpose2d_backward_shape_format_fp32(self):
         shape_format = [
-                [[np.float32, 0, (1, 4, 5, 5)], [np.float32, 0, (4, 4, 3, 3)], [np.float32, 0, 4]],
-                [[np.float32, 0, (1, 12, 20, 20)], [np.float32, 0, (12, 12, 3, 3)], [np.float32, 0, 12]],
+            [[np.float32, 0, (1, 4, 5, 5)], [np.float32, 0, (4, 4, 3, 3)], [np.float32, 0, 4]],
+            [[np.float32, 0, (1, 12, 20, 20)], [np.float32, 0, (12, 12, 3, 3)], [np.float32, 0, 12]],
         ]
         for item in shape_format:
             # Note:when bias is True, the value range is both pos and neg which will be not enough precision!

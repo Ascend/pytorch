@@ -6,6 +6,8 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 # 3d need input1's dim is 5
+
+
 class TestUpsamleTrilinear3DBackward(TestCase):
     def get_format(self):
         shape_format = [
@@ -73,10 +75,10 @@ class TestUpsamleTrilinear3DBackward(TestCase):
     def test_upsample_trilinear3d_backward(self):
         format_list = [-1, 2, 30, 32]
         dtype_list = [np.float32, np.float16]
-        shape_list = [[5, 3, 2, 6, 4],[2, 3, 6, 2, 4]]
+        shape_list = [[5, 3, 2, 6, 4], [2, 3, 6, 2, 4]]
         scalar_list = [[10, 10, 10]]
-        shape_format = [[[d, f, s], sc] for d in dtype_list for f in format_list 
-                          for s in shape_list for sc in scalar_list]
+        shape_format = [[[d, f, s], sc] for d in dtype_list for f in format_list
+                        for s in shape_list for sc in scalar_list]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
             cpu_input = cpu_input.to(torch.float32)
@@ -104,6 +106,7 @@ class TestUpsamleTrilinear3DBackward(TestCase):
         npu_out.backward(torch.ones_like(npu_out))
         self.assertRtolEqual(cpu_x.grad, npu_x.grad.cpu())
         self.assertRtolEqual(cpu_out.detach(), npu_out.cpu().detach())
+
 
 if __name__ == "__main__":
     run_tests()

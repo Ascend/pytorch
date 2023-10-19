@@ -8,7 +8,7 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 
 class TestViewCopy(TestCase):
-    
+
     def inplce_op_exec_1(self, input1, input2):
         input1[:, :, :1].copy_(input2[:, :, :1])
 
@@ -53,7 +53,7 @@ class TestViewCopy(TestCase):
             self.inplce_op_exec_1(npu_input1, npu_input2)
             npu_input1_tocpu = npu_input1.cpu()
             self.assertRtolEqual(cpu_input1, npu_input1_tocpu)
-            
+
             self.inplce_op_exec_2(cpu_input1, cpu_input2)
             self.inplce_op_exec_2(npu_input1, npu_input2)
             npu_input1_tocpu = npu_input1.cpu()
@@ -79,7 +79,6 @@ class TestViewCopy(TestCase):
             self.inplce_op_exec_4(npu_input1, npu_input2)
             npu_input1_tocpu = npu_input1.cpu()
             self.assertRtolEqual(cpu_input1, npu_input1_tocpu)
-
 
     def test_viewcopy_compute(self):
         dtype_list = [np.float32]
