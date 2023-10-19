@@ -18,6 +18,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TesBatchNms(TestCase):
     def test_batch_nms_shape_format(self):
         boxes = torch.randn(8, 4, 1, 4).npu()
@@ -33,9 +34,10 @@ class TesBatchNms(TestCase):
                                              [0.0000, 0.0000, 0.0000, 0.0000],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 0.0000, 0.0000, 0.0000]], dtype = torch.float32)
+                                             [0.0000, 0.0000, 0.0000, 0.0000]], dtype=torch.float32)
         self.assertRtolEqual(expedt_nmsed_classes, nmsed_classes.cpu())
         self.assertRtolEqual(expedt_nmsed_classes.half(), classes1.cpu())
+
 
 if __name__ == "__main__":
     run_tests()

@@ -23,7 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestCropAndResize(TestCase):
     def result_error(self, npu_output, box_index, crop_size):
         if npu_output.shape[0] != len(box_index) or npu_output.shape[2] != crop_size[0] \
-            or npu_output.shape[3] != crop_size[1]:
+                or npu_output.shape[3] != crop_size[1]:
             self.fail("shape error")
 
     def test_crop_and_resize(self):

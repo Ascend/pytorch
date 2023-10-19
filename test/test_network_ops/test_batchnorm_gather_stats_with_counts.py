@@ -64,10 +64,10 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
     def test_batch_norm_gather_stats_with_counts(self):
         np.random.seed(1234)
         shape_format = [
-            [[np.float16, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]], \
-                    [np.float32, -1, [3]], [np.float32, -1, [3]], 1e-3, 1e-5, [np.float32, -1, [4]], 0],
-            [[np.float16, -1, [16, 3, 12, 12]], [np.float16, -1, [4, 3]], [np.float16, -1, [4, 3]], \
-                    [np.float16, -1, [3]], [np.float16, -1, [3]], 1e-2, 1e-4, [np.float16, -1, [4]], 1],
+            [[np.float16, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]],
+             [np.float32, -1, [3]], [np.float32, -1, [3]], 1e-3, 1e-5, [np.float32, -1, [4]], 0],
+            [[np.float16, -1, [16, 3, 12, 12]], [np.float16, -1, [4, 3]], [np.float16, -1, [4, 3]],
+             [np.float16, -1, [3]], [np.float16, -1, [3]], 1e-2, 1e-4, [np.float16, -1, [4]], 1],
         ]
 
         for item in shape_format:
@@ -90,8 +90,8 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
                 cuda_output = self.expect_cuda_out_fp32()
 
             npu_outputfp16 = self.npu_op_exec(npu_input1fp16, npu_mean, npu_invstd,
-                                             npu_running_mean, npu_running_invstd,
-                                             item[-4], item[-3], npu_counts)
+                                              npu_running_mean, npu_running_invstd,
+                                              item[-4], item[-3], npu_counts)
             self.assertRtolEqual(npu_outputfp16[0], cuda_output[0])
             self.assertRtolEqual(npu_outputfp16[1], cuda_output[1])
             self.assertRtolEqual(npu_running_mean.cpu().numpy(), cuda_output[2])
@@ -99,8 +99,8 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
 
             if item[1][0] == np.float32:
                 npu_outputfp32 = self.npu_op_exec(npu_input1fp32, npu_mean, npu_invstd,
-                                                 npu_running_mean, npu_running_invstd,
-                                                 item[-4], item[-3], npu_counts)
+                                                  npu_running_mean, npu_running_invstd,
+                                                  item[-4], item[-3], npu_counts)
                 self.assertRtolEqual(npu_outputfp32[0], cuda_output[0])
                 self.assertRtolEqual(npu_outputfp32[1], cuda_output[1])
 

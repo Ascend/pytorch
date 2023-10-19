@@ -45,12 +45,12 @@ class TestApplyAdam(TestCase):
     def npu_op_exec(self, var_tensor, m_tensor, v_tensor, beta1_power, beta2_power, lr, weight_decay,
                     beta1, beta2, eps, grad, max_grad_norm, amsgrad, maximize):
         var_out_npu, m_out_npu, v_out_npu = torch_npu.npu_apply_adam_w(beta1_power[0],
-            beta2_power[0], lr[0], weight_decay[0], beta1[0], beta2[0], eps[0], grad, max_grad_norm,
-            amsgrad, maximize, out = (var_tensor, m_tensor, v_tensor))
+                                                                       beta2_power[0], lr[0], weight_decay[0], beta1[0], beta2[0], eps[0], grad, max_grad_norm,
+                                                                       amsgrad, maximize, out=(var_tensor, m_tensor, v_tensor))
         return var_out_npu, m_out_npu, v_out_npu
 
     def test_apply_adam_w_maximize_true(self):
-        amsgrad = False # at present, the operator supports only false.
+        amsgrad = False  # at present, the operator supports only false.
         maximize = True
         scalar_shape = [1]
         dtype = np.float32
@@ -77,17 +77,17 @@ class TestApplyAdam(TestCase):
         max_grad_norm = None
 
         var_ret_cpu, m_ret_cpu, v_ret_cpu = self.cpu_op_exec(var_cpu, m_cpu, v_cpu, beta1_power, beta2_power, lr,
-            weight_decay, beta1, beta2, eps, grad_cpu, max_grad_norm, amsgrad, maximize)
+                                                             weight_decay, beta1, beta2, eps, grad_cpu, max_grad_norm, amsgrad, maximize)
 
         var_ret_npu, m_ret_npu, v_ret_npu = self.npu_op_exec(var_npu, m_npu, v_npu, beta1_power,
-            beta2_power, lr, weight_decay, beta1, beta2, eps, grad_npu, max_grad_norm, amsgrad, maximize)
+                                                             beta2_power, lr, weight_decay, beta1, beta2, eps, grad_npu, max_grad_norm, amsgrad, maximize)
 
         self.assertRtolEqual(var_ret_cpu, var_ret_npu.cpu().numpy())
         self.assertRtolEqual(m_ret_cpu, m_ret_npu.cpu().numpy())
         self.assertRtolEqual(v_ret_cpu, v_ret_npu.cpu().numpy())
 
     def test_apply_adam_w_maximize_false(self):
-        amsgrad = False # at present, the operator supports only false.
+        amsgrad = False  # at present, the operator supports only false.
         maximize = False
         scalar_shape = [1]
         dtype = np.float32
@@ -114,10 +114,10 @@ class TestApplyAdam(TestCase):
         max_grad_norm = None
 
         var_ret_cpu, m_ret_cpu, v_ret_cpu = self.cpu_op_exec(var_cpu, m_cpu, v_cpu, beta1_power, beta2_power, lr,
-            weight_decay, beta1, beta2, eps, grad_cpu, max_grad_norm, amsgrad, maximize)
+                                                             weight_decay, beta1, beta2, eps, grad_cpu, max_grad_norm, amsgrad, maximize)
 
         var_ret_npu, m_ret_npu, v_ret_npu = self.npu_op_exec(var_npu, m_npu, v_npu, beta1_power,
-            beta2_power, lr, weight_decay, beta1, beta2, eps, grad_npu, max_grad_norm, amsgrad, maximize)
+                                                             beta2_power, lr, weight_decay, beta1, beta2, eps, grad_npu, max_grad_norm, amsgrad, maximize)
 
         self.assertRtolEqual(var_ret_cpu, var_ret_npu.cpu().numpy())
         self.assertRtolEqual(m_ret_cpu, m_ret_npu.cpu().numpy())

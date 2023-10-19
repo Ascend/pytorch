@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestEqual(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.eq(input1, input2)
@@ -49,7 +50,7 @@ class TestEqual(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
 
     def test_equal_shape_format_fp16(self):
@@ -68,7 +69,7 @@ class TestEqual(TestCase):
                 cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            cpu_output = cpu_output.astype(np.float16)            
+            cpu_output = cpu_output.astype(np.float16)
             self.assertEqual(cpu_output, npu_output)
 
     def test_equal_out_shape_format_fp32(self):
@@ -82,7 +83,7 @@ class TestEqual(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -10, 10)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)           
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertEqual(npu_output_out, npu_output)
 
     def test_equal_scalar_out_shape_format_fp32(self):
@@ -95,7 +96,7 @@ class TestEqual(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
             npu_output_out = self.npu_op_exec_out(npu_input1, 5)
-            npu_output = self.npu_op_exec(npu_input1, 5)           
+            npu_output = self.npu_op_exec(npu_input1, 5)
             self.assertEqual(npu_output_out, npu_output)
 
     def test_equal_mix_dtype(self):

@@ -15,7 +15,7 @@
 import torch
 import numpy as np
 import torch_npu
- 
+
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -38,7 +38,7 @@ class TestConvTbc(TestCase):
     def test_conv_tbc_shape_format(self):
         inputs = np.random.uniform(0, 2, [5, 1, 2])
         npu_input = torch.from_numpy(inputs.astype('float16'))
-        cpu_input =  torch.from_numpy(inputs)
+        cpu_input = torch.from_numpy(inputs)
         weights = np.random.uniform(0, 2, [1, 2, 2])
         npu_weight = torch.from_numpy(weights.astype('float16'))
         cpu_weight = torch.from_numpy(weights)
@@ -49,6 +49,7 @@ class TestConvTbc(TestCase):
         cpu_output = self.op_exec_cpu(cpu_input, cpu_weight, cpu_bias, pad)
         npu_output = self.op_exec_npu(npu_input, npu_weight, npu_bias, pad)
         self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

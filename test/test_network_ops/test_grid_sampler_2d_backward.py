@@ -27,7 +27,7 @@ class TestGridSampler2dBackward(TestCase):
             [1, True],
             [0, False],
             [1, False]
-            ]
+        ]
         return attrs
 
     def cpu_op_exec(self, input1, sample, pad_mode, align):

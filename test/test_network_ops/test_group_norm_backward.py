@@ -147,5 +147,6 @@ class TestGroupNormBackward(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
+
 if __name__ == "__main__":
     run_tests()

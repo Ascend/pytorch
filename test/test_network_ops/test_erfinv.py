@@ -49,7 +49,7 @@ class TestErfinv(TestCase):
         torch.erfinv(input1, out=npu_out)
         output = npu_out.to("cpu").numpy()
         return output
-    
+
     def cpu_op_exec_(self, input1):
         input1.erfinv_()
         output = input1.numpy()

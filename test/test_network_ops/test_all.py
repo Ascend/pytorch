@@ -61,7 +61,7 @@ class TestAll(TestCase):
         output = input1.all(dim=dim)
         output = output.to("cpu").numpy()
         return output
-    
+
     def npu_op_out_exec(self, input1, dim, output):
         torch.all(input1, dim=dim, keepdim=False, out=output)
         output = output.to("cpu").numpy()
@@ -80,7 +80,7 @@ class TestAll(TestCase):
             if item[0] == np.float16:
                 cpu_output = cpu_output.astype(np.float16)
             npu_output0 = self.npu_op_dim_exec(npu_input, 0)
-            
+
             npu_output1 = self.npu_op_out_exec(npu_input, 0, npu_output1)
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_output0.astype(np.int32))
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_output1.astype(np.int32))

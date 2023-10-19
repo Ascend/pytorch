@@ -29,7 +29,7 @@ class TestEye(TestCase):
             output = torch.eye(shapes[0], shapes[1])
         output = output.numpy()
         return output
-    
+
     def npu_op_exec(self, shapes):
         if shapes[0] == shapes[1]:
             output = torch.eye(shapes[0], device="npu")
@@ -55,7 +55,7 @@ class TestEye(TestCase):
             torch.eye(shapes[0], shapes[1], out=out)
         output = out.to("cpu")
         output = output.numpy()
-        return output 
+        return output
 
     def test_eye_int32_common_shape_format(self):
         shape_format = [
@@ -127,7 +127,7 @@ class TestEye(TestCase):
             output = output.numpy()
             output = output.astype(np.float16)
             return output
-        
+
         def npu_op_exec_fp16(shapes):
             output = torch.eye(shapes[0], shapes[1], device="npu", dtype=torch.float16)
             output = output.to("cpu")
@@ -135,7 +135,7 @@ class TestEye(TestCase):
             return output
 
         shape_format = [
-            [np.float16, 0, (5, 5)], 
+            [np.float16, 0, (5, 5)],
             [np.float16, 0, (3, 5)],
             [np.float32, 0, (1350, 1762)],
             [np.float32, 0, (352, 4000)],
@@ -145,7 +145,7 @@ class TestEye(TestCase):
         for item in shape_format:
             cpu_output = cpu_op_exec_fp16(item[2])
             npu_output = npu_op_exec_fp16(item[2])
-            self.assertRtolEqual(cpu_output, npu_output) 
+            self.assertRtolEqual(cpu_output, npu_output)
 
 
 if __name__ == "__main__":

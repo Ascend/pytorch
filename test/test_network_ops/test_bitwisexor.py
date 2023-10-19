@@ -20,12 +20,13 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestBitwiseXor(TestCase):
     def generate_data(self, min1, max1, shape_x, shape_y, dtype):
         input1 = np.random.randint(min1, max1, shape_x).astype(dtype)
         input2 = np.random.randint(min1, max1, shape_y).astype(dtype)
 
-        #can't convert np.uint16 to pytoch tensor, so convert np.uint16 to np.int32 first
+        # can't convert np.uint16 to pytoch tensor, so convert np.uint16 to np.int32 first
         if input1.dtype == np.uint16:
             input1 = input1.astype(np.int32)
             input2 = input2.astype(np.int32)
@@ -42,7 +43,6 @@ class TestBitwiseXor(TestCase):
         output = output.numpy()
         return output
 
-
     def npu_op_exec(self, input1, input2):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
@@ -53,11 +53,11 @@ class TestBitwiseXor(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_exec_scalar(self, input1, scalar): 
-        output = torch.bitwise_xor(input1, scalar) 
+    def cpu_op_exec_scalar(self, input1, scalar):
+        output = torch.bitwise_xor(input1, scalar)
         if output.dtype not in [torch.int32, torch.bool]:
             output = output.to(torch.int32)
-        output = output.numpy() 
+        output = output.numpy()
         return output
 
     def npu_op_exec_scalar(self, input1, input2):
@@ -69,26 +69,26 @@ class TestBitwiseXor(TestCase):
         output = output.numpy()
         return output
 
-    def npu_op_exec_scalar_out(self, input1, scalar, output): 
-        input1 = input1.to("npu") 
-        output = output.to("npu") 
-        output = torch.bitwise_xor(input1, scalar, out = output) 
+    def npu_op_exec_scalar_out(self, input1, scalar, output):
+        input1 = input1.to("npu")
+        output = output.to("npu")
+        output = torch.bitwise_xor(input1, scalar, out=output)
         output = output.to("cpu")
         if output.dtype not in [torch.int32, torch.bool]:
             output = output.to(torch.int32)
-        output = output.numpy() 
-        return output 
+        output = output.numpy()
+        return output
 
-    def npu_op_exec_out(self, input1, input2, input3): 
-        input1 = input1.to("npu") 
-        input2 = input2.to("npu") 
-        output = input3.to("npu") 
-        torch.bitwise_xor(input1, input2, out=output) 
+    def npu_op_exec_out(self, input1, input2, input3):
+        input1 = input1.to("npu")
+        input2 = input2.to("npu")
+        output = input3.to("npu")
+        torch.bitwise_xor(input1, input2, out=output)
         output = output.to("cpu")
         if output.dtype not in [torch.int32, torch.bool]:
             output = output.to(torch.int32)
-        output = output.numpy() 
-        return output 
+        output = output.numpy()
+        return output
 
     def bitwise_xor_tensor_out_result(self, shape_format):
         for item in shape_format:
@@ -189,10 +189,10 @@ class TestBitwiseXor(TestCase):
     def test_bitwise_xor_mix_dtype(self, device="npu"):
         npu_input1, npu_input3 = self.generate_data(0, 100, (3, 3, 3), (), np.uint16)
         npu_input2, npu_input4 = self.generate_data(0, 100, (3, 3, 3), (), np.int32)
-        cpu_output = self.cpu_op_exec(npu_input1, npu_input2) 
-        npu_output = self.npu_op_exec(npu_input1, npu_input2) 
+        cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
+        npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()
-

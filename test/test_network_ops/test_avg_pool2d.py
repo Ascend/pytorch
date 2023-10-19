@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestAvgPool2d(TestCase):
     def cpu_op_exec(self, input1, ceil_mode):
         m = nn.AvgPool2d(3, stride=(6, 5), padding=0, ceil_mode=ceil_mode)
@@ -75,7 +76,7 @@ class TestAvgPool2d(TestCase):
         padding = 6
         stride = 10
         ceil_mode = True
-        cmodel = torch.nn.AvgPool2d(kernel, stride = stride, padding = padding, ceil_mode = ceil_mode)
+        cmodel = torch.nn.AvgPool2d(kernel, stride=stride, padding=padding, ceil_mode=ceil_mode)
         nmodel = cmodel.npu()
         cpu_output = cmodel(cinput)
         npu_output = nmodel(ninput)

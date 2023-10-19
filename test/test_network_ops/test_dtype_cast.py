@@ -21,6 +21,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestDtypeCast(TestCase):
     def cpu_op_exec(self, input1, dst_dtype):
         input1.requires_grad = True
@@ -28,7 +29,7 @@ class TestDtypeCast(TestCase):
         output.backward(torch.ones_like(output))
         input1_grad = input1.grad
         return output.detach(), input1_grad
- 
+
     def npu_op_exec(self, input1, dst_dtype):
         input1.requires_grad = True
         output = torch_npu.npu_dtype_cast(input1, dst_dtype)
@@ -44,13 +45,13 @@ class TestDtypeCast(TestCase):
             print("the output.requires_grad of npu_dtype_cast should be same with input, but not so.")
             sys.exit(-1)
 
-    def test_dtype_cast_shape_format(self):    
+    def test_dtype_cast_shape_format(self):
         shape_format = [
-                [np.float32, 0, 1],
-                [np.float32, 0, (64, 10)],
-                [np.float32, 4, (32, 1, 3, 3)],
-                [np.float32, 29, (10, 128)]
-         ]
+            [np.float32, 0, 1],
+            [np.float32, 0, (64, 10)],
+            [np.float32, 4, (32, 1, 3, 3)],
+            [np.float32, 29, (10, 128)]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, -1, 1)
             cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input, torch.half)
@@ -58,14 +59,14 @@ class TestDtypeCast(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
-    
-    def test_dtype_cast_shape_format_fp16(self):    
+
+    def test_dtype_cast_shape_format_fp16(self):
         shape_format = [
-                [np.float16, 0, 1],
-                [np.float16, 0, (64, 10)],
-                [np.float16, 4, (32, 1, 3, 3)],
-                [np.float16, 29, (10, 128)]
-         ]
+            [np.float16, 0, 1],
+            [np.float16, 0, (64, 10)],
+            [np.float16, 4, (32, 1, 3, 3)],
+            [np.float16, 29, (10, 128)]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, -1, 1)
             cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input, torch.float)
@@ -74,6 +75,6 @@ class TestDtypeCast(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
+
 if __name__ == "__main__":
     run_tests()
-        

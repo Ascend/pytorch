@@ -21,19 +21,19 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestGer(TestCase):
-    def cpu_op_exec(self,input1, input2):
+    def cpu_op_exec(self, input1, input2):
         output = torch.ger(input1, input2)
         output = output.numpy()
 
         return output
 
-    def npu_op_exec(self,input1, input2):
+    def npu_op_exec(self, input1, input2):
         output = torch.ger(input1, input2)
         output = output.to("cpu").numpy()
 
         return output
 
-    def npu_op_exec_out(self,input1, input2, output):
+    def npu_op_exec_out(self, input1, input2, output):
         torch.ger(input1, input2, out=output)
         output = output.to("cpu").numpy()
 

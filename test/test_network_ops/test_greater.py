@@ -95,7 +95,7 @@ class TestGreater(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -100, 100)
-            cpu_input3 = torch.randn(item[1][2])<0
+            cpu_input3 = torch.randn(item[1][2]) < 0
             npu_input3 = cpu_input3.npu()
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
@@ -114,7 +114,7 @@ class TestGreater(TestCase):
         shape_list = [(5, 3), (2, 3, 4)]
         scalar_list = [True, False]
         shape_format = [
-            [[np.int32, i, j], k] for i in format_list for j in shape_list 
+            [[np.int32, i, j], k] for i in format_list for j in shape_list
             for k in scalar_list
         ]
         for item in shape_format:
@@ -141,7 +141,7 @@ class TestGreater(TestCase):
     def greater_scalar_out_result(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
-            cpu_input2 = torch.randn(item[1][2])<0
+            cpu_input2 = torch.randn(item[1][2]) < 0
             npu_input2 = cpu_input2.npu()
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)

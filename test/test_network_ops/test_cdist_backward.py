@@ -88,11 +88,11 @@ class Testcdist(TestCase):
         p_ranges = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
         for item in shape_items:
             for p in p_ranges:
-                input1, input2 = self.generate_data(-1, 1, 
+                input1, input2 = self.generate_data(-1, 1,
                                                     item[1], item[2], item[0])
                 cpu_output = self.op_exec(input1, input2, p, device='cpu')
                 npu_output = self.op_exec(input1, input2, p, device='npu')
-                self.assertRtolEqual(cpu_output, npu_output) 
+                self.assertRtolEqual(cpu_output, npu_output)
 
     def test_cdis_backward_input_range(self):
         item = [np.float32, (20, 5, 5), (20, 4, 5)]
@@ -100,7 +100,7 @@ class Testcdist(TestCase):
         input_ragnes = [(-0.1, 0.1), (-10, 10), (-20, 20)]
         for p in p_ranges:
             for min_max in input_ragnes:
-                input1, input2 = self.generate_data(min_max[0], min_max[1], 
+                input1, input2 = self.generate_data(min_max[0], min_max[1],
                                                     item[1], item[2], item[0])
                 cpu_output = self.op_exec(input1, input2, p, device='cpu')
                 npu_output = self.op_exec(input1, input2, p, device='npu')

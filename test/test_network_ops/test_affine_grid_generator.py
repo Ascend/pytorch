@@ -37,7 +37,7 @@ class TestAffineGridGenerator(TestCase):
     def test_affine_grid_generator_2D(self, device="npu"):
         theta_list = [[1, 0, 0],
                       [0, 1, 0],
-                     ]
+                      ]
         size = (1, 3, 10, 10)
         align_corners_list = [True, False]
         dtype_list = [torch.float32, torch.float16]
@@ -45,11 +45,11 @@ class TestAffineGridGenerator(TestCase):
             [theta_list, size, i, j] for i in align_corners_list for j in dtype_list
         ]
         for item in shape_format:
-            theta = torch.tensor([item[0]], dtype = item[3])
+            theta = torch.tensor([item[0]], dtype=item[3])
             cpu_input = theta
-            npu_input = theta           
+            npu_input = theta
             if cpu_input.dtype == torch.float16:
-                cpu_input = cpu_input.to(torch.float32)            
+                cpu_input = cpu_input.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input, item[1], item[2])
             npu_output = self.npu_op_exec(npu_input, item[1], item[2])
             cpu_output = cpu_output.astype(npu_output.dtype)
@@ -67,11 +67,11 @@ class TestAffineGridGenerator(TestCase):
             [theta_list, size, i, j] for i in align_corners_list for j in dtype_list
         ]
         for item in shape_format:
-            theta = torch.tensor([item[0]], dtype = item[3])
+            theta = torch.tensor([item[0]], dtype=item[3])
             cpu_input = theta
-            npu_input = theta           
+            npu_input = theta
             if cpu_input.dtype == torch.float16:
-                cpu_input = cpu_input.to(torch.float32)            
+                cpu_input = cpu_input.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input, item[1], item[2])
             npu_output = self.npu_op_exec(npu_input, item[1], item[2])
             cpu_output = cpu_output.astype(npu_output.dtype)

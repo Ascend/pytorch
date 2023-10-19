@@ -86,10 +86,10 @@ class TestAdd(TestCase):
             npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
             for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
                 self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-                
+
             for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
                 self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-                
+
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
@@ -108,10 +108,10 @@ class TestAdd(TestCase):
             npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
             for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
                 self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-                
+
             for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
                 self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-                
+
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 

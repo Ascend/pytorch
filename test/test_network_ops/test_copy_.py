@@ -21,16 +21,17 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestCopy(TestCase):
     def cpu_op_exec(self, input1, input2):
-        output = input1.copy_(input2);
+        output = input1.copy_(input2)
         output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, input2):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
-        output = input1.copy_(input2);
+        output = input1.copy_(input2)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -48,6 +49,7 @@ class TestCopy(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

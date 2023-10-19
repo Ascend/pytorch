@@ -59,10 +59,10 @@ class TestAvgPool3DBackward(TestCase):
 
     def test_avg_pool_3d_fp32(self):
         shape_format = [
-                        [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
-                        [[np.float32, -1, (2, 1, 4, 4, 4)], 3, 2],
-                        [[np.float32, -1, (2, 1, 4, 4, 4)], 2, 2],
-                        [[np.float32, -1, (2, 4 , 4, 4)], 2, 2]
+            [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
+            [[np.float32, -1, (2, 1, 4, 4, 4)], 3, 2],
+            [[np.float32, -1, (2, 1, 4, 4, 4)], 2, 2],
+            [[np.float32, -1, (2, 4, 4, 4)], 2, 2]
         ]
 
         for item in shape_format:
@@ -74,10 +74,10 @@ class TestAvgPool3DBackward(TestCase):
 
     def test_avg_pool_3d_fp16(self):
         shape_format = [
-                        [[np.float16, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
-                        [[np.float16, -1, (2, 1, 4, 4, 4)], 3, 2],
-                        [[np.float16, -1, (2, 1, 4, 4, 4)], 2, 2],
-                        [[np.float16, -1, (2, 4 , 4, 4)], 2, 2]
+            [[np.float16, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
+            [[np.float16, -1, (2, 1, 4, 4, 4)], 3, 2],
+            [[np.float16, -1, (2, 1, 4, 4, 4)], 2, 2],
+            [[np.float16, -1, (2, 4, 4, 4)], 2, 2]
         ]
 
         for item in shape_format:
@@ -90,4 +90,3 @@ class TestAvgPool3DBackward(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-

@@ -45,7 +45,7 @@ class TestExp(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_exp_shape_format_fp32(self):
         format_list = [0, 3]
         shape_list = [[5], [2, 4], [2, 2, 4], [2, 3, 3, 4]]

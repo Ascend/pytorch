@@ -36,5 +36,6 @@ class TestDropoutWithByteMaskBackward(TestCase):
             # result is random,only check api can exec success!
             self.npu_op_exec(npu_input, prob=0.2)
 
+
 if __name__ == "__main__":
     run_tests()

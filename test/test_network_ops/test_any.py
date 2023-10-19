@@ -38,9 +38,9 @@ class TestAny(TestCase):
 
     def test_any_shape_format(self, device="npu"):
         shape_list = [[],
-                      [1024], 
-                      [32, 1024], 
-                      [32, 8, 1024], 
+                      [1024],
+                      [32, 1024],
+                      [32, 8, 1024],
                       [128, 32, 8, 1024]]
 
         for item in shape_list:
@@ -48,7 +48,7 @@ class TestAny(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(
-                cpu_output.astype(np.int32), 
+                cpu_output.astype(np.int32),
                 npu_output.astype(np.int32))
 
     def cpu_op_exec1(self, input1, dim, keepdim):
@@ -61,7 +61,7 @@ class TestAny(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def npu_op_out_exec1(self, input1, dim, keepdim):
         shape = list(input1.shape)
         output0 = torch.randn(shape) > 0
@@ -75,19 +75,19 @@ class TestAny(TestCase):
         return output0, output1
 
     def test_anyd_shape_format(self, device="npu"):
-        shape_list = [[ [1024],             0, False],
-                      [ [32, 1024],         1, False],
-                      [ [32, 8, 1024],      2, True ],
-                      [ [128, 32, 8, 1024], 3, True ]]
+        shape_list = [[[1024],             0, False],
+                      [[32, 1024],         1, False],
+                      [[32, 8, 1024],      2, True],
+                      [[128, 32, 8, 1024], 3, True]]
 
         for item in shape_list:
             cpu_input, npu_input = self.create_bool_tensor(item[0], 0, 1)
             cpu_output = self.cpu_op_exec1(cpu_input, item[1], item[2])
             npu_output = self.npu_op_exec1(npu_input, item[1], item[2])
             npu_out0, npu_out1 = self.npu_op_out_exec1(npu_input, item[1], item[2])
-            self.assertRtolEqual(cpu_output.astype(np.int32),npu_output.astype(np.int32))
-            self.assertRtolEqual(cpu_output.astype(np.int32),npu_out0.astype(np.int32))
-            self.assertRtolEqual(cpu_output.astype(np.int32),npu_out1.astype(np.int32))
+            self.assertRtolEqual(cpu_output.astype(np.int32), npu_output.astype(np.int32))
+            self.assertRtolEqual(cpu_output.astype(np.int32), npu_out0.astype(np.int32))
+            self.assertRtolEqual(cpu_output.astype(np.int32), npu_out1.astype(np.int32))
 
 
 if __name__ == "__main__":
