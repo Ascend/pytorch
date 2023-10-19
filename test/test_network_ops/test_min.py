@@ -55,18 +55,18 @@ class TestMin(TestCase):
     def cpu_op_dim_exec_out(self, input1, dim, keepdim):
         out = torch.tensor(0).to(input1.dtype)
         indices = torch.tensor(0).to(torch.long)
-        torch.min(input1, dim=dim, keepdim=keepdim, out=(out,indices))
+        torch.min(input1, dim=dim, keepdim=keepdim, out=(out, indices))
         out = out.numpy()
         indices = indices.numpy()
-        return out,indices
+        return out, indices
 
     def npu_op_dim_exec_out(self, input1, dim, keepdim):
         out = torch.tensor(0).to(input1.dtype).npu()
         indices = torch.tensor(0).to(torch.long).npu()
-        torch.min(input1, dim=dim, keepdim=keepdim, out=(out,indices))
+        torch.min(input1, dim=dim, keepdim=keepdim, out=(out, indices))
         out = out.to("cpu").numpy()
         indices = indices.to("cpu").numpy()
-        return out,indices
+        return out, indices
 
     def cpu_op_amin_exec(self, input1, dim, keepdim):
         output = torch.amin(input1, dim, keepdim)
@@ -145,7 +145,7 @@ class TestMin(TestCase):
             else:
                 self.assertRtolEqual(npu_out_dim, npu_output_dim)
                 self.assertRtolEqual(npu_out_indices, npu_output_indices)
-    
+
     def min_name_result_other(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
@@ -160,7 +160,7 @@ class TestMin(TestCase):
                 self.assertRtolEqual(npu_output_dim, cpu_output_dim)
                 self.assertRtolEqual(npu_output_indices.astype(np.int32), cpu_output_indices.astype(np.int32))
             else:
-                self.assertRtolEqual( npu_output_dim, cpu_output_dim.astype(np.float16))
+                self.assertRtolEqual(npu_output_dim, cpu_output_dim.astype(np.float16))
                 self.assertRtolEqual(npu_output_indices.astype(np.int32), cpu_output_indices.astype(np.int32))
 
     def min_name_out_result_other(self, shape_format):
@@ -172,12 +172,12 @@ class TestMin(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output_dim, cpu_output_indices = self.cpu_op_dim_exec_out(cpu_input1, item[1], item[2])
             npu_output_dim, npu_output_indices = self.npu_op_dim_exec_out(npu_input1, item[1], item[2])
-            
+
             if npu_output_dim.dtype != np.float16:
                 self.assertRtolEqual(npu_output_dim, cpu_output_dim)
                 self.assertRtolEqual(npu_output_indices.astype(np.int32), cpu_output_indices.astype(np.int32))
             else:
-                self.assertRtolEqual( npu_output_dim, cpu_output_dim.astype(np.float16))
+                self.assertRtolEqual(npu_output_dim, cpu_output_dim.astype(np.float16))
                 self.assertRtolEqual(npu_output_indices.astype(np.int32), cpu_output_indices.astype(np.int32))
 
     def amin_result(self, shape_format):
@@ -390,42 +390,42 @@ class TestMin(TestCase):
                         in keepdim_list
                         ]
         self.min_result_other(shape_format)
-    
+
     def test_min_dimname_shape_format(self, device="npu"):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
+                         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
                         in
                         keepdim_list
                         ]
         self.min_name_result_other(shape_format)
-    
+
     def test_min_dimname_shape_format_fp16(self, device="npu"):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
+                         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
                         in
                         keepdim_list
                         ]
         self.min_name_result_other(shape_format)
-    
+
     def test_min_dimname_out_shape_format(self, device="npu"):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
+                         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
                         in
                         keepdim_list
                         ]
         self.min_name_out_result_other(shape_format)
-    
+
     def test_min_dimname_out_shape_format_fp16(self, device="npu"):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
+                         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
                         in
                         keepdim_list
                         ]

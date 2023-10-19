@@ -17,7 +17,7 @@ class TestNonzero(TestCase):
         output = output.to("cpu")
         output = output.numpy().astype(np.int32)
         return output
-    
+
     def test_zero_input(self):
         cpu_input = torch.zeros(())
         npu_input = cpu_input.npu()
@@ -28,10 +28,10 @@ class TestNonzero(TestCase):
     def test_nonzero_shape_format(self, device="npu"):
         dtype_list = [np.float32, np.float16, np.int32, np.int64]
         format_list = [0]
-        shape_list = [[256,10], [256,256,100],[5,256,256,100]]
+        shape_list = [[256, 10], [256, 256, 100], [5, 256, 256, 100]]
 
         shape_format = [
-                [[i, j, k]] for i in dtype_list for j in format_list for k in shape_list
+            [[i, j, k]] for i in dtype_list for j in format_list for k in shape_list
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)

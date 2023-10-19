@@ -6,7 +6,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestRandperm(TestCase):
-    
+
     def cpu_op_exec(self, input1, dtype):
         output = torch.randperm(input1, dtype=dtype, device='cpu')
         output = output.sum()

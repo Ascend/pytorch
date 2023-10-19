@@ -7,7 +7,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMemcpy(TestCase):
-    
+
     def test_copy_memory_(self):
         def cpu_op_exec(input1, input2):
             out_mul = torch.mul(input1, input2)
@@ -15,23 +15,24 @@ class TestMemcpy(TestCase):
             out_mul.copy_(out_add)
             out = torch.sub(out_mul, input2)
             return out.numpy()
-        def npu_op_exec(input1, input2):    
+
+        def npu_op_exec(input1, input2):
             out_mul = torch.mul(input1, input2)
             out_add = torch.add(input1, input2)
             torch_npu.copy_memory_(out_mul, out_add)
             out = torch.sub(out_mul, input2)
             return out.to("cpu").numpy()
-        
+
         dtype_list = [np.int32, np.float32]
         format_list = [0, 3, 29]
         shape_list = [
             [9, 13],
             [3, 16, 5, 5],
-            ]
+        ]
         dtype_shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
-            ]
-        
+        ]
+
         for item in dtype_shape_format:
             cpu_input, npu_input = create_common_tensor(item, -100, 100)
             cpu_output = cpu_op_exec(cpu_input, 2)
@@ -43,7 +44,7 @@ class TestMemcpy(TestCase):
             input1_host.add_(input1_host)
             input1_host.copy_(input2_host)
             return input1_host.numpy()
-        
+
         def npu_copy_op_exec(input1_device, input2_host):
             input1_device.add_(input1_device)
             input1_device.copy_(input2_host)
@@ -60,7 +61,7 @@ class TestMemcpy(TestCase):
             input1_host.add_(input1_host)
             input2_host.copy_(input1_host)
             return input2_host.numpy()
-        
+
         def npu_copy_op_exec(input1_device, input2_host):
             input1_device.add_(input1_device)
             input2_host.copy_(input1_device)
@@ -79,7 +80,7 @@ class TestMemcpy(TestCase):
             out = input1 * input2
             out = out.item()
             return out
-        
+
         def npu_copy_op_exec(input1, input2):
             input1.add_(input2)
             out = input1 * input2
@@ -91,17 +92,17 @@ class TestMemcpy(TestCase):
         shape_list = [
             [1],
             [1, 1, 1,],
-            ]
+        ]
         dtype_shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
-            ]
-        
+        ]
+
         for item in dtype_shape_format:
             cpu_input, npu_input = create_common_tensor(item, -100, 100)
             cpu_output = cpu_copy_op_exec(cpu_input, 2) + cpu_copy_op_exec(cpu_input, 3)
             npu_output = npu_copy_op_exec(npu_input, 2) + npu_copy_op_exec(npu_input, 3)
             self.assertEqual(cpu_output, npu_output)
 
+
 if __name__ == "__main__":
     run_tests()
-

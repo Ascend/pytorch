@@ -16,7 +16,7 @@ class TestLogSpace(TestCase):
         output = torch.logspace(start=start, end=end, steps=steps, base=base, device="npu")
         output = output.to("cpu")
         output = output.numpy()
-        return output    
+        return output
 
     def npu_op_exec_out(self, start, end, steps, base, dtype, output):
         torch.logspace(start=start, end=end, steps=steps, base=base, dtype=dtype, out=output)
@@ -31,25 +31,25 @@ class TestLogSpace(TestCase):
         return output
 
     def npu_op_exec_dtype(self, start, end, steps, base, dtype):
-        output = torch.logspace( start=start, end=end, steps=steps, base=base, dtype=dtype, device="npu" )
+        output = torch.logspace(start=start, end=end, steps=steps, base=base, dtype=dtype, device="npu")
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def test_logspace_common_shape_format(self, device="npu"):
         shape_format = [
-                [0.0, 1.0, 10, 0.2, torch.float32],
-                [2.0, 3.0, 10, 0.05, torch.float32],
-                [10.0, 10.5, 11, 0.2, torch.float32],
-                [10.0, 10.5, 110, 0.2, torch.float32],
-                [0.0, 0.1, 20, 1.2, torch.float32],
-                [0.5, 1.0, 50, 8.0, torch.float32],
-                [1.0, 2.0, 2, 0.5, torch.float32],
-                [0.0, 0.0, 1, 0.1, torch.float32],
-                [1.0, 1.0, 1, 0.1, torch.float32],
-                [1.0, 1.0, 0, 0.1, torch.float32],
-                [1.0, 2.0, 9, 0.1, torch.float32]
-        ] 
+            [0.0, 1.0, 10, 0.2, torch.float32],
+            [2.0, 3.0, 10, 0.05, torch.float32],
+            [10.0, 10.5, 11, 0.2, torch.float32],
+            [10.0, 10.5, 110, 0.2, torch.float32],
+            [0.0, 0.1, 20, 1.2, torch.float32],
+            [0.5, 1.0, 50, 8.0, torch.float32],
+            [1.0, 2.0, 2, 0.5, torch.float32],
+            [0.0, 0.0, 1, 0.1, torch.float32],
+            [1.0, 1.0, 1, 0.1, torch.float32],
+            [1.0, 1.0, 0, 0.1, torch.float32],
+            [1.0, 2.0, 9, 0.1, torch.float32]
+        ]
         for item in shape_format:
             cpu_output = self.cpu_op_exec(item[0], item[1], item[2], item[3])
             npu_output = self.npu_op_exec(item[0], item[1], item[2], item[3])
@@ -57,17 +57,17 @@ class TestLogSpace(TestCase):
 
     def test_logspace_out_common_shape_format(self, device="npu"):
         shape_format = [
-                [0.0, 1.0, 10, 0.2, torch.float32, [np.float32, 0, [10, 2]]],
-                [2.0, 3.0, 10, 0.05, torch.float32, [np.float32, 0, [10, 2, 5]]],
-                [10.0, 10.5, 11, 0.2, torch.float32, [np.float32, 0, [10, 2, 5, 20]]],
-                [10.0, 10.5, 110, 0.2, torch.float32, [np.float32, 0, [10]]],
-                [0.0, 0.1, 20, 1.2, torch.float32, [np.float32, 0, [10, 20, 5, 20]]],
-                [0.0, 1.0, 10, 0.2, torch.float16, [np.float16, 0, [10, 2]]],
-                [2.0, 3.0, 10, 0.05, torch.float16, [np.float16, 0, [10, 2, 5]]],
-                [10.0, 10.5, 11, 0.2, torch.float16, [np.float16, 0, [10, 2, 5, 20]]],
-                [10.0, 10.5, 110, 0.2, torch.float16, [np.float16, 0, [10]]],
-                [0.0, 0.1, 20, 1.2, torch.float16, [np.float16, 0, [10, 20, 5, 20]]],
-        ] 
+            [0.0, 1.0, 10, 0.2, torch.float32, [np.float32, 0, [10, 2]]],
+            [2.0, 3.0, 10, 0.05, torch.float32, [np.float32, 0, [10, 2, 5]]],
+            [10.0, 10.5, 11, 0.2, torch.float32, [np.float32, 0, [10, 2, 5, 20]]],
+            [10.0, 10.5, 110, 0.2, torch.float32, [np.float32, 0, [10]]],
+            [0.0, 0.1, 20, 1.2, torch.float32, [np.float32, 0, [10, 20, 5, 20]]],
+            [0.0, 1.0, 10, 0.2, torch.float16, [np.float16, 0, [10, 2]]],
+            [2.0, 3.0, 10, 0.05, torch.float16, [np.float16, 0, [10, 2, 5]]],
+            [10.0, 10.5, 11, 0.2, torch.float16, [np.float16, 0, [10, 2, 5, 20]]],
+            [10.0, 10.5, 110, 0.2, torch.float16, [np.float16, 0, [10]]],
+            [0.0, 0.1, 20, 1.2, torch.float16, [np.float16, 0, [10, 20, 5, 20]]],
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[5], -10, 10)
             cpu_output = self.cpu_op_exec(item[0], item[1], item[2], item[3])
@@ -77,14 +77,14 @@ class TestLogSpace(TestCase):
 
     def test_logspace_float16_shape_format(self, device="npu"):
         shape_format = [
-                [-2.0, 2.0, 32, 32, torch.float16],
-                [0.0, 1.0, 10, 0.2, torch.float16],
-                [2.0, 3.0, 10, 0.05, torch.float16],
-                [0.0, 0.1, 20, 1.2, torch.float16],
-                [0.5, 1.0, 50, 8.0, torch.float16],
-                [1.0, 2.0, 2, 0.5, torch.float16],
-                [0.0, 0.0, 1, 0.1, torch.float16]
-        ] 
+            [-2.0, 2.0, 32, 32, torch.float16],
+            [0.0, 1.0, 10, 0.2, torch.float16],
+            [2.0, 3.0, 10, 0.05, torch.float16],
+            [0.0, 0.1, 20, 1.2, torch.float16],
+            [0.5, 1.0, 50, 8.0, torch.float16],
+            [1.0, 2.0, 2, 0.5, torch.float16],
+            [0.0, 0.0, 1, 0.1, torch.float16]
+        ]
         for item in shape_format:
             cpu_output = self.cpu_op_exec_fp16(item[0], item[1], item[2], item[3], item[4])
             npu_output = self.npu_op_exec_dtype(item[0], item[1], item[2], item[3], item[4])

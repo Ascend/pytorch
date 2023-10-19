@@ -10,11 +10,12 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestIncreFlashAttention(TestCase):
     def baseline(self, query_states1, past_key, past_value, head_dim, hidden_size):
         attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) / 0.0078125
-        attn_weights1 = torch.max(attn_weights1, torch.full((1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
+        attn_weights1 = torch.max(attn_weights1, torch.full(
+            (1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
         attn_weights1 = torch.nn.functional.softmax(attn_weights1, dim=-1, dtype=torch.float32).to(query_states1.dtype)
         attn_output1 = torch.matmul(attn_weights1, past_value)
         attn_output1 = attn_output1.transpose(1, 2)
-        attn_output1 = attn_output1.reshape(1, 1, hidden_size) # IFA (1, 1, 4096)
+        attn_output1 = attn_output1.reshape(1, 1, hidden_size)  # IFA (1, 1, 4096)
         return attn_output1
 
     def trans_BNSD2BSH(self, tensor: torch.Tensor):
@@ -48,6 +49,7 @@ class TestIncreFlashAttention(TestCase):
         print("baseline output", baseline_out, baseline_out.shape)
 
         self.assertRtolEqual(ifa_out, baseline_out)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -17,7 +17,7 @@ class TestLogicalOr(TestCase):
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
         return npu_input1, npu_input2
-    
+
     def generate_three_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         input2 = np.random.uniform(min_d, max_d, shape).astype(dtype)
@@ -60,12 +60,12 @@ class TestLogicalOr(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def cpu_op_exec_(self, input1, input2):
         output = torch.Tensor.logical_or_(input1, input2)
         output = output.numpy()
         return output
-    
+
     def npu_op_exec_(self, input1, input2):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
@@ -109,4 +109,3 @@ class TestLogicalOr(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-    

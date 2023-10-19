@@ -4,13 +4,16 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 def cpu_input_grad_hook(grad):
     global cpu_input_grad
     cpu_input_grad = grad
 
+
 def npu_input_grad_hook(grad):
     global npu_input_grad
     npu_input_grad = grad.cpu()
+
 
 class TestHardSigmoidBackward(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -67,7 +70,7 @@ class TestHardSigmoidBackward(TestCase):
         self.cpu_op_exec(input_x1, input_grad1)
         self.npu_op_exec(input_x1, input_grad1)
         self.assertRtolEqual(cpu_input_grad.detach().numpy().astype(npu_input_grad.detach().numpy().dtype),
-            npu_input_grad.detach().numpy())
+                             npu_input_grad.detach().numpy())
 
     def test_hardsigmoidbackward_10_10_float16(self, device="npu"):
         input_grad1, input_x1 = self.generate_data(-6, 6, (10, 10), np.float16)
@@ -76,7 +79,7 @@ class TestHardSigmoidBackward(TestCase):
         self.cpu_op_exec(input_x1, input_grad1)
         self.npu_op_exec(input_x1, input_grad1)
         self.assertRtolEqual(cpu_input_grad.detach().numpy().astype(npu_input_grad.detach().numpy().dtype),
-            npu_input_grad.detach().numpy())
+                             npu_input_grad.detach().numpy())
 
     def test_hardsigmoidbackward_100_100_float16(self, device="npu"):
         input_grad1, input_x1 = self.generate_data(-6, 6, (100, 100), np.float16)
@@ -85,7 +88,7 @@ class TestHardSigmoidBackward(TestCase):
         self.cpu_op_exec(input_x1, input_grad1)
         self.npu_op_exec(input_x1, input_grad1)
         self.assertRtolEqual(cpu_input_grad.detach().numpy().astype(npu_input_grad.detach().numpy().dtype),
-            npu_input_grad.detach().numpy())
+                             npu_input_grad.detach().numpy())
 
     def test_hardsigmoidbackward_10_10_10_10_float16(self, device="npu"):
         input_grad1, input_x1 = self.generate_data(-6, 6, (10, 10, 10, 10), np.float16)
@@ -94,7 +97,8 @@ class TestHardSigmoidBackward(TestCase):
         self.cpu_op_exec(input_x1, input_grad1)
         self.npu_op_exec(input_x1, input_grad1)
         self.assertRtolEqual(cpu_input_grad.detach().numpy().astype(npu_input_grad.detach().numpy().dtype),
-            npu_input_grad.detach().numpy())
+                             npu_input_grad.detach().numpy())
+
 
 if __name__ == '__main__':
     run_tests()

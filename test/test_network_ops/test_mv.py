@@ -27,9 +27,9 @@ class TestMv(TestCase):
 
     def test_mv_shape_format(self, device='npu'):
         shape_format = [
-                [[np.float32, -1, (3, 3)], [np.float32, -1, (3)]],
-                [[np.float32, -1, (5, 8)], [np.float32, -1, (8)]],
-                [[np.float32, -1, (8, 9)], [np.float32, -1, (9)]],
+            [[np.float32, -1, (3, 3)], [np.float32, -1, (3)]],
+            [[np.float32, -1, (5, 8)], [np.float32, -1, (8)]],
+            [[np.float32, -1, (8, 9)], [np.float32, -1, (9)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
@@ -40,9 +40,9 @@ class TestMv(TestCase):
 
     def test_mv_out_shape_format(self, device='npu'):
         shape_format = [
-                [[np.float32, -1, (3, 3)], [np.float32, -1, (3)], [np.float32, -1, (3)]],
-                [[np.float32, -1, (5, 8)], [np.float32, -1, (8)], [np.float32, -1, (5)]],
-                [[np.float32, -1, (8, 9)], [np.float32, -1, (9)], [np.float32, -1, (8)]],
+            [[np.float32, -1, (3, 3)], [np.float32, -1, (3)], [np.float32, -1, (3)]],
+            [[np.float32, -1, (5, 8)], [np.float32, -1, (8)], [np.float32, -1, (5)]],
+            [[np.float32, -1, (8, 9)], [np.float32, -1, (9)], [np.float32, -1, (8)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
@@ -51,7 +51,7 @@ class TestMv(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_mv_with_transpose(self, device='npu'):
         cpu_mat = torch.rand(1, 256)
         npu_mat = cpu_mat.npu()

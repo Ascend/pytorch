@@ -7,7 +7,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestPow(TestCase):
-    
+
     def cpu_op_exec(self, input1, input2):
         output = torch.pow(input1, input2)
         output = output.numpy()
@@ -173,8 +173,8 @@ class TestPow(TestCase):
             [[np.float32, -1, (5, )],     [np.float32, -1, (1, )]],
             [[np.float32, -1, (4, 3)],    [np.float32, -1, (4, 1)]],
             [[np.float32, -1, (4, 3, 1)], [np.float32, -1, (4, 1, 5)]],
-        ] 
-        
+        ]
+
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 1)
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 1)
@@ -182,10 +182,10 @@ class TestPow(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
-            
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
-            
+
     def test_pow_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)
@@ -194,14 +194,13 @@ class TestPow(TestCase):
             output = output.numpy()
             output = output.astype(np.float16)
             return output
-        
-        
+
         shape_format = [
             [[np.float16, -1, (5, )],     [np.float16, -1, (1, )]],
             [[np.float16, -1, (4, 3)],    [np.float16, -1, (4, 1)]],
             [[np.float16, -1, (4, 3, 1)], [np.float16, -1, (4, 1, 5)]],
         ]
-        
+
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 2)
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 2)
@@ -209,10 +208,10 @@ class TestPow(TestCase):
             cpu_output = cpu_op_exec_fp16(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
-            
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
-        
+
     def test_pow_int32_float_format(self):
         a = torch.randn(64).to(torch.int32)
         na = a.npu()
@@ -226,6 +225,7 @@ class TestPow(TestCase):
         cpu_out = self.cpu_op_exec(1.0, a)
         npu_out = self.npu_op_exec(1.0, na)
         self.assertRtolEqual(cpu_out, npu_out)
+
 
 if __name__ == "__main__":
     run_tests()

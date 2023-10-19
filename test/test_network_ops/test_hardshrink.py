@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestHardShrink(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
         input_x = np.random.uniform(min_d, max_d, shape).astype(dtype)
@@ -34,7 +35,7 @@ class TestHardShrink(TestCase):
         cpu_output1 = self.cpu_op_exec(input_x1, 0.5)
         npu_output1 = self.npu_op_exec(input_x1, 0.5)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_hardshrink_3_3_float16(self):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float16)
         input_x1_cpu = input_x1.float()
@@ -54,6 +55,7 @@ class TestHardShrink(TestCase):
         cpu_output1 = self.cpu_op_exec(input_x1, 0.5)
         npu_output1 = self.npu_op_exec(input_x1, 0.5)
         self.assertRtolEqual(cpu_output1, npu_output1)
+
 
 if __name__ == "__main__":
     run_tests()

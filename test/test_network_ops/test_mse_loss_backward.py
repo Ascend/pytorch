@@ -14,11 +14,12 @@ class TestMseLossGrad(TestCase):
 
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
-        
+
         return npu_input1, npu_input2
 
     def cpu_op_exec_default(self, input1, input2):
         grads = {}
+
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
@@ -38,11 +39,12 @@ class TestMseLossGrad(TestCase):
 
     def npu_op_exec_default(self, input1, input2):
         grads = {}
+
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
             return hook
-        
+
         input1 = input1.to("npu")
         input2 = input2.to("npu")
         input1 = Variable(input1, requires_grad=True)
@@ -59,13 +61,14 @@ class TestMseLossGrad(TestCase):
 
     def cpu_op_exec(self, input1, input2, reduction):
         grads = {}
+
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
             return hook
 
         input1 = Variable(input1, requires_grad=True)
-        
+
         output = torch.nn.functional.mse_loss(input1, input2, reduction=reduction)
         dout_result = 1.23 * output
         torch_result = dout_result.sum()
@@ -78,11 +81,12 @@ class TestMseLossGrad(TestCase):
 
     def npu_op_exec(self, input1, input2, reduction):
         grads = {}
+
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
             return hook
-        
+
         input1 = input1.to("npu")
         input2 = input2.to("npu")
         input1 = Variable(input1, requires_grad=True)
@@ -98,31 +102,31 @@ class TestMseLossGrad(TestCase):
         return output
 
     def test_mse_loss_grad_float32(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4, 3), np.float32)
         cpu_output = self.cpu_op_exec_default(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_default(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_float32_mean(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4, 3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_float32_none(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4, 3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "none")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "none")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_float32_sum(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4, 3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "sum")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "sum")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_shape_0(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (0,4), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (0, 4), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)

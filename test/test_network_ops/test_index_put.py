@@ -137,7 +137,7 @@ class TestIndexPut(TestCase):
     def test_index_put_tensor_fp32(self):
         cinput = torch.randn(4, 4, 4, 4)
         ninput = cinput.npu()
-        value = torch.tensor([100, 200, 300, 400], dtype = torch.float32)
+        value = torch.tensor([100, 200, 300, 400], dtype=torch.float32)
         cinput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value
         ninput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value.npu()
         self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())

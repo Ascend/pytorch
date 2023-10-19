@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestLog2(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.log2(input1)
@@ -125,6 +126,7 @@ class TestLog2(TestCase):
             npu_output = self.npu_inp_uncon_op_exec(npu_input1)
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == '__main__':
     run_tests()

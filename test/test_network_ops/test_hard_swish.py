@@ -17,9 +17,9 @@ class TestHardSwish(TestCase):
         output = torch.nn.functional.hardswish(input1, inplace=False)
         output = output.to("cpu")
         output = output.numpy()
-        
+
         return output
-    
+
     def create_shape_format16(self):
         format_list = [0, 3, 29]
         dtype_list = [np.float16]
@@ -41,7 +41,7 @@ class TestHardSwish(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 2, 100)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
-                
+
             cpu_output = self.cpu_op_exec(cpu_input1)
             npu_output = self.npu_op_exec(npu_input1)
             cpu_output = cpu_output.astype(npu_output.dtype)
@@ -56,6 +56,6 @@ class TestHardSwish(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    
+
 if __name__ == "__main__":
     run_tests()

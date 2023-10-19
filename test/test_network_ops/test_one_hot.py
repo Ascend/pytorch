@@ -5,7 +5,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestOneHot(TestCase):
-    
+
     def generate_single_data(self, low, high):
         npu_input1 = torch.arange(low, high)
         return npu_input1

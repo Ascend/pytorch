@@ -12,9 +12,10 @@ class TestMaskedFillRange(TestCase):
         out = input1.clone()
         start_shape = start.shape
         iter_list = itertools.product(list(range(start_shape[0])), list(range(start_shape[1])))
+
         def fill_each_pos(i, j, k, dim, axis, out, value):
             if dim == 1:
-                    out[k] = value[i]
+                out[k] = value[i]
             elif dim == 2:
                 if axis == 0:
                     out[k, :] = value[i]
@@ -41,16 +42,16 @@ class TestMaskedFillRange(TestCase):
 
     def test_normalize_batch(self):
         shape_format = [
-            [[np.float32, -1, [32, 64, 1688]], 
+            [[np.float32, -1, [32, 64, 1688]],
                 [list(range(0, 32))],
                 [list(range(6, 38))], [[1], torch.float32], 2],
-            [[np.float16, -1, [32, 64, 1688]], 
+            [[np.float16, -1, [32, 64, 1688]],
                 [list(range(0, 32))],
                 [list(range(6, 38))], [[1], torch.float16], 2],
-            [[np.int32, -1, [32, 64, 1688]], 
+            [[np.int32, -1, [32, 64, 1688]],
                 [list(range(0, 32))],
                 [list(range(6, 38))], [[1], torch.int32], 2],
-            [[np.int8, -1, [32, 64, 1688]], 
+            [[np.int8, -1, [32, 64, 1688]],
                 [list(range(0, 32))],
                 [list(range(6, 38))], [[1], torch.int8], 2],
         ]

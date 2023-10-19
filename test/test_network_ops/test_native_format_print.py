@@ -17,7 +17,7 @@ class TestNpuNativeFormatPrint(TestCase):
         npu_output = inputs[split]
         npu_output = npu_output.cpu().numpy()
         return npu_output
-    
+
     def test_npu_native_format_print(self):
         dtype_list = [np.float32]
         format_list = [3, 29, 30]
@@ -25,7 +25,7 @@ class TestNpuNativeFormatPrint(TestCase):
         shape_format = [
             [d, i, j] for d in dtype_list for i in format_list for j in shape_list
         ]
-        
+
         split_dict = {1: [1], 2: [0, 1], 3: [0, 1, 0], 4: [0, 1, 0, 0]}
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0:3], 1, 100)

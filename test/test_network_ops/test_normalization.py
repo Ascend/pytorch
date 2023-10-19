@@ -30,7 +30,7 @@ class TestNormalization(TestCase):
 
     def test_batchnorm_shape_format_fp16(self, device='npu'):
         format_list = [0]
-        shape_list = [[256, 672, 7, 7],[1024, 58, 28, 28]]
+        shape_list = [[256, 672, 7, 7], [1024, 58, 28, 28]]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
         ]
@@ -62,4 +62,3 @@ class TestNormalization(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-

@@ -6,6 +6,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestMaxBackward(TestCase):
     def cpu_op_other_exec(self, input1, input2):
         input1.requires_grad = True
@@ -21,7 +22,6 @@ class TestMaxBackward(TestCase):
         out = input1.grad
         out = out.to('cpu')
         return out
-      
 
     def max_result_other(self, shape_format):
         for item in shape_format:
@@ -99,6 +99,7 @@ class TestMaxBackward(TestCase):
                         keepdim_list
                         ]
         self.max_result_other(shape_format)
+
 
 if __name__ == "__main__":
     run_tests()

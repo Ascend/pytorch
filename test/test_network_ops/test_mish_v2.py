@@ -7,7 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-class TestMishV2(TestCase):    
+class TestMishV2(TestCase):
     def npu_op_exec(self, input1):
         mish = torch.nn.Mish()
         output = mish(input1).cpu().numpy()
@@ -43,4 +43,3 @@ class TestMishV2(TestCase):
 
 if __name__ == "__main__":
     run_tests()
- 

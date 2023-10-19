@@ -5,18 +5,19 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestInverse(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.inverse(input1)
         output = output.numpy()
         return output
-    
+
     def npu_op_exec(self, input1):
         output = torch.inverse(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def test_inverse_shape_format(self, device="npu"):
         dtype_list = [np.float16, np.float32]
         format_list = [0, 3]
@@ -32,7 +33,7 @@ class TestInverse(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_inverse_out_fp16(self, device="npu"):
         cpu_x = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).half()
         cpu_out = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).half()
@@ -42,6 +43,7 @@ class TestInverse(TestCase):
         torch.inverse(cpu_x.float(), out=cpu_out)
         torch.inverse(npu_x, out=npu_out)
         self.assertRtolEqual(cpu_out.half(), npu_out.cpu())
+
 
 if __name__ == "__main__":
     run_tests()

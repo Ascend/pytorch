@@ -113,7 +113,7 @@ class TestLog10(TestCase):
             [[np.float32, 3, [1024, 32, 7]], [np.float32, 3, [1024, 32]]],
             [[np.float32, 3, [1024, 32]], [np.float32, 3, [1024, 20]]],
             [[np.float32, 3, [1024]], [np.float32, 3, [1024]]],
-            ]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
             cpu_output, npu_output = create_common_tensor(item[1], 0, 100)
@@ -131,7 +131,7 @@ class TestLog10(TestCase):
             [[np.float16, 3, [1024, 32, 7]], [np.float16, 3, [1024, 32]]],
             [[np.float16, 3, [1024, 32]], [np.float16, 3, [1024, 20]]],
             [[np.float16, 3, [1024]], [np.float16, 3, [1024]]],
-            ]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
             cpu_output, npu_output = create_common_tensor(item[1], 0, 100)

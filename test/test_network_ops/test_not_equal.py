@@ -47,9 +47,9 @@ class TestNotEqual(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
-            
+
     def test_not_equal_shape_format_fp16(self):
         dtype_list = [np.float16]
         format_list = [0, 3]
@@ -64,7 +64,7 @@ class TestNotEqual(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
                 cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
 
     def test_not_equal_inp_shape_format(self):
@@ -81,7 +81,7 @@ class TestNotEqual(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
                 cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
 
     def test_not_equal_inp_scalar_shape_format(self):
@@ -97,7 +97,7 @@ class TestNotEqual(TestCase):
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, 5)
             npu_output = self.npu_op_inplace_exec(npu_input1, 5)
-            cpu_output = cpu_output.astype(npu_output.dtype)   
+            cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertEqual(cpu_output, npu_output)
 
     def test_not_equal_out_shape_format_fp32(self):
@@ -111,7 +111,7 @@ class TestNotEqual(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -10, 10)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2)
-            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)           
+            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             self.assertEqual(cpu_output, npu_output_out)
 
     def test_not_equal_scalar_out_shape_format_fp32(self):

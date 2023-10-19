@@ -25,7 +25,7 @@ class TestNpuLinearBackward(TestCase):
         loss = output.sum()
         loss.backward()
         list2 = [output.cpu().detach().numpy(), x.grad.cpu().numpy(), weight.grad.cpu().numpy(),
-           bias.grad.cpu().numpy()]
+                 bias.grad.cpu().numpy()]
         return list2
 
     def test_npu_linear_backward_shape_format_fp32(self, device="npu"):

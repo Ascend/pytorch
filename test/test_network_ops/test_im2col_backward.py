@@ -6,6 +6,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestIm2colBackward(TestCase):
 
     def test_im2col_backward(self):

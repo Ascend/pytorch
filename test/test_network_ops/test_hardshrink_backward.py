@@ -8,16 +8,19 @@ from torch_npu.testing.common_utils import create_common_tensor
 cpu_input_grad1 = None
 npu_input_grad1 = None
 
+
 def cpu_input_grad_hook(grad):
     global cpu_input_grad1
     cpu_input_grad1 = None
     cpu_input_grad1 = grad.numpy()
+
 
 def npu_input_grad_hook(grad):
     global npu_input_grad1
     npu_input_grad2 = None
     npu_input_grad1 = grad.cpu().numpy()
     npu_input_grad2 = grad.cpu().numpy()
+
 
 class TestHardShrinkBackward(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -60,6 +63,7 @@ class TestHardShrinkBackward(TestCase):
         self.cpu_op_exec(input_x, input_grad, 0.5)
         self.npu_op_exec(input_x, input_grad, 0.5)
         self.assertRtolEqual(cpu_input_grad1, npu_input_grad1)
-        
+
+
 if __name__ == "__main__":
     run_tests()

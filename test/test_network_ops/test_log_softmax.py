@@ -17,7 +17,7 @@ class TestLogSoftmax(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def logsoftmax_result(self, shape_format):
         for item in shape_format:
             dim = np.random.randint(0, len(item[2]))
@@ -25,7 +25,7 @@ class TestLogSoftmax(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 10)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
-           
+
             cpu_output = self.cpu_op_exec(cpu_input1, 0)
             npu_output = self.npu_op_exec_new(npu_input1, 0)
             cpu_output = cpu_output.astype(npu_output.dtype)
@@ -34,31 +34,31 @@ class TestLogSoftmax(TestCase):
     def test_logsoftmax_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
-            [np.float16, i, [256, 1000]] for i in format_list 
+            [np.float16, i, [256, 1000]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
-        
+
     def test_logsoftmax_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
-            [np.float32, i, [256, 1000]] for i in format_list 
+            [np.float32, i, [256, 1000]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
-        
+
     def test_logsoftmax_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
-            [np.float16, i, [32, 48, 64]] for i in format_list 
+            [np.float16, i, [32, 48, 64]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
-        
+
     def test_logsoftmax_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [32, 48, 1024]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
-        
+
     def test_logsoftmax_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
@@ -72,7 +72,7 @@ class TestLogSoftmax(TestCase):
             [np.float32, i, [32, 24, 18, 1000]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
-            
+
 
 if __name__ == "__main__":
     run_tests()

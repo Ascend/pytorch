@@ -7,6 +7,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestLogsigmoid(TestCase):
 
     def cpu_op_exec(self, input1):
@@ -22,10 +23,10 @@ class TestLogsigmoid(TestCase):
 
     def test_sigmoid_shape_format(self, device="npu"):
         shape_format = [
-               [[np.float32, 0, (6, 4)]],
-               [[np.float32, 3, (2, 4, 5)]],
-               [[np.float32, 4, (1, 2, 3, 3)]],
-               [[np.float32, 29, (1, 2, 3, 3)]]
+            [[np.float32, 0, (6, 4)]],
+            [[np.float32, 3, (2, 4, 5)]],
+            [[np.float32, 4, (1, 2, 3, 3)]],
+            [[np.float32, 29, (1, 2, 3, 3)]]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -35,10 +36,10 @@ class TestLogsigmoid(TestCase):
 
     def test_sigmoid_shape_format_float16(self, device="npu"):
         shape_format1 = [
-               [[np.float16, 0, (6, 4)]],
-               [[np.float16, 3, (2, 4, 5)]],
-               [[np.float16, 4, (1, 2, 3, 3)]],
-               [[np.float16, 29, (1, 2, 3, 3)]]
+            [[np.float16, 0, (6, 4)]],
+            [[np.float16, 3, (2, 4, 5)]],
+            [[np.float16, 4, (1, 2, 3, 3)]],
+            [[np.float16, 29, (1, 2, 3, 3)]]
         ]
         for item in shape_format1:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -48,6 +49,7 @@ class TestLogsigmoid(TestCase):
             npu_output1 = self.npu_op_exec(npu_input1)
             cpu_output1 = cpu_output1.astype(npu_output1.dtype)
             self.assertRtolEqual(cpu_output1, npu_output1)
+
 
 if __name__ == "__main__":
     run_tests()

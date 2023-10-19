@@ -30,7 +30,7 @@ class TestHammingWindow(TestCase):
     def npu_op_exec_out(self, window_length, periodic, alpha, beta, dtype, output_y):
         output = output_y.to("npu")
         torch.hamming_window(window_length, periodic=periodic, alpha=alpha, beta=beta,
-            dtype=dtype, out=output_y, device="npu")
+                             dtype=dtype, out=output_y, device="npu")
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -44,6 +44,7 @@ class TestHammingWindow(TestCase):
             npu_output = self.npu_op_exec_out(item[0], periodic=item[1], alpha=item[2], beta=item[3], dtype=item[4],
                                               output_y=output_y).cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

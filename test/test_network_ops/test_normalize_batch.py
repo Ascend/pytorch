@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestNormalizeBatch(TestCase):
     def cpu_op_exec(self, input1, seq_len, normalize_type):
         if normalize_type == 0:
@@ -48,6 +49,7 @@ class TestNormalizeBatch(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_seqlen, item[-1])
             npu_output = self.npu_op_exec(npu_input1, npu_seqlen, item[-1])
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

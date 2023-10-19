@@ -79,5 +79,6 @@ class TestLinalgNorm(TestCase):
             npu_output_1 = LA.matrix_norm(npu_input_1, ord=ord_)
             self.assertRtolEqual(cpu_output_1, npu_output_1)
 
+
 if __name__ == "__main__":
     run_tests()

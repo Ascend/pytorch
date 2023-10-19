@@ -14,11 +14,11 @@ class TestMseLoss(TestCase):
 
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
-        
+
         return npu_input1, npu_input2
 
     def cpu_op_exec(self, input1, input2, reduction):
-        if reduction == "" :
+        if reduction == "":
             output = torch.nn.functional.mse_loss(input1, input2)
         else:
             output = torch.nn.functional.mse_loss(input1, input2, reduction=reduction)
@@ -28,7 +28,7 @@ class TestMseLoss(TestCase):
     def npu_op_exec(self, input1, input2, reduction):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
-        if reduction == "" :
+        if reduction == "":
             output = torch.nn.functional.mse_loss(input1, input2)
         else:
             output = torch.nn.functional.mse_loss(input1, input2, reduction=reduction)
@@ -38,16 +38,16 @@ class TestMseLoss(TestCase):
 
     def test_mse_loss_shape_format(self, device="npu"):
         shape_format = [
-            [0, 100, (4,3), np.float32, ""],
-            [0, 100, (4,3), np.float32, "mean"],
-            [0, 100, (4,3), np.float32, "none"],
-            [0, 100, (4,3), np.float32, "sum"],
+            [0, 100, (4, 3), np.float32, ""],
+            [0, 100, (4, 3), np.float32, "mean"],
+            [0, 100, (4, 3), np.float32, "none"],
+            [0, 100, (4, 3), np.float32, "sum"],
         ]
         for item in shape_format:
-            print("test ",item[3],item[4])
+            print("test ", item[3], item[4])
             npu_input1, npu_input2 = self.generate_mse_inputs(item[0], item[1], item[2], item[3])
-            cpu_output = self.cpu_op_exec(npu_input1, npu_input2, item[4]) 
-            npu_output = self.npu_op_exec(npu_input1, npu_input2, item[4]) 
+            cpu_output = self.cpu_op_exec(npu_input1, npu_input2, item[4])
+            npu_output = self.npu_op_exec(npu_input1, npu_input2, item[4])
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_mix_dtype(self, device="npu"):

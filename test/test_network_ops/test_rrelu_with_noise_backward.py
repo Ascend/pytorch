@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestRreluWithNoiseBackward(TestCase):
     def cpu_op_exec(self, input1, input2):
         input1.requires_grad_(True)
@@ -25,11 +26,11 @@ class TestRreluWithNoiseBackward(TestCase):
     def test_leaky_relu_shape_format(self):
         format_list2 = [0, 3]
         dtype_list2 = [np.float32]
-        shape_list2 = [(1, 6, 4), (1, 4, 8), (1, 6, 8), 
-                      (2, 4, 5), (2, 5, 10), (2, 4, 10)]
+        shape_list2 = [(1, 6, 4), (1, 4, 8), (1, 6, 8),
+                       (2, 4, 5), (2, 5, 10), (2, 4, 10)]
 
-        shape_format2 = [[[i, j, k]] for i in dtype_list2 
-                        for j in format_list2 for k in shape_list2]
+        shape_format2 = [[[i, j, k]] for i in dtype_list2
+                         for j in format_list2 for k in shape_list2]
 
         for item in shape_format2:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -41,11 +42,11 @@ class TestRreluWithNoiseBackward(TestCase):
     def test_leaky_relu_shape_format_fp16(self):
         format_list3 = [0, 3]
         dtype_list3 = [np.float16]
-        shape_list3 = [(1, 6, 4), (1, 4, 8), (1, 6, 8), 
-                      (2, 4, 5), (2, 5, 10), (2, 4, 10)]
+        shape_list3 = [(1, 6, 4), (1, 4, 8), (1, 6, 8),
+                       (2, 4, 5), (2, 5, 10), (2, 4, 10)]
 
         shape_format3 = [[[i, j, k]] for i in dtype_list3
-                        for j in format_list3 for k in shape_list3]
+                         for j in format_list3 for k in shape_list3]
 
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)

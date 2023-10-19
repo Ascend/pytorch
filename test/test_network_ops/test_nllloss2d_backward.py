@@ -9,6 +9,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestNllloss2dBackward(TestCase):
     def op_grad_exec(self, data, target, reduction):
         grads = {}
+
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
@@ -24,7 +25,7 @@ class TestNllloss2dBackward(TestCase):
         torch_result.backward()
         output = grads['x'].to("cpu").numpy()
         return output
-    
+
     def test_nll_loss2d_grad_mean(self, device="npu"):
         m = torch.nn.LogSoftmax(dim=1)
         N, C = 5, 4
@@ -36,7 +37,7 @@ class TestNllloss2dBackward(TestCase):
         data_npu = data.to("npu")
         target_npu = target.to("npu")
         target_npu = target_npu.to(torch.int32)
-        
+
         cpu_output = self.op_grad_exec(data, target, "mean")
         npu_output = self.op_grad_exec(data_npu, target_npu, "mean")
 
@@ -53,7 +54,7 @@ class TestNllloss2dBackward(TestCase):
         data_npu = data.to("npu")
         target_npu = target.to("npu")
         target_npu = target_npu.to(torch.int32)
-        
+
         cpu_output = self.op_grad_exec(data, target, "none")
         npu_output = self.op_grad_exec(data_npu, target_npu, "none")
 
@@ -70,7 +71,7 @@ class TestNllloss2dBackward(TestCase):
         data_npu = data.to("npu")
         target_npu = target.to("npu")
         target_npu = target_npu.to(torch.int32)
-        
+
         cpu_output = self.op_grad_exec(data, target, "sum")
         npu_output = self.op_grad_exec(data_npu, target_npu, "sum")
 

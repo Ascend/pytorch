@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestProd(TestCase):
     def create_input_tensor(self, dtype, npu_format, shape, minValue, maxValue):
         input1 = np.random.uniform(minValue, maxValue, shape).astype(dtype)
@@ -427,6 +428,7 @@ class TestProd(TestCase):
         torch.prod(cpu_input1.float(), dim=0, keepdim=False, dtype=torch.float, out=cpu_out1)
         torch.prod(npu_input1, dim=0, keepdim=False, dtype=torch.float16, out=npu_out1)
         self.assertRtolEqual(cpu_out1.half(), npu_out1.cpu())
+
 
 if __name__ == "__main__":
     run_tests()

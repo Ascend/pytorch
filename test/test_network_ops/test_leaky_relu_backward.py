@@ -5,6 +5,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestLeakyReluBackward(TestCase):
     def cpu_op_backward_exec(self, input1):
         w = torch.ones_like(input1)

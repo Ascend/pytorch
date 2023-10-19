@@ -18,7 +18,7 @@ class TestLe(TestCase):
         return output
 
     def cpu_op_exec_out(self, input1, input2, input3):
-        torch.le(input1, input2, out = input3)
+        torch.le(input1, input2, out=input3)
         output = input3.numpy()
         return output
 
@@ -52,7 +52,7 @@ class TestLe(TestCase):
         return output
 
     def cpu_op_exec_scalar_out(self, input1, scalar, input2):
-        torch.le(input1, scalar, out = input2)
+        torch.le(input1, scalar, out=input2)
         output = input2.numpy()
         return output
 
