@@ -58,19 +58,18 @@ class TestXlogy(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
-            #xlogy.Tensor
+            # xlogy.Tensor
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
-            #xlogy.Scalar_input1
+            # xlogy.Scalar_input1
             cpu_output = self.cpu_op_exec(2, cpu_input2)
             npu_output = self.npu_op_exec(2, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
-            #xlogy.Scalar_input2
+            # xlogy.Scalar_input2
             cpu_output = self.cpu_op_exec(cpu_input1, 4)
             npu_output = self.npu_op_exec(npu_input1, 4)
             self.assertRtolEqual(cpu_output, npu_output)
-
 
     def test_xlogy_out_shape_format_fp32(self):
         format_list = [3]
@@ -82,15 +81,15 @@ class TestXlogy(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
             cpu_input3, npu_input3 = create_common_tensor(item, 0, 100)
-            #xlogy.outTensor
+            # xlogy.outTensor
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
-            #xlogy.outScalar_input1
+            # xlogy.outScalar_input1
             cpu_output = self.cpu_op_exec(3, cpu_input2)
             npu_output = self.npu_op_exec_out(3, npu_input2, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
-            #xlogy.outScalar_input2
+            # xlogy.outScalar_input2
             cpu_output = self.cpu_op_exec(cpu_input1, 5)
             npu_output = self.npu_op_exec_out(npu_input1, 5, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
@@ -104,11 +103,11 @@ class TestXlogy(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
-            #xlogy_.Tensor
+            # xlogy_.Tensor
             cpu_output = self.cpu_inp_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_inp_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
-            #xlogy_.Scalar
+            # xlogy_.Scalar
             cpu_output = self.cpu_inp_op_exec(cpu_input1, 6)
             npu_output = self.npu_inp_op_exec(npu_input1, 6)
             self.assertRtolEqual(cpu_output, npu_output)

@@ -18,6 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestSoftShrink(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
         input_x = np.random.uniform(min_d, max_d, shape).astype(dtype)

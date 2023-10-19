@@ -43,7 +43,7 @@ class TestSlowConvTranspose2d(TestCase):
         return npu_output
 
     def cpu_op_exec_out(self, input_1, weight, kernel_size, cpu_out):
-        torch._C._nn.slow_conv_transpose2d(input_1, weight, kernel_size, out = cpu_out)
+        torch._C._nn.slow_conv_transpose2d(input_1, weight, kernel_size, out=cpu_out)
         cpu_output = cpu_out.numpy()
 
         return cpu_output
@@ -52,14 +52,14 @@ class TestSlowConvTranspose2d(TestCase):
         input_1 = input_1.to(torch.float32)
         weight = weight.to(torch.float32)
         cpu_out = cpu_out.to(torch.float32)
-        torch._C._nn.slow_conv_transpose2d(input_1, weight, kernel_size, out = cpu_out)
+        torch._C._nn.slow_conv_transpose2d(input_1, weight, kernel_size, out=cpu_out)
         cpu_output = cpu_out.numpy()
         cpu_output = cpu_output.astype(np.float16)
 
         return cpu_output
 
     def npu_op_exec_out(self, input_1, weight, kernel_size, npu_out):
-        torch._C._nn.slow_conv_transpose2d(input_1, weight, kernel_size, out = npu_out)
+        torch._C._nn.slow_conv_transpose2d(input_1, weight, kernel_size, out=npu_out)
         npu_output = npu_out.to("cpu")
         npu_output = npu_output.numpy()
         return npu_output
@@ -104,9 +104,9 @@ class TestSlowConvTranspose2d(TestCase):
         # input_1, weight, kernel_size, out
         shape_format3 = [
             [[np.float16, -1, [5, 1, 5, 5]], [np.float16, -1, [1, 1, 3, 3]],
-            3, [np.float16, -1, [5, 1, 7, 7]]],
+             3, [np.float16, -1, [5, 1, 7, 7]]],
             [[np.float16, 3, [256, 256, 7, 7]], [np.float16, 0, [256, 256, 1, 1]],
-            1, [np.float16, 3, [256, 256, 7, 7]]]
+             1, [np.float16, 3, [256, 256, 7, 7]]]
         ]
         for item in shape_format3:
             input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)
@@ -123,9 +123,9 @@ class TestSlowConvTranspose2d(TestCase):
         # input_1, weight, kernel_size, out
         shape_format4 = [
             [[np.float32, -1, [5, 1, 5, 5]], [np.float32, -1, [1, 1, 3, 3]],
-            3, [np.float32, -1, [5, 1, 7, 7]]],
+             3, [np.float32, -1, [5, 1, 7, 7]]],
             [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]],
-            1, [np.float32, 3, [256, 256, 7, 7]]]
+             1, [np.float32, 3, [256, 256, 7, 7]]]
         ]
         for item in shape_format4:
             input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)

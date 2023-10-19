@@ -32,7 +32,7 @@ class TestUpsampleNearest1DBackward(TestCase):
 
     def cpu_op_scale_exec(self, input1, grads, scale):
         input1.requires_grad_(True)
-        output = F.interpolate(input1, scale_factor = scale, mode="nearest")
+        output = F.interpolate(input1, scale_factor=scale, mode="nearest")
         output.backward(grads)
         gradcpu = input1.grad
         return output.detach().numpy(), gradcpu.detach().numpy()
@@ -48,7 +48,7 @@ class TestUpsampleNearest1DBackward(TestCase):
 
     def npu_op_scale_exec(self, input1, grads, scale):
         input1.requires_grad_(True)
-        output = F.interpolate(input1, scale_factor = scale, mode="nearest")
+        output = F.interpolate(input1, scale_factor=scale, mode="nearest")
         output.backward(grads)
         gradnpu = input1.grad
         gradnpu = gradnpu.to("cpu")

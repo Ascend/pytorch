@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -26,7 +26,7 @@ class TestTril(TestCase):
     def test_tril(self):
         dtype_list = [np.float32, np.float16]
         format_list = [0, 3, 4]
-        shape_list = [[5, 5],[4, 5, 6]]
+        shape_list = [[5, 5], [4, 5, 6]]
         diagonal_list = [-1, 0, 1]
         shape_format = [
             [i, j, k, l] for i in dtype_list for j in format_list for k in shape_list for l in diagonal_list

@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -27,9 +27,9 @@ class TestTan(TestCase):
     def generate_single_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         npu_input1 = torch.from_numpy(input1)
-        
+
         return npu_input1
-    
+
     def cpu_op_exec(self, input1):
         output = torch.tan(input1)
         output = output.numpy()
@@ -68,7 +68,7 @@ class TestTan(TestCase):
         return output
 
     def test_tan_float32(self):
-        input1 = self.generate_single_data(0, 6, (1,3), np.float32)
+        input1 = self.generate_single_data(0, 6, (1, 3), np.float32)
         cpu_output = self.cpu_op_exec(input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
@@ -86,7 +86,7 @@ class TestTan(TestCase):
         cpu_output = self.cpu_op_exec_self(input1)
         npu_output = self.npu_op_exec_self(input2)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
 
 if __name__ == "__main__":
     run_tests()

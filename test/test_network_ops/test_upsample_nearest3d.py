@@ -24,24 +24,23 @@ from torch_npu.testing.common_utils import create_common_tensor
 class TestUpsamleNearest3D(TestCase):
     def get_format_fp16(self):
         shape_format = [
-                        [[np.float16, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
-                        [[np.float16, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
-                        ]
-        return shape_format    
+            [[np.float16, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
+            [[np.float16, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
+        ]
+        return shape_format
 
     def get_format_fp32(self):
         shape_format = [
-                        [[np.float32, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
-                        [[np.float32, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
-                        ]
-        return shape_format  
-
+            [[np.float32, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
+            [[np.float32, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
+        ]
+        return shape_format
 
     def cpu_op_exec(self, input1, size):
         output = torch.nn.functional.interpolate(input1, size, mode="nearest")
         output = output.numpy()
         return output
-    
+
     def npu_op_exec(self, input1, size):
         output = torch.nn.functional.interpolate(input1, size, mode="nearest")
         output = output.to("cpu")
@@ -84,7 +83,7 @@ class TestUpsamleNearest3D(TestCase):
             npu_output = self.npu_op_scale_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_upsample_nearest3d_shape_format_fp16(self):
         shape_format = self.get_format_fp16()
         for item in shape_format:
@@ -110,14 +109,14 @@ class TestUpsamleNearest3D(TestCase):
             npu_output = self.npu_op_scale_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_upsample_nearest3d_6hd(self):
         format_list = [2, 30, 32]
         dtype_list = [np.float16, np.float32]
         shape_list = [(5, 3, 2, 6, 4), (2, 3, 6, 2, 4)]
         scalar_list = [[10, 10, 10]]
         shape_format = [
-            [[d, f, s], sc] for d in dtype_list for f in format_list 
+            [[d, f, s], sc] for d in dtype_list for f in format_list
             for s in shape_list for sc in scalar_list
         ]
         for item in shape_format:
@@ -125,7 +124,7 @@ class TestUpsamleNearest3D(TestCase):
             cpu_out, npu_out = create_common_tensor([item[0][0], -1, [1]], 0, 50)
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
-            size = item[1]            
+            size = item[1]
             cpu_output = self.cpu_op_exec(cpu_input, size)
             npu_output = self.npu_op_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
@@ -143,6 +142,7 @@ class TestUpsamleNearest3D(TestCase):
         cpu_out = torch.nn.functional.interpolate(cpu_x.float(), size, mode="nearest").half()
         npu_out = torch.nn.functional.interpolate(npu_x, size, mode="nearest")
         self.assertRtolEqual(cpu_out, npu_out.cpu())
+
 
 if __name__ == "__main__":
     run_tests()

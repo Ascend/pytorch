@@ -25,7 +25,7 @@ class TestIor(TestCase):
         input1 = input1 < 0.5
         npu_input1 = torch.from_numpy(input1)
         return npu_input1
-    
+
     def generate_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         input2 = np.random.uniform(min_d, max_d, shape).astype(dtype)
@@ -137,79 +137,79 @@ class TestIor(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test___ior___int32_009(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (65535,1,1,1), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (65535, 1, 1, 1), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_010(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,8192), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 8192), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_011(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,16384), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 16384), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_012(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,32768), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 32768), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_013(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,65535), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 65535), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_014(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,131072), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 131072), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test___ior___int32_015(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,196608), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 196608), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_016(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,262144), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 262144), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_017(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,393216), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 393216), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_018(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,524288), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 524288), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-      
+
     def test___ior___int32_019(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,655360), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 655360), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int32_020(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1,1,1,786432), np.int32)
+        npu_input1, npu_input2 = self.generate_data(-2147483648, 2147483647, (1, 1, 1, 786432), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test___ior___int_scalar(self, device="npu"):
-        npu_input1 = self.generate_single_data(-2147483648, 2147483647, (1,31,149,2), np.int32)
+        npu_input1 = self.generate_single_data(-2147483648, 2147483647, (1, 31, 149, 2), np.int32)
         npu_input2 = self.generate_int_scalar(-2147483648, 2147483647)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_scalar(npu_input1, npu_input2)

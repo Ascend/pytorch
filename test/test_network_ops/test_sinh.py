@@ -18,6 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestSinh(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
         input_x = np.random.uniform(min_d, max_d, shape).astype(dtype)
@@ -43,66 +44,66 @@ class TestSinh(TestCase):
         output_y = output_y.to("cpu")
         output_y = output_y.numpy()
         return output_y
-        
+
     def npu_op_exec_inplace(self, input_x):
         input_x = input_x.to("npu")
         input_x.sinh_()
         output = input_x.to("cpu")
         output = output.numpy()
         return output
-        
+
     def test_sinh_3_3(self):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1)
         npu_output1 = self.npu_op_exec(input_x1)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_sinh_3_3_3_3(self):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1)
         npu_output1 = self.npu_op_exec(input_x1)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_sinh_3_3_float16(self):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float16)
         input_x1_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_x1_cpu).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_sinh_3_3_3_3_float16(self):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float16)
         input_x1_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_x1_cpu).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1)
         self.assertRtolEqual(cpu_output1, npu_output1)
-        
+
     def test_sinh_3_3_out(self):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1)
         npu_output1 = self.npu_op_exec_out(input_x1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_sinh_3_3_3_3_out(self):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1)
         npu_output1 = self.npu_op_exec_out(input_x1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_sinh_3_3_inplace(self):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1)
         npu_output1 = self.npu_op_exec_inplace(input_x1)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_sinh_3_3_3_3_inplace(self):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1)
         npu_output1 = self.npu_op_exec_inplace(input_x1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    
+
 if __name__ == "__main__":
     run_tests()
