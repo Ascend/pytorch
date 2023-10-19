@@ -113,6 +113,10 @@ z = x.mm(y)
 print(z)
 ```
 
+## User Manual
+
+Refer to [API of PyTorch Ascend Adapter](docs/api/torch_npu_apis.md) for more detailed informations.
+
 ## PyTorch and Python Version Matching Table
 
 | PyTorch Version | Python Version                                            |
