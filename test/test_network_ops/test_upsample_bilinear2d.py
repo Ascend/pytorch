@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestUpsampleBilinear2d(TestCase):
 
     def cpu_op_exec(self, inputs, shapes):
@@ -81,6 +82,7 @@ class TestUpsampleBilinear2d(TestCase):
             npu_output = self.npu_op_scale_exec(npu_inputs, item[1])
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

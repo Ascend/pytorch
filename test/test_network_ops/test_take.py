@@ -23,13 +23,13 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestTake(TestCase):
-    def cpu_op_out_exec(self, input1,input2, out):
-        torch.take(input1,input2, out=out)
+    def cpu_op_out_exec(self, input1, input2, out):
+        torch.take(input1, input2, out=out)
         output = out.numpy()
         return output
 
-    def npu_op_out_exec(self, input1,input2, out):
-        torch.take(input1,input2, out=out)
+    def npu_op_out_exec(self, input1, input2, out):
+        torch.take(input1, input2, out=out)
         output = out.to("cpu")
         output = output.numpy()
         return output
@@ -46,12 +46,12 @@ class TestTake(TestCase):
 
     def test_take_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (5,3)], [np.int64, 0, (3)],8],
-                [[np.int8, 0, (64, 10)], [np.int64,0, (10)],74],
-                [[np.uint8, -1, (256, 2048, 7, 7)], [np.int64, -1, (30)],2748 ],
-                [[np.int16, -1, (32,1, 3, 3)], [np.int64, -1, (32)], 39],
-                [[np.int64, -1, (10, 128)], [np.int64, -1, (128)], 138],
-                [[np.float16, 0, (64, 10)], [np.int64, 0, (10)], 74],
+            [[np.float32, 0, (5, 3)], [np.int64, 0, (3)], 8],
+            [[np.int8, 0, (64, 10)], [np.int64, 0, (10)], 74],
+            [[np.uint8, -1, (256, 2048, 7, 7)], [np.int64, -1, (30)], 2748],
+            [[np.int16, -1, (32, 1, 3, 3)], [np.int64, -1, (32)], 39],
+            [[np.int64, -1, (10, 128)], [np.int64, -1, (128)], 138],
+            [[np.float16, 0, (64, 10)], [np.int64, 0, (10)], 74],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -66,12 +66,12 @@ class TestTake(TestCase):
 
     def test_take_out_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (5,3)], [np.int64, 0, (3)],8, [np.float32, 0, (3)]],
-                [[np.int8, 0, (64, 10)], [np.int64,0, (10)],74, [np.int8, 0, (10)]],
-                [[np.uint8, -1, (256, 2048, 7, 7)], [np.int64, -1, (30)], 2748 , [np.uint8, -1, (30)] ],
-                [[np.int16, -1, (32,1, 3, 3)], [np.int64, -1, (32)], 39, [np.int16, -1, (32)]],
-                [[np.int64, -1, (10, 128)], [np.int64, -1, (128)], 138, [np.int64, -1, (128)]],
-                [[np.float16, 0, (64, 10)], [np.int64, 0, (10)], 74,[np.float16, 0, (10)]],
+            [[np.float32, 0, (5, 3)], [np.int64, 0, (3)], 8, [np.float32, 0, (3)]],
+            [[np.int8, 0, (64, 10)], [np.int64, 0, (10)], 74, [np.int8, 0, (10)]],
+            [[np.uint8, -1, (256, 2048, 7, 7)], [np.int64, -1, (30)], 2748, [np.uint8, -1, (30)]],
+            [[np.int16, -1, (32, 1, 3, 3)], [np.int64, -1, (32)], 39, [np.int16, -1, (32)]],
+            [[np.int64, -1, (10, 128)], [np.int64, -1, (128)], 138, [np.int64, -1, (128)]],
+            [[np.float16, 0, (64, 10)], [np.int64, 0, (10)], 74, [np.float16, 0, (10)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)

@@ -42,15 +42,15 @@ class TestThresholdBackward(TestCase):
 
     def test_threshold_backward_common_shape_format(self, device="npu"):
         shape_format = [
-                [[np.float32, 0, (1,5)], [1.0], [20.0]],
-                [[np.float32, 0, (2,3,5)], [2.0], [20.0]],
-                [[np.float32, 0, (2,3,4,5)], [0], [0]],
-                [[np.float32, 3, (1,5)], [1.0], [20.0]],
-                [[np.float32, 3, (2,3,5)], [2.0], [20.0]],
-                [[np.float32, 3, (2,3,4,5)], [0], [0]],
-                [[np.float16, 0, (1,5)], [1.0], [20.0]],
-                [[np.float16, 0, (2,3,5)], [2.0], [20.0]],
-                [[np.float16, 3, (2,3,4,5)], [0], [0]],
+            [[np.float32, 0, (1, 5)], [1.0], [20.0]],
+            [[np.float32, 0, (2, 3, 5)], [2.0], [20.0]],
+            [[np.float32, 0, (2, 3, 4, 5)], [0], [0]],
+            [[np.float32, 3, (1, 5)], [1.0], [20.0]],
+            [[np.float32, 3, (2, 3, 5)], [2.0], [20.0]],
+            [[np.float32, 3, (2, 3, 4, 5)], [0], [0]],
+            [[np.float16, 0, (1, 5)], [1.0], [20.0]],
+            [[np.float16, 0, (2, 3, 5)], [2.0], [20.0]],
+            [[np.float16, 3, (2, 3, 4, 5)], [0], [0]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 3)

@@ -20,6 +20,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
+
 @instantiate_tests
 class TestSigmoid(TestCase):
     @Dtypes(torch.float)
@@ -48,7 +49,7 @@ class TestSigmoid(TestCase):
         return output
 
     def npu_op_out_exec(self, input1, output):
-        torch.sigmoid(input1, out = output)
+        torch.sigmoid(input1, out=output)
         output = output.to("cpu").numpy()
         return output
 
@@ -88,7 +89,7 @@ class TestSigmoid(TestCase):
             [[np.float32, 3, [1024, 32, 7]], [np.float32, 3, [1024, 32]]],
             [[np.float32, 3, [1024, 32]], [np.float32, 3, [1024, 20]]],
             [[np.float32, 3, [1024]], [np.float32, 3, [1024]]],
-            ]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
             cpu_output, npu_output = create_common_tensor(item[1], -1, 1)
@@ -106,7 +107,7 @@ class TestSigmoid(TestCase):
             [[np.float16, 3, [1024, 32, 7]], [np.float16, 3, [1024, 32]]],
             [[np.float16, 3, [1024, 32]], [np.float16, 3, [1024, 20]]],
             [[np.float16, 3, [1024]], [np.float16, 3, [128]]],
-            ]
+        ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
             cpu_output, npu_output = create_common_tensor(item[1], -1, 1)
@@ -118,6 +119,7 @@ class TestSigmoid(TestCase):
             if item[0][0] == np.float16:
                 cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 def input_grad_hook(grad):
     global input_grad
     input_grad = grad
@@ -32,18 +33,18 @@ def npu_input_grad_hook(grad):
 
 
 class TestSigmoidBackward(TestCase):
-    def cpu_op_exec(self, input1, is_contiguous = True):
-        if is_contiguous is False :
-            input1 = input1.as_strided([2,2], [1,2], 1)
+    def cpu_op_exec(self, input1, is_contiguous=True):
+        if is_contiguous is False:
+            input1 = input1.as_strided([2, 2], [1, 2], 1)
         input1.requires_grad = True
         input1.register_hook(input_grad_hook)
         output = torch.sigmoid(input1)
         z = output.sum()
         z.backward()
 
-    def npu_op_exec(self, input1, is_contiguous = True):
-        if is_contiguous is False :
-            input1 = input1.as_strided([2,2], [1,2], 1)
+    def npu_op_exec(self, input1, is_contiguous=True):
+        if is_contiguous is False:
+            input1 = input1.as_strided([2, 2], [1, 2], 1)
         input1.requires_grad = True
         input1.register_hook(npu_input_grad_hook)
 
@@ -54,7 +55,7 @@ class TestSigmoidBackward(TestCase):
 
     def test_sigmoid_backward_shape_format_fp16(self, device="npu"):
         format_list = [0]
-        shape_list = [5,(64, 10),(32, 3, 3),(256, 2048, 7, 7)]
+        shape_list = [5, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
         ]
@@ -74,7 +75,7 @@ class TestSigmoidBackward(TestCase):
             input_grad = input_grad.astype(np.float16)
             self.assertRtolEqual(input_grad, npu_input_grad)
 
-    def test_sigmoid_backward_shape_format_fp32(self, device="npu"):   
+    def test_sigmoid_backward_shape_format_fp32(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_list = [(256, 2048, 7, 7)]
         shape_format = [
@@ -90,6 +91,7 @@ class TestSigmoidBackward(TestCase):
             self.cpu_op_exec(input2, False)
             self.npu_op_exec(npu_input2, False)
             self.assertRtolEqual(input_grad, npu_input_grad)
+
 
 if __name__ == "__main__":
     run_tests()

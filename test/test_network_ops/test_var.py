@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -65,8 +65,8 @@ class TestVar(TestCase):
         torch.var(input1, dim, unbiased=unbiased, keepdim=keepdim, out=output1)
         output1 = output1.to("cpu")
         output1 = output1.numpy()
-        return output1    
-    
+        return output1
+
     def cpu_op_var_exec(self, input1, unbiased=True):
         output = torch.var(input1, unbiased=unbiased)
         output = output.numpy()
@@ -93,7 +93,7 @@ class TestVar(TestCase):
         output1 = output1.numpy()
         output2 = output2.numpy()
         return output1, output2
-    
+
     def cpu_op_mean_dim_exec(self, input1, dim, unbiased=True, keepdim=False):
         output = torch.var_mean(input1, dim, unbiased=unbiased, keepdim=keepdim)
         output1 = output[0]
@@ -124,7 +124,7 @@ class TestVar(TestCase):
         output2 = output[1].to("cpu")
         output1 = output1.numpy()
         output2 = output2.numpy()
-        return output1, output2 
+        return output1, output2
 
     def output_shape(self, inputshape, dim, unbiased=True, keepdim=False):
         shape = list(inputshape)
@@ -142,7 +142,7 @@ class TestVar(TestCase):
         if npuformat != -1:
             npu_input = torch_npu.npu_format_cast(npu_input, npuformat)
         return cpu_input, npu_input
-        
+
     def test_var_shape_format_fp16(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
@@ -178,7 +178,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         keepdim_list = [True, False]
         shape_format = [
-            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list 
+            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list
             for k in dim_list for l in unbiased_list for m in keepdim_list
         ]
         for item in shape_format:
@@ -204,7 +204,7 @@ class TestVar(TestCase):
             cpu_output = self.cpu_op_dim_exec(cpu_input, item[3], item[4], item[5])
             npu_output = self.npu_op_dim_exec(npu_input, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_var_names_dim_shape_format_fp16(self):
         format_list = [-1]
         shape_list1 = [[32, 24], [32, 8, 24]]
@@ -217,10 +217,10 @@ class TestVar(TestCase):
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            cpu_input = cpu_input.to(torch.float32)           
+            cpu_input = cpu_input.to(torch.float32)
             cpu_output = self.cpu_op_names_dim_exec(cpu_input, item[3], item[4], item[5])
             cpu_output = cpu_output.astype(np.float16)
-            npu_output = self.npu_op_names_dim_exec(npu_input, item[3], item[4], item[5])       
+            npu_output = self.npu_op_names_dim_exec(npu_input, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_var_names_dim_shape_format_fp32(self):
@@ -234,11 +234,10 @@ class TestVar(TestCase):
             for k in dim_list for l in unbiased_list for m in keepdim_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 100)       
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_output = self.cpu_op_names_dim_exec(cpu_input, item[3], item[4], item[5])
-            npu_output = self.npu_op_names_dim_exec(npu_input, item[3], item[4], item[5])       
+            npu_output = self.npu_op_names_dim_exec(npu_input, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output, npu_output)
-
 
     def test_var_out_shape_format_fp16(self):
         format_list1 = [-1]
@@ -252,8 +251,8 @@ class TestVar(TestCase):
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
-            outputshape = self.output_shape(item[2],item[3],item[4],item[5])
-            cpu_output,npu_output = self.create_output_tensor(0,1,outputshape,item[1],item[0])
+            outputshape = self.output_shape(item[2], item[3], item[4], item[5])
+            cpu_output, npu_output = self.create_output_tensor(0, 1, outputshape, item[1], item[0])
             cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = cpu_output.to(torch.float32)
             cpu_output1 = self.cpu_op_out_exec(cpu_input1, item[3], cpu_output, item[4], item[5])
@@ -274,7 +273,7 @@ class TestVar(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             outputshape = self.output_shape(item[2], item[3], item[4], item[5])
-            cpu_output,npu_output = self.create_output_tensor(0, 1, outputshape, item[1], item[0])
+            cpu_output, npu_output = self.create_output_tensor(0, 1, outputshape, item[1], item[0])
             cpu_output1 = self.cpu_op_out_exec(cpu_input1, item[3], cpu_output, item[4], item[5])
             npu_output1 = self.npu_op_out_exec(npu_input1, item[3], npu_output, item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1)
@@ -285,7 +284,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         shape_format = [
             [np.float16, i, j, l] for i in format_list for j in shape_list
-            for l in unbiased_list 
+            for l in unbiased_list
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -301,7 +300,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         shape_format = [
             [np.float32, i, j, l] for i in format_list for j in shape_list
-            for l in unbiased_list 
+            for l in unbiased_list
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -315,7 +314,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         shape_format = [
             [np.float16, i, j, k] for i in format_list for j in shape_list
-            for k in unbiased_list 
+            for k in unbiased_list
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -333,7 +332,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         shape_format = [
             [np.float32, i, j, k] for i in format_list for j in shape_list
-            for k in unbiased_list 
+            for k in unbiased_list
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -369,12 +368,12 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         keepdim_list = [True, False]
         shape_format = [
-            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list 
+            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list
             for k in dim_list for l in unbiased_list for m in keepdim_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 100)           
-            cpu_output1, cpu_output2 = self.cpu_op_mean_dim_exec(cpu_input, item[3], item[4], item[5])           
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
+            cpu_output1, cpu_output2 = self.cpu_op_mean_dim_exec(cpu_input, item[3], item[4], item[5])
             npu_output1, npu_output2 = self.npu_op_mean_dim_exec(npu_input, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
@@ -414,7 +413,7 @@ class TestVar(TestCase):
         unbiased_list = [True, False]
         keepdim_list = [True, False]
         shape_format = [
-            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list 
+            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list
             for k in dim_list for l in unbiased_list for m in keepdim_list
         ]
         for item in shape_format:
@@ -424,7 +423,7 @@ class TestVar(TestCase):
             cpu_output1 = cpu_output1.astype(np.float16)
             npu_output1 = self.npu_op_dim_exec(npu_input1, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.004)
-    
+
 
 if __name__ == "__main__":
     run_tests()

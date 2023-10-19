@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestSub(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = input1 - input2

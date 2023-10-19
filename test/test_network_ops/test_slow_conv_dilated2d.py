@@ -20,24 +20,25 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestSlowConvDilated2D(TestCase):
 
     def cpu_op_exec(self):
-        inputs = torch.randn(1, 3, 5, 5, requires_grad = True)
-        filters = torch.randn(4, 3, 3, 3, requires_grad = True)
-        bias = torch.randn(4, requires_grad = True)
-        output = torch.nn.functional.conv2d(inputs, filters, bias, dilation = 2)
+        inputs = torch.randn(1, 3, 5, 5, requires_grad=True)
+        filters = torch.randn(4, 3, 3, 3, requires_grad=True)
+        bias = torch.randn(4, requires_grad=True)
+        output = torch.nn.functional.conv2d(inputs, filters, bias, dilation=2)
         output = output.detach().numpy()
         return output
 
     def npu_op_exec(self):
-        inputs = torch.randn(1, 3, 5, 5, requires_grad = True)
-        filters = torch.randn(4, 3, 3, 3, requires_grad = True)
-        bias = torch.randn(4, requires_grad = True)
+        inputs = torch.randn(1, 3, 5, 5, requires_grad=True)
+        filters = torch.randn(4, 3, 3, 3, requires_grad=True)
+        bias = torch.randn(4, requires_grad=True)
         inputs = inputs.to("npu")
         filters = filters.to("npu")
         bias = bias.to("npu")
-        output = torch.nn.functional.conv2d(inputs, filters, bias, dilation = 2)
+        output = torch.nn.functional.conv2d(inputs, filters, bias, dilation=2)
         output = output.to("cpu")
         output = output.detach().numpy()
         return output
@@ -52,7 +53,7 @@ class TestSlowConvDilated2D(TestCase):
         self.input_grad.append(grad.to("cpu"))
 
     def op_exec_conv2d(self, input2, weight, bias_, in_channels, out_channels,
-                          kernel_size, padding, stride, dilation, bias):
+                       kernel_size, padding, stride, dilation, bias):
         input1 = input2
         weight1 = weight
         input1.requires_grad = True
@@ -70,9 +71,9 @@ class TestSlowConvDilated2D(TestCase):
         return input1, m1
 
     def op_exec_cpu(self, input2, weight, bias_, in_channels, out_channels,
-                          kernel_size, padding=0, stride=1, dilation=2, bias=True):
+                    kernel_size, padding=0, stride=1, dilation=2, bias=True):
         input1, m1 = self.op_exec_conv2d(input2, weight, bias_, in_channels, out_channels,
-                          kernel_size, padding, stride, dilation, bias)
+                                         kernel_size, padding, stride, dilation, bias)
         cpu_output = m1(input1)
         tmp = torch.ones_like(cpu_output)
         cpu_output.backward(tmp)
@@ -80,9 +81,9 @@ class TestSlowConvDilated2D(TestCase):
         return cpu_output
 
     def op_exec_npu(self, input2, weight, bias_, in_channels, out_channels,
-                          kernel_size, padding=0, stride=1, dilation=2, bias=True):
+                    kernel_size, padding=0, stride=1, dilation=2, bias=True):
         input1, m1 = self.op_exec_conv2d(input2, weight, bias_, in_channels, out_channels,
-                          kernel_size, padding, stride, dilation, bias)
+                                         kernel_size, padding, stride, dilation, bias)
         m1 = m1.to("npu")
         npu_output = m1(input1)
         npu_output = npu_output.to("cpu")
@@ -100,25 +101,25 @@ class TestSlowConvDilated2D(TestCase):
     def _slow_conv_dilated2d_shape_format(self, data_type, start=0, end=None):
         shape_format = [
             [[data_type, 3, [256, 32, 112, 112]],  [data_type, 0, [16, 32, 1, 1]],
-                            0,      1,      2, None],
+             0,      1,      2, None],
             [[data_type, 0, [256, 3, 224, 224]],   [data_type, 0, [32, 3, 3, 3]],
-                            0,      [2, 2], 2, [data_type, 0, 32]],
+             0,      [2, 2], 2, [data_type, 0, 32]],
             [[data_type, 3, [256, 128, 7, 7]],     [data_type, 4, [32, 128, 3, 3]],
-                            (1, 1), 1,      2, None],
+             (1, 1), 1,      2, None],
             [[data_type, 3, (2, 3, 3, 3)],         [data_type, 0, (3, 3, 3, 3)],
-                            3,      1,      2, [data_type, 0, 3]],
+             3,      1,      2, [data_type, 0, 3]],
             [[data_type, 3, [1024, 232, 7, 7]],    [data_type, 4, [232, 232, 1, 1]],
-                            0,      1,      2, [data_type, 4, 232]],
+             0,      1,      2, [data_type, 4, 232]],
             [[data_type, 0, [1024, 116, 14, 14]],  [data_type, 4, [116, 116, 1, 1]],
-                            0,      1,      2, None],
+             0,      1,      2, None],
             [[data_type, 0, [1024, 58, 28, 28]],   [data_type, 4, [58, 58, 1, 1]],
-                            0,      1,      2, [data_type, 4, 58]],
+             0,      1,      2, [data_type, 4, 58]],
             [[data_type, 3, [1024, 116, 14, 14]],  [data_type, 4, [116, 116, 1, 1]],
-                            0,      1,      2, [data_type, 4, 116]],
+             0,      1,      2, [data_type, 4, 116]],
             [[data_type, 0, [1024, 232, 7, 7]],    [data_type, 4, [232, 232, 1, 1]],
-                            0,      1,      2, None],
+             0,      1,      2, None],
             [[data_type, 3, [1024, 58, 28, 28]],   [data_type, 4, [58, 58, 1, 1]],
-                            0,      1,      2, [data_type, 4, 58]],
+             0,      1,      2, [data_type, 4, 58]],
         ]
 
         for item in shape_format[start:end]:
@@ -150,6 +151,7 @@ class TestSlowConvDilated2D(TestCase):
             self.weight_grad[0] = self.weight_grad[0].to(self.weight_grad[1].dtype)
 
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy(), 0.001)
+
 
 if __name__ == "__main__":
     run_tests()

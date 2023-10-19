@@ -1,5 +1,5 @@
 # Copyright (c) 2021 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -57,6 +57,6 @@ class TestTriangularSolveHelper(TestCase):
         out = [c, d]
         output = torch.triangular_solve(a, b.tril().npu(), upper=False, transpose=True, unitriangular=False, out=out)
 
+
 if __name__ == "__main__":
     run_tests()
-

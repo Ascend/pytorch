@@ -21,13 +21,16 @@ from torch_npu.testing.testcase import TestCase, run_tests
 cpu_input_grad = None
 npu_input_grad = None
 
+
 def cpu_input_grad_hook(grad):
     global cpu_input_grad
     cpu_input_grad = grad.numpy()
 
+
 def npu_input_grad_hook(grad):
     global npu_input_grad
     npu_input_grad = grad.cpu().numpy()
+
 
 class TestSoftShrinkBackward(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
