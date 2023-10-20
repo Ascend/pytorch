@@ -14,6 +14,8 @@
 
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 
 namespace torch_npu {
 namespace profiler{
@@ -74,6 +76,10 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
         py::arg("scopes") = std::unordered_set<at::RecordScope>());
   m.def("_stop_profiler", stopNpuProfiler);
   m.def("_finalize_profiler", finalizeNpuProfiler);
+  m.def("_get_freq", at_npu::native::getFreq);
+  m.def("_get_syscnt_enable", at_npu::native::isSyscntEnable);
+  m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);
+  m.def("_get_monotonic", torch_npu::toolkit::profiler::Utils::GetClockMonotonicRawNs);
 
   Py_RETURN_TRUE;
 }

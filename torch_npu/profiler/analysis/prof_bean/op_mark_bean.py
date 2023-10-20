@@ -35,7 +35,8 @@ class OpMarkBean:
 
     @property
     def time_us(self) -> float:
-        time_us = int(self._constant_data[OpMarkEnum.TIME_NS.value]) / Constant.NS_TO_US
+        opmark_ns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[OpMarkEnum.TIME_NS.value])
+        time_us = int(opmark_ns) / Constant.NS_TO_US
         return ProfilerConfig().get_local_time(time_us)
 
     @property

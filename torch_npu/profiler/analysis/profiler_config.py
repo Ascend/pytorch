@@ -2,6 +2,7 @@ import json
 import os
 import re
 from json import JSONDecodeError
+from configparser import ConfigParser
 
 from .prof_common_func.file_manager import FileManager
 from .prof_common_func.path_manager import ProfilerPathManager
@@ -32,10 +33,55 @@ class ProfilerConfig:
         self._data_simplification = None
         self._is_cluster = False
         self._localtime_diff = 0
+        self._syscnt_enable = False
+        self._freq = 100.0
+        self._time_offset = 0.0
+        self._start_cnt = 0.0
 
     @property
     def data_simplification(self):
         return self._data_simplification
+
+    def is_number(self, string):
+        pattern = re.compile(r'^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$')
+        return bool(pattern.match(string))
+
+    def get_timestamp_from_syscnt(self, syscnt: int, time_fmt: int = 1000):
+        if self._syscnt_enable == False:
+            return syscnt
+        else:
+            timestamp = float(syscnt - self._start_cnt) / \
+                    self._freq * time_fmt + self._time_offset
+            return timestamp
+
+    def load_syscnt_info(self, profiler_path: str, info_json: dict):
+        start_info = info_json.get(Constant.START_INFO, {})
+        info_path = ProfilerPathManager.get_info_path(profiler_path)
+        self._syscnt_enable = start_info.get(Constant.SyscntEable, False)
+        if info_path:
+            try:
+                jsondata = json.loads(FileManager.file_read_all(info_path, "rt"))
+                config_freq = jsondata.get("CPU")[0].get("Frequency")
+                if (self.is_number(config_freq)):
+                    self._freq = float(config_freq)
+            except JSONDecodeError:
+                print_warn_msg("Failed to get profiler info json from file.")
+        else:
+            # 驱动频率
+            self._freq = start_info.get(Constant.SysCntFreq, self._freq)
+        host_start_log_path = ProfilerPathManager.get_host_start_log_path(profiler_path)
+        if host_start_log_path:
+            start_log = ConfigParser()
+            start_log.read(host_start_log_path)
+            config_offset = start_log.get("Host", "clock_monotonic_raw")
+            config_start_cnt = start_log.get("Host", "cntvct")
+            if self.is_number(str(config_offset)) and self.is_number(str(config_start_cnt)):
+                self._time_offset = float(config_offset)
+                self._start_cnt = float(config_start_cnt)
+        else: 
+            # 保存的offset 和 cnt
+            self._time_offset = start_info.get(Constant.StartMonotonic, self._time_offset)
+            self._start_cnt = start_info.get(Constant.StartCnt, self._start_cnt)
 
     @classmethod
     def _get_profiler_info_json(cls, profiler_path: str):
@@ -54,6 +100,7 @@ class ProfilerConfig:
         info_json = self._get_profiler_info_json(profiler_path)
         self.load_experimental_cfg_info(info_json)
         self.load_timediff_info(profiler_path, info_json)
+        self.load_syscnt_info(profiler_path, info_json)
 
     def load_is_cluster(self, profiler_path: str):
         info_file_path = ProfilerPathManager.get_info_file_path(profiler_path)

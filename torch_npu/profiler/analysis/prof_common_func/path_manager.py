@@ -33,6 +33,22 @@ class ProfilerPathManager:
         return ""
 
     @classmethod
+    def get_info_path(cls, profiler_path: str) -> str:
+        info_path = os.path.join(cls.get_cann_path(profiler_path), 'host/info.json')
+        if os.path.exists(info_path):
+            return info_path
+        else:
+            return ""
+
+    @classmethod
+    def get_host_start_log_path(cls, profiler_path: str) -> str:
+        info_path = os.path.join(cls.get_cann_path(profiler_path), 'host/host_start.log')
+        if os.path.exists(info_path):
+            return info_path
+        else:
+            return ""
+
+    @classmethod
     def get_device_path(cls, cann_path: str) -> str:
         sub_dirs = os.listdir(os.path.realpath(cann_path))
         for sub_dir in sub_dirs:

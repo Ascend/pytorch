@@ -32,7 +32,8 @@ class MemoryUseBean:
 
     @property
     def time_us(self) -> float:
-        time_us = int(self._constant_data[MemoryEnum.TIME_NS.value]) / Constant.NS_TO_US
+        memory_ns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[MemoryEnum.TIME_NS.value])
+        time_us = int(memory_ns) / Constant.NS_TO_US
         return ProfilerConfig().get_local_time(time_us)
 
     @property

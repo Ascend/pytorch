@@ -46,13 +46,15 @@ class TorchOpBean:
 
     @property
     def ts(self) -> float:
-        ts = int(self._constant_data[TorchOpEnum.START_NS.value]) / Constant.NS_TO_US
+        startns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value])
+        ts = int(startns) / Constant.NS_TO_US
         return ProfilerConfig().get_local_time(ts)
 
     @property
     def dur(self) -> float:
-        return (int(self._constant_data[TorchOpEnum.END_NS.value]) - int(
-            self._constant_data[TorchOpEnum.START_NS.value])) / Constant.NS_TO_US
+        startns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value])
+        endns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.END_NS.value])
+        return (int(endns) - int(startns)) / Constant.NS_TO_US
 
     @property
     def args(self) -> dict:
