@@ -42,7 +42,7 @@ namespace at_npu
   {
 
     // smallvector max size
-    const int N = 32;
+    TORCH_NPU_EXPORT const int N = 32;
     // npu tensor max size
     const int SHAPE_SIZE = 8;
     // HALF_MAX and HALF_MIN of NPU support
@@ -59,11 +59,11 @@ namespace at_npu
     class NpuUtils
     {
     public:
-      static bool check_match(const at::Tensor *tensor);
+      TORCH_NPU_API static bool check_match(const at::Tensor *tensor);
       TORCH_NPU_API static at::Tensor format_contiguous(const at::Tensor &src);
       static at::Tensor format_contiguous_add_copy_optimize(const at::Tensor &src);
       static void RefreshFormat(const at::Tensor &tensor);
-      static void format_fresh_view(
+      TORCH_NPU_API static void format_fresh_view(
           at::Tensor &x,
           const at::Tensor &y);
 

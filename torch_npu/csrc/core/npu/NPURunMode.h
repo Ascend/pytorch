@@ -16,6 +16,7 @@
 
 #pragma once
 #include <c10/macros/Export.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 #include <string>
 
@@ -35,6 +36,6 @@ public:
 
 private:
   static ModeKind cur_mode_;
-  static bool is_graph_mode;
+  C10_NPU_EXPORT static bool is_graph_mode;
 };
 } // namespace c10_npu

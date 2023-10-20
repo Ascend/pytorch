@@ -64,11 +64,11 @@ class OpPreparation {
   TORCH_NPU_API static at::Tensor ApplyTensor(const at::Tensor &src, const c10::TensorOptions &options);
   TORCH_NPU_API static at::Tensor ApplyTensor(c10::IntArrayRef sizes, const c10::TensorOptions &options, const at::Tensor &src);
   // DEPRECATED: ApplyTensorWithFormat will be deprecated, please use apply_tensor_with_format instead.
-  static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, int64_t format, bool keep_format = false);
-  static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
-                                          bool keep_format = false);
-  static at::Tensor ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format,
-                                          bool keep_format = false);
+  TORCH_NPU_API static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, int64_t format, bool keep_format = false);
+  TORCH_NPU_API static at::Tensor ApplyTensorWithFormat(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
+                                                        bool keep_format = false);
+  TORCH_NPU_API static at::Tensor ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format,
+                                                        bool keep_format = false);
 
   // DEPRECATED: ApplyTensorWithSizes will be deprecated, please use apply_tensor_with_sizes instead.
   static at::Tensor ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options);

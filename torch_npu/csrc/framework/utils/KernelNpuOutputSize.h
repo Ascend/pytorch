@@ -23,7 +23,7 @@
 namespace at_npu {
 namespace native {
 // npu tensor max size
-const int SIZE = 8;
+TORCH_NPU_EXPORT const int SIZE = 8;
 
 TORCH_NPU_API c10::IntArrayRef input_same_output_size(const at::Tensor& input);
 TORCH_NPU_API c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor& self,c10::IntArrayRef padding);

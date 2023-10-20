@@ -30,6 +30,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl.h"
@@ -114,7 +115,7 @@ public:
                                   c10::ArrayRef<at::Tensor> outputs);
   static bool IsScalarWrappedToTensor(const at::Tensor &tensor);
   static float GetScalarFloatValue(const c10::Scalar &scalar);
-  static int64_t GetTensorNpuFormat(const at::Tensor &tensor);
+  TORCH_NPU_API static int64_t GetTensorNpuFormat(const at::Tensor &tensor);
   static c10::SmallVector<int64_t, SHAPE_SIZE> ConvertIntArrayRefToSmallVector(c10::IntArrayRef intArray);
   // used by aclnn to reduce time cost of alloc workspace
   static at::Tensor UnsafeEmptyWorkspace(uint64_t size);
