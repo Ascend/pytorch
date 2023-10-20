@@ -16,7 +16,7 @@ def _write_if_changed_security(self, filename: str, contents: str) -> None:
     if contents != old_contents:
         with os.fdopen(os.open(filepath, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as f:
             f.write(contents)
-        os.chmod(filepath, 0o550)
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
 
 
 def apply_codegen_patches():

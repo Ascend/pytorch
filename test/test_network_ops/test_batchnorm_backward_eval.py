@@ -10,8 +10,8 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.op1 = nn.Conv2d(in_channels, in_channels, 1)
         self.op2 = nn.BatchNorm2d(in_channels)
-        self.op2.running_mean = torch.tensor([i/1000 for i in range(in_channels)])
-        self.op2.running_var = torch.tensor([i/1000 for i in range(in_channels)])
+        self.op2.running_mean = torch.tensor([i / 1000 for i in range(in_channels)])
+        self.op2.running_var = torch.tensor([i / 1000 for i in range(in_channels)])
         self.op3 = nn.Conv2d(in_channels, in_channels, 1)
 
     def forward(self, x):

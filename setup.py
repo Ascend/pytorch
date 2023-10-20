@@ -99,7 +99,7 @@ def generate_torch_npu_version():
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
         f.write("git_version = {}\n".format(repr(sha)))
-    os.chmod(version_path, 0o550)
+    os.chmod(version_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
 
 
 generate_torch_npu_version()

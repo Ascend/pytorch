@@ -11,7 +11,7 @@ class TestWhere(TestCase):
         output = torch.where(input1)
         output = list(output)
 
-        for i in range(len(output)):
+        for i, _ in enumerate(output):
             output[i] = output[i].numpy().astype(np.int32)
         return output
 
@@ -19,7 +19,7 @@ class TestWhere(TestCase):
         output = torch.where(input1)
         output = list(output)
 
-        for i in range(len(output)):
+        for i, _ in enumerate(output):
             output[i] = output[i].to("cpu").numpy().astype(np.int32)
         return output
 
@@ -63,7 +63,7 @@ class TestWhere(TestCase):
             npu_output_s = self.npu_op_exec_s(npu_input1, npu_ones)
             cpu_output_s = cpu_output_s.astype(npu_output_s.dtype)
 
-            for i in range(len(cpu_output)):
+            for i, _ in enumerate(cpu_output):
                 cpu_output[i] = cpu_output[i].astype(npu_output[i].dtype)
                 self.assertRtolEqual(cpu_output[i], npu_output[i])
 

@@ -35,16 +35,6 @@ class TestHammingWindow(TestCase):
         output = output.numpy()
         return output
 
-        for item in shape_format:
-            output_shape = ((item[0] + 1) if (item[1]) else item[0])
-
-            output_y = self.generate_output_data(0, 100, (1, output_shape), np.float32)
-            cpu_output = self.cpu_op_exec_out(item[0], periodic=item[1], alpha=item[2], beta=item[3], dtype=item[4],
-                                              output_y=output_y).numpy()
-            npu_output = self.npu_op_exec_out(item[0], periodic=item[1], alpha=item[2], beta=item[3], dtype=item[4],
-                                              output_y=output_y).cpu().numpy()
-            self.assertRtolEqual(cpu_output, npu_output)
-
 
 if __name__ == "__main__":
     run_tests()

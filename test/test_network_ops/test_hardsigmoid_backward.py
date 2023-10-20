@@ -4,6 +4,9 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+cpu_input_grad = None
+npu_input_grad = None
+
 
 def cpu_input_grad_hook(grad):
     global cpu_input_grad

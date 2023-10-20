@@ -113,7 +113,9 @@ class TestNpuNmsRotated(TestCase):
             ap = cur_pts[i] - other_pts[0]
             ap_dot_ab = self.vec_dot(ap, ab)
             ap_dot_ad = -self.vec_dot(ap, da)
-            if (ap_dot_ab >= 0) and (ap_dot_ad >= 0) and (ap_dot_ab <= ab_dot_ab) and (ap_dot_ad <= ad_dot_ad):
+            is_dot_valid1 = (ap_dot_ab >= 0) and (ap_dot_ad >= 0)
+            is_dot_valid2 = (ap_dot_ab <= ab_dot_ab) and (ap_dot_ad <= ad_dot_ad)
+            if is_dot_valid1 and is_dot_valid2:
                 inter_pts[num] = cur_pts[i]
                 num += 1
         return inter_pts, num

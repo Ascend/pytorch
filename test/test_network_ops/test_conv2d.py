@@ -61,7 +61,7 @@ class TestConv2d(TestCase):
             if weight_cpu.dtype == torch.float16:
                 weight_cpu = weight_cpu.to(torch.float32)
             kernel_size = (item[1][2][2], item[1][2][3])
-            assert item[0][2][1]/item[6] == item[1][2][1], \
+            assert item[0][2][1] / item[6] == item[1][2][1], \
                 "ilegal parameters: con2d in_channels//groups must equal to weight.size[1]."
             cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1],
                                           item[1][2][0], kernel_size=kernel_size,
