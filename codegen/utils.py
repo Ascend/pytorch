@@ -229,7 +229,7 @@ def merge_custom_yaml(pta_path, op_plugin_path):
     merged_yaml_path = gen_custom_yaml_path(pta_path)
     with os.fdopen(os.open(merged_yaml_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as outfile:
         yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
-    os.chmod(merged_yaml_path, 0o550)
+    os.chmod(merged_yaml_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
     return merged_yaml
 
 

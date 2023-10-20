@@ -33,9 +33,9 @@ class TestRenorm(TestCase):
         for i in range(dims):
             if (i != dim):
                 shape_list = shape_list + [i]
-        shape_list = tuple(shape_list)
+        shape_tuple = tuple(shape_list)
         tmp = (input_x != 0)
-        N = np.sum(tmp, shape_list, keepdims=True)
+        N = np.sum(tmp, shape_tuple, keepdims=True)
         N = np.where(N > maxnorm, maxnorm / (N + 1e-7), 1.0)
         output = input_x * N
         return output

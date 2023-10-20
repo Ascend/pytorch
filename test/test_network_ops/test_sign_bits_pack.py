@@ -26,7 +26,7 @@ class TestLess(TestCase):
         sign_data = sign_data + 1
         bool_data = np.bool_(sign_data)
         pack_bit = np.packbits(bool_data, bitorder="little")
-        return pack_bit.reshape(size, pack_bit.shape[0]//size)
+        return pack_bit.reshape(size, pack_bit.shape[0] // size)
 
     def npu_op_exec(self, input1, size):
         output = torch_npu.npu_sign_bits_pack(input1, size)

@@ -24,7 +24,7 @@ class TestEmbeddingRenorm(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         npu_input1 = torch.from_numpy(input1)
-        npu_input2 = torch.LongTensor(np.random.uniform(0, shape[0], int(shape[0]/2,)).astype(np.int32))
+        npu_input2 = torch.LongTensor(np.random.uniform(0, shape[0], int(shape[0] / 2,)).astype(np.int32))
 
         return npu_input1, npu_input2
 
