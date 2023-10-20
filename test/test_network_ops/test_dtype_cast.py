@@ -40,8 +40,7 @@ class TestDtypeCast(TestCase):
         a.requires_grad = True
         b = torch_npu.npu_dtype_cast(a, torch.half)
         if b.requires_grad is not True:
-            print("the output.requires_grad of npu_dtype_cast should be same with input, but not so.")
-            sys.exit(-1)
+            raise RuntimeError("the output.requires_grad of npu_dtype_cast should be same with input, but not so.")
 
     def test_dtype_cast_shape_format(self, device="npu"):
         shape_format = [

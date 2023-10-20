@@ -118,10 +118,9 @@ class TestLstm(TestCase):
         lengths : [6, 5, 3]
         '''
 
-        # The padding subscript is 0
-        pad_token = 0
-
         def pad_seq(seq, seq_len, max_length):
+            # The padding subscript is 0
+            pad_token = 0
             seq += [pad_token for _ in range(max_length - seq_len)]
             return seq
 
@@ -173,10 +172,9 @@ class TestLstm(TestCase):
         lengths : [6, 5, 3]
         '''
 
-        # The padding subscript is 0
-        pad_token = 0
-
         def pad_seq(seq, seq_len, max_length):
+            # The padding subscript is 0
+            pad_token = 0
             seq += [pad_token for _ in range(max_length - seq_len)]
             return seq
 
@@ -219,10 +217,9 @@ class TestLstm(TestCase):
             input_seq = sorted(input_seq, key=lambda tp: len(tp), reverse=True)
             lengths = sorted(lengths, key=lambda tp: tp, reverse=True)
 
-            # The padding subscript is 0
-            pad_token = 0
-
             def pad_seq(seq, seq_len, max_length):
+                # The padding subscript is 0
+                pad_token = 0
                 seq += [pad_token for _ in range(max_length - seq_len)]
                 return seq
 
