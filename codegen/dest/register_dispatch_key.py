@@ -387,9 +387,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
 
                 device_guard = "// DeviceGuard omitted"  # default
                 record_func_def = """
-#ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
-#endif 
 """
                 if f.device_guard and is_cuda_dispatch_key(self.backend_index.dispatch_key):
                     has_tensor_options = any(isinstance(a.argument, TensorOptionsArguments) for a in args)

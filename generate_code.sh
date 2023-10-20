@@ -19,9 +19,8 @@ CDIR="$(cd "$(dirname "$0")" ; pwd -P)"
 
 cd $CDIR
 
-build_libtorch="$1"
-py_exec="$2"
-pytorch_version="$3"
+py_exec="$1"
+pytorch_version="$2"
 
 IFS='.' read -ra version_parts <<< "$pytorch_version"
 
@@ -48,11 +47,9 @@ ${py_exec} -m codegen.autograd.gen_autograd \
   --autograd_dir="$CDIR/codegen/autograd/" \
   --npu_native_function_dir="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml"
 
-if [[ ${build_libtorch} != "True" ]]; then
-  ${py_exec} -m codegen.gen_python_functions  \
-    --output_dir="$CDIR/torch_npu/csrc/aten/" \
-    --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
-    --native_yaml="$CDIR/codegen/native_functions.yaml" \
-    --template_path="$CDIR/codegen/templates" \
-    --op_plugin_yaml_path="$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir/op_plugin_functions.yaml"
-fi
+${py_exec} -m codegen.gen_python_functions  \
+  --output_dir="$CDIR/torch_npu/csrc/aten/" \
+  --source_yaml="$CDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
+  --native_yaml="$CDIR/codegen/native_functions.yaml" \
+  --template_path="$CDIR/codegen/templates" \
+  --op_plugin_yaml_path="$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir/op_plugin_functions.yaml"

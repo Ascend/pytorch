@@ -177,9 +177,9 @@ def get_pytorch_dir():
         return os.path.dirname(frame_summary.filename)
 
 
-def generate_bindings_code(base_dir, verbose):
+def generate_bindings_code(base_dir):
     py_exec = sys.executable
-    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), verbose, py_exec, VERSION]
+    generate_code_cmd = ["bash", os.path.join(base_dir, 'generate_code.sh'), py_exec, VERSION]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -389,11 +389,10 @@ class PythonPackageBuild(build_py, object):
         super(PythonPackageBuild, self).finalize_options()
 
 
-to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
-    generate_bindings_code(BASE_DIR, to_cpu)
+    generate_bindings_code(BASE_DIR)
     build_stub(BASE_DIR)
 
 # Setup include directories folders.

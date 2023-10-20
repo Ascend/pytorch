@@ -2,9 +2,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#ifndef BUILD_LIBTORCH
 #include <Python.h>
-#endif
 
 #include <unistd.h>
 #include <sys/time.h>
@@ -177,12 +175,10 @@ NPUStatus Repository::MakeSureQueueEmpty() {
   // the TE module attempts to obtain the GIL.
   // If the current thread does not release the GIL, a deadlock will
   // occur.
-#ifndef BUILD_LIBTORCH
   PyThreadState *gilState = nullptr;
   if (PyGILState_Check()) {
     gilState = PyEval_SaveThread();
   }
-#endif
 
   if (consumer.joinable()) {
     ssize_t s;
@@ -198,12 +194,10 @@ NPUStatus Repository::MakeSureQueueEmpty() {
             continue;
           }
           ASCEND_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
-#ifndef BUILD_LIBTORCH
           // Get the GIL
           if (gilState) {
             PyEval_RestoreThread(gilState);
           }
-#endif
           return INTERNEL_ERROR;
         }
       }
@@ -211,12 +205,10 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     }
   }
 
-#ifndef BUILD_LIBTORCH
   // Get the GIL
   if (gilState) {
     PyEval_RestoreThread(gilState);
   }
-#endif
 
   return SUCCESS;
 }
@@ -241,13 +233,10 @@ bool Repository::ReadQueue() {
   }
 
   __sync_synchronize();
-#ifndef BUILD_LIBTORCH
   at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, datas, read_idx.idx);
   auto ret = manager().Call(datas, read_idx.idx);
   at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, datas, read_idx.idx);
-#else
-  auto ret = manager().Call(datas, read_idx.idx);
-#endif
+
   if (ret != 0) {
     ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
                 std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
@@ -289,7 +278,6 @@ void Repository::Enqueue(void* cur_paras) {
       SetWriteWorking(false);
       __sync_synchronize();
       if (IsFullQueue()) {
-#ifndef BUILD_LIBTORCH
         // double check the current thread hold a Gil lock
         if (PyGILState_Check()) {
           Py_BEGIN_ALLOW_THREADS s = eventfd_read(efd_write, &u);
@@ -297,9 +285,7 @@ void Repository::Enqueue(void* cur_paras) {
         } else {
           s = eventfd_read(efd_write, &u);
         }
-#else
-        s = eventfd_read(efd_write, &u);
-#endif
+
         if (s != 0) {
           if (errno == EINTR) {
             continue;

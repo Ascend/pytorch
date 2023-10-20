@@ -25,10 +25,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
-
-#ifndef BUILD_LIBTORCH
 #include <Python.h>
-#endif
 
 namespace at_npu
 {
@@ -134,7 +131,6 @@ namespace at_npu
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
-#ifndef BUILD_LIBTORCH
       if (PyGILState_Check()) {
         // we need to release GIL for NPU to compile op.
         Py_BEGIN_ALLOW_THREADS
@@ -143,9 +139,6 @@ namespace at_npu
       } else {
         ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
       }
-#else
-        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
-#endif
       }
 
     aclError OpCommandImpl::InnerRun(
@@ -155,9 +148,7 @@ namespace at_npu
         c10::SmallVector<int64_t, N> &sync_index,
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       aclError ret;
-#ifndef BUILD_LIBTORCH
       at_npu::native::NpuUtils::ProfReportMarkData(name);
-#endif
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -282,9 +273,7 @@ namespace at_npu
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType);
       aclError ret;
-#ifndef BUILD_LIBTORCH
       at_npu::native::NpuUtils::ProfReportMarkData(std::string(cur_paras->opType));
-#endif
       // open the deterministicAlgorithms config
       SetDeterministic();
       if (cur_paras->customHandler) {
