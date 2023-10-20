@@ -102,6 +102,17 @@ typedef struct HcclRootInfoDef {
     char internal[HCCL_ROOT_INFO_BYTES];
 } HcclRootInfo;
 
+/**
+ * @brief HCCL set config type
+ */
+typedef enum {
+    HCCL_DETERMINISTIC = 0,
+    HCCL_CONFIG_RESERVED
+} HcclConfig;
+
+union  HcclConfigValue {
+    int32_t value;
+};
 #ifdef __cplusplus
 }
 #endif // __cplusplus

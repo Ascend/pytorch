@@ -160,6 +160,18 @@ extern HcclResult HcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclD
 extern HcclResult HcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType sendType,
     const void *recvBuf, uint64_t recvCount, HcclDataType recvType, HcclComm comm, aclrtStream stream);
 
+/**
+ * @ingroup AscendCL
+ * @brief set hccl config option value
+ *
+ * @param config [IN]      hccl set config type
+ * @param configValue [IN]   hccl set config value
+ *
+ * @retval HCCL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
