@@ -1104,10 +1104,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::gather(
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
-    std::vector<at::Tensor>& /* unused */,
-    std::vector<std::vector<at::Tensor>>& /* unused */,
-    const c10d::ScatterOptions& /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support scatter");
+    std::vector<at::Tensor>& outputTensors,
+    std::vector<std::vector<at::Tensor>>& inputTensors,
+    const c10d::ScatterOptions& opts) {
+  //  throw std::runtime_error("ProcessGroupHCCL does not support scatter");
+  //  use reduce_scatter to implement scatter temporarily;
+  if (inputTensors.size() == 0) {
+    std::vector<at::Tensor> zeros;
+    for (int i = 0; i < size_; i++) {
+      zeros.push_back(at::zeros_like(outputTensors[0]));
+    }
+    inputTensors.push_back(zeros);
+  }
+  c10d::ReduceScatterOptions reduceScatterOps = c10d::ReduceScatterOptions();
+  reduceScatterOps.reduceOp = c10d::ReduceOp::SUM;
+  return reduce_scatter(
+      outputTensors,
+      inputTensors,
+      reduceScatterOps);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(
