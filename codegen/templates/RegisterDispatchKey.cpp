@@ -45,9 +45,7 @@
 #include <ATen/Config.h>
 #include <torch/library.h>
 
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
-#endif
 
 $external_backend_headers
 $namespaced_headers

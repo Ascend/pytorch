@@ -1,8 +1,6 @@
 #include "torch_npu/csrc/aten/OverrideOperators.h"
 #include "op_plugin/OpInterface.h"
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/utils.h"
-#endif
 
 namespace at_npu {
 namespace native {
@@ -19,14 +17,12 @@ at::Tensor wrapper___embedding_bag_dense_backward(
     const c10::optional<at::Tensor> & per_sample_weights,
     int64_t padding_idx) {
     // No device check
-  // DeviceGuard omitted
-#ifndef BUILD_LIBTORCH
-torch_npu::profiler::NPURecordFunction guard;
-#endif
+    // DeviceGuard omitted
+    torch_npu::profiler::NPURecordFunction guard;
 
-  return op_plugin::_embedding_bag_dense_backward(
-      grad, indices, offset2bag, bag_size, maximum_indices, num_weights,
-      scale_grad_by_freq, mode, per_sample_weights, padding_idx);
+    return op_plugin::_embedding_bag_dense_backward(
+        grad, indices, offset2bag, bag_size, maximum_indices, num_weights,
+        scale_grad_by_freq, mode, per_sample_weights, padding_idx);
 }
 
 at::Tensor wrapper__nan_to_num(
@@ -34,13 +30,11 @@ at::Tensor wrapper__nan_to_num(
     c10::optional<double> nan,
     c10::optional<double> posinf,
     c10::optional<double> neginf) {
-  // No device check
-  // DeviceGuard omitted
-#ifndef BUILD_LIBTORCH
-  torch_npu::profiler::NPURecordFunction guard;
-#endif
+    // No device check
+    // DeviceGuard omitted
+    torch_npu::profiler::NPURecordFunction guard;
 
-  return op_plugin::nan_to_num(self, nan, posinf, neginf);
+    return op_plugin::nan_to_num(self, nan, posinf, neginf);
 }
 
 at::Tensor& wrapper_out_nan_to_num_out(
@@ -49,13 +43,11 @@ at::Tensor& wrapper_out_nan_to_num_out(
     c10::optional<double> posinf,
     c10::optional<double> neginf,
     at::Tensor& out) {
-  // No device check
-  // DeviceGuard omitted
-#ifndef BUILD_LIBTORCH
-  torch_npu::profiler::NPURecordFunction guard;
-#endif
+    // No device check
+    // DeviceGuard omitted
+    torch_npu::profiler::NPURecordFunction guard;
 
-  return op_plugin::nan_to_num_out(self, nan, posinf, neginf, out);
+    return op_plugin::nan_to_num_out(self, nan, posinf, neginf, out);
 }
 
 at::Tensor& wrapper__nan_to_num_(
@@ -63,46 +55,41 @@ at::Tensor& wrapper__nan_to_num_(
     c10::optional<double> nan,
     c10::optional<double> posinf,
     c10::optional<double> neginf) {
-  // No device check
-  // DeviceGuard omitted
-#ifndef BUILD_LIBTORCH
-  torch_npu::profiler::NPURecordFunction guard;
-#endif
+    // No device check
+    // DeviceGuard omitted
+    torch_npu::profiler::NPURecordFunction guard;
 
-  return op_plugin::nan_to_num_(self, nan, posinf, neginf);
+    return op_plugin::nan_to_num_(self, nan, posinf, neginf);
 }
 
 at::Tensor wrapper__argmin(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
-  // No device check
-  // DeviceGuard omitted
-#ifndef BUILD_LIBTORCH
-torch_npu::profiler::NPURecordFunction guard;
-#endif
-  return op_plugin::argmin(self, dim, keepdim);
+    // No device check
+    // DeviceGuard omitted
+    torch_npu::profiler::NPURecordFunction guard;
+    return op_plugin::argmin(self, dim, keepdim);
 }
+
 at::Tensor wrapper__argmax(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim) {
-  // No device check
-  // DeviceGuard omitted
-#ifndef BUILD_LIBTORCH
-torch_npu::profiler::NPURecordFunction guard;
-#endif
-  return op_plugin::argmax(self, dim, keepdim);
+    // No device check
+    // DeviceGuard omitted
+    torch_npu::profiler::NPURecordFunction guard;
+    return op_plugin::argmax(self, dim, keepdim);
 }
 
 
 class IgnoreWarningHandler : public c10::WarningHandler {
 public:
-  void process(
-      const c10::SourceLocation& source_location,
-      const std::string& msg,
-      const bool /*verbatim*/)  {
-    ;
-  }
+    void process(
+        const c10::SourceLocation& source_location,
+        const std::string& msg,
+        const bool /*verbatim*/)  {
+        ;
+    }
 };
 
 c10::WarningHandler* getIgnoreHandler() {
-  static IgnoreWarningHandler handler_ = IgnoreWarningHandler();
-  return &handler_;
+    static IgnoreWarningHandler handler_ = IgnoreWarningHandler();
+    return &handler_;
 };
 
 // use to ignore the warning info when overriding operator for CPU-implement

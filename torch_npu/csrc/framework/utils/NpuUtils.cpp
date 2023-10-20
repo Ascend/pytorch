@@ -32,10 +32,9 @@
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
-#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
-#endif
+
 namespace at_npu {
 namespace native {
 
@@ -281,7 +280,6 @@ void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
               t.dim(), "-D");
 }
 
-#ifndef BUILD_LIBTORCH
 void NpuUtils::ProfReportMarkData(const std::string &msg) {
   if (msg.empty()) {
     return;
@@ -343,7 +341,6 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, si
     }
   }
 }
-#endif
 
 const std::string AclDateTypeToString(aclDataType descDType)
 {
