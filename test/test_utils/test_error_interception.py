@@ -105,7 +105,7 @@ class TestPtaErrorInterception(TestCase):
                 torch.empty(10, dtype=torch.int8, device=err_input)
 
     def test_empty_like(self):
-        in_tensor =torch.tensor(1, device="npu:0")
+        in_tensor = torch.tensor(1, device="npu:0")
         for err_idx in error_index_list:
             with self.assertRaisesRegex(RuntimeError, device_ofr_info):
                 torch.empty_like(in_tensor, dtype=torch.int8, device=err_idx)
@@ -132,10 +132,10 @@ class TestPtaErrorInterception(TestCase):
     def test_full_like(self):
         for err_idx in error_index_list:
             with self.assertRaisesRegex(RuntimeError, device_ofr_info):
-                torch.full_like(torch.tensor([1,1], device="npu"), 5, device=err_idx)
+                torch.full_like(torch.tensor([1, 1], device="npu"), 5, device=err_idx)
         for err_input in error_input_list:
             with self.assertRaisesRegex(RuntimeError, "Invalid device string: {}".format(err_input)):
-                torch.full_like(torch.tensor([1,1], device="npu"), 5, device=err_input)
+                torch.full_like(torch.tensor([1, 1], device="npu"), 5, device=err_input)
 
     def test_hamming_window(self):
         for err_idx in error_index_list:
@@ -288,6 +288,7 @@ class TestPtaErrorInterception(TestCase):
         for err_input in error_input_list:
             with self.assertRaisesRegex(RuntimeError, "Invalid device string: {}".format(err_input)):
                 torch.npu.set_device(err_input)
+
 
 if __name__ == "__main__":
     run_tests()

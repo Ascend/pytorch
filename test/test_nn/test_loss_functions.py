@@ -54,12 +54,12 @@ class TestLossFunctions(TestCase):
         S = 30      # Target sequence length of longest target in batch (padding length)
         S_min = 10  # Minimum target length, for demonstration purposes
 
-         # Initialize random batch of input vectors, for *size = (T,N,C)
+        # Initialize random batch of input vectors, for *size = (T,N,C)
         input1 = torch.randn(T, N, C).npu().log_softmax(2).detach()
         cinput = input1.cpu()
         input1.requires_grad_(True)
         cinput.requires_grad_(True)
-         # Initialize random batch of targets (0 = blank, 1:C = classes)
+        # Initialize random batch of targets (0 = blank, 1:C = classes)
         target = torch.randint(low=1, high=C, size=(N, S), dtype=torch.int32).npu()
 
         input_lengths = torch.full(size=(N,), fill_value=T, dtype=torch.int32).npu()
@@ -97,7 +97,6 @@ class TestLossFunctions(TestCase):
         noutput.backward(torch.ones_like(noutput))
         self.assertRtolEqual(output.detach().numpy(), noutput.detach().cpu().numpy())
         self.assertRtolEqual(input1.grad.numpy(), ninput.grad.cpu().numpy())
-
 
     def test_PoissonNLLLoss(self):
         loss = nn.PoissonNLLLoss().npu()
@@ -177,20 +176,20 @@ class TestLossFunctions(TestCase):
 
     def test_SmoothL1Loss(self):
         loss = nn.SmoothL1Loss().npu()
-        input1 = torch.Tensor([1,5,3,0.5,0.9]).npu()
-        targt = torch.Tensor([4,1,0,0.4,0.2]).npu()
+        input1 = torch.Tensor([1, 5, 3, 0.5, 0.9]).npu()
+        targt = torch.Tensor([4, 1, 0, 0.4, 0.2]).npu()
         output = loss(input1, targt)
         self.assertEqual(output is not None, True)
 
     def test_SoftMarginLoss(self):
         loss = nn.SoftMarginLoss().npu()
-        input1 = torch.Tensor([1,5,3,0.5,0.9]).npu()
-        targt = torch.Tensor([4,1,0,0.4,0.2]).npu()
+        input1 = torch.Tensor([1, 5, 3, 0.5, 0.9]).npu()
+        targt = torch.Tensor([4, 1, 0, 0.4, 0.2]).npu()
         output = loss(input1, targt)
         self.assertEqual(output is not None, True)
 
     def test_CosineEmbeddingLoss(self):
-        loss = torch.nn.CosineEmbeddingLoss(reduction = "mean").npu()
+        loss = torch.nn.CosineEmbeddingLoss(reduction="mean").npu()
         input1 = torch.randn(3, 5).npu()
         input2 = torch.randn(3, 5).npu()
         targt = torch.randint(5, (3,)).npu().int()

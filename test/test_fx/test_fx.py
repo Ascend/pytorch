@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -35,18 +35,24 @@ except ImportError:
     HAS_TORCHVISION = False
 skipIfNoTorchVision = unittest.skipIf(not HAS_TORCHVISION, "no torchvision")
 
+
 def a_non_torch_leaf(a, b):
     return a + b
 
 # Test wrap() passing both a function name as well as a function
 # directly
+
+
 def a_lifted_leaf(a, b):
     return a[0] + a[1] + b
 
+
 wrap('a_lifted_leaf')
+
 
 def a_lifted_leaf2(a, b):
     return a[0] + a[1] + b
+
 
 wrap(a_lifted_leaf2)
 
@@ -103,8 +109,8 @@ class TestFX(TestCase):
                 return x
 
         t = T()
-        symbolic_trace(t)   
-    
+        symbolic_trace(t)
+
     def test_custom_import(self):
         graph = torch.fx.Graph()
         a = graph.placeholder('x')
@@ -115,7 +121,7 @@ class TestFX(TestCase):
         gm = GraphModule(torch.nn.Module(), graph)
         x, y = torch.rand(1).npu(), torch.rand(1).npu()
         self.assertEqual(torch.sin(x + y), gm(x, y))
-    
+
     def test_args_kwargs(self):
         class T(torch.nn.Module):
             def forward(self, *args, **kwargs):
@@ -133,7 +139,7 @@ class TestFX(TestCase):
 
         t = T()
         with self.assertRaisesRegex(RuntimeError, r'cannot be part of \*args expansion'):
-            self.checkGraphModule(t, (torch.rand(1).npu(), torch.rand(1).npu()), {'foo': torch.rand(1).npu()}) 
+            self.checkGraphModule(t, (torch.rand(1).npu(), torch.rand(1).npu()), {'foo': torch.rand(1).npu()})
 
     def test_fx_shifts(self):
         class MyModule(torch.nn.Module):
@@ -143,12 +149,12 @@ class TestFX(TestCase):
         input_tensor = torch.LongTensor(10).random_(0, 1024).npu()
 
         m = MyModule()
-        self.checkGraphModule(m, (input_tensor,))   
+        self.checkGraphModule(m, (input_tensor,))
 
     def test_dict(self):
         class MyDictMod(torch.nn.Module):
             def forward(self, d):
-                return d['3'].relu(), {'4' : d['3'].neg()}
+                return d['3'].relu(), {'4': d['3'].neg()}
 
         input_dict = {'3': torch.rand(3, 4).npu()}
         m = MyDictMod()
@@ -240,7 +246,7 @@ class TestFX(TestCase):
                 super().__init__()
                 self.sa = SomeArgs()
 
-            def forward(self, x : list):
+            def forward(self, x: list):
                 return self.sa(*x)
 
         ul = UnpacksList()
@@ -257,7 +263,7 @@ class TestFX(TestCase):
                 super().__init__()
                 self.sk = SomeKwargs()
 
-            def forward(self, x : dict):
+            def forward(self, x: dict):
                 return self.sk(**x)
 
         ud = UnpacksDict()
@@ -268,7 +274,7 @@ class TestFX(TestCase):
         class MyModule(torch.nn.Module):
             def forward(self, x):
                 return torch_npu.contrib.function.npu_diou(x, x)
-        
+
         module = MyModule()
         traced = symbolic_trace(module)
         traced.graph.lint()
@@ -280,9 +286,10 @@ class TestFX(TestCase):
             def __init__(self):
                 super().__init__()
                 self.mish = torch_npu.contrib.module.Mish()
+
             def forward(self, x):
                 return self.mish(x)
-        
+
         module = MyModule()
         traced = symbolic_trace(module)
         traced.graph.lint()
@@ -293,7 +300,7 @@ class TestFX(TestCase):
         class MyModule(torch.nn.Module):
             def forward(self, x):
                 return torch.npu_format_cast(x, 2)
-        
+
         module = MyModule()
         traced = symbolic_trace(module)
         traced.graph.lint()

@@ -19,11 +19,13 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class Net(torch.nn.Module):
     def __init__(self, n_feature, n_hidden, n_output):
         super(Net, self).__init__()
         self.n_hidden = torch.nn.Linear(n_feature, n_hidden)
         self.out = torch.nn.Linear(n_hidden, n_output)
+
     def forward(self, x_layer):
         x_layer = torch.relu(self.n_hidden(x_layer))
         x_layer = self.n_hidden(x_layer)
@@ -31,11 +33,13 @@ class Net(torch.nn.Module):
         x_layer = torch.nn.functional.softmax(x_layer)
         return x_layer
 
+
 class TestReplay(TestCase):
     def test_replay_graph(self):
         if support_replay_model is False:
             self.assertNotEqual(support_replay_model, True)
             return
+
         def train():
             for i in range(steps):
                 out = model(x)

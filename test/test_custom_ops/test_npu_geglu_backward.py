@@ -52,5 +52,6 @@ class TestNpuGeGluBackward(TestCase):
 
         self.assertRtolEqual(dx_cpu.numpy(), dx_npu.cpu().numpy())
 
+
 if __name__ == "__main__":
     run_tests()

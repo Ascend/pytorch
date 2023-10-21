@@ -25,20 +25,20 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestUtilities(TestCase):
     def set_prune(self):
         net = nn.Sequential(OrderedDict([
-                ('first', nn.Linear(10, 4)),
-                ('second', nn.Linear(4, 1)),
-            ]))
+            ('first', nn.Linear(10, 4)),
+            ('second', nn.Linear(4, 1)),
+        ]))
         net = net.npu()
-        
+
         parameters_to_prune = (
-                (net.first, 'weight'),
-                (net.second, 'weight'),
-            )
+            (net.first, 'weight'),
+            (net.second, 'weight'),
+        )
         prune.global_unstructured(
-                parameters_to_prune,
-                pruning_method=prune.L1Unstructured,
-                amount=10,
-            )
+            parameters_to_prune,
+            pruning_method=prune.L1Unstructured,
+            amount=10,
+        )
         return net
 
     def test_clip_grad_norm_(self):
@@ -47,9 +47,9 @@ class TestUtilities(TestCase):
         self.assertEqual(output is not None, True)
 
     def test_clip_grad_value_(self):
-        x = torch.tensor([1., 2.]) 
+        x = torch.tensor([1., 2.])
 
-        x.grad = torch.tensor([0.3, 1.]) 
+        x.grad = torch.tensor([0.3, 1.])
 
         torch.nn.utils.clip_grad_value_(x, clip_value=0.4)
         expected_cpu_xgrad = torch.tensor([0.3000, 0.4000])
@@ -166,18 +166,18 @@ class TestUtilities(TestCase):
         m = nn.utils.prune.l1_unstructured(nn.Linear(2, 3).npu(), 'weight', amount=0.2)
         output = m.state_dict().keys()
         self.assertEqual(m is not None, True)
-        
+
     def test_prune_random_structured(self):
         m = nn.utils.prune.random_structured(
-        nn.Linear(5, 3).npu(), 'weight', amount=3, dim=1
-    )
+            nn.Linear(5, 3).npu(), 'weight', amount=3, dim=1
+        )
         columns_pruned = int(sum(torch.sum(m.weight, dim=0) == 0))
         self.assertEqual(5, columns_pruned)
 
     def test_prune_ln_structured(self):
         m = prune.ln_structured(
-       nn.Conv2d(5, 3, 2).npu(), 'weight', amount=0.3, dim=1, n=float('-inf')
-    ) 
+            nn.Conv2d(5, 3, 2).npu(), 'weight', amount=0.3, dim=1, n=float('-inf')
+        )
 
     def test_prune_custom_from_mask(self):
         model = nn.Linear(5, 3)
@@ -185,10 +185,10 @@ class TestUtilities(TestCase):
         model = model.npu()
         mask = mask.npu()
         m = prune.custom_from_mask(
-        model, name='bias', mask=mask
+            model, name='bias', mask=mask
         )
         self.assertEqual(m.bias_mask is not None, True)
-    
+
     def test_prune_remove(self):
         model = nn.Linear(5, 7)
         model = model.npu()
@@ -213,7 +213,7 @@ class TestUtilities(TestCase):
         weight_v_size = m.weight_v.size()
         self.assertExpectedInline(str(weight_g_size), '''torch.Size([40, 1])''')
         self.assertExpectedInline(str(weight_v_size), '''torch.Size([40, 20])''')
-       
+
     def test_remove_weight_norm(self):
         m = torch.nn.utils.weight_norm(nn.Linear(20, 40).npu())
         output = torch.nn.utils.remove_weight_norm(m)
@@ -234,7 +234,7 @@ class TestUtilityFunction(TestCase):
     def test_rnn_pack_padded_sequence(self):
         batch_size = 3   # 这个batch有3个序列
         max_len = 6       # 最长序列的长度是6
-        embedding_size = 8 # 嵌入向量大小8
+        embedding_size = 8  # 嵌入向量大小8
         hidden_size = 16   # 隐藏向量大小16
         vocab_size = 20    # 词汇表大小20
 
@@ -248,18 +248,19 @@ class TestUtilityFunction(TestCase):
         embedding = embedding.npu()
         lstm = lstm.npu()
 
-        #由大到小排序
-        input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
-        lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
+        # 由大到小排序
+        input_seq = sorted(input_seq, key=lambda tp: len(tp), reverse=True)
+        lengths = sorted(lengths, key=lambda tp: tp, reverse=True)
 
-        PAD_token = 0 # 填充下标是0
+        PAD_token = 0  # 填充下标是0
+
         def pad_seq(seq, seq_len, max_length):
             seq = seq
             seq += [PAD_token for _ in range(max_length - seq_len)]
             return seq
 
         pad_seqs = []  # 填充后的数据
-        for i,j in zip(input_seq, lengths):
+        for i, j in zip(input_seq, lengths):
             pad_seqs.append(pad_seq(i, j, max_len))
 
         pad_seqs = torch.tensor(pad_seqs).npu()
@@ -267,9 +268,9 @@ class TestUtilityFunction(TestCase):
 
         # 压缩，设置batch_first为true
         pack = torch.nn.utils.rnn.pack_padded_sequence(embeded, lengths, batch_first=True)
-        #这里如果不写batch_first,你的数据必须是[s,b,e]，不然会报错lenghth错误
+        # 这里如果不写batch_first,你的数据必须是[s,b,e]，不然会报错lenghth错误
 
-        #　利用lstm循环神经网络测试结果
+        # 　利用lstm循环神经网络测试结果
         state = None
         pade_outputs, _ = lstm(pack, state)
         # 设置batch_first为true;你可以不设置为true,为false时候只影响结构不影响结果
@@ -286,8 +287,8 @@ class TestUtilityFunction(TestCase):
     def test_nn_Flatten(self):
         input1 = torch.randn(32, 1, 5, 5).npu()
         m = nn.Sequential(
-        nn.Conv2d(1, 32, 5, 1, 1),
-        nn.Flatten()
+            nn.Conv2d(1, 32, 5, 1, 1),
+            nn.Flatten()
         )
         m = m.npu()
         output = m(input1)

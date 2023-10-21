@@ -21,11 +21,12 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
-class HcclAlltoAllTest(TestCase): 
+
+class HcclAlltoAllTest(TestCase):
     world_size_2p = 2
     world_size_4p = 4
     data = torch.randn(10, 20)
-   
+
     @classmethod
     def _init_dist_hccl(cls, rank, world_size):
         os.environ['MASTER_ADDR'] = '127.0.0.1'
@@ -36,7 +37,7 @@ class HcclAlltoAllTest(TestCase):
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
         return dist
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_2p(
             cls, rank, data, world_size, init_pg, c2p, p2c):
 
@@ -49,9 +50,8 @@ class HcclAlltoAllTest(TestCase):
         cout = 0
         outputdebug = pg.all_to_all(output_list, input1_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout))
-        
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_2p_size(
             cls, rank, data, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -74,7 +74,6 @@ class HcclAlltoAllTest(TestCase):
         if torch.get_npu_format(output.npu()) != 29:
             raise RuntimeError("format error!")
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout))
-
 
     def _test_multiprocess_2p(self, f, init_pg):
         ws = self.world_size_2p
@@ -100,7 +99,7 @@ class HcclAlltoAllTest(TestCase):
             if rank == 0:
                 exp = res[0]
                 for i in range(1, 5):
-                    exp = torch.cat((exp, res[i]), dim=0) 
+                    exp = torch.cat((exp, res[i]), dim=0)
             else:
                 exp = res[5]
                 for i in range(6, 10):
@@ -140,7 +139,7 @@ class HcclAlltoAllTest(TestCase):
             HcclAlltoAllTest._test_alltoall_2p_size,
             HcclAlltoAllTest._init_dist_hccl)
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_4p(
             cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -153,7 +152,7 @@ class HcclAlltoAllTest(TestCase):
         pg.all_to_all(output_list, input1_list)
         c2p.put((rank, [tensor.cpu() for tensor in output_list], cout, [1, 1, 1, 1]))
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_4p_size(
             cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -237,6 +236,7 @@ class HcclAlltoAllTest(TestCase):
         self._test_multiprocess_4p(
             HcclAlltoAllTest._test_alltoall_4p_size,
             HcclAlltoAllTest._init_dist_hccl)
+
 
 if __name__ == '__main__':
     run_tests()

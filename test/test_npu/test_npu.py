@@ -80,7 +80,7 @@ class TestNpu(TestCase):
         fmt_dict = {"_": "", "device": device}
         for k, v in stats.items():
             fmt_dict[k.replace(".", "-")] = v
-        
+
         expected_head = []
         expected_head.append("=" * 75)
         expected_head.append(" {_:16} PyTorch NPU memory summary, device ID {device:<18d} ")
@@ -93,7 +93,7 @@ class TestNpu(TestCase):
         assert_len = len(expected_head_str)
 
         self.assertEqual(expected_head_str, summary[:assert_len])
-         
+
     @staticmethod
     def _test_memory_stats_generator(self, device=None, N=35):
         if device is None:
@@ -291,7 +291,7 @@ class TestNpu(TestCase):
 
         # ensure out of memory error doesn't disturb subsequent kernel
         tensor.fill_(1)
-        self.assertTrue((tensor == 1).all()) 
+        self.assertTrue((tensor == 1).all())
 
     def _test_copy_sync_current_stream(self, x, y):
         x_plus_one = x + 1
@@ -450,7 +450,7 @@ class TestNpu(TestCase):
             torch_npu.npu.synchronize(torch.device("cpu"))
 
         with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
-                torch_npu.npu.synchronize("cpu")
+            torch_npu.npu.synchronize("cpu")
 
     def test_streams(self):
         default_stream = torch_npu.npu.current_stream()
@@ -562,7 +562,7 @@ class TestNpu(TestCase):
         del t
         t = torch.FloatTensor([1]).pin_memory()
         self.assertEqual(list(npu_tensor), [1])
-    
+
     def test_function_torch_empty_and_to(self):
         x = torch.empty((2, 3), dtype=torch.float16, device='npu')
         x_int32 = x.to(torch.int32)
@@ -576,7 +576,7 @@ class TestNpu(TestCase):
     def test_function_torch_empty_with_format(self):
         x = torch.empty_with_format((2, 3), dtype=torch.float32, device='npu')
         res = x + 1
-    
+
     def test_function_torch_empty_like(self):
         x = torch.empty((2, 3), dtype=torch.float32, device='npu')
         x_like = torch.empty_like(x)
@@ -584,7 +584,7 @@ class TestNpu(TestCase):
 
     def test_function_torch_empty_strided(self):
         x = torch.empty_strided((2, 3), (1, 2), dtype=torch.int8, device='npu')
-    
+
     def test_function_tensor_new_empty(self):
         x = torch.ones(()).npu()
         x_new_empty = x.new_empty((2, 3), dtype=torch.float16, device='npu')
@@ -612,7 +612,7 @@ class TestNpu(TestCase):
     def test_function_tensor_new_full(self):
         x_cpu = torch.tensor((), dtype=torch.float32)
         cpu_out = x_cpu.new_full((2, 3), 3.1)
-        
+
         x = torch.tensor((), dtype=torch.float32).npu()
         npu_output1 = x.new_full((2, 3), 3.1, device=None, requires_grad=False)
         npu_output2 = x.new_full((2, 3), 3.1, device='cpu', requires_grad=False)
@@ -636,7 +636,7 @@ class TestNpu(TestCase):
         self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output4.cpu().numpy())
         self.assertRtolEqual(cpu_out.numpy(), npu_output5.cpu().numpy())
-        
+
         cpu_out = x_cpu.new_ones(2)
         npu_output6 = x.new_ones(torch.tensor(2), device='npu', requires_grad=False)
         self.assertRtolEqual(cpu_out.numpy(), npu_output6.cpu().numpy())
@@ -694,7 +694,7 @@ class TestNpu(TestCase):
         self.assertIsInstance(x.npu().float(), torch.npu.FloatTensor)
         self.assertIsInstance(x.npu().float().cpu(), torch.FloatTensor)
         self.assertIsInstance(x.npu().float().cpu().int(), torch.IntTensor)
-    
+
     def _test_type_conversion_backward(self, t):
         fvar = Variable(t(torch.randn(5, 5).float()), requires_grad=True)
         fvar.double().sum().backward()
@@ -714,7 +714,7 @@ class TestNpu(TestCase):
             self.assertIsInstance(x.double().npu(), torch.npu.DoubleTensor)
             self.assertIsInstance(x.int().npu(), torch.npu.IntTensor)
             self.assertIsInstance(x.int().npu().cpu(), torch.IntTensor)
-        
+
         tensor_types = [torch.DoubleTensor, torch.FloatTensor, torch.IntTensor, torch.ByteTensor]
         for t, y_var in product(tensor_types, (True, False)):
             y = torch.randint(5, (5, 5), dtype=t.dtype)
@@ -736,7 +736,7 @@ class TestNpu(TestCase):
                     self.assertEqual(y_c.type(), x_c.type(y_typestr).type())
                     self.assertIs(y_c.dtype, x_c.type(y_c.dtype).dtype)
                     self.assertEqual(y_c.data_ptr(), y_c.npu().data_ptr() if y_npu else y_c.data_ptr())
-                    
+
         self._test_type_conversion_backward(lambda x: x)
         if torch.npu.is_available():
             self._test_type_conversion_backward(lambda x: x.npu())

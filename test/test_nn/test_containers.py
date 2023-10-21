@@ -24,6 +24,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 device = 'npu:0'
 torch.npu.set_device(device)
 
+
 class TestNN(TestCase):
     def test_parameter(self):
         cpu_output = torch.nn.Parameter(torch.tensor([[1, 2, 3, 4, 5.0]]))
@@ -42,17 +43,17 @@ class TestContainers(TestCase):
             def forward(self, x):
                 x = F.relu(self.conv1(x))
                 return x
-            
+
         model = Model().npu()
         x = torch.randn(1, 1, 32, 32).npu()
         output = model(x)
         self.assertEqual(output is not None, True)
-        
+
     def test_sequential(self):
-       torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.Linear(8, 8)).to(device=device)
-       
+        torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.Linear(8, 8)).to(device=device)
+
     def test_moduleList(self):
-        
+
         class MyModule(nn.Module):
             def __init__(self):
                 super(MyModule, self).__init__()
@@ -63,12 +64,12 @@ class TestContainers(TestCase):
                 for i, l in enumerate(self.linears):
                     x = self.linears[i // 2](x) + l(x)
                 return x
-            
+
         model = MyModule().npu()
         x = torch.randn(1, 1, 10, 10).npu()
         output = model(x)
         self.assertEqual(output is not None, True)
-        
+
     def test_ModuleDict(self):
         class ModuleDict(nn.Module):
             def __init__(self):
@@ -87,7 +88,7 @@ class TestContainers(TestCase):
                 x = self.choices[choice](x)
                 x = self.activations[act](x)
                 return x
-            
+
         net = ModuleDict().npu()
 
         fake_img = torch.randn((4, 10, 32, 32)).npu()
@@ -95,8 +96,8 @@ class TestContainers(TestCase):
         output = net(fake_img, 'conv', 'relu')
 
     def make_param(self):
-            return Parameter(torch.randn(10, 10, device=device))
-        
+        return Parameter(torch.randn(10, 10, device=device))
+
     def check_list(self, parameters, param_list):
         self.assertEqual(len(parameters), len(param_list))
         for p1, p2 in zip(parameters, param_list):
@@ -164,21 +165,21 @@ class TestContainers(TestCase):
         self.check_list(parameters, param_list)
 
     def check_dict(self, parameter_dict, parameters):
-            self.assertEqual(len(parameter_dict), len(parameters))
-            for k1, m2 in zip(parameters, parameter_dict.parameters()):
-                self.assertIs(parameters[k1], m2)
-            for k1, k2 in zip(parameters, parameter_dict):
-                self.assertIs(parameters[k1], parameter_dict[k2])
-            for k in parameter_dict:
-                self.assertIs(parameter_dict[k], parameters[k])
-            for k in parameter_dict.keys():
-                self.assertIs(parameter_dict[k], parameters[k])
-            for k, v in parameter_dict.items():
-                self.assertIs(v, parameters[k])
-            for k1, m2 in zip(parameters, parameter_dict.values()):
-                self.assertIs(parameters[k1], m2)
-            for k in parameters.keys():
-                self.assertTrue(k in parameter_dict)
+        self.assertEqual(len(parameter_dict), len(parameters))
+        for k1, m2 in zip(parameters, parameter_dict.parameters()):
+            self.assertIs(parameters[k1], m2)
+        for k1, k2 in zip(parameters, parameter_dict):
+            self.assertIs(parameters[k1], parameter_dict[k2])
+        for k in parameter_dict:
+            self.assertIs(parameter_dict[k], parameters[k])
+        for k in parameter_dict.keys():
+            self.assertIs(parameter_dict[k], parameters[k])
+        for k, v in parameter_dict.items():
+            self.assertIs(v, parameters[k])
+        for k1, m2 in zip(parameters, parameter_dict.values()):
+            self.assertIs(parameters[k1], m2)
+        for k in parameters.keys():
+            self.assertTrue(k in parameter_dict)
 
     def test_ParameterDict(self):
         parameters = OrderedDict([
@@ -230,7 +231,7 @@ class TestContainers(TestCase):
         parameter_dict.clear()
         self.assertEqual(len(parameter_dict), 0)
         parameters.clear()
-        
+
+
 if __name__ == "__main__":
     run_tests()
-

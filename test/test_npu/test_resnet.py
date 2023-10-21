@@ -47,8 +47,8 @@ PRINT_DEVICE = "cpu"
 
 
 model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
+                     if name.islower() and not name.startswith("__")
+                     and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('--data', metavar='DIR', default=SOURCE_DIR,
@@ -56,8 +56,8 @@ parser.add_argument('--data', metavar='DIR', default=SOURCE_DIR,
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
-                        ' | '.join(model_names) +
-                        ' (default: resnet18)')
+                    ' | '.join(model_names) +
+                    ' (default: resnet18)')
 parser.add_argument('-j', '--workers', default=8, type=int, metavar='N',
                     help='number of data loading workers (default: 8)')
 parser.add_argument('--epochs', default=EPOCHS_SIZE, type=int, metavar='N',
@@ -127,8 +127,7 @@ def run_resnet():
 
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
-
-        # Simply call main_worker function
+    # Simply call main_worker function
     main_worker(args.npu, args)
 
 
@@ -147,7 +146,6 @@ def main_worker(npu, args):
         print("=> creating model '{}'".format(args.arch))
         model = models.__dict__[args.arch]()
 
-
     model = model.to(CALCULATE_DEVICE)
 
     # define loss function (criterion) and optimizer
@@ -156,7 +154,6 @@ def main_worker(npu, args):
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-
 
     # Data loading code
     traindir = os.path.join(args.data, 'train')
@@ -172,7 +169,6 @@ def main_worker(npu, args):
             transforms.ToTensor(),
             normalize,
         ]))
-
 
     train_sampler = None
 
@@ -207,6 +203,7 @@ def main_worker(npu, args):
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
+
 def train(train_loader, model, criterion, optimizer, epoch, args):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
@@ -229,7 +226,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         if 'npu' in CALCULATE_DEVICE:
             target = target.to(torch.int32)
         images, target = images.to(CALCULATE_DEVICE, non_blocking=True),\
-                         target.to(CALCULATE_DEVICE, non_blocking=True)
+            target.to(CALCULATE_DEVICE, non_blocking=True)
 
         # compute output
         output = model(images)
@@ -277,7 +274,7 @@ def validate(val_loader, model, criterion, args):
             if 'npu' in CALCULATE_DEVICE:
                 target = target.to(torch.int32)
             images, target = images.to(CALCULATE_DEVICE, non_blocking=True),\
-                             target.to(CALCULATE_DEVICE, non_blocking=True)
+                target.to(CALCULATE_DEVICE, non_blocking=True)
             # compute output
             output = model(images)
             loss = criterion(output, target)
@@ -310,6 +307,7 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self, name, fmt=':f'):
         self.name = name
         self.fmt = fmt
@@ -378,6 +376,7 @@ class TestResnet(TestCase):
         if 'npu' in CALCULATE_DEVICE:
             torch.npu.set_device(CALCULATE_DEVICE)
         run_resnet()
+
 
 if __name__ == '__main__':
     run_tests()

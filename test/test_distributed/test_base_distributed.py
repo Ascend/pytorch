@@ -21,6 +21,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 os.environ["MASTER_ADDR"] = '127.0.0.1'
 os.environ["MASTER_PORT"] = "29500"
 
+
 class DistributedApiTestCase(TestCase):
 
     def setUp(self):
@@ -68,6 +69,6 @@ class DistributedApiTestCase(TestCase):
         self.assertIsInstance(new_group, dist.ProcessGroupHCCL)
         dist.destroy_process_group(new_group)
 
+
 if __name__ == "__main__":
     run_tests()
-

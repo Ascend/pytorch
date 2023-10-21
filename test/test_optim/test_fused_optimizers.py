@@ -139,7 +139,7 @@ class TestFusedOptim(TestCase):
         optim_cases = self._create_optimizer_cases(all_cases=True)
         num_iters = 10
         for _, fused_opt_obj, opt_kwargs in optim_cases:
-            if not fused_opt_obj in self.third_optim_baseline:
+            if fused_opt_obj not in self.third_optim_baseline:
                 continue
             params = self._create_simple_params_and_grads()
             fused_opt = fused_opt_obj(params, **opt_kwargs)

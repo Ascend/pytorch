@@ -18,8 +18,9 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib.function import npu_single_level_responsible_flags
 
+
 class TestAnchorGenerator(TestCase):
-             
+
     def single_level_responsible_flags(self,
                                        featmap_size,
                                        gt_bboxes,
@@ -62,14 +63,15 @@ class TestAnchorGenerator(TestCase):
         for i in range(featmap_level):
             gt_bboxes = gt_bboxes.npu()
             cpuout = self.single_level_responsible_flags(featmap_sizes[i],
-                                                    gt_bboxes,
-                                                    stride[i],
-                                                    num_base_anchors)
+                                                         gt_bboxes,
+                                                         stride[i],
+                                                         num_base_anchors)
             npuout = npu_single_level_responsible_flags(featmap_sizes[i],
-                                                    gt_bboxes,
-                                                    stride[i],
-                                                    num_base_anchors)
+                                                        gt_bboxes,
+                                                        stride[i],
+                                                        num_base_anchors)
             self.assertRtolEqual(cpuout, npuout.cpu())
-    
+
+
 if __name__ == "__main__":
     run_tests()

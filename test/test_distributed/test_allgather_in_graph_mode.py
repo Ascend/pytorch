@@ -24,6 +24,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class HcomAllGatherTest(TestCase):
     @classmethod
     def _init_dist_hccl(cls, rank, world_size):

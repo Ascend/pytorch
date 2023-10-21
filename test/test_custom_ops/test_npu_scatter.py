@@ -46,7 +46,7 @@ class TestNpuScatter(TestCase):
 
         shape_format = [[i, j, k, h, f] for i in input1_list
                         for j in indices_list for k in updates_list for h in dim_list for f in exoutput_list]
-        
+
         for item in shape_format:
             input1_tensor = torch.tensor(item[0]).npu()
             indices_tensor = torch.tensor(item[1]).npu().to(torch.int32)

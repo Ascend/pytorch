@@ -45,7 +45,7 @@ class TestDtypeCast(TestCase):
         y = torch_npu.npu_dtype_cast(x, torch.half)
         z = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=torch.ones_like(y))
         self.assertIsNone(z[0].grad_fn)
-        z = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=torch.ones_like(y), create_graph=True) 
+        z = torch.autograd.grad(outputs=y, inputs=x, grad_outputs=torch.ones_like(y), create_graph=True)
         self.assertIsNotNone(z[0].grad_fn)
 
 

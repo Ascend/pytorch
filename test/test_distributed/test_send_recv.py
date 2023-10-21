@@ -22,8 +22,9 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
-class HcclSendRecvDistTest(TestCase): 
-    world_size = 2 
+
+class HcclSendRecvDistTest(TestCase):
+    world_size = 2
 
     @classmethod
     def _init_dist_hccl(cls, rank, world_size):
@@ -43,7 +44,7 @@ class HcclSendRecvDistTest(TestCase):
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
         return dist.new_group([0, 1])
 
-    @classmethod 
+    @classmethod
     def _test_send_recv_dist(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -58,7 +59,7 @@ class HcclSendRecvDistTest(TestCase):
             pg.recv(res, src)
             c2p.put((src, res.cpu()))
 
-    @classmethod 
+    @classmethod
     def _test_send_recv_dist_recv_with_format(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -73,7 +74,7 @@ class HcclSendRecvDistTest(TestCase):
             pg.recv(res, src)
             c2p.put((src, res.cpu()))
 
-    @classmethod 
+    @classmethod
     def _test_send_recv_dist_send_with_format(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -88,7 +89,7 @@ class HcclSendRecvDistTest(TestCase):
             pg.recv(res, src)
             c2p.put((src, res.cpu()))
 
-    @classmethod 
+    @classmethod
     def _test_send_recv_group(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -104,7 +105,7 @@ class HcclSendRecvDistTest(TestCase):
             pg.recv(res, src, tag).wait()
             c2p.put((src, res[0].cpu()))
 
-    @classmethod 
+    @classmethod
     def _test_send_recv_group_recv_with_format(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -120,7 +121,7 @@ class HcclSendRecvDistTest(TestCase):
             pg.recv(res, src, tag).wait()
             c2p.put((src, res[0].cpu()))
 
-    @classmethod 
+    @classmethod
     def _test_send_recv_group_send_with_format(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -175,22 +176,22 @@ class HcclSendRecvDistTest(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist(self):
-         self._test_multiprocess(
+        self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
 
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_dist_with_format(self):
-         self._test_multiprocess(
+        self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist_recv_with_format,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
 
-         self._test_multiprocess(
+        self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist_send_with_format,
             torch.randn(2, 2),
-            HcclSendRecvDistTest._init_dist_hccl) 
+            HcclSendRecvDistTest._init_dist_hccl)
 
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_group(self):
@@ -213,10 +214,11 @@ class HcclSendRecvDistTest(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_send_recv_hccl_bool(self):
-         self._test_multiprocess(
+        self._test_multiprocess(
             HcclSendRecvDistTest._test_send_recv_dist,
             torch.randn(2, 2) > 0.5,
             HcclSendRecvDistTest._init_dist_hccl)
+
 
 if __name__ == '__main__':
     run_tests()

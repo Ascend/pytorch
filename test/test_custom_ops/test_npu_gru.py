@@ -23,7 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestGru(TestCase):
-    def cpu_op_exec(self, input_data, hx, weight_input, weight_hidden, bias_input, bias_hidden, 
+    def cpu_op_exec(self, input_data, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                     seq_length, num_layers, has_biases=True, batch_first=False, dropout=0.0, bidirectional=False):
         """
         def gru(
@@ -56,7 +56,7 @@ class TestGru(TestCase):
             result = _VF.gru(input, hx, self._flat_weights, self.bias, self.num_layers,
                              self.dropout, self.training, self.bidirectional, self.batch_first)
         """
-        train=True
+        train = True
         weight_input = weight_input.transpose(0, 1)
         weight_hidden = weight_hidden.transpose(0, 1)
         weights = (weight_input, weight_hidden, bias_input, bias_hidden)
@@ -106,13 +106,12 @@ class TestGru(TestCase):
         _, weight_hh = create_common_tensor(["float16", 4, (hidden_size, 3 * hidden_size)], -1, 1)
         _, bias_ih = create_common_tensor(["float16", 2, (3 * hidden_size)], -1, 1)
         _, bias_hh = create_common_tensor(["float16", 2, (3 * hidden_size)], -1, 1)
-        
 
         # cpu
-        cpu_out, cpu_h = self.cpu_op_exec(input_data, h_0, weight_ih, weight_hh, bias_ih, bias_hh, 
+        cpu_out, cpu_h = self.cpu_op_exec(input_data, h_0, weight_ih, weight_hh, bias_ih, bias_hh,
                                           seq_length_t, num_layers, has_biases=has_biases)
         # npu
-        npu_out, npu_h = self.npu_to_exec(input_data, h_0, weight_ih, weight_hh, bias_ih, bias_hh, 
+        npu_out, npu_h = self.npu_to_exec(input_data, h_0, weight_ih, weight_hh, bias_ih, bias_hh,
                                           seq_length_t, num_layers, has_biases=has_biases)
 
         cpu_out = cpu_out.cpu().detach().numpy()

@@ -21,7 +21,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestNpuTranspose(TestCase):
-    
+
     def custom_op_exec(self, input1, perm):
         output = input1.permute(perm)
         output = output.to("cpu")

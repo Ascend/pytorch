@@ -36,7 +36,7 @@ class TestAmp(TestCase):
         self.assertTrue(outputs[0] == 8.0 and outputs[1][0] == 8.0 and outputs[1][1] == 8.0 and
                         outputs[2][0] == 8.0 and outputs[2][1][0] == 8.0 and outputs[2][1][1] == 8.0)
         self.assertTrue(scaler._scale.device == t1.device)
-        
+
     def test_grad_scaling_state_dict(self, device="npu"):
         for lazy_init_scale in True, False:
             s0 = GradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
@@ -57,7 +57,7 @@ class TestAmp(TestCase):
             self.assertTrue(s1.get_backoff_factor() == .5)
             self.assertTrue(s1.get_growth_interval() == 2)
             self.assertTrue(s1._init_growth_tracker == 0)
-            
+
     def _create_scaling_models_optimizers(self, device="npu"):
         # Create a module+optimizer that will use scaling, and a control module+optimizer
         # that will not use scaling, against which the scaling-enabled module+optimizer can be compared.
@@ -113,7 +113,7 @@ class TestAmp(TestCase):
                 c = c.cpu().to(torch.float).detach().numpy()
                 s = s.cpu().to(torch.float).detach().numpy()
                 self.assertRtolEqual(c, s, atol)
-                
+
     # Compares no scaling + no autocasting against scaling + autocasting.
     def test_grad_scaling_autocast(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):

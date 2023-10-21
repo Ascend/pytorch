@@ -22,6 +22,7 @@ import torch_npu
 device = 'npu:0'
 torch.npu.set_device(device)
 
+
 class TestPointwiseOps(TestCase):
 
     def test_real(self):
@@ -29,14 +30,14 @@ class TestPointwiseOps(TestCase):
         npu_input = cpu_input.npu()
         cpu_output = torch.real(cpu_input)
         npu_output = torch.real(npu_input)
-        self.assertEqual(cpu_output, npu_output) 
+        self.assertEqual(cpu_output, npu_output)
 
     def test_square(self):
         input1 = torch.randn(4)
         npu_input = input1.npu()
         cpu_output = torch.square(input1)
         npu_output = torch.square(npu_input)
-        
+
         self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
 
 
@@ -49,7 +50,7 @@ class TestReductionOps(TestCase):
         npu_output = torch.dist(x, y, 3)
         cpu_output = torch.dist(cpu_x, cpu_y, 3)
         self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
-    
+
     def test_unique(self):
         output = torch.unique(torch.tensor([1, 3, 2, 3], dtype=torch.int32, device=device))
         output_expected = torch.tensor([1, 2, 3]).int()
@@ -65,7 +66,7 @@ class TestComparisonOps(TestCase):
         npu_input2 = input2.npu()
 
         npu_output = torch.allclose(npu_input1, npu_input2)
-        
+
         self.assertFalse(npu_output)
 
 
@@ -73,7 +74,7 @@ class TestSpectralOps(TestCase):
     def test_isinf(self):
         input1 = torch.randn(1, device=device)
         output = torch.isinf(input1)
-        
+
         self.assertFalse(output)
 
 
@@ -84,45 +85,44 @@ class TestOtherOps(TestCase):
         a, b = torch.broadcast_tensors(x, y)
         expected_cpu_a = torch.tensor([[0, 1, 2], [0, 1, 2]])
         expected_cpu_b = torch.tensor([[0, 0, 0], [1, 1, 1]])
-        self.assertEqual(a.cpu(),expected_cpu_a)
-        self.assertEqual(b.cpu(),expected_cpu_b)
+        self.assertEqual(a.cpu(), expected_cpu_a)
+        self.assertEqual(b.cpu(), expected_cpu_b)
 
     def test_cartesian_prod(self):
         a = [1, 2, 3]
         b = [4, 5]
-        import itertools  
+        import itertools
         output_expected = torch.tensor(list(itertools.product(a, b)))
-        
-        
+
         tensor_a = torch.tensor(a, device=device)
         tensor_b = torch.tensor(b, device=device)
         output = torch.cartesian_prod(tensor_a, tensor_b)
         self.assertRtolEqual(output_expected, output.cpu())
-    
+
     def test_einsum(self):
         input1 = torch.randn(5)
         input2 = torch.randn(4)
 
         npu_input1 = copy.deepcopy(input1).npu()
         npu_input2 = copy.deepcopy(input2).npu()
-        
+
         cpu_output = torch.einsum('i,j->ij', input1, input2)
         npu_output = torch.einsum('i,j->ij', npu_input1, npu_input2)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-            
+
     def test_rot90(self):
         x = torch.arange(4, device=device).view(2, 2)
         output = torch.rot90(x, 1, [0, 1]).int()
         output_expected = torch.tensor([[1, 3], [0, 2]]).int()
         self.assertRtolEqual(output.cpu(), output_expected)
-        
+
     def test_flatten(self):
         x = torch.randn((0, 1, 3, 0), device=device)
         self.assertEqual((0,), torch.flatten(x, 0, 3).shape)
         self.assertEqual((0, 0), torch.flatten(x, 0, 2).shape)
         self.assertEqual((0, 3, 0), torch.flatten(x, 1, 2).shape)
-        
+
     def test_meshgrid(self):
         a = torch.tensor(1, device=device)
         b = torch.tensor([1, 2, 3], device=device)
@@ -153,11 +153,12 @@ class TestOtherOps(TestCase):
         a = torch.arange(60., device=device).reshape(3, 4, 5)
         b = torch.arange(24., device=device).reshape(4, 3, 2)
         npu_output = torch.tensordot(a, b, dims=([1, 0], [0, 1]))
-        
+
         a = a.cpu()
         b = b.cpu()
         cpu_output = torch.tensordot(a, b, dims=([1, 0], [0, 1]))
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
 
 class TestBLOps(TestCase):
     def test_chain_matmul(self):
@@ -167,8 +168,8 @@ class TestBLOps(TestCase):
         d = torch.randn(6, 7)
         cpu_output = torch.chain_matmul(a, b, c, d)
         npu_output = torch.chain_matmul(a.half().npu(), b.half().npu(), c.half().npu(), d.half().npu())
-        self.assertEqual(cpu_output, npu_output, prec = 1e-2)
-    
+        self.assertEqual(cpu_output, npu_output, prec=1e-2)
+
     def test_trapz(self):
         def test_dx(sizes, dim, dx):
             t = torch.randn(sizes, device=device)
@@ -205,8 +206,6 @@ class TestBLOps(TestCase):
             test_x((2, 3), 1, [1.0, 2.0])
             test_x((2, 3), 1, [1.0, 2.0, 3.0, 4.0])
 
-            
+
 if __name__ == "__main__":
     run_tests()
-        
-

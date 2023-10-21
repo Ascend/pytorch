@@ -33,8 +33,7 @@ class TestSignBitsUnpack(TestCase):
         output = self.custom_sign_unpack(input_data, size, dtype)
         return output.cpu().numpy()
 
-
-    def npu_op_exec(self,npu_input, dtype, size):
+    def npu_op_exec(self, npu_input, dtype, size):
         nup_out = torch_npu.npu_sign_bits_unpack(npu_input, size, dtype)
         return nup_out.cpu().numpy()
 
@@ -52,7 +51,7 @@ class TestSignBitsUnpack(TestCase):
             cpu_output = self.custom_op_exec(npu_input, dtype, size)
             npu_output = self.npu_op_exec(npu_input, dtype, size)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
 
 if __name__ == "__main__":
     run_tests()

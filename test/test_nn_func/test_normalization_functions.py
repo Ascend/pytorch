@@ -70,5 +70,6 @@ class TestNormalizationFunctions(TestCase):
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
 
+
 if __name__ == "__main__":
     run_tests()

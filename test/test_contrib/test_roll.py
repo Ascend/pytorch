@@ -22,9 +22,11 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.function import roll
 
+
 class TestRoll(TestCase):
     def npu_slow_roll_op_exec(self, input1, shift_size, dims):
-        output = torch.roll(input1, shifts=(-shift_size, -shift_size), dims=dims)
+        output = torch.roll(
+            input1, shifts=(-shift_size, -shift_size), dims=dims)
 
         repeat_time = 100
         torch.npu.synchronize()
@@ -59,10 +61,13 @@ class TestRoll(TestCase):
         for item in shape_format:
             _, npu_input = create_common_tensor(item, -10, 10)
             shift_size = 3
-            slow_output, slow_time  = self.npu_slow_roll_op_exec(npu_input, shift_size, (1, 2))
-            fast_output, fast_time  = self.npu_fast_roll_op_exec(npu_input, shift_size, (1, 2))
+            slow_output, slow_time = self.npu_slow_roll_op_exec(
+                npu_input, shift_size, (1, 2))
+            fast_output, fast_time = self.npu_fast_roll_op_exec(
+                npu_input, shift_size, (1, 2))
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
+
 
 if __name__ == "__main__":
     run_tests()

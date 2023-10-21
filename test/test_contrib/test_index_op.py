@@ -21,13 +21,14 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.function import npu_fast_condition_index_put
 
+
 class TestIndexOp(TestCase):
     def npu_slow_index_op_exec(self, input1):
         condition = input1 < 0.5
         value = 0.
         input1[condition] = value
         return input1
-    
+
     def npu_fast_index_op_exec(self, input1):
         condition = input1 < 0.5
         value = 0.
@@ -50,6 +51,7 @@ class TestIndexOp(TestCase):
             npu_slow_output = self.npu_slow_index_op_exec(npu_input)
             npu_fast_output = self.npu_fast_index_op_exec(npu_input)
             self.assertRtolEqual(npu_slow_output.cpu(), npu_fast_output.cpu())
-    
+
+
 if __name__ == "__main__":
     run_tests()
