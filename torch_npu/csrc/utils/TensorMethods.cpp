@@ -22,11 +22,11 @@ namespace torch_npu {
 namespace utils {
 
 const char* _backend_to_string_npu(const at::Backend& backend) {
-  switch (backend) {
-    case at::Backend::CPU: return "torch";
-    case at_npu::key::NativeBackend: return "torch.npu";
-    default: AT_ERROR("Unimplemented backend ", backend);
-  }
+    switch (backend) {
+        case at::Backend::CPU: return "torch";
+        case at_npu::key::NativeBackend: return "torch.npu";
+        default: AT_ERROR("Unimplemented backend ", backend);
+    }
 }
 
 std::string _options_to_string_npu(const at::TensorOptions options) {
@@ -137,7 +137,7 @@ static at::Tensor dispatch_to(const at::Tensor & self, c10::Device device, c10::
   return self.to(device, dtype, non_blocking, copy, optional_memory_format);
 }
 
-static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -156,7 +156,7 @@ static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwar
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_to(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -195,7 +195,7 @@ static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwarg
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_type(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -206,7 +206,7 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
   torch::ParsedArgs<4> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto self_ = r.tensor(0);
-  if(r.has_torch_function()){
+  if(r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
   }
 
@@ -247,7 +247,7 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_is_npu(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_is_npu(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -260,7 +260,7 @@ static PyObject * THPVariable_is_npu(PyObject* self, PyObject* args, PyObject* k
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_empty(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_new_empty(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -293,7 +293,7 @@ static PyObject * THPVariable_new_empty(PyObject* self, PyObject* args, PyObject
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_new_empty_strided(PyObject* self_, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -327,7 +327,7 @@ static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args,
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_record_stream(PyObject* self, PyObject* args)
+static PyObject* THPVariable_record_stream(PyObject* self, PyObject* args)
 {
   HANDLE_TH_ERRORS
   PyObject *_tensor, *_stream;
@@ -340,7 +340,7 @@ static PyObject * THPVariable_record_stream(PyObject* self, PyObject* args)
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_full(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_new_full(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -374,7 +374,7 @@ static PyObject * THPVariable_new_full(PyObject* self, PyObject* args, PyObject*
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_zeros(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_new_zeros(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -407,7 +407,7 @@ static PyObject * THPVariable_new_zeros(PyObject* self, PyObject* args, PyObject
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_ones(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_new_ones(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -418,7 +418,7 @@ static PyObject * THPVariable_new_ones(PyObject* self, PyObject* args, PyObject*
       },
       true);
   PyObject* self_obj = PyTuple_GetItem(args, 0);
-  PyObject* new_args = PyTuple_GetSlice(args, 1 ,PyTuple_GET_SIZE(args));
+  PyObject* new_args = PyTuple_GetSlice(args, 1, PyTuple_GET_SIZE(args));
   torch::ParsedArgs<6> parsed_args;
   auto r = parser.parse(new_args, kwargs, parsed_args);
   auto self_ = THPVariable_Unpack(self_obj);
@@ -442,7 +442,7 @@ static PyObject * THPVariable_new_ones(PyObject* self, PyObject* args, PyObject*
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_tensor(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_new_tensor(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
@@ -460,18 +460,18 @@ static PyObject * THPVariable_new_tensor(PyObject* self, PyObject* args, PyObjec
 
 // autograd methods on torch._C
 static PyMethodDef TorchTensorMethods[] = { // NOLINT
-  {"npu", castPyCFunctionWithKeywords(THPVariable_npu), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"to", castPyCFunctionWithKeywords(THPVariable_to), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"type", castPyCFunctionWithKeywords(THPVariable_type), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"is_npu", castPyCFunctionWithKeywords(THPVariable_is_npu), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"record_stream", (PyCFunction)(void(*)(void))THPVariable_record_stream, METH_VARARGS, NULL},
-  {"new_empty", castPyCFunctionWithKeywords(THPVariable_new_empty), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"new_empty_strided", castPyCFunctionWithKeywords(THPVariable_new_empty_strided), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"new_full", castPyCFunctionWithKeywords(THPVariable_new_full), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"new_zeros", castPyCFunctionWithKeywords(THPVariable_new_zeros), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"new_ones", castPyCFunctionWithKeywords(THPVariable_new_ones), METH_VARARGS | METH_KEYWORDS, NULL},
-  {"new_tensor", castPyCFunctionWithKeywords(THPVariable_new_tensor), METH_VARARGS | METH_KEYWORDS, NULL},
-  {nullptr, nullptr, 0, nullptr}
+    {"npu", castPyCFunctionWithKeywords(THPVariable_npu), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"to", castPyCFunctionWithKeywords(THPVariable_to), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"type", castPyCFunctionWithKeywords(THPVariable_type), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"is_npu", castPyCFunctionWithKeywords(THPVariable_is_npu), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"record_stream", (PyCFunction)(void(*)(void))THPVariable_record_stream, METH_VARARGS, NULL},
+    {"new_empty", castPyCFunctionWithKeywords(THPVariable_new_empty), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"new_empty_strided", castPyCFunctionWithKeywords(THPVariable_new_empty_strided), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"new_full", castPyCFunctionWithKeywords(THPVariable_new_full), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"new_zeros", castPyCFunctionWithKeywords(THPVariable_new_zeros), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"new_ones", castPyCFunctionWithKeywords(THPVariable_new_ones), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"new_tensor", castPyCFunctionWithKeywords(THPVariable_new_tensor), METH_VARARGS | METH_KEYWORDS, NULL},
+    {nullptr, nullptr, 0, nullptr}
 };
 
 PyMethodDef* tensor_functions() {

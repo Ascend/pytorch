@@ -11,9 +11,9 @@ namespace profiler {
 class Thread {
 public:
   Thread()
-    : is_alive_(false),
-      pid_(0),
-      thread_name_("NPUProfiler") {};
+      : is_alive_(false),
+        pid_(0),
+        thread_name_("NPUProfiler") {};
 
   ~Thread() {
     if (is_alive_) {

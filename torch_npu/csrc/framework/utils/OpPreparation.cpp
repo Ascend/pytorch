@@ -170,8 +170,7 @@ namespace at_npu
       return CalcuOpUtil::GetTensorNpuFormat(tensor);
     }
 
-    c10::SmallVector<int64_t, 5> OpPreparation::get_tensor_desc_base_sizes(
-      const at::Tensor &tensor)
+    c10::SmallVector<int64_t, 5> OpPreparation::get_tensor_desc_base_sizes(const at::Tensor &tensor)
     {
       return torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().base_sizes_;
     }

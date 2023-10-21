@@ -75,11 +75,11 @@ namespace at_npu
       static void ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset);
 
     private:
-      using DqueueCall = void (*)(c10_npu::queue::QueueParas * para, uint32_t category);
-      static void DqueueCompileExcute(c10_npu::queue::QueueParas * para, uint32_t category);
-      static void DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t category);
-      static void DqueueEvent(c10_npu::queue::QueueParas * para, uint32_t category);
-      static void DqueueCompileExcuteBs(c10_npu::queue::QueueParas * para, uint32_t category);
+      using DqueueCall = void (*)(c10_npu::queue::QueueParas *para, uint32_t category);
+      static void DqueueCompileExcute(c10_npu::queue::QueueParas *para, uint32_t category);
+      static void DqueueAnyncMemcpy(c10_npu::queue::QueueParas *para, uint32_t category);
+      static void DqueueEvent(c10_npu::queue::QueueParas *para, uint32_t category);
+      static void DqueueCompileExcuteBs(c10_npu::queue::QueueParas *para, uint32_t category);
     };
     const std::string AclDateTypeToString(aclDataType descDType);
     const std::string AclFormatToString(aclFormat descFormat);

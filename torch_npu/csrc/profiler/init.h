@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -19,7 +19,7 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 TORCH_NPU_API PyMethodDef* profiler_functions();
 }
 }

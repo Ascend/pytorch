@@ -127,24 +127,24 @@ static PyObject* THNPStream_eq(THNPStream *self, THNPStream *other) {
 }
 
 static struct PyMemberDef THNPStream_members[] = {
-  {(char*)"_cdata", T_ULONGLONG, offsetof(THNPStream, cdata), READONLY, nullptr},
-  {nullptr}
+    {(char*)"_cdata", T_ULONGLONG, offsetof(THNPStream, cdata), READONLY, nullptr},
+    {nullptr}
 };
 
 static struct PyGetSetDef THNPStream_properties[] = {
-  {"device", (getter)THNPStream_get_device, nullptr, nullptr, nullptr},
-  {"npu_stream", (getter)THNPStream_get_npu_stream, nullptr, nullptr, nullptr},
-  {"priority", (getter)THNPStream_get_priority, nullptr, nullptr, nullptr},
-  {nullptr}
+    {"device", (getter)THNPStream_get_device, nullptr, nullptr, nullptr},
+    {"npu_stream", (getter)THNPStream_get_npu_stream, nullptr, nullptr, nullptr},
+    {"priority", (getter)THNPStream_get_priority, nullptr, nullptr, nullptr},
+    {nullptr}
 };
 
 static PyMethodDef THNPStream_methods[] = {
-  {(char*)"query", (PyCFunction)THNPStream_query, METH_NOARGS, nullptr},
-  {(char*)"synchronize", (PyCFunction)THNPStream_synchronize, METH_NOARGS, nullptr},
-  {(char*)"priority_range", (PyCFunction)(void(*)(void))THNPStream_priority_range, METH_STATIC | METH_NOARGS, nullptr},
-  {(char*)"__eq__", (PyCFunction)THNPStream_eq, METH_O, nullptr},
-  {(char*)"set_data_preprocess_stream", (PyCFunction)THNPStream_set_data_preprocess_stream, METH_O, nullptr},
-  {nullptr}
+    {(char*)"query", (PyCFunction)THNPStream_query, METH_NOARGS, nullptr},
+    {(char*)"synchronize", (PyCFunction)THNPStream_synchronize, METH_NOARGS, nullptr},
+    {(char*)"priority_range", (PyCFunction)(void(*)(void))THNPStream_priority_range, METH_STATIC | METH_NOARGS, nullptr},
+    {(char*)"__eq__", (PyCFunction)THNPStream_eq, METH_O, nullptr},
+    {(char*)"set_data_preprocess_stream", (PyCFunction)THNPStream_set_data_preprocess_stream, METH_O, nullptr},
+    {nullptr}
 };
 
 PyTypeObject THNPStreamType = {

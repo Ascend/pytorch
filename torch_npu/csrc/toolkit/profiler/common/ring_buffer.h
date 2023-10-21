@@ -12,14 +12,14 @@ template <typename T>
 class RingBuffer {
 public:
   RingBuffer()
-    : is_inited_(false),
-      is_quit_(false),
-      read_index_(0),
-      write_index_(0),
-      idle_write_index_(0),
-      use_extend_data_queue_(false),
-      capacity_(0),
-      mask_(0) {}
+      : is_inited_(false),
+        is_quit_(false),
+        read_index_(0),
+        write_index_(0),
+        idle_write_index_(0),
+        use_extend_data_queue_(false),
+        capacity_(0),
+        mask_(0) {}
 
   ~RingBuffer() {
     if (is_inited_) {

@@ -76,7 +76,7 @@ def init_dump():
 
 def set_dump(cfg_file):
     if not os.path.exists(cfg_file):
-        raise AssertionError("cfg_file %s path does not exists."%(cfg_file))
+        raise AssertionError("cfg_file %s path does not exists." % (cfg_file))
     cfg_file = os.path.realpath(cfg_file)
     option = {"mdldumpconfigpath": cfg_file}
     torch_npu._C._npu_setOption(option)
@@ -139,7 +139,7 @@ def is_jit_compile_false() -> bool:
 
 class npuConfig:
     @classmethod
-    def __setattr__(self, name, value):
+    def __setattr__(cls, name, value):
         if name == "allow_internal_format":
             option = {"ALLOW_INTERNAL_FORMAT": "enable" if value else "disable"}
             torch_npu._C._npu_setOption(option)
@@ -248,7 +248,7 @@ class profile(object):
 
 def prof_init(path):
     if not os.path.exists(path):
-        raise AssertionError("profiler_result_path: %s not exists."%(path))
+        raise AssertionError("profiler_result_path: %s not exists." % (path))
     profiler_result_path = os.path.realpath(path)
     option = {"profilerResultPath": profiler_result_path}
     torch_npu._C._npu_setOption(option)

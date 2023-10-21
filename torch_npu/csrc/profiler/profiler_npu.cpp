@@ -23,18 +23,18 @@
 #include <sstream>
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 namespace {
 
 static inline void npuCheck(aclError result, const char * file, int line) {
-  if(result != ACL_ERROR_NONE) {
+  if (result != ACL_ERROR_NONE) {
     std::stringstream ss;
     ss << file << ":" << line << ": " << ", aclError id:" << result << ".";
     throw std::runtime_error(ss.str());
   }
 }
-#define TORCH_NPU_CHECK(result) npuCheck(result,__FILE__,__LINE__);
+#define TORCH_NPU_CHECK(result) npuCheck(result, __FILE__, __LINE__);
 
 struct NPUMethods : public DeviceStubs {
   void npu_destropy_event(aclrtEvent event) const override {
@@ -69,7 +69,7 @@ struct NPUMethods : public DeviceStubs {
     ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed for event2.");
     float ms;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
-    return ms*1000.0;
+    return ms * 1000.0;
   }
   void onEachDevice(std::function<void(int)> op) const override {
     c10_npu::OptionalNPUGuard device_guard;
@@ -88,7 +88,6 @@ struct NPUMethods : public DeviceStubs {
   bool enabled() const override {
     return true;
   }
-
 };
 
 struct RegisterNPUMethods {

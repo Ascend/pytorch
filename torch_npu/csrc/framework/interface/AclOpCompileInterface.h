@@ -97,7 +97,7 @@ aclError AclGenGraphAndDumpForOp(const char *opType,
  * @brief create the dump option for AclGenGraphAndDumpForOp API, used for AOE
  * @retval created aclGraphDumpOption
  */
-aclGraphDumpOption* AclCreateGraphDumpOpt(); 
+aclGraphDumpOption* AclCreateGraphDumpOpt();
 
 /**
  * @brief destroy the dump option created by aclCreateGraphDumpOpt
