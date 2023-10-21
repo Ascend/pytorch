@@ -473,18 +473,6 @@ class TestCase(expecttest.TestCase):
             call_fn()
             self.assertTrue(len(ws) > 0, msg)
 
-    def assertWarnsRegex(self, call_fn, regex, msg=''):
-        r"""
-        Test if :attr:`call_fn` raises any warning with message that contains
-        the regex pattern :attr:`regex`.
-        """
-        with self._reset_warning_registry(), warnings.catch_warnings(record=True) as ws:
-            warnings.simplefilter("always")  # allow any warning to be raised
-            call_fn()
-            self.assertTrue(len(ws) > 0, msg)
-            found = any(re.search(regex, str(w.message)) is not None for w in ws)
-            self.assertTrue(found, msg)
-
     @contextmanager
     def maybeWarnsRegex(self, category, regex=''):
         """Context manager for code that *may* warn, e.g. ``TORCH_WARN_ONCE``.
