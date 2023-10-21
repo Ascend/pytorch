@@ -148,9 +148,9 @@ struct NPUEvent {
     }
 
     NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event_=%p.", event_);
+    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
     NPU_CHECK_ERROR(aclrtSynchronizeEvent(other.event_));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, other.event_=%p.", other.event_);
+    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
     // raise error if either event is recorded but not yet completed
     NPU_CHECK_ERROR(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
@@ -163,7 +163,7 @@ struct NPUEvent {
         NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       }
       NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
-      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed, event_=%p.", event_);
+      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
     }
   }
 
@@ -179,7 +179,7 @@ private:
     device_index_ = device_index;
     NPUGuard guard(device_index_);
     NPU_CHECK_ERROR(aclrtCreateEvent(&event_));
-    ASCEND_LOGI("aclrtCreateEvent is successfully executed, event_=%p.", event_);
+    ASCEND_LOGI("aclrtCreateEvent is successfully executed.");
     is_created_ = true;
   }
 
@@ -187,7 +187,7 @@ private:
     device_index_ = device_index;
     NPUGuard guard(device_index_);
     NPU_CHECK_ERROR(aclrtCreateEventWithFlag(&event_, 0x02U));
-    ASCEND_LOGI("aclrtCreateEvent is successfully executed, event_=%p.", event_);
+    ASCEND_LOGI("aclrtCreateEvent is successfully executed.");
     is_created_ = true;
   }
 

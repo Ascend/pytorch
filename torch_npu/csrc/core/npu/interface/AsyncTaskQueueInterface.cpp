@@ -135,7 +135,7 @@ void EventTask::LaunchRecordTask(
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
   } else {
     NPU_CHECK_ERROR(aclrtRecordEvent(eventParam_.event, npuStream));
-    ASCEND_LOGI("aclrtRecordEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
+    ASCEND_LOGI("aclrtRecordEvent is successfully executed.");
   }
 }
 
@@ -152,7 +152,7 @@ aclError NpuAllocatorLaunchRecordEventTask(
     c10_npu::NPUStream npuStream) {
   EventTask recordTask(event, NPU_ALLOCATOR_EVENT);
   recordTask.LaunchRecordTask(npuStream);
-  ASCEND_LOGI("NpuAllocatorLaunchRecordEventTask is successfully executed, event=%p.", event);
+  ASCEND_LOGI("NpuAllocatorLaunchRecordEventTask is successfully executed.");
   return ACL_ERROR_NONE;
 }
 
@@ -174,7 +174,7 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
   } else {
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npuStream, eventParam_.event));
-    ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
+    ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed.");
   }
 }
 
@@ -196,7 +196,7 @@ void EventTask::LaunchResetTask(c10_npu::NPUStream npuStream) {
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
   } else {
     NPU_CHECK_ERROR(aclrtResetEvent(eventParam_.event, npuStream));
-    ASCEND_LOGI("aclrtResetEvent is successfully executed, eventParam_.event=%p.", eventParam_.event);
+    ASCEND_LOGI("aclrtResetEvent is successfully executed.");
   }
 }
 
