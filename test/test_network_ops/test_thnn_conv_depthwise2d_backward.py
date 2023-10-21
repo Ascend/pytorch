@@ -7,7 +7,6 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-# TODO:The accuracy of the operator is not up to standard
 class TestThnnConvDepthwise2d(TestCase):
     weight_grad = []
     input_grad = []
@@ -77,7 +76,6 @@ class TestThnnConvDepthwise2d(TestCase):
             self.input_grad[0] = self.input_grad[0].to(self.input_grad[1].dtype)
             self.weight_grad[0] = self.weight_grad[0].to(self.weight_grad[1].dtype)
 
-            # TODO:The accuracy of the operator is not up to standard
             if(item[0][0] == np.float32):
                 self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy(), prec=1e-2)
                 self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy(), prec=1e-1)

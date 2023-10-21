@@ -47,14 +47,16 @@ class TestRandom(TestCase):
 
             if not (min_val <= from_ <= max_val) or not (min_val <= (to_ - 1) <= max_val):
                 if not (min_val <= from_ <= max_val):
-                    self.assertWarnsRegex(
-                        lambda: t.random_(from_, to_),
-                        "from is out of bounds"
+                    self.assertRaisesRegex(
+                        RuntimeError,
+                        "from is out of bounds",
+                        lambda: t.random_(from_, to_)
                     )
                 if not (min_val <= (to_ - 1) <= max_val):
-                    self.assertWarnsRegex(
-                        lambda: t.random_(from_, to_),
-                        "to - 1 is out of bounds"
+                    self.assertRaisesRegex(
+                        RuntimeError,
+                        "to - 1 is out of bounds",
+                        lambda: t.random_(from_, to_)
                     )
             else:
                 t.random_(from_, to_)
@@ -89,9 +91,10 @@ class TestRandom(TestCase):
             t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
             if to_ > from_:
                 if not (min_val <= (to_ - 1) <= max_val):
-                    self.assertWarnsRegex(
-                        lambda: t.random_(to_),
-                        "to - 1 is out of bounds"
+                    self.assertRaisesRegex(
+                        RuntimeError,
+                        "to - 1 is out of bounds",
+                        lambda: t.random_(to_)
                     )
                 else:
                     t.random_(to_)
