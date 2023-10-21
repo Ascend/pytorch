@@ -18,12 +18,11 @@
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
-
   auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
-  if (!torch_npu_C_module) {
+  if (!torch_npu_C_module) { 
     return nullptr;
   }
   auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
@@ -86,8 +85,8 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
 
 // autograd methods on torch._C
 static PyMethodDef TorchProfilerMethods[] = { // NOLINT
-  {"_profiler_init", profiler_initExtension, METH_NOARGS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
+    {"_profiler_init", profiler_initExtension, METH_NOARGS, nullptr},
+    {nullptr, nullptr, 0, nullptr}
 };
 
 

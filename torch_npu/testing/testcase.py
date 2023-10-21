@@ -69,8 +69,8 @@ class TestCase(expecttest.TestCase):
         self._precision = prec
 
     @classmethod
-    def setUpClass(self):
-        self.npu_device = set_npu_device()
+    def setUpClass(cls):
+        cls.npu_device = set_npu_device()
 
     def setUp(self):
         seed = int(os.getenv('SEED', "666"))

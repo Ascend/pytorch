@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include "torch_npu/csrc/core/npu/npu_log.h"

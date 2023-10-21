@@ -44,5 +44,3 @@ private:
 }  // namespace at_npu
 
 #endif // __NPU_STORAGE_GUARD__
-
-

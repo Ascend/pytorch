@@ -123,15 +123,15 @@ def cast_weight(self, device):
             sub_module.cast_weight(device)
 
 
-def lstm_forward(self, input, hx=None):
-    orig_input = input
+def lstm_forward(self, input1, hx=None):
+    orig_input = input1
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
-        input, batch_sizes, sorted_indices, unsorted_indices = input
+        input1, batch_sizes, sorted_indices, unsorted_indices = input1
         max_batch_size = batch_sizes[0]
         max_batch_size = int(max_batch_size)
     else:
         batch_sizes = None
-        max_batch_size = input.size(0) if self.batch_first else input.size(1)
+        max_batch_size = input1.size(0) if self.batch_first else input1.size(1)
         sorted_indices = None
         unsorted_indices = None
 
@@ -139,26 +139,26 @@ def lstm_forward(self, input, hx=None):
         num_directions = 2 if self.bidirectional else 1
         real_hidden_size = self.proj_size if self.proj_size > 0 else self.hidden_size
         h_zeros = torch.zeros(self.num_layers * num_directions,
-                                max_batch_size, real_hidden_size,
-                                dtype=input.dtype, device=input.device)
+                              max_batch_size, real_hidden_size,
+                              dtype=input1.dtype, device=input1.device)
         c_zeros = torch.zeros(self.num_layers * num_directions,
-                                max_batch_size, self.hidden_size,
-                                dtype=input.dtype, device=input.device)
+                              max_batch_size, self.hidden_size,
+                              dtype=input1.dtype, device=input1.device)
         hx = (h_zeros, c_zeros)
     else:
         # Each batch of the hidden state should match the input sequence that
         # the user believes he/she is passing in.
         hx = self.permute_hidden(hx, sorted_indices)
 
-    self.check_forward_args(input, hx, batch_sizes)
+    self.check_forward_args(input1, hx, batch_sizes)
     if batch_sizes is None:
-        result = torch._VF.lstm(input, hx, self._flat_weights, self.bias, self.num_layers,
+        result = torch._VF.lstm(input1, hx, self._flat_weights, self.bias, self.num_layers,
                                 self.dropout, self.training, self.bidirectional, self.batch_first)
     else:
-        if batch_sizes.device != input.device:
-            batch_sizes_npu = batch_sizes.to(input.device)
-            result_tmp = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
-                                    self.num_layers, self.dropout, self.training, self.bidirectional)
+        if batch_sizes.device != input1.device:
+            batch_sizes_npu = batch_sizes.to(input1.device)
+            result_tmp = torch._VF.lstm(input1, batch_sizes_npu, hx, self._flat_weights, self.bias,
+                                        self.num_layers, self.dropout, self.training, self.bidirectional)
             # pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
             if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
                 shape = [result_tmp[0].shape[0] * result_tmp[0].shape[1]]
@@ -166,7 +166,7 @@ def lstm_forward(self, input, hx=None):
                     shape = shape + list(result_tmp[0].shape[2:])
                 result = (result_tmp[0].reshape(shape), ) + result_tmp[1:]
         else:
-            result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
+            result = torch._VF.lstm(input1, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
     output = result[0]
     hidden = result[1:]

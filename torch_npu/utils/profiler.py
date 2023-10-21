@@ -4,13 +4,16 @@ import time
 import torch
 import torch_npu
 
+
 def Singleton(cls):
     _instances = {}
+
     def _singleton(*args, **kwargs):
         if cls not in _instances:
             _instances[cls] = cls(*args, **kwargs)
         return _instances[cls]
     return _singleton
+
 
 @Singleton
 class Profile(object):

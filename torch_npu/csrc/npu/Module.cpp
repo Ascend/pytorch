@@ -86,7 +86,9 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
     }
   }
   auto m = THPObjectPtr(PyImport_ImportModule("torch.npu"));
-  if (!m) throw python_error();
+  if (!m) {
+      throw python_error();
+  }
 
   auto set_module_attr = [&](const char* name, PyObject* v) {
     // PyObject_SetAttrString doesn't steal reference. So no need to incref.
@@ -341,7 +343,7 @@ PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
 
   const auto statArrayToDict = [=](const StatArray& statArray) {
     const std::array<const char*, static_cast<size_t>(StatType::NUM_TYPES)> statTypeNames = {
-      "all", "small_pool", "large_pool"
+        "all", "small_pool", "large_pool"
     };
     py::dict dict;
     for (size_t i = 0; i < statTypeNames.size(); ++i) {
@@ -474,8 +476,9 @@ PyObject* THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
   // free a CUDA tensor and acquire the cudaMutex without giving up the GIL,
   // because it happens deep within THC).
   while (true) {
-    if (mutex->try_lock())
-      break;
+    if (mutex->try_lock()) {
+        break;
+    }
     {
       pybind11::gil_scoped_release no_gil;
       std::this_thread::sleep_for(std::chrono::microseconds(10));

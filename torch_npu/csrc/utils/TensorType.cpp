@@ -121,18 +121,18 @@ PyObject* Tensor_is_sparse(PyTensorType *self, void *unused) {
 }
 
 static struct PyMethodDef metaclass_methods[] = {
-  {"__instancecheck__", Tensor_instancecheck, METH_O, nullptr},
-  {nullptr}
+    {"__instancecheck__", Tensor_instancecheck, METH_O, nullptr},
+    {nullptr}
 };
 
 using getter = PyObject* (*)(PyObject *, void *);
 
 static struct PyGetSetDef metaclass_properties[] = {
-  {"dtype",        (getter)Tensor_dtype, nullptr, nullptr, nullptr},
-  {"layout",       (getter)Tensor_layout, nullptr, nullptr, nullptr},
-  {"is_npu",      (getter)Tensor_is_npu, nullptr, nullptr, nullptr},
-  {"is_sparse",    (getter)Tensor_is_sparse, nullptr, nullptr, nullptr},
-  {nullptr}
+    {"dtype",        (getter)Tensor_dtype, nullptr, nullptr, nullptr},
+    {"layout",       (getter)Tensor_layout, nullptr, nullptr, nullptr},
+    {"is_npu",      (getter)Tensor_is_npu, nullptr, nullptr, nullptr},
+    {"is_sparse",    (getter)Tensor_is_sparse, nullptr, nullptr, nullptr},
+    {nullptr}
 };
 
 static PyTypeObject metaclass = {
@@ -322,8 +322,8 @@ static PyObject* THPModule_initExtension(PyObject *_unused, PyObject *noargs) {
 
 // autograd methods on torch._C
 static PyMethodDef TorchNpuExtensionMethods[] = {
-  {"_initExtension", (PyCFunction)THPModule_initExtension, METH_NOARGS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
+    {"_initExtension", (PyCFunction)THPModule_initExtension, METH_NOARGS, nullptr},
+    {nullptr, nullptr, 0, nullptr}
 };
 
 PyMethodDef* npu_extension_functions() {

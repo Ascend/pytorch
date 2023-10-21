@@ -296,11 +296,11 @@ using aclCubeMathType = enum:int8_t {
 
 static std::unordered_map<uint8_t, aclCubeMathType>
     ACL_CUBE_MATH_TYPE_MAP = {
-      {0b00, KEEP_DTYPE},
-      {0b01, USE_FP16},
-      {0b10, USE_HF32},
-      {0b11, ALLOW_FP32_DOWN_PRECISION}
-};
+        {0b00, KEEP_DTYPE},
+        {0b01, USE_FP16},
+        {0b10, USE_HF32},
+        {0b11, ALLOW_FP32_DOWN_PRECISION}
+    };
 
 int8_t CalcuOpUtil::GetCubeMathType(bool allowHf32) {
   bool allowFp32ToFp16 = native::env::IsAllowFP32ToFP16();

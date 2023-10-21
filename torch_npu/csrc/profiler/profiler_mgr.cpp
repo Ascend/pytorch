@@ -8,27 +8,27 @@
 namespace torch_npu {
 namespace profiler {
 std::map<std::string, aclprofAicoreMetrics> ProfilerMgr::npu_metrics_map_ = {
-  {"ACL_AICORE_PIPE_UTILIZATION", ACL_AICORE_PIPE_UTILIZATION},
-  {"ACL_AICORE_ARITHMETIC_UTILIZATION", ACL_AICORE_ARITHMETIC_UTILIZATION},
-  {"ACL_AICORE_MEMORY_BANDWIDTH", ACL_AICORE_MEMORY_BANDWIDTH},
-  {"ACL_AICORE_L0B_AND_WIDTH", ACL_AICORE_L0B_AND_WIDTH},
-  {"ACL_AICORE_RESOURCE_CONFLICT_RATIO", ACL_AICORE_RESOURCE_CONFLICT_RATIO},
-  {"ACL_AICORE_MEMORY_UB", ACL_AICORE_MEMORY_UB},
-  {"ACL_AICORE_L2_CACHE", ACL_AICORE_L2_CACHE},
-  {"ACL_AICORE_NONE", ACL_AICORE_NONE},
+    {"ACL_AICORE_PIPE_UTILIZATION", ACL_AICORE_PIPE_UTILIZATION},
+    {"ACL_AICORE_ARITHMETIC_UTILIZATION", ACL_AICORE_ARITHMETIC_UTILIZATION},
+    {"ACL_AICORE_MEMORY_BANDWIDTH", ACL_AICORE_MEMORY_BANDWIDTH},
+    {"ACL_AICORE_L0B_AND_WIDTH", ACL_AICORE_L0B_AND_WIDTH},
+    {"ACL_AICORE_RESOURCE_CONFLICT_RATIO", ACL_AICORE_RESOURCE_CONFLICT_RATIO},
+    {"ACL_AICORE_MEMORY_UB", ACL_AICORE_MEMORY_UB},
+    {"ACL_AICORE_L2_CACHE", ACL_AICORE_L2_CACHE},
+    {"ACL_AICORE_NONE", ACL_AICORE_NONE},
 };
 
 std::map<std::string, uint64_t> ProfilerMgr::trace_level_map_ = {
-  {"Level0", Level0},
-  {"Level1", Level1},
-  {"Level2", Level2},
+    {"Level0", Level0},
+    {"Level1", Level1},
+    {"Level2", Level2},
 };
 
 ProfilerMgr::ProfilerMgr()
-  : report_enable_(false),
-    npu_trace_(false),
-    record_op_args_(false),
-    profConfig_(nullptr) {}
+    : report_enable_(false),
+      npu_trace_(false),
+      record_op_args_(false),
+      profConfig_(nullptr) {}
 
 void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
   if (npu_trace == true) {

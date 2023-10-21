@@ -9,20 +9,20 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 namespace {
 
 using torch::profiler::impl::ProfilerStubs;
 using torch::profiler::impl::ProfilerVoidEventStub;
 
 static inline void npuCheck(aclError result, const char * file, int line) {
-  if(result != ACL_ERROR_NONE) {
+  if (result != ACL_ERROR_NONE) {
     std::stringstream ss;
     ss << file << ":" << line << ": " << ", aclError id:" << result << ".";
     throw std::runtime_error(ss.str());
   }
 }
-#define TORCH_NPU_CHECK(result) npuCheck(result,__FILE__,__LINE__);
+#define TORCH_NPU_CHECK(result) npuCheck(result, __FILE__, __LINE__);
 
 struct NPUMethods : public ProfilerStubs {
   void record(int* device, ProfilerVoidEventStub* event, int64_t* cpu_ns)
@@ -60,7 +60,7 @@ struct NPUMethods : public ProfilerStubs {
     ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed for event2.");
     float ms;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event1, event2));
-    return ms*1000.0;
+    return ms * 1000.0;
   }
 
   void onEachDevice(std::function<void(int)> op) const override {

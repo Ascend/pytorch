@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunction& fn);
 
@@ -24,7 +24,7 @@ public:
     }
   }
 
-  ~NPURecordFunction(){
+  ~NPURecordFunction() {
     if (NPURecordFunction::use_npu_simple) {
       at::enableRecordFunction(!enable);
     }

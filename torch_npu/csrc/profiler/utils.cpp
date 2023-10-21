@@ -163,8 +163,13 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
       return 0;
     }
     // format of the input is defined in torch.nn.quantized.functional.conv2d()
-    uint64_t minibatch = 0, in_channels = 0, input_h = 0, input_w = 0;
-    uint64_t out_channels = 0, kernel_h = 0, kernel_w = 0;
+    uint64_t minibatch = 0;
+    uint64_t in_channels = 0;
+    uint64_t input_h = 0;
+    uint64_t input_w = 0;
+    uint64_t out_channels = 0;
+    uint64_t kernel_h = 0;
+    uint64_t kernel_w = 0;
     const uint64_t conv2d_multiply_factor = 2;
     std::tie(minibatch, in_channels, input_h, input_w) = std::make_tuple(input_sizes[0], input_sizes[1],
                                                                          input_sizes[2], input_sizes[3]);

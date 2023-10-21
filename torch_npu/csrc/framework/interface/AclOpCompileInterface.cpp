@@ -69,7 +69,7 @@ aclError AclGenGraphAndDumpForOp(const char *opType,
     int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
     const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
     aclGraphDumpOption* graphdumpOpt) {
-  typedef aclError(*AclGenGraphAndDumpForOpFunc)(const char *,int,
+  typedef aclError(*AclGenGraphAndDumpForOpFunc)(const char *, int,
       const aclTensorDesc *const [], const aclDataBuffer *const [],
       int, const aclTensorDesc *const [], aclDataBuffer *const [],
       const aclopAttr *, aclopEngineType, const char *, aclGraphDumpOption*);
@@ -126,10 +126,10 @@ aclError AclopCompileAndExecuteV2(const char *opType,
 aclError AclrtCtxSetSysParamOpt(aclSysParamOpt opt, int64_t value) {
   typedef aclError (*AclrtCtxSetSysParamOptFunc)(aclSysParamOpt opt, int64_t value);
   static AclrtCtxSetSysParamOptFunc func = nullptr;
-  if (func == nullptr){
+  if (func == nullptr) {
     func = (AclrtCtxSetSysParamOptFunc)GET_FUNC(aclrtCtxSetSysParamOpt);
   }
-  if (func == nullptr){
+  if (func == nullptr) {
     TORCH_WARN("Failed to find this aclrtCtxSetSysParamOpt function!");
     return ACL_ERROR_NONE;
   }

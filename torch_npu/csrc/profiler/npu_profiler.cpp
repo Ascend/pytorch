@@ -15,8 +15,8 @@ using torch_npu::toolkit::profiler::Utils;
 
 static const int64_t g_pid = getpid();
 struct NpuObserverContext : public at::ObserverContext {
-  explicit NpuObserverContext(torch_npu::toolkit::profiler::OpRangeData *data) : data_(data) {}
-  torch_npu::toolkit::profiler::OpRangeData *data_;
+    explicit NpuObserverContext(torch_npu::toolkit::profiler::OpRangeData *data) : data_(data) {}
+    torch_npu::toolkit::profiler::OpRangeData *data_;
 };
 
 struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
@@ -199,8 +199,8 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
 }
 
 void startNpuProfiler(const NpuProfilerConfig &config,
-  const std::set<NpuActivityType> &activities,
-  const std::unordered_set<at::RecordScope> &scopes) {
+    const std::set<NpuActivityType> &activities,
+    const std::unordered_set<at::RecordScope> &scopes) {
   auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
   if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
     ASCEND_LOGE("Profiler is already enabled.");
@@ -210,7 +210,7 @@ void startNpuProfiler(const NpuProfilerConfig &config,
   bool cpu_trace = activities.count(NpuActivityType::CPU);
   ExperimentalConfig experimental_config = config.experimental_config;
   NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
-    config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args};
+      config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args};
   ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
   if (cpu_trace) {
     registerCallback(scopes);
