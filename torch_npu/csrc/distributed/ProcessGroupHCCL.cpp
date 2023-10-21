@@ -731,15 +731,27 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
         auto hcclType = getHcclDataType(input.scalar_type());
         checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
-
-        return HcclAllReduce(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(input),
-            hcclType,
-            getHcclReduceOp(opts.reduceOp, input),
-            comm,
-            stream.stream());
+        
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream]() -> int {
+            return HcclAllReduce(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                hcclReduceOp,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclAllreduce");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       });
 }
 
@@ -757,13 +769,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
         const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
-        return HcclBroadcast(
-            input.data_ptr(),
-            getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
-            root,
-            comm,
-            stream.stream());
+
+        auto inputDataPtr = input.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclType = getHcclDataType(input.scalar_type());
+        auto hccl_call = [inputDataPtr, numel, hcclType, root, comm, stream]() -> int {
+            return HcclBroadcast(
+                inputDataPtr,
+                numel,
+                hcclType,
+                root,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclBroadcast");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       });
 }
 
@@ -789,15 +813,28 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
         auto hcclType = getHcclDataType(input.scalar_type());
         checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
-        return hcclReduce(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(input),
-            hcclType,
-            getHcclReduceOp(opts.reduceOp, input),
-            rank,
-            comm,
-            stream.stream());
+
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto reduceOp = getHcclReduceOp(opts.reduceOp, input);
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, reduceOp, rank, comm, stream]() -> int {
+            return hcclReduce(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                reduceOp,
+                rank,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclReduce");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       });
 }
 
@@ -864,13 +901,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
 
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
-        return HcclAllGather(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclType = getHcclDataType(input.scalar_type());
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
+            return HcclAllGather(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclAllgather");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -915,13 +964,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
         RECORD_FUNCTION("HcclAllgatherTogather", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
-        return HcclAllGather(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclType = getHcclDataType(input.scalar_type());
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
+            return HcclAllGather(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclAllGather");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -950,13 +1011,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
         RECORD_FUNCTION("HcclAllgatherBase", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
-        return HcclAllGather(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclType = getHcclDataType(input.scalar_type());
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
+            return HcclAllGather(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclAllGather");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -987,14 +1060,26 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
         RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
-        return HcclReduceScatter(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(output),
-            hcclType,
-            getHcclReduceOp(opts.reduceOp, input),
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(output);
+        auto hcclReduceOp = getHcclReduceOp(opts.reduceOp, input);
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream]() -> int {
+            return HcclReduceScatter(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                hcclReduceOp,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclReduceScatter");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
@@ -1047,14 +1132,26 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
         auto hcclType = getHcclDataType(input.scalar_type());
         checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclReduceScatterBase", std::vector<c10::IValue>({input}));
-        return HcclReduceScatter(
-            input.data_ptr(),
-            output.data_ptr(),
-            getNumelForHCCL(output),
-            hcclType,
-            hcclOp[opts.reduceOp],
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(output);
+        auto hcclReduceOp = hcclOp[opts.reduceOp];
+        auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, hcclReduceOp, comm, stream]() -> int {
+            return HcclReduceScatter(
+                inputDataPtr,
+                outputDataPtr,
+                numel,
+                hcclType,
+                hcclReduceOp,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclReduceScatter");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -1138,13 +1235,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(
           HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclSend", std::vector<c10::IValue>({input}));
-        return HcclSend(
-            input.data_ptr(),
-            getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
-            dstRank,
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto numel = getNumelForHCCL(input);
+        auto hcclType = getHcclDataType(input.scalar_type());
+        auto hccl_call = [inputDataPtr, numel, hcclType, dstRank, comm, stream]() -> int {
+            return HcclSend(
+                inputDataPtr,
+                numel,
+                hcclType,
+                dstRank,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclSend");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       });
 }
 
@@ -1163,13 +1271,24 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
-        return HcclRecv(
-            output.data_ptr(),
-            getNumelForHCCL(output),
-            getHcclDataType(output.scalar_type()),
-            srcRank,
-            comm,
-            stream.stream());
+        auto outputDataPtr = output.data_ptr();
+        auto numel = getNumelForHCCL(output);
+        auto hcclType = getHcclDataType(output.scalar_type());
+        auto hccl_call = [outputDataPtr, numel, hcclType, srcRank, comm, stream]() -> int {
+            return HcclRecv(
+                outputDataPtr,
+                numel,
+                hcclType,
+                srcRank,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclRecv");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+        
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -1267,17 +1386,29 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
           HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
-        return hcclAlltoAllV(
-            input.data_ptr(),
-            inputCounts,
-            inputSpl,
-            getHcclDataType(input.scalar_type()),
-            output.data_ptr(),
-            outputCounts,
-            outputSpl,
-            getHcclDataType(output.scalar_type()),
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto inputhcclDataType = getHcclDataType(input.scalar_type());
+        auto outputhcclDataType = getHcclDataType(output.scalar_type());
+        auto hccl_call = [inputDataPtr, &inputCounts, &inputSpl, inputhcclDataType, outputDataPtr, &outputCounts, &outputSpl, outputhcclDataType, comm, stream]() -> int {
+            return hcclAlltoAllV(
+                inputDataPtr,
+                inputCounts,
+                inputSpl,
+                inputhcclDataType,
+                outputDataPtr,
+                outputCounts,
+                outputSpl,
+                outputhcclDataType,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclAlltoAllV");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
@@ -1350,17 +1481,29 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall(
           HcclComm comm,
           c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
-        return hcclAlltoAllV(
-            input.data_ptr(),
-            input_counts,
-            input_spl,
-            getHcclDataType(input.scalar_type()),
-            output.data_ptr(),
-            output_counts,
-            output_spl,
-            getHcclDataType(output.scalar_type()),
-            comm,
-            stream.stream());
+        auto inputDataPtr = input.data_ptr();
+        auto outputDataPtr = output.data_ptr();
+        auto inputhcclDataType = getHcclDataType(input.scalar_type());
+        auto outputhcclDataType = getHcclDataType(output.scalar_type());
+        auto hccl_call = [inputDataPtr, &input_counts, &input_spl, inputhcclDataType, outputDataPtr, &output_counts, &output_spl, outputhcclDataType, comm, stream]() -> int {
+            return hcclAlltoAllV(
+                inputDataPtr,
+                input_counts,
+                input_spl,
+                inputhcclDataType,
+                outputDataPtr,
+                output_counts,
+                output_spl,
+                outputhcclDataType,
+                comm,
+                stream.stream(false));
+        };
+        at_npu::native::OpCommand cmd;
+        cmd.Name("HcclAlltoAllV");
+        cmd.SetCustomHandler(hccl_call);
+        cmd.Run();
+
+        return HCCL_SUCCESS;
       },
       [&](std::vector<c10_npu::NPUStream>&,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
