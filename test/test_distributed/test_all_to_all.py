@@ -78,7 +78,7 @@ class HcclAlltoAllTest(TestCase):
             if cout == 0:
                 expected = list((torch.arange(2) * 2 + rank).chunk(2))
             elif cout == 1:
-                expected = [(torch.zeros(i + 1) + i, 1).float() for i in range(2)]
+                expected = [(torch.zeros(i + 1, 1) + i).float() for i in range(2)]
             elif cout == 2:
                 expected = [(torch.zeros(i + 1, i + 1) + i).float() for i in range(2)]
 

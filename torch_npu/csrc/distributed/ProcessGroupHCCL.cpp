@@ -1194,6 +1194,21 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recvAnysource(
   TORCH_CHECK(false, "ProcessGroupHCCL does not support recv");
 }
 
+void check_split_sizes(
+    const std::vector<int64_t>& split_sizes,
+    const at::Tensor& tensor,
+    int group_size) {
+  if (split_sizes.empty()) {
+    TORCH_CHECK(
+        tensor.size(0) % group_size == 0,
+        "Tensor's dim 0 does not divide equally across group size");
+  } else {
+    TORCH_CHECK(
+        split_sizes.size() == static_cast<size_t>(group_size),
+        "Number of tensor splits not equal to group size");
+  }
+}
+
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
@@ -1206,13 +1221,20 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   auto outputTensors_ = cast_to_origin_format(outputTensors);
   int ranks = getSize();
   TORCH_CHECK(ranks > 0, "Invalid ranks", ranks);
-  uint64_t index = static_cast<uint64_t>(inputTensor.numel() / ranks);
+  uint64_t index = static_cast<uint64_t>(outputTensor.numel() / ranks);
   if (outputSplitSizes.empty()) {
     for (int i = 0; i < ranks; i++) {
-      inputSplitSizes.push_back(index);
       outputSplitSizes.push_back(index);
     }
   }
+  index = static_cast<uint64_t>(inputTensor.numel() / ranks);
+  if (inputSplitSizes.empty()) {
+    for (int i = 0; i < ranks; i++) {
+      inputSplitSizes.push_back(index);
+    }
+  }
+  check_split_sizes(inputSplitSizes, inputTensor, size_);
+  check_split_sizes(outputSplitSizes, outputTensor, size_);
 
   int inputSize = static_cast<int>(inputSplitSizes.size());
   int outSize = static_cast<int>(outputSplitSizes.size());
