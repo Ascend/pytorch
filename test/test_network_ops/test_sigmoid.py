@@ -25,7 +25,6 @@ from torch_npu.testing.decorator import Dtypes, instantiate_tests
 class TestSigmoid(TestCase):
     @Dtypes(torch.float)
     def test_sigmoid(self, dtype, device):
-        # TODO: why not simulate math.sigmoid like with rsqrt?
         inputValues = [-1000, -1, 0, 0.5, 1, 2, 1000]
         expectedOutput = [0.0000, 0.2689, 0.5, 0.6225, 0.7311, 0.8808, 1.000]
         precision_4dps = 0.0002
