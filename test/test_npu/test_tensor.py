@@ -53,7 +53,7 @@ class TestTensor(TestCase):
         t2 = torch.tensor([False, False], dtype=torch.bool).npu()
         t1.set_(t2)
         self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
-    
+
     def test_tensor_set_with_new_storage(self):
         cpu_t_1 = torch.range(0, 15, dtype=torch.float)
         cpu_t_2 = cpu_t_1.reshape((4, 4))
@@ -92,6 +92,7 @@ class TestTensor(TestCase):
         self.assertEqual(a.cpu(), c.cpu())
 
         x = torch.randn((1, 2, 3), dtype=dtype, device=device)
+
         def inplace():
             y = torch.randn((1, 2, 3), dtype=dtype, device=device)
             return y
@@ -298,6 +299,7 @@ class TestTensor(TestCase):
             res1 = torch.zeros_like(faketensor, device=faketensor.device)
 
         self.assertEqual(res1.to('cpu'), expected.to('cpu'))
+
 
 if __name__ == '__main__':
     run_tests()

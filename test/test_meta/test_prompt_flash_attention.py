@@ -32,5 +32,6 @@ class TestPromptFlashAttention(TestCase):
             print("res.shape: ", res.shape)
             self.assertTrue(q.shape == res.shape)
 
+
 if __name__ == "__main__":
     run_tests()

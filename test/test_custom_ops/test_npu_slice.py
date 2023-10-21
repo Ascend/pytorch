@@ -16,7 +16,7 @@ class TestNpuSlice(TestCase):
                                         index=torch.tensor(input_index, device="npu"))
         return input1
 
-    def split_npu_slice_out(self, input1, offset, sizes,out=None):
+    def split_npu_slice_out(self, input1, offset, sizes, out=None):
         input_dim = input1.size()
         num_dim = len(input_dim)
         for i in range(num_dim):
@@ -52,4 +52,3 @@ class TestNpuSlice(TestCase):
 
 if __name__ == '__main__':
     run_tests()
-

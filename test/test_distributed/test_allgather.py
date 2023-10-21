@@ -11,6 +11,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class HcclReduceTest(TestCase):
 
     @classmethod
@@ -68,7 +69,7 @@ class HcclReduceTest(TestCase):
         for _ in range(world_size):
             rank, output = c2p.get()
             self.assertEqual(output, expected,
-                            ("rank {} Expect receive tensor {} but got {}.").format(rank, expected, output))
+                             ("rank {} Expect receive tensor {} but got {}.").format(rank, expected, output))
 
         for p in ps:
             p.join()
@@ -81,7 +82,7 @@ class HcclReduceTest(TestCase):
         elif op == dist.all_gather_into_tensor:
             return torch.cat((inputs.cpu(), inputs.cpu()))
         else:
-            ValueError("Unsupported op `{}`"%(str(op)))
+            ValueError("Unsupported op `{}`" % (str(op)))
         return
 
     @skipIfUnsupportMultiNPU(2)

@@ -42,6 +42,7 @@ class WN(torch.nn.Module):
     from WaveNet is the convolutions need not be causal.  There is also no dilation
     size reset.  The dilation only doubles on each layer
     """
+
     def __init__(self, n_in_channels, n_channels):
         super(WN, self).__init__()
         self.n_channels = n_channels
@@ -60,6 +61,7 @@ class TestSerialization(TestCase):
     The saved data is saved by using the PyTorch CPU storage structure, but 
     following `torch.load()`  will load the corresponding NPU data.
     """
+
     def test_save(self):
         x = torch.randn(5).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -103,7 +105,7 @@ class TestSerialization(TestCase):
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertRtolEqual(torch_npu.get_npu_format(x),
-                                 torch_npu.get_npu_format(x_loaded))          
+                                 torch_npu.get_npu_format(x_loaded))
             x = torch_npu.npu_format_cast(torch.randn(2, 3, 224, 224).npu(), FORMAT_NC1HWC0)
             torch.save(x, path)
             x_loaded = torch.load(path)
@@ -122,15 +124,15 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(y, path)
             y_loaded = torch.load(path)
-            self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu())
 
         y = x[:, :2, :]
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(y, path)
             y_loaded = torch.load(path)
-            self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
-        
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu())
+
         y = x[:1, :, :]
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
@@ -159,7 +161,7 @@ class TestSerialization(TestCase):
             self.assertExpectedInline(str(x), str(x_loaded))
             x_loaded = torch.load(path, weights_only=True)
             self.assertExpectedInline(str(x), str(x_loaded))
-    
+
     def test_save_torch_size(self):
         x = torch.randn(2, 3).size()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -181,7 +183,7 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertExpectedInline(str(model), str(model_loaded))
             self.assertTrue(number, number_loaded)
-    
+
     def test_save_value(self):
         x = 44
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -211,7 +213,7 @@ class TestSerialization(TestCase):
             torch.save(model, path)
             loaded_model = torch.load(path)
             self.assertExpectedInline(str(model), str(loaded_model))
-            
+
     def test_serialization_weight_norm(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
@@ -240,7 +242,7 @@ class TestSerialization(TestCase):
             loaded_model = cpu_model.npu()
             before_save = model.state_dict()
             after_load = loaded_model.state_dict()
-            
+
             self.assertRtolEqual(before_save['conv1.weight'].cpu(), after_load['conv1.weight'].cpu())
             self.assertRtolEqual(before_save['conv2.weight'].cpu(), after_load['conv2.weight'].cpu())
             self.assertRtolEqual(before_save['fc1.weight'].cpu(), after_load['fc1.weight'].cpu())
@@ -259,7 +261,7 @@ class TestSerialization(TestCase):
                 a_loaded, b_loaded = torch.load(f)
             self.assertEqual(a, a_loaded)
             self.assertEqual(b, b_loaded)
-        
+
         dtypes = []
         for dtype in dtypes:
             a = torch.tensor([], dtype=dtype, device='npu')
@@ -269,7 +271,7 @@ class TestSerialization(TestCase):
                 save_load_check(a.storage(), s)
                 b = torch.tensor([], dtype=other_dtype, device='npu')
                 save_load_check(a, b)
-            
+
 
 if __name__ == "__main__":
     run_tests()

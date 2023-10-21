@@ -11,6 +11,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class HcclReduceScatterTest(TestCase):
 
     @classmethod
@@ -64,15 +65,14 @@ class HcclReduceScatterTest(TestCase):
         for _ in range(world_size):
             rank, output = c2p.get()
             self.assertEqual(output, expected[rank],
-                            ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
+                             ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
         for p in ps:
             p.join()
 
     def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather):
-        if not op in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor]:
+        if op not in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor]:
             raise ValueError("Unsupported op `{}`" % (str(op)))
         return [input.cpu() * world_size for input in inputs]
-
 
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter(self):
@@ -134,7 +134,7 @@ class HcclReduceScatterTest(TestCase):
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter_tensor,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
-										
+
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_scatter_base_int64(self):
         ranks = [2]

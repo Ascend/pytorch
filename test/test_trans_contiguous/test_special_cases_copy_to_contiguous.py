@@ -24,7 +24,7 @@ class TestSpecialCasesCopyToContiguous(TestCase):
             npu_out = cpu_input.npu()
             npu_out[:item[1]] = 1
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
-    
+
     def test_select_broadcast_at_same_axis_copy_contiguous(self, device="npu"):
         dtype_list = [np.float16, np.float32]
         format_list = [0, 3, 29]
@@ -36,7 +36,7 @@ class TestSpecialCasesCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_out = torch.as_strided(cpu_input, (1, 32, 96, 96), (746496, 0, 96, 1), 737280).clone()
             npu_out = torch.as_strided(npu_input, (1, 32, 96, 96), (746496, 0, 96, 1), 737280).clone()
-            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy()) 
+            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
 
 
 if __name__ == "__main__":

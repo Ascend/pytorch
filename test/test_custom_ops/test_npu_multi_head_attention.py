@@ -40,9 +40,9 @@ class TestMultiHeadAttention(TestCase):
         attn_probs, dropout_mask = torch_npu._npu_dropout(
             attn_softmax, p=dropout_prob)
         attn_batch2 = torch.matmul(attn_probs, v)
-        context = torch_npu.npu_confusion_transpose(attn_batch2, 
-                                                    perm, 
-                                                    (attn_batch2.size()[0] * attn_batch2.size()[2], embed_dim), 
+        context = torch_npu.npu_confusion_transpose(attn_batch2,
+                                                    perm,
+                                                    (attn_batch2.size()[0] * attn_batch2.size()[2], embed_dim),
                                                     True)
         attn = torch_npu.npu_linear(context, out_proj_weight, out_proj_bias)
 

@@ -13,11 +13,11 @@ class TestNpuIou(TestCase):
     def custom_op_exec(self, bboxes, gtboxes, mode=0):
         output = self.custom_ptiou(bboxes, gtboxes, mode)
         return output.cpu().numpy()
-    
+
     def npu_op_exec(self, bboxes, gtboxes, mode=0):
         output = torch_npu.npu_ptiou(bboxes, gtboxes, mode)
         return output.cpu().numpy()
-    
+
     def test_iou_fp16(self):
         bboxes = torch.tensor([[0, 0, 10, 10],
                                [10, 10, 20, 20],
@@ -38,9 +38,9 @@ class TestNpuIou(TestCase):
         bboxes = torch.tensor([[1, 2, 3, 4],
                                [5, 6, 7, 8],
                                [9, 10, 11, 12],
-                               [13, 14, 15, 16]], dtype = torch.float16).npu()
+                               [13, 14, 15, 16]], dtype=torch.float16).npu()
         gtboxes = torch.tensor([[1, 2, 3, 4],
-                                [5, 6, 7, 8]], dtype = torch.float16).npu()
+                                [5, 6, 7, 8]], dtype=torch.float16).npu()
 
         output_npu = self.npu_op_exec(bboxes, gtboxes, 1)
         output_custom = self.custom_op_exec(bboxes, gtboxes, 1)

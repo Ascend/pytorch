@@ -7,6 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 os.environ["MASTER_ADDR"] = '127.0.0.1'
 os.environ["MASTER_PORT"] = "29500"
 
+
 class DistributedApiTestCase(TestCase):
 
     def setUp(self):
@@ -53,7 +54,7 @@ class DistributedApiTestCase(TestCase):
         new_group = dist.new_group(ranks=list(range(self.world_size)), backend="hccl")
         self.assertIsInstance(new_group, dist.ProcessGroup)
         self.assertIsInstance(new_group._get_backend(torch.device("npu")),
-            torch_npu._C._distributed_c10d.ProcessGroupHCCL)
+                              torch_npu._C._distributed_c10d.ProcessGroupHCCL)
         dist.destroy_process_group(new_group)
 
 

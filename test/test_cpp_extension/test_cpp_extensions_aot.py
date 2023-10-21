@@ -17,6 +17,7 @@ except ImportError as e:
 class TestCppExtensionAOT(TestCase):
     """Tests ahead-of-time cpp extensions
     """
+
     def test_npu_extension(self):
         x = torch.randn(4, 4)
         y = torch.randn(4, 4)

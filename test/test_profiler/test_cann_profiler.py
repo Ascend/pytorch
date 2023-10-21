@@ -21,10 +21,12 @@ class SmallModel(torch.nn.Module):
         input_1 = self.conv2(input_1)
         return input_1.reshape(input_1.shape[0], -1)
 
+
 def run_ops():
     input_1 = torch.rand(10, 10).npu()
     input_2 = torch.rand(10, 10).npu()
     out = input_1*input_2
+
 
 def run_small_model():
     input_shape = (4, 3, 24, 24)
@@ -35,35 +37,37 @@ def run_small_model():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
     for i in range(10):
         inputs = torch.rand(input_shape).to(device)
-        target =  torch.rand(out_shape).reshape(out_shape[0], -1).to(device)
+        target = torch.rand(out_shape).reshape(out_shape[0], -1).to(device)
         output = model(inputs)
         loss = criterion(output, target)
         loss.backward()
         optimizer.zero_grad()
         optimizer.step()
 
+
 def setUp(results_path, use_e2e_profiler=False):
     if not os.path.exists(results_path):
         PathManager.make_dir_safety(results_path)
     if not use_e2e_profiler:
         torch.npu.prof_init(results_path)
-    tensor = torch.rand(2,3).npu()
+    tensor = torch.rand(2, 3).npu()
     result = []
 
-    enevtTypes = [{"ACL_PROF_ACL_API":False}, {"ACL_PROF_TASK_TIME":False}, 
-                    {"ACL_PROF_AICORE_METRICS":False}, {"ACL_PROF_AICPU":False},
-                    {"ACL_PROF_L2CACHE":False}, {"ACL_PROF_HCCL_TRACE":False},
-                    {"ACL_PROF_TRAINING_TRACE":False}]
+    enevtTypes = [{"ACL_PROF_ACL_API": False}, {"ACL_PROF_TASK_TIME": False},
+                  {"ACL_PROF_AICORE_METRICS": False}, {"ACL_PROF_AICPU": False},
+                  {"ACL_PROF_L2CACHE": False}, {"ACL_PROF_HCCL_TRACE": False},
+                  {"ACL_PROF_TRAINING_TRACE": False}]
 
     enevtTypeCombinations = list(combinations(enevtTypes, 1)) + list(combinations(enevtTypes, 2)) + \
-                            list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
-                            list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6)) 
+        list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
+        list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6))
     for events in enevtTypeCombinations:
         temp_events = {}
         for event in events:
             temp_events.update(event)
         result.append(temp_events)
     return result
+
 
 class TestCannProfiler(TestCase):
     enevtTypeResults = None
@@ -137,5 +141,6 @@ class TestE2EProfiler(TestCase):
                 self._test_e2e_model(**events, aiCoreMetricsType=i)
             return
 
+
 if __name__ == "__main__":
-        run_tests()
+    run_tests()

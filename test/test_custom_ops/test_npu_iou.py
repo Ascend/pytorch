@@ -9,9 +9,9 @@ class TestNpuIou(TestCase):
         def box_area(boxes):
             return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-        # Logics here have some differents from torchvision. 
-        lt = torch.max(bboxes[:, :2], gtboxes[:, None, :2]) 
-        rb = torch.min(bboxes[:, 2:], gtboxes[:, None, 2:]) 
+        # Logics here have some differents from torchvision.
+        lt = torch.max(bboxes[:, :2], gtboxes[:, None, :2])
+        rb = torch.min(bboxes[:, 2:], gtboxes[:, None, 2:])
         wh = torch.clamp(rb - lt, min=0)
         inter = wh[:, :, 0] * wh[:, :, 1]
 
@@ -23,21 +23,21 @@ class TestNpuIou(TestCase):
             return iou
         else:
             gt_area = box_area(gtboxes)
-            iof =  inter / (gt_area[:, None] + eps)
+            iof = inter / (gt_area[:, None] + eps)
             return iof
-    
+
     def custom_op_exec(self, bboxes, gtboxes, mode=0):
         output = self.npu_iou(bboxes, gtboxes, mode)
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def npu_op_exec(self, bboxes, gtboxes, mode=0):
         output = torch_npu.npu_iou(bboxes, gtboxes, mode)
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def test_iou_fp16(self):
         bboxes = torch.tensor([[0, 0, 10, 10],
                                [10, 10, 20, 20],
@@ -58,9 +58,9 @@ class TestNpuIou(TestCase):
         bboxes = torch.tensor([[1, 2, 3, 4],
                                [5, 6, 7, 8],
                                [9, 10, 11, 12],
-                               [13, 14, 15, 16]], dtype = torch.float16).npu()
+                               [13, 14, 15, 16]], dtype=torch.float16).npu()
         gtboxes = torch.tensor([[1, 2, 3, 4],
-                                [5, 6, 7, 8]], dtype = torch.float16).npu()
+                                [5, 6, 7, 8]], dtype=torch.float16).npu()
 
         output_npu = self.npu_op_exec(bboxes, gtboxes, 1)
         output_custom = self.custom_op_exec(bboxes, gtboxes, 1)

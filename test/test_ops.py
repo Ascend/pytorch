@@ -100,7 +100,7 @@ _ops_and_refs = op_db + python_ref_db
 
 
 def reduction_dtype_filter(op):
-    if(not isinstance(op, ReductionPythonRefInfo) or not op.supports_out
+    if (not isinstance(op, ReductionPythonRefInfo) or not op.supports_out
        or torch.int16 not in op.dtypes):
         return False
 
@@ -108,6 +108,7 @@ def reduction_dtype_filter(op):
     if 'dtype' not in argspec.kwonlyargs:
         return False
     return True
+
 
 # Create a list of operators that are a subset of _ref_test_ops but don't have a
 # numpy ref to compare them too, If both CPU and NPU are compared to numpy
@@ -240,7 +241,6 @@ class TestCommon(TestCase):
             # Don't want the periodic tests to fail frequently
             self.assertEqual(npu_results, cpu_results, atol=1e-3, rtol=1e-3)
 
-
     @unittest.skip("NPU doesn't support yet.")
     @ops([op for op in op_db if op.error_inputs_func is not None], dtypes=OpDTypes.none)
     def test_errors(self, device, op):
@@ -347,7 +347,6 @@ class TestCommon(TestCase):
                     # for non-integer types fills with NaN
                     return torch.full_like(t, float("nan"))
 
-
             _compare_out(_case_zero_transform)
 
             # Case 1: out= with the correct shape, dtype, and device,
@@ -445,7 +444,6 @@ class TestCommon(TestCase):
                     with self.assertRaises(RuntimeError, msg=msg_fail):
                         op_out(out=out)
 
-
     @ops(filter(reduction_dtype_filter, _ops_and_refs), dtypes=(torch.int16,))
     def test_out_integral_dtype(self, device, dtype, op):
         def helper(with_out, expectFail, op_to_test, inputs, *args, **kwargs):
@@ -490,7 +488,6 @@ class TestCommon(TestCase):
         inplace = op.inplace_variant
         operator = op.operator_variant
         inplace_operator = op.inplace_operator_variant
-
 
         # list of all inplace ops: inplace variant + alias inplace variants if exist
         inplace_ops = [inplace, inplace_operator]
@@ -547,7 +544,6 @@ class TestCommon(TestCase):
                     and expected_forward.dtype is not tensor.dtype
                 ):
                     skip_inplace = True
-
 
                 if isinstance(
                     expected_forward, torch.Tensor
@@ -906,7 +902,6 @@ class TestCompositeCompliance(TestCase):
                 op.get_op(), args, kwargs,
                 sample.output_process_fn_grad,
                 op.gradcheck_wrapper, self.assertEqual)
-
 
     @ops(op_db, allowed_dtypes=(torch.float,))
     def test_forward_ad(self, device, dtype, op):
@@ -1272,7 +1267,6 @@ class TestFakeTensor(TestCase):
                     with mode:
                         res_fake = op(input_, *args, **kwargs)
 
-
                 for fake_out, real_out in zip(
                     tree_flatten(res_fake)[0], tree_flatten(res)[0]
                 ):
@@ -1392,12 +1386,10 @@ class TestFakeTensor(TestCase):
             except torch._subclasses.fake_tensor.UnsupportedOperatorException:
                 pass
 
-
     @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
     @skipOps('TestFakeTensor', 'test_fake_crossref_backward_no_amp', fake_backward_xfails)
     def test_fake_crossref_backward_no_amp(self, device, dtype, op):
         self._test_fake_crossref_helper(device, dtype, op, contextlib.nullcontext)
-
 
     @ops([op for op in op_db if op.supports_autograd], allowed_dtypes=(torch.float,))
     @skipOps('TestFakeTensor', 'test_fake_crossref_backward_amp', fake_backward_xfails | fake_autocast_backward_xfails)
@@ -1409,7 +1401,6 @@ instantiate_device_type_tests(TestCommon, globals(), only_for='privateuse1')
 instantiate_device_type_tests(TestCompositeCompliance, globals(), only_for='privateuse1')
 instantiate_device_type_tests(TestMathBits, globals(), only_for='privateuse1')
 instantiate_device_type_tests(TestFakeTensor, globals(), only_for='privateuse1')
-
 
 
 """
@@ -1429,7 +1420,7 @@ modes = stat.S_IWUSR | stat.S_IRUSR
 
 def get_list(all_test_name_log):
     all_attr = dir(TestCommonPRIVATEUSE1) + dir(TestCompositeCompliancePRIVATEUSE1) + dir(TestMathBitsPRIVATEUSE1) + \
-               dir(TestFakeTensorPRIVATEUSE1)
+        dir(TestFakeTensorPRIVATEUSE1)
     with os.fdopen(os.open(all_test_name_log, flags, modes), "a") as f:
         for i in all_attr:
             if i.startswith("test_"):
@@ -1466,6 +1457,7 @@ def _read_file(t_name):
 def start_thread(t_name):
     thread_io = threading.Thread(target=_read_file, args=(t_name,))
     thread_io.start()
+
 
 if __name__ == "__main__":
     check_end = sys.argv[-1].isdigit()

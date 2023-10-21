@@ -36,7 +36,7 @@ class TestJitOpsFusion(TestCase):
         class Ori_Module(torch.nn.Module):
             def __init__(self) -> None:
                 super().__init__()
-            
+
             def forward(self, x):
                 x = x**2
                 x = torch.nn.functional.gelu(x)

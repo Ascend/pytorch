@@ -7,7 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestLSTM(TestCase):
-    def cpu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True, 
+    def cpu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True,
                     num_layers=1, dropout=0.0, train=True, bidirectional=False,
                     batch_first=False, flag_seq=False, direction=False):
         """
@@ -56,7 +56,7 @@ class TestLSTM(TestCase):
         output, hn, hc = ret[0], ret[1], ret[2]
         return output, hn, hc
 
-    def npu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True, 
+    def npu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True,
                     num_layers=1, dropout=0.0, train=True, bidirectional=False,
                     batch_first=False, flag_seq=False, direction=False):
         """
@@ -78,8 +78,8 @@ class TestLSTM(TestCase):
         -> Tensor[] # yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc
         """
         result = torch_npu.npu_lstm(input_data, weight, bias, seq_len, h, c,
-                                        has_biases, num_layers, dropout, train,
-                                        bidirectional, batch_first, flag_seq, direction)
+                                    has_biases, num_layers, dropout, train,
+                                    bidirectional, batch_first, flag_seq, direction)
         y, h, c = result[0], result[1], result[2]
         return y, h, c
 
@@ -106,12 +106,12 @@ class TestLSTM(TestCase):
         bias = bias_ih
 
         # cpu
-        cpu_out, cpu_hn, cpu_cn = self.cpu_to_exec(input_data, weight, bias, seq_length_t, 
+        cpu_out, cpu_hn, cpu_cn = self.cpu_to_exec(input_data, weight, bias, seq_length_t,
                                                    h0_data, c0_data, has_biases=True)
         # npu
-        npu_out, npu_hn, npu_cn = self.npu_to_exec(input_data, weight, bias, seq_length_t, 
+        npu_out, npu_hn, npu_cn = self.npu_to_exec(input_data, weight, bias, seq_length_t,
                                                    h0_data, c0_data, has_biases=True)
-        
+
         cpu_out = cpu_out.cpu().detach().numpy()
         cpu_hn = cpu_hn.cpu().detach().numpy()
         cpu_cn = cpu_cn.cpu().detach().numpy()

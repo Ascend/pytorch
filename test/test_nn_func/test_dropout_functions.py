@@ -38,5 +38,6 @@ class TestDropoutFunctions(TestCase):
 
         self.assertTrue(str(cpu_output.shape), str(npu_output.shape))
 
+
 if __name__ == "__main__":
     run_tests()

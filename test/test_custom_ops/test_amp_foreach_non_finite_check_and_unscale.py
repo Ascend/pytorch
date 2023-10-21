@@ -4,6 +4,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
+
 @instantiate_tests
 class TestAmpForeachNonFiniteCheckAndUnscale(TestCase):
 
@@ -39,7 +40,7 @@ class TestAmpForeachNonFiniteCheckAndUnscale(TestCase):
 
             if has_inf:
                 ginf = g.clone()
-                ginf[2,2].mul_(torch.finfo(dtype).max)
+                ginf[2, 2].mul_(torch.finfo(dtype).max)
                 torch._amp_foreach_non_finite_check_and_unscale_(grads, found_inf, inv_scale)
                 _get_float_status()
                 self.assertEqual(found_inf, 1.0)
@@ -55,7 +56,7 @@ class TestAmpForeachNonFiniteCheckAndUnscale(TestCase):
         # Passing lists with mismatched devices or dtypes to a raw
         # _amp_foreach_non_finite_check_and_unscale_ call should raise errors.
         with self.assertRaisesRegex(RuntimeError, r"must have the same dtype"):
-            if dtype==torch.float16:
+            if dtype == torch.float16:
                 torch._amp_foreach_non_finite_check_and_unscale_([g.clone(), g.to(dtype=torch.float32)],
                                                                  found_inf,
                                                                  inv_scale)

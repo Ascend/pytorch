@@ -48,6 +48,7 @@ def get_all_test_names(file_name):
         tests = f.read().splitlines()
     return tests
 
+
 tests_ = [n for n in get_all_test_names(all_test_names_path) if n.startswith("test_")]
 
 
@@ -105,6 +106,7 @@ def run_tests():
                 proc_pool.pop(0)
 
         curr_id = (curr_id + 1) % num_npus
+
 
 if __name__ == "__main__":
     run_tests()

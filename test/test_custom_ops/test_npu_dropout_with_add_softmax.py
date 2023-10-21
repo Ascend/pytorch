@@ -44,5 +44,6 @@ class TestDropoutWithAddSoftmax(TestCase):
 
         self.assertRtolEqual(cpu_out, npu_out)
 
+
 if __name__ == "__main__":
     run_tests()

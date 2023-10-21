@@ -44,7 +44,6 @@ class TestCombineTensors(TestCase):
             self.assertEqual(tensor_new, tensor)
             idx += torch_npu.get_storage_size(tensor)
 
-
     @Dtypes(torch.half, torch.float)
     def test_combine_tensors(self, dtype, device="npu"):
         x = torch.zeros((2, 2, 2, 2), device=device, dtype=dtype)
@@ -65,7 +64,6 @@ class TestCombineTensors(TestCase):
         self.assertEqual(x.data_ptr() + x_storage_size * x.element_size(), y.data_ptr())
         self.assertEqual(y.data_ptr() + y_storage_size * y.element_size(), z.data_ptr())
         self.assertEqual(combine_tensor_storage_size, x_storage_size + y_storage_size + z_storage_size)
-
 
     @Dtypes(torch.half, torch.float)
     def test_combine_tensors_large(self, dtype, device="npu"):
@@ -88,7 +86,6 @@ class TestCombineTensors(TestCase):
         self.assertEqual(y.data_ptr() + y_storage_size * y.element_size(), z.data_ptr())
         self.assertEqual(combine_tensor_storage_size, x_storage_size + y_storage_size + z_storage_size)
 
-
     @Dtypes(torch.half, torch.float)
     def test_computation(self, dtype, device="npu"):
         x = torch.zeros((2, 2, 2, 2), device=device, dtype=dtype)
@@ -110,7 +107,6 @@ class TestCombineTensors(TestCase):
         self.assertEqual(236, combine_tensor.sum().long().item())
         self.assertEqual(combine_tensor.sum().long().item(), (x.sum() + y.sum() + z.sum()).long().item())
 
-
     @Dtypes(torch.half, torch.float)
     def test_get_part_combined_tensor(self, dtype, device="npu"):
         x = torch.randn((2, 2, 2, 2), device=device, dtype=dtype)
@@ -131,7 +127,6 @@ class TestCombineTensors(TestCase):
         self.assertEqual(part_tensor_x.reshape_as(x), x)
         self.assertEqual(part_tensor_y.reshape_as(y), y)
         self.assertEqual(part_tensor_z.reshape_as(z), z)
-
 
     @Dtypes(torch.half, torch.float)
     def test_is_combined_tensor_valid(self, dtype, device="npu"):

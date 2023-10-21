@@ -6,6 +6,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils.path_manager import PathManager
 
+
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel, out_channel):
         super(SmallModel, self).__init__()
@@ -19,6 +20,7 @@ class SmallModel(torch.nn.Module):
         input_1 = self.conv2(input_1)
         return input_1.reshape(input_1.shape[0], -1)
 
+
 class TestAoe(TestCase):
     results_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], "graphs")
 
@@ -28,7 +30,7 @@ class TestAoe(TestCase):
             PathManager.remove_path_safety(TestAoe.results_path)
         PathManager.make_dir_safety(TestAoe.results_path)
         TestAoe.enable_aoe()
-    
+
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestAoe.results_path):
@@ -61,6 +63,7 @@ class TestAoe(TestCase):
         if torch.npu.is_available():
             self.assertTrue(len(file_list) > 0)
         torch.npu.synchronize()
+
 
 if __name__ == '__main__':
     run_tests()

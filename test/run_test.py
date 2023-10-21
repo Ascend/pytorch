@@ -6,7 +6,7 @@ import signal
 import tempfile
 import shutil
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 
 import torch
@@ -84,7 +84,7 @@ if torch.distributed.is_available():
         DISTRIBUTED_TESTS_CONFIG['hccl'] = {
             'WORLD_SIZE': str(2**math.floor(math.log2(torch.npu.device_count()))),
         }
- 
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -166,14 +166,14 @@ def get_selected_tests(options):
     selected_tests = []
     if options.include:
         for item in options.include:
-            selected_tests.extend(list(filter(lambda test_name: item == test_name \
-                    or (item in TESTS_MODULE and test_name.startswith(item)), TESTS)))
+            selected_tests.extend(list(filter(lambda test_name: item == test_name
+                                              or (item in TESTS_MODULE and test_name.startswith(item)), TESTS)))
     else:
         selected_tests = TESTS
-    
+
     if options.core:
         selected_tests = list(filter(lambda test_name: test_name in CORE_TEST_LIST, selected_tests))
-    
+
     if options.first:
         first_index = find_test_index(options.first, selected_tests)
         selected_tests = selected_tests[first_index:]
@@ -184,7 +184,7 @@ def get_selected_tests(options):
 
     for item in options.exlude:
         selected_tests = list(filter(lambda test_name: not test_name.startswith(item), selected_tests))
-    
+
     return selected_tests
 
 
@@ -201,7 +201,7 @@ def run_test(test, test_directory, options):
     argv = [test + ".py"] + unittest_args
 
     command = executable + argv
-    print_to_stderr("Executing {} ... [{}]".format(command, datetime.now()))
+    print_to_stderr("Executing {} ... [{}]".format(command, datetime.now(tz=timezone.utc)))
     return shell(command, test_directory)
 
 
@@ -304,14 +304,14 @@ CUSTOM_HANDLERS = {
 def run_test_module(test: str, test_directory: str, options) -> Optional[str]:
     test_module = parse_test_module(test)
 
-    print_to_stderr("Running {} ... [{}]".format(test, datetime.now()))
+    print_to_stderr("Running {} ... [{}]".format(test, datetime.now(tz=timezone.utc)))
     handler = CUSTOM_HANDLERS.get(test_module, run_test)
 
     return_code = handler(test, test_directory, options)
     assert isinstance(return_code, int) and not isinstance(return_code, bool), "Return code should be an integer"
     if return_code == 0:
         return None
-    
+
     message = f"exec ut {test} failed!"
     if return_code < 0:
         # subprocess.Popen returns the child process' exit signal as

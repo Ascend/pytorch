@@ -19,6 +19,7 @@ types = [
     torch.HalfTensor,
 ]
 
+
 def get_npu_type(type_name):
     if isinstance(type_name, type):
         type_name = '{}.{}'.format(type_name.__module__, type_name.__name__)
@@ -125,7 +126,7 @@ class TestTensor(TestCase):
         out1 = torch.randn(1, 2, 3, 4, 5).npu()
         self.assertTrue(120, out1)
 
-        out2 = torch.zeros(4,4).npu()
+        out2 = torch.zeros(4, 4).npu()
         self.assertTrue(16, out2)
 
     def test_set_printoptions(self):
@@ -160,19 +161,19 @@ class TestTensor(TestCase):
 class TestCreationOps(TestCase):
     def test_tensor(self):
         cpu_output1 = torch.tensor([[0.11111, 0.222222, 0.3333333]],
-            dtype=torch.float32,
-            device=torch.device('cpu')) 
+                                   dtype=torch.float32,
+                                   device=torch.device('cpu'))
         npu_output1 = torch.tensor([[0.11111, 0.222222, 0.3333333]],
-            dtype=torch.float32,
-            device=device) 
+                                   dtype=torch.float32,
+                                   device=device)
         self.assertRtolEqual(cpu_output1.numpy(), npu_output1.cpu().numpy())
 
-        cpu_output2 = torch.tensor(3.14159, device=torch.device('cpu')) 
-        npu_output2 = torch.tensor(3.14159, device=device) 
+        cpu_output2 = torch.tensor(3.14159, device=torch.device('cpu'))
+        npu_output2 = torch.tensor(3.14159, device=device)
         self.assertRtolEqual(cpu_output2.numpy(), npu_output2.cpu().numpy())
-        
-        cpu_output3 = torch.tensor([], device=torch.device('cpu')) 
-        npu_output3 = torch.tensor([], device=device) 
+
+        cpu_output3 = torch.tensor([], device=torch.device('cpu'))
+        npu_output3 = torch.tensor([], device=device)
         self.assertRtolEqual(cpu_output3.numpy(), npu_output3.cpu().numpy())
 
     def test_as_tensor(self):
@@ -276,7 +277,7 @@ class TestISJMOps(TestCase):
         cpu_output = torch.chunk(cpu_input, chunks=2)
         npu_output = torch.chunk(npu_input, chunks=2)
         self.assertRtolEqual(cpu_output[0].numpy(), npu_output[0].cpu().numpy())
-        self.assertRtolEqual(cpu_output[1].numpy(), npu_output[1].cpu().numpy())  
+        self.assertRtolEqual(cpu_output[1].numpy(), npu_output[1].cpu().numpy())
 
     def test_narrow(self):
         npu_input = torch.randn(3, 3, device=device)
@@ -298,13 +299,13 @@ class TestISJMOps(TestCase):
         output2 = torch.squeeze(input1, 0)
         output3 = torch.squeeze(input1, 1)
         self.assertExpectedInline(str(output1.size()), '''torch.Size([2, 2, 2])''')
-        self.assertExpectedInline(str(output2.size()), '''torch.Size([2, 1, 2, 1, 2])''') 
+        self.assertExpectedInline(str(output2.size()), '''torch.Size([2, 1, 2, 1, 2])''')
         self.assertExpectedInline(str(output3.size()), '''torch.Size([2, 2, 1, 2])''')
 
     def test_t(self):
-        input1 = torch.tensor([[1, 2, 3],[4, 5, 6],[7, 8, 9]], device=device)
+        input1 = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], device=device)
         output = torch.t(input1)
-        output_expect = torch.tensor([[1, 4, 7],[2, 5, 8],[3, 6, 9]])
+        output_expect = torch.tensor([[1, 4, 7], [2, 5, 8], [3, 6, 9]])
         self.assertRtolEqual(output.cpu().numpy(), output_expect.numpy())
 
     def test_transpose(self):
@@ -323,10 +324,10 @@ class TestISJMOps(TestCase):
     def test_unsqueeze(self):
         input1 = torch.tensor([1, 2, 3, 4], device=device)
         output1 = torch.unsqueeze(input1, 0)
-        output1_expect = torch.tensor([[ 1,  2,  3,  4]])
+        output1_expect = torch.tensor([[1,  2,  3,  4]])
         self.assertRtolEqual(output1.cpu().numpy(), output1_expect.numpy())
         output2 = torch.unsqueeze(input1, 1)
-        output1_expect = torch.tensor([[ 1], [ 2], [ 3], [ 4]])
+        output1_expect = torch.tensor([[1], [2], [3], [4]])
         self.assertRtolEqual(output2.cpu().numpy(), output1_expect.numpy())
 
 

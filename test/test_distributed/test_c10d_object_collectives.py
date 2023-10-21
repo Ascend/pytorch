@@ -9,6 +9,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class TestObjectCollectives(TestCase):
     MAIN_PROCESS_RANK = -1
 
@@ -73,7 +74,7 @@ class TestObjectCollectives(TestCase):
     @skipIfUnsupportMultiNPU(4)
     def test_all_gather_object(self):
         self.dist_init()
-        gather_objects = ["foo", 12, {1: 2}, ["foo", 12, {1:2}]]
+        gather_objects = ["foo", 12, {1: 2}, ["foo", 12, {1: 2}]]
         output = [None for _ in gather_objects]
         dist.all_gather_object(output, gather_objects[dist.get_rank()])
         self.assertEqual(output, gather_objects)
@@ -81,9 +82,9 @@ class TestObjectCollectives(TestCase):
     @skipIfUnsupportMultiNPU(4)
     def test_broadcast_object_list(self):
         self.dist_init()
-        expected_objects = ["foo", 12, {1: 2}, ["foo", 12, {1:2}]]
+        expected_objects = ["foo", 12, {1: 2}, ["foo", 12, {1: 2}]]
         if dist.get_rank() == 0:
-            objects = expected_objects # any picklable object
+            objects = expected_objects  # any picklable object
         else:
             objects = [None, None, None, None]
         dist.broadcast_object_list(objects, src=0)

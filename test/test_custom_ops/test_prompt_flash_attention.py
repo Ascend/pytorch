@@ -11,7 +11,8 @@ class TestPromptFlashAttention(TestCase):
 
     def supported_op_exec(self, query, key, value, head_dim):
         attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) / 0.0078125
-        attn_weights1 = torch.max(attn_weights1, torch.full((1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
+        attn_weights1 = torch.max(attn_weights1, torch.full(
+            (1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
         attn_weights1 = torch.nn.functional.softmax(attn_weights1, dim=-1, dtype=torch.float32).to(query_states1.dtype)
         attn_output1 = torch.matmul(attn_weights1, past_value)
         return attn_output1

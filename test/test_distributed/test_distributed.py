@@ -48,6 +48,7 @@ TEST_SKIPS = {
     "known_issues": TestSkip(77, "Test skipped due to known issues"),
 }
 
+
 class _FC2(nn.Module):
     def __init__(self):
         super(_FC2, self).__init__()
@@ -91,9 +92,11 @@ class BatchNormNet(nn.Module):
         x = self.fc2(x)
         return F.softmax(x, dim=1)
 
+
 DDP_NET = Net()
 BN_NET = BatchNormNet()
 ONLY_SBN_NET = nn.SyncBatchNorm(2, momentum=0.99)
+
 
 def get_timeout(test_id):
     test_name = test_id.split(".")[-1]
@@ -107,6 +110,7 @@ if not dist.is_available():
     print("Distributed not available, skipping tests")
     sys.exit(0)
 
+
 @contextmanager
 def _lock():
     lockfile = os.path.join(TEMP_DIR, "lockfile")
@@ -117,6 +121,7 @@ def _lock():
         finally:
             fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
             lf.close()
+
 
 class Barrier(object):
     barrier_id = 0
@@ -168,6 +173,8 @@ class Barrier(object):
 # then use the provided test function name to retrieve the function attribute
 # from the test instance and run it. The main process simply waits for all
 # subprocesses to join.
+
+
 class MultiProcessTestCase(TestCase):
     MAIN_PROCESS_RANK = -1
     # This exit code is used to indicate that the test code had an error and
@@ -189,8 +196,8 @@ class MultiProcessTestCase(TestCase):
                 try:
                     fn()
                 except Exception as e:
-                    logging.error('Caught exception: \n{}exiting process with exit code: {}'
-                                  .format(traceback.format_exc(), MultiProcessTestCase.TEST_ERROR_EXIT_CODE))
+                    logging.error('Caught exception: \n%sexiting process with exit code: %s',
+                                  traceback.format_exc(), MultiProcessTestCase.TEST_ERROR_EXIT_CODE)
                     sys.exit(MultiProcessTestCase.TEST_ERROR_EXIT_CODE)
         return types.MethodType(wrapper, self)
 
@@ -360,6 +367,7 @@ class MultiProcessTestCase(TestCase):
     def is_master(self):
         return self.rank == 0
 
+
 class _DistTestBase(object):
     def _barrier(self, *args, **kwargs):
         Barrier.sync(*args, **kwargs)
@@ -431,7 +439,7 @@ class _DistTestBase(object):
             self.assertEqual(p_npu, p_DDP)
 
     def _test_DDP_5iter(
-            self, model_base, model_DDP, input_data, target, loss, local_bs, rank, batch_size, test_save, \
+            self, model_base, model_DDP, input_data, target, loss, local_bs, rank, batch_size, test_save,
             offset=None, world_size=0
     ):
         for idx in range(5):
@@ -692,8 +700,11 @@ class _DistTestBase(object):
         process_group_sync = res50_model_sync.layer1[0].bn1.process_group
         self.assertEqual(process_group_sync, process_group)
 
+
 FILE_SCHEMA = "file://"
 tmp_dir = None
+
+
 def initialize_temp_directories(init_method=None):
     global tmp_dir
     tmp_dir = tempfile.TemporaryDirectory()
@@ -703,11 +714,14 @@ def initialize_temp_directories(init_method=None):
     init_dir_path = os.path.join(tmp_dir.name, "init_dir")
     os.mkdir(init_dir_path)
 
+
 def cleanup_temp_dir():
     if tmp_dir is not None:
         tmp_dir.cleanup()
 
+
 WORLD_SIZE = os.environ["WORLD_SIZE"]
+
 
 class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @classmethod
@@ -774,6 +788,7 @@ class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @property
     def world_size(self):
         return os.environ["WORLD_SIZE"]
+
 
 if __name__ == "__main__":
     run_tests()

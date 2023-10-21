@@ -7,6 +7,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import Mish, SiLU
 
+
 class TestActivations(TestCase):
 
     def cpu_mish(self, input1):
@@ -55,7 +56,7 @@ class TestActivations(TestCase):
                 cpu_output, cpu_inputgrad = self.cpu_mish(cpu_input)
 
             npu_output, npu_inputgrad = self.npu_mish(npu_input)
-        
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_inputgrad, npu_inputgrad)
 
@@ -90,7 +91,7 @@ class TestActivations(TestCase):
             [2, 5, 6, 2, 9, 2],
             [2, 5, 6, 3, 9, 2, 2],
         ]
-        
+
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
@@ -106,9 +107,10 @@ class TestActivations(TestCase):
                 cpu_output, cpu_inputgrad = self.cpu_silu(cpu_input)
 
             npu_output, npu_inputgrad = self.npu_silu(npu_input)
-        
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_inputgrad, npu_inputgrad)
-    
+
+
 if __name__ == "__main__":
     run_tests()
