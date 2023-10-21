@@ -35,7 +35,7 @@ class TestPoolingLayers(TestCase):
         
     def test_MaxPool3d(self):
         m = nn.MaxPool3d(3, stride=2)
-        input1 = torch.randn(20, 16, 50,44, 31)
+        input1 = torch.randn(20, 16, 50, 44, 31)
         output = m.npu()(input1.npu())
         self.assertEqual(output is not None, True) 
         
@@ -50,9 +50,9 @@ class TestPoolingLayers(TestCase):
     def test_MaxUnpool2d(self):
         pool = nn.MaxPool2d(2, stride=2, return_indices=True)
         unpool = nn.MaxUnpool2d(2, stride=2)
-        input1 = torch.tensor([[[[ 1.,  2,  3,  4],
-                            [ 5,  6,  7,  8],
-                            [ 9, 10, 11, 12],
+        input1 = torch.tensor([[[[1., 2, 3, 4],
+                            [5, 6, 7, 8],
+                            [9, 10, 11, 12],
                             [13, 14, 15, 16]]]])
         output, indices = pool(input1)
         output = unpool.npu()(output.npu(), indices.npu())
@@ -67,7 +67,7 @@ class TestPoolingLayers(TestCase):
         
     def test_AvgPool1d(self):
         m = nn.AvgPool1d(3, stride=2).npu()
-        output = m(torch.tensor([[[1.,2,3,4,5,6,7]]], device=device))
+        output = m(torch.tensor([[[1., 2, 3, 4, 5, 6, 7]]], device=device))
         self.assertEqual(output is not None, True) 
         
     def test_AvgPool2d(self):
@@ -77,7 +77,7 @@ class TestPoolingLayers(TestCase):
         
     def test_AvgPool3d(self):
         m = nn.AvgPool3d(3, stride=2).npu()
-        output = m(input=torch.randn(20, 16, 50,44, 31, device=device))
+        output = m(input=torch.randn(20, 16, 50, 44, 31, device=device))
         self.assertEqual(output is not None, True) 
      
     def test_LPPool1d(self):
@@ -106,12 +106,12 @@ class TestPoolingLayers(TestCase):
         self.assertEqual(output is not None, True) 
         
     def test_AdaptiveAvgPool2d(self):
-        m = nn.AdaptiveAvgPool2d((5,7)).npu()
+        m = nn.AdaptiveAvgPool2d((5, 7)).npu()
         output = m(input=torch.randn(1, 64, 8, 9, device=device))
         self.assertEqual(output is not None, True) 
         
     def test_AdaptiveAvgPool3d(self):
-        m = nn.AdaptiveAvgPool3d((1,1,1)).npu()
+        m = nn.AdaptiveAvgPool3d((1, 1, 1)).npu()
         output = m(input=torch.randn(1, 64, 8, 9, 10, device=device))
         self.assertEqual(output is not None, True) 
         

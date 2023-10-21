@@ -23,6 +23,7 @@ from codegen.api.types import Binding, NamedCType
 from codegen.model import NativeFunction, Type, SchemaKind
 from codegen.utils import IDENT_REGEX
 
+
 # Represents a saved attribute involved in backward calculation.
 # Note that it can be a derived property of an input argument, e.g.:
 # we could save `other.scalar_type()` instead of the entire `other` tensor.
@@ -35,6 +36,7 @@ class SavedAttribute:
     # The expression to read the derived property at save time, e.g.:
     # `other.scalar_type()`.
     expr: str
+
 
 # Represents a backward formula that calculates derivatives for one
 # or more tensors.
@@ -62,6 +64,7 @@ class Derivative:
 
     # Gradients that are referenced by name in the formula.
     named_gradients: Set[str]
+
 
 # Represents a forward formula that calculates forward derivatives
 # for one tensor.
@@ -93,6 +96,7 @@ class ForwardDerivative:
     # If this formula is specified in derivatives.yaml or if we are re-using the
     # out of place formula for inplace
     is_reusing_outplace_formula: bool
+
 
 # Represents differentiability info for a NativeFunction.
 @dataclass(frozen=True)
@@ -165,6 +169,7 @@ class DifferentiabilityInfo:
     def has_derivatives(self) -> bool:
         return len(self.args_with_derivatives) > 0
 
+
 def uses_ident(info: Optional[DifferentiabilityInfo], ident: str) -> bool:
     if info is None:
         return False
@@ -174,11 +179,14 @@ def uses_ident(info: Optional[DifferentiabilityInfo], ident: str) -> bool:
             return True
     return False
 
+
 def uses_retain_variables(info: Optional[DifferentiabilityInfo]) -> bool:
     return uses_ident(info, 'retain_variables')
 
+
 def uses_single_grad(info: Optional[DifferentiabilityInfo]) -> bool:
     return uses_ident(info, 'grad')
+
 
 # Represents a differentiable `Argument`.
 # How is it different from the `Argument` type?
@@ -192,6 +200,7 @@ class DifferentiableInput:
 
     # TODO: only to keep it byte-for-byte compatible with the old codegen, should remove.
     cpp_type: str
+
 
 # Represents a differentiable `Return`.
 # How it it different from the `Return` type?
@@ -209,13 +218,14 @@ class DifferentiableOutput:
     # TODO: only to keep it byte-for-byte compatible with the old codegen, should remove.
     cpp_type: str
 
+
 @dataclass(frozen=True)
 class NativeFunctionWithDifferentiabilityInfo:
     func: NativeFunction
     info: Optional[DifferentiabilityInfo]
     fw_derivatives: Sequence[ForwardDerivative]
 
-# TODO: Update comment below since it is out of date.
+
 def dispatch_strategy(fn: NativeFunctionWithDifferentiabilityInfo) -> str:
     """How are we going to call the underlying implementation of a
     declaration?  There are two strategies:
@@ -257,6 +267,7 @@ def dispatch_strategy(fn: NativeFunctionWithDifferentiabilityInfo) -> str:
         # actually implemented out of differentiable functions. (This
         # assumption might not hold, but then you'll see gradcheck fail.)
         return 'use_type'
+
 
 def match_differentiability_info(
     native_functions: List[NativeFunction],
@@ -376,8 +387,10 @@ def match_differentiability_info(
         result.append(NativeFunctionWithDifferentiabilityInfo(func=f, info=info, fw_derivatives=forward_derivatives))
     return result
 
+
 def is_differentiable(name: str, func_type: Type, info: Optional[DifferentiabilityInfo]) -> bool:
     return func_type.is_tensor_like() and (info is None or name not in info.non_differentiable_arg_names)
+
 
 def gen_differentiable_outputs(fn: NativeFunctionWithDifferentiabilityInfo) -> List[DifferentiableOutput]:
     f = fn.func

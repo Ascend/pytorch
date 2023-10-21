@@ -27,14 +27,14 @@ class TestSignBitsUnpack(TestCase):
         mask = 2**torch.arange(bits).to(input_data.device, input_data.dtype)
         unpack_data = input_data.unsqueeze(-1).bitwise_and(mask).ne(0).byte().reshape(-1).to(dtype)
         unpack_data = (unpack_data - 0.5) * 2.0
-        return unpack_data.reshape(size, unpack_data.shape[0]//size)
+        return unpack_data.reshape(size, unpack_data.shape[0] // size)
 
     def custom_op_exec(self, input_data, dtype, size):
         output = self.custom_sign_unpack(input_data, size, dtype)
         return output.cpu().numpy()
 
 
-    def npu_op_exec(self,npu_input, dtype, size):
+    def npu_op_exec(self, npu_input, dtype, size):
         nup_out = torch_npu.npu_sign_bits_unpack(npu_input, size, dtype)
         return nup_out.cpu().numpy()
 

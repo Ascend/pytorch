@@ -44,6 +44,7 @@ THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '2.0.1.post1'
 UNKNOWN = "Unknown"
 
+
 def get_submodule_folders():
     git_modules_path = os.path.join(BASE_DIR, ".gitmodules")
     default_modules_path = [
@@ -60,6 +61,7 @@ def get_submodule_folders():
             for line in f.readlines()
             if line.strip().startswith("path")
         ]
+
 
 def check_submodules():
     def not_exists_or_empty(folder):
@@ -84,6 +86,7 @@ def check_submodules():
 
 check_submodules()
 
+
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
         return (
@@ -95,7 +98,7 @@ def get_sha(pytorch_root: Union[str, Path]) -> str:
         return UNKNOWN
 
 def generate_torch_npu_version():
-    torch_npu_root = Path(__file__).parent
+    torch_npu_root = Path(__file__).absolute().parent
     version_path = torch_npu_root / "torch_npu" / "version.py"
     if version_path.exists():
         version_path.unlink()

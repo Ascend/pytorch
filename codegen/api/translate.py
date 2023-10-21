@@ -66,6 +66,7 @@ optionalTensor_ctype = OptionalCType(BaseCType(tensorT))
 class UnsatError(RuntimeError):
     pass
 
+
 # Given a set of in-scope bindings and a set of target bindings, synthesize
 # a list of expressions that uses only the in-scope bindings (bindings) that
 # have all of the types of goals.  You may want to use this function if

@@ -393,7 +393,8 @@ def emit_inplace_or_view_body(fn: NativeFunctionWithDifferentiabilityInfo) -> Li
         for r in cpp.return_names(f):
             inplace_view_body.append(f'increment_version({r});')
     else:
-        assert(get_view_info(f) is not None)
+        if get_view_info(f) is None:
+            raise ValueError("get_view_info(f) is None")
         inplace_view_body.append(VIEW_REDISPATCH.substitute(
             assign_return_values='auto ' + TMP_VAR + ' = ',
             unambiguous_name=f.func.name.unambiguous_name(),

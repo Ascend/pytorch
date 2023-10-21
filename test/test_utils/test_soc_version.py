@@ -22,6 +22,7 @@ import torch_npu.npu.utils as utils
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestSocVersion(TestCase):
 
     def test_get_soc_version(self):

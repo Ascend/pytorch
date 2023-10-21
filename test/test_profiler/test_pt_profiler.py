@@ -31,6 +31,7 @@ class SmallModel(torch.nn.Module):
         input_1 = self.conv2(input_1)
         return input_1.reshape(input_1.shape[0], -1)
 
+
 class TestProfiler(TestCase):
 
     def mm_op(self, device="cpu"):
@@ -96,7 +97,7 @@ class TestProfiler(TestCase):
                     if key in expected_event_count.keys():
                         actual_event_count[key] = actual_event_count.setdefault(key, 0) + 1
             for key, count in expected_event_count.items():
-                self.assertTrue((key in actual_event_count.keys()) and (count == actual_event_count.get(key,0)))
+                self.assertTrue((key in actual_event_count.keys()) and (count == actual_event_count.get(key, 0)))
 
         with torch.autograd.profiler.profile(use_npu=True) as prof:
             self.train(steps)

@@ -23,6 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import FastBatchNorm1d, FastBatchNorm2d, FastBatchNorm3d
 
+
 class TestBatchNormWithInt32Count(TestCase):
     def npu_slow_batchnorm1d_op_exec(self, num_features, input1):
         slow_batchnorm1d = nn.BatchNorm1d(num_features).npu()
@@ -140,18 +141,18 @@ class TestBatchNormWithInt32Count(TestCase):
 
     def test_batchnorm1d_shape_format(self):
         shape_format = [      
-            [[np.float32, 2, [20,100]], 100],
-            [[np.float32, 3, [50,100,4]], 100],
-            [[np.float16, 2, [20,100]], 100],
-            [[np.float16, 3, [50,100,4]], 100],
+            [[np.float32, 2, [20, 100]], 100],
+            [[np.float32, 3, [50, 100, 4]], 100],
+            [[np.float16, 2, [20, 100]], 100],
+            [[np.float16, 3, [50, 100, 4]], 100],
         ]
         for item in shape_format:
             _, input1 = create_common_tensor(item[0], -10, 10)
             input1.requires_grad_(True)
             num_features = item[1]
-            slow_output, slow_time  = \
+            slow_output, slow_time = \
                 self.npu_slow_batchnorm1d(num_features, input1)
-            fast_output, fast_time  = \
+            fast_output, fast_time = \
                 self.npu_fast_batchnorm1d(num_features, input1)
 
             self.assertRtolEqual(slow_output, fast_output)
@@ -159,18 +160,18 @@ class TestBatchNormWithInt32Count(TestCase):
 
     def test_batchnorm2d_shape_format(self):
         shape_format = [      
-            [[np.float32, 0, [20,100,4,5]], 100],
-            [[np.float32, 3, [50,100,4,8]], 100],
-            [[np.float16, 0, [20,5,8,3]], 5],
-            [[np.float16, 3, [50,5,4,7]], 5],
+            [[np.float32, 0, [20, 100, 4, 5]], 100],
+            [[np.float32, 3, [50, 100, 4, 8]], 100],
+            [[np.float16, 0, [20, 5, 8, 3]], 5],
+            [[np.float16, 3, [50, 5, 4, 7]], 5],
         ]
         for item in shape_format:
             _, input1 = create_common_tensor(item[0], -10, 10)
             input1.requires_grad_(True)
             num_features = item[1]
-            slow_output, slow_time  = \
+            slow_output, slow_time = \
                 self.npu_slow_batchnorm2d(num_features, input1)
-            fast_output, fast_time  = \
+            fast_output, fast_time = \
                 self.npu_fast_batchnorm2d(num_features, input1)
 
             self.assertRtolEqual(slow_output, fast_output)
@@ -178,18 +179,18 @@ class TestBatchNormWithInt32Count(TestCase):
 
     def test_batchnorm3d_shape_format(self):
         shape_format = [      
-            [[np.float32, 30, [20,100,4,5,7]], 100],
-            [[np.float32, 30, [50,100,4,8,4]], 100],
-            [[np.float16, 30, [20,5,8,3,8]], 5],
-            [[np.float16, 30, [50,5,4,7,9]], 5],
+            [[np.float32, 30, [20, 100, 4, 5, 7]], 100],
+            [[np.float32, 30, [50, 100, 4, 8, 4]], 100],
+            [[np.float16, 30, [20, 5, 8, 3, 8]], 5],
+            [[np.float16, 30, [50, 5, 4, 7, 9]], 5],
         ]
         for item in shape_format:
             _, input1 = create_common_tensor(item[0], -10, 10)
             input1.requires_grad_(True)
             num_features = item[1]
-            slow_output, slow_time  = \
+            slow_output, slow_time = \
                 self.npu_slow_batchnorm3d(num_features, input1)
-            fast_output, fast_time  = \
+            fast_output, fast_time = \
                 self.npu_fast_batchnorm3d(num_features, input1)
 
             self.assertRtolEqual(slow_output, fast_output)

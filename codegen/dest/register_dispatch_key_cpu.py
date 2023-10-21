@@ -18,15 +18,15 @@ import itertools
 import textwrap
 
 from dataclasses import dataclass
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union
 from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
 from codegen.utils import Target, map_maybe
 from codegen.model import (DispatchKey, NativeFunction,
                            NativeFunctionsGroup, SchemaKind,
-                           TensorOptionsArguments,FunctionSchema,
-                           Argument, SelfArgument, TensorOptionsArguments, UseC10Dispatcher,
+                           TensorOptionsArguments,
+                           Argument, TensorOptionsArguments,
                            DeviceCheckType, Argument, assert_never,
                            is_cuda_dispatch_key, BackendIndex)
 from codegen.api.types import (BaseCType, Binding, ConstRefCType,
@@ -38,8 +38,9 @@ import codegen.api.cpp as cpp
 import codegen.api.structured as structured
 from codegen.api.translate import translate
 from codegen.selective_build.selector import SelectiveBuilder
-from codegen.api.types import (BaseCType, TupleCType, BaseCppType)
+from codegen.api.types import BaseCType
 from .utils import transfer_args_of_wrapper_func_to_cpu, transfer_ret_of_wrapper_func_to_xla
+
 
 # Generates Register{dispatch}.cpp (e.g., RegisterCPU.cpp).
 #
@@ -278,7 +279,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     impl_name = f"at::native::{metadata.kernel}"
 
-                trans_to_cpu_code, args_name =  transfer_args_of_wrapper_func_to_cpu(sig, f)
+                trans_to_cpu_code, args_name = transfer_args_of_wrapper_func_to_cpu(sig, f)
                 args_exprs_str = ', '.join(_ for _ in args_name)
                 func_call_code = f"{impl_name}({args_exprs_str})"
                 return_part = transfer_ret_of_wrapper_func_to_xla(sig, func_call_code)

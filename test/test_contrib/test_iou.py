@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib.function import npu_iou, npu_giou, npu_diou, npu_ciou
 
+
 class TestIou(TestCase):
     def test_npu_iou_diff_shape_input(self):
         box1 = torch.FloatTensor([[10, 55, 85, 160]])
@@ -69,8 +70,8 @@ class TestIou(TestCase):
                             [0, 10, 10, 10],
                             [10, 10, 20, 20]], dtype=torch.float32).to("npu")
         iou = npu_giou(box1, box2)
-        expedt_iou = torch.tensor([[ 0.5000],
-                                    [ 0.0111],
+        expedt_iou = torch.tensor([[0.5000],
+                                    [0.0111],
                                     [-0.2523]], dtype=torch.float32)
         self.assertRtolEqual(expedt_iou, iou.cpu().detach())
         
@@ -120,7 +121,7 @@ class TestIou(TestCase):
                 w1, h1 = b1_x2[i] - b1_x1[i], b1_y2[i] - b1_y1[i] + eps
                 w2, h2 = b2_x2[j] - b2_x1[j], b2_y2[j] - b2_y1[j] + eps
                 union_area = w1 * h1 + w2 * h2 - inter_area + eps
-                diou_ij = inter_area / union_area - ( rho2 / c2)
+                diou_ij = inter_area / union_area - (rho2 / c2)
                 if not is_cross:
                     if i == j:
                         diou_res = np.append(diou_res, diou_ij)
@@ -177,7 +178,7 @@ class TestIou(TestCase):
                             [0, 10, 10, 10],
                             [10, 10, 20, 20],
                             [8, 8, 4, 4]], dtype=torch.float32).to("npu")
-        expedt_ciou = torch.tensor([[-0.0794,  0.3052, -0.0610, -0.1021]], dtype=torch.float32)
+        expedt_ciou = torch.tensor([[-0.0794, 0.3052, -0.0610, -0.1021]], dtype=torch.float32)
         box2.requires_grad = True
         ciou = npu_ciou(box1, box2)
         self.assertRtolEqual(expedt_ciou, ciou.cpu().detach())

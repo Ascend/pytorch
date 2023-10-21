@@ -269,7 +269,7 @@ class TestOnnxOps(TestCase):
                 )
                 self.grad = torch_npu.npu_format_cast(
                     torch.randn((batch * tgt_len, 
-                                 attn_dim_per_head * attn_head_num )).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
+                                 attn_dim_per_head * attn_head_num)).uniform_(-1, 1).to(torch.half).npu(), FORMAT_NZ
                 )
                 self.mask = (torch.randn((src_len * tgt_len * attn_head_num)).uniform_(-1,
                                                 1).npu() > 0).to(torch.uint8)
@@ -335,6 +335,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
+        
     def test_wrapper_npu_ciou(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -431,8 +432,8 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_softmax_cross_entropy_with_logits(input_, label)
 
         def export_onnx(onnx_model_name):
-            input_ = torch.tensor([[1.,2.,3.,4.]]).npu()
-            label = torch.tensor([[1.,2.,3.,4.]]).npu()
+            input_ = torch.tensor([[1., 2., 3., 4.]]).npu()
+            label = torch.tensor([[1., 2., 3., 4.]]).npu()
             model = Model().to("npu")
             model(input_, label)
             self.onnx_export(model, (input_, label), onnx_model_name, ["input_", "label"])
@@ -452,13 +453,13 @@ class TestOnnxOps(TestCase):
 
         def export_onnx(onnx_model_name):
             input_ = torch.tensor([[[[1]], [[2]], [[3]], [[4]],
-                                    [[5]], [[6]], [[7]], [[8]]],
-                                [[[9]], [[10]], [[11]], [[12]],
-                                    [[13]], [[14]], [[15]], [[16]]]
-                                ], dtype = torch.float16).npu()
+                                  [[5]], [[6]], [[7]], [[8]]],
+                                  [[[9]], [[10]], [[11]], [[12]],
+                                  [[13]], [[14]], [[15]], [[16]]]], 
+                                  dtype=torch.float16).npu()
             roi = torch.tensor([[[1], [2], [3], [4], [5]],
-                                [[6], [7], [8], [9], [10]]
-                            ], dtype = torch.float16).npu()
+                               [[6], [7], [8], [9], [10]]], 
+                               dtype=torch.float16).npu()
 
             model = Model().to("npu")
             model(input_, roi)
@@ -481,13 +482,13 @@ class TestOnnxOps(TestCase):
                         gt_argmax_overlaps, 128, 0.5, 0.0, True)
 
         def export_onnx(onnx_model_name):
-            assigned_gt_inds = torch.rand((4,), dtype=torch.float32).to("npu")
-            overlaps = torch.rand((2,4), dtype=torch.float32).to("npu")
-            box_responsible_flags = torch.tensor([1,1,1,0], dtype=torch.uint8).to("npu")
-            max_overlap = torch.rand((4,), dtype=torch.float32).to("npu")
-            argmax_overlap = torch.tensor([1,0,1,0], dtype=torch.int32).to("npu")
-            gt_max_overlaps = torch.rand((2,), dtype=torch.float32).to("npu")
-            gt_argmax_overlaps = torch.tensor([1,0],dtype=torch.int32).to("npu")
+            assigned_gt_inds = torch.rand((4, ), dtype=torch.float32).to("npu")
+            overlaps = torch.rand((2, 4), dtype=torch.float32).to("npu")
+            box_responsible_flags = torch.tensor([1, 1, 1, 0], dtype=torch.uint8).to("npu")
+            max_overlap = torch.rand((4, ), dtype=torch.float32).to("npu")
+            argmax_overlap = torch.tensor([1, 0, 1, 0], dtype=torch.int32).to("npu")
+            gt_max_overlaps = torch.rand((2, ), dtype=torch.float32).to("npu")
+            gt_argmax_overlaps = torch.tensor([1, 0],dtype=torch.int32).to("npu")
             model = Model().to("npu")
             model(assigned_gt_inds, overlaps, box_responsible_flags, max_overlap,
                 argmax_overlap, gt_max_overlaps ,gt_argmax_overlaps)
@@ -584,12 +585,12 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_ptiou(bboxs, gtboxes)
 
         def export_onnx(onnx_model_name):
-            bboxs = torch.tensor([[1,  2,  3,  4],
-                                [5,  6,  7,  8],
+            bboxs = torch.tensor([[1, 2, 3, 4],
+                                [5, 6, 7, 8],
                                 [9, 10, 11, 12],
-                                [13, 14, 15, 16]], dtype = torch.float16).npu()
+                                [13, 14, 15, 16]], dtype=torch.float16).npu()
             gtboxes = torch.tensor([[1, 2, 3, 4],
-                                    [5, 6, 7, 8]], dtype = torch.float16).npu()
+                                    [5, 6, 7, 8]], dtype=torch.float16).npu()
 
             model = Model().to("npu")
             model(bboxs, gtboxes)
@@ -658,8 +659,8 @@ class TestOnnxOps(TestCase):
                         0, 0, 0, 0, 1, 1, 1, 1, (10, 10), 0.1)
 
         def export_onnx(onnx_model_name):
-            input1 = torch.tensor([[1., 2., 3., 4.], [3.,4., 5., 6.]]).to("npu").half()
-            input2 = torch.tensor([[5., 6., 7., 8.], [7.,8., 9., 6.]]).to("npu").half()
+            input1 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]]).to("npu").half()
+            input2 = torch.tensor([[5., 6., 7., 8.], [7., 8., 9., 6.]]).to("npu").half()
             model = Model().to("npu")
             model(input1, input2)
             self.onnx_export(model, (input1, input2),
@@ -681,8 +682,8 @@ class TestOnnxOps(TestCase):
                         0, 0, 0, 0, 0.1, 0.1, 0.2, 0.2)
 
         def export_onnx(onnx_model_name):
-            input1 = torch.tensor([[1., 2., 3., 4.], [3.,4., 5., 6.]]).to("npu").half()
-            input2 = torch.tensor([[5., 6., 7., 8.], [7.,8., 9., 6.]]).to("npu").half()
+            input1 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]]).to("npu").half()
+            input2 = torch.tensor([[5., 6., 7., 8.], [7., 8., 9., 6.]]).to("npu").half()
             model = Model().to("npu")
             model(input1, input2)
             self.onnx_export(model, (input1, input2),
@@ -724,16 +725,16 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_rotated_iou(box1, box2, False, 0, True, 0.0, 0.0)
 
         def export_onnx(onnx_model_name):
-            box1 = torch.tensor([[[  27.6608,   44.8843,   13.0000,   17.0000,   71.0000],
-                    [  37.5091,   51.4143,    6.0000,   17.0000, -104.0000]],
-                    [[  51.1990,   30.9037,   10.0000,   16.0000,  113.0000],
-                    [  31.0586,   52.0749,   19.0000,   17.0000,  110.0000]]]).npu()
-            box2 = torch.tensor([[[ 31.6291,  29.8558,  12.0000,  15.0000, 148.0000],
-                    [ 49.5315,  55.5690,  18.0000,  14.0000,  56.0000],
-                    [ 59.4856,  24.6977,   1.0000,  13.0000, 146.0000]],
-                    [[ 35.7513,  38.1092,   6.0000,  18.0000, -94.0000],
-                    [ 41.5259,  51.6249,   6.0000,  14.0000, 123.0000],
-                    [ 38.6335,  37.4133,  17.0000,  10.0000,  -3.0000]]]).npu()
+            box1 = torch.tensor([[[27.6608, 44.8843, 13.0000, 17.0000, 71.0000],
+                                [37.5091, 51.4143, 6.0000, 17.0000, -104.0000]],
+                                [[51.1990, 30.9037, 10.0000, 16.0000, 113.0000],
+                                [31.0586, 52.0749, 19.0000, 17.0000, 110.0000]]]).npu()
+            box2 = torch.tensor([[[31.6291, 29.8558, 12.0000, 15.0000, 148.0000],
+                                [49.5315, 55.5690, 18.0000, 14.0000, 56.0000],
+                                [59.4856, 24.6977, 1.0000, 13.0000, 146.0000]],
+                                [[35.7513, 38.1092, 6.0000, 18.0000, -94.0000],
+                                [41.5259, 51.6249, 6.0000, 14.0000, 123.0000],
+                                [38.6335, 37.4133, 17.0000, 10.0000, -3.0000]]]).npu()
 
             model = Model().to("npu")
             model(box1, box2)
@@ -755,15 +756,15 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_rotated_overlaps(box1, box2, False)
 
         def export_onnx(onnx_model_name):
-            box1 = torch.tensor([[[  35.7500,   48.6562,   12.0000,   13.0000,   66.0000],
-                                  [  43.1250,   53.5625,   17.0000,    6.0000, -130.0000],
-                                  [  53.4062,   38.1875,   17.0000,   10.0000,   60.0000]
+            box1 = torch.tensor([[[35.7500, 48.6562, 12.0000, 13.0000, 66.0000],
+                                  [43.1250, 53.5625, 17.0000, 6.0000, -130.0000],
+                                  [53.4062, 38.1875, 17.0000, 10.0000, 60.0000]
                                 ]]).npu()
 
-            box2 = torch.tensor([[[ 43.2812,  30.6719,  13.0000,   2.0000, -73.0000],
-                                  [ 38.7188,  37.4062,  12.0000,  12.0000, -99.0000],
-                                  [ 52.1562,  56.6875,  18.0000,  15.0000, 163.0000],
-                                  [ 59.6250,  33.5312,   8.0000,  11.0000,  89.0000]
+            box2 = torch.tensor([[[43.2812, 30.6719, 13.0000, 2.0000, -73.0000],
+                                  [38.7188, 37.4062, 12.0000, 12.0000, -99.0000],
+                                  [52.1562, 56.6875, 18.0000, 15.0000, 163.0000],
+                                  [59.6250, 33.5312, 8.0000, 11.0000, 89.0000]
                                 ]]).npu()
             model = Model().to("npu")
             model(box1, box2)
@@ -896,7 +897,7 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_indexing(input1, [0, 0], [2, 2], [1, 1])
 
         def export_onnx(onnx_model_name):
-            input1 = torch.tensor([[1, 2, 3, 4],[5, 6, 7, 8]]).to("npu").float()
+            input1 = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8]]).to("npu").float()
             model = Model().to("npu")
             model(input1)
             self.onnx_export(model, input1,
@@ -916,7 +917,7 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_sign_bits_pack(input1, 2)
 
         def export_onnx(onnx_model_name):
-            input1 = torch.tensor([5,4,3,2,0,-1,-2, 4,3,2,1,0,-1,-2],
+            input1 = torch.tensor([5, 4, 3, 2, 0, -1, -2, 4, 3, 2, 1, 0, -1, -2],
                         dtype=torch.float32).npu()
             model = Model().to("npu")
             model(input1)
@@ -959,8 +960,8 @@ class TestOnnxOps(TestCase):
 
         def export_onnx(onnx_model_name):
             input_ = torch.tensor([[1.6279, 0.1226], [0.9041, 1.0980]]).npu()
-            indices  = torch.tensor([0, 1], dtype=torch.int32).npu()
-            updates  = torch.tensor([-1.1993, -1.5247]).npu()
+            indices = torch.tensor([0, 1], dtype=torch.int32).npu()
+            updates = torch.tensor([-1.1993, -1.5247]).npu()
             model = Model().to("npu")
             model(input_, indices, updates)
             self.onnx_export(model, (input_, indices, updates),
@@ -989,6 +990,7 @@ class TestOnnxOps(TestCase):
                 self.bias_hh = torch_npu.npu_format_cast(
                     torch.rand((4 * hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
                 )
+
             def forward(self, input_data, h0_data, c0_data):
                 return torch_npu.npu_lstm_cell(input_data, self.weight_ih, self.weight_hh,
                         h0_data, c0_data, self.bias_ih, self.bias_hh)

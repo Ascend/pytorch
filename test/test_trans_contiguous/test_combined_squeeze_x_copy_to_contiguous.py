@@ -22,6 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 class CombinedSqueezeXCopyToContiguous(TestCase):
     def test_squeeze_permute_copy_contiguous(self, device="npu"):
@@ -38,18 +39,18 @@ class CombinedSqueezeXCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze+permute ==> can be optimized as single permute(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.squeeze(1).transpose(0,1).contiguous()
+                npu_out1 = npu_input.squeeze(1).transpose(0, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.squeeze(1).transpose(0,1).contiguous()
+            cpu_out1 = cpu_input.squeeze(1).transpose(0, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+squeeze ==> can be optimized as single permute(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input.permute(1,0,3,2).squeeze(0).contiguous()
+                npu_out2 = npu_input.permute(1, 0, 3, 2).squeeze(0).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input.permute(1,0,3,2).squeeze(0).contiguous()
+            cpu_out2 = cpu_input.permute(1, 0, 3, 2).squeeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
     
     def test_squeeze_narrow_copy_contiguous(self, device="npu"):
@@ -67,17 +68,17 @@ class CombinedSqueezeXCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze + narrow 
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.squeeze(1)[:,1:10,:].contiguous()
+                npu_out1 = npu_input.squeeze(1)[:, 1:10, :].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.squeeze(1)[:,1:10,:].contiguous()
+            cpu_out1 = cpu_input.squeeze(1)[:, 1:10, :].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: narrow + squeeze
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[:,:,:,10:19].squeeze(1).contiguous()
+                npu_out2 = npu_input[:, :, :, 10:19].squeeze(1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input[:,:,:,10:19].squeeze(1).contiguous()
+            cpu_out2 = cpu_input[:, :, :, 10:19].squeeze(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
     def test_squeeze_select_copy_contiguous(self, device="npu"):
@@ -94,17 +95,17 @@ class CombinedSqueezeXCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze+select
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.squeeze().select(2,1).contiguous()
+                npu_out1 = npu_input.squeeze().select(2, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_StridedSlice'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.squeeze().select(2,1).contiguous()
+            cpu_out1 = cpu_input.squeeze().select(2, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: select+squeeze
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input.select(2,1).squeeze().contiguous()
+                npu_out2 = npu_input.select(2, 1).squeeze().contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_StridedSlice'], prof), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input.select(2,1).squeeze().contiguous()
+            cpu_out2 = cpu_input.select(2, 1).squeeze().contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
     def test_squeeze_strideslice_copy_contiguous(self, device="npu"):
@@ -121,17 +122,17 @@ class CombinedSqueezeXCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze + strideslice ==> cannot be optimized(contiguous_h_combined should not called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.squeeze(1)[:,20:150:3].contiguous()
+                npu_out1 = npu_input.squeeze(1)[:, 20:150:3].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.squeeze(1)[:,20:150:3].contiguous()
+            cpu_out1 = cpu_input.squeeze(1)[:, 20:150:3].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: strideslice + squeeze ==> cannot be optimized(contiguous_h_combined should not called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[:,:,10:19:3].squeeze(1).contiguous()
+                npu_out2 = npu_input[:, :, 10:19:3].squeeze(1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input[:,:,10:19:3].squeeze(1).contiguous()
+            cpu_out2 = cpu_input[:, :, 10:19:3].squeeze(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
 
 

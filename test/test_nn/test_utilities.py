@@ -17,7 +17,6 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 from torch.nn.utils import prune
-import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -283,17 +282,18 @@ class TestUtilityFunction(TestCase):
         lstm = lstm.npu()
 
         #由大到小排序
-        input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
-        lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
+        input_seq = sorted(input_seq, key=lambda tp: len(tp), reverse=True)
+        lengths = sorted(lengths, key=lambda tp: tp, reverse=True)
 
         PAD_token = 0 # 填充下标是0
+
         def pad_seq(seq, seq_len, max_length):
             seq = seq
             seq += [PAD_token for _ in range(max_length - seq_len)]
             return seq
 
         pad_seqs = []  # 填充后的数据
-        for i,j in zip(input_seq, lengths):
+        for i, j in zip(input_seq, lengths):
             pad_seqs.append(pad_seq(i, j, max_len))
 
         pad_seqs = torch.tensor(pad_seqs).npu()

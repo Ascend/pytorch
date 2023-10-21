@@ -43,6 +43,7 @@ MANUAL_AUTOGRAD_AND_TRACER = set([
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
 
+
 def parse_derivatives(
     native_functions_path: str,
     autograd_dir: str,
@@ -52,7 +53,7 @@ def parse_derivatives(
     str(Path(autograd_dir).parents[1].joinpath('third_party/op-plugin/op_plugin/config/v2r0/derivatives.yaml'))
     differentiability_infos = load_derivatives(
         derivatives_path, native_functions_path, npu_native_functions_path)
-    native_funcs = parse_native_and_custom_yaml(native_functions_path,npu_native_functions_path).native_functions
+    native_funcs = parse_native_and_custom_yaml(native_functions_path, npu_native_functions_path).native_functions
     funcs = filte_out_native_autograd_function(native_funcs, differentiability_infos)
     funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     funcs_with_diff_infos = match_differentiability_info(funcs, differentiability_infos)

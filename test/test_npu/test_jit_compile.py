@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import expecttest
-
 import torch
 import torch_npu
 import torch_npu._C
 
 from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestJitCompile(TestCase):
     def test_jit_compile_false(self):

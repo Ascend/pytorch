@@ -61,7 +61,7 @@ def run_tests():
         test_report_path = os.path.join(TEST_REPORT_PATH, test_filename)
         verbose = '--verbose' in argv or '-v' in argv
         if verbose:
-            print('Test results will be stored in {}'.format(test_report_path))
+            print(f'Test results will be stored in {test_report_path}')
         unittest.main(argv=argv, testRunner=xmlrunner.XMLTestRunner(output=test_report_path,
                                                                     verbosity=2 if verbose else 1))
     else:

@@ -245,6 +245,7 @@ def merge_kernel_metadata(
 
     return kernel_metadata
 
+
 def combine_selective_builders(lhs: SelectiveBuilder, rhs: SelectiveBuilder) -> SelectiveBuilder:
     include_all_operators = lhs.include_all_operators or rhs.include_all_operators
     debug_info = merge_debug_info(lhs._debug_info, rhs._debug_info)

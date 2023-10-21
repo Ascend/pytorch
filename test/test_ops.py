@@ -112,7 +112,7 @@ class TestOps(TestCase):
             npu_sample = trans_device_and_dtype(sample, dtype, dtype, npu_format, to_npu=True)
             actual = op(npu_sample.input, *npu_sample.args, **npu_sample.kwargs)
 
-            self.assertRtolEqual(expected, actual, auto_trans_dtype = True, message=f'sampleinput #{index} fail')
+            self.assertRtolEqual(expected, actual, auto_trans_dtype=True, message=f'sampleinput #{index} fail')
 
             if not requires_grad:
                 continue

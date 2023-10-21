@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib import transfer_to_npu
 
+
 class TestTransferToNpu(TestCase):
     
     def test_wrap_isinstance(self):

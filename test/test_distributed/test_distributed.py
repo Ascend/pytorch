@@ -50,6 +50,7 @@ TEST_SKIPS = {
     "known_issues": TestSkip(77, "Test skipped due to known issues"),
 }
 
+
 class _FC2(nn.Module):
     def __init__(self):
         super(_FC2, self).__init__()
@@ -97,6 +98,7 @@ DDP_NET = Net()
 BN_NET = BatchNormNet()
 ONLY_SBN_NET = nn.SyncBatchNorm(2, momentum=0.99)
 
+
 def get_timeout(test_id):
     test_name = test_id.split(".")[-1]
     if test_name in CUSTOMIZED_TIMEOUT:
@@ -109,6 +111,7 @@ if not dist.is_available():
     print("Distributed not available, skipping tests")
     sys.exit(0)
 
+
 @contextmanager
 def _lock():
     lockfile = os.path.join(TEMP_DIR, "lockfile")
@@ -119,6 +122,7 @@ def _lock():
         finally:
             fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
             lf.close()
+
 
 class Barrier(object):
     barrier_id = 0
@@ -160,6 +164,7 @@ class Barrier(object):
                 raise RuntimeError("barrier timeout")
             time.sleep(0.1)
 
+
 # [How does MultiProcessTestCase work?]
 # Each MultiProcessTestCase instance uses 1 + `world_size()` processes, by
 # default `world_size()` returns 4. Let's take `test_rpc_spawn.py` as an
@@ -191,8 +196,8 @@ class MultiProcessTestCase(TestCase):
                 try:
                     fn()
                 except Exception as e:
-                    logging.error('Caught exception: \n{}exiting process with exit code: {}'
-                                  .format(traceback.format_exc(), MultiProcessTestCase.TEST_ERROR_EXIT_CODE))
+                    logging.error('Caught exception: \n%sexiting process with exit code: %s',
+                                  traceback.format_exc(), MultiProcessTestCase.TEST_ERROR_EXIT_CODE)
                     sys.exit(MultiProcessTestCase.TEST_ERROR_EXIT_CODE)
         return types.MethodType(wrapper, self)
 
@@ -361,6 +366,7 @@ class MultiProcessTestCase(TestCase):
     @property
     def is_master(self):
         return self.rank == 0
+
 
 class _DistTestBase(object):
     def _barrier(self, *args, **kwargs):
@@ -694,6 +700,7 @@ class _DistTestBase(object):
         process_group_sync = res50_model_sync.layer1[0].bn1.process_group
         self.assertEqual(process_group_sync, process_group)
 
+
 FILE_SCHEMA = "file://"
 tmp_dir = None
 def initialize_temp_directories(init_method=None):
@@ -705,12 +712,14 @@ def initialize_temp_directories(init_method=None):
     init_dir_path = os.path.join(tmp_dir.name, "init_dir")
     os.mkdir(init_dir_path)
 
+
 def cleanup_temp_dir():
     if tmp_dir is not None:
         tmp_dir.cleanup()
 
 WORLD_SIZE = os.environ["WORLD_SIZE"]
  
+
 @unittest.skip("Multi-NPU condition not satisfied")
 class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @classmethod

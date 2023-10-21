@@ -25,6 +25,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class HcclReduceTest(TestCase):
 
     @classmethod
@@ -83,6 +84,7 @@ class HcclReduceTest(TestCase):
                     expected += exp_input
                 self._test_multiprocess(HcclReduceTest._test_reduce,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size)
+    
     @skipIfUnsupportMultiNPU(2)
     def test_reduce_int64_dist(self):
         ranks = [2, 4, 8]

@@ -21,6 +21,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 os.environ["MASTER_ADDR"] = '127.0.0.1'
 os.environ["MASTER_PORT"] = "29500"
 
+
 class DistributedApiTestCase(TestCase):
 
     def setUp(self):

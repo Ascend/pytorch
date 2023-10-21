@@ -80,6 +80,7 @@ class TestRandomSampling(TestCase):
         input1 = torch.randn((2, 3), device=device)
         output = torch.randn_like(input1, device=device)
 
+
 class TestQuasiRandomSampling(TestCase):
     def test_quasirandom_sobolEngine(self):
         soboleng = torch.quasirandom.SobolEngine(dimension=5)
@@ -88,5 +89,3 @@ class TestQuasiRandomSampling(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-        
-

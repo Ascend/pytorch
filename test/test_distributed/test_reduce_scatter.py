@@ -84,7 +84,7 @@ class HcclReduceScatterTest(TestCase):
             p.join()
 
     def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather):
-        if not op in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor]:
+        if op not in [dist.reduce_scatter, dist._reduce_scatter_base, dist.reduce_scatter_tensor]:
             raise ValueError("Unsupported op `{}`" % (str(op)))
         return [input.cpu() * world_size for input in inputs]
 

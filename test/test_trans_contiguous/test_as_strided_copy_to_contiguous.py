@@ -22,13 +22,14 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+
 class TestAsStridedCopyToContiguous(TestCase):
     def cpu_op_exec(self, input1, size, stride, storage_offset):
         output = torch.as_strided(input1, size, stride, storage_offset).contiguous()
         output = output.numpy()
         return output
 
-    def npu_op_exec(self,input1, size, stride, storage_offset):
+    def npu_op_exec(self, input1, size, stride, storage_offset):
         with torch.autograd.profiler.profile(use_npu=True) as prof:
             output = torch.as_strided(input1, size, stride, storage_offset).contiguous()
         self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']) \

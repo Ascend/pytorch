@@ -92,7 +92,7 @@ ${py_device_forwards}
 // Wrapper converts a raised TypeError into returning NotImplemented
 // Used to implement binary arithmetic operators
 template <PyObject* (*Func)(PyObject*, PyObject*, PyObject*)>
-static PyObject * TypeError_to_NotImplemented_(PyObject* self, PyObject* args, PyObject* kwargs) {
+static PyObject* TypeError_to_NotImplemented_(PyObject* self, PyObject* args, PyObject* kwargs) {
   PyObject* ret = Func(self, args, kwargs);
   if (!ret && PyErr_ExceptionMatches(PyExc_TypeError)) {
     PyErr_Clear();
@@ -126,7 +126,7 @@ inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, const Tenso
 }
 
 
-static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_arange(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -136,13 +136,12 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
 
   torch::ParsedArgs<9> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
-
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
   }
 
   if (r.idx == 0) {
-    auto device  = at_npu::key::parse_npu_device(r.args[4]);
+    auto device = at_npu::key::parse_npu_device(r.args[4]);
     if (r.isNone(1)) {
       auto end = r.scalar(0);
       // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
@@ -198,7 +197,7 @@ inline Tensor dispatch_range(Scalar start, Scalar end, Scalar step, const Tensor
   return torch::range(start, end, step, options);
 }
 
-static PyObject * THPVariable_range(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_range(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -260,7 +259,7 @@ inline Tensor dispatch_full(
   return at::full_out(result, size, fill_val);
 }
 
-static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwargs) {
+static PyObject* THPVariable_full(PyObject* self, PyObject* args, PyObject* kwargs) {
   HANDLE_TH_ERRORS
 
   static torch::PythonArgParser parser({
@@ -271,8 +270,7 @@ static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwa
   // Acquires (common) arguments
   torch::ParsedArgs<8> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
-
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
   }
 
@@ -351,7 +349,7 @@ inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, cons
   return torch::randint(low, high, size, options);
 }
 
-static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_randint(PyObject* self_, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
@@ -361,8 +359,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
 
   torch::ParsedArgs<9> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
-
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
   }
 
@@ -410,7 +407,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_tensor(PyObject* self, PyObject* args, PyObject* kwargs)
+static PyObject* THPVariable_tensor(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
@@ -456,12 +453,11 @@ static PyObject *THPVariable_new_device(PyObject* self, PyObject* args, PyObject
     }
     if (as_device.has_index()) {
       if (device_index != -1) {
-        throw std::runtime_error("type (string) including an index but not equal to index: " 
+        throw std::runtime_error("type (string) including an index but not equal to index: "
                                   + device_type + ", argument index = " + std::to_string(device_index));
       } else {
         device_index = as_device.index();
       }
-
     }
     at::Device device(as_device.type(), device_index);
     return THPDevice_New(device);

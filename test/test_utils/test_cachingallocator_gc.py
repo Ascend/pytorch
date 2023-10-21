@@ -12,7 +12,7 @@ class TestGC(TestCase):
     def test_gc(self):
 
         def create_free_block():
-            blocks=[]
+            blocks = []
             for _ in range(100):
                 x = torch.randn([10, 800, 1200, 3], device='npu:0')
                 blocks.append(x)

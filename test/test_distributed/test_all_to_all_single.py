@@ -22,6 +22,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class HcclAlltoAllSingleTest(TestCase): 
     world_size_2p = 2
     world_size_4p = 4

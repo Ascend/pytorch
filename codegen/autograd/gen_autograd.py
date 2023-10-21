@@ -60,7 +60,7 @@ def gen_autograd(
     npu_native_functions_path: str
 ) -> None:
     npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
-    differentiability_infos, _ , funcs_with_diff_infos =\
+    differentiability_infos, _, funcs_with_diff_infos =\
     parse_derivatives(native_functions_path, autograd_dir, npu_native_functions_path)
     torch_funcs_with_diff_infos, npu_funcs_with_diff_infos, _ = \
     filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)

@@ -53,7 +53,7 @@ using namespace at_npu::autograd::generated::details;
 namespace at_npu { namespace autograd {
 
 namespace VariableType {
-namespace{
+namespace {
   C10_UNUSED void reset_grad_accumulator(Variable & self) {
     AutogradMeta* meta = torch::autograd::impl::get_autograd_meta(self);
     if (meta != nullptr) {

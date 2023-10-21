@@ -207,6 +207,7 @@ def main_worker(npu, args):
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
+
 def train(train_loader, model, criterion, optimizer, epoch, args):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')

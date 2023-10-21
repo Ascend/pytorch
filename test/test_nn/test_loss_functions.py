@@ -177,20 +177,20 @@ class TestLossFunctions(TestCase):
 
     def test_SmoothL1Loss(self):
         loss = nn.SmoothL1Loss().npu()
-        input1 = torch.Tensor([1,5,3,0.5,0.9]).npu()
-        targt = torch.Tensor([4,1,0,0.4,0.2]).npu()
+        input1 = torch.Tensor([1, 5, 3, 0.5, 0.9]).npu()
+        targt = torch.Tensor([4, 1, 0, 0.4, 0.2]).npu()
         output = loss(input1, targt)
         self.assertEqual(output is not None, True)
 
     def test_SoftMarginLoss(self):
         loss = nn.SoftMarginLoss().npu()
-        input1 = torch.Tensor([1,5,3,0.5,0.9]).npu()
-        targt = torch.Tensor([4,1,0,0.4,0.2]).npu()
+        input1 = torch.Tensor([1, 5, 3, 0.5, 0.9]).npu()
+        targt = torch.Tensor([4, 1, 0, 0.4, 0.2]).npu()
         output = loss(input1, targt)
         self.assertEqual(output is not None, True)
 
     def test_CosineEmbeddingLoss(self):
-        loss = torch.nn.CosineEmbeddingLoss(reduction = "mean").npu()
+        loss = torch.nn.CosineEmbeddingLoss(reduction="mean").npu()
         input1 = torch.randn(3, 5).npu()
         input2 = torch.randn(3, 5).npu()
         targt = torch.randint(5, (3,)).npu().int()

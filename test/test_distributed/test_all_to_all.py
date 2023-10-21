@@ -17,9 +17,11 @@ import os
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
+
 
 class HcclAlltoAllTest(TestCase): 
     world_size_2p = 2
@@ -125,7 +127,7 @@ class HcclAlltoAllTest(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_alltoall_2p_dist(self):
-        print('devicecount: ',torch.npu.device_count()) 
+        print('devicecount: ', torch.npu.device_count()) 
         self._test_multiprocess_2p(
             HcclAlltoAllTest._test_alltoall_2p,
             HcclAlltoAllTest._init_dist_hccl)

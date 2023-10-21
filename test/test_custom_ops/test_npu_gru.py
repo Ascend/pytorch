@@ -56,7 +56,7 @@ class TestGru(TestCase):
             result = _VF.gru(input, hx, self._flat_weights, self.bias, self.num_layers,
                              self.dropout, self.training, self.bidirectional, self.batch_first)
         """
-        train=True
+        train = True
         weight_input = weight_input.transpose(0, 1)
         weight_hidden = weight_hidden.transpose(0, 1)
         weights = (weight_input, weight_hidden, bias_input, bias_hidden)

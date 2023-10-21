@@ -136,6 +136,7 @@ class CppSignatureGroup:
             faithful_signature=faithful_signature,
         )
 
+
 @dataclass(frozen=True)
 class DispatcherSignature:
     # The schema this signature is derived from
@@ -185,6 +186,7 @@ class DispatcherSignature:
     @staticmethod
     def from_schema(func: FunctionSchema, *, prefix: str = '') -> 'DispatcherSignature':
         return DispatcherSignature(func, prefix)
+
 
 @dataclass(frozen=True)
 class NativeSignature:

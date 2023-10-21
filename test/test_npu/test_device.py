@@ -17,6 +17,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+
 class TestDevice(TestCase):
     def device_monitor(func):
         def wrapper(self, *args, **kwargs):
@@ -25,9 +26,9 @@ class TestDevice(TestCase):
             npu_device = torch.randn(2).npu(device_id).device
             device_types = [
                             "npu",
-                            "npu:"+str(device_id),
-                            torch.device("npu:"+str(device_id)),
-                            torch.device("npu:"+str(device_id)).type,
+                            "npu:" + str(device_id),
+                            torch.device("npu:" + str(device_id)),
+                            torch.device("npu:" + str(device_id)).type,
                             npu_device
                             ]
             for device_type in device_types:
@@ -66,7 +67,7 @@ class TestDevice(TestCase):
     def test_tensor_method_npu_with_device_input(self, device=None):
         if isinstance(device, str):
             device = torch.device(device)
-        cpu_input = torch.randn(2,3)
+        cpu_input = torch.randn(2, 3)
         return cpu_input.npu(device)
 
     @device_monitor
@@ -82,7 +83,7 @@ class TestDevice(TestCase):
         assert isinstance(device, torch.device)
 
         torch.npu.set_device(device)
-        tensor = torch.rand(2,3).npu()
+        tensor = torch.rand(2, 3).npu()
         assert isinstance(tensor.device, torch.device)
         assert tensor.device.type == "npu"
         assert tensor.device.index == 0

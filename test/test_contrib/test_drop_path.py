@@ -23,6 +23,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import NpuDropPath
 
+
 class TestDropPath(TestCase):
     def npu_slow_drop_path_op_exec(self, input1, input2):        
         class DropPath(nn.Module):
@@ -96,9 +97,9 @@ class TestDropPath(TestCase):
             _, mat2_npu = create_common_tensor(item[1], -10, 10)
             mat1_npu.requires_grad_(True)
             mat2_npu.requires_grad_(True)
-            slow_output, slow_time  = \
+            slow_output, slow_time = \
                 self.npu_slow_drop_path(mat1_npu, mat2_npu)
-            fast_output, fast_time  = \
+            fast_output, fast_time = \
                 self.npu_fast_drop_path(mat1_npu, mat2_npu)
 
             self.assertRtolEqual(slow_output, fast_output)

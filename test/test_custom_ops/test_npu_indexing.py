@@ -30,17 +30,17 @@ class TestNpuIndexing(TestCase):
                             ellipsis_mask=0,
                             new_axis_mask=0,
                             shrink_axis_mask=0):
-          if begin_mask or end_mask or ellipsis_mask or new_axis_mask or new_axis_mask or shrink_axis_mask:
-              raise "Error: Unknown arguments."
+        if begin_mask or end_mask or ellipsis_mask or new_axis_mask or new_axis_mask or shrink_axis_mask:
+            raise "Error: Unknown arguments."
 
-          dims = mat.size()
-          dim_num = len(dims)
-          for i in range(dim_num):
-              index_i = [j for j in range(begin[i], end[i], strides[i])]
-              mat = torch.index_select(input=mat,
-                                       dim=i,
-                                       index=torch.tensor(index_i, device="npu"))
-          return mat
+        dims = mat.size()
+        dim_num = len(dims)
+        for i in range(dim_num):
+            index_i = [j for j in range(begin[i], end[i], strides[i])]
+            mat = torch.index_select(input=mat,
+                                     dim=i,
+                                     index=torch.tensor(index_i, device="npu"))
+        return mat
 
     def _split_npu_indexing_out(self,
                                 mat,
@@ -53,18 +53,18 @@ class TestNpuIndexing(TestCase):
                                 new_axis_mask=0,
                                 shrink_axis_mask=0,
                                 out=None):
-          if begin_mask or end_mask or ellipsis_mask or new_axis_mask or new_axis_mask or shrink_axis_mask:
-              raise "Error: Unknown arguments."
+        if begin_mask or end_mask or ellipsis_mask or new_axis_mask or new_axis_mask or shrink_axis_mask:
+            raise "Error: Unknown arguments."
 
-          dims = mat.size()
-          dim_num = len(dims)
-          for i in range(dim_num):
-              index_i = [j for j in range(begin[i], end[i], strides[i])]
-              mat = torch.index_select(input=mat,
-                                       dim=i,
-                                       index=torch.tensor(index_i, device="npu"))
-          out = mat.clone()
-          return out
+        dims = mat.size()
+        dim_num = len(dims)
+        for i in range(dim_num):
+            index_i = [j for j in range(begin[i], end[i], strides[i])]
+            mat = torch.index_select(input=mat,
+                                     dim=i,
+                                     index=torch.tensor(index_i, device="npu"))
+        out = mat.clone()
+        return out
 
     def npu_op_exec(self, mat, begin, end, strides):
         output = torch_npu.npu_indexing(mat, begin, end, strides)
@@ -91,4 +91,3 @@ class TestNpuIndexing(TestCase):
 
 if __name__ == "__main__":
     run_tests()
-

@@ -18,7 +18,6 @@ import os
 import shutil
 from itertools import combinations
 import torch
-import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils.path_manager import PathManager
@@ -37,10 +36,12 @@ class SmallModel(torch.nn.Module):
         input_1 = self.conv2(input_1)
         return input_1.reshape(input_1.shape[0], -1)
 
+
 def run_ops():
     input_1 = torch.rand(10, 10).npu()
     input_2 = torch.rand(10, 10).npu()
-    out = input_1*input_2
+    out = input_1 * input_2
+
 
 def run_small_model():
     input_shape = (4, 3, 24, 24)
@@ -51,19 +52,20 @@ def run_small_model():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
     for i in range(10):
         inputs = torch.rand(input_shape).to(device)
-        target =  torch.rand(out_shape).reshape(out_shape[0], -1).to(device)
+        target = torch.rand(out_shape).reshape(out_shape[0], -1).to(device)
         output = model(inputs)
         loss = criterion(output, target)
         loss.backward()
         optimizer.zero_grad()
         optimizer.step()
 
+
 def setUp(results_path, use_e2e_profiler=False):
     if not os.path.exists(results_path):
         PathManager.make_dir_safety(results_path)
     if not use_e2e_profiler:
         torch.npu.prof_init(results_path)
-    tensor = torch.rand(2,3).npu()
+    tensor = torch.rand(2, 3).npu()
     result = []
 
     enevtTypes = [{"ACL_PROF_ACL_API":False}, {"ACL_PROF_TASK_TIME":False}, 
@@ -80,6 +82,7 @@ def setUp(results_path, use_e2e_profiler=False):
             temp_events.update(event)
         result.append(temp_events)
     return result
+
 
 class TestCannProfiler(TestCase):
     enevtTypeResults = None
@@ -154,4 +157,4 @@ class TestE2EProfiler(TestCase):
             return
 
 if __name__ == "__main__":
-        run_tests()
+    run_tests()

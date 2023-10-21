@@ -20,6 +20,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
+
 class TorchNPUDeviceTestCase(TestCase):
     def test_npu_current_device(self):
         res = torch_npu.npu.current_device()
@@ -47,7 +48,7 @@ class TorchNPUDeviceTestCase(TestCase):
             torch_npu.npu.can_device_access_peer(0, -1)
 
     def test_npu_device_of(self):
-        x = torch.Tensor([1,2,3]).to("npu")
+        x = torch.Tensor([1, 2, 3]).to("npu")
         res = torch_npu.npu.device_of(x)
         self.assertIsInstance(res, torch_npu.npu.device_of)
 
@@ -79,6 +80,7 @@ class TorchNPUDeviceTestCase(TestCase):
         device = torch_npu.npu.device("npu")
         res = torch_npu.npu.get_device_capability(device)
         self.assertEqual(res, None)
+
 
 class TorchNPUMemoryApiTestCase(TestCase):
     def test_npu_memory_stats(self):
@@ -125,6 +127,7 @@ class TorchNPUMemoryApiTestCase(TestCase):
         res = torch_npu.npu.reset_max_memory_cached()
         self.assertIsNone(res)
 
+
 class TorchNPUSyncApiTestCase(TestCase):
     def test_set_sync_debug_mode(self):
         with self.assertRaisesRegex(RuntimeError, "invalid value of debug_mode, expected one of 0,1,2"):
@@ -145,6 +148,7 @@ class TorchNPUSyncApiTestCase(TestCase):
             torch.npu.set_sync_debug_mode(3)
         res = torch.npu.get_sync_debug_mode()
         self.assertEqual(res, 2)
+
 
 class TorchNPUApiTestCase(TestCase):
     def test_npu_current_stream(self):

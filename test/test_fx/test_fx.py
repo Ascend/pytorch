@@ -35,8 +35,10 @@ except ImportError:
     HAS_TORCHVISION = False
 skipIfNoTorchVision = unittest.skipIf(not HAS_TORCHVISION, "no torchvision")
 
+
 def a_non_torch_leaf(a, b):
     return a + b
+
 
 # Test wrap() passing both a function name as well as a function
 # directly
@@ -44,6 +46,7 @@ def a_lifted_leaf(a, b):
     return a[0] + a[1] + b
 
 wrap('a_lifted_leaf')
+
 
 def a_lifted_leaf2(a, b):
     return a[0] + a[1] + b
@@ -280,6 +283,7 @@ class TestFX(TestCase):
             def __init__(self):
                 super().__init__()
                 self.mish = torch_npu.contrib.module.Mish()
+
             def forward(self, x):
                 return self.mish(x)
         

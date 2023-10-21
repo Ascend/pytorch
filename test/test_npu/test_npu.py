@@ -439,7 +439,7 @@ class TestNpu(TestCase):
             torch_npu.npu.synchronize(torch.device("cpu"))
 
         with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
-                torch_npu.npu.synchronize("cpu")
+            torch_npu.npu.synchronize("cpu")
 
     def test_streams(self):
         default_stream = torch_npu.npu.current_stream()

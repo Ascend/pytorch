@@ -82,17 +82,20 @@ class DirectoryStrategy(AccurateTest):
             and re.match("test_(.+).py", Path(modify_file).name)
         return [(str(BASE_DIR / modify_file))] if is_test_file else []
 
+
 class CoreTestStrategy(AccurateTest):
     """
     Determine whether the core tests should be runned
     """
     block_list = ['test', 'docs']
     core_test_cases = [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+    
     def identify(self, modify_file):
         modified_module = str(Path(modify_file).parts[0])
         if modified_module not in self.block_list:
             return self.core_test_cases
         return []
+
 
 class CopyOptStrategy(AccurateTest):
     """
@@ -103,6 +106,7 @@ class CopyOptStrategy(AccurateTest):
             regex = '*contiguous*'
             return AccurateTest.find_ut_by_regex(regex)
         return []
+
 
 class DirectoryMappingStrategy(AccurateTest):
     """
@@ -140,6 +144,7 @@ class DirectoryMappingStrategy(AccurateTest):
                 else:
                     current_all_ut_path += [str(i) for i in (BASE_DIR / mapped_path).rglob('test_*.py')]
         return current_all_ut_path
+
 
 class TestMgr():
     def __init__(self):
@@ -247,9 +252,9 @@ def exec_ut(files):
                 p.terminate()
                 print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
                 print_subprocess_log(stdout_queue)
-        except Exception as err:
+        except Exception:
             ret = 1
-            print(err)
+            print("subprocess error")
         return ret
 
     def run_tests(files):

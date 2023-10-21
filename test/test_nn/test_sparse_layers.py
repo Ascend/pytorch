@@ -21,7 +21,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestSparseLayers(TestCase):
     def test_Embedding(self):
         embedding = nn.Embedding(10, 3).npu()
-        input1 = torch.LongTensor([[1,2,4,5],[4,3,2,9]]).npu()
+        input1 = torch.LongTensor([[1, 2, 4, 5], [4, 3, 2, 9]]).npu()
         output = embedding(input1)
         self.assertEqual(output is not None, True) 
 

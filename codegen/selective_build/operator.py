@@ -17,6 +17,7 @@
 from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 
+
 # This class holds information about a single operator used to determine
 # the outcome of a selective/custom PyTorch build that doesn't include
 # registration code for all the supported operators. This is done to
@@ -160,6 +161,7 @@ def combine_operators(
         include_all_overloads=lhs.include_all_overloads or rhs.include_all_overloads,
         _debug_info=merge_debug_info(lhs._debug_info, rhs._debug_info),
     )
+
 
 def merge_operator_dicts(
         lhs: Dict[str, SelectiveBuildOperator],

@@ -35,6 +35,7 @@ from codegen.model import assert_never
 # line up as closely as possible, since this results in the least overhead
 # (no translation is needed from dispatcher API to native API).
 
+
 def name(func: FunctionSchema) -> str:
     func_name = str(func.name.name)
     # TODO: delete this!
@@ -43,6 +44,7 @@ def name(func: FunctionSchema) -> str:
     if func.name.overload_name:
         func_name += f'_{func.name.overload_name}'
     return func_name
+
 
 def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
     if str(t) == 'Tensor?':
@@ -59,11 +61,14 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
         return NamedCType(binds, ConstRefCType(OptionalCType(BaseCType(scalarT))))
     return cpp.argumenttype_type(t, mutable=mutable, binds=binds)
 
+
 def returns_type(rs: Sequence[Return]) -> CType:
     return cpp.returns_type(rs)
 
+
 def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
     return argumenttype_type(a.type, mutable=a.is_write, binds=binds)
+
 
 def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out: bool) -> List[Binding]:
     # Ideally, we NEVER default native functions.  However, there are a number
@@ -119,6 +124,7 @@ def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out
             )]
     else:
         assert_never(a)
+
 
 def arguments(func: FunctionSchema) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []

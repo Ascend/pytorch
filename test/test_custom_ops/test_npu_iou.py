@@ -37,7 +37,7 @@ class TestNpuIou(TestCase):
             return iou
         else:
             gt_area = box_area(gtboxes)
-            iof =  inter / (gt_area[:, None] + eps)
+            iof = inter / (gt_area[:, None] + eps)
             return iof
     
     def custom_op_exec(self, bboxes, gtboxes, mode=0):
@@ -72,9 +72,9 @@ class TestNpuIou(TestCase):
         bboxes = torch.tensor([[1, 2, 3, 4],
                                [5, 6, 7, 8],
                                [9, 10, 11, 12],
-                               [13, 14, 15, 16]], dtype = torch.float16).npu()
+                               [13, 14, 15, 16]], dtype=torch.float16).npu()
         gtboxes = torch.tensor([[1, 2, 3, 4],
-                                [5, 6, 7, 8]], dtype = torch.float16).npu()
+                                [5, 6, 7, 8]], dtype=torch.float16).npu()
 
         output_npu = self.npu_op_exec(bboxes, gtboxes, 1)
         output_custom = self.custom_op_exec(bboxes, gtboxes, 1)

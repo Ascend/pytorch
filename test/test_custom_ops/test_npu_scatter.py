@@ -25,7 +25,7 @@ class TestNpuScatter(TestCase):
         dim_len = shape[dim]
 
         for i in range(indices.numel()):
-            tmp[i*dim_len + indices[i]] = updates[i]
+            tmp[i * dim_len + indices[i]] = updates[i]
 
         output = tmp.reshape(shape).to('cpu')
         output = output.numpy()

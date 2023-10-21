@@ -22,6 +22,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 device = 'npu:0'
 torch.npu.set_device(device)
 
+
 class TestUtilities(TestCase):
     @unittest.skip("Different compile parameters will cause different results")
     def test_compiled_with_cxx11_abi(self):

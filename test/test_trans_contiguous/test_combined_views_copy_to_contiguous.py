@@ -169,22 +169,22 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 1: narrow+strideslice 
             # slice at adjacent axes + strideslice at lower dim ==> cannot be optimized(contiguous_h_combined is called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input[2:4,::2].contiguous()
+                npu_out1 = npu_input[2:4, ::2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input[2:4,::2].contiguous()
+            cpu_out1 = cpu_input[2:4, ::2].contiguous()
             # strideslice at last dim ==> cannot be optimized(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[:,2:4,:,1:10:2].contiguous()
+                npu_out2 = npu_input[:, 2:4, :, 1:10:2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input[:,2:4,:,1:10:2].contiguous()
+            cpu_out2 = cpu_input[:, 2:4, :, 1:10:2].contiguous()
             # narrow at 0 dim and strideslice at last dim==> can be optimized as slice(contiguous)+select
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out3 = npu_input[2:4,:,:,::2].contiguous()
+                npu_out3 = npu_input[2:4, :, :, ::2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape', 'contiguous_d_StridedSlice'], prof), \
                 True, "Error operators called!")
-            cpu_out3 = cpu_input[2:4,:,:,::2].contiguous()
+            cpu_out3 = cpu_input[2:4, :, :, ::2].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
@@ -192,16 +192,16 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 2: strideslice+narrow
             # slice at adjacent axes + strideslice at higher dim ==> reshape+narrow
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out4 = npu_input[1:10:2,1:10].contiguous()
+                npu_out4 = npu_input[1:10:2, 1:10].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out4 = cpu_input[1:10:2,1:10].contiguous()
+            cpu_out4 = cpu_input[1:10:2, 1:10].contiguous()
             # slice at non-adjacent axes
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out5 = npu_input[::2,:,1:10].contiguous()
+                npu_out5 = npu_input[::2, :, 1:10].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out5 = cpu_input[::2,:,1:10].contiguous()
+            cpu_out5 = cpu_input[::2, :, 1:10].contiguous()
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
             self.assertRtolEqual(npu_out5.to("cpu").numpy(), cpu_out5.numpy())
 
@@ -220,14 +220,14 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 1: strideslice+select
             # select at last dim ==> cannot be optimized(contiguous_h_combined is called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input[:10:2].select(3,1).contiguous()
+                npu_out1 = npu_input[:10:2].select(3, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input[:10:2].select(3,1).contiguous()
+            cpu_out1 = cpu_input[:10:2].select(3, 1).contiguous()
             # select at lower dims except last dim ==> reshape+narrow
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[1:10:2].select(2,1).contiguous()
-            cpu_out2 = cpu_input[1:10:2].select(2,1).contiguous()
+                npu_out2 = npu_input[1:10:2].select(2, 1).contiguous()
+            cpu_out2 = cpu_input[1:10:2].select(2, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
@@ -235,26 +235,24 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 2: select+strideslice
             # strideslice at lower dims except last dim ==> reshape+narrow
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out3 = npu_input.select(0,1)[1:10:2].contiguous()
+                npu_out3 = npu_input.select(0, 1)[1:10:2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out3 = cpu_input.select(0,1)[1:10:2].contiguous()
+            cpu_out3 = cpu_input.select(0, 1)[1:10:2].contiguous()
             # strideslice at the last dim ==> cannot be optimized(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out4 = npu_input.select(0,1)[:,:,::3].contiguous()
+                npu_out4 = npu_input.select(0, 1)[:,:,::3].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out4 = cpu_input.select(0,1)[:,:,::3].contiguous()
+            cpu_out4 = cpu_input.select(0, 1)[:,:,::3].contiguous()
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
     
     def test_broadcast_permute_contiguous(self, device="npu"):
         dtype_list7 = [np.float16, np.float32]
         format_list7 = [-1]
-        shape_list7 = [
-                    [[2, 1, 3],    [1, 2, 4, 3]],
-                    [[2, 1, 3],    [5, 2, 4, 3]],
-                    ]
+        shape_list7 = [[[2, 1, 3], [1, 2, 4, 3]],
+                      [[2, 1, 3], [5, 2, 4, 3]]]
         shape_format7 = [
             [i, j, k] for i in dtype_list7 for j in format_list7 for k in shape_list7
             ]
@@ -264,10 +262,10 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item_broadcast, 0, 100)
             # Broadcast + permute all cannot be optimized(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.expand(item[2][1]).transpose(1,3).contiguous()
+                npu_out1 = npu_input.expand(item[2][1]).transpose(1, 3).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.expand(item[2][1]).transpose(1,3).contiguous()
+            cpu_out1 = cpu_input.expand(item[2][1]).transpose(1, 3).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
          
 

@@ -434,7 +434,7 @@ def gen_npu_variable_type(
                     type_definition_body=emit_body(fn),
                     formals=formals,
                 )
-                if str(f.func.name) in  NPU_NATIVEFUNCTIONS:
+                if str(f.func.name) in NPU_NATIVEFUNCTIONS:
                     type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
                 else: 
                     type_definition = type_definition.replace('at::redispatch', 'op_plugin')
@@ -1115,6 +1115,7 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
     if not returns_void:
         body.append(f'return {get_return_value(f)};')
     return body
+
 
 def declare_returned_variables(f: NativeFunction) -> str:
     modifies_arguments = f.func.kind() in (SchemaKind.inplace, SchemaKind.out)

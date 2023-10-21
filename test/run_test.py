@@ -20,7 +20,7 @@ import signal
 import tempfile
 import shutil
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 
 import torch
@@ -215,7 +215,7 @@ def run_test(test, test_directory, options):
     argv = [test + ".py"] + unittest_args
 
     command = executable + argv
-    print_to_stderr("Executing {} ... [{}]".format(command, datetime.now()))
+    print_to_stderr("Executing {} ... [{}]".format(command, datetime.now(tz=timezone.utc)))
     return shell(command, test_directory)
 
 
@@ -320,7 +320,7 @@ CUSTOM_HANDLERS = {
 def run_test_module(test: str, test_directory: str, options) -> Optional[str]:
     test_module = parse_test_module(test)
 
-    print_to_stderr("Running {} ... [{}]".format(test, datetime.now()))
+    print_to_stderr("Running {} ... [{}]".format(test, datetime.now(tz=timezone.utc)))
     handler = CUSTOM_HANDLERS.get(test_module, run_test)
 
     return_code = handler(test, test_directory, options)

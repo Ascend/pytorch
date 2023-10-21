@@ -23,6 +23,7 @@ from codegen.api.native import arguments
 
 backend = None
 
+
 def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeFunction) -> Tuple[str, List[str]]:
     convert: str = f"// Convert args to cpu in order to use at::native kernel \n  " \
                    f"static auto warn_once = [](){{ \n      " \

@@ -78,10 +78,10 @@ class TestBoundingBoxDecode(TestCase):
         return output
     
     def test_decode_shape_format_fp32(self):
-        input1 = torch.tensor([[1., 2., 3., 4.], [3.,4., 5., 6.]], 
-                              dtype = torch.float32).to("npu")
-        input2 = torch.tensor([[5., 6., 7., 8.], [7.,8., 9., 6.]], 
-                              dtype = torch.float32).to("npu")
+        input1 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]], 
+                              dtype=torch.float32).to("npu")
+        input2 = torch.tensor([[5., 6., 7., 8.], [7., 8., 9., 6.]], 
+                              dtype=torch.float32).to("npu")
         
         npu_output = self.npu_op_exec(input1, input2, 0, 0, 0, 0, 
                                       1, 1, 1, 1, (10, 10), 0.1)
@@ -90,10 +90,10 @@ class TestBoundingBoxDecode(TestCase):
         self.assertRtolEqual(npu_output, custom_output)
         
     def test_decode_shape_format_fp16(self):
-        input1_fp16 = torch.tensor([[1., 2., 3., 4.], [3.,4., 5., 6.]], 
-                                   dtype = torch.float16).to("npu")
-        input2_fp16 = torch.tensor([[5., 6., 7., 8.], [7.,8., 9., 6.]], 
-                                   dtype = torch.float16).to("npu")
+        input1_fp16 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]], 
+                                   dtype=torch.float16).to("npu")
+        input2_fp16 = torch.tensor([[5., 6., 7., 8.], [7., 8., 9., 6.]], 
+                                   dtype=torch.float16).to("npu")
         
         npu_output = self.npu_op_exec(input1_fp16, input2_fp16, 0, 0, 0, 0, 
                                       1, 1, 1, 1, (10, 10), 0.1)
