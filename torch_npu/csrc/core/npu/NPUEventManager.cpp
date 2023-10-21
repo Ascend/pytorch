@@ -17,7 +17,7 @@ void NPUEventManager::run(aclrtEvent event) {
       C10_NPU_SHOW_ERR_MSG();
       return;
   }
-  ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p.", event);
+  ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed.");
 }
 
 aclError NPUEventManager::QueryAndDestroyEvent() {
@@ -74,7 +74,7 @@ void NPUEventManager::ClearEvent() {
     if (err != ACL_ERROR_NONE) {
       NPU_CHECK_WARN(err);
     } else {
-      ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p.", event);
+      ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed.");
     }
     npu_events_.pop_front();
   }
@@ -85,10 +85,10 @@ void NPUEventManager::IncreaseUnrecordedCount(aclrtEvent event) {
   auto it = event_unrecorded_count_.find(event);
   if (it != event_unrecorded_count_.end()) {
     it->second++;
-    ASCEND_LOGI("Event: unrecorded count increase, now=%d, event_=%p.", it->second, event);
+    ASCEND_LOGI("Event: unrecorded count increase, now=%d.", it->second);
   } else {
     event_unrecorded_count_.insert(std::pair<aclrtEvent, int>(event, 1));
-    ASCEND_LOGI("Event: unrecorded count increase, now=%d, event_=%p.", 1, event);
+    ASCEND_LOGI("Event: unrecorded count increase, now=%d.", 1);
   }
 }
 
@@ -100,10 +100,10 @@ void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event) {
               "Event: event must enqueue before dequeue, event=", (void*)event);
   if (it->second == 1) {
     event_unrecorded_count_.erase(event);
-    ASCEND_LOGI("Event: unrecorded count decrease, now=%d, event_=%p.", 0, event);
+    ASCEND_LOGI("Event: unrecorded count decrease, now=%d.", 0);
   } else {
     it->second--;
-    ASCEND_LOGI("Event: unrecorded count decrease, now=%d, event_=%p.", it->second, event);
+    ASCEND_LOGI("Event: unrecorded count decrease, now=%d.", it->second);
   }
 }
 

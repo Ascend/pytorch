@@ -591,9 +591,8 @@ class DeviceCachingAllocator {
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_allocations, 1);
 
-    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, address = 0x%p, cached = %lu, allocated = %lu",
+    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, cached = %lu, allocated = %lu",
         block->size,
-        block->ptr,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
@@ -634,9 +633,8 @@ class DeviceCachingAllocator {
       free_block(block);
     }
 
-    ASCEND_LOGD("PTA CachingAllocator free: free = %zu, address = 0x%p, cached = %lu, allocated = %lu",
+    ASCEND_LOGD("PTA CachingAllocator free: free = %zu, cached = %lu, allocated = %lu",
         orig_block_size,
-        orig_block_ptr,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
@@ -1018,9 +1016,8 @@ class DeviceCachingAllocator {
           freeable_block_count--; // One less block that can be freed
           release_block(block);
 
-          ASCEND_LOGD("PTA CachingAllocator gc: free = %zu, address = 0x%p, cached = %lu, allocated = %lu",
+          ASCEND_LOGD("PTA CachingAllocator gc: free = %zu, cached = %lu, allocated = %lu",
               block->size,
-              block->ptr,
               stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
               stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
         }
@@ -1163,8 +1160,7 @@ class DeviceCachingAllocator {
         } else {
           NPU_CHECK_WARN(aclrtSynchronizeEvent(*event));
         }
-        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p.",
-                    event.get());
+        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
 
         block->event_count--;
         if (block->event_count == 0) {
@@ -1194,7 +1190,7 @@ class DeviceCachingAllocator {
 
       EventPool::Event event = create_event_internal(stream.device_index());
       event->record(stream);
-      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed, event=%p.", event->event());
+      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed.");
 
       block->event_count++;
       npu_events[stream].emplace_back(std::move(event), block);

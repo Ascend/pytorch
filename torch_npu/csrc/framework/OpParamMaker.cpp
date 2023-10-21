@@ -343,8 +343,8 @@ namespace at_npu
       aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
         cur_paras->srcLen, cur_paras->kind, stream);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
-                    ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind);        C10_NPU_SHOW_ERR_MSG();
+        ASCEND_LOGE("aclrtMemcpyAsync error! ret = %d, dstLen = %zu, srcLen = %zu, kind = %d",
+                    ret, cur_paras->dstLen, cur_paras->srcLen, cur_paras->kind);        C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
     }
@@ -354,12 +354,12 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtRecordEvent(cur_paras->event, stream);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("aclrtRecordEvent error! ret = %d, event = %p, eventAllocatorType = %d",
-                    ret, cur_paras->event, cur_paras->eventAllocatorType);
+        ASCEND_LOGE("aclrtRecordEvent error! ret = %d, eventAllocatorType = %d",
+                    ret, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
       c10_npu::NPUEventManager::GetInstance().DecreaseUnrecordedCount(cur_paras->event);
-      ASCEND_LOGI("Event: aclrtRecordEvent dequeue is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      ASCEND_LOGI("Event: aclrtRecordEvent dequeue is successfully executed.");
 
       return ret;
     }
@@ -368,11 +368,11 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d, event = %p, eventAllocatorType = %d",
-                    ret, cur_paras->event, cur_paras->eventAllocatorType);
+        ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d, eventAllocatorType = %d",
+                    ret, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
-      ASCEND_LOGI("Event: aclrtStreamWaitEvent dequeue is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      ASCEND_LOGI("Event: aclrtStreamWaitEvent dequeue is successfully executed.");
       return ret;
     }
 
@@ -380,11 +380,11 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("LazyDestroy error! ret = %d, event = %p, eventAllocatorType = %d",
-                    ret, cur_paras->event, cur_paras->eventAllocatorType);
+        ASCEND_LOGE("LazyDestroy error! ret = %d, eventAllocatorType = %d",
+                    ret, cur_paras->eventAllocatorType);
         C10_NPU_SHOW_ERR_MSG();
       }
-      ASCEND_LOGI("Event: LazyDestroyEventFunc dequeue is successfully executed, cur_paras->event=%p.", cur_paras->event);
+      ASCEND_LOGI("Event: LazyDestroyEventFunc dequeue is successfully executed.");
       return ret;
     }
 

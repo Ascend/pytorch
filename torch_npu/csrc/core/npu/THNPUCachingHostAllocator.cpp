@@ -269,7 +269,7 @@ struct HostAllocator {
 
       EventPool::Event event = event_pool_.get(it->device_index());
       event->record(*it);
-      ASCEND_LOGI("Event: record HostAllocator is successfully executed, event=%p.", event->event());
+      ASCEND_LOGI("Event: record HostAllocator is successfully executed.");
 
       block.event_count++;
       npu_events.emplace_back(std::move(event), block.ptr);
