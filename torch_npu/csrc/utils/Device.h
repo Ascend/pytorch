@@ -14,10 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// required for old g++ to compile PRId64 macros, see
-// https://github.com/pytorch/pytorch/issues/3571
-// for context
-
 #pragma once
 
 #include <torch/csrc/python_headers.h>
