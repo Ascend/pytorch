@@ -414,6 +414,7 @@ class EventList(list):
         total_stat.key = 'Total'
         return total_stat
 
+
 class profile(object):
     """Context manager that manages autograd profiler state and holds a summary of results.
     Under the hood it just records events of functions being executed in C++ and
@@ -733,6 +734,7 @@ def _hook_for_profile(self):
         self.__class__.step = profile_hook_step(self.__class__.step)
         self.__class__.step.hooked = True
 
+
 def load_nvprof(path):
     """Opens an nvprof trace file and parses autograd annotations.
 
@@ -764,6 +766,7 @@ def format_time_share(time_us, total_time_us):
         return "NaN"
     return '{:.2f}%'.format(time_us * 100.0 / total_time_us)
 
+
 def format_memory(nbytes):
     """Returns a formatted memory size string"""
     KB = 1024
@@ -777,6 +780,7 @@ def format_memory(nbytes):
         return '{:.2f} Kb'.format(nbytes * 1.0 / KB)
     else:
         return str(nbytes) + ' b'
+
 
 def attr_formatter(name):
     return property(lambda self: format_time(getattr(self, name)))
@@ -808,6 +812,7 @@ class FormattedTimesMixin(object):
     @property
     def npu_time(self):
         return 0.0 if self.count == 0 else 1.0 * self.npu_time_total / self.count  # type: ignore
+
 
 class Interval(object):
     def __init__(self, start, end):
@@ -1139,6 +1144,7 @@ class StringTable(defaultdict):
         self[key] = key
         return self[key]
 
+
 def filter_stack_entry(entry):
     filtered_entries = [
         ("autograd/__init__", "_make_grads"),
@@ -1149,6 +1155,7 @@ def filter_stack_entry(entry):
         ("_internal/common_utils", "prof_meth_call"),
     ]
     return all([not (f[0] in entry and f[1] in entry) for f in filtered_entries])
+
 
 def filter_name(name):
     # ignoring the following utility ops
@@ -1161,6 +1168,7 @@ def filter_name(name):
     ]
     return name in filtered_out_names
 
+
 # Demangles and optionally rewrites the provided event name,
 # with_wildcard - whether to replace certain numbered event names
 # with a wildcard name to aggregate them together in the profiler table
@@ -1172,6 +1180,7 @@ def rewrite_name(name, with_wildcard=False):
         if name.startswith("ProfilerStep#"):
             name = "ProfilerStep*"
     return name
+
 
 # Parsing of kineto profiler events
 def parse_kineto_results(result):
@@ -1284,6 +1293,7 @@ def parse_kineto_results(result):
 
     function_events.sort(key=lambda evt: [evt.time_range.start, -evt.time_range.end])
     return function_events
+
 
 # Parsing of legacy profiler events
 def parse_legacy_records(thread_records):

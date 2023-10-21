@@ -1774,12 +1774,12 @@ def reduce_scatter(output,
         work.wait()
 
 
-def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=False):
+def reduce_scatter_tensor(output, input1, op=ReduceOp.SUM, group=None, async_op=False):
     """
     Reduces, then scatters a flattened tensor to all processes in a group.
     Args:
         output (Tensor): Output tensor.
-        input (Tensor): Input tensor that is of size output tensor size times world size
+        input1 (Tensor): Input tensor that is of size output tensor size times world size
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used.
         async_op (bool, optional): Whether this op should be an async op.
@@ -1788,7 +1788,7 @@ def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=F
         None, if not async_op or if not part of the group.
     """
     _check_single_tensor(output, "output")
-    _check_single_tensor(input, "input")
+    _check_single_tensor(input1, "input1")
 
     if _rank_not_in_group(group):
         _warn_not_in_group("reduce_scatter_tensor")
@@ -1799,9 +1799,9 @@ def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=F
 
     if group is None:
         default_pg = _get_default_group()
-        work = default_pg._reduce_scatter_base(output, input, opts)
+        work = default_pg._reduce_scatter_base(output, input1, opts)
     else:
-        work = group._reduce_scatter_base(output, input, opts)
+        work = group._reduce_scatter_base(output, input1, opts)
 
     if async_op:
         return work
@@ -1809,12 +1809,12 @@ def reduce_scatter_tensor(output, input, op=ReduceOp.SUM, group=None, async_op=F
         work.wait()
 
 
-def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=False):
+def _reduce_scatter_base(output, input1, op=ReduceOp.SUM, group=None, async_op=False):
     """
     Reduces, then scatters a flattened tensor to all processes in a group.
     Args:
         output (Tensor): Output tensor.
-        input (Tensor): Input tensor that is of size output tensor size times world size
+        input1 (Tensor): Input tensor that is of size output tensor size times world size
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used.
         async_op (bool, optional): Whether this op should be an async op.
@@ -1830,7 +1830,7 @@ def _reduce_scatter_base(output, input, op=ReduceOp.SUM, group=None, async_op=Fa
         "be deprecated. Please use torch.distributed.reduce_scatter_tensor "
         "instead."
     )
-    return reduce_scatter_tensor(output, input, op, group, async_op)
+    return reduce_scatter_tensor(output, input1, op, group, async_op)
 
 
 def all_to_all_single(output_tensor,

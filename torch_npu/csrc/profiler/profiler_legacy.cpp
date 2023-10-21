@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -38,7 +38,7 @@
 #include <iostream>
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 std::vector<std::string> callstackStr(const std::vector<FileLineFunc>& cs) {
   std::vector<std::string> cs_str;
@@ -357,23 +357,23 @@ enum ProfilerIValueIdx {
 };
 
 const std::unordered_set<std::string> disable_cuda_profiling = {
-  "aten::view",
-  "aten::t",
-  "aten::transpose",
-  "aten::stride",
-  "aten::empty",
-  "aten::empty_like",
-  "aten::empty_strided",
-  "aten::as_strided",
-  "aten::expand",
-  "aten::resize_",
-  "aten::squeeze",
-  "aten::unsqueeze",
-  "aten::slice",
-  "aten::_unsafe_view",
-  "aten::size",
-  "StatelessDropOutGenMask",
-  "DropOutGenMaskV3"
+    "aten::view",
+    "aten::t",
+    "aten::transpose",
+    "aten::stride",
+    "aten::empty",
+    "aten::empty_like",
+    "aten::empty_strided",
+    "aten::as_strided",
+    "aten::expand",
+    "aten::resize_",
+    "aten::squeeze",
+    "aten::unsqueeze",
+    "aten::slice",
+    "aten::_unsafe_view",
+    "aten::size",
+    "StatelessDropOutGenMask",
+    "DropOutGenMaskV3"
 };
 
 ProfilerThreadLocalState* getProfilerTLSState() {
@@ -471,7 +471,6 @@ bool profilerEnabled() {
 }
 
 void enableProfilerLegacy(const ProfilerConfig& new_config) {
-
   auto state_ptr = getProfilerTLSState();
   TORCH_CHECK(!state_ptr, "Profiler is already enabled on this thread");
   auto state = std::make_shared<ProfilerThreadLocalState>(new_config);
@@ -536,7 +535,7 @@ void addEventList(std::vector<LegacyEvent>&& profiledEvents) {
 void LegacyEvent::record(bool record_device) {
   if (record_device && state_ == ProfilerState::NPU) {
     device_stubs()->record(device_, &npu_event, &cpu_ns_);
-    return;  
+    return; 
   }
   cpu_ns_ = getTime();
 }
@@ -687,13 +686,13 @@ void writeProfilerEventsToStream(std::ostream& out, const std::vector<LegacyEven
 }
 
 RecordProfile::RecordProfile(std::ostream& out)
-: out_(out) {
-  init();
+    : out_(out) {
+      init();
 }
 
 RecordProfile::RecordProfile(const std::string& filename)
-: file_(new std::ofstream(filename)), out_(*file_) {
-  init();
+    : file_(new std::ofstream(filename)), out_(*file_) {
+      init();
 }
 
 void RecordProfile::init() {

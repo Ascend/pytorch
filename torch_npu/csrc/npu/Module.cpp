@@ -99,7 +99,9 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
     }
   }
   auto m = THPObjectPtr(PyImport_ImportModule("torch_npu.npu"));
-  if (!m) throw python_error();
+  if (!m) {
+      throw python_error();
+  }
 
   auto set_module_attr = [&](const char* name, PyObject* v) {
     // PyObject_SetAttrString doesn't steal reference. So no need to incref.
@@ -354,7 +356,7 @@ PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
 
   const auto statArrayToDict = [=](const StatArray& statArray) {
     const std::array<const char*, static_cast<size_t>(StatType::NUM_TYPES)> statTypeNames = {
-      "all", "small_pool", "large_pool"
+        "all", "small_pool", "large_pool"
     };
     py::dict dict;
     for (size_t i = 0; i < statTypeNames.size(); ++i) {
@@ -443,7 +445,7 @@ PyObject* THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *args){
+PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *args) {
   HANDLE_TH_ERRORS
   PyObject* size_o = nullptr;
   PyObject* stream_o = nullptr;
@@ -463,7 +465,7 @@ PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj){
+PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj) {
   HANDLE_TH_ERRORS
   void* mem_ptr = PyLong_AsVoidPtr(obj);
   c10_npu::NPUCachingAllocator::raw_delete(mem_ptr);
@@ -487,8 +489,9 @@ PyObject* THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
   // free a CUDA tensor and acquire the cudaMutex without giving up the GIL,
   // because it happens deep within THC).
   while (true) {
-    if (mutex->try_lock())
-      break;
+    if (mutex->try_lock()) {
+        break;
+    }
     {
       pybind11::gil_scoped_release no_gil;
       std::this_thread::sleep_for(std::chrono::microseconds(10));

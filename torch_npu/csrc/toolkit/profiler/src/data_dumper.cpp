@@ -13,8 +13,8 @@ namespace torch_npu {
 namespace toolkit {
 namespace profiler {
 DataDumper::DataDumper()
-  : path_(""),
-    start_(false) {}
+    : path_(""),
+      start_(false) {}
 
 DataDumper::~DataDumper() {
   start_.store(false);

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -34,13 +34,13 @@
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
-
   auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
-  if (!torch_npu_C_module)
-    return nullptr;
+  if (!torch_npu_C_module) {
+      return nullptr;
+  }
   auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
   auto m = torch_npu_C_m.def_submodule("_profiler", "_profiler bindings");
 
@@ -141,7 +141,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
     at::clearCallbacks();
   });
 
-  m.def("_supported_npu_activities", [](){
+  m.def("_supported_npu_activities", []() {
     std::set<NpuActivityType> activities {
       NpuActivityType::CPU,
       NpuActivityType::NPU
@@ -166,8 +166,8 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
 
 // autograd methods on torch._C
 static PyMethodDef TorchProfilerMethods[] = { // NOLINT
-  {"_profiler_init", profiler_initExtension, METH_NOARGS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
+    {"_profiler_init", profiler_initExtension, METH_NOARGS, nullptr},
+    {nullptr, nullptr, 0, nullptr}
 };
 
 

@@ -23,14 +23,16 @@ using namespace torch;
 
 PyObject *THPGeneratorClass = nullptr;
 
-PyObject * initDefaultGenerator(at::Generator cdata)
+PyObject* initDefaultGenerator(at::Generator cdata)
 {
-  auto type = (PyTypeObject*)THPGeneratorClass;
-  auto self = THPObjectPtr{type->tp_alloc(type, 0)};
-  if (!self) throw python_error();
-  auto self_ = reinterpret_cast<THPGenerator*>(self.get());
-  self_->cdata = cdata;
-  return self.release();
+    auto type = (PyTypeObject*)THPGeneratorClass;
+    auto self = THPObjectPtr{type->tp_alloc(type, 0)};
+    if (!self) {
+        throw python_error();
+    }
+    auto self_ = reinterpret_cast<THPGenerator*>(self.get());
+    self_->cdata = cdata;
+    return self.release();
 }
 
 
@@ -44,7 +46,7 @@ static void THPGenerator_dealloc(PyObject* _self)
   Py_TYPE(_self)->tp_free(_self);
 }
 
-static PyObject * THPGenerator_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+static PyObject* THPGenerator_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
   HANDLE_TH_ERRORS
   if (PyTuple_Check(args) && PyTuple_Size(args)) {
@@ -68,7 +70,7 @@ static PyObject * THPGenerator_pynew(PyTypeObject *type, PyObject *args, PyObjec
 
   if (device.type() == at::kCPU) {
     self->cdata = at::make_generator<CPUGeneratorImpl>();
-  } else if (device.type() == at_npu::key::NativeDeviceType){
+  } else if (device.type() == at_npu::key::NativeDeviceType) {
     self->cdata = at::make_generator<at_npu::NPUGeneratorImpl>(device.index());
   } else {
     AT_ERROR("Device type ", c10::DeviceTypeName(device.type()),
@@ -78,7 +80,7 @@ static PyObject * THPGenerator_pynew(PyTypeObject *type, PyObject *args, PyObjec
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPGenerator_getState(PyObject *_self, PyObject *noargs)
+static PyObject* THPGenerator_getState(PyObject *_self, PyObject *noargs)
 {
   using namespace torch::autograd;
   HANDLE_TH_ERRORS
@@ -92,7 +94,7 @@ static PyObject * THPGenerator_getState(PyObject *_self, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPGenerator_setState(PyObject *_self, PyObject *_new_state)
+static PyObject* THPGenerator_setState(PyObject *_self, PyObject *_new_state)
 {
   using namespace torch::autograd;
   
@@ -113,7 +115,7 @@ static PyObject * THPGenerator_setState(PyObject *_self, PyObject *_new_state)
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPGenerator_manualSeed(PyObject *_self, PyObject *seed)
+static PyObject* THPGenerator_manualSeed(PyObject *_self, PyObject *seed)
 {
   HANDLE_TH_ERRORS
   auto self = (THPGenerator*)_self;
@@ -144,7 +146,7 @@ static PyObject * THPGenerator_manualSeed(PyObject *_self, PyObject *seed)
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPGenerator_seed(PyObject *_self, PyObject *noargs)
+static PyObject* THPGenerator_seed(PyObject *_self, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
   // See Note [Acquire lock when using random generators]
@@ -155,7 +157,7 @@ static PyObject * THPGenerator_seed(PyObject *_self, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPGenerator_initialSeed(PyObject *_self, PyObject *noargs)
+static PyObject* THPGenerator_initialSeed(PyObject *_self, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
   auto self = (THPGenerator*)_self;
@@ -163,29 +165,29 @@ static PyObject * THPGenerator_initialSeed(PyObject *_self, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPGenerator_get_device(THPGenerator *self, void *unused) {
+static PyObject* THPGenerator_get_device(THPGenerator *self, void *unused) {
   HANDLE_TH_ERRORS
   return TNPDevice_New(self->cdata.device());
   END_HANDLE_TH_ERRORS
 }
 
 static struct PyGetSetDef THPGenerator_properties[] = {
-  {"device", (getter)THPGenerator_get_device, nullptr, nullptr, nullptr},
-  {nullptr}
+    {"device", (getter)THPGenerator_get_device, nullptr, nullptr, nullptr},
+    {nullptr}
 };
 
 static PyMethodDef THPGenerator_methods[] = {
-  {"get_state",       THPGenerator_getState,       METH_NOARGS,  nullptr},
-  {"set_state",       THPGenerator_setState,       METH_O,       nullptr},
-  {"manual_seed",     THPGenerator_manualSeed,     METH_O,       nullptr},
-  {"seed",            THPGenerator_seed,           METH_NOARGS,  nullptr},
-  {"initial_seed",    THPGenerator_initialSeed,    METH_NOARGS,  nullptr},
-  {nullptr}
+    {"get_state",       THPGenerator_getState,       METH_NOARGS,  nullptr},
+    {"set_state",       THPGenerator_setState,       METH_O,       nullptr},
+    {"manual_seed",     THPGenerator_manualSeed,     METH_O,       nullptr},
+    {"seed",            THPGenerator_seed,           METH_NOARGS,  nullptr},
+    {"initial_seed",    THPGenerator_initialSeed,    METH_NOARGS,  nullptr},
+    {nullptr}
 };
 
 static struct PyMemberDef THPGenerator_members[] = {
-  {(char*)"_cdata", T_ULONGLONG, offsetof(THPGenerator, cdata), READONLY, nullptr},
-  {nullptr}
+    {(char*)"_cdata", T_ULONGLONG, offsetof(THPGenerator, cdata), READONLY, nullptr},
+    {nullptr}
 };
 
 PyTypeObject THPGeneratorType = {
@@ -232,8 +234,9 @@ PyTypeObject THPGeneratorType = {
 bool THPGenerator_init(PyObject *module)
 {
   THPGeneratorClass = (PyObject*)&THPGeneratorType;
-  if (PyType_Ready(&THPGeneratorType) < 0)
-    return false;
+  if (PyType_Ready(&THPGeneratorType) < 0) {
+      return false;
+  }
   Py_INCREF(&THPGeneratorType);
   PyModule_AddObject(module, "Generator", (PyObject *)&THPGeneratorType);
   return true;

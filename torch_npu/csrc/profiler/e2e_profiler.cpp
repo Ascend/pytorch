@@ -176,9 +176,15 @@ void PutMarkStamp(const std::string &opName) {
     }
     static const std::string tag_name = "torch_cann_op";
     do {
-      if (AclprofSetStampTagName(local_stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE) break;
-      if (AclprofSetStampTraceMessage(local_stamp, opName.c_str(), opName.size()) != ACL_ERROR_NONE) break;
-      if (at_npu::native::AclprofMark(local_stamp) != ACL_ERROR_NONE) break;
+        if (AclprofSetStampTagName(local_stamp, tag_name.c_str(), tag_name.size()) != ACL_ERROR_NONE) {
+            break;
+        }
+        if (AclprofSetStampTraceMessage(local_stamp, opName.c_str(), opName.size()) != ACL_ERROR_NONE) {
+            break;
+        }
+        if (at_npu::native::AclprofMark(local_stamp) != ACL_ERROR_NONE) {
+            break;
+        }
     } while (0);
     at_npu::native::AclprofDestroyStamp(local_stamp);
   } else {
@@ -334,7 +340,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
 
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
-  if(ret){
+  if(ret) {
     NPU_LOGE("In npu e2e profiling, aclrtGetDevice fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     return;
@@ -362,7 +368,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
     return;
   }
   ret = at_npu::native::AclProfilingStart(local_profCfg);
-  if(ret){
+  if(ret) {
     NPU_LOGE("In npu e2e profiling, AclProfStart fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();

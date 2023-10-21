@@ -116,18 +116,18 @@ static PyObject* THNPEvent_synchronize(THNPEvent *self, PyObject *noargs) {
 }
 
 static struct PyGetSetDef THNPEvent_properties[] = {
-  {"device", (getter)THNPEvent_get_device, nullptr, nullptr, nullptr},
-  {"npu_event", (getter)THNPEvent_get_npu_event, nullptr, nullptr, nullptr},
-  {nullptr}
+    {"device", (getter)THNPEvent_get_device, nullptr, nullptr, nullptr},
+    {"npu_event", (getter)THNPEvent_get_npu_event, nullptr, nullptr, nullptr},
+    {nullptr}
 };
 
 static PyMethodDef THNPEvent_methods[] = {
-  {(char*)"record", (PyCFunction)THNPEvent_record, METH_O, nullptr},
-  {(char*)"wait", (PyCFunction)THNPEvent_wait, METH_O, nullptr},
-  {(char*)"query", (PyCFunction)THNPEvent_query, METH_NOARGS, nullptr},
-  {(char*)"elapsed_time", (PyCFunction)THNPEvent_elapsed_time, METH_O, nullptr},
-  {(char*)"synchronize", (PyCFunction)THNPEvent_synchronize, METH_NOARGS, nullptr},
-  {nullptr}
+    {(char*)"record", (PyCFunction)THNPEvent_record, METH_O, nullptr},
+    {(char*)"wait", (PyCFunction)THNPEvent_wait, METH_O, nullptr},
+    {(char*)"query", (PyCFunction)THNPEvent_query, METH_NOARGS, nullptr},
+    {(char*)"elapsed_time", (PyCFunction)THNPEvent_elapsed_time, METH_O, nullptr},
+    {(char*)"synchronize", (PyCFunction)THNPEvent_synchronize, METH_NOARGS, nullptr},
+    {nullptr}
 };
 
 PyTypeObject THNPEventType = {

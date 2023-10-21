@@ -76,7 +76,7 @@ aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
 aclError AclProfilingStop(const aclprofConfig *profilerConfig);
 aclError AclProfilingFinalize();
-aclprofConfig * AclProfilingCreateConfig(
+aclprofConfig* AclProfilingCreateConfig(
     uint32_t *deviceIdList,
     uint32_t deviceNums,
     aclprofAicoreMetrics aicoreMetrics,

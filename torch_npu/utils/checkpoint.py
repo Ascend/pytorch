@@ -282,7 +282,7 @@ def checkpoint(function, *args, use_reentrant: bool = True, **kwargs):
         )
 
 
-def checkpoint_sequential(functions, segments, input, **kwargs):
+def checkpoint_sequential(functions, segments, input1, **kwargs):
     r"""A helper function for checkpointing sequential models.
 
     Sequential models execute a list of modules/functions in order
@@ -312,7 +312,7 @@ def checkpoint_sequential(functions, segments, input, **kwargs):
         functions: A :class:`torch.nn.Sequential` or the list of modules or
             functions (comprising the model) to run sequentially.
         segments: Number of chunks to create in the model
-        input: A Tensor that is input to :attr:`functions`
+        input1: A Tensor that is input to :attr:`functions`
         preserve_rng_state(bool, optional, default=True):  Omit stashing and restoring
             the RNG state during each checkpoint.
 
@@ -329,10 +329,10 @@ def checkpoint_sequential(functions, segments, input, **kwargs):
         raise ValueError("Unexpected keyword arguments: " + ",".join(arg for arg in kwargs))
 
     def run_function(start, end, functions):
-        def forward(input):
+        def forward(input1):
             for j in range(start, end + 1):
-                input = functions[j](input)
-            return input
+                input1 = functions[j](input1)
+            return input1
         return forward
 
     if isinstance(functions, torch.nn.Sequential):
@@ -343,9 +343,8 @@ def checkpoint_sequential(functions, segments, input, **kwargs):
     end = -1
     for start in range(0, segment_size * (segments - 1), segment_size):
         end = start + segment_size - 1
-        input = checkpoint(run_function(start, end, functions), input,
-                           preserve_rng_state=preserve)
-    return run_function(end + 1, len(functions) - 1, functions)(input)
+        input1 = checkpoint(run_function(start, end, functions), input1, preserve_rng_state=preserve)
+    return run_function(end + 1, len(functions) - 1, functions)(input1)
 
 
 def _checkpoint_without_reentrant(function, preserve_rng_state=True, *args):

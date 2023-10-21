@@ -37,6 +37,6 @@ inline bool TNPDevice_Check(PyObject *obj) {
   return Py_TYPE(obj) == &TNPDeviceType;
 }
 
-PyObject * TNPDevice_New(const at::Device& device);
+PyObject* TNPDevice_New(const at::Device& device);
 
 TORCH_NPU_API void TNPDevice_init(PyObject *module);

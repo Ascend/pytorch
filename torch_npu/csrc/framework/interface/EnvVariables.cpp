@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <limits.h>
+#include <climits>
 #include <c10/util/Exception.h>
 
 #include "third_party/acl/inc/acl/acl_mdl.h"
@@ -49,7 +49,7 @@ REGISTER_OPTION_HOOK(autotunegraphdumppath, [](const std::string& val) {
 REGISTER_OPTION_INIT_BY_ENV(bmmv2_enable)
 REGISTER_OPTION_BOOL_FUNCTION(CheckBmmV2Enable, bmmv2_enable, "0", "1")
 
-REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string &val){
+REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string &val) {
   if (val == "enable") {
     aclmdlInitDump();
   } else {

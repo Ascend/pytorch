@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -42,7 +42,7 @@
 #include "torch_npu/csrc/profiler/utils.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 enum class ProfilerState {
   Disabled = 0,
@@ -268,7 +268,7 @@ struct  LegacyEvent {
   }
 
   // Node ID corresponding to this event.
-  int nodeId( ) const {
+  int nodeId() const {
     return node_id_;
   }
 
