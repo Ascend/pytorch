@@ -124,13 +124,14 @@ def check_gtest_valid(base_dir):
 
 def run_cmake():
     cmake = get_cmake_command()
+    make_cmd = 'make'
 
     if cmake is None:
         raise RuntimeError(
             "CMake must be installed to build the following extensions: ")
 
     build_dir = os.path.join(BASE_DIR, "build")
-    build_type_dir = os.path.join(build_dir, get_build_type())
+    build_type_dir = os.path.join(build_dir)
     output_lib_path = os.path.join(build_type_dir, "packages/torch_npu/lib")
     os.makedirs(build_type_dir, exist_ok=True)
     os.makedirs(output_lib_path, exist_ok=True)
@@ -155,10 +156,14 @@ def run_cmake():
     if os.getenv('_GLIBCXX_USE_CXX11_ABI') is not None:
         cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=' + os.getenv('_GLIBCXX_USE_CXX11_ABI'))
 
+    if which('ninja') is not None:
+        cmake_args.append('-GNinja')
+        make_cmd = 'ninja'
+
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
-    subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+    subprocess.check_call([make_cmd] + build_args, cwd=build_type_dir, env=os.environ)
 
 
 def check_opplugin_valid(base_dir):
@@ -224,7 +229,7 @@ def copy_hpp():
 
 
 def copy_lib():
-    lib_file = [f"build/{get_build_type()}/packages/torch_npu/lib/*.*"]
+    lib_file = ["build/packages/torch_npu/lib/*.*"]
     glob_lib_files = []
 
     for regex_pattern in lib_file:

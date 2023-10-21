@@ -279,9 +279,10 @@ class CPPLibBuild(build_clib, object):
                 "CMake must be installed to build the following extensions: " +
                 ", ".join(e.name for e in self.extensions))
         self.cmake = cmake
+        make_cmd = 'make'
 
         build_dir = os.path.join(BASE_DIR, "build")
-        build_type_dir = os.path.join(build_dir, get_build_type())
+        build_type_dir = os.path.join(build_dir)
         output_lib_path = os.path.join(build_type_dir, "packages/torch_npu/lib")
         os.makedirs(build_type_dir, exist_ok=True)
         os.makedirs(output_lib_path, exist_ok=True)
@@ -309,27 +310,31 @@ class CPPLibBuild(build_clib, object):
             if check_tensorpipe_valid(BASE_DIR):
                 cmake_args.append('-DBUILD_TENSORPIPE=on')
 
+        if which('ninja') is not None:
+            cmake_args.append('-GNinja')
+            make_cmd = 'ninja'
+
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
         subprocess.check_call([self.cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
-        subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+        subprocess.check_call([make_cmd] + build_args, cwd=build_type_dir, env=os.environ)
 
 
 class Build(build_ext, object):
 
     def run(self):
         self.run_command('build_clib')
-        self.build_lib = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
-        self.build_temp = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}"))
+        self.build_lib = os.path.relpath(os.path.join(BASE_DIR, "build/packages"))
+        self.build_temp = os.path.relpath(os.path.join(BASE_DIR, "build"))
         self.library_dirs.append(
-            os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu/lib")))
+            os.path.relpath(os.path.join(BASE_DIR, "build/packages/torch_npu/lib")))
         super(Build, self).run()
 
 
 class InstallCmd(install):
 
     def finalize_options(self) -> None:
-        self.build_lib = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
+        self.build_lib = os.path.relpath(os.path.join(BASE_DIR, "build/packages"))
         return super(InstallCmd, self).finalize_options()
 
 
@@ -342,7 +347,7 @@ def get_src_py_and_dst():
         recursive=True)
     for src in generated_python_files:
         dst = os.path.join(
-            os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu"),
+            os.path.join(BASE_DIR, "build/packages/torch_npu"),
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
@@ -362,7 +367,7 @@ def get_src_py_and_dst():
 
     for src in glob_header_files:
         dst = os.path.join(
-            os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu/include/torch_npu"),
+            os.path.join(BASE_DIR, "build/packages/torch_npu/include/torch_npu"),
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
@@ -380,7 +385,7 @@ def get_src_py_and_dst():
 
     for src in torch_glob_header_files:
         dst = os.path.join(
-            os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu/include"),
+            os.path.join(BASE_DIR, "build/packages/torch_npu/include"),
             os.path.relpath(src, os.path.join(BASE_DIR, "patch/include")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
@@ -389,7 +394,7 @@ def get_src_py_and_dst():
 
 class EggInfoBuild(egg_info, object):
     def finalize_options(self):
-        self.egg_base = os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))
+        self.egg_base = os.path.relpath(os.path.join(BASE_DIR, "build/packages"))
         ret = get_src_py_and_dst()
         for src, dst in ret:
             self.copy_file(src, dst)
@@ -532,7 +537,7 @@ setup(
         classifiers=classifiers,
         packages=["torch_npu"],
         libraries=[('torch_npu', {'sources': list()})],
-        package_dir={'': os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))},
+        package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
         ext_modules=[
             CppExtension(
                 'torch_npu._C',
