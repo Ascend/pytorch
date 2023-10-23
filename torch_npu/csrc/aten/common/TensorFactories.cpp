@@ -246,7 +246,7 @@ at::Tensor empty_like_npu(
     } else {
       auto npu_format =
           torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
-      result = OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), npu_format);
+      result = OpPreparation::ApplyTensorWithFormat(self.sizes(), options, npu_format);
     }
   }
 
