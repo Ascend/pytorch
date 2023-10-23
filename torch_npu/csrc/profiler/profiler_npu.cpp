@@ -43,7 +43,7 @@ struct NPUMethods : public DeviceStubs {
     TORCH_NPU_CHECK(c10_npu::acl::AclQueryEventRecordedStatus(event, &status));
     if (status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         TORCH_NPU_CHECK(aclrtDestroyEvent(event));
-        ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p.", event);
+        ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed.");
     } else {
         TORCH_WARN_ONCE("Warning! NPU destroy event error, status is not completed.");
     }
