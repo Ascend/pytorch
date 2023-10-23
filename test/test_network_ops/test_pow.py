@@ -88,7 +88,7 @@ class TestPow(TestCase):
         output = out.to("cpu")
         output = output.numpy()
         return output
-        
+
 
     currently do not support scalar dtype
     def pow_result_scalar_tensor(self, shape_format):
@@ -187,8 +187,8 @@ class TestPow(TestCase):
     # tensor_tensor-----------------------------------------------------------
     def test_pow_common_shape_format(self):
         shape_format = [
-            [[np.float32, -1, (5, )],     [np.float32, -1, (1, )]],
-            [[np.float32, -1, (4, 3)],    [np.float32, -1, (4, 1)]],
+            [[np.float32, -1, (5, )], [np.float32, -1, (1, )]],
+            [[np.float32, -1, (4, 3)], [np.float32, -1, (4, 1)]],
             [[np.float32, -1, (4, 3, 1)], [np.float32, -1, (4, 1, 5)]],
         ]
 
@@ -213,8 +213,8 @@ class TestPow(TestCase):
             return output
 
         shape_format = [
-            [[np.float16, -1, (5, )],     [np.float16, -1, (1, )]],
-            [[np.float16, -1, (4, 3)],    [np.float16, -1, (4, 1)]],
+            [[np.float16, -1, (5, )], [np.float16, -1, (1, )]],
+            [[np.float16, -1, (4, 3)], [np.float16, -1, (4, 1)]],
             [[np.float16, -1, (4, 3, 1)], [np.float16, -1, (4, 1, 5)]],
         ]
 

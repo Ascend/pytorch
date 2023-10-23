@@ -46,12 +46,12 @@ class TestSub(TestCase):
 
     def test_sub_common_shape_format(self):
         shape_format = [
-            [[np.int32, -1, (2, 3)],         [np.int32, -1, (2, 3)]],
-            [[np.int32, -1, (500, 100)],     [np.int32, -1, (500, 100)]],
-            [[np.float32, -1, (4, 3)],       [np.float32, -1, (4, 3)]],
+            [[np.int32, -1, (2, 3)], [np.int32, -1, (2, 3)]],
+            [[np.int32, -1, (500, 100)], [np.int32, -1, (500, 100)]],
+            [[np.float32, -1, (4, 3)], [np.float32, -1, (4, 3)]],
             [[np.float32, -1, (4, 3, 5, 1)], [np.float32, -1, (4, 3, 5, 1)]],
-            [[np.int32, -1, (4, 3)],         [np.float32, -1, (4, 3)]],
-            [[np.float32, -1, (4, 3)],       [np.int32, -1, (4, 1)]]
+            [[np.int32, -1, (4, 3)], [np.float32, -1, (4, 3)]],
+            [[np.float32, -1, (4, 3)], [np.int32, -1, (4, 1)]]
         ]
 
         for item in shape_format:
@@ -63,8 +63,8 @@ class TestSub(TestCase):
 
     def test_sub_float16_shape_format(self):
         shape_format = [
-            [[np.float16, -1, (2, 3)],       [np.float16, -1, (2, 3)]],
-            [[np.float16, -1, (500, 100)],   [np.float16, -1, (500, 100)]],
+            [[np.float16, -1, (2, 3)], [np.float16, -1, (2, 3)]],
+            [[np.float16, -1, (500, 100)], [np.float16, -1, (500, 100)]],
             [[np.float16, -1, (4, 3, 5, 1)], [np.float16, -1, (4, 3, 5, 1)]],
             [[np.float16, -1, (4, 3, 5, 1)], [np.float16, -1, (4, 3, 5, 1)]]
         ]

@@ -60,7 +60,7 @@ class TestAsinh(TestCase):
 
     def test_asinh_out_common_shape_format(self):
         shape_format1 = [
-            [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
+            [[np.float32, 0, (4, 3)], [np.float32, 0, (4, 3)]],
         ]
         for item in shape_format1:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)

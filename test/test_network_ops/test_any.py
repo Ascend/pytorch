@@ -75,9 +75,9 @@ class TestAny(TestCase):
         return output0, output1
 
     def test_anyd_shape_format(self, device="npu"):
-        shape_list = [[[1024],             0, False],
-                      [[32, 1024],         1, False],
-                      [[32, 8, 1024],      2, True],
+        shape_list = [[[1024], 0, False],
+                      [[32, 1024], 1, False],
+                      [[32, 8, 1024], 2, True],
                       [[128, 32, 8, 1024], 3, True]]
 
         for item in shape_list:

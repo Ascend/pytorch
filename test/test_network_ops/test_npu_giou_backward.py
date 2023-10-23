@@ -41,7 +41,7 @@ class TestNpuGiouBackward(TestCase):
         list1 = [cpu_input1, cpu_input2, npu_input1, npu_input2]
         return list1
 
-    def npu_op_exec(self,  box1, box2, trans=False, is_cross=False, mode=0):
+    def npu_op_exec(self, box1, box2, trans=False, is_cross=False, mode=0):
         box1.requires_grad = True
         box2.requires_grad = True
         output = torch_npu.npu_giou(box1, box2, trans, is_cross, mode)

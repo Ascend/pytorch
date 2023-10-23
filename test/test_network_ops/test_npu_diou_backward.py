@@ -83,7 +83,7 @@ class TestNpuDiouBackward(TestCase):
         box2_grad = box2_grad.numpy()
         return diou_ij, box1_grad, box2_grad
 
-    def npu_op_exec(self,  box1, box2, trans=False, is_cross=False, mode=0):
+    def npu_op_exec(self, box1, box2, trans=False, is_cross=False, mode=0):
         box1.requires_grad = True
         box2.requires_grad = True
         output = torch_npu.npu_diou(box1, box2, trans, is_cross, mode)

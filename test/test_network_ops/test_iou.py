@@ -39,8 +39,8 @@ class TestIou(TestCase):
         self.assertRtolEqual(expect_iou, output_iou.cpu())
 
     def test_iou_fp16_pt(self):
-        bboxs = torch.tensor([[1,  2,  3,  4],
-                              [5,  6,  7,  8],
+        bboxs = torch.tensor([[1, 2, 3, 4],
+                              [5, 6, 7, 8],
                               [9, 10, 11, 12],
                               [13, 14, 15, 16]], dtype=torch.float16).npu()
         gtboxes = torch.tensor([[1, 2, 3, 4],

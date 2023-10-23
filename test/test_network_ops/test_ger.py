@@ -76,7 +76,7 @@ class TestGer(TestCase):
             [[np.float16, 0, [128]], [np.float16, 0, [116]]],
             [[np.float32, 0, [256]], [np.float32, 0, [128]]],
             [[np.float32, 0, [256]], [np.float32, 0, [3]]],
-            [[np.float32, 0, [2]],   [np.float32, 0, [3]]],
+            [[np.float32, 0, [2]], [np.float32, 0, [3]]],
             [[np.float32, 0, [128]], [np.float32, 0, [232]]],
         ]
         self.ger_result(shape_format)
@@ -84,12 +84,12 @@ class TestGer(TestCase):
     def test_ger_out_result(self, device="npu"):
         shape_format = [
             [[np.float16, 0, [128]], [np.float16, 0, [256]], [np.float16, 0, [256, 116]]],
-            [[np.float16, 0, [128]], [np.float16, 0, [58]],  [np.float16, 0, [58, 58, 1, 1]]],
-            [[np.float16, 0, [128]], [np.float16, 0, [3]],   [np.float16, 0, [3, 3]]],
+            [[np.float16, 0, [128]], [np.float16, 0, [58]], [np.float16, 0, [58, 58, 1, 1]]],
+            [[np.float16, 0, [128]], [np.float16, 0, [3]], [np.float16, 0, [3, 3]]],
             [[np.float16, 0, [128]], [np.float16, 0, [116]], [np.float16, 0, [128, 116]]],
             [[np.float32, 0, [256]], [np.float32, 0, [128]], [np.float32, 0, [128, 128, 3, 3]]],
-            [[np.float32, 0, [256]], [np.float32, 0, [3]],   [np.float32, 0, [256, 3]]],
-            [[np.float32, 0, [2]],   [np.float32, 0, [3]],   [np.float32, 0, [3, 1, 3, 3]]],
+            [[np.float32, 0, [256]], [np.float32, 0, [3]], [np.float32, 0, [256, 3]]],
+            [[np.float32, 0, [2]], [np.float32, 0, [3]], [np.float32, 0, [3, 1, 3, 3]]],
             [[np.float32, 0, [128]], [np.float32, 0, [232]], [np.float32, 0, [232, 232]]],
         ]
         self.ger_out_result(shape_format)

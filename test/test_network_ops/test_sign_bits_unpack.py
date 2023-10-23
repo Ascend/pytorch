@@ -27,7 +27,7 @@ class TestSignBitsUnpack(TestCase):
         unpack_data = np.unpackbits(in_data, bitorder="little")
         unpack_data = unpack_data.astype(dtype)
         unpack_data = (unpack_data - 0.5) * 2.0
-        return unpack_data.reshape(size, unpack_data.shape[0]//size)
+        return unpack_data.reshape(size, unpack_data.shape[0] // size)
 
     def cpu_op_exec(self, cpu_input, destype, size):
         cup_out = self.sign_unpack(cpu_input, size, destype)

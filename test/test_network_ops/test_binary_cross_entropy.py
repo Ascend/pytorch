@@ -49,9 +49,9 @@ class TestBinaryCrossEntropy(TestCase):
 
     def test_binary_cross_entropy_float32(self, device="npu"):
         for shape, weight_shape, reduction in [
-            ((10, 64), None,     "mean"),
-            ((10, 64), (10, 1),  "mean"),
-            ((10, 64), None,     "mean"),
+            ((10, 64), None, "mean"),
+            ((10, 64), (10, 1), "mean"),
+            ((10, 64), None, "mean"),
             ((10, 64), (10, 64), "mean"),
             ((10, 64), (10, 64), "sum"),
             ((10, 64), (10, 64), "none")

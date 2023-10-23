@@ -112,7 +112,7 @@ class TestSum(TestCase):
         self.sum_result(shape_format)
 
     def test_sum_shape_format_fp32_2d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list
         ]
@@ -126,14 +126,14 @@ class TestSum(TestCase):
         self.sum_result(shape_format)
 
     def test_sum_shape_format_fp32_3d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [32, 48, 64]] for i in format_list
         ]
         self.sum_result(shape_format)
 
     def test_sum_shape_format_fp16_4d(self):
-        format_list = [0,  4, 29]
+        format_list = [0, 4, 29]
         shape_format = [
             [np.float16, i, [32, 24, 18, 18]] for i in format_list
         ]
@@ -185,14 +185,14 @@ class TestSum(TestCase):
         self.sum_dim_result(shape_format)
 
     def test_sum_dim_shape_format_fp16_2d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [256, 1000]] for i in format_list
         ]
         self.sum_dim_result(shape_format)
 
     def test_sum_dim_shape_format_fp32_2d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list
         ]
@@ -208,7 +208,7 @@ class TestSum(TestCase):
         self.sum_dim_result(shape_format)
 
     def test_sum_dim_shape_format_fp32_3d(self):
-        format_list = [0, 3,  29]
+        format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [32, 48, 64]] for i in format_list
         ]

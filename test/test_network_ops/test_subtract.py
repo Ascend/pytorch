@@ -40,13 +40,13 @@ class TestSub(TestCase):
         return output
 
     def npu_op_exec_t_out(self, input1, input2, input3):
-        torch.subtract(input1, input2,  alpha=1, out=input3)
+        torch.subtract(input1, input2, alpha=1, out=input3)
         output = input3.to("cpu")
         output = output.numpy()
         return output
 
     def cpu_op_exec_t_out(self, input1, input2, input3):
-        torch.subtract(input1, input2,  alpha=1, out=input3)
+        torch.subtract(input1, input2, alpha=1, out=input3)
         output = input3.numpy()
         return output
 

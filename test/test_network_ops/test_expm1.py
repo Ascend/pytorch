@@ -100,7 +100,7 @@ class TestExpm1(TestCase):
     def test_expm1_out_float32_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, (4, 3)], [np.float32, -1, (3, 4)]],
-            [[np.float32, 0, (4, 3)],  [np.float32, 0, (3, 4)]],
+            [[np.float32, 0, (4, 3)], [np.float32, 0, (3, 4)]],
             [[np.float32, -1, (2, 4, 3)], [np.float32, -1, (2, 3, 4)]],
             [[np.float32, 3, (20, 13)], [np.float32, 3, (13, 20)]],
             [[np.float32, 4, (20, 13)], [np.float32, 4, (20, 13)]],

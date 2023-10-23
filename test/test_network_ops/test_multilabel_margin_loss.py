@@ -81,12 +81,12 @@ class TestMultilabelMarginLoss(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_multilabel_margin_loss_out(self, device="npu"):
-        data = torch.tensor([[-0.4191,  0.6214],
+        data = torch.tensor([[-0.4191, 0.6214],
                              [-0.3765, -0.4781],
-                             [0.2881,  0.4888]]).to(torch.float32)
+                             [0.2881, 0.4888]]).to(torch.float32)
         target = torch.tensor([[1, -1],
                                [0, -1],
-                               [1,  -1]]).to(torch.int64)
+                               [1, -1]]).to(torch.int64)
 
         for reduction in range(3):
             data_npu = data.to("npu")
