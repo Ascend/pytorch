@@ -32,8 +32,7 @@ class TestDeformConv(TestCase):
         model = model.npu()
 
         output = model(x)
-        l = output.sum()
-        l.backward()
+        output.sum().backward()
 
         expedt_cpu_output = torch.tensor([[[[0.0359, -0.0297],
                                             [0.2135,  0.0879]],
@@ -76,8 +75,7 @@ class TestDeformConv(TestCase):
         model = model.npu()
 
         output = model(x)
-        l = output.sum()
-        l.backward()
+        output.sum().backward()
 
         expedt_cpu_output = torch.tensor([[[[0.0568, -0.0061, 0.0660],
                                             [0.0097, -0.1420, 0.1683],

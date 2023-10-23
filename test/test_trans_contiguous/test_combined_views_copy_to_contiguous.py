@@ -13,14 +13,15 @@
 # limitations under the License.
 
 import os
+import numpy as 
 import torch
-import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
+
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 

@@ -99,7 +99,6 @@ class BaseCType:
         return str(self.type)
 
     # For BC reasons, we don't want to introduce at:: namespaces to RegistrationDeclarations.yaml
-    # TODO: Kill this when we eventually remove it!
     def cpp_type_registration_declarations(self) -> str:
         return str(self.type).replace('at::', '')
 
@@ -249,7 +248,6 @@ class NamedCType:
         return self.type.cpp_type(strip_ref=strip_ref)
 
     # For BC reasons, we don't want to introduce at:: namespaces to RegistrationDeclarations.yaml
-    # TODO: Kill this when we eventually remove it!
     def cpp_type_registration_declarations(self) -> str:
         return self.type.cpp_type_registration_declarations()
 
@@ -270,7 +268,6 @@ class Binding:
     name: str
     nctype: NamedCType
     argument: Union[Argument, TensorOptionsArguments, SelfArgument]
-    # TODO: maybe don't represent default here
     default: Optional[str] = None
 
     @property
@@ -297,7 +294,6 @@ class Binding:
             return f"{self.type} {self.name}{mb_default}"
 
     # For BC reasons, we don't want to introduce at:: namespaces to RegistrationDeclarations.yaml
-    # TODO: Kill this when we eventually remove it!
     def decl_registration_declarations(self) -> str:
         type_s = self.nctype.cpp_type_registration_declarations()
         mb_default = ""

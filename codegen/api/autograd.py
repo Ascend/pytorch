@@ -112,7 +112,6 @@ class DifferentiabilityInfo:
     # Among these variants, we choose the one having the same name as the
     # derivatives.yaml entry. If there is no exact match, then we choose the
     # in-place variant.
-    # TODO: maybe the logic to search for all variants is no longer necessary?
     func: NativeFunction
 
     # The name of the generated autograd function.
@@ -190,14 +189,12 @@ class DifferentiableInput:
     name: str
     type: Type
 
-    # TODO: only to keep it byte-for-byte compatible with the old codegen, should remove.
     cpp_type: str
 
 # Represents a differentiable `Return`.
 # How it it different from the `Return` type?
 # - The name in `Return` is optional. Here it is always populated using the same
 #   `cpp.return_names()` method.
-#   TODO: some cpp naming logic (e.g. resolving name conflict) might be irrelevant?
 # - It's processed Returns which are differentiable, in compliance with the
 #   `output_differentiability` field defined in derivatives.yaml (if specified),
 #   and are only used in the context of the autograd codegen;
@@ -206,7 +203,6 @@ class DifferentiableOutput:
     name: str
     type: Type
 
-    # TODO: only to keep it byte-for-byte compatible with the old codegen, should remove.
     cpp_type: str
 
 @dataclass(frozen=True)
@@ -215,7 +211,6 @@ class NativeFunctionWithDifferentiabilityInfo:
     info: Optional[DifferentiabilityInfo]
     fw_derivatives: Sequence[ForwardDerivative]
 
-# TODO: Update comment below since it is out of date.
 def dispatch_strategy(fn: NativeFunctionWithDifferentiabilityInfo) -> str:
     """How are we going to call the underlying implementation of a
     declaration?  There are two strategies:

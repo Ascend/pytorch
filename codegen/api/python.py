@@ -265,8 +265,6 @@ class PythonArgument:
 
         name = self.name
         # s/self/input/ outside method bindings
-        # [old codegen] TODO: remove this? doesn't rename in codegen, it's just
-        # for the parse string
         if name == 'self' and type_str == 'Tensor' and not method:
             name = 'input'
 
@@ -286,8 +284,6 @@ class PythonArgument:
 
         name = self.name
         # s/self/input/ outside method bindings
-        # [old codegen] TODO: remove this? doesn't rename in codegen, it's just
-        # for the parse string
         if name == 'self' and type_str == 'Tensor' and not method and not deprecated:
             name = 'input'
 
@@ -324,7 +320,6 @@ class PythonOutArgument(PythonArgument):
     # When binding to C++, it's first binded to a local 'out' variable:
     #   'auto out = _r.tensorlist_n<2>(2);',
     # then binded to scattered C++ output arguments as 'out[0]', 'out[1]', and etc.
-    # TODO: maybe don't need keep scattered out fields for python signature?
     outputs: Tuple[PythonArgument, ...]
 
     @staticmethod
@@ -346,7 +341,6 @@ class PythonOutArgument(PythonArgument):
                 raise RuntimeError(f'Unsupported output type: {outputs}')
             return PythonOutArgument(
                 name='out',
-                # TODO: shouldn't this be OptionalType[ListType[...]], since it defaults to None?
                 type=ListType(BaseType(BaseTy.Tensor), size),
                 default='None',
                 default_init=None,
@@ -360,7 +354,6 @@ class PythonSignature:
     name: str
 
     # Positional arguments.
-    # TODO: create a dedicated SelfArgument type for 'self'?
     input_args: Tuple[PythonArgument, ...]
 
     # Keyword arguments excluding the 'out' argument and scattered kwargs belonging
@@ -377,7 +370,6 @@ class PythonSignature:
     # It's possible that the C++ signature doesn't take TensorOptions object (e.g.
     # for out variant), in which case they will be used as scattered fields without
     # being packed into 'options'.
-    # TODO: maybe create a PythonTensorOptionsArgument?
     tensor_options_args: Tuple[PythonArgument, ...]
 
     # method or function signature?
@@ -672,9 +664,9 @@ def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
     raise RuntimeError(f'unrecognized type {repr(t)}')
 
 def argument_type_size(t: Type) -> Optional[int]:
-    l = t.is_list_like()
-    if l is not None and str(l.elem) != 'bool':
-        return l.size
+    a = t.is_list_like()
+    if a is not None and str(a.elem) != 'bool':
+        return a.size
     else:
         return None
 
@@ -682,7 +674,6 @@ def argument(a: Argument) -> PythonArgument:
     return PythonArgument(
         name=a.name,
         type=a.type,
-        # TODO: directly translate a.default to python default
         default=str(pythonify_default(cpp.default_expr(a.default, a.type)))
         if a.default is not None else None,
         default_init=None,
@@ -717,9 +708,6 @@ def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> 
     # Compared to the cpp counterpart, the python arguments have new property
     # (default_init) and a new argument 'requires_grad', which require some
     # special handlings.
-    # [old codegen] TODO: because these aren't guaranteed to be 100% faithful
-    # to the original versions in the yaml, this recreation is a potential
-    # source of drift between eager and JIT. Pull this logic out to a shared place.
 
     has_tensor_input_arg = any(a.type.is_tensor_like() for a in f.func.arguments.flat_non_out)
     if any(a.name == 'requires_grad' for a in f.func.schema_order_arguments()):
@@ -775,7 +763,6 @@ def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> 
         returns=returns, method=method,
     )
 
-# TODO blowtorch
 # note: removing this will be BC-breaking. A quick test shows that
 # randperm will otherwise default its dtype to torch.float64
 def _dtype_default_type_hack(name: str) -> str:
@@ -838,7 +825,6 @@ def argument_type_str_pyi(t: Type) -> str:
         if str(t.elem) == 'int':
             ret = 'Union[_int, _size]' if t.size is not None else '_size'
         elif t.is_tensor_like():
-            # TODO: this doesn't seem right...
             # Tensor?[] currently translates to Optional[Union[Tuple[Tensor, ...], List[Tensor]]]
             # It should probably translate to   Union[Tuple[Optional[Tensor], ...], List[Optional[Tensor]]]
             if isinstance(t.elem, OptionalType):
@@ -893,7 +879,6 @@ def argument_type_str_pyi(t: Type) -> str:
 #   [](Tensor & max, Tensor & max_values, const Tensor & self, Dimname dim, bool keepdim) -> std::tuple<Tensor,Tensor>
 #
 # For deprecated python signature, it should follow deprecated python arg order.
-# TODO: This is to keep same byte-for-byte result as the old codegen - maybe unnecessary?
 
 def dispatch_lambda_args(ps: PythonSignature,
                          f: NativeFunction,
@@ -923,7 +908,6 @@ def dispatch_lambda_args(ps: PythonSignature,
             # For other cases we need prevent dangling refs to temps (unless it's
             # unpacked scattered output)
             # The reason is explained in the comments above and in 'dispatch_lambda_return_str()'.
-            # TODO: avoid this special handling?
             ensure_temp_safe = len(out_args) <= 1 or not is_out_arg
             if ensure_temp_safe:
                 type_str = {
@@ -1193,7 +1177,6 @@ def dispatch_lambda_exprs(
         arg_parser_expr = arg_parser_outputs[a.name]
 
         if has_toptions and name == 'self':
-            # TODO: why this needs to be special case?
             inits.extend([
                 f'auto self = {arg_parser_expr.expr};',
             ])
@@ -1206,7 +1189,6 @@ def dispatch_lambda_exprs(
                 lambda_args_exprs[out_arg.name] = f'out[{i}]'
         elif str(a.type) == 'Dimname[]?':
             # [old codegen]
-            # TODO: make this part of something more general, or get rid of it.
             # optional<ArrayRef<T>> are special. The PythonArgParser returns an
             # optional<vector<T>>, which cannot be implicitly converted to
             # optional<ArrayRef<T>>. One needs to unwrap the optional and rewrap.
@@ -1279,6 +1261,6 @@ check_out_type_matches({arg_parser_outputs['out'].expr}, {arg_parser_outputs['dt
                 + f' but found [{tensor_options_args_names}]')
 
     return DispatchLambdaArgumentExprs(
-        exprs=tuple(map(lambda a: lambda_args_exprs[a.name], lambda_args)),
+        exprs=tuple(map(lambda a: lambda_args_exprs.get(a.name), lambda_args)),
         inits=inits,
     )

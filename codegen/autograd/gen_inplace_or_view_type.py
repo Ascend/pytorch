@@ -88,7 +88,6 @@ VIEW_FUNCTIONS = {
     # sparse_coo ctor output should really be views of both indices and values,
     # but we only supports making as view of a single variable, and indices is
     # discrete anyways.
-    # FIXME: clone indices on construction.
     'sparse_coo_tensor_with_dims_and_tensors': 'values',
     '_reshape_alias': 'self',
 }
@@ -180,16 +179,11 @@ ${assign_return_values} ([&]() {
 TMP_VAR = '_tmp'
 
 
-# FIXME: Ideally these functions should be methods on Type class, but we have a
-#        comment in codegen/model.py there saying these concepts are not well defined.
-#        Thus we put a version that commonly used by autograd codegen here.
 def is_tensor_type(t: Type) -> bool:
-    # TODO: Should handle optional here?
     return t.is_tensor_like() and t.is_list_like() is None
 
 
 def is_tensor_list_type(t: Type) -> bool:
-    # TODO: Should handle optional here?
     return t.is_tensor_like() and t.is_list_like() is not None
 
 UNPACK_TENSOR = CodeTemplate("""\
@@ -243,7 +237,7 @@ def unpack_args(f: NativeFunction) -> Tuple[List[str], List[Binding]]:
 
 
 def get_base_name(f: NativeFunction) -> str:
-    return f.func.name.name.base  # TODO: should be str(f.func.name.name)?
+    return f.func.name.name.base
 
 
 def get_view_info(f: NativeFunction) -> Optional[str]:

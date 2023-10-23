@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
 import numpy as np
+import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -33,11 +33,11 @@ class TestNpuReshape(TestCase):
         output = output.numpy()
         return output
 
-    def npu_reshape(self, input, shape, can_refresh=False, out=None):
+    def npu_reshape(self, input1, shape, can_refresh=False, out=None):
         if can_refresh:
-            out = torch.reshape(input, shape)
+            out = torch.reshape(input1, shape)
         else:
-            out = torch.reshape(input, shape).clone()
+            out = torch.reshape(input1, shape).clone()
         return out
 
     def test_reshape_shape_format(self):

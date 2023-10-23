@@ -29,8 +29,7 @@ class TestRoiAlign(TestCase):
         roi.requires_grad_(True)
         model = ROIAlign(output_size, spatial_scale, sampling_ratio).npu()
         output = model(input1, roi)
-        l = output.sum()
-        l.backward()
+        output.sum().backward()
         return output.detach().cpu(), input1.grad.cpu()
 
     def generate_input(self):

@@ -22,6 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 
 
@@ -56,13 +57,13 @@ class CombinedReshapeXCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input \
                     .permute(1, 0, 2, 3) \
-                    .view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)) \
+                    .view(npu_input.size(1), npu_input.size(0), npu_input.size(2) * npu_input.size(3)) \
                     .contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof),
                              True, "Error operators called!")
             cpu_out2 = cpu_input \
                 .permute(1, 0, 2, 3) \
-                .view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2)*cpu_input.size(3)) \
+                .view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2) * cpu_input.size(3)) \
                 .contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 

@@ -292,7 +292,6 @@ def validate(val_loader, model, criterion, args):
             if i % LOG_STEP == 0:
                 progress.display(i)
             break
-        # TODO: this should also be done with the ProgressMeter
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 

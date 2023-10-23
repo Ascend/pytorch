@@ -429,8 +429,6 @@ def create_differentiability_info(
                                f'and differentiable variables: {overlap}')
 
         # Next, let us determine the list of inputs in order.
-        # TODO: do we need eagerly calculate and save it here? Can it be derived
-        # from NativeFunction and `derivatives` on callsites instead?
         args_with_derivatives = [a for a in cpp_arguments(f) if a.name in args_with_derivatives_set]
 
         # Postprocess forward derivatives definitions now that we know the differentiable arguments
@@ -469,7 +467,6 @@ def create_differentiability_info(
 
     # now map this to the legacy schema; this isn't technically necessary, but we'd need some logic here
     # to map in-place schemas to the out-of-place variants.
-    # TODO: maybe the logic to handle the legacy schema is no longer necessary?
     signature = schema_function.func.signature()
     functions = functions_by_signature[signature]
     if len(functions) == 0:
@@ -624,8 +621,8 @@ def saved_variables(
         # when the autograd Function is created to avoid saving variables
         for regex, info in REPLACEMENTS:
             def repl(m: Match[str]) -> str:
-                suffix: str = info['suffix'](m) if callable(info['suffix']) else info['suffix']
-                expr: str = info['expr'](name) if 'expr' in info else m.group(0)
+                suffix: str = info.get('suffix')(m) if callable(info.get('suffix')) else info.get('suffix')
+                expr: str = info.get('expr')(name) if 'expr' in info else m.group(0)
                 saved.append(SavedAttribute(
                     nctype=info['nctype'](name + suffix),
                     expr=expr,

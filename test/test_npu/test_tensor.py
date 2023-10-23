@@ -201,15 +201,15 @@ class TestTensor(TestCase):
 
     def test_full_out(self, device="npu"):
         size = (5,)
-        o = torch.empty(size, device=device, dtype=torch.long)
+        output = torch.empty(size, device=device, dtype=torch.long)
 
         # verifies dtype/out conflict throws a RuntimeError
         with self.assertRaises(RuntimeError):
-            torch.full(o.shape, 1., dtype=torch.float, out=o)
+            torch.full(output.shape, 1., dtype=torch.float, out=output)
 
         # verifies out dtype overrides inference
-        self.assertEqual(torch.full(o.shape, 1., out=o).dtype, o.dtype)
-        self.assertEqual(torch.full(size, 1, out=o).dtype, o.dtype)
+        self.assertEqual(torch.full(output.shape, 1., out=output).dtype, output.dtype)
+        self.assertEqual(torch.full(size, 1, out=output).dtype, output.dtype)
 
     def test_ones_like(self, device="npu"):
         expected = torch.ones(100, 100, device=device)

@@ -37,7 +37,6 @@ from codegen.model import assert_never
 
 def name(func: FunctionSchema) -> str:
     func_name = str(func.name.name)
-    # TODO: delete this!
     if func.is_out_fn():
         func_name += '_out'
     if func.name.overload_name:
@@ -89,9 +88,6 @@ def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out
         default = None
         if should_default:
             default = '{}'
-        # TODO: Not sure why the arguments assigned here are for
-        # TensorOptionsArguments and not the constituent pieces.  It seems
-        # to matter
         return [
             Binding(
                 nctype=NamedCType('dtype', OptionalCType(BaseCType(scalarTypeT))),

@@ -54,12 +54,12 @@ class TestDropoutLayers(TestCase):
                 grad = torch.rand(5, 5).npu()
                 torch.manual_seed(123)
                 npu_o = torch.native_dropout(x, p, train)
-                o = npu_o[0]
-                o.backward(grad)
+                output = npu_o[0]
+                output.backward(grad)
                 torch.manual_seed(123)
                 o_ref = torch.dropout(x_ref, p, train)
                 o_ref.backward(grad)
-                self.assertRtolEqual(o.cpu().detach(), o_ref.cpu().detach())
+                self.assertRtolEqual(output.cpu().detach(), o_ref.cpu().detach())
                 self.assertRtolEqual(x.grad.cpu(), x_ref.grad.cpu())
                 if p in [0.0, 1.0]:
                     cpu_o = torch.native_dropout(cpu_x, p, train)

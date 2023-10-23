@@ -414,7 +414,7 @@ def method_impl(
 
     method_footer = ['Py_RETURN_NONE;'] + ['END_HANDLE_TH_ERRORS']
 
-    traceable = 'true' if all(should_trace(o.function) for o in overloads) else 'false'
+    traceable = 'true' if all(should_trace(overload.function) for overload in overloads) else 'false'
 
     grouped_overloads: Sequence[PythonSignatureGroup] = group_overloads(overloads)
     is_singleton = len(grouped_overloads) == 1
@@ -437,7 +437,7 @@ def method_impl(
         name=name,
         pycname=pycname,
         method_header=method_header,
-        max_args=max(map(lambda o: o.signature.arguments_count(), overloads)),
+        max_args=max(map(lambda overload: overload.signature.arguments_count(), overloads)),
         signatures=signatures,
         traceable=traceable,
         dispatch=dispatch,
