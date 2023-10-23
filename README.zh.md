@@ -142,7 +142,7 @@ print(z)
 </th>
 </tr>
 </thead>
-<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="3" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>7.0.RC1</p>
+<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="3" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>CANN 7.0.RC1</p>
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.2 "><p id="p633892712241"><a name="p633892712241"></a><a name="p633892712241"></a>2.1.0</p>
 </td>
