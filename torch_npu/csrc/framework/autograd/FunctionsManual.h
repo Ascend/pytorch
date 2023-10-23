@@ -53,8 +53,8 @@ Tensor apply_loss_reduction(const Tensor& unreduced, int64_t reduction);
 bool any_variable_defined(const variable_list& variables);
 void copy_range(variable_list& out, IndexRange range, const at::Tensor& t);
 void copy_range(variable_list& out, IndexRange range, at::ArrayRef<at::Tensor> t);
-at::Tensor not_implemented(const char* name, const char* reason="");
-std::vector<Tensor> not_implemented_list(const char* name, const char* reason="");
+at::Tensor not_implemented(const char* name, const char* reason = "");
+std::vector<Tensor> not_implemented_list(const char* name, const char* reason = "");
 at::Tensor maybe_multiply(const at::Tensor& t, const at::Scalar& s);
 } // namespace details
 } // namespace generated

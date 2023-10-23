@@ -86,21 +86,21 @@ enum class StreamIdType : uint8_t {
 };
 
 std::ostream& operator<<(std::ostream& stream, StreamIdType s) {
-  switch (s) {
-    case StreamIdType::DEFAULT:
-      stream << "DEFAULT";
-      break;
-    case StreamIdType::HCCL:
-      stream << "HCCL";
-      break;
-    case StreamIdType::SECONDARY:
-      stream << "SECONDARY";
-      break;
-    default:
-      stream << static_cast<uint8_t>(s);
-      break;
-  }
-  return stream;
+    switch (s) {
+        case StreamIdType::DEFAULT:
+            stream << "DEFAULT";
+            break;
+        case StreamIdType::HCCL:
+            stream << "HCCL";
+            break;
+        case StreamIdType::SECONDARY:
+            stream << "SECONDARY";
+            break;
+        default:
+            stream << static_cast<uint8_t>(s);
+            break;
+    }
+    return stream;
 }
 
 static inline StreamIdType streamIdType(c10::StreamId s) {
@@ -227,34 +227,34 @@ static uint32_t get_idx(std::atomic<uint32_t>& counter) {
 }
 
 LeakyStreamInternals* NPUStream_internals(NPUStream s) {
-  c10::DeviceIndex device_index = s.device_index();
-  StreamIdType st = streamIdType(s.unwrap().id());
-  size_t si = streamIdIndex(s.unwrap().id());
-  switch (st) {
-    case StreamIdType::DEFAULT:
-      AT_ASSERTM(
-          si == 0,
-          "Unrecognized stream ",
-          s.unwrap(),
-          " (I think this should be the default stream, but I got a non-zero index ",
-          si,
-          ").",
-          " Did you manufacture the StreamId yourself?  Don't do that; use the",
-          " official API like c10::cuda::getStreamFromPool() to get a new stream.");
-      return &default_streams[device_index];
-    case StreamIdType::HCCL:
-      return &npu_streams[device_index][si];
-    case StreamIdType::SECONDARY:
-      return &secondary_streams[device_index];
-    default:
-      AT_ASSERTM(
-          0,
-          "Unrecognized stream ",
-          s.unwrap(),
-          " (I didn't recognize the stream type, ",
-          st,
-          ")");
-  }
+    c10::DeviceIndex device_index = s.device_index();
+    StreamIdType st = streamIdType(s.unwrap().id());
+    size_t si = streamIdIndex(s.unwrap().id());
+    switch (st) {
+        case StreamIdType::DEFAULT:
+            AT_ASSERTM(
+                si == 0,
+                "Unrecognized stream ",
+                s.unwrap(),
+                " (I think this should be the default stream, but I got a non-zero index ",
+                si,
+                ").",
+                " Did you manufacture the StreamId yourself?  Don't do that; use the",
+                " official API like c10::cuda::getStreamFromPool() to get a new stream.");
+            return &default_streams[device_index];
+        case StreamIdType::HCCL:
+            return &npu_streams[device_index][si];
+        case StreamIdType::SECONDARY:
+            return &secondary_streams[device_index];
+        default:
+            AT_ASSERTM(
+                0,
+                "Unrecognized stream ",
+                s.unwrap(),
+                " (I didn't recognize the stream type, ",
+                st,
+                ")");
+    }
 }
 
 NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {

@@ -105,8 +105,8 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
-  {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_NOARGS, nullptr},
-  {nullptr, nullptr, 0, nullptr}
+    {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_NOARGS, nullptr},
+    {nullptr, nullptr, 0, nullptr}
 };
 
 void THNPStream_init(PyObject *module);
@@ -134,11 +134,11 @@ PyObject* initModule() {
   AddPyMethodDefs(methods, torch_npu::utils::tensor_functions());
   AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
   static struct PyModuleDef torchnpu_module = {
-     PyModuleDef_HEAD_INIT,
-     "torch_npu._C",
-     nullptr,
-     -1,
-     methods.data()
+      PyModuleDef_HEAD_INIT,
+      "torch_npu._C",
+      nullptr,
+      -1,
+      methods.data()
   };
   module = PyModule_Create(&torchnpu_module);
 

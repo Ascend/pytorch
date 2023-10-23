@@ -83,6 +83,7 @@ cann_pytorch_version_map = {
     "6.0.RC1" : ["1.8.1", "1.11.0.rc1"]
 }
 
+
 def get_cann_version(ascend_home_path):
     cann_version = ""
     for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
@@ -98,6 +99,7 @@ def get_cann_version(ascend_home_path):
                         cann_version = line.strip().split("=")[-1]
                         break
     return cann_version
+
 
 def cann_package_check():
     if "ASCEND_HOME_PATH" in os.environ:
@@ -165,6 +167,7 @@ builtins.isinstance = _isinstance
 
 __all__ = []
 
+
 def wrap_torch_warning_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -212,6 +215,7 @@ all_monkey_patches = [
 
 all_monkey_patches += serialization_patches
 all_monkey_patches += fsdp_patches
+
 
 
 def _apply_patches(monkey_patches):
