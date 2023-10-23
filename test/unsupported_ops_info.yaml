@@ -3966,13 +3966,6 @@ empty:
   - float32
   test_operator:
   - float32
-empty_like:
-  test_fake_autocast:
-  - float32
-  test_operator:
-  - float32
-  test_variant_consistency_eager:
-  - complex64
 empty_permuted:
   test_fake_autocast:
   - float32
