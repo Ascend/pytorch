@@ -1,6 +1,6 @@
-import yaml
 from pathlib import Path
 from typing import List, Dict
+import yaml
 
 from torchgen.model import NativeFunction, FunctionSchema
 from torchgen.api.autograd import (

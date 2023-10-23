@@ -8,6 +8,7 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 
 

@@ -52,14 +52,14 @@ class HcclReduceScatterTest(TestCase):
         c2p.put((rank, output.cpu()))
         pg.barrier()
 
-    def _test_multiprocess(self, fn, init_pg, expected, input, world_size):
+    def _test_multiprocess(self, fn, init_pg, expected, input1, world_size):
         ctx = mp.get_context('spawn')
         c2p = ctx.Queue(world_size)
         ps = []
         for i in range(world_size):
             p = ctx.Process(
                 target=fn,
-                args=(i, input, world_size, init_pg, c2p))
+                args=(i, input1, world_size, init_pg, c2p))
             p.start()
             ps.append(p)
         for _ in range(world_size):
@@ -89,8 +89,8 @@ class HcclReduceScatterTest(TestCase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input = create_common_tensor(shape, -10, -10)
-                    input_list.append(input.cpu())
+                    _, input1 = create_common_tensor(shape, -10, -10)
+                    input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
@@ -109,8 +109,8 @@ class HcclReduceScatterTest(TestCase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input = create_common_tensor(shape, -10, -10)
-                    input_list.append(input.cpu())
+                    _, input1 = create_common_tensor(shape, -10, -10)
+                    input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist._reduce_scatter_base)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter_base,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
@@ -129,8 +129,8 @@ class HcclReduceScatterTest(TestCase):
                     shape[1] = 0
                 input_list = []
                 for _ in range(world_size):
-                    _, input = create_common_tensor(shape, -10, -10)
-                    input_list.append(input.cpu())
+                    _, input1 = create_common_tensor(shape, -10, -10)
+                    input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist.reduce_scatter_tensor)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter_tensor,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)
@@ -147,8 +147,8 @@ class HcclReduceScatterTest(TestCase):
             for shape in shape_format:
                 input_list = []
                 for _ in range(world_size):
-                    _, input = create_common_tensor(shape, -10, -10)
-                    input_list.append(input.cpu())
+                    _, input1 = create_common_tensor(shape, -10, -10)
+                    input_list.append(input1.cpu())
                 expected = self._construct_excepted_result(input_list, world_size, dist._reduce_scatter_base)
                 self._test_multiprocess(HcclReduceScatterTest._test_reduce_scatter_base,
                                         HcclReduceScatterTest._init_dist_hccl, expected, input_list, world_size)

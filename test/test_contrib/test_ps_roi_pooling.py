@@ -24,8 +24,7 @@ class TestPsRoiPooling(TestCase):
         cls_feat.requires_grad = True
         model = PSROIPool(pooled_height, pooled_width, spatial_scale, group_size, output_dim)
         output = model(cls_feat, rois_tensor)  # 512,22,7,7
-        l = output.sum()
-        l.backward()
+        output.sum().backward()
         return output.detach().cpu(), cls_feat.grad.cpu()
 
     def test_npu_roi_align_1(self):

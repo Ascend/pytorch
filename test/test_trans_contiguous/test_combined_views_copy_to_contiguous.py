@@ -1,12 +1,13 @@
 import os
-import torch
 import numpy as np
+import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
+
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 
@@ -41,7 +42,7 @@ class CombinedViewsCopyToContiguous(TestCase):
     def test_permute_select_copy_contiguous(self):
         dtype_list2 = [np.float32]
         format_list2 = [-1]
-        shape_list2 = [[20, 30, 40, 50],]
+        shape_list2 = [[20, 30, 40, 50], ]
         shape_format2 = [
             [i, j, k] for i in dtype_list2 for j in format_list2 for k in shape_list2
         ]

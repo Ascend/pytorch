@@ -491,17 +491,17 @@ class TestCommon(TestCase):
 
         # list of all inplace ops: inplace variant + alias inplace variants if exist
         inplace_ops = [inplace, inplace_operator]
-        variants = [method, inplace, operator, inplace_operator]
+        variants_tmp = [method, inplace, operator, inplace_operator]
         operators = [operator, inplace_operator]
 
         for a_op in op.aliases:
-            variants.append(a_op.op)
-            variants.append(a_op.method_variant)
-            variants.append(a_op.inplace_variant)
+            variants_tmp.append(a_op.op)
+            variants_tmp.append(a_op.method_variant)
+            variants_tmp.append(a_op.inplace_variant)
             inplace_ops.append(a_op.inplace_variant)
 
         inplace_variants = tuple(filter(None, inplace_ops))
-        variants = tuple(filter(None, variants))
+        variants = tuple(filter(None, variants_tmp))
         operators = tuple(filter(None, operators))
 
         _requires_grad = dtype in op.supported_backward_dtypes(

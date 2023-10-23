@@ -88,7 +88,7 @@ class TestFX(TestCase):
 
         class T(torch.nn.Module):
             def forward(self, A, b=4, *args, c=5, **kwargs):
-                x = A + 1 + args[0] + kwargs['3']
+                x = A + 1 + args.get(0) + kwargs.get('3')
                 return x
 
         t = T()
@@ -108,7 +108,7 @@ class TestFX(TestCase):
     def test_args_kwargs(self):
         class T(torch.nn.Module):
             def forward(self, *args, **kwargs):
-                x = args[0] + kwargs['foo']
+                x = args.get(0) + kwargs.get('foo')
                 return x
 
         t = T()
