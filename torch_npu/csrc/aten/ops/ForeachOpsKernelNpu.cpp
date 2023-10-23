@@ -24,7 +24,8 @@ std::vector<at::Tensor> NPUNativeFunctions::_foreach_##OP(at::TensorList tensors
   return at::native::foreach_tensor_##OP##_list_kernel_slow(tensors1, tensors2, alpha);                               \
 }                                                                                                                     \
                                                                                                                       \
-void NPUNativeFunctions::_foreach_##OP##_(at::TensorList tensors1, at::TensorList tensors2, const at::Scalar& alpha) {\
+void NPUNativeFunctions::_foreach_##OP##_(at::TensorList tensors1,                                                    \
+    at::TensorList tensors2, const at::Scalar& alpha) {                                                               \
   at::native::foreach_tensor_##OP##_list_kernel_slow_(tensors1, tensors2, alpha);                                     \
 }
 

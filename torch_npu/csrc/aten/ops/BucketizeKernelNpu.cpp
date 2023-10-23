@@ -23,10 +23,10 @@ namespace at_npu {
 namespace native {
 
 at::Tensor &NPUNativeFunctions::bucketize_out(
-    const at::Tensor& self, 
-    const at::Tensor& boundaries, 
-    bool out_int32, 
-    bool right, 
+    const at::Tensor& self,
+    const at::Tensor& boundaries,
+    bool out_int32,
+    bool right,
     at::Tensor& result) {
     const auto self_cpu = self.cpu();
     const auto boundaries_cpu = boundaries.cpu();
@@ -38,9 +38,9 @@ at::Tensor &NPUNativeFunctions::bucketize_out(
 }
 
 at::Tensor NPUNativeFunctions::bucketize(
-    const at::Tensor& self, 
-    const at::Tensor& boundaries, 
-    bool out_int32, 
+    const at::Tensor& self,
+    const at::Tensor& boundaries,
+    bool out_int32,
     bool right) {
     at::ScalarType scalar_type = out_int32 ? at::ScalarType::Int : at::ScalarType::Long;
     c10::TensorOptions options = at::TensorOptions().device(self.options().device()).dtype(scalar_type);

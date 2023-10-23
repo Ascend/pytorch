@@ -21,7 +21,7 @@
 namespace at_npu {
 namespace native {
 bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src);
-void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSize=0);
+void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSize = 0);
 void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking);
 void copy_d2d_dtype_baseformat(at::Tensor& self, const at::Tensor& src, bool non_blocking);
 bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src);

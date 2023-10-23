@@ -142,7 +142,7 @@ at::Tensor NPUNativeFunctions::to(
     return self;
   }
   if (at::ScalarType::Double == dtype) {
-    static auto warn_once = [](){
+    static auto warn_once = []() {
         std::cout << "Warning: Device do not support double dtype now, " \
                      "dtype cast repalce with float." << std::endl;
         return true;

@@ -92,7 +92,7 @@ c10::WarningHandler* getIgnoreHandler() {
 // use to ignore the warning info when overriding operator for CPU-implement
 #define WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(enable)                         \
   int enter_warning() {                                                       \
-    if(enable) {                                                              \
+    if (enable) {                                                             \
       c10::WarningUtils::set_warning_handler(getIgnoreHandler());             \
     }                                                                         \
     return 1;                                                                 \
@@ -124,7 +124,7 @@ c10::WarningHandler* getIgnoreHandler() {
         TORCH_FN(wrapper___embedding_bag_dense_backward));                    \
   }                                                                           \
   int exit_warning() {                                                        \
-    if(enable) {                                                              \
+    if (enable) {                                                             \
       c10::WarningUtils::set_warning_handler(nullptr);                        \
     }                                                                         \
     return 1;                                                                 \

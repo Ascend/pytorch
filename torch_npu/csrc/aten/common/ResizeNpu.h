@@ -178,8 +178,8 @@ static inline void checkInBoundsForStorage(
 
 inline void setStrided(
     const at::Tensor& self,
-    c10::IntArrayRef size, 
-    c10::IntArrayRef stride, 
+    c10::IntArrayRef size,
+    c10::IntArrayRef stride,
     int64_t storage_offset) {
   TORCH_CHECK(size.size() == stride.size(), "mismatch in length of strides and shape");
   auto* self_ = self.unsafeGetTensorImpl();

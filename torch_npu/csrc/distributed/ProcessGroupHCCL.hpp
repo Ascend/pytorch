@@ -202,7 +202,7 @@ public:
       int size,
       const std::string& groupName,
       c10::intrusive_ptr<Options> options = Options::create())
-        : ProcessGroupHCCL(store, rank, size, options) {}
+      : ProcessGroupHCCL(store, rank, size, options) {}
 
   virtual ~ProcessGroupHCCL();
 

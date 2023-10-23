@@ -118,7 +118,7 @@ namespace at_npu
 
     void SetDeterministic() {
       auto deterministicalgorithmsstatus =  at::globalContext().deterministicAlgorithms();
-      if(deterministicaclnn_oldstatus != deterministicalgorithmsstatus) {
+      if (deterministicaclnn_oldstatus != deterministicalgorithmsstatus) {
         NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DETERMINISTIC, deterministicalgorithmsstatus ? "1" : "0"));
         NPU_CHECK_ERROR(AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, deterministicalgorithmsstatus ? 1 : 0));
         deterministicaclnn_oldstatus = deterministicalgorithmsstatus;

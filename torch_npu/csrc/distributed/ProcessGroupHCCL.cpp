@@ -636,7 +636,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     Fn fn,
     PreProcess pre,
     PostProcess post) {
-
   // Bump collective counter
   seq_++;
   
@@ -1094,7 +1093,6 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
     at::Tensor& outputTensor,
     at::Tensor& inputTensor,
     const c10d::ReduceScatterOptions& opts) {
-
   if (inputTensor.dtype() != outputTensor.dtype()) {
     TORCH_CHECK(false, "input tensor must be the same type as the output tensor.");
   }

@@ -109,7 +109,7 @@ at::Tensor NPUNativeFunctions::npu_format_cast(
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
     at::Tensor& src,
     int64_t acl_format) {
-  torch_npu::utils::torch_check_npu(src); 
+  torch_npu::utils::torch_check_npu(src);
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   if (src_desc.npu_format_ == acl_format) {
     return src;
@@ -134,7 +134,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
 }
 
 int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
-  torch_npu::utils::torch_check_npu(src); 
+  torch_npu::utils::torch_check_npu(src);
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   return src_desc.npu_format_;
 }

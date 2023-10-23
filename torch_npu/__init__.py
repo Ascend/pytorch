@@ -75,6 +75,7 @@ cann_pytorch_version_map = {
     "6.0.RC1" : ["1.8.1", "1.11.0.rc1"]
 }
 
+
 def get_cann_version(ascend_home_path):
     cann_version = ""
     for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
@@ -90,6 +91,7 @@ def get_cann_version(ascend_home_path):
                         cann_version = line.strip().split("=")[-1]
                         break
     return cann_version
+
 
 def cann_package_check():
     if "ASCEND_HOME_PATH" in os.environ:
@@ -142,6 +144,7 @@ NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
     "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
 
+
 def _isinstance(obj, class_or_tuple):
     try:
         return builtin_isinstance(obj, class_or_tuple)
@@ -155,6 +158,7 @@ builtins.isinstance = _isinstance
 
 
 __all__ = []
+
 
 def wrap_torch_error_func(func):
     @wraps(func)
@@ -197,6 +201,7 @@ all_monkey_patches = [
 ]
 
 all_monkey_patches += serialization_patches
+
 
 def _apply_patches(monkey_patches):
     
