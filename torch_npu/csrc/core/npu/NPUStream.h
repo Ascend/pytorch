@@ -16,7 +16,7 @@
 
 namespace c10_npu {
 
-class NPUStream {
+class C10_NPU_API NPUStream {
 public:
   enum Unchecked { UNCHECKED };
 
@@ -120,7 +120,7 @@ NPUStream getStreamFromPool(
     const bool isHighPriority,
     c10::DeviceIndex device_index);
 
-NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
