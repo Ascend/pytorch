@@ -25,6 +25,7 @@ from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils.path_manager import PathManager
+from torch_npu.testing.common_distributed import TEST_SKIPS
 
 try:
     import torchvision
@@ -40,14 +41,6 @@ INIT_METHOD = os.getenv("INIT_METHOD", "env://")
 
 DEFAULT_TIMEOUT = 300
 CUSTOMIZED_TIMEOUT = {"test_DistributedDataParallel": 500}
-
-TestSkip = namedtuple('TestSkip', 'exit_code, message')
-TEST_SKIPS = {
-    "multi-npu": TestSkip(75, "Need at least 2 ASCEND devices"),
-    "hccl": TestSkip(76, "c10d not compiled with HCCL support"),
-    "known_issues": TestSkip(77, "Test skipped due to known issues"),
-}
-
 
 class _FC2(nn.Module):
     def __init__(self):
