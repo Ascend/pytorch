@@ -114,12 +114,12 @@ class TestLossFunctions(TestCase):
         prob2 = F.softmax(torch.randn(input_shape), 1).npu()
 
         loss = nn.KLDivLoss(reduction='batchmean').npu()
-        l = loss(log_prob1, prob2)
+        output = loss(log_prob1, prob2)
 
         loss_none_reduce = nn.KLDivLoss(reduction='sum').npu()(log_prob1, prob2)
         expected = loss_none_reduce / input_shape[0]
 
-        self.assertEqual(l, expected)
+        self.assertEqual(output, expected)
 
     def test_BCELoss(self):
         m = nn.Sigmoid().npu()

@@ -40,7 +40,6 @@ class TestDevice(TestCase):
             func(self, *args, **kwargs)
         return wrapper
 
-
     @device_monitor
     def test_torch_tensor_to_device(self, device=None):
         cpu_tensor = torch.randn(2, 3)

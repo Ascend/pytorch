@@ -73,7 +73,7 @@ class TestLossFunctions(TestCase):
         log_probs = torch.randn(50, 16, 20).npu().log_softmax(2)
         targets = torch.randint(1, 20, (16, 30), dtype=torch.int32).npu()
         input_lengths = torch.full((16,), 50, dtype=torch.int32).npu()
-        target_lengths = torch.randint(10,30,(16,), dtype=torch.int32).npu()
+        target_lengths = torch.randint(10, 30, (16, ), dtype=torch.int32).npu()
 
         cpu_log_probs = copy.deepcopy(log_probs).cpu()
         cpu_targets = copy.deepcopy(targets).cpu().long()

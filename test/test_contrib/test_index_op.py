@@ -21,6 +21,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.function import npu_fast_condition_index_put
 
+
 class TestIndexOp(TestCase):
     def npu_slow_index_op_exec(self, input1):
         condition = input1 < 0.5

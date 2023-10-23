@@ -19,12 +19,12 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 from torch_npu.utils.path_manager import PathManager
 
 
@@ -333,8 +333,6 @@ class MultiProcessTestCase(TestCase):
         # (via TEST_ERROR_EXIT CODE), and raise an exception for those.
         # the reason we do this is to attempt to raise a more helpful error
         # message than "Process x terminated/timed out"
-        # TODO: we should pipe the exception of the failed subprocess here.
-        # Currently, the actual exception is displayed as a logging output.
         errored_processes = [
             (i, p)
             for i, p in enumerate(self.processes)
@@ -430,8 +428,8 @@ class _DistTestBase(object):
     def _test_DDP_helper(self, model, input_var, target, loss, scale_factor=1.0):
         model.train()
         output = model(input_var)
-        l = loss(output, target) * scale_factor
-        l.backward()
+        out = loss(output, target) * scale_factor
+        out.backward()
 
     def _assert_equal_param(self, param_npu, param_DDP):
         self.assertEqual(len(param_npu), len(param_DDP))

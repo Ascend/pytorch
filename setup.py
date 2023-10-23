@@ -294,7 +294,7 @@ class CPPLibBuild(build_clib, object):
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
             '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
             '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.realpath(output_lib_path),
-            '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
+            '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
 

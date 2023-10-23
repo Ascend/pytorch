@@ -30,8 +30,8 @@ class TestConvFunctions(TestCase):
         self.assertExpectedInline(str(output.size()), '''torch.Size([20, 33, 48])''')
 
     def test_conv2d(self):
-        filters = torch.randn(8,4,3,3)
-        inputs = torch.randn(1,4,5,5)
+        filters = torch.randn(8, 4, 3, 3)
+        inputs = torch.randn(1, 4, 5, 5)
         inputs = inputs.npu()
         filters = filters.npu()
         output = F.conv2d(inputs, filters, padding=1)
@@ -75,11 +75,11 @@ class TestConvFunctions(TestCase):
         self.assertExpectedInline(str(output.size()), '''torch.Size([20, 33, 52, 12, 22])''')
 
     def test_unfold(self):
-        x = torch.Tensor([[[[  1,  2,  3,  4,  5],
-                            [  6,  7,  8,  9, 10],
-                            [ 11, 12, 13, 14, 15],
-                            [ 16, 17, 18, 19, 20],
-                            [ 21, 22, 23, 24, 25]]]])
+        x = torch.Tensor([[[[1, 2, 3, 4, 5],
+                            [6, 7, 8, 9, 10],
+                            [11, 12, 13, 14, 15],
+                            [16, 17, 18, 19, 20],
+                            [21, 22, 23, 24, 25]]]])
         x = F.unfold(x, (2, 2)) 
         self.assertExpectedInline(str(x.size()), '''torch.Size([1, 4, 16])''')
 

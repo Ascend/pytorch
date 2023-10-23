@@ -218,7 +218,6 @@ class TestNpuProfiler(TestCase):
         return False
 
     def test_ascend_work_path(self):
-        import os
         os.environ["ASCEND_WORK_PATH"] = self.results_work_path
         with torch_npu.profiler.profile(
                 on_trace_ready=torch_npu.profiler.tensorboard_trace_handler()

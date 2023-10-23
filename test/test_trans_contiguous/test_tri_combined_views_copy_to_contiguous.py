@@ -22,6 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+
 class TestTriCombinedViewsCopyToContiguous(TestCase):
     def test_view_narrow_permute_copy_contiguous(self, device="npu"):
         dtype_list1 = [np.float16, np.float32]
@@ -37,24 +38,24 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view+narrow+permute ==> cannot be optimized
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)) \
-                    [:,1:10].transpose(0, 1).contiguous()
+                npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), \
+                    npu_input.size(3))[:, 1:10].transpose(0, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.view(cpu_input.size(0) * cpu_input.size(1), cpu_input.size(2), cpu_input.size(3)) \
-                [:,1:10].transpose(0, 1).contiguous()
+            cpu_out1 = cpu_input.view(cpu_input.size(0) * cpu_input.size(1), cpu_input.size(2), \
+                cpu_input.size(3))[:, 1:10].transpose(0, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+view+narrow ==> cannot be optimized
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input.permute(1, 0, 2, 3). \
-                    view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)) \
-                    [:,:,1:10].contiguous()
+                    view(npu_input.size(1), npu_input.size(0), \
+                    npu_input.size(2) * npu_input.size(3))[:, :, 1:10].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
             cpu_out2 = cpu_input.permute(1, 0, 2, 3). \
-                view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2)*cpu_input.size(3)) \
-                [:,:,1:10].contiguous()
+                view(cpu_input.size(1), cpu_input.size(0), \
+                cpu_input.size(2) * cpu_input.size(3))[:, :, :10].contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
     def test_view_select_permute_copy_contiguous(self, device="npu"):
@@ -71,24 +72,22 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view+select+permute ==> cannot be optimized
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)) \
-                    [:,1].transpose(0, 1).contiguous()
+                npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), \
+                    npu_input.size(3))[:, 1].transpose(0, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
             cpu_out1 = cpu_input.view(cpu_input.size(0) * cpu_input.size(1), cpu_input.size(2), cpu_input.size(3)) \
-                [:,1].transpose(0, 1).contiguous()
+                [:, 1].transpose(0, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+view+select ==> cannot be optimized
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input.permute(1, 0, 2, 3). \
-                    view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)) \
-                    [:,:,2].contiguous()
+                npu_out2 = npu_input.permute(1, 0, 2, 3).view(npu_input.size(1), \
+                    npu_input.size(0), npu_input.size(2) * npu_input.size(3))[:,:,2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
               True, "Error operators called!")
             cpu_out2 = cpu_input.permute(1, 0, 2, 3). \
-                view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2)*cpu_input.size(3)) \
-                [:,:,2].contiguous()
+                view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2) * cpu_input.size(3))[:,:,2].contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
 

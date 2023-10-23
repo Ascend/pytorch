@@ -38,7 +38,7 @@ class TestPoolingFunctions(TestCase):
     def test_avg_pool3d(self):
         input1 = torch.randn(1, 2, 3, 3, 4)
         output = F.avg_pool3d(input1.npu(), kernel_size=3, stride=2)
-        expected_cpu_output = torch.tensor([[[[[ 0.0008]]], [[[-0.0804]]]]])
+        expected_cpu_output = torch.tensor([[[[[0.0008]]], [[[-0.0804]]]]])
 
         self.assertRtolEqual(expected_cpu_output.numpy(), output.cpu().numpy())
 

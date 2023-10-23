@@ -417,7 +417,6 @@ resize_out(out, sizes, strides, options);
         if k is SchemaKind.functional:
             return ""
         elif k is SchemaKind.inplace:
-            # TODO: Make sure out argument is guaranteed to be self
             return f"{class_name}(Tensor& self) : outputs_{{std::ref(self)}} {{}}"
         elif k is SchemaKind.out:
             out_args = ", ".join(f"Tensor& out{i}" for i in range(returns))
@@ -486,17 +485,6 @@ resize_out(out, sizes, strides, options);
         if self.target is Target.REGISTRATION and not self.selector.is_native_function_selected(f):
             return None
 
-        # TODO: Now, there is something interesting going on here.  In the code below,
-        # we generate CompositeExplicitAutograd implementations of functional and inplace
-        # based on the out implementation.  But in fact, out is definable by
-        # functional too (just not very efficiently), and this is honestly the
-        # MORE likely situation for a backend implementor.  How do we pick?
-        # Well, taking a page from Haskell type classes and default methods,
-        # we could conceivably register a circular definition (out in terms
-        # of functional, and functional in terms of out) and just require
-        # someone to implement one or the other.  We'd have to do a little bit
-        # of work to not register one of these "weak" definitions unless there
-        # is a strong definition somewhere in the DAG!  So it's not implemented yet.
         if self.backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd and f.func.kind() is SchemaKind.out:
             # Never generate a default implementation for out, that's what you
             # have to define as a backend implementor
@@ -505,9 +493,7 @@ resize_out(out, sizes, strides, options);
         # Note [Direct dispatch bindings]
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Signature of the non-dispatched function we'll expose in a header
-        # (e.g., at::cpu::add).  We don't generate methods (TODO: do this
-        # when CPUTensor class is a thing); nor do we generate fallback
-        # bindings for manual_cpp_binding functions.
+        # (e.g., at::cpu::add).  We don't generate methods
         cpp_sig_group = CppSignatureGroup.from_native_function(f, method=False, fallback_binding=False)
 
         # Signature of the wrapper function we'll register to the dispatcher
@@ -623,9 +609,6 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 context.append(
                     Expr(
                         expr=expr,
-                        # TODO: Stop hardcoding that the output type is a Tensor.  Note
-                        # that for the codegen here this is fine because outputs_ is
-                        # hardcoded to be tensor already
                         type=NamedCType(
                             out_arg.nctype.name, MutRefCType(BaseCType(tensorT))
                         ),

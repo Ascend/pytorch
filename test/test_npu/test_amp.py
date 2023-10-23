@@ -113,7 +113,7 @@ class TestAmp(TestCase):
                 c = c.cpu().to(torch.float).detach().numpy()
                 s = s.cpu().to(torch.float).detach().numpy()
                 self.assertRtolEqual(c, s, atol)
-                
+
     # Compares no scaling + no autocasting against scaling + autocasting.
     def test_grad_scaling_autocast(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):

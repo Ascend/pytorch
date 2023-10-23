@@ -30,20 +30,20 @@ FORMAT_NZ = 29
 
 class NpuMNIST(nn.Module):
 
-  def __init__(self):
-    super(NpuMNIST, self).__init__()
-    self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-    self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-    self.fc1 = nn.Linear(320, 50)
-    self.fc2 = nn.Linear(50, 10)
+    def __init__(self):
+        super(NpuMNIST, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
 
-  def forward(self, x):
-    x = F.relu(F.max_pool2d(self.conv1(x), 2))
-    x = F.relu(F.max_pool2d(self.conv2(x), 2))
-    x = x.view(-1, 320)
-    x = F.relu(self.fc1(x))
-    x = self.fc2(x)
-    return F.log_softmax(x, dim=1)
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
 
 
 class WN(torch.nn.Module):
@@ -86,7 +86,7 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), m_loaded)
             n_loaded = torch.load(path, map_location=torch.device("cpu"))
             self.assertRtolEqual(x.cpu(), n_loaded)
-    
+
     def test_save_npu_format(self):
         x = torch.randn(2, 3, 224, 224).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -136,7 +136,7 @@ class TestSerialization(TestCase):
             torch.save(x, path)
             x_loaded = torch.load(path)
             self.assertExpectedInline(str(x), str(x_loaded))
-    
+
     def test_save_torch_size(self):
         x = torch.randn(2, 3).size()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -156,7 +156,7 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertExpectedInline(str(model), str(model_loaded))
             self.assertTrue(number, number_loaded)
-    
+
     def test_save_value(self):
         x = 44
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -184,7 +184,7 @@ class TestSerialization(TestCase):
             torch.save(model, path)
             loaded_model = torch.load(path)
             self.assertExpectedInline(str(model), str(loaded_model))
-            
+
     def test_serialization_weight_norm(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
@@ -213,7 +213,7 @@ class TestSerialization(TestCase):
             loaded_model = cpu_model.npu()
             before_save = model.state_dict()
             after_load = loaded_model.state_dict()
-            
+
             self.assertRtolEqual(before_save['conv1.weight'].cpu(), after_load['conv1.weight'].cpu())
             self.assertRtolEqual(before_save['conv2.weight'].cpu(), after_load['conv2.weight'].cpu())
             self.assertRtolEqual(before_save['fc1.weight'].cpu(), after_load['fc1.weight'].cpu())
@@ -222,7 +222,7 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(before_save['conv2.bias'].cpu(), after_load['conv2.bias'].cpu())
             self.assertRtolEqual(before_save['fc1.bias'].cpu(), after_load['fc1.bias'].cpu())
             self.assertRtolEqual(before_save['fc2.bias'].cpu(), after_load['fc2.bias'].cpu())
-            
+
 
 if __name__ == "__main__":
     run_tests()

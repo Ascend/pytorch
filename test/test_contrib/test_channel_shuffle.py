@@ -19,6 +19,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import ChannelShuffle
 
+
 class TestChannelShuffle(TestCase):
     def cpu_channel_shuffle(self, x, groups, split_shuffle):
 
@@ -51,7 +52,7 @@ class TestChannelShuffle(TestCase):
         x.requires_grad_(True)
         model = model.npu()
         output = model(x, x)
-        
+
         loss = sum([i.sum() for i in output]) if split_shuffle else output.sum()
         loss.backward()
 
@@ -76,43 +77,43 @@ class TestChannelShuffle(TestCase):
         x1 = conv(x)
         x1 = x1.npu()
         npu_output1, npu_output2 = self.npu_channel_shuffle_backward(x1, groups=4, split_shuffle=True)
-        
-        expedt_cpu_output1 = torch.tensor([[[[ 0.0385, -0.3217, -0.0174],
-                                        [ 0.1337, -0.1197, -0.0415],
-                                        [ 0.0843,  0.1638, -0.0149]],
 
-                                        [[ 0.0385, -0.3217, -0.0174],
-                                        [ 0.1337, -0.1197, -0.0415],
-                                        [ 0.0843,  0.1638, -0.0149]]],
+        expedt_cpu_output1 = torch.tensor([[[[0.0385, -0.3217, -0.0174],
+                                        [0.1337, -0.1197, -0.0415],
+                                        [0.0843, 0.1638, -0.0149]],
+
+                                        [[0.0385, -0.3217, -0.0174],
+                                        [0.1337, -0.1197, -0.0415],
+                                        [0.0843, 0.1638, -0.0149]]],
 
 
                                         [[[-0.0203, -0.3950, -0.1230],
-                                        [ 0.2059,  0.0822,  0.6951],
-                                        [-0.0773,  0.0535, -0.0462]],
+                                        [0.2059, 0.0822, 0.6951],
+                                        [-0.0773, 0.0535, -0.0462]],
 
                                         [[-0.0203, -0.3950, -0.1230],
-                                        [ 0.2059,  0.0822,  0.6951],
-                                        [-0.0773,  0.0535, -0.0462]]]], dtype=torch.float32)
+                                        [0.2059, 0.0822, 0.6951],
+                                        [-0.0773, 0.0535, -0.0462]]]], dtype=torch.float32)
 
-        expedt_cpu_output2 = torch.tensor([[[[ 0.5454, -0.0463,  0.4660],
-                                        [ 0.7197,  0.2986,  0.4197],
-                                        [ 0.6225,  0.7925,  0.4614]],
+        expedt_cpu_output2 = torch.tensor([[[[ 0.5454, -0.0463, 0.4660],
+                                        [0.7197, 0.2986, 0.4197],
+                                        [0.6225, 0.7925, 0.4614]],
 
-                                        [[ 0.5454, -0.0463,  0.4660],
-                                        [ 0.7197,  0.2986,  0.4197],
-                                        [ 0.6225,  0.7925,  0.4614]]],
+                                        [[0.5454, -0.0463, 0.4660],
+                                        [0.7197, 0.2986, 0.4197],
+                                        [0.6225, 0.7925, 0.4614]]],
 
 
-                                        [[[ 0.4537, -0.1535,  0.3048],
-                                        [ 0.8306,  0.6178,  1.7047],
-                                        [ 0.3617,  0.5625,  0.4009]],
+                                        [[[0.4537, -0.1535, 0.3048],
+                                        [0.8306, 0.6178, 1.7047],
+                                        [0.3617, 0.5625, 0.4009]],
 
-                                        [[ 0.4537, -0.1535,  0.3048],
-                                        [ 0.8306,  0.6178,  1.7047],
-                                        [ 0.3617,  0.5625,  0.4009]]]], dtype=torch.float32)
+                                        [[0.4537, -0.1535, 0.3048],
+                                        [0.8306, 0.6178, 1.7047],
+                                        [0.3617, 0.5625, 0.4009]]]], dtype=torch.float32)
         self.assertRtolEqual(expedt_cpu_output1.numpy(), npu_output1.detach().cpu().numpy())
         self.assertRtolEqual(expedt_cpu_output2.numpy(), npu_output2.detach().cpu().numpy())
-        
+
 
 if __name__ == "__main__":
     run_tests()

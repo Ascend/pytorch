@@ -200,7 +200,7 @@ class HcclAlltoAllTest(TestCase):
                     2: torch.tensor([3, 4, 8, 9, 13, 16, 17]),
                     3: torch.tensor([5, 6, 10, 14, 18])
                 }
-                expected = expected_dict[rank]
+                expected = expected_dict.get(rank)
 
             expected = list(expected.split(outsize))
 

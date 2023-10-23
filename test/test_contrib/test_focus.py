@@ -24,6 +24,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import Focus
 from torch_npu.contrib.module.focus import fast_slice
 
+
 class TestFocus(TestCase):
     def npu_slow_focus_op_exec(self, c1, c2, input1):
         class Conv(nn.Module):
@@ -102,7 +103,7 @@ class TestFocus(TestCase):
         return output
 
     def test_slice_shape_format(self):
-        shape_format = [      
+        shape_format = [
             [np.float16, 2, [2, 3, 4, 5]],
             [np.float32, 2, [3, 5, 8, 9]],
         ]
@@ -114,16 +115,16 @@ class TestFocus(TestCase):
                 self.assertRtolEqual(slow_output[i].cpu().numpy(), fast_output[i].cpu().numpy())
 
     def test_focus_shape_format(self):
-        shape_format = [      
+        shape_format = [
             [[np.float16, 2, [20, 16, 50, 100]], 16, 33],
             [[np.float16, 2, [4, 8, 300, 40]], 8, 13],
         ]
         for item in shape_format:
             _, input1 = create_common_tensor(item[0], -10, 10)
             input1.requires_grad_(True)
-            slow_output, slow_time  = \
+            slow_output, slow_time = \
                 self.npu_slow_focus(item[1], item[2], input1)
-            fast_output, fast_time  = \
+            fast_output, fast_time = \
                 self.npu_fast_focus(item[1], item[2], input1)
 
             self.assertTrue(slow_time > fast_time)

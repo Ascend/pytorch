@@ -164,8 +164,7 @@ class TorchNPUApiTestCase(TestCase):
         self.assertIsNone(res)
 
     def test_npu_init(self):
-        res = torch_npu.npu.init()
-        self.assertIsNone(res)
+        self.assertIsNone(torch_npu.npu.init())
 
     def test_npu_is_available(self):
         res = torch_npu.npu.is_available()
@@ -195,14 +194,12 @@ class TorchNPUApiTestCase(TestCase):
 
     def test_npu_stream_synchronize(self):
         s = torch_npu.npu.current_stream()
-        res = s.synchronize()
-        self.assertIsNone(res)
+        self.assertIsNone(s.synchronize())
 
     def test_npu_stream_wait_event(self):
         s = torch_npu.npu.current_stream()
         e = torch_npu.npu.Event()
-        res = s.wait_event(e)
-        self.assertIsNone(res)
+        self.assertIsNone(s.wait_event(e))
 
     def test_npu_stream_query(self):
         t = torch.ones(4096, 4096).npu()
@@ -232,22 +229,18 @@ class TorchNPUApiTestCase(TestCase):
 
     def test_npu_event_record(self):
         event = torch_npu.npu.Event()
-        res = event.record()
-        self.assertIsNone(res)
+        self.assertIsNone(event.record())
 
     def test_npu_event_synchronize(self):
         event = torch_npu.npu.Event()
-        res = event.synchronize()
-        self.assertIsNone(res)
+        self.assertIsNone(event.synchronize())
 
     def test_npu_event_wait(self):
         event = torch_npu.npu.Event()
-        res = event.wait()
-        self.assertIsNone(res)
+        self.assertIsNone(event.wait())
 
     def test_npu_empty_cache(self):
-        res = torch_npu.npu.empty_cache()
-        self.assertIsNone(res)
+        self.assertIsNone(torch_npu.npu.empty_cache())
 
     def test_npu_get_aclnn_version(self):
         res = torch_npu.npu.aclnn.version()

@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import time
+import math
 import numpy as np
 import torch
 import torch.nn as nn
@@ -35,7 +36,7 @@ class TestDropPath(TestCase):
                 return drop_path(x, self.drop_prob, self.training)
 
         def drop_path(x, drop_prob: float = 0., training: bool = False):
-            if drop_prob == 0. or not training:
+            if math.isclose(drop_prob, 0.) or not training:
                 return x
 
             keep_prob = 1 - drop_prob

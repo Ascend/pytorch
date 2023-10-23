@@ -18,6 +18,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.contrib.function import npu_single_level_responsible_flags
 
+
 class TestAnchorGenerator(TestCase):
              
     def single_level_responsible_flags(self,
@@ -70,6 +71,6 @@ class TestAnchorGenerator(TestCase):
                                                     stride[i],
                                                     num_base_anchors)
             self.assertRtolEqual(cpuout, npuout.cpu())
-    
+
 if __name__ == "__main__":
     run_tests()

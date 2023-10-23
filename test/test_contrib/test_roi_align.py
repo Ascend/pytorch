@@ -20,21 +20,21 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import ROIAlign
 
+
 class TestRoiAlign(TestCase):
-    
+
     def npu_roi_align(self, input1, roi, output_size, spatial_scale, sampling_ratio, aligned):
-        
+
         input1.requires_grad_(True)
         roi.requires_grad_(True)
         model = ROIAlign(output_size, spatial_scale, sampling_ratio).npu()
         output = model(input1, roi)
-        l = output.sum()
-        l.backward()
+        output.sum().backward()
         return output.detach().cpu(), input1.grad.cpu()
 
     def generate_input(self):
-        
-        input1 =  torch.FloatTensor([[[[1, 2, 3 , 4, 5, 6],
+
+        input1 = torch.FloatTensor([[[[1, 2, 3, 4, 5, 6],
                                       [7, 8, 9, 10, 11, 12],
                                       [13, 14, 15, 16, 17, 18],
                                       [19, 20, 21, 22, 23, 24],
@@ -52,9 +52,9 @@ class TestRoiAlign(TestCase):
         aligned = False
 
         npu_output, npu_inputgrad = self.npu_roi_align(input1, roi, output_size, spatial_scale, sampling_ratio, aligned)
-        expedt_cpu_output = torch.tensor([[[[ 4.5000,  6.5000,  8.5000],
+        expedt_cpu_output = torch.tensor([[[[4.5000, 6.5000, 8.5000],
                                             [16.5000, 18.5000, 20.5000],
-                                            [28.5000, 30.5000, 32.5000]]]], 
+                                            [28.5000, 30.5000, 32.5000]]]],
                                             dtype=torch.float32)
         expedt_cpu_inputgrad = torch.tensor([[[[0.2397, 0.2346, 0.2346, 0.2346, 0.2346, 0.2907],
                                                 [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
@@ -76,8 +76,8 @@ class TestRoiAlign(TestCase):
         aligned = True
 
         npu_output, npu_inputgrad = self.npu_roi_align(input1, roi, output_size, spatial_scale, sampling_ratio, aligned)
-        
-        expedt_cpu_output = torch.tensor([[[[ 2.7500,  4.5000,  6.5000],
+
+        expedt_cpu_output = torch.tensor([[[[2.7500, 4.5000, 6.5000],
                                             [13.2500, 15.0000, 17.0000],
                                             [25.2500, 27.0000, 29.0000]]]], dtype=torch.float32)
         expedt_cpu_inputgrad = torch.tensor([[[[0.2397, 0.2346, 0.2346, 0.2346, 0.2346, 0.2907],

@@ -13,14 +13,16 @@
 # limitations under the License.
 
 import os
-import torch
 import numpy as np
+
+import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
+
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 class CombinedViewsCopyToContiguous(TestCase):
@@ -38,18 +40,18 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: permute+narrow
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.permute(1,3,2,0)[:10].contiguous()
+                npu_out1 = npu_input.permute(1, 3, 2, 0)[:10].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Slice', 'contiguous_d_Transpose'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.permute(1,3,2,0)[:10].contiguous()
+            cpu_out1 = cpu_input.permute(1, 3, 2, 0)[:10].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: narrow+permute
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[:,1:10].permute(1,0,3,2).contiguous()
+                npu_out2 = npu_input[:, 1:10].permute(1, 0, 3, 2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Slice', 'contiguous_d_Transpose'], prof), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input[:,1:10].permute(1,0,3,2).contiguous()
+            cpu_out2 = cpu_input[:, 1:10].permute(1, 0, 3, 2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
     def test_permute_select_copy_contiguous(self, device="npu"):
@@ -66,18 +68,18 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: permute+select
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.permute(1,3,2,0).select(1,2).contiguous()
+                npu_out1 = npu_input.permute(1, 3, 2, 0).select(1, 2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice', 'contiguous_d_Transpose'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.permute(1,3,2,0).select(1,2).contiguous()
+            cpu_out1 = cpu_input.permute(1, 3, 2, 0).select(1,2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: select+permute
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input.select(1,0).permute(1,0,2).contiguous()
+                npu_out2 = npu_input.select(1, 0).permute(1, 0, 2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice', 'contiguous_d_Transpose'], prof), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input.select(1,0).permute(1,0,2).contiguous()
+            cpu_out2 = cpu_input.select(1, 0).permute(1, 0, 2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
     def test_permute_strideslice_copy_contiguous(self, device="npu"):
@@ -95,19 +97,19 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 1: permute+strideslice-no offset ==> all cannot be optimized
             # (contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.permute(1,3,2,0)[::2].contiguous()
+                npu_out1 = npu_input.permute(1, 3, 2, 0)[::2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input.permute(1,3,2,0)[::2].contiguous()
+            cpu_out1 = cpu_input.permute(1, 3, 2, 0)[::2].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: strideslice+permute-with offset ==> all cannot be optimized
             # (contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[:,1:10:3].permute(1,3,0,2).contiguous()
+                npu_out2 = npu_input[:, 1:10:3].permute(1, 3, 0, 2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input[:,1:10:3].permute(1,3,0,2).contiguous()
+            cpu_out2 = cpu_input[:, 1:10:3].permute(1, 3, 0, 2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
     def test_narrow_select_copy_contiguous(self, device="npu"):
@@ -125,31 +127,31 @@ class CombinedViewsCopyToContiguous(TestCase):
             # case 1: narrow+select  
             # narrow at any dim + select the last dim ==> narrow
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input[:,2:4].select(3,1).contiguous()
+                npu_out1 = npu_input[:, 2:4].select(3, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out1 = cpu_input[:,2:4].select(3,1).contiguous()
+            cpu_out1 = cpu_input[:, 2:4].select(3, 1).contiguous()
             # narrow at 0 dim + select the any dim ==> common copy
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input[2:4].select(2,2).contiguous()
+                npu_out2 = npu_input[2:4].select(2, 2).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof), \
                 True, "Error operators called!")
-            cpu_out2 = cpu_input[2:4].select(2,2).contiguous()
+            cpu_out2 = cpu_input[2:4].select(2, 2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
             # case 2: select+narrow
             # select the 0 dim + narrow at the 1 dim ==> reshape + select
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out3 = npu_input.select(0,2)[:,1:2].contiguous()
+                npu_out3 = npu_input.select(0, 2)[:, 1:2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")    
-            cpu_out3 = cpu_input.select(0,2)[:,1:2].contiguous()
+            cpu_out3 = cpu_input.select(0, 2)[:, 1:2].contiguous()
             # select the 0 dim + narrow at the last dim ==> reshape + select
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out4 = npu_input.select(0,1)[:,:,1:2].contiguous()
+                npu_out4 = npu_input.select(0, 1)[:, :, 1:2].contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_h_match', 'contiguous_d_Slice'], prof), \
                 True, "Error operators called!")
-            cpu_out4 = cpu_input.select(0,1)[:,:,1:2].contiguous()
+            cpu_out4 = cpu_input.select(0, 1)[:, :, 1:2].contiguous()
             
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
@@ -267,7 +269,7 @@ class CombinedViewsCopyToContiguous(TestCase):
                 True, "Error operators called!")
             cpu_out1 = cpu_input.expand(item[2][1]).transpose(1, 3).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-         
+
 
 if __name__ == "__main__":
     run_tests()

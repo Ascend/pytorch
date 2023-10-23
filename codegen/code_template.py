@@ -62,10 +62,10 @@ class CodeTemplate:
         def lookup(v: str) -> object:
             if env is None:
                 raise ValueError("env is None")
-            return kwargs[v] if v in kwargs else env[v]
+            return kwargs.get(v) if v in kwargs else env.get(v)
 
         def indent_lines(indent: str, v: Sequence[object]) -> str:
-            return "".join([indent + l + "\n" for e in v for l in str(e).splitlines()]).rstrip()
+            return "".join([indent + line + "\n" for e in v for line in str(e).splitlines()]).rstrip()
 
         def replace(match: Match[str]) -> str:
             indent = match.group(1)

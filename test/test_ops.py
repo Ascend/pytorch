@@ -143,22 +143,22 @@ class TestOps(TestCase):
     @Formats(2)
     @Dtypes(torch.float32)
     def test_variant_consistency_eager(self, dtype, op, npu_format):
-        
+
         method = op.method_variant
         inplace = op.inplace_variant
 
         # list of all inplace ops: inplace variant + alias inplace variants if exist
         inplace_ops = [inplace, ]
-        variants = [method, inplace, ]
+        variants_tmp = [method, inplace, ]
 
         for a_op in op.aliases:
-            variants.append(a_op.op)
-            variants.append(a_op.method_variant)
-            variants.append(a_op.inplace_variant)
+            variants_tmp.append(a_op.op)
+            variants_tmp.append(a_op.method_variant)
+            variants_tmp.append(a_op.inplace_variant)
             inplace_ops.append(a_op.inplace_variant)
 
         inplace_variants = tuple(filter(None, inplace_ops))
-        variants = tuple(filter(None, variants))
+        variants = tuple(filter(None, variants_tmp))
 
         allowed_backward_dtypes = floating_and_complex_types_and(
             *(torch.half, torch.bfloat16))

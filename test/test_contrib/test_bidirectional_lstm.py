@@ -22,7 +22,7 @@ from torch_npu.contrib.module import BiLSTM
 
 
 class TestBidirectionalLstm(TestCase):
-    
+
     def npu_bidirectional_lstm(self, input1):
         input1 = input1.npu()
         input1.requires_grad = True

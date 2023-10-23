@@ -67,7 +67,7 @@ def error_check_native_functions(funcs: Sequence[NativeFunction]) -> None:
         func_map[f.func.name] = f
     for f in funcs:
         if f.structured_delegate is not None:
-            delegate_func = func_map[f.structured_delegate]
+            delegate_func = func_map.get(f.structured_delegate)
             if not delegate_func.structured:
                 raise ValueError(f"{f.func.name} is marked as a structured_delegate pointing to " \
                                  f"{f.structured_delegate}, but {f.structured_delegate} is not marked as structured. " \

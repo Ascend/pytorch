@@ -511,7 +511,6 @@ def gen_variable_type_func(
             # When there is no derivatives.yaml entry, we register a generic boxed
             # NotImplemented kernel to set grad_fn to be NotImplemented, so that forward
             # proceeds as usual but an error is properly produced on backward.
-            # TODO: it would be nice to not have these special cases
             #
             # There are several cases where still let codegen handle it:
             # 1) ops that need to reset grad accumulator (we let codegen handle this case
@@ -566,9 +565,6 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             return None
         a: Argument = arg.argument if isinstance(arg, SelfArgument) else arg
 
-        # TODO: `cpp_type` is only to keep it byte-for-byte compatible with the old codegen, should remove.
-        # NB: This is not a clone of cpp.argument() - TensorOptionsArguments / faithful / binds are
-        # not handled properly as they are irrelevant for this codegen.
         cpp_type = cpp.argument_type(a, binds=a.name).cpp_type()
 
         if not is_differentiable(a.name, a.type, info):
@@ -700,7 +696,6 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             return body
         for arg in differentiable_outputs:
             name = arg.name
-            # TODO: should be `arg.type.is_tensor_like()`?
             if arg.cpp_type in ['at::Tensor', 'at::TensorList', 'const c10::List<c10::optional<at::Tensor>> &']:
                 body.append(f'throw_error_for_complex_autograd({name}, "{base_name}");')
         return body
@@ -858,7 +853,7 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
 
         # Check properties of outputs (enforce (2), (3))
         if not f.func.kind() in (SchemaKind.inplace, SchemaKind.out):
-            base_name = f.func.name.name.base  # TODO: should be str(f.func.name.name)?
+            base_name = f.func.name.name.base
             aliased_arg_name = ALL_VIEW_FUNCTIONS.get(base_name, None)
             if aliased_arg_name is not None:
                 aliased_arg_name = unpacked_name(aliased_arg_name)
@@ -921,7 +916,6 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
     def emit_history() -> str:
         fn = 'rebase' if modifies_arguments(f) and view_info is None else 'set'
         output_names = [r.name for r in differentiable_outputs]
-        # TODO: flatten allocates a std::vector, which could be expensive
         outs = CodeTemplate("flatten_tensor_args( ${outs} )").substitute(outs=output_names)
         return SET_HISTORY.substitute(fn=fn, differentiable_outputs=outs)
 
@@ -991,7 +985,6 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
         for derivative in fw_derivatives:
             res = derivative.var_name
             if f.func.name.name.inplace:
-                # TODO update this when inplace namings are unified
                 res = "self"
 
             if derivative.required_inputs_fw_grad is None:
@@ -1118,8 +1111,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
 
 
 def declare_returned_variables(f: NativeFunction) -> str:
-    modifies_arguments = f.func.kind() in (SchemaKind.inplace, SchemaKind.out)
-    if modifies_arguments:
+    modified_arguments = f.func.kind() in (SchemaKind.inplace, SchemaKind.out)
+    if modified_arguments:
         return ''
     if len(f.func.returns) == 1:
         return ''

@@ -22,6 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor, check_operators
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
+
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):    
     def test_permute_copy_contiguous(self, device="npu"):
@@ -35,17 +36,17 @@ class SingleViewCopyToContiguous(TestCase):
         for item in shape_format:    
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out1 = npu_input.permute(1,0,2,3).contiguous()
+                npu_out1 = npu_input.permute(1, 0, 2, 3).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof), \
                 True, "contiguous_d_Transpose op is not called!")
 
             with torch.autograd.profiler.profile(use_npu=True) as prof:
-                npu_out2 = npu_input.permute(2,3,0,1).contiguous()
+                npu_out2 = npu_input.permute(2, 3, 0, 1).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof), \
                 True, "contiguous_d_Transpose op is not called!")
-            
-            cpu_out1 = cpu_input.permute(1,0,2,3).contiguous()
-            cpu_out2 = cpu_input.permute(2,3,0,1).contiguous()           
+
+            cpu_out1 = cpu_input.permute(1, 0, 2, 3).contiguous()
+            cpu_out2 = cpu_input.permute(2, 3, 0, 1).contiguous()           
 
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy()) 
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())              

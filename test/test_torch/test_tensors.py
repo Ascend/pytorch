@@ -32,6 +32,7 @@ types = [
     torch.HalfTensor,
 ]
 
+
 def get_npu_type(type_name):
     if isinstance(type_name, type):
         type_name = '{}.{}'.format(type_name.__module__, type_name.__name__)
@@ -138,7 +139,7 @@ class TestTensor(TestCase):
         out1 = torch.randn(1, 2, 3, 4, 5).npu()
         self.assertTrue(120, out1)
 
-        out2 = torch.zeros(4,4).npu()
+        out2 = torch.zeros(4, 4).npu()
         self.assertTrue(16, out2)
 
     def test_set_printoptions(self):
@@ -308,9 +309,9 @@ class TestISJMOps(TestCase):
         self.assertExpectedInline(str(output3.size()), '''torch.Size([2, 2, 1, 2])''')
 
     def test_t(self):
-        input1 = torch.tensor([[1, 2, 3],[4, 5, 6],[7, 8, 9]], device=device)
+        input1 = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], device=device)
         output = torch.t(input1)
-        output_expect = torch.tensor([[1, 4, 7],[2, 5, 8],[3, 6, 9]])
+        output_expect = torch.tensor([[1, 4, 7], [2, 5, 8], [3, 6, 9]])
         self.assertRtolEqual(output.cpu().numpy(), output_expect.numpy())
 
     def test_transpose(self):
@@ -329,10 +330,10 @@ class TestISJMOps(TestCase):
     def test_unsqueeze(self):
         input1 = torch.tensor([1, 2, 3, 4], device=device)
         output1 = torch.unsqueeze(input1, 0)
-        output1_expect = torch.tensor([[ 1,  2,  3,  4]])
+        output1_expect = torch.tensor([[1, 2, 3, 4]])
         self.assertRtolEqual(output1.cpu().numpy(), output1_expect.numpy())
         output2 = torch.unsqueeze(input1, 1)
-        output1_expect = torch.tensor([[ 1], [ 2], [ 3], [ 4]])
+        output1_expect = torch.tensor([[1], [2], [3], [4]])
         self.assertRtolEqual(output2.cpu().numpy(), output1_expect.numpy())
 
 

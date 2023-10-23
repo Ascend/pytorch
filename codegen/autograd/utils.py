@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import yaml
 from pathlib import Path
 from typing import List, Sequence
+import yaml
 
 from codegen.api import cpp
 from codegen.api.autograd import (

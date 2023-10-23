@@ -20,6 +20,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import PSROIPool
 
+
 class TestPsRoiPooling(TestCase):
     def get_random_rois(self, shape):
         rois_init = torch.zeros(shape)
@@ -38,8 +39,7 @@ class TestPsRoiPooling(TestCase):
         cls_feat.requires_grad = True
         model = PSROIPool(pooled_height, pooled_width, spatial_scale, group_size, output_dim)
         output = model(cls_feat, rois_tensor)  # 512,22,7,7
-        l = output.sum()
-        l.backward()
+        output.sum().backward()
         return output.detach().cpu(), cls_feat.grad.cpu()
 
 
@@ -55,7 +55,7 @@ class TestPsRoiPooling(TestCase):
         npu_output, npu_inputgrad = self.npu_ps_roi_align(cls_feat, rois_tensor, pooled_height, \
                                     pooled_width, spatial_scale, group_size, output_dim)
 
-        expedt_cpu_output_shape =  torch.randn(512, 22, 7, 7).shape
+        expedt_cpu_output_shape = torch.randn(512, 22, 7, 7).shape
         expedt_cpu_inputgrad_shape = cls_feat.shape
 
         self.assertEqual(expedt_cpu_output_shape, npu_output.shape)

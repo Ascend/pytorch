@@ -22,6 +22,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import Mish, SiLU
 
+
 class TestActivations(TestCase):
 
     def cpu_mish(self, input1):
@@ -32,16 +33,16 @@ class TestActivations(TestCase):
         """
         input1.requires_grad = True
         res = input1 * torch.tanh(F.softplus(input1))
-        l = res.sum()
-        l.backward()
+        output = res.sum()
+        output.backward()
         return res.detach(), input1.grad
 
     def npu_mish(self, input1):
         input1.requires_grad = True
         model = Mish()
         res = model(input1)
-        l = res.sum()
-        l.backward()
+        output = res.sum()
+        output.backward()
         return res.detach().cpu(), input1.grad.cpu()
 
     def test_mish(self):
@@ -70,7 +71,7 @@ class TestActivations(TestCase):
                 cpu_output, cpu_inputgrad = self.cpu_mish(cpu_input)
 
             npu_output, npu_inputgrad = self.npu_mish(npu_input)
-        
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_inputgrad, npu_inputgrad)
 
@@ -82,16 +83,16 @@ class TestActivations(TestCase):
         """
         input1.requires_grad = True
         res = input1 * torch.sigmoid(input1)
-        l = res.sum()
-        l.backward()
+        output = res.sum()
+        output.backward()
         return res.detach(), input1.grad
 
     def npu_silu(self, input1):
         input1.requires_grad = True
         model = SiLU()
         res = model(input1)
-        l = res.sum()
-        l.backward()
+        output = res.sum()
+        output.backward()
         return res.detach().cpu(), input1.grad.cpu()
 
     def test_silu(self):
@@ -121,9 +122,9 @@ class TestActivations(TestCase):
                 cpu_output, cpu_inputgrad = self.cpu_silu(cpu_input)
 
             npu_output, npu_inputgrad = self.npu_silu(npu_input)
-        
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_inputgrad, npu_inputgrad)
-    
+
 if __name__ == "__main__":
     run_tests()

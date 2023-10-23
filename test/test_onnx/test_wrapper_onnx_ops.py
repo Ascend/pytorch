@@ -1104,8 +1104,8 @@ class TestOnnxOps(TestCase):
                     torch.rand((3 * self.hidden_size)).uniform_(-1, 1).npu().to(torch.float16), 2
                 )
 
-            def forward(self, input, hx):
-                return torch_npu.npu_gru(input, hx, self.weight_ih, self.weight_hh,
+            def forward(self, input1, hx):
+                return torch_npu.npu_gru(input1, hx, self.weight_ih, self.weight_hh,
                         self.bias_ih, self.bias_hh, self.seq_length_t, self.has_biases,
                         self.num_layers, 0.0, False, False, False)
 

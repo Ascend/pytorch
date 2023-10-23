@@ -17,9 +17,9 @@ import random
 import torch
 import torch.nn as nn
 from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.utils.checkpoint import checkpoint, checkpoint_sequential
 
 import torch_npu
-from torch.utils.checkpoint import checkpoint, checkpoint_sequential
 
 
 class TestCheckpoint(TestCase):

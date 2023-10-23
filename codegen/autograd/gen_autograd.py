@@ -41,6 +41,8 @@ torch_npu/csrc/aten/
 import argparse
 import os
 
+from codegen.utils import gen_custom_yaml_path
+
 from .gen_autograd_functions import gen_autograd_functions_lib
 from .gen_variable_type import (
     gen_variable_type, gen_npu_variable_type,
@@ -49,8 +51,6 @@ from .gen_variable_type import (
 from .gen_inplace_or_view_type import gen_inplace_or_view_type
 from .gen_variable_factories import gen_variable_factories
 from .utils import parse_derivatives, filt_npu_autograd_functions
-
-from codegen.utils import gen_custom_yaml_path
 
 
 def gen_autograd(
