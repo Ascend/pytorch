@@ -9,7 +9,6 @@ at::Tensor isnan_npu(const at::Tensor& self) {
 
 bool is_nonzero_npu(const at::Tensor& self) {
   c10::Scalar localScalar = self.item();
-
   if (localScalar.isFloatingPoint()) {
     return localScalar.to<double>() != 0;
   } else if (localScalar.isIntegral(false)) {

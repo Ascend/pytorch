@@ -50,7 +50,7 @@ bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tens
     if (FormatHelper::IsBaseFormatType(dst)) {
       // src format -> src base format
       // src base format -> dst base format (dst format)
-      auto dst_base_format =FormatHelper::GetBaseFormat(dst);
+      auto dst_base_format = FormatHelper::GetBaseFormat(dst);
       format_cast_as_base_format(dst, FormatHelper::GetBaseFormat(src)); // prepare: cover dst to src base format
       format_cast_inside_group(dst, src); // src format -> src base format
       format_cast_as_base_format(dst, dst_base_format); // recover: src base format -> dst format

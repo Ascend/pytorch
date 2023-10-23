@@ -22,7 +22,7 @@ struct NPUOperandInfo {
     validate();
   }
   NPUOperandInfo(const at::Tensor& t, at::ScalarType dtype)
-    : tensor(t), target_dtype(dtype), current_dtype(t.scalar_type()) {
+      : tensor(t), target_dtype(dtype), current_dtype(t.scalar_type()) {
     validate();
   }
 

@@ -143,14 +143,14 @@ namespace at_npu
 
     bool FormatHelper::IsOpInputBaseFormat(const c10::List<c10::optional<at::Tensor>> &tensors) {
       const auto &iter =
-          std::find_if(tensors.begin(), tensors.end(), 
+          std::find_if(tensors.begin(), tensors.end(),
                        [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
       return iter == tensors.end();
     }
 
     bool FormatHelper::IsOpInputBaseFormat(const at::TensorList &tensors) {
       const auto &iter =
-          std::find_if(tensors.begin(), tensors.end(), 
+          std::find_if(tensors.begin(), tensors.end(),
                        [](const auto &tensor) { return !IsOpInputBaseFormat(tensor); });
       return iter == tensors.end();
     }
@@ -158,7 +158,7 @@ namespace at_npu
     bool FormatHelper::IsOpInputBaseFormat(const at::ITensorListRef &tensors) {
       auto materialized = tensors.materialize();
       const auto &iter =
-          std::find_if(materialized.begin(), materialized.end(), 
+          std::find_if(materialized.begin(), materialized.end(),
                        [](const auto &tensor) { return !IsOpInputBaseFormat(tensor.get()); });
       return iter == materialized.end();
     }
@@ -173,39 +173,39 @@ namespace at_npu
         AT_ASSERT(dims.size() <= 4, "input dim > 4 when InferShapeLessTo4");
         switch (dims.size())
         {
-          case 0:
-            res[0] = 1;
-            res[1] = 1;
-            res[2] = 1;
-            res[3] = 1;
-            break;
-          case 1:      // RESHAPE_TYPE_C
-            res[0] = 1;
-            res[1] = dims[0];
-            res[2] = 1;
-            res[3] = 1;
-            break;
-          case 2:      // RESHAPE_TYPE_CH
-            res[0] = 1;
-            res[1] = dims[0];
-            res[2] = dims[1];
-            res[3] = 1;
-            break;
-          case 3:      // RESHAPE_TYPE_CHW
-            res[0] = 1;
-            res[1] = dims[0];
-            res[2] = dims[1];
-            res[3] = dims[2];
-            break;
-          case 4:
-            res[0] = dims[0];
-            res[1] = dims[1];
-            res[2] = dims[2];
-            res[3] = dims[3];
-            break;
-          default:
-            AT_ERROR("dims of NCHW shape should not be greater than 4, which is ",
-                     dims.size());
+            case 0:
+                res[0] = 1;
+                res[1] = 1;
+                res[2] = 1;
+                res[3] = 1;
+                break;
+            case 1:      // RESHAPE_TYPE_C
+                res[0] = 1;
+                res[1] = dims[0];
+                res[2] = 1;
+                res[3] = 1;
+                break;
+            case 2:      // RESHAPE_TYPE_CH
+                res[0] = 1;
+                res[1] = dims[0];
+                res[2] = dims[1];
+                res[3] = 1;
+                break;
+            case 3:      // RESHAPE_TYPE_CHW
+                res[0] = 1;
+                res[1] = dims[0];
+                res[2] = dims[1];
+                res[3] = dims[2];
+                break;
+            case 4:
+                res[0] = dims[0];
+                res[1] = dims[1];
+                res[2] = dims[2];
+                res[3] = dims[3];
+                break;
+            default:
+                AT_ERROR("dims of NCHW shape should not be greater than 4, which is ",
+                    dims.size());
         }
         return res;
       }
@@ -317,32 +317,32 @@ namespace at_npu
         }
         switch (base_dims.size())
         {
-        case 1:
-          res.resize(1);
-          res[0] = cur_storage_dims[1];
-          AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_C erase dim N must be 1");
-          AT_ASSERT(cur_storage_dims[2] == 1, "reshape type RESHAPE_TYPE_C erase dim H must be 1");
-          AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_C erase dim W must be 1");
-          break;
-        case 2:
-          res.resize(2);
-          res[0] = cur_storage_dims[1];
-          res[1] = cur_storage_dims[2];
-          AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CH erase dim N must be 1");
-          AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_CH erase dim W must be 1");
-          break;
-        case 3:
-          res.resize(3);
-          res[0] = cur_storage_dims[1];
-          res[1] = cur_storage_dims[2];
-          res[2] = cur_storage_dims[3];
-          AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CHW erase dim N must be 1");
-          break;
-        case 4:
-          res = cur_storage_dims;
-          return res;
-        default:
-          AT_ERROR("unknown reshape type:");
+            case 1:
+                res.resize(1);
+                res[0] = cur_storage_dims[1];
+                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_C erase dim N must be 1");
+                AT_ASSERT(cur_storage_dims[2] == 1, "reshape type RESHAPE_TYPE_C erase dim H must be 1");
+                AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_C erase dim W must be 1");
+                break;
+            case 2:
+                res.resize(2);
+                res[0] = cur_storage_dims[1];
+                res[1] = cur_storage_dims[2];
+                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CH erase dim N must be 1");
+                AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_CH erase dim W must be 1");
+                break;
+            case 3:
+                res.resize(3);
+                res[0] = cur_storage_dims[1];
+                res[1] = cur_storage_dims[2];
+                res[2] = cur_storage_dims[3];
+                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CHW erase dim N must be 1");
+                break;
+            case 4:
+                res = cur_storage_dims;
+                return res;
+            default:
+                AT_ERROR("unknown reshape type:");
         }
         return res;
       }

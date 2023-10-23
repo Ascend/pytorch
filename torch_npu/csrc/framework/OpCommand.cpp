@@ -140,7 +140,7 @@ void OpCommand::Run() {
 #endif
     aclCmd->releaseSource(false);
   } else {
-    aclCmd->Run(sync, sync_index, outputTensor); 
+    aclCmd->Run(sync, sync_index, outputTensor);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
       Sync();
     }
@@ -269,7 +269,7 @@ at::Tensor& OpCommand::CreateHostTensor(
 }
 
 bool OpCommand::ScalarIsInLimits(const c10::Scalar &scalar, at::ScalarType type) {
-  bool scalar_flag = false; 
+  bool scalar_flag = false;
   if (at::isFloatingType(type)) {
     auto value = scalar.to<double>();
     scalar_flag = value <= floating_limits_map[type][0] && value >= floating_limits_map[type][1];

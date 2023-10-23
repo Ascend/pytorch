@@ -197,13 +197,18 @@ static std::string format_size(uint64_t size) {
 }
 
 struct AllocParams {
-  AllocParams(int device, size_t size, aclrtStream stream, BlockPool* pool, size_t alloc_size,
-              DeviceStats& stats) :
-    search_key(device, stream, size),
-    pool(pool),
-    alloc_size(alloc_size),
-    block(nullptr),
-    err(ACL_ERROR_NONE) {}
+  AllocParams(
+      int device,
+      size_t size,
+      aclrtStream stream,
+      BlockPool* pool,
+      size_t alloc_size,
+      DeviceStats& stats)
+      : search_key(device, stream, size),
+        pool(pool),
+        alloc_size(alloc_size),
+        block(nullptr),
+        err(ACL_ERROR_NONE) {}
 
   int device() const { return search_key.device; }
   aclrtStream stream() const { return search_key.stream; }
@@ -441,9 +446,9 @@ class DeviceCachingAllocator {
 
  public:
 
-  DeviceCachingAllocator() :
-    large_blocks(BlockComparator, false),
-    small_blocks(BlockComparator, true) {
+  DeviceCachingAllocator()
+      : large_blocks(BlockComparator, false),
+        small_blocks(BlockComparator, true) {
     stats.max_split_size = static_cast<int64_t>(CachingAllocatorConfig::max_split_size());
   }
 

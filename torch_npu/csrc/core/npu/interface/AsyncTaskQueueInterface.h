@@ -23,8 +23,8 @@ enum EventAllocatorType {
 };
 
 struct EventParas {
-  explicit EventParas(aclrtEvent aclEvent, EventAllocatorType allocatorType) :
-      event(aclEvent), eventAllocatorType(allocatorType) {}
+  explicit EventParas(aclrtEvent aclEvent, EventAllocatorType allocatorType)
+      : event(aclEvent), eventAllocatorType(allocatorType) {}
   EventParas() = default;
   aclrtEvent event = nullptr;
   void Copy(EventParas& other);
