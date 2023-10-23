@@ -29,7 +29,6 @@ from torch_npu.utils.path_manager import PathManager
 
 
 class TestOnnxOps(TestCase):
-
     test_onnx_path = os.path.join(
         os.path.realpath(os.path.dirname(__file__)), "test_onnx_combined")
 

@@ -103,7 +103,7 @@ class NPUGeGluOP(torch.autograd.Function):
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch_npu._C._VariableFunctionsClass.npu_geglu(*args, **kwargs)
-    
+
     @staticmethod
     def symbolic(g, self: torch.Tensor, dim: int = -1, approximate: int = 1):
         return g.op("npu::NPUGeGlu", self, dim_i=dim, approximate_i=approximate, outputs=2)
@@ -119,7 +119,7 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
     def symbolic(g, query_layer: Tensor, key_layer: Tensor, value_layer: Tensor, attention_mask: Tensor,
                  scale: float, keep_prob: float, query_transpose: bool = False, key_transpose: bool = False,
                  bmm_score_transpose_a: bool = False, bmm_score_transpose_b: bool = False, value_transpose:
-                 bool = False, dx_transpose: bool = False):
+            bool = False, dx_transpose: bool = False):
         return g.op("npu::NPUFusedAttentionScore", query_layer, key_layer, value_layer, attention_mask,
                     keep_prob_f=keep_prob, scale_f=scale, query_transpose_i=query_transpose,
                     key_transpose_i=key_transpose, bmm_score_transpose_a_i=bmm_score_transpose_a,
@@ -309,7 +309,7 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
         elif dtype == torch.float16:
             dtype = 1
         else:
-            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")    
+            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")
         return g.op("npu::NPUSignBitsUnpack", inputs, size_i=size, dtype_i=dtype)
 
 
@@ -571,7 +571,7 @@ class NPUGruOP(torch.autograd.Function):
 
 
 class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch_npu._C._VariableFunctionsClass.npu_dropout_with_add_softmax(*args, **kwargs)
@@ -594,7 +594,7 @@ class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
 
 
 class NPUMishOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch_npu._C._VariableFunctionsClass.npu_mish(*args, **kwargs)
@@ -633,9 +633,9 @@ class NPUFlashAttentionOP(torch.autograd.Function):
         if atten_mask is None:
             atten_mask = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         return g.op("npu::NPUFlashAttention", query, key, value, pse, padding_mask, atten_mask,
-                     head_num_i=head_num, input_layout_s=input_layout, scale_f=scale, keep_prob_f=keep_prob,
-                     pre_tockens_i=pre_tockens, next_tockens_i=next_tockens,
-                     gen_mask_parallel_i=gen_mask_parallel, sync_i=sync)
+                    head_num_i=head_num, input_layout_s=input_layout, scale_f=scale, keep_prob_f=keep_prob,
+                    pre_tockens_i=pre_tockens, next_tockens_i=next_tockens,
+                    gen_mask_parallel_i=gen_mask_parallel, sync_i=sync)
 
 
 def wrapper_npu_flash_attention(query, key, value, head_num,

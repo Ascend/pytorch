@@ -64,11 +64,11 @@ class TestConvTranspose3dBackward(TestCase):
     @graph_mode
     def test_conv_transpose3d_backward_shape_format_fp16(self):
         shape_format = [
-            [[np.float16, 30, [12, 12, 4, 14, 14]], [np.float16, 30, [12, 12, 3, 3, 3]],],
-            [[np.float16, 30, [12, 64, 4, 14, 14]], [np.float16, 30, [64, 64, 3, 3, 3]],],
-            [[np.float16, 30, [12, 25, 2, 7, 7]], [np.float16, 30, [25, 25, 3, 3, 3]],],
-            [[np.float16, 30, [12, 51, 1, 4, 4]], [np.float16, 30, [51, 51, 3, 3, 3]],],
-            [[np.float16, 30, [12, 50, 2, 7, 7]], [np.float16, 30, [50, 50, 3, 3, 3]],],
+            [[np.float16, 30, [12, 12, 4, 14, 14]], [np.float16, 30, [12, 12, 3, 3, 3]], ],
+            [[np.float16, 30, [12, 64, 4, 14, 14]], [np.float16, 30, [64, 64, 3, 3, 3]], ],
+            [[np.float16, 30, [12, 25, 2, 7, 7]], [np.float16, 30, [25, 25, 3, 3, 3]], ],
+            [[np.float16, 30, [12, 51, 1, 4, 4]], [np.float16, 30, [51, 51, 3, 3, 3]], ],
+            [[np.float16, 30, [12, 50, 2, 7, 7]], [np.float16, 30, [50, 50, 3, 3, 3]], ],
         ]
         for item in shape_format:
             cpu_bias = torch.randn(item[1][2][1])
@@ -97,11 +97,11 @@ class TestConvTranspose3dBackward(TestCase):
     @graph_mode
     def test_conv_transpose3d_backward_shape_format_fp32(self):
         shape_format = [
-            [[np.float32, 30, [12, 12, 4, 14, 14]], [np.float32, 30, [12, 12, 3, 3, 3]],],
-            [[np.float32, 30, [12, 64, 4, 14, 14]], [np.float32, 30, [64, 64, 3, 3, 3]],],
-            [[np.float32, 30, [12, 25, 2, 7, 7]], [np.float32, 30, [25, 25, 3, 3, 3]],],
-            [[np.float32, 30, [12, 51, 1, 4, 4]], [np.float32, 30, [51, 51, 3, 3, 3]],],
-            [[np.float32, 30, [12, 50, 2, 7, 7]], [np.float32, 30, [50, 50, 3, 3, 3]],],
+            [[np.float32, 30, [12, 12, 4, 14, 14]], [np.float32, 30, [12, 12, 3, 3, 3]], ],
+            [[np.float32, 30, [12, 64, 4, 14, 14]], [np.float32, 30, [64, 64, 3, 3, 3]], ],
+            [[np.float32, 30, [12, 25, 2, 7, 7]], [np.float32, 30, [25, 25, 3, 3, 3]], ],
+            [[np.float32, 30, [12, 51, 1, 4, 4]], [np.float32, 30, [51, 51, 3, 3, 3]], ],
+            [[np.float32, 30, [12, 50, 2, 7, 7]], [np.float32, 30, [50, 50, 3, 3, 3]], ],
         ]
         for item in shape_format:
             cpu_bias = torch.randn(item[1][2][1])

@@ -29,7 +29,7 @@ class TestSmoothL1loss(TestCase):
 
     def npu_op_exec_new(self, input1, target, reduction):
         target = target.npu()
-        output = torch.nn.functional.smooth_l1_loss(input1, target,  beta=2.0, reduction=reduction)
+        output = torch.nn.functional.smooth_l1_loss(input1, target, beta=2.0, reduction=reduction)
         return output.cpu().numpy()
 
     @graph_mode

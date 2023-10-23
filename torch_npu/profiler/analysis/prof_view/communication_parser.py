@@ -111,10 +111,10 @@ class CommunicationParser(BaseViewParser):
 
     def compute_total_link_info(self, op_matrix_data: dict):
         total_op_info = defaultdict(lambda: {
-                self.TRANSPORT_TYPE: '',
-                self.TRANSIT_TIME_MS: 0,
-                self.TRANSIT_SIZE_MB: 0
-            })
+            self.TRANSPORT_TYPE: '',
+            self.TRANSIT_TIME_MS: 0,
+            self.TRANSIT_SIZE_MB: 0
+        })
         for op_name, link_dict in op_matrix_data.items():
             for link, link_info in link_dict.items():
                 total_op_info[link][self.TRANSIT_TIME_MS] += link_info.get(self.TRANSIT_TIME_MS, 0)
@@ -200,7 +200,7 @@ class CommunicationParser(BaseViewParser):
                     self.combine_size_distribution(value, total_bandwidth_info_dict[transport_type][bandwidth_msg])
 
     def compute_time_ratio(self, total_time_info_dict: dict):
-        total_time_info_dict[self.WAIT_TIME_RATIO] =\
+        total_time_info_dict[self.WAIT_TIME_RATIO] = \
             self.compute_ratio(total_time_info_dict.get(self.WAIT_TIME_MS, 0),
                                total_time_info_dict.get(self.WAIT_TIME_MS, 0) +
                                total_time_info_dict.get(self.TRANSIT_TIME_MS, 0))

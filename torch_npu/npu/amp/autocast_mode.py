@@ -18,6 +18,7 @@ import warnings
 import functools
 import collections
 from typing import Any, Optional
+
 try:
     import numpy as np
 
@@ -158,6 +159,7 @@ class npu_autocast(torch.autocast_mode.autocast):
         dtype(torch_dtype, optional):  Whether to use torch.float16 or torch.bfloat16.
         cache_enabled(bool, optional, default=True):  Whether the weight cache inside autocast should be enabled.
     """
+
     def __init__(self, device_type: str,
                  dtype: Optional[_dtype] = None,
                  enabled: bool = True,
@@ -219,7 +221,7 @@ class autocast(npu_autocast):
     ``torch.npu.amp.autocast(args...)`` is equivalent to ``torch.autocast("npu", args...)``
     """
 
-    def __init__(self, enabled : bool = True, dtype : torch.dtype = torch.float16, cache_enabled : bool = True):
+    def __init__(self, enabled: bool = True, dtype: torch.dtype = torch.float16, cache_enabled: bool = True):
         if torch._jit_internal.is_scripting():
             self._enabled = enabled
             self.device = "npu"

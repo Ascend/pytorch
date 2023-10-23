@@ -20,7 +20,6 @@ import torch
 import torch.nn as nn
 from torch.nn.modules.batchnorm import _BatchNorm
 
-
 __all__ = [
     "always_wrap_policy",
     "lambda_auto_wrap_policy",
@@ -43,10 +42,10 @@ def always_wrap_policy(*args, **kwargs) -> bool:
 
 
 def lambda_auto_wrap_policy(
-    module: nn.Module,
-    recurse: bool,
-    unwrapped_params: int,
-    lambda_fn: Callable
+        module: nn.Module,
+        recurse: bool,
+        unwrapped_params: int,
+        lambda_fn: Callable
 ) -> bool:
     """
     A convenient auto wrap policy to wrap submodules based on an arbitrary user
@@ -81,10 +80,10 @@ def lambda_auto_wrap_policy(
 
 
 def transformer_auto_wrap_policy(
-    module: nn.Module,
-    recurse: bool,
-    unwrapped_params: int,
-    transformer_layer_cls: Set[Type[nn.Module]],
+        module: nn.Module,
+        recurse: bool,
+        unwrapped_params: int,
+        transformer_layer_cls: Set[Type[nn.Module]],
 ) -> bool:
     """
     A convenient auto wrap policy for transformer models. If the submodule
@@ -125,10 +124,10 @@ def transformer_auto_wrap_policy(
 
 
 def _wrap_batchnorm_individually(
-    module: nn.Module,
-    recurse: bool,
-    *args,
-    **kwargs,
+        module: nn.Module,
+        recurse: bool,
+        *args,
+        **kwargs,
 ) -> bool:
     """
     A policy that wraps ``BatchNorm`` instances in their own FSDP unit.
@@ -143,10 +142,10 @@ def _wrap_batchnorm_individually(
 
 
 def _or_policy(
-    module: nn.Module,
-    recurse: bool,
-    unwrapped_params: int,
-    policies,
+        module: nn.Module,
+        recurse: bool,
+        unwrapped_params: int,
+        policies,
 ) -> bool:
     """
     A policy that wraps ``module`` if any policy in the passed in iterable of
@@ -158,13 +157,13 @@ def _or_policy(
 
 
 def size_based_auto_wrap_policy(
-    module: nn.Module,
-    recurse: bool,
-    unwrapped_params: int,
-    # These are customizable for this policy function.
-    min_num_params: int = int(1e8),
-    force_leaf_modules: Optional[Set[Type[nn.Module]]] = None,
-    exclude_wrap_modules: Optional[Set[Type[nn.Module]]] = None,
+        module: nn.Module,
+        recurse: bool,
+        unwrapped_params: int,
+        # These are customizable for this policy function.
+        min_num_params: int = int(1e8),
+        force_leaf_modules: Optional[Set[Type[nn.Module]]] = None,
+        exclude_wrap_modules: Optional[Set[Type[nn.Module]]] = None,
 ) -> bool:
     """A size based auto_wrap_policy function for FSDP API.
 
@@ -221,7 +220,7 @@ size_based_auto_wrap_policy.FORCE_LEAF_MODULES = {nn.MultiheadAttention}  # type
 
 @contextlib.contextmanager
 def enable_wrap(
-    *, wrapper_cls: Any, **wrapper_kwargs: Any
+        *, wrapper_cls: Any, **wrapper_kwargs: Any
 ) -> Generator[None, None, None]:
     """
     Context manager to wrap modules using a wrapper.
@@ -354,13 +353,13 @@ def _wrap(module: nn.Module, wrapper_cls: Callable, **kwargs) -> nn.Module:
 
 
 def _recursive_wrap(
-    module: nn.Module,
-    auto_wrap_policy: Callable,
-    wrapper_cls: Callable,
-    ignored_modules: Set[nn.Module],
-    ignored_params: Set[nn.Parameter],
-    only_wrap_children: bool = False,
-    **kwargs: Any
+        module: nn.Module,
+        auto_wrap_policy: Callable,
+        wrapper_cls: Callable,
+        ignored_modules: Set[nn.Module],
+        ignored_params: Set[nn.Parameter],
+        only_wrap_children: bool = False,
+        **kwargs: Any
 ) -> Tuple[nn.Module, int]:
     """
     Automatically wrap child modules of *module* that meet the given
@@ -421,7 +420,7 @@ def _recursive_wrap(
         # since the left over parameters exceed the number of params to wrap
         remainder = num_params - total_wrapped_params
         if not only_wrap_children and auto_wrap_policy(
-            module=module, recurse=False, unwrapped_params=remainder
+                module=module, recurse=False, unwrapped_params=remainder
         ):
             # Leaf node or final wrapping of the remainder both happen here.
             return _wrap(module, wrapper_cls, **kwargs), num_params

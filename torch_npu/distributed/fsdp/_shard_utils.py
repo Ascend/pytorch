@@ -24,7 +24,7 @@ import torch_npu
 
 
 def _sharding_spec_to_offsets(
-    sharding_spec: ShardingSpec, tensor_numel: int, world_size: int
+        sharding_spec: ShardingSpec, tensor_numel: int, world_size: int
 ) -> List[int]:
     r"""
     Translates the sharding spec to a list of offsets along dim 0. If the
@@ -54,11 +54,11 @@ def _sharding_spec_to_offsets(
 
 
 def _offsets_to_split_sizes(
-    input_offsets: List[int],
-    output_offsets: List[int],
-    tensor_numel: int,
-    world_size: int,
-    my_rank: int,
+        input_offsets: List[int],
+        output_offsets: List[int],
+        tensor_numel: int,
+        world_size: int,
+        my_rank: int,
 ) -> Tuple[List[int], List[int]]:
     r"""
     Given the shard offsets for each rank of the input tensor and output tensor,
@@ -88,9 +88,9 @@ def _offsets_to_split_sizes(
         to_begin_rank = bisect.bisect(to_offsets, begin) - 1
         to_end_rank = bisect.bisect(to_offsets, end) - 1
         _split_sizes = _offsets_to_sizes(
-            to_offsets[to_begin_rank : to_end_rank + 1], begin, end
+            to_offsets[to_begin_rank: to_end_rank + 1], begin, end
         )
-        split_sizes[to_begin_rank : to_end_rank + 1] = _split_sizes
+        split_sizes[to_begin_rank: to_end_rank + 1] = _split_sizes
 
     input_split_sizes = [0 for _ in range(world_size)]
     output_split_sizes = [0 for _ in range(world_size)]
@@ -101,12 +101,12 @@ def _offsets_to_split_sizes(
 
 
 def _reshard_flatten_tensor(
-    input_tensor: ShardedTensor,
-    output_spec: ShardingSpec,
-    world_size: int,
-    my_rank: int,
-    device: torch.device,
-    process_group: Optional[dist.ProcessGroup],
+        input_tensor: ShardedTensor,
+        output_spec: ShardingSpec,
+        world_size: int,
+        my_rank: int,
+        device: torch.device,
+        process_group: Optional[dist.ProcessGroup],
 ) -> torch.Tensor:
     """
     Resharded a sharded flatten tensor, this is used by FSDP to do sharded
@@ -153,7 +153,7 @@ def _reshard_flatten_tensor(
 
 
 def _all_gather_sharded_tensor(
-    sharded_tensor: ShardedTensor, pg: Optional[dist.ProcessGroup] = None
+        sharded_tensor: ShardedTensor, pg: Optional[dist.ProcessGroup] = None
 ) -> torch.Tensor:
     if pg is None:
         pg = distributed_c10d._get_default_group()
@@ -191,8 +191,8 @@ def _all_gather_sharded_tensor(
 
 
 def _gather_state_dict(
-    state_dict: Dict[str, Any],
-    pg: Optional[dist.ProcessGroup] = None,
+        state_dict: Dict[str, Any],
+        pg: Optional[dist.ProcessGroup] = None,
 ) -> Dict[str, Any]:
     """
     Given a state_dict, this API gathers all the ShardedTensors in the state_dict.
@@ -210,11 +210,11 @@ def _gather_state_dict(
 
 
 def _create_chunk_sharded_tensor(
-    tensor: torch.Tensor,
-    rank: int,
-    world_size: int,
-    num_devices_per_node: int,
-    pg: dist.ProcessGroup,
+        tensor: torch.Tensor,
+        rank: int,
+        world_size: int,
+        num_devices_per_node: int,
+        pg: dist.ProcessGroup,
 ) -> ShardedTensor:
     """
     Shard a tensor to chunks along the first dimension. The local rank will gets its
@@ -261,4 +261,3 @@ def _create_chunk_sharded_tensor(
         sharded_tensor_metadata=sharded_tensor_metadata,
         process_group=pg
     )
-

@@ -210,9 +210,9 @@ class TestMin(TestCase):
     def test_min_out_result(self, device="npu"):
         shape_format = [
             [[np.float16, 0, [9, 10, 14, 14]], [np.float16, 0, [7, 10, 1, 1]]],
-            [[np.float16, 0, [9, 7, 12, 12]],  [np.float16, 0, [7, 7, 1, 1]]],
-            [[np.float32, 0, [2, 3, 3, 3]],       [np.float32, 0, [3, 1, 3]]],
-            [[np.float32, 0, [9, 13, 7, 7]],   [np.float32, 0, [9, 13, 7, 7]]],
+            [[np.float16, 0, [9, 7, 12, 12]], [np.float16, 0, [7, 7, 1, 1]]],
+            [[np.float32, 0, [2, 3, 3, 3]], [np.float32, 0, [3, 1, 3]]],
+            [[np.float32, 0, [9, 13, 7, 7]], [np.float32, 0, [9, 13, 7, 7]]],
         ]
         self.min_out_result_other(shape_format)
 

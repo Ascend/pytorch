@@ -42,10 +42,10 @@ class TestCeil(TestCase):
 
     def test_ceil_shape_format(self, device="npu"):
         shape_format = [
-            [np.float32, 0,  10],
-            [np.float32, 0,  (64, 10)],
-            [np.float32, 3,  (256, 2048, 7, 7)],
-            [np.float32, 4,  (32, 1, 3, 3)],
+            [np.float32, 0, 10],
+            [np.float32, 0, (64, 10)],
+            [np.float32, 3, (256, 2048, 7, 7)],
+            [np.float32, 4, (32, 1, 3, 3)],
             [np.float32, 29, (10, 128)],
         ]
         for item in shape_format:

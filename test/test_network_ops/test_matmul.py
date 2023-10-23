@@ -149,7 +149,7 @@ class TestMatMul(TestCase):
     def test_matmul_backward_shape_format_fp16_case7(self):
         shape_format = [
             # mat1 1dim, mat2 >2dim
-            [[np.float16, 2, [3,]], [np.float16, 2, [2, 3, 2]]],
+            [[np.float16, 2, [3, ]], [np.float16, 2, [2, 3, 2]]],
             [[np.float16, 2, [20]], [np.float16, 2, [5, 10, 20, 30]]],
         ]
         self.matmul_backward_result(shape_format)

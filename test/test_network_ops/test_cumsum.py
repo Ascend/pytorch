@@ -71,18 +71,18 @@ class TestCumsum(TestCase):
 
     def test_cumsum_out_common_shape_format(self):
         shape_format = [
-            [[[np.float32, 0, (1, 2, 3, 4)],    [np.float32, 0, (1, 2, 3, 4)]],
-             [[np.float32, 0, (2, 3, 4)],    [np.float32, 0, (2, 3, 4)]],
-             [[np.float32, 0, (3, 4)],    [np.float32, 0, (3, 4)]],
-             [[np.float32, 0, (3, 4)],    [np.float32, 0, (3, 5)]],
-             [[np.float32, 0, (3, 4)],    [np.float32, 0, (3, 4, 1)]],
-             [[np.float32, 0, (3, 4)],    [np.float32, 0, (4, 3)]]],
-            [[[np.float16, 0, (1, 2, 3, 4)],    [np.float16, 0, (1, 2, 3, 4)]],
-             [[np.float16, 0, (2, 3, 4)],    [np.float16, 0, (2, 3, 4)]],
-             [[np.float16, 0, (3, 4)],    [np.float16, 0, (3, 4)]],
-             [[np.float16, 0, (3, 4)],    [np.float16, 0, (3, 5)]],
-             [[np.float16, 0, (3, 4)],    [np.float16, 0, (4, 3)]],
-             [[np.float16, 0, (3, 4)],    [np.float16, 0, (3, 4, 1)]]],
+            [[[np.float32, 0, (1, 2, 3, 4)], [np.float32, 0, (1, 2, 3, 4)]],
+             [[np.float32, 0, (2, 3, 4)], [np.float32, 0, (2, 3, 4)]],
+             [[np.float32, 0, (3, 4)], [np.float32, 0, (3, 4)]],
+             [[np.float32, 0, (3, 4)], [np.float32, 0, (3, 5)]],
+             [[np.float32, 0, (3, 4)], [np.float32, 0, (3, 4, 1)]],
+             [[np.float32, 0, (3, 4)], [np.float32, 0, (4, 3)]]],
+            [[[np.float16, 0, (1, 2, 3, 4)], [np.float16, 0, (1, 2, 3, 4)]],
+             [[np.float16, 0, (2, 3, 4)], [np.float16, 0, (2, 3, 4)]],
+             [[np.float16, 0, (3, 4)], [np.float16, 0, (3, 4)]],
+             [[np.float16, 0, (3, 4)], [np.float16, 0, (3, 5)]],
+             [[np.float16, 0, (3, 4)], [np.float16, 0, (4, 3)]],
+             [[np.float16, 0, (3, 4)], [np.float16, 0, (3, 4, 1)]]],
         ]
         dim = 0
         for item in shape_format[0]:

@@ -24,8 +24,8 @@ class TestIou(TestCase):
                                [10, 10, 20, 20],
                                [32, 32, 38, 42]], dtype=torch.float16).to("npu")
         gtboxes = torch.tensor([[0, 0, 10, 20],
-                               [0, 10, 10, 10],
-                               [10, 10, 20, 20]], dtype=torch.float16).to("npu")
+                                [0, 10, 10, 10],
+                                [10, 10, 20, 20]], dtype=torch.float16).to("npu")
         expect_iof = torch.tensor([[0.4990, 0.0000, 0.0000],
                                    [0.0000, 0.0000, 0.0000],
                                    [0.0000, 0.9980, 0.0000]], dtype=torch.float16)
@@ -39,8 +39,8 @@ class TestIou(TestCase):
         self.assertRtolEqual(expect_iou, output_iou.cpu())
 
     def test_iou_fp16_pt(self):
-        bboxs = torch.tensor([[1,  2,  3,  4],
-                              [5,  6,  7,  8],
+        bboxs = torch.tensor([[1, 2, 3, 4],
+                              [5, 6, 7, 8],
                               [9, 10, 11, 12],
                               [13, 14, 15, 16]], dtype=torch.float16).npu()
         gtboxes = torch.tensor([[1, 2, 3, 4],

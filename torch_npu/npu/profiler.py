@@ -1,4 +1,4 @@
- # Copyright (c) 2020 Huawei Technologies Co., Ltd
+# Copyright (c) 2020 Huawei Technologies Co., Ltd
 # Copyright (c) 2019, Facebook CORPORATION. 
 # All rights reserved.
 #
@@ -31,6 +31,7 @@ try:
 except ImportError:
     import functools
 
+
     class ContextDecorator(object):  # type: ignore[no-redef]
 
         def __enter__(self):
@@ -57,23 +58,24 @@ file_modes = stat.S_IWUSR | stat.S_IRUSR
 
 class DeviceType(Enum):
     CPU = 0,
-    CUDA = 1, # CUDA.
-    MKLDNN = 2, # Reserved for explicit MKLDNN
-    OPENGL = 3, # OpenGL
-    OPENCL = 4, # OpenCL
-    IDEEP = 5, # IDEEP.
-    HIP = 6, # AMD HIP
-    FPGA = 7, # FPGA
-    MSNPU = 8, # MSNPU
-    XLA = 9, # XLA / TPU
-    Vulkan = 10, # Vulkan
-    Metal = 11, # Metal
-    XPU = 12, # XPU
-    NPU = 13, # NPU
+    CUDA = 1,  # CUDA.
+    MKLDNN = 2,  # Reserved for explicit MKLDNN
+    OPENGL = 3,  # OpenGL
+    OPENCL = 4,  # OpenCL
+    IDEEP = 5,  # IDEEP.
+    HIP = 6,  # AMD HIP
+    FPGA = 7,  # FPGA
+    MSNPU = 8,  # MSNPU
+    XLA = 9,  # XLA / TPU
+    Vulkan = 10,  # Vulkan
+    Metal = 11,  # Metal
+    XPU = 12,  # XPU
+    NPU = 13,  # NPU
 
 
 class EventList(list):
     """A list of Events (for pretty printing)"""
+
     def __init__(self, *args, **kwargs):
         use_cuda = False
         use_npu = kwargs.pop('use_npu', True) and torch_npu.npu.is_available()
@@ -285,7 +287,7 @@ class EventList(list):
                                 '"id": %s, '
                                 '"cat": "cpu_to_cuda", '
                                 '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
-                                                evt.thread, next_id))
+                                                   evt.thread, next_id))
                         f.write('{"name": "%s", '
                                 '"ph": "f", '
                                 '"ts": %s, '
@@ -301,7 +303,7 @@ class EventList(list):
                                 '"tid": %s, '
                                 '"pid": "CUDA functions", '
                                 '"args": {}}, ' % (k.name, k.interval.start,
-                                                k.interval.elapsed_us(), k.device))
+                                                   k.interval.elapsed_us(), k.device))
                         next_id += 1
                 elif self._use_npu:
                     for k in evt.kernels:
@@ -315,7 +317,7 @@ class EventList(list):
                                 '"id": %s, '
                                 '"cat": "cpu_to_npu", '
                                 '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
-                                                evt.thread, next_id))
+                                                   evt.thread, next_id))
                         f.write('{"name": "%s", '
                                 '"ph": "f", '
                                 '"ts": %s, '
@@ -331,10 +333,10 @@ class EventList(list):
                                 '"tid": %s, '
                                 '"pid": "NPU functions", '
                                 '"args": {}}, ' % (k.name, k.interval.start,
-                                                k.interval.elapsed_us(), k.device))
-                        next_id += 1 
+                                                   k.interval.elapsed_us(), k.device))
+                        next_id += 1
 
-            # remove trailing whitespace and comma
+                        # remove trailing whitespace and comma
             f.seek(f.tell() - 2, os.SEEK_SET)
             f.truncate()
             f.write("]")
@@ -386,6 +388,7 @@ class EventList(list):
             if group_by_stack_n > 0:
                 key += event.stack[:group_by_stack_n]
             return tuple(key)
+
         for evt in self:
             stats[get_key(evt, group_by_input_shapes, group_by_stack_n)].add(evt, self._use_cuda, self._use_npu)
 
@@ -489,6 +492,7 @@ class profile(object):
         -----------------------------------  ---------------  ---------------  ---------------
 
     """
+
     def __init__(
             self,
             enabled=True,
@@ -530,7 +534,6 @@ class profile(object):
             self.profiler_kind = torch_npu._C._profiler.ProfilerState.NPU
         else:
             self.profiler_kind = torch_npu._C._profiler.ProfilerState.CPU
-
 
     def config(self):
         if self.profiler_kind is None:
@@ -594,6 +597,7 @@ class profile(object):
             sort_by=sort_by, row_limit=row_limit, max_src_column_width=max_src_column_width, header=header,
             top_level_events_only=top_level_events_only
         )
+
     table.__doc__ = EventList.table.__doc__
 
     def export_chrome_trace(self, path):
@@ -604,6 +608,7 @@ class profile(object):
             if (self.function_events is None):
                 raise RuntimeError('function_events is None')
             return self.function_events.export_chrome_trace(path)
+
     export_chrome_trace.__doc__ = EventList.export_chrome_trace.__doc__
 
     def export_stacks(self, path: str, metric: str = "self_cpu_time_total"):
@@ -619,6 +624,7 @@ class profile(object):
         if (self.function_events is None):
             raise RuntimeError("Expected profiling results")
         return self.function_events.key_averages(group_by_input_shape, group_by_stack_n)
+
     key_averages.__doc__ = EventList.key_averages.__doc__
 
     def total_average(self):
@@ -626,6 +632,7 @@ class profile(object):
         if (self.function_events is None):
             raise RuntimeError("Expected profiling results")
         return self.function_events.total_average()
+
     total_average.__doc__ = EventList.total_average.__doc__
 
     @property
@@ -673,6 +680,7 @@ class record_function(ContextDecorator):
         CUDA time total: 0.000us
 
     """
+
     def __init__(self, name: str):
         self.name: str = name
         # Whether or not we should run record function's end callbacks when exiting.
@@ -720,13 +728,13 @@ def _hook_for_profile(self):
     self._zero_grad_profile_name = "Optimizer.zero_grad#{}.zero_grad".format(self.__class__.__name__)
 
     def profile_hook_step(func):
-
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             obj, *_ = args
             profile_name = "Optimizer.step#{}.step".format(obj.__class__.__name__)
             with record_function(profile_name):
                 return func(*args, **kwargs)
+
         return wrapper
 
     hooked = getattr(self.__class__.step, "hooked", None)
@@ -828,6 +836,7 @@ Kernel = namedtuple('Kernel', ['name', 'device', 'interval'])
 
 class FunctionEvent(FormattedTimesMixin):
     """Profiling information about a single function."""
+
     def __init__(
             self, id_event, name, thread, start_us, end_us, fwd_thread=None, input_shapes=None,
             stack=None, scope=0, cpu_memory_usage=0, cuda_memory_usage=0, npu_memory_usage=0,
@@ -949,7 +958,7 @@ class FunctionEvent(FormattedTimesMixin):
             return 0
         if self.device_type == DeviceType.CPU:
             return self.cuda_time_total - \
-                sum([child.cuda_time_total for child in self.cpu_children])
+                   sum([child.cuda_time_total for child in self.cpu_children])
         else:
             if not (self.device_type == DeviceType.CUDA):
                 raise RuntimeError('self device_type is not CUDAs')
@@ -975,7 +984,7 @@ class FunctionEvent(FormattedTimesMixin):
             return 0
         if self.device_type == DeviceType.CPU:
             return self.npu_time_total - \
-                sum([child.npu_time_total for child in self.cpu_children])
+                   sum([child.npu_time_total for child in self.cpu_children])
         else:
             if not (self.device_type == DeviceType.NPU):
                 raise RuntimeError('self device_type is not NPU')
@@ -1024,6 +1033,7 @@ class FunctionEvent(FormattedTimesMixin):
 
 class FunctionEventAvg(FormattedTimesMixin):
     """Used to average stats over multiple FunctionEvent objects."""
+
     def __init__(self):
         self.key: Optional[str] = None
         self.count: int = 0
@@ -1085,7 +1095,7 @@ class FunctionEventAvg(FormattedTimesMixin):
             self.cuda_time_total += other.cuda_time_total
             self.self_cuda_time_total += other.self_cuda_time_total
             self.cuda_memory_usage += other.cuda_memory_usage
-            self.self_cuda_memory_usage += other.self_cuda_memory_usage   
+            self.self_cuda_memory_usage += other.self_cuda_memory_usage
         elif self.use_npu:
             self.npu_time_total += other.npu_time_total
             self.self_npu_time_total += other.self_npu_time_total
@@ -1130,10 +1140,11 @@ class FunctionEventAvg(FormattedTimesMixin):
                     self.cpu_memory_usage,
                     self.cuda_memory_usage,
                 )
-            )          
+            )
+
+        ################################################################################
 
 
-################################################################################
 # Utilities
 
 class StringTable(defaultdict):
@@ -1267,7 +1278,6 @@ def parse_kineto_results(result):
                     # parents and children
                     f_evt.thread = fe.thread
 
-
     # output top-level memory events
     for mem_record in mem_records:
         if not mem_record[1]:
@@ -1321,13 +1331,13 @@ def parse_legacy_records(thread_records):
         if not (device_record.device() != -1):
             raise RuntimeError('device is -1')
         if start_record is None:
-            raise('start_record is None')
+            raise ('start_record is None')
         if device_record.has_cuda():
             cuda_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
             return cuda_time_0.cuda_elapsed_us(device_record) + start_record.cpu_elapsed_us(cuda_time_0)
         elif device_record.has_npu():
             npu_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
-            return npu_time_0.npu_elapsed_us(device_record) + start_record.cpu_elapsed_us(npu_time_0) 
+            return npu_time_0.npu_elapsed_us(device_record) + start_record.cpu_elapsed_us(npu_time_0)
         else:
             raise RuntimeError("device_record only support for npu")
 
@@ -1378,9 +1388,9 @@ def parse_legacy_records(thread_records):
                 # wrappers and redispatch
                 if prev_record is not None:
                     duplicate = (
-                        prev_record.name() == record.name()
-                        and prev_record.kind() == record.kind()
-                        and prev_record.node_id() == record.node_id()
+                            prev_record.name() == record.name()
+                            and prev_record.kind() == record.kind()
+                            and prev_record.node_id() == record.node_id()
                     )
                     if duplicate:
                         filtered_handles.add(record_key)
@@ -1500,6 +1510,7 @@ def parse_legacy_records(thread_records):
 
 class EnforceUnique(object):
     """Raises an error if a key is seen more than once."""
+
     def __init__(self):
         self.seen = set()
 
@@ -1626,7 +1637,7 @@ def build_table(
             'TFLOPS',
             'PFLOPS',
         ]
-        if not(flops > 0):
+        if not (flops > 0):
             raise RuntimeError('flops not > 0')
         log_flops = max(0, min(math.log10(flops) / 3, float(len(flop_headers) - 1)))
         if not (log_flops >= 0 and log_flops < len(flop_headers)):

@@ -27,6 +27,7 @@ from codegen.api.types import (ArgName, BaseCType, Binding, ArrayRefCType,
 
 from codegen.api import cpp
 
+
 # This file describes the translation of JIT schema to the structured functions API.
 # This is similar to native API, but a number of historical problems with native
 # API have been fixed.
@@ -70,8 +71,10 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
     else:
         raise AssertionError(f"unrecognized type {repr(t)}")
 
+
 def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
     return argumenttype_type(a.type, mutable=a.is_write, binds=binds)
+
 
 # returns_type intentionally omitted, because structured kernels never "return";
 # instead, they always indirectly report their outputs (in the case of a meta
@@ -93,6 +96,7 @@ def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments]) -> List[B
         raise AssertionError("structured kernels don't support TensorOptions yet")
     else:
         assert_never(a)
+
 
 def impl_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
@@ -120,10 +124,12 @@ def impl_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args.extend(g.out.func.arguments.out)
     return [r for arg in args for r in argument(arg)]
 
+
 def meta_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
     args.extend(g.functional.func.arguments.non_out)
     return [r for arg in args for r in argument(arg)]
+
 
 def out_arguments(g: NativeFunctionsGroup) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []

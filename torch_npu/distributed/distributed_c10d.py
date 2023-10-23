@@ -45,7 +45,6 @@ from torch._C._distributed_c10d import (
     Store,
 )
 
-
 # This module is wildcard imported from torch.distributed.
 
 _pickler = pickle.Pickler
@@ -77,11 +76,9 @@ try:
 except ImportError:
     _HCCL_AVAILABLE = False
 
-
 logger = logging.getLogger(__name__)
 
 PG_WRAPPER_STORE_PREFIX = "pg_wrapper"
-
 
 __all__ = [
     "Backend", "_backend", "Group", "GroupMember", "is_hccl_available", "is_initialized",
@@ -176,7 +173,6 @@ class Backend(object):
         Backend._plugins[name.upper()] = func
 
 
-
 # `_backend`, `dist_backend`, and `reduce_op` are here to maintain backward
 # compatibility with pre-c10d distributed package.
 _backend: str = Backend.UNDEFINED
@@ -201,6 +197,7 @@ class _reduce_op(object):
         warnings.warn("torch.distributed.reduce_op is deprecated, please use "
                       "torch.distributed.ReduceOp instead")
         return object.__getattribute__(self, key)
+
 
 reduce_op = _reduce_op()
 
@@ -243,7 +240,6 @@ def _store_based_barrier(rank, store, timeout):
     store_key = "{}:{}".format(STORE_BASED_BARRIER_PREFIX, _group_count)
     store.add(store_key, 1)
     logger.info('Added key: {} to store for rank: {}'.format(store_key, rank))
-
 
     # Now wait for all workers to check in with the store.
     world_size = get_world_size()
@@ -349,7 +345,7 @@ def _check_tensor_list(param, param_name):
     Helper to check that the parameter ``param_name`` is a list of tensors.
     """
     if not isinstance(param, list) or \
-       not all(isinstance(p, torch.Tensor) for p in param):
+            not all(isinstance(p, torch.Tensor) for p in param):
         raise RuntimeError("Invalid function argument. Expected parameter `{}` "
                            "to be of type List[torch.Tensor].".format(param_name))
 
@@ -370,10 +366,9 @@ def _check_p2p_op_list(p2p_op_list):
     all ops use the same backend.
     """
     if not isinstance(p2p_op_list, list) or \
-       not all(isinstance(p2p_op, P2POp) for p2p_op in p2p_op_list):
+            not all(isinstance(p2p_op, P2POp) for p2p_op in p2p_op_list):
         raise RuntimeError("Invalid ``p2p_op_list``. Each op is expected to "
                            "to be of type ``torch.distributed.P2POp``.")
-
 
     backend = get_backend(p2p_op_list[0].group)
     if not all(backend == get_backend(p2p_op.group) for p2p_op in p2p_op_list):
@@ -959,6 +954,7 @@ class P2POp(object):
             the default process group will be used.
         tag (int, optional): Tag to match send with recv.
     """
+
     def __init__(self, op, tensor, peer, group=None, tag=0):
         self.op = op
         self.tensor = tensor
@@ -1321,9 +1317,9 @@ def all_gather(tensor_list,
 
 
 def all_gather_togather(tensor_ouput,
-               tensor,
-               group=None,
-               async_op=False):
+                        tensor,
+                        group=None,
+                        async_op=False):
     """
     Gathers tensors from the whole group to a whole tensor.
     This API is only used for `syncbn`, so use with caution.
@@ -1393,9 +1389,9 @@ def all_gather_togather(tensor_ouput,
 
 
 def _all_gather_base(output_tensor,
-               input_tensor,
-               group=None,
-               async_op=False):
+                     input_tensor,
+                     group=None,
+                     async_op=False):
     """
     Gathers tensors from the whole group to a whole tensor.
     This API is only used for `syncbn`, so use with caution.
@@ -1842,7 +1838,7 @@ def all_to_all_single(output_tensor,
         work = default_pg.alltoall_base(out_tensor, in_tensor, output_split_sizes, input_split_sizes, opts)
     else:
         work = group.alltoall_base(out_tensor, in_tensor, output_split_sizes, input_split_sizes, opts)
-    
+
     if async_op:
         if judge_format:
             raise RuntimeError("This format can't be operated asynchronously, please convert to ND or NCHW!")
@@ -1974,7 +1970,6 @@ def all_to_all(output_tensor_list,
 def barrier(group=GroupMember.WORLD,
             async_op=False,
             device_ids=None):
-
     """
     Synchronizes all processes.
 
@@ -2020,12 +2015,12 @@ def barrier(group=GroupMember.WORLD,
 
 
 def _create_process_group_wrapper(
-    wrapped_pg: ProcessGroup,
-    store_prefix: str,
-    store: Store,
-    rank: int,
-    world_size: int,
-    timeout: timedelta = default_pg_timeout,
+        wrapped_pg: ProcessGroup,
+        store_prefix: str,
+        store: Store,
+        rank: int,
+        world_size: int,
+        timeout: timedelta = default_pg_timeout,
 ):
     # Create a separate prefix store for the helper process group.
     prefix = f"{PG_WRAPPER_STORE_PREFIX}:{store_prefix}"
@@ -2069,7 +2064,6 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
     Returns:
         A handle of distributed group that can be given to collective calls.
     """
-
 
     global _pg_group_ranks
 
@@ -2162,8 +2156,8 @@ def _check_for_hccl_backend(group):
         pg = pg.wrapped_pg
 
     return (
-        is_hccl_available() and
-        isinstance(pg, ProcessGroupHCCL)
+            is_hccl_available() and
+            isinstance(pg, ProcessGroupHCCL)
     )
 
 
@@ -2252,7 +2246,7 @@ def all_gather_object(object_list, obj, group=None):
         )
     # Output tensors are nonoverlapping views of coalesced_output_tensor
     output_tensors = [
-        coalesced_output_tensor[max_object_size * i : max_object_size * (i + 1)]
+        coalesced_output_tensor[max_object_size * i: max_object_size * (i + 1)]
         for i in range(group_size)
     ]
     all_gather(output_tensors, input_tensor, group=group)
@@ -2345,7 +2339,7 @@ def broadcast_object_list(object_list, src=0, group=None, device=None):
     offset = 0
     if my_rank != src:
         for i, obj_size in enumerate(object_sizes_tensor):
-            obj_view = object_tensor[offset : offset + obj_size]
+            obj_view = object_tensor[offset: offset + obj_size]
             obj_view = obj_view.type(torch.uint8)
             if obj_view.device != torch.device("cpu"):
                 obj_view = obj_view.cpu()

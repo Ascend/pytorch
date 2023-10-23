@@ -10,8 +10,8 @@ from torch.optim.sgd import SGD
 import torch_npu
 from torch_npu.npu.amp.grad_scaler import GradScaler, OptState, _NpuMultiDeviceReplicator
 
-
 logger = logging.getLogger(__name__)
+
 
 def _refresh_per_optimizer_state():
     return {"stage": OptState.READY, "found_inf_per_device": {}}
@@ -26,6 +26,7 @@ class _GeneralMultiDeviceReplicator(_NpuMultiDeviceReplicator):
     Lazily serves tensor to request device. This class extends
     _NpuMultiDeviceReplicator to allow support for "cpu" as a device.
     """
+
     def __init__(self, master_tensor: torch.Tensor) -> None:
         if not _is_supported_device(master_tensor):
             raise RuntimeError("Device is not supported")
@@ -81,15 +82,16 @@ class ShardedGradScaler(GradScaler):
         process_group (ProcessGroup, optional, default=torch.distributed.group.WORLD):
             process group for sharding
     """
+
     def __init__(
-        self,
-        init_scale: float = 2.0 ** 16,
-        backoff_factor: float = 0.5,
-        growth_factor: float = 2.0,
-        growth_interval: int = 2000,
-        enabled: bool = True,
-        process_group: Optional[ProcessGroup] = dist.group.WORLD,
-        dynamic: bool = True
+            self,
+            init_scale: float = 2.0 ** 16,
+            backoff_factor: float = 0.5,
+            growth_factor: float = 2.0,
+            growth_interval: int = 2000,
+            enabled: bool = True,
+            process_group: Optional[ProcessGroup] = dist.group.WORLD,
+            dynamic: bool = True
     ):
         super().__init__(
             init_scale=init_scale,
@@ -106,7 +108,7 @@ class ShardedGradScaler(GradScaler):
     def scale(self, outputs: Union[torch.Tensor, List[torch.Tensor]]) -> Union[torch.Tensor, List[torch.Tensor]]:
         if not self._enabled:
             return outputs
-        
+
         if self._dist_overflow_count is None:
             self._lazy_init_dist_flag_and_dist_overflow_count()
             if self._dist_overflow_count is None:
@@ -158,7 +160,7 @@ class ShardedGradScaler(GradScaler):
         return apply_scale(outputs)  # type: ignore[return-value]
 
     def _foreach_non_finite_check_and_unscale_cpu_(
-        self, grads: List, found_inf: torch.Tensor, inv_scale: torch.Tensor
+            self, grads: List, found_inf: torch.Tensor, inv_scale: torch.Tensor
     ) -> None:
         if len(grads) == 0:
             return
@@ -182,7 +184,7 @@ class ShardedGradScaler(GradScaler):
                     tensor.data *= inv_scale.item()
 
     def _unscale_grads_(
-        self, optimizer: SGD, inv_scale: torch.Tensor, found_inf: torch.Tensor, allow_fp16: bool = True
+            self, optimizer: SGD, inv_scale: torch.Tensor, found_inf: torch.Tensor, allow_fp16: bool = True
     ) -> Dict[torch.device, torch.Tensor]:
         per_device_inv_scale = _GeneralMultiDeviceReplicator(inv_scale)
         per_device_found_inf = _GeneralMultiDeviceReplicator(found_inf)
@@ -226,8 +228,8 @@ class ShardedGradScaler(GradScaler):
                     else:
                         if self._dynamic:
                             torch._amp_foreach_non_finite_check_and_unscale_(grads,
-                                                                            per_device_found_inf.get(device),
-                                                                            per_device_inv_scale.get(device))
+                                                                             per_device_found_inf.get(device),
+                                                                             per_device_inv_scale.get(device))
                             if per_device_found_inf.get(device)[0].item() > 0:
                                 self._has_overflow = True
                         else:

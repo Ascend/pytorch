@@ -197,12 +197,12 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
-        
+
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-        
+
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -230,10 +230,10 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
 
         for combined_param, combined_grad, combined_param_state, params_list, perturb_list, \
             combined_perturb, wd_ratio_list, combined_wd_ratio in zip(
-                combined_group_params, combined_group_grads,
-                combined_group_param_states, params_lists_indexed,
-                perturb_lists_indexed, combined_perturb_lists_indexed,
-                wd_ratio_lists_indexed, combined_wd_ratio_lists_indexed
+            combined_group_params, combined_group_grads,
+            combined_group_param_states, params_lists_indexed,
+            perturb_lists_indexed, combined_perturb_lists_indexed,
+            wd_ratio_lists_indexed, combined_wd_ratio_lists_indexed
         ):
 
             if combined_param is None or combined_grad is None:
@@ -281,7 +281,7 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
     def step(self, closure=None):
         if not self.is_params_grads_combined:
             self._maybe_init_combined_params_and_grads()
-        
+
         if not self.is_states_combined:
             self._maybe_init_combined_states()
 

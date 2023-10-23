@@ -44,6 +44,7 @@ from codegen.utils import concat_map
 def name(func: FunctionSchema) -> str:
     return cpp.name(func)
 
+
 def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
     # This is a faux amis.  If it makes sense in the future to add
     # more special cases here, or invert things so cpp.argument_type
@@ -51,15 +52,17 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
     # it.
     return cpp.argumenttype_type(t, mutable=mutable, binds=binds)
 
+
 def argument_type(a: Argument, *, binds: ArgName) -> NamedCType:
     return argumenttype_type(a.type, mutable=a.is_write, binds=binds)
+
 
 def returns_type(rs: Sequence[Return]) -> CType:
     # At present, there is no difference. But there could be!
     return cpp.returns_type(rs)
 
-def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out: bool) -> List[Binding]:
 
+def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out: bool) -> List[Binding]:
     should_default = not is_out
     if isinstance(a, Argument):
         default: Optional[str] = None
@@ -68,21 +71,22 @@ def argument(a: Union[Argument, SelfArgument, TensorOptionsArguments], *, is_out
         return [
             Binding(
                 nctype=argument_type(a, binds=a.name),
-                name=a.name, 
-                default=default, 
+                name=a.name,
+                default=default,
                 argument=a)
         ]
     elif isinstance(a, SelfArgument):
         return argument(a.argument, is_out=is_out)
     elif isinstance(a, TensorOptionsArguments):
         return (
-            argument(a.dtype, is_out=is_out) + 
-            argument(a.layout, is_out=is_out) + 
-            argument(a.device, is_out=is_out) + 
-            argument(a.pin_memory, is_out=is_out) 
+                argument(a.dtype, is_out=is_out) +
+                argument(a.layout, is_out=is_out) +
+                argument(a.device, is_out=is_out) +
+                argument(a.pin_memory, is_out=is_out)
         )
     else:
         assert_never(a)
+
 
 def arguments(func: FunctionSchema) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []

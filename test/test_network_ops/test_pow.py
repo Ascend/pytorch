@@ -201,8 +201,8 @@ class TestPow(TestCase):
     @graph_mode
     def test_pow_common_shape_format(self):
         shape_format = [
-            [[np.float32, -1, (5, )],     [np.float32, -1, (1, )]],
-            [[np.float32, -1, (4, 3)],    [np.float32, -1, (4, 1)]],
+            [[np.float32, -1, (5,)], [np.float32, -1, (1,)]],
+            [[np.float32, -1, (4, 3)], [np.float32, -1, (4, 1)]],
             [[np.float32, -1, (4, 3, 1)], [np.float32, -1, (4, 1, 5)]],
         ]
 
@@ -228,8 +228,8 @@ class TestPow(TestCase):
             return output
 
         shape_format = [
-            [[np.float16, -1, (5, )],     [np.float16, -1, (1, )]],
-            [[np.float16, -1, (4, 3)],    [np.float16, -1, (4, 1)]],
+            [[np.float16, -1, (5,)], [np.float16, -1, (1,)]],
+            [[np.float16, -1, (4, 3)], [np.float16, -1, (4, 1)]],
             [[np.float16, -1, (4, 3, 1)], [np.float16, -1, (4, 1, 5)]],
         ]
 

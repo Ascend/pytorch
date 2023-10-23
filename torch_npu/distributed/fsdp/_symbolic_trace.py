@@ -5,7 +5,6 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 import torch
 
-
 __all__ = ["TracingConfig"]
 
 
@@ -84,16 +83,16 @@ def _init_execution_info(root_module: torch.nn.Module) -> _ExecutionInfo:
 
 
 def _patched_create_proxy(
-    create_proxy: Callable,
-    execution_info: _ExecutionInfo,
-    prefixed_param_name_to_param: Dict[str, torch.nn.Parameter],
-    kind: str,
-    target: torch.fx.node.Target,
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
-    name: Optional[str] = None,
-    type_expr: Optional[Any] = None,
-    proxy_factory_fn: Callable[[torch.fx.Node], torch.fx.Proxy] = None,
+        create_proxy: Callable,
+        execution_info: _ExecutionInfo,
+        prefixed_param_name_to_param: Dict[str, torch.nn.Parameter],
+        kind: str,
+        target: torch.fx.node.Target,
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+        name: Optional[str] = None,
+        type_expr: Optional[Any] = None,
+        proxy_factory_fn: Callable[[torch.fx.Node], torch.fx.Proxy] = None,
 ) -> torch.fx.Proxy:
     """
     Override of :meth:`~torch.fx.Tracer.create_proxy`. ``Tracer.create_proxy``
@@ -158,12 +157,12 @@ def _patched_create_proxy(
 
 
 def _patched_call_module(
-    call_module: Callable,
-    execution_info: _ExecutionInfo,
-    module: torch.nn.Module,
-    forward: Callable[..., Any],
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
+        call_module: Callable,
+        execution_info: _ExecutionInfo,
+        module: torch.nn.Module,
+        forward: Callable[..., Any],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
 ) -> Any:
     """
     Override of :meth:`~torch.fx.Tracer.call_module`. ``Tracer.call_module`` is
@@ -205,9 +204,9 @@ def _patched_call_module(
 
 @contextlib.contextmanager
 def _patch_tracer(
-    tracer: torch.fx.Tracer,
-    root_module: torch.nn.Module,
-    execution_info: _ExecutionInfo,
+        tracer: torch.fx.Tracer,
+        root_module: torch.nn.Module,
+        execution_info: _ExecutionInfo,
 ) -> Generator:
     """
     Within the context manager, patches the input tracer so that during

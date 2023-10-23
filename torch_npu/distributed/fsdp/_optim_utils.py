@@ -86,11 +86,11 @@ class _OptimStateKey(NamedTuple):
 
 
 def _unflatten_optim_state(
-    flat_param: FlatParameter,
-    flat_param_state: Dict[str, Any],
-    fsdp_module,
-    to_save: bool,
-    shard_state: bool,
+        flat_param: FlatParameter,
+        flat_param_state: Dict[str, Any],
+        fsdp_module,
+        to_save: bool,
+        shard_state: bool,
 ) -> List[Dict[str, Any]]:
     """
     Unflattens the optimizer state, consisting of the "state" part and the
@@ -141,10 +141,10 @@ def _unflatten_optim_state(
 
 
 def _communicate_optim_state(
-    flat_param: FlatParameter,
-    flat_param_state: Dict[str, Any],
-    fsdp_module,
-    to_save: bool,
+        flat_param: FlatParameter,
+        flat_param_state: Dict[str, Any],
+        fsdp_module,
+        to_save: bool,
 ) -> _ConsolidatedOptimState:
     """
     Communicates the optimizer state for a flattened parameter ``flat_param``
@@ -182,8 +182,8 @@ def _communicate_optim_state(
             # positive-dimension tensor state, so no need to communicate it --
             # we take the target rank's value
             if (
-                fsdp_module.world_size == 1
-                or fsdp_module.sharding_strategy == FSDP.ShardingStrategy.NO_SHARD
+                    fsdp_module.world_size == 1
+                    or fsdp_module.sharding_strategy == FSDP.ShardingStrategy.NO_SHARD
             ):
                 tensor_state[state_name] = value
                 continue
@@ -209,10 +209,10 @@ def _communicate_optim_state(
 
 
 def _unflatten_communicated_optim_state(
-    fsdp_module,
-    flat_param: FlatParameter,
-    state: _ConsolidatedOptimState,
-    shard_state: bool,
+        fsdp_module,
+        flat_param: FlatParameter,
+        state: _ConsolidatedOptimState,
+        shard_state: bool,
 ) -> List[Dict[str, Any]]:
     """
     Unflattens the communicated optimizer state (given by ``tensor_state``,
@@ -271,9 +271,9 @@ def _unflatten_communicated_optim_state(
 
 
 def _flatten_optim_state_dict(
-    optim_state_dict: Dict[str, Any],
-    model: torch.nn.Module,
-    shard_state: bool,
+        optim_state_dict: Dict[str, Any],
+        model: torch.nn.Module,
+        shard_state: bool,
 ) -> Dict[str, Any]:
     """
     Flattens the full optimizer state dict, still keying by unflattened
@@ -330,11 +330,11 @@ def _flatten_optim_state_dict(
 
 
 def _flatten_optim_state(
-    unflat_osd_state: Dict[str, Dict[str, Any]],
-    unflat_param_names: List[str],
-    fsdp_module,
-    flat_param: FlatParameter,
-    shard_state: bool,
+        unflat_osd_state: Dict[str, Dict[str, Any]],
+        unflat_param_names: List[str],
+        fsdp_module,
+        flat_param: FlatParameter,
+        shard_state: bool,
 ) -> Dict[str, Any]:
     """
     Flattens the optimizer state in ``full_optim_state_dict`` for a single
@@ -362,8 +362,8 @@ def _flatten_optim_state(
     num_unflat_params = len(unflat_param_names)
     if num_unflat_params <= 0:
         raise ValueError(
-        "Expects at least one unflattened parameter corresponding to the "
-        "flattened parameter")
+            "Expects at least one unflattened parameter corresponding to the "
+            "flattened parameter")
     unflat_param_shapes = flat_param._shapes
     num_unflat_param_shapes = len(unflat_param_shapes)
     if num_unflat_params != num_unflat_param_shapes:
@@ -419,7 +419,7 @@ def _flatten_optim_state(
             are_non_tensors &= not torch.is_tensor(v)
         types = set(type(v) for v in non_none_state_values)
         if len(types) != 1 or not (
-            are_pos_dim_tensors or are_zero_dim_tensors or are_non_tensors
+                are_pos_dim_tensors or are_zero_dim_tensors or are_non_tensors
         ):
             raise ValueError(
                 f"Differing optimizer state types for state {state_name}, "
@@ -464,11 +464,11 @@ def _flatten_optim_state(
 
 
 def _flatten_tensor_optim_state(
-    state_name: str,
-    pos_dim_tensors: List[torch.Tensor],
-    unflat_param_names: List[str],
-    unflat_param_shapes: Sequence[torch.Size],
-    flat_param: FlatParameter,
+        state_name: str,
+        pos_dim_tensors: List[torch.Tensor],
+        unflat_param_names: List[str],
+        unflat_param_shapes: Sequence[torch.Size],
+        flat_param: FlatParameter,
 ) -> torch.Tensor:
     """
     Flattens the positive-dimension tensor optimizer state given by the values
@@ -541,16 +541,16 @@ def _flatten_tensor_optim_state(
     flat_param_shape = flat_param._unpadded_unsharded_size  # type: ignore[attr-defined]
     if flat_tensor.shape != flat_param_shape:
         raise RuntimeError(
-        f"tensor optim state: {flat_tensor.shape} "
-        f"flattened parameter: {flat_param_shape}"
-    )
+            f"tensor optim state: {flat_tensor.shape} "
+            f"flattened parameter: {flat_param_shape}"
+        )
     return flat_tensor
 
 
 def _flatten_zero_dim_tensor_optim_state(
-    state_name: str,
-    zero_dim_tensors: List[torch.Tensor],
-    unflat_param_names: List[str],
+        state_name: str,
+        zero_dim_tensors: List[torch.Tensor],
+        unflat_param_names: List[str],
 ) -> torch.Tensor:
     """
     Flattens the zero-dimension tensor optimizer state given by the values
@@ -585,9 +585,9 @@ def _flatten_zero_dim_tensor_optim_state(
     values_set = set(t.item() if t is not None else None for t in zero_dim_tensors)
     dtypes = set(t.dtype if t is not None else None for t in zero_dim_tensors)
     if (
-        len(non_none_tensors) != len(zero_dim_tensors)
-        or len(values_set) != 1
-        or len(dtypes) != 1
+            len(non_none_tensors) != len(zero_dim_tensors)
+            or len(values_set) != 1
+            or len(dtypes) != 1
     ):
         raise ValueError(
             "All unflattened parameters comprising a single flattened "
@@ -602,9 +602,9 @@ def _flatten_zero_dim_tensor_optim_state(
 
 
 def _flatten_non_tensor_optim_state(
-    state_name: str,
-    non_tensors: List[Any],
-    unflat_param_names: List[str],
+        state_name: str,
+        non_tensors: List[Any],
+        unflat_param_names: List[str],
 ) -> Any:
     """
     Flattens the non-tensor optimizer state given by the values ``non_tensors``
@@ -641,8 +641,8 @@ def _flatten_non_tensor_optim_state(
 
 
 def _process_pos_dim_tensor_state(
-    flat_optim_state_dict: Dict[str, Any],
-    world_size: int,
+        flat_optim_state_dict: Dict[str, Any],
+        world_size: int,
 ) -> Dict[str, Any]:
     """
     Processes positive-dimension tensor states in ``flat_optim_state_dict`` by
@@ -682,9 +682,9 @@ def _process_pos_dim_tensor_state(
 
 
 def _broadcast_processed_optim_state_dict(
-    processed_optim_state_dict: Optional[Dict[str, Any]],
-    rank: int,
-    group,
+        processed_optim_state_dict: Optional[Dict[str, Any]],
+        rank: int,
+        group,
 ) -> Dict[str, Any]:
     """
     Broadcasts the processed optimizer state dict from rank 0 to all ranks.
@@ -708,12 +708,12 @@ def _broadcast_processed_optim_state_dict(
 
 
 def _broadcast_pos_dim_tensor_states(
-    processed_optim_state_dict: Dict[str, Any],
-    flat_optim_state_dict: Optional[Dict[str, Any]],
-    rank: int,
-    world_size: int,
-    group,
-    broadcast_device: torch.device,
+        processed_optim_state_dict: Dict[str, Any],
+        flat_optim_state_dict: Optional[Dict[str, Any]],
+        rank: int,
+        world_size: int,
+        group,
+        broadcast_device: torch.device,
 ) -> Dict[str, Any]:
     """
     Takes ``processed_optim_state_dict``, which has metadata in place of
@@ -779,15 +779,15 @@ def _broadcast_pos_dim_tensor_states(
 
 
 def _broadcast_sharded_pos_dim_tensor_state(
-    unsharded_tensor: Optional[torch.Tensor],
-    param_state: Dict[str, Any],
-    state_name: str,
-    shape: torch.Size,
-    dtype: torch.dtype,
-    broadcast_device: torch.device,
-    rank: int,
-    world_size: int,
-    group,
+        unsharded_tensor: Optional[torch.Tensor],
+        param_state: Dict[str, Any],
+        state_name: str,
+        shape: torch.Size,
+        dtype: torch.dtype,
+        broadcast_device: torch.device,
+        rank: int,
+        world_size: int,
+        group,
 ) -> None:
     """
     Broadcasts positive-dimension tensor state for the state ``state_name``
@@ -833,14 +833,14 @@ def _broadcast_sharded_pos_dim_tensor_state(
 
 
 def _broadcast_unsharded_pos_dim_tensor_state(
-    unsharded_tensor: Optional[torch.Tensor],
-    param_state: Dict[str, Any],
-    state_name: str,
-    shape: torch.Size,
-    dtype: torch.dtype,
-    broadcast_device: torch.device,
-    rank: int,
-    group,
+        unsharded_tensor: Optional[torch.Tensor],
+        param_state: Dict[str, Any],
+        state_name: str,
+        shape: torch.Size,
+        dtype: torch.dtype,
+        broadcast_device: torch.device,
+        rank: int,
+        group,
 ) -> None:
     """
     Broadcasts positive-dimension tensor state for the state ``state_name``
@@ -872,16 +872,16 @@ def _broadcast_unsharded_pos_dim_tensor_state(
 
 
 def _rekey_sharded_optim_state_dict(
-    sharded_osd: Dict[str, Any],
-    model: torch.nn.Module,
-    optim: torch.optim.Optimizer,
-    optim_input: Optional[
-        Union[
-            List[Dict[str, Any]],
-            Iterable[torch.nn.Parameter],
-        ]
-    ],
-    using_optim_input: bool,
+        sharded_osd: Dict[str, Any],
+        model: torch.nn.Module,
+        optim: torch.optim.Optimizer,
+        optim_input: Optional[
+            Union[
+                List[Dict[str, Any]],
+                Iterable[torch.nn.Parameter],
+            ]
+        ],
+        using_optim_input: bool,
 ) -> Dict[str, Any]:
     """
     Rekeys the optimizer state dict from unflattened parameter names to
@@ -955,7 +955,7 @@ def _get_flat_param_to_fsdp_module(model: torch.nn.Module):
 
 
 def _get_param_id_to_param(
-    optim: torch.optim.Optimizer,
+        optim: torch.optim.Optimizer,
 ):
     """
     Constructs a mapping from parameter IDs to parameters. This may be used
@@ -969,13 +969,13 @@ def _get_param_id_to_param(
 
 
 def _get_param_id_to_param_from_optim_input(
-    model: torch.nn.Module,
-    optim_input: Optional[
-        Union[
-            List[Dict[str, Any]],
-            Iterable[torch.nn.Parameter],
-        ]
-    ] = None,
+        model: torch.nn.Module,
+        optim_input: Optional[
+            Union[
+                List[Dict[str, Any]],
+                Iterable[torch.nn.Parameter],
+            ]
+        ] = None,
 ) -> List[torch.nn.Parameter]:
     """
     Constructs a mapping from parameter IDs to parameters. This may be used
@@ -1036,8 +1036,8 @@ def _get_param_id_to_param_from_optim_input(
         has_params_key = "params" in param_group  # type: ignore[operator]
         if not has_params_key:
             raise RuntimeError(
-            'A parameter group should map "params" to a list of the '
-            "parameters in the group"
+                'A parameter group should map "params" to a list of the '
+                "parameters in the group"
             )
         for param in param_group["params"]:  # type: ignore[index]
             # Implicitly map `flat_param_id` (current length of the list) to
@@ -1047,7 +1047,7 @@ def _get_param_id_to_param_from_optim_input(
 
 
 def _get_param_to_param_id(
-    optim: torch.optim.Optimizer,
+        optim: torch.optim.Optimizer,
 ) -> Dict[torch.nn.Parameter, int]:
     """Constructs the inverse mapping of :func:`_get_param_id_to_param`."""
     param_id_to_param = _get_param_id_to_param(optim)
@@ -1055,13 +1055,13 @@ def _get_param_to_param_id(
 
 
 def _get_param_to_param_id_from_optim_input(
-    model: torch.nn.Module,
-    optim_input: Optional[
-        Union[
-            List[Dict[str, Any]],
-            Iterable[torch.nn.Parameter],
-        ]
-    ] = None,
+        model: torch.nn.Module,
+        optim_input: Optional[
+            Union[
+                List[Dict[str, Any]],
+                Iterable[torch.nn.Parameter],
+            ]
+        ] = None,
 ) -> Dict[torch.nn.Parameter, int]:
     """Constructs the inverse mapping of :func:`_get_param_id_to_param`."""
     param_id_to_param = _get_param_id_to_param_from_optim_input(model, optim_input)
@@ -1069,7 +1069,7 @@ def _get_param_to_param_id_from_optim_input(
 
 
 def _get_unflat_to_flat_param_ids(
-    flat_to_unflat_param_ids: Dict[int, List[int]],
+        flat_to_unflat_param_ids: Dict[int, List[int]],
 ) -> List[int]:
     """
     Inverts the mapping ``flat_to_unflat_param_ids`` to be from unflattened
@@ -1093,19 +1093,19 @@ def _get_unflat_to_flat_param_ids(
         for unflat_param_id in unflat_param_ids:
             if unflat_param_id in unflat_to_flat_param_ids:
                 raise RuntimeError(
-                "`flat_to_unflat_param_ids` has the unflattened parameter "
-                f"ID {unflat_param_id} mapped to multiple flattened "
-                "parameter IDs"
+                    "`flat_to_unflat_param_ids` has the unflattened parameter "
+                    f"ID {unflat_param_id} mapped to multiple flattened "
+                    "parameter IDs"
                 )
             unflat_to_flat_param_ids[unflat_param_id] = flat_param_id
     num_unflat_param_ids = len(unflat_to_flat_param_ids)
     unflat_param_ids_set = set(unflat_to_flat_param_ids.keys())
     if unflat_param_ids_set != set(range(num_unflat_param_ids)):
         raise RuntimeError(
-        "The set of unflattened parameter IDs should be {0, ..., "
-        + str(num_unflat_param_ids - 1)
-        + "} but got "
-        + f"{unflat_param_ids_set}"
+            "The set of unflattened parameter IDs should be {0, ..., "
+            + str(num_unflat_param_ids - 1)
+            + "} but got "
+            + f"{unflat_param_ids_set}"
         )
     return [
         unflat_to_flat_param_ids[unflat_param_id]
@@ -1118,18 +1118,18 @@ def _is_zero_dim_tensor(x: Any) -> bool:
 
 
 def _optim_state_dict(
-    model: torch.nn.Module,
-    optim: torch.optim.Optimizer,
-    optim_input: Optional[
-        Union[
-            List[Dict[str, Any]],
-            Iterable[torch.nn.Parameter],
-        ]
-    ],
-    rank0_only: bool,
-    shard_state: bool,
-    group: Optional[dist.ProcessGroup],
-    using_optim_input: bool,
+        model: torch.nn.Module,
+        optim: torch.optim.Optimizer,
+        optim_input: Optional[
+            Union[
+                List[Dict[str, Any]],
+                Iterable[torch.nn.Parameter],
+            ]
+        ],
+        rank0_only: bool,
+        shard_state: bool,
+        group: Optional[dist.ProcessGroup],
+        using_optim_input: bool,
 ) -> Dict[str, Any]:
     """
     Consolidates the optimizer state and returns it as a :class:`dict`
@@ -1248,10 +1248,10 @@ def _optim_state_dict(
             if to_save:
                 if len(unflat_state) != len(r0_optim_state_key.unflat_param_names):
                     raise RuntimeError("length of unflat_state and r0_optim_state_key.unflat_param_names "
-                                         "are not equal.")
+                                       "are not equal.")
                 for unflat_param_name, unflat_param_state in zip(
-                    r0_optim_state_key.unflat_param_names,
-                    unflat_state,
+                        r0_optim_state_key.unflat_param_names,
+                        unflat_state,
                 ):
                     fsdp_osd_state[unflat_param_name] = unflat_param_state
         elif to_save:
@@ -1284,4 +1284,3 @@ def _optim_state_dict(
         ]  # flatten the list of lists
         fsdp_osd_param_groups.append(unflat_param_group)
     return fsdp_osd
-

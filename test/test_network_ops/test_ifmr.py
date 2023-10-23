@@ -86,8 +86,8 @@ class TestIFMR(TestCase):
     def npu_op_exec(self, input_data, with_offset):
         min_value = torch.min(input_data)
         max_value = torch.max(input_data)
-        min_value = torch.reshape(min_value, (1, ))
-        max_value = torch.reshape(max_value, (1, ))
+        min_value = torch.reshape(min_value, (1,))
+        max_value = torch.reshape(max_value, (1,))
         hist = torch.histc(input_data.to('cpu'),
                            bins=128,
                            min=min_value[0].to('cpu'),

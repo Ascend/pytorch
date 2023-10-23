@@ -27,7 +27,9 @@ class TestNllloss2dBackward(TestCase):
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
+
             return hook
+
         data = Variable(data, requires_grad=True)
         loss = torch.nn.NLLLoss2d(reduction=reduction)
         torch_result = loss(data, target)

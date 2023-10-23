@@ -41,7 +41,7 @@ class SmallModel(torch.nn.Module):
 def run_ops():
     input_1 = torch.rand(10, 10).npu()
     input_2 = torch.rand(10, 10).npu()
-    out = input_1*input_2
+    out = input_1 * input_2
 
 
 def run_small_model():
@@ -75,8 +75,8 @@ def setUp(results_path, use_e2e_profiler=False):
                   {"ACL_PROF_TRAINING_TRACE": False}]
 
     enevtTypeCombinations = list(combinations(enevtTypes, 1)) + list(combinations(enevtTypes, 2)) + \
-        list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
-        list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6))
+                            list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
+                            list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6))
     for events in enevtTypeCombinations:
         temp_events = {}
         for event in events:

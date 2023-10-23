@@ -23,7 +23,6 @@ from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 
 class NpuFusedAdam(NpuFusedOptimizerBase):
-
     """Implements Adam algorithm.
 
     Adam was been proposed in `Adam: A Method for Stochastic Optimization`_.
@@ -116,7 +115,7 @@ class NpuFusedAdam(NpuFusedOptimizerBase):
                 exp_avg_sq_list.append(state['exp_avg_sq'])
                 if amsgrad:
                     max_exp_avg_sq_list.append(state['max_exp_avg_sq'])
-            
+
             combined_step = 0
             combined_exp_avg = None
             combined_exp_avg_sq = None
@@ -127,7 +126,7 @@ class NpuFusedAdam(NpuFusedOptimizerBase):
                 combined_exp_avg = npu_combine_tensors(exp_avg_list)
                 combined_exp_avg_sq = npu_combine_tensors(exp_avg_sq_list)
                 combined_max_exp_avg_sq = npu_combine_tensors(max_exp_avg_sq_list)
-            
+
             combined_state = defaultdict(dict)
             combined_state['step'] = combined_step
             combined_state['exp_avg'] = combined_exp_avg
@@ -139,12 +138,12 @@ class NpuFusedAdam(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
-        
+
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-        
+
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -156,7 +155,7 @@ class NpuFusedAdam(NpuFusedOptimizerBase):
             grad = p.grad
             if grad.is_sparse:
                 raise RuntimeError('NpuFusedAdam does not support sparse gradients, '
-                                    'please consider SparseAdam instead')
+                                   'please consider SparseAdam instead')
             state_p = self.state[p]
             state_p['step'] += 1
 
@@ -167,8 +166,8 @@ class NpuFusedAdam(NpuFusedOptimizerBase):
         combined_group_grads = self.combined_grads_indexed_by_group[group_index]
         combined_group_param_states = self.combined_param_states_indexed_by_group[group_index]
 
-        for combined_param, combined_grad, combined_param_state in zip(combined_group_params, 
-                                                                       combined_group_grads, 
+        for combined_param, combined_grad, combined_param_state in zip(combined_group_params,
+                                                                       combined_group_grads,
                                                                        combined_group_param_states):
             if combined_param is None or combined_grad is None:
                 continue

@@ -30,6 +30,7 @@ def wrap_tensor_warning_func(func):
                   f"will be removed in future version. Use torch_npu.{func.__name__} instead.")
             wrapper.warned = True
         return func(*args, **kwargs)
+
     wrapper.warned = False
     return wrapper
 
@@ -102,6 +103,7 @@ class NpuStorage(object):
 
 
 storage_impl = torch.Tensor.storage
+
 
 def _storage(self):
     if torch_npu._C.is_npu(self):

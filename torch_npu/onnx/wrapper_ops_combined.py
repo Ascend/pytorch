@@ -114,8 +114,8 @@ class NPULayerNormEvalOP(object):
     def forward(input_, normalized_shape, weight=None, bias=None, eps=1e-05):
         if torch.onnx.is_in_onnx_export():
             return torch.layer_norm(input_, normalized_shape, weight, bias, eps, False)
-        return torch_npu._C._VariableFunctionsClass.npu_layer_norm_eval(input_, normalized_shape, 
-                                                                   weight, bias, eps)
+        return torch_npu._C._VariableFunctionsClass.npu_layer_norm_eval(input_, normalized_shape,
+                                                                        weight, bias, eps)
 
 
 class NPUReshapeOP(object):
@@ -165,7 +165,7 @@ class NPUConvolutionOP(object):
             return output
         else:
             return torch_npu._C._VariableFunctionsClass.npu_convolution(input_, weight, bias,
-                                                                   stride, padding, dilation, groups)
+                                                                        stride, padding, dilation, groups)
 
 
 class NPUConvolutionTransposeOP(object):
@@ -257,7 +257,7 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
         return torch_npu.npu_confusion_transpose(x, perm, new_shape, False).contiguous()
 
     @staticmethod
-    def forward(x, kernel_query, kernel_key, kernel_value, gamma, beta, 
+    def forward(x, kernel_query, kernel_key, kernel_value, gamma, beta,
                 bias_query=None, bias_key=None, bias_value=None, seq_len=128, num_heads=12, eps=1e-05):
         if torch.onnx.is_in_onnx_export():
             kernel_query = kernel_query.t().contiguous()
@@ -269,18 +269,18 @@ class NPUFusedAttentionLayernormQkvFwdOP(object):
 
             norm, mean, variance = torch.native_layer_norm(x, norm_shape, gamma, beta, eps=1e-05)
             q_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
-                    torch.nn.functional.linear(norm, kernel_query, bias_query), new_shape)
+                torch.nn.functional.linear(norm, kernel_query, bias_query), new_shape)
             k_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
-                    torch.nn.functional.linear(norm, kernel_key, bias_key), new_shape)
+                torch.nn.functional.linear(norm, kernel_key, bias_key), new_shape)
             v_layer = NPUFusedAttentionLayernormQkvFwdOP.confusion_transpose(
-                    torch.nn.functional.linear(norm, kernel_value, bias_value), new_shape)
+                torch.nn.functional.linear(norm, kernel_value, bias_value), new_shape)
 
             return [norm, q_layer, k_layer, v_layer, mean, variance]
-        
+
         return torch_npu._C._VariableFunctionsClass.npu_fused_attention_layernorm_qkv_fwd(
-                                x, kernel_query, kernel_key, kernel_value, gamma, beta, 
-                                bias_query=bias_query, bias_key=bias_key, bias_value=bias_value, 
-                                seq_len=seq_len, num_heads=num_heads, eps=eps)
+            x, kernel_query, kernel_key, kernel_value, gamma, beta,
+            bias_query=bias_query, bias_key=bias_key, bias_value=bias_value,
+            seq_len=seq_len, num_heads=num_heads, eps=eps)
 
 
 def add_ops_combined_for_onnx():

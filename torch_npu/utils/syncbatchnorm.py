@@ -18,6 +18,7 @@ import torch
 import torch.distributed as dist
 from torch.autograd.function import Function
 
+
 class SyncBatchNorm(Function):
 
     @staticmethod
@@ -28,7 +29,7 @@ class SyncBatchNorm(Function):
         # calculate sum/sum_square for input.
         sum_val, sum_square_val = torch.batch_norm_reduce(input_tensor_, eps)
 
-        count = torch.full((1,), 
+        count = torch.full((1,),
                            input_tensor.numel() // input_tensor.size(1),
                            dtype=sum_val.dtype,
                            device=sum_val.device)

@@ -21,8 +21,8 @@ class DefaultState(object):
     ]
 
     def __init__(
-        self,
-        process_group: dist.ProcessGroup
+            self,
+            process_group: dist.ProcessGroup
     ):
         if process_group is None:
             raise ValueError(f"Expected to pass in an explicit ProcessGroup to {self}.")
@@ -59,9 +59,9 @@ class LowPrecisionState(DefaultState):
     ]
 
     def __init__(
-        self,
-        process_group,
-        parameter_type=torch.float32,
+            self,
+            process_group,
+            parameter_type=torch.float32,
     ):
         super().__init__(process_group)
         self.parameter_type = parameter_type
@@ -167,4 +167,3 @@ def bf16_compress_hook(state: LowPrecisionState, grad: torch.Tensor, output: tor
     """
     bf16_hook = functools.partial(_low_precision_hook, torch.bfloat16)
     return bf16_hook(state, grad, output)
-    

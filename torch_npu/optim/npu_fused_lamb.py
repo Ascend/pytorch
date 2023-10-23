@@ -159,13 +159,13 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
                 if grad.is_sparse:
                     raise RuntimeError('NpuFusedLamb does not support sparse gradients, '
                                        'please consider SparseAdam instead.')
-                
+
                 self._init_param_state(p)
                 state = self.state[p]
                 step_list.append(state['step'])
                 exp_avg_list.append(state['exp_avg'])
                 exp_avg_sq_list.append(state['exp_avg_sq'])
-            
+
             combined_step = 0
             combined_exp_avg = None
             combined_exp_avg_sq = None
@@ -174,7 +174,7 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
                 combined_step = step_list[0]
                 combined_exp_avg = npu_combine_tensors(exp_avg_list)
                 combined_exp_avg_sq = npu_combine_tensors(exp_avg_sq_list)
-            
+
             combined_state = defaultdict(dict)
             combined_state['step'] = combined_step
             combined_state['exp_avg'] = combined_exp_avg
@@ -185,12 +185,12 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
-        
+
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-        
+
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -259,8 +259,8 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
                 combined_param_pow.copy_(combined_param.pow(2))
                 combined_adam_step_pow.copy_(adam_step.pow(2))
 
-                for param_pow, adam_step_pow, trust_ratio in zip(param_pow_list, 
-                                                                 adam_step_pow_list, 
+                for param_pow, adam_step_pow, trust_ratio in zip(param_pow_list,
+                                                                 adam_step_pow_list,
                                                                  trust_ratio_list):
                     weight_norm = param_pow.sum().sqrt().clamp(0, 10)
                     adam_norm = adam_step_pow.sum().sqrt()
@@ -275,7 +275,7 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
     def step(self, closure=None):
         if not self.is_params_grads_combined:
             self._maybe_init_combined_params_and_grads()
-        
+
         if not self.is_states_combined:
             self._maybe_init_combined_states()
 

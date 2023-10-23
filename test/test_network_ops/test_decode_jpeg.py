@@ -97,7 +97,7 @@ class TestDecodeJpeg(TestCase):
 
     def result_error(self, img, image_shape, channels):
         if img.shape[0] != channels or \
-           img.shape[1] != image_shape[0] or img.shape[2] != image_shape[1]:
+                img.shape[1] != image_shape[0] or img.shape[2] != image_shape[1]:
             self.fail("shape error")
         if img.dtype != torch.uint8:
             self.fail("dtype error")

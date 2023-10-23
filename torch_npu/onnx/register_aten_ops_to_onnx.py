@@ -7,13 +7,12 @@ from torch.onnx.symbolic_opset9 import sub, mul, add, pow, sqrt, reciprocal
 
 @symbolic_helper.parse_args("v", "is", "v", "v", "f")
 def native_layer_norm(
-    g,
-    inputs,
-    normalized_shape,
-    weight,
-    bias,
-    eps):
-
+        g,
+        inputs,
+        normalized_shape,
+        weight,
+        bias,
+        eps):
     axes = [-i for i in range(len(normalized_shape), 0, -1)]
 
     two_cst = symbolic_helper._generate_wrapped_number(g, 2.0)

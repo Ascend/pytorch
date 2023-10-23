@@ -73,7 +73,7 @@ def _lazy_init():
                 queued_call()
             except Exception as e:
                 msg = (f"NPU call failed lazily at initialization with error: {str(e)}\n\n"
-                        f"NPU call was originally invoked at:\n\n{orig_traceback}")
+                       f"NPU call was originally invoked at:\n\n{orig_traceback}")
                 raise DeferredNpuCallError(msg) from e
 
     global _initialized, _original_pid, _queued_calls
@@ -121,6 +121,7 @@ def _after_fork(arg):
         _initialized = False
         _in_bad_fork = True
         torch._C._npu_set_run_yet_variable_to_false()
+
 
 _register_after_fork(_after_fork, _after_fork)
 
@@ -174,6 +175,7 @@ def current_device():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDevice()
 
+
 def get_device_name(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
@@ -181,6 +183,7 @@ def get_device_name(device_name=None):
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceProperties(device_id)
     return device_prop.name
+
 
 def get_device_properties(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
@@ -197,6 +200,7 @@ def get_device_capability(device=None):
     warnings.warn("torch_npu.npu.get_device_capability isn't implemented!")
     return None
 
+
 def utilization(device=None):
     r"""Query the comprehensive utilization rate of device
     """
@@ -205,6 +209,7 @@ def utilization(device=None):
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
+
 
 def _get_device_index(device, optional=False):
     r"""Gets the device index from :attr:`device`, which can be a torch.device
@@ -418,14 +423,17 @@ def init_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_initDump()
 
+
 def set_dump(cfg_file):
     torch_npu.npu._lazy_init()
     cfg_file_path = os.path.realpath(cfg_file)
     return torch_npu._C._npu_setDump(cfg_file_path)
 
+
 def finalize_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_finalizeDump()
+
 
 def get_soc_version():
     torch_npu.npu._lazy_init()
@@ -480,4 +488,3 @@ def clear_npu_overflow_flag():
 def current_blas_handle():
     warnings.warn("NPU does not use blas handle.")
     return None
-

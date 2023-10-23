@@ -65,7 +65,7 @@ class TestNpuDiouBackward(TestCase):
             rho2 = ((b2_x1[i] + b2_x2[j] - b1_x1[i] - b1_x2[j]) ** 2 +
                     (b2_y1[i] + b2_y2[j] - b1_y1[i] - b1_y2[j]) ** 2) / 4
             inter_area = (torch.min(b1_x2[i], b2_x2[j]) - torch.max(b1_x1[i], b2_x1[j])).clamp(0) * \
-                (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
+                         (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
             w1, h1 = b1_x2[i] - b1_x1[i], b1_y2[i] - b1_y1[i] + eps
             w2, h2 = b2_x2[j] - b2_x1[j], b2_y2[j] - b2_y1[j] + eps
             union_area = w1 * h1 + w2 * h2 - inter_area + eps
@@ -83,7 +83,7 @@ class TestNpuDiouBackward(TestCase):
         box2_grad = box2_grad.numpy()
         return diou_ij, box1_grad, box2_grad
 
-    def npu_op_exec(self,  box1, box2, trans=False, is_cross=False, mode=0):
+    def npu_op_exec(self, box1, box2, trans=False, is_cross=False, mode=0):
         box1.requires_grad = True
         box2.requires_grad = True
         output = torch_npu.npu_diou(box1, box2, trans, is_cross, mode)

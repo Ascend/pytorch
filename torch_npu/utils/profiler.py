@@ -27,6 +27,7 @@ def Singleton(cls):
         if cls not in _instances:
             _instances[cls] = cls(*args, **kwargs)
         return _instances[cls]
+
     return _singleton
 
 

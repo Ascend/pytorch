@@ -33,7 +33,7 @@ class TestSlowConvDilated2dBackward(TestCase):
     weight_grad = []
     input_grad = []
 
-    def cpu_op_exec(self, input1, weight,  bias1, stride=1, padding=0, dilation=2, groups=1):
+    def cpu_op_exec(self, input1, weight, bias1, stride=1, padding=0, dilation=2, groups=1):
         weight1 = weight
         input1.requires_grad = True
         weight.requires_grad = True
@@ -45,7 +45,7 @@ class TestSlowConvDilated2dBackward(TestCase):
         res_forward = res_forward.detach().numpy()
         return res_forward, input1.grad, weight.grad
 
-    def npu_op_exec(self, input1, weight,  bias1, stride=1, padding=0, dilation=2, groups=1):
+    def npu_op_exec(self, input1, weight, bias1, stride=1, padding=0, dilation=2, groups=1):
         weight1 = weight
 
         input1.requires_grad = True

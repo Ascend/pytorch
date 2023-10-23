@@ -21,7 +21,6 @@ import warnings
 import torch_npu._C
 from torch_npu.utils.path_manager import PathManager
 
-
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_compile_mode", "set_aoe", "profile", "prof_init",
@@ -179,8 +178,8 @@ class npuEvent(object):
 
     def getConfig(self):
         return self.ACL_PROF_ACL_API | self.ACL_PROF_TASK_TIME | self.ACL_PROF_AICORE_METRICS \
-            | self.ACL_PROF_AICPU | self.ACL_PROF_L2CACHE | self.ACL_PROF_HCCL_TRACE \
-            | self.ACL_PROF_TRAINING_TRACE | self.ACL_PROF_RUNTIME_API
+               | self.ACL_PROF_AICPU | self.ACL_PROF_L2CACHE | self.ACL_PROF_HCCL_TRACE \
+               | self.ACL_PROF_TRAINING_TRACE | self.ACL_PROF_RUNTIME_API
 
 
 class aiCoreMetrics(object):

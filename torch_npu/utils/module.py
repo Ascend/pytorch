@@ -35,8 +35,8 @@ import torch_npu.distributed as dist
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
 
-
 logger = logging.getLogger(__name__)
+
 
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
@@ -63,6 +63,7 @@ def npu(self, device=None):
         if is_graph_mode:
             torch_npu.npu.enable_graph_mode()
     return self._apply(lambda t: t.npu(device))
+
 
 def to(self, *args, **kwargs):
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
@@ -99,11 +100,11 @@ def cast_weight(self, device):
     def _format_cast(module, class_name):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
-            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
+            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29)  # ACL_FORMAT_FRACTAL_NZ
 
         if issubclass(class_name, torch.nn.MultiheadAttention) and \
-           module.q_proj_weight is not None and \
-           not torch.npu.get_mm_bmm_format_nd():
+                module.q_proj_weight is not None and \
+                not torch.npu.get_mm_bmm_format_nd():
             module.q_proj_weight.data = module.q_proj_weight.data.to(device)
             module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
             module.k_proj_weight.data = module.k_proj_weight.data.to(device)
@@ -131,11 +132,11 @@ def cast_weight(self, device):
             if module.groups > 1:
                 return
             if hasattr(module, "weight") and module.weight is not None and \
-                "weight" in dict(module.named_parameters()):
+                    "weight" in dict(module.named_parameters()):
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
         if issubclass(class_name, torch.nn.LazyConv3d):
-            return     
+            return
         if issubclass(class_name, torch.nn.Conv3d):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
@@ -149,7 +150,7 @@ def cast_weight(self, device):
     _format_cast(self, current_class)
 
     if not self.children:
-        return 
+        return
 
     for sub_module in self.children():
         if isinstance(sub_module, torch.nn.Module):
@@ -254,12 +255,12 @@ def lstm_forward(self, input1, hx=None):
             if is_batched:
                 if (hx[0].dim() != 3 or hx[1].dim() != 3):
                     msg = ("For batched 3-D input, hx and cx should "
-                            f"also be 3-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors")
+                           f"also be 3-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors")
                     raise RuntimeError(msg)
             else:
                 if hx[0].dim() != 2 or hx[1].dim() != 2:
                     msg = ("For unbatched 2-D input, hx and cx should "
-                            f"also be 2-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors")
+                           f"also be 2-D but got ({hx[0].dim()}-D, {hx[1].dim()}-D) tensors")
                     raise RuntimeError(msg)
                 hx = (hx[0].unsqueeze(1), hx[1].unsqueeze(1))
 
@@ -281,7 +282,7 @@ def lstm_forward(self, input1, hx=None):
                 shape = [result_tmp[0].shape[0] * result_tmp[0].shape[1]]
                 if result_tmp[0].dim() > 2:
                     shape = shape + list(result_tmp[0].shape[2:])
-                result = (result_tmp[0].reshape(shape), ) + result_tmp[1:]
+                result = (result_tmp[0].reshape(shape),) + result_tmp[1:]
         else:
             result = torch._VF.lstm(input1, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
@@ -403,7 +404,7 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
 
 
 def ddp_ddp_init_helper(
-    self, parameters, expect_sparse_gradient, param_to_name_mapping):
+        self, parameters, expect_sparse_gradient, param_to_name_mapping):
     """
     Initialization helper function that does the following:
     (1) bucketing the parameters for reductions
@@ -551,8 +552,8 @@ def _normbase_init_(self, num_features: int, eps: float = 1e-5, momentum: float 
         self.running_mean: Optional[Tensor]
         self.running_var: Optional[Tensor]
         self.register_buffer('num_batches_tracked',
-                                torch.tensor(0, dtype=torch.int32,
-                                            **{k: v for k, v in factory_kwargs.items() if k != 'dtype'}))
+                             torch.tensor(0, dtype=torch.int32,
+                                          **{k: v for k, v in factory_kwargs.items() if k != 'dtype'}))
         self.num_batches_tracked: Optional[Tensor]
     else:
         self.register_buffer('running_mean', None)
@@ -606,6 +607,7 @@ def _lazynormbase__init__(self, eps=1e-5, momentum=0.1, affine=True, track_runni
         self.running_var = UninitializedBuffer(**factory_kwargs)
         self.num_batches_tracked = torch.tensor(
             0, dtype=torch.int32, **{k: v for k, v in factory_kwargs.items() if k != 'dtype'})
+
 
 def gru_forward(self, input_tensor, hx=None):
     orig_input = input_tensor
@@ -674,7 +676,7 @@ def gru_forward(self, input_tensor, hx=None):
                 cat_list = []
                 for i in batch_list:
                     if (i < batch_list[0]):
-                        slice_tensor = result[0][start : cur + i, :]
+                        slice_tensor = result[0][start: cur + i, :]
                         start = cur + i
                         cur = start
                         cat_list.append(slice_tensor)
@@ -699,9 +701,11 @@ def gru_forward(self, input_tensor, hx=None):
             hidden = hidden.squeeze(1)
         return output, self.permute_hidden(hidden, unsorted_indices)
 
+
 @torch_device_guard
 def _parse_to(*args, **kwargs):
     return torch_parse_to(*args, **kwargs)
+
 
 def apply_module_patch():
     torch.nn.Module.npu = npu

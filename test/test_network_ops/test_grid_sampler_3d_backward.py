@@ -34,9 +34,11 @@ class TestGridSampler3DBackward(TestCase):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_sample, npu_sample = create_common_tensor(sample_format, -1, 1)
             cpu_output, cpu_dx, cpu_dgrad = self.op_exec_com(0,
-                                                             cpu_input, cpu_sample, interpolation_mode, padding_mode, align_corners)
+                                                             cpu_input, cpu_sample, interpolation_mode, padding_mode,
+                                                             align_corners)
             npu_output, npu_dx, npu_dgrad = self.op_exec_com(1,
-                                                             npu_input, npu_sample, interpolation_mode, padding_mode, align_corners)
+                                                             npu_input, npu_sample, interpolation_mode, padding_mode,
+                                                             align_corners)
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_dx, npu_dx)
             self.assertRtolEqual(cpu_dgrad, npu_dgrad)

@@ -195,13 +195,13 @@ class FlatParameter(nn.Parameter):
     """
 
     def _init_metadata(
-        self,
-        param_infos: List[ParamInfo],
-        numels: List[int],
-        shapes: List[torch.Size],
-        prefixed_param_names: List[str],
-        shared_param_infos: List[SharedParamInfo],
-        param_extensions: List[Any],
+            self,
+            param_infos: List[ParamInfo],
+            numels: List[int],
+            shapes: List[torch.Size],
+            prefixed_param_names: List[str],
+            shared_param_infos: List[SharedParamInfo],
+            param_extensions: List[Any],
     ) -> None:
         """
         Initializes attributes holding metadata about the original parameters
@@ -259,11 +259,11 @@ class FlatParamHandle:
     # INITIALIZATION #
     ##################
     def __init__(
-        self,
-        params: Sequence[nn.Parameter],
-        module: nn.Module,
-        device: torch.device,
-        config: HandleConfig,
+            self,
+            params: Sequence[nn.Parameter],
+            module: nn.Module,
+            device: torch.device,
+            config: HandleConfig,
     ) -> None:
         super().__init__()
         self.device = device
@@ -273,9 +273,9 @@ class FlatParamHandle:
         self._unflatten(as_params=False)
 
     def _init_flat_param(
-        self,
-        params: Sequence[Optional[nn.Parameter]],
-        module: nn.Module,
+            self,
+            params: Sequence[Optional[nn.Parameter]],
+            module: nn.Module,
     ) -> None:
         """
         Initializes the flattened parameter ``self.flat_param`` by flattening
@@ -333,8 +333,8 @@ class FlatParamHandle:
                     if dtype is None and not param.is_floating_point():
                         raise ValueError("Integer parameters are unsupported")
                     if (
-                        requires_grad is not None
-                        and param.requires_grad != requires_grad
+                            requires_grad is not None
+                            and param.requires_grad != requires_grad
                     ):
                         raise ValueError(
                             "`FlatParameter` requires uniform `requires_grad`"
@@ -370,8 +370,8 @@ class FlatParamHandle:
 
     @staticmethod
     def flatten_params(
-        params: Sequence[torch.Tensor],
-        requires_grad: bool,
+            params: Sequence[torch.Tensor],
+            requires_grad: bool,
     ) -> FlatParameter:
         """
         Flattens the parameters in ``params`` into a single
@@ -417,7 +417,7 @@ class FlatParamHandle:
         local_shard, numel_padded = FlatParamHandle._get_shard(
             flat_param, self.rank, self.world_size
         )
-        
+
         if flat_param.device == torch.device("cpu"):
             flat_param.set_(local_shard)  # type: ignore[call-overload]
             if orig_storage.size() > 0:
@@ -426,15 +426,14 @@ class FlatParamHandle:
             if orig_storage.size() > 0:
                 torch_npu._npu_storage_resize(flat_param, 0)
             flat_param.set_(local_shard)  # type: ignore[call-overload]
-            
+
         self._init_shard_metadata(local_shard.numel(), numel_padded, self.rank)
-        
 
     def _init_shard_metadata(
-        self,
-        sharded_flat_param_numel: int,
-        numel_padded: int,
-        rank: int,
+            self,
+            sharded_flat_param_numel: int,
+            numel_padded: int,
+            rank: int,
     ) -> None:
         """
         Initializes shard-related metadata for this rank's shard of the
@@ -463,9 +462,9 @@ class FlatParamHandle:
         self.flat_param._shard_numel_padded = numel_padded  # type: ignore[attr-defined]
 
     def _get_shard_metadata(
-        self,
-        start: int,
-        end: int,
+            self,
+            start: int,
+            end: int,
     ) -> Tuple[Tuple[Tuple[int, int], ...], Tuple[int, int]]:
         """
         Computes the shard metadata based on ``start`` and ``end``, which give
@@ -518,9 +517,9 @@ class FlatParamHandle:
 
     @staticmethod
     def _get_unpadded_shard(
-        tensor: Tensor,
-        rank: int,
-        world_size: int,
+            tensor: Tensor,
+            rank: int,
+            world_size: int,
     ) -> Tuple[Tensor, int]:
         """
         Returns the shard of ``tensor`` without any padding for the given
@@ -544,9 +543,9 @@ class FlatParamHandle:
 
     @staticmethod
     def _get_shard(
-        tensor: Tensor,
-        rank: int,
-        world_size: int,
+            tensor: Tensor,
+            rank: int,
+            world_size: int,
     ) -> Tuple[Tensor, int]:
         """
         Returns the shard of ``tensor`` with padding for the given ``rank`` and
@@ -625,9 +624,9 @@ class FlatParamHandle:
         """
         ret = False
         if (
-            self.uses_sharded_strategy
-            and not self._config.offload_params
-            and not self.needs_unshard()
+                self.uses_sharded_strategy
+                and not self._config.offload_params
+                and not self.needs_unshard()
         ):
             pass  # no-op
         elif self._uses_param_mixed_precision and not self._force_full_precision:
@@ -688,7 +687,7 @@ class FlatParamHandle:
             return False
         unsharded_flat_param = self._get_padded_unsharded_flat_param()
         already_unsharded = (
-            unsharded_flat_param.storage().size() == unsharded_flat_param.numel()
+                unsharded_flat_param.storage().size() == unsharded_flat_param.numel()
         )
         return not already_unsharded
 
@@ -728,8 +727,8 @@ class FlatParamHandle:
         return unsharded_flat_param
 
     def _all_gather_flat_param(
-        self,
-        padded_unsharded_flat_param: Tensor,
+            self,
+            padded_unsharded_flat_param: Tensor,
     ) -> None:
         """
         All-gathers the handle's flattened parameter to the destination
@@ -754,8 +753,8 @@ class FlatParamHandle:
         self._use_unsharded_flat_param(padded_unsharded_flat_param)
 
     def _use_unsharded_flat_param(
-        self,
-        padded_unsharded_flat_param: torch.Tensor,
+            self,
+            padded_unsharded_flat_param: torch.Tensor,
     ) -> None:
         """
         Switches to using the *unpadded* unsharded flattened parameter, which
@@ -763,8 +762,8 @@ class FlatParamHandle:
         """
         unsharded_size = self.flat_param._unpadded_unsharded_size
         self.flat_param.data = padded_unsharded_flat_param[
-            : unsharded_size.numel()
-        ].view(unsharded_size)
+                               : unsharded_size.numel()
+                               ].view(unsharded_size)
 
     def post_unshard(self):
         """
@@ -793,8 +792,8 @@ class FlatParamHandle:
         )
         flat_param = self.flat_param
         if flat_param.grad is not None and (
-            flat_param.grad.size() != flat_param._unpadded_unsharded_size
-            or flat_param.grad.device != flat_param.device  # grad on CPU
+                flat_param.grad.size() != flat_param._unpadded_unsharded_size
+                or flat_param.grad.device != flat_param.device  # grad on CPU
         ):
             self._check_on_compute_device(self.flat_param)
             grad_offloaded = flat_param.grad.device != self.device
@@ -804,8 +803,8 @@ class FlatParamHandle:
                 f"but got {flat_param.grad.device}",
             )
             prev_iter_synced_gradients = (
-                flat_param.grad.size()
-                == flat_param._local_shard.size()  # type: ignore[attr-defined]
+                    flat_param.grad.size()
+                    == flat_param._local_shard.size()  # type: ignore[attr-defined]
             )
             if prev_iter_synced_gradients:
                 if not grad_offloaded:
@@ -819,9 +818,9 @@ class FlatParamHandle:
                     # _post_backward_hook and assign back in full precision
                     # in _wait_for_post_backward.
                     if (
-                        self._config.keep_low_precision_grads
-                        and flat_param._saved_grad_shard.dtype  # type: ignore[attr-defined]
-                        != flat_param._local_shard.dtype  # type: ignore[attr-defined]
+                            self._config.keep_low_precision_grads
+                            and flat_param._saved_grad_shard.dtype  # type: ignore[attr-defined]
+                            != flat_param._local_shard.dtype  # type: ignore[attr-defined]
                     ):
                         flat_param._saved_grad_shard = flat_param._saved_grad_shard.to(  # type: ignore[attr-defined]
                             flat_param._local_shard.dtype  # type: ignore[attr-defined]
@@ -907,9 +906,9 @@ class FlatParamHandle:
         # it is also the low precision *unsharded* flattened parameter. Hence,
         # we delay the free until the reshard.
         if (
-            self._uses_param_mixed_precision
-            and not self.uses_sharded_strategy
-            and not self._force_full_precision  # did not use the low precision shard
+                self._uses_param_mixed_precision
+                and not self.uses_sharded_strategy
+                and not self._force_full_precision  # did not use the low precision shard
         ):
             self._free_low_precision_sharded_param()
 
@@ -945,8 +944,8 @@ class FlatParamHandle:
     #########
     @staticmethod
     def _get_unflat_views(
-        flat_param: FlatParameter,
-        tensor: Optional[torch.Tensor] = None,
+            flat_param: FlatParameter,
+            tensor: Optional[torch.Tensor] = None,
     ) -> Iterator[Tensor]:
         """
         Returns unflattened ``Tensor`` views into ``tensor`` if it is not
@@ -967,9 +966,9 @@ class FlatParamHandle:
         views = (
             _ext_post_unflatten_transform(subtensor.view(shape), param_extension)
             for (subtensor, shape, param_extension) in zip(
-                torch.split(tensor, flat_param._numels, dim=0),  # type: ignore[arg-type]
-                flat_param._shapes, flat_param._param_extensions,
-            )
+            torch.split(tensor, flat_param._numels, dim=0),  # type: ignore[arg-type]
+            flat_param._shapes, flat_param._param_extensions,
+        )
         )
         return views
 
@@ -994,12 +993,12 @@ class FlatParamHandle:
             else:
                 setattr(module, param_name, view)
         for (
-            param_name,
-            module,
-            _,
-            prim_param_name,
-            prim_module,
-            _,
+                param_name,
+                module,
+                _,
+                prim_param_name,
+                prim_module,
+                _,
         ) in self.flat_param._shared_param_infos:
             if hasattr(module, param_name):
                 delattr(module, param_name)
@@ -1054,7 +1053,7 @@ class FlatParamHandle:
             ) in self.flat_param._shared_param_infos
         ]
         for param_name, _, module_name in chain(
-            self.flat_param._param_infos, shared_param_infos
+                self.flat_param._param_infos, shared_param_infos
         ):
             yield (param_name, module_name)
 
@@ -1112,6 +1111,6 @@ class FlatParamHandle:
     @property
     def _force_full_precision(self) -> bool:
         return (
-            self._training_state == HandleTrainingState.SUMMON_FULL_PARAMS
-            and self._uses_param_mixed_precision
+                self._training_state == HandleTrainingState.SUMMON_FULL_PARAMS
+                and self._uses_param_mixed_precision
         )

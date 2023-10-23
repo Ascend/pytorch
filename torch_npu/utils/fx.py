@@ -41,11 +41,13 @@ class _CustomBuiltin(NamedTuple):
     # The actual object, produced from that import string.
     obj: Any
 
+
 _custom_builtins: Dict[str, _CustomBuiltin] = {}
 
 
 def _register_custom_builtin(name: str, import_str: str, obj: Any):
     _custom_builtins[name] = _CustomBuiltin(import_str, obj)
+
 
 _register_custom_builtin('inf', 'from math import inf', math.inf)
 _register_custom_builtin('nan', 'from math import nan', math.nan)
@@ -57,7 +59,7 @@ _register_custom_builtin('pytree', 'import torch.utils._pytree as pytree', pytre
 _register_custom_builtin('torch_npu', 'import torch_npu', torch_npu)
 
 
-def to_folder(self, folder: Union[str, os.PathLike], module_name : str = "FxModule"):
+def to_folder(self, folder: Union[str, os.PathLike], module_name: str = "FxModule"):
     """Dumps out module to ``folder`` with ``module_name`` so that it can be
     imported with ``from <folder> import <module_name>``
     Args:
@@ -93,15 +95,15 @@ class {module_name}(torch.nn.Module):
             blobified_modules.append(module_name)
             module_repr = module.__repr__().replace('\r', ' ').replace('\n', ' ')
             module_str = f"torch.load(r'{module_file}') # {module_repr}"
-        model_str += f"{tab*2}self.{module_name} = {module_str}\n"
+        model_str += f"{tab * 2}self.{module_name} = {module_str}\n"
 
     for buffer_name, buffer in self._buffers.items():
-        model_str += f"{tab*2}self.register_buffer('{buffer_name}', torch.empty({list(buffer.shape)}))\n"
+        model_str += f"{tab * 2}self.register_buffer('{buffer_name}', torch.empty({list(buffer.shape)}))\n"
 
     for param_name, param in self._parameters.items():
-        model_str += f"{tab*2}self.{param_name} = torch.nn.Parameter(torch.empty({list(buffer.shape)}))\n"
+        model_str += f"{tab * 2}self.{param_name} = torch.nn.Parameter(torch.empty({list(buffer.shape)}))\n"
 
-    model_str += f"{tab*2}self.load_state_dict(torch.load(r'{folder}/state_dict.pt'))\n{tab}"
+    model_str += f"{tab * 2}self.load_state_dict(torch.load(r'{folder}/state_dict.pt'))\n{tab}"
     model_str += f"{_addindent(self.code, 4)}\n"
 
     module_file = folder / 'module.py'
@@ -112,7 +114,7 @@ class {module_name}(torch.nn.Module):
 
     if len(blobified_modules) > 0:
         warnings.warn("Was not able to save the following children modules as reprs -"
-                        f"saved as pickled files instead: {blobified_modules}")
+                      f"saved as pickled files instead: {blobified_modules}")
 
 
 def add_fx_methods():

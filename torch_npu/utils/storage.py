@@ -15,7 +15,7 @@
 
 from typing import Any, Dict, Tuple, Union
 from collections import OrderedDict
-import torch 
+import torch
 import torch._C as _C
 from torch import _storage_classes
 from torch.cuda import _CudaBase

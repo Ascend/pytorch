@@ -20,7 +20,6 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 from torch_npu.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler as NpuShardedGradScaler
 
-
 import torch
 import torch.distributed as dist
 import torch.nn as nn

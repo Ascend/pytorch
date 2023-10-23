@@ -57,17 +57,17 @@ class TestMaskedFillRange(TestCase):
     def test_normalize_batch(self):
         shape_format = [
             [[np.float32, -1, [32, 64, 1688]],
-                [list(range(0, 32))],
-                [list(range(6, 38))], [[1], torch.float32], 2],
+             [list(range(0, 32))],
+             [list(range(6, 38))], [[1], torch.float32], 2],
             [[np.float16, -1, [32, 64, 1688]],
-                [list(range(0, 32))],
-                [list(range(6, 38))], [[1], torch.float16], 2],
+             [list(range(0, 32))],
+             [list(range(6, 38))], [[1], torch.float16], 2],
             [[np.int32, -1, [32, 64, 1688]],
-                [list(range(0, 32))],
-                [list(range(6, 38))], [[1], torch.int32], 2],
+             [list(range(0, 32))],
+             [list(range(6, 38))], [[1], torch.int32], 2],
             [[np.int8, -1, [32, 64, 1688]],
-                [list(range(0, 32))],
-                [list(range(6, 38))], [[1], torch.int8], 2],
+             [list(range(0, 32))],
+             [list(range(6, 38))], [[1], torch.int8], 2],
         ]
         for item in shape_format:
             axis = item[-1]

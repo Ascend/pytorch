@@ -71,7 +71,7 @@ class ProfilerConfig:
             return syscnt
         else:
             timestamp = float(syscnt - self._start_cnt) / \
-                    self._freq * time_fmt + self._time_offset
+                        self._freq * time_fmt + self._time_offset
             return timestamp
 
     def load_syscnt_info(self, profiler_path: str, info_json: dict):
@@ -98,7 +98,7 @@ class ProfilerConfig:
             if self.is_number(str(config_offset)) and self.is_number(str(config_start_cnt)):
                 self._time_offset = float(config_offset)
                 self._start_cnt = float(config_start_cnt)
-        else: 
+        else:
             # 保存的offset 和 cnt
             self._time_offset = start_info.get(Constant.StartMonotonic, self._time_offset)
             self._start_cnt = start_info.get(Constant.StartCnt, self._start_cnt)

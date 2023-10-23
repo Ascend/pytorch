@@ -23,6 +23,7 @@ from torch.distributed.elastic.multiprocessing import Std
 
 import torch_npu
 
+
 @dataclass
 class LaunchConfig:
     min_nodes: int
@@ -51,6 +52,7 @@ class LaunchConfig:
             self.rdzv_configs["timeout"] = default_timeout
         if self.rdzv_backend == 'static':
             self.rdzv_configs["rank"] = int(os.environ.get('NODE_RANK', self.rdzv_configs["rank"]))
+
 
 def add_launch_methods():
     torch.distributed.launcher.api.LaunchConfig = LaunchConfig

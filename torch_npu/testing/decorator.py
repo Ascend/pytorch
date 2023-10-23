@@ -27,16 +27,17 @@ def feed_data(func, new_name, *args, **kwargs):
     """
     This internal method decorator feeds the test data item to the test.
     """
+
     @wraps(func)
     def wrapper(self):
         return func(self, *args, **kwargs)
+
     wrapper.__name__ = new_name
     wrapper.__wrapped__ = func
     return wrapper
 
 
 def instantiate_tests(arg=None, **kwargs):
-
     def wrapper(cls):
         def gen_testcase(cls, func, name, key_list, func_args, value):
             new_kwargs = dict(device="npu") if "device" in func_args else {}
@@ -98,7 +99,7 @@ def gen_ops_testcase(cls, func, name, keys, value, op_info):
 
 def gen_op_input(testcase, func, op_info):
     data = {
-        'dtype': func.dtypes if hasattr(func, "dtypes") else op_info.dtypesIfNPU, 
+        'dtype': func.dtypes if hasattr(func, "dtypes") else op_info.dtypesIfNPU,
         'npu_format': func.formats if hasattr(func, "formats") else op_info.formats
     }
 
@@ -112,10 +113,9 @@ def gen_op_input(testcase, func, op_info):
 
 
 def instantiate_ops_tests(op_db):
-
     def wrapper(cls):
         testcases = [x for x in dir(cls) if x.startswith('test_')]
-        for testcase in testcases: 
+        for testcase in testcases:
             if hasattr(cls, testcase):
                 func = getattr(cls, testcase)
                 for op_info in op_db:
@@ -129,7 +129,7 @@ def instantiate_ops_tests(op_db):
                 delattr(cls, testcase)
 
         return cls
-        
+
     return wrapper
 
 
@@ -137,16 +137,19 @@ def graph_mode(func):
     if os.getenv("GRAPH_MODE_TEST") == '1':
         logging.basicConfig(level=logging.INFO, format="%(message)s")
         logging.info("graph mode on")
+
         def wrapper(*args, **kw):
             logging.info("runing: {}".format(func.__name__))
             torch.npu.enable_graph_mode()
             func(*args, **kw)
             logging.info("graph mode off")
             torch.npu.disable_graph_mode()
+
         return wrapper
-    
+
     def wrapper(*args, **kw):
         func(*args, **kw)
+
     return wrapper
 
 

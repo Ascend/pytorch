@@ -6,7 +6,6 @@ import types
 import torch
 import torch_npu
 
-
 import torch.distributed as dist
 from torch.distributed._shard.sharded_tensor import ShardedTensor
 from torch_npu.distributed.fsdp import (

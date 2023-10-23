@@ -27,7 +27,7 @@ class TestBboxCoder(TestCase):
         bboxes = bboxes.npu()
         gt_bboxes = gt_bboxes.npu()
         npuout_1 = npu_bbox_coder_encode_xyxy2xywh(bboxes, gt_bboxes)
-        npuout_2 = npu_bbox_coder_encode_xyxy2xywh(bboxes/512., gt_bboxes/512.,
+        npuout_2 = npu_bbox_coder_encode_xyxy2xywh(bboxes / 512., gt_bboxes / 512.,
                                                    is_normalized=True, normalized_scale=512.)
         expect_cpu = torch.tensor([[-1.1562e+01, -1.4492e+00, 2.8105e+00, -1.1855e+00],
                                    [-3.1465e+00, -1.1826e+00, 1.2939e+00, 1.2314e+00],

@@ -27,14 +27,14 @@ class TestSignBitsUnpack(TestCase):
         unpack_data = np.unpackbits(in_data, bitorder="little")
         unpack_data = unpack_data.astype(dtype)
         unpack_data = (unpack_data - 0.5) * 2.0
-        return unpack_data.reshape(size, unpack_data.shape[0]//size)
+        return unpack_data.reshape(size, unpack_data.shape[0] // size)
 
     def cpu_op_exec(self, cpu_input, destype, size):
         cup_out = self.sign_unpack(cpu_input, size, destype)
         return cup_out
 
     def npu_op_exec(self, npu_input, destype, size):
-        if(destype == "float16"):
+        if (destype == "float16"):
             nup_out = torch_npu.npu_sign_bits_unpack(npu_input, size, torch.float16)
         elif destype == "float32":
             nup_out = torch_npu.npu_sign_bits_unpack(npu_input, size, torch.float32)
@@ -43,7 +43,7 @@ class TestSignBitsUnpack(TestCase):
         return nup_out
 
     def test_sign_bits_unpack(self, device="npu"):
-        shape = np.random.uniform(1, 10**5, 1)
+        shape = np.random.uniform(1, 10 ** 5, 1)
         shape = shape // (10 ** int(np.random.uniform(0, int(np.log10(shape) + 1), 1)))
         shape = max(int(shape), 1)
         size = int(np.random.uniform(1, 100))

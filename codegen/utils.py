@@ -60,6 +60,7 @@ class YamlLoader(Loader):
         mapping = super().construct_mapping(node, deep=deep)  # type: ignore[no-untyped-call]
         return mapping
 
+
 # Many of these functions share logic for defining both the definition
 # and declaration (for example, the function signature is the same), so
 # we organize them into one function that takes a Target to say which
@@ -134,8 +135,10 @@ def split_name_params(schema: str) -> Tuple[str, List[str]]:
     name, _, params = m.groups()
     return name, params.split(', ')
 
+
 T = TypeVar('T')
 S = TypeVar('S')
+
 
 # These two functions purposely return generators in analogy to map()
 # so that you don't mix up when you need to list() them
@@ -201,6 +204,7 @@ def merge_yaml(base_data, additional_data):
 def merge_custom_yaml(pta_path, op_plugin_path):
     def parse_op_name(value):
         return value["func"].split("(")[0] if isinstance(value, dict) else value
+
     pta_es = parse_npu_yaml(pta_path)
     op_es = parse_npu_yaml(op_plugin_path)
 

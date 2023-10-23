@@ -52,9 +52,9 @@ class TestReplay(TestCase):
         steps = 1000
         device = "npu:0" if torch.npu.is_available() else "cpu"
         n_data = torch.ones(10, 2)
-        x0 = torch.normal(2*n_data, 1)
+        x0 = torch.normal(2 * n_data, 1)
         y0 = torch.zeros(10)
-        x1 = torch.normal(-2*n_data, 1)
+        x1 = torch.normal(-2 * n_data, 1)
         y1 = torch.ones(10)
         x = torch.cat((x0, x1)).type(torch.FloatTensor).to(device)
         y = torch.cat((y0, y1)).type(torch.LongTensor).to(device)

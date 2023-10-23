@@ -22,7 +22,6 @@ from torch.optim.optimizer import required
 from torch_npu.utils import npu_combine_tensors
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
-
 WARMUP_DEFAULT = 0.002
 DEGREE_DEFAULT = 0.5
 
@@ -30,7 +29,7 @@ DEGREE_DEFAULT = 0.5
 def _clip_grad_norm_(combined_param, combined_grad, max_norm):
     if combined_param is None or combined_grad is None:
         return
-    norm_type =2.0
+    norm_type = 2.0
     total_norm = combined_grad.float().abs().pow(norm_type).sum().pow(1. / norm_type)
     clip_coef = max_norm / (total_norm + 1e-6)
     if clip_coef < 1.:
@@ -58,14 +57,14 @@ def warmup_linear(x, warmup=WARMUP_DEFAULT):
 def warmup_poly(x, warmup=WARMUP_DEFAULT, degree=DEGREE_DEFAULT):
     if x < warmup:
         return x / warmup
-    return (1.0 - x)**degree
+    return (1.0 - x) ** degree
 
 
 SCHEDULES = {
-    'warmup_cosine':warmup_cosine,
-    'warmup_constant':warmup_constant,
-    'warmup_linear':warmup_linear,
-    'warmup_poly':warmup_poly,
+    'warmup_cosine': warmup_cosine,
+    'warmup_constant': warmup_constant,
+    'warmup_linear': warmup_linear,
+    'warmup_poly': warmup_poly,
 }
 
 
@@ -162,12 +161,12 @@ class NpuFusedBertAdam(NpuFusedOptimizerBase):
     def _maybe_init_combined_states(self):
         if self.is_states_combined:
             return
-        
+
         self.combined_param_states_indexed_by_group = len(self.param_groups) * [None]
 
         for i, _ in enumerate(self.param_groups):
             self._combine_group_param_states(i)
-        
+
         if not all(value is None for value in self.combined_param_states_indexed_by_group):
             self.is_states_combined = True
 
@@ -182,9 +181,9 @@ class NpuFusedBertAdam(NpuFusedOptimizerBase):
 
         # loop for dtypes
         for combined_param, combined_grad, combined_param_state in zip(
-            combined_group_params,
-            combined_group_grads,
-            combined_group_param_states):
+                combined_group_params,
+                combined_group_grads,
+                combined_group_param_states):
 
             if combined_param is None or combined_grad is None:
                 continue

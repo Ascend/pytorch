@@ -40,11 +40,10 @@ class TestAddmv(TestCase):
 
     def test_addmv_fp16(self, device="npu"):
         shape_format = [
-            [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2, )]]
+            [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2,)]]
 
         ]
         for item in shape_format:
-
             input_a, npu_input_a = create_common_tensor(item[0], -2, 2)
             input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
             input_c, npu_input_c = create_common_tensor(item[2], -2, 2)
@@ -61,11 +60,10 @@ class TestAddmv(TestCase):
 
     def test_addmv_out_fp16(self, device="npu"):
         shape_format = [
-            [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2, )], [np.float16, 3, (10,)]]
+            [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2,)], [np.float16, 3, (10,)]]
 
         ]
         for item in shape_format:
-
             input_a, npu_input_a = create_common_tensor(item[0], -2, 2)
             input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
             input_c, npu_input_c = create_common_tensor(item[2], -2, 2)
@@ -83,11 +81,10 @@ class TestAddmv(TestCase):
 
     def test_addmv_fp32(self, device="npu"):
         shape_format = [
-            [[np.float32, 0, (2, 3)], [np.float32, 0, (3,)], [np.float32, 0, (2, )]],
-            [[np.float32, 0, (3168, 320)], [np.float32, 0, (320,)], [np.float32, 0, (3168, )]],
+            [[np.float32, 0, (2, 3)], [np.float32, 0, (3,)], [np.float32, 0, (2,)]],
+            [[np.float32, 0, (3168, 320)], [np.float32, 0, (320,)], [np.float32, 0, (3168,)]],
         ]
         for item in shape_format:
-
             input_a, npu_input_a = create_common_tensor(item[0], -2, 2)
             input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
             input_c, npu_input_c = create_common_tensor(item[2], -2, 2)

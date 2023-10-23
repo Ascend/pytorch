@@ -24,10 +24,10 @@ class TestSignBitsUnpack(TestCase):
 
     def custom_sign_unpack(self, input_data, size, dtype):
         bits = 8
-        mask = 2**torch.arange(bits).to(input_data.device, input_data.dtype)
+        mask = 2 ** torch.arange(bits).to(input_data.device, input_data.dtype)
         unpack_data = input_data.unsqueeze(-1).bitwise_and(mask).ne(0).byte().reshape(-1).to(dtype)
         unpack_data = (unpack_data - 0.5) * 2.0
-        return unpack_data.reshape(size, unpack_data.shape[0]//size)
+        return unpack_data.reshape(size, unpack_data.shape[0] // size)
 
     def custom_op_exec(self, input_data, dtype, size):
         output = self.custom_sign_unpack(input_data, size, dtype)
@@ -38,7 +38,7 @@ class TestSignBitsUnpack(TestCase):
         return nup_out.cpu().numpy()
 
     def test_sign_bits_unpack(self):
-        shape = np.random.uniform(1, 10**5, 1)
+        shape = np.random.uniform(1, 10 ** 5, 1)
         shape = shape // (10 ** int(np.random.uniform(0, int(np.log10(shape) + 1), 1)))
         shape = max(int(shape), 1)
         size = int(np.random.uniform(1, 100))

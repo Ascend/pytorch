@@ -32,7 +32,7 @@ class TestBn2d(TestCase):
         tmp.backward(w)
         output = input1.grad
         output = output.detach().numpy()
-        return output,  input_cpu
+        return output, input_cpu
 
     def npu_op_exec_new(self, input1, dim):
         w = torch.ones_like(input1)

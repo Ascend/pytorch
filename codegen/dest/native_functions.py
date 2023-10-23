@@ -23,6 +23,7 @@ from codegen.api.signature import kernel_signature
 import codegen.api.meta as meta
 import codegen.api.structured as structured
 
+
 @with_native_function_and_index
 def gen_unstructured(f: NativeFunction, backend_index: BackendIndex) -> Optional[str]:
     sig = kernel_signature(f, backend_index)
@@ -38,6 +39,7 @@ def gen_unstructured(f: NativeFunction, backend_index: BackendIndex) -> Optional
             prefix = '__attribute__((__visibility__("default"))) ' + prefix
         return f"{prefix} {sig.decl(name=metadata.kernel)};"
 
+
 @with_native_function_and_index
 def gen_structured(g: NativeFunctionsGroup, backend_index: BackendIndex) -> List[str]:
     meta_name = meta.name(g)
@@ -51,6 +53,7 @@ struct {prefix}structured_{metadata.kernel} : public at::meta::structured_{meta_
 void impl({', '.join(a.decl() for a in out_args)});
 }};
 """]
+
 
 # Generates NativeFunctions.h, a list of forward declarations of all
 # actual kernel definitions we keep in aten/src/ATen/native/

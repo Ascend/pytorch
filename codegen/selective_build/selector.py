@@ -35,7 +35,6 @@ from codegen.utils import PathManager
 #
 @dataclass(frozen=True)
 class SelectiveBuilder:
-
     # If true, then the build is not selective, and includes all
     # operators.
     include_all_operators: bool
@@ -184,8 +183,8 @@ class SelectiveBuilder:
             base_op = self.operators[name]
 
         return (
-            op.is_used_for_training or
-            (base_op.include_all_overloads and base_op.is_used_for_training)
+                op.is_used_for_training or
+                (base_op.include_all_overloads and base_op.is_used_for_training)
         )
 
     def is_native_function_selected_for_training(self, func: NativeFunction) -> bool:
@@ -244,6 +243,7 @@ def merge_kernel_metadata(
         kernel_metadata[tag_name] = list(dtypes_copy)
 
     return kernel_metadata
+
 
 def combine_selective_builders(lhs: SelectiveBuilder, rhs: SelectiveBuilder) -> SelectiveBuilder:
     include_all_operators = lhs.include_all_operators or rhs.include_all_operators

@@ -93,7 +93,7 @@ class TestThnnConvDepthwise2d(TestCase):
             self.input_grad[0] = self.input_grad[0].to(self.input_grad[1].dtype)
             self.weight_grad[0] = self.weight_grad[0].to(self.weight_grad[1].dtype)
 
-            if(item[0][0] == np.float32):
+            if (item[0][0] == np.float32):
                 self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy(), prec=1e-2)
                 self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy(), prec=1e-1)
             else:

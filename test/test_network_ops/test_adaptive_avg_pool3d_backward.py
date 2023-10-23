@@ -32,7 +32,7 @@ class TestAdaptiveAvgPool3dBackward(TestCase):
         out = input_x.grad
         return out.numpy()
 
-    def npu_op_exec(self, input_x,  output_size):
+    def npu_op_exec(self, input_x, output_size):
         input_x.requires_grad_(True)
         m = torch.nn.AdaptiveAvgPool3d(output_size)
         output = m(input_x)

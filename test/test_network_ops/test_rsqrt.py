@@ -84,13 +84,13 @@ class TestRsqrt(TestCase):
     def test_rsqrt_out_result(self, device="npu"):
         shape_format = [
             [[np.float16, -1, [128, 116, 14, 14]], [np.float16, -1, [256, 116, 1, 1]]],
-            [[np.float16, 0, [128, 58, 28, 28]],  [np.float16, 0, [58, 58, 1, 1]]],
+            [[np.float16, 0, [128, 58, 28, 28]], [np.float16, 0, [58, 58, 1, 1]]],
             [[np.float16, 0, [128, 3, 224, 224]], [np.float16, 0, [3, 3, 3, 3]]],
             [[np.float16, -1, [128, 116, 14, 14]], [np.float16, -1, [128, 116, 14, 14]]],
-            [[np.float32, 0, [256, 128, 7, 7]],   [np.float32, 0, [128, 128, 3, 3]]],
+            [[np.float32, 0, [256, 128, 7, 7]], [np.float32, 0, [128, 128, 3, 3]]],
             [[np.float32, 0, [256, 3, 224, 224]], [np.float32, 0, [3, 3, 7, 7]]],
-            [[np.float32, -1, [2, 3, 3, 3]],       [np.float32, -1, [3, 1, 3, 3]]],
-            [[np.float32, -1, [128, 232, 7, 7]],   [np.float32, -1, [128, 232, 7, 7]]],
+            [[np.float32, -1, [2, 3, 3, 3]], [np.float32, -1, [3, 1, 3, 3]]],
+            [[np.float32, -1, [128, 232, 7, 7]], [np.float32, -1, [128, 232, 7, 7]]],
         ]
         self.rsqrt_out_result(shape_format)
 

@@ -38,6 +38,7 @@ class TestMseLossGrad(TestCase):
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
+
             return hook
 
         input1 = Variable(input1, requires_grad=True)
@@ -58,6 +59,7 @@ class TestMseLossGrad(TestCase):
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
+
             return hook
 
         input1 = input1.to("npu")
@@ -80,6 +82,7 @@ class TestMseLossGrad(TestCase):
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
+
             return hook
 
         input1 = Variable(input1, requires_grad=True)
@@ -100,6 +103,7 @@ class TestMseLossGrad(TestCase):
         def save_grad(name):
             def hook(grad):
                 grads[name] = grad
+
             return hook
 
         input1 = input1.to("npu")

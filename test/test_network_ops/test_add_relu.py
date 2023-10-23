@@ -33,7 +33,7 @@ class TestAddRelu(TestCase):
         return output
 
     def npu_op_exec_new_out(self, input1, input2, output):
-        torch._VF._add_relu(input1, input2, out=output,  alpha=1)
+        torch._VF._add_relu(input1, input2, out=output, alpha=1)
         output = output.to("cpu")
         output = output.numpy()
         return output
