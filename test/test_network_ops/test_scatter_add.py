@@ -23,7 +23,7 @@ class TestScatterAdd(TestCase):
         output = output.numpy()
         return output
 
-    def npu_op_exec(self, input1,  dim, index, src):
+    def npu_op_exec(self, input1, dim, index, src):
         output = torch.scatter_add(input1, dim, index, src)
         output = output.to("cpu")
         output = output.numpy()

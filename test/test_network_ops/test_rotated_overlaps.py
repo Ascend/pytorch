@@ -41,7 +41,7 @@ class TestRotatedOverlaps(TestCase):
                                 [0., 0.]]], dtype=np.float32)
         return output
 
-    def npu_op_exec(self,  box1, box2, trans=False):
+    def npu_op_exec(self, box1, box2, trans=False):
         output = torch_npu.npu_rotated_overlaps(box1, box2, trans)
         output = output.detach().cpu().numpy()
         return output

@@ -75,7 +75,7 @@ class TestNpuGiou(TestCase):
         res = np.transpose(res)
         return res
 
-    def npu_op_exec(self,  box1, box2, trans=False, is_cross=False, mode=0):
+    def npu_op_exec(self, box1, box2, trans=False, is_cross=False, mode=0):
         output = torch_npu.npu_giou(box1, box2, trans, is_cross, mode)
         output = output.detach().cpu().numpy()
         return output

@@ -36,7 +36,7 @@ class TestAsin(TestCase):
 
     def test_asin_out_common_shape_format(self, device="npu"):
         shape_format = [
-            [[np.float32, 0, (4, 3)],    [np.float32, 0, (4, 3)]],
+            [[np.float32, 0, (4, 3)], [np.float32, 0, (4, 3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -1, 1)

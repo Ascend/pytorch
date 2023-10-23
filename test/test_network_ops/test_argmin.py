@@ -17,7 +17,7 @@ class TestArgmin(TestCase):
         expectedOutput = [0.0000, 0.2689, 0.5, 0.6225, 0.7311, 0.8808, 1.000]
         precision_4dps = 0.0002
         a = torch.tensor(inputValues, dtype=dtype, device=device)
-        self.assertRtolEqual(torch.tensor(inputValues,    dtype=dtype, device=device).sigmoid().cpu(),
+        self.assertRtolEqual(torch.tensor(inputValues, dtype=dtype, device=device).sigmoid().cpu(),
                              torch.tensor(expectedOutput, dtype=dtype, device=device).cpu(),
                              precision_4dps)
 
@@ -38,14 +38,14 @@ class TestArgmin(TestCase):
 
     def test_argmin_shape_format(self):
         shape_format = [
-            [[np.float32, 0, (6, 4)],       0, False],
-            [[np.float32, 2, (6, 4)],       1, True],
-            [[np.float32, 0, (2, 4, 5)],    2, True],
+            [[np.float32, 0, (6, 4)], 0, False],
+            [[np.float32, 2, (6, 4)], 1, True],
+            [[np.float32, 0, (2, 4, 5)], 2, True],
             [[np.float32, 0, (1, 2, 3, 3)], 2, False],
             [[np.float32, 0, (1, 2, 3, 3)], 3, True],
-            [[np.float16, 0, (6, 4)],       0, False],
-            [[np.float16, 2, (6, 4)],       1, True],
-            [[np.float16, 0, (2, 4, 5)],    2, True],
+            [[np.float16, 0, (6, 4)], 0, False],
+            [[np.float16, 2, (6, 4)], 1, True],
+            [[np.float16, 0, (2, 4, 5)], 2, True],
             [[np.float16, 3, (1, 2, 3, 3)], 2, False],
             [[np.float16, 0, (1, 2, 3, 3)], 3, True],
         ]

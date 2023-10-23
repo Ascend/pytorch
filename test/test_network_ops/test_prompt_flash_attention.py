@@ -18,7 +18,8 @@ class TestPromptFlashAttetion(TestCase):
 
     def prompt_flash_attention_npu(self, q, k, v, head_dim):
         scale = 1 / 0.0078125
-        return torch_npu.npu_prompt_flash_attention(q, k, v, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535)
+        return torch_npu.npu_prompt_flash_attention(
+            q, k, v, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535)
 
     def test_op_exec(self):
         q = torch.randn(1, 32, 2048, 128, dtype=torch.float16).npu()

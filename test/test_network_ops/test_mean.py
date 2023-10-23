@@ -22,7 +22,7 @@ class TestMean(TestCase):
 
     def test_mean_shape_format(self):
         shape_format = [
-            [[np.float32, 3, (256, 1280, 7, 7)],  torch.float32],
+            [[np.float32, 3, (256, 1280, 7, 7)], torch.float32],
             [[np.float16, 3, (1024, 1024, 7, 7)], torch.float32],
 
         ]
