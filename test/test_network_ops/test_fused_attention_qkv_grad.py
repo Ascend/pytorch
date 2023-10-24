@@ -68,7 +68,7 @@ class TestFusedAttentionQKV(TestCase):
         loss = (q_layer + k_layer + v_layer).mean() * 1000
         loss.backward()
         return hidden_states.grad.cpu(), q_kernel.grad.cpu(), k_kernel.grad.cpu(), v_kernel.grad.cpu(), \
-               q_bias.grad.cpu(), k_bias.grad.cpu(), v_bias.grad.cpu()
+            q_bias.grad.cpu(), k_bias.grad.cpu(), v_bias.grad.cpu()
 
     def npu_op_exec_fused(self, hidden_states, q_kernel, k_kernel, v_kernel, q_bias, k_bias, v_bias):
         hidden_states.requires_grad = True
@@ -86,7 +86,7 @@ class TestFusedAttentionQKV(TestCase):
         loss = (q_layer + k_layer + v_layer).mean() * 1000
         loss.backward()
         return hidden_states.grad.cpu(), q_kernel.grad.cpu(), k_kernel.grad.cpu(), v_kernel.grad.cpu(), \
-               q_bias.grad.cpu(), k_bias.grad.cpu(), v_bias.grad.cpu()
+            q_bias.grad.cpu(), k_bias.grad.cpu(), v_bias.grad.cpu()
 
     def test_fused_attention_qkv_grad_bert_large(self):
         hidden_states = torch.rand(24, 512, 1024).uniform_(-5, 5).half()

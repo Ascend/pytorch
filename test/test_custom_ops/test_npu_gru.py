@@ -27,14 +27,14 @@ class TestGru(TestCase):
                     seq_length, num_layers, has_biases=True, batch_first=False, dropout=0.0, bidirectional=False):
         """
         def gru(
-            data: Tensor, 
-            batch_sizes: Tensor, 
-            hx: Tensor, 
-            params: Union[Tuple[Tensor, ...], List[Tensor]], 
-            has_biases: _bool, 
-            num_layers: _int, 
-            dropout: _float, 
-            train: _bool, 
+            data: Tensor,
+            batch_sizes: Tensor,
+            hx: Tensor,
+            params: Union[Tuple[Tensor, ...], List[Tensor]],
+            has_biases: _bool,
+            num_layers: _int,
+            dropout: _float,
+            train: _bool,
             bidirectional: _bool
             ) -> Tuple[Tensor, Tensor]: ...
 
@@ -42,14 +42,14 @@ class TestGru(TestCase):
                              self.num_layers, self.dropout, self.training, self.bidirectional)
 
         def gru(
-            input: Tensor, 
-            hx: Tensor, 
-            params: Union[Tuple[Tensor, ...], List[Tensor]], 
-            has_biases: _bool, 
-            num_layers: _int, 
-            dropout: _float, 
-            train: _bool, 
-            bidirectional: _bool, 
+            input: Tensor,
+            hx: Tensor,
+            params: Union[Tuple[Tensor, ...], List[Tensor]],
+            has_biases: _bool,
+            num_layers: _int,
+            dropout: _float,
+            train: _bool,
+            bidirectional: _bool,
             batch_first: _bool
             ) -> Tuple[Tensor, Tensor]: ...
 
@@ -69,18 +69,18 @@ class TestGru(TestCase):
                     seq_length, num_layers, has_biases=True, batch_first=False, dropout=0.0, bidirectional=False):
         """
         npu_gru(
-            Tensor input, 
-            Tensor hx, 
-            Tensor weight_input, 
-            Tensor weight_hidden, 
-            Tensor bias_input, 
-            Tensor bias_hidden, 
-            Tensor seq_length, 
-            bool has_biases, 
-            int num_layers, 
-            float dropout, 
-            bool train, 
-            bool bidirectional, 
+            Tensor input,
+            Tensor hx,
+            Tensor weight_input,
+            Tensor weight_hidden,
+            Tensor bias_input,
+            Tensor bias_hidden,
+            Tensor seq_length,
+            bool has_biases,
+            int num_layers,
+            float dropout,
+            bool train,
+            bool bidirectional,
             bool batch_first
         ) -> Tensor[]
         """

@@ -89,7 +89,7 @@ class TestPow(TestCase):
         output = out.to("cpu")
         output = output.numpy()
         return output
-        
+
 
     currently do not support scalar dtype
     def pow_result_scalar_tensor(self, shape_format):

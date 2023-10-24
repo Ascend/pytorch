@@ -39,7 +39,7 @@ class TestOnnxOps(TestCase):
     @classmethod
     def tearDownClass(cls):
         assert os.path.exists(TestOnnxOps.test_onnx_path)
-        shutil.rmtree(TestOnnxOps.test_onnx_path, ignore_errors=True)
+        PathManager.remove_path_safety(TestOnnxOps.test_onnx_path)
 
     def onnx_export(self, model, inputs, onnx_model_name,
                     input_names=None, output_names=None):

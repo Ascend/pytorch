@@ -96,7 +96,7 @@ class TestNpuNmsRotated(TestCase):
 
     def triangle_area(self, a, b, c):
         return (a[INDEX_X] - c[INDEX_X]) * (b[INDEX_Y] - c[INDEX_Y]) - (a[INDEX_Y] - c[INDEX_Y]) * (
-                b[INDEX_X] - c[INDEX_X])
+            b[INDEX_X] - c[INDEX_X])
 
     def contour_area(self, inter_pts, num):
         area = 0.0

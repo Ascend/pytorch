@@ -26,9 +26,9 @@ class TestDevice(TestCase):
             npu_device = torch.randn(2).npu(device_id).device
             device_types = [
                 "npu",
-                "npu:"+str(device_id),
-                torch.device("npu:"+str(device_id)),
-                torch.device("npu:"+str(device_id)).type,
+                "npu:" + str(device_id),
+                torch.device("npu:" + str(device_id)),
+                torch.device("npu:" + str(device_id)).type,
                 npu_device
             ]
             for device_type in device_types:

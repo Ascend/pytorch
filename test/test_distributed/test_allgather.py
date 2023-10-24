@@ -89,9 +89,9 @@ class HcclReduceTest(TestCase):
 
     def _construct_excepted_result(self, inputs, world_size, op=dist.all_gather):
         if op == dist.all_gather:
-            return [inputs.cpu()]*world_size
+            return [inputs.cpu()] * world_size
         elif op == dist.all_gather_togather:
-            shape = [1]*len(inputs.size())
+            shape = [1] * len(inputs.size())
             return torch.unsqueeze(inputs.cpu(), 0).repeat((world_size, *shape))
         elif op == dist._all_gather_base:
             return torch.cat((inputs.cpu(), inputs.cpu()))

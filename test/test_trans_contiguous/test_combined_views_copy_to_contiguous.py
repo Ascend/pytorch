@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-import numpy as 
+import numpy as
 import torch
 import torch_npu
 
@@ -255,8 +255,8 @@ class CombinedViewsCopyToContiguous(TestCase):
         dtype_list7 = [np.float16, np.float32]
         format_list7 = [-1]
         shape_list7 = [
-            [[2, 1, 3],    [1, 2, 4, 3]],
-            [[2, 1, 3],    [5, 2, 4, 3]],
+            [[2, 1, 3], [1, 2, 4, 3]],
+            [[2, 1, 3], [5, 2, 4, 3]],
         ]
         shape_format7 = [
             [i, j, k] for i in dtype_list7 for j in format_list7 for k in shape_list7

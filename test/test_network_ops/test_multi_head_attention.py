@@ -156,18 +156,18 @@ class TestMultiHeadAttention(TestCase):
             cpu_grad, npu_grad = create_common_tensor(
                 [np.float16, FORMAT_NZ, (batch * tgt_len, attn_dim_per_head * attn_head_num)], -1, 1)
             cpu_result, cpu_dropout_mask, cpu_query_res, cpu_key_res, cpu_value_res, cpu_attn_scores, \
-            cpu_attn_res, cpu_context = self.non_convergence_exec(
-                cpu_query, cpu_key, cpu_value, cpu_query_weight, cpu_key_weight, cpu_value_weight, cpu_attn_mask,
-                cpu_out_proj_weight,
-                cpu_query_bias, cpu_key_bias, cpu_value_bias, cpu_out_proj_bias, None, batch,
-                attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float
-            )
+                cpu_attn_res, cpu_context = self.non_convergence_exec(
+                    cpu_query, cpu_key, cpu_value, cpu_query_weight, cpu_key_weight, cpu_value_weight, cpu_attn_mask,
+                    cpu_out_proj_weight,
+                    cpu_query_bias, cpu_key_bias, cpu_value_bias, cpu_out_proj_bias, None, batch,
+                    attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float
+                )
             npu_result, npu_dropout_mask, npu_query_res, npu_key_res, npu_value_res, npu_attn_scores, \
-            npu_attn_res, npu_context = self.npu_exec(
-                npu_query, npu_key, npu_value, npu_query_weight, npu_key_weight, npu_value_weight, npu_attn_mask,
-                npu_out_proj_weight,
-                npu_query_bias, npu_key_bias, npu_value_bias, npu_out_proj_bias, cpu_dropout_mask, batch,
-                attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)
+                npu_attn_res, npu_context = self.npu_exec(
+                    npu_query, npu_key, npu_value, npu_query_weight, npu_key_weight, npu_value_weight, npu_attn_mask,
+                    npu_out_proj_weight,
+                    npu_query_bias, npu_key_bias, npu_value_bias, npu_out_proj_bias, cpu_dropout_mask, batch,
+                    attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)
             self.result_equal(cpu_result, cpu_query, cpu_grad, npu_grad, cpu_key, cpu_value, cpu_query_weight,
                               cpu_key_weight, cpu_value_weight, cpu_out_proj_weight, cpu_query_bias, cpu_key_bias,
                               cpu_value_bias, cpu_out_proj_bias, npu_result, npu_query, npu_key, npu_value,

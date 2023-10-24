@@ -26,9 +26,9 @@ class TestDiou(TestCase):
         eps = 1e-10
         # xyhw --> xyxy
         p_x1, p_x2 = prediction[0] - prediction[2] / 2, \
-                     prediction[0] + prediction[2] / 2
+            prediction[0] + prediction[2] / 2
         p_y1, p_y2 = prediction[1] - prediction[3] / 2, \
-                     prediction[1] + prediction[3] / 2
+            prediction[1] + prediction[3] / 2
         g_x1, g_x2 = gtbox[0] - gtbox[2] / 2, gtbox[0] + gtbox[2] / 2
         g_y1, g_y2 = gtbox[1] - gtbox[3] / 2, gtbox[1] + gtbox[3] / 2
 

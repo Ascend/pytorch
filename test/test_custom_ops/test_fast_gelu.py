@@ -28,7 +28,7 @@ class TestFastGelu(TestCase):
         attr_half = attr / 2
         abs_input1 = torch.abs(input1)
         numerator = input1 * \
-                    torch.exp((attr_half * input1) * (input1 - abs_input1))
+            torch.exp((attr_half * input1) * (input1 - abs_input1))
         denominator = 1.0 + torch.exp(- attr * abs_input1)
         output = numerator / denominator
         return output.cpu().detach()

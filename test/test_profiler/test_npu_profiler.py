@@ -80,7 +80,7 @@ class TestNpuProfiler(TestCase):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestNpuProfiler.results_path):
-            shutil.rmtree(TestNpuProfiler.results_path)
+            PathManager.remove_path_safety(TestNpuProfiler.results_path)
 
     def test_default_profiler(self):
         worker_name = self.worker_name

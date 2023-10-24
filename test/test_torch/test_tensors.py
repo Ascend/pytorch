@@ -330,7 +330,7 @@ class TestISJMOps(TestCase):
     def test_unsqueeze(self):
         input1 = torch.tensor([1, 2, 3, 4], device=device)
         output1 = torch.unsqueeze(input1, 0)
-        output1_expect = torch.tensor([[1,  2,  3,  4]])
+        output1_expect = torch.tensor([[1, 2, 3, 4]])
         self.assertRtolEqual(output1.cpu().numpy(), output1_expect.numpy())
         output2 = torch.unsqueeze(input1, 1)
         output1_expect = torch.tensor([[1], [2], [3], [4]])

@@ -26,14 +26,14 @@ class TestLSTM(TestCase):
                     batch_first=False, flag_seq=False, direction=False):
         """
         def lstm(
-            data: Tensor, 
-            batch_sizes: Tensor, 
-            hx: Union[Tuple[Tensor, ...], List[Tensor]], 
-            params: Union[Tuple[Tensor, ...], List[Tensor]], 
-            has_biases: _bool, 
-            num_layers: _int, 
-            dropout: _float, 
-            train: _bool, 
+            data: Tensor,
+            batch_sizes: Tensor,
+            hx: Union[Tuple[Tensor, ...], List[Tensor]],
+            params: Union[Tuple[Tensor, ...], List[Tensor]],
+            has_biases: _bool,
+            num_layers: _int,
+            dropout: _float,
+            train: _bool,
             bidirectional: _bool
         ) -> Tuple[Tensor, Tensor, Tensor]: ...
 
@@ -41,14 +41,14 @@ class TestLSTM(TestCase):
                           self.num_layers, self.dropout, self.training, self.bidirectional)
 
         def lstm(
-            input: Tensor, 
-            hx: Union[Tuple[Tensor, ...], List[Tensor]], 
-            params: Union[Tuple[Tensor, ...], List[Tensor]], 
-            has_biases: _bool, 
-            num_layers: _int, 
-            dropout: _float, 
-            train: _bool, 
-            bidirectional: _bool, 
+            input: Tensor,
+            hx: Union[Tuple[Tensor, ...], List[Tensor]],
+            params: Union[Tuple[Tensor, ...], List[Tensor]],
+            has_biases: _bool,
+            num_layers: _int,
+            dropout: _float,
+            train: _bool,
+            bidirectional: _bool,
             batch_first: _bool
         ) -> Tuple[Tensor, Tensor, Tensor]: ...
 
@@ -75,20 +75,20 @@ class TestLSTM(TestCase):
                     batch_first=False, flag_seq=False, direction=False):
         """
         npu_lstm(
-            Tensor input, 
-            Tensor weight, 
-            Tensor bias, 
-            Tensor seqMask, 
-            Tensor h, 
-            Tensor c, 
-            bool has_biases, 
-            int num_layers, 
-            float dropout, 
-            bool train, 
-            bool bidirectional, 
-            bool batch_first, 
-            bool flagSeq, 
-            bool direction) 
+            Tensor input,
+            Tensor weight,
+            Tensor bias,
+            Tensor seqMask,
+            Tensor h,
+            Tensor c,
+            bool has_biases,
+            int num_layers,
+            float dropout,
+            bool train,
+            bool bidirectional,
+            bool batch_first,
+            bool flagSeq,
+            bool direction)
         -> Tensor[] # yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc
         """
         result = torch_npu.npu_lstm(input_data, weight, bias, seq_len, h, c,

@@ -42,7 +42,7 @@ class TestIndexFillD(TestCase):
     def npu_op_exec_interface1(self, x, dim, index, value):
         x = x.to("npu")
         index = index.to("npu")
-        if type(value) == torch.Tensor:
+        if isinstance(value, torch.Tensor):
             value = value.to("npu")
         output = torch.index_fill(x, dim, index, value)
         output = output.to("cpu").numpy()
@@ -51,7 +51,7 @@ class TestIndexFillD(TestCase):
     def npu_op_exec_interface2(self, x, dim, index, value):
         x = x.to("npu")
         index = index.to("npu")
-        if type(value) == torch.Tensor:
+        if isinstance(value, torch.Tensor):
             value = value.to("npu")
         output = x.index_fill(dim, index, value)
         output = output.to("cpu").numpy()
@@ -60,7 +60,7 @@ class TestIndexFillD(TestCase):
     def npu_op_exec_interface3(self, x, dim, index, value):
         x = x.to("npu")
         index = index.to("npu")
-        if type(value) == torch.Tensor:
+        if isinstance(value, torch.Tensor):
             value = value.to("npu")
         x.index_fill_(dim, index, value)
         output = x.to("cpu").numpy()

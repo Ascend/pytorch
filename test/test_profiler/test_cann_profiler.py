@@ -75,8 +75,8 @@ def setUp(results_path, use_e2e_profiler=False):
                   {"ACL_PROF_TRAINING_TRACE": False}]
 
     enevtTypeCombinations = list(combinations(enevtTypes, 1)) + list(combinations(enevtTypes, 2)) + \
-                            list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
-                            list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6))
+        list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
+        list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6))
     for events in enevtTypeCombinations:
         temp_events = {}
         for event in events:
@@ -96,7 +96,7 @@ class TestCannProfiler(TestCase):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestCannProfiler.results_path):
-            shutil.rmtree(TestCannProfiler.results_path)
+            PathManager.remove_path_safetyTestCannProfiler.results_path
         torch.npu.prof_finalize()
 
     def _test_cann_ops(self, *args, **kwargs):
@@ -133,7 +133,7 @@ class TestE2EProfiler(TestCase):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestE2EProfiler.results_path):
-            shutil.rmtree(TestE2EProfiler.results_path)
+            PathManager.remove_path_safety(TestE2EProfiler.results_path)
 
     def _test_e2e_ops(self, *args, **kwargs):
         config = torch.npu.profileConfig(**kwargs)

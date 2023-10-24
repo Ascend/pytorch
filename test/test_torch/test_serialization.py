@@ -68,7 +68,7 @@ class WN(torch.nn.Module):
 
 class TestSerialization(TestCase):
     '''
-    The saved data is saved by using the PyTorch CPU storage structure, but 
+    The saved data is saved by using the PyTorch CPU storage structure, but
     following `torch.load()`  will load the corresponding NPU data.
     '''
 

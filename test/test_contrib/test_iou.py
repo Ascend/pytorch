@@ -189,7 +189,7 @@ class TestIou(TestCase):
                             [10, 10, 20, 20],
                             [8, 8, 4, 4]], dtype=torch.float32).to("npu")
         expedt_ciou = torch.tensor(
-            [[-0.0794,  0.3052, -0.0610, -0.1021]], dtype=torch.float32)
+            [[-0.0794, 0.3052, -0.0610, -0.1021]], dtype=torch.float32)
         box2.requires_grad = True
         ciou = npu_ciou(box1, box2)
         self.assertRtolEqual(expedt_ciou, ciou.cpu().detach())
