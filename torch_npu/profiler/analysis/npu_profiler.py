@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 from .prof_common_func.constant import Constant
 from .prof_view.view_parser_factory import ViewParserFactory
@@ -33,16 +33,13 @@ class NpuProfiler:
         if not profiler_path_list:
             return
         # 多个profiler用多进程处理
-        process_list = []
+        pool = Pool(processes=os.cpu_count() // 2)
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
-            process = Process(target=ViewParserFactory.create_view_parser_and_run,
-                              args=(profiler_path, analysis_type, output_path, kwargs))
-            process.start()
-            process_list.append(process)
-
-        for process in process_list:
-            process.join()
+            pool.apply_async(ViewParserFactory.create_view_parser_and_run,
+                             (profiler_path, analysis_type, output_path, kwargs))
+        pool.close()
+        pool.join()
 
     @classmethod
     def _check_input_path(cls, path: str):
