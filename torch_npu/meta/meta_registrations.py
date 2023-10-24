@@ -33,3 +33,27 @@ def fast_gelu_meta(self):
 @impl(m, "npu_fast_gelu_backward")
 def npu_fast_gelu_backward_meta(grad, self):
     return torch.empty_like(self, dtype=self.dtype)
+
+
+@impl(m, "npu_fast_gelu")
+def npu_fast_gelu_meta(self):
+    return torch.empty_like(self)
+
+
+@impl(m, "npu_dtype_cast")
+def npu_dtype_cast_meta(self, dtype):
+    return torch.empty_like(self, dtype=dtype)
+
+
+@impl(m, "npu_bmmV2")
+def npu_bmmV2_meta(self, mat2, output_sizes):
+    dim1 = self.size(0)
+    dim2 = self.size(1)
+    dim3 = mat2.size(2)
+    return self.new_empty((dim1, dim2, dim3))
+
+
+@impl(m, "npu_transpose")
+def npu_transpose_meta(self, perm, require_contiguous=True):
+    output = self.permute(perm)
+    return torch.empty_like(output, dtype=self.dtype)

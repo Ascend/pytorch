@@ -24,6 +24,14 @@ class TestFastGelu(TestCase):
             result.sum().backward()
             self.assertTrue(a.shape == a.grad.shape)
 
+    def test_npu_fast_gelu(self):
+        with fake_mode:
+            a = torch.randn(2, 3).npu()
+            a.requires_grad = True
+            result = torch_npu.npu_fast_gelu(a)
+
+            self.assertEqual(a.shape, result.shape)
+
 
 if __name__ == "__main__":
     run_tests()
