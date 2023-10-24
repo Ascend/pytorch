@@ -34,6 +34,7 @@ class TestParallelism(TestCase):
     def test_get_num_interop_threads(self):
         output = torch.get_num_interop_threads()
         print(output)
-            
+
+
 if __name__ == "__main__":
     run_tests()

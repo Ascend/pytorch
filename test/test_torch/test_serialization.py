@@ -52,6 +52,7 @@ class WN(torch.nn.Module):
     from WaveNet is the convolutions need not be causal.  There is also no dilation
     size reset.  The dilation only doubles on each layer
     """
+
     def __init__(self, n_in_channels, n_channels):
         super(WN, self).__init__()
         self.n_channels = n_channels
@@ -67,9 +68,10 @@ class WN(torch.nn.Module):
 
 class TestSerialization(TestCase):
     '''
-    The saved data is saved by using the PyTorch CPU storage structure, but 
+    The saved data is saved by using the PyTorch CPU storage structure, but
     following `torch.load()`  will load the corresponding NPU data.
     '''
+
     def test_save(self):
         x = torch.randn(5).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -108,14 +110,14 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(y, path)
             y_loaded = torch.load(path)
-            self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu())
 
         y = x[:, :2, :]
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(y, path)
             y_loaded = torch.load(path)
-            self.assertRtolEqual(y.cpu(), y_loaded.cpu()) 
+            self.assertRtolEqual(y.cpu(), y_loaded.cpu())
 
     def test_load_maplocation(self):
         x = torch.randn(2, 3)

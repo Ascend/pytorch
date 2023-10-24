@@ -35,11 +35,12 @@ class TestSparseFunctions(TestCase):
     def test_one_hot(self):
         input1 = torch.arange(0, 5) % 3
         npu_input = input1.npu().int()
-        
+
         cpu_output = F.one_hot(input1)
         npu_output = F.one_hot(npu_input)
 
         self.assertRtolEqual(cpu_output.detach().int().numpy(), npu_output.detach().cpu().numpy())
+
 
 if __name__ == "__main__":
     run_tests()

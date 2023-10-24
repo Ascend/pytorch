@@ -25,12 +25,12 @@ class TestDevice(TestCase):
             torch.npu.set_device(device_id)
             npu_device = torch.randn(2).npu(device_id).device
             device_types = [
-                            "npu",
-                            "npu:" + str(device_id),
-                            torch.device("npu:" + str(device_id)),
-                            torch.device("npu:" + str(device_id)).type,
-                            npu_device
-                            ]
+                "npu",
+                "npu:" + str(device_id),
+                torch.device("npu:" + str(device_id)),
+                torch.device("npu:" + str(device_id)).type,
+                npu_device
+            ]
             for device_type in device_types:
                 kwargs["device"] = device_type
                 npu_tensor = func(self, *args, **kwargs)
@@ -45,22 +45,18 @@ class TestDevice(TestCase):
         cpu_tensor = torch.randn(2, 3)
         return cpu_tensor.to(device, torch.int64)
 
-
     @device_monitor
     def test_torch_tensor_new_empty_with_device_input(self, device=None):
         npu_tensor = torch.ones(2, 3).to(device)
         return npu_tensor.new_empty((2, 3), dtype=torch.float16, device=device)
 
-
     @device_monitor
     def test_torch_func_arange_with_device_input(self, device=None):
         return torch.arange(5, dtype=torch.float32, device=device)
 
-
     @device_monitor
     def test_torch_func_zeros_with_device_input(self, device=None):
         return torch.zeros((2, 3), dtype=torch.int8, device=device)
-
 
     @device_monitor
     def test_tensor_method_npu_with_device_input(self, device=None):
@@ -73,10 +69,9 @@ class TestDevice(TestCase):
     def test_torch_func_tensor_with_device_input(self, device=None):
         return torch.tensor((2, 3), device=device)
 
-
     def test_device_argument_as_input(self):
         device_str = "npu:0"
-        
+
         torch.npu.set_device(device_str)
         device = torch.device(device_str)
         assert isinstance(device, torch.device)
@@ -124,11 +119,11 @@ class TestDevice(TestCase):
         assert new_device.type == "npu"
         assert new_device.index == 0
 
-
         device = torch.device(None)
         assert device.type == "cpu"
         device = torch.device(device=None)
         assert device.type == "cpu"
+
 
 if __name__ == '__main__':
     run_tests()

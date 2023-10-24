@@ -21,19 +21,19 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestLSTM(TestCase):
-    def cpu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True, 
+    def cpu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True,
                     num_layers=1, dropout=0.0, train=True, bidirectional=False,
                     batch_first=False, flag_seq=False, direction=False):
         """
         def lstm(
-            data: Tensor, 
-            batch_sizes: Tensor, 
-            hx: Union[Tuple[Tensor, ...], List[Tensor]], 
-            params: Union[Tuple[Tensor, ...], List[Tensor]], 
-            has_biases: _bool, 
-            num_layers: _int, 
-            dropout: _float, 
-            train: _bool, 
+            data: Tensor,
+            batch_sizes: Tensor,
+            hx: Union[Tuple[Tensor, ...], List[Tensor]],
+            params: Union[Tuple[Tensor, ...], List[Tensor]],
+            has_biases: _bool,
+            num_layers: _int,
+            dropout: _float,
+            train: _bool,
             bidirectional: _bool
         ) -> Tuple[Tensor, Tensor, Tensor]: ...
 
@@ -41,14 +41,14 @@ class TestLSTM(TestCase):
                           self.num_layers, self.dropout, self.training, self.bidirectional)
 
         def lstm(
-            input: Tensor, 
-            hx: Union[Tuple[Tensor, ...], List[Tensor]], 
-            params: Union[Tuple[Tensor, ...], List[Tensor]], 
-            has_biases: _bool, 
-            num_layers: _int, 
-            dropout: _float, 
-            train: _bool, 
-            bidirectional: _bool, 
+            input: Tensor,
+            hx: Union[Tuple[Tensor, ...], List[Tensor]],
+            params: Union[Tuple[Tensor, ...], List[Tensor]],
+            has_biases: _bool,
+            num_layers: _int,
+            dropout: _float,
+            train: _bool,
+            bidirectional: _bool,
             batch_first: _bool
         ) -> Tuple[Tensor, Tensor, Tensor]: ...
 
@@ -70,30 +70,30 @@ class TestLSTM(TestCase):
         output, hn, hc = ret[0], ret[1], ret[2]
         return output, hn, hc
 
-    def npu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True, 
+    def npu_to_exec(self, input_data, weight, bias, seq_len, h, c, has_biases=True,
                     num_layers=1, dropout=0.0, train=True, bidirectional=False,
                     batch_first=False, flag_seq=False, direction=False):
         """
         npu_lstm(
-            Tensor input, 
-            Tensor weight, 
-            Tensor bias, 
-            Tensor seqMask, 
-            Tensor h, 
-            Tensor c, 
-            bool has_biases, 
-            int num_layers, 
-            float dropout, 
-            bool train, 
-            bool bidirectional, 
-            bool batch_first, 
-            bool flagSeq, 
-            bool direction) 
+            Tensor input,
+            Tensor weight,
+            Tensor bias,
+            Tensor seqMask,
+            Tensor h,
+            Tensor c,
+            bool has_biases,
+            int num_layers,
+            float dropout,
+            bool train,
+            bool bidirectional,
+            bool batch_first,
+            bool flagSeq,
+            bool direction)
         -> Tensor[] # yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc
         """
         result = torch_npu.npu_lstm(input_data, weight, bias, seq_len, h, c,
-                                        has_biases, num_layers, dropout, train,
-                                        bidirectional, batch_first, flag_seq, direction)
+                                    has_biases, num_layers, dropout, train,
+                                    bidirectional, batch_first, flag_seq, direction)
         y, h, c = result[0], result[1], result[2]
         return y, h, c
 
@@ -120,12 +120,12 @@ class TestLSTM(TestCase):
         bias = bias_ih
 
         # cpu
-        cpu_out, cpu_hn, cpu_cn = self.cpu_to_exec(input_data, weight, bias, seq_length_t, 
+        cpu_out, cpu_hn, cpu_cn = self.cpu_to_exec(input_data, weight, bias, seq_length_t,
                                                    h0_data, c0_data, has_biases=True)
         # npu
-        npu_out, npu_hn, npu_cn = self.npu_to_exec(input_data, weight, bias, seq_length_t, 
+        npu_out, npu_hn, npu_cn = self.npu_to_exec(input_data, weight, bias, seq_length_t,
                                                    h0_data, c0_data, has_biases=True)
-        
+
         cpu_out = cpu_out.cpu().detach().numpy()
         cpu_hn = cpu_hn.cpu().detach().numpy()
         cpu_cn = cpu_cn.cpu().detach().numpy()

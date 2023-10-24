@@ -61,7 +61,7 @@ class TestMatmulTranspose(TestCase):
         return output, fast_time
 
     def test_matmul_transpose_shape_format(self):
-        shape_format = [      
+        shape_format = [
             [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 10, 100]]],
             [[np.float16, 2, [68, 5, 75, 16]], [np.float16, 2, [68, 5, 43, 16]]],
         ]
@@ -77,6 +77,7 @@ class TestMatmulTranspose(TestCase):
 
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
+
 
 if __name__ == "__main__":
     run_tests()

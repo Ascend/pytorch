@@ -35,16 +35,15 @@ class TestOne_(TestCase):
 
     def test_one_(self):
         shape_format = [
-                        [np.float32, 0, (2, 3)],
-                        [np.float32, 0, (2, 3, 4)]
+            [np.float32, 0, (2, 3)],
+            [np.float32, 0, (2, 3, 4)]
         ]
         for item in shape_format:
             _, npu_input1 = create_common_tensor(item, 0, 100)
             custom_output = self.custom_op_exec(npu_input1)
-            npu_output = self.npu_op_exec(npu_input1)           
+            npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(custom_output, npu_output)
 
 
 if __name__ == "__main__":
     run_tests()
-    

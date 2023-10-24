@@ -94,6 +94,7 @@ class BatchNormNet(nn.Module):
         x = self.fc2(x)
         return F.softmax(x, dim=1)
 
+
 DDP_NET = Net()
 BN_NET = BatchNormNet()
 ONLY_SBN_NET = nn.SyncBatchNorm(2, momentum=0.99)
@@ -437,7 +438,7 @@ class _DistTestBase(object):
             self.assertEqual(p_npu, p_DDP)
 
     def _test_DDP_5iter(
-            self, model_base, model_DDP, input_data, target, loss, local_bs, rank, batch_size, test_save, \
+            self, model_base, model_DDP, input_data, target, loss, local_bs, rank, batch_size, test_save,
             offset=None, world_size=0
     ):
         for idx in range(5):
@@ -701,6 +702,8 @@ class _DistTestBase(object):
 
 FILE_SCHEMA = "file://"
 tmp_dir = None
+
+
 def initialize_temp_directories(init_method=None):
     global tmp_dir
     tmp_dir = tempfile.TemporaryDirectory()
@@ -715,8 +718,9 @@ def cleanup_temp_dir():
     if tmp_dir is not None:
         tmp_dir.cleanup()
 
+
 WORLD_SIZE = os.environ["WORLD_SIZE"]
- 
+
 
 @unittest.skip("Multi-NPU condition not satisfied")
 class TestDistBackend(MultiProcessTestCase, _DistTestBase):
@@ -784,6 +788,7 @@ class TestDistBackend(MultiProcessTestCase, _DistTestBase):
     @property
     def world_size(self):
         return os.environ["WORLD_SIZE"]
+
 
 if __name__ == "__main__":
     run_tests()

@@ -45,7 +45,7 @@ class TestDataParallelLayers(TestCase):
         torch.distributed.init_process_group(backend="hccl", rank=RANK, world_size=WORLD_SIZE)
         model = model.npu()
         net = torch.nn.parallel.DistributedDataParallel(model, device_ids=[0], broadcast_buffers=False)
-        
+
         self.assertEqual(net is not None, True)
 
 

@@ -30,7 +30,7 @@ class TestPythonApi(TestCase):
 
     def test_storage_casts(self):
         storage = torch.IntStorage([-1, 0, 1, 2, 3, 4])
-    
+
         storage_type = [
             [storage, 'torch.IntStorage', torch.int32],
             [storage.float(), 'torch.FloatStorage', torch.float32],
@@ -68,6 +68,7 @@ class TestPythonApi(TestCase):
 
         loader = DataLoader(dataset, batch_size=2, collate_fn=collate_wrapper,
                             pin_memory=True)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -56,9 +56,10 @@ def test_npu_set_deterministic_true():
     for i in range(100):
         res = torch.sum(tensora)
         if (res == tensorsum):
-            index = index +1
+            index = index + 1
     if (index != 100):
         raise AssertionError("failed to test_npu_set_deterministic_true!")
+
 
 def test_deterministic_newprocessing():
     Process_jobs = []

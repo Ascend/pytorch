@@ -69,6 +69,6 @@ class DistributedApiTestCase(TestCase):
         self.assertIsInstance(new_group, dist.ProcessGroupHCCL)
         dist.destroy_process_group(new_group)
 
+
 if __name__ == "__main__":
     run_tests()
-

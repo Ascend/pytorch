@@ -39,7 +39,7 @@ class TestOnnxOps(TestCase):
     @classmethod
     def tearDownClass(cls):
         assert os.path.exists(TestOnnxOps.test_onnx_path)
-        shutil.rmtree(TestOnnxOps.test_onnx_path, ignore_errors=True)
+        PathManager.remove_path_safety(TestOnnxOps.test_onnx_path)
 
     def onnx_export(self, model, inputs, onnx_model_name,
                     input_names=None, output_names=None):
@@ -256,7 +256,7 @@ class TestOnnxOps(TestCase):
 
         onnx_model_name = "model_npu_stride_copy.onnx"
         export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, 
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
     def test_wrapper_npu_sort_v2(self):
@@ -276,7 +276,7 @@ class TestOnnxOps(TestCase):
 
         onnx_model_name = "model_npu_sort_v2.onnx"
         export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, 
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
     def test_wrapper_npu_layer_norm_eval(self):
@@ -312,7 +312,7 @@ class TestOnnxOps(TestCase):
 
         onnx_model_name = "model_npu_layer_norm_eval.onnx"
         export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, 
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
     def test_wrapper_npu_reshape(self):
@@ -332,7 +332,7 @@ class TestOnnxOps(TestCase):
 
         onnx_model_name = "model_npu_reshape.onnx"
         export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, 
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
     def test_wrapper_npu_pad(self):
@@ -424,7 +424,7 @@ class TestOnnxOps(TestCase):
 
         onnx_model_name = "model_npu_convolution_transpose.onnx"
         export_onnx(onnx_model_name)
-        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, 
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
     def test_wrapper_npu_confusion_transpose(self):
@@ -460,7 +460,7 @@ class TestOnnxOps(TestCase):
         def export_onnx(onnx_model_name):
             input_ = torch.rand((2, 2, 2, 2)).npu()
             model = Model().to("npu")
-            self.onnx_export(model, input_, onnx_model_name, 
+            self.onnx_export(model, input_, onnx_model_name,
                              ["input_"], ["values", "indices"])
 
         onnx_model_name = "model_npu_max.onnx"
@@ -537,7 +537,7 @@ class TestOnnxOps(TestCase):
         def export_onnx(onnx_model_name):
             input_ = torch.rand((2, 2, 2, 2)).npu()
             model = Model().to("npu")
-            self.onnx_export(model, input_, onnx_model_name, 
+            self.onnx_export(model, input_, onnx_model_name,
                              ["input_"], ["values", "indices"])
 
         onnx_model_name = "model_npu_min.onnx"
@@ -557,7 +557,7 @@ class TestOnnxOps(TestCase):
                 self.v_bias = torch.rand(1024).to(dtype=to_dtype).npu()
 
             def forward(self, input_, gamma, beta):
-                return torch_npu.npu_fused_attention_layernorm_qkv_fwd(input_, 
+                return torch_npu.npu_fused_attention_layernorm_qkv_fwd(input_,
                                                                        self.q_weight, self.k_weight, self.v_weight,
                                                                        gamma, beta,
                                                                        self.q_bias, self.k_bias, self.v_bias,
@@ -568,7 +568,7 @@ class TestOnnxOps(TestCase):
             gamma = torch.rand(1024).to(dtype=to_dtype).npu()
             beta = torch.rand(1024).to(dtype=to_dtype).npu()
             model = Model().to("npu")
-            self.onnx_export(model, (input_, gamma, beta), onnx_model_name, 
+            self.onnx_export(model, (input_, gamma, beta), onnx_model_name,
                              ["input_", "gamma", "beta"], ["o_1", "o_2", "o_3", "o_4", "o_5", "o_6"])
 
         to_dtype = torch.float16

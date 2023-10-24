@@ -85,7 +85,7 @@ class TestNonLiACFunctions(TestCase):
         npu_output = F.celu(npu_input)
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
-      
+
     def test_leaky_relu(self):
         input1 = torch.randn(2)
         npu_input = copy.deepcopy(input1).npu()
@@ -101,7 +101,7 @@ class TestNonLiACFunctions(TestCase):
         npu_output = F.leaky_relu_(npu_input)
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
-      
+
     def test_prelu(self):
         input1 = torch.randn(2)
         npu_input = copy.deepcopy(input1).npu()

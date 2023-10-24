@@ -43,7 +43,7 @@ class TestContainers(TestCase):
             def forward(self, x):
                 x = F.relu(self.conv1(x))
                 return x
-            
+
         model = Model().npu()
         x = torch.randn(1, 1, 32, 32).npu()
         output = model(x)
@@ -88,7 +88,7 @@ class TestContainers(TestCase):
                 x = self.choices[choice](x)
                 x = self.activations[act](x)
                 return x
-            
+
         net = ModuleDict().npu()
 
         fake_img = torch.randn((4, 10, 32, 32)).npu()
@@ -231,7 +231,7 @@ class TestContainers(TestCase):
         parameter_dict.clear()
         self.assertEqual(len(parameter_dict), 0)
         parameters.clear()
-        
+
+
 if __name__ == "__main__":
     run_tests()
-

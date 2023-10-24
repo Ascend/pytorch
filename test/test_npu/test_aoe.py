@@ -44,7 +44,7 @@ class TestAoe(TestCase):
             PathManager.remove_path_safety(TestAoe.results_path)
         PathManager.make_dir_safety(TestAoe.results_path)
         TestAoe.enable_aoe()
-    
+
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestAoe.results_path):
@@ -77,6 +77,7 @@ class TestAoe(TestCase):
         if torch.npu.is_available():
             self.assertTrue(len(file_list) > 0)
         torch.npu.synchronize()
+
 
 if __name__ == '__main__':
     run_tests()

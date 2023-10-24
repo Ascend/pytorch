@@ -28,6 +28,7 @@ from torch.utils import cpp_extension
 from torch.testing._internal.common_utils import shell
 
 import torch_npu
+from torch_npu.utils.path_manager import PathManager
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -180,14 +181,14 @@ def get_selected_tests(options):
     selected_tests = []
     if options.include:
         for item in options.include:
-            selected_tests.extend(list(filter(lambda test_name: item == test_name \
-                    or (item in TESTS_MODULE and test_name.startswith(item)), TESTS)))
+            selected_tests.extend(list(filter(lambda test_name: item == test_name
+                                              or (item in TESTS_MODULE and test_name.startswith(item)), TESTS)))
     else:
         selected_tests = TESTS
-    
+
     if options.core:
         selected_tests = list(filter(lambda test_name: test_name in CORE_TEST_LIST, selected_tests))
-    
+
     if options.first:
         first_index = find_test_index(options.first, selected_tests)
         selected_tests = selected_tests[first_index:]
@@ -198,7 +199,7 @@ def get_selected_tests(options):
 
     for item in options.exlude:
         selected_tests = list(filter(lambda test_name: not test_name.startswith(item), selected_tests))
-    
+
     return selected_tests
 
 
@@ -243,7 +244,7 @@ def run_distributed_test(test, test_directory, options):
                 if return_code != 0:
                     return return_code
             finally:
-                shutil.rmtree(tmp_dir)
+                PathManager.remove_path_safety(tmp_dir)
     return 0
 
 
@@ -260,7 +261,7 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
     cpp_extensions_src_dir = os.path.join(test_cpp_extensions_directory, "cpp_extensions")
     cpp_extensions_test_build_dir = os.path.join(cpp_extensions_src_dir, "build")
     if os.path.exists(cpp_extensions_test_build_dir):
-        shutil.rmtree(cpp_extensions_test_build_dir)
+        PathManager.remove_path_safety(cpp_extensions_test_build_dir)
 
     # Build the test cpp extensions modules
     shell_env = os.environ.copy()
@@ -328,7 +329,7 @@ def run_test_module(test: str, test_directory: str, options) -> Optional[str]:
         raise RuntimeError("Return code should be an integer")
     if return_code == 0:
         return None
-    
+
     message = f"exec ut {test} failed!"
     if return_code < 0:
         # subprocess.Popen returns the child process' exit signal as

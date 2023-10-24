@@ -46,7 +46,7 @@ class TestFocus(TestCase):
                 self.conv = Conv(c1 * 4, c2, k, s, p, g, act)
 
             def forward(self, x):
-                return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], 
+                return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2],
                                             x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
 
         def autopad(k, p=None):
@@ -92,7 +92,7 @@ class TestFocus(TestCase):
         return output, fast_time
 
     def npu_slow_slice(self, input1):
-        output = [input1[..., ::2, ::2], input1[..., 1::2, ::2], 
+        output = [input1[..., ::2, ::2], input1[..., 1::2, ::2],
                   input1[..., ::2, 1::2], input1[..., 1::2, 1::2]]
 
         return output
@@ -128,6 +128,7 @@ class TestFocus(TestCase):
                 self.npu_fast_focus(item[1], item[2], input1)
 
             self.assertTrue(slow_time > fast_time)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -58,7 +58,7 @@ class TestPointwiseOps(TestCase):
         npu_input = cpu_input.npu()
         cpu_output = torch.real(cpu_input)
         npu_output = torch.real(npu_input)
-        self.assertEqual(cpu_output, npu_output) 
+        self.assertEqual(cpu_output, npu_output)
 
     def test_square(self):
         input1 = torch.randn(4)
@@ -94,7 +94,7 @@ class TestComparisonOps(TestCase):
         npu_input2 = input2.npu()
 
         npu_output = torch.allclose(npu_input1, npu_input2)
-        
+
         self.assertFalse(npu_output)
 
     def test_isneginf(self):
@@ -156,9 +156,8 @@ class TestOtherOps(TestCase):
     def test_cartesian_prod(self):
         a = [1, 2, 3]
         b = [4, 5]
-        import itertools  
+        import itertools
         output_expected = torch.tensor(list(itertools.product(a, b)))
-
 
         tensor_a = torch.tensor(a, device=device)
         tensor_b = torch.tensor(b, device=device)
@@ -171,7 +170,7 @@ class TestOtherOps(TestCase):
 
         npu_input1 = copy.deepcopy(input1).npu()
         npu_input2 = copy.deepcopy(input2).npu()
-        
+
         cpu_output = torch.einsum('i,j->ij', input1, input2)
         npu_output = torch.einsum('i,j->ij', npu_input1, npu_input2)
 

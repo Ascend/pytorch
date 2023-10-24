@@ -17,18 +17,18 @@ class TestPtaUnsupportApi(TestCase):
     def test_bitwise_left_shift_Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_left_shift.Tensor is unsupported!"):
             torch.bitwise_left_shift(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())
-    
+
     def test_bitwise_left_shift__Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_left_shift_.Tensor is unsupported!"):
             torch.tensor([-1, -2, 3]).npu().bitwise_left_shift_(torch.tensor([1, 0, 3]).npu())
-    
+
     def test_bitwise_left_shift_Tensor_out(self):
         a = torch.tensor([-1, -2, 3]).npu()
         b = torch.tensor([1, 0, 3]).npu()
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "bitwise_left_shift.Tensor_out is unsupported!"):
             torch.bitwise_left_shift(a, b, out=result)
-    
+
     def test_bitwise_left_shift_Tensor_Scalar(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_left_shift.Tensor_Scalar is unsupported!"):
             torch.bitwise_left_shift(torch.tensor([-1, -2, 3]).npu(), 1)
@@ -36,7 +36,7 @@ class TestPtaUnsupportApi(TestCase):
     def test_bitwise_left_shift__Tensor_Scalar(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_left_shift_.Tensor_Scalar is unsupported!"):
             torch.tensor([-1, -2, 3]).npu().bitwise_left_shift_(1)
-    
+
     def test_bitwise_left_shift_Tensor_Scalar_out(self):
         a = torch.tensor([-1, -2, 3]).npu()
         result = torch.empty_like(a)
@@ -50,18 +50,18 @@ class TestPtaUnsupportApi(TestCase):
     def test_bitwise_right_shift_Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_right_shift.Tensor is unsupported!"):
             torch.bitwise_right_shift(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())
-    
+
     def test_bitwise_right_shift__Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_right_shift_.Tensor is unsupported!"):
             torch.tensor([-1, -2, 3]).npu().bitwise_right_shift_(torch.tensor([1, 0, 3]).npu())
-    
+
     def test_bitwise_right_shift_Tensor_out(self):
         a = torch.tensor([-1, -2, 3]).npu()
         b = torch.tensor([1, 0, 3]).npu()
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "bitwise_right_shift.Tensor_out is unsupported!"):
             torch.bitwise_right_shift(a, b, out=result)
-    
+
     def test_bitwise_right_shift_Tensor_Scalar(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_right_shift.Tensor_Scalar is unsupported!"):
             torch.bitwise_right_shift(torch.tensor([-1, -2, 3]).npu(), 1)
@@ -69,7 +69,7 @@ class TestPtaUnsupportApi(TestCase):
     def test_bitwise_right_shift__Tensor_Scalar(self):
         with self.assertRaisesRegex(RuntimeError, "bitwise_right_shift_.Tensor_Scalar is unsupported!"):
             torch.tensor([-1, -2, 3]).npu().bitwise_right_shift_(1)
-    
+
     def test_bitwise_right_shift_Tensor_Scalar_out(self):
         a = torch.tensor([-1, -2, 3]).npu()
         result = torch.empty_like(a)
@@ -87,17 +87,17 @@ class TestPtaUnsupportApi(TestCase):
     def test_conj_physical(self):
         with self.assertRaisesRegex(RuntimeError, "conj_physical is unsupported!"):
             torch.conj_physical(torch.tensor([-1 + 1j, -2 + 2j, 3 - 3j]).npu())
-    
+
     def test_conj_physical_out(self):
         a = torch.tensor([-1 + 1j, -2 + 2j, 3 - 3j]).npu()
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "onj_physical.out is unsupported!"):
             torch.conj_physical(a, out=result)
-    
+
     def test_conj_physical_(self):
         with self.assertRaisesRegex(RuntimeError, "conj_physical_ is unsupported!"):
             torch.conj_physical_(torch.tensor([-1 + 1j, -2 + 2j, 3 - 3j]).npu())
-    
+
     def test_frexp_Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "frexp.Tensor is unsupported!"):
             torch.frexp(torch.tensor([-1, -2, 3]).npu())
@@ -115,7 +115,7 @@ class TestPtaUnsupportApi(TestCase):
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor_out is unsupported!"):
             torch.isin(a, b, out=result)
-    
+
     def test_isin_Tensor_Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor is unsupported!"):
             torch.isin(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())
@@ -125,21 +125,21 @@ class TestPtaUnsupportApi(TestCase):
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Scalar_out is unsupported!"):
             torch.isin(a, 1, out=result)
-    
+
     def test_isin_Tensor_Scalar(self):
         with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Scalar is unsupported!"):
             torch.isin(torch.tensor([-1, -2, 3]).npu(), 1)
-    
+
     def test_isin_Scalar_Tensor_out(self):
         a = torch.tensor([-1, -2, 3]).npu()
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "isin.Scalar_Tensor_out is unsupported!"):
             torch.isin(1, a, out=result)
-    
+
     def test_isin_Scalar_Tensor(self):
         with self.assertRaisesRegex(RuntimeError, "isin.Scalar_Tensor is unsupported!"):
             torch.isin(1, torch.tensor([-1, -2, 3]).npu())
-    
+
     def test_cholesky_out(self):
         a = torch.randn(3, 3).npu()
         result = torch.empty_like(a)
@@ -153,15 +153,15 @@ class TestPtaUnsupportApi(TestCase):
     def test_geqrf(self):
         with self.assertRaisesRegex(RuntimeError, "geqrf is unsupported!"):
             torch.geqrf(torch.randn(3, 3).npu())
-    
+
     def test_logdet(self):
         with self.assertRaisesRegex(RuntimeError, "logdet is unsupported!"):
             torch.logdet(torch.randn(3, 3).npu())
-    
+
     def test_linalg_lu_factor_ex(self):
         with self.assertRaisesRegex(RuntimeError, "linalg_lu_factor_ex is unsupported!"):
             torch.linalg.lu_factor_ex(torch.randn(3, 3).npu())
-    
+
     def test_linalg_lu_factor_ex_out(self):
         A = torch.randn(3, 3).npu()
         LU = torch.empty_like(A)
@@ -169,7 +169,7 @@ class TestPtaUnsupportApi(TestCase):
         infos = torch.empty(1)
         with self.assertRaisesRegex(RuntimeError, "linalg_lu_factor_ex.out is unsupported!"):
             torch.linalg.lu_factor_ex(A, out=(LU, pivots, infos))
-    
+
     def test_lu_solve_out(self):
         LU, pivots = torch.linalg.lu_factor(torch.randn(2, 3, 3))
         result = torch.empty_like(LU)
@@ -185,7 +185,7 @@ class TestPtaUnsupportApi(TestCase):
         LU, pivots = torch.linalg.lu_factor(torch.randn(2, 3, 3))
         with self.assertRaisesRegex(RuntimeError, "lu_unpack is unsupported!"):
             torch.lu_unpack(LU.npu(), pivots)
-    
+
     def test_lu_unpack_out(self):
         A = torch.randn(3, 3)
         LU, pivots = torch.linalg.lu_factor(A)
@@ -197,7 +197,7 @@ class TestPtaUnsupportApi(TestCase):
     def test_linalg_det(self):
         with self.assertRaisesRegex(RuntimeError, "linalg_det is unsupported!"):
             torch.linalg.det(torch.randn(3, 3).npu())
-    
+
     def test_linalg_det_out(self):
         a = torch.randn(3, 3).npu()
         result = torch.empty_like(a)
@@ -218,21 +218,21 @@ class TestPtaUnsupportApi(TestCase):
         eigenvectors = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "linalg_eig.out is unsupported!"):
             torch.linalg.eig(a, out=(eigenvalues, eigenvectors))
-    
+
     def test_linalg_eigh(self):
         with self.assertRaisesRegex(RuntimeError, "linalg_eigh is unsupported!"):
             torch.linalg.eigh(torch.randn(3, 3).npu())
-    
+
     def test_linalg_eigvalsh(self):
         with self.assertRaisesRegex(RuntimeError, "linalg_eigvalsh is unsupported!"):
             torch.linalg.eigvalsh(torch.randn(3, 3).npu())
-    
+
     def test_linalg_eigvalsh_out(self):
         a = torch.randn(3, 3).npu()
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "linalg_eigvalsh.out is unsupported!"):
             torch.linalg.eigvalsh(a, out=result)
-    
+
     def test_linalg_solve_triangular_out(self):
         a = torch.randn(3, 3).triu_().npu()
         b = torch.randn(3, 4).npu()
@@ -256,13 +256,13 @@ class TestPtaUnsupportApi(TestCase):
         residuals = torch.empty(5)
         with self.assertRaisesRegex(RuntimeError, "linalg_lstsq.out is unsupported!"):
             torch.linalg.lstsq(a, b, out=(X, residuals, a, b))
-    
+
     def test_special_entr_out(self):
         a = torch.arange(-0.5, 1, 0.5).npu()
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "special_entr.out is unsupported!"):
             torch.special.entr(a, out=result)
-    
+
     def test_special_entr(self):
         with self.assertRaisesRegex(RuntimeError, "special_entr is unsupported!"):
             torch.special.entr(torch.arange(-0.5, 1, 0.5).npu())
@@ -294,7 +294,7 @@ class TestPtaUnsupportApi(TestCase):
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "special_zeta.out is unsupported!"):
             torch.special.zeta(torch.tensor([2., 4.]).npu(), torch.tensor([2., 4.]).npu(), out=result)
-    
+
     def test_special_zeta_self_scalar_out(self):
         a = torch.tensor([2., 4.]).npu()
         result = torch.empty_like(a)
@@ -307,6 +307,6 @@ class TestPtaUnsupportApi(TestCase):
         with self.assertRaisesRegex(RuntimeError, "special_zeta.other_scalar_out is unsupported!"):
             torch.special.zeta(torch.tensor([2., 4.]).npu(), 1, out=result)
 
+
 if __name__ == "__main__":
     run_tests()
-    

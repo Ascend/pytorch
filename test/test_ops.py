@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -20,8 +20,8 @@ from functools import partial
 import torch
 from torch.testing._internal.common_methods_invocations import SampleInput
 from torch.testing._internal.common_dtype import floating_and_complex_types_and
-from torch.testing._internal.common_utils import (clone_input_helper, 
-                                                  first_sample, 
+from torch.testing._internal.common_utils import (clone_input_helper,
+                                                  first_sample,
                                                   is_iterable_of_tensors)
 
 import torch_npu
@@ -62,11 +62,11 @@ def trans_device_and_dtype(sample, origin, target, npu_format=2, to_npu=False):
                     torch_npu.npu_format_cast(arg, npu_format)
 
         return arg
-    
+
     sample_helper = transform(sample, _trans_helper)
-    res = SampleInput(input=sample_helper[0], 
-                      args=sample_helper[1], 
-                      kwargs=sample_helper[2], 
+    res = SampleInput(input=sample_helper[0],
+                      args=sample_helper[1],
+                      kwargs=sample_helper[2],
                       broadcasts_input=sample.broadcasts_input)
     return res
 
@@ -83,14 +83,14 @@ class TestOps(TestCase):
                 res.append(sample_input)
             elif isinstance(sample_input, Sequence) and isinstance(sample_input[0], torch.Tensor):
                 res.extend(sample_input)
-            
+
             if isinstance(args, torch.Tensor):
                 res.append(args)
-            elif isinstance(args, Sequence):             
+            elif isinstance(args, Sequence):
                 for arg in args:
                     if isinstance(arg, torch.Tensor) and (arg.grad_fn or arg.requires_grad):
                         res.append(arg)
-            
+
             return res
 
         unsupported_dtypes_cpu = {dtype for dtype in op.dtypesIfNPU if dtype not in op.dtypes}
@@ -132,13 +132,12 @@ class TestOps(TestCase):
             sample_input_required_grad_cpu = _generate_sample_inputs_requried_grad(cpu_sample.input, cpu_sample.args)
             sample_input_required_grad_npu = _generate_sample_inputs_requried_grad(npu_sample.input, npu_sample.args)
 
-            grads_cpu = torch.autograd.grad(outputs=backward_cpu_outputs, 
+            grads_cpu = torch.autograd.grad(outputs=backward_cpu_outputs,
                                             inputs=sample_input_required_grad_cpu)
-            grads_npu = torch.autograd.grad(outputs=backward_npu_outputs, 
+            grads_npu = torch.autograd.grad(outputs=backward_npu_outputs,
                                             inputs=sample_input_required_grad_npu)
 
             self.assertRtolEqual(grads_cpu, grads_npu, auto_trans_dtype=True, message=f'sampleinput #{index} fail')
-
 
     @Formats(2)
     @Dtypes(torch.float32)
@@ -224,7 +223,7 @@ class TestOps(TestCase):
 
                     if expected_grad is not None and (
                         variant not in inplace_ops or op.supports_inplace_autograd
-                    ):  
+                    ):
                         output_process_fn_grad(variant_forward).sum().backward()
                         self.assertRtolEqual(expected_grad, tensor.grad, message=f'sampleinput #{index} fail')
 
@@ -264,7 +263,6 @@ class TestOps(TestCase):
         if inplace_ops:
             inplace_samples = list(filter(lambda sample: not sample.broadcasts_input, samples))
             _test_inplace_preserve_storage(inplace_samples, inplace_variants)
-
 
     @Formats(2)
     @Dtypes(torch.float32)
@@ -343,6 +341,7 @@ class TestOps(TestCase):
             return t
 
         _compare_out(_case_zero_transform)
+
 
 if __name__ == "__main__":
     run_tests()

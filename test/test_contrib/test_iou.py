@@ -33,7 +33,7 @@ class TestIou(TestCase):
         expedt_iou2 = torch.tensor([[0.5469, 0.2373]], dtype=torch.float32)
         self.assertRtolEqual(expedt_iou1, iou1.cpu())
         self.assertRtolEqual(expedt_iou2, iou2.cpu())
-    
+
     def test_npu_iou_same_shape_input(self):
         box1 = torch.tensor([[0, 0, 10, 10],
                             [10, 10, 20, 20],
@@ -71,10 +71,10 @@ class TestIou(TestCase):
                             [10, 10, 20, 20]], dtype=torch.float32).to("npu")
         iou = npu_giou(box1, box2)
         expedt_iou = torch.tensor([[0.5000],
-                                    [0.0111],
-                                    [-0.2523]], dtype=torch.float32)
+                                   [0.0111],
+                                   [-0.2523]], dtype=torch.float32)
         self.assertRtolEqual(expedt_iou, iou.cpu().detach())
-        
+
     def test_npu_diou(self):
         def generate_diou_data(n, m, dtype):
             data_bboxes = np.array([]).astype(dtype)
@@ -93,7 +93,7 @@ class TestIou(TestCase):
             npu_input2 = cpu_input2.npu()
             list1 = [cpu_input1, cpu_input2, npu_input1, npu_input2]
             return list1
-    
+
         def cpu_op_exec(box1, box2, trans=False, is_cross=False, mode="iou", eps=1e-9):
             box3 = box1.numpy()
             dtype = box3.dtype
@@ -117,7 +117,7 @@ class TestIou(TestCase):
                 rho2 = ((b2_x1[i] + b2_x2[j] - b1_x1[i] - b1_x2[j]) ** 2 +
                         (b2_y1[i] + b2_y2[j] - b1_y1[i] - b1_y2[j]) ** 2) / 4
                 inter_area = (torch.min(b1_x2[i], b2_x2[j]) - torch.max(b1_x1[i], b2_x1[j])).clamp(0) * \
-                (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
+                    (torch.min(b1_y2[i], b2_y2[j]) - torch.max(b1_y1[i], b2_y1[j])).clamp(0)
                 w1, h1 = b1_x2[i] - b1_x1[i], b1_y2[i] - b1_y1[i] + eps
                 w2, h2 = b2_x2[j] - b2_x1[j], b2_y2[j] - b2_y1[j] + eps
                 union_area = w1 * h1 + w2 * h2 - inter_area + eps
@@ -133,7 +133,7 @@ class TestIou(TestCase):
             else:
                 res = diou_res.reshape(n, m)
             return res
-    
+
         def test_npu_diou_shape_format_fp32():
             _test_npu_diou_shape_format(np.float32)
 
@@ -167,7 +167,7 @@ class TestIou(TestCase):
                     self.assertRtolEqual(cpu_output, npu_output, prec16=1e-2)
                 else:
                     self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test_npu_ciou(self):
         box1 = torch.tensor([[0, 0, 10, 10],
                             [10, 10, 20, 20],
@@ -182,6 +182,7 @@ class TestIou(TestCase):
         box2.requires_grad = True
         ciou = npu_ciou(box1, box2)
         self.assertRtolEqual(expedt_ciou, ciou.cpu().detach())
-        
+
+
 if __name__ == "__main__":
     run_tests()

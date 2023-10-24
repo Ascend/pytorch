@@ -106,7 +106,7 @@ class TestActivations(TestCase):
             [2, 5, 6, 2, 9, 2],
             [2, 5, 6, 3, 9, 2, 2],
         ]
-        
+
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
@@ -125,6 +125,7 @@ class TestActivations(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_inputgrad, npu_inputgrad)
+
 
 if __name__ == "__main__":
     run_tests()

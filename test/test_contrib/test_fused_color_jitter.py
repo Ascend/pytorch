@@ -29,5 +29,6 @@ class TestFusedColorJitter(TestCase):
         output = fcj(image)
         self.assertEqual(output is not None, True)
 
+
 if __name__ == "__main__":
     run_tests()

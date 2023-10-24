@@ -80,7 +80,7 @@ class TestConvFunctions(TestCase):
                             [11, 12, 13, 14, 15],
                             [16, 17, 18, 19, 20],
                             [21, 22, 23, 24, 25]]]])
-        x = F.unfold(x, (2, 2)) 
+        x = F.unfold(x, (2, 2))
         self.assertExpectedInline(str(x.size()), '''torch.Size([1, 4, 16])''')
 
     def test_fold(self):

@@ -42,7 +42,7 @@ class TestProfiler(TestCase):
     def test_cpu_op_profiler(self):
         with torch.autograd.profiler.profile(use_npu=False) as prof:
             self.mm_op()
-        found_mm = False 
+        found_mm = False
 
         for e in prof.function_events:
             if "mm" in e.name:
@@ -57,7 +57,7 @@ class TestProfiler(TestCase):
             return
         with torch.autograd.profiler.profile(use_npu=True) as prof:
             self.mm_op(device)
-        found_mm = False 
+        found_mm = False
 
         for e in prof.function_events:
             if "mm" in e.name:
@@ -106,7 +106,6 @@ class TestProfiler(TestCase):
             "Optimizer.zero_grad#SGD.zero_grad": steps
         }
         judge(expected_event_count, prof)
-
 
     def test_npu_simple_profiler(self):
         steps = 5

@@ -32,7 +32,7 @@ class TestNpuReshape(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def npu_reshape(self, input1, shape, can_refresh=False, out=None):
         if can_refresh:
             out = torch.reshape(input1, shape)
@@ -45,9 +45,9 @@ class TestNpuReshape(TestCase):
         format_list = [0]
         shape_list = [[8, 8], [2, 4, 8], [2, 4, 4, 2]]
         shape_format = [
-            [i, j, k] 
-            for i in dtype_list 
-            for j in format_list 
+            [i, j, k]
+            for i in dtype_list
+            for j in format_list
             for k in shape_list
         ]
 

@@ -1,14 +1,15 @@
 import os
-os.environ["PYTORCH_NPU_ALLOC_CONF"] = "garbage_collection_threshold:0.1"
 
 import torch
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+
+os.environ["PYTORCH_NPU_ALLOC_CONF"] = "garbage_collection_threshold:0.1"
 
 
 class TestGC(TestCase):
-    
+
     def test_gc(self):
 
         def create_free_block():
@@ -16,7 +17,7 @@ class TestGC(TestCase):
             for _ in range(100):
                 x = torch.randn([10, 800, 1200, 3], device='npu:0')
                 blocks.append(x)
-        
+
         torch.npu.set_per_process_memory_fraction(1.0)
 
         create_free_block()

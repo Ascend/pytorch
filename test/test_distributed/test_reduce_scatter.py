@@ -79,7 +79,7 @@ class HcclReduceScatterTest(TestCase):
         for _ in range(world_size):
             rank, output = c2p.get()
             self.assertEqual(output, expected[rank],
-                            ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
+                             ("rank {} Expect receive tensor {} but got {}.").format(rank, expected[rank], output))
         for p in ps:
             p.join()
 

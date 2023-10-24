@@ -23,11 +23,11 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
 
 
-class HcclAlltoAllSingleTest(TestCase): 
+class HcclAlltoAllSingleTest(TestCase):
     world_size_2p = 2
     world_size_4p = 4
     data = torch.randn(10, 20)
-   
+
     @classmethod
     def _init_dist_hccl(cls, rank, world_size):
         os.environ['MASTER_ADDR'] = '127.0.0.1'
@@ -38,7 +38,7 @@ class HcclAlltoAllSingleTest(TestCase):
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
         return dist
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_single_2p(
             cls, rank, data, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -49,7 +49,7 @@ class HcclAlltoAllSingleTest(TestCase):
         pg.all_to_all_single(output, input1)
         c2p.put((rank, output.cpu(), cout))
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_single_2p_size(
             cls, rank, data, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -92,7 +92,7 @@ class HcclAlltoAllSingleTest(TestCase):
             if rank == 0:
                 exp = res[0]
                 for i in range(1, 5):
-                    exp = torch.cat((exp, res[i]), dim=0) 
+                    exp = torch.cat((exp, res[i]), dim=0)
             else:
                 exp = res[5]
                 for i in range(6, 10):
@@ -126,7 +126,7 @@ class HcclAlltoAllSingleTest(TestCase):
             HcclAlltoAllSingleTest._test_alltoall_single_2p_size,
             HcclAlltoAllSingleTest._init_dist_hccl)
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_single_4p(
             cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -137,7 +137,7 @@ class HcclAlltoAllSingleTest(TestCase):
         pg.all_to_all_single(output, input1)
         c2p.put((rank, output.cpu(), cout))
 
-    @classmethod 
+    @classmethod
     def _test_alltoall_single_4p_size(
             cls, rank, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
@@ -184,13 +184,13 @@ class HcclAlltoAllSingleTest(TestCase):
                 expected = torch.arange(4) * 4 + rank
             else:
                 if rank == 0:
-                    expected = [0, 4, 8, 9, 12, 13, 14] 
+                    expected = [0, 4, 8, 9, 12, 13, 14]
                 elif rank == 1:
                     expected = [1, 2, 5, 6, 7, 10, 11, 12, 15]
                 elif rank == 2:
-                    expected = [3, 4, 8, 9, 13, 16, 17]  
+                    expected = [3, 4, 8, 9, 13, 16, 17]
                 elif rank == 3:
-                    expected = [5, 6, 10, 14, 18]     
+                    expected = [5, 6, 10, 14, 18]
 
             self.assertEqual(
                 output,
@@ -217,6 +217,7 @@ class HcclAlltoAllSingleTest(TestCase):
         self._test_multiprocess_4p(
             HcclAlltoAllSingleTest._test_alltoall_single_4p_size,
             HcclAlltoAllSingleTest._init_dist_hccl)
+
 
 if __name__ == '__main__':
     run_tests()

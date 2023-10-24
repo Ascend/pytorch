@@ -43,7 +43,7 @@ class TestRoiAlign(TestCase):
         return input1
 
     def test_npu_roi_align_1(self):
-        
+
         input1 = self.generate_input()
         roi = torch.tensor([[0, -2.0, -2.0, 22.0, 22.0]]).npu()
         output_size = (3, 3)
@@ -55,14 +55,14 @@ class TestRoiAlign(TestCase):
         expedt_cpu_output = torch.tensor([[[[4.5000, 6.5000, 8.5000],
                                             [16.5000, 18.5000, 20.5000],
                                             [28.5000, 30.5000, 32.5000]]]],
-                                            dtype=torch.float32)
+                                         dtype=torch.float32)
         expedt_cpu_inputgrad = torch.tensor([[[[0.2397, 0.2346, 0.2346, 0.2346, 0.2346, 0.2907],
-                                                [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
-                                                [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
-                                                [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
-                                                [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
-                                                [0.2907, 0.2845, 0.2845, 0.2845, 0.2845, 0.3525]]]], 
-                                                dtype=torch.float32)
+                                               [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
+                                               [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
+                                               [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
+                                               [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
+                                               [0.2907, 0.2845, 0.2845, 0.2845, 0.2845, 0.3525]]]],
+                                            dtype=torch.float32)
 
         self.assertRtolEqual(expedt_cpu_output, npu_output)
         self.assertRtolEqual(expedt_cpu_inputgrad, npu_inputgrad)
@@ -85,11 +85,12 @@ class TestRoiAlign(TestCase):
                                             [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
                                             [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
                                             [0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],
-                                            [0.2907, 0.2845, 0.2845, 0.2845, 0.2845, 0.3525]]]], 
+                                            [0.2907, 0.2845, 0.2845, 0.2845, 0.2845, 0.3525]]]],
                                             dtype=torch.float32)
 
         self.assertRtolEqual(expedt_cpu_output, npu_output)
         self.assertRtolEqual(expedt_cpu_inputgrad, npu_inputgrad)
+
 
 if __name__ == "__main__":
     run_tests()

@@ -34,14 +34,13 @@ class TestPsRoiPooling(TestCase):
                 rois_init[i, j, :] = boxi
         return rois_init
 
-    def npu_ps_roi_align(self, cls_feat, rois_tensor, pooled_height, \
-        pooled_width, spatial_scale, group_size, output_dim):
+    def npu_ps_roi_align(self, cls_feat, rois_tensor, pooled_height,
+                         pooled_width, spatial_scale, group_size, output_dim):
         cls_feat.requires_grad = True
         model = PSROIPool(pooled_height, pooled_width, spatial_scale, group_size, output_dim)
         output = model(cls_feat, rois_tensor)  # 512,22,7,7
         output.sum().backward()
         return output.detach().cpu(), cls_feat.grad.cpu()
-
 
     def test_npu_roi_align_1(self):
         cls_feat = torch.randn(4, 1078, 84, 84).float().npu()
@@ -52,14 +51,15 @@ class TestPsRoiPooling(TestCase):
         group_size = 7
         output_dim = 22
 
-        npu_output, npu_inputgrad = self.npu_ps_roi_align(cls_feat, rois_tensor, pooled_height, \
-                                    pooled_width, spatial_scale, group_size, output_dim)
+        npu_output, npu_inputgrad = self.npu_ps_roi_align(cls_feat, rois_tensor, pooled_height,
+                                                          pooled_width, spatial_scale, group_size, output_dim)
 
         expedt_cpu_output_shape = torch.randn(512, 22, 7, 7).shape
         expedt_cpu_inputgrad_shape = cls_feat.shape
 
         self.assertEqual(expedt_cpu_output_shape, npu_output.shape)
         self.assertEqual(expedt_cpu_inputgrad_shape, npu_inputgrad.shape)
+
 
 if __name__ == "__main__":
     run_tests()

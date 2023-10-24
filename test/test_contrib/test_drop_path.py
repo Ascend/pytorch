@@ -26,7 +26,7 @@ from torch_npu.contrib.module import NpuDropPath
 
 
 class TestDropPath(TestCase):
-    def npu_slow_drop_path_op_exec(self, input1, input2):        
+    def npu_slow_drop_path_op_exec(self, input1, input2):
         class DropPath(nn.Module):
             def __init__(self, drop_prob=None):
                 super(DropPath, self).__init__()
@@ -84,7 +84,7 @@ class TestDropPath(TestCase):
         return output, fast_time
 
     def test_drop_path_shape_format(self):
-        shape_format = [      
+        shape_format = [
             [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 7, 100]]],
             [[np.float16, 3, [68, 5, 75, 16]], [np.float16, 3, [68, 5, 75, 16]]],
             [[np.float16, 3, [68, 5]], [np.float16, 3, [68, 5]]],
@@ -105,6 +105,7 @@ class TestDropPath(TestCase):
 
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
+
 
 if __name__ == "__main__":
     run_tests()

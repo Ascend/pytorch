@@ -57,5 +57,6 @@ class TestCrossentropy(TestCase):
         self.assertTrue(3.2760, npu_output.cpu())
         self.assertRtolEqual(expedt_cpu_xgrad, x.grad.cpu())
 
+
 if __name__ == "__main__":
     run_tests()

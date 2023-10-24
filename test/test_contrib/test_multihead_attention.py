@@ -47,5 +47,6 @@ class TestMultiheadAttention(unittest.TestCase):
         model = model.to("npu")
         output = model(query, key, value, bsz, tgt_len, s_len, key_padding_mask)
 
+
 if __name__ == "__main__":
     run_tests()

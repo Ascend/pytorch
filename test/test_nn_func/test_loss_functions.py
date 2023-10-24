@@ -28,7 +28,7 @@ class TestLossFunctions(TestCase):
         target = torch.rand(2, 3)
         npu_input = copy.deepcopy(input1).npu()
         npu_target = copy.deepcopy(target).npu()
-        
+
         cpu_output = F.binary_cross_entropy(input1, target)
         npu_output = F.binary_cross_entropy(npu_input, npu_target)
 
@@ -39,7 +39,7 @@ class TestLossFunctions(TestCase):
         target = torch.rand(2, 3)
         npu_input = copy.deepcopy(input1).npu()
         npu_target = copy.deepcopy(target).npu()
-        
+
         cpu_output = F.binary_cross_entropy_with_logits(input1, target)
         npu_output = F.binary_cross_entropy_with_logits(npu_input, npu_target)
 
@@ -50,7 +50,7 @@ class TestLossFunctions(TestCase):
         target = torch.rand(2, 3)
         npu_input = copy.deepcopy(input1).npu()
         npu_target = copy.deepcopy(target).npu()
-        
+
         cpu_output = F.poisson_nll_loss(input1, target)
         npu_output = F.poisson_nll_loss(npu_input, npu_target)
 
@@ -63,7 +63,7 @@ class TestLossFunctions(TestCase):
         npu_input2 = copy.deepcopy(input2).npu()
         target = torch.rand(2)
         npu_target = copy.deepcopy(target).npu()
-        
+
         cpu_output = F.cosine_embedding_loss(input1, input2, target)
         npu_output = F.cosine_embedding_loss(npu_input1, npu_input2, npu_target)
 
@@ -79,7 +79,7 @@ class TestLossFunctions(TestCase):
         cpu_targets = copy.deepcopy(targets).cpu().long()
         cpu_input_lengths = copy.deepcopy(input_lengths).cpu().long()
         cpu_target_lengths = copy.deepcopy(target_lengths).cpu().long()
-        
+
         npu_output = F.ctc_loss(log_probs, targets, input_lengths, target_lengths)
         cpu_output = F.ctc_loss(cpu_log_probs, cpu_targets, cpu_input_lengths, cpu_target_lengths)
 
@@ -91,7 +91,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu().int()
-        
+
         cpu_output = F.hinge_embedding_loss(input1, targets)
         npu_output = F.hinge_embedding_loss(npu_input, npu_targets)
 
@@ -103,7 +103,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu()
-        
+
         cpu_output = F.kl_div(input1, targets)
         npu_output = F.kl_div(npu_input, npu_targets)
 
@@ -115,7 +115,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu()
-        
+
         cpu_output = F.l1_loss(input1, targets)
         npu_output = F.l1_loss(npu_input, npu_targets)
 
@@ -127,7 +127,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu()
-        
+
         cpu_output = F.mse_loss(input1, targets)
         npu_output = F.mse_loss(npu_input, npu_targets)
 
@@ -141,7 +141,7 @@ class TestLossFunctions(TestCase):
         npu_input1 = copy.deepcopy(input1).npu()
         npu_input2 = copy.deepcopy(input2).npu()
         npu_targets = copy.deepcopy(targets).npu()
-        
+
         cpu_output = F.margin_ranking_loss(input1, input2, targets)
         npu_output = F.margin_ranking_loss(npu_input1, npu_input2, npu_targets)
 
@@ -179,7 +179,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu().int()
-        
+
         cpu_output = F.multilabel_margin_loss(input1, targets)
         npu_output = F.multilabel_margin_loss(npu_input, npu_targets)
 
@@ -191,7 +191,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu().int()
-        
+
         cpu_output = F.nll_loss(input1, targets)
         npu_output = F.nll_loss(npu_input, npu_targets)
 
@@ -203,7 +203,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu()
-        
+
         cpu_output = F.smooth_l1_loss(input1, targets)
         npu_output = F.smooth_l1_loss(npu_input, npu_targets)
 
@@ -215,7 +215,7 @@ class TestLossFunctions(TestCase):
 
         npu_input = copy.deepcopy(input1).npu()
         npu_targets = copy.deepcopy(targets).npu()
-        
+
         cpu_output = F.soft_margin_loss(input1, targets)
         npu_output = F.soft_margin_loss(npu_input, npu_targets)
 
@@ -229,7 +229,7 @@ class TestLossFunctions(TestCase):
         npu_input1 = copy.deepcopy(input1).npu()
         npu_input2 = copy.deepcopy(input2).npu()
         npu_input3 = copy.deepcopy(input3).npu()
-        
+
         cpu_output = F.triplet_margin_loss(input1, input2, input3)
         npu_output = F.triplet_margin_loss(npu_input1, npu_input2, npu_input3)
 

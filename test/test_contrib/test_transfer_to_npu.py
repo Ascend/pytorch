@@ -21,7 +21,7 @@ from torch_npu.contrib import transfer_to_npu
 
 
 class TestTransferToNpu(TestCase):
-    
+
     def test_wrap_isinstance(self):
         # check builtins isinstance grammar
         self.assertTrue(isinstance(1, int))
@@ -47,6 +47,7 @@ class TestTransferToNpu(TestCase):
         torch.cuda.set_device(device)
         a = torch.randint(1, 5, (2, 3), device=device)
         self.assertEqual(a.device.type, 'npu')
+
 
 if __name__ == "__main__":
     run_tests()

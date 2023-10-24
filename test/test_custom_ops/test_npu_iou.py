@@ -23,9 +23,9 @@ class TestNpuIou(TestCase):
         def box_area(boxes):
             return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-        # Logics here have some differents from torchvision. 
-        lt = torch.max(bboxes[:, :2], gtboxes[:, None, :2]) 
-        rb = torch.min(bboxes[:, 2:], gtboxes[:, None, 2:]) 
+        # Logics here have some differents from torchvision.
+        lt = torch.max(bboxes[:, :2], gtboxes[:, None, :2])
+        rb = torch.min(bboxes[:, 2:], gtboxes[:, None, 2:])
         wh = torch.clamp(rb - lt, min=0)
         inter = wh[:, :, 0] * wh[:, :, 1]
 
@@ -39,19 +39,19 @@ class TestNpuIou(TestCase):
             gt_area = box_area(gtboxes)
             iof = inter / (gt_area[:, None] + eps)
             return iof
-    
+
     def custom_op_exec(self, bboxes, gtboxes, mode=0):
         output = self.npu_iou(bboxes, gtboxes, mode)
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def npu_op_exec(self, bboxes, gtboxes, mode=0):
         output = torch_npu.npu_iou(bboxes, gtboxes, mode)
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def test_iou_fp16(self):
         bboxes = torch.tensor([[0, 0, 10, 10],
                                [10, 10, 20, 20],

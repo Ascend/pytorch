@@ -73,6 +73,6 @@ class TestRecurrentLayers(TestCase):
             hx = rnn(input1[i], hx)
             output.append(hx)
 
+
 if __name__ == "__main__":
     run_tests()
-

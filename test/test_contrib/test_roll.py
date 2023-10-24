@@ -65,5 +65,6 @@ class TestRoll(TestCase):
             self.assertRtolEqual(slow_output, fast_output)
             self.assertTrue(slow_time > fast_time)
 
+
 if __name__ == "__main__":
     run_tests()

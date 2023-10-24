@@ -52,5 +52,6 @@ class TestEnsembleDropout(unittest.TestCase):
         dropout = NpuCachedDropout(p=1)
         output = model(x, dropout)
 
+
 if __name__ == "__main__":
     run_tests()

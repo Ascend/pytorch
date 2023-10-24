@@ -29,5 +29,6 @@ class TestSocVersion(TestCase):
         soc_version = utils.get_soc_version()
         self.assertTrue(soc_version >= -1)
 
+
 if __name__ == "__main__":
     run_tests()

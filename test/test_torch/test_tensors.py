@@ -150,7 +150,7 @@ class TestTensor(TestCase):
         torch.set_printoptions(sci_mode=False)
         self.assertEqual(x.__repr__(), str(x))
         self.assertTrue(str(x) is not None)
-    
+
     def test_set_flush_denormal(self):
         torch.set_flush_denormal(True)
 
@@ -167,21 +167,21 @@ class TestTensor(TestCase):
 class TestCreationOps(TestCase):
     def test_tensor(self):
         cpu_output1 = torch.tensor([[0.11111, 0.222222, 0.3333333]],
-            dtype=torch.float32,
-            device=torch.device('cpu')) 
+                                   dtype=torch.float32,
+                                   device=torch.device('cpu'))
         npu_output1 = torch.tensor([[0.11111, 0.222222, 0.3333333]],
-            dtype=torch.float32,
-            device=device) 
+                                   dtype=torch.float32,
+                                   device=device)
         self.assertRtolEqual(cpu_output1.numpy(), npu_output1.cpu().numpy())
 
-        cpu_output2 = torch.tensor(3.14159, device=torch.device('cpu')) 
-        npu_output2 = torch.tensor(3.14159, device=device) 
+        cpu_output2 = torch.tensor(3.14159, device=torch.device('cpu'))
+        npu_output2 = torch.tensor(3.14159, device=device)
         self.assertRtolEqual(cpu_output2.numpy(), npu_output2.cpu().numpy())
 
-        cpu_output3 = torch.tensor([], device=torch.device('cpu')) 
-        npu_output3 = torch.tensor([], device=device) 
+        cpu_output3 = torch.tensor([], device=torch.device('cpu'))
+        npu_output3 = torch.tensor([], device=device)
         self.assertRtolEqual(cpu_output3.numpy(), npu_output3.cpu().numpy())
-     
+
     def test_as_tensor(self):
         # numpy ndarray to cpu/npu tensor
         a = np.array([1, 2, 3])
@@ -208,7 +208,7 @@ class TestCreationOps(TestCase):
         npu_input = torch.as_tensor(a, device=torch.device('npu'))
         cpu_output = torch.as_tensor(npu_input, device="cpu")
         self.assertRtolEqual(cpu_output.numpy(), npu_input.cpu().numpy())
-    
+
         # npu tesor to npu tensor
         npu_input = torch.tensor([1, 2, 3]).npu()
         npu_output = torch.as_tensor(npu_input)
@@ -283,7 +283,7 @@ class TestISJMOps(TestCase):
         cpu_output = torch.chunk(cpu_input, chunks=2)
         npu_output = torch.chunk(npu_input, chunks=2)
         self.assertRtolEqual(cpu_output[0].numpy(), npu_output[0].cpu().numpy())
-        self.assertRtolEqual(cpu_output[1].numpy(), npu_output[1].cpu().numpy())  
+        self.assertRtolEqual(cpu_output[1].numpy(), npu_output[1].cpu().numpy())
 
     def test_narrow(self):
         npu_input = torch.randn(3, 3, device=device)
@@ -305,7 +305,7 @@ class TestISJMOps(TestCase):
         output2 = torch.squeeze(input1, 0)
         output3 = torch.squeeze(input1, 1)
         self.assertExpectedInline(str(output1.size()), '''torch.Size([2, 2, 2])''')
-        self.assertExpectedInline(str(output2.size()), '''torch.Size([2, 1, 2, 1, 2])''') 
+        self.assertExpectedInline(str(output2.size()), '''torch.Size([2, 1, 2, 1, 2])''')
         self.assertExpectedInline(str(output3.size()), '''torch.Size([2, 2, 1, 2])''')
 
     def test_t(self):

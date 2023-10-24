@@ -289,5 +289,6 @@ class TestPtaErrorInterception(TestCase):
             with self.assertRaisesRegex(RuntimeError, "Invalid device string: {}".format(err_input)):
                 torch.npu.set_device(err_input)
 
+
 if __name__ == "__main__":
     run_tests()

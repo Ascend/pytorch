@@ -1,4 +1,4 @@
-## Copyright (c) 2023 Huawei Technologies Co., Ltd
+# Copyright (c) 2023 Huawei Technologies Co., Ltd
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -22,7 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestFusedAttentionQKV(TestCase):
-    
+
     def confusion_transpose(self, x, new_shape):
         return torch_npu.npu_format_cast(x.view(new_shape).permute(0, 2, 1, 3), 29)
 
@@ -64,12 +64,12 @@ class TestFusedAttentionQKV(TestCase):
         v_bias = torch.rand(1024).half().npu()
 
         supported_norm, supported_mean, supported_variance, \
-        supported_q, supported_k, supported_v = self.supported_op_exec(
-            ln_input, q_weight, k_weight, v_weight, gamma, beta, q_bias, k_bias, v_bias)
+            supported_q, supported_k, supported_v = self.supported_op_exec(
+                ln_input, q_weight, k_weight, v_weight, gamma, beta, q_bias, k_bias, v_bias)
 
         custom_norm, custom_mean, custom_variance, \
-        custom_q, custom_k, custom_v = self.custom_op_exec(
-            ln_input, q_weight, k_weight, v_weight, gamma, beta, q_bias, k_bias, v_bias)
+            custom_q, custom_k, custom_v = self.custom_op_exec(
+                ln_input, q_weight, k_weight, v_weight, gamma, beta, q_bias, k_bias, v_bias)
 
         self.assertRtolEqual(supported_norm, custom_norm)
         self.assertRtolEqual(supported_mean, custom_mean)
