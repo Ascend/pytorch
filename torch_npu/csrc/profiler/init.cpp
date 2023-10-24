@@ -22,8 +22,8 @@ namespace profiler {
 
 PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
   auto torch_npu_C_module = THPObjectPtr(PyImport_ImportModule("torch_npu._C"));
-  if (!torch_npu_C_module) { 
-    return nullptr;
+  if (!torch_npu_C_module) {
+      return nullptr;
   }
   auto torch_npu_C_m = py::handle(torch_npu_C_module).cast<py::module>();
   auto m = torch_npu_C_m.def_submodule("_profiler", "_profiler bindings");
@@ -60,7 +60,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
   py::class_<NpuProfilerConfig>(m, "NpuProfilerConfig")
       .def(py::init<std::string, bool, bool, bool, bool, bool, ExperimentalConfig>());
 
-  m.def("_supported_npu_activities", [](){
+  m.def("_supported_npu_activities", []() {
     std::set<NpuActivityType> activities {
       NpuActivityType::CPU,
       NpuActivityType::NPU

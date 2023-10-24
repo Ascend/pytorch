@@ -98,7 +98,7 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
 NPUGeneratorImpl::NPUGeneratorImpl(c10::DeviceIndex device_index)
   : c10::GeneratorImpl{c10::Device(c10::DeviceType::PrivateUse1, device_index),
               c10::DispatchKeySet(c10::DispatchKey::PrivateUse1)} {
-  //at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
+  // at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
 }
 
 /**

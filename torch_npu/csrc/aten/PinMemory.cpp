@@ -39,7 +39,7 @@ at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device)
   return at::_ops::_pin_memory::redispatch(_dk, self, device);
 }
 
-class IgnoreWarningHandler: public c10::WarningHandler {
+class IgnoreWarningHandler : public c10::WarningHandler {
 public:
 
   void process(const c10::Warning& warning) {
@@ -55,7 +55,7 @@ c10::WarningHandler* getIgnoreHandler() {
 // use to ignore the warning info when overriding operator for CPU-implement
 #define WITH_IGNORE_WARNING_OVERRIDE_OPERATOR(enable)                         \
   int enter_warning() {                                                       \
-    if(enable) {                                                              \
+    if (enable) {                                                             \
       c10::WarningUtils::set_warning_handler(getIgnoreHandler());             \
     }                                                                         \
     return 1;                                                                 \
@@ -66,7 +66,7 @@ c10::WarningHandler* getIgnoreHandler() {
     m.impl(TORCH_SELECTIVE_NAME("aten::_pin_memory"), TORCH_FN(_pin_memory)); \
   }                                                                           \
   int exit_warning() {                                                        \
-    if(enable) {                                                              \
+    if (enable) {                                                             \
       c10::WarningUtils::set_warning_handler(nullptr);                        \
     }                                                                         \
     return 1;                                                                 \

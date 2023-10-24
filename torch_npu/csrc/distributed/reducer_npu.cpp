@@ -75,17 +75,17 @@ private:
   c10_npu::NPUEvent& getEvent(Event event) {
     switch (event) {
         case Event::kForwardStart:
-          return forward_start;
+            return forward_start;
         case Event::kBackwardComputeStart:
-          return backward_compute_start;
+            return backward_compute_start;
         case Event::kBackwardComputeEnd:
-          return backward_compute_end;
+            return backward_compute_end;
         case Event::kBackwardCommStart:
-          return backward_comm_start;
+            return backward_comm_start;
         case Event::kBackwardCommEnd:
-          return backward_comm_end;
+            return backward_comm_end;
         default:
-          TORCH_INTERNAL_ASSERT(false);
+            TORCH_INTERNAL_ASSERT(false);
     }
   }
 };

@@ -478,7 +478,6 @@ class DeviceCachingAllocator {
       get_free_block(params) ||
       // Trigger callbacks and retry search
       (trigger_free_memory_callbacks(params) && get_free_block(params));
-
     // Can't reuse an existing block; try to get a new one.
     if (!block_found) {
       // Do garbage collection if the flag is set.

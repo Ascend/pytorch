@@ -1683,23 +1683,23 @@ void Reducer::register_comm_hook(std::unique_ptr<c10d::CommHookInterface> iface)
 
 // See Note [DDP Communication Hook]
 void Reducer::register_builtin_comm_hook(c10d::BuiltinCommHookType comm_hook_type) {
-  REDUCER_CHECK(
-      comm_hook_ == nullptr,
-      logger_,
-      "register_builtin_comm_hook or register_comm_hook can only be called once.");
+    REDUCER_CHECK(
+        comm_hook_ == nullptr,
+        logger_,
+        "register_builtin_comm_hook or register_comm_hook can only be called once.");
 
-  switch (comm_hook_type) {
-      case c10d::BuiltinCommHookType::ALLREDUCE:
-        comm_hook_ = std::make_unique<c10d::AllReduceCommHook>(process_group_);
-        LOG(INFO) << "Built-in communication hook ALLREDUCE is registered.";
-        break;
-      case c10d::BuiltinCommHookType::FP16_COMPRESS:
-        comm_hook_ =std::make_unique<c10d::FP16CompressCommHook>(process_group_);
-        LOG(INFO) << "Built-in communication hook FP16_COMPRESS is registered.";
-        break;
-      default:
-        TORCH_WARN_ONCE("Unknown built-in DDP comm hook type is provided. No comm hook will be used.");
-  }
+    switch (comm_hook_type) {
+        case c10d::BuiltinCommHookType::ALLREDUCE:
+            comm_hook_ = std::make_unique<c10d::AllReduceCommHook>(process_group_);
+            LOG(INFO) << "Built-in communication hook ALLREDUCE is registered.";
+            break;
+        case c10d::BuiltinCommHookType::FP16_COMPRESS:
+            comm_hook_ =std::make_unique<c10d::FP16CompressCommHook>(process_group_);
+            LOG(INFO) << "Built-in communication hook FP16_COMPRESS is registered.";
+            break;
+        default:
+            TORCH_WARN_ONCE("Unknown built-in DDP comm hook type is provided. No comm hook will be used.");
+    }
 }
 
 void Reducer::ensure_prior_reduction_finished() {

@@ -322,8 +322,7 @@ bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
   return true;
 }
 
-c10::intrusive_ptr<c10::ivalue::Future> ProcessGroupHCCL::WorkHCCL::
-    getFuture() {
+c10::intrusive_ptr<c10::ivalue::Future> ProcessGroupHCCL::WorkHCCL::getFuture() {
   return future_;
 }
 

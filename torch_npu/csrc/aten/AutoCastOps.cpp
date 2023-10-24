@@ -128,7 +128,7 @@ TORCH_LIBRARY_IMPL(aten, AutocastPrivateUse1, m) {
   // The fp32_append_dtype wrapper overrides implicit promotion behavior.
   // norm does not implicitly promote, but be aware when adding new ops to this policy.
   KERNEL_DIFFERENT_REDISPATCH_SIGNATURE_PRIVATEUSEONE(ADD_NS(norm),
-      "norm.Scalar", at::Tensor (const at::Tensor &, const c10::Scalar&), 
+      "norm.Scalar", at::Tensor (const at::Tensor &, const c10::Scalar&),
       at::Tensor (const at::Tensor &, const c10::optional<c10::Scalar>&, at::ScalarType),
       fp32_append_dtype)
   KERNEL_DIFFERENT_REDISPATCH_SIGNATURE_PRIVATEUSEONE(ADD_NS(norm), "norm.ScalarOpt_dim",

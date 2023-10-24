@@ -42,26 +42,25 @@ MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b) {
 
 MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImpl* b) {
     if (a == b) {
-      return MemOverlapStatus::FULL;
+        return MemOverlapStatus::FULL;
     }
     if (a->numel() == 0 || b->numel() == 0) {
-      return MemOverlapStatus::NO;
+        return MemOverlapStatus::NO;
     }
     if (!a->is_contiguous() || !b->is_contiguous()) {
-      return MemOverlapStatus::TOO_HARD;
+        return MemOverlapStatus::TOO_HARD;
     }
     if (a->storage().data() == b->storage().data()) {
-      const auto a_begin = static_cast<const char*>(a->data());
-      const auto a_end = a_begin + a->numel() * static_cast<int64_t>(a->itemsize());
-      const auto b_begin = static_cast<const char*>(b->data());
-      const auto b_end = b_begin + b->numel() * static_cast<int64_t>(b->itemsize());
-
-      if (a_begin == b_begin && a_end == b_end) {
-        return MemOverlapStatus::FULL;
-      }
-      if (a_begin < b_end && b_begin < a_end) {
-        return MemOverlapStatus::PARTIAL;
-      }
+        const auto a_begin = static_cast<const char*>(a->data());
+        const auto a_end = a_begin + a->numel() * static_cast<int64_t>(a->itemsize());
+        const auto b_begin = static_cast<const char*>(b->data());
+        const auto b_end = b_begin + b->numel() * static_cast<int64_t>(b->itemsize());
+        if (a_begin == b_begin && a_end == b_end) {
+            return MemOverlapStatus::FULL;
+        }
+        if (a_begin < b_end && b_begin < a_end) {
+            return MemOverlapStatus::PARTIAL;
+        }
     }
     return MemOverlapStatus::NO;
 }
