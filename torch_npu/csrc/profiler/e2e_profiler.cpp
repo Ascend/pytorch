@@ -406,7 +406,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
 
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
-  if(ret) {
+  if (ret) {
     NPU_LOGE("In npu e2e profiling, aclrtGetDevice fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     return;
@@ -434,7 +434,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
     return;
   }
   ret = at_npu::native::AclProfilingStart(local_profCfg);
-  if(ret) {
+  if (ret) {
     NPU_LOGE("In npu e2e profiling, AclProfStart fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     (void)at_npu::native::AclProfilingFinalize();

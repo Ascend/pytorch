@@ -45,7 +45,7 @@ LOAD_FUNCTION(aclprofDestroyConfig)
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
   static npdInitFunc func = nullptr;
-  if(func == nullptr) {
+  if (func == nullptr) {
       func = (npdInitFunc)GET_FUNC(aclprofCreateStepInfo);
   }
   TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo");
@@ -56,7 +56,7 @@ aclprofStepInfoPtr init_stepinfo() {
 NpdStatus destroy_stepinfo(aclprofStepInfoPtr stepInfo) {
   typedef NpdStatus(*npdDestroyFunc)(aclprofStepInfoPtr);
   static npdDestroyFunc func = nullptr;
-  if(func == nullptr) {
+  if (func == nullptr) {
       func = (npdDestroyFunc)GET_FUNC(aclprofDestroyStepInfo);
   }
   TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo");
@@ -67,7 +67,7 @@ NpdStatus destroy_stepinfo(aclprofStepInfoPtr stepInfo) {
 NpdStatus start_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, aclrtStream stream) {
   typedef NpdStatus(*npdStartProfiling)(aclprofStepInfoPtr, aclprofStepTag, aclrtStream);
   static npdStartProfiling func = nullptr;
-  if(func == nullptr) {
+  if (func == nullptr) {
       func = (npdStartProfiling)GET_FUNC(aclprofGetStepTimestamp);
   }
   TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp");
@@ -78,7 +78,7 @@ NpdStatus start_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, 
 NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, aclrtStream stream) {
   typedef NpdStatus(*npdStopProfiling)(aclprofStepInfoPtr, aclprofStepTag, aclrtStream);
   static npdStopProfiling func = nullptr;
-  if(func == nullptr) {
+  if (func == nullptr) {
       func = (npdStopProfiling)GET_FUNC(aclprofGetStepTimestamp);
   }
   TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp");
