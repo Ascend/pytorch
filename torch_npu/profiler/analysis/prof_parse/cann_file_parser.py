@@ -116,7 +116,8 @@ class CANNFileParser:
         if step_trace_file_set:
             step_file = step_trace_file_set.pop()
             step_trace_data = FileManager.read_csv_file(step_file, StepTraceBean)
-            parsed_step = os.path.basename(step_file).split(".")[0].split("_")[-1]
+            # step file name: step_trace_{device id}_{model id}_{iteration id}_{时间戳}.csv
+            parsed_step = int(os.path.basename(step_file).split(".")[0].split("_")[-2])
             for data in step_trace_data:
                 step_id = data.step_id
                 if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
