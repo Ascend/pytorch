@@ -59,13 +59,13 @@ MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b) {
 
 MemOverlapStatus get_overlap_status(at::TensorImpl* a, at::TensorImpl* b) {
     if (a == b) {
-      return MemOverlapStatus::FULL;
+        return MemOverlapStatus::FULL;
     }
     if (a->numel() == 0 || b->numel() == 0) {
-      return MemOverlapStatus::NO;
+        return MemOverlapStatus::NO;
     }
     if (!a->is_contiguous() || !b->is_contiguous()) {
-      return MemOverlapStatus::TOO_HARD;
+        return MemOverlapStatus::TOO_HARD;
     }
     if (a->storage().data() == b->storage().data()) {
       const auto a_begin = static_cast<char*>(a->data());

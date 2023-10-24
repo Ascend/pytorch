@@ -219,14 +219,14 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
       int64_t overlap_dim = mat1_size.back();
       const uint64_t gemm_multiply_factor = 2;
       uint64_t flops = 1;
-      for(int64_t dim : mat1_size) {
+      for (int64_t dim : mat1_size) {
         flops *= (uint64_t)dim;
       }
       if (overlap_dim == 0) {
         TORCH_CHECK(false, "overlap_dim can not be 0.");
       }
       flops /= (uint64_t)overlap_dim;
-      for(int64_t dim : mat2_size) {
+      for (int64_t dim : mat2_size) {
         flops *= (uint64_t)dim;
       }
       flops *= gemm_multiply_factor;
@@ -245,7 +245,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
 
     std::vector<int64_t> mat_size = mat_sizes.toIntVector();
     uint64_t flops = 1;
-    for(int64_t dim : mat_size) {
+    for (int64_t dim : mat_size) {
       flops *= (uint64_t)dim;
     }
     return flops;
@@ -262,7 +262,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
 
     std::vector<int64_t> mat_size = mat_sizes.toIntVector();
     uint64_t flops = 1;
-    for(int64_t dim : mat_size) {
+    for (int64_t dim : mat_size) {
       flops *= (uint64_t)dim;
     }
     return flops;

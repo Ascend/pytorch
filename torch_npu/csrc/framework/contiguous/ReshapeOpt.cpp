@@ -39,28 +39,28 @@ bool can_use_memecpy_for_NZ_format(const ContiguousTensorDesc &tensor_desc) {
 }
 
 bool can_use_memcpy_for_other_format(const ContiguousTensorDesc &tensor_desc) {
-  // torch.flatten(x) case should be removed
-  if (tensor_desc.sizes_.size() < 2) {
-    return false;
-  }
+    // torch.flatten(x) case should be removed
+    if (tensor_desc.sizes_.size() < 2) {
+        return false;
+    }
 
-  switch (tensor_desc.npu_format_) {
-      case ACL_FORMAT_FRACTAL_NZ:
-          return can_use_memecpy_for_NZ_format(tensor_desc);
-      // (Ascend): 5HD format can also be optimized likes NZ format
-      default:
-          // For other format, make sure that copy the whole memory.
-          // Moreover, storage size expanding caused by padding could be avoided
-          if (!(tensor_desc.base_sizes_ == tensor_desc.sizes_)) {
-            return false;
-          }
-          // Make sure no pandding happens
-          if (c10::multiply_integers(tensor_desc.sizes_) !=
-              c10::multiply_integers(tensor_desc.storage_sizes_)) {
-            return false;
-          }
-          return true;
-  }
+    switch (tensor_desc.npu_format_) {
+        case ACL_FORMAT_FRACTAL_NZ:
+            return can_use_memecpy_for_NZ_format(tensor_desc);
+        // (Ascend): 5HD format can also be optimized likes NZ format
+        default:
+            // For other format, make sure that copy the whole memory.
+            // Moreover, storage size expanding caused by padding could be avoided
+            if (!(tensor_desc.base_sizes_ == tensor_desc.sizes_)) {
+              return false;
+            }
+            // Make sure no pandding happens
+            if (c10::multiply_integers(tensor_desc.sizes_) !=
+                c10::multiply_integers(tensor_desc.storage_sizes_)) {
+              return false;
+            }
+            return true;
+    }
 }
 
 bool check_reshape_match(const ContiguousTensorDesc &self_desc,
