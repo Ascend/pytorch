@@ -514,7 +514,7 @@ private:
   void abortTimedOutCollectives(
     std::unordered_set<std::string>& abortedCommIds);
 
-  void workCleanupLoop();
+  void workCleanupLoop(int device_id);
 
   template <typename Fn>
   c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
