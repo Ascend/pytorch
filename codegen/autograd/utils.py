@@ -1,5 +1,5 @@
 # Copyright (c) 2023 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -42,20 +42,21 @@ MANUAL_AUTOGRAD_AND_TRACER = set([
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
 
+
 def parse_derivatives(
     native_functions_path: str,
     autograd_dir: str,
     npu_native_functions_path: str
-) :
-    derivatives_file_path =  ('third_party/op-plugin/op_plugin/config/v1r11/derivatives.yaml'
-        if enable_opplugin()
-        else "codegen/autograd/derivatives.yaml")
-        
+):
+    derivatives_file_path = ('third_party/op-plugin/op_plugin/config/v1r11/derivatives.yaml'
+                             if enable_opplugin()
+                             else "codegen/autograd/derivatives.yaml")
+
     derivatives_path = \
-    str(Path(autograd_dir).parents[1].joinpath(derivatives_file_path))
+        str(Path(autograd_dir).parents[1].joinpath(derivatives_file_path))
     differentiability_infos = load_derivatives(
         derivatives_path, native_functions_path, npu_native_functions_path)
-    native_funcs = parse_native_and_custom_yaml(native_functions_path,npu_native_functions_path).native_functions
+    native_funcs = parse_native_and_custom_yaml(native_functions_path, npu_native_functions_path).native_functions
     funcs = filte_out_native_autograd_function(native_funcs, differentiability_infos)
     funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     funcs_with_diff_infos = match_differentiability_info(funcs, differentiability_infos)
@@ -68,7 +69,7 @@ def parse_derivatives(
 def filt_npu_autograd_functions(
     native_functions_path: str,
     funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo]
-) :
+):
     npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_functions = set()
@@ -99,7 +100,7 @@ def filte_out_native_autograd_function(
 ):
     result: List[NativeFunction] = []
     derivatives_name_list: List[str] = []
-    
+
     for info in differentiability_infos:
         derivatives_name_list.append(str(info.func.func.name))
     for funcs in native_funcs:
@@ -113,9 +114,9 @@ def filte_out_native_autograd_function(
 NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions(
     str(Path(__file__).parents[2].joinpath('codegen/native_functions.yaml')),
     parse_derivatives(
-    str(Path(__file__).parents[2].joinpath('codegen/native_functions.yaml')),
-    str(Path(__file__).parent),
-    str(Path(__file__).parents[2].joinpath(f'torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')))[-1]
+        str(Path(__file__).parents[2].joinpath('codegen/native_functions.yaml')),
+        str(Path(__file__).parent),
+        str(Path(__file__).parents[2].joinpath(f'torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')))[-1]
 )[-1]
 
 

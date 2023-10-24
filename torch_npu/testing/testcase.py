@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -129,10 +129,6 @@ class TestCase(expecttest.TestCase):
         if not is_uncoalesced:
             x = x.coalesce()
         else:
-            # FIXME: `x` is a sparse view of `v`. Currently rebase_history for
-            #        sparse views is not implemented, so this workaround is
-            #        needed for inplace operations done on `x`, e.g., copy_().
-            #        Remove after implementing something equivalent to CopySlice for sparse views.
             # NOTE: We do clone() after detach() here because we need to be able to change size/storage of x afterwards
             x = x.detach().clone()
         return x, x._indices().clone(), x._values().clone()

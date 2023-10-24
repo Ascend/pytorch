@@ -19,7 +19,7 @@ import multiprocessing.pool
 import os
 import re
 import shutil
-import stat 
+import stat
 import subprocess
 import sys
 import traceback
@@ -44,6 +44,7 @@ THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '1.11.0.post5'
 UNKNOWN = "Unknown"
 
+
 def get_submodule_folders():
     git_modules_path = os.path.join(BASE_DIR, ".gitmodules")
     default_modules_path = [
@@ -60,6 +61,7 @@ def get_submodule_folders():
             for line in f.readlines()
             if line.strip().startswith("path")
         ]
+
 
 def check_submodules():
     def not_exists_or_empty(folder):
@@ -82,7 +84,9 @@ def check_submodules():
             print("Please run:\n\tgit submodule init && git submodule update")
             sys.exit(1)
 
+
 check_submodules()
+
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
@@ -93,6 +97,7 @@ def get_sha(pytorch_root: Union[str, Path]) -> str:
         )
     except Exception:
         return UNKNOWN
+
 
 def generate_torch_npu_version():
     torch_npu_root = Path(__file__).parent
@@ -105,7 +110,7 @@ def generate_torch_npu_version():
         global VERSION
         sha = get_sha(torch_npu_root)
         VERSION += "+git" + sha[:7]
-    with os.fdopen(os.open(version_path, flags, modes), 'w') as f: 
+    with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
     os.chmod(version_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
 
@@ -263,7 +268,6 @@ class Clean(distutils.command.clean.clean):
             file_path = os.path.join(BASE_DIR, remove_file)
             if os.path.exists(file_path):
                 os.remove(file_path)
-
 
 
 class CPPLibBuild(build_clib, object):
@@ -435,36 +439,36 @@ else:
 
 
 setup(
-        name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
-        version=VERSION,
-        description='NPU bridge for PyTorch',
-        url='https://gitee.com/ascend/pytorch',
-        packages=["torch_npu"],
-        libraries=[('torch_npu', {'sources': list()})],
-        package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
-        ext_modules=[
-            CppExtension(
-                'torch_npu._C',
-                sources=["torch_npu/csrc/InitNpuBindings.cpp"],
-                libraries=["torch_npu"],
-                include_dirs=include_directories,
-                extra_compile_args=extra_compile_args + ['-fstack-protector-all'],
-                library_dirs=["lib"],
-                extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
-            ),
+    name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
+    version=VERSION,
+    description='NPU bridge for PyTorch',
+    url='https://gitee.com/ascend/pytorch',
+    packages=["torch_npu"],
+    libraries=[('torch_npu', {'sources': list()})],
+    package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
+    ext_modules=[
+        CppExtension(
+            'torch_npu._C',
+            sources=["torch_npu/csrc/InitNpuBindings.cpp"],
+            libraries=["torch_npu"],
+            include_dirs=include_directories,
+            extra_compile_args=extra_compile_args + ['-fstack-protector-all'],
+            library_dirs=["lib"],
+            extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
+        ),
+    ],
+    extras_require={
+    },
+    package_data={
+        'torch_npu': [
+            '*.so', 'lib/*.so*',
         ],
-        extras_require={
-        },
-        package_data={
-            'torch_npu': [
-                '*.so', 'lib/*.so*',
-            ],
-        },
-        cmdclass={
-            'build_clib': CPPLibBuild,
-            'build_ext': Build,
-            'build_py': PythonPackageBuild,
-            'egg_info': EggInfoBuild,
-            'clean': Clean,
-            'install': InstallCmd
-        })
+    },
+    cmdclass={
+        'build_clib': CPPLibBuild,
+        'build_ext': Build,
+        'build_py': PythonPackageBuild,
+        'egg_info': EggInfoBuild,
+        'clean': Clean,
+        'install': InstallCmd
+    })

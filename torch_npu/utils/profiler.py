@@ -41,7 +41,7 @@ class Profile(object):
                  use_e2e_profiler: bool = True,
                  **kwargs):
         r"""Dump TORCH/CANN/GE profiling data
-        
+
         Args:
             start_step:    The step to dump profiling data
             save_path:      Save path of data

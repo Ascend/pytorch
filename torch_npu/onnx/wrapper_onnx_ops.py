@@ -119,7 +119,7 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
     def symbolic(g, query_layer: Tensor, key_layer: Tensor, value_layer: Tensor, attention_mask: Tensor,
                  scale: float, keep_prob: float, query_transpose: bool = False, key_transpose: bool = False,
                  bmm_score_transpose_a: bool = False, bmm_score_transpose_b: bool = False, value_transpose:
-            bool = False, dx_transpose: bool = False):
+                 bool = False, dx_transpose: bool = False):
         return g.op("npu::NPUFusedAttentionScore", query_layer, key_layer, value_layer, attention_mask,
                     keep_prob_f=keep_prob, scale_f=scale, query_transpose_i=query_transpose,
                     key_transpose_i=key_transpose, bmm_score_transpose_a_i=bmm_score_transpose_a,
