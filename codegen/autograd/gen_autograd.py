@@ -1,5 +1,5 @@
 # Copyright (c) 2023 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -61,20 +61,20 @@ def gen_autograd(
 ) -> None:
     npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
     differentiability_infos, _, funcs_with_diff_infos =\
-    parse_derivatives(native_functions_path, autograd_dir, npu_native_functions_path)
+        parse_derivatives(native_functions_path, autograd_dir, npu_native_functions_path)
     torch_funcs_with_diff_infos, npu_funcs_with_diff_infos, _ = \
-    filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
+        filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
     template_path = os.path.join(autograd_dir, 'templates')
 
     # Generate VariableType.h/cpp
     gen_variable_type(out, torch_funcs_with_diff_infos, template_path)
-    
+
     gen_npu_variable_type(out, npu_funcs_with_diff_infos, template_path)
-    
+
     gen_variable_type_head(out, funcs_with_diff_infos, template_path)
 
     gen_inplace_or_view_type(out, npu_funcs_with_diff_infos, template_path)
-    
+
     # Generate Functions.h/cpp
     gen_autograd_functions_lib(out, differentiability_infos, template_path)
 
@@ -91,12 +91,12 @@ def main() -> None:
                         help='path to output directory')
     parser.add_argument('--autograd_dir', metavar='AUTOGRAD',
                         help='path to autograd directory')
-    parser.add_argument('--npu_native_function_dir', 
+    parser.add_argument('--npu_native_function_dir',
                         help='path to npu_native_functions.yaml')
     args = parser.parse_args()
     gen_autograd(args.native_functions_dir,
                  args.out_dir,
-                 args.autograd_dir, 
+                 args.autograd_dir,
                  args.npu_native_function_dir)
 
 

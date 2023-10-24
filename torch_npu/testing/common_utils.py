@@ -33,7 +33,6 @@ import torch_npu
 from torch_npu.utils.path_manager import PathManager
 
 
-
 @contextmanager
 def freeze_rng_state():
     rng_state = torch.get_rng_state()
@@ -75,7 +74,7 @@ def get_npu_device():
 def create_common_tensor(item, minValue, maxValue, device=None):
     if device is None:
         device = get_npu_device()
-        
+
     dtype = item[0]
     npu_format = item[1]
     shape = item[2]
@@ -90,7 +89,7 @@ def create_common_tensor(item, minValue, maxValue, device=None):
 def __generate_2args_broadcast_cases(device=None):
     if device is None:
         device = get_npu_device()
-        
+
     # Set broadcast and no axis, i.e. broadcasting 1.
     X = np.random.rand(2, 3, 4, 5).astype(np.float32)
     Y = np.random.rand(1, 1, 1).astype(np.float32)
@@ -129,13 +128,13 @@ def test_2args_broadcast(fn):
 def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, no_zero=False, device=None):
     if device is None:
         device = get_npu_device()
-        
+
     if dtype == torch.bool:
         x = np.random.randint(0, 2, size=shape).astype(bool)
 
     elif dtype == torch.half:
         x = np.random.uniform(min_value, max_value, shape).astype(np.float16)
-    
+
     elif dtype == torch.float:
         x = np.random.uniform(min_value, max_value, shape).astype(np.float32)
 
@@ -158,14 +157,14 @@ def check_operators_in_prof(expected_operators, prof, unexpected_operators=None)
     prof_key_averages = prof.key_averages()
     if not prof_key_averages:
         return print("torch profiling is empty, please check it")
-    for prof_item in prof_key_averages:        
+    for prof_item in prof_key_averages:
         if prof_item.key in unexpected_operators:
             # if unexpected oprators are called, pattern inferring in trans-contiguous is failed
             return False
         elif prof_item.key in expected_operators:
             # if expected oprator is called, empty it in expected_operators list
             expected_operators.remove(prof_item.key)
-            
+
     # if expected_operators list is empty, all oprators have been called
     if not expected_operators:
         return True
@@ -205,6 +204,7 @@ class SkipIfNotRegistered(object):
         @SkipIfNotRegistered('MyOp', 'MyOp is not linked!')
             This will check if 'MyOp' is in the caffe2.python.core
     """
+
     def __call__(self, message):
         try:
             from caffe2.python import core
@@ -213,11 +213,11 @@ class SkipIfNotRegistered(object):
             skipper = unittest.skip("Cannot import `caffe2.python.core`")
         return skipper
 
+
 PERF_TEST_ENABLE = (os.getenv('PERF_TEST_ENABLE', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
 PERF_BASELINE_FILE = os.path.realpath(
     os.getenv("PERF_BASELINE_FILE", default=os.path.join(os.getcwd(), "performance_baseline.json"))
 )
-
 
 
 class Baseline(object):

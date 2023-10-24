@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -171,7 +171,7 @@ class TestCase(expecttest.TestCase):
             self.assertEqual(tc._values(), t._values())
 
         return tg
-    
+
     def assertRtolEqual(self, x, y, prec=1.e-4, prec16=1.e-3, auto_trans_dtype=False, message=None):
 
         def _assertRtolEqual(x, y, prec, prec16, message):
@@ -201,7 +201,7 @@ class TestCase(expecttest.TestCase):
                 if auto_trans_dtype:
                     x = x.to(y.dtype)
                 x = x.detach().cpu().numpy()
-                y = y.detach().cpu().numpy()  
+                y = y.detach().cpu().numpy()
             elif isinstance(x, Number) and isinstance(y, Number):
                 x = np.array(x)
                 y = np.array(y)
@@ -211,11 +211,11 @@ class TestCase(expecttest.TestCase):
                 self.fail("shape error")
             if (x.dtype != y.dtype):
                 self.fail("dtype error")
-            dtype_list = [np.bool_, np.uint16, np.int16, np.int32, np.float16, 
-                        np.float32, np.int8, np.uint8, np.int64, np.float64]
+            dtype_list = [np.bool_, np.uint16, np.int16, np.int32, np.float16,
+                          np.float32, np.int8, np.uint8, np.int64, np.float64]
             if x.dtype not in dtype_list:
                 self.fail("required dtype in [np.bool_, np.uint16, np.int16, " +
-                        "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
+                          "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
             if x.dtype == np.bool_:
                 result = np.equal(x, y)
                 if result.all() is False:
@@ -309,29 +309,29 @@ class TestCase(expecttest.TestCase):
             self._assert_tensor_equal(x._values(), y._values(), message, exact_dtype, allow_inf, prec)
         elif x.is_quantized and y.is_quantized:
             self.assertEqual(x.qscheme(), y.qscheme(), prec=prec,
-                                message=message, allow_inf=allow_inf,
-                                exact_dtype=exact_dtype)
+                             message=message, allow_inf=allow_inf,
+                             exact_dtype=exact_dtype)
             if x.qscheme() == torch.per_tensor_affine:
                 self.assertEqual(x.q_scale(), y.q_scale(), prec=prec,
-                                    message=message, allow_inf=allow_inf,
-                                    exact_dtype=exact_dtype)
+                                 message=message, allow_inf=allow_inf,
+                                 exact_dtype=exact_dtype)
                 self.assertEqual(x.q_zero_point(), y.q_zero_point(),
-                                    prec=prec, message=message,
-                                    allow_inf=allow_inf, exact_dtype=exact_dtype)
+                                 prec=prec, message=message,
+                                 allow_inf=allow_inf, exact_dtype=exact_dtype)
             elif x.qscheme() == torch.per_channel_affine:
                 self.assertEqual(x.q_per_channel_scales(), y.q_per_channel_scales(), prec=prec,
-                                    message=message, allow_inf=allow_inf,
-                                    exact_dtype=exact_dtype)
+                                 message=message, allow_inf=allow_inf,
+                                 exact_dtype=exact_dtype)
                 self.assertEqual(x.q_per_channel_zero_points(), y.q_per_channel_zero_points(),
-                                    prec=prec, message=message,
-                                    allow_inf=allow_inf, exact_dtype=exact_dtype)
+                                 prec=prec, message=message,
+                                 allow_inf=allow_inf, exact_dtype=exact_dtype)
                 self.assertEqual(x.q_per_channel_axis(), y.q_per_channel_axis(),
-                                    prec=prec, message=message)
+                                 prec=prec, message=message)
             self.assertEqual(x.dtype, y.dtype)
             self.assertEqual(x.int_repr().to(torch.int32),
-                                y.int_repr().to(torch.int32), prec=prec,
-                                message=message, allow_inf=allow_inf,
-                                exact_dtype=exact_dtype)
+                             y.int_repr().to(torch.int32), prec=prec,
+                             message=message, allow_inf=allow_inf,
+                             exact_dtype=exact_dtype)
         else:
             self._assert_tensor_equal(x, y, message, exact_dtype, allow_inf, prec)
 
@@ -351,10 +351,10 @@ class TestCase(expecttest.TestCase):
                                         allow_inf=allow_inf, exact_dtype=exact_dtype)
             elif isinstance(x, np.bool_) or isinstance(y, np.bool_):
                 self._assertBoolEqual(x, y, prec=prec, message=message,
-                                    allow_inf=allow_inf, exact_dtype=exact_dtype)
+                                      allow_inf=allow_inf, exact_dtype=exact_dtype)
             elif isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor):
                 self._assertTensorsEqual(x, y, prec=prec, message=message,
-                                        allow_inf=allow_inf, exact_dtype=exact_dtype)
+                                         allow_inf=allow_inf, exact_dtype=exact_dtype)
             elif isinstance(x, (str, bytes)) and isinstance(y, (str, bytes)):
                 super(TestCase, self).assertEqual(x, y, message)
             elif type(x) == set and type(y) == set:
@@ -504,7 +504,7 @@ class TestCase(expecttest.TestCase):
     def run(self, result=None):
         # run test to precompile operators
         super(TestCase, self).run(result)
-        
+
         if PERF_TEST_ENABLE:
             performanceResult = TestResult()
             startTime = time.perf_counter()
@@ -518,7 +518,7 @@ class TestCase(expecttest.TestCase):
 
                 if baseline and runtime > baseline * 1.2:
                     errMsg = "Performance test failed. Performance baseline: " \
-                            + str(baseline) + "s, current time: " + str(runtime) + "s"
+                        + str(baseline) + "s, current time: " + str(runtime) + "s"
                     perfErr = (self.failureException, self.failureException(errMsg), None)
                     self._feedErrorsToResult(result, [(self, perfErr)])
 

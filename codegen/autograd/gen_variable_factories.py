@@ -1,5 +1,5 @@
 # Copyright (c) 2023 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -54,14 +54,14 @@ def fully_qualified_type(argument_type: str) -> str:
 
 
 def gen_variable_factories(
-    out: str, 
-    native_yaml_path: str, 
-    npu_native_yaml_path: str, 
+    out: str,
+    native_yaml_path: str,
+    npu_native_yaml_path: str,
     template_path: str
 ) -> None:
-    native_functions = parse_native_and_custom_yaml(native_yaml_path, 
+    native_functions = parse_native_and_custom_yaml(native_yaml_path,
                                                     npu_native_yaml_path).native_functions
-    factory_functions = [fn for fn in native_functions if 
+    factory_functions = [fn for fn in native_functions if
                          (is_factory_function(fn) and fn.func.name.name.base in NPU_AUTOGRAD_FUNCTION)]
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
     fm.write_with_template('variable_factories.h', 'variable_factories.h', lambda: {

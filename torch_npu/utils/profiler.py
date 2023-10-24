@@ -38,7 +38,7 @@ class Profile(object):
                  profile_type: str = None,
                  **kwargs):
         r"""Dump TORCH/CANN/GE profiling data
-        
+
         Args:
             total_steps:    The step to dump profiling data
             save_path:      Save path of data

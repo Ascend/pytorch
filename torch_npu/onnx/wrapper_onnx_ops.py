@@ -298,7 +298,7 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
         elif dtype == torch.float16:
             dtype = 1
         else:
-            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")    
+            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")
         return g.op("npu::NPUSignBitsUnpack", inputs, size_i=size, dtype_i=dtype)
 
 
@@ -560,7 +560,7 @@ class NPUGruOP(torch.autograd.Function):
 
 
 class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch_npu._C._VariableFunctionsClass.npu_dropout_with_add_softmax(*args, **kwargs)
@@ -583,7 +583,7 @@ class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
 
 
 class NPUMishOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch_npu._C._VariableFunctionsClass.npu_mish(*args, **kwargs)
