@@ -45,14 +45,14 @@ class SingleViewCopyToContiguous(TestCase):
 
             # The key axis changes for NZ format
             with torch.autograd.profiler.profile(use_device='npu') as prof:
-                npu_out2 = npu_input.view(1, 6, npu_input.size(2)*npu_input.size(3), 1).clone()
+                npu_out2 = npu_input.view(1, 6, npu_input.size(2) * npu_input.size(3), 1).clone()
             if match_case1:
                 self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof),
                                  True, "contiguous_d_Reshape is not called!")
             else:
                 self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof),
                                  True, "d2dCopyAsync is not called!")
-            cpu_out2 = cpu_input.view(1, 6, cpu_input.size(2)*cpu_input.size(3), 1).clone()
+            cpu_out2 = cpu_input.view(1, 6, cpu_input.size(2) * cpu_input.size(3), 1).clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
     def test_unsqueeze_copy(self, device="npu"):

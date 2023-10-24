@@ -14,6 +14,7 @@ from torch.utils import cpp_extension
 from torch.testing._internal.common_utils import shell
 
 import torch_npu
+from torch_npu.utils.path_manager import PathManager
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -229,7 +230,7 @@ def run_distributed_test(test, test_directory, options):
                 if return_code != 0:
                     return return_code
             finally:
-                shutil.rmtree(tmp_dir)
+                PathManager.remove_path_safety(tmp_dir)
     return 0
 
 
@@ -246,7 +247,7 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
     cpp_extensions_src_dir = os.path.join(test_cpp_extensions_directory, "cpp_extensions")
     cpp_extensions_test_build_dir = os.path.join(cpp_extensions_src_dir, "build")
     if os.path.exists(cpp_extensions_test_build_dir):
-        shutil.rmtree(cpp_extensions_test_build_dir)
+        PathManager.remove_path_safety(cpp_extensions_test_build_dir)
 
     # Build the test cpp extensions modules
     shell_env = os.environ.copy()

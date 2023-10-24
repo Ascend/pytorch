@@ -16,15 +16,15 @@ class SingleViewCopyToContiguous(TestCase):
         dtype_list = [np.float16, np.float32, np.int32, np.int8, np.uint8]
         format_list = [-1]
         shape_list = [
-            [[1],          [5]],
-            [[1, 2],       [3, 2]],
-            [[1, 2, 1],    [1, 2, 3]],
+            [[1], [5]],
+            [[1, 2], [3, 2]],
+            [[1, 2, 1], [1, 2, 3]],
             [[1, 2, 1, 3], [4, 2, 5, 3]],
-            [[1, 3],       [1, 1, 4, 3]],
-            [[1, 3],       [2, 1, 4, 3]],
-            [[1, 3],       [1, 2, 4, 3]],
-            [[3, 1],       [2, 1, 3, 1]],
-            [[3, 1],       [1, 2, 3, 1]],
+            [[1, 3], [1, 1, 4, 3]],
+            [[1, 3], [2, 1, 4, 3]],
+            [[1, 3], [1, 2, 4, 3]],
+            [[3, 1], [2, 1, 3, 1]],
+            [[3, 1], [1, 2, 3, 1]],
         ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list

@@ -9,11 +9,11 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestLSTMCell(TestCase):
     def cpu_to_exec(self, input_data, weight_ih, weight_hh, h0_data, c0_data, bias_ih, bias_hh):
         """def lstm_cell(
-            input: Tensor, 
-            hx: Union[Tuple[Tensor, ...], List[Tensor]], 
-            w_ih: Tensor, 
-            w_hh: Tensor, 
-            b_ih: Optional[Tensor]=None, 
+            input: Tensor,
+            hx: Union[Tuple[Tensor, ...], List[Tensor]],
+            w_ih: Tensor,
+            w_hh: Tensor,
+            b_ih: Optional[Tensor]=None,
             b_hh: Optional[Tensor]=None
             ) -> Tuple[Tensor, Tensor]: ...
 

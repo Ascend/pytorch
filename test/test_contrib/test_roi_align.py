@@ -37,7 +37,7 @@ class TestRoiAlign(TestCase):
         aligned = False
 
         npu_output, npu_inputgrad = self.npu_roi_align(input1, roi, output_size, spatial_scale, sampling_ratio, aligned)
-        expedt_cpu_output = torch.tensor([[[[4.5000,  6.5000,  8.5000],
+        expedt_cpu_output = torch.tensor([[[[4.5000, 6.5000, 8.5000],
                                             [16.5000, 18.5000, 20.5000],
                                             [28.5000, 30.5000, 32.5000]]]],
                                          dtype=torch.float32)
@@ -62,7 +62,7 @@ class TestRoiAlign(TestCase):
 
         npu_output, npu_inputgrad = self.npu_roi_align(input1, roi, output_size, spatial_scale, sampling_ratio, aligned)
 
-        expedt_cpu_output = torch.tensor([[[[2.7500,  4.5000,  6.5000],
+        expedt_cpu_output = torch.tensor([[[[2.7500, 4.5000, 6.5000],
                                             [13.2500, 15.0000, 17.0000],
                                             [25.2500, 27.0000, 29.0000]]]], dtype=torch.float32)
         expedt_cpu_inputgrad = torch.tensor([[[[0.2397, 0.2346, 0.2346, 0.2346, 0.2346, 0.2907],

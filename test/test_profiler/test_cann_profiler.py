@@ -25,7 +25,7 @@ class SmallModel(torch.nn.Module):
 def run_ops():
     input_1 = torch.rand(10, 10).npu()
     input_2 = torch.rand(10, 10).npu()
-    out = input_1*input_2
+    out = input_1 * input_2
 
 
 def run_small_model():
@@ -80,7 +80,7 @@ class TestCannProfiler(TestCase):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestCannProfiler.results_path):
-            shutil.rmtree(TestCannProfiler.results_path)
+            PathManager.remove_path_safetyTestCannProfiler.results_path
         torch.npu.prof_finalize()
 
     def _test_cann_ops(self, *args, **kwargs):
@@ -117,7 +117,7 @@ class TestE2EProfiler(TestCase):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestE2EProfiler.results_path):
-            shutil.rmtree(TestE2EProfiler.results_path)
+            PathManager.remove_path_safety(TestE2EProfiler.results_path)
 
     def _test_e2e_ops(self, *args, **kwargs):
         config = torch.npu.profileConfig(**kwargs)

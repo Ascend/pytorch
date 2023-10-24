@@ -96,7 +96,7 @@ class TestDevice(TestCase):
         assert device.type == "npu"
         assert isinstance(device, torch._C.device)
         assert isinstance(device, torch.device)
-        assert (type(device) == torch.device)
+        assert (isinstance(device, torch.device))
         from torch import device as origin_device
         assert (hash(torch.device) == hash(origin_device))
         assert (f'{torch.device}' == f'{origin_device}')

@@ -19,12 +19,12 @@ class TestPythonApi(TestCase):
         storage = torch.IntStorage([-1, 0, 1, 2, 3, 4])
 
         storage_type = [
-            [storage,         'torch.IntStorage',   torch.int32],
+            [storage, 'torch.IntStorage', torch.int32],
             [storage.float(), 'torch.FloatStorage', torch.float32],
-            [storage.half(),  'torch.HalfStorage',  torch.float16],
-            [storage.long(),  'torch.LongStorage',  torch.int64],
+            [storage.half(), 'torch.HalfStorage', torch.float16],
+            [storage.long(), 'torch.LongStorage', torch.int64],
             [storage.short(), 'torch.ShortStorage', torch.int16],
-            [storage.char(),  'torch.CharStorage',  torch.int8]
+            [storage.char(), 'torch.CharStorage', torch.int8]
         ]
         for item in storage_type:
             self.assertEqual(item[0].size(), 6)
