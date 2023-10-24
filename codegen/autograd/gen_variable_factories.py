@@ -11,12 +11,13 @@ from torchgen.packaged.autograd.gen_variable_factories import (
 
 from .utils import NPU_AUTOGRAD_FUNCTION
 
+
 def gen_variable_factories(
     out: str,
     template_path: str,
     native_functions: list
 ) -> None:
-    factory_functions = [fn for fn in native_functions if 
+    factory_functions = [fn for fn in native_functions if
                          (is_factory_function(fn) and fn.func.name.name.base in NPU_AUTOGRAD_FUNCTION)]
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
     fm.write_with_template('variable_factories.h', 'variable_factories.h', lambda: {

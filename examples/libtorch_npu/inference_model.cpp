@@ -25,7 +25,6 @@ int main(int argc, char*argv[]) {
     auto result = input_tensor + input_tensor;
     std::cout << "add result: " << result << std::endl;
 
-    
     torch::jit::script::Module script_model = torch::jit::load(pt_model_path);
     script_model.to(device); // move pt model  to npu device
     auto inputs = torch::rand({4, 3, 4, 4}).to(device);

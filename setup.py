@@ -32,9 +32,10 @@ UNKNOWN = "Unknown"
 DISABLE_TORCHAIR = "TRUE"
 if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:
     DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
-DISABLE_RPC = "TRUE" 
+DISABLE_RPC = "TRUE"
 if os.environ.get("DISABLE_RPC_FRAMEWORK") is not None:
     DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
+
 
 def get_submodule_folders():
     git_modules_path = os.path.join(BASE_DIR, ".gitmodules")
@@ -52,6 +53,7 @@ def get_submodule_folders():
             for line in f.readlines()
             if line.strip().startswith("path")
         ]
+
 
 def check_submodules():
     def not_exists_or_empty(folder):
@@ -73,7 +75,9 @@ def check_submodules():
             print("Please run:\n\tgit submodule init && git submodule update")
             sys.exit(1)
 
+
 check_submodules()
+
 
 def get_sha(pytorch_root: Union[str, Path]) -> str:
     try:
@@ -84,6 +88,7 @@ def get_sha(pytorch_root: Union[str, Path]) -> str:
         )
     except Exception:
         return UNKNOWN
+
 
 def generate_torch_npu_version():
     torch_npu_root = Path(__file__).parent
@@ -192,8 +197,8 @@ def check_torchair_valid(base_dir):
     # build with submodule of torchair, if path of torchair is valid
     torchair_path = os.path.join(base_dir, 'third_party/torchair/torchair')
     return os.path.exists(torchair_path) and (
-            os.path.isdir(torchair_path) and len(os.listdir(torchair_path)) != 0
-        )
+        os.path.isdir(torchair_path) and len(os.listdir(torchair_path)) != 0
+    )
 
 
 def check_tensorpipe_valid(base_dir):
@@ -526,19 +531,19 @@ classifiers = [
 
 
 setup(
-        name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
-        version=VERSION,
-        description='NPU bridge for PyTorch',
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        url='https://gitee.com/ascend/pytorch',
-        download_url="https://gitee.com/ascend/pytorch/tags",
-        license="BSD License",
-        classifiers=classifiers,
-        packages=["torch_npu"],
-        libraries=[('torch_npu', {'sources': list()})],
-        package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
-        ext_modules=[
+    name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
+    version=VERSION,
+    description='NPU bridge for PyTorch',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url='https://gitee.com/ascend/pytorch',
+    download_url="https://gitee.com/ascend/pytorch/tags",
+    license="BSD License",
+    classifiers=classifiers,
+    packages=["torch_npu"],
+    libraries=[('torch_npu', {'sources': list()})],
+    package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
+    ext_modules=[
             CppExtension(
                 'torch_npu._C',
                 sources=["torch_npu/csrc/InitNpuBindings.cpp"],
@@ -548,20 +553,20 @@ setup(
                 library_dirs=["lib"],
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
             ),
+    ],
+    extras_require={
+    },
+    package_data={
+        'torch_npu': [
+            '*.so', 'lib/*.so*',
         ],
-        extras_require={
-        },
-        package_data={
-            'torch_npu': [
-                '*.so', 'lib/*.so*',
-            ],
-        },
-        cmdclass={
-            'build_clib': CPPLibBuild,
-            'build_ext': Build,
-            'build_py': PythonPackageBuild,
-            'bdist_wheel': BdistWheelBuild,
-            'egg_info': EggInfoBuild,
-            'install': InstallCmd,
-            'clean': Clean
-        })
+    },
+    cmdclass={
+        'build_clib': CPPLibBuild,
+        'build_ext': Build,
+        'build_py': PythonPackageBuild,
+        'bdist_wheel': BdistWheelBuild,
+        'egg_info': EggInfoBuild,
+        'install': InstallCmd,
+        'clean': Clean
+    })

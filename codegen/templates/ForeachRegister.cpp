@@ -9,7 +9,7 @@ namespace {
 // to override it themselves!
 
 // (Ascend) TORCH_LIBRARY_IMPL
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m){
+TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
   ${foreach_kernel}
 }
 

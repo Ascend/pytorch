@@ -4,10 +4,10 @@ from typing import Dict, List, Optional, Union
 
 import torch
 import torch.distributed as dist
-from torch_npu.npu.utils import npu_check_overflow
-from torch_npu.npu.amp.grad_scaler import _MultiDeviceReplicator, GradScaler, OptState
 from torch.distributed.distributed_c10d import ProcessGroup
 from torch.optim.sgd import SGD
+from torch_npu.npu.utils import npu_check_overflow
+from torch_npu.npu.amp.grad_scaler import _MultiDeviceReplicator, GradScaler, OptState
 
 log = logging.getLogger(__name__)
 

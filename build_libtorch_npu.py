@@ -141,7 +141,7 @@ def run_cmake():
         '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + os.path.abspath(output_lib_path),
         '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.abspath(output_lib_path),
         '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
-        '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
+        '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
         '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir(),
         '-DTORCH_VERSION=' + VERSION,
         '-DBUILD_LIBTORCH=' + "ON"]

@@ -45,11 +45,11 @@ inline c10::List<c10::optional<Tensor>> unpack_opt_list(at::ArrayRef<SavedVariab
 }
 
 struct TypeAndSize {
-  TypeAndSize() : options(at::TensorOptions()) {}
-  /* implicit */
-  TypeAndSize(const Tensor & t)
-    : sizes(t.sizes().vec())
-    , options(t.options()) {}
+    TypeAndSize() : options(at::TensorOptions()) {}
+    /* implicit */
+    TypeAndSize(const Tensor & t)
+        : sizes(t.sizes().vec())
+        , options(t.options()) {}
 
   Tensor zeros() { return at::zeros(sizes, options); }
 

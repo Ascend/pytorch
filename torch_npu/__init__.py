@@ -7,6 +7,8 @@ import traceback
 from functools import wraps
 
 import torch
+from torch.utils.checkpoint import DefaultDeviceType
+from torch.testing._internal.opinfo.core import OpInfo
 import torch_npu
 
 try:
@@ -47,6 +49,7 @@ import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 from torch_npu.distributed.rpc.backend_registry import rpc_backend_registry
 from torch_npu.utils import cann_package_check, add_intercept_methods
+from torch_npu.testing.npu_testing_utils import update_skip_list, get_decorators
 from .version import __version__ as __version__
 from .meta import meta_registrations
 
@@ -151,13 +154,10 @@ torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, gro
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
 # set default device type for gradient checkpointing
-from torch.utils.checkpoint import DefaultDeviceType
 DefaultDeviceType.set_device_type("npu")
 del DefaultDeviceType
 
 #apply test_ops related patch
-from torch.testing._internal.opinfo.core import OpInfo
-from torch_npu.testing.npu_testing_utils import update_skip_list, get_decorators
 apply_test_patchs()
 
 

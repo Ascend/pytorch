@@ -283,7 +283,7 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
         elif dtype == torch.float16:
             dtype = 1
         else:
-            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")    
+            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")
         return g.op("npu::NPUSignBitsUnpack", inputs, size_i=size, dtype_i=dtype)
 
 
@@ -545,7 +545,7 @@ class NPUGruOP(torch.autograd.Function):
 
 
 class NPUDropoutWithAddSoftmaxOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch.ops.npu.npu_dropout_with_add_softmax(*args, **kwargs)
@@ -568,7 +568,7 @@ class NPUScaledMaskedSoftmaxOP(torch.autograd.Function):
 
 
 class NPUMishOP(torch.autograd.Function):
-    
+
     @staticmethod
     def forward(ctx, *args, **kwargs):
         return torch.ops.npu.npu_mish(*args, **kwargs)
@@ -601,10 +601,10 @@ class NPUPromptFlashAttentionOP(torch.autograd.Function):
                  actual_seq_lengths: Optional[Tensor], num_heads: int = 1,
                  scale_value: float = 1.0, pre_tokens: int = 2147473647, next_tokens: int = 0,
                  input_layout: str = "BSH", num_key_value_heads: int = 0):
-        return   g.op("npu::NPUPromptFlashAttention", self, query, key, value,
-                 padding_mask, atten_mask, actual_seq_lengths,
-                 num_heads, scale_value, pre_tokens, next_tokens,
-                 input_layout, num_key_value_heads)
+        return g.op("npu::NPUPromptFlashAttention", self, query, key, value,
+                    padding_mask, atten_mask, actual_seq_lengths,
+                    num_heads, scale_value, pre_tokens, next_tokens,
+                    input_layout, num_key_value_heads)
 
 
 class NPUIncreFlashAttentionOP(torch.autograd.Function):
@@ -619,9 +619,9 @@ class NPUIncreFlashAttentionOP(torch.autograd.Function):
                  actual_seq_lengths: Optional[Tensor],
                  num_heads: int = 1, scale_value: float = 1.0,
                  input_layout: str = "BSH", num_key_value_heads: int = 0):
-        return   g.op("npu::NPUIncreFlashAttention", self, query, key, value,
-                 padding_mask, atten_mask, actual_seq_lengths,
-                 num_heads, scale_value, input_layout, num_key_value_heads)
+        return g.op("npu::NPUIncreFlashAttention", self, query, key, value,
+                    padding_mask, atten_mask, actual_seq_lengths,
+                    num_heads, scale_value, input_layout, num_key_value_heads)
 
 
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
@@ -851,7 +851,7 @@ def wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, at
 def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
                                       num_heads, scale_value, input_layout, num_key_value_heads):
     return NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
-                                           num_heads, scale_value, input_layout, num_key_value_heads)
+                                          num_heads, scale_value, input_layout, num_key_value_heads)
 
 
 def add_onnx_ops():

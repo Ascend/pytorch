@@ -29,7 +29,7 @@ class AccurateTest(metaclass=ABCMeta):
         cmd = "find {} -name {}".format(str(TEST_DIR), regex)
         status, output = subprocess.getstatusoutput(cmd)
         if status or not output:
-            pass # 对于找不到的暂时不作处理
+            pass  # 对于找不到的暂时不作处理
         else:
             files = output.split('\n')
             for ut_file in files:
@@ -42,6 +42,7 @@ class OpStrategy(AccurateTest):
     """
     通过对适配层的代码的识别
     """
+
     def identify(self, modify_file):
         """
         通过对于算子实现文件的文件名解析获取其单元测试的名字，比如：
@@ -51,7 +52,7 @@ class OpStrategy(AccurateTest):
         具体方法：通过大写字母切分关键字，再识别包含所有这些关键字的测试文件名。
         """
         filename = Path(modify_file).name
-        if filename.find('KernelNpu') >= 0: 
+        if filename.find('KernelNpu') >= 0:
             feature_line = filename.split('KernelNpu')[0]
             features = re.findall('[A-Z][^A-Z]*', feature_line)
             regex = '*' + '*'.join([f"{feature.lower()}" for feature in features]) + '*'
@@ -63,10 +64,12 @@ class DirectoryStrategy(AccurateTest):
     """
     Determine whether the modified files are test cases
     """
+
     def identify(self, modify_file):
         is_test_file = str(Path(modify_file).parts[0]) == "test" \
             and re.match("test_(.+).py", Path(modify_file).name)
         return [(str(BASE_DIR / modify_file))] if is_test_file else []
+
 
 class CoreTestStrategy(AccurateTest):
     """
@@ -74,37 +77,41 @@ class CoreTestStrategy(AccurateTest):
     """
     block_list = ['test', 'docs']
     core_test_cases = [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+
     def identify(self, modify_file):
         modified_module = str(Path(modify_file).parts[0])
         if modified_module not in self.block_list:
             return self.core_test_cases
         return []
 
+
 class CopyOptStrategy(AccurateTest):
     """
     通过识别非连续转连续的测试用例
     """
+
     def identify(self, modify_file):
         if modify_file.find('contiguous') > 0:
             regex = '*contiguous*'
             return AccurateTest.find_ut_by_regex(regex)
         return []
 
+
 class DirectoryMappingStrategy(AccurateTest):
     """
     Map the modified files to the corresponding test cases
     """
     mapping_list = {
-    'contrib': 'test/test_contrib',
-    'cpp_extension': 'test/test_cpp_extension', 
-    'distributed': 'test/test_distributed', 
-    'fx': 'test/test_fx',
-    'hooks': 'test/test_hooks', 
-    'optim': 'test/test_optim',
-    'profiler': 'test/test_profiler',
-    'onnx': 'test/test_onnx',
-    'utils': 'test/test_utils',
-    'testing': 'test/test_testing.py',
+        'contrib': 'test/test_contrib',
+        'cpp_extension': 'test/test_cpp_extension',
+        'distributed': 'test/test_distributed',
+        'fx': 'test/test_fx',
+        'hooks': 'test/test_hooks',
+        'optim': 'test/test_optim',
+        'profiler': 'test/test_profiler',
+        'onnx': 'test/test_onnx',
+        'utils': 'test/test_utils',
+        'testing': 'test/test_testing.py',
     }
 
     def identify(self, modify_file):
@@ -119,13 +126,14 @@ class DirectoryMappingStrategy(AccurateTest):
             file_name = str(Path(modify_file).stem)
             if file_name in self.mapping_list:
                 mapped_ut_path.append(self.mapping_list[file_name])
-            
+
             for mapped_path in mapped_ut_path:
                 if Path.is_file(BASE_DIR / mapped_path):
                     current_all_ut_path.append(str(BASE_DIR / mapped_path))
                 else:
                     current_all_ut_path += [str(i) for i in (BASE_DIR / mapped_path).rglob('test_*.py')]
         return current_all_ut_path
+
 
 class TestMgr():
     def __init__(self):
@@ -171,7 +179,7 @@ class TestMgr():
         print("ut files:")
         for ut_file in self.test_files['ut_files']:
             print(ut_file)
-    
+
     def print_op_ut_files(self):
         print("op ut files:")
         for op_ut_file in self.test_files['op_ut_files']:
@@ -184,7 +192,7 @@ def exec_ut(files):
     """
     def get_op_name(ut_file):
         return ut_file.split('/')[-1].split('.')[0].lstrip('test_')
-    
+
     def get_ut_name(ut_file):
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 

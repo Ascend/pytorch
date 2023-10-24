@@ -31,6 +31,7 @@ from .gen_variable_type import (
 from .gen_variable_factories import gen_variable_factories
 from .utils import parse_derivatives, filt_npu_autograd_functions
 
+
 def gen_autograd(
     native_functions_path: str,
     tags_path: str,
@@ -40,20 +41,20 @@ def gen_autograd(
 ) -> None:
     npu_native_functions_path = gen_custom_yaml_path(npu_native_functions_path)
     differentiability_infos, native_funcs, funcs_with_diff_infos =\
-    parse_derivatives(native_functions_path, tags_path, autograd_dir, npu_native_functions_path)
+        parse_derivatives(native_functions_path, tags_path, autograd_dir, npu_native_functions_path)
     npu_funcs_with_diff_infos, _ = filt_npu_autograd_functions(native_functions_path, funcs_with_diff_infos)
     template_path = os.path.join(autograd_dir, 'templates')
     torch_template_path = os.path.join(get_torchgen_dir(), 'packaged/autograd/templates')
 
     # Generate VariableType.cpp
     gen_variable_type(out, funcs_with_diff_infos, template_path)
-    
+
     # Generate VariableType.h
     gen_variable_type_head(out, funcs_with_diff_infos, template_path)
 
     # Generate ADInplaceOrViewType.cpp
     gen_inplace_or_view_type(out, native_functions_path, tags_path, npu_funcs_with_diff_infos, template_path)
-    
+
     # Generate Functions.h/cpp
     gen_autograd_functions_lib(out, differentiability_infos, template_path)
 
@@ -68,7 +69,7 @@ def main() -> None:
                         help='path to output directory')
     parser.add_argument('--autograd_dir', metavar='AUTOGRAD',
                         help='path to autograd directory')
-    parser.add_argument('--npu_native_function_dir', 
+    parser.add_argument('--npu_native_function_dir',
                         help='path to npu_native_functions.yaml')
     args = parser.parse_args()
 
@@ -80,7 +81,7 @@ def main() -> None:
     gen_autograd(native_yaml_path,
                  tags_yaml_path,
                  args.out_dir,
-                 args.autograd_dir, 
+                 args.autograd_dir,
                  args.npu_native_function_dir)
 
 

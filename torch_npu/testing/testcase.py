@@ -109,10 +109,6 @@ class TestCase(expecttest.TestCase):
         if not is_uncoalesced:
             x = x.coalesce()
         else:
-            # FIXME: `x` is a sparse view of `v`. Currently rebase_history for
-            #        sparse views is not implemented, so this workaround is
-            #        needed for inplace operations done on `x`, e.g., copy_().
-            #        Remove after implementing something equivalent to CopySlice for sparse views.
             # NOTE: We do clone() after detach() here because we need to be able to change size/storage of x afterwards
             x = x.detach().clone()
         return x, x._indices().clone(), x._values().clone()
@@ -506,10 +502,10 @@ class TestCase(expecttest.TestCase):
                 baseline = PerfBaseline.get_baseline(methodId)
 
                 if baseline and runtime > baseline * 1.2:
-                        errMsg = "Performance test failed. Performance baseline: " \
-                                + str(baseline) + "s, current time: " + str(runtime) + "s"
-                        perfErr = (self.failureException, self.failureException(errMsg), None)
-                        self._feedErrorsToResult(result, [(self, perfErr)])
+                    errMsg = "Performance test failed. Performance baseline: " \
+                            + str(baseline) + "s, current time: " + str(runtime) + "s"
+                    perfErr = (self.failureException, self.failureException(errMsg), None)
+                    self._feedErrorsToResult(result, [(self, perfErr)])
 
                 if baseline is None or runtime < baseline * 0.9:
                     PerfBaseline.set_baseline(methodId, runtime)

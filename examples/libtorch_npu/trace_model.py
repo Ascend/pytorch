@@ -6,6 +6,7 @@ class ConvModel(torch.nn.Module):
         super(ConvModel, self).__init__()
         self.conv = torch.nn.Conv2d(3, 2, 3)
         self.relu = torch.nn.ReLU()
+
     def forward(self, x):
         return self.relu(self.conv(x))
 

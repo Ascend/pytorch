@@ -15,16 +15,17 @@ from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
 
+
 def parse_derivatives(
     native_functions_path: str,
     tags_path: str,
     autograd_dir: str,
     npu_native_functions_path: str
-) :
+):
     derivatives_path = \
-    str(Path(autograd_dir).parents[1].joinpath('third_party/op-plugin/op_plugin/config/v2r1/derivatives.yaml'))
+        str(Path(autograd_dir).parents[1].joinpath('third_party/op-plugin/op_plugin/config/v2r1/derivatives.yaml'))
     differentiability_infos, _ = load_derivatives(
-    derivatives_path, native_functions_path, tags_path)
+        derivatives_path, native_functions_path, tags_path)
     native_funcs = parse_native_and_custom_yaml(native_functions_path,
                                                 tags_path, npu_native_functions_path).native_functions
     funcs = filte_out_native_autograd_function(native_funcs, differentiability_infos)
@@ -39,7 +40,7 @@ def parse_derivatives(
 def filt_npu_autograd_functions(
     native_functions_path: str,
     funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo]
-) :
+):
     npu_funcs_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo] = []
     torch_functions = set()
     PathManager.check_directory_path_readable(native_functions_path)
@@ -65,7 +66,7 @@ def filte_out_native_autograd_function(
 ):
     result: List[NativeFunction] = []
     derivatives_name_list: List[str] = []
-    
+
     for diffinfo_dict in differentiability_infos.values():
         for info in diffinfo_dict.values():
             derivatives_name_list.append(str(info.func.func.name))
@@ -80,8 +81,8 @@ def filte_out_native_autograd_function(
 NPU_AUTOGRAD_FUNCTION = filt_npu_autograd_functions(
     str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
     parse_derivatives(
-    str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
-    str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/tags.yaml')),
-    str(Path(__file__).parent),
-    str(Path(__file__).parents[2].joinpath(f'torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')))[-1]
+        str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/native_functions.yaml')),
+        str(Path(get_torchgen_dir()).joinpath('packaged/ATen/native/tags.yaml')),
+        str(Path(__file__).parent),
+        str(Path(__file__).parents[2].joinpath(f'torch_npu/csrc/aten/{CUSTOM_YAML_NAME}')))[-1]
 )[-1]

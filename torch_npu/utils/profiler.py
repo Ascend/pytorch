@@ -21,11 +21,11 @@ class Profile(object):
                  start_step: int = 10,
                  save_path: str = "./npu_profiling",
                  profile_type: str = None,
-                 use_npu = True,
-                 use_e2e_profiler = True,
+                 use_npu=True,
+                 use_e2e_profiler=True,
                  **kwargs):
         r"""Dump TORCH/CANN/GE profiling data
-        
+
         Args:
             start_step:    The step to dump profiling data
             save_path:      Save path of data
@@ -58,7 +58,7 @@ class Profile(object):
             if self.profile_type == "TORCH":
                 if not set(kwargs.keys()).issubset(torch_args_set):
                     raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), torch_args_set))
-                self.prof = torch.autograd.profiler.profile(use_npu = self.use_npu, **kwargs)
+                self.prof = torch.autograd.profiler.profile(use_npu=self.use_npu, **kwargs)
             elif self.profile_type == "CANN":
                 if not set(kwargs.keys()).issubset(cann_ge_args_set):
                     raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set))
