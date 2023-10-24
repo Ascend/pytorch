@@ -19,7 +19,7 @@ class TestNpuReshape(TestCase):
         output = output.numpy()
         return output
 
-    def npu_reshape(self, input, shape, can_refresh=False, out=None):
+    def npu_reshape(self, input, shape, can_refresh=False):
         if can_refresh:
             out = torch.reshape(input, shape)
         else:

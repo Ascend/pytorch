@@ -76,10 +76,10 @@ class TestCtcLoss(TestCase):
     def test_ctc_loss(self):
         sizes_list = [[50, 20, 16, 30, 10], [26, 37, 16, 18, 10]]
         para_reduction = ["sum", "mean", "none"]
-        dtype = [np.float32]
-        blank = [0, 9]
+        dtype_list = [np.float32]
+        blank_list = [0, 9]
         shape_format = [
-            [i, j, k, l] for i in sizes_list for j in dtype for k in para_reduction for l in blank
+            [sizes, dtype, para, blank] for sizes in sizes_list for dtype in dtype_list for para in para_reduction for blank in blank_list
         ]
 
         for item in shape_format:
@@ -93,10 +93,10 @@ class TestCtcLoss(TestCase):
     def test_ctc_loss_1D_1(self):
         sizes_list = [[50, 20, 16, 30, 10], [26, 37, 16, 18, 10]]
         para_reduction = ["sum", "mean", "none"]
-        dtype = [np.float32]
-        blank = [0, 9]
+        dtype_list = [np.float32]
+        blank_list = [0, 9]
         shape_format = [
-            [i, j, k, l] for i in sizes_list for j in dtype for k in para_reduction for l in blank
+            [sizes, dtype, para, blank] for sizes in sizes_list for dtype in dtype_list for para in para_reduction for blank in blank_list
         ]
 
         for item in shape_format:

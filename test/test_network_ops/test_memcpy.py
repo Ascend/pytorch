@@ -91,7 +91,7 @@ class TestMemcpy(TestCase):
         format_list = [-1]
         shape_list = [
             [1],
-            [1, 1, 1,],
+            [1, 1, 1],
         ]
         dtype_shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list

@@ -39,11 +39,11 @@ class TestConstantPadNd(TestCase):
         shape_list = [(16, 128), (1, 2, 16, 128)]
         value_list = [0.5, 1.47]
         shape_format = [
-            [[i, j, k], l, m] for i in dtype_list
-            for j in format_list
-            for k in shape_list
-            for l in pad_list
-            for m in value_list
+            [[dtype, format, shape], pad, value] for dtype in dtype_list
+            for format in format_list
+            for shape in shape_list
+            for pad in pad_list
+            for value in value_list
         ]
         self.constant_pad_nd_shape_format(shape_format)
 
@@ -55,11 +55,11 @@ class TestConstantPadNd(TestCase):
         shape_list = [(1, 2, 16, 128)]
         value_list = [0.5, 1.47]
         shape_format = [
-            [[i, j, k], l, m] for i in dtype_list
-            for j in format_list
-            for k in shape_list
-            for l in pad_list
-            for m in value_list
+            [[dtype, format, shape], pad, value] for dtype in dtype_list
+            for format in format_list
+            for shape in shape_list
+            for pad in pad_list
+            for value in value_list
         ]
         self.constant_pad_nd_shape_format(shape_format)
 
@@ -79,7 +79,10 @@ class TestConstantPadNd(TestCase):
         pad_list = [(1, 2, 2, 2), (1, 2)]
         shape_list = [(16, 128), (2, 16, 128), (1, 2, 16, 128)]
         shape_format = [
-            [[i, j, k], l] for i in dtype_list for j in format_list for k in shape_list for l in pad_list
+            [[dtype, format, shape], pad] for dtype in dtype_list
+            for format in format_list
+            for shape in shape_list
+            for pad in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)
@@ -90,7 +93,10 @@ class TestConstantPadNd(TestCase):
         pad_list = [(1, 2, 2, 2), (1, 2)]
         shape_list = [(1, 2, 16, 128)]
         shape_format = [
-            [[i, j, k], l] for i in dtype_list for j in format_list for k in shape_list for l in pad_list
+            [[dtype, format, shape], pad] for dtype in dtype_list
+            for format in format_list
+            for shape in shape_list
+            for pad in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)
@@ -101,7 +107,10 @@ class TestConstantPadNd(TestCase):
         pad_list = [(1, 2, 2, 2), (1, 2)]
         shape_list = [(16, 128), (2, 16, 128), (1, 2, 16, 128)]
         shape_format = [
-            [[i, j, k], l] for i in dtype_list for j in format_list for k in shape_list for l in pad_list
+            [[dtype, format, shape], pad] for dtype in dtype_list
+            for format in format_list
+            for shape in shape_list
+            for pad in pad_list
         ]
 
         self.constant_pad_nd_shape_format(shape_format)

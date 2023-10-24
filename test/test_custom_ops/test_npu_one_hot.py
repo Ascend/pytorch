@@ -15,7 +15,7 @@ class TestNpuOneHot(TestCase):
         if output.size(-1) >= depth:
             output = torch.index_select(
                 input=output,
-                dim=output_dim-1,
+                dim=output_dim - 1,
                 index=torch.IntTensor(range(depth)).npu()
             )
         else:
@@ -23,7 +23,7 @@ class TestNpuOneHot(TestCase):
             output_size[-1] = depth - output_size[-1]
             zero_size = output_size
             zero = torch.zeros(size=zero_size).npu()
-            output = torch.cat((output, zero), dim=output_dim-1)
+            output = torch.cat((output, zero), dim=output_dim - 1)
         return output
 
     def custom_op_exec(self, input1, num_classes=-1, depth=1, on_value=1, off_value=0):
