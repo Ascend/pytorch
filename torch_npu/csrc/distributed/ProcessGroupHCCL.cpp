@@ -788,12 +788,17 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
 #endif
   if (asyncErrorHandling_ != NoHandling) {
-    workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this);
+    int device_id = 0;
+    auto ret = aclrtGetDevice(&device_id);
+    if (ret != ACL_ERROR_NONE) {
+      NPU_LOGE("Device has not been set");
+    }
+    workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this, device_id);
   }
 }
 
-void ProcessGroupHCCL::workCleanupLoop() {
-  aclrtSetDevice(0);
+void ProcessGroupHCCL::workCleanupLoop(int device_id) {
+  NPU_CHECK_ERROR(aclrtSetDevice(device_id));
   while (!terminateProcessGroup_.load()) {
     std::list<WorkHCCL> doneWorks;
     {
