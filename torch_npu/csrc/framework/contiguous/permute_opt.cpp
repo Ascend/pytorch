@@ -73,7 +73,8 @@ private:
 
     // After reordering, check whether the shape and stride match
     auto current_stride = 1;
-    for (size_t i = src_desc.sizes_.size() - 1U; i >= 0U; i--) {
+    int64_t src_desc_sizes = static_cast<int64_t>(src_desc.sizes_.size());
+    for (int64_t i = src_desc_sizes - 1; i >= 0; i--) {
       if (current_stride != view_strides[i]) {
         ASCEND_LOGD("After reordering, shape and stride still do not match, and "
                     "permute pattern cannot be used.");
@@ -109,10 +110,11 @@ private:
     }
 
     // Gather index
-    for (size_t i = 0U; i < perm.size(); i++) {
+    int64_t perm_size = static_cast<int64_t>(perm.size());
+    for (int64_t i = 0; i < perm_size; i++) {
       auto temp_perm_i = perm[i];
       auto temp_sizes_i = sizes[perm[i]];
-      for (const auto j : c10::irange(i + 1, perm.size())) {
+      for (const auto j : c10::irange(i + 1, perm_size)) {
         if (perm[i] + 1 == perm[j]) {
           temp_sizes_i *= sizes[perm[j]];
           ++i;
@@ -157,7 +159,8 @@ private:
   }
 
   template <typename T> void squeeze_shape_and_stride(T &shape, T &stride) {
-    for (const auto i : c10::irange(shape.size())) {
+    int64_t shape_size = static_cast<int64_t>(shape.size());
+    for (int64_t i = 0; i < shape_size; i++) {
       if (shape[i] == 1) {
         shape.erase(shape.begin() + i);
         stride.erase(stride.begin() + i);
