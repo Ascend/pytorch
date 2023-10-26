@@ -6,3 +6,4 @@ from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_c
 from ._device import apply_device_patch
 from .serialization import add_serialization_methods
 from .npu_intercept import cann_package_check, add_intercept_methods
+from .dtensor import register_ops_under_dtensor_rules
