@@ -279,7 +279,6 @@ class CPPLibBuild(build_clib, object):
                 "CMake must be installed to build the following extensions: " +
                 ", ".join(e.name for e in self.extensions))
         self.cmake = cmake
-        make_cmd = 'make'
 
         build_dir = os.path.join(BASE_DIR, "build")
         build_type_dir = os.path.join(build_dir)
@@ -299,14 +298,11 @@ class CPPLibBuild(build_clib, object):
             '-DTORCH_VERSION=' + VERSION,
             '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
 
-        if which('ninja') is not None:
-            cmake_args.append('-GNinja')
-            make_cmd = 'ninja'
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
         subprocess.check_call([self.cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
-        subprocess.check_call([make_cmd] + build_args, cwd=build_type_dir, env=os.environ)
+        subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
 
 
 class Build(build_ext, object):
@@ -420,8 +416,7 @@ extra_compile_args = [
     '-std=c++14',
     '-Wno-sign-compare',
     '-Wno-deprecated-declarations',
-    '-Wno-return-type',
-    '-D__FILENAME__=\"$(notdir $(abspath $<))\"'
+    '-Wno-return-type'
 ]
 
 if re.match(r'clang', os.getenv('CC', '')):
@@ -452,7 +447,7 @@ setup(
             sources=["torch_npu/csrc/InitNpuBindings.cpp"],
             libraries=["torch_npu"],
             include_dirs=include_directories,
-            extra_compile_args=extra_compile_args + ['-fstack-protector-all'],
+            extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
             library_dirs=["lib"],
             extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
         ),
