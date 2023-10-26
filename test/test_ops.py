@@ -18,6 +18,7 @@ from importlib import import_module
 
 import torch
 import torch_npu
+import torch_npu.testing
 from torch.utils._pytree import tree_map
 
 from torch.testing import make_tensor
