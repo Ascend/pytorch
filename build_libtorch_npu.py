@@ -124,7 +124,6 @@ def check_gtest_valid(base_dir):
 
 def run_cmake():
     cmake = get_cmake_command()
-    make_cmd = 'make'
 
     if cmake is None:
         raise RuntimeError(
@@ -156,14 +155,10 @@ def run_cmake():
     if os.getenv('_GLIBCXX_USE_CXX11_ABI') is not None:
         cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=' + os.getenv('_GLIBCXX_USE_CXX11_ABI'))
 
-    if which('ninja') is not None:
-        cmake_args.append('-GNinja')
-        make_cmd = 'ninja'
-
     build_args = ['-j', str(multiprocessing.cpu_count())]
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
-    subprocess.check_call([make_cmd] + build_args, cwd=build_type_dir, env=os.environ)
+    subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
 
 
 def check_opplugin_valid(base_dir):
