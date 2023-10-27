@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Dict
 import yaml
 
+import torch
 from torchgen.model import NativeFunction, FunctionSchema
 from torchgen.api.autograd import (
     match_differentiability_info, NativeFunctionWithDifferentiabilityInfo,
@@ -15,6 +16,8 @@ from codegen.gen_backend_stubs import parse_native_and_custom_yaml
 
 AUTOGRAD_BLACK_LIST = {'npu_format_cast.Tensor', 'npu_format_cast_', 'npu_format_cast_.acl_format'}
 
+VERSION_PART = torch.__version__.split('.')
+
 
 def parse_derivatives(
     native_functions_path: str,
@@ -22,8 +25,9 @@ def parse_derivatives(
     autograd_dir: str,
     npu_native_functions_path: str
 ):
-    derivatives_path = \
-        str(Path(autograd_dir).parents[1].joinpath('third_party/op-plugin/op_plugin/config/v2r1/derivatives.yaml'))
+    derivatives_path = str(Path(autograd_dir).parents[1].joinpath(
+        f'third_party/op-plugin/op_plugin/config/v{VERSION_PART[0]}r{VERSION_PART[1]}/derivatives.yaml'
+         ))
     differentiability_infos, _ = load_derivatives(
         derivatives_path, native_functions_path, tags_path)
     native_funcs = parse_native_and_custom_yaml(native_functions_path,
