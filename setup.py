@@ -437,7 +437,6 @@ setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
     version=VERSION,
     description='NPU bridge for PyTorch',
-    url='https://gitee.com/ascend/pytorch',
     packages=["torch_npu"],
     libraries=[('torch_npu', {'sources': list()})],
     package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
