@@ -25,6 +25,7 @@
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
+#include  "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -107,6 +108,11 @@ void SetHF32DefaultValue() {
     TORCH_CHECK(0, "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
   }
 }
+
+std::string GetAclConfigJsonPath() {
+  const char *acl_json =c10_npu::option::OptionsManager::GetAclConfigJsonPath();
+  return torch_npu::toolkit::profiler::Utils::RealPath(acl_json);
+}
 } // namespace
 
 namespace c10_npu {
@@ -124,7 +130,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (init_flag_) {
         return INIT_SUCC;
     }
-    NPU_CHECK_ERROR(aclInit(nullptr));
+    std::string json_path = GetAclConfigJsonPath();
+    const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
+    NPU_CHECK_ERROR(aclInit(json_path_ptr));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
         NPU_CHECK_ERROR(aclmdlInitDump());
