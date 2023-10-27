@@ -530,8 +530,6 @@ setup(
     description='NPU bridge for PyTorch',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://gitee.com/ascend/pytorch',
-    download_url="https://gitee.com/ascend/pytorch/tags",
     license="BSD License",
     classifiers=classifiers,
     packages=["torch_npu"],
