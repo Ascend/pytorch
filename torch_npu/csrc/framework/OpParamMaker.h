@@ -5,6 +5,7 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
+#include "torch_npu/csrc/framework/interface/HcclInterface.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
@@ -12,6 +13,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 
 namespace at_npu
