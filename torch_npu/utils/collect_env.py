@@ -37,6 +37,7 @@ SystemEnv = namedtuple('SystemEnv', [
 def get_cann_version():
     ascend_home_path = os.environ.get("ASCEND_HOME_PATH", "")
     cann_version = "not known"
+    PathManager.check_directory_path_readable(os.path.realpath(ascend_home_path))
     for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
         install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
         if len(install_files) == 0:

@@ -20,6 +20,7 @@ cann_pytorch_version_map = {
 
 def get_cann_version(ascend_home_path):
     cann_version = ""
+    PathManager.check_directory_path_readable(os.path.realpath(ascend_home_path))
     for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
         if cann_version:
             break
