@@ -21,8 +21,9 @@ from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar,
 from enum import Enum
 import contextlib
 import textwrap
-import yaml
 import os
+import warnings
+import yaml
 
 # Safely load fast C Yaml loader/dumper if they are available
 try:
@@ -105,9 +106,7 @@ class PathManager:
             msg = f"The path does not exist: {path}"
             raise RuntimeError(msg)
         if os.stat(path).st_uid != os.getuid():
-            check_msg = input("The path does not belong to you, do you want to continue? [y/n]")
-            if check_msg.lower() != "y":
-                raise RuntimeError("The user chose not to continue.")
+            warnings.warn(f"Warning: The {path} owner does not match the current user.")
 
     @classmethod
     def check_directory_path_readable(cls, path):
@@ -126,6 +125,13 @@ class PathManager:
         if not os.access(path, os.R_OK):
             msg = f"The path permission check failed: {path}"
             raise RuntimeError(msg)
+
+    @classmethod
+    def remove_path_safety(cls, path: str):
+        if os.path.islink(path):
+            raise RuntimeError(f"Invalid path is a soft chain: {path}")
+        if os.path.exists(path):
+            os.remove(path)
 
 
 def split_name_params(schema: str) -> Tuple[str, List[str]]:
@@ -224,6 +230,7 @@ def merge_custom_yaml(pta_path, op_plugin_path):
 
     merged_yaml = merge_yaml(pta_es, op_es)
     merged_yaml_path = gen_custom_yaml_path(pta_path)
+    PathManager.remove_path_safety(merged_yaml_path)
     with os.fdopen(os.open(merged_yaml_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as outfile:
         yaml.dump(merged_yaml, outfile, default_flow_style=False, width=float("inf"))
     os.chmod(merged_yaml_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)

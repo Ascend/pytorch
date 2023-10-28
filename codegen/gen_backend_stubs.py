@@ -217,6 +217,7 @@ def parse_backend_yaml(
     if not isinstance(unsupported, list):
         raise TypeError(f'expected "unsupported" to be a list, but got: {unsupported}')
 
+    yaml_values.pop('symint')
     if (len(yaml_values.keys()) > 0):
         print(f'Waring: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
 Only the following keys are supported: {", ".join(valid_keys)}')

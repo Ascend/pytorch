@@ -16,6 +16,7 @@
 import os
 import re
 import shutil
+import warnings
 
 
 class PathManager:
@@ -73,9 +74,7 @@ class PathManager:
             msg = f"The path does not exist: {path}"
             raise RuntimeError(msg)
         if os.stat(path).st_uid != os.getuid():
-            check_msg = input("The path does not belong to you, do you want to continue? [y/n]")
-            if check_msg.lower() != "y":
-                raise RuntimeError("The user chose not to continue.")
+            warnings.warn(f"Warning: The {path} owner does not match the current user.")
 
     @classmethod
     def check_directory_path_writeable(cls, path):
