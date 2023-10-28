@@ -82,7 +82,7 @@ class ProfilerConfig:
             try:
                 jsondata = json.loads(FileManager.file_read_all(info_path, "rt"))
                 config_freq = jsondata.get("CPU")[0].get("Frequency")
-                if (self.is_number(config_freq)):
+                if (self.is_number(str(config_freq))):
                     self._freq = float(config_freq)
             except JSONDecodeError:
                 print_warn_msg("Failed to get profiler info json from file.")
