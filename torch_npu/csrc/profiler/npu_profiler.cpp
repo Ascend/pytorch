@@ -156,7 +156,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             auto data_ptr = ctx_ptr->data_;
             data_ptr->process_id = g_pid;
             data_ptr->start_ns = static_cast<int64_t>(Utils::GetClockTime());
-            static thread_local uint64_t tid = syscall(SYS_gettid);
+            static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
             data_ptr->start_thread_id = tid;
             data_ptr->sequence_number = fn.seqNr();
             data_ptr->forward_thread_id = fn.forwardThreadId();
@@ -188,7 +188,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             TORCH_INTERNAL_ASSERT(npu_profiler_ctx_ptr != nullptr);
             auto data_ptr = npu_profiler_ctx_ptr->data_;
             data_ptr->end_ns = static_cast<int64_t>(Utils::GetClockTime());
-            static thread_local uint64_t tid = syscall(SYS_gettid);
+            static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
             data_ptr->end_thread_id = tid;
           }
       )

@@ -1,7 +1,7 @@
 #include "torch_npu/csrc/profiler/utils.h"
 
 namespace torch_npu {
-namespace profiler{
+namespace profiler {
 
 static constexpr auto kConv2dStride = 3;
 static constexpr auto kConv2dPadding = 4;
