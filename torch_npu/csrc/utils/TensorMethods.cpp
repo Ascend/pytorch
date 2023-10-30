@@ -206,7 +206,7 @@ static PyObject* THPVariable_type(PyObject* self, PyObject* args, PyObject* kwar
   torch::ParsedArgs<4> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto self_ = r.tensor(0);
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
   }
 

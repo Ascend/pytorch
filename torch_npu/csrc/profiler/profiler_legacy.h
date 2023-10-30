@@ -58,7 +58,6 @@ at::Tensor record_function_enter(const std::string& name);
 void record_function_exit(const at::Tensor& handle);
 
 struct  DeviceStubs {
-
   virtual void record(int& device, aclrtEvent* event, int64_t* cpu_ns) const {
     fail();
   }
@@ -191,10 +190,10 @@ struct  LegacyEvent {
 
   std::string kindStr() const {
     switch (kind_) {
-      case EventKind::Mark: return "mark";
-      case EventKind::PushRange: return "push";
-      case EventKind::PopRange: return "pop";
-      case EventKind::MemoryAlloc: return "memory_alloc";
+        case EventKind::Mark: return "mark";
+        case EventKind::PushRange: return "push";
+        case EventKind::PopRange: return "pop";
+        case EventKind::MemoryAlloc: return "memory_alloc";
     }
     throw std::runtime_error("unknown event kind");
   }

@@ -535,7 +535,7 @@ void addEventList(std::vector<LegacyEvent>&& profiledEvents) {
 void LegacyEvent::record(bool record_device) {
   if (record_device && state_ == ProfilerState::NPU) {
     device_stubs()->record(device_, &npu_event, &cpu_ns_);
-    return; 
+    return;
   }
   cpu_ns_ = getTime();
 }

@@ -147,37 +147,37 @@ static Py_ssize_t TNPDevice_hash(TNPDevice *self)
 }
 
 PyObject *TNPDevice_rc(PyObject *a, PyObject *b, int op) {
-  HANDLE_TH_ERRORS
-  if (!TNPDevice_Check(a) || !TNPDevice_Check(b)) {
-    // Py_RETURN_NOTIMPLEMENTED not in python 2.
-    Py_INCREF(Py_NotImplemented);
-    return Py_NotImplemented;
-  }
-  TNPDevice *da = reinterpret_cast<TNPDevice*>(a);
-  TNPDevice *db = reinterpret_cast<TNPDevice*>(b);
+    HANDLE_TH_ERRORS
+    if (!TNPDevice_Check(a) || !TNPDevice_Check(b)) {
+        // Py_RETURN_NOTIMPLEMENTED not in python 2.
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+    }
+    TNPDevice *da = reinterpret_cast<TNPDevice*>(a);
+    TNPDevice *db = reinterpret_cast<TNPDevice*>(b);
 
-  switch (op) {
-    case Py_EQ:
-      if (da->device == db->device) {
-        Py_RETURN_TRUE;
-      } else {
-        Py_RETURN_FALSE;
-      }
-    case Py_NE:
-      if (da->device == db->device) {
-        Py_RETURN_FALSE;
-      } else {
-        Py_RETURN_TRUE;
-      }
-    case Py_LT:
-    case Py_LE:
-    case Py_GT:
-    case Py_GE:
-      throw torch::TypeError("comparison not implemented");
-    default:
-      throw torch::TypeError("unexpected comparison op");
-  }
-  END_HANDLE_TH_ERRORS
+    switch (op) {
+        case Py_EQ:
+            if (da->device == db->device) {
+                Py_RETURN_TRUE;
+            } else {
+                Py_RETURN_FALSE;
+            }
+        case Py_NE:
+            if (da->device == db->device) {
+                Py_RETURN_FALSE;
+            } else {
+                Py_RETURN_TRUE;
+            }
+        case Py_LT:
+        case Py_LE:
+        case Py_GT:
+        case Py_GE:
+            throw torch::TypeError("comparison not implemented");
+        default:
+            throw torch::TypeError("unexpected comparison op");
+    }
+    END_HANDLE_TH_ERRORS
 }
 
 PyObject *TNPDevice_reduce(PyObject *_self, PyObject *noargs)
