@@ -82,6 +82,21 @@ class HcomAllReduceTest(TestCase):
             self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
                                     HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_all_reduce_wrap_dtype(self):
+        # CI currently supports only 2 devices
+        ranks = [2]
+        dtype_list = [np.uint8, np.float64]
+        shape_format = [[i, 2, [2, 3, 16]] for i in dtype_list]
+        for world_size in ranks:
+            for shape in shape_format:
+                exp_input, input1 = create_common_tensor(shape, -10, 10)
+                expected = 0
+                for _ in range(world_size):
+                    expected += exp_input
+                self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
+                                        HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
+
 
 if __name__ == '__main__':
     run_tests()
