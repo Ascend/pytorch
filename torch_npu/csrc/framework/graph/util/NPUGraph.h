@@ -60,7 +60,6 @@ enum class NodeExtInfoType : uint8_t {
   SENSITIVE_FORMAT_OF_INPUT,
   SENSITIVE_FORMAT_OF_OUTPUT,
   DYNAMIC_INPUT_FUNC,
-
 };
 
 class Node {

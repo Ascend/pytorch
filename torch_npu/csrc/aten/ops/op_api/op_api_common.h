@@ -401,7 +401,7 @@ uint64_t CalcHashId();
                   #aclnn_api, #aclnn_api, GetOpApiLibName(), GetOpApiLibName(), #originCallExpression);      \
       return originCallExpression;                                                                           \
     }                                                                                                        \
-} while(0)
+} while (0)
 
 typedef int(*InitHugeMemThreadLocal)(void*, bool);
 typedef void(*UnInitHugeMemThreadLocal)(void*, bool);

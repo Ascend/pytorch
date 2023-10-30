@@ -441,7 +441,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
         auto out = at::empty_like(zero_grad);
         std::vector<at::Tensor> output{out};
         zero_grad.zero_();
-        c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL> process_group_hccl = 
+        c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL> process_group_hccl =
           c10::dynamic_intrusive_pointer_cast<::c10d_npu::ProcessGroupHCCL>(process_group_);
         bucket.work = process_group_hccl->allreduce_out(input, output, bucket_index.bucket_index);
       }
@@ -874,7 +874,7 @@ void Reducer::all_reduce_bucket(Bucket& bucket) {
         bucket.replicas[0].sizes_vec,
         variables_for_bucket);
     bucket.future_work = run_comm_hook(grad_bucket);
-  }  
+  }
 }
 
 std::vector<at::Tensor> Reducer::get_variables_for_bucket(

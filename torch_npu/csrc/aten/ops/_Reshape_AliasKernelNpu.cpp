@@ -5,7 +5,6 @@ namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeFunctions::_reshape_alias(const at::Tensor& self, at::IntArrayRef sizes, at::IntArrayRef strides) {
-
   return self.view(sizes);
 }
 

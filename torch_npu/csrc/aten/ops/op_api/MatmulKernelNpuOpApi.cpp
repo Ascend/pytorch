@@ -42,16 +42,12 @@ static c10::SmallVector<int64_t, SIZE> get_output_size(const at::Tensor &tensor1
 
   if (dim_tensor1 == 1 && dim_tensor2 == 1) {
     output_size = {};
-
   } else if (dim_tensor1 == 2 && dim_tensor2 == 1) {
     output_size = {tensor1.size(0)};
-
   } else if (dim_tensor1 == 1 && dim_tensor2 == 2) {
     output_size = {tensor2.size(1)};
-
   } else if (dim_tensor1 == 2 && dim_tensor2 == 2) {
     output_size = {tensor1.size(0), tensor2.size(1)};
-
   } else if (dim_tensor1 >= 3 && (dim_tensor2 == 1 || dim_tensor2 == 2)) {
     // t1:(N, n, m) * t2:(m, p)
     auto size1 = tensor1.sizes();
@@ -61,7 +57,6 @@ static c10::SmallVector<int64_t, SIZE> get_output_size(const at::Tensor &tensor1
     if (dim_tensor2 > 1) {
       output_size.push_back(size2[dim_tensor2 - 1]);
     }
-
   } else if ((dim_tensor1 == 1 || dim_tensor1 == 2) && dim_tensor2 >= 3) {
     auto tmp = c10::SmallVector<int64_t, SIZE>{1, tensor1.size(0)};
     auto size1 = dim_tensor1 == 1 ? tmp : tensor1.sizes();
@@ -71,7 +66,6 @@ static c10::SmallVector<int64_t, SIZE> get_output_size(const at::Tensor &tensor1
       output_size.push_back(size1[0]);
     }
     output_size.push_back(size2[dim_tensor2 - 1]);
-
   } else if (dim_tensor1 >= 3 && dim_tensor2 >= 3) {
     // t1:(b1, n, m1) * t2:(x2, m2, p)
     int64_t n = tensor1.size(-2);
@@ -82,7 +76,6 @@ static c10::SmallVector<int64_t, SIZE> get_output_size(const at::Tensor &tensor1
     c10::SmallVector<int64_t, SIZE> output_expand_size(expand_batch_portion);
     output_expand_size.insert(output_expand_size.end(), {n, p});
     output_size = output_expand_size;
-
   } else {
     TORCH_CHECK(false, "matmul got error sizes: ", "(", dim_tensor1, ", ", dim_tensor2, ")");
   }
@@ -128,7 +121,6 @@ at::Tensor matmul_mat1_backward(const at::Tensor self, const at::Tensor other,
     grad = grad.view({grad.size(-2), -1});
     matmul_implement_npu(output, grad, mat2);
     output = output.reshape(self.sizes());
-
   } else { // bmm
     mat2 = mat2.transpose(-2, -1);
     auto expend_sizes = get_output_size(grad, mat2);
@@ -187,7 +179,6 @@ std::tuple<at::Tensor, at::Tensor> matmul_backward(const at::Tensor &grad,
   // backward mat1 and mat2 separately
   auto self_grad = matmul_mat1_backward(self, other, grad);
   auto other_grad = matmul_mat2_backward(self, other, grad);
-
   // strip added dim: (5,1)->(5)
   if (other.dim() == 1 && other_grad.size(-1) == 1) {
     other_grad = other_grad.squeeze(-1);
@@ -197,7 +188,6 @@ std::tuple<at::Tensor, at::Tensor> matmul_backward(const at::Tensor &grad,
 }
 
 at::Tensor matmul_forward(const at::Tensor &self, const at::Tensor &mat2) {
-
   at::NoNamesGuard guard;
   auto output_size = get_output_size(self, mat2);
   auto out = OpPreparation::ApplyTensorWithoutFormat(output_size, self.options());
@@ -205,7 +195,7 @@ at::Tensor matmul_forward(const at::Tensor &self, const at::Tensor &mat2) {
   return out;
 }
 
-class NPUMatmulOpApiFunction: public torch::autograd::Function<NPUMatmulOpApiFunction> {
+class NPUMatmulOpApiFunction : public torch::autograd::Function<NPUMatmulOpApiFunction> {
 public:
   static at::Tensor forward(AutogradContext *ctx, const at::Tensor &self,
                             const at::Tensor &other) {

@@ -19,7 +19,7 @@
 #include <ATen/core/Tensor.h>
 #include <ATen/Utils.h>
 #include <ATen/Tensor.h>
-#include <c10/core/CPUAllocator.h> 
+#include <c10/core/CPUAllocator.h>
 
 #include "TdtChannelForPrint.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -85,7 +85,6 @@ TupleToPrint TdtChannelForPrint::GetTupleToPrint() {
     at::Tensor tensor = at::empty(sizes, options);
     (void)memcpy(tensor.data_ptr(), data_addr, tensor.numel() * tensor.itemsize());
     tensor_to_print.emplace_back(std::move(tensor));
-    
   }
   const char* desc_name = acl_tdt::AcltdtGetDatasetName(data_set.get());
   const std::string format_string(desc_name);

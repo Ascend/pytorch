@@ -85,7 +85,7 @@ namespace at_npu
     class NPUDtypeCastFunction : public torch::autograd::Function<NPUDtypeCastFunction> {
     public:
       static at::Tensor forward(AutogradContext *ctx,
-          at::Tensor self, 
+          at::Tensor self,
           at::ScalarType dtype) {
         at::AutoNonVariableTypeMode g;
         ctx->saved_data["dtype"] = self.scalar_type();
@@ -100,7 +100,7 @@ namespace at_npu
       }
     };
 
-    at::Tensor NPUNativeFunctions::npu_dtype_cast(const at::Tensor &self, 
+    at::Tensor NPUNativeFunctions::npu_dtype_cast(const at::Tensor &self,
         at::ScalarType dtype) {
       return NPUDtypeCastFunction::apply(self, dtype);
     }

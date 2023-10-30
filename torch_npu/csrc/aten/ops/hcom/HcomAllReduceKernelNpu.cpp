@@ -17,8 +17,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-namespace at_npu{
-namespace native{
+namespace at_npu {
+namespace native {
     
 using namespace at_npu::native;
 

@@ -148,7 +148,7 @@ PyObject* THNPReplayGraph_is_replay_cache_hit(THNPReplayGraph* self, PyObject* a
     END_HANDLE_TH_ERRORS
 }
 
-static struct PyGetSetDef THNPReplayGraph_properties[] ={
+static struct PyGetSetDef THNPReplayGraph_properties[] = {
     {nullptr}
 };
 

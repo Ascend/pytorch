@@ -230,7 +230,7 @@ uint64_t MurmurHash(const void *key, const int len, const uint32_t seed = 0xdead
     uint64_t k2 = 0;
     // because the size of a block is 16, different offsets are calculated for tail blocks
     // for different sizes
-    switch(len & 15)
+    switch (len & 15)
     {
     case 15: k2 ^= ((uint64_t)tail[14]) << 48;
     case 14: k2 ^= ((uint64_t)tail[13]) << 40;

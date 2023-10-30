@@ -70,7 +70,7 @@ void GraphExecutor::RunGraph(
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start_time);
   if (verbose_) {
-    ASCEND_LOGI("RunGraph Time: duration = %.3f ms",static_cast<double>(duration.count()) *
+    ASCEND_LOGI("RunGraph Time: duration = %.3f ms", static_cast<double>(duration.count()) *
                                                  std::chrono::microseconds::period::num /
                                                  std::chrono::milliseconds::period::den);
   }
@@ -132,7 +132,6 @@ uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo
       outputs.hash_of_topo_and_attr,
       outputs.hash_of_shape,
       cur_graph_id);
-
   if (!cached_graph_id.has_value()) {
     RECORD_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
     std::vector<ge::Operator> const_input_ops;

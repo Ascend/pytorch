@@ -399,7 +399,7 @@ aclError AclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatu
       func = (AclrtQueryDeviceStatus)GET_FUNC(aclrtQueryDeviceStatus);
     }
     TORCH_CHECK(func, "Failed to find function aclrtQueryDeviceStatus, Please upgrade CANN version.");
-    return func(deviceId, deviceStatus);  
+    return func(deviceId, deviceStatus);
 }
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id) {

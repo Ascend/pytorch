@@ -52,8 +52,8 @@ std::shared_ptr<TdtDataSet> NpuTdtChannel::Dequeue() {
   }
   TORCH_CHECK(channel_handle_ != nullptr, "channel_handle is nullptr during Dequeue");
   auto ret_dataset = std::make_shared<TdtDataSet>();
-  auto ret = acl_tdt::AcltdtReceiveTensor(channel_handle_, 
-                                          ret_dataset->GetPtr().get(), 
+  auto ret = acl_tdt::AcltdtReceiveTensor(channel_handle_,
+                                          ret_dataset->GetPtr().get(),
                                           time_out_);
   TORCH_CHECK((ret == ACL_ERROR_NONE) || (ret == ACL_ERROR_RT_QUEUE_EMPTY),
               "Dequeue channel ", channel_name_,

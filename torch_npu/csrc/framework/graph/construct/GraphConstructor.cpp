@@ -159,7 +159,7 @@ void GraphCommandImpl::ReduceScalarValue(
     {
       double value = input.toDouble();
       ReduceScalarValueOp<double>(&value, host_ptr_offset);
-    }  
+    }
     break;
   case at::ScalarType::Half:
     {
@@ -171,7 +171,7 @@ void GraphCommandImpl::ReduceScalarValue(
     {
       uint8_t value = input.toByte();
       ReduceScalarValueOp<uint8_t>(&value, host_ptr_offset);
-    }   
+    }
     break;
   case at::ScalarType::Char:
     {

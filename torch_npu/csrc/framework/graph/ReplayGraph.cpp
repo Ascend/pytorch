@@ -339,7 +339,7 @@ std::vector<at::Tensor> ReplayGraphImpl::GetInnerOutputs(const at::TensorList& i
     auto cache = replay_graph_cache_.find(multi_hash(input_tensor_shape));
     TORCH_CHECK(cache != replay_graph_cache_.end(), "The graph is not captured when replay");
     auto& graphinfo = cache->second;
-    TORCH_CHECK(this->retain_inner_output_ , "Get inner outputs should set retain_inner_output as true");
+    TORCH_CHECK(this->retain_inner_output_, "Get inner outputs should set retain_inner_output as true");
     return graphinfo.inner_outputs_tensors;
 }
 

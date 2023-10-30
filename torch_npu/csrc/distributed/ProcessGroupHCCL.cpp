@@ -2076,12 +2076,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
   for (size_t i = 0; i < input_tensors.size(); i++) {
     int64_t inputlist_tensor_size = input_tensors[i].numel();
     input_split_sizes.push_back(inputlist_tensor_size);
-    input_tensors_after.push_back(at::reshape(input_tensors[i], {inputlist_tensor_size,1}));
+    input_tensors_after.push_back(at::reshape(input_tensors[i], {inputlist_tensor_size, 1}));
   }
 
   for (size_t i = 0; i < output_tensors.size(); i++) {
     output_split_sizes.push_back(output_tensors[i].numel());
-    output_tensors_after.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(),1}));
+    output_tensors_after.push_back(at::reshape(output_tensors[i], {output_tensors[i].numel(), 1}));
   }
 
   int ranks = getSize();
