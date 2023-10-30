@@ -1326,22 +1326,22 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
   check_split_sizes(outputSplitSizes, outputTensor, size_);
   int inputSize = static_cast<int>(inputSplitSizes.size());
   int outSize = static_cast<int>(outputSplitSizes.size());
-  uint64_t inputCounts[inputSize];
-  uint64_t inputSpl[inputSize];
-  uint64_t outputCounts[outSize];
-  uint64_t outputSpl[outSize];
-  inputSpl[0] = 0;
-  outputSpl[0] = 0;
+  std::vector<uint64_t> inputCounts;
+  std::vector<uint64_t> inputSpl;
+  std::vector<uint64_t> outputCounts;
+  std::vector<uint64_t> outputSpl;
+  inputSpl.push_back(0);
+  outputSpl.push_back(0);
   for (int i = 0; i < outSize; i++) {
-    outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
+    outputCounts.push_back(static_cast<uint64_t>(outputSplitSizes[i]));
     if (i > 0) {
-        outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
+        outputSpl.push_back(outputSpl[i-1] + outputCounts[i-1]);
     }
   }
   for (int i = 0; i < inputSize; i++) {
-    inputCounts[i] = static_cast<uint64_t>(inputSplitSizes[i]);
+    inputCounts.push_back(static_cast<uint64_t>(inputSplitSizes[i]));
     if (i > 0) {
-        inputSpl[i] = inputSpl[i-1] + inputCounts[i-1];
+        inputSpl.push_back(inputSpl[i-1] + inputCounts[i-1]);
     }
   }
 
@@ -1360,15 +1360,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
         auto outputDataPtr = output.data_ptr();
         auto inputhcclDataType = getHcclDataType(input.scalar_type());
         auto outputhcclDataType = getHcclDataType(output.scalar_type());
-        auto hccl_call = [inputDataPtr, &inputCounts, &inputSpl, inputhcclDataType, outputDataPtr, &outputCounts, &outputSpl, outputhcclDataType, comm, stream]() -> int {
+        auto hccl_call = [inputDataPtr, inputCounts, inputSpl, inputhcclDataType, outputDataPtr, outputCounts, outputSpl, outputhcclDataType, comm, stream]() -> int {
             return hcclAlltoAllV(
                 inputDataPtr,
-                inputCounts,
-                inputSpl,
+                inputCounts.data(),
+                inputSpl.data(),
                 inputhcclDataType,
                 outputDataPtr,
-                outputCounts,
-                outputSpl,
+                outputCounts.data(),
+                outputSpl.data(),
                 outputhcclDataType,
                 comm,
                 stream.stream(false));
