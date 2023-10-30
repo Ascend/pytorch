@@ -1,9 +1,13 @@
+import math
 import torch
 from torch.library import Library, impl
 
 '''
 Registering Meta implementations for custom ops
 '''
+BIT_NUMBER = 128
+UINT8_BIT_NUMBER = 8
+#meta register implementation
 m = Library("npu", "IMPL", "Meta")
 
 
@@ -45,6 +49,11 @@ def npu_dtype_cast_meta(self, dtype):
     return torch.empty_like(self, dtype=dtype)
 
 
+@impl(m, "npu_dtype_cast_backward")
+def npu_dtype_cast_backward_meta(self, dtype):
+    return torch.empty_like(self, dtype=dtype)
+
+
 @impl(m, "npu_bmmV2")
 def npu_bmmV2_meta(self, mat2, output_sizes):
     dim1 = self.size(0)
@@ -67,3 +76,14 @@ def scatter_update_meta(self, indices, updates, axis):
 @impl(m, "scatter_update_")
 def scatter_update__meta(self, indices, updates, axis):
     return self
+
+
+@impl(m, "_npu_dropout")
+def _npu_dropout_meta(self, p):
+    mask = math.floor(math.floor((self.numel() + BIT_NUMBER - 1) / BIT_NUMBER) * BIT_NUMBER / UINT8_BIT_NUMBER)
+    return (torch.empty_like(self, dtype=self.dtype), torch.empty(mask, dtype=torch.uint8, device='meta'))
+
+
+@impl(m, "npu_dropout_backward")
+def npu_dropout_backward_meta(grad_output, mask, p):
+    return torch.empty_like(grad_output, dtype=grad_output.dtype)
