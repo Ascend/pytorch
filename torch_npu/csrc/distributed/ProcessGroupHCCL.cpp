@@ -2006,22 +2006,22 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
     }
     int inputSize = static_cast<int>(inputSplitSizes.size());
     int outSize = static_cast<int>(outputSplitSizes.size());
-    uint64_t inputCounts[inputSize];
-    uint64_t inputSpl[inputSize];
-    uint64_t outputCounts[outSize];
-    uint64_t outputSpl[outSize];
-    inputSpl[0] = 0;
-    outputSpl[0] = 0;
+    std::vector<uint64_t> inputCounts;
+    std::vector<uint64_t> inputSpl;
+    std::vector<uint64_t> outputCounts;
+    std::vector<uint64_t> outputSpl;
+    inputSpl.push_back(0);
+    outputSpl.push_back(0);
     for (int i = 0; i < outSize; i++) {
-      outputCounts[i] = static_cast<uint64_t>(outputSplitSizes[i]);
+      outputCounts.push_back(static_cast<uint64_t>(outputSplitSizes[i]));
       if (i > 0) {
-          outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
+          outputSpl.push_back(outputSpl[i-1] + outputCounts[i-1]);
       }
     }
     for (int i = 0; i < inputSize; i++) {
-      inputCounts[i] = static_cast<uint64_t>(inputSplitSizes[i]);
+      inputCounts.push_back(static_cast<uint64_t>(inputSplitSizes[i]));
       if (i > 0) {
-          inputSpl[i] = inputSpl[i-1] + inputCounts[i-1];
+          inputSpl.push_back(inputSpl[i-1] + inputCounts[i-1]);
       }
     }
 
@@ -2039,15 +2039,15 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
         auto outputDataPtr = output.data_ptr();
         auto inputhcclDataType = getHcclDataType(input.scalar_type());
         auto outputhcclDataType = getHcclDataType(output.scalar_type());
-        auto hccl_call = [inputDataPtr, &inputCounts, &inputSpl, inputhcclDataType, outputDataPtr, &outputCounts, &outputSpl, outputhcclDataType, comm, stream]() -> int {
+        auto hccl_call = [inputDataPtr, inputCounts, inputSpl, inputhcclDataType, outputDataPtr, outputCounts, outputSpl, outputhcclDataType, comm, stream]() -> int {
             return hcclAlltoAllV(
                 inputDataPtr,
-                inputCounts,
-                inputSpl,
+                inputCounts.data(),
+                inputSpl.data(),
                 inputhcclDataType,
                 outputDataPtr,
-                outputCounts,
-                outputSpl,
+                outputCounts.data(),
+                outputSpl.data(),
                 outputhcclDataType,
                 comm,
                 stream.stream(false));
@@ -2088,21 +2088,21 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
 
   int inputsize = static_cast<int>(input_split_sizes.size());
   int outsize = static_cast<int>(output_split_sizes.size());
-  uint64_t input_counts[inputsize];
-  uint64_t input_spl[inputsize];
-  uint64_t output_counts[outsize];
-  uint64_t output_spl[outsize];
-  input_spl[0] = 0;
-  output_spl[0] = 0;
-  output_counts[0] = static_cast<uint64_t>(output_split_sizes[0]);
-  input_counts[0] = static_cast<uint64_t>(input_split_sizes[0]);
+  std::vector<uint64_t> input_counts;
+  std::vector<uint64_t> input_spl;
+  std::vector<uint64_t> output_counts;
+  std::vector<uint64_t> output_spl;
+  input_spl.push_back(0);
+  output_spl.push_back(0);
+  output_counts.push_back(static_cast<uint64_t>(output_split_sizes[0]));
+  input_counts.push_back(static_cast<uint64_t>(input_split_sizes[0]));
   for (int i = 1; i < outsize; i++) {
-    output_counts[i] = static_cast<uint64_t>(output_split_sizes[i]);
-    output_spl[i] = output_spl[i-1] + static_cast<uint64_t>(output_split_sizes[i-1]);
+    output_counts.push_back(static_cast<uint64_t>(output_split_sizes[i]));
+    output_spl.push_back(output_spl[i-1] + static_cast<uint64_t>(output_split_sizes[i-1]));
   }
   for (int i = 1; i < inputsize; i++) {
-    input_counts[i] = static_cast<uint64_t>(input_split_sizes[i]);
-    input_spl[i] = input_spl[i-1] + static_cast<uint64_t>(input_split_sizes[i-1]);
+    input_counts.push_back(static_cast<uint64_t>(input_split_sizes[i]));
+    input_spl.push_back(input_spl[i-1] + static_cast<uint64_t>(input_split_sizes[i-1]));
   }
 
   std::vector<at::Tensor> in_tensors = {at::cat(input_tensors_after, 0)};
@@ -2126,15 +2126,15 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
         auto outputDataPtr = output.data_ptr();
         auto inputhcclDataType = getHcclDataType(input.scalar_type());
         auto outputhcclDataType = getHcclDataType(output.scalar_type());
-        auto hccl_call = [inputDataPtr, &input_counts, &input_spl, inputhcclDataType, outputDataPtr, &output_counts, &output_spl, outputhcclDataType, comm, stream]() -> int {
+        auto hccl_call = [inputDataPtr, input_counts, input_spl, inputhcclDataType, outputDataPtr, output_counts, output_spl, outputhcclDataType, comm, stream]() -> int {
             return hcclAlltoAllV(
                 inputDataPtr,
-                input_counts,
-                input_spl,
+                input_counts.data(),
+                input_spl.data(),
                 inputhcclDataType,
                 outputDataPtr,
-                output_counts,
-                output_spl,
+                output_counts.data(),
+                output_spl.data(),
                 outputhcclDataType,
                 comm,
                 stream.stream(false));
