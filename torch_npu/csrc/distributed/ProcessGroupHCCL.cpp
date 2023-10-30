@@ -36,6 +36,8 @@ using hcclUs = std::chrono::steady_clock::time_point;
   (std::chrono::duration_cast<std::chrono::microseconds>(x))
 #define TIME_NOW() ({ std::chrono::steady_clock::now(); })
 
+#define MAX_GROUP_NAME_LEN 128
+
 // HCCL ReduceOp mapping
 std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
     {c10d::ReduceOp::MIN, HCCL_REDUCE_MIN},
@@ -629,6 +631,20 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
   auto ret_hcom = hcclComms[0]->getHcclComm();
   int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
   return hccl_comm;
+}
+
+std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
+  at::Device device = getDeviceForRank(rankid);
+  std::vector<at::Device> devices = {device};
+  const auto key = getKeyFromDevices(devices);
+  auto& hcclComms = getHCCLComm(key, devices);
+  TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+      hcclComms.size());
+  HcclComm ret_hcom = hcclComms[0]->getHcclComm();
+  char commName[MAX_GROUP_NAME_LEN];
+  HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(ret_hcom, commName));
+  std::string name_str(commName);
+  return name_str;
 }
 
 template <typename Fn, typename PreProcess, typename PostProcess>

@@ -9,6 +9,7 @@
 #include <c10d/Work.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
+#include "torch_npu/csrc/core/npu/interface/HcclInterface.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/npu/Event.h"
 
@@ -302,6 +303,8 @@ public:
   uint64_t getSequenceNumberForGroup() override;
 
   int64_t getHcclComm(int rankid);
+
+  std::string getHcclCommName(int rankid);
 
 protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store

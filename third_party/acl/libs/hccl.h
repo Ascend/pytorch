@@ -72,6 +72,7 @@ hcclResult_t HcclCommDestroy(hcclComm_t comm);
 hcclResult_t HcclReduceScatter(void *sendBuf, void *recvBuf, u64 recvCount, HcclDataType dataType,
                                HcclReduceOp op, HcclComm comm, aclrtStream stream);
 hcclResult_t HcclCommInitRootInfo(u32 nRanks, const HcclRootInfo *rootInfo, u32 rank, HcclComm *comm);
+hcclResult_t HcclGetCommName(HcclComm commHandle, char* commName);
 hcclResult_t HcclAllGather(void *sendBuf, void *recvBuf, u64 sendCount, HcclDataType dataType, HcclComm comm,
                            aclrtStream stream);
 hcclResult_t HcclRecv(void *recvBuf, u64 count, HcclDataType dataType, u32 srcRank, HcclComm comm, aclrtStream stream);

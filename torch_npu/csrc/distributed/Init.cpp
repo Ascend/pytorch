@@ -384,6 +384,7 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
            py::arg("timeout") = kProcessGroupDefaultTimeout,
            py::call_guard<py::gil_scoped_release>())
       .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
+      .def("get_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::getHcclCommName)
       .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions);
 
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
