@@ -47,7 +47,6 @@ from torch_npu.utils import apply_module_patch, add_tensor_methods, \
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 from torch_npu.distributed.rpc.backend_registry import rpc_backend_registry
-from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from torch_npu.utils import register_ops_under_dtensor_rules
 from .version import __version__ as __version__
@@ -127,7 +126,6 @@ def apply_class_patches():
     add_optim_method()
     add_serialization_methods()
     add_intercept_methods()
-    wrap_dtype_for_hccl()
 
 
 
