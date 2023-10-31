@@ -1,5 +1,6 @@
 #include <sstream>
 
+#include <c10/util/ApproximateClock.h>
 #include <torch/csrc/profiler/stubs/base.h>
 #include <torch/csrc/profiler/util.h>
 
@@ -43,7 +44,7 @@ struct NPUMethods : public ProfilerStubs {
     });
     static auto stream = c10_npu::getCurrentNPUStream();
     if (cpu_ns) {
-      *cpu_ns = torch::profiler::impl::getTime();
+      *cpu_ns = c10::getTime();
     }
     TORCH_NPU_CHECK(aclrtRecordEvent(npu_event, stream));
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");

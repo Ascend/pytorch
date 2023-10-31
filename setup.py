@@ -27,7 +27,7 @@ from wheel.bdist_wheel import bdist_wheel
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
-VERSION = '2.1.0'
+VERSION = '2.2.0'
 UNKNOWN = "Unknown"
 DISABLE_TORCHAIR = "TRUE"
 if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:

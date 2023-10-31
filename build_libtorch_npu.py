@@ -14,7 +14,7 @@ from distutils.version import LooseVersion
 from distutils import file_util
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '2.1.0'
+VERSION = '2.2.0'
 
 
 def which(thefile):

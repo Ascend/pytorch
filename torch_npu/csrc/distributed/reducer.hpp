@@ -9,6 +9,7 @@
 
 #include <ATen/core/ivalue_inl.h>
 #include <c10/macros/Macros.h>
+#include <c10/util/ApproximateClock.h>
 #include <c10/util/intrusive_ptr.h>
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Utils.hpp>
@@ -33,7 +34,7 @@ constexpr int kDDPRuntimeLoggingSampleRate = 100;
 constexpr int kUnsetTime = -1;
 
 inline int64_t current_time_in_nanos() {
-  return torch::profiler::impl::getTime();
+  return c10::getTime();
 }
 
 // Forward declaration

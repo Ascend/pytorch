@@ -2,7 +2,6 @@
 #include <c10/core/ScalarType.h>
 #include <torch/csrc/autograd/VariableTypeUtils.h>
 #include <torch/csrc/autograd/functions/utils.h>
-#include <torch/csrc/utils/memory.h>
 #include <torch/csrc/autograd/autograd.h>
 #include <ATen/TracerMode.h>
 #include <ATen/RedispatchFunctions.h>

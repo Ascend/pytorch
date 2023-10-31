@@ -1,7 +1,7 @@
 import torch
 from torch.distributed._tensor.ops.common_rules import pointwise_rule
 from torch.distributed._tensor.ops.utils import register_prop_rule, normalize_dims
-from torch.distributed._tensor.ops.matrix_ops import bmm_rules
+from torch.distributed._tensor.ops.matrix_ops import bmm_strategy
 from torch.distributed._tensor.ops.view_ops import (
     register_prop_rule_map,
     view_groups,
@@ -46,7 +46,7 @@ def register_ops_under_dtensor_rules():
 
     # bmm rules
     for op in matrix_ops:
-        register_prop_rule(op)(bmm_rules)
+        register_prop_rule(op)(bmm_strategy)
 
     # reshape_prop under view_ops
     ops[torch_npu.npu_transpose] = Op(
