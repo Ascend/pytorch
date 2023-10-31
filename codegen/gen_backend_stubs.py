@@ -216,7 +216,9 @@ def parse_backend_yaml(
         raise TypeError(f'expected "unsupported" to be a list, but got: {unsupported}')
 
     # Currently, symint is only supported for ops in opplugin, and is not useful here.
-    symint = yaml_values.pop('symint', [])
+    yaml_values.pop('symint', [])
+    # custom_supported is only supported for filt expose api, and is not useful here.
+    yaml_values.pop('custom_supported', [])
 
     if (len(yaml_values.keys()) > 0):
         print(f'Waring: {backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
