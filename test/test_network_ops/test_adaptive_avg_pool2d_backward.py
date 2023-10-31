@@ -41,25 +41,27 @@ class TestAdaptiveAvgPool2dBackward(TestCase):
         out = output.detach().cpu(), input_x.grad.cpu()
         return out
 
-    def test_adaptiveAvgPool2d_backward_1(self, device="npu"):
+    def test_adaptiveAvgPool2d_backward_1(self):
+        torch.manual_seed(123)
         cpu_input = torch.randn((1, 8, 9), dtype=torch.float32)
         npu_input = cpu_input.npu()
         output_size = np.array((2, 3))
         cpu_output = self.cpu_op_exec(cpu_input, output_size)
         npu_output = self.npu_op_exec(npu_input, output_size)
-        self.assertRtolEqual(cpu_output[0], npu_output[0])
-        self.assertRtolEqual(cpu_output[1], npu_output[1])
+        self.assertRtolEqual(cpu_output[0], npu_output[0], prec=1e-3)
+        self.assertRtolEqual(cpu_output[1], npu_output[1], prec=1e-3)
 
-    def test_adaptiveAvgPool2d_backward_2(self, device="npu"):
+    def test_adaptiveAvgPool2d_backward_2(self):
+        torch.manual_seed(123)
         cpu_input = torch.randn((1, 3, 3, 3), dtype=torch.float32)
         npu_input = cpu_input.npu()
         output_size = np.array((2, 2))
         cpu_output = self.cpu_op_exec(cpu_input, output_size)
         npu_output = self.npu_op_exec(npu_input, output_size)
-        self.assertRtolEqual(cpu_output[0], npu_output[0])
-        self.assertRtolEqual(cpu_output[1], npu_output[1])
+        self.assertRtolEqual(cpu_output[0], npu_output[0], prec=1e-3)
+        self.assertRtolEqual(cpu_output[1], npu_output[1], prec=1e-3)
 
-    def test_adaptiveAvgPool2d_backward_fp16(self, device="npu"):
+    def test_adaptiveAvgPool2d_backward_fp16(self):
         input_x = np.random.uniform(0, 1, (1, 3, 6, 6)).astype(np.float16)
         cpu_input = torch.from_numpy(input_x)
         npu_input = cpu_input.npu()

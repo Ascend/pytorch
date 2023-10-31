@@ -187,7 +187,7 @@ class TestMuls(TestCase):
     def test_mul_out_error_dtype(self):
         npu_input1 = torch.randn(10, 23).npu()
         npu_input2 = npu_input1.int()
-        npu_out = torch.randn(2, 3).long()
+        npu_out = torch.randn(2, 3).long().npu()
         try:
             self.npu_op_out_exec(npu_input1, npu_input2, npu_out)
         except RuntimeError as e:
