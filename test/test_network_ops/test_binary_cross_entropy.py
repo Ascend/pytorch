@@ -11,6 +11,7 @@ UPPER = 1
 class TestBinaryCrossEntropy(TestCase):
 
     def generate_input(self, lower, upper, shape, dtype):
+        np.random.seed(1234)
         temp = np.random.uniform(lower, upper, shape).astype(dtype)
         npu_input = torch.from_numpy(temp)
         return npu_input
@@ -32,7 +33,7 @@ class TestBinaryCrossEntropy(TestCase):
         res = res.to("cpu")
         return res.numpy()
 
-    def test_binary_cross_entropy_float32(self, device="npu"):
+    def test_binary_cross_entropy_float32(self):
         for shape, weight_shape, reduction in [
             ((10, 64), None, "mean"),
             ((10, 64), (10, 1), "mean"),
@@ -50,7 +51,7 @@ class TestBinaryCrossEntropy(TestCase):
             npu_output = self.npu_op_exec(predict, target, weight=weight, reduction=reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_binary_cross_entropy_float16(self, device="npu"):
+    def test_binary_cross_entropy_float16(self):
         for shape, weight_shape, reduction in [
             ((10, 64), (10, 64), "sum"),
             ((10, 64), (10, 64), "mean"),

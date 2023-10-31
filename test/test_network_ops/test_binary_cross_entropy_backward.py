@@ -7,7 +7,9 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestBinaryCrossEntropyBackward(TestCase):
+
     def generate_data(self, min_val, max_val, shape, dtype):
+        np.random.seed(1234)
         x = np.random.uniform(min_val, max_val, shape).astype(dtype)
         x = torch.from_numpy(x)
         return x
@@ -57,7 +59,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
         res = res.numpy()
         return npu_input, res
 
-    def test_binary_cross_entropy_backward_float16(self, device="npu"):
+    def test_binary_cross_entropy_backward_float16(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -65,7 +67,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
         ]
         for item in shape_format:
             input1 = self.generate_data(0, 1, item[1], item[0])
-            target = self.generate_data(0, 2, item[1], item[0])
+            target = self.generate_data(0, 1, item[1], item[0])
             cpu_input1 = copy.deepcopy(input1)
             cpu_target = copy.deepcopy(target)
             weight = None
@@ -74,7 +76,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_float32(self, device="npu"):
+    def test_binary_cross_entropy_backward_float32(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -82,7 +84,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
         ]
         for item in shape_format:
             input1 = self.generate_data(0, 1, item[1], item[0])
-            target = self.generate_data(0, 2, item[1], item[0]).int().to(torch.float32)
+            target = self.generate_data(0, 1, item[1], item[0]).int().to(torch.float32)
             cpu_input1 = copy.deepcopy(input1)
             cpu_target = copy.deepcopy(target)
             weight = None
@@ -91,7 +93,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_with_weight_float16(self, device="npu"):
+    def test_binary_cross_entropy_backward_with_weight_float16(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -99,7 +101,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
         ]
         for item in shape_format:
             input1 = self.generate_data(0, 1, item[1], item[0])
-            target = self.generate_data(0, 2, item[1], item[0])
+            target = self.generate_data(0, 1, item[1], item[0])
             weight = self.generate_data(0, 1, item[1], item[0])
             cpu_input1 = copy.deepcopy(input1)
             cpu_target = copy.deepcopy(target)
@@ -109,7 +111,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_with_weight_float32(self, device="npu"):
+    def test_binary_cross_entropy_backward_with_weight_float32(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [

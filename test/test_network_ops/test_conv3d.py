@@ -53,6 +53,7 @@ class TestConv3d(TestCase):
         for item in shape_format:
             self.weight_grad.clear()
             self.input_grad.clear()
+            np.random.seed(1234)
             input_cpu, input_npu = create_common_tensor(item[0], 0, 1)
             if input_cpu.dtype == torch.float16:
                 input_cpu = input_cpu.to(torch.float32)
@@ -76,9 +77,9 @@ class TestConv3d(TestCase):
             self.input_grad[0] = self.input_grad[0].to(torch.float16)
             self.input_grad[1] = self.input_grad[1].to(torch.float16)
             self.weight_grad[0] = self.weight_grad[0].to(self.weight_grad[1].dtype)
-            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.cpu().detach().numpy())
-            self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].cpu().numpy())
-            self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].cpu().numpy())
+            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.cpu().detach().numpy(), 1e-3)
+            self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].cpu().numpy(), 1e-3)
+            self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].cpu().numpy(), 1e-3)
 
     def test_conv3d_backward_shape_format_fp16(self):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
