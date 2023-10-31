@@ -40,14 +40,14 @@ from codegen.api.python import (PythonSignature,
                                 dispatch_lambda_return_str,
                                 has_tensor_options,
                                 namedtuple_fieldnames, signature)
-from codegen.gen import cpp_string, FileManager, error_check_native_functions
+from codegen.gen import cpp_string, FileManager
 from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
-                           Type, Variant, BackendIndex,
-                           BackendMetadata, DispatchKey, OperatorName)
-from codegen.utils import (context, parse_npu_yaml, gen_custom_yaml_path,
+                           Type, Variant)
+from codegen.utils import (context, gen_custom_yaml_path, parse_npu_yaml,
                            filed_tag, parse_opplugin_yaml, PathManager)
 from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
+from codegen.custom_functions import parse_custom_yaml
 
 # These functions require manual Python bindings or are not exposed to Python
 _SKIP_PYTHON_BINDINGS = [
@@ -82,7 +82,10 @@ SKIP_PYTHON_BINDINGS = list(map(lambda pattern: re.compile(rf'^{pattern}$'), _SK
 
 # These function signatures are not exposed to Python. Note that this signature
 # list does not support regex.
-SKIP_PYTHON_BINDINGS_SIGNATURES = []
+SKIP_PYTHON_BINDINGS_SIGNATURES = [
+    'npu_transpose_trans_contiguous.out(Tensor self, int[] perm, bool require_contiguous=True, *, Tensor(a!) out) -> Tensor(a!)',
+    'npu_indexing_trans_contiguous.out(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0, *, Tensor(a!) out) -> Tensor(a!)'
+]
 
 DONT_RECORD_TRACE = []
 
@@ -97,34 +100,20 @@ def should_trace(f: NativeFunction) -> bool:
         return False
     return f.func.name.name.base not in DONT_RECORD_TRACE
 
-# Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
-ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
 
-
-def parse_custom_yaml(custom_path: str) -> ParsedYaml:
-    rs: List[NativeFunction] = []
-    bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
-    # Filter the custom native yaml file, and extract the functions we defined.
+def parse_custom_supported_yaml(custom_path: str):
+    #Filter the custom native yaml file, and extract the functions are not exposed to Python.
     source_es = parse_npu_yaml(custom_path)
     custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+    custom_supported_es = source_es.get('custom_supported', [])
     custom_es = filed_tag(custom_es)
+    custom_supported_es = filed_tag(custom_supported_es)
+    
+    for es in custom_es:
+        if es in custom_supported_es:
+            continue
+        SKIP_PYTHON_BINDINGS_SIGNATURES.append(es.get('func'))
 
-    for e_with_vars in custom_es:
-        funcs = e_with_vars.get('func')
-        with context(lambda: f'in {custom_path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e_with_vars)
-            func.variants.discard(Variant.method)
-            rs.append(func)
-            BackendIndex.grow_index(bs, m)
-
-    error_check_native_functions(rs)
-    # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.
-    indices: Dict[DispatchKey, BackendIndex] = defaultdict(lambda: BackendIndex(
-        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, index={}))
-    for k, v in bs.items():
-        # All structured in-tree operators are implemented in terms of their out operator.
-        indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, index=v)
-    return ParsedYaml(rs, indices)
 
 
 @with_native_function
