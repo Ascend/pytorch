@@ -3,6 +3,7 @@
 
 #include "third_party/acl/inc/acl/acl_mdl.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
+#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -120,6 +121,10 @@ REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val) {
 
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val) {
   ForceJitCompileList::GetInstance().RegisterJitlist(val);
+})
+
+REGISTER_OPTION_HOOK(FORCE_ACLNN_OP_LIST, [](const std::string &val) {
+  ForceAclnn::GetInstance().RegisterOp(val);
 })
 
 REGISTER_OPTION(MM_BMM_ND_ENABLE)

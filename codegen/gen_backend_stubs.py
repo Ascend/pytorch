@@ -44,7 +44,7 @@ from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, ge
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
                            parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path,
                            update_opapi_info, is_opapi, is_op_valid, CompositeImplicitAutograd_except_list, PathManager)
-from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch, 
+from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
 
 
@@ -212,7 +212,7 @@ def parse_backend_yaml(
         symint = []
     if not (isinstance(symint, list)):
         raise RuntimeError(f'expected "symint" to be a list, but got: {supported} (of type {type(supported)})')
-    symint = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in symint]  
+    symint = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in symint]
     symint_set = set(symint)
 
     supported_autograd = yaml_values.pop('autograd', [])
@@ -240,7 +240,7 @@ def parse_backend_yaml(
     custom = yaml_values.pop('custom', [])
     if not isinstance(custom, list):
         raise TypeError(f'expected "autograd" to be a list, but got: {custom}')
-    
+
     for item in custom:
         try:
             supported.append(item['func'][:item['func'].index('(')])
@@ -290,7 +290,7 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
 
     if len(header_op) > 0:
-        backend_idx = create_backend_index([op for op in header_op if (not is_op_valid(op))], 
+        backend_idx = create_backend_index([op for op in header_op if (not is_op_valid(op))],
                                            symint_set, backend_key, native_functions_map, cpp_namespace)
         opapi_backend_idx = create_backend_index([op for op in header_op if (is_opapi(op) and (not is_op_valid(op)))],
                                                  symint_set, backend_key, native_functions_map, cpp_namespace)
@@ -407,6 +407,7 @@ def gen_dispatcher_registrations(
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUOpApiNativeFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "op_plugin/OpInterface.h"
 """
     static_template = CodeTemplate(

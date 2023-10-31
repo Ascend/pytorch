@@ -120,7 +120,7 @@ def parse_npu_yaml(custom_path: str) -> Dict:
 def merge_yaml(base_data, additional_data):
     """Merge two YAML data structures. If there's a conflict, the base data will take precedence."""
     map_dict = {"official": "supported"}
-    
+
     def key_map(x):
         if x in map_dict:
             return map_dict[x]
@@ -258,6 +258,8 @@ def gen_unstructured(
         args = sig.arguments()
         args_str = ", ".join(a.defn() for a in args)
 
+        op_name = str(f.func.name.name)
+        force_aclnn = f"at_npu::native::ForceAclnn::GetInstance().IsForceAclnnOp(\"{op_name}\")"
         # See Note [Direct dispatch bindings]
         cpp_sig_group = CppSignatureGroup.from_native_function(
             f, method=False, fallback_binding=False
@@ -330,7 +332,7 @@ return {self_arg_name};
             record_func_def = """
 #ifndef BUILD_LIBTORCH
 torch_npu::profiler::NPURecordFunction guard;
-#endif 
+#endif
 """
             if f.device_guard and self.backend_index.device_guard:
                 has_tensor_options = any(
@@ -389,7 +391,7 @@ const DeviceGuard device_guard(device_or_default(device));"""
                 if tensor_check_list:
                     tensor_check_str = f" && {' && '.join(tensor_check_list)}"
                 return_code = f"""\
-if (at_npu::native::env::CheckJitDisable(){tensor_check_str}) {{
+if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str}) {{
         return {op_api_impl_name}({args_exprs_str});
     }} else {{
         return {impl_name}({args_exprs_str});
