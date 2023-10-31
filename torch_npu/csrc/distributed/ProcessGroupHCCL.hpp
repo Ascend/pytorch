@@ -302,6 +302,8 @@ public:
   // may indicate that there is some sort of collective desynchronization.
   uint64_t getSequenceNumberForGroup() override;
 
+  int64_t getHcclComm(int rankid);
+
 protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);

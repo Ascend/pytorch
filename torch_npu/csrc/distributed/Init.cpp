@@ -406,7 +406,8 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
            py::arg("size"),
            py::arg("timeout") = kProcessGroupDefaultTimeout,
            py::call_guard<py::gil_scoped_release>())
-          .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
+      .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
+      .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
       .def("allgather_togather",
            [](const c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL>& self,
               std::vector<at::Tensor>& output_tensors,
