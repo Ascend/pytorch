@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import copy
 import torch
 import numpy as np
@@ -23,7 +24,9 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestBinaryCrossEntropyBackward(TestCase):
+
     def generate_data(self, min_val, max_val, shape, dtype):
+        np.random.seed(1234)
         x = np.random.uniform(min_val, max_val, shape).astype(dtype)
         x = torch.from_numpy(x)
         return x
@@ -73,7 +76,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
         res = res.numpy()
         return npu_input, res
 
-    def test_binary_cross_entropy_backward_float16(self, device="npu"):
+    def test_binary_cross_entropy_backward_float16(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -90,7 +93,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_float32(self, device="npu"):
+    def test_binary_cross_entropy_backward_float32(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -107,7 +110,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_with_weight_float16(self, device="npu"):
+    def test_binary_cross_entropy_backward_with_weight_float16(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -125,7 +128,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_with_weight_float32(self, device="npu"):
+    def test_binary_cross_entropy_backward_with_weight_float32(self):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
