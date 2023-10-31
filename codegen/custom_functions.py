@@ -4,14 +4,14 @@ from typing import List, Dict, Sequence
 import yaml
 
 from torchgen.code_template import CodeTemplate
-from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager, cpp_string, error_check_native_functions)
-from torchgen.model import (BackendIndex, DispatchKey, Location, Variant,
+from torchgen.gen import (parse_tags_yaml, FileManager, cpp_string, error_check_native_functions)
+from torchgen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata)
-from torchgen.utils import concatMap, context
+from torchgen.utils import concatMap
 from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
-from codegen.utils import (enable_opplugin, is_op_valid, filed_tag, get_opplugin_wrap_name, PathManager)
+from codegen.utils import (enable_opplugin, is_op_valid, filed_tag, get_opplugin_wrap_name, parse_npu_yaml)
 
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
@@ -34,30 +34,27 @@ ${return_type} ${func_name}(${args_str}) {
 }
 """)
 
+SKIP_PYTHON_BINDINGS_SIGNATURES = []
+
+
+@with_native_function
+def should_generate_ops_patch(f: NativeFunction) -> bool:
+    func_signature = str(f.func)
+
+    for pattern in SKIP_PYTHON_BINDINGS_SIGNATURES:
+        if pattern == func_signature:
+            return False
+
+    return True
+
 
 def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
     valid_tags = parse_tags_yaml(tag_path)
     rs: List[NativeFunction] = []
     bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
     # Filter the custom native yaml file, and extract the functions we defined.
-    from io import StringIO
-    f_str = StringIO()
-    PathManager.check_directory_path_readable(custom_path)
-    with open(custom_path, 'r') as f:
-        for line in f:
-            if line.split(':')[0] in ['backend', 'cpp_namespace', 'extra_headers',
-                                      'supported', 'autograd']:
-                flag = False
-                continue
-            if line.split(':')[0] in ['custom', 'custom_autograd']:
-                flag = True
-                continue
-            if ':' not in line or not flag:
-                continue
-            f_str.write(line)
-
-    f_str.seek(0)
-    custom_es = yaml.safe_load(f_str)
+    source_es = parse_npu_yaml(custom_path)
+    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
     custom_es = filed_tag(custom_es)
     for e_with_vars in custom_es:
         func, m = NativeFunction.from_yaml(e_with_vars, "Location", valid_tags)
@@ -77,6 +74,20 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
                                   device_guard=False,
                                   index=v)
     return ParsedYaml(rs, indices)
+
+
+def parse_custom_supported_yaml(custom_path: str):
+    #Filter the custom native yaml file, and extract the functions are not exposed to Python.
+    source_es = parse_npu_yaml(custom_path)
+    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+    custom_supported_es = source_es.get('custom_supported', [])
+    custom_es = filed_tag(custom_es)
+    custom_supported_es = filed_tag(custom_supported_es)
+    
+    for es in custom_es:
+        if es in custom_supported_es:
+            continue
+        SKIP_PYTHON_BINDINGS_SIGNATURES.append(es.get('func'))
 
 
 METHOD_DEFINITION = CodeTemplate("""\
@@ -164,9 +175,11 @@ def gen_custom_trace(fm: FileManager, custom_trace_functions: Sequence[NativeFun
 
 
 def gen_custom_ops_patch(fm: FileManager, custom_trace_functions: Sequence[NativeFunction]):
+
+    valid_native_functions = list(filter(should_generate_ops_patch, custom_trace_functions))
     fm.write_with_template(f'custom_ops.py', 'custom_ops.py', lambda: {
         'custom_ops': [f'torch_npu.{ops} = torch.ops.npu.{ops}'
-                       for ops in set([f.func.name.name for f in custom_trace_functions])],
+                       for ops in set([f.func.name.name for f in valid_native_functions])],
     })
 
 

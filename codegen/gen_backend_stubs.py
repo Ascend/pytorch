@@ -244,6 +244,8 @@ def parse_backend_yaml(
     for item in custom_autograd:
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
+    # custom_supported is only supported for filt expose api, and is not useful here.
+    yaml_values.pop('custom_supported', [])
     if (len(yaml_values.keys()) > 0):
         raise KeyError(f'{backend_yaml_path} contains unexpected keys: {", ".join(yaml_values.keys())}. \
                        Only the following keys are supported: {", ".join(valid_keys)}')
