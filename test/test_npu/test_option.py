@@ -78,6 +78,9 @@ class TestOption(TestCase):
         with self.assertRaises(ValueError):
             torch.npu.set_option(option)
 
+    def test_option_fa(self):
+        option = {"FORCE_ACLNN_OP_LIST": "index"}
+        self.assertIsNone(torch.npu.set_option(option))
 
 if __name__ == "__main__":
     run_tests()
