@@ -277,6 +277,9 @@ class RegisterDispatchKey:
             args = sig.arguments()
             args_str = ', '.join(a.defn() for a in args)
 
+            op_name = str(f.func.name.name)
+            force_aclnn = f"at_npu::native::ForceAclnn::GetInstance().IsForceAclnnOp(\"{op_name}\")"
+
             # See Note [Direct dispatch bindings]
             cpp_sig_group = CppSignatureGroup.from_native_function(f, method=False, fallback_binding=False)
 
@@ -363,7 +366,7 @@ torch_npu::profiler::NPURecordFunction guard;
                         device_of = next((f'{a.name}' for a in candidate_args if a.type.is_tensor_like()), None)
                         if device_of is not None:
                             device_guard = f"const OptionalDeviceGuard device_guard(device_of({device_of}));"
-                
+
                 tensor_check_str = ""
                 tensor_check_list = []
                 for a in args:
@@ -374,7 +377,7 @@ torch_npu::profiler::NPURecordFunction guard;
 
                 if f.op_api and not is_op_valid(str(f.func.name)):
                     return_code = f"""\
-if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
+if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
         return {op_api_impl_name}({args_exprs_str});
     }} else {{
         return {impl_name}({args_exprs_str});

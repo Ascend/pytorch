@@ -197,7 +197,7 @@ def parse_backend_yaml(
     custom = yaml_values.pop('custom', [])
     if not isinstance(custom, list):
         raise TypeError(f'expected "autograd" to be a list, but got: {custom}')
-    
+
     for item in custom:
         try:
             supported.append(item['func'][:item['func'].index('(')])
@@ -453,6 +453,7 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/framework/utils/ForceAclnnList.h"
 #include "op_plugin/OpInterface.h"
 """
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {

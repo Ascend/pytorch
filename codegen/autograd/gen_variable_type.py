@@ -1,5 +1,5 @@
 # Copyright (c) 2023 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -52,7 +52,7 @@ from .gen_inplace_or_view_type import (
     AUTOGRAD_NOT_IMPLEMENTED_REGISTRATION
 )
 from .utils import (
-    MANUAL_BACKEND, type_wrapper_name, 
+    MANUAL_BACKEND, type_wrapper_name,
     tie_return_values, get_return_value, NPU_AUTOGRAD_FUNCTION
 )
 
@@ -380,7 +380,7 @@ ${return_type} ${type_wrapper_name}(${formals});
 ACLNN_WRAP_DEFINITION = CodeTemplate("""
 ${return_type} ${type_wrapper_name}(${formals}) {
   ${select_path}
-}                             
+}
 """)
 
 
@@ -395,8 +395,8 @@ def gen_variable_type(
     This is the at::Type subclass for differentiable tensors. The
     implementation of each function dispatches to the base tensor type to
     compute the output. The grad_fn is attached to differentiable functions.
-    
-    For npu, we keep original process for torch method. 
+
+    For npu, we keep original process for torch method.
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
 
@@ -421,13 +421,13 @@ def gen_npu_variable_type(
     fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
     template_path: str,
 ) -> None:
-    
+
     """Generate VariableTypeNPU.cpp body
-    
+
     Generate variable type definition for npu method here.
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
-    
+
     npu_method_definitions: List[str] = []
     wrapper_registrations: List[str] = []
     for fn in fns_with_diff_infos:
@@ -449,7 +449,7 @@ def gen_npu_variable_type(
                 type_definition = type_definition.replace('ks & c10::after_autograd_keyset, ', '')
                 wrapper_registrations.append(gen_wrapper_registration(f))
                 npu_method_definitions.append(type_definition)
-    
+
     fm.write_with_template('VariableTypeNPU.cpp', 'VariableTypeNPU.cpp', lambda: {
         'npu_method_definitions': npu_method_definitions,
         'wrapper_registrations': wrapper_registrations
@@ -461,13 +461,13 @@ def gen_aclnn_variable_type(
     fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
     template_path: str,
 ) -> None:
-    
+
     """Generate VariableTypeAclnn.cpp body
-    
+
     Generate variable type definition for npu method here.
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
-    
+
     aclnn_method_definitions: List[str] = []
     wrapper_registrations: List[str] = []
     wrap_method_definitions: List[str] = []
@@ -494,7 +494,7 @@ def gen_aclnn_variable_type(
                 wrapper_registrations.append(gen_aclnn_wrapper_registration(f))
                 aclnn_method_definitions.append(type_definition)
                 wrap_method_definitions.append(wrap_method_definition)
-    
+
     fm.write_with_template('VariableTypeAclnn.cpp', 'VariableTypeAclnn.cpp', lambda: {
         'aclnn_method_definitions': aclnn_method_definitions,
         'wrap_method_definitions': wrap_method_definitions,
@@ -505,22 +505,23 @@ def gen_select_patch(fn: NativeFunctionWithDifferentiabilityInfo, aclnn_return: 
     f = fn.func
     tensor_check_str = ""
     tensor_check_list = []
-    
-    
+
+    op_name = str(f.func.name.name)
+    force_aclnn = f"at_npu::native::ForceAclnn::GetInstance().IsForceAclnnOp(\"{op_name}\")"
     for derivatives in fn.info.derivatives:
         for arg in derivatives.var_names:
-            # We should check if arg is_tensor_like, but in matmul we do not need this 
+            # We should check if arg is_tensor_like, but in matmul we do not need this
             tensor_check_list.append(f"at_npu::native::FormatHelper::IsOpInputBaseFormat({arg})")
     if tensor_check_list:
         tensor_check_str = f" && {' && '.join(tensor_check_list)}"
 
     redispatch_name = cpp.name(f.func, faithful_name_for_out_overloads=True)
     path_five_return = aclnn_return.replace('ks, ', 'ks & c10::after_autograd_keyset, ')
-    path_three = f"at::redispatch::{redispatch_name}({path_five_return})"    
+    path_three = f"at::redispatch::{redispatch_name}({path_five_return})"
     path_five = f"{type_wrapper_name(f)}({aclnn_return})"
-    
+
     return_code = f"""\
-if (at_npu::native::env::CheckJitDisable(){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
+if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
         return {path_five};
     }} else {{
         return {path_three};
@@ -535,14 +536,14 @@ def gen_aclnn_formals(f: NativeFunction) -> str:
         # See Note [Plumbing Keys Through The Dispatcher] for details.
         ['ks'] + [f'{a.name}' for a in f.func.schema_order_arguments()]
     )
-                
+
 
 def gen_variable_type_head(
     out: str,
     fns_with_diff_infos: List[NativeFunctionWithDifferentiabilityInfo],
     template_path: str,
 ) -> None:
-    
+
     """Generate VariableType.h body
     """
     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
@@ -1050,7 +1051,7 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             if derivative.required_inputs_fw_grad is None:
                 raise ValueError("derivative.required_inputs_fw_grad is None")
             requires_fw_grad = " || ".join([FW_DERIVATIVE_CHECK_TEMPLATE.substitute(req_inp=inp.name)
-                                           for inp in differentiable_inputs 
+                                           for inp in differentiable_inputs
                                            if inp.name in derivative.required_inputs_fw_grad])
             if not requires_fw_grad:
                 # Handle functions like stack
@@ -1099,7 +1100,7 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
                 if inp.name in (derivative.required_inputs_primal or []):
                     unpacked_arguments += FW_DERIVATIVE_DEFINED_PRIMAL_TEMPLATE.substitute(inp=inp.name)
             if derivative.required_original_self_value:
-                unpacked_arguments += FW_DERIVATIVE_DEFINED_GRAD_TEMPLATE.substitute(inp="original_self", 
+                unpacked_arguments += FW_DERIVATIVE_DEFINED_GRAD_TEMPLATE.substitute(inp="original_self",
                                                                                      zeros_fn=zeros_fn)
                 unpacked_arguments += FW_DERIVATIVE_DEFINED_PRIMAL_TEMPLATE.substitute(inp="original_self")
             elif inplace and derivative.is_reusing_outplace_formula:
@@ -1126,8 +1127,8 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
             # View ops create fw_grad that already is a view of the base's fw_grad so just use that
             content.append(FW_DERIVATIVE_TEMPLATE.substitute(
                 fw_grad_opt_definition=fw_grad_opt_definition,
-                requires_fw_grad=get_any_has_forward_grad_name(derivative.var_name), 
-                formula=derivative.formula, 
+                requires_fw_grad=get_any_has_forward_grad_name(derivative.var_name),
+                formula=derivative.formula,
                 out_arg=res,
                 unpacked_arguments=unpacked_arguments))
             fw_grad_setters.append(fw_grad_setter)
