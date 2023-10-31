@@ -42,18 +42,6 @@ GLOBAL_OPAPI_INFO_CACHE = set()
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
 FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns", "op_api"]
 
-# Different implements of ops from origin torch. 
-# Native ops with dispatchkey CompositeImplicitAutograd but implemented as a kernel op in pta
-CompositeImplicitAutograd_except_list = [
-    'isclose',
-    'isfinite',
-    'true_divide.Scalar',
-    'true_divide.out',
-    'true_divide_.Scalar',
-    'true_divide_.Tensor',
-    'matmul',
-]
-
 
 class PathManager:
 
