@@ -1071,6 +1071,9 @@ class DeviceCachingAllocator {
     key.size =
         (key.size < CachingAllocatorConfig::max_split_size()) ? CachingAllocatorConfig::max_split_size() : key.size;
     auto it = pool.blocks.lower_bound(&key);
+    
+    c10_npu::npuSynchronizeDevice(true);
+
     if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
       // No single block is large enough; free multiple oversize blocks, starting with the largest
       if (it == pool.blocks.begin()) {
