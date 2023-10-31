@@ -120,26 +120,6 @@ class TestPtaUnsupportApi(TestCase):
         with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor is unsupported!"):
             torch.isin(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())
 
-    def test_isin_Tensor_Scalar_out(self):
-        a = torch.tensor([-1, -2, 3]).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Scalar_out is unsupported!"):
-            torch.isin(a, 1, out=result)
-
-    def test_isin_Tensor_Scalar(self):
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Scalar is unsupported!"):
-            torch.isin(torch.tensor([-1, -2, 3]).npu(), 1)
-
-    def test_isin_Scalar_Tensor_out(self):
-        a = torch.tensor([-1, -2, 3]).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "isin.Scalar_Tensor_out is unsupported!"):
-            torch.isin(1, a, out=result)
-
-    def test_isin_Scalar_Tensor(self):
-        with self.assertRaisesRegex(RuntimeError, "isin.Scalar_Tensor is unsupported!"):
-            torch.isin(1, torch.tensor([-1, -2, 3]).npu())
-
     def test_cholesky_out(self):
         a = torch.randn(3, 3).npu()
         result = torch.empty_like(a)
@@ -236,17 +216,6 @@ class TestPtaUnsupportApi(TestCase):
         result = torch.empty_like(a)
         with self.assertRaisesRegex(RuntimeError, "linalg_eigvalsh.out is unsupported!"):
             torch.linalg.eigvalsh(a, out=result)
-
-    def test_linalg_solve_triangular_out(self):
-        a = torch.randn(3, 3).triu_().npu()
-        b = torch.randn(3, 4).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "linalg_solve_triangular.out is unsupported!"):
-            torch.linalg.solve_triangular(a, b, upper=True, out=result)
-
-    def test_linalg_solve_triangular(self):
-        with self.assertRaisesRegex(RuntimeError, "linalg_solve_triangular is unsupported!"):
-            torch.linalg.solve_triangular(torch.randn(3, 3).triu_().npu(), torch.randn(3, 4).npu(), upper=True)
 
     def test_linalg_lstsq(self):
         with self.assertRaisesRegex(RuntimeError, "linalg_lstsq is unsupported!"):
