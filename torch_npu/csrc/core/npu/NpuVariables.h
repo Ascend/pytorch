@@ -30,6 +30,7 @@ enum class SocVersion {
   Ascend310P4,
   Ascend910B1 = 220,
   Ascend910B2,
+  Ascend910B2C,
   Ascend910B3,
   Ascend910B4,
   Ascend310B1 = 240,
