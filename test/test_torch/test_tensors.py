@@ -163,6 +163,17 @@ class TestTensor(TestCase):
         npu_output2 = torch.tensor([1e-42], dtype=torch.float32, device=device)
         self.assertEqual(cpu_output2, npu_output2)
 
+    def test_scalar_tensor_item(self):
+        scalar_input = torch.randn(1).npu()
+        bool_scalar = scalar_input.to(torch.bool)
+        self.assertTrue(isinstance(bool_scalar.item(), bool))
+        
+        half_scalar = scalar_input.to(torch.float16)
+        self.assertTrue(isinstance(half_scalar.item(), float))
+        
+        bf16_scalar = scalar_input.to(torch.bfloat16)
+        self.assertTrue(isinstance(bf16_scalar.item(), float))
+
 
 class TestCreationOps(TestCase):
     def test_tensor(self):

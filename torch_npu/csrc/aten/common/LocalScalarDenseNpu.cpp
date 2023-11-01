@@ -27,9 +27,10 @@ namespace native {
 
 c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self) {
   c10::Scalar r;
-  AT_DISPATCH_ALL_TYPES_AND2(
+  AT_DISPATCH_ALL_TYPES_AND3(
       at::ScalarType::Half,
       at::ScalarType::Bool,
+      at::ScalarType::BFloat16,
       self.scalar_type(),
       "_local_scalar_dense_npu",
       [&] {
