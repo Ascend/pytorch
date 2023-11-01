@@ -156,6 +156,17 @@ class TestTensor(TestCase):
         input1_storage_size = torch_npu.get_storage_size(input1)
         copy_tensor_storage_size = torch_npu.get_storage_size(copy_tensor)
         self.assertEqual(input1_storage_size, copy_tensor_storage_size)
+    
+    def test_scalar_tensor_item(self):
+        scalar_input = torch.randn(1).npu()
+        bool_scalar = scalar_input.to(torch.bool)
+        self.assertTrue(isinstance(bool_scalar.item(), bool))
+        
+        half_scalar = scalar_input.to(torch.float16)
+        self.assertTrue(isinstance(half_scalar.item(), float))
+        
+        bf16_scalar = scalar_input.to(torch.bfloat16)
+        self.assertTrue(isinstance(bf16_scalar.item(), float))
 
 
 class TestCreationOps(TestCase):
