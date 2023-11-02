@@ -379,8 +379,6 @@ def _checkpoint_without_reentrant(function, preserve_rng_state=True, *args):
     def pack(x):
         nonlocal counter
         counter += 1
-        # TODO(varal7): Instead of returning indices, we can return things metadata (such as
-        # size, device, ...) to catch certain cases of undeterministic behavior of the forward
         return counter - 1
 
     def unpack(x):
