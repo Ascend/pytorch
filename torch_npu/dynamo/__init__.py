@@ -7,6 +7,9 @@ from torch._dynamo.backends.registry import _BACKENDS
 from torch.library import Library, impl
 
 
+__all__ = []
+
+
 def _eager_npu_backend(gm, *args, **kwargs):
     return gm
 
