@@ -43,6 +43,7 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '1.11.0.post5'
 UNKNOWN = "Unknown"
+BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
 
 
 def get_submodule_folders():
@@ -112,7 +113,7 @@ def generate_torch_npu_version():
         VERSION += "+git" + sha[:7]
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f:
         f.write("__version__ = '{version}'\n".format(version=VERSION))
-    os.chmod(version_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
+    os.chmod(version_path, mode=stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
 
 
 generate_torch_npu_version()
@@ -284,6 +285,7 @@ class CPPLibBuild(build_clib, object):
         build_type_dir = os.path.join(build_dir)
         output_lib_path = os.path.join(build_type_dir, "packages/torch_npu/lib")
         os.makedirs(build_type_dir, exist_ok=True)
+        os.chmod(build_type_dir, mode=BUILD_PERMISSION)
         os.makedirs(output_lib_path, exist_ok=True)
         self.build_lib = os.path.relpath(os.path.join(build_dir, "packages/torch_npu"))
         self.build_temp = os.path.relpath(build_type_dir)
@@ -302,6 +304,14 @@ class CPPLibBuild(build_clib, object):
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
         subprocess.check_call([self.cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
+        for base_dir, dirs, files in os.walk(build_type_dir):
+            for dir_name in dirs:
+                dir_path = os.path.join(base_dir, dir_name)
+                os.chmod(dir_path, mode=BUILD_PERMISSION)
+            for file_name in files:
+                file_path = os.path.join(base_dir, file_name)
+                os.chmod(file_path, mode=BUILD_PERMISSION)
+
         subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
 
 
