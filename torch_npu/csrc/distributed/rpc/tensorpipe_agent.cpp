@@ -160,14 +160,14 @@ const std::string &TensorPipeAgent::guessAddress()
             std::tie(error, result) = tensorpipe_npu::transport::uv::lookupAddrForIface(ifnameEnv);
             if (error) {
                 LOG(WARNING) << "Failed to look up the IP address for interface " << ifnameEnv << " (" << error.what()
-                             << "), defaulting to " << kDefaultUvAddress;
+                             << "), defaulting to Default Address";
                 return kDefaultUvAddress;
             }
         } else {
             std::tie(error, result) = tensorpipe_npu::transport::uv::lookupAddrForHostname();
             if (error) {
                 LOG(WARNING) << "Failed to look up the IP address for the hostname (" << error.what()
-                             << "), defaulting to " << kDefaultUvAddress;
+                             << "), defaulting to Default Address";
                 return kDefaultUvAddress;
             }
         }
@@ -463,8 +463,6 @@ void TensorPipeAgent::startImpl()
     // Store our own url.
     const auto address = listener_->url(lowestPriorityTransport);
     nameToAddressStore_.set(workerInfo_.name_, address);
-
-    VLOG(1) << "RPC agent for " << workerInfo_.name_ << " is using address " << address;
 
     for (const auto &p : workerNameToInfo_) {
         const auto &name = p.first;
