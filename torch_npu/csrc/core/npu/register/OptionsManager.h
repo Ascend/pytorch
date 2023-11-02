@@ -25,6 +25,8 @@ public:
   static std::string CheckDisableDynamicPath();
   static int32_t GetACLExecTimeout();
   static const char* GetAclConfigJsonPath();
+  static uint32_t CheckUseHcclAsyncErrorHandleEnable();
+  static uint32_t CheckUseDesyncDebugEnable();
 private:
   static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
 };

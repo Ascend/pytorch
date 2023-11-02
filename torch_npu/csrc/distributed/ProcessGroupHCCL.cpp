@@ -388,6 +388,28 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     } catch (std::exception& e) {
         throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT));
     }
+    asyncErrorHandling_ =
+        static_cast<ErrorHandlingMode>(c10_npu::option::OptionsManager::CheckUseHcclAsyncErrorHandleEnable());
+    desyncDebug_ = static_cast<bool>(c10_npu::option::OptionsManager::CheckUseDesyncDebugEnable());
+
+    if (blockingWait_) {
+        if (asyncErrorHandling_ != NoHandling || desyncDebug_) {
+        LOG(INFO) << "[Rank " << rank_ << "] HCCL_BLOCKING_WAIT and "
+                    << "HCCL_ASYNC_ERROR_HANDLING|HCCL_DESYNC_DEBUG"
+                    << "should not both be enabled. "
+                    << "Only HCCL_BLOCKING_WAIT is being used in this process.";
+        asyncErrorHandling_ = NoHandling;
+        desyncDebug_ = false;
+        }
+    } else {
+        if (desyncDebug_ && asyncErrorHandling_ == NoHandling) {
+        LOG(INFO) << "[Rank " << rank_
+                    << "] HCCL_DESYNC_DEBUG and HCCL_ASYNC_ERROR_HANDLING "
+                    << "must both be enabled. "
+                    << "Enabling HCCL_ASYNC_ERROR_HANDLING.";
+        asyncErrorHandling_ = TearDown;
+        }
+    }
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
