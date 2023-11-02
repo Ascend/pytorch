@@ -120,10 +120,6 @@ OpCommand& OpCommand::Output(
 }
 
 void OpCommand::Run() {
-  if (ASCEND_UNLIKELY(c10_npu::option::OptionsManager::CheckDisableAclopComAndExe())) {
-    aclCmds->Pop();
-    return;
-  }
   aclCmd->SetEnginePriority();
   const string &op_name = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {

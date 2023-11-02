@@ -19,8 +19,6 @@ public:
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
   static bool CheckAclDumpDateEnable();
-  static bool CheckDisableAclopComAndExe();
-  static bool CheckSwitchMMOutputEnable();
   static uint32_t GetHCCLExecTimeout();
   static std::string CheckDisableDynamicPath();
   static int32_t GetACLExecTimeout();
