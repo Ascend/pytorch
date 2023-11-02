@@ -413,6 +413,18 @@ AscendPyTorch版本分支的维护阶段如下：
 | **v5.0.rc2** | 维护     | 2023/7/19    | 预计2024/7/19起无维护      |             |
 | **v5.0.rc3** | 维护     | 2023/10/15   | 预计2024/10/15起无维护     |             |
 
+## 参考文档
+
+有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Ascend Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
+
+| 文档名称                   | 文档链接                                                     |
+| -------------------------- | ------------------------------------------------------------ |
+| AscendPyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/envdeployment/instg/instg_0083.html) |
+| AscendPyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/AImpug_0002.html) |
+| AscendPyTorch 在线推理           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| AscendPyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| AscendPyTorch API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/ptaoplist_001.html) |
+
 ## 许可证
 
 PyTorch Ascend Adapter插件使用BSD许可证。详见[LICENSE](LICENSE)文件。
