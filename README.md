@@ -405,6 +405,18 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | **v5.0.rc2**    | Maintained | 2023/7/19       | Unmaintained <br> 2024-7-19 estimated   |              |
 | **v5.0.rc3**    | Maintained | 2023/10/15      | Unmaintained <br> 2024-10-15 estimated  |              |
 
+## Reference Documents
+
+For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [PyTorch Ascend Adapter on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
+
+| Document Name                    | Document Link                                                 |
+| -------------------------------- | ------------------------------------------------------------ |
+| AscendPyTorch Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/envdeployment/instg/instg_0083.html) |
+| AscendPyTorch Network Model Migration and Training | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/AImpug_0002.html) |
+| AscendPyTorch Online Inference    | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| AscendPyTorch Operator Adaptation | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| AscendPyTorch API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/ptaoplist_001.html) |
+
 ## License
 
 PyTorch Ascend Adapter has a BSD-style license, as found in the [LICENSE](LICENSE) file.
