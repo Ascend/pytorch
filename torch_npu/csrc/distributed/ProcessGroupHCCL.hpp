@@ -20,6 +20,28 @@ namespace c10d_npu {
 constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
 constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
+// Environment variable which controls whether or not we perform Async Error
+// Handling with HCCL.
+constexpr const char* HCCL_ASYNC_ERROR_HANDLING = "HCCL_ASYNC_ERROR_HANDLING";
+
+// Environment Variable to control whether Desync Debug is enabled.
+// This variable must be set together with HCCL_ASYNC_ERROR_HANDLING.
+constexpr const char* HCCL_DESYNC_DEBUG = "HCCL_DESYNC_DEBUG";
+
+// NoHandling: do not handle asynchronous HCCL errors
+// TearDown: tear down process upon error, see `WorkHCCL::handleException`
+// CleanUpOnly: just clean up collectives and abort communicators without
+// tearing down process SkipCleanUp: (this is a temporary option and can be
+// removed in future) tear down process without cleaning up HCCL communicators.
+// This should be used as a last resort in case `hcclCommAbort` itself is
+// hanging
+enum ErrorHandlingMode {
+    NoHandling = 0,
+    TearDown = 1,
+    CleanUpOnly = 2,
+    SkipCleanUp = 3
+};
+
 // ProcessGroupHCCL implements HCCL bindings for c10d.
 //
 // All functions of the class are expected to be called in the same order
@@ -412,6 +434,13 @@ protected:
   // Whether or not wait() and synchronize() are blocking operations that wait
   // for the operation to complete.
   bool blockingWait_ = false;
+
+  // Whether or not the workCleanupThread is used to perform async error
+  // handling.
+  ErrorHandlingMode asyncErrorHandling_ = NoHandling;
+
+  // Whether or not to enable timeout root cause analysis.
+  bool desyncDebug_;
 
   // Timeout for operations. This is only used when blockingWait_ is enabled.
   std::chrono::milliseconds opTimeout_;

@@ -105,5 +105,17 @@ const char* OptionsManager::GetAclConfigJsonPath() {
   char* env_val = std::getenv("ACL_CONFIG_JSON_PATH");
   return env_val == nullptr ? "" : env_val;
 }
+
+uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable() {
+  char* asyncErrorHandling_val = std::getenv("HCCL_ASYNC_ERROR_HANDLING");
+  int64_t asyncErrorHandlingFlag = (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 0;
+  return static_cast<uint32_t>(asyncErrorHandlingFlag);
+}
+
+uint32_t OptionsManager::CheckUseDesyncDebugEnable() {
+  char* desyncDebug_val = std::getenv("HCCL_DESYNC_DEBUG");
+  int64_t desyncDebugFlag = (desyncDebug_val != nullptr) ? strtol(desyncDebug_val, nullptr, 10) : 0;
+  return static_cast<uint32_t>(desyncDebugFlag);
+}
 } // namespace option
 } // namespace c10_npu
