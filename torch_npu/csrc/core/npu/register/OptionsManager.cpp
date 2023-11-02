@@ -15,6 +15,7 @@
 
 #include <string>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
@@ -75,27 +76,14 @@ bool OptionsManager::CheckCombinedOptimizerEnable() {
 }
 
 bool OptionsManager::CheckAclDumpDateEnable() {
+  TORCH_NPU_WARN_ONCE(
+      "The environment variable ACL_DUMP_DATA has been deprecated, "
+      "please use torch_npu.npu.init_dump() instead");
   const static bool checkAclDumpDateEnable = []() -> bool {
     int32_t acl_dump_data = OptionsManager::GetBoolTypeOption("ACL_DUMP_DATA");
     return acl_dump_data != 0;
   }();
   return checkAclDumpDateEnable;
-}
-
-bool OptionsManager::CheckDisableAclopComAndExe() {
-  const static bool checkDisableAclopComAndExe = []() -> bool {
-    int32_t disable_aclop_com_exe = OptionsManager::GetBoolTypeOption("DISABLE_ACLOP_COM_EXE");
-    return disable_aclop_com_exe != 0;
-  }();
-  return checkDisableAclopComAndExe;
-}
-
-bool OptionsManager::CheckSwitchMMOutputEnable() {
-  static int switchMMOutputEnable = -1;
-  if (switchMMOutputEnable == -1) {
-    switchMMOutputEnable = GetBoolTypeOption("SWITCH_MM_OUTPUT_ENABLE");
-  }
-  return (switchMMOutputEnable == 1);
 }
 
 int OptionsManager::GetBoolTypeOption(const char* env_str, int defaultVal) {
@@ -108,15 +96,6 @@ uint32_t OptionsManager::GetHCCLExecTimeout() {
   char* env_val = std::getenv("HCCL_EXEC_TIMEOUT");
   int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
   return static_cast<uint32_t>(envFlag);
-}
-
-bool OptionsManager::CheckUseNpuLogEnable() {
-  static int useNpuLog = -1;
-  if (useNpuLog == -1) {
-    useNpuLog = GetBoolTypeOption("NPU_LOG_ENABLE");
-  }
-
-  return (useNpuLog == 1);
 }
 
 int32_t OptionsManager::GetACLExecTimeout() {

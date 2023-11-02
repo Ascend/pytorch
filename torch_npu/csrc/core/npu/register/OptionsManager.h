@@ -33,9 +33,6 @@ public:
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
   static bool CheckAclDumpDateEnable();
-  static bool CheckDisableAclopComAndExe();
-  static bool CheckSwitchMMOutputEnable();
-  static bool CheckUseNpuLogEnable();
   static uint32_t GetHCCLExecTimeout();
   static uint32_t CheckUseHcclAsyncErrorHandleEnable();
   static uint32_t CheckUseDesyncDebugEnable();
