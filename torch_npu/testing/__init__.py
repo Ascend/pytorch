@@ -1,6 +1,8 @@
 from torch.testing._internal.opinfo.core import OpInfo
 from torch_npu.testing.npu_testing_utils import update_skip_list, get_decorators
 
+__all__ = []
+
 
 def apply_test_patchs():
     update_skip_list()
