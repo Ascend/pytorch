@@ -284,10 +284,10 @@ def exec_ut(files):
 if __name__ == "__main__":
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
-    try:
+    if os.path.exists(cur_modify_files):
         test_mgr.load(cur_modify_files)
         test_mgr.analyze()
-    except Exception:
+    else:
         test_mgr.load_core_ut()
 
     cur_test_files = test_mgr.get_test_files()
