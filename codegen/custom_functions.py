@@ -189,9 +189,9 @@ def compute_custom_functions_declaration(f: NativeFunction, func_type: str):
         name = sig.name()
         args = sig.arguments()
         if func_type == 'call':
-            args_str = ', '.join(a.defn() for a in args)
+            args_str = ', '.join(a.decl() for a in args)
         if func_type == 'redispatch':
-            args_str = 'c10::DispatchKeySet dispatchKeySet, ' + ', '.join(a.defn() for a in args)
+            args_str = 'c10::DispatchKeySet dispatchKeySet, ' + ', '.join(a.decl() for a in args)
 
         if (func_type == 'call') and (name == 'npu_slice_out'):
             return [EXPORT_CUSTOM_FUNCTIONS_DECLARATION.substitute(
