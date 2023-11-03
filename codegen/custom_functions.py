@@ -72,7 +72,7 @@ def compute_custom_functions_declaration(f: NativeFunction):
     sig = DispatcherSignature.from_schema(f.func)
     name = sig.name()
     args = sig.arguments()
-    args_str = ', '.join(a.defn() for a in args)
+    args_str = ', '.join(a.decl() for a in args)
 
     if (name == 'npu_dtype_cast') or (name == 'npu_slice_out'):
         return [EXPORT_CUSTOM_FUNCTIONS_DECLARATION.substitute(

@@ -178,12 +178,29 @@ npu_functions = {
     "check_memory_overlaps", "get_storage_size", "_dropout_with_byte_mask", "empty_with_format"
 }
 
+public_npu_functions = {
+    "_npu_dropout", "fast_gelu", "npu_alloc_float_status", "npu_anchor_response_flags", "npu_apply_adam",
+    "npu_batch_nms", "npu_bert_apply_adam", "npu_bmmV2", "npu_bounding_box_encode", "npu_bounding_box_decode",
+    "npu_broadcast", "npu_ciou", "npu_clear_float_status", "npu_confusion_transpose", "npu_conv_transpose2d",
+    "npu_conv2d", "npu_conv3d", "npu_convolution", "npu_convolution_transpose", "npu_deformable_conv2d",
+    "npu_diou", "npu_dtype_cast", "npu_get_float_status", "npu_giou", "npu_grid_assign_positive", "npu_gru",
+    "npu_ifmr", "npu_indexing", "npu_iou", "npu_layer_norm_eval", "npu_linear", "npu_lstm", "npu_masked_fill_range",
+    "npu_max", "npu_min", "npu_mish", "npu_nms_rotated", "npu_nms_v4", "npu_nms_with_mask", "npu_normalize_batch",
+    "npu_one_hot", "npu_pad", "npu_ps_roi_pooling", "npu_ptiou", "npu_random_choice_with_mask", "npu_reshape",
+    "npu_roi_align", "npu_rotated_box_encode", "npu_rotated_box_decode", "npu_rotated_overlaps", "npu_rotated_iou",
+    "npu_scatter", "npu_sign_bits_pack", "npu_sign_bits_unpack", "npu_silu", "npu_slice", "npu_sort_v2",
+    "npu_softmax_cross_entropy_with_logits", "npu_stride_add", "npu_transpose", "npu_yolo_boxes_encode", 
+    "npu_fused_attention_score", "npu_dropout_with_add_softmax", "npu_multi_head_attention", "npu_roi_alignbk",
+    "npu_rotary_mul", "npu_scaled_masked_softmax", "npu_fusion_attention", "npu_format_cast", "npu_format_cast_",
+    "copy_memory_", "empty_with_format"
+}
 
 for name in dir(torch_npu._C._VariableFunctions):
     if name.startswith('__'):
         continue
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
-    __all__.append(name)
+    if name in public_npu_functions:
+        __all__.append(name)
     if (name in npu_functions) or (name.find("npu") != -1):
         setattr(torch, name, wrap_torch_error_func(getattr(torch_npu._C._VariableFunctions, name)))
     else:
