@@ -27,6 +27,8 @@
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
+#include "torch_npu/csrc/framework/interface/HcclInterface.h"
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include <Python.h>
 
 namespace at_npu
