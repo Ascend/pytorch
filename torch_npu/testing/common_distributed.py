@@ -39,7 +39,8 @@ def skipIfUnsupportMultiNPU(npu_number_needed):
 
 
 def with_comms(func):
-    assert func is not None
+    if func is None:
+        raise RuntimeError("Test function is None.")
 
     @wraps(func)  # pyre-ignore[6]
     def wrapper(
