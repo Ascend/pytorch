@@ -24,6 +24,21 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
     return torch.empty_like(query)
 
 
+@impl(m, "npu_fusion_attention")
+def npu_fusion_attention_forward(query, key, value, head_num, input_layout, *, pse=None, padding_mask=None, 
+                                atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, 
+                                inner_precise=0, prefix=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
+    return torch.empty_like(query)
+
+
+@impl(m, "npu_fusion_attention_grad")
+def npu_fusion_attention_backward(query, key, value, dy, head_num, input_layout, *, pse=None, padding_mask=None, atten_mask=None,
+                                  softmax_max=None, softmax_sum=None, softmax_in=None, attention_in=None, scale_value=1.0,
+                                  keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, inner_precise=0, seed=0, offset=0,
+                                  numels=0, prefix=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
+    return torch.empty_like(query)
+
+
 @impl(m, "npu_rotary_mul")
 def npu_rotary_mul_meta(embedding, cosine, sine):
     return torch.empty_like(embedding)
