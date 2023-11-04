@@ -71,11 +71,10 @@ def init_pg(backend: str = "hccl", world_size=1, rank=0, file_name="file://") ->
     if backend == "hccl" and torch.npu.device_count() < world_size:
         raise RuntimeError(TEST_SKIPS[f"multi-npu-{world_size}"].message)
 
-    if backend not in ["hccl"]:
+    if backend not in ["hccl", "gloo"]:
         raise RuntimeError(f"Backend {backend} not supported!")
 
     dist.init_process_group(
-        backend=backend,
         world_size=world_size,
         rank=rank,  # pyre-ignore[16]
         init_method=f"file://{file_name}",  # pyre-ignore[16]
