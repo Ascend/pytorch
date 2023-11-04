@@ -63,12 +63,12 @@ pip3 install torch_npu-2.0.1-cp38-cp38-linux_aarch64.whl
 
 ### From Source
 
-In some special scenarios, users may need to compile **torch-npu** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps:
+In some special scenarios, users may need to compile **torch-npu** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps(Please pay attention to the safety of the mounting path. It is recommended to only mount the business path and avoid the system path.):
 
 1. **Clone torch-npu**
 
    ```
-   git clone https://github.com/ascend/pytorch.git -b v2.0.1-5.0.rc3 --depth 1
+   git clone https://github.com/ascend/pytorch.git -b v2.0.1-5.0.0 --depth 1
    ```
 
 2. **Build Docker Image**

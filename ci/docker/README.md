@@ -1,13 +1,14 @@
 ## Ascend Pytorch Dockerfile Repository
 
 This folder hosts the `Dockerfile` to build docker images with various platforms.
+Please pay attention to the safety of the mounting path. It is recommended to only mount the business path and avoid the system path.
 
 ### Build torch_npu from Docker container
 
 **Clone torch-npu**
 
 ```Shell
-git clone https://github.com/ascend/pytorch.git -b v2.0.1 --depth 1
+git clone https://github.com/ascend/pytorch.git -b v2.0.1-5.0.0 --depth 1
 ```
 
 **Build docker image**
