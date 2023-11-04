@@ -624,27 +624,27 @@ class NPUFlashAttentionOP(torch.autograd.Function):
     @staticmethod
     def symbolic(g, query: Tensor, key: Tensor, value: Tensor, head_num: int, input_layout: str,
                  pse: Tensor, padding_mask: Tensor, atten_mask: Tensor, scale: float = 1.0,
-                 keep_prob: float = 1.0, pre_tockens: int = 2147483647, next_tockens: int = 2147483647,
-                 gen_mask_parallel: bool = True, sync: bool = False):
+                 keep_prob: float = 1.0, pre_tockens: int = 2147483647, next_tockens: int = 2147483647, inner_precise: int = 1,
+                 prefix: Tensor = None, sparse_mode: int = 0, gen_mask_parallel: bool = True, sync: bool = False):
         if pse is None:
             pse = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         if padding_mask is None:
             padding_mask = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         if atten_mask is None:
             atten_mask = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
-        return g.op("npu::NPUFlashAttention", query, key, value, pse, padding_mask, atten_mask,
+        return g.op("npu::NPUFlashAttention", query, key, value, pse, padding_mask, atten_mask, prefix,
                     head_num_i=head_num, input_layout_s=input_layout, scale_f=scale, keep_prob_f=keep_prob,
-                    pre_tockens_i=pre_tockens, next_tockens_i=next_tockens,
-                    gen_mask_parallel_i=gen_mask_parallel, sync_i=sync)
+                    pre_tockens_i=pre_tockens, next_tockens_i=next_tockens, inner_precise_i=inner_precise,
+                    sparse_mode_i=sparse_mode, gen_mask_parallel_i=gen_mask_parallel, sync_i=sync)
 
 
 def wrapper_npu_flash_attention(query, key, value, head_num,
                                 input_layout, pse=None, padding_mask=None, atten_mask=None,
                                 scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
-                                inner_precise=1, gen_mask_parallel=True, sync=False):
+                                inner_precise=1, prefix=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
     return NPUFlashAttentionOP.apply(query, key, value, head_num, input_layout,
-                                     pse, padding_mask, atten_mask, scale,
-                                     keep_prob, pre_tockens, next_tockens, inner_precise, gen_mask_parallel, sync)
+                                     pse, padding_mask, atten_mask, scale, keep_prob, pre_tockens,
+                                     next_tockens, inner_precise, prefix, sparse_mode, gen_mask_parallel, sync)
 
 
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
