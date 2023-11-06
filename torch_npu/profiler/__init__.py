@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from torch_npu._C._profiler import ProfilerActivity
+
 from .profiler import (
     profile,
     _KinetoProfile,
-    ProfilerActivity,
     supported_activities,
     tensorboard_trace_handler)
 from .scheduler import Schedule as schedule

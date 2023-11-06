@@ -49,11 +49,6 @@ from .analysis.prof_common_func.path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
 
 
-class ProfilerActivity:
-    CPU = ProfilerActivity.CPU
-    NPU = ProfilerActivity.NPU
-
-
 def supported_activities():
     return _supported_npu_activities()
 
@@ -178,6 +173,14 @@ class _KinetoProfile:
             print_warn_msg("Profiling data parsing failed.")
 
     def export_chrome_trace(self, output_path: str):
+        output_path = ProfilerPathManager.get_realpath(output_path)
+        PathManager.check_input_file_path(output_path)
+        file_name = os.path.basename(output_path)
+        if not file_name.endswith(".json"):
+            raise RuntimeError("Invalid parameter output_path, which must be a json file.")
+        if not self.prof_path:
+            print_warn_msg("Invalid profiling path.")
+            return
         self._analyse(Constant.EXPORT_CHROME_TRACE, output_path)
 
     def _check_str_valid(self, input_str: str):
@@ -290,7 +293,10 @@ class profile(_KinetoProfile):
         if use_cuda is not None:
             print_warn_msg("This is npu environment, use_cuda is invalid")
         self._check_params()
-        self.action_map: Dict[Tuple[ProfilerAction, Optional[ProfilerAction]], List[Any]] = {
+        self.action_map = self._init_action_map()
+
+    def _init_action_map(self):
+        action_map = {
             (ProfilerAction.NONE, ProfilerAction.NONE): [],
             (ProfilerAction.NONE, ProfilerAction.WARMUP): [self.init_trace],
             (ProfilerAction.NONE, ProfilerAction.RECORD): [self.init_trace, self.start_trace],
@@ -327,6 +333,8 @@ class profile(_KinetoProfile):
             (ProfilerAction.RECORD, None): [self.stop_trace, self.finalize_trace, self._trace_ready],
             (ProfilerAction.RECORD_AND_SAVE, None): [self.stop_trace, self.finalize_trace, self._trace_ready],
         }
+
+        return action_map
 
     def __enter__(self):
         if not self.on_trace_ready:
@@ -382,7 +390,6 @@ class profile(_KinetoProfile):
             return obj_attr
         common_config = {"activities": list(map(str, list(self.activities))),
                          "schedule": _trans_obj2cfg(self.schedule),
-                         "on_trace_ready": _trans_obj2cfg(ProfManager()),
                          "record_shapes": self.record_shapes,
                          "profile_memory": self.profile_memory,
                          "with_stack": self.with_stack,
