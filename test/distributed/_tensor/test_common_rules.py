@@ -6,7 +6,6 @@ from torch.distributed._tensor.op_schema import OpSchema
 from torch.distributed._tensor.ops.common_rules import (
     einop_rule,
     pointwise_rule,
-    reduction_rule,
 )
 from torch.distributed._tensor.placement_types import DTensorSpec
 from torch.fx.passes.shape_prop import _extract_tensor_metadata
@@ -14,9 +13,10 @@ from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
+@skipIfUnsupportMultiNPU(4)
 class CommonRulesTest(DTensorTestBase):
     @property
     def world_size(self) -> int:
@@ -428,51 +428,6 @@ class CommonRulesTest(DTensorTestBase):
         schema_suggestion = output_sharding.schema_suggestions[0]
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, mat1)
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, mat1)
-
-    @with_comms
-    def test_reduction_rule(self):
-        mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
-
-        func_schema = parse_schema(
-            "aten::sum(Tensor self, *, ScalarType? dtype=None) -> Tensor"
-        )
-        # reduction on a 2d mat
-        mat1 = [0, -1]
-        mat1_tensor_meta = self._gen_tensor_meta(torch.Size([8, 4]))
-        mat1_spec = DTensorSpec.from_dim_map(
-            mesh, mat1, [], tensor_meta=mat1_tensor_meta
-        )
-        # reduction on dim 0
-        output_sharding_0 = reduction_rule(
-            OpSchema(func_schema, (mat1_spec, 0), {}),
-            dims=[0],
-            reduction_linear=True,
-        )
-        self.assertIsNotNone(output_sharding_0.output_spec)
-        self.assertEqual(output_sharding_0.output_spec.dim_map, [-1])
-        # pending sum on dim 0
-        self.assertEqual(output_sharding_0.output_spec.sums, [0])
-
-        # reduction on dim 1
-        output_sharding_1 = reduction_rule(
-            OpSchema(func_schema, (mat1_spec, 1), {}),
-            dims=[1],
-            reduction_linear=True,
-        )
-        self.assertIsNotNone(output_sharding_1.output_spec)
-        self.assertEqual(output_sharding_1.output_spec.dim_map, [0])
-        self.assertEqual(output_sharding_1.output_spec.sums, [])
-
-        # full reduction if not specify dim
-        output_sharding_all_dim = reduction_rule(
-            OpSchema(func_schema, (mat1_spec,), {}),
-            dims=[0, 1],
-            reduction_linear=True,
-        )
-        self.assertIsNotNone(output_sharding_all_dim.output_spec)
-        self.assertEqual(output_sharding_all_dim.output_spec.dim_map, [])
-        # pending sum on mesh
-        self.assertEqual(output_sharding_all_dim.output_spec.sums, [0])
 
 
 if __name__ == "__main__":

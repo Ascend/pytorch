@@ -5,7 +5,7 @@ import torch.distributed._functional_collectives as funcol
 import torch.distributed._tensor.random as random
 
 from torch.distributed._tensor import DeviceMesh, DTensor
-from torch.distributed._tensor._utils import compute_local_offset
+from torch.distributed._tensor._utils import compute_local_shape_and_global_offset
 from torch.distributed._tensor.api import distribute_tensor
 from torch.distributed._tensor.placement_types import Replicate, Shard
 from torch.distributed._tensor.random import is_rng_supported_mesh, manual_seed
@@ -16,9 +16,10 @@ from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
+@skipIfUnsupportMultiNPU(4)
 class DistTensorRandomInitTest(DTensorTestBase):
     def _run_init_op(self, init_op, *args, **kwargs):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -73,6 +74,7 @@ class DistTensorRandomInitTest(DTensorTestBase):
         self._run_init_op(torch.nn.init.uniform_, a=0, b=1.2)
 
 
+@skipIfUnsupportMultiNPU(4)
 class DistTensorRandomOpTest(DTensorTestBase):
     @with_comms
     def test_rng_tracker_init(self):
@@ -151,7 +153,7 @@ class DistTensorRandomOpTest(DTensorTestBase):
             self.assertEqual(shard_linear_idx, shard_index[self.rank])
 
             # compute local size and offset
-            local_shard_offset = compute_local_offset(
+            _, local_shard_offset = compute_local_shape_and_global_offset(
                 dtensor.shape, device_mesh, placements
             )
 

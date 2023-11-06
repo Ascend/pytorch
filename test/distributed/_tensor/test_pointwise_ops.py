@@ -18,7 +18,7 @@ from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
 def no_op():
@@ -69,6 +69,7 @@ def deepcopy_convert_from_dtensor(val: Any) -> Any:
     return pytree.tree_map(f, [val])[0]
 
 
+@skipIfUnsupportMultiNPU(4)
 class DistElementwiseOpsTest(DTensorTestBase):
     def _compare_pairwise_ops(
         self,

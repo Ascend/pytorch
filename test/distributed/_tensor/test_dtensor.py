@@ -12,7 +12,7 @@ from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
 class DummyMLP(torch.nn.Module):
@@ -33,6 +33,7 @@ class DummyMLP(torch.nn.Module):
             self.net2.bias.fill_(1.2)
 
 
+@skipIfUnsupportMultiNPU(4)
 class DTensorTest(DTensorTestBase):
     @with_comms
     def test_dtensor_constructor(self):
@@ -392,6 +393,7 @@ class DTensorTest(DTensorTestBase):
         self.assertEqual(sharded_tensor, reloaded_st)
 
 
+@skipIfUnsupportMultiNPU(4)
 class DTensorMeshTest(DTensorTestBase):
     @property
     def world_size(self):
@@ -618,6 +620,7 @@ class DTensorMeshTest(DTensorTestBase):
         )
 
 
+@skipIfUnsupportMultiNPU(4)
 class TestDTensorPlacementTypes(DTensorTestBase):
     @property
     def world_size(self):
