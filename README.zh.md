@@ -56,12 +56,12 @@ pip3 install torch-npu==2.1.0rc1
 
 ### 使用源代码进行安装
 
-某些特殊场景下，用户可能需要自行编译**torch_npu**。可以根据[昇腾辅助软件表](#昇腾辅助软件)和[PyTorch与Python版本配套表](#PyTorch与Python版本配套表)选择合适的分支。推荐使用Docker镜像编译**torch_npu**，可以通过以下步骤获取：
+某些特殊场景下，用户可能需要自行编译**torch_npu**。可以根据[昇腾辅助软件表](#昇腾辅助软件)和[PyTorch与Python版本配套表](#PyTorch与Python版本配套表)选择合适的分支。推荐使用Docker镜像编译**torch_npu**，可以通过以下步骤获取(请注意挂载路径安全，推荐只挂载业务路径，避开系统路径)：
 
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0-5.0.rc3 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0-5.0.0 --depth 1
    ```
 
 2. **构建镜像**
