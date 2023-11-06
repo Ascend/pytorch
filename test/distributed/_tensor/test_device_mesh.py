@@ -26,7 +26,7 @@ from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTe
 from torch.testing._internal.distributed.fake_pg import FakeStore
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
 def _get_device_type(world_size):
@@ -47,6 +47,7 @@ def _set_env_var(addr="localhost", port="29500", world_size=1, rank=0):
     os.environ["RANK"] = f"{rank}"
 
 
+@skipIfUnsupportMultiNPU(4)
 class DeviceMeshTest(DTensorTestBase):
     @property
     def world_size(self):
@@ -75,6 +76,7 @@ class DeviceMeshTest(DTensorTestBase):
         self.assertEqual(global_tensor.shape, (self.world_size * 2, 8))
 
 
+@skipIfUnsupportMultiNPU(4)
 class DeviceMeshTestDim(DTensorTestBase):
     @property
     def world_size(self):
@@ -124,6 +126,7 @@ class DeviceMeshTestDim(DTensorTestBase):
                 mesh = DeviceMesh(self.device_type, mesh_subpg_2)
 
 
+@skipIfUnsupportMultiNPU(4)
 class DeviceMeshTestNDim(DTensorTestBase):
     @property
     def world_size(self):
@@ -164,6 +167,7 @@ class DeviceMeshTestNDim(DTensorTestBase):
         self.assertNotEqual(hash(mesh2), hash(mesh3))
 
 
+@skipIfUnsupportMultiNPU(4)
 class InitDeviceMeshTest(DTensorTestBase):
     @property
     def world_size(self):
@@ -187,6 +191,7 @@ class InitDeviceMeshTest(DTensorTestBase):
         self.assertEqual(two_d_mesh, ref_mesh)
 
 
+@skipIfUnsupportMultiNPU(4)
 class TestDeviceMeshGetItem(DTensorTestBase):
     @property
     def world_size(self):
@@ -253,6 +258,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
         self.assertEqual(mesh_resources.get_parent_mesh(two_d_mesh["TP"]), two_d_mesh)
 
 
+@skipIfUnsupportMultiNPU(4)
 class DeviceMeshCollectiveTest(DTensorTestBase):
     @property
     def world_size(self):

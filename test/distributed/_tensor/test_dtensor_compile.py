@@ -30,6 +30,7 @@ class SimpleModel(nn.Module):
         return self.mlp_1(self.mlp_0(input_x))
 
 
+@skipIfUnsupportMultiNPU(4)
 class TestDTensorCompile(DTensorTestBase):
     @property
     def world_size(self) -> int:
@@ -97,6 +98,7 @@ class TestDTensorCompile(DTensorTestBase):
         self.assertEqual(res, ref)
 
 
+@skipIfUnsupportMultiNPU(4)
 class TestDTensorCompileE2E(DTensorTestBase):
     @property
     def world_size(self):

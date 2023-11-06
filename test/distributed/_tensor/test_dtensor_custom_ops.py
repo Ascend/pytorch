@@ -9,9 +9,10 @@ from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
+@skipIfUnsupportMultiNPU(4)
 class TestDTensorCustomOps(DTensorTestBase):
     @property
     def world_size(self):
