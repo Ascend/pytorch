@@ -142,10 +142,6 @@ public:
     // debugging if enabled.
     std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
 
-    // The end npu events of HCCL operator tracking this work item on
-    // multiple npu devices.
-    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclEndEvents_;
-
     // Tensors used for barrier op
     std::vector<at::Tensor> barrierTensors_;
 
@@ -449,8 +445,6 @@ protected:
 
     // Vector to Store WorkHCCL pointers
     std::list<ProcessGroupHCCL::WorkHCCL> workMetaList_;
-
-    std::list<ProcessGroupHCCL::WorkHCCL> workTemp_;
 
     std::mutex workMetaListMutex_;
 
