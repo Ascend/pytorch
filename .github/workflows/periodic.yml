@@ -1,0 +1,16 @@
+name: Ascend NPU
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  issue_comment:
+    types: [created]
+
+jobs:
+  linux-py3_8-7_0_RC1_alpha005:
+    name: linux-py3_8-7.0.RC1.alpha005
+    uses: ./.github/workflows/_build-and-test.yml
+    with:
+      runner: self-hosted
+      devices: --device /dev/davinci6
+      image: ascendai/cann:7.0.RC1.alpha005-openeuler2203sp2

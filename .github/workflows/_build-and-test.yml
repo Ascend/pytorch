@@ -1,0 +1,86 @@
+name: build-and-test
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+        description: The runner selected to run on
+      devices:
+        required: true
+        type: string
+        description: The devices selected to run on
+      image:
+        required: true
+        type: string
+        description: The docker iamge which will be loaded
+
+jobs:
+  fetch-and-rebase:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Pull latest codes for torch
+        run: |
+          pushd /root/codes/pytorch/pytorch &&
+          git fetch --all &&
+          git rebase upstream/main &&
+          git submodule sync &&
+          git submodule update --init --recursive &&
+          git reset --hard HEAD &&
+          git clean -dfx &&
+          git submodule foreach git reset --hard HEAD &&
+          git submodule foreach git clean -dfx &&
+          popd
+      - name: Pull latest codes for torch_npu
+        run: |
+          pushd /root/codes/npu/pytorch &&
+          git fetch --all &&
+          git rebase upstream/master &&
+          git submodule sync &&
+          git submodule update --init --recursive &&
+          git reset --hard HEAD &&
+          git clean -dfx &&
+          git submodule foreach git reset --hard HEAD &&
+          git submodule foreach git clean -dfx &&
+          popd
+
+  compile-and-test:
+    runs-on: ${{ inputs.runner }}
+    needs: fetch-and-rebase
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ${{ inputs.image }}
+      env:
+        HOME: /root
+      volumes:
+        - /usr/local/dcmi:/usr/local/dcmi
+        - /usr/local/bin/npu-smi:/usr/local/bin/npu-smi
+        - /usr/local/Ascend/driver/lib64/:/usr/local/Ascend/driver/lib64/
+        - /usr/local/Ascend/driver/version.info:/usr/local/Ascend/driver/version.info
+        - /root/codes/:/root/codes
+      options: --network host ${{ inputs.devices }} --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc
+    steps:
+      - name: Set environment
+        run:
+          source /root/.bashrc && conda activate torch_npu
+      - name: Compile torch
+        working-directory: /root/codes/pytorch/pytorch
+        run: |
+          pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+          export _GLIBCXX_USE_CXX11_ABI=0
+          export USE_CUDA=0
+          export USE_XNNPACK=0
+          python setup.py develop
+      - name: Compile and install torch_npu
+        working-directory: /root/codes/npu/pytorch
+        run: |
+          pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+          bash ci/build.sh --python=3.8
+          pip3 install dist/torch_npu*.whl
+      - name: Do the test
+        working-directory: /root/codes
+        run: |
+          python npu/pytorch/ci/access_control_test.py
