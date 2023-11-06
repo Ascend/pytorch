@@ -461,20 +461,39 @@ protected:
   // Counting for the sequential number of NCCL collective call.
   uint64_t seq_{0};
 
+
+  std::exception_ptr watchDogException_ = nullptr;
+
 private:
-  // Helper that encapsulates work shared across all collective communication
-  // primitives.
-  template <typename Fn>
-  c10::intrusive_ptr<c10d::Work> collective(
-      std::vector<at::Tensor>& input,
-      std::vector<at::Tensor>& output,
-      Fn fn);
-  template <typename Fn, typename PreProcess, typename PostProcess>
-  c10::intrusive_ptr<c10d::Work> collective(
-      std::vector<at::Tensor>& input,
-      std::vector<at::Tensor>& output,
-      Fn fn,
-      PreProcess pre,
-      PostProcess post);
+    // Helper that encapsulates work shared across all collective communication
+    // primitives.
+    template <typename Fn>
+    c10::intrusive_ptr<c10d::Work> collective(
+        std::vector<at::Tensor>& input,
+        std::vector<at::Tensor>& output,
+        Fn fn);
+    template <typename Fn, typename PreProcess, typename PostProcess>
+    c10::intrusive_ptr<c10d::Work> collective(
+        std::vector<at::Tensor>& input,
+        std::vector<at::Tensor>& output,
+        Fn fn,
+        PreProcess pre,
+        PostProcess post);
+
+    // Function that runs as part of a separate thread and checks for errors on
+    // HCCL communicators. We need a separate thread to check for HCCL errors
+    // since we can't rely on the user calling certain methods like wait(),
+    // isCompleted() etc. to detect and remediate errors. In addition to this, we
+    // need a mechanism to safely abort and remove HCCL communicators from our
+    // cache. This can be done cleanly by having a thread for the ProcessGroupHCCL
+    // class. Attempting to modify the communicator cache from the WorkHCCL class
+    // might run into issues with object lifetime since the ProcessGroupHCCL
+    // object might get destroyed before the WorkHCCL object.
+    void hcclCommWatchdog(int device_id);
+
+    // Watchdog's inside loop.
+    // Takes care of cleaning up completed work, and aborting upon failure or
+    // timeout.
+    void workCleanupLoop();
 };
 } // namespace c10d_npu
