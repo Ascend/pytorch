@@ -58,11 +58,11 @@ class TestSortWithoutIndices(TestCase):
 
     def test_sort_v2_dim_shape_format(self):
         shape_format = [
-            [[np.float16, 0, (1, 5000)], 0, True],
-            [[np.float16, 0, (1, 2, 50000)], 1, False],
-            [[np.float16, 0, (1, 289600)], 0, False],
-            [[np.float16, 0, (1, 409600)], -1, True],
-            [[np.float16, 0, (1, 6, 5)], 1, False],
+            [[np.float16, 0, (2, 5000)], 0, True],
+            [[np.float16, 0, (2, 2, 50000)], 1, False],
+            [[np.float16, 0, (2, 289600)], 0, False],
+            [[np.float16, 0, (2, 409600)], -1, True],
+            [[np.float16, 0, (2, 6, 5)], 1, False],
         ]
 
         for item in shape_format:
