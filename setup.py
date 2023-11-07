@@ -33,7 +33,7 @@ DISABLE_TORCHAIR = "TRUE"
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
 if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:
     DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
-DISABLE_RPC = "TRUE"
+DISABLE_RPC = "FALSE"
 if os.environ.get("DISABLE_RPC_FRAMEWORK") is not None:
     DISABLE_RPC = os.environ.get("DISABLE_RPC_FRAMEWORK")
 
