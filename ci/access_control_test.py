@@ -76,7 +76,7 @@ class CoreTestStrategy(AccurateTest):
     Determine whether the core tests should be runned
     """
     block_list = ['test', 'docs']
-    core_test_cases = [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+    core_test_cases = [str(i) for i in (BASE_DIR / 'test/npu').rglob('test_*.py')]
 
     def identify(self, modify_file):
         modified_module = str(Path(modify_file).parts[0])
@@ -178,7 +178,7 @@ class TestMgr():
         self.test_files['ut_files'] = exist_ut_file
 
     def load_core_ut(self):
-        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/npu').rglob('test_*.py')]
 
     def get_test_files(self):
         return self.test_files

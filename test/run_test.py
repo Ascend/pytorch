@@ -73,7 +73,7 @@ TESTS_MODULE = list(set([parse_test_module(test) for test in TESTS]))
 TEST_CHOICES = TESTS + TESTS_MODULE
 
 CORE_TEST_LIST = [
-    "test_npu",
+    "npu",
 ]
 
 
