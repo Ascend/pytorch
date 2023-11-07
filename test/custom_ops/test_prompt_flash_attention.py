@@ -1,4 +1,5 @@
 import math
+import unittest
 import numpy as np
 import torch
 
@@ -6,10 +7,12 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+
 
 class TestPromptFlashAttention(TestCase):
 
-    def supported_op_exec(self, query, key, value, head_dim):
+    def supported_op_exec(self, query_states1, past_key, past_value, head_dim):
         attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) / 0.0078125
         attn_weights1 = torch.max(attn_weights1, torch.full(
             (1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
@@ -22,6 +25,8 @@ class TestPromptFlashAttention(TestCase):
         return torch_npu.npu_prompt_flash_attention(
             query, key, value, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535)
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B',
+        "OP `PromptFlashAttention` is only supported on 910B, skip this ut for this device type!")
     def test_npu_prompt_flash_attention(self, device="npu"):
         query = torch.randn(1, 32, 2048, 128, dtype=torch.float16).npu()
         key = torch.randn(1, 32, 2048, 128, dtype=torch.float16).npu()
