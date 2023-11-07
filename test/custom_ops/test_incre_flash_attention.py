@@ -1,4 +1,5 @@
 import math
+import unittest
 import numpy as np
 import torch
 
@@ -6,10 +7,12 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+
 
 class TestIncreFlashAttention(TestCase):
 
-    def supported_op_exec(self, query, key, value):
+    def supported_op_exec(self, query_states1, past_key, past_value, head_dim, hidden_size):
         attn_weights1 = torch.matmul(query_states1, past_key.transpose(2, 3)) / 0.0078125
         attn_weights1 = torch.max(attn_weights1, torch.full(
             (1, 1), torch.finfo(attn_weights1.dtype).min, device=attn_weights1.device))
@@ -24,10 +27,12 @@ class TestIncreFlashAttention(TestCase):
         tensor = torch.reshape(tensor, (tensor.shape[0], tensor.shape[1], -1))
         return tensor
 
-    def custom_op_exec(self, query, key, value, head_dim):
+    def custom_op_exec(self, query, key, value, head_dim, hidden_size):
         scale = 1 / 0.0078125
-        return torch_npu.npu_incre_flash_attention(q, k, v, num_heads=32, input_layout="BSH", scale_value=scale)
+        return torch_npu.npu_incre_flash_attention(query, key, value, num_heads=32, input_layout="BSH", scale_value=scale)
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B',
+        "OP `IncreFlashAttention` is only supported on 910B, skip this ut for this device type!")
     def test_npu_incre_flash_attention(self, device="npu"):
 
         q = torch.randn(1, 32, 1, 128, dtype=torch.float16).npu()
