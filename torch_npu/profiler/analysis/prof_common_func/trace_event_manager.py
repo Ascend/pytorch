@@ -52,3 +52,15 @@ class TraceEventManager:
     def create_task_queue_flow(cls, ph: str, event: any) -> dict:
         return {"ph": ph, "bp": "e", "name": "enqueue_to_dequeue", "id": event.corr_id, "pid": event.pid,
                 "tid": event.tid, "ts": event.ts, "cat": "async_task_queue"}
+
+    @classmethod
+    def create_fwd_flow(cls, event: any) -> list:
+        fwd_list = []
+        for fwd_id, node in event.items():
+            if node.get('start') and node.get('end'):
+                flow_id = fwd_id
+                fwd_list.extend([{"ph": "s", "bp": "e", "name": "fwdbwd", "id": flow_id, "pid": node['start']['pid'],
+                    "tid": node['start']['tid'], "ts": node['start']['ts'], "cat": "fwdbwd"},
+                    {"ph": "f", "bp": "e", "name": "fwdbwd", "id": flow_id, "pid": node['end']['pid'],
+                    "tid": node['end']['tid'], "ts": node['end']['ts'], "cat": "fwdbwd"}])
+        return fwd_list

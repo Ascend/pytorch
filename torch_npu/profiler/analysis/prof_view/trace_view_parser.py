@@ -66,6 +66,30 @@ class TraceViewParser(BaseViewParser):
         else:
             FileManager.create_json_file_by_path(output_path, trace_data)
 
+    def deal_sequence_one_date(self, seqnum, torch_op, flow_node, fwd_dct, mode):
+        if flow_node and flow_node.get(mode) and flow_node.get(mode).get('ts') > torch_op.event.ts:
+            return
+        else:
+            start_node = {seqnum:{mode: {'pid': torch_op.event.pid, 'tid': torch_op.event.tid, 'ts': torch_op.event.ts}}}
+            if flow_node:
+                fwd_dct.get(seqnum).update(start_node.get(seqnum))
+            else:
+                fwd_dct.update(start_node)
+
+    def get_sequence_trace_data(self):
+        if not GlobalVar.torch_op_tree_node:
+            return []
+        fwd_dct = {}
+        for torch_op in GlobalVar.torch_op_tree_node:
+            seqnum = torch_op.event.args.get("Sequence number", -1)
+            if seqnum > 0:
+                flow_node = fwd_dct.get(seqnum)
+                if torch_op.event.args.get("Fwd thread id") == 0:
+                    self.deal_sequence_one_date(seqnum, torch_op, flow_node, fwd_dct, 'start')
+                else:
+                    self.deal_sequence_one_date(seqnum, torch_op, flow_node, fwd_dct, 'end')
+        return TraceEventManager.create_fwd_flow(fwd_dct)
+
     def _add_fwk_trace_data(self, json_data: list):
         if not GlobalVar.torch_op_tree_node:
             return
@@ -98,4 +122,5 @@ class TraceViewParser(BaseViewParser):
             index += 1
         fwk_other_event_list.extend(TraceEventManager.create_m_event(pid, tid_dict))
 
-        json_data.extend(fwk_x_event_list + fwk_other_event_list)
+        fwd_list = self.get_sequence_trace_data()
+        json_data.extend(fwk_x_event_list + fwk_other_event_list + fwd_list)
