@@ -29,3 +29,4 @@ from torch_npu._C._distributed_c10d import (
     _broadcast_coalesced
 )
 
+from .dirtributed import Distributed_DataParallel
