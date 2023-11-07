@@ -297,7 +297,7 @@ def run_cpp_extensions(test, test_directory, options):
 
 
 CUSTOM_HANDLERS = {
-    "test_distributed": run_distributed_test,
+    "distributed": run_distributed_test,
     "test_cpp_extension": run_cpp_extensions,
 }
 

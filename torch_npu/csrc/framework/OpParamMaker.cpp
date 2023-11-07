@@ -10,6 +10,9 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
+#include "torch_npu/csrc/framework/interface/HcclInterface.h"
+#include "torch_npu/csrc/distributed/HCCLUtils.hpp"
+
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>

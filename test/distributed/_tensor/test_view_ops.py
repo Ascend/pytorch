@@ -24,9 +24,10 @@ from torch.testing._internal.distributed._tensor.common_dtensor import (
 from torch.utils._pytree import tree_flatten
 
 import torch_npu
-from torch_npu.testing.common_distributed import with_comms
+from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
+@skipIfUnsupportMultiNPU(4)
 class TestViewOps(DTensorTestBase):
     def test_view_groups(self):
         self.assertEqual(

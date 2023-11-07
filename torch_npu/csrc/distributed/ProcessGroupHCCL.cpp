@@ -424,6 +424,16 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         asyncErrorHandling_ = TearDown;
         }
     }
+
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+    int device_id = 0;
+    aclError ret = aclrtGetDevice(&device_id);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("Device has not been set.");
+    }
+    hcclCommWatchdogThread_ =
+        std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this, device_id);
+#endif
 }
 
 void ProcessGroupHCCL::setSequenceNumberForGroup() {}
@@ -435,6 +445,9 @@ uint64_t ProcessGroupHCCL::getSequenceNumberForGroup()
 
 ProcessGroupHCCL::~ProcessGroupHCCL()
 {
+#ifdef ENABLE_HCCL_ERROR_CHECKING
+    hcclCommWatchdogThread_.join();
+#endif
     {
         // Destropy all HCCL Communicators on Process Group Destruction
         std::lock_guard<std::mutex> lock(mutex_);
@@ -447,6 +460,37 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
         }
     }
 }
+
+void ProcessGroupHCCL::hcclCommWatchdog(int device_id)
+{
+    try {
+        NPU_CHECK_ERROR(aclrtSetDevice(device_id));
+        VLOG(2) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
+        workCleanupLoop();
+        VLOG(2) << "[Rank " << rank_
+                << "] HCCL watchdog thread terminated normally";
+    } catch (std::exception& e) {
+        // Append error message reported from workCleanupLoop
+        const auto exitMsg = c10::str(
+            "[Rank ",
+            rank_,
+            "] HCCL watchdog thread terminated with exception: ",
+            e.what());
+        LOG(ERROR) << exitMsg;
+        watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
+        std::rethrow_exception(watchDogException_);
+    } catch (...) {
+        const auto exitMsg = c10::str(
+            "[Rank ",
+            rank_,
+            "] HCCL watchdog thread terminated with exception: unknown");
+        LOG(ERROR) << exitMsg;
+        watchDogException_ = std::make_exception_ptr(std::runtime_error(exitMsg));
+        std::rethrow_exception(watchDogException_);
+    }
+}
+
+void ProcessGroupHCCL::workCleanupLoop() {}
 
 void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
 {

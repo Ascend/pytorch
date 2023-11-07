@@ -3,6 +3,7 @@
 #include <ATen/Tensor.h>
 #include <ATen/ATen.h>
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/utils/LazyInit.h"
 
 
 namespace torch_npu {
@@ -49,6 +50,7 @@ inline void maybe_initialize_npu(const at::TensorOptions& options) {
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       TORCH_CHECK(false, "npu device ", options.device().index(), " init failed.");
     }
+    torch_npu::utils::npu_lazy_init();
   }
 }
 
@@ -59,6 +61,7 @@ inline void maybe_initialize_npu(const at::Device& device) {
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       TORCH_CHECK(false, "npu device ", device.index(), " init failed.");
     }
+    torch_npu::utils::npu_lazy_init();
   }
 }
 
