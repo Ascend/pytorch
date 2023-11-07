@@ -52,9 +52,9 @@ class TestInverse(TestCase):
 
     def test_inverse_out_fp16(self, device="npu"):
         cpu_x = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).half()
-        cpu_out = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).half()
+        cpu_out = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).float()
         npu_x = cpu_x.npu()
-        npu_out = cpu_out.npu()
+        npu_out = cpu_out.half().npu()
 
         torch.inverse(cpu_x.float(), out=cpu_out)
         torch.inverse(npu_x, out=npu_out)
