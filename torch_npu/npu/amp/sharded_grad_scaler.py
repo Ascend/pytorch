@@ -274,27 +274,27 @@ class ShardedGradScaler(GradScaler):
 
         # Synchronize the detected inf across the ranks
         optimizer_state = self._per_optimizer_states[id(optimizer)]
-        work_handles = []
+        future_handles = []
 
         for v in optimizer_state["found_inf_per_device"].values():
             if v.device.type == "cpu":
                 v_on_npu = v.npu()
-                work_handles.append(
+                future_handles.append(
                     dist.all_reduce(
                         v_on_npu, async_op=True, group=self.process_group
-                    )
-                )                
+                    ).get_future()
+                )
                 v.copy_(v_on_npu.cpu())
             else:
-                work_handles.append(
+                future_handles.append(
                     dist.all_reduce(
                         v, async_op=True, group=self.process_group
-                    )
+                    ).get_future()
                 )
 
         # Make sure that the calls are done before moving out.
-        for work in work_handles:
-            work.wait()
+        if future_handles:
+            torch.futures.wait_all(future_handles)
 
     def step(self, optimizer: SGD, *args, **kwargs) -> Optional[float]:
         return super().step(optimizer, *args, **kwargs)
