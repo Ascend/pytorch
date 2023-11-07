@@ -107,10 +107,10 @@ class DirectoryMappingStrategy(AccurateTest):
         'distributed': 'test/distributed',
         'fx': 'test/test_fx.py',
         'hooks': 'test/test_hooks',
-        'optim': 'test/test_optim',
-        'profiler': 'test/test_profiler',
+        'optim': 'test/optim',
+        'profiler': 'test/profiler',
         'onnx': 'test/onnx',
-        'utils': 'test/test_utils',
+        'utils': 'test/test_utils.py',
         'testing': 'test/test_testing.py',
         'jit': 'test/jit',
         'rpc': 'test/distributed/rpc',
@@ -120,7 +120,7 @@ class DirectoryMappingStrategy(AccurateTest):
         module_name = str(Path(modify_file).parts[1])
         if module_name == 'csrc':
             module_name = str(Path(modify_file).parts[2])
-            if (len(Path(modify_file).parts) >= 4 and Path(modify_file).parts[3] == 'rpc'):
+            if len(Path(modify_file).parts) >= 4 and Path(modify_file).parts[3] == 'rpc':
                 module_name = 'rpc'
         if module_name == 'utils' and Path(modify_file).parts[2] == 'cpp_extension.py':
             module_name = 'cpp_extension'
