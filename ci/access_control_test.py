@@ -103,24 +103,34 @@ class DirectoryMappingStrategy(AccurateTest):
     """
     mapping_list = {
         'contrib': 'test/test_contrib',
-        'cpp_extension': 'test/test_cpp_extension',
-        'distributed': 'test/test_distributed',
-        'fx': 'test/test_fx',
+        'cpp_extension': 'test/cpp_extensions',
+        'distributed': 'test/distributed',
+        'fx': 'test/test_fx.py',
         'hooks': 'test/test_hooks',
         'optim': 'test/test_optim',
         'profiler': 'test/test_profiler',
-        'onnx': 'test/test_onnx',
+        'onnx': 'test/onnx',
         'utils': 'test/test_utils',
         'testing': 'test/test_testing.py',
+        'jit': 'test/jit',
+        'rpc': 'test/distributed/rpc',
     }
+
+    def get_module_name(self, modify_file):
+        module_name = str(Path(modify_file).parts[1])
+        if module_name == 'csrc':
+            module_name = str(Path(modify_file).parts[2])
+            if (len(Path(modify_file).parts) >= 4 and Path(modify_file).parts[3] == 'rpc'):
+                module_name = 'rpc'
+        if module_name == 'utils' and Path(modify_file).parts[2] == 'cpp_extension.py':
+            module_name = 'cpp_extension'
+        return module_name
 
     def identify(self, modify_file):
         current_all_ut_path = []
         if str(Path(modify_file).parts[0]) == 'torch_npu':
             mapped_ut_path = []
-            module_name = str(Path(modify_file).parts[1])
-            if module_name == 'csrc':
-                module_name = str(Path(modify_file).parts[2])
+            module_name = self.get_module_name(modify_file)
             if module_name in self.mapping_list:
                 mapped_ut_path.append(self.mapping_list[module_name])
             file_name = str(Path(modify_file).stem)
@@ -131,7 +141,7 @@ class DirectoryMappingStrategy(AccurateTest):
                 if Path.is_file(BASE_DIR / mapped_path):
                     current_all_ut_path.append(str(BASE_DIR / mapped_path))
                 else:
-                    current_all_ut_path += [str(i) for i in (BASE_DIR / mapped_path).rglob('test_*.py')]
+                    current_all_ut_path += [str(i) for i in (BASE_DIR / mapped_path).glob('test_*.py')]
         return current_all_ut_path
 
 
@@ -166,6 +176,9 @@ class TestMgr():
             if Path(changed_file).exists()
         ]
         self.test_files['ut_files'] = exist_ut_file
+
+    def load_core_ut(self):
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
 
     def get_test_files(self):
         return self.test_files
@@ -272,8 +285,12 @@ def exec_ut(files):
 if __name__ == "__main__":
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
-    test_mgr.load(cur_modify_files)
-    test_mgr.analyze()
+    if os.path.exists(cur_modify_files):
+        test_mgr.load(cur_modify_files)
+        test_mgr.analyze()
+    else:
+        test_mgr.load_core_ut()
+
     cur_test_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
