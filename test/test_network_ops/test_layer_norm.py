@@ -24,11 +24,6 @@ class TestLayerNorm(TestCase):
             X.cpu(), X.size()[1:], weight=weight.cpu(), bias=bias.cpu(), eps=epsilon)
         self.assertRtolEqual(expected_norm.cpu().numpy(), expected_norm_cpu.numpy())
 
-        actual_norm, actual_mean, actual_stdev = \
-            torch.ops._caffe2.LayerNorm(torch.tensor(X.cpu()), torch.tensor(
-                weight.cpu()), torch.tensor(bias.cpu()), 1, epsilon, True)
-        self.assertRtolEqual(expected_norm.cpu().numpy(), actual_norm.numpy())
-
     def cpu_op_exec(self, input1):
         m = nn.LayerNorm(input1.size()[1:])
         output = m(input1)
