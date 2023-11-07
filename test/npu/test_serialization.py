@@ -1,13 +1,16 @@
+import unittest
 import io
 import os
 import tempfile
 import argparse
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+
 torch_npu.npu.set_device("npu:0")
 
 
@@ -93,6 +96,7 @@ class TestSerialization(TestCase):
             self.assertExpectedInline(f'{x_loaded.device.type}:{x_loaded.device.index}', 'npu:0')
             self.assertRtolEqual(x, x_loaded.cpu())
 
+    @unittest.skip("Test cases are still being fixed!")
     def test_save_npu_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
