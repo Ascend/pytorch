@@ -43,22 +43,6 @@ import torch_npu
 
 
 class Distributed_DataParallel(DistributedDataParallel):
-    def __init__(
-        self,
-        module,
-        device_ids=None,
-        output_device=None,
-        dim=0,
-        broadcast_buffers=True,
-        process_group=None,
-        bucket_cap_mb=25,
-        find_unused_parameters=False,
-        check_reduction=False,
-        gradient_as_bucket_view=False,
-        static_graph=False,
-        delay_all_reduce_named_params=None,
-        param_to_hook_all_reduce=None,
-        mixed_precision: Optional[_MixedPrecision] = None,
-    ):
-        super().__init__(module)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         torch.npu.synchronize()
