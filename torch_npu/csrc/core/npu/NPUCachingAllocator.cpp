@@ -109,35 +109,49 @@ void update_stat_array(
 
 struct Block;
 using Comparison = bool (*)(const Block*, const Block*);
+static bool BlockComparatorSize(const Block* a, const Block* b);
+static bool BlockComparatorAddress(const Block* a, const Block* b);
 
 struct BlockPool{
   std::set<Block*, Comparison> blocks;
+  std::set<Block*, Comparison> unmapped;
   const bool is_small;
 
-  BlockPool(Comparison comparator, bool small)
-      : blocks(comparator),
+  BlockPool(bool small)
+      : blocks(BlockComparatorSize),
+        unmapped(BlockComparatorAddress),
         is_small(small) {}
 };
+
+struct ExpandableSegment;
 
 struct Block {
   int device; // npu
   aclrtStream stream; // allocation stream
   stream_set stream_uses; // streams on which the block was used
   size_t size; // block size in bytes
+  size_t requested_size; // memory originally requested
   BlockPool* pool; // owning memory pool
   void* ptr; // memory address
   bool allocated; // in-use flag
+  bool mapped{true}; // is the virtual address range this Block references
+                     // backed by physical pages. Always true when
+                     // expandable_segment_ is null. When false
+                     // This Block will be aligned to the segment size
+                     // of its expandable_segment_.
   Block* prev; // prev block if split from a larger allocation
   Block* next; // next block if split from a larger allocation
   int event_count; // number of outstanding NPU events
   int gc_count{0}; // counter for prioritizing older / less useful blocks for
                    // garbage collection
+  ExpandableSegment* expandable_segment_{nullptr};
 
   Block(int device, aclrtStream stream, size_t size, BlockPool* pool, void* ptr)
       : device(device),
         stream(stream),
         stream_uses(),
         size(size),
+        requested_size(0),
         pool(pool),
         ptr(ptr),
         allocated(0),
@@ -152,6 +166,7 @@ struct Block {
         stream(stream),
         stream_uses(),
         size(size),
+        requested_size(0),
         pool(nullptr),
         ptr(nullptr),
         allocated(0),
@@ -163,9 +178,265 @@ struct Block {
   bool is_split() const {
     return (prev != nullptr) || (next != nullptr);
   }
+
+  void splice(Block* before, Block* after) {
+    if (before) {
+      TORCH_INTERNAL_ASSERT(before->next == after);
+      before->next = this;
+    }
+    prev = before;
+    if (after) {
+      TORCH_INTERNAL_ASSERT(after->prev == before);
+      after->prev = this;
+    }
+    next = after;
+  }
 };
 
-static bool BlockComparator(const Block* a, const Block* b) {
+struct SegmentRange {
+  char* ptr;
+  size_t size;
+  SegmentRange(void* p, size_t s) : ptr(static_cast<char*>(p)), size(s) {}
+};
+
+
+/*
+Note [Expandable Segments]
+Rationale
+For large (>2MB) allocations, the allocator calls aclrtMalloc to get allocations
+that are the same size as whataclrtMalloc the user requests. In the future, parts of these
+allocations can be reused for other requests if they are free. This works well
+when the program makes many requests of exactly the same size or of sizes that
+even multiples of that size. Many deep learning models follow this behavior.
+However, one common exception is when the batch size changes slightly from one
+iteration to the next, e.g. in batched inference. When the program runs
+initially with batch size N, it will make allocations appropriate for that size.
+If in the future, it runs at size N - 1, the existing allocations will still be
+big enough. However, if it runs at size N + 1, then it will have to make new
+allocations that are slightly larger. Not all the tensors are the same size.
+Some might be (N + 1)*A and others (N + 1)*A*B where A and B are some non-batch
+dimensions in the model. Because the allocator reuses existing allocations when
+they are big enough, some number of (N + 1)*A allocations will actually fit in
+the already existing N*B*A segments, though not perfectly. As the model runs it
+will partially fill up all of these segments leaving unusable free slices of
+memory at the end of these segments. The allocator at some point will need to
+aclrtMalloc a new (N + 1)*A*B segment. If there is not enough memory, there is
+now no way to recover the slices of memory that are free at the end of existing
+segments. With models 50+ layers deep, this pattern might repeat 50+ times
+creating many slivers.
+Approach
+Expandable segments allows the allocator to create a segment initially and then
+expand its size later when more memory is needed. Instead of making one segment
+per allocation, it tries to make one segment (per stream) that grows as
+necessary. Now when the N + 1 case runs, the allocations will tile nicely into
+the one large segment until it fills up. Then more memory is requested and
+appended to the end of the segment. This process does not create as many slivers
+of unusable memory, so it is more likely to succeed at finding this memory.
+Implementation
+The expandable_segments:True option is used to enable/disable this behavior. We
+use npu's low-level memory APIs, which are similar to mmap, to extend the
+memory segments. These APIs separate the allocation of physical memory
+(cuMemCreate) from the allocation of virtual address space (cuMemAddressReserve)
+and the associate between them cuMemMap/cuMemSetAccess.
+When we allocate a new segment, we allocate enough address space to map
+basically the entire physical memory of the NPU (there is 256TiB of address
+space), but we only map enough physical memory to handle the current amount of
+memory needed by the program. As more is requested, we add more physical memory
+to the segment. This can work at the granularity of NPU pages which are 2MiB
+currently.
+If we end up out of memory, we can unmap all the memory in our segment
+corresponding to empty physical pages, and return it to NPU for use at another
+address in the segment or in a segment for a different stream.
+A current limitation of NPU's API is that physical memory
+(CUmemGenericAllocationHandle) cannot be split up after it is mapped even if the
+handle holds multiple NPU pages. The cost to map/unmap memory is proportional to
+the number of physical memory chunks that were allocated (mapping 10 separately
+allocated 2MiB pages takes 10x time compared to mapping one 20MiB physical
+allocation of 10 pages).  Changing memory mappings also appears to involve at
+least some synchronous actions with the NPU and so should be considered an
+expensive operation. To limit overhead, we use 2MiB pages for our small pool and
+20MiB pages for our large pool. Initially allocation using expandable_blocks
+will be slower than aclrtMalloc, though still in the milliseconds range for
+mapping the entire memory.
+When mapping new memory to expand the segment, we look for the lowest address at
+which we can fit a new allocation by adding new pages. Normally this will be at
+the end of the block. But if have previously unmapped blocks earlier in the
+segment during an OOM, it will first try to fill in those gaps to keep the
+segment as a single block. By allocating at the lowest address we encourage
+the split up parts of the block to merge into a single block again, reducing
+fragmentation potential.
+Allocation of blocks in the segment uses the same best-fit heuristics of the
+rest of the allocator.
+Expandable blocks can be enabled/disabled throughout the run of a program. When
+disabled, the allocator will not put new allocations in an expandable block.
+Limitations
+* Slightly slower initial memory allocation speed.
+* IPC of npu tensors (e.g. for multiprocess dataloaders) is not supported.
+However, it is possible to temporarily disable (expandable_segments:False) the
+bevhavior for allocator tensors that need to be used cross-process.
+*/
+
+struct ExpandableSegment {
+  ExpandableSegment(
+      int device,
+      aclrtStream stream,
+      size_t size)
+      : device_(device),
+        stream_(stream),
+        max_handles_(0),
+        // 2MB for small pool, 20MB for large pool
+        segment_size_(size) {
+    size_t device_free;
+    size_t device_total;
+    NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+    // we allocate enough address space for 1 1/8 the total memory on the NPU.
+    // This allows for some cases where we have to unmap pages earlier in the
+    // segment to put them at the end.
+    max_handles_ = numSegments(device_total + device_total / 8);
+    NPU_CHECK_ERROR(aclrtReserveMemAddress(
+        &ptr_, segment_size_ * max_handles_, 0, NULL, 1));
+  }
+  // begin must be aligned to segment_size_.
+  // returns the actual range mapped, which may be
+  // greater than requested if size is not aligned to segment_size_.
+  // return size of 0 indicates OOM
+  SegmentRange map(SegmentRange range) {
+    auto begin = segmentLeft(range.ptr);
+    auto end = segmentRight(range.ptr + range.size);
+    TORCH_INTERNAL_ASSERT(ptr() + begin * segment_size_ == range.ptr);
+    if (begin == end) {
+      return rangeFromHandles(begin, end);
+    }
+    while (end > handles_.size()) {
+      handles_.emplace_back(c10::nullopt);
+    }
+    for (auto i : c10::irange(begin, end)) {
+      TORCH_INTERNAL_ASSERT(!handles_.at(i));
+      aclrtDrvMemHandle handle = nullptr;
+      aclrtPhysicalMemProp prop = {};
+      prop.handleType = ACL_MEM_HANDLE_TYPE_NONE;
+      prop.allocationType = ACL_MEM_ALLOCATION_TYPE_PINNED;
+      prop.memAttr = ACL_HBM_MEM_HUGE;
+      prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
+      prop.location.id = device_;
+      prop.reserve = 0;
+      auto status =
+          aclrtMallocPhysical(&handle, segment_size_, &prop, 0);
+      if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+        for (auto j : c10::irange(begin, i)) {
+          auto h = handles_.at(j).value();
+          handles_.at(j) = c10::nullopt;
+          NPU_CHECK_ERROR(aclrtFreePhysical(h));
+        }
+        trimHandles();
+        return rangeFromHandles(begin, begin);
+      }
+      NPU_CHECK_ERROR(status);
+      handles_.at(i) = handle;
+    }
+    for (auto i : c10::irange(begin, end)) {
+      NPU_CHECK_ERROR(aclrtMapMem(
+          ptr_ + i * segment_size_,
+          segment_size_,
+          0,
+          handles_.at(i).value(),
+          0));
+    }
+    return rangeFromHandles(begin, end);
+  }
+
+  // unmaps all the completely empty segment_size_ segments between
+  // [begin, begin + size), returns the offset where the range begin,
+  // and the actual size unmapped (multiple of segment_size_)
+  SegmentRange unmap(SegmentRange range) {
+    auto begin = segmentRight(range.ptr);
+    auto end = segmentLeft(range.ptr + range.size);
+    if (begin >= end) {
+      return SegmentRange{range.ptr, 0};
+    }
+    unmapHandles(begin, end);
+    return rangeFromHandles(begin, end);
+  }
+
+  char* ptr() const {
+    return (char*)ptr_;
+  }
+
+  size_t size() const {
+    return max_handles_ * segment_size_;
+  }
+
+  ~ExpandableSegment() {
+    forEachAllocatedRange(
+        [&](size_t begin, size_t end) { unmapHandles(begin, end); });
+    NPU_CHECK_ERROR(aclrtReleaseMemAddress(ptr_));
+  }
+
+ private:
+  void unmapHandles(size_t begin, size_t end) {
+    // note: unlike aclrtFree, MemUnmap and MemRelease do
+    // not appear to synchronize in all cases, so we have to wait for the
+    // stream to finish before this memory is truly free.
+
+    // cannot call c10::npu::stream_synchronize because
+    // it might grab the GIL which can lead to a deadlock
+    // Locking order must be GIL -> Allocator Lock
+    NPU_CHECK_ERROR(aclrtSynchronizeStream(stream_));
+    for (auto i : c10::irange(begin, end)) {
+      aclrtDrvMemHandle h = handles_.at(i).value();
+      handles_.at(i) = c10::nullopt;
+      NPU_CHECK_ERROR(aclrtUnmapMem(ptr_ + segment_size_ * i));
+      NPU_CHECK_ERROR(aclrtFreePhysical(h));
+    }
+    trimHandles();
+  }
+
+  void trimHandles() {
+    while (!handles_.empty() && !handles_.back()) {
+      handles_.pop_back();
+    }
+  }
+
+  void forEachAllocatedRange(std::function<void(size_t, size_t)> fn) {
+    auto start = 0;
+    for (auto i : c10::irange(handles_.size())) {
+      if (handles_.at(i) && (i == 0 || !handles_.at(i - 1))) {
+        start = i;
+      }
+      if (handles_.at(i) && (i + 1 == handles_.size() || !handles_.at(i + 1))) {
+        fn(start, i + 1);
+      }
+    }
+  }
+
+  size_t numSegments(size_t size) {
+    return (size + segment_size_ - 1) / segment_size_;
+  }
+
+  size_t segmentLeft(char* p) {
+    auto size = p - ptr();
+    return size / segment_size_;
+  }
+
+  size_t segmentRight(char* p) {
+    auto size = p - ptr();
+    return numSegments(size);
+  }
+
+  SegmentRange rangeFromHandles(size_t begin, size_t end) {
+    return SegmentRange(
+        ptr() + segment_size_ * begin, segment_size_ * (end - begin));
+  }
+
+  int device_;
+  aclrtStream stream_;
+  void* ptr_{};
+  size_t max_handles_;
+  size_t segment_size_;
+  std::vector<c10::optional<aclrtDrvMemHandle>> handles_;
+};
+
+static bool BlockComparatorSize(const Block* a, const Block* b) {
   if (a->stream != b->stream) {
     return reinterpret_cast<uintptr_t>(a->stream) <
         reinterpret_cast<uintptr_t>(b->stream);
@@ -176,6 +447,16 @@ static bool BlockComparator(const Block* a, const Block* b) {
   return reinterpret_cast<uintptr_t>(a->ptr) <
       reinterpret_cast<uintptr_t>(b->ptr);
 }
+
+static bool BlockComparatorAddress(const Block* a, const Block* b) {
+  if (a->stream != b->stream) {
+    return reinterpret_cast<uintptr_t>(a->stream) <
+        reinterpret_cast<uintptr_t>(b->stream);
+  }
+  return reinterpret_cast<uintptr_t>(a->ptr) <
+      reinterpret_cast<uintptr_t>(b->ptr);
+}
+
 
 static std::string format_size(uint64_t size) {
   std::ostringstream os;
@@ -281,6 +562,10 @@ class CachingAllocatorConfig {
     return instance().m_garbage_collection_threshold;
   }
 
+  static bool expandable_segments() {
+    return instance().m_expandable_segments;
+  }
+
   static CachingAllocatorConfig &instance() {
     static CachingAllocatorConfig *s_instance = ([]() {
       auto inst = new CachingAllocatorConfig();
@@ -297,10 +582,12 @@ class CachingAllocatorConfig {
 
   size_t m_max_split_size;
   double m_garbage_collection_threshold;
+  bool m_expandable_segments;
 
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
-        m_garbage_collection_threshold(0) {}
+        m_garbage_collection_threshold(0),
+        m_expandable_segments(false) {}
 
   void lexArgs(const char* env, std::vector<std::string>& config);
   void consumeToken(
@@ -309,6 +596,9 @@ class CachingAllocatorConfig {
       const char c);
   size_t parseMaxSplitSize(const std::vector<std::string>& config, size_t i);
   size_t parseGarbageCollectionThreshold(
+      const std::vector<std::string>& config,
+      size_t i);
+  size_t parseExpandableSegments(
       const std::vector<std::string>& config,
       size_t i);
 };
@@ -381,6 +671,26 @@ size_t CachingAllocatorConfig::parseGarbageCollectionThreshold(
   return i;
 }
 
+size_t CachingAllocatorConfig::parseExpandableSegments(
+    const std::vector<std::string>& config,
+    size_t i) {
+  consumeToken(config, ++i, ':');
+  if (++i < config.size()) {
+    TORCH_CHECK(
+        i < config.size() && (config[i] == "True" || config[i] == "False"),
+        "Expected a single True/False argument for expandable_segments");
+    m_expandable_segments = (config[i] == "True");
+    void* ptr = nullptr;
+    auto status = aclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
+    NPU_CHECK_SUPPORTED_OR_ERROR(status);
+    NPU_CHECK_ERROR(aclrtReleaseMemAddress(ptr));
+  } else {
+    TORCH_CHECK(
+        false, "Error, expecting expandable_segments value");
+  }
+  return i;
+}
+
 void CachingAllocatorConfig::parseArgs(const char* env) {
   // If empty, set the default values
   m_max_split_size = std::numeric_limits<size_t>::max();
@@ -398,6 +708,8 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
       i = parseMaxSplitSize(config, i);
     } else if (config[i].compare("garbage_collection_threshold") == 0) {
       i = parseGarbageCollectionThreshold(config, i);
+    } else if (config[i] == "expandable_segments") {
+      i = parseExpandableSegments(config, i);
     } else {
       TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i]);
     }
@@ -439,6 +751,9 @@ class DeviceCachingAllocator {
   // record maximum allowed memory.
   size_t allowed_memory_maximum = 0;
 
+  // all live expandable segments
+  std::vector<ExpandableSegment*> expandable_segments_;
+
   bool set_fraction = false;
 
   // whether shutdown.
@@ -446,16 +761,16 @@ class DeviceCachingAllocator {
 
  public:
 
-  DeviceCachingAllocator()
-      : large_blocks(BlockComparator, false),
-        small_blocks(BlockComparator, true) {
+  DeviceCachingAllocator() :
+    large_blocks(false),
+    small_blocks(true) {
     stats.max_split_size = static_cast<int64_t>(CachingAllocatorConfig::max_split_size());
   }
 
   // All public methods (except the above) acquire the allocator mutex.
   // Thus, do not call a public method from another public method.
 
-  Block* malloc(int device, size_t size, aclrtStream stream) {
+  Block* malloc(int device, size_t orig_size, aclrtStream stream) {
     std::unique_lock<std::recursive_mutex> lock(mutex);
 
     if (device == -1) {
@@ -464,13 +779,12 @@ class DeviceCachingAllocator {
 
     // process outstanding npuEvents
     process_events();
-    size = round_size(size);
+    auto size = round_size(orig_size);
     auto& pool = get_pool(size);
 
     const size_t alloc_size = get_allocation_size(size);
     AllocParams params(device, size, stream, &pool, alloc_size, stats);
-    params.stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    params.stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
+    params.stat_types = get_stat_types_for_pool(pool);
 
     // First, try to get a block from the existing pool.
     bool block_found =
@@ -500,7 +814,7 @@ class DeviceCachingAllocator {
         size_t device_free;
         size_t device_total;
         NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-        
+
         std::string allowed_info;
         if (set_fraction) {
           allowed_info = format_size(allowed_memory_maximum) + " allowed; ";
@@ -544,72 +858,108 @@ class DeviceCachingAllocator {
         NPU_CHECK_ERROR(params.err);
       }
     }
-    Block* block = params.block;
-    Block* remaining = nullptr;
-    AT_ASSERT(block);
+    
+    bool split_remainder = should_split(params.block, params.size());
+    return alloc_found_block(
+        std::move(params), orig_size, split_remainder);
+  }
 
-    const bool already_split = block->is_split();
-    if (should_split(block, size)) {
-      remaining = block;
+  Block* alloc_found_block(
+    AllocParams params,
+    size_t orig_size,
+    bool split_remainder) {
+  auto size = params.size();
+  auto device = params.device();
+  auto pool = params.pool;
+  auto stream = params.stream();
 
-      block = new Block(device, stream, size, &pool, block->ptr);
-      block->prev = remaining->prev;
-      if (block->prev) {
-        block->prev->next = block;
-      }
-      block->next = remaining;
+  TORCH_INTERNAL_ASSERT(
+      params.err == ACL_ERROR_NONE && params.block != nullptr &&
+      params.block->ptr != nullptr);
+  Block* block = params.block;
+  Block* remaining = nullptr;
 
-      remaining->prev = block;
-      remaining->ptr = static_cast<char*>(remaining->ptr) + size;
-      remaining->size -= size;
-      pool.blocks.insert(remaining);
+  const bool already_split = block->is_split();
+  if (split_remainder) {
+    remaining = block;
 
-      if (already_split) {
-        // An already-split inactive block is being shrunk by size bytes.
-        update_stat_array(stats.inactive_split_bytes, -block->size, params.stat_types);
-      } else {
-        // A new split inactive block is being created from a previously unsplit block,
-        // size remaining->size bytes.
-        for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
-          update_stat(stats.inactive_split_bytes[stat_type], remaining->size);
-          update_stat(stats.inactive_split[stat_type], 1);
-        });
-      }
-    } else if (already_split) {
-      // An already-split block is becoming active
+    block = new Block(device, stream, size, pool, block->ptr);
+    block->expandable_segment_ = remaining->expandable_segment_;
+    block->prev = remaining->prev;
+    if (block->prev) {
+      block->prev->next = block;
+    }
+    block->next = remaining;
+
+    remaining->prev = block;
+    remaining->ptr = static_cast<char*>(remaining->ptr) + size;
+    remaining->size -= size;
+    pool->blocks.insert(remaining);
+
+    if (already_split && !block->expandable_segment_) {
+      // An already-split inactive block is being shrunk by size bytes.
+      update_stat_array(
+          stats.inactive_split_bytes,
+          -static_cast<std::int64_t>(block->size),
+          params.stat_types);
+    } else if (!block->expandable_segment_) {
+      // A new split inactive block is being created from a previously unsplit
+      // block, size remaining->size bytes.
       for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
-        update_stat(stats.inactive_split_bytes[stat_type], -block->size);
-        update_stat(stats.inactive_split[stat_type], -1);
+        update_stat(
+            stats.inactive_split_bytes[stat_type],
+            static_cast<std::int64_t>(remaining->size));
+        update_stat(stats.inactive_split[stat_type], 1);
       });
     }
-
-    block->allocated = true;
-    active_blocks.insert(block);
-
+  } else if (already_split && !block->expandable_segment_) {
+    // An already-split block is becoming active
     for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
-      update_stat(stats.allocation[stat_type], 1);
-      update_stat(stats.allocated_bytes[stat_type], block->size);
-      update_stat(stats.active[stat_type], 1);
-      update_stat(stats.active_bytes[stat_type], block->size);
+      update_stat(
+          stats.inactive_split_bytes[stat_type],
+          -static_cast<std::int64_t>(block->size));
+      update_stat(stats.inactive_split[stat_type], -1);
     });
-    if (block->size >= CachingAllocatorConfig::max_split_size())
-      update_stat(stats.oversize_allocations, 1);
-
-    ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, cached = %lu, allocated = %lu",
-        block->size,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
-
-    c10::reportMemoryUsageToProfiler(
-        block->ptr,
-        block->size,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        c10::Device(c10::DeviceType::PrivateUse1, block->device)
-    );
-
-    return block;
   }
+
+  block->allocated = true;
+  block->requested_size = orig_size;
+
+  active_blocks.insert(block);
+
+  for_each_selected_stat_type(params.stat_types, [&](size_t stat_type) {
+    update_stat(stats.allocation[stat_type], 1);
+    update_stat(
+        stats.allocated_bytes[stat_type],
+        static_cast<std::int64_t>(block->size));
+    update_stat(stats.active[stat_type], 1);
+    update_stat(
+        stats.active_bytes[stat_type],
+        static_cast<std::int64_t>(block->size));
+    update_stat(
+        stats.requested_bytes[stat_type],
+        static_cast<std::int64_t>(block->requested_size));
+  });
+
+  if (block->size >= CachingAllocatorConfig::max_split_size())
+    update_stat(stats.oversize_allocations, 1);
+
+  ASCEND_LOGD("PTA CachingAllocator malloc: malloc = %zu, cached = %lu, allocated = %lu",
+      block->size,
+      stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
+
+  c10::reportMemoryUsageToProfiler(
+      block->ptr,
+      block->size,
+      stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      c10::Device(c10::DeviceType::PrivateUse1, block->device)
+  );
+
+  return block;
+}
+
 
   void free(Block* block) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
@@ -621,9 +971,7 @@ class DeviceCachingAllocator {
     auto orig_block_ptr = block->ptr;
     auto orig_block_size = block->size;
 
-    StatTypes stat_types = {false};
-    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
+    StatTypes stat_types = get_stat_types_for_pool(*(block->pool));
     for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
       update_stat(stats.allocation[stat_type], -1);
       update_stat(stats.allocated_bytes[stat_type], -block->size);
@@ -737,6 +1085,7 @@ class DeviceCachingAllocator {
       reset_accumulated_stat(stats.reserved_bytes[statType]);
       reset_accumulated_stat(stats.active_bytes[statType]);
       reset_accumulated_stat(stats.inactive_split_bytes[statType]);
+      reset_accumulated_stat(stats.requested_bytes[statType]);
     }
 
     stats.num_alloc_retries = 0;
@@ -758,6 +1107,7 @@ class DeviceCachingAllocator {
       reset_peak_stat(stats.reserved_bytes[statType]);
       reset_peak_stat(stats.active_bytes[statType]);
       reset_peak_stat(stats.inactive_split_bytes[statType]);
+      reset_peak_stat(stats.requested_bytes[statType]);
     }
 
     reset_peak_stat(stats.oversize_allocations);
@@ -772,7 +1122,9 @@ class DeviceCachingAllocator {
     const auto all_blocks = get_all_blocks();
 
     for (const Block* const head_block : all_blocks) {
-      if (head_block->prev != nullptr) {
+      // For expandable segments, we report one segment for each continguous
+      // mapped range of memory
+      if (head_block->prev && head_block->prev->mapped) {
         continue;
       }
       result.emplace_back();
@@ -780,9 +1132,10 @@ class DeviceCachingAllocator {
       segment_info.device = head_block->device;
       segment_info.address = reinterpret_cast<uintptr_t>(head_block->ptr);
       segment_info.is_large = (!head_block->pool->is_small);
+      segment_info.is_expandable = head_block->expandable_segment_;
 
       const Block* block = head_block;
-      while (block != nullptr) {
+      while (block != nullptr && block->mapped) {
         segment_info.blocks.emplace_back();
         BlockInfo& block_info = segment_info.blocks.back();
 
@@ -830,11 +1183,140 @@ class DeviceCachingAllocator {
     return blocks;
   }
 
+  // returns the smallest possible address in any segment
+  // where there is enough free address space to fit size
+  // may be composed of free and unmapped segments
+  Block* find_expandable_block(
+      int device,
+      aclrtStream stream,
+      BlockPool* pool,
+      size_t size) {
+    Block key(device, stream, 0);
+
+    auto allocatable = [](Block* b) {
+      return b && !b->allocated && b->event_count == 0 &&
+          b->stream_uses.empty();
+    };
+    auto has_available_address_space = [&](Block* b) {
+      size_t bytes = 0;
+      while (bytes < size && allocatable(b)) {
+        bytes += b->size;
+        b = b->next;
+      }
+      return bytes >= size;
+    };
+    for (auto it = pool->unmapped.lower_bound(&key);
+         it != pool->unmapped.end() && (*it)->stream == stream;
+         ++it) {
+      Block* c = *it;
+      // we found the lowest address of an unmapped segment
+      // but there might be a free segment we can also use
+      // right before it
+      if (allocatable(c->prev)) {
+        c = c->prev;
+      }
+      if (has_available_address_space(c)) {
+        return c;
+      }
+    }
+    auto segment_size = pool->is_small ? kSmallBuffer : kLargeBuffer;
+    expandable_segments_.emplace_back(new ExpandableSegment(
+        device, stream, segment_size));
+
+    ExpandableSegment* es = expandable_segments_.back();
+    Block* candidate = new Block(device, stream, es->size(), pool, es->ptr());
+    candidate->mapped = false;
+    candidate->expandable_segment_ = es;
+    pool->unmapped.insert(candidate);
+    return candidate;
+  }
+
+  bool map_block(
+      Block* to_map,
+      size_t size) {
+    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size);
+    auto mapped_range =
+        to_map->expandable_segment_->map(SegmentRange{to_map->ptr, size});
+    // failed to map the memory
+    if (mapped_range.size == 0) {
+      return false;
+    }
+    TORCH_INTERNAL_ASSERT(
+        mapped_range.ptr == to_map->ptr && mapped_range.size >= size);
+
+    BlockPool& pool = *to_map->pool;
+    pool.unmapped.erase(to_map);
+    to_map->mapped = true;
+
+    if (mapped_range.size < to_map->size) {
+      // to_map -> remaining -> to_map->next(?)
+      Block* remaining = new Block(
+          to_map->device,
+          to_map->stream,
+          to_map->size - mapped_range.size,
+          &pool,
+          static_cast<char*>(to_map->ptr) + mapped_range.size);
+      remaining->mapped = false;
+      remaining->expandable_segment_ = to_map->expandable_segment_;
+      remaining->splice(to_map, to_map->next);
+      pool.unmapped.insert(remaining);
+      to_map->size = mapped_range.size;
+    }
+
+    try_merge_blocks(to_map, to_map->prev, pool);
+    try_merge_blocks(to_map, to_map->next, pool);
+
+    pool.blocks.insert(to_map);
+
+    // update statistics
+    total_allocated_memory += mapped_range.size;
+    StatTypes stat_types = get_stat_types_for_pool(*to_map->pool);
+    for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
+      update_stat(stats.reserved_bytes[stat_type], mapped_range.size);
+    });
+
+    return true;
+  }
+
+  Block* try_allocate_expandable_block(
+      int device,
+      aclrtStream stream,
+      BlockPool* pool,
+      size_t size) {
+    Block* candidate = find_expandable_block(device, stream, pool, size);
+    // Candidate is now a list free/unmapped blocks with at least size room:
+    // unmapped -> null
+    // unmapped -> free -> *
+    // free -> unmapped -> *
+
+    if (!candidate->mapped &&
+        !map_block(candidate, std::min(candidate->size, size))) {
+      return nullptr;
+    }
+    TORCH_INTERNAL_ASSERT(candidate->mapped);
+
+    while (candidate->size < size) {
+      // invariant: free -> unmapped -> *
+      // map_block will map some of unmapped and merge with free
+      auto remaining = size - candidate->size;
+      auto new_candidate = candidate->next;
+      if (!map_block(new_candidate, std::min(remaining, candidate->next->size))) {
+        return nullptr;
+      }
+      candidate = new_candidate;
+    }
+    pool->blocks.erase(candidate);
+    return candidate;
+  }
+
+
   /** moves a block into a pool of cached free blocks **/
   void free_block(Block* block) {
-    AT_ASSERT(!block->allocated && block->event_count == 0);
+    AT_ASSERT(!block->allocated && block->event_count == 0 &&
+        block->stream_uses.empty());
 
     size_t original_block_size = block->size;
+    size_t requested_size = block->requested_size;
 
     auto& pool = *block->pool;
     int64_t net_change_inactive_split_blocks = 0;
@@ -857,20 +1339,33 @@ class DeviceCachingAllocator {
       net_change_inactive_split_size += static_cast<int64_t>(block->size);
     }
 
-    StatTypes stat_types = {false};
-    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(block->pool)))] = true;
+    StatTypes stat_types = get_stat_types_for_pool(pool);
     for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
-      update_stat(stats.inactive_split[stat_type], net_change_inactive_split_blocks);
-      update_stat(stats.inactive_split_bytes[stat_type], net_change_inactive_split_size);
+      // inactive_split tries to capture the idea that blocks
+      // cannot be freed when requested, but fully free pages
+      // of expandable blocks can always be freed.
+      // The logic to track this as statistic is pretty involved,
+      // so we simply just exclude expandable segements from
+      // inactive_split
+      if (!block->expandable_segment_) {
+        update_stat(
+            stats.inactive_split[stat_type], net_change_inactive_split_blocks);
+        update_stat(
+            stats.inactive_split_bytes[stat_type],
+            net_change_inactive_split_size);
+      }
       update_stat(stats.active[stat_type], -1);
       update_stat(stats.active_bytes[stat_type], -original_block_size);
+      update_stat(
+          stats.requested_bytes[stat_type],
+          -static_cast<std::int64_t>(requested_size));
     });
   }
 
   /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. **/
   size_t try_merge_blocks(Block* dst, Block* src, BlockPool& pool) {
-    if (!src || src->allocated || src->event_count > 0) {
+    if (!src || src->allocated || src->event_count > 0 ||
+        !src->stream_uses.empty() || dst->mapped != src->mapped) {
       return 0;
     }
 
@@ -891,7 +1386,8 @@ class DeviceCachingAllocator {
 
     const size_t subsumed_size = src->size;
     dst->size += subsumed_size;
-    pool.blocks.erase(src);
+    auto erased =
+        src->mapped ? pool.blocks.erase(src) : pool.unmapped.erase(src);
     delete src;
 
     return subsumed_size;
@@ -905,13 +1401,18 @@ class DeviceCachingAllocator {
     }
   }
 
-  StatType get_stat_type_for_pool(const BlockPool& pool) {
-    return pool.is_small ? StatType::SMALL_POOL : StatType::LARGE_POOL;
+  StatTypes get_stat_types_for_pool(const BlockPool& pool) {
+    StatTypes stat_types = {false};
+    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
+    stat_types[static_cast<size_t>(
+        pool.is_small ? StatType::SMALL_POOL : StatType::LARGE_POOL)] = true;
+    return stat_types;
   }
 
   bool should_split(const Block* block, size_t size) {
     size_t remaining = block->size - size;
-    if (block->pool->is_small) {
+    if (block->pool->is_small ||
+        CachingAllocatorConfig::expandable_segments()) {
       return remaining >= kMinBlockSize;
     } else {
       return (size < CachingAllocatorConfig::max_split_size()) && (remaining > kSmallSize);
@@ -942,6 +1443,40 @@ class DeviceCachingAllocator {
     if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
       return false;
     }
+
+    if ((*it)->expandable_segment_) {
+      if (CachingAllocatorConfig::expandable_segments()) {
+        // if we are allocated to the part of the block that is expandable
+        // for the purposes of "best fit" we consider its size to be the size it
+        // can expand to, not the size it currently is. This means that we
+        // sometimes have to search for blocks with bigger 'size' before
+        // choosing this segment.
+        auto expandable_size = [](Block* b) {
+          return b->size + (b->next && !b->next->mapped ? b->next->size : 0);
+        };
+        auto next = it;
+        next++;
+        while ((*it)->expandable_segment_ && next != pool.blocks.end() &&
+               (*next)->stream == p.stream() &&
+               expandable_size(*next) < expandable_size(*it)) {
+          it = next++;
+        }
+      } else {
+        // Rarely expandable segments has been turned off after we have
+        // already allocated some blocks as expandable. For instance,
+        // since we cannot share expandable memory via IPC, someone might
+        // temporarily disable it. In this case we need to honor this request
+        // by only finding non-expandable blocks
+        do {
+          it++;
+        } while (it != pool.blocks.end() && (*it)->expandable_segment_ &&
+                 (*it)->stream == p.stream());
+        if (it == pool.blocks.end() || (*it)->stream != p.stream()) {
+          return false;
+        }
+      }
+    }
+
     // Do not return an oversized block for a large request
     if ((p.size() < CachingAllocatorConfig::max_split_size()) &&
         ((*it)->size >= CachingAllocatorConfig::max_split_size())) {
@@ -1029,21 +1564,33 @@ class DeviceCachingAllocator {
     }
   }
 
-  bool alloc_block(AllocParams& p, bool isRetry) {
+  bool alloc_block(
+      AllocParams& p,
+      bool isRetry) {
     size_t size = p.alloc_size;
     void* ptr = nullptr;
 
     if (isRetry) {
       stats.num_alloc_retries += 1;
     }
-    
+
     if (set_fraction && total_allocated_memory + size > allowed_memory_maximum) {
       p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
+    } else if (
+        CachingAllocatorConfig::expandable_segments()) {
+      p.block = try_allocate_expandable_block(
+          p.device(), p.stream(), p.pool, p.size());
+      if (p.block) {
+        p.err = ACL_ERROR_NONE;
+      } else {
+        p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
+      }
+      return bool(p.block);
     } else {
       p.err = c10_npu::acl::AclrtMallocAlign32(
           &ptr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
     }
-  
+
     if (p.err != ACL_ERROR_NONE) {
       return false;
     }
@@ -1116,18 +1663,35 @@ class DeviceCachingAllocator {
     return true;
   }
 
+  void release_expandable_segment(Block* block) {
+    TORCH_INTERNAL_ASSERT(
+        block->size == block->expandable_segment_->size(),
+        "block disagrees with segment");
+    TORCH_INTERNAL_ASSERT(!block->mapped);
+    auto it = std::find(
+        expandable_segments_.begin(),
+        expandable_segments_.end(),
+        block->expandable_segment_);
+    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end());
+    expandable_segments_.erase(it);
+    block->pool->unmapped.erase(block);
+    delete block->expandable_segment_;
+    delete block;
+  }
+
   void release_block(Block* block) {
+    TORCH_INTERNAL_ASSERT(!block->expandable_segment_);
     aclrtFree((void*)block->ptr);
     total_allocated_memory -= block->size;
 
-    auto* pool = block->pool;
-    StatTypes stat_types;
-    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*pool))] = true;
+    auto* pool = block->pool; 
+
+    StatTypes stat_types = get_stat_types_for_pool(*pool);
     for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
       update_stat(stats.segment[stat_type], -1);
       update_stat(stats.reserved_bytes[stat_type], -block->size);
     });
+
     if (block->size >= CachingAllocatorConfig::max_split_size())
       update_stat(stats.oversize_segments, -1);
 
@@ -1137,14 +1701,75 @@ class DeviceCachingAllocator {
     delete block;
     }
 
+  void unmap_block(Block* block) {
+    auto unmapped = block->expandable_segment_->unmap(
+        SegmentRange{block->ptr, block->size});
+    if (unmapped.size == 0) {
+      return;
+    }
+    block->pool->blocks.erase(block);
+
+    ptrdiff_t before_size =
+        static_cast<char*>(unmapped.ptr) - static_cast<char*>(block->ptr);
+    if (before_size > 0) {
+      // prev? -> before_free -> block
+      Block* before_free = new Block(
+          block->device, block->stream, before_size, block->pool, block->ptr);
+      before_free->expandable_segment_ = block->expandable_segment_;
+      before_free->splice(block->prev, block);
+      block->pool->blocks.insert(before_free);
+    }
+
+    auto after_size = block->size - (before_size + unmapped.size);
+    if (after_size > 0) {
+      // block -> after_free -> next?
+      Block* after_free = new Block(
+          block->device,
+          block->stream,
+          after_size,
+          block->pool,
+          static_cast<char*>(unmapped.ptr) + unmapped.size);
+      after_free->expandable_segment_ = block->expandable_segment_;
+      after_free->splice(block, block->next);
+      block->pool->blocks.insert(after_free);
+    }
+
+    block->ptr = unmapped.ptr;
+    block->size = unmapped.size;
+    block->mapped = false;
+
+    try_merge_blocks(block, block->prev, *block->pool);
+    try_merge_blocks(block, block->next, *block->pool);
+    block->pool->unmapped.insert(block);
+
+    // update statistics
+    total_allocated_memory -= unmapped.size;
+    StatTypes stat_types = get_stat_types_for_pool(*block->pool);
+    for_each_selected_stat_type(stat_types, [&](size_t stat_type) {
+      update_stat(stats.reserved_bytes[stat_type], -unmapped.size);
+    });
+  }
+
   void release_blocks(BlockPool& pool) {
+    std::vector<Block*> to_unmap;
     // Frees all non-split blocks
     auto it = pool.blocks.begin();
     while (it != pool.blocks.end()) {
       Block *block = *it;
       ++it;
-      if (!block->prev && !block->next) {
+      if (block->expandable_segment_) {
+        // unmapping will mutate the free pool
+        // so just gather what needs to be freed
+        // to avoid invalidating the iterator
+        to_unmap.push_back(block);
+      } else if (!block->prev && !block->next) {
         release_block(block);
+      }
+    }
+    for (Block* block : to_unmap) {
+      unmap_block(block);
+      if (!block->prev && !block->next) {
+        release_expandable_segment(block);
       }
     }
   }
