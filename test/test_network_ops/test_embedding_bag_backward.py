@@ -43,29 +43,29 @@ class TestEmbeddingBagBackward(TestCase):
 
     def test_embedding_bag_backward_shape_format(self):
         test_cases = [
-            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]), torch.tensor([0, 4]), torch.randn(10, 3),
-             torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to("npu"), torch.tensor([0, 4]).to("npu"),
-             torch.randn(10, 3).to("npu")],
-            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9, 6]), torch.tensor([0, 4]), torch.randn(10, 3),
-             torch.tensor([1, 2, 4, 5, 4, 3, 2, 9, 6]).to("npu"), torch.tensor([0, 4]).to("npu"),
-             torch.randn(10, 3).to("npu")],
-            [torch.tensor([0, 2, 0, 5]), torch.tensor([0, 2]), torch.randn(10, 3),
-             torch.tensor([0, 2, 0, 5]).to("npu"), torch.tensor([0, 2]).to("npu"),
-             torch.randn(10, 3).to("npu")],
-            [torch.tensor([0, 1, 2, 3]), torch.tensor([0, 3]), torch.randn(4, 3),
-             torch.tensor([0, 1, 2, 3]).to("npu"), torch.tensor([0, 3]).to("npu"),
-             torch.randn(4, 3).to("npu")],
-            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]), torch.tensor([0, 4]), torch.randn(10, 4),
-             torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to("npu"), torch.tensor([0, 4]).to("npu"),
-             torch.randn(10, 4).to("npu")],
-            [torch.tensor([0, 1, 2, 3]), torch.tensor([0, 3]), torch.randn(10, 4),
-             torch.tensor([0, 1, 2, 3]).to("npu"), torch.tensor([0, 3]).to("npu"),
-             torch.randn(10, 4).to("npu")]
+            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to(torch.int32), torch.tensor([0, 4]).to(torch.int32), 
+             torch.randn(10, 3), torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to(torch.int32).to("npu"),
+             torch.tensor([0, 4]).to(torch.int32).to("npu")],
+            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9, 6]).to(torch.int32), torch.tensor([0, 4]).to(torch.int32),
+             torch.randn(10, 3), torch.tensor([1, 2, 4, 5, 4, 3, 2, 9, 6]).to(torch.int32).to("npu"),
+             torch.tensor([0, 4]).to(torch.int32).to("npu")],
+            [torch.tensor([0, 2, 0, 5]).to(torch.int32), torch.tensor([0, 2]).to(torch.int32),
+             torch.randn(10, 3), torch.tensor([0, 2, 0, 5]).to(torch.int32).to("npu"),
+             torch.tensor([0, 2]).to(torch.int32).to("npu")],
+            [torch.tensor([0, 1, 2, 3]).to(torch.int32), torch.tensor([0, 3]).to(torch.int32),
+             torch.randn(4, 3), torch.tensor([0, 1, 2, 3]).to(torch.int32).to("npu"),
+             torch.tensor([0, 3]).to(torch.int32).to("npu")],
+            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to(torch.int32), torch.tensor([0, 4]).to(torch.int32),
+             torch.randn(10, 4), torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to(torch.int32).to("npu"),
+             torch.tensor([0, 4]).to(torch.int32).to("npu")],
+            [torch.tensor([0, 1, 2, 3]).to(torch.int32), torch.tensor([0, 3]).to(torch.int32),
+             torch.randn(10, 4), torch.tensor([0, 1, 2, 3]).to(torch.int32).to("npu"),
+             torch.tensor([0, 3]).to(torch.int32).to("npu")]
         ]
         for item in test_cases:
             cpu_input, npu_input = item[0], item[3]
             cpu_offsets, npu_offsets = item[1], item[4]
-            cpu_embedding_matrix, npu_embedding_matrix = item[2], item[5]
+            cpu_embedding_matrix, npu_embedding_matrix = item[2], item[2].npu()
 
             cpu_output = self.cpu_op_exec(cpu_input, cpu_embedding_matrix, cpu_offsets)
             npu_output = self.npu_op_exec(npu_input, npu_embedding_matrix, npu_offsets)
