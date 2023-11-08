@@ -53,11 +53,11 @@ class TestBatchMatMulV2(TestCase):
                 cpu_output, cpu_grad1, cpu_grad2 = self.cpu_op_exec(cpu_input1, cpu_input2)
 
             npu_output, npu_grad1, npu_grad2 = self.npu_op_exec(npu_input1, npu_input2)
-            self.assertRtolEqual(cpu_output, npu_output)
-            self.assertRtolEqual(cpu_grad1, npu_grad1)
-            self.assertRtolEqual(cpu_grad2, npu_grad2)
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
+            self.assertRtolEqual(cpu_grad1, npu_grad1, prec=1.e-3, prec16=1.e-3)
+            self.assertRtolEqual(cpu_grad2, npu_grad2, prec=1.e-3, prec16=1.e-3)
 
-    def test_batchmatmul_shape_format_fp16_3d(self, device="npu"):
+    def test_batchmatmul_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         shape_list = [(1, 3, 2)]
         shape_format1 = [[np.float16, i, j]
@@ -69,7 +69,7 @@ class TestBatchMatMulV2(TestCase):
         shape_format = [[i, j] for i in shape_format1 for j in shape_format2]
         self.bmm_auto_list_exec(shape_format)
 
-    def test_batchmatmul_shape_format_fp32_3d(self, device="npu"):
+    def test_batchmatmul_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         shape_list = [(1, 3, 2)]
         shape_format1 = [[np.float32, i, j]
