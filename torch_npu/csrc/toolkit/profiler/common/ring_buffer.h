@@ -22,12 +22,7 @@ public:
         mask_(0) {}
 
   ~RingBuffer() {
-    if (is_inited_) {
-      is_inited_ = false;
-      is_quit_ = true;
-      data_queue_.clear();
-      extend_data_queue_.clear();
-    }
+    UnInit();
   }
 
   void Init(size_t capacity) {
@@ -35,6 +30,22 @@ public:
     mask_ = capacity_ - 1;
     data_queue_.resize(capacity);
     is_inited_ = true;
+    is_quit_ = false;
+  }
+
+  void UnInit() {
+    if (is_inited_) {
+      data_queue_.clear();
+      extend_data_queue_.clear();
+      read_index_ = 0;
+      write_index_ = 0;
+      idle_write_index_ = 0;
+      use_extend_data_queue_.store(false);
+      capacity_ = 0;
+      mask_ = 0;
+      is_quit_ = true;
+      is_inited_ = false;
+    }
   }
 
   bool Push(T data) {
