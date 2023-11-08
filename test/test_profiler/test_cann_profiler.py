@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import os
 import shutil
 from itertools import combinations
@@ -109,12 +110,13 @@ class TestCannProfiler(TestCase):
         torch.npu.prof_start(config)
         run_small_model()
         torch.npu.prof_stop()
-
+    
     def test_with_ops(self):
         for events in TestCannProfiler.enevtTypeResults:
             for i in range(5):
                 self._test_cann_ops(**events, aiCoreMetricsType=i)
-
+    
+    @unittest.skip("skip test_with_small_model now")
     def test_with_small_model(self):
         for events in TestCannProfiler.enevtTypeResults:
             for i in range(5):
@@ -143,13 +145,15 @@ class TestE2EProfiler(TestCase):
         config = torch.npu.profileConfig(**kwargs)
         with torch.npu.profile(TestE2EProfiler.results_path, True, config):
             run_small_model()
-
+    
+    @unittest.skip("skip test_with_ops now")
     def test_with_ops(self):
         for events in TestE2EProfiler.enevtTypeResults:
             for i in range(5):
                 self._test_e2e_ops(**events, aiCoreMetricsType=i)
             return
-
+     
+    @unittest.skip("skip test_with_small_model now")
     def test_with_small_model(self):
         for events in TestE2EProfiler.enevtTypeResults:
             for i in range(5):

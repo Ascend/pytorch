@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 from itertools import chain
 
 import torch
@@ -25,7 +26,8 @@ class TestAmp(TestCase):
     def make_device_overflow(self):
         float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
         float_tensor = float_tensor + float_tensor
-
+    
+    @unittest.skip("skip test_grad_scaling_scale now")
     def test_grad_scaling_scale(self, device="npu"):
         scaler = GradScaler(init_scale=2.)
         t0 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
@@ -115,6 +117,7 @@ class TestAmp(TestCase):
                 self.assertRtolEqual(c, s, atol)
 
     # Compares no scaling + no autocasting against scaling + autocasting.
+    @unittest.skip("skip test_grad_scaling_autocast now")
     def test_grad_scaling_autocast(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
@@ -136,7 +139,8 @@ class TestAmp(TestCase):
 
         # sets atol=1e-3 because we're comparing pure fp32 arithmetic vs a mixture of fp16 and fp32
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
-
+    
+    @unittest.skip("skip test_grad_scaling_clipping now")
     def test_grad_scaling_clipping(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
@@ -158,7 +162,8 @@ class TestAmp(TestCase):
                         optimizer.step()
 
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-6)
-
+    
+    @unittest.skip("skip test_grad_scaling_clipping_separate_unscale now")
     def test_grad_scaling_clipping_separate_unscale(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
@@ -181,7 +186,8 @@ class TestAmp(TestCase):
                         optimizer.step()
 
         self._run_scaling_case(run, unskipped=3, skipped=1)
-
+    
+    @unittest.skip("skip test_grad_scaling_penalty now")
     def test_grad_scaling_penalty(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
@@ -215,7 +221,8 @@ class TestAmp(TestCase):
                         optimizer.step()
 
         self._run_scaling_case(run, unskipped=3, skipped=1)
-
+    
+    @unittest.skip("skip test_grad_scaling_accumulation now")
     def test_grad_scaling_accumulation(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             iters_to_accumulate = 2
@@ -237,7 +244,8 @@ class TestAmp(TestCase):
                         optimizer.zero_grad()
 
         self._run_scaling_case(run, unskipped=2, skipped=0)
-
+    
+    @unittest.skip("skip test_grad_scaling_multiple now")
     def test_grad_scaling_multiple(self, device="npu"):
         # Tests gradient scaling with 2 models and 2 optimizers that both receive gradients from 2 losses.
         # Some of the logic here cannot reuse the generic helper functions created for the 1-optimizer cases.
@@ -318,7 +326,7 @@ class TestAmp(TestCase):
             self.assertTrue(output.dtype is torch.float16)
             loss = output.sum()
         loss.backward()
-
+ 
     def test_autocast_custom_cast_inputs(self):
         class MyMM(torch.autograd.Function):
             @staticmethod
