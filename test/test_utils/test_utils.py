@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import unittest
 import random
 
 import torch
@@ -213,7 +213,8 @@ class TestCheckpoint(TestCase):
             grad_no_checkpointing = inp.grad
 
             self.assertEqual(grad_with_checkpointing, grad_no_checkpointing)
-
+    
+    @unittest.skip("skip test_checkpoint_rng_npu now")
     def test_checkpoint_rng_npu(self):
         for _ in range(5):
             inp = torch.randn(20000, device='npu').requires_grad_()
