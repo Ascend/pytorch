@@ -56,7 +56,7 @@ pip3 install torch-npu==2.1.0rc1
 
 ### From Source
 
-In some special scenarios, users may need to compile **torch-npu** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps:
+In some special scenarios, users may need to compile **torch-npu** by themselves.Select a branch in table [Ascend Auxiliary Software](#ascend-auxiliary-software) and a Python version in table [PyTorch and Python Version Matching Table](#pytorch-and-python-version-matching-table) first. The docker image is recommended for compiling torch-npu through the following steps(It is recommended to mount the working path only and avoid the system path to reduce security risks.):
 
 1. **Clone torch-npu**
 
@@ -139,7 +139,7 @@ Refer to [API of PyTorch Ascend Adapter](docs/api/torch_npu_apis.md) for more de
 </th>
 </tr>
 </thead>
-<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="3" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>7.0.RC1.alpha003</p>
+<tbody><tr id="row1121913217224"><td class="cellrowborder" rowspan="3" valign="top"  headers="mcps1.2.6.1.1 "><p id="p387812581238"><a name="p387812581238"></a><a name="p387812581238"></a>CANN 7.0.RC1</p>
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.2 "><p id="p633892712241"><a name="p633892712241"></a><a name="p633892712241"></a>2.1.0</p>
 </td>
@@ -203,20 +203,20 @@ Refer to [API of PyTorch Ascend Adapter](docs/api/torch_npu_apis.md) for more de
 </tr>
 <tr id="row1522123282216"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p19191169254"><a name="p19191169254"></a><a name="p19191169254"></a>1.11.0</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p4879185815238"><a name="p4879185815238"></a><a name="p4879185815238"></a>1.8.1.post2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p4879185815238"><a name="p4879185815238"></a><a name="p4879185815238"></a>1.11.0.post1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p887935810232"><a name="p887935810232"></a><a name="p887935810232"></a>v1.8.1-5.0.rc2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p887935810232"><a name="p887935810232"></a><a name="p887935810232"></a>v1.11.0-5.0.rc2</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p14879358172313"><a name="p14879358172313"></a><a name="p14879358172313"></a>23.0.RC1-1.8.1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p14879358172313"><a name="p14879358172313"></a><a name="p14879358172313"></a>23.0.RC1-1.11.0</p>
 </td>
 </tr>
 <tr id="row19716641182317"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p691981615257"><a name="p691981615257"></a><a name="p691981615257"></a>1.8.1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p208791758142314"><a name="p208791758142314"></a><a name="p208791758142314"></a>1.11.0.post1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p208791758142314"><a name="p208791758142314"></a><a name="p208791758142314"></a>1.8.1.post2</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1987935852319"><a name="p1987935852319"></a><a name="p1987935852319"></a>v1.11.0-5.0.rc2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1987935852319"><a name="p1987935852319"></a><a name="p1987935852319"></a>v1.8.1-5.0.rc2</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p1087918585237"><a name="p1087918585237"></a><a name="p1087918585237"></a>23.0.RC1-1.11.0</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p1087918585237"><a name="p1087918585237"></a><a name="p1087918585237"></a>23.0.RC1-1.8.1</p>
 </td>
 </tr>
 <tr id="row822143252217"><td class="cellrowborder" rowspan="2" valign="top"  headers="mcps1.2.6.1.1 "><p id="p108803589235"><a name="p108803589235"></a><a name="p108803589235"></a>CANN 6.3.RC1</p>
@@ -224,18 +224,18 @@ Refer to [API of PyTorch Ascend Adapter](docs/api/torch_npu_apis.md) for more de
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.2 "><p id="p12346162018257"><a name="p12346162018257"></a><a name="p12346162018257"></a>1.11.0</p>
 </td>
-<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.3 "><p id="p6880205814236"><a name="p6880205814236"></a><a name="p6880205814236"></a>1.8.1.post1</p>
+<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.3 "><p id="p6880205814236"><a name="p6880205814236"></a><a name="p6880205814236"></a>1.11.0</p>
 </td>
-<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.4 "><p id="p6880258162313"><a name="p6880258162313"></a><a name="p6880258162313"></a>v1.8.1-5.0.rc1</p>
+<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.4 "><p id="p6880258162313"><a name="p6880258162313"></a><a name="p6880258162313"></a>v1.11.0-5.0.rc1</p>
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.5 "><p id="p08807589236"><a name="p08807589236"></a><a name="p08807589236"></a>-</p>
 </td>
 </tr>
 <tr id="row13745135213239"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p183463202251"><a name="p183463202251"></a><a name="p183463202251"></a>1.8.1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p1888019580230"><a name="p1888019580230"></a><a name="p1888019580230"></a>1.11.0</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p1888019580230"><a name="p1888019580230"></a><a name="p1888019580230"></a>1.8.1.post1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p15880105813236"><a name="p15880105813236"></a><a name="p15880105813236"></a>v1.11.0-5.0.rc1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p15880105813236"><a name="p15880105813236"></a><a name="p15880105813236"></a>v1.8.1-5.0.rc1</p>
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p1588012586230"><a name="p1588012586230"></a><a name="p1588012586230"></a>-</p>
 </td>
@@ -399,7 +399,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | **v2.0.4**      | EOL        | 2022/1/15       | N/A                                     |              |
 | **v3.0.rc1**    | EOL        | 2022/4/10       | N/A                                     |              |
 | **v3.0.rc2**    | EOL        | 2022/7/15       | N/A                                     |              |
-| **v3.0.rc3**    | Maintained | 2022/10/20      | Unmaintained <br> 2023-10-20 estimated  |              |
+| **v3.0.rc3**    | EOL        | 2022/10/20      | N/A                                     |              |
 | **v3.0.0**      | Maintained | 2023/1/18       | Unmaintained <br> 2024-1-18 estimated   |              |
 | **v5.0.rc1**    | Maintained | 2023/4/19       | Unmaintained <br> 2024-4-19 estimated   |              |
 | **v5.0.rc2**    | Maintained | 2023/7/19       | Unmaintained <br> 2024-7-19 estimated   |              |
