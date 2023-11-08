@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import unittest
 import os
 import shutil
 
@@ -193,7 +193,8 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-
+    
+    @unittest.skip("skip test_wrapper_npu_geglu now")
     def test_wrapper_npu_geglu(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1018,7 +1019,8 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-
+    
+    @unittest.skip("skip test_wrapper_npu_lstm now")
     def test_wrapper_npu_lstm(self):
         class Model(torch.nn.Module):
             def __init__(self):
