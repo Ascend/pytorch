@@ -49,6 +49,7 @@ import torch_npu.distributed.rpc
 from torch_npu.distributed.rpc.backend_registry import rpc_backend_registry
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from torch_npu.utils import register_ops_under_dtensor_rules
+from torch_npu.distributed import Distributed_DataParallel
 from .version import __version__ as __version__
 from .meta import meta_registrations
 
@@ -188,3 +189,6 @@ torch._dynamo.skipfiles.add(torch_npu.utils._device)
 
 # register rules for ops in dtensor
 register_ops_under_dtensor_rules()
+
+#add synchronize when init ddp
+torch.nn.parallel.DistributedDataParallel = Distributed_DataParallel
