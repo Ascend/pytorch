@@ -41,7 +41,7 @@ pip3 install torch==2.0.1+cpu  --index-url https://download.pytorch.org/whl/cpu
 
 2. **安装torch_npu依赖**
 
-运行一下命令安装依赖。
+运行以下命令安装依赖。
 
 ```Python
 pip3 install pyyaml
@@ -52,18 +52,16 @@ pip3 install setuptools
 
 以下使用AArch64和Python 3.8 为例。
 
->![](figures/icon-note.gif) **NOTE:****说明：**
->很快将支持通过pip从PyPI安装**torch_npu**。
-
 ```Python
 wget https://gitee.com/ascend/pytorch/releases/download/v5.0.rc3-pytorch2.0.1/torch_npu-2.0.1-cp38-cp38-linux_aarch64.whl
 
 pip3 install torch_npu-2.0.1-cp38-cp38-linux_aarch64.whl
 ```
+如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
 ### 使用源代码进行安装
 
-某些特殊场景下，用户可能需要自行编译**torch_npu**。可以根据[昇腾辅助软件表](#昇腾辅助软件)和[PyTorch与Python版本配套表](#PyTorch与Python版本配套表)选择合适的分支。推荐使用Docker镜像编译**torch_npu**，可以通过以下步骤获取(请注意挂载路径安全，推荐只挂载业务路径，避开系统路径)：
+某些特殊场景下，用户可能需要自行编译**torch_npu**。可以根据[昇腾辅助软件表](#昇腾辅助软件)和[PyTorch与Python版本配套表](#PyTorch与Python版本配套表)选择合适的分支。推荐使用Docker镜像编译**torch_npu**，可以通过以下步骤获取(建议只挂载工作路径，并避开系统路径，以降低安全风险)：
 
 1. **克隆torch_npu代码仓**
 
@@ -93,6 +91,18 @@ pip3 install torch_npu-2.0.1-cp38-cp38-linux_aarch64.whl
    cd /home/pytorch
    bash ci/build.sh --python=3.8
    ```
+
+
+## 卸载
+Pytorch框架训练环境的卸载可以参考[昇腾官方文档](https://www.hiascend.com/document/detail/zh/ModelZoo/pytorchframework/ptes/ptes_00032.html)。
+
+torch_npu的卸载只需执行命令：
+
+  ```
+  pip3 uninstall torch_npu
+  ```
+
+如需要保存卸载日志，可在pip3 uninstall命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
 ## 入门
 
@@ -206,20 +216,20 @@ print(z)
 </tr>
 <tr id="row1522123282216"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p19191169254"><a name="p19191169254"></a><a name="p19191169254"></a>1.11.0</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p4879185815238"><a name="p4879185815238"></a><a name="p4879185815238"></a>1.8.1.post2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p4879185815238"><a name="p4879185815238"></a><a name="p4879185815238"></a>1.11.0.post1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p887935810232"><a name="p887935810232"></a><a name="p887935810232"></a>v1.8.1-5.0.rc2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p887935810232"><a name="p887935810232"></a><a name="p887935810232"></a>v1.11.0-5.0.rc2</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p14879358172313"><a name="p14879358172313"></a><a name="p14879358172313"></a>23.0.RC1-1.8.1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p14879358172313"><a name="p14879358172313"></a><a name="p14879358172313"></a>23.0.RC1-1.11.0</p>
 </td>
 </tr>
 <tr id="row19716641182317"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p691981615257"><a name="p691981615257"></a><a name="p691981615257"></a>1.8.1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p208791758142314"><a name="p208791758142314"></a><a name="p208791758142314"></a>1.11.0.post1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p208791758142314"><a name="p208791758142314"></a><a name="p208791758142314"></a>1.8.1.post2</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1987935852319"><a name="p1987935852319"></a><a name="p1987935852319"></a>v1.11.0-5.0.rc2</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p1987935852319"><a name="p1987935852319"></a><a name="p1987935852319"></a>v1.8.1-5.0.rc2</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p1087918585237"><a name="p1087918585237"></a><a name="p1087918585237"></a>23.0.RC1-1.11.0</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p1087918585237"><a name="p1087918585237"></a><a name="p1087918585237"></a>23.0.RC1-1.8.1</p>
 </td>
 </tr>
 <tr id="row822143252217"><td class="cellrowborder" rowspan="2" valign="top"  headers="mcps1.2.6.1.1 "><p id="p108803589235"><a name="p108803589235"></a><a name="p108803589235"></a>CANN 6.3.RC1</p>
@@ -227,18 +237,18 @@ print(z)
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.2 "><p id="p12346162018257"><a name="p12346162018257"></a><a name="p12346162018257"></a>1.11.0</p>
 </td>
-<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.3 "><p id="p6880205814236"><a name="p6880205814236"></a><a name="p6880205814236"></a>1.8.1.post1</p>
+<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.3 "><p id="p6880205814236"><a name="p6880205814236"></a><a name="p6880205814236"></a>1.11.0</p>
 </td>
-<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.4 "><p id="p6880258162313"><a name="p6880258162313"></a><a name="p6880258162313"></a>v1.8.1-5.0.rc1</p>
+<td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.4 "><p id="p6880258162313"><a name="p6880258162313"></a><a name="p6880258162313"></a>v1.11.0-5.0.rc1</p>
 </td>
 <td class="cellrowborder" valign="top"  headers="mcps1.2.6.1.5 "><p id="p08807589236"><a name="p08807589236"></a><a name="p08807589236"></a>-</p>
 </td>
 </tr>
 <tr id="row13745135213239"><td class="cellrowborder" valign="top" headers="mcps1.2.6.1.1 "><p id="p183463202251"><a name="p183463202251"></a><a name="p183463202251"></a>1.8.1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p1888019580230"><a name="p1888019580230"></a><a name="p1888019580230"></a>1.11.0</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.2 "><p id="p1888019580230"><a name="p1888019580230"></a><a name="p1888019580230"></a>1.8.1.post1</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p15880105813236"><a name="p15880105813236"></a><a name="p15880105813236"></a>v1.11.0-5.0.rc1</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.6.1.3 "><p id="p15880105813236"><a name="p15880105813236"></a><a name="p15880105813236"></a>v1.8.1-5.0.rc1</p>
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.6.1.4 "><p id="p1588012586230"><a name="p1588012586230"></a><a name="p1588012586230"></a>-</p>
 </td>
@@ -401,7 +411,7 @@ AscendPyTorch版本分支的维护阶段如下：
 | **v2.0.4**   | EOL      | 2022/1/15    | N/A                        |             |
 | **v3.0.rc1** | EOL      | 2022/4/10    | N/A                        |             |
 | **v3.0.rc2** | EOL      | 2022/7/15    | N/A                        |             |
-| **v3.0.rc3** | 维护     | 2022/10/20   | 预计2023/10/20起无维护     |             |
+| **v3.0.rc3** | EOL      | 2022/10/20   | N/A                        |             |
 | **v3.0.0**   | 维护     | 2023/1/18    | 预计2024/1/18起无维护      |             |
 | **v5.0.rc1** | 维护     | 2023/4/19    | 预计2024/4/19起无维护      |             |
 | **v5.0.rc2** | 维护     | 2023/7/19    | 预计2024/7/19起无维护      |             |
