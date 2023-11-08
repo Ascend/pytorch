@@ -84,8 +84,6 @@ typedef enum aclrtMemMallocPolicy {
     ACL_MEM_MALLOC_HUGE_FIRST_P2P,
     ACL_MEM_MALLOC_HUGE_ONLY_P2P,
     ACL_MEM_MALLOC_NORMAL_ONLY_P2P,
-    ACL_MEM_TYPE_LOW_BAND_WIDTH   = 0x0100,
-    ACL_MEM_TYPE_HIGH_BAND_WIDTH  = 0x1000,
 } aclrtMemMallocPolicy;
 
 typedef enum aclrtMemAttr {
@@ -111,52 +109,24 @@ typedef enum aclrtGroupAttr {
 } aclrtGroupAttr;
 
 typedef enum aclrtFloatOverflowMode {
-    ACL_RT_OVERFLOW_MODE_SATURATION = 0,
-    ACL_RT_OVERFLOW_MODE_INFNAN,
-    ACL_RT_OVERFLOW_MODE_UNDEF,
+  ACL_RT_OVERFLOW_MODE_SATURATION = 0,
+  ACL_RT_OVERFLOW_MODE_INFNAN,
+  ACL_RT_OVERFLOW_MODE_UNDEF,
 } aclrtFloatOverflowMode;
 
 typedef struct aclrtUtilizationExtendInfo aclrtUtilizationExtendInfo;
 
 typedef struct aclrtUtilizationInfo {
-    int32_t cubeUtilization;
-    int32_t vectorUtilization;
-    int32_t aicpuUtilization;
-    int32_t memoryUtilization;
-    aclrtUtilizationExtendInfo *utilizationExtend; /**< reserved parameters, current version needs to be null */
+  int32_t cubeUtilization;
+  int32_t vectorUtilization;
+  int32_t aicpuUtilization;
+  int32_t memoryUtilization;
+  aclrtUtilizationExtendInfo *utilizationExtend;
 } aclrtUtilizationInfo;
 
 typedef struct tagRtGroupInfo aclrtGroupInfo;
 
 typedef struct rtExceptionInfo aclrtExceptionInfo;
-
-typedef enum aclrtMemLocationType {
-    ACL_MEM_LOCATION_TYPE_HOST = 0, /**< reserved enum, current version not support */
-    ACL_MEM_LOCATION_TYPE_DEVICE,
-} aclrtMemLocationType;
-
-typedef struct aclrtMemLocation {
-    uint32_t id;
-    aclrtMemLocationType type;
-} aclrtMemLocation;
-
-typedef enum aclrtMemAllocationType {
-    ACL_MEM_ALLOCATION_TYPE_PINNED = 0,
-} aclrtMemAllocationType;
-
-typedef enum aclrtMemHandleType {
-    ACL_MEM_HANDLE_TYPE_NONE = 0,
-} aclrtMemHandleType;
-
-typedef struct aclrtPhysicalMemProp {
-    aclrtMemHandleType handleType;
-    aclrtMemAllocationType allocationType;
-    aclrtMemAttr memAttr;
-    aclrtMemLocation location;
-    uint64_t reserve;
-} aclrtPhysicalMemProp;
-
-typedef void* aclrtDrvMemHandle;
 
 typedef void (*aclrtCallback)(void *userData);
 
@@ -653,7 +623,7 @@ ACL_FUNC_VISIBILITY aclError aclrtEventElapsedTime(float *ms, aclrtEvent startEv
 
 /**
  * @ingroup AscendCL
- * @brief alloc memory on device, real alloc size is aligned to 32 bytes and padded with 32 bytes
+ * @brief alloc memory on device
  *
  * @par Function
  *  alloc for size linear memory on device
@@ -679,29 +649,7 @@ ACL_FUNC_VISIBILITY aclError aclrtMalloc(void **devPtr,
                                          size_t size,
                                          aclrtMemMallocPolicy policy);
 
-/**
- * @ingroup AscendCL
- * @brief alloc memory on device, real alloc size is aligned to 32 bytes with no padding
- *
- * @par Function
- *  alloc for size linear memory on device
- *  and return a pointer to allocated memory by *devPtr
- *
- * @par Restriction
- * @li The memory requested by the aclrtMallocAlign32 interface needs to be released
- * through the aclrtFree interface.
- *
- * @param devPtr [OUT]  pointer to pointer to allocated memory on device
- * @param size [IN]     alloc memory size
- * @param policy [IN]   memory alloc policy
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtFree | aclrtMalloc | aclrtMallocCached
- */
-ACL_FUNC_VISIBILITY aclError aclrtMallocAlign32(void **devPtr,
-                                                size_t size,
+ACL_FUNC_VISIBILITY aclError aclrtMallocAlign32(void **devPtr, size_t size,
                                                 aclrtMemMallocPolicy policy);
 
 /**
@@ -949,109 +897,6 @@ ACL_FUNC_VISIBILITY aclError aclrtMemsetAsync(void *devPtr,
                                               int32_t value,
                                               size_t count,
                                               aclrtStream stream);
-
-/**
- * @ingroup AscendCL
- * @brief Allocate an address range reservation
- *
- * @param virPtr [OUT]    Resulting pointer to start of virtual address range allocated
- * @param size [IN]       Size of the reserved virtual address range requested
- * @param alignment [IN]  Alignment of the reserved virtual address range requested
- * @param expectPtr [IN]  Fixed starting address range requested, must be nullptr
- * @param flags [IN]      Flag of page type
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtReleaseMemAddress | aclrtMallocPhysical | aclrtMapMem
- */
-ACL_FUNC_VISIBILITY aclError aclrtReserveMemAddress(void **virPtr,
-                                                    size_t size,
-                                                    size_t alignment,
-                                                    void *expectPtr,
-                                                    uint64_t flags);
-
-/**
- * @ingroup AscendCL
- * @brief Free an address range reservation
- *
- * @param virPtr [IN]  Starting address of the virtual address range to free
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtReserveMemAddress
- */
-ACL_FUNC_VISIBILITY aclError aclrtReleaseMemAddress(void *virPtr);
-
-/**
- * @ingroup AscendCL
- * @brief Create a memory handle representing a memory allocation of a given
- * size described by the given properties
- *
- * @param handle [OUT]  Value of handle returned. All operations on this
- * allocation are to be performed using this handle.
- * @param size [IN]     Size of the allocation requested
- * @param prop [IN]     Properties of the allocation to create
- * @param flags [IN]    Currently unused, must be zero
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtFreePhysical | aclrtReserveMemAddress | aclrtMapMem
- */
-ACL_FUNC_VISIBILITY aclError aclrtMallocPhysical(aclrtDrvMemHandle *handle,
-                                                 size_t size,
-                                                 const aclrtPhysicalMemProp *prop,
-                                                 uint64_t flags);
-
-/**
- * @ingroup AscendCL
- * @brief Release a memory handle representing a memory allocation which was
- * previously allocated through aclrtMallocPhysical
- *
- * @param handle [IN]  Value of handle which was returned previously by aclrtMallocPhysical
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtMallocPhysical
- */
-ACL_FUNC_VISIBILITY aclError aclrtFreePhysical(aclrtDrvMemHandle handle);
-
-/**
- * @ingroup AscendCL
- * @brief Maps an allocation handle to a reserved virtual address range
- *
- * @param virPtr [IN]  Address where memory will be mapped
- * @param size [IN]    Size of the memory mapping
- * @param offset [IN]  Offset into the memory represented by handle from which to start mapping
- * @param handle [IN]  Handle to a shareable memory
- * @param flags [IN]   Currently unused, must be zero
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtUnmapMem | aclrtReserveMemAddress | aclrtMallocPhysical
- */
-ACL_FUNC_VISIBILITY aclError aclrtMapMem(void *virPtr,
-                                         size_t size,
-                                         size_t offset,
-                                         aclrtDrvMemHandle handle,
-                                         uint64_t flags);
-
-/**
- * @ingroup AscendCL
- * @brief Unmap the backing memory of a given address range
- *
- * @param virPtr [IN]  Starting address for the virtual address range to unmap
- *
- * @retval ACL_SUCCESS The function is successfully executed.
- * @retval OtherValues Failure
- *
- * @see aclrtMapMem
- */
-ACL_FUNC_VISIBILITY aclError aclrtUnmapMem(void *virPtr);
 
 /**
  * @ingroup AscendCL
