@@ -13,15 +13,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import io
 import pickle
+from typing import Any, BinaryIO, cast, Dict, Optional, Type, Tuple, Union, IO
+import threading
+
 import torch
+from torch.types import Storage
 import torch.serialization as se
+from torch.serialization import _check_dill_version,\
+    _open_zipfile_writer, location_tag, normalize_storage_type
 
 import torch_npu
 
 DEFAULT_PROTOCOL = 2
 RE_MAP_CPU = False
+second_stream = None
 
 
 def _npu_tag(obj):
@@ -118,3 +125,124 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
                     return torch.jit.load(opened_file)
                 return se._load(opened_zipfile, map_location, pickle_module, **pickle_load_args)
         return se._legacy_load(opened_file, 'cpu', pickle_module, **pickle_load_args)
+
+
+def save_async(
+    obj: object,
+    f,
+    pickle_module: Any = pickle,
+    pickle_protocol: int = DEFAULT_PROTOCOL,
+    _use_new_zipfile_serialization: bool = True,
+    _disable_byteorder_record: bool = False,
+    model: torch.nn.Module = None
+) -> None:
+    if _use_new_zipfile_serialization is False:
+        raise RuntimeError("Error: torch_npu.save_async with \"_use_new_zipfile_serialization = False\"\
+                           is not recommended for npu tensor, which may bring unexpected errors and hopefully \
+                           set \"_use_new_zipfile_serialization = True\"",
+                           "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving")
+    
+    if not isinstance(obj, torch.Tensor) and not isinstance(model, torch.nn.Module):
+        raise RuntimeError("Error: When 'obj' is not a torch.Tensor, 'model' must be a torch.nn.Module.")
+    
+    _check_dill_version(pickle_module)
+    save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
+
+    device = torch.npu.current_device()
+    save_thread = threading.Thread(target=save_data_thread, args=(save_args, device, model))
+    save_thread.start()
+
+
+def save_data_thread(save_args,
+                     device,
+                     model: torch.nn.Module = None):
+    global second_stream
+    torch.npu.set_device(device)
+
+    def hook_fn(*args):
+        torch.npu.current_stream().wait_stream(second_stream)
+
+    if second_stream is None:
+        second_stream = torch.npu.Stream()
+        if isinstance(model, torch.nn.Module):
+            model.register_full_backward_hook(hook_fn)
+
+    obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record = save_args
+    with torch.npu.stream(second_stream):
+        data_value, serialized_storages = _save(obj, pickle_module, pickle_protocol)
+        storage_value = []
+        for key in sorted(serialized_storages.keys()):
+            name = f'data/{key}'
+            storage = serialized_storages.get(key)
+            # given that we copy things around anyway, we might use storage.cpu()
+            # this means to that to get tensors serialized, you need to implement
+            # .cpu() on the underlying Storage
+            if storage.device.type != 'cpu':
+                storage = storage.cpu()
+            # Now that it is on the CPU we can directly copy it into the zip file
+            num_bytes = storage.nbytes()
+            storage_value.append((name, storage.data_ptr(), num_bytes))
+    
+    with _open_zipfile_writer(f) as opened_zipfile:
+        opened_zipfile.write_record('data.pkl', data_value, len(data_value))
+
+        for name, data_ptr, num_bytes in storage_value:
+            opened_zipfile.write_record(name, data_ptr, num_bytes)
+
+
+def _save(obj, pickle_module, pickle_protocol):
+    serialized_storages = {}
+    id_map: Dict[int, str] = {}
+    storage_dtypes: Dict[int, torch.dtype] = {}
+
+    def persistent_id(obj):
+        if isinstance(obj, torch.storage._TypedStorage) or torch.is_storage(obj):
+
+            if isinstance(obj, torch.storage._TypedStorage):
+                storage = obj._storage
+                storage_dtype = obj.dtype
+                storage_type_str = obj.pickle_storage_type()
+                storage_type = getattr(torch, storage_type_str)
+                storage_numel = obj.size()
+
+            else:
+                storage = obj
+                storage_dtype = storage.dtype
+                storage_type = normalize_storage_type(type(obj))
+                storage_numel = storage.nbytes()
+
+            storage = cast(Storage, storage)
+
+            # If storage is allocated, ensure that any other saved storages
+            # pointing to the same data all have the same dtype. If storage is
+            # not allocated, don't perform this check
+            if storage.data_ptr() != 0:
+                if storage.data_ptr() in storage_dtypes:
+                    if storage_dtype != storage_dtypes[storage.data_ptr()]:
+                        raise RuntimeError(
+                            'Cannot save multiple tensors or storages that '
+                            'view the same data as different types')
+                else:
+                    storage_dtypes[storage.data_ptr()] = storage_dtype
+
+            storage_key = id_map.setdefault(storage._cdata, str(len(id_map)))
+            location = location_tag(storage)
+            serialized_storages[storage_key] = storage
+
+            return ('storage',
+                    storage_type,
+                    storage_key,
+                    location,
+                    storage_numel)
+
+        return None
+
+    # Write the pickle data for `obj`
+    data_buf = io.BytesIO()
+    pickler = pickle_module.Pickler(data_buf, protocol=pickle_protocol)
+    pickler.persistent_id = persistent_id
+    if isinstance(obj, torch.nn.Module):
+        obj._backward_hooks.clear()
+    pickler.dump(obj)
+    data_value = data_buf.getvalue()
+    return data_value, serialized_storages
