@@ -14,20 +14,32 @@ namespace toolkit {
 namespace profiler {
 DataDumper::DataDumper()
     : path_(""),
-      start_(false) {}
+      start_(false),
+      init_(false),
+      entry_nums_(0) {}
 
 DataDumper::~DataDumper() {
-  start_.store(false);
+  UnInit();
 }
 
 void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuffer) {
   path_ = path;
   data_chunk_buf_.Init(capacity);
+  init_.store(true);
+  entry_nums_ = 0;
+}
+
+void DataDumper::UnInit() {
+  if (init_.load()) {
+    data_chunk_buf_.UnInit();
+    init_.store(false);
+    start_.store(false);
+    entry_nums_ = 0;
+  }
 }
 
 void DataDumper::Start() {
-  bool ret = Utils::CreateDir(path_);
-  if (ret != true) {
+  if (!init_.load() || !Utils::CreateDir(path_)) {
     return;
   }
   if (Thread::Start() != 0) {
@@ -40,54 +52,45 @@ void DataDumper::Stop() {
   if (start_.load() == true) {
     start_.store(false);
     Thread::Stop();
+    Flush();
   }
 }
 
-void DataDumper::SetBufferEmptyEvent() {
-  std::lock_guard<std::mutex> lk(cv_buffer_empty_mtx_);
-  cv_buffer_empty_.notify_all();
-}
-
-void DataDumper::WaitBufferEmptyEvent(uint64_t us) {
-  std::unique_lock<std::mutex> lk(cv_buffer_empty_mtx_);
-  cv_buffer_empty_.wait_for(lk, std::chrono::microseconds(us));
-}
-
-void DataDumper::Run() {
+void DataDumper::GatherAndDumpData() {
   std::map<std::string, std::string> dataMap;
-  for (;;) {
-    dataMap.clear();
-    DataClassifyGather(dataMap);
-    size_t size = dataMap.size();
-    if (size == 0) {
-      SetBufferEmptyEvent();
-      if (start_.load() != true) {
-        break;
-      }
-      if (entry_nums_ >= 5) {
-        entry_nums_ = 0;
-      } else {
-        usleep(1000);
-      }
-      continue;
-    }
+  DataClassifyGather(dataMap);
+  if (dataMap.size() > 0) {
     Dump(dataMap);
   }
 }
 
-void DataDumper::Flush() {
-  if (!start_.load()) {
-    return;
+void DataDumper::Run() {
+  for (;;) {
+    if (!start_.load()) {
+      break;
+    }
+    std::unique_lock<std::mutex> lk(cv_buffer_empty_mtx_);
+    cv_buffer_empty_.wait_for(lk, std::chrono::microseconds(kMaxWaitTimeUs),
+      [this] {
+        return this->data_chunk_buf_.Size() != 0;
+      });
+    GatherAndDumpData();
   }
-  WaitBufferEmptyEvent(5000000);
+}
+
+void DataDumper::Flush() {
+  while (data_chunk_buf_.Size() != 0) {
+    GatherAndDumpData();
+  }
 }
 
 void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
   if (!start_.load() || data == nullptr) {
     return;
   }
-  if (data_chunk_buf_.Push(std::move(data))) {
-    entry_nums_++;
+  if (data_chunk_buf_.Push(std::move(data)) && ++entry_nums_ % kNotifyInterval == 0) {
+    std::lock_guard<std::mutex> lk(cv_buffer_empty_mtx_);
+    cv_buffer_empty_.notify_one();
   }
 }
 
