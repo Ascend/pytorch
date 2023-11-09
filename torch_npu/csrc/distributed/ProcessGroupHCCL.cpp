@@ -416,6 +416,10 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
     }
   }
 
+    if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+        lazy_destory_tensors_.clear();
+    }
+
   // In case of blocking, wait for the operation to complete.
   if (blockingWait_) {
     // Wait for the operation to complete.
@@ -466,6 +470,16 @@ bool ProcessGroupHCCL::WorkHCCL::timedOut() {
   return (
       std::chrono::duration_cast<std::chrono::milliseconds>(
           currentTimepoint - workStartTime_) >= opTimeout_);
+}
+
+void ProcessGroupHCCL::WorkHCCL::lazyDestory(std::vector<at::Tensor> tensors) {
+    if (tensors.empty() || !c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+        return;
+    }
+
+    for (const auto i : c10::irange(tensors.size())) {
+        lazy_destory_tensors_.push_back(tensors[i]);
+    }
 }
 
 void ProcessGroupHCCL::hcclCommWatchdog() {
@@ -1478,6 +1492,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+	      work->lazyDestory(byte_alignment_inputTensors_);
+        work->lazyDestory(outputFlattened);
         // Copy the flattened output tensors to the outputs.
         for (const auto i : c10::irange(outputTensors.size())) {
           c10_npu::NPUStreamGuard guard(hcclStreams[i]);
@@ -1603,6 +1619,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
       },
       [&](std::vector<c10_npu::NPUStream>& hcclStreams,
           c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+        work->lazyDestory(inputFlattened);
         // Copy the input tensors to the flattened inputs.
         for (const auto i : c10::irange(inputTensors.size())) {
           c10_npu::NPUStreamGuard guard(hcclStreams[i]);

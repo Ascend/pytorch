@@ -121,6 +121,10 @@ public:
     // and False otherwise.
     bool timedOut();
 
+    // Extend tensors lifecycle to work.synchronize, the tensors is local
+    // variable and recordStream.  
+    void lazyDestory(std::vector<at::Tensor> tensors);
+
   protected:
 
     // The NPU events tracking this work item on multiple NPU devices
@@ -184,6 +188,8 @@ public:
     // save inputs for tensor free when WorkHCCL::wait
     std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
     std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
+
+    std::vector<at::Tensor> lazy_destory_tensors_;
 
     friend class ProcessGroupHCCL;
   };
