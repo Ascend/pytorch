@@ -42,6 +42,7 @@ INIT_METHOD = os.getenv("INIT_METHOD", "env://")
 DEFAULT_TIMEOUT = 300
 CUSTOMIZED_TIMEOUT = {"test_DistributedDataParallel": 500}
 
+
 class _FC2(nn.Module):
     def __init__(self):
         super(_FC2, self).__init__()
