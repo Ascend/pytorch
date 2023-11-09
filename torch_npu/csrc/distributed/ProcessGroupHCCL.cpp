@@ -829,8 +829,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
     const c10d::AllreduceOptions& opts)
 {
     check_npu_tensors_different_devices(tensors);
+    std::vector<at::Tensor> tensors_cp = {tensors[0]};
     return collective(
-        tensors, tensors, [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        tensors_cp, tensors_cp, [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             aclrtSetExceptionInfoCallback(exceptionCallback);
 
             auto hcclType = getHcclDataType(input.scalar_type());
@@ -851,6 +852,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             cmd.Run();
 
             return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (tensors[0].scalar_type() == at::kBool || tensors[0].scalar_type() == at::kByte) {
+                tensors_cp[0] = at_npu::native::custom_ops::npu_dtype_cast(tensors[0], at::kInt);
+            }
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (tensors_cp[0].scalar_type() != tensors[0].scalar_type()) {
+                c10_npu::NPUCachingAllocator::recordStream(tensors_cp[0].storage().data_ptr(), hcclStreams[0]);
+                tensors[0].copy_(tensors_cp[0]);
+            }
         });
 }
 
@@ -893,8 +905,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
 {
     check_npu_tensors_different_devices(tensors);
     uint64_t rank = opts.rootRank;
+    std::vector<at::Tensor> tensors_cp = {tensors[0]};
     return collective(
-        tensors, tensors, [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+        tensors_cp, tensors_cp, [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataTypeOfAllReduce(hcclType);
             RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
@@ -913,6 +926,17 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             cmd.Run();
 
             return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (tensors[0].scalar_type() == at::kBool || tensors[0].scalar_type() == at::kByte) {
+                tensors_cp[0] = at_npu::native::custom_ops::npu_dtype_cast(tensors[0], at::kInt);
+            }
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {
+            if (tensors_cp[0].scalar_type() != tensors[0].scalar_type()) {
+                c10_npu::NPUCachingAllocator::recordStream(tensors_cp[0].storage().data_ptr(), hcclStreams[0]);
+                tensors[0].copy_(tensors_cp[0]);
+            }
         });
 }
 
