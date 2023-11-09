@@ -108,7 +108,7 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName, symint: bool = 
     elif isinstance(t, OptionalType):
         if str(t.elem) == 'Tensor':
             if mutable and not local.use_const_ref_for_mutable_tensors():
-                return NamedCType(binds, MutRefCType(BaseCType(tensorT)))  # TODO: fix this discrepancy
+                return NamedCType(binds, MutRefCType(BaseCType(tensorT)))
             else:
                 return NamedCType(binds, ConstRefCType(OptionalCType(BaseCType(tensorT))))
         elif str(t.elem) == 'Scalar':
@@ -123,7 +123,6 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName, symint: bool = 
         elem = argumenttype_type(t.elem, mutable=mutable, binds=binds, symint=symint)
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):
-        # TODO: remove these special cases, ArrayRef fallthrough works fine
         type_dict = {
             "int": BaseCType(intArrayRefT),
             "Scalar": ArrayRefCType(BaseCType(scalarT)),
@@ -209,7 +208,6 @@ def return_names(f: NativeFunction, *, fallback_name: str = 'result') -> Sequenc
     for i, r in enumerate(f.func.returns):
         # If we have an inplace function, the return argument is
         # implicitly named self.
-        # TODO: Consider incorporating this into the data model
         if f.func.name.name.inplace:
             if i != 0:
                 raise ValueError("illegal inplace function with multiple returns")
@@ -329,7 +327,7 @@ def argument(
             if all(x.default == "None" for x in a.all()):
                 default = '{}'
             elif a.dtype.default == "long":
-                default = 'at::kLong'  # TODO: this is wrong
+                default = 'at::kLong'
             return [Binding(
                 nctype=NamedCType('options', BaseCType(tensorOptionsT)),
                 name='options',

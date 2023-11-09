@@ -98,7 +98,7 @@ public:
     bool finishedNPUExecution();
 
     // Extend tensors lifecycle to work.synchronize, the tensors is local
-    // variable and recordStream.  
+    // variable and recordStream.
     void lazyDestory(std::vector<at::Tensor> tensors);
 
   protected:
