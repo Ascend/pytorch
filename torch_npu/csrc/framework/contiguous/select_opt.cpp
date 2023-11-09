@@ -78,7 +78,7 @@ private:
       }
     }
 
-    for (const auto i : c10::irange(select_size.size())) {
+    for (const auto i : c10::irange(select_size.size() + 1)) {
       if (base_size[i] == temp_size[i] && base_stride[i] == temp_stride[i]) {
         continue;
       } else {
