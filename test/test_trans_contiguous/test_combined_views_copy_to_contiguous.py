@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-import numpy as
+import numpy as np
 import torch
 import torch_npu
 
