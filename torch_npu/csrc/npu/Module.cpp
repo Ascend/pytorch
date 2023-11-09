@@ -432,7 +432,8 @@ PyObject* THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *args) {
+PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *args)
+{
   HANDLE_TH_ERRORS
   PyObject* size_o = nullptr;
   PyObject* stream_o = nullptr;
@@ -452,7 +453,8 @@ PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj) {
+PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj)
+{
   HANDLE_TH_ERRORS
   void* mem_ptr = PyLong_AsVoidPtr(obj);
   c10_npu::NPUCachingAllocator::raw_delete(mem_ptr);
@@ -497,7 +499,8 @@ PyObject* THNPModule_npuUnlockMutex(PyObject *module, PyObject *noargs)
   Py_RETURN_NONE;
 }
 
-PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs) {
+PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   NPU_CHECK_ERROR(aclmdlInitDump());
@@ -505,7 +508,8 @@ PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg) {
+PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg)
+{
   HANDLE_TH_ERRORS
   if (!THPUtils_checkString(arg)) {
     THPUtils_setError("npu set dump error, cfg_file must string");
@@ -519,7 +523,8 @@ PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs) {
+PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   NPU_CHECK_ERROR(aclmdlFinalizeDump());
@@ -527,7 +532,8 @@ PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
+PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg)
+{
   HANDLE_TH_ERRORS
 
   if (!PyDict_Check(arg)) {
@@ -561,7 +567,8 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
+PyObject* THNPModule_prof_start(PyObject* self, PyObject* args)
+{
   HANDLE_TH_ERRORS
 
   PyObject *value_1 = nullptr;
@@ -577,7 +584,8 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
+PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args)
+{
   HANDLE_TH_ERRORS
 
   PyObject *value_1 = nullptr;
@@ -600,7 +608,8 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_disable_e2eProfiler(PyObject* _unused, PyObject* noargs) {
+PyObject* THNPModule_disable_e2eProfiler(PyObject* _unused, PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   torch_npu::profiler::FinalizeE2eProfiler();
@@ -610,20 +619,23 @@ PyObject* THNPModule_disable_e2eProfiler(PyObject* _unused, PyObject* noargs) {
 
 PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
     PyObject* self,
-    PyObject* noargs) {
+    PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   torch_npu::utils::npu_set_run_yet_variable_to_false();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_get_soc_version(PyObject* self, PyObject* noargs) {
+PyObject* THNPModule_npu_get_soc_version(PyObject* self, PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   return PyLong_FromLong(static_cast<long>(c10_npu::GetSocVersion()));
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_is_support_inf_nan(PyObject* self, PyObject* noargs) {
+PyObject* THNPModule_npu_is_support_inf_nan(PyObject* self, PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   if (c10_npu::IsSupportInfNan()) {
     Py_RETURN_TRUE;
@@ -633,9 +645,21 @@ PyObject* THNPModule_npu_is_support_inf_nan(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_is_bf16_supported(PyObject* self, PyObject* noargs)
+{
+  HANDLE_TH_ERRORS
+  if (c10_npu::IsBF16Supported()) {
+    Py_RETURN_TRUE;
+  } else {
+    Py_RETURN_FALSE;
+  }
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_enable_overflow_npu(
     PyObject* self,
-    PyObject* noargs) {
+    PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   torch_npu::utils::OverflowUtil::GetInstance()->EnableOverflowNpu();
   Py_RETURN_NONE;
@@ -644,7 +668,8 @@ PyObject* THNPModule_enable_overflow_npu(
 
 PyObject* THNPModule_check_overflow_npu(
     PyObject* self,
-    PyObject* noargs) {
+    PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   auto has_overflow = torch_npu::utils::OverflowUtil::GetInstance() ->CheckOverflowNpu();
   if (has_overflow)
@@ -660,14 +685,16 @@ PyObject* THNPModule_check_overflow_npu(
 
 PyObject* THNPModule_clear_overflow_npu(
     PyObject* self,
-    PyObject* noargs) {
+    PyObject* noargs)
+{
   HANDLE_TH_ERRORS
   torch_npu::utils::OverflowUtil::GetInstance()->ClearOverflowNpu();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type) {
+PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type)
+{
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkString(option_type), "invalid argument to option_type,option_type must string!");
   std::string option_type_str = THPUtils_unpackString(option_type);
@@ -679,7 +706,8 @@ PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type) {
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg) {
+PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg)
+{
     HANDLE_TH_ERRORS
     TORCH_NPU_WARN_ONCE(
         "Synchronization debug mode is a prototype feature and does not yet detect all "
@@ -710,7 +738,8 @@ PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg) {
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs) {
+PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs)
+{
     HANDLE_TH_ERRORS
     auto debug_mode = c10_npu::warning_state().get_sync_debug_mode();
     switch (debug_mode) {
@@ -726,7 +755,8 @@ PyObject* THNPModule_npu_get_sync_debug_mode(PyObject* self, PyObject* noargs) {
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* args) {
+PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* args)
+{
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {"set_storage_with_format_(Storage source)", },
@@ -777,6 +807,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
     {"_enable_overflow_npu", (PyCFunction)THNPModule_enable_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_is_support_inf_nan", (PyCFunction)THNPModule_npu_is_support_inf_nan, METH_NOARGS, nullptr},
+    {"_npu_is_bf16_supported", (PyCFunction)THNPModule_npu_is_bf16_supported, METH_NOARGS, nullptr},
     {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},

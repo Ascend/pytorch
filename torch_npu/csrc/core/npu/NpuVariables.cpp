@@ -32,7 +32,8 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910C3", SocVersion::Ascend910C3},
     {"Ascend910C4", SocVersion::Ascend910C4}};
 
-void SetSocVersion(const char* const socVersion) {
+void SetSocVersion(const char* const socVersion)
+{
   if (socVersion == nullptr ||
       g_curSocVersion != SocVersion::UnsupportedSocVersion) {
     return;
@@ -50,11 +51,20 @@ void SetSocVersion(const char* const socVersion) {
   g_curSocVersion = curSocVersion;
 }
 
-const SocVersion& GetSocVersion() { return g_curSocVersion; }
+const SocVersion& GetSocVersion()
+{
+    return g_curSocVersion;
+}
 
-bool IsSupportInfNan() {
-  return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-         (GetSocVersion() >= SocVersion::Ascend910B1);
+bool IsSupportInfNan()
+{
+    return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
+           (GetSocVersion() >= SocVersion::Ascend910B1);
+}
+
+bool IsBF16Supported()
+{
+    return GetSocVersion() >= SocVersion::Ascend910B1;
 }
 }  // namespace c10_npu
 
