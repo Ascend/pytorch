@@ -93,7 +93,7 @@ private:
       }
     }
     // case 4 and 5: step!=1的轴的校验
-    for (const auto i : c10::irange(step.size())) {
+    for (const auto i : c10::irange(step.size() - 1)) {
       // 对于非最后一轴的indexing，对应的stride[i]=step[i]*size[i+1]*stride[i+1],（此时最后一轴stride限制为1）
       // 不满足上述条件，需要予以剔除，主要干扰：组合类reshape操作。
       if (step[i] != 1) {
