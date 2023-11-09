@@ -279,7 +279,6 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(
   // DEFAULT_FLAGS = npuEventDisableTiming.
   if (desyncDebug) {
     hcclStartEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
-    hcclEndEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
   }
   npuEvents_ = std::make_shared<std::vector<c10_npu::NPUEvent>>(devices.size());
   hcclComms_.resize(devices.size());
@@ -290,7 +289,7 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
       devices_(w.devices_),
       hcclComms_(w.hcclComms_),
       hcclStartEvents_(w.hcclStartEvents_),
-      hcclEndEvents_(w.hcclEndEvents_),
+      npuEvents_(w.npuEvents_),
       blockingWait_(w.blockingWait_),
       opTimeout_(w.opTimeout_),
       workStartTime_(w.workStartTime_),
@@ -361,7 +360,7 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
   try {
     for (const auto i : c10::irange(devices_.size())) {
       // Checking the work's corresponding CUDA events' status
-      if (!(*hcclEndEvents_)[i].query()) {
+      if (!(*npuEvents_)[i].query()) {
         return false;
       }
     }
@@ -865,7 +864,6 @@ void ProcessGroupHCCL::workCleanupLoop(int device_id) {
             work.handleHCCLGuard(asyncErrorHandling_);
           }
           doneWorks.emplace_back(std::move(*it));
-          workTemp_.emplace_back(work);
           it = workMetaList_.erase(it);
         } else {
           // Increment the iterator if the current WorkHCCL object is not
@@ -906,7 +904,6 @@ ProcessGroupHCCL::~ProcessGroupHCCL() {
     workMetaListCV_.notify_one();
     workCleanupThread_.join();
   }
-  workTemp_.clear();
   {
     // Destropy all HCCL Communicators on Process Group Destruction
     std::lock_guard<std::mutex> lock(mutex_);
@@ -1183,7 +1180,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   if (desyncDebug_) {
     for (const auto i : c10::irange(devices.size())) {
       c10_npu::NPUStream& hcclStream = hcclStreams[i];
-      (*work->hcclStartEvents_)[i].recordTimeEvent(hcclStream);
+      (*work->hcclStartEvents_)[i].record(hcclStream);
     }
   }
 
@@ -1230,9 +1227,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
       (*work->npuEvents_)[i].record(hcclStream);
       work->hcclComms_[i] = hcclComms[i];
-      if (desyncDebug_) {
-        (*work->hcclEndEvents_)[i].recordTimeEvent(hcclStream);
-      }
     }
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = opTimeout_;
