@@ -2162,6 +2162,8 @@ addmm:
   test_backward:
   - float32
   - float32
+  test_compare_cpu:
+  - float32
   test_conj_view:
   - complex64
   - complex64
@@ -2173,6 +2175,8 @@ addmm:
   - float32
   test_fake_crossref_backward_amp:
   - float32
+  - float32
+  test_fake_crossref_backward_no_amp:
   - float32
   test_forward_ad:
   - float32
@@ -2186,7 +2190,10 @@ addmm:
   test_operator:
   - float32
   - float32
+  test_out:
+  - float32
   test_variant_consistency_eager:
+  - float32
   - complex64
   - complex64
 addmv:
@@ -10495,6 +10502,8 @@ sparse.mm:
   - float32
 sparse.sampled_addmm:
   test_compare_cpu:
+  - float32
+  test_fake_crossref_backward_no_amp:
   - float32
   test_fake_autocast:
   - float32
