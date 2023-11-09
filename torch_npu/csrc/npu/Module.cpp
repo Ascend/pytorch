@@ -730,8 +730,8 @@ PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* arg
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
       {"set_storage_with_format_(Storage source)", },
-      /* traceable= */ false
-      );
+      false
+      );    // false is traceable's value
 
   torch::ParsedArgs<1> parsed_args;
   auto _r = parser.parse(args, nullptr, parsed_args);

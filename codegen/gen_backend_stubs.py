@@ -320,8 +320,8 @@ def pta_kernel_conut(class_name: str, pta_op_dir: str):
             try:
                 with open(file_path, 'r') as f:
                     backend_defns = f.read()
-            except IOError:
-                raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}')
+            except IOError as err:
+                raise AssertionError(f'Unable to read from the specified impl_path file: {file_path}') from err
 
             kernel_defn_regex = rf'{class_name}::([\w\d]*)\([^\)]*\)\s*{{'
             actual_backend_kernel_name_counts += Counter(re.findall(kernel_defn_regex, backend_defns))
