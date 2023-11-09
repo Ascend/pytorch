@@ -52,6 +52,7 @@ TEST_SKIPS = {
 
 
 class _FC2(nn.Module):
+
     def __init__(self):
         super(_FC2, self).__init__()
         self.fc = nn.Linear(10, 50, bias=True)
@@ -63,6 +64,7 @@ class _FC2(nn.Module):
 
 
 class Net(nn.Module):
+
     def __init__(self):
         super(Net, self).__init__()
         self.fc1 = nn.Linear(2, 10, bias=False)

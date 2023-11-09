@@ -88,6 +88,8 @@ struct DeviceStats {
   StatArray active_bytes;
   // SUM: bytes within inactive, split memory blocks
   StatArray inactive_split_bytes;
+  // SUM: bytes requested by client code
+  StatArray requested_bytes;
 
   // COUNT: total number of failed calls to NPU malloc necessitating cache flushes.
   int64_t num_alloc_retries = 0;
@@ -108,6 +110,7 @@ struct DeviceStats {
 // Struct containing info of an allocation block (i.e. a fractional part of a cudaMalloc)..
 struct BlockInfo {
   int64_t size = 0;
+  int64_t requested_size = 0;
   int32_t gc_counter = 0;
   bool allocated = false;
   bool active = false;
@@ -118,9 +121,11 @@ struct SegmentInfo {
   int64_t device = 0;
   uintptr_t  address = 0;
   int64_t total_size = 0;
+  int64_t requested_size = 0;
   int64_t allocated_size = 0;
   int64_t active_size = 0;
   bool is_large = false;
+  bool is_expandable = false;
   std::vector<BlockInfo> blocks;
 };
 
