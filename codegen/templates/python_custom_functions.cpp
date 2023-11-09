@@ -137,7 +137,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
   torch::ParsedArgs<9> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
 
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
   }
 
@@ -272,7 +272,7 @@ static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwa
   torch::ParsedArgs<8> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
 
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
   }
 
@@ -362,7 +362,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
   torch::ParsedArgs<9> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
 
-  if(r.has_torch_function()) {
+  if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
   }
 
@@ -447,7 +447,7 @@ static PyObject *THPVariable_new_device(PyObject* self, PyObject* args, PyObject
     }
     if (as_device.has_index()) {
       if (device_index != -1) {
-        throw std::runtime_error("type (string) including an index but not equal to index: " 
+        throw std::runtime_error("type (string) including an index but not equal to index: "
                                   + device_type + ", argument index = " + std::to_string(device_index));
       } else {
         device_index = as_device.index();

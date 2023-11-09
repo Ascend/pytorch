@@ -1191,7 +1191,7 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
       hcclComms.size());
   auto ret_hcom = hcclComms[0]->getHcclComm();
   int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
-  return hccl_comm; 
+  return hccl_comm;
 }
 
 template <typename Fn, typename PreProcess, typename PostProcess>
