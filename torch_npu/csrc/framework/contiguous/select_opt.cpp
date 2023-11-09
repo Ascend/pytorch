@@ -52,7 +52,7 @@ private:
           base_stride[i] != select_stride[i]) {
         temp_size.emplace_back(base_size[i]);
         temp_stride.emplace_back(base_stride[i]);
-        for (const auto j : c10::irange(i + 1, select_size.size())) {
+        for (const auto j : c10::irange(i + 1, select_size.size() + 1)) {
           temp_size.emplace_back(select_size[j - 1]);
           temp_stride.emplace_back(select_stride[j - 1]);
           i = j + 1;
@@ -63,7 +63,7 @@ private:
       }
     }
 
-    for (const auto i : c10::irange(select_size.size())) {
+    for (const auto i : c10::irange(select_size.size() + 1)) {
       if (base_size[i] == temp_size[i] && base_stride[i] == temp_stride[i]) {
         continue;
       } else {
