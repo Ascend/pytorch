@@ -1,0 +1,4 @@
+torchvision
+numpy
+pillow
+requests

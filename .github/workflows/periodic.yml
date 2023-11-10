@@ -1,15 +1,25 @@
+# Note:
+# Same runner only needs one job named like .*fetch-and-rebase
+
 name: Ascend NPU
 
 on:
   schedule:
     - cron: '0 12 * * *'
-  issue_comment:
-    types: [created]
+  workflow_dispatch:
 
 jobs:
-  linux-py3_8-7_0_RC1_alpha005:
+  linux-py3_8-fetch-and-rebase:
+    name: linux-py3_8-7.0.RC1.alpha005
+    uses: ./.github/workflows/_fetch_and_rebase.yml
+    with:
+      runner: self-hosted
+      loop: 10
+
+  linux-py3_8-build-and-test:
     name: linux-py3_8-7.0.RC1.alpha005
     uses: ./.github/workflows/_build-and-test.yml
+    needs: linux-py3_8-fetch-and-rebase
     with:
       runner: self-hosted
       devices: --device /dev/davinci6

@@ -1,4 +1,4 @@
-name: build-and-test
+name: Build and Test
 
 on:
   workflow_call:
@@ -17,37 +17,8 @@ on:
         description: The docker iamge which will be loaded
 
 jobs:
-  fetch-and-rebase:
+  build-and-test:
     runs-on: ${{ inputs.runner }}
-    steps:
-      - name: Pull latest codes for torch
-        run: |
-          pushd /root/codes/pytorch/pytorch &&
-          git fetch --all &&
-          git rebase upstream/main &&
-          git submodule sync &&
-          git submodule update --init --recursive &&
-          git reset --hard HEAD &&
-          git clean -dfx &&
-          git submodule foreach git reset --hard HEAD &&
-          git submodule foreach git clean -dfx &&
-          popd
-      - name: Pull latest codes for torch_npu
-        run: |
-          pushd /root/codes/npu/pytorch &&
-          git fetch --all &&
-          git rebase upstream/master &&
-          git submodule sync &&
-          git submodule update --init --recursive &&
-          git reset --hard HEAD &&
-          git clean -dfx &&
-          git submodule foreach git reset --hard HEAD &&
-          git submodule foreach git clean -dfx &&
-          popd
-
-  compile-and-test:
-    runs-on: ${{ inputs.runner }}
-    needs: fetch-and-rebase
     defaults:
       run:
         shell: bash
@@ -64,10 +35,13 @@ jobs:
       options: --network host ${{ inputs.devices }} --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc
     steps:
       - name: Set environment
-        run:
+        run: |
           source /root/.bashrc && conda activate torch_npu
+      - name: Prepare the codes
+        run: |
+          \cp -rf /root/codes/ /root/build
       - name: Compile torch
-        working-directory: /root/codes/pytorch/pytorch
+        working-directory: /root/build/pytorch/pytorch
         run: |
           pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
           export _GLIBCXX_USE_CXX11_ABI=0
@@ -75,12 +49,13 @@ jobs:
           export USE_XNNPACK=0
           python setup.py develop
       - name: Compile and install torch_npu
-        working-directory: /root/codes/npu/pytorch
+        working-directory: /root/build/npu/pytorch
         run: |
           pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
           bash ci/build.sh --python=3.8
           pip3 install dist/torch_npu*.whl
       - name: Do the test
-        working-directory: /root/codes
+        working-directory: /root/build
         run: |
+          pip3 install -r npu/pytorch/test/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --no-deps
           python npu/pytorch/ci/access_control_test.py

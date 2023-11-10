@@ -1,0 +1,47 @@
+name: Fetch and Rebase
+
+description: Fetch and rebase for repository
+
+inputs:
+  repo_path:
+    description: the path the repository locate on
+    required: true
+  remote_branch:
+    description: the branch rebased from
+    required: true
+  loop:
+    description: loop times when fails
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Fetch and rebase
+      env:
+        REPO_PATH: ${{ inputs.repo_path }}
+        REMOTE_BRANCH: ${{ inputs.remote_branch }}
+        LOOP: ${{ inputs.loop }}
+      shell: bash
+      run: |
+        COUNT=0
+        for i in $(seq 1 ${LOOP})
+        do
+          pushd ${REPO_PATH} &&
+          git fetch --all &&
+          git rebase ${REMOTE_BRANCH} &&
+          git submodule sync &&
+          git submodule update --init --recursive &&
+          git reset --hard HEAD &&
+          git clean -dfx &&
+          git submodule foreach git reset --hard HEAD &&
+          git submodule foreach git clean -dfx &&
+          popd
+          if [[ $? -ne 0 ]]
+          then
+            let COUNT++
+          else
+            break
+          fi
+        done
+
+        [[ ${COUNT} -lt ${LOOP} ]] && true || false

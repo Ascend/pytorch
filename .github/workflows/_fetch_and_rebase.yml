@@ -1,0 +1,30 @@
+name: Fetch and Rebase
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+        description: The runner selected to run on
+      loop:
+        required: true
+        type: string
+        description: Loop time when fails
+
+jobs:
+  fetch-and-rebase:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Pull latest codes for torch
+        uses: ascend/pytorch/.github/actions/fetch-and-rebase@master
+        with:
+          repo_path: /root/codes/pytorch/pytorch
+          remote_branch: upstream/main
+          loop: ${{ inputs.loop }}
+      - name: Pull latest codes for torch_npu
+        uses: ascend/pytorch/.github/actions/fetch-and-rebase@master
+        with:
+          repo_path: /root/codes/npu/pytorch
+          remote_branch: upstream/master
+          loop: ${{ inputs.loop }}
