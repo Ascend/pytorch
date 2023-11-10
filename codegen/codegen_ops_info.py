@@ -1,13 +1,26 @@
 """
 This file is mainly used to transform failed test names into DecorateInfo Object.
 """
+
+from pathlib import Path
 import os
 import yaml
 
 from torchgen.code_template import CodeTemplate
 from torchgen.gen import FileManager
 
-unsupported_dict_path = os.path.realpath(os.path.join("test", "unsupported_ops_info.yaml"))
+from codegen.autograd.utils import VERSION_PART
+from codegen.utils import PathManager
+
+project_path = Path(os.path.dirname(__file__)).parent
+op_plugin_info_path = os.path.realpath(os.path.join(
+    project_path,
+    f'third_party/op-plugin/test/test_v{VERSION_PART[0]}r{VERSION_PART[1]}_ops', 
+    "unsupported_ops_info.yaml"))
+torch_npu_info_path = os.path.realpath(os.path.join(project_path, "test", "unsupported_ops_info.yaml"))
+
+unsupported_dict_path = op_plugin_info_path if os.path.exists(op_plugin_info_path) else torch_npu_info_path
+PathManager.check_directory_path_readable(unsupported_dict_path)
 with open(unsupported_dict_path, "r") as f:
     unsupported_summary_dict = yaml.safe_load(f)
 skip_list = dict()
