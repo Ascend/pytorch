@@ -21,10 +21,16 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-class TestGroupNormBackward(TestCase):
+class TestGroupNorm(TestCase):
     def cpu_op_exec(self, input1, num_groups):
         output = torch.nn.functional.group_norm(input1, num_groups)
         output_cpu = output.detach().numpy()
+        return output_cpu
+
+    def cpu_op_fp16_exec(self, input1, num_groups):
+        input1 = input1.to(torch.float32)
+        output = torch.nn.functional.group_norm(input1, num_groups)
+        output_cpu = output.numpy().astype(np.float16)
         return output_cpu
 
     def npu_op_exec(self, input1, num_groups):
@@ -32,17 +38,12 @@ class TestGroupNormBackward(TestCase):
         output = output.to("cpu").detach().numpy()
         return output
 
-    @graph_mode
-    def test_GroupNorm_default(self):
+    def test_GroupNorm_default_fp32(self):
         shape_format = [
             [[np.float32, 0, [20, 6, 10, 10]], 2],
             [[np.float32, 3, [20, 6, 10, 10]], 2],
             [[np.float32, 0, [20, 2, 10, 10]], 2],
             [[np.float32, 3, [20, 2, 10, 10]], 2],
-            [[np.float16, 0, [20, 6, 10, 10]], 2],
-            [[np.float16, 3, [20, 6, 10, 10]], 2],
-            [[np.float16, 0, [20, 2, 10, 10]], 2],
-            [[np.float16, 3, [20, 2, 10, 10]], 2],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
@@ -50,8 +51,20 @@ class TestGroupNormBackward(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_GroupNorm_yolo(self):
+    def test_GroupNorm_default_fp16(self):
+        shape_format = [
+            [[np.float16, 0, [20, 6, 10, 10]], 2],
+            [[np.float16, 3, [20, 6, 10, 10]], 2],
+            [[np.float16, 0, [20, 2, 10, 10]], 2],
+            [[np.float16, 3, [20, 2, 10, 10]], 2],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
+            cpu_output = self.cpu_op_fp16_exec(cpu_input1, item[1])
+            npu_output = self.npu_op_exec(npu_input1, item[1])
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_GroupNorm_case1(self):
         shape_format = [
             [[np.float32, 0, [48, 32, 320, 320]], 32],
             [[np.float32, 0, [48, 64, 160, 160]], 32],
@@ -70,8 +83,7 @@ class TestGroupNormBackward(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_GroupNorm_x1(self):
+    def test_GroupNorm_case2(self):
         shape_format = [
             [[np.float32, 0, [4, 128, 384, 384]], 32],
             [[np.float32, 0, [4, 128, 768, 768]], 32],
@@ -100,8 +112,7 @@ class TestGroupNormBackward(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_GroupNorm_mt(self):
+    def test_GroupNorm_case3(self):
         shape_format = [
             [[np.float32, 0, [1, 256, 100, 152]], 32],
         ]
