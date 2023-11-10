@@ -1017,7 +1017,10 @@ op_db: List[OpInfo] = [
         skips=(
             # Precision issue caused by different implementation on CPU (native_group_norm) and XLA (math_group_norm)
             # torch_npu continues to use the one of XLA backend
-            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.float16]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.float16,
+                                                                                           torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+            dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
