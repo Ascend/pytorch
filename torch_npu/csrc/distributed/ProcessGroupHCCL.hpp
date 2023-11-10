@@ -78,263 +78,263 @@ enum ErrorHandlingMode {
 
 class ProcessGroupHCCL : public c10d::Backend {
 public:
-  class WorkHCCL : public c10d::Work {
-  public:
-    // Constructor takes a list of NPU devices to adapt framework
-    // But HCCL support one device only!!!
-    explicit WorkHCCL(const std::vector<at::Device>& devices);
+    class WorkHCCL : public c10d::Work {
+    public:
+        // Constructor takes a list of NPU devices to adapt framework
+        // But HCCL support one device only!!!
+        explicit WorkHCCL(const std::vector<at::Device>& devices);
 
-    ~WorkHCCL() override;
+        ~WorkHCCL() override;
 
-    // Checks if request has completed. In this specific case of HCCL, it checks
-    // if the HCCL operation has completed on the NPU in its own HCCL stream.
-    // Non-blocking operation.
-    bool isCompleted() override;
+        // Checks if request has completed. In this specific case of HCCL, it checks
+        // if the HCCL operation has completed on the NPU in its own HCCL stream.
+        // Non-blocking operation.
+        bool isCompleted() override;
 
-    bool isSuccess() const override;
+        bool isSuccess() const override;
 
-    // Same as calling synchronize() for HCCL work.
-    bool wait(std::chrono::milliseconds timeout) override;
+        // Same as calling synchronize() for HCCL work.
+        bool wait(std::chrono::milliseconds timeout) override;
 
-    // Let current stream wait on the completing of the HCCL work
-    // Throws on exceptions. Blocking operation, which will wait for work
-    // completion.
-    void synchronize() override;
+        // Let current stream wait on the completing of the HCCL work
+        // Throws on exceptions. Blocking operation, which will wait for work
+        // completion.
+        void synchronize() override;
 
-    // Helper function that checks if the HCCL have finished
-    // execution on the NPUs
-    bool finishedNPUExecution();
-    std::vector<at::Tensor> result() override;
+        // Helper function that checks if the HCCL have finished
+        // execution on the NPUs
+        bool finishedNPUExecution();
+        std::vector<at::Tensor> result() override;
 
-    // Extend tensors lifecycle to work.synchronize, the tensors is local
-    // variable and recordStream.  
-    void lazyDestory(std::vector<at::Tensor> tensors);
+        // Extend tensors lifecycle to work.synchronize, the tensors is local
+        // variable and recordStream.  
+        void lazyDestory(std::vector<at::Tensor> tensors);
 
-  protected:
-    // The cached list of NPU devices to operate on.
-    // HCCL support one device per rank only
-    std::vector<at::Device> devices_;
+    protected:
+        // The cached list of NPU devices to operate on.
+        // HCCL support one device per rank only
+        std::vector<at::Device> devices_;
 
-    // The NPU events tracking this work item on multiple NPU devices
-    std::vector<c10_npu::NPUEvent> npuEvents_;
+        // The NPU events tracking this work item on multiple NPU devices
+        std::vector<c10_npu::NPUEvent> npuEvents_;
 
-    // The HCCL communicators used for this work item.
-    std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
+        // The HCCL communicators used for this work item.
+        std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
 
-    // // The HCCL communicators used for this work item.
-    // std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
-    // The HCCL communicators used for this work item. on
-    // multiple runtime devices. These start npu events are needed by desync
-    // debugging if enabled.
-    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
+        // // The HCCL communicators used for this work item.
+        // std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
+        // The HCCL communicators used for this work item. on
+        // multiple runtime devices. These start npu events are needed by desync
+        // debugging if enabled.
+        std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
 
-    // The end npu events of HCCL operator tracking this work item on
-    // multiple npu devices.
-    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclEndEvents_;
+        // The end npu events of HCCL operator tracking this work item on
+        // multiple npu devices.
+        std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclEndEvents_;
 
-    // Tensors used for barrier op
-    std::vector<at::Tensor> barrierTensors_;
+        // Tensors used for barrier op
+        std::vector<at::Tensor> barrierTensors_;
 
-    // Clone of blockingWait_ from ProcessGroupHCCL.
-    bool blockingWait_ = false;
+        // Clone of blockingWait_ from ProcessGroupHCCL.
+        bool blockingWait_ = false;
 
-    // Clone of opTimeout_ from ProcessGroupHCCL.
-    std::chrono::milliseconds opTimeout_;
+        // Clone of opTimeout_ from ProcessGroupHCCL.
+        std::chrono::milliseconds opTimeout_;
 
-    // Time point representing when the work started.
-    std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
+        // Time point representing when the work started.
+        std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
 
-    // Record the collective sequential number.
-    uint64_t seq_{0};
+        // Record the collective sequential number.
+        uint64_t seq_{0};
 
-    // Wrapper method for the static checkForNCCLErrors which can be overridden
-    // for tests.
-    virtual std::exception_ptr checkForHCCLErrors(
-        const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
+        // Wrapper method for the static checkForNCCLErrors which can be overridden
+        // for tests.
+        virtual std::exception_ptr checkForHCCLErrors(
+            const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
-  private:
-    // Checks for HCCL errors and sets an appropriate exception_ptr.
-    void checkAndSetException();
+    private:
+        // Checks for HCCL errors and sets an appropriate exception_ptr.
+        void checkAndSetException();
 
-    // Checks for HCCL errors and throws an appropriate exception.
-    void checkAndThrowException();
+        // Checks for HCCL errors and throws an appropriate exception.
+        void checkAndThrowException();
 
-    // Just checks whether NPU execution has completed, without modifying
-    // exception_ptr.
-    bool finishedNPUExecutionInternal() const;
+        // Just checks whether NPU execution has completed, without modifying
+        // exception_ptr.
+        bool finishedNPUExecutionInternal() const;
 
-    // Get a Future object that will be marked as completed internally.
-    c10::intrusive_ptr<c10::ivalue::Future> getFuture() override;
+        // Get a Future object that will be marked as completed internally.
+        c10::intrusive_ptr<c10::ivalue::Future> getFuture() override;
 
-    // Store a reference to HCCL collective's outputs, used by result and to
-    // give a more descriptive message when representing the Work as a string.
-    std::shared_ptr<std::vector<at::Tensor>> outputs_;
+        // Store a reference to HCCL collective's outputs, used by result and to
+        // give a more descriptive message when representing the Work as a string.
+        std::shared_ptr<std::vector<at::Tensor>> outputs_;
 
-    // Temporarily not implemented
-    // std::shared_ptr<c10d::Store> store_;
-    // The future returned by getFuture.
-    c10::intrusive_ptr<at::ivalue::Future> future_;
+        // Temporarily not implemented
+        // std::shared_ptr<c10d::Store> store_;
+        // The future returned by getFuture.
+        c10::intrusive_ptr<at::ivalue::Future> future_;
 
-    // save inputs for tensor free when WorkHCCL::wait
-    std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
-    std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
+        // save inputs for tensor free when WorkHCCL::wait
+        std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_inputs_;
+        std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
 
-    std::vector<at::Tensor> lazy_destory_tensors_;
+        std::vector<at::Tensor> lazy_destory_tensors_;
 
-    friend class ProcessGroupHCCL;
-  };
-  struct Options : c10d::Backend::Options {
-    explicit Options(bool is_high_priority_stream = false);
+        friend class ProcessGroupHCCL;
+    };
+    struct Options : c10d::Backend::Options {
+        explicit Options(bool is_high_priority_stream = false);
 
-    // return intrusive_ptr of the object
-    static c10::intrusive_ptr<Options> create(
-        bool is_high_priority_stream = false,
-        std::chrono::milliseconds timeout = kNoTimeout) {
-      return c10::make_intrusive<Options>(is_high_priority_stream);
+        // return intrusive_ptr of the object
+        static c10::intrusive_ptr<Options> create(
+            bool is_high_priority_stream = false,
+            std::chrono::milliseconds timeout = kNoTimeout) {
+            return c10::make_intrusive<Options>(is_high_priority_stream);
+        }
+
+        std::chrono::milliseconds opTimeout;
+        // Schedule NCCL operations on high priority CUDA streams
+        bool is_high_priority_stream;
+    };
+
+    // If you wish to create multiple process groups, each with a potentially
+    // different rank and size, you can do so by passing a new store instance
+    // to each one. If you have only a single store object, you can
+    // use the `c10d::PrefixStore` to derive scoped instances.
+    // This is also what the Python API in torch.distributed does.
+
+    // The process group instance keeps a reference to the store because
+    // it may be used long after the constructor runs. In fact, the constructor
+    // doesn't create any HCCL communicators. A single HCCL communicator can
+    // only be used on a specific set of devices, and are therefore created
+    // on-demand when a collective runs. If another collective is executed later,
+    // against a different set of devices, the process group creates another NCCL
+    // communicator. These HCCL communicators are cached and reused if possible.
+    ProcessGroupHCCL(
+        const c10::intrusive_ptr<c10d::Store>& store,
+        int rank,
+        int size,
+        c10::intrusive_ptr<Options> options = Options::create());
+
+    // This constructor includes the deprecated `groupName` argument.
+    // If you have existing code that uses the `groupName`, you can replace
+    // it by specifying a `c10d::PrefixStore(groupName, store)` for store.
+    C10_DEPRECATED ProcessGroupHCCL(
+        const c10::intrusive_ptr<c10d::Store>& store,
+        int rank,
+        int size,
+        const std::string& groupName,
+        c10::intrusive_ptr<Options> options = Options::create())
+        : ProcessGroupHCCL(store, rank, size, options) {}
+
+    ~ProcessGroupHCCL() override;
+
+    c10::intrusive_ptr<Options> getOptions() {
+        return options_;
     }
 
-    std::chrono::milliseconds opTimeout;
-    // Schedule NCCL operations on high priority CUDA streams
-    bool is_high_priority_stream;
-  };
+    const std::string getBackendName() const {
+        return std::string(HCCL_BACKEND_NAME);
+    }
+    c10::intrusive_ptr<c10d::Work> broadcast(
+        std::vector<at::Tensor>& tensors,
+        const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
 
-  // If you wish to create multiple process groups, each with a potentially
-  // different rank and size, you can do so by passing a new store instance
-  // to each one. If you have only a single store object, you can
-  // use the `c10d::PrefixStore` to derive scoped instances.
-  // This is also what the Python API in torch.distributed does.
+    c10::intrusive_ptr<c10d::Work> allreduce(
+        std::vector<at::Tensor>& tensors,
+        const c10d::AllreduceOptions& opts = c10d::AllreduceOptions()) override;
 
-  // The process group instance keeps a reference to the store because
-  // it may be used long after the constructor runs. In fact, the constructor
-  // doesn't create any HCCL communicators. A single HCCL communicator can
-  // only be used on a specific set of devices, and are therefore created
-  // on-demand when a collective runs. If another collective is executed later,
-  // against a different set of devices, the process group creates another NCCL
-  // communicator. These HCCL communicators are cached and reused if possible.
-  ProcessGroupHCCL(
-      const c10::intrusive_ptr<c10d::Store>& store,
-      int rank,
-      int size,
-      c10::intrusive_ptr<Options> options = Options::create());
+    c10::intrusive_ptr<c10d::Work>allreduce_coalesced(
+        std::vector<at::Tensor>& tensors,
+        const c10d::AllreduceCoalescedOptions& opts =
+            c10d::AllreduceCoalescedOptions()) override;
 
-  // This constructor includes the deprecated `groupName` argument.
-  // If you have existing code that uses the `groupName`, you can replace
-  // it by specifying a `c10d::PrefixStore(groupName, store)` for store.
-  C10_DEPRECATED ProcessGroupHCCL(
-      const c10::intrusive_ptr<c10d::Store>& store,
-      int rank,
-      int size,
-      const std::string& groupName,
-      c10::intrusive_ptr<Options> options = Options::create())
-      : ProcessGroupHCCL(store, rank, size, options) {}
+    c10::intrusive_ptr<c10d::Work>reduce(
+        std::vector<at::Tensor>& tensors,
+        const c10d::ReduceOptions& opts = c10d::ReduceOptions()) override;
 
-  ~ProcessGroupHCCL() override;
+    at::Tensor byte_alignment(at::Tensor& tensors);
 
-  c10::intrusive_ptr<Options> getOptions() {
-    return options_;
-  }
+    c10::intrusive_ptr<c10d::Work> allgather(
+        std::vector<std::vector<at::Tensor>>& outputTensors,
+        std::vector<at::Tensor>& inputTensors,
+        const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
-  const std::string getBackendName() const {
-      return std::string(HCCL_BACKEND_NAME);
-  }
-  c10::intrusive_ptr<c10d::Work> broadcast(
-      std::vector<at::Tensor>& tensors,
-      const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
+    c10::intrusive_ptr<c10d::Work> allgather_togather(
+        std::vector<at::Tensor>& outputTensors,
+        std::vector<at::Tensor>& inputTensors,
+        const c10d::AllgatherOptions& opts = c10d::AllgatherOptions());
 
-  c10::intrusive_ptr<c10d::Work> allreduce(
-      std::vector<at::Tensor>& tensors,
-      const c10d::AllreduceOptions& opts = c10d::AllreduceOptions()) override;
+    c10::intrusive_ptr<c10d::Work> _allgather_base(
+        at::Tensor& outputbuffer,
+        at::Tensor& inputbuffer,
+        const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::Work>allreduce_coalesced(
-      std::vector<at::Tensor>& tensors,
-      const c10d::AllreduceCoalescedOptions& opts =
-          c10d::AllreduceCoalescedOptions()) override;
+    c10::intrusive_ptr<c10d::Work> reduce_scatter(
+        std::vector<at::Tensor>& outputTensors,
+        std::vector<std::vector<at::Tensor>>& inputTensors,
+        const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
 
-  c10::intrusive_ptr<c10d::Work>reduce(
-      std::vector<at::Tensor>& tensors,
-      const c10d::ReduceOptions& opts = c10d::ReduceOptions()) override;
+    c10::intrusive_ptr<c10d::Work> _reduce_scatter_base(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
 
-  at::Tensor byte_alignment(at::Tensor& tensors);
+    c10::intrusive_ptr<c10d::Work> barrier(
+        const c10d::BarrierOptions& opts = c10d::BarrierOptions()) override;
 
-  c10::intrusive_ptr<c10d::Work> allgather(
-      std::vector<std::vector<at::Tensor>>& outputTensors,
-      std::vector<at::Tensor>& inputTensors,
-      const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
+    // Unsupported Ops
+    c10::intrusive_ptr<c10d::Work> gather(
+        std::vector<std::vector<at::Tensor>>& outputTensors,
+        std::vector<at::Tensor>& inputTensors,
+        const c10d::GatherOptions& opts = c10d::GatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::Work> allgather_togather(
-      std::vector<at::Tensor>& outputTensors,
-      std::vector<at::Tensor>& inputTensors,
-      const c10d::AllgatherOptions& opts = c10d::AllgatherOptions());
+    c10::intrusive_ptr<c10d::Work> scatter(
+        std::vector<at::Tensor>& outputTensors,
+        std::vector<std::vector<at::Tensor>>& inputTensors,
+        const c10d::ScatterOptions& opts = c10d::ScatterOptions()) override;
 
-  c10::intrusive_ptr<c10d::Work> _allgather_base(
-      at::Tensor& outputbuffer,
-      at::Tensor& inputbuffer,
-      const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
+    c10::intrusive_ptr<c10d::Work> send(
+        std::vector<at::Tensor>& tensors,
+        int dstRank,
+        int tag) override;
 
-  c10::intrusive_ptr<c10d::Work> reduce_scatter(
-      std::vector<at::Tensor>& outputTensors,
-      std::vector<std::vector<at::Tensor>>& inputTensors,
-      const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
+    c10::intrusive_ptr<c10d::Work> recv(
+        std::vector<at::Tensor>& tensors,
+        int srcRank,
+        int tag) override;
 
-  c10::intrusive_ptr<c10d::Work> _reduce_scatter_base(
-      at::Tensor& outputTensor,
-      at::Tensor& inputTensor,
-      const c10d::ReduceScatterOptions& opts = c10d::ReduceScatterOptions()) override;
+    c10::intrusive_ptr<c10d::Work> recvAnysource(
+        std::vector<at::Tensor>& tensors,
+        int tag) override;
 
-  c10::intrusive_ptr<c10d::Work> barrier(
-      const c10d::BarrierOptions& opts = c10d::BarrierOptions()) override;
+    c10::intrusive_ptr<c10d::Work> alltoall_base(
+        at::Tensor& outputTensor,
+        at::Tensor& inputTensor,
+        std::vector<int64_t>& outputSplitSizes,
+        std::vector<int64_t>& inputSplitSizes,
+        const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
 
-  // Unsupported Ops
-  c10::intrusive_ptr<c10d::Work> gather(
-      std::vector<std::vector<at::Tensor>>& outputTensors,
-      std::vector<at::Tensor>& inputTensors,
-      const c10d::GatherOptions& opts = c10d::GatherOptions()) override;
+    c10::intrusive_ptr<c10d::Work> alltoall(
+        std::vector<at::Tensor>& output_tensors,
+        std::vector<at::Tensor>& input_tensors,
+        const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
 
-  c10::intrusive_ptr<c10d::Work> scatter(
-      std::vector<at::Tensor>& outputTensors,
-      std::vector<std::vector<at::Tensor>>& inputTensors,
-      const c10d::ScatterOptions& opts = c10d::ScatterOptions()) override;
+    static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
-  c10::intrusive_ptr<c10d::Work> send(
-      std::vector<at::Tensor>& tensors,
-      int dstRank,
-      int tag) override;
+    // Agrees on an initial sequence number for the whole group by having rank 0
+    // create it and broadcast it to other ranks using the store.
+    void setSequenceNumberForGroup() override;
 
-  c10::intrusive_ptr<c10d::Work> recv(
-      std::vector<at::Tensor>& tensors,
-      int srcRank,
-      int tag) override;
+    // Retrieves the current sequence number for the whole group, which should be
+    // in sync. If the returned number is not consistent across the group, it
+    // may indicate that there is some sort of collective desynchronization.
+    uint64_t getSequenceNumberForGroup() override;
 
-  c10::intrusive_ptr<c10d::Work> recvAnysource(
-      std::vector<at::Tensor>& tensors,
-      int tag) override;
+    int64_t getHcclComm(int rankid);
 
-  c10::intrusive_ptr<c10d::Work> alltoall_base(
-      at::Tensor& outputTensor,
-      at::Tensor& inputTensor,
-      std::vector<int64_t>& outputSplitSizes,
-      std::vector<int64_t>& inputSplitSizes,
-      const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
-
-  c10::intrusive_ptr<c10d::Work> alltoall(
-      std::vector<at::Tensor>& output_tensors,
-      std::vector<at::Tensor>& input_tensors,
-      const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
-
-  static const int64_t kProcessGroupHCCLOpTimeoutMillis;
-
-  // Agrees on an initial sequence number for the whole group by having rank 0
-  // create it and broadcast it to other ranks using the store.
-  void setSequenceNumberForGroup() override;
-
-  // Retrieves the current sequence number for the whole group, which should be
-  // in sync. If the returned number is not consistent across the group, it
-  // may indicate that there is some sort of collective desynchronization.
-  uint64_t getSequenceNumberForGroup() override;
-
-  int64_t getHcclComm(int rankid);
-
-  std::string getHcclCommName(int rankid);
+    std::string getHcclCommName(int rankid);
 
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
