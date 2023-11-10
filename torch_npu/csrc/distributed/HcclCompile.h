@@ -12,6 +12,7 @@ namespace c10d_npu {
 REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclAlltoAllV)
 LOAD_FUNCTION(HcclReduce)
+LOAD_FUNCTION(HcclGetCommAsyncError)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -41,5 +42,16 @@ extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclD
   TORCH_CHECK(func, "Failed to find function ", "HcclReduce");
   auto ret = func(sendBuf, recvBuf, count, sendType, op, root, comm, stream);
   return ret;
+}
+
+HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError) {
+    typedef HcclResult(*HcclGetCommAsyncErrorVFunc)(HcclComm, HcclResult*);
+    static HcclGetCommAsyncErrorVFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclGetCommAsyncErrorVFunc)GET_FUNC(HcclGetCommAsyncError);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclGetCommAsyncError");
+    auto ret = func(comm, asyncError);
+    return ret;
 }
 } // namespace c10d_npu
