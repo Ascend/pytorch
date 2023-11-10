@@ -19,11 +19,12 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestGroupNormBackward(TestCase):
     def cpu_op_exec(self, input1, num_groups):
-        input1.requires_grad_(True)
+        input1.requires_grad = True
         output = torch.nn.functional.group_norm(input1, num_groups)
         output.backward(torch.ones_like(output))
         input_grad = input1.grad
@@ -33,25 +34,53 @@ class TestGroupNormBackward(TestCase):
 
         return output, input_grad
 
+    def cpu_op_fp16_exec(self, input1, num_groups):
+        input1 = input1.to(torch.float32)
+        input1.requires_grad = True
+        output = torch.nn.functional.group_norm(input1, num_groups)
+        output.backward(torch.ones_like(output))
+        input_grad = input1.grad
+
+        output = output.detach().numpy().astype(np.float16)
+        input_grad = input_grad.detach().numpy().astype(np.float16)
+
+        return output, input_grad
+
     def npu_op_exec(self, input1, num_groups):
-        input1.requires_grad_(True)
+        input1.requires_grad = True
         output = torch.nn.functional.group_norm(input1, num_groups).to("npu")
         output.backward(torch.ones_like(output))
         input_grad = input1.grad
 
-        output = output.detach().cpu().float().numpy()
-        input_grad = input_grad.detach().cpu().float().numpy()
+        output = output.detach().cpu().numpy()
+        input_grad = input_grad.detach().cpu().numpy()
 
         return output, input_grad
 
     @graph_mode
-    def test_GroupNorm_Backward_default(self):
+    def test_GroupNorm_Backward_default_fp32(self):
         # create inputs and params
         shape_format = [
             [[np.float32, 0, [20, 6, 10, 10]], 2],
             [[np.float32, 3, [20, 6, 10, 10]], 2],
             [[np.float32, 0, [20, 2, 10, 10]], 2],
             [[np.float32, 3, [20, 2, 10, 10]], 2],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
+
+            # run exec
+            cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
+            npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
+
+            # results comparison
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
+
+    @graph_mode
+    def test_GroupNorm_Backward_default_fp16(self):
+        # create inputs and params
+        shape_format = [
             [[np.float16, 0, [20, 6, 10, 10]], 2],
             [[np.float16, 3, [20, 6, 10, 10]], 2],
             [[np.float16, 0, [20, 2, 10, 10]], 2],
@@ -60,16 +89,16 @@ class TestGroupNormBackward(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
 
-        # run exec
-        cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
-        npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
+            # run exec
+            cpu_output, cpu_input_grad = self.cpu_op_fp16_exec(cpu_input1, item[1])
+            npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
 
-        # results comparison
-        self.assertRtolEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_input_grad, npu_input_grad)
+            # results comparison
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
     @graph_mode
-    def test_GroupNorm_Backward_default(self):
+    def test_GroupNorm_Backward_case1(self):
         # create inputs and params
         shape_format = [
             [[np.float32, 0, [48, 32, 320, 320]], 32],
@@ -86,16 +115,16 @@ class TestGroupNormBackward(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
 
-        # run exec
-        cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
-        npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
+            # run exec
+            cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
+            npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
 
-        # results comparison
-        self.assertRtolEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_input_grad, npu_input_grad)
+            # results comparison
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
     @graph_mode
-    def test_GroupNorm_Backward_default(self):
+    def test_GroupNorm_Backward_case2(self):
         # create inputs and params
         shape_format = [
             [[np.float32, 0, [4, 128, 384, 384]], 32],
@@ -122,16 +151,16 @@ class TestGroupNormBackward(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
 
-        # run exec
-        cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
-        npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
+            # run exec
+            cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
+            npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
 
-        # results comparison
-        self.assertRtolEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_input_grad, npu_input_grad)
+            # results comparison
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
     @graph_mode
-    def test_GroupNorm_Backward_default(self):
+    def test_GroupNorm_Backward_case3(self):
         # create inputs and params
         shape_format = [
             [[np.float32, 0, [1, 256, 100, 152]], 32],
@@ -139,13 +168,13 @@ class TestGroupNormBackward(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
 
-        # run exec
-        cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
-        npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
+            # run exec
+            cpu_output, cpu_input_grad = self.cpu_op_exec(cpu_input1, item[1])
+            npu_output, npu_input_grad = self.npu_op_exec(npu_input1, item[1])
 
-        # results comparison
-        self.assertRtolEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_input_grad, npu_input_grad)
+            # results comparison
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
 
 if __name__ == "__main__":
