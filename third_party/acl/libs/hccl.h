@@ -78,4 +78,5 @@ hcclResult_t HcclAllGather(void *sendBuf, void *recvBuf, u64 sendCount, HcclData
 hcclResult_t HcclRecv(void *recvBuf, u64 count, HcclDataType dataType, u32 srcRank, HcclComm comm, aclrtStream stream);
 hcclResult_t HcclSend(void *sendBuf, u64 count, HcclDataType dataType, u32 destRank, HcclComm comm, aclrtStream stream);
 hcclResult_t HcclGetRootInfo(HcclRootInfo *rootInfo);
+hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, hcclResult_t* asyncError);
 }

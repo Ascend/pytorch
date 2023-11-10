@@ -121,6 +121,8 @@ HcclComm comm, aclrtStream stream);
  */
 extern HcclResult HcclCommDestroy(HcclComm comm);
 
+extern HcclResult HcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
+
 extern HcclResult HcclSend(void *sendBuf, uint64_t count, HcclDataType dataType, uint32_t destRank, 
     HcclComm comm, aclrtStream stream);
 

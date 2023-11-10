@@ -21,3 +21,4 @@ hcclResult_t HcclRecv(void *recvBuf, u64 count, HcclDataType dataType, u32 srcRa
 hcclResult_t HcclSend(void *sendBuf, u64 count, HcclDataType dataType, u32 destRank,
                       HcclComm comm, aclrtStream stream) {return HCCL_SUCCESS;}
 hcclResult_t HcclGetRootInfo(HcclRootInfo *rootInfo) {return HCCL_SUCCESS;}
+hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, hcclResult_t* asyncError) {return HCCL_SUCCESS;}

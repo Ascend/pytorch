@@ -83,6 +83,7 @@ public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
     explicit WorkHCCL(const std::vector<at::Device>& devices);
+
     ~WorkHCCL() override;
 
     // Checks if request has completed. In this specific case of HCCL, it checks
@@ -146,9 +147,10 @@ public:
     // Record the collective sequential number.
     uint64_t seq_{0};
 
-    // Temporarily not implemented
-    // virtual std::exception_ptr checkForHCCLErrors(const
-    // std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
+    // Wrapper method for the static checkForNCCLErrors which can be overridden
+    // for tests.
+    virtual std::exception_ptr checkForHCCLErrors(
+        const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
   private:
     // Checks for HCCL errors and sets an appropriate exception_ptr.
@@ -335,134 +337,140 @@ public:
   std::string getHcclCommName(int rankid);
 
 protected:
-  // Helper that broadcasts HCCL Master ID to all ranks through the store
-  void broadcastMasterID(HcclRootInfo* hcclID);
+    // Helper that broadcasts HCCL Master ID to all ranks through the store
+    void broadcastMasterID(HcclRootInfo* hcclID);
 
-  // Helper that either looks up the cached HCCL communicators or creates
-  // a new set of NCCL communicators as a cache entry
-  std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
-      const std::string& devicesKey,
-      const std::vector<at::Device>& devices);
+    // Helper that either looks up the cached HCCL communicators or creates
+    // a new set of NCCL communicators as a cache entry
+    std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
+        const std::string& devicesKey,
+        const std::vector<at::Device>& devices);
 
-  // Temporarily not implemented
-  // virtual std::exception_ptr checkForHCCLErrors(const
-  // std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+    // Wrapper method which can be overridden for tests.
+    virtual std::exception_ptr checkForHCCLErrors(
+        const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
-  virtual c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> initWork(
-      std::vector<at::Device> devices);
+    virtual c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> initWork(
+        std::vector<at::Device> devices);
 
-  static const int64_t kWatchdogThreadSleepMillis;
+    static const int64_t kWatchdogThreadSleepMillis;
 
-  // The store is used to broadcast the HCCL Master ID of rank 0.
-  c10::intrusive_ptr<c10d::Store> store_;
-  const c10::intrusive_ptr<Options> options_;
+    // The store is used to broadcast the HCCL Master ID of rank 0.
+    c10::intrusive_ptr<c10d::Store> store_;
+    const c10::intrusive_ptr<Options> options_;
 
-  // The number of HCCL communicators that have been created during
-  // the lifetime of this process group. This sequence number is
-  // used to scope keys used in the store.
-  uint64_t hcclCommCounter_{0};
+    // The number of HCCL communicators that have been created during
+    // the lifetime of this process group. This sequence number is
+    // used to scope keys used in the store.
+    uint64_t hcclCommCounter_{0};
 
-  // The HCCL communicator that the process group has cached.
-  // The key is a list of NPU devices that an operation is operating on
-  // The NPU devices are stored in a device sequence and the cache NCCL
-  // communicator is associated with this NPU device sequence
+    // The HCCL communicator that the process group has cached.
+    // The key is a list of NPU devices that an operation is operating on
+    // The NPU devices are stored in a device sequence and the cache NCCL
+    // communicator is associated with this NPU device sequence
 
-  // e.g. If the process group op only uses device 0, then the value of
-  // the used device string stored (value of the hashmap) would be "0".
+    // e.g. If the process group op only uses device 0, then the value of
+    // the used device string stored (value of the hashmap) would be "0".
 
-  //      If the process group op uses device 0 - 7 and the each tensor of the
-  //      input tensor list is on device, 0, 1, 2, 3, 4, 5, 6, 7 separately,
-  //      then the value of the used device string (key) stored would be
-  //      "0,1,2,3,4,5,6,7"
+    //      If the process group op uses device 0 - 7 and the each tensor of the
+    //      input tensor list is on device, 0, 1, 2, 3, 4, 5, 6, 7 separately,
+    //      then the value of the used device string (key) stored would be
+    //      "0,1,2,3,4,5,6,7"
 
-  //      If the process group op uses device 0 - 7 and the each tensor of the
-  //      input tensor list is on device, 0, 4, 5, 6, 7, 1, 2, 3 separately,
-  //      then the value of the used device string stored would be
-  //      "0,4,5,6,7,1,2,3"
-  //
-  //      Note that the order of the device for the tensor list matters.
-  std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
-      devHCCLCommMap_;
+    //      If the process group op uses device 0 - 7 and the each tensor of the
+    //      input tensor list is on device, 0, 4, 5, 6, 7, 1, 2, 3 separately,
+    //      then the value of the used device string stored would be
+    //      "0,4,5,6,7,1,2,3"
+    //
+    //      Note that the order of the device for the tensor list matters.
+    std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
+        devHCCLCommMap_;
 
-  // Mutex to guard maps like devHCCLCommMap_.
-  std::mutex mutex_;
+    // Mutex to guard maps like devHCCLCommMap_.
+    std::mutex mutex_;
 
-  // Mutex to guard devNCCLCommMap_.
-  std::mutex devHCCLCommMapLock_;
+    // Watchdog thread which looks for errors on the cached NCCL communicators.
+    std::thread hcclCommWatchdogThread_;
 
-  // Watchdog thread which looks for errors on the cached NCCL communicators.
-  std::thread hcclCommWatchdogThread_;
+    // Whether or not we should terminate the watchdog and workCleanup threads.
+    std::atomic<bool> terminateProcessGroup_;
 
-  // Whether or not we should terminate the watchdog thread.
-  std::atomic<bool> terminateWatchdog_;
+    // Vector to Store WorkHCCL pointers
+    std::list<ProcessGroupHCCL::WorkHCCL> workMetaList_;
 
-  // Condition variable to control how long the  watchdog thread waits.
-  std::condition_variable watchdogCV_;
+    // Mutex to Guard workMetaList_
+    std::mutex workMetaListMutex_;
 
-  // Mutex for watchdog.
-  std::mutex watchdogCVMutex_;
+    // Condition Variable for watchdog thread sleep
+    std::condition_variable workMetaListCV_;
 
-  // The NPU steams used by NCCL kernels
-  std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
-      hcclStreams_;
+    // Condition variable to control how long the  watchdog thread waits.
+    std::condition_variable watchdogCV_;
 
-  // The NPU events used to sync HCCL streams
-  std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>> hcclEvents_;
+    // Mutex for watchdog.
+    std::mutex watchdogCVMutex_;
 
-  // The NPU events used to control task rate to protect streams
-  std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
-      rateCtrlEvents_;
-  std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
+    // The NPU steams used by NCCL kernels
+    std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
+        hcclStreams_;
 
-  // Device Indexes used for all collectives in this group
-  std::set<int> usedDeviceIdxs_;
+    // The NPU events used to sync HCCL streams
+    std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>> hcclEvents_;
 
-  // map from the key: "group name + pg counter (ID)" to the
-  // HCCL Master ID count. This needs to be group and pg specific
+    // The NPU events used to control task rate to protect streams
+    std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
+        rateCtrlEvents_;
+    std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
 
-  // For each process group, we need a uniform unique HCCL Master ID counter to
-  // ensure that HCCL operation in this process group can be completed
-  // successfully. Since each process group ID belongs to a group name, the key
-  // to this map is a combination of group name and ProcessGroupHCCL ID.
-  static std::unordered_map<std::string, ssize_t> pgUniqueHCCLIDCnt_;
+    // Device Indexes used for all collectives in this group
+    std::set<int> usedDeviceIdxs_;
 
-  // map from group name to the pg counter (ID) within that group
+    // map from the key: "group name + pg counter (ID)" to the
+    // HCCL Master ID count. This needs to be group and pg specific
 
-  // For each group with the "group name" (which is the key), we need to
-  // keep track of a unique process group ID when creating a new
-  // ProcessGroupNCCL for this "group name". Therefore, the value of this
-  // map keeps the unique ProcessGroupHCCL's ID for a specific group with
-  // the "group name". The reason we need a per-group process group ID counter
-  // is that different group can have different ranks and we need ensure that
-  // each group has its own uniform process group ID for all its ranks.
-  static std::unordered_map<std::string, ssize_t> processGroupCounterMap_;
+    // For each process group, we need a uniform unique HCCL Master ID counter to
+    // ensure that HCCL operation in this process group can be completed
+    // successfully. Since each process group ID belongs to a group name, the key
+    // to this map is a combination of group name and ProcessGroupHCCL ID.
+    static std::unordered_map<std::string, ssize_t> pgUniqueHCCLIDCnt_;
 
-  // Whether or not wait() and synchronize() are blocking operations that wait
-  // for the operation to complete.
-  bool blockingWait_ = false;
+    // map from group name to the pg counter (ID) within that group
 
-  // Whether or not the workCleanupThread is used to perform async error
-  // handling.
-  ErrorHandlingMode asyncErrorHandling_ = NoHandling;
+    // For each group with the "group name" (which is the key), we need to
+    // keep track of a unique process group ID when creating a new
+    // ProcessGroupNCCL for this "group name". Therefore, the value of this
+    // map keeps the unique ProcessGroupHCCL's ID for a specific group with
+    // the "group name". The reason we need a per-group process group ID counter
+    // is that different group can have different ranks and we need ensure that
+    // each group has its own uniform process group ID for all its ranks.
+    static std::unordered_map<std::string, ssize_t> processGroupCounterMap_;
 
-  // Whether or not to enable timeout root cause analysis.
-  bool desyncDebug_;
+    // Whether or not wait() and synchronize() are blocking operations that wait
+    // for the operation to complete.
+    bool blockingWait_ = false;
 
-  // Timeout for operations. This is only used when blockingWait_ is enabled.
-  std::chrono::milliseconds opTimeout_;
+    // Whether or not the workCleanupThread is used to perform async error
+    // handling.
+    ErrorHandlingMode asyncErrorHandling_ = NoHandling;
 
-  // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
+    // Whether or not to enable timeout root cause analysis.
+    bool desyncDebug_;
 
-  // The number of active ncclGroupStart() calls. This counter will be increased
-  // by 1 when ncclGroupStart() is called and decreased by 1 when ncclGroupEnd()
-  // is called.
-  static thread_local uint64_t hcclActiveGroupCounter_;
+    // Timeout for operations. This is only used when blockingWait_ is enabled.
+    std::chrono::milliseconds opTimeout_;
 
-  // Counting for the sequential number of NCCL collective call.
-  uint64_t seq_{0};
+    // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
+
+    // The number of active ncclGroupStart() calls. This counter will be increased
+    // by 1 when ncclGroupStart() is called and decreased by 1 when ncclGroupEnd()
+    // is called.
+    static thread_local uint64_t hcclActiveGroupCounter_;
+
+    // Counting for the sequential number of NCCL collective call.
+    uint64_t seq_{0};
 
 
-  std::exception_ptr watchDogException_ = nullptr;
+    std::exception_ptr watchDogException_ = nullptr;
 
 private:
     // Helper that encapsulates work shared across all collective communication
@@ -479,6 +487,10 @@ private:
         Fn fn,
         PreProcess pre,
         PostProcess post);
+
+    // Checks for HCCL errors on each of the communicators and returns an
+    // appropriate exception_ptr (nullptr if no errors).
+    static std::exception_ptr checkForHCCLErrorsInternal(const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Function that runs as part of a separate thread and checks for errors on
     // HCCL communicators. We need a separate thread to check for HCCL errors

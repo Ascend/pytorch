@@ -123,7 +123,7 @@ HcclReduceOp getHcclReduceOp(const c10d::ReduceOp reduceOp, at::Tensor& input)
     if (reduceOp == c10d::ReduceOp::SUM && input.scalar_type() == at::kBool) {
         // For bool tensors, map sum to max, which both represent a bitwise or.
         // This is to prevent overflow issues with sum, since we use uint8 to
-        // represent a bool (see ncclDataType mapping).
+        // represent a bool (see hcclDataType mapping).
         return HCCL_REDUCE_MAX;
     }
     return hcclOp[reduceOp];
@@ -209,6 +209,19 @@ void syncStreams(
     }
 }
 
+// Returns exception's what() given an exception_ptr instance.
+std::string getExceptionMsgFromExceptionPtr(const std::exception_ptr& exceptionPtr)
+{
+    TORCH_CHECK(exceptionPtr != nullptr);
+    try {
+        std::rethrow_exception(exceptionPtr);
+    } catch (const std::exception& e) {
+        return e.what();
+    } catch (...) {
+        return "Unknown exception type";
+    }
+}
+
 // exit call back for allreduce error
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo)
 {
@@ -221,6 +234,7 @@ constexpr int64_t kSynchronizeBusyWaitMillis = 10;
 constexpr int64_t maxOpNumPerSyncPoint = 2;
 const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
+const int64_t ProcessGroupHCCL::kWatchdogThreadSleepMillis = 1000;
 // const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 ProcessGroupHCCL::WorkHCCL::WorkHCCL(const std::vector<at::Device>& devices)
     : devices_(devices), workStartTime_(std::chrono::steady_clock::now())
@@ -246,7 +260,7 @@ bool ProcessGroupHCCL::WorkHCCL::isSuccess() const
         // Already detected an exception.
         return false;
     }
-    return finishedNPUExecutionInternal();
+    return !checkForHCCLErrors(hcclComms_) && finishedNPUExecutionInternal();
 }
 
 void ProcessGroupHCCL::WorkHCCL::checkAndSetException()
@@ -255,6 +269,14 @@ void ProcessGroupHCCL::WorkHCCL::checkAndSetException()
         // We already have an exception.
         return;
     }
+    auto exception_ptr = checkForHCCLErrors(hcclComms_);
+    std::unique_lock<std::mutex> lock(mutex_);
+    exception_ = exception_ptr;
+    if (exception_) {
+    LOG(INFO) << "[Rank " << rank_ << "]"
+              << " found async exception when checking for HCCL errors: "
+              << getExceptionMsgFromExceptionPtr(exception_);
+  }
 }
 
 // Helper that checks if the HCCL kernels are completed on the NPU
@@ -374,7 +396,11 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     int rank,
     int size,
     c10::intrusive_ptr<Options> options)
-    : c10d::Backend(rank, size), store_(store), options_(options), hcclCommCounter_(0), terminateWatchdog_(false)
+    : c10d::Backend(rank, size),
+    store_(store),
+    options_(options),
+    hcclCommCounter_(0),
+    terminateProcessGroup_(false)
 {
     uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     // When no env, the default value is 0
@@ -445,6 +471,9 @@ uint64_t ProcessGroupHCCL::getSequenceNumberForGroup()
 
 ProcessGroupHCCL::~ProcessGroupHCCL()
 {
+    terminateProcessGroup_.store(true);
+
+    workMetaListCV_.notify_one();
 #ifdef ENABLE_HCCL_ERROR_CHECKING
     hcclCommWatchdogThread_.join();
 #endif
@@ -491,6 +520,28 @@ void ProcessGroupHCCL::hcclCommWatchdog(int device_id)
 }
 
 void ProcessGroupHCCL::workCleanupLoop() {}
+
+std::exception_ptr ProcessGroupHCCL::WorkHCCL::checkForHCCLErrors(
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const {
+    return checkForHCCLErrorsInternal(hcclComms);
+}
+
+std::exception_ptr ProcessGroupHCCL::checkForHCCLErrors(
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) {
+    return checkForHCCLErrorsInternal(hcclComms);
+}
+
+std::exception_ptr ProcessGroupHCCL::checkForHCCLErrorsInternal(
+    const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) {
+    for (const auto& hcclComm : hcclComms) {
+        HcclResult hcclAsyncErr = hcclComm->checkForHcclError();
+        if (hcclAsyncErr != HCCL_SUCCESS) {
+            return std::make_exception_ptr(std::runtime_error(
+                "HCCL error: " + getHcclErrorDetailStr(hcclAsyncErr)));
+        }
+    }
+    return nullptr;
+}
 
 void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
 {
@@ -547,7 +598,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     }
 
     {
-        std::lock_guard<std::mutex> lock(devHCCLCommMapLock_);
+        std::lock_guard<std::mutex> lock(mutex_);
         if (devHCCLCommMap_.find(devicesKey) != devHCCLCommMap_.end()) {
             // Reuse the cached communicator if there is one.
             return devHCCLCommMap_[devicesKey];
@@ -594,9 +645,9 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     collectiveCnts_.emplace(std::piecewise_construct, std::make_tuple(devicesKey), std::make_tuple(devices.size()));
 
     // Hold the lock before modifying the cache.
-    std::lock_guard<std::mutex> lock(devHCCLCommMapLock_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
-    // Move the NCCL resource to cache
+    // Move the HCCL resource to cache
     devHCCLCommMap_.emplace(devicesKey, std::move(hcclComms));
     return devHCCLCommMap_[devicesKey];
 }

@@ -37,6 +37,8 @@ typedef enum {
     HCCL_E_PROFILING = 17,          /**< call profiling api fail */
     HCCL_E_CCE = 18,                /**< call cce api fail */
     HCCL_E_NETWORK = 19,            /**< call network api fail */
+    HCCL_E_AGAIN = 20,              /**< try again */
+    HCCL_E_REMOTE = 21,             /**< error cqe */
     HCCL_E_RESERVED                 /**< reserved */
 } HcclResult;
 
