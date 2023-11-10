@@ -9,19 +9,14 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 import torch.optim
-import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 import torchvision.models as models
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
-SOURCE_DIR = os.environ.get('SOURCE_DIR')
 BATCH_SIZE = 128
 EPOCHS_SIZE = 1
 TRAIN_STEP = 10
@@ -36,8 +31,6 @@ model_names = sorted(name for name in models.__dict__
                      and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data', metavar='DIR', default=SOURCE_DIR,
-                    help='path to dataset')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
@@ -140,73 +133,46 @@ def main_worker(npu, args):
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
-    # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'val')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-    train_dataset = datasets.ImageFolder(
-        traindir,
-        transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]))
-
-    train_sampler = None
-
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, pin_memory_device='npu',
-        sampler=train_sampler)
-
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True,
-        pin_memory_device='npu')
-
     if args.evaluate:
-        validate(val_loader, model, criterion, args)
+        validate(model, criterion)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args)
+        train(model, criterion, optimizer, epoch)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(model, criterion)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, args):
+def train(model, criterion, optimizer, epoch):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
     top5 = AverageMeter('Acc@5', ':6.2f')
     progress = ProgressMeter(
-        len(train_loader),
+        11,
         [batch_time, data_time, losses, top1, top5],
         prefix="Epoch: [{}]".format(epoch))
 
+    def fake_train_data(num):
+        while num < 11:
+            num += 1
+            yield (torch.randn([128, 3, 224, 224]).npu() + torch.randint(-2, 2, [128, 3, 224, 224]).npu()).cpu(), \
+                    torch.randint(1, 1000, [128])
+    
     # switch to train mode
     model.train()
 
     end = time.time()
-    for i, (images, target) in enumerate(train_loader):
+    for i, (images, target) in enumerate(fake_train_data(0)):
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -242,22 +208,28 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             break
 
 
-def validate(val_loader, model, criterion, args):
+def validate(model, criterion):
     batch_time = AverageMeter('Time', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
     top5 = AverageMeter('Acc@5', ':6.2f')
     progress = ProgressMeter(
-        len(val_loader),
+        1,
         [batch_time, losses, top1, top5],
         prefix='Test: ')
+    
+    def fake_val_data(num):
+        while num < 5:
+            num += 1
+            yield (torch.randn([128, 3, 224, 224]).npu() + torch.randint(-2, 2, [128, 3, 224, 224]).npu()).cpu(), \
+                    torch.randint(1, 1000, [128])
 
     # switch to evaluate mode
     model.eval()
 
     with torch.no_grad():
         end = time.time()
-        for i, (images, target) in enumerate(val_loader):
+        for i, (images, target) in enumerate(fake_val_data(0)):
             if 'npu' in CALCULATE_DEVICE:
                 target = target.to(torch.int32)
             images, target = images.to(CALCULATE_DEVICE, non_blocking=True),\
