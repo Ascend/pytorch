@@ -123,6 +123,8 @@ class _KinetoProfile:
         total_info[Constant.CONFIG] = config
 
     def _dump_metadata(self):
+        if not self.metadata:
+            return
         fwk_path = ProfilerPathManager.get_fwk_path(self.prof_path)
         if not fwk_path:
             fwk_path = os.path.join(self.prof_path, Constant.FRAMEWORK_DIR)
