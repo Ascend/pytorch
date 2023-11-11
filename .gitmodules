@@ -2,6 +2,7 @@
 	path = third_party/op-plugin
 	url = https://gitee.com/ascend/op-plugin.git
 	ignore = dirty
+	branch = 5.0.0
 [submodule "third_party/googletest"]
 	path = third_party/googletest
 	url = https://gitee.com/mirrors/googletest.git
