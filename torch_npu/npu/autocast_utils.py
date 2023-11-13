@@ -6,6 +6,8 @@ __all__ = ["get_amp_supported_dtype", "is_autocast_enabled", "set_autocast_enabl
 
 
 def get_amp_supported_dtype():
+    if torch.npu.is_bf16_supported():
+        return [torch.float16, torch.bfloat16]
     return [torch.float16]
 
 
