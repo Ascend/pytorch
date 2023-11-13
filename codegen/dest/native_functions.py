@@ -23,6 +23,8 @@ from codegen.api.signature import kernel_signature
 import codegen.api.meta as meta
 import codegen.api.structured as structured
 
+ExposeFuncList = ['npu_dtype_cast', 'npu_slice_out', 'npu_format_cast']
+
 
 @with_native_function_and_index
 def gen_unstructured(f: NativeFunction, backend_index: BackendIndex) -> Optional[str]:
@@ -35,7 +37,7 @@ def gen_unstructured(f: NativeFunction, backend_index: BackendIndex) -> Optional
     else:
         prefix = 'static' if backend_index.external else 'TORCH_API'
         name = sig.name()
-        if (name == 'npu_dtype_cast') or (name == 'npu_slice_out'):
+        if (name in ExposeFuncList):
             prefix = '__attribute__((__visibility__("default"))) ' + prefix
         return f"{prefix} {sig.decl(name=metadata.kernel)};"
 
