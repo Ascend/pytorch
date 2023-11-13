@@ -7,7 +7,6 @@ import torch
 from torch.library import Library, impl
 from torch._subclasses.fake_tensor import FakeTensor, FakeTensorMode
 
-import meta
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
