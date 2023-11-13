@@ -20,6 +20,7 @@ import sys
 import subprocess
 import threading
 import queue
+import argparse
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from torch_npu.utils.path_manager import PathManager
@@ -120,7 +121,6 @@ class DirectoryMappingStrategy(AccurateTest):
         'cpp_extension': 'test/test_cpp_extension',
         'distributed': 'test/test_distributed',
         'fx': 'test/test_fx',
-        'hooks': 'test/test_hooks',
         'optim': 'test/test_optim',
         'profiler': 'test/test_profiler',
         'onnx': 'test/test_onnx',
@@ -180,6 +180,21 @@ class TestMgr():
             if Path(changed_file).exists()
         ]
         self.test_files['ut_files'] = exist_ut_file
+
+    def load_core_ut(self):
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+
+    def load_distributed_ut(self):
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/test_distributed').rglob('test_*.py')]
+
+    def load_ut_in_parallel(self, rank, world_size):
+        if rank > world_size:
+            raise Exception(f'rank {rank} is greater than world_size {world_size}')
+        all_files = [str(i) for i in (BASE_DIR / 'test').rglob('test_*.py')
+                      if 'distributed' not in str(i)]
+        begin = (rank - 1) * len(all_files) // world_size
+        end = rank * len(all_files) // world_size
+        self.test_files['ut_files'] = all_files[begin:end]
 
     def get_test_files(self):
         return self.test_files
@@ -284,10 +299,28 @@ def exec_ut(files):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Control needed ut cases')
+    parser.add_argument(
+        '--only_distributed', action="store_true", help='Only run distributed cases')
+    parser.add_argument(
+        '--rank', default=0, type=int, help='Index of current ut nodes')
+    parser.add_argument(
+        '--world_size', default=0, type=int, help='Number of ut nodes')
+    options = parser.parse_args()
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
-    test_mgr.load(cur_modify_files)
-    test_mgr.analyze()
+    if options.only_distributed:
+        test_mgr.load_distributed_ut()
+    else:
+        if options.rank > 0 and options.world_size > 0:
+            test_mgr.load_ut_in_parallel(options.rank, options.world_size)
+        else:
+            if os.path.exists(cur_modify_files):
+                test_mgr.load(cur_modify_files)
+                test_mgr.analyze()
+            else:
+                test_mgr.load_core_ut()
+
     cur_test_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
