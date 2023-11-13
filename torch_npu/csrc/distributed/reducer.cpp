@@ -1124,8 +1124,11 @@ void Reducer::initialize_bucket_views(
     const auto offset = replica.offsets[i];
     const auto length = replica.lengths[i];
 
-    replica.bucket_views_in.push_back(
-        contents.narrow(0, offset, length));
+    if (!gradient_as_bucket_view_) {
+        replica.bucket_views_in.push_back(contents.narrow(0, offset, length));
+    } else {
+        replica.bucket_views_in.push_back(contents.narrow(0, offset, length).view(v.sizes()));
+    }
     // By default `bucket_views_out` and `bucket_views_in` are
     // essentially the same thing.
     replica.bucket_views_out = replica.bucket_views_in;
