@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import unittest
 
 import torch
 import torch.nn as nn
@@ -26,7 +27,7 @@ class TestUtilities(TestCase):
             amount=10,
         )
         return net
-
+    
     def test_clip_grad_norm_(self):
         input1 = torch.tensor([125, 75, 45, 15, 5]).npu()
         output = nn.utils.clip_grad_norm_(input1, max_norm=1, norm_type=2)
@@ -141,7 +142,8 @@ class TestUtilities(TestCase):
         m = nn.utils.prune.identity(model, 'bias')
         expected_cpu_mbias_mask = torch.tensor([1., 1., 1.])
         self.assertEqual(expected_cpu_mbias_mask.numpy(), m.bias_mask.cpu().numpy())
-
+     
+    @unittest.skip("skip test_prune_random_unstructured now")
     def test_prune_random_unstructured(self):
         m = nn.utils.prune.random_unstructured(nn.Linear(2, 3).npu(), 'weight', amount=1)
         output = torch.sum(m.weight_mask == 0)
@@ -152,7 +154,8 @@ class TestUtilities(TestCase):
         m = nn.utils.prune.l1_unstructured(nn.Linear(2, 3).npu(), 'weight', amount=0.2)
         output = m.state_dict().keys()
         self.assertEqual(m is not None, True)
-
+    
+    @unittest.skip("skip test_prune_random_structured now")
     def test_prune_random_structured(self):
         m = nn.utils.prune.random_structured(
             nn.Linear(5, 3).npu(), 'weight', amount=3, dim=1

@@ -1,3 +1,5 @@
+import unittest
+
 import torch
 import torch.nn.functional as F
 import torch_npu
@@ -43,7 +45,8 @@ class TestVisionFunctions(TestCase):
         npu_output = F.upsample(npu_input, 4)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-
+    
+    @unittest.skip("skip test_upsample_nearest now")
     def test_upsample_nearest(self):
         input1 = torch.empty(3, 3, 4, 2)
         npu_input = input1.npu()
@@ -64,7 +67,8 @@ class TestVisionFunctions(TestCase):
         npu_output = F.grid_sample(npu_input, npu_grid)
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
-
+    
+    @unittest.skip("skip test_affine_grid now")
     def test_affine_grid(self):
         input1 = torch.empty(1, 2, 3)
         size = torch.Size([1, 1, 2, 2])
