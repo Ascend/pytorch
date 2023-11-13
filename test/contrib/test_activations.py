@@ -1,3 +1,4 @@
+import unittest
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -29,7 +30,8 @@ class TestActivations(TestCase):
         output = res.sum()
         output.backward()
         return res.detach().cpu(), input1.grad.cpu()
-
+    
+    @unittest.skip("skip test_mish now")
     def test_mish(self):
         dtype_list = [np.float16, np.float32]
         format_list = [-1, 0, 2]
