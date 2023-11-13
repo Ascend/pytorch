@@ -488,7 +488,7 @@ class _DistTestBase(object):
             self.assertEqual(model_DDP.state_dict()[k],
                              saved_model.state_dict()[k])
 
-    def _test_DistributedDataParallel(self, npu_subset, rank, output_device=None):
+    def _test_DistributedDataParallel(self, npu_subset, rank, bucket_view, output_device=None):
         # Run a simple end to end DDP model, use result of single node model
         # as baseline
 
@@ -504,7 +504,7 @@ class _DistTestBase(object):
         model_DDP.npu(npu_subset[0])
 
         model_DDP = nn.parallel.DistributedDataParallel(
-            model_DDP, device_ids=npu_subset
+            model_DDP, device_ids=npu_subset, gradient_as_bucket_view=bucket_view
         )
 
         # test serializable/unserializable
@@ -536,10 +536,12 @@ class _DistTestBase(object):
         group, group_id, rank = self._init_global_test()
         rank_to_NPU = self._init_multinpu_helper()
         npus = list(rank_to_NPU[rank])
-        self._test_DistributedDataParallel(npu_subset=npus, rank=rank)
+        for bk in [True, False]:
+            self._test_DistributedDataParallel(npu_subset=npus, rank=rank, bucket_view=bk)
+
 
     def _test_DistributedDataParallel_SyncBatchNorm(
-            self, npu_subset, rank, local_bs, global_bs, offset, output_device=None):
+            self, npu_subset, rank, local_bs, global_bs, offset, bucket_view, output_device=None):
         # Run a simple end to end DDP model, use result of single node model
         # as baseline
 
@@ -554,7 +556,7 @@ class _DistTestBase(object):
         model_DDP = nn.SyncBatchNorm.convert_sync_batchnorm(copy.deepcopy(model))
         model_DDP.npu(npu_subset[0])
         model_DDP = nn.parallel.DistributedDataParallel(
-            model_DDP, device_ids=npu_subset
+            model_DDP, device_ids=npu_subset, gradient_as_bucket_view=bucket_view
         )
 
         # test serializable/unserializable
@@ -595,15 +597,16 @@ class _DistTestBase(object):
         local_bs = 2
         bs_offset = int(rank * 2)
         global_bs = int(num_processes * 2)
+        for bk in [True, False]:
+            self._test_DistributedDataParallel_SyncBatchNorm(
+                npu_subset=npus,
+                rank=rank,
+                local_bs=local_bs,
+                global_bs=global_bs,
+                offset=bs_offset,
+                bucket_view=bk)
 
-        self._test_DistributedDataParallel_SyncBatchNorm(
-            npu_subset=npus,
-            rank=rank,
-            local_bs=local_bs,
-            global_bs=global_bs,
-            offset=bs_offset)
-
-    def test_DistributedDataParallel_SyncBatchNorm_2D_Input(self):
+    def _test_DistributedDataParallel_SyncBatchNorm_2D_Input(self, bucket_view):
         group, group_id, rank = self._init_global_test()
         # DDP does not support replicating BN layers within a process, hence
         # testing with one module replica per process
@@ -619,7 +622,7 @@ class _DistTestBase(object):
         model_DDP = nn.SyncBatchNorm.convert_sync_batchnorm(copy.deepcopy(model))
         model_DDP.npu(npus[0])
         model_DDP = nn.parallel.DistributedDataParallel(
-            model_DDP, device_ids=npus
+            model_DDP, device_ids=npus, gradient_as_bucket_view=bucket_view
         )
 
         local_bs = len(npus) * 2
@@ -642,9 +645,14 @@ class _DistTestBase(object):
         )
         self._barrier()
 
-    def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self):
+    def test_DistributedDataParallel_SyncBatchNorm_2D_Input(self):
+        for bk in [True, False]:
+            self._test_DistributedDataParallel_SyncBatchNorm_2D_Input(bk)
+
+    def _test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self, bucket_view):
         group, group_id, rank = self._init_global_test()
-        model = nn.parallel.DistributedDataParallel(ONLY_SBN_NET.npu(rank), device_ids=[rank])
+        model = nn.parallel.DistributedDataParallel(ONLY_SBN_NET.npu(rank), device_ids=[rank],
+                                                    gradient_as_bucket_view=bucket_view)
 
         input_var = []
         for i in range(int(WORLD_SIZE)):
@@ -667,6 +675,10 @@ class _DistTestBase(object):
         torch.testing.assert_allclose(running_mean, all_input_var.mean(1))
         torch.testing.assert_allclose(running_var.cpu(), all_input_var.cpu().var(1, unbiased=False))
 
+    def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self):
+        for bk in [True, False]:
+            self._test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(bk)
+
     def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_gradient(self):
         group, group_id, rank = self._init_global_test()
         # only do single NPU per process
@@ -676,13 +688,14 @@ class _DistTestBase(object):
         local_bs = rank + 2
         bs_offset = int((rank + 3) * rank / 2)
         global_bs = int((num_processes + 3) * num_processes / 2)
-
-        self._test_DistributedDataParallel_SyncBatchNorm(
-            npu_subset=npus,
-            rank=rank,
-            local_bs=local_bs,
-            global_bs=global_bs,
-            offset=bs_offset)
+        for bk in [True, False]:
+            self._test_DistributedDataParallel_SyncBatchNorm(
+                npu_subset=npus,
+                rank=rank,
+                local_bs=local_bs,
+                global_bs=global_bs,
+                offset=bs_offset,
+                bucket_view=bk)
 
     @skipIfNoTorchVision
     def test_SyncBatchNorm_process_group(self):
