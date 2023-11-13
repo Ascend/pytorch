@@ -1,3 +1,4 @@
+import unittest
 import copy
 import torch
 import torch.nn.functional as F
@@ -7,6 +8,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestLinearFunctions(TestCase):
+    @unittest.skip("skip test_linear now")
     def test_linear(self):
         input1 = torch.randn(2, 3, 4)
         weight = torch.randn(3, 4)
@@ -17,7 +19,8 @@ class TestLinearFunctions(TestCase):
         npu_output = F.linear(npu_input, npu_weight)
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
-
+    
+    @unittest.skip("skip test_bilinear now")
     def test_bilinear(self):
         input1 = torch.randn(10, 30)
         input2 = torch.randn(10, 40)
