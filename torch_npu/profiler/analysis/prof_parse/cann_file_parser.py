@@ -26,6 +26,7 @@ class CANNDataEnum(Enum):
     AI_CPU = 7
     COMMUNICATION = 8
     MATRIX = 9
+    OP_STATISTIC = 10
 
 
 class CANNFileParser:
@@ -59,7 +60,9 @@ class CANNFileParser:
                                 r"^l2_cache_\d+_\d+_\d+_\d+\.csv"],
         CANNDataEnum.AI_CPU: [r"^aicpu_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+_\d+\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
-        CANNDataEnum.MATRIX: [r"^communication_matrix\.json"]
+        CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
+        CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+_\d+\.csv", r"^op_statistic_\d+_\d+_\d+\.csv",
+                                  r"^op_statistic_\d+_\d+_\d+_\d+\.csv"],
     }
 
     def __init__(self, profiler_path: str):
@@ -94,11 +97,6 @@ class CANNFileParser:
             return {}
         return data
 
-    @staticmethod
-    def _get_data_simplification_cmd(data_simplification: bool):
-        switch = "on" if data_simplification else "off"
-        return f"--clear={switch}"
-
     def export_cann_profiling(self, data_simplification: bool):
         if not os.path.isdir(self._cann_path):
             return
@@ -128,9 +126,8 @@ class CANNFileParser:
                         raise RuntimeError("Export CANN Profiling data failed, please verify that the "
                                            "ascend-toolkit is installed and set-env.sh is sourced.")
 
-        simplification_cmd = self._get_data_simplification_cmd(data_simplification)
         completed_analysis = subprocess.run(
-            [self.msprof_path, "--analyze=on", f"--output={self._cann_path}", simplification_cmd],
+            [self.msprof_path, "--analyze=on", f"--output={self._cann_path}"],
             capture_output=True, shell=False)
         if completed_analysis.returncode != self.COMMAND_SUCCESS:
             print_warn_msg("Analyze CANN Profiling data failed.")

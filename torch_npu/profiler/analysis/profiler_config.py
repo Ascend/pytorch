@@ -11,14 +11,15 @@ from .prof_common_func.constant import Constant, print_warn_msg
 from .prof_bean.ai_cpu_bean import AiCpuBean
 from .prof_parse.cann_file_parser import CANNDataEnum, CANNFileParser
 from .prof_bean.l2_cache_bean import L2CacheBean
+from .prof_bean.op_statistic_bean import OpStatisticBean
 
 
 @Singleton
 class ProfilerConfig:
     LEVEL_PARSER_CONFIG = {
         Constant.LEVEL0: [],
-        Constant.LEVEL1: [],
-        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean)]
+        Constant.LEVEL1: [(CANNDataEnum.OP_STATISTIC, OpStatisticBean)],
+        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean), (CANNDataEnum.OP_STATISTIC, OpStatisticBean)]
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
         Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu'],
