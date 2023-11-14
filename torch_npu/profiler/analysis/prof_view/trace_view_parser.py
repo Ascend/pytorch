@@ -59,7 +59,6 @@ class TraceViewParser(BaseViewParser):
     def generate_view(self, output_path: str, **kwargs) -> None:
         trace_data = self._prune_trace_by_level(CANNFileParser(self._profiler_path).get_timeline_all_data())
         self._add_fwk_trace_data(trace_data)
-        GlobalVar.torch_op_tree_node = []
         if os.path.isdir(output_path):
             FileManager.create_json_file(output_path, trace_data, self.TRACE_VIEW)
             TraceStepTimeParser.create_step_file(output_path, trace_data, self.STEP_TRACE)

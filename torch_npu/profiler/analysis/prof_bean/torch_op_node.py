@@ -35,6 +35,14 @@ class TorchOpNode:
         return self._event
 
     @property
+    def pid(self):
+        return self._event.pid
+
+    @property
+    def name(self):
+        return self._event.name
+
+    @property
     def all_node_num(self):
         return self._all_node_num
 
