@@ -10,6 +10,7 @@ from json import JSONDecodeError
 from ....utils.path_manager import PathManager
 from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant, print_warn_msg
+from ..prof_common_func.constant import print_error_msg
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_bean.step_trace_bean import StepTraceBean
@@ -101,6 +102,10 @@ class CANNFileParser:
         if not os.path.isdir(self._cann_path):
             return
         self._del_summary_and_timeline_data()
+        if not self.msprof_path:
+            err_msg = "Export CANN Profiling data faile! msprof command not found!"
+            print_error_msg(err_msg)
+            raise RuntimeError(err_msg)
         completed_process = subprocess.run([self.msprof_path, "--export=on", f"--output={self._cann_path}"],
                                            capture_output=True, shell=False)
         if completed_process.returncode != self.COMMAND_SUCCESS:
