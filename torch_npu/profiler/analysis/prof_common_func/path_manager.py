@@ -16,6 +16,7 @@
 import os
 import re
 
+from ....utils.path_manager import PathManager
 from ..prof_common_func.constant import Constant
 
 
@@ -60,6 +61,14 @@ class ProfilerPathManager:
         info_path = os.path.join(cls.get_cann_path(profiler_path), 'host/host_start.log')
         if os.path.exists(info_path):
             return info_path
+        else:
+            return ""
+    
+    @classmethod
+    def get_host_path(cls, cann_path: str) -> str:
+        host_path = os.path.join(cann_path, 'host')
+        if os.path.exists(host_path):
+            return host_path
         else:
             return ""
 
@@ -137,3 +146,24 @@ class ProfilerPathManager:
             msg = f"Invalid input path is a soft chain: {path}"
             raise RuntimeError(msg)
         return os.path.realpath(path)
+    
+    @classmethod
+    def simplify_data(cls, profiler_path: str) -> str:
+        fwk_path = cls.get_fwk_path(profiler_path)
+        PathManager.remove_path_safety(fwk_path)
+        cann_path = cls.get_cann_path(profiler_path)
+        if cann_path:
+            cann_rm_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
+            for cann_rm_dir in cann_rm_dirs:
+                target_path = os.path.join(cann_path, cann_rm_dir)
+                PathManager.remove_path_safety(target_path)
+        device_path = cls.get_device_path(cann_path)
+        host_path = cls.get_host_path(cann_path)
+        rm_dirs = ['log', 'sqlite', 'summary', 'timeline']
+        for rm_dir in rm_dirs:
+            if device_path:
+                target_path = os.path.join(device_path, rm_dir)
+                PathManager.remove_path_safety(target_path)
+            if host_path:
+                target_path = os.path.join(host_path, rm_dir)
+                PathManager.remove_path_safety(target_path)
