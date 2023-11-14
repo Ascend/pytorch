@@ -13,6 +13,7 @@ from codegen.api import cpp
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
 ParsedYaml = namedtuple('ParsedYaml', ['native_functions', 'backend_indices'])
+ExposeFuncList = ['npu_dtype_cast', 'npu_slice_out', 'npu_format_cast']
 
 
 CUSTOM_FUNCTIONS_DECLARATION = CodeTemplate("""\
@@ -74,7 +75,7 @@ def compute_custom_functions_declaration(f: NativeFunction):
     args = sig.arguments()
     args_str = ', '.join(a.decl() for a in args)
 
-    if (name == 'npu_dtype_cast') or (name == 'npu_slice_out'):
+    if (name in ExposeFuncList):
         return [EXPORT_CUSTOM_FUNCTIONS_DECLARATION.substitute(
             return_type=cpp.returns_type(f.func.returns).cpp_type(),
             func_name=name,

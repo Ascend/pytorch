@@ -99,7 +99,7 @@ public:
   }
 
   /// Explicit conversion to rtStream_t.
-  aclrtStream stream() const;
+  C10_NPU_API aclrtStream stream() const;
 
   /// Explicit conversion to Stream.
   c10::Stream unwrap() const {
@@ -134,7 +134,7 @@ NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
 NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
-NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
 NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
