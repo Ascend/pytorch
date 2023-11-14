@@ -1,4 +1,5 @@
 import itertools
+from unittest import skip
 
 import torch
 import torch.distributed._functional_collectives as funcol
@@ -19,7 +20,6 @@ import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
-@skipIfUnsupportMultiNPU(4)
 class DistTensorRandomInitTest(DTensorTestBase):
     def _run_init_op(self, init_op, *args, **kwargs):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -62,6 +62,7 @@ class DistTensorRandomInitTest(DTensorTestBase):
                     # other rank should have a different local tensor
                     self.assertNotEqual(local_tensor_gathered[slice_idx], local_tensor)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_init_ops(self):
         self._run_init_op(
@@ -74,8 +75,8 @@ class DistTensorRandomInitTest(DTensorTestBase):
         self._run_init_op(torch.nn.init.uniform_, a=0, b=1.2)
 
 
-@skipIfUnsupportMultiNPU(4)
 class DistTensorRandomOpTest(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_rng_tracker_init(self):
         torch.npu.manual_seed(self.rank)
@@ -90,6 +91,7 @@ class DistTensorRandomOpTest(DTensorTestBase):
         )
         self.assertEqual(seed_from_rank_0, random._rng_tracker.get_seed("parallel-rng"))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_manual_seed(self):
         device_mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -98,6 +100,52 @@ class DistTensorRandomOpTest(DTensorTestBase):
         with self.assertRaisesRegex(RuntimeError, "different seed values"):
             manual_seed(self.rank, device_mesh)
 
+    @skip("OffsetBaseRNGTracker needs to support cuda-like device")
+    @skipIfUnsupportMultiNPU(4)
+    @with_comms
+    def test_deterministic_rand_1d(self):
+        device_mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
+        size = [4, 4 * self.world_size]
+
+        dtensor = torch.distributed._tensor.rand(
+            size, device_mesh=device_mesh, placements=[Shard(1)]
+        )
+        local_tensor = funcol.all_gather_tensor(
+            dtensor.to_local(), gather_dim=0, group=(device_mesh, 0)
+        )
+
+        # compare with local tensors from other ranks
+        self_slice = slice(4 * self.rank, 4 * self.rank + 4)
+        for other_rank in range(self.world_size):
+            if self.rank != other_rank:
+                # other rank should have an identical local tensor
+                other_slice = slice(4 * other_rank, 4 * other_rank + 4)
+                self.assertNotEqual(
+                    local_tensor[self_slice, :],
+                    local_tensor[other_slice, :],
+                )
+
+        torch.manual_seed(self.rank)
+        torch.npu.manual_seed(self.rank)
+        dtensor = torch.distributed._tensor.rand(
+            size, device_mesh=device_mesh, placements=[Replicate()]
+        )
+        local_tensor = funcol.all_gather_tensor(
+            dtensor.to_local(), gather_dim=0, group=(device_mesh, 0)
+        )
+
+        # compare with local tensors from other ranks
+        self_slice = slice(4 * self.rank, 4 * self.rank + 4)
+        for other_rank in range(self.world_size):
+            if self.rank != other_rank:
+                # other rank should have an identical local tensor
+                other_slice = slice(4 * other_rank, 4 * other_rank + 4)
+                self.assertEqual(
+                    local_tensor[self_slice, :],
+                    local_tensor[other_slice, :],
+                )
+
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_deterministic_uniform_2d(self):
         mesh = torch.arange(self.world_size).reshape(2, 2)
@@ -202,6 +250,7 @@ class DistTensorRandomOpTest(DTensorTestBase):
                 else:
                     self.assertNotEqual(local_tensor_gathered[slice_idx], local_tensor)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_meta_tensor_init(self):
         # test suite sets each rank's seed to the same value but in actual

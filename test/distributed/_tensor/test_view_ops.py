@@ -27,8 +27,8 @@ import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestViewOps(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     def test_view_groups(self):
         self.assertEqual(
             view_groups([2, 3], [3, 2]),
@@ -176,13 +176,14 @@ class TestViewOps(DTensorTestBase):
             ).to_local()
 
             if dist.get_rank() == 0:
-                self.assertEqual(outputs, full_out)
+                self.assertEqual(outputs.npu(), full_out)
 
     def dimmap_test(self, op, args, expected_rule_output):
         rules = ops[op].dim_map(*args)
         self.assertEqual(rules, expected_rule_output)
         self.call_dt_test(op, args, {}, self.device_mesh)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_view_ops_p1(self):
         self.device_mesh = DeviceMesh(
@@ -227,6 +228,7 @@ class TestViewOps(DTensorTestBase):
             (InputDim(0), InputDim(1), InputDim(2), InputDim(3)),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_view_ops_p2(self):
         self.device_mesh = DeviceMesh(
@@ -331,6 +333,7 @@ class TestViewOps(DTensorTestBase):
             (InputDim(1), InputDim(0)),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_view_ops_p3(self):
         self.device_mesh = DeviceMesh(
@@ -376,6 +379,7 @@ class TestViewOps(DTensorTestBase):
             ),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_view_ops_p4(self):
         self.device_mesh = DeviceMesh(
