@@ -14,7 +14,7 @@ namespace hccl {
 
 REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclSetConfig)
-
+LOAD_FUNCTION(HcclGetCommName)
 
 extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue) {
     typedef HcclResult (*HcclSetConfigFunc)(HcclConfig config, HcclConfigValue configValue);
@@ -28,6 +28,17 @@ extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue) 
         return HcclResult::HCCL_SUCCESS;
     }
     return func(config, configValue);
+}
+
+extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
+    typedef HcclResult (*HcclGetCommNameFace)(HcclComm commHandle, char* commName);
+    static HcclGetCommNameFace func = nullptr;
+    if (func == nullptr) {
+        func = (HcclGetCommNameFace)GET_FUNC(HcclGetCommName);
+    }
+    TORCH_CHECK(func, "Failed to find function HcclGetCommName,"
+                " maybe you cann version is too low, please upgrade it");
+    return func(commHandle, commName);
 }
 } // namespace hccl
 } // namespace native
