@@ -17,8 +17,8 @@ import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
-@skipIfUnsupportMultiNPU(4)
 class DistMatrixOpsTest(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_addmm(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -39,6 +39,7 @@ class DistMatrixOpsTest(DTensorTestBase):
             local_res,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_addmm_auto_redistribute(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -72,6 +73,7 @@ class DistMatrixOpsTest(DTensorTestBase):
         mat2_grad = mat2.grad.redistribute(device_mesh, replica_spec)
         self.assertEqual(mat2_grad.to_local(), tensor_to_shard0.grad)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_mm(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -102,6 +104,7 @@ class DistMatrixOpsTest(DTensorTestBase):
         for spec in shard_specs_comb:
             test_placement_comb([spec[0]], [spec[1]])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_t(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -116,11 +119,12 @@ class DistMatrixOpsTest(DTensorTestBase):
         self.assertEqual(tranposed_mat2.size(), torch.Size([12, 8]))
         self.assertEqual(tranposed_mat2.placements, shard_spec)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_t_partial(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
-        a = torch.randn(12, 8)
-        b = torch.randn(8, 4)
+        a = torch.randn(12, 8, device=self.device_type)
+        b = torch.randn(8, 4, device=self.device_type)
         c = torch.mm(a, b).t()
         da = distribute_tensor(a, device_mesh, [Shard(1)])
         db = distribute_tensor(b, device_mesh, [Shard(0)])
@@ -135,6 +139,7 @@ class DistMatrixOpsTest(DTensorTestBase):
             dc.redistribute(device_mesh, [Replicate()]).to_local(),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_baddbmm(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -220,6 +225,7 @@ class DistMatrixOpsTest(DTensorTestBase):
                         batch_1.grad,
                     )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_bmm(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
