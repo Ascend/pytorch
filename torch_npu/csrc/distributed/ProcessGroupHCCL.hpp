@@ -345,6 +345,8 @@ public:
 
   int64_t getHcclComm(int rankid);
 
+  std::string getHcclCommName(int rankid);
+
 protected:
 
     // Wrapper method which can be overridden for tests.
