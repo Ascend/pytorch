@@ -105,5 +105,15 @@ class TestConv2d(TestCase):
         self.conv2d_backward_result(shape_format)
 
 
+    def test_lazyConv1d_empty_cann_api(self):
+        torch.npu.config.allow_internal_format = False
+        input_x = torch.randn((0, 1, 8)).npu()
+        input_x.requires_grad_(True)
+        model = torch.nn.LazyConv1d(out_channels=8, kernel_size=3, stride=1, padding=0, dilation=1, groups=1, bias=True).npu()
+        output_y = model(input_x)
+        backward_y = output_y.backward(torch.ones_like(output_y))
+        torch.npu.config.allow_internal_format = True
+
+
 if __name__ == "__main__":
     run_tests()
