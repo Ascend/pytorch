@@ -17,6 +17,7 @@
 import pathlib
 import argparse
 import os
+import stat
 import re
 from collections import namedtuple, Counter, defaultdict
 from typing import List, Dict, Union, Sequence, Optional, Set, Callable
@@ -41,8 +42,8 @@ from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
-                           parse_opplugin_yaml, merge_custom_yaml, filed_tag, gen_custom_yaml_path,
-                           update_opapi_info, is_opapi, PathManager)
+                           parse_opplugin_yaml, merge_custom_yaml, field_tag, gen_custom_yaml_path,
+                           update_opapi_info, is_opapi, PathManager, filt_exposed_api)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
 
@@ -139,7 +140,7 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
         supported_es = source_es.get('supported', []) + source_es.get('autograd', []) + custom_es
         for es in supported_es:
             update_opapi_info(es)
-        custom_es = filed_tag(custom_es)
+        custom_es = field_tag(custom_es)
         for e in custom_es:
             func, m = NativeFunction.from_yaml(e, "Location", valid_tags)
             rs.append(func)
@@ -591,6 +592,13 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         custom_ops_patch_dir = os.path.join(output_dir, "../../utils/")
         fm = FileManager(install_dir=custom_ops_patch_dir, template_dir=template_dir, dry_run=dry_run)
         gen_custom_ops_patch(fm, custom_functions)
+
+        filt_exposed_list = filt_exposed_api(source_yaml)
+        exposed_path = pathlib.Path(__file__).parents[1].joinpath('torch_npu/utils/exposed_api.py')
+        PathManager.remove_path_safety(exposed_path)
+        with os.fdopen(os.open(exposed_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as f:
+            f.write(f'public_npu_functions = {filt_exposed_list}')
+        os.chmod(exposed_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
 
 
 def apply_torchgen_patch():

@@ -11,7 +11,7 @@ from torchgen.utils import concatMap
 from torchgen.context import with_native_function, native_function_manager
 from torchgen.api.types import DispatcherSignature
 from torchgen.api import cpp
-from codegen.utils import (enable_opplugin, is_op_valid, filed_tag, get_opplugin_wrap_name, parse_npu_yaml)
+from codegen.utils import (enable_opplugin, is_op_valid, field_tag, get_opplugin_wrap_name, parse_npu_yaml)
 
 
 # Parse native_functions.yaml into a sequence of NativeFunctions and Backend Indices.
@@ -55,7 +55,7 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
     # Filter the custom native yaml file, and extract the functions we defined.
     source_es = parse_npu_yaml(custom_path)
     custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
-    custom_es = filed_tag(custom_es)
+    custom_es = field_tag(custom_es)
     for e_with_vars in custom_es:
         func, m = NativeFunction.from_yaml(e_with_vars, "Location", valid_tags)
         func.variants.discard(Variant.method)
@@ -74,20 +74,6 @@ def parse_custom_yaml(custom_path: str, tag_path: str) -> ParsedYaml:
                                   device_guard=False,
                                   index=v)
     return ParsedYaml(rs, indices)
-
-
-def parse_custom_supported_yaml(custom_path: str):
-    #Filter the custom native yaml file, and extract the functions are not exposed to Python.
-    source_es = parse_npu_yaml(custom_path)
-    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
-    custom_supported_es = source_es.get('custom_supported', [])
-    custom_es = filed_tag(custom_es)
-    custom_supported_es = filed_tag(custom_supported_es)
-    
-    for es in custom_es:
-        if es in custom_supported_es:
-            continue
-        SKIP_PYTHON_BINDINGS_SIGNATURES.append(es.get('func'))
 
 
 METHOD_DEFINITION = CodeTemplate("""\
