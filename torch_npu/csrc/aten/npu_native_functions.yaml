@@ -93,15 +93,22 @@ custom:
 - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
 - func: get_npu_format(Tensor self) -> int
 - func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
+  exposed: True
 - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
+  exposed: True
 - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+  exposed: True
 - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+  exposed: True
 - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
 - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+  exposed: True
 - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
+  exposed: True
 - func: format_contiguous(Tensor self) -> Tensor
 - func: check_match(Tensor self) -> bool
 - func: check_memory_overlaps(Tensor[] inputs, Tensor[] outputs) -> ()
 - func: get_storage_size(Tensor self) -> int
 - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+  exposed: True
 - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor
