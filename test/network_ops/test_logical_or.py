@@ -95,13 +95,13 @@ class TestLogicalOr(TestCase):
         self.logical_or_out_result(shape_format)
 
     def test_logical_or_bool(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_bool_data(0, 2, (10, 64), np.bool)
+        npu_input1, npu_input2 = self.generate_bool_data(0, 2, (10, 64), np.bool_)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_logical_or_inplace_bool(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_bool_data(0, 2, (10, 64), np.bool)
+        npu_input1, npu_input2 = self.generate_bool_data(0, 2, (10, 64), np.bool_)
         cpu_output = self.cpu_op_exec_(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
