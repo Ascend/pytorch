@@ -103,7 +103,6 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
             if source_data.get(key, []):
                 all_data += source_data[key]
         all_data = [op for op in all_data if isinstance(op, dict)]
-        all_data = field_tag(all_data)
         PathManager.check_directory_path_readable(path)
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
