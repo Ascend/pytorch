@@ -2005,6 +2005,17 @@ class THNCachingAllocator {
     if (!ptr.get()) {
       return;
     }
+
+      // If a tensor is not allocated by this instance, simply skip
+      // This usually happens when NPU tensors are shared across processes,
+      // we have implemented reference counting based sharing mechanism to
+      // guarantee tensors won't be accidentally freed by one process while
+      // they are still being used in another
+      if (ptr.get_deleter() != &raw_delete) {
+          TORCH_NPU_WARN_ONCE("Tensor not is not allocated by NPUCachingAllocator, skip eraseStream.");
+          return;
+      }
+
     Block* block = get_allocated_block(ptr.get());
     if (!block) {
       AT_ERROR("invalid device pointer: ", ptr.get());
