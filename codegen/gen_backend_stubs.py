@@ -17,6 +17,7 @@
 import pathlib
 import argparse
 import os
+import stat
 import re
 from collections import namedtuple, Counter, defaultdict
 from typing import List, Dict, Union, Sequence, Optional
@@ -26,9 +27,9 @@ from codegen.gen import FileManager, get_grouped_native_functions, error_check_n
 from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
 from codegen.selective_build.selector import SelectiveBuilder
-from codegen.utils import (Target, concat_map, context, parse_npu_yaml,
+from codegen.utils import (Target, concat_map, context, parse_npu_yaml, filt_exposed_api,
                            get_opplugin_wrap_name, parse_opplugin_yaml,
-                           merge_custom_yaml, gen_custom_yaml_path, filed_tag, PathManager)
+                           merge_custom_yaml, gen_custom_yaml_path, field_tag, PathManager)
 import codegen.dest as dest
 import codegen.dest.utils as utils
 import codegen.api.dispatcher as dispatcher
@@ -95,14 +96,14 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         # Filter the custom native yaml file, and extract the functions we defined.
         source_data = parse_npu_yaml(custom_path)
         custom_es = source_data.get('custom', []) + source_data.get('custom_autograd', [])
-        custom_es = filed_tag(custom_es)
+        custom_es = field_tag(custom_es)
         all_data = []
         need_key = ['supported', 'autograd', 'autograd', 'custom_autograd']
         for key in need_key:
             if source_data.get(key, []):
                 all_data += source_data[key]
         all_data = [op for op in all_data if isinstance(op, dict)]
-        all_data = filed_tag(all_data)
+        all_data = field_tag(all_data)
         PathManager.check_directory_path_readable(path)
         with open(path, 'r') as f:
             es = yaml.safe_load(f)
@@ -584,6 +585,13 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
         custom_functions = parse_custom_yaml(source_yaml).native_functions
         gen_custom_registration(fm, custom_functions)
         gen_custom_functions(fm, custom_functions)
+
+        filt_exposed_list = filt_exposed_api(source_yaml)
+        exposed_path = pathlib.Path(__file__).parents[1].joinpath('torch_npu/utils/exposed_api.py')
+        PathManager.remove_path_safety(exposed_path)
+        with os.fdopen(os.open(exposed_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as f:
+            f.write(f'public_npu_functions = {filt_exposed_list}')
+        os.chmod(exposed_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
 
 if __name__ == '__main__':
     main()

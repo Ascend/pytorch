@@ -44,7 +44,7 @@ YamlDumper = Dumper
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 
 CUSTOM_YAML_NAME = "npu_native_functions_by_codegen.yaml"
-FIELDS_TO_REMOVE = ["wrap_impl", "impl_name", "impl_ns", "tags"]
+FIELDS_TO_USE = ["func"]
 MANUAL_OPS = ["argmin", "argmax", "nan_to_num", "nan_to_num_",
               "nan_to_num.out", "_embedding_bag_dense_backward", "matmul_backward"]
 
@@ -237,13 +237,22 @@ def merge_custom_yaml(pta_path, op_plugin_path):
     return merged_yaml
 
 
-def filed_tag(custom_es):
-    for e in custom_es:
-        if not isinstance(e, dict):
+def field_tag(custom_es):
+    for i, es in enumerate(custom_es):
+        if not isinstance(es, dict):
             continue
-        for field in FIELDS_TO_REMOVE:
-            e.pop(field, None)
+        custom_es[i] = {key: custom_es[i][key] for key in FIELDS_TO_USE if key in custom_es[i]}
     return custom_es
+
+
+def filt_exposed_api(custom_path: str):
+    source_es = parse_npu_yaml(custom_path)
+    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
+    exposed_set = set()
+    for es in custom_es:
+        if es.get('exposed', False):
+            exposed_set.add(es.get('func').split('(')[0].split('.')[0])
+    return list(exposed_set)
 
 
 def parse_opplugin_yaml(custom_path: str) -> None:

@@ -69,12 +69,18 @@ custom:
   - func: npu_change_data_ptr(Tensor dst, Tensor src, int index) -> int
   - func: get_npu_format(Tensor self) -> int
   - func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
+    exposed: True
   - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
+    exposed: True
   - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+    exposed: True
   - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+    exposed: True
   - func: unsafe_empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2, bool keep_format=False) -> Tensor
   - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+    exposed: True
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
+    exposed: True
   - func: npu_multi_head_attention_grad(Tensor query, Tensor key, Tensor value, Tensor dy, int head_num, str input_layout, *, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, Tensor? softmax_in=None, Tensor? attention_in=None, float scale_value=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, bool gen_mask_parallel=True, bool sync=False) -> Tensor[]
   - func: format_contiguous(Tensor self) -> Tensor
   - func: check_match(Tensor self) -> bool
@@ -85,7 +91,8 @@ custom:
   - func: npu_hcom_allgather(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm) -> Tensor
   - func: npu_hcom_allgather.out(Tensor self, int rank_size, str group, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
-  - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor 
+    exposed: True
+  - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor
 
 custom_autograd:
   - func: npu_multi_head_attention_score(Tensor query, Tensor key, Tensor value, int head_num, str input_layout, Tensor? pse=None, Tensor? padding_mask=None, Tensor? atten_mask=None, float scale=1., float keep_prob=1., int pre_tockens=2147483647, int next_tockens=2147483647, bool gen_mask_parallel=True, bool sync=False) -> Tensor[]
