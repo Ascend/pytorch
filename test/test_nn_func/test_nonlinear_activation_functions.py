@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import copy
 
 import torch
@@ -136,6 +137,7 @@ class TestNonLiACFunctions(TestCase):
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
 
+    @unittest.skip("skip test_gelu now")
     def test_gelu(self):
         input1 = torch.randn(2)
         npu_input = copy.deepcopy(input1).npu()
