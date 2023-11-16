@@ -79,6 +79,6 @@ class FileManager:
         PathManager.check_directory_path_writeable(output_path)
         try:
             with open(output_path, "w") as file:
-                json.dump(data, file, indent=indent)
+                json.dump(data, file, indent=indent, ensure_ascii=False)
         except Exception as err:
             raise RuntimeError(f"Can't create file: {output_path}") from err
