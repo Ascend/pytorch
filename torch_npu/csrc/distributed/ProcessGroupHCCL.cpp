@@ -659,7 +659,7 @@ void ProcessGroupHCCL::hcclCommWatchdogInternal()
                               << "HCCL or RTS error: \n"
                               << exceptionMsg;
 
-                    if (blockingWait_ || asyncErrorHandling_ != NoHandling) {
+                    if (hcclErrorException && (blockingWait_ || asyncErrorHandling_ != NoHandling)) {
                         LOG(INFO) << "[Rank " << rank_ << "] Aborting communicators that received errors";
                         // We abort HCCL communicators that have received errors from this
                         // thread, and exceptions are set on the corresponding work objects.
@@ -814,9 +814,15 @@ ProcessGroupHCCL::ProcessGroupHCCL(
         int device_id = 0;
         auto ret = aclrtGetDevice(&device_id);
         if (ret != ACL_ERROR_NONE) {
-            NPU_LOGE("Device has not been set");
+            asyncErrorHandling_ = NoHandling;
+            desyncDebug_ = false;
+            TORCH_NPU_WARN("Device has not been set, And need ensure set_deivce() operation before init_process_group(). \
+			    Both HCCL_ASYNC_ERROR_HANDLING and HCCL_DESYNC_DEBUG has been disabled, some wathdog feature cannot be used");
+            ASCEND_LOGD("Device has not been set, And need ensure set_deivce() operation before init_process_group(). \
+				Both HCCL_ASYNC_ERROR_HANDLING and HCCL_DESYNC_DEBUG has been disabled, some wathdog feature cannot be used");
+        } else {
+            workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this, device_id);
         }
-        workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this, device_id);
     }
 }
 
