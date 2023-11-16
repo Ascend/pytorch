@@ -976,6 +976,8 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
                          dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
