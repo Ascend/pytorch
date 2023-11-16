@@ -117,11 +117,14 @@ class PathManager:
         msg = f"Failed to remove path: {path}"
         if os.path.islink(path):
             raise RuntimeError(msg)
-        if os.path.exists(path):
-            try:
-                shutil.rmtree(path)
-            except Exception as err:
-                raise RuntimeError(msg) from err
+        if not os.path.exists(path):
+            return
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            return
+        except Exception as err:
+            raise RuntimeError(msg) from err
 
     @classmethod
     def make_dir_safety(cls, path: str):
@@ -131,7 +134,7 @@ class PathManager:
         if os.path.exists(path):
             return
         try:
-            os.makedirs(path, mode=cls.DATA_DIR_AUTHORITY)
+            os.makedirs(path, mode=cls.DATA_DIR_AUTHORITY, exist_ok=True)
         except Exception as err:
             raise RuntimeError(msg) from err
 
