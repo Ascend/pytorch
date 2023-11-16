@@ -128,4 +128,5 @@ class TestAddCMul(TestCase):
 
 
 if __name__ == "__main__":
-    run_tests()
+    if torch_npu.npu.get_device_name(0)[:10] == 'Ascend910B':
+        run_tests()
