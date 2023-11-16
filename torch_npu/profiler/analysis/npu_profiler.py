@@ -21,8 +21,9 @@ class NpuProfiler:
         pool = Pool(processes=os.cpu_count() // 2)
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
-            pool.apply_async(ViewParserFactory.create_view_parser_and_run,
-                             (profiler_path, analysis_type, output_path, kwargs))
+            res = pool.apply_async(ViewParserFactory.create_view_parser_and_run,
+                                   (profiler_path, analysis_type, output_path, kwargs))
+            res.get()
         pool.close()
         pool.join()
 
