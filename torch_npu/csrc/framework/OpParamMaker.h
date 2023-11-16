@@ -404,6 +404,8 @@ namespace at_npu
       c10::SmallVector<OpCommandImpl, N> objs;
     }; // class OpCommandImpls
 
+    void SetDeterministic();
+
     static std::unordered_map<std::thread::id, OpCommandImpls> opcommand_impls_map;
     static std::mutex map_mutex;
     static bool deterministicaclnn_oldstatus = false;
