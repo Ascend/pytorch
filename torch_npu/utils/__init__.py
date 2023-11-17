@@ -27,6 +27,7 @@ from .fx import add_fx_methods
 from .checkpoint import add_checkpoint_methods
 from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_combined_tensor_valid
 from .dynamo import add_dynamo_patch
+from .collect_env import add_collect_env_methods, get_cann_version
 
 __all__ = []
 
