@@ -6,7 +6,7 @@ from codegen.code_template import CodeTemplate
 from codegen.gen import FileManager, cpp_string, error_check_native_functions
 from codegen.model import (BackendIndex, DispatchKey, Variant,
                             NativeFunction, OperatorName, BackendMetadata)
-from codegen.utils import concat_map, context, filed_tag, parse_npu_yaml
+from codegen.utils import concat_map, context, field_tag, parse_npu_yaml
 from codegen.context import with_native_function
 from codegen.api.signature import DispatcherSignature
 from codegen.api import cpp
@@ -39,7 +39,7 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     # Filter the custom native yaml file, and extract the functions we defined.
     source_es = parse_npu_yaml(custom_path)
     custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
-    custom_es = filed_tag(custom_es)
+    custom_es = field_tag(custom_es)
     for e_with_vars in custom_es:
         funcs = e_with_vars.get('func')
         with context(lambda: f'in {custom_path}:\n  {funcs}'):

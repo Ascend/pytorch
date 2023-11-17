@@ -45,7 +45,7 @@ from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
                            Type, Variant)
 from codegen.utils import (context, gen_custom_yaml_path, parse_npu_yaml,
-                           filed_tag, parse_opplugin_yaml, PathManager)
+                           field_tag, parse_opplugin_yaml, PathManager)
 from codegen.autograd.utils import NPU_AUTOGRAD_FUNCTION
 from codegen.custom_functions import parse_custom_yaml
 
@@ -99,21 +99,6 @@ def should_trace(f: NativeFunction) -> bool:
     if not any(r.type.is_tensor_like() for r in f.func.returns):
         return False
     return f.func.name.name.base not in DONT_RECORD_TRACE
-
-
-def parse_custom_supported_yaml(custom_path: str):
-    #Filter the custom native yaml file, and extract the functions are not exposed to Python.
-    source_es = parse_npu_yaml(custom_path)
-    custom_es = source_es.get('custom', []) + source_es.get('custom_autograd', [])
-    custom_supported_es = source_es.get('custom_supported', [])
-    custom_es = filed_tag(custom_es)
-    custom_supported_es = filed_tag(custom_supported_es)
-    
-    for es in custom_es:
-        if es in custom_supported_es:
-            continue
-        SKIP_PYTHON_BINDINGS_SIGNATURES.append(es.get('func'))
-
 
 
 @with_native_function
