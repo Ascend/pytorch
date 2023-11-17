@@ -19,6 +19,7 @@ import os
 
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_common_func.file_tag import FileTag
+from ..prof_common_func.global_var import GlobalVar
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_common_func.file_manager import FileManager
 from ..prof_bean.memory_use_bean import MemoryUseBean
@@ -62,7 +63,7 @@ class MemoryViewParser(BaseViewParser):
         left = 0
         while right > left:
             mid = left + ceil((right - left) / 2)
-            if ts >= torch_ops[mid].ts:
+            if ts >= torch_ops[mid].start_time:
                 left = mid
             else:
                 right = mid - 1
@@ -170,15 +171,13 @@ class MemoryViewParser(BaseViewParser):
 
     def _find_matched_torch_op_name(self, mem_start_ts: int, torch_ops: list) -> str:
         matched_torch_op_idx = self._find_torch_ops_by_binary_search(mem_start_ts, torch_ops)
-        cnt = 0
-        while matched_torch_op_idx >= 0 and \
-                torch_ops[matched_torch_op_idx].ts + torch_ops[matched_torch_op_idx].dur < mem_start_ts:
-            matched_torch_op_idx -= 1
-            cnt += 1
-            if cnt >= self.MAX_FIND_LAYERS or matched_torch_op_idx < 0:
+        matched_torch_op = torch_ops[matched_torch_op_idx]
+        while matched_torch_op.end_time < mem_start_ts:
+            matched_torch_op = matched_torch_op.parent_node
+            if not matched_torch_op or not matched_torch_op.event:
                 warn(f"Can't find matched torch ops for a memory record!")
                 return ""
-        return torch_ops[matched_torch_op_idx].name
+        return matched_torch_op.name
 
     def _combine_memory_record(self: any, allocate_record: MemoryUseBean,
                                release_record: MemoryUseBean, torch_ops: list) -> list:
@@ -198,7 +197,7 @@ class MemoryViewParser(BaseViewParser):
 
     def _add_pta_memory_data(self):
         pta_memory_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.MEMORY)
-        torch_op_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.TORCH_OP)
+        torch_op_data = GlobalVar.torch_op_tree_node
         pta_memory_dict = {}
         torch_op_dict = {}
         pta_memory_record = []
@@ -215,7 +214,7 @@ class MemoryViewParser(BaseViewParser):
             if not torch_ops:
                 warn(f"Lack of torch ops to connect memory record, whose process id is {pid_key}")
                 continue
-            torch_ops = sorted(torch_ops, key=lambda x: x.ts)
+            torch_ops = sorted(torch_ops, key=lambda x: x.start_time)
             memory_dict = {}
             for memory_record in memory_records:
                 if memory_record.ptr not in memory_dict or \
