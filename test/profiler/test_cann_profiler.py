@@ -80,7 +80,7 @@ class TestCannProfiler(TestCase):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(TestCannProfiler.results_path):
-            PathManager.remove_path_safetyTestCannProfiler.results_path
+            PathManager.remove_path_safety(TestCannProfiler.results_path)
         torch.npu.prof_finalize()
 
     def _test_cann_ops(self, *args, **kwargs):

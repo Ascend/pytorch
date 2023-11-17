@@ -30,6 +30,7 @@ class ViewParserFactory:
             PathManager.make_dir_safety(output_path)
         for parser in ViewParserConfig.CONFIG_DICT.get(analysis_type):
             parser(profiler_path).generate_view(output_path, **kwargs)
+        GlobalVar.torch_op_tree_node = []
         cls.simplify_data(profiler_path)
         end_time = datetime.datetime.now(tz=timezone.utc)
         print_info_msg(f'All profiling data parsed in a total time of {end_time - start_time}')
