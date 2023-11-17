@@ -55,7 +55,9 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::Bits8, ACL_DT_UNDEFINED)                                   \
   _(at::ScalarType::Bits16, ACL_DT_UNDEFINED)                                  \
   _(at::ScalarType::Float8_e5m2, ACL_DT_UNDEFINED)                             \
+  _(at::ScalarType::Float8_e5m2fnuz, ACL_DT_UNDEFINED)                         \
   _(at::ScalarType::Float8_e4m3fn, ACL_DT_UNDEFINED)                           \
+  _(at::ScalarType::Float8_e4m3fnuz, ACL_DT_UNDEFINED)                         \
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                               \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
