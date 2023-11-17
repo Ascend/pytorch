@@ -54,12 +54,12 @@ def wrapper_cuda(fn):
 
 def replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
-        if type(arg) == str and 'cuda' in arg:
+        if isinstance(arg, str) and 'cuda' in arg:
             args_list[idx] = arg.replace('cuda', 'npu')
-        if type(arg) == torch.device and 'cuda' in arg.type:
+        if isinstance(arg, torch.device) and 'cuda' in arg.type:
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
             args_list[idx] = torch.device(device_info)
-        if replace_int and type(arg) != bool and type(arg) == int:
+        if replace_int and not isinstance(arg, bool) and isinstance(arg, int):
             args_list[idx] = f'npu:{arg}'
     return args_list
 
@@ -210,6 +210,8 @@ def init():
     torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
 
     torch.jit.script = jit_script
+
+    torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
 
 
 init()
