@@ -54,7 +54,7 @@ class ProfManager:
             worker_name = "{}_{}".format(socket.gethostname(), str(os.getpid()))
         else:
             worker_name = self._worker_name
-        span_name = "{}_{}_ascend_pt".format(worker_name, datetime.utcnow().strftime("%Y%m%d%H%M%S.%f")[:-3])
+        span_name = "{}_{}_ascend_pt".format(worker_name, datetime.utcnow().strftime("%Y%m%d%H%M%S%f")[:-3])
         self._prof_path = os.path.join(dir_path, span_name)
         PathManager.check_input_directory_path(self._prof_path)
         PathManager.make_dir_safety(self._prof_path)
