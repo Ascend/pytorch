@@ -12,14 +12,17 @@ from .prof_bean.ai_cpu_bean import AiCpuBean
 from .prof_parse.cann_file_parser import CANNDataEnum, CANNFileParser
 from .prof_bean.l2_cache_bean import L2CacheBean
 from .prof_bean.op_statistic_bean import OpStatisticBean
+from .prof_bean.npu_module_mem_bean import NpuModuleMemoryBean
 
 
 @Singleton
 class ProfilerConfig:
     LEVEL_PARSER_CONFIG = {
-        Constant.LEVEL0: [],
-        Constant.LEVEL1: [(CANNDataEnum.OP_STATISTIC, OpStatisticBean)],
-        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean), (CANNDataEnum.OP_STATISTIC, OpStatisticBean)]
+        Constant.LEVEL0: [(CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
+        Constant.LEVEL1: [(CANNDataEnum.OP_STATISTIC, OpStatisticBean),
+                          (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
+        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean), (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
+                          (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)]
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
         Constant.LEVEL0: ['CANN', 'AscendCL', 'Runtime', 'GE', 'Node', 'Model', 'Hccl', 'acl_to_npu'],
