@@ -16,6 +16,7 @@
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_common_func.file_manager import FileManager
+from ..prof_common_func.constant import convert_ns2us_float
 
 
 class TraceStepTimeParser(BaseViewParser):
@@ -73,7 +74,7 @@ class TraceStepTimeParser(BaseViewParser):
         # get step time
         hasStepFlag = False
         for curStep in GlobalVar.step_range:
-            step_list.append([curStep[0], curStep[1], curStep[2], -1, -1])
+            step_list.append([curStep[0], convert_ns2us_float(curStep[1]), convert_ns2us_float(curStep[2]), -1, -1])
             save_time.append(
                 {'step': curStep[0], 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0,
                  'bubble': 0, 'comunNotOverlpRec': 0})

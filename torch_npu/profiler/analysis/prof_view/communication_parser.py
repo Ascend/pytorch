@@ -19,6 +19,7 @@ from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.cann_file_parser import CANNDataEnum
 from ..prof_common_func.global_var import GlobalVar
+from ..prof_common_func.constant import convert_us2ns
 
 
 class CommunicationParser(BaseViewParser):
@@ -93,6 +94,7 @@ class CommunicationParser(BaseViewParser):
             self.step_list[0]["comm_ops"] = communication_data
         for communication_op, communication_op_info in communication_data.items():
             start_time = communication_op_info.get(self.COMMUNICATION_TIME_INFO, {}).get(self.START_TIMESTAMP)
+            start_time = convert_us2ns(start_time)
             for step_info in self.step_list:
                 if step_info.get("start_ts", -1) <= start_time <= step_info.get("end_ts", -1):
                     step_info.get("comm_ops", {})[communication_op] = communication_op_info

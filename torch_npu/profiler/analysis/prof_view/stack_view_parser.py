@@ -18,6 +18,7 @@ import os
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_common_func.constant import print_warn_msg
 from ....utils.path_manager import PathManager
 
@@ -44,14 +45,13 @@ class StackViewParser(BaseViewParser):
                 if not call_stack:
                     continue
                 if metric == Constant.METRIC_CPU_TIME:
-                    total_dur = torch_op_node.host_self_dur
+                    total_dur = convert_ns2us_float(torch_op_node.host_self_dur)
                 else:
                     total_dur = torch_op_node.device_self_dur
                 if float(total_dur) <= 0:
                     continue
-                total_dur = round(float(total_dur))
                 # remove ‘\n’ for each stack frame
                 call_stack_list = list(map(lambda x: x.strip(), call_stack.split(";")))
                 call_stack_list = list(reversed(call_stack_list))
                 call_stack_str = ";".join(call_stack_list)
-                f.write(call_stack_str + " " + str(total_dur) + "\n")
+                f.write(call_stack_str + " " + str(int(total_dur)) + "\n")

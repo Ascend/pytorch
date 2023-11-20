@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union, Optional
+from decimal import Decimal
+
 from ..prof_common_func.constant import Constant
 
 
@@ -22,9 +25,9 @@ class GeOpMemoryBean:
 
     @property
     def row(self) -> list:
-        return [self.name, self.size, self.allocation_time, self.release_time, self.dur,
-                self.allocation_total_allocated, self.allocation_total_reserved, self.release_total_allocated,
-                self.release_total_reserved, self.device]
+        return [self.name, self.size, self.allocation_time, self.release_time + "\t",
+                self.dur, self.allocation_total_allocated, self.allocation_total_reserved,
+                self.release_total_allocated, self.release_total_reserved, self.device]
 
     @property
     def name(self):
@@ -35,17 +38,20 @@ class GeOpMemoryBean:
         return self._data.get("Size(KB)")
 
     @property
-    def allocation_time(self):
+    def allocation_time(self) -> Union[float, str]:
         return self._data.get("Allocation Time(us)")
 
     @property
-    def dur(self):
+    def dur(self) -> Union[float, str]:
         return self._data.get("Duration(us)")
 
     @property
-    def release_time(self):
+    def release_time(self) -> Optional[str]:
         if self.allocation_time and self.dur:
-            return float(self.allocation_time) + float(self.dur)
+            alloc_us_dcm = Decimal(str(self.allocation_time))
+            dur_us_dcm = Decimal(str(self.dur))
+            rls_us_dcm = alloc_us_dcm + dur_us_dcm
+            return str(rls_us_dcm)
         return None
 
     @property
