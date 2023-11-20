@@ -26,6 +26,7 @@ from ....utils.path_manager import PathManager
 from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant, print_warn_msg
 from ..prof_common_func.constant import print_error_msg
+from ..prof_common_func.constant import convert_us2ns
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_bean.step_trace_bean import StepTraceBean
@@ -205,7 +206,7 @@ class CANNFileParser:
             print_warn_msg("The parsing time is expected to exceed 30 minutes, "
                            "and you can choose to stop the process and use offline parsing.")
 
-    def get_localtime_diff(self) -> float:
+    def get_localtime_diff(self) -> int:
         localtime_diff = 0
         if not self._cann_path:
             return localtime_diff
@@ -214,8 +215,8 @@ class CANNFileParser:
             return localtime_diff
         try:
             info_json = ast.literal_eval(FileManager.file_read_all(start_info_path, "rt"))
-            localtime_diff = float(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - float(
-                info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0)) / Constant.NS_TO_US
+            localtime_diff = convert_us2ns(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - int(
+                info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0))
         except Exception:
             print_warn_msg("Failed to get CANN localtime diff.")
         return localtime_diff

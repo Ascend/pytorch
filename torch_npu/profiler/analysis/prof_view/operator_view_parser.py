@@ -15,6 +15,7 @@
 
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.global_var import GlobalVar
+from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_view.base_view_parser import BaseViewParser
 
 
@@ -36,10 +37,12 @@ class OperatorViewParser(BaseViewParser):
             if torch_op_node.is_profiler_step():
                 continue
             operator_list[index] = [torch_op_node.event.name, torch_op_node.input_shape, torch_op_node.call_stack,
-                                    torch_op_node.host_self_dur, torch_op_node.host_total_dur,
-                                    torch_op_node.device_self_dur, torch_op_node.device_total_dur,
-                                    torch_op_node.device_self_dur_with_ai_core,
-                                    torch_op_node.device_total_dur_with_ai_core]
+                                    convert_ns2us_float(torch_op_node.host_self_dur),
+                                    convert_ns2us_float(torch_op_node.host_total_dur),
+                                    float(torch_op_node.device_self_dur),
+                                    float(torch_op_node.device_total_dur),
+                                    float(torch_op_node.device_self_dur_with_ai_core),
+                                    float(torch_op_node.device_total_dur_with_ai_core)]
             index += 1
         del operator_list[index:]
         FileManager.create_csv_file(output_path, operator_list, self.OPERATOR_VIEW, self.OPERATOR_HEADERS)

@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union
+
 from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import convert_us2ns
 
 
 class EventBean:
@@ -25,8 +28,11 @@ class EventBean:
         self._origin_data = data
 
     @property
-    def ts(self) -> float:
-        return self._origin_data.get("ts", 0)
+    def ts(self) -> int:
+        # Time unit is ns
+        ts_us = self._origin_data.get("ts", 0)
+        ts_ns = convert_us2ns(ts_us)
+        return ts_ns
 
     @property
     def pid(self) -> str:
@@ -37,7 +43,8 @@ class EventBean:
         return self._origin_data.get("tid", 0)
 
     @property
-    def dur(self) -> float:
+    def dur(self) -> Union[float, str]:
+        # Time unit is us
         return self._origin_data.get("dur", 0)
 
     @property

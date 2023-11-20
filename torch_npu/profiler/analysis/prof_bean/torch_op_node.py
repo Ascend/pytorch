@@ -59,35 +59,41 @@ class TorchOpNode:
         return self._kernel_list
 
     @property
-    def start_time(self) -> float:
+    def start_time(self) -> int:
         return self._event.ts
 
     @property
-    def end_time(self) -> float:
+    def end_time(self) -> int:
         return self._event.ts + self._event.dur
 
     @property
     def host_self_dur(self):
+        # Time unit is ns
         return self._event.dur - sum([node.event.dur for node in self._child_list])
 
     @property
     def host_total_dur(self):
+        # Time unit is ns
         return self._event.dur
 
     @property
     def device_self_dur(self):
+        # Time unit is us
         return self._device_dur_list[0]
 
     @property
     def device_self_dur_with_ai_core(self):
+        # Time unit is us
         return self._device_dur_list[1]
 
     @property
     def device_total_dur(self):
+        # Time unit is us
         return self._device_dur_list[2]
 
     @property
     def device_total_dur_with_ai_core(self):
+        # Time unit is us
         return self._device_dur_list[3]
 
     @property
@@ -112,7 +118,7 @@ class TorchOpNode:
     def add_child_node(self, child_node):
         self._child_list.append(child_node)
 
-    def match_child_node(self, ts_time: float) -> any:
+    def match_child_node(self, ts_time: int) -> any:
         if not self._child_list:
             return None
         right = len(self._child_list) - 1
@@ -126,14 +132,17 @@ class TorchOpNode:
         return self._child_list[left] if self._child_list[left].end_time > ts_time else None
 
     def update_device_self(self, node_info_bean: NodeInfoBean):
+        # Time unit is us
         self._device_dur_list[0] += node_info_bean.device_dur
         self._device_dur_list[1] += node_info_bean.device_dur_with_ai_core
         self._kernel_list = node_info_bean.kernel_list
 
     def update_device_total(self, node_info_bean: NodeInfoBean):
+        # Time unit is us
         self._device_dur_list[2] += node_info_bean.device_dur
         self._device_dur_list[3] += node_info_bean.device_dur_with_ai_core
 
     def update_device_range(self, node_info_bean: NodeInfoBean):
+        # Time unit is ns
         self._min_start = min([self._min_start, node_info_bean.min_start])
         self._max_end = max([self._max_end, node_info_bean.max_end])

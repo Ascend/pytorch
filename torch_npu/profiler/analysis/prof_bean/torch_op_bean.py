@@ -60,16 +60,15 @@ class TorchOpBean:
         return str(self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.OP_NAME), ""))
 
     @property
-    def ts(self) -> float:
+    def ts(self) -> int:
         startns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value])
-        ts = int(startns) / Constant.NS_TO_US
-        return ProfilerConfig().get_local_time(ts)
+        return ProfilerConfig().get_local_time(startns)
 
     @property
-    def dur(self) -> float:
+    def dur(self) -> int:
         startns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value])
         endns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.END_NS.value])
-        return (int(endns) - int(startns)) / Constant.NS_TO_US
+        return int(endns) - int(startns)
 
     @property
     def args(self) -> dict:

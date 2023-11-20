@@ -15,6 +15,8 @@
 
 import os
 from datetime import datetime
+from decimal import Decimal
+from typing import Union
 
 
 class Constant(object):
@@ -38,7 +40,7 @@ class Constant(object):
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
-    NS_TO_US = 1000.0
+    NS_TO_US = 1000
 
     # field name
     SEQUENCE_UNMBER = "Sequence number"
@@ -129,3 +131,42 @@ def print_warn_msg(message: str):
 def print_error_msg(message: str):
     time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{time_str} [ERROR] [{os.getpid()}] profiler.py: {message}")
+
+
+def convert_ns2us_float(ns) -> float:
+    # convert ns to us
+    if abs(ns) == float("inf"):
+        return ns
+    if not isinstance(ns, int):
+        raise RuntimeError("Input must be integer.")
+    us = float(ns / Constant.NS_TO_US)
+    return us
+
+
+def convert_ns2us_str(ns, tail="") -> str:
+    # convert ns to us
+    if abs(ns) == float("inf"):
+        return str(ns)
+    if not isinstance(ns, int):
+        raise RuntimeError("Input must be integer.")
+    ns = str(ns)
+    if len(ns) <= 3:
+        result = "0." + (3 - len(ns)) * "0" + ns
+    else:
+        result = ns[:-3] + "." + ns[-3:]
+    return result + tail
+
+
+def convert_us2ns(us: Union[str, float, int], tail="\t") -> int:
+    # convert us to ns
+    us = str(us)
+    # remove \t
+    us = us.strip(tail)
+    int_dcm = us.split(".")
+    if len(int_dcm) == 2:
+        result = int(int_dcm[0] + int_dcm[1][:3] + (3 - len(int_dcm[1])) * "0")
+    elif len(int_dcm) == 1:
+        result = int(int_dcm[0] + 3 * "0")
+    else:
+        raise RuntimeError("Invalid input us!")
+    return result

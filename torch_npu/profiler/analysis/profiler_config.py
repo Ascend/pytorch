@@ -56,8 +56,8 @@ class ProfilerConfig:
         self._localtime_diff = 0
         self._syscnt_enable = False
         self._freq = 100.0
-        self._time_offset = 0.0
-        self._start_cnt = 0.0
+        self._time_offset = 0
+        self._start_cnt = 0
 
     @property
     def data_simplification(self):
@@ -71,8 +71,8 @@ class ProfilerConfig:
         if self._syscnt_enable == False:
             return syscnt
         else:
-            timestamp = float(syscnt - self._start_cnt) / \
-                        self._freq * time_fmt + self._time_offset
+            ratio = time_fmt / self._freq
+            timestamp = int((syscnt - self._start_cnt) * ratio) + self._time_offset
             return timestamp
 
     def load_syscnt_info(self, profiler_path: str, info_json: dict):
@@ -97,8 +97,8 @@ class ProfilerConfig:
             config_offset = start_log.get("Host", "clock_monotonic_raw")
             config_start_cnt = start_log.get("Host", "cntvct")
             if self.is_number(str(config_offset)) and self.is_number(str(config_start_cnt)):
-                self._time_offset = float(config_offset)
-                self._start_cnt = float(config_start_cnt)
+                self._time_offset = int(config_offset)
+                self._start_cnt = int(config_start_cnt)
         else:
             # 保存的offset 和 cnt
             self._time_offset = start_info.get(Constant.StartMonotonic, self._time_offset)
@@ -132,8 +132,8 @@ class ProfilerConfig:
         self._localtime_diff = CANNFileParser(profiler_path).get_localtime_diff()
         end_info = info_json.get(Constant.END_INFO, {})
         if not self._localtime_diff and end_info:
-            self._localtime_diff = (end_info.get(Constant.FWK_END_TIME, 0) - end_info.get(Constant.FWK_END_MONOTONIC,
-                                                                                          0)) / Constant.NS_TO_US
+            self._localtime_diff = int(end_info.get(Constant.FWK_END_TIME, 0)) - int(
+                end_info.get(Constant.FWK_END_MONOTONIC, 0))
 
     def load_experimental_cfg_info(self, info_json: dict):
         experimental_config = info_json.get(Constant.CONFIG, {}).get(Constant.EXPERIMENTAL_CONFIG, {})
@@ -159,7 +159,7 @@ class ProfilerConfig:
         else:
             return False
 
-    def get_local_time(self, monotonic_time: float):
+    def get_local_time(self, monotonic_time: int):
         return monotonic_time + self._localtime_diff
 
     def _get_l2_cache_bean(self):
