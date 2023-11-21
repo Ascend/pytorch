@@ -14,14 +14,18 @@
 # limitations under the License.
 
 from collections import defaultdict
+
+from .base_parser import BaseParser
+from ..prof_bean.torch_op_node import TorchOpNode
+from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_common_func.file_manager import FileManager
-from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.cann_file_parser import CANNDataEnum
-from ..prof_common_func.global_var import GlobalVar
+from ..prof_common_func.constant import convert_us2ns
+from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 
 
-class CommunicationParser(BaseViewParser):
+class CommunicationParser(BaseParser):
     """
     load and split communication info by step
     """
@@ -45,9 +49,11 @@ class CommunicationParser(BaseViewParser):
     COLLECTIVE = "collective"
     TRANSPORT_TYPE = "Transport Type"
 
-    def __init__(self, profiler_path: str):
-        super().__init__(profiler_path)
-        self.step_list = GlobalVar.get_step_id_list()
+    def __init__(self, name: str, param_dict: dict):
+        super().__init__(name, param_dict)
+        self._root_node = TorchOpNode()
+        self._kernel_dict = {}
+        self.step_list = []
 
     @staticmethod
     def combine_size_distribution(op_dict: dict, total_dict: dict):
@@ -62,9 +68,18 @@ class CommunicationParser(BaseViewParser):
         else:
             return round(dividend / divisor, 4)
 
-    def generate_view(self, output_path, **kwargs) -> None:
-        self.generate_communication(output_path)
-        self.generate_matrix(output_path)
+    def run(self, deps_data: dict):
+        try:
+            self._init_step_list(deps_data)
+            self.generate_view()
+        except Exception:
+            print_error_msg("Failed to generate communication.json or communication_matrix.json.")
+            return Constant.FAIL, None
+        return Constant.SUCCESS, None
+
+    def generate_view(self) -> None:
+        self.generate_communication(self._output_path)
+        self.generate_matrix(self._output_path)
 
     def generate_communication(self, output_path: str):
         communication_data = CANNFileParser(self._profiler_path).get_analyze_communication_data(
@@ -93,6 +108,7 @@ class CommunicationParser(BaseViewParser):
             self.step_list[0]["comm_ops"] = communication_data
         for communication_op, communication_op_info in communication_data.items():
             start_time = communication_op_info.get(self.COMMUNICATION_TIME_INFO, {}).get(self.START_TIMESTAMP)
+            start_time = convert_us2ns(start_time)
             for step_info in self.step_list:
                 if step_info.get("start_ts", -1) <= start_time <= step_info.get("end_ts", -1):
                     step_info.get("comm_ops", {})[communication_op] = communication_op_info
@@ -212,3 +228,11 @@ class CommunicationParser(BaseViewParser):
     def compute_bandwidth_ratio(self, total_bandwidth_info_dict: dict):
         for transport_type, bandwidth_dict in total_bandwidth_info_dict.items():
             self.compute_ratio(bandwidth_dict.get(self.TRANSIT_SIZE_MB, 0), bandwidth_dict.get(self.TRANSIT_TIME_MS, 0))
+
+    def _init_step_list(self, deps_data: dict):
+        torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
+        if torch_op_node:
+            self.step_list = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], deps_data.get(
+                Constant.RELATION_PARSER, {}))
+        if not self.step_list:
+            self.step_list = [{"step_id": None, "start_ts": 0, "end_ts": float('inf'), "comm_ops": {}}]

@@ -17,18 +17,15 @@ import ast
 import json
 import os
 import re
-import subprocess
-import shutil
 from enum import Enum
 from json import JSONDecodeError
 
 from ....utils.path_manager import PathManager
 from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant, print_warn_msg
-from ..prof_common_func.constant import print_error_msg
-from ..prof_common_func.file_manager import FileManager
+from ..prof_common_func.constant import convert_us2ns
 from ..prof_common_func.path_manager import ProfilerPathManager
-from ..prof_bean.step_trace_bean import StepTraceBean
+from ..prof_common_func.file_manager import FileManager
 
 
 class CANNDataEnum(Enum):
@@ -47,7 +44,6 @@ class CANNDataEnum(Enum):
 
 
 class CANNFileParser:
-    COMMAND_SUCCESS = 0
     ACL_TO_NPU = "acl_to_npu"
     START_FLOW = "s"
     END_FLOW = "f"
@@ -87,7 +83,6 @@ class CANNFileParser:
         self._cann_path = ProfilerPathManager.get_cann_path(profiler_path)
         self._file_dict = {}
         self._file_dispatch()
-        self.msprof_path = shutil.which("msprof")
 
     @classmethod
     def _json_load(cls, data: str) -> list:
@@ -115,44 +110,24 @@ class CANNFileParser:
             return {}
         return data
 
-    def export_cann_profiling(self, data_simplification: bool):
-        if not os.path.isdir(self._cann_path):
-            return
-        self._del_summary_and_timeline_data()
-        if not self.msprof_path:
-            err_msg = "Export CANN Profiling data faile! msprof command not found!"
-            print_error_msg(err_msg)
-            raise RuntimeError(err_msg)
-        completed_process = subprocess.run([self.msprof_path, "--export=on", f"--output={self._cann_path}"],
-                                           capture_output=True, shell=False)
-        if completed_process.returncode != self.COMMAND_SUCCESS:
-            raise RuntimeError(
-                f"Export CANN Profiling data failed, please verify that the ascend-toolkit is installed and set-env.sh "
-                f"is sourced. or you can execute the command to confirm the CANN Profiling export result: "
-                f"msprof --export=on --output={self._cann_path}")
-
-        self._file_dispatch()
-        step_trace_file_set = self.get_file_list_by_type(CANNDataEnum.STEP_TRACE)
-        if step_trace_file_set:
-            step_file = step_trace_file_set.pop()
-            step_trace_data = FileManager.read_csv_file(step_file, StepTraceBean)
-            # step file name: step_trace_{device id}_{model id}_{iteration id}_{时间戳}.csv
-            parsed_step = int(os.path.basename(step_file).split(".")[0].split("_")[-2])
-            for data in step_trace_data:
-                step_id = data.step_id
-                if step_id != Constant.INVALID_VALUE and step_id != parsed_step:
-                    completed_process = subprocess.run(
-                        [self.msprof_path, "--export=on", f"--output={self._cann_path}", f"--iteration-id={step_id}"],
-                        capture_output=True, shell=False)
-                    if completed_process.returncode != self.COMMAND_SUCCESS:
-                        raise RuntimeError("Export CANN Profiling data failed, please verify that the "
-                                           "ascend-toolkit is installed and set-env.sh is sourced.")
-
-        completed_analysis = subprocess.run(
-            [self.msprof_path, "--analyze=on", f"--output={self._cann_path}"],
-            capture_output=True, shell=False)
-        if completed_analysis.returncode != self.COMMAND_SUCCESS:
-            print_warn_msg("Analyze CANN Profiling data failed.")
+    @classmethod
+    def combine_acl_to_npu(cls, timeline_data: list) -> dict:
+        flow_start_dict, flow_end_dict = {}, {}
+        for data in timeline_data:
+            event_bean = EventBean(data)
+            if event_bean.is_flow_start_event():
+                flow_start_dict[event_bean.id] = event_bean.ts
+            elif event_bean.is_flow_end_event():
+                flow_end_dict[event_bean.unique_id] = event_bean.id
+        acl_to_npu_dict = {}
+        for data in timeline_data:
+            event_bean = EventBean(data)
+            if event_bean.is_x_event():
+                corr_id = flow_end_dict.get(event_bean.unique_id)
+                acl_ts = flow_start_dict.get(corr_id)
+                if corr_id is not None and acl_ts is not None:
+                    acl_to_npu_dict.setdefault(acl_ts, []).append(event_bean)
+        return acl_to_npu_dict
 
     def get_timeline_all_data(self) -> list:
         timeline_data = []
@@ -171,41 +146,11 @@ class CANNFileParser:
             communication_data = self._json_dict_load(FileManager.file_read_all(sub_file, "rt"))
         return communication_data
 
-    def get_acl_to_npu_data(self) -> dict:
-        flow_start_dict, flow_end_dict = {}, {}
-        all_data = self.get_timeline_all_data()
-        for data in all_data:
-            event_bean = EventBean(data)
-            if event_bean.is_flow_start_event():
-                flow_start_dict[event_bean.id] = event_bean.ts
-            elif event_bean.is_flow_end_event():
-                flow_end_dict[event_bean.unique_id] = event_bean.id
-        acl_to_npu_dict = {}
-        for data in all_data:
-            event_bean = EventBean(data)
-            if event_bean.is_x_event():
-                corr_id = flow_end_dict.get(event_bean.unique_id)
-                acl_ts = flow_start_dict.get(corr_id)
-                if corr_id is not None and acl_ts is not None:
-                    acl_to_npu_dict.setdefault(acl_ts, []).append(event_bean)
-        return acl_to_npu_dict
+    def get_acl_to_npu_data(self):
+        return self.combine_acl_to_npu(self.get_timeline_all_data())
 
     def get_file_list_by_type(self, file_type: CANNDataEnum) -> set:
         return self._file_dict.get(file_type, set())
-
-    def check_prof_data_size(self):
-        if not self._cann_path:
-            return
-        device_data_path = os.path.join(ProfilerPathManager.get_device_path(self._cann_path), "data")
-        host_data_path = os.path.join(self._cann_path, "host", "data")
-        prof_data_size = 0
-        for root, dirs, files in os.walk(device_data_path):
-            prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-        for root, dirs, files in os.walk(host_data_path):
-            prof_data_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-        if prof_data_size >= Constant.PROF_WARN_SIZE:
-            print_warn_msg("The parsing time is expected to exceed 30 minutes, "
-                           "and you can choose to stop the process and use offline parsing.")
 
     def get_localtime_diff(self) -> float:
         localtime_diff = 0
@@ -216,11 +161,20 @@ class CANNFileParser:
             return localtime_diff
         try:
             info_json = ast.literal_eval(FileManager.file_read_all(start_info_path, "rt"))
-            localtime_diff = float(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - float(
-                info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0)) / Constant.NS_TO_US
+            localtime_diff = convert_us2ns(info_json.get(Constant.CANN_BEGIN_TIME, 0)) - int(
+                info_json.get(Constant.CANN_BEGIN_MONOTONIC, 0))
         except Exception:
             print_warn_msg("Failed to get CANN localtime diff.")
         return localtime_diff
+
+    def del_summary_and_timeline_data(self):
+        device_path = ProfilerPathManager.get_device_path(self._cann_path)
+        if not device_path:
+            return
+        summary_path = os.path.join(device_path, "summary")
+        timeline_path = os.path.join(device_path, "timeline")
+        PathManager.remove_path_safety(summary_path)
+        PathManager.remove_path_safety(timeline_path)
 
     def _file_dispatch(self):
         all_file_list = ProfilerPathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
@@ -233,12 +187,3 @@ class CANNFileParser:
                 for re_match_exp in re_match_exp_list:
                     if re.match(re_match_exp, os.path.basename(file_path)):
                         self._file_dict.setdefault(data_type, set()).add(file_path)
-
-    def _del_summary_and_timeline_data(self):
-        device_path = ProfilerPathManager.get_device_path(self._cann_path)
-        if not device_path:
-            return
-        summary_path = os.path.join(device_path, "summary")
-        timeline_path = os.path.join(device_path, "timeline")
-        PathManager.remove_path_safety(summary_path)
-        PathManager.remove_path_safety(timeline_path)

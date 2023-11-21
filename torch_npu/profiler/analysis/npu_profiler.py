@@ -14,11 +14,11 @@
 # limitations under the License.
 
 import os
-from multiprocessing import Process, Pool
 
 from .prof_common_func.constant import Constant
-from .prof_view.view_parser_factory import ViewParserFactory
+from .prof_common_func.prof_process import NoDaemonProcessPool
 from .prof_common_func.path_manager import ProfilerPathManager
+from .profiling_parser import ProfilingParser
 from ...utils.path_manager import PathManager
 
 
@@ -32,13 +32,12 @@ class NpuProfiler:
         profiler_path_list = ProfilerPathManager.get_profiler_path_list(input_path)
         if not profiler_path_list:
             return
-        # 多个profiler用多进程处理
-        pool = Pool(processes=os.cpu_count() // 2)
+        # 多profiling数据的解析
+        pool = NoDaemonProcessPool(processes=os.cpu_count() // 2)
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
-            res = pool.apply_async(ViewParserFactory.create_view_parser_and_run,
-                                   (profiler_path, analysis_type, output_path, kwargs))
-            res.get()
+            profiling_parser = ProfilingParser(profiler_path, analysis_type, output_path, kwargs)
+            pool.apply_async(profiling_parser.analyse_profiling_data)
         pool.close()
         pool.join()
 

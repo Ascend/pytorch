@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .base_parser import BaseParser
+from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_common_func.file_manager import FileManager
-from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 from ..profiler_config import ProfilerConfig
 
 
-class IntegrateParser(BaseViewParser):
+class IntegrateParser(BaseParser):
     """
     copy and integrate files from cann
     """
@@ -30,12 +31,21 @@ class IntegrateParser(BaseViewParser):
         CANNDataEnum.NPU_MODULE_MEM: "npu_module_mem.csv"
     }
 
-    def __init__(self, profiler_path: str):
-        super().__init__(profiler_path)
+    def __init__(self, name: str, param_dict: dict):
+        super().__init__(name, param_dict)
 
-    def generate_view(self, output_path: str, **kwargs) -> None:
+    def run(self, deps_data: dict):
+        try:
+            ProfilerConfig().load_info(self._profiler_path)
+            self.generate_view()
+        except Exception:
+            print_error_msg("Failed to generate data_preprocess.csv or l2_cache.csv.")
+            return Constant.FAIL, None
+        return Constant.SUCCESS, None
+
+    def generate_view(self) -> None:
         for cann_data_enum, parser_bean in ProfilerConfig().get_parser_bean():
-            self.generate_csv(cann_data_enum, parser_bean, output_path)
+            self.generate_csv(cann_data_enum, parser_bean, self._output_path)
 
     def generate_csv(self, cann_data_enum: int, parser_bean: any, output_path: str) -> None:
         """

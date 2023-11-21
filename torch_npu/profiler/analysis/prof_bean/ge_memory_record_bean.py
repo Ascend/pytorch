@@ -14,6 +14,8 @@
 # limitations under the License.
 
 from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import convert_ns2us_str
+from ..prof_common_func.constant import convert_us2ns
 
 
 class GeMemoryRecordBean:
@@ -23,15 +25,17 @@ class GeMemoryRecordBean:
 
     @property
     def row(self) -> list:
-        return [Constant.GE, self.time_us, self.total_allocated, self.total_reserved, self.device_tag]
+        return [Constant.GE, convert_ns2us_str(self.time_ns, "\t"), self.total_allocated, self.total_reserved, self.device_tag]
 
     @property
     def component(self) -> str:
         return self._data.get("Component")
 
     @property
-    def time_us(self) -> float:
-        return float(self._data.get("Timestamp(us)"))
+    def time_ns(self) -> int:
+        ts_us = self._data.get("Timestamp(us)")
+        ts_ns = convert_us2ns(ts_us)
+        return ts_ns
 
     @property
     def total_allocated(self) -> float:
