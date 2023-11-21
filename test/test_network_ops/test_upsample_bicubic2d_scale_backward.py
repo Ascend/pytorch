@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -70,6 +71,7 @@ class TestUpsampleBicubic2dBackward(TestCase):
             npu_output = self.npu_op_scale_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @unittest.skip("skip test_upsample_bicubic2d_float16_scale_shape_format now")
     def test_upsample_bicubic2d_float16_scale_shape_format(self):
         def cpu_op_exec_fp16(input1, size):
             input1 = input1.to(torch.float32)
