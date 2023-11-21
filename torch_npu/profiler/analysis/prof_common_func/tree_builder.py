@@ -15,7 +15,7 @@
 
 from queue import Queue
 
-from ..prof_bean.node_info_bean import NodeInfoBean
+from ..prof_bean.op_mark_bean import OpMarkBean
 from ..prof_bean.torch_op_node import TorchOpNode
 
 
@@ -36,29 +36,52 @@ class TreeBuilder:
         return root_node
 
     @classmethod
-    def find_call_node(cls, enqueue_ts: int, node_info_bean: NodeInfoBean, root_node: TorchOpNode):
-        matched_child_node = root_node.match_child_node(enqueue_ts)
+    def update_tree_node_info(cls, info_data: any, root_node: TorchOpNode):
+        if isinstance(info_data, OpMarkBean):
+            ts = info_data.ts
+            corr_id = info_data.corr_id
+        else:
+            ts = info_data
+            corr_id = info_data
+        matched_child_node = root_node.match_child_node(ts)
         if not matched_child_node:
             return
         node_queue = Queue()
         node_queue.put(matched_child_node)
         while not node_queue.empty():
             tree_node = node_queue.get()
-            tree_node.update_device_total(node_info_bean)
-            tree_node.update_device_range(node_info_bean)
-            matched_child_node = tree_node.match_child_node(enqueue_ts)
+            tree_node.update_corr_id_total(corr_id)
+            matched_child_node = tree_node.match_child_node(ts)
             if matched_child_node:
                 node_queue.put(matched_child_node)
             else:
-                tree_node.update_device_self(node_info_bean)
+                tree_node.update_corr_id_self(corr_id)
+
+    @classmethod
+    def match_self_torch_op(cls, ts: int, root_node: TorchOpNode) -> any:
+        matched_child_node = root_node.match_child_node(ts)
+        if not matched_child_node:
+            return None
+        node_queue = Queue()
+        node_queue.put(matched_child_node)
+        while not node_queue.empty():
+            tree_node = node_queue.get()
+            matched_child_node = tree_node.match_child_node(ts)
+            if matched_child_node:
+                node_queue.put(matched_child_node)
+            else:
+                return tree_node
 
     @classmethod
     def go_through_tree(cls, root_node: TorchOpNode) -> list:
-        result_list = [None] * root_node.all_node_num
+        if not root_node.all_node_num:
+            return []
+        result_list = [None] * (root_node.all_node_num + 1)
+        result_list[0] = root_node
         node_queue = Queue()
         for child_node in root_node.child_node_list:
             node_queue.put(child_node)
-        index = 0
+        index = 1
         while not node_queue.empty():
             result_list[index] = node_queue.get()
             for child_node in result_list[index].child_node_list:

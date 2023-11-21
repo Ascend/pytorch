@@ -15,23 +15,28 @@
 
 import os
 
-from ..prof_common_func.constant import Constant
+from .base_parser import BaseParser
+from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_common_func.file_manager import FileManager
-from ..prof_common_func.global_var import GlobalVar
+from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_common_func.trace_event_manager import TraceEventManager
+from ..prof_common_func.tree_builder import TreeBuilder
+from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 from ..profiler_config import ProfilerConfig
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
-from ..prof_view.base_view_parser import BaseViewParser
-from ..prof_view.trace_step_time import TraceStepTimeParser
 
 
-class TraceViewParser(BaseViewParser):
+class TraceViewParser(BaseParser):
     TRACE_VIEW = "trace_view.json"
-    STEP_TRACE = "step_trace_time.csv"
 
-    def __init__(self, profiler_path: str):
-        super().__init__(profiler_path)
+    def __init__(self, name: str, param_dict: dict):
+        super().__init__(name, param_dict)
+        self._trace_file_path = os.path.join(self._output_path, self.TRACE_VIEW) if os.path.isdir(
+            self._output_path) else self._output_path
+        self._trace_data = []
+        self._torch_op_node = []
+        self._root_node = None
 
     @staticmethod
     def _prune_trace_by_level(json_data: list) -> list:
@@ -56,70 +61,49 @@ class TraceViewParser(BaseViewParser):
                 result.append(data)
         return result
 
-    def generate_view(self, output_path: str, **kwargs) -> None:
-        trace_data = self._prune_trace_by_level(CANNFileParser(self._profiler_path).get_timeline_all_data())
-        self._add_fwk_trace_data(trace_data)
-        if os.path.isdir(output_path):
-            FileManager.create_json_file(output_path, trace_data, self.TRACE_VIEW)
-            TraceStepTimeParser.create_step_file(output_path, trace_data, self.STEP_TRACE)
+    def run(self, deps_data: dict):
+        try:
+            ProfilerConfig().load_info(self._profiler_path)
+            torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
+            if torch_op_node:
+                self._root_node = torch_op_node[0]
+                self._torch_op_node = torch_op_node[1:]
+            self._trace_data = deps_data.get(Constant.TRACE_PRE_PARSER, [])
+            self.generate_view()
+        except Exception:
+            print_error_msg("Failed to generate trace_view.json.")
+            return Constant.FAIL, None
+        return Constant.SUCCESS, None
+
+    def generate_view(self) -> None:
+        if not ProfilerPathManager.get_cann_path(self._profiler_path):
+            self._trace_data = FwkFileParser(self._profiler_path).get_fwk_trace_data()
         else:
-            FileManager.create_json_file_by_path(output_path, trace_data)
+            msprof_timeline_data = CANNFileParser(self._profiler_path).get_timeline_all_data()
+            self._trace_data.extend(
+                self._prune_trace_by_level(msprof_timeline_data))
+            if self._torch_op_node:
+                self._trace_data.extend(self._get_flow_event(msprof_timeline_data))
+        FileManager.create_json_file_by_path(self._trace_file_path, self._trace_data)
 
-    def deal_sequence_one_date(self, seqnum, torch_op, flow_node, fwd_dct, mode):
-        if flow_node and flow_node.get(mode) and flow_node.get(mode).get('ts') > torch_op.event.ts:
-            return
-        else:
-            start_node = {seqnum:{mode: {'pid': torch_op.event.pid, 'tid': torch_op.event.tid, 'ts': torch_op.event.ts}}}
-            if flow_node:
-                fwd_dct.get(seqnum).update(start_node.get(seqnum))
-            else:
-                fwd_dct.update(start_node)
-
-    def get_sequence_trace_data(self):
-        if not GlobalVar.torch_op_tree_node:
-            return []
-        fwd_dct = {}
-        for torch_op in GlobalVar.torch_op_tree_node:
-            seqnum = torch_op.event.args.get("Sequence number", -1)
-            if seqnum > 0:
-                flow_node = fwd_dct.get(seqnum)
-                if torch_op.event.args.get("Fwd thread id") == 0:
-                    self.deal_sequence_one_date(seqnum, torch_op, flow_node, fwd_dct, 'start')
-                else:
-                    self.deal_sequence_one_date(seqnum, torch_op, flow_node, fwd_dct, 'end')
-        return TraceEventManager.create_fwd_flow(fwd_dct)
-
-    def _add_fwk_trace_data(self, json_data: list):
-        if not GlobalVar.torch_op_tree_node:
-            return
-        pid = GlobalVar.torch_op_tree_node[0].event.pid
-        tid_dict = {}
-        enqueue_data_list, dequeue_data_list = FwkFileParser(self._profiler_path).get_task_queue_data()
-        fwk_x_event_list = [None] * (
-                len(GlobalVar.torch_op_tree_node) + len(enqueue_data_list) * 2 + len(dequeue_data_list) * 2)
-        fwk_other_event_list = []
-        index = 0
-        for torch_op_node in GlobalVar.torch_op_tree_node:
-            tid_dict[torch_op_node.event.tid] = False
-            fwk_x_event_list[index] = TraceEventManager.create_x_event(torch_op_node.event, "cpu_op")
-            index += 1
-            if torch_op_node.kernel_list:
-                for kernel in torch_op_node.kernel_list:
-                    fwk_other_event_list.extend(TraceEventManager.create_torch_to_npu_flow(torch_op_node.event, kernel))
-
-        for enqueue_data in enqueue_data_list:
-            tid_dict[enqueue_data.tid] = False
-            fwk_x_event_list[index] = TraceEventManager.create_x_event(enqueue_data, "enqueue")
-            index += 1
-            fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_START_PH, enqueue_data)
-            index += 1
-        for dequeue_data in dequeue_data_list:
-            tid_dict[dequeue_data.tid] = True
-            fwk_x_event_list[index] = TraceEventManager.create_x_event(dequeue_data, "dequeue")
-            index += 1
-            fwk_x_event_list[index] = TraceEventManager.create_task_queue_flow(Constant.FLOW_END_PH, dequeue_data)
-            index += 1
-        fwk_other_event_list.extend(TraceEventManager.create_m_event(pid, tid_dict))
-
-        fwd_list = self.get_sequence_trace_data()
-        json_data.extend(fwk_x_event_list + fwk_other_event_list + fwd_list)
+    def _get_flow_event(self, msprof_timeline_data: list) -> list:
+        flow_event_list = []
+        acl_to_npu_dict = CANNFileParser.combine_acl_to_npu(msprof_timeline_data)
+        if not FwkFileParser(self._profiler_path).has_task_queue_data():
+            for acl_ts in acl_to_npu_dict.keys():
+                matched_torch_op = TreeBuilder.match_self_torch_op(acl_ts, self._root_node)
+                if not matched_torch_op:
+                    continue
+                kernel_list = acl_to_npu_dict.get(acl_ts, [])
+                for kernel in kernel_list:
+                    flow_event_list.extend(
+                        TraceEventManager.create_torch_to_npu_flow(matched_torch_op.event, kernel))
+            return flow_event_list
+        dequeue_data_list = FwkFileParser(self._profiler_path).get_dequeue_data()
+        kernel_dict = FwkCANNRelationParser.combine_kernel_dict(acl_to_npu_dict, dequeue_data_list)
+        for torch_op_node in self._torch_op_node:
+            for corr_id in torch_op_node.corr_id_self:
+                kernel_list = kernel_dict.get(corr_id, [])
+                for kernel in kernel_list:
+                    flow_event_list.extend(TraceEventManager.create_torch_to_npu_flow(torch_op_node.event, kernel))
+        return flow_event_list

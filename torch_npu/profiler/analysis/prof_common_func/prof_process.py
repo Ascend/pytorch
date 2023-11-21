@@ -13,20 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABCMeta, abstractmethod
+import multiprocessing
 
 
-class BaseViewParser(metaclass=ABCMeta):
-    """
-    prof_interface for viewer
-    """
+class ProfProcess(multiprocessing.Process):
+    @property
+    def daemon(self):
+        return False
 
-    def __init__(self, profiler_path: str):
-        self._profiler_path = profiler_path
-
-    @abstractmethod
-    def generate_view(self, output_path: str, **kwargs) -> None:
-        """
-        summarize data to generate json or csv files
-        Returns: None
-        """
+    @daemon.setter
+    def daemon(self, val):
+        return
