@@ -33,7 +33,7 @@ class FwkFileParser:
         op_mark_data = self.get_file_data_by_tag(FileTag.OP_MARK)
         if not op_mark_data:
             return enqueue_data_list, dequeue_data_list
-        op_mark_data.sort(key=lambda x: x.time_us)
+        op_mark_data.sort(key=lambda x: x.time_ns)
         enqueue_start, dequeue_start = None, None
         for op_mark in op_mark_data:
             if op_mark.is_enqueue_start:
@@ -41,16 +41,16 @@ class FwkFileParser:
             elif op_mark.is_enqueue_end:
                 if enqueue_start and enqueue_start.tid == op_mark.tid and \
                         enqueue_start.origin_name == op_mark.origin_name:
-                    op_mark.ts = enqueue_start.time_us
-                    op_mark.dur = op_mark.time_us - enqueue_start.time_us
+                    op_mark.ts = enqueue_start.time_ns
+                    op_mark.dur = op_mark.time_ns - enqueue_start.time_ns
                     enqueue_data_list.append(op_mark)
                     enqueue_start = None
             elif op_mark.is_dequeue_start:
                 dequeue_start = op_mark
             elif op_mark.is_dequeue_end:
                 if dequeue_start and dequeue_start.corr_id == op_mark.corr_id:
-                    dequeue_start.ts = dequeue_start.time_us
-                    dequeue_start.dur = op_mark.time_us - dequeue_start.time_us
+                    dequeue_start.ts = dequeue_start.time_ns
+                    dequeue_start.dur = op_mark.time_ns - dequeue_start.time_ns
                     dequeue_data_list.append(dequeue_start)
                     dequeue_start = None
         return enqueue_data_list, dequeue_data_list

@@ -232,7 +232,7 @@ class _KinetoProfile:
 
 
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None):
-    ProfManager().init(worker_name=worker_name, dir_path=dir_name)
+    ProfManager().init(worker_name=worker_name, dir_name=dir_name)
 
     def handler_fn(prof_inst) -> None:
         prof_inst._analyse()

@@ -1,21 +1,7 @@
-# Copyright (c) 2023, Huawei Technologies.
-# All rights reserved.
-#
-# Licensed under the BSD 3-Clause License  (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# https://opensource.org/licenses/BSD-3-Clause
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_view.base_view_parser import BaseViewParser
 from ..prof_common_func.file_manager import FileManager
+from ..prof_common_func.constant import convert_ns2us_float
 
 
 class TraceStepTimeParser(BaseViewParser):
@@ -29,7 +15,7 @@ class TraceStepTimeParser(BaseViewParser):
         try:
             float(num)
             return True
-        except VauleError:
+        except ValueError:
             return False
 
     @classmethod
@@ -73,7 +59,7 @@ class TraceStepTimeParser(BaseViewParser):
         # get step time
         hasStepFlag = False
         for curStep in GlobalVar.step_range:
-            step_list.append([curStep[0], curStep[1], curStep[2], -1, -1])
+            step_list.append([curStep[0], convert_ns2us_float(curStep[1]), convert_ns2us_float(curStep[2]), -1, -1])
             save_time.append(
                 {'step': curStep[0], 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0,
                  'bubble': 0, 'comunNotOverlpRec': 0})

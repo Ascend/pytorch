@@ -21,7 +21,7 @@ class TreeBuilder:
         return root_node
 
     @classmethod
-    def find_call_node(cls, enqueue_ts: float, node_info_bean: NodeInfoBean, root_node: TorchOpNode):
+    def find_call_node(cls, enqueue_ts: int, node_info_bean: NodeInfoBean, root_node: TorchOpNode):
         matched_child_node = root_node.match_child_node(enqueue_ts)
         if not matched_child_node:
             return

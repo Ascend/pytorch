@@ -7,6 +7,8 @@ from ..prof_common_func.file_tag import FileTag
 from ..prof_common_func.global_var import GlobalVar
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_common_func.file_manager import FileManager
+from ..prof_common_func.constant import convert_ns2us_str
+from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_bean.memory_use_bean import MemoryUseBean
 from ..prof_common_func.constant import Constant
 from ..prof_bean.npu_mem_bean import NpuMemoryBean
@@ -43,7 +45,7 @@ class MemoryViewParser(BaseViewParser):
         return False
 
     @staticmethod
-    def _find_torch_ops_by_binary_search(ts: float, torch_ops: list):
+    def _find_torch_ops_by_binary_search(ts: int, torch_ops: list):
         right = len(torch_ops) - 1
         left = 0
         while right > left:
@@ -72,13 +74,13 @@ class MemoryViewParser(BaseViewParser):
     def _combine_record(last_record, cur_record):
         cur_record_list = cur_record.row
         if last_record:
-            pta_ge_record_list = [Constant.PTA_GE, cur_record.time_us,
+            pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
                                   cur_record.total_allocated + last_record.total_allocated,
                                   cur_record.total_reserved + last_record.total_reserved,
                                   cur_record.device_tag]
         else:
-            pta_ge_record_list = [Constant.PTA_GE, cur_record.time_us, cur_record.total_allocated,
-                                  cur_record.total_reserved, cur_record.device_tag]
+            pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
+                                  cur_record.total_allocated, cur_record.total_reserved, cur_record.device_tag]
         return [cur_record_list, pta_ge_record_list]
 
     def generate_view(self: any, output_path: str, **kwargs) -> None:
@@ -95,7 +97,7 @@ class MemoryViewParser(BaseViewParser):
         then generate ge+pta records
         """
         try:
-            self.ge_record_list = sorted(self.ge_record_list, key=lambda x: x.time_us)
+            self.ge_record_list = sorted(self.ge_record_list, key=lambda x: x.time_ns)
         except Exception as e:
             raise RuntimeError(f"Can't sort records for cann memory record") from e
         ge_ptr = 0
@@ -105,7 +107,7 @@ class MemoryViewParser(BaseViewParser):
         while ge_ptr < len(self.ge_record_list) and pta_ptr < len(self.pta_record_list):
             ge_record = self.ge_record_list[ge_ptr]
             pta_record = self.pta_record_list[pta_ptr]
-            if ge_record.time_us >= pta_record.time_us:
+            if ge_record.time_ns >= pta_record.time_ns:
                 self.size_record_list.extend(self._combine_record(last_ge_record, pta_record))
                 pta_ptr += 1
                 last_pta_record = pta_record
@@ -167,16 +169,16 @@ class MemoryViewParser(BaseViewParser):
     def _combine_memory_record(self: any, allocate_record: MemoryUseBean,
                                release_record: MemoryUseBean, torch_ops: list) -> list:
         if not allocate_record:
-            return ["", release_record.alloc_size, None, release_record.time_us, None, None, None,
+            return ["", release_record.alloc_size, None, convert_ns2us_str(release_record.time_ns, "\t"), None, None, None,
                     release_record.total_allocated, release_record.total_reserved, release_record.device_tag]
-        torch_name = self._find_matched_torch_op_name(allocate_record.time_us, torch_ops)
+        torch_name = self._find_matched_torch_op_name(allocate_record.time_ns, torch_ops)
         if release_record:
-            return [torch_name, allocate_record.alloc_size, allocate_record.time_us, release_record.time_us,
-                    release_record.time_us - allocate_record.time_us, allocate_record.total_allocated,
-                    allocate_record.total_reserved, release_record.total_allocated,
+            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"),
+                    convert_ns2us_str(release_record.time_ns, "\t"), convert_ns2us_float(release_record.time_ns - allocate_record.time_ns),
+                    allocate_record.total_allocated, allocate_record.total_reserved, release_record.total_allocated,
                     release_record.total_reserved, allocate_record.device_tag]
         else:
-            return [torch_name, allocate_record.alloc_size, allocate_record.time_us, None, None,
+            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"), None, None,
                     allocate_record.total_allocated, allocate_record.total_reserved, None, None,
                     allocate_record.device_tag]
 
@@ -186,7 +188,7 @@ class MemoryViewParser(BaseViewParser):
         pta_memory_dict = {}
         torch_op_dict = {}
         pta_memory_record = []
-        pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_us)
+        pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_ns)
         for memory_re in pta_memory_data:
             if memory_re.is_npu():
                 pta_memory_dict.setdefault(memory_re.pid, []).append(memory_re)
