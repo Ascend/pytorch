@@ -8,11 +8,12 @@ import torch
 
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile,\
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler,\
-    _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL, location_tag, _open_zipfile_writer
+    _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL,\
+    normalize_storage_type, location_tag, _open_zipfile_writer
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
-second_stream = None
+save_async_stream_map = {}
 
 
 def _get_always_warn_legacy_serialization():
@@ -237,9 +238,6 @@ def save_async(
                            set \"_use_new_zipfile_serialization = True\"",
                            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving")
     
-    if not isinstance(obj, torch.Tensor) and not isinstance(model, torch.nn.Module):
-        raise RuntimeError("Error: When 'obj' is not a torch.Tensor, 'model' must be a torch.nn.Module.")
-    
     _check_dill_version(pickle_module)
     save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
 
@@ -251,19 +249,22 @@ def save_async(
 def save_data_thread(save_args,
                      device,
                      model: torch.nn.Module = None):
-    global second_stream
+    global save_async_stream_map
     torch.npu.set_device(device)
 
     def hook_fn(*args):
-        torch.npu.current_stream().wait_stream(second_stream)
+        torch.npu.current_stream().wait_stream(save_async_stream_map.get(device))
 
-    if second_stream is None:
-        second_stream = torch.npu.Stream()
+    if device not in save_async_stream_map:
+        save_async_stream = torch.npu.Stream()
+        save_async_stream_map[device] = save_async_stream
         if isinstance(model, torch.nn.Module):
             model.register_full_backward_hook(hook_fn)
+    else:
+        save_async_stream = save_async_stream_map[device]
 
     obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record = save_args
-    with torch.npu.stream(second_stream):
+    with torch.npu.stream(save_async_stream):
         data_value, serialized_storages = _save(obj, pickle_module, pickle_protocol)
         storage_value = []
         for key in sorted(serialized_storages.keys()):
@@ -276,13 +277,13 @@ def save_data_thread(save_args,
                 storage = storage.cpu()
             # Now that it is on the CPU we can directly copy it into the zip file
             num_bytes = storage.nbytes()
-            storage_value.append((name, storage.data_ptr(), num_bytes))
+            storage_value.append((name, storage, num_bytes))
     
     with _open_zipfile_writer(f) as opened_zipfile:
         opened_zipfile.write_record('data.pkl', data_value, len(data_value))
 
-        for name, data_ptr, num_bytes in storage_value:
-            opened_zipfile.write_record(name, data_ptr, num_bytes)
+        for name, storage, num_bytes in storage_value:
+            opened_zipfile.write_record(name, storage.data_ptr(), num_bytes)
 
 
 def _save(obj, pickle_module, pickle_protocol):
@@ -339,8 +340,12 @@ def _save(obj, pickle_module, pickle_protocol):
     pickler = pickle_module.Pickler(data_buf, protocol=pickle_protocol)
     pickler.persistent_id = persistent_id
     if isinstance(obj, torch.nn.Module):
+        hook_handle = obj._backward_hooks.copy()
         obj._backward_hooks.clear()
-    pickler.dump(obj)
+        pickler.dump(obj)
+        obj._backward_hooks.update(hook_handle)
+    else:
+        pickler.dump(obj)
     data_value = data_buf.getvalue()
     return data_value, serialized_storages
 
