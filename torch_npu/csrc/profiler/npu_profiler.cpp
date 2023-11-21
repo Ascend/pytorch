@@ -141,6 +141,37 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
   ProfilerMgr::GetInstance()->Init(realPath, npu_trace);
 }
 
+static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
+                                      std::vector<std::string> &dtypes,
+                                      std::vector<std::vector<int64_t>> &shapes)
+{
+    auto inputs = fn.inputs();
+    for (const auto &value : inputs) {
+        std::vector<int64_t> shape;
+        std::string dtype = "";
+        if (value.isTensor()) {
+            const at::Tensor &t = value.toTensor();
+            if (t.defined() && !t.is_nested() && !t.unsafeGetTensorImpl()->has_symbolic_sizes_strides()) {
+                dtype = std::string(scalarTypeToTypeMeta(t.scalar_type()).name());
+                for (auto i: t.sizes()) {
+                    shape.emplace_back(i);
+                }
+            }
+        } else if (value.isTensorList()) {
+            dtype = "TensorList";
+        } else if (value.isScalar()) {
+            dtype = "Scalar";
+        } else if (value.isList()) {
+            auto listRef = value.toListRef();
+            if (listRef.empty() || listRef[0].isScalar()) {
+                dtype = "ScalarList";
+            }
+        }
+        dtypes.emplace_back(std::move(dtype));
+        shapes.emplace_back(std::move(shape));
+    }
+}
+
 static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) {
   auto registeration_state_ptr = NpuProfilerThreadLocalState::getTLS();
   TORCH_INTERNAL_ASSERT(registeration_state_ptr, "Expected profiler state set");
@@ -163,8 +194,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             data_ptr->is_async = fn.isAsync();
             data_ptr->name = fn.name();
             if (config.record_shapes) {
-              data_ptr->input_dtypes = torch::profiler::impl::inputTypes(fn);
-              data_ptr->input_shapes = torch::profiler::impl::inputSizes(fn);
+                parseInputShapesAndDtypes(fn, data_ptr->input_dtypes, data_ptr->input_shapes);
             }
             if (config.with_stack && fn.scope() != at::RecordScope::BACKWARD_FUNCTION) {
               auto cs = torch::profiler::impl::prepareCallstack(torch::jit::currentCallstack());
@@ -173,9 +203,6 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             }
             if (config.with_modules && fn.scope() != at::RecordScope::BACKWARD_FUNCTION) {
               data_ptr->module_hierarchy = torch::jit::currentModuleHierarchy();
-            }
-            if (config.with_flops) {
-              data_ptr->extra_args = torch::profiler::impl::saveExtraArgs(fn);
             }
             return ctx_ptr;
           },
