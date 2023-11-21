@@ -1,9 +1,16 @@
 import os
 import warnings
 import logging as logger
+import functools
 from functools import wraps
 import torch
 import torch_npu
+try:
+    import torchair
+except ImportError:
+    IS_TORCHAIR_INSTALLED = False
+else:
+    IS_TORCHAIR_INSTALLED = True
 
 warnings.filterwarnings(action='once')
 
@@ -21,7 +28,8 @@ torch_module_fn_white_list = ['to', 'to_empty']
 torch_cuda_fn_white_list = [
     'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
-    'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
+    'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
+    'reset_peak_memory_stats'
 ]
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type']
@@ -35,7 +43,7 @@ def wrapper_cuda(fn):
             args_new = list(args)
             args = replace_cuda_to_npu_in_list(args_new, replace_int)
         if kwargs:
-            for device_arg in device_kwargs_list: 
+            for device_arg in device_kwargs_list:
                 device = kwargs.get(device_arg, None)
                 if type(device) == str and 'cuda' in device:
                     kwargs[device_arg] = device.replace('cuda', 'npu')
@@ -114,6 +122,22 @@ def wrapper_profiler(fn):
                     'because it can only be used in cuda, please manually modify the code '
                     'and use the experimental_config parameter adapted to npu.')
                 del kwargs['experimental_config']
+        return fn(*args, **kwargs)
+
+    return decorated
+
+
+def wrapper_compile(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        npu_backend = torchair.get_npu_backend()
+        if kwargs:
+            backend = kwargs.get('backend', None)
+            if not backend or not isinstance(backend, functools.partial) or not isinstance(backend.func,
+                                                                                           type(npu_backend.func)):
+                kwargs['backend'] = npu_backend
+        else:
+            kwargs['backend'] = npu_backend
         return fn(*args, **kwargs)
 
     return decorated
@@ -212,6 +236,9 @@ def init():
     torch.jit.script = jit_script
 
     torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
+
+    if IS_TORCHAIR_INSTALLED:
+        torch.compile = wrapper_compile(torch.compile)
 
 
 init()
