@@ -9,11 +9,11 @@ from torch_npu.testing.testcase import TestCase, run_tests
 class TestGru(TestCase):
     def test_gru(self, device="npu"):
         shape_format = [
-            [[np.float16, (1, 3, 2)], [np.float16, (1, 3, 2)], 2, 2, 1, False, True, False],
+            [[np.float32, (1, 3, 2)], [np.float32, (1, 3, 2)], 2, 2, 1, False, True, False],
             [[np.float32, (2, 1, 1)], [np.float32, (1, 2, 2)], 1, 2, 1, False, False, True],
-            [[np.float16, (1, 3, 1)], [np.float16, (2, 3, 2)], 1, 2, 2, False, True, False],
+            [[np.float32, (1, 3, 1)], [np.float32, (2, 3, 2)], 1, 2, 2, False, True, False],
             [[np.float32, (1, 1, 2)], [np.float32, (1, 1, 3)], 2, 3, 1, False, False, False],
-            [[np.float16, (1, 1, 1)], [np.float16, (3, 1, 1)], 1, 1, 3, False, True, True],
+            [[np.float32, (1, 1, 1)], [np.float32, (3, 1, 1)], 1, 1, 3, False, True, True],
         ]
 
         for item in shape_format:

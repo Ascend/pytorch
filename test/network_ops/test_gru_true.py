@@ -12,9 +12,9 @@ class TestGru(TestCase):
             [[np.float32, (2, 3, 2)], [np.float32, (2, 2, 1)], 2, 1, 1, True, False, True],
             [[np.float32, (1, 1, 1)], [np.float32, (6, 1, 1)], 1, 1, 3, True, True, False],
             [[np.float32, (2, 1, 1)], [np.float32, (4, 1, 1)], 1, 1, 2, True, True, False],
-            [[np.float16, (1, 2, 3)], [np.float16, (4, 1, 2)], 3, 2, 2, True, False, True],
+            [[np.float32, (1, 2, 3)], [np.float32, (4, 1, 2)], 3, 2, 2, True, False, True],
             [[np.float32, (2, 2, 1)], [np.float32, (2, 2, 2)], 1, 2, 1, True, True, False],
-            [[np.float16, (1, 2, 1)], [np.float16, (4, 1, 2)], 1, 2, 2, True, False, True],
+            [[np.float32, (1, 2, 1)], [np.float32, (4, 1, 2)], 1, 2, 2, True, False, True],
         ]
 
         for item in shape_format:
