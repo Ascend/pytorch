@@ -41,19 +41,21 @@ class ParserDepsConfig:
                                           Constant.DEPS: [Constant.TREE_BUILD_PARSER, Constant.CANN_TIMELINE_PARSER,
                                                           Constant.RELATION_PARSER]},
         Constant.MEMORY_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
-                                      Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
+                                      Constant.DEPS: [Constant.CANN_EXPORT_PARSER, Constant.MEMORY_PREPARE]},
         Constant.INTEGRATE_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
                                     Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
         Constant.COMMUNICATION_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
                                         Constant.DEPS: [Constant.TREE_BUILD_PARSER, Constant.CANN_ANALYZE_PARSER,
                                                         Constant.RELATION_PARSER]},
-        Constant.EXPORT_STACK: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
-                                Constant.DEPS: [Constant.TREE_BUILD_PARSER, Constant.CANN_TIMELINE_PARSER]}
+        Constant.STACK_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                     Constant.DEPS: [Constant.TREE_BUILD_PARSER, Constant.CANN_TIMELINE_PARSER]},
+        Constant.MEMORY_PREPARE: {Constant.MODE: ConcurrentMode.PTHREAD,
+                                  Constant.DEPS: [Constant.TREE_BUILD_PARSER]}
     }
 
     ONLY_FWK_CONFIG = {
         Constant.OPERATOR_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.TRACE_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.MEMORY_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
-        Constant.EXPORT_STACK: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []}
+        Constant.STACK_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []}
     }

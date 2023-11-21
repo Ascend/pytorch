@@ -15,7 +15,6 @@
 
 from math import ceil
 
-from .node_info_bean import NodeInfoBean
 from ..prof_common_func.constant import Constant
 
 
@@ -25,10 +24,8 @@ class TorchOpNode:
         self._parent_node = parent_node
         self._all_node_num = all_node_num
         self._child_list = []
-        self._device_dur_list = [0, 0, 0, 0]
-        self._kernel_list = []
-        self._min_start = float('inf')
-        self._max_end = -float('inf')
+        self._corr_id_total = []
+        self._corr_id_self = []
 
     @property
     def event(self):
@@ -77,26 +74,6 @@ class TorchOpNode:
         return self._event.dur
 
     @property
-    def device_self_dur(self):
-        # Time unit is us
-        return self._device_dur_list[0]
-
-    @property
-    def device_self_dur_with_ai_core(self):
-        # Time unit is us
-        return self._device_dur_list[1]
-
-    @property
-    def device_total_dur(self):
-        # Time unit is us
-        return self._device_dur_list[2]
-
-    @property
-    def device_total_dur_with_ai_core(self):
-        # Time unit is us
-        return self._device_dur_list[3]
-
-    @property
     def child_node_list(self) -> list:
         return self._child_list
 
@@ -105,12 +82,12 @@ class TorchOpNode:
         return self._parent_node
 
     @property
-    def device_start(self) -> any:
-        return self._min_start
+    def corr_id_total(self) -> any:
+        return self._corr_id_total
 
     @property
-    def device_end(self) -> any:
-        return self._max_end
+    def corr_id_self(self) -> any:
+        return self._corr_id_self
 
     def is_profiler_step(self) -> bool:
         return self._event.name.find("ProfilerStep#") != -1
@@ -131,18 +108,8 @@ class TorchOpNode:
                 right = mid - 1
         return self._child_list[left] if self._child_list[left].end_time > ts_time else None
 
-    def update_device_self(self, node_info_bean: NodeInfoBean):
-        # Time unit is us
-        self._device_dur_list[0] += node_info_bean.device_dur
-        self._device_dur_list[1] += node_info_bean.device_dur_with_ai_core
-        self._kernel_list = node_info_bean.kernel_list
+    def update_corr_id_total(self, corr_id: int):
+        self._corr_id_total.append(corr_id)
 
-    def update_device_total(self, node_info_bean: NodeInfoBean):
-        # Time unit is us
-        self._device_dur_list[2] += node_info_bean.device_dur
-        self._device_dur_list[3] += node_info_bean.device_dur_with_ai_core
-
-    def update_device_range(self, node_info_bean: NodeInfoBean):
-        # Time unit is ns
-        self._min_start = min([self._min_start, node_info_bean.min_start])
-        self._max_end = max([self._max_end, node_info_bean.max_end])
+    def update_corr_id_self(self, corr_id: int):
+        self._corr_id_self.append(corr_id)
