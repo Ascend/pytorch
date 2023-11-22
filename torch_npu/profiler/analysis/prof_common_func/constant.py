@@ -1,11 +1,11 @@
 import os
 from datetime import datetime
-from decimal import Decimal
 from typing import Union
 
 
 class Constant(object):
     INVALID_VALUE = -1
+    NULL_VALUE = 0
 
     # dir name
     FRAMEWORK_DIR = "FRAMEWORK"
@@ -101,6 +101,39 @@ class Constant(object):
     # metric
     METRIC_CPU_TIME = "self_cpu_time_total"
     METRIC_NPU_TIME = "self_npu_time_total"
+
+    # prepare data
+    TREE_NODE = "tree_node"
+    STEP_NODE = "step_range"
+
+    # step_range
+    STEP_ID = "step_id"
+    START_TS = "start_ts"
+    END_TS = "end_ts"
+    COMM_OPS = "comm_ops"
+
+    # multiprocess
+    MODE = "mode"
+    DEPS = "deps_parser"
+    SUCCESS = 0
+    FAIL = 1
+
+    # parser name
+    TRACE_PRE_PARSER = "trace_prepare"
+    TREE_BUILD_PARSER = "build_tree"
+    CANN_EXPORT_PARSER = "export"
+    CANN_TIMELINE_PARSER = "timeline"
+    CANN_ANALYZE_PARSER = "analyze"
+    OPERATOR_VIEW_PARSER = "operator"
+    TRACE_VIEW_PARSER = "trace"
+    KERNEL_VIEW_PARSER = "kernel"
+    TRACE_STEP_TIME_PARSER = "step_time"
+    MEMORY_VIEW_PARSER = "memory"
+    INTEGRATE_PARSER = "integrate"
+    COMMUNICATION_PARSER = "communication"
+    RELATION_PARSER = "relation"
+    STACK_VIEW_PARSER = "export_stack"
+    MEMORY_PREPARE = "memory_prepare"
 
 
 def print_info_msg(message: str):

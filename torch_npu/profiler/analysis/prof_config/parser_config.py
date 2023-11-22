@@ -16,6 +16,7 @@
 from ..prof_common_func.constant import Constant
 from ..prof_view.cann_parse.cann_analyze import CANNAnalyzeParser
 from ..prof_view.cann_parse.cann_export import CANNExportParser, CANNTimelineParser
+from ..prof_view.memory_prepare_parser import MemoryPrepareParser
 from ..prof_view.prepare_parse.fwk_pre_parser import TracePreParser, TreeBuildParser
 from ..prof_view.kernel_view_parser import KernelViewParser
 from ..prof_view.operator_view_parser import OperatorViewParser
@@ -36,6 +37,7 @@ class ParserConfig:
             CANNExportParser,
             CANNTimelineParser,
             RelationParser,
+            MemoryPrepareParser,
             CANNAnalyzeParser,
             OperatorViewParser,
             TraceViewParser,
@@ -68,5 +70,6 @@ class ParserConfig:
         IntegrateParser: Constant.INTEGRATE_PARSER,
         CommunicationParser: Constant.COMMUNICATION_PARSER,
         RelationParser: Constant.RELATION_PARSER,
-        StackViewParser: Constant.EXPORT_STACK
+        StackViewParser: Constant.STACK_VIEW_PARSER,
+        MemoryPrepareParser: Constant.MEMORY_PREPARE
     }

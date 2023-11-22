@@ -33,9 +33,9 @@ class BaseParser(ConcurrentTask, ABC):
         self._profiler_path = self._param_dict.get("profiler_path")
         self._output_path = self._param_dict.get("output_path")
         if ProfilerPathManager.get_cann_path(self._profiler_path):
-            config = ParserDepsConfig.COMMON_CONFIG.get(name)
+            config = ParserDepsConfig.COMMON_CONFIG.get(name, {})
         else:
-            config = ParserDepsConfig.ONLY_FWK_CONFIG.get(name)
+            config = ParserDepsConfig.ONLY_FWK_CONFIG.get(name, {})
         mode = config.get(Constant.MODE, ConcurrentMode.SUB_PROCESS)
         deps_parser = config.get(Constant.DEPS, [])
         return deps_parser, mode
