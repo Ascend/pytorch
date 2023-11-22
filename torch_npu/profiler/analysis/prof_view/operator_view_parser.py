@@ -46,10 +46,10 @@ class OperatorViewParser(BaseParser):
             for corr_id in torch_op_node.corr_id_total:
                 kernel_total.extend(self._kernel_dict.get(corr_id, []))
 
-            device_self_dur = sum([kernel.dur for kernel in kernel_self])
-            device_total_dur = sum([kernel.dur for kernel in kernel_total])
-            device_self_dur_with_ai_core = sum([kernel.dur if kernel.is_ai_core else 0 for kernel in kernel_self])
-            device_total_dur_with_ai_core = sum([kernel.dur if kernel.is_ai_core else 0 for kernel in kernel_total])
+            device_self_dur = sum([float(kernel.dur) for kernel in kernel_self])
+            device_total_dur = sum([float(kernel.dur) for kernel in kernel_total])
+            device_self_dur_with_ai_core = sum([float(kernel.dur) if kernel.is_ai_core else 0 for kernel in kernel_self])
+            device_total_dur_with_ai_core = sum([float(kernel.dur) if kernel.is_ai_core else 0 for kernel in kernel_total])
             operator_list[index] = [torch_op_node.event.name, torch_op_node.input_shape, torch_op_node.call_stack,
                                     convert_ns2us_float(torch_op_node.host_self_dur),
                                     convert_ns2us_float(torch_op_node.host_total_dur), device_self_dur,
