@@ -59,7 +59,7 @@ struct NpuProfilerConfig {
     ExperimentalConfig experimental_config;
 };
 
-bool profDataReportEnable();
+std::atomic<bool>& profDataReportEnable();
 
 void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &activities);
 
@@ -68,8 +68,6 @@ void startNpuProfiler(const NpuProfilerConfig &config, const std::set<NpuActivit
 void stopNpuProfiler();
 
 void finalizeNpuProfiler();
-
-void reportData(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
 
 void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint64_t correlation_id);
 } // profiler

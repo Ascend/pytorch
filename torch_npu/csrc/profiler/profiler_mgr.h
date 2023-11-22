@@ -29,12 +29,9 @@ public:
   void Stop();
   void Finalize();
   void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
-  bool NpuProfEnable() {
-    return npu_trace_.load();
-  }
 
-  bool ReportEnable() {
-    return report_enable_.load();
+  std::atomic<bool>& ReportEnable() {
+    return report_enable_;
   }
 
 private:
