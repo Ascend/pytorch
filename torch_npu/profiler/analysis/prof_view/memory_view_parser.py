@@ -2,22 +2,23 @@ from warnings import warn
 from math import ceil
 import os
 
-from ..prof_view.base_view_parser import BaseViewParser
+from .base_parser import BaseParser
+from .memory_prepare_parser import MemoryPrepareParser
 from ..prof_common_func.file_tag import FileTag
-from ..prof_common_func.global_var import GlobalVar
+from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.constant import convert_ns2us_str
 from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_bean.memory_use_bean import MemoryUseBean
-from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_bean.npu_mem_bean import NpuMemoryBean
 from ..prof_bean.ge_op_memory_bean import GeOpMemoryBean
 from ..prof_bean.ge_memory_record_bean import GeMemoryRecordBean
 from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 
 
-class MemoryViewParser(BaseViewParser):
+class MemoryViewParser(BaseParser):
     HEADERS_OPERATOR = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Duration(us)",
                         "Allocation Total Allocated(MB)", "Allocation Total Reserved(MB)",
                         "Release Total Allocated(MB)", "Release Total Reserved(MB)", "Device Type"]
@@ -26,35 +27,13 @@ class MemoryViewParser(BaseViewParser):
     MEMORY_RECORD = "memory_record.csv"
     MAX_FIND_LAYERS = 100
 
-    def __init__(self, profiler_path: str):
-        super().__init__(profiler_path)
+    def __init__(self, name: str, param_dict: dict):
+        super().__init__(name, param_dict)
         self.size_record_list = []
         self.pta_record_list = []
         self.ge_record_list = []
         self.memory_data = []
         self.component_list = []
-
-    @staticmethod
-    def _check_whether_invalid_match(allocate_record: MemoryUseBean, release_record: MemoryUseBean):
-        if allocate_record.alloc_size < 0 or release_record.alloc_size > 0:
-            return True
-        if abs(allocate_record.alloc_size) != abs(release_record.alloc_size):
-            warn(f"Memory records matching fails, alloc_sizes are "
-                 f"{allocate_record.alloc_size} and {release_record.alloc_size}")
-            return True
-        return False
-
-    @staticmethod
-    def _find_torch_ops_by_binary_search(ts: int, torch_ops: list):
-        right = len(torch_ops) - 1
-        left = 0
-        while right > left:
-            mid = left + ceil((right - left) / 2)
-            if ts >= torch_ops[mid].start_time:
-                left = mid
-            else:
-                right = mid - 1
-        return left
 
     @staticmethod
     def _get_data_from_file(file_set: set, file_type_bean: any, bean_list: bool = False) -> list:
@@ -83,12 +62,22 @@ class MemoryViewParser(BaseViewParser):
                                   cur_record.total_allocated, cur_record.total_reserved, cur_record.device_tag]
         return [cur_record_list, pta_ge_record_list]
 
-    def generate_view(self: any, output_path: str, **kwargs) -> None:
+    def run(self, deps_data: dict):
+        try:
+            self.memory_data = deps_data.get(Constant.MEMORY_PREPARE, {}).get("memory_data", [])
+            self.pta_record_list = deps_data.get(Constant.MEMORY_PREPARE, {}).get("pta_record_list", [])
+            self.generate_view()
+        except Exception:
+            print_error_msg("Failed to generate operator_memory.csv or memory_record.csv.")
+            return Constant.FAIL, None
+        return Constant.SUCCESS, None
+
+    def generate_view(self) -> None:
+        self._init_pta_data()
         self._add_memory_from_cann()
-        self._add_pta_memory_data()
         self._add_pta_ge_record_data()
-        FileManager.create_csv_file(output_path, self.memory_data, self.OPERATOR_MEMORY, self.HEADERS_OPERATOR)
-        FileManager.create_csv_file(output_path, self.size_record_list + self.component_list, self.MEMORY_RECORD,
+        FileManager.create_csv_file(self._output_path, self.memory_data, self.OPERATOR_MEMORY, self.HEADERS_OPERATOR)
+        FileManager.create_csv_file(self._output_path, self.size_record_list + self.component_list, self.MEMORY_RECORD,
                                     self.HEADERS_RECORD)
 
     def _add_pta_ge_record_data(self):
@@ -156,64 +145,10 @@ class MemoryViewParser(BaseViewParser):
         ge_op_memory_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_OPERATOR_MEMORY)
         self.memory_data.extend(self._get_data_from_file(ge_op_memory_file, GeOpMemoryBean))
 
-    def _find_matched_torch_op_name(self, mem_start_ts: int, torch_ops: list) -> str:
-        matched_torch_op_idx = self._find_torch_ops_by_binary_search(mem_start_ts, torch_ops)
-        matched_torch_op = torch_ops[matched_torch_op_idx]
-        while matched_torch_op.end_time < mem_start_ts:
-            matched_torch_op = matched_torch_op.parent_node
-            if not matched_torch_op or not matched_torch_op.event:
-                warn(f"Can't find matched torch ops for a memory record!")
-                return ""
-        return matched_torch_op.name
-
-    def _combine_memory_record(self: any, allocate_record: MemoryUseBean,
-                               release_record: MemoryUseBean, torch_ops: list) -> list:
-        if not allocate_record:
-            return ["", release_record.alloc_size, None, convert_ns2us_str(release_record.time_ns, "\t"), None, None, None,
-                    release_record.total_allocated, release_record.total_reserved, release_record.device_tag]
-        torch_name = self._find_matched_torch_op_name(allocate_record.time_ns, torch_ops)
-        if release_record:
-            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"),
-                    convert_ns2us_str(release_record.time_ns, "\t"), convert_ns2us_float(release_record.time_ns - allocate_record.time_ns),
-                    allocate_record.total_allocated, allocate_record.total_reserved, release_record.total_allocated,
-                    release_record.total_reserved, allocate_record.device_tag]
-        else:
-            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"), None, None,
-                    allocate_record.total_allocated, allocate_record.total_reserved, None, None,
-                    allocate_record.device_tag]
-
-    def _add_pta_memory_data(self):
-        pta_memory_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.MEMORY)
-        torch_op_data = GlobalVar.torch_op_tree_node
-        pta_memory_dict = {}
-        torch_op_dict = {}
-        pta_memory_record = []
-        pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_ns)
-        for memory_re in pta_memory_data:
-            if memory_re.is_npu():
-                pta_memory_dict.setdefault(memory_re.pid, []).append(memory_re)
-                self.pta_record_list.append(memory_re)
-        for torch_op in torch_op_data:
-            torch_op_dict.setdefault(torch_op.pid, []).append(torch_op)
-        for pid_key in pta_memory_dict:
-            memory_records = pta_memory_dict.get(pid_key, [])
-            torch_ops = torch_op_dict.get(pid_key, [])
-            if not torch_ops:
-                warn(f"Lack of torch ops to connect memory record, whose process id is {pid_key}")
-                continue
-            torch_ops = sorted(torch_ops, key=lambda x: x.start_time)
-            memory_dict = {}
-            for memory_record in memory_records:
-                if memory_record.ptr not in memory_dict or \
-                        self._check_whether_invalid_match(memory_dict.get(memory_record.ptr), memory_record):
-                    memory_dict[memory_record.ptr] = memory_record
-                else:
-                    pta_memory_record.append(
-                        self._combine_memory_record(memory_dict.get(memory_record.ptr), memory_record, torch_ops))
-                    del memory_dict[memory_record.ptr]
-            for memory_record in memory_dict.values():
-                if memory_record.alloc_size > 0:
-                    pta_memory_record.append(self._combine_memory_record(memory_record, None, torch_ops))
-                else:
-                    pta_memory_record.append(self._combine_memory_record(None, memory_record, torch_ops))
-        self.memory_data.extend(pta_memory_record)
+    def _init_pta_data(self):
+        if not ProfilerPathManager.get_cann_path(self._profiler_path):
+            torch_nop_node = FwkFileParser(self._profiler_path).get_torch_op_tree_node(only_fwk=True)
+            deps_data = {Constant.TREE_BUILD_PARSER: torch_nop_node}
+            _, pta_data = MemoryPrepareParser(Constant.MEMORY_PREPARE, self._param_dict).run(deps_data)
+            self.memory_data = pta_data.get("memory_data", [])
+            self.pta_record_list = pta_data.get("pta_record_list", [])

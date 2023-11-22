@@ -77,6 +77,10 @@ class OpMarkBean:
         return self.is_dequeue_start or self.is_dequeue_end
 
     @property
+    def is_enqueue(self) -> bool:
+        return self.is_enqueue_start or self.is_enqueue_end
+
+    @property
     def ts(self) -> int:
         return self._ts
 
