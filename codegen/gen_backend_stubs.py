@@ -193,7 +193,7 @@ def parse_backend_yaml(
     if not isinstance(yaml_values, dict):
         raise TypeError("yaml_values is not dict")
 
-    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint']
+    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint', 'quant']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'PrivateUse1' if yaml_backend == 'NPU' else yaml_backend
@@ -245,6 +245,11 @@ def parse_backend_yaml(
     for item in custom_autograd:
         supported_autograd.append(item['func'][:item['func'].index('(')])
 
+    quant = yaml_values.pop('quant', [])
+    if not isinstance(quant, list):
+        raise TypeError(f'expected "quant" to be a list, but got: {quant}')
+    quant = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in quant]
+
     # custom_supported is only supported for filt expose api, and is not useful here.
     yaml_values.pop('custom_supported', [])
     if (len(yaml_values.keys()) > 0):
@@ -279,6 +284,13 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
             raise KeyError("autograd_key should not be in backend_indices.")
         backend_indices[autograd_key] = autograd_idx
         backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
+
+    quant_key = "Quantize"
+    if len(quant) > 0:
+        quant_idx = create_backend_index(quant, symint_set, backend_key, native_functions_map, cpp_namespace)
+        if quant_key in backend_indices:
+            raise KeyError("quant_key should not be in backend_indices.")
+        backend_indices[str(backend_key) + quant_key] = quant_idx
 
     check_op_on_cpu_kernels(supported_tocpu, backend_indices)
     check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
@@ -509,6 +521,57 @@ m.impl("${schema}", TORCH_FN(at::native::${kernel}));"""
     })
 
 
+def gen_quantize_register(
+    fm: FileManager,
+    backend_indices: BackendIndex,
+):
+    ns_helper = NamespaceHelper(namespace_str="at")
+
+    quantize_dict: Dict[str, str] = {}
+    for op_name, metadata in backend_indices.index.items():
+        quantize_dict[op_name] = metadata.kernel
+
+    native_func_header = """\
+#include <ATen/ops/quantize_per_tensor.h>
+#include "op_plugin/OpInterface.h"
+"""
+    static_template = CodeTemplate(
+        """\
+TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
+$dispatch_registrations_body
+};"""
+    )
+    kernel_template = CodeTemplate(
+        """\
+m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));"""
+    )
+    static_init_dispatch_registrations = static_template.substitute(
+        dispatch_key="QuantizedPrivateUse1",
+        dispatch_registrations_body=[kernel_template.substitute(schema=kv[0], kernel=kv[1]) for kv in quantize_dict.items()]
+    )
+    fm.write_with_template(f'QuantizedRegister.cpp', 'RegisterDispatchKey.cpp', lambda: {
+        'extra_cuda_headers': '',
+        'external_backend_headers': native_func_header,
+        'namespaced_headers': '',
+        'DispatchKey': 'NPU',
+        'dispatch_headers': '',
+        'ops_headers': '',
+        'dispatch_definitions': fm.substitute_with_template(
+            'RegisterDispatchDefinitions.ini',
+            lambda: {
+                'ns_prologue': ns_helper.prologue,
+                'ns_epilogue': ns_helper.epilogue,
+                'static_init_dispatch_registrations': static_init_dispatch_registrations,
+                'deferred_dispatch_registrations': '',
+                'dispatch_helpers': '',
+                'dispatch_namespace': '',
+                'dispatch_namespaced_definitions': '',
+                'dispatch_anonymous_definitions': '',
+            },
+        ).split('\n'),
+    })
+
+
 def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         impl_path: Optional[str], op_plugin_impl_path: Optional[str], op_plugin_yaml_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
@@ -575,6 +638,8 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
                 dispatch_key_name=dispatch_key.name.replace("NPU", true_backend),
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
+
+        gen_quantize_register(fm, backend_indices["NPUQuantize"])
 
         template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
         fm = FileManager(install_dir=output_dir, template_dir=template_dir, dry_run=dry_run)
