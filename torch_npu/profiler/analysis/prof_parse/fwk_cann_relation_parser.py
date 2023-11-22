@@ -17,6 +17,7 @@ from .fwk_file_parser import FwkFileParser
 from ..prof_bean.torch_op_node import TorchOpNode
 from ..prof_common_func.constant import Constant
 from ..prof_parse.cann_file_parser import CANNFileParser
+from ..prof_common_func.constant import convert_us2ns
 
 
 class FwkCANNRelationParser:
@@ -80,7 +81,7 @@ class FwkCANNRelationParser:
             step_id = step_node.event.name.split("#")[-1]
             device_start_ts = min([kernel.ts for kernel in kernel_list]) if kernel_list else step_node.start_time
             device_end_ts = max(
-                [kernel.ts + kernel.dur for kernel in kernel_list]) if kernel_list else Constant.INVALID_VALUE
+                [kernel.ts + convert_us2ns(kernel.dur) for kernel in kernel_list]) if kernel_list else Constant.INVALID_VALUE
             step_range.append(
                 {Constant.STEP_ID: step_id, Constant.START_TS: device_start_ts,
                  Constant.END_TS: max(device_end_ts, step_node.end_time), Constant.COMM_OPS: {}})
