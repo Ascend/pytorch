@@ -40,7 +40,7 @@ class CANNExportParser(BaseParser):
             if not os.path.isdir(self._cann_path):
                 return Constant.SUCCESS, None
             if not self.msprof_path:
-                err_msg = "Export CANN Profiling data faile! msprof command not found!"
+                err_msg = "Export CANN Profiling data failed! msprof command not found!"
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
             self._check_prof_data_size()
@@ -85,4 +85,4 @@ class CANNTimelineParser(BaseParser):
         while True:
             if os.path.exists(summary_path):
                 return Constant.SUCCESS, None
-            time.sleep(1)
+            time.sleep(0.1)

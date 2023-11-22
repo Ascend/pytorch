@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from .prof_common_func.constant import Constant, print_info_msg
+from .prof_common_func.constant import Constant, print_info_msg, print_error_msg
 from .prof_common_func.path_manager import ProfilerPathManager
 from .prof_common_func.task_manager import ConcurrentTasksManager
 from .prof_config.parser_config import ParserConfig
@@ -24,7 +24,10 @@ class ProfilingParser:
 
     def analyse_profiling_data(self):
         print_info_msg(f"Start parsing profiling data: {self._profiler_path}")
-        self.run_parser()
+        try:
+            self.run_parser()
+        except Exception as err:
+            print_error_msg(f"Failed to parsing profiling data. {err}")
         if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER and ProfilerConfig().data_simplification:
             ProfilerPathManager.simplify_data(self._profiler_path)
         end_time = datetime.utcnow()
@@ -33,7 +36,8 @@ class ProfilingParser:
     def run_parser(self) -> list:
         ProfilerConfig().load_info(self._profiler_path)
         param_dict = {"profiler_path": self._profiler_path, "output_path": self._output_path}
-        param_dict = param_dict.update(self._kwargs) if self._kwargs else param_dict
+        if self._kwargs:
+            param_dict.update(self._kwargs)
         if ProfilerPathManager.get_cann_path(self._profiler_path):
             CANNFileParser(self._profiler_path).del_summary_and_timeline_data()
             parser_list = ParserConfig.COMMON_CONFIG.get(self._analysis_type)
