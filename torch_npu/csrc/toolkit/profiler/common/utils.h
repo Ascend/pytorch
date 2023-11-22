@@ -5,6 +5,7 @@
 #include <linux/limits.h>
 #include <libgen.h>
 #include <fcntl.h>
+#include <sys/syscall.h>
 
 #include <stdint.h>
 
@@ -155,6 +156,18 @@ public:
     }
     return S_ISLNK(st.st_mode);
   }
+
+    static uint64_t GetTid()
+    {
+        static thread_local uint64_t tid = static_cast<uint64_t>(syscall(SYS_gettid));
+        return tid;
+    }
+
+    static uint64_t GetPid()
+    {
+        static thread_local uint64_t pid = static_cast<uint64_t>(getpid());
+        return pid;
+    }
 };
 } // profiler
 } // toolkit
