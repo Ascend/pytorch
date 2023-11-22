@@ -15,8 +15,7 @@ namespace profiler {
 DataDumper::DataDumper()
     : path_(""),
       start_(false),
-      init_(false),
-      entry_nums_(0) {}
+      init_(false) {}
 
 DataDumper::~DataDumper() {
   UnInit();
@@ -26,7 +25,6 @@ void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuf
   path_ = path;
   data_chunk_buf_.Init(capacity);
   init_.store(true);
-  entry_nums_ = 0;
 }
 
 void DataDumper::UnInit() {
@@ -34,7 +32,6 @@ void DataDumper::UnInit() {
     data_chunk_buf_.UnInit();
     init_.store(false);
     start_.store(false);
-    entry_nums_ = 0;
   }
 }
 
@@ -52,12 +49,12 @@ void DataDumper::Stop() {
   if (start_.load() == true) {
     start_.store(false);
     Thread::Stop();
-    Flush();
   }
+  Flush();
 }
 
 void DataDumper::GatherAndDumpData() {
-  std::map<std::string, std::string> dataMap;
+  std::map<std::string, std::vector<uint8_t>> dataMap;
   DataClassifyGather(dataMap);
   if (dataMap.size() > 0) {
     Dump(dataMap);
@@ -69,12 +66,11 @@ void DataDumper::Run() {
     if (!start_.load()) {
       break;
     }
-    std::unique_lock<std::mutex> lk(cv_buffer_empty_mtx_);
-    cv_buffer_empty_.wait_for(lk, std::chrono::microseconds(kMaxWaitTimeUs),
-      [this] {
-        return this->data_chunk_buf_.Size() != 0;
-      });
-    GatherAndDumpData();
+    if (data_chunk_buf_.Size() % kNotifyInterval == 0) {
+      GatherAndDumpData();
+    } else {
+      usleep(kMaxWaitTimeUs);
+    }
   }
 }
 
@@ -85,16 +81,13 @@ void DataDumper::Flush() {
 }
 
 void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
-  if (!start_.load() || data == nullptr) {
+  if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
     return;
   }
-  if (data_chunk_buf_.Push(std::move(data)) && ++entry_nums_ % kNotifyInterval == 0) {
-    std::lock_guard<std::mutex> lk(cv_buffer_empty_mtx_);
-    cv_buffer_empty_.notify_one();
-  }
+  data_chunk_buf_.Push(std::move(data));
 }
 
-void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
+void DataDumper::Dump(std::map<std::string, std::vector<uint8_t>> &dataMap) {
   std::ofstream file;
   for (auto &data : dataMap) {
     std::string dump_file = path_ + "/" + data.first;
@@ -105,31 +98,29 @@ void DataDumper::Dump(std::map<std::string, std::string> &dataMap) {
     if (!file.is_open()) {
       continue;
     }
-    file.write(data.second.c_str(), data.second.size());
+    file.write(reinterpret_cast<const char*>(data.second.data()), data.second.size());
     file.close();
   }
 }
 
-void DataDumper::DataClassifyGather(std::map<std::string, std::string> &dataMap) {
+void DataDumper::DataClassifyGather(std::map<std::string, std::vector<uint8_t>> &dataMap) {
   uint64_t batchSize = 0;
   while (batchSize < kBatchMaxLen) {
     std::unique_ptr<BaseReportData> data = nullptr;
-    bool ret = data_chunk_buf_.Pop(data);
-    if (!ret) {
+    if (!data_chunk_buf_.Pop(data)) {
       break;
     }
     if (data == nullptr) {
       return;
     }
     std::vector<uint8_t> encodeData = data->encode();
-    std::string dataStr = std::string(reinterpret_cast<const char*>(encodeData.data()), encodeData.size());
-    batchSize += dataStr.size();
+    batchSize += encodeData.size();
     std::string key = data->tag;
     auto iter = dataMap.find(key);
     if (iter == dataMap.end()) {
-      dataMap.insert({key, dataStr});
+      dataMap.insert({key, encodeData});
     } else {
-      iter->second += dataStr;
+        iter->second.insert(iter->second.end(), encodeData.begin(), encodeData.end());
     }
   }
 }
