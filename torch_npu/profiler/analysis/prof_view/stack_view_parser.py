@@ -77,7 +77,7 @@ class StackViewParser(BaseParser):
         kernel_self = []
         for corr_id in torch_op_node.corr_id_self:
             kernel_self.extend(self._kernel_dict.get(corr_id, []))
-        return sum([kernel.dur for kernel in kernel_self])
+        return sum([float(kernel.dur) for kernel in kernel_self])
 
     def _init_data(self):
         if not ProfilerPathManager.get_cann_path(self._profiler_path):
