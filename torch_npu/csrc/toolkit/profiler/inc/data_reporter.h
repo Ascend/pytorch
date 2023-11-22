@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include <ATen/core/ivalue.h>
+#include <ATen/record_function.h>
 
 namespace torch_npu {
 namespace toolkit {
@@ -83,11 +84,10 @@ void encode2DIntegerMatrixDatas(uint16_t type, std::vector<std::vector<T>> &data
 struct BaseReportData {
   int32_t device_id{0};
   std::string tag;
-  BaseReportData() {}
-  BaseReportData(int32_t device_id, std::string tag) {
-    this->device_id = device_id;
-    this->tag = tag;
-  }
+  BaseReportData(int32_t device_id, std::string tag)
+    : device_id(device_id),
+      tag(std::move(tag)) {}
+  virtual ~BaseReportData() = default;
   virtual std::vector<uint8_t> encode() = 0;
 };
 
@@ -104,22 +104,40 @@ enum class OpRangeDataType {
 };
 
 struct OpRangeData : BaseReportData{
-  int64_t start_ns{0};
-  int64_t end_ns{0};
-  int64_t sequence_number{0};
-  uint64_t process_id{0};
-  uint64_t start_thread_id{0};
-  uint64_t end_thread_id{0};
-  uint64_t forward_thread_id{0};
-  bool is_async{false};
-  std::string name;
-  std::vector<std::string> input_dtypes;
-  std::vector<std::vector<int64_t>> input_shapes;
-  std::vector<std::string> stack;
-  std::vector<std::string> module_hierarchy;
-  std::unordered_map<std::string, c10::IValue> extra_args;
-  OpRangeData(int32_t device_id, std::string tag) : BaseReportData(device_id, tag) {}
-  std::vector<uint8_t> encode();
+    int64_t start_ns{0};
+    int64_t end_ns{0};
+    int64_t sequence_number{0};
+    uint64_t process_id{0};
+    uint64_t start_thread_id{0};
+    uint64_t end_thread_id{0};
+    uint64_t forward_thread_id{0};
+    bool is_async{false};
+    std::string name;
+    std::vector<std::string> input_dtypes;
+    std::vector<std::vector<int64_t>> input_shapes;
+    std::vector<std::string> stack;
+    std::vector<std::string> module_hierarchy;
+    std::unordered_map<std::string, c10::IValue> extra_args;
+    OpRangeData(int64_t start_ns,
+        int64_t end_ns,
+        int64_t sequence_number,
+        uint64_t process_id,
+        uint64_t start_thread_id,
+        uint64_t end_thread_id,
+        uint64_t forward_thread_id,
+        bool is_async,
+        std::string name)
+        : BaseReportData(0, "torch.op_range"),
+          start_ns(start_ns),
+          end_ns(end_ns),
+          sequence_number(sequence_number),
+          process_id(process_id),
+          start_thread_id(start_thread_id),
+          end_thread_id(end_thread_id),
+          forward_thread_id(forward_thread_id),
+          is_async(is_async),
+          name(std::move(name)) {}
+    std::vector<uint8_t> encode();
 };
 
 enum class OpMarkDataType {
@@ -128,27 +146,27 @@ enum class OpMarkDataType {
 };
 
 struct OpMarkData : BaseReportData {
-  int64_t time_ns{0};
-  uint64_t category{0};
-  uint64_t correlation_id{0};
-  uint64_t thread_id{0};
-  uint64_t process_id{0};
-  std::string name;
-  OpMarkData(int32_t device_id, std::string tag,
-             int64_t time_ns, uint64_t category,
-             uint64_t correlation_id,
-             uint64_t thread_id, uint64_t process_id,
-             std::string name) {
-    this->device_id = device_id;
-    this->tag = tag;
-    this->time_ns = time_ns;
-    this->category = category;
-    this->correlation_id = correlation_id;
-    this->thread_id = thread_id;
-    this->process_id = process_id;
-    this->name = name;
-  }
-  std::vector<uint8_t> encode();
+    int64_t time_ns{0};
+    uint64_t category{0};
+    uint64_t correlation_id{0};
+    uint64_t thread_id{0};
+    uint64_t process_id{0};
+    std::string name;
+    OpMarkData(
+        int64_t time_ns,
+        uint64_t category,
+        uint64_t correlation_id,
+        uint64_t thread_id,
+        uint64_t process_id,
+        const std::string &name)
+        : BaseReportData(0, "torch.op_mark"),
+          time_ns(time_ns),
+          category(category),
+          correlation_id(correlation_id),
+          thread_id(thread_id),
+          process_id(process_id),
+          name(name) {}
+    std::vector<uint8_t> encode();
 };
 
 enum class MemoryDataType {
@@ -156,33 +174,36 @@ enum class MemoryDataType {
 };
 
 struct MemoryData : BaseReportData {
-  int64_t ptr{0};
-  int64_t time_ns{0};
-  int64_t alloc_size{0};
-  int64_t total_allocated{0};
-  int64_t total_reserved{0};
-  int8_t device_type{0};
-  uint8_t device_index{0};
-  uint64_t thread_id{0};
-  uint64_t process_id{0};
-  MemoryData(int32_t device_id, std::string tag,
-             int64_t ptr, int64_t time_ns, int64_t alloc_size,
-             int64_t total_allocated, int64_t total_reserved,
-             int8_t device_type, uint8_t device_index,
-             uint64_t thread_id, uint64_t process_id) {
-    this->device_id = device_id;
-    this->tag = tag;
-    this->ptr = ptr;
-    this->time_ns = time_ns;
-    this->alloc_size = alloc_size;
-    this->total_allocated = total_allocated;
-    this->total_reserved = total_reserved;
-    this->device_type = device_type;
-    this->device_index = device_index;
-    this->thread_id = thread_id;
-    this->process_id = process_id;
-  }
-  std::vector<uint8_t> encode();
+    int64_t ptr{0};
+    int64_t time_ns{0};
+    int64_t alloc_size{0};
+    int64_t total_allocated{0};
+    int64_t total_reserved{0};
+    int8_t device_type{0};
+    uint8_t device_index{0};
+    uint64_t thread_id{0};
+    uint64_t process_id{0};
+    MemoryData(
+        int64_t ptr,
+        int64_t time_ns,
+        int64_t alloc_size,
+        int64_t total_allocated,
+        int64_t total_reserved,
+        int8_t device_type,
+        uint8_t device_index,
+        uint64_t thread_id,
+        uint64_t process_id)
+        : BaseReportData(0, "torch.memory_usage"),
+          ptr(ptr),
+          time_ns(time_ns),
+          alloc_size(alloc_size),
+          total_allocated(total_allocated),
+          total_reserved(total_reserved),
+          device_type(device_type),
+          device_index(device_index),
+          thread_id(thread_id),
+          process_id(process_id) {}
+    std::vector<uint8_t> encode();
 };
 } // profiler
 } // toolkit
