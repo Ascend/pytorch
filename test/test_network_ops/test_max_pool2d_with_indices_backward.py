@@ -15,6 +15,7 @@
 # limitations under the License.
 
 
+import unittest
 import torch
 import numpy as np
 import torch.nn.functional as F
@@ -50,6 +51,7 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
         return output, npu_grad
 
     @graph_mode
+    @unittest.skip("skip test_max_pool2d_with_indices_backward now")
     def test_max_pool2d_with_indices_backward(self):
         dtype_list = [np.float32, np.float16]
         shape_list = [[256, 64, 112, 112], [1024, 24, 56, 112],

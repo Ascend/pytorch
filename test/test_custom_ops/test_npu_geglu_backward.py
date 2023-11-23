@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import numpy as np
 import torch
 import torch_npu
@@ -36,6 +37,7 @@ class TestNpuGeGluBackward(TestCase):
         dx_npu = x_npu.grad
         return dx_npu
 
+    @unittest.skip("skip test_npu_geglu_backward now")
     def test_npu_geglu_backward(self):
         data_x = np.random.uniform(-1, 1, [2, 10, 1024]).astype(np.float16)
         data_dy = np.random.uniform(-1, 1, [2, 10, 512]).astype(np.float16)

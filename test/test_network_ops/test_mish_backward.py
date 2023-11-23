@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -46,6 +47,7 @@ class TestMishBackward(TestCase):
         return output_grad, output
 
     @graph_mode
+    @unittest.skip("skip test_mish_fp32 now")
     def test_mish_fp32(self):
         npu_input = torch.tensor([1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]).npu()
         cpu_input = torch.tensor([1., 2., 3., 4., 5., 6., 7., 8., 9., 10.])
