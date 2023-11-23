@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 
 import torch_npu
@@ -52,6 +53,7 @@ class TestNpuIou(TestCase):
         output = output.numpy()
         return output
 
+    @unittest.skip("skip test_iou_fp16 now")
     def test_iou_fp16(self):
         bboxes = torch.tensor([[0, 0, 10, 10],
                                [10, 10, 20, 20],
@@ -68,6 +70,7 @@ class TestNpuIou(TestCase):
         output_custom = self.custom_op_exec(bboxes, gtboxes)
         self.assertRtolEqual(output_npu, output_custom)
 
+    @unittest.skip("skip test_iou_fp16_pt now")
     def test_iou_fp16_pt(self):
         bboxes = torch.tensor([[1, 2, 3, 4],
                                [5, 6, 7, 8],

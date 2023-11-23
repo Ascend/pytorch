@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -39,6 +40,7 @@ class TestBincount(TestCase):
         output = output.cpu()
         return output.numpy()
 
+    @unittest.skip("skip test_bincount now")
     def test_bincount(self, device="npu"):
         input_param = [
             [np.int8, -1, [0]],

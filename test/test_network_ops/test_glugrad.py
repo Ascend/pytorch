@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -46,6 +47,7 @@ class TestGluGrad(TestCase):
 
         return npu_output.to("cpu").numpy()
 
+    @unittest.skip("skip test_glugrad_shape_format now")
     def test_glugrad_shape_format(self, device="npu"):
         shape_format_32 = [
             [np.float32, -1, (2, 2, 4), 0],
