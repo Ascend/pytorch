@@ -203,12 +203,10 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
     AT_ERROR("Unsupported soc version: ", soc_name_);
   }
 
-  if (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1) {
-    if (c10_npu::IsSupportInfNan()) {
+  if (c10_npu::IsSupportInfNan()) {
       c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
-    } else {
+  } else {
       c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
-    }
   }
 
   if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
@@ -252,8 +250,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
 }
 
 NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
-    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-        (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1)) {
+    if (!c10_npu::IsSupportInfNan()) {
       c10_npu::acl::AclrtSetStreamOverflowSwitch(c10_npu::getCurrentNPUStream(), 1);
      ASCEND_LOGI("Npu overflow check switch set successfully.");
     }
