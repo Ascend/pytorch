@@ -890,8 +890,8 @@ op_db: List[OpInfo] = [
             # Inner Error, op[GatherV2], batch_dims must less than rank(params)0
             # skip samples of shape=() because of index_select is invoked when backward,
             # and it cannot be applied to a 0-dim tensor
-            'test_correctness': (0, 1, 2, ),
-            'test_variant_consistency_eager': (0, 1, 2, 9, 10, 11, )
+            'test_correctness': (0, 1, 2, 6, 7, 8),
+            'test_variant_consistency_eager': (0, 1, 2, 6, 7, 8, 9, 10, 11, 15, 16, 17)
         },
     ),
     OpInfo(
