@@ -25,7 +25,7 @@ __all__ = [
     "roll",
     "matmul_transpose",
     "npu_fused_attention_with_layernorm",
-    "npu_fused_attention"
+    "npu_fused_attention",
 
     # from module
     "ChannelShuffle",
