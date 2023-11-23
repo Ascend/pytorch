@@ -18,6 +18,7 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_utils.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace torch_npu {
 namespace distributed {
@@ -659,7 +660,7 @@ void TensorPipeAgent::respond(std::shared_ptr<tensorpipe_npu::Pipe> &pipe)
                 VLOG(1) << "TensorpipeAgent::respond set deciveID="
                         << c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID() << "pid=" << getpid()
                         << " thread_id=" << std::this_thread::get_id();
-                aclrtSetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+                c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
 
                 c10::intrusive_ptr<JitFuture> futureResponseMessage;
                 try {
@@ -683,7 +684,7 @@ void TensorPipeAgent::respond(std::shared_ptr<tensorpipe_npu::Pipe> &pipe)
                     VLOG(1) << "FutureResponseMessage set deciveID="
                             << c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID() << "pid=" << getpid()
                             << " thread_id=" << std::this_thread::get_id();
-                    aclrtSetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+                    c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
 
                     decreaseCallCount(serverActiveCalls_);
                     decreaseCallCount(serverActiveAsyncCalls_);
@@ -1202,7 +1203,7 @@ void TensorPipeAgent::markFutureAsComplete(std::shared_ptr<AtomicJitFuture> atom
             VLOG(1) << "TensorpipeAgent::respond set deciveID="
                     << c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID() << "pid=" << getpid()
                     << " thread_id=" << std::this_thread::get_id();
-            aclrtSetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+            c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
 
             c10::MultiStreamGuard guard(streams);
             std::vector<c10::weak_intrusive_ptr<c10::StorageImpl>> storages = message->getStorages();
@@ -1225,7 +1226,7 @@ void TensorPipeAgent::markFutureWithError(std::shared_ptr<AtomicJitFuture> atomi
             VLOG(1) << "TensorpipeAgent::respond set deciveID="
                     << c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID() << "pid=" << getpid()
                     << " thread_id=" << std::this_thread::get_id();
-            aclrtSetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+            c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
 
             atomicFuture->jitFuture->setError(std::make_exception_ptr(std::runtime_error(errorMsg)));
             // The future's callbacks may schedule further RPCs, increasing the count.

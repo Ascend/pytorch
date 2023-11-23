@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
@@ -250,7 +251,7 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
     // free devcie cached memory when return value of the first op execution is
     // oom
     if (index == 1) {
-      NPU_CHECK_ERROR(aclrtGetDevice(&deviceId));
+      NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceId));
       c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
       return true;
     }

@@ -2,6 +2,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -434,7 +435,7 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
     ASCEND_LOGE("set thread name failed!");
   }
 
-  aclError ret = aclrtSetDevice(device_id);
+  aclError ret = c10_npu::SetDevice(device_id);
   if (ret != 0) {
     C10_NPU_SHOW_ERR_MSG();
     ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);

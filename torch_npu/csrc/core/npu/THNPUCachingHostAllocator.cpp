@@ -245,22 +245,22 @@ struct HostAllocator {
     aclError err = ACL_ERROR_NONE;
 
     int prev_device = 0;
-    err = aclrtGetDevice(&prev_device);
+    err = c10_npu::GetDevice(&prev_device);
     if (err != ACL_ERROR_NONE)
       return err;
 
     std::unordered_set<c10_npu::NPUStream> streams(std::move(block.streams));
     for (auto it = streams.begin(); it != streams.end(); ++it) {
       int pre_device = 0;
-      aclError ret = aclrtGetDevice(&pre_device);
+      aclError ret = c10_npu::GetDevice(&pre_device);
       if (ret != ACL_ERROR_NONE) {
-        err = aclrtSetDevice(it->device_index());
+        err = c10_npu::SetDevice(it->device_index());
         if (err != ACL_ERROR_NONE) {
           C10_NPU_SHOW_ERR_MSG();
           break;
         }
       } else if (pre_device != it->device_index()) {
-        err = aclrtSetDevice(it->device_index());
+        err = c10_npu::SetDevice(it->device_index());
         if (err != ACL_ERROR_NONE) {
           C10_NPU_SHOW_ERR_MSG();
           break;
@@ -276,11 +276,11 @@ struct HostAllocator {
     }
 
     int cur_device = 0;
-    aclError ret = aclrtGetDevice(&cur_device);
+    aclError ret = c10_npu::GetDevice(&cur_device);
     if (ret != ACL_ERROR_NONE) {
-      aclrtSetDevice(prev_device);
+        c10_npu::SetDevice(prev_device);
     } else if (cur_device != prev_device) {
-      aclrtSetDevice(prev_device);
+        c10_npu::SetDevice(prev_device);
     }
 
     return err;

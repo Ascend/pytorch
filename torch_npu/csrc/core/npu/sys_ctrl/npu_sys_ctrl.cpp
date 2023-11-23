@@ -10,6 +10,7 @@
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include  "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #ifdef SUCCESS
 #undef SUCCESS
@@ -127,10 +128,10 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     c10_npu::NPUCachingAllocator::init();
     ASCEND_LOGD("Npu caching allocator initialize successfully");
 
-    auto ret = aclrtGetDevice(&device_id_);
+    auto ret = c10_npu::GetDevice(&device_id_);
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
-        NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
     } else {
         ASCEND_LOGE("Npu device %d has been set before global init.", device_id_);
     }
@@ -175,14 +176,14 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
     NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
-    NPU_CHECK_ERROR(aclrtSetDevice(device));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
     device_id_ = device;
     aclrtGetCurrentContext(&ctx_);
     return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
-    NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
     return INIT_SUCC;
 }
 
@@ -243,7 +244,7 @@ void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,
 
 aclError SetCurrentDevice() {
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-    aclrtSetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
+    c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
     return ACL_SUCCESS;
   }
   TORCH_CHECK(false, "npu device has not been inited.");

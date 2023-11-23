@@ -31,7 +31,7 @@ struct NPUMethods : public ProfilerStubs {
     static int local_device = -1;
     static bool init_flag = false;
     if (!init_flag) {
-      TORCH_NPU_CHECK(aclrtGetDevice(&local_device));
+      TORCH_NPU_CHECK(c10_npu::GetDevice(&local_device));
       init_flag = true;
     }
     if (device) {
@@ -67,7 +67,7 @@ struct NPUMethods : public ProfilerStubs {
   void onEachDevice(std::function<void(int)> op) const override {
     c10_npu::OptionalNPUGuard device_guard;
     int dev = -1;
-    auto ret = aclrtGetDevice(&dev);
+    auto ret = c10_npu::GetDevice(&dev);
     if (ret != ACL_ERROR_NONE) {
         dev = 0;
     }

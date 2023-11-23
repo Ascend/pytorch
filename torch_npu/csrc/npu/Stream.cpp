@@ -19,7 +19,7 @@ static PyObject* THNPStream_pynew(
   HANDLE_TH_ERRORS
 
   int current_device;
-  NPU_CHECK_ERROR(aclrtGetDevice(&current_device));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&current_device));
 
   int priority = 0;
   int64_t stream_id = 0;
