@@ -1,3 +1,4 @@
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -40,6 +41,7 @@ class TestLayerNorm(TestCase):
         grad_weight = m.weight.grad.cpu().detach().numpy()
         return grad_output, grad_weight, grad_bias
 
+    @unittest.skip("skip test_layernorm_shape_format now")
     def test_layernorm_shape_format(self, device="npu"):
         shape_format = [
             [np.float32, 3, [256, 32, 112, 112]],

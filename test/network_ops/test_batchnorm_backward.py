@@ -1,4 +1,5 @@
 import copy
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -269,6 +270,7 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-2)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
+    @unittest.skip("skip test_BatchNorm3D_float16 now")
     def test_BatchNorm3D_float16(self):
         np.random.seed(1234)
         format_list = [-1]

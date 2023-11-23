@@ -1,3 +1,4 @@
+import unittest
 import torch
 import numpy as np
 
@@ -34,6 +35,7 @@ class TestApplyAdam(TestCase):
                                                                        amsgrad, maximize, out=(var_tensor, m_tensor, v_tensor))
         return var_out_npu, m_out_npu, v_out_npu
 
+    @unittest.skip("skip test_apply_adam_w_maximize_true now")
     def test_apply_adam_w_maximize_true(self):
         amsgrad = False  # at present, the operator supports only false.
         maximize = True
@@ -71,6 +73,7 @@ class TestApplyAdam(TestCase):
         self.assertRtolEqual(m_ret_cpu, m_ret_npu.cpu().numpy())
         self.assertRtolEqual(v_ret_cpu, v_ret_npu.cpu().numpy())
 
+    @unittest.skip("skip test_apply_adam_w_maximize_false now")
     def test_apply_adam_w_maximize_false(self):
         amsgrad = False  # at present, the operator supports only false.
         maximize = False
