@@ -15,30 +15,31 @@
 
 #pragma once
 
+#include <c10/util/Exception.h>
 #include <map>
 #include <string>
 #include <unordered_map>
-#include <c10/util/Exception.h>
 
 namespace c10_npu {
 namespace option {
 
 class OptionsManager {
 public:
-  static bool IsResumeModeEnable();
-  static bool IsMultiStreamMemoryReuse();
-  static bool CheckInfNanModeEnable();
-  static bool CheckBlockingEnable();
-  static bool CheckQueueEnable();
-  static bool CheckCombinedOptimizerEnable();
-  static bool CheckTriCombinedOptimizerEnable();
-  static bool CheckAclDumpDateEnable();
-  static uint32_t GetHCCLExecTimeout();
-  static std::string CheckDisableDynamicPath();
-  static int32_t GetACLExecTimeout();
-  static const char* GetAclConfigJsonPath();
+    static bool IsResumeModeEnable();
+    static bool IsMultiStreamMemoryReuse();
+    static bool CheckInfNanModeEnable();
+    static bool CheckBlockingEnable();
+    static bool CheckQueueEnable();
+    static bool CheckCombinedOptimizerEnable();
+    static bool CheckTriCombinedOptimizerEnable();
+    static bool CheckAclDumpDateEnable();
+    static uint32_t GetHCCLExecTimeout();
+    static std::string CheckDisableDynamicPath();
+    static int32_t GetACLExecTimeout();
+    static const char* GetAclConfigJsonPath();
+
 private:
-  static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
+    static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
 };
 
 } // namespace option
