@@ -17,8 +17,9 @@ import os
 import shutil
 import subprocess
 import time
+from datetime import datetime
 
-from ...prof_common_func.constant import Constant, print_warn_msg, print_error_msg
+from ...prof_common_func.constant import Constant, print_warn_msg, print_error_msg, print_info_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
 
@@ -43,6 +44,7 @@ class CANNExportParser(BaseParser):
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
             self._check_prof_data_size()
+            start_time = datetime.utcnow()
             completed_process = subprocess.run([self.msprof_path, "--export=on", f"--output={self._cann_path}"],
                                                capture_output=True, shell=False)
             if completed_process.returncode != self.COMMAND_SUCCESS:
@@ -51,6 +53,8 @@ class CANNExportParser(BaseParser):
         except Exception:
             print_error_msg("Failed to export CANN Profiling data.")
             return Constant.FAIL, None
+        end_time = datetime.utcnow()
+        print_info_msg(f"CANN profiling data parsed in a total time of {end_time - start_time}")
         return Constant.SUCCESS, None
 
     def _check_prof_data_size(self):

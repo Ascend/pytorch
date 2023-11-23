@@ -34,10 +34,9 @@ class OpMarkBean:
         return int(self._constant_data[OpMarkEnum.THREAD_ID.value])
 
     @property
-    def time_us(self) -> float:
+    def time_ns(self) -> int:
         opmark_ns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[OpMarkEnum.TIME_NS.value])
-        time_us = int(opmark_ns) / Constant.NS_TO_US
-        return ProfilerConfig().get_local_time(time_us)
+        return ProfilerConfig().get_local_time(opmark_ns)
 
     @property
     def corr_id(self) -> int:
@@ -78,17 +77,21 @@ class OpMarkBean:
         return self.is_dequeue_start or self.is_dequeue_end
 
     @property
-    def ts(self) -> float:
+    def is_enqueue(self) -> bool:
+        return self.is_enqueue_start or self.is_enqueue_end
+
+    @property
+    def ts(self) -> int:
         return self._ts
 
     @property
-    def dur(self) -> float:
+    def dur(self) -> int:
         return self._dur
 
     @ts.setter
-    def ts(self, ts: float):
+    def ts(self, ts: int):
         self._ts = ts
 
     @dur.setter
-    def dur(self, dur: float):
+    def dur(self, dur: int):
         self._dur = dur

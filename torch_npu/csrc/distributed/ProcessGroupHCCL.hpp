@@ -42,6 +42,10 @@ enum ErrorHandlingMode {
     SkipCleanUp = 3
 };
 
+#define SHOULD_CLEAN_UP(a) ((a) != NoHandling && (a) != SkipCleanUp)
+
+#define SHOULD_TEAR_DOWN(a) ((a) != NoHandling && (a) != CleanUpOnly)
+
 // ProcessGroupHCCL implements HCCL bindings for c10d.
 //
 // All functions of the class are expected to be called in the same order
@@ -78,13 +82,25 @@ enum ErrorHandlingMode {
 
 class ProcessGroupHCCL : public c10d::Backend {
 public:
-    class WorkHCCL : public c10d::Work {
+    class WorkHCCL : public c10d::Work, public std::enable_shared_from_this<WorkHCCL> {
     public:
         // Constructor takes a list of NPU devices to adapt framework
         // But HCCL support one device only!!!
-        explicit WorkHCCL(const std::vector<at::Device>& devices);
+        explicit WorkHCCL(
+            const std::vector<at::Device>& devices,
+            int rank,
+            c10d::OpType opType,
+            uint64_t seq,
+            bool desyncDebug);
+
+        WorkHCCL(const WorkHCCL& w);
+
+        WorkHCCL& operator=(const WorkHCCL& w) = default;
 
         ~WorkHCCL() override;
+
+        // Checks if the HCCL kernel has started to execute.
+        bool isStarted();
 
         // Checks if request has completed. In this specific case of HCCL, it checks
         // if the HCCL operation has completed on the NPU in its own HCCL stream.
@@ -96,10 +112,15 @@ public:
         // Same as calling synchronize() for HCCL work.
         bool wait(std::chrono::milliseconds timeout) override;
 
+        void abort() override;
+
         // Let current stream wait on the completing of the HCCL work
         // Throws on exceptions. Blocking operation, which will wait for work
         // completion.
         void synchronize() override;
+
+        // Helper function to handle exception (throw if needed).
+        void handleException(ErrorHandlingMode asyncErrorHandling);
 
         // Helper function that checks if the HCCL have finished
         // execution on the NPUs
@@ -110,13 +131,18 @@ public:
         // variable and recordStream.  
         void lazyDestory(std::vector<at::Tensor> tensors);
 
+        // Helper function that sets an exception_ptr on the WorkHCCL object.
+        void setException(std::exception_ptr exception_ptr);
+
+        // Helper function that returns True if the WorkHCCL object has timed out
+        // and False otherwise.
+        // In case of timeout, set exception on the WorkHCCL object.
+        bool checkTimeout(c10::optional<std::chrono::milliseconds> timeout = c10::nullopt);
+
     protected:
         // The cached list of NPU devices to operate on.
         // HCCL support one device per rank only
         std::vector<at::Device> devices_;
-
-        // The NPU events tracking this work item on multiple NPU devices
-        std::vector<c10_npu::NPUEvent> npuEvents_;
 
         // The HCCL communicators used for this work item.
         std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
@@ -147,10 +173,18 @@ public:
         // Record the collective sequential number.
         uint64_t seq_{0};
 
-        // Wrapper method for the static checkForNCCLErrors which can be overridden
+        // Indicates if the hccl start event has been updated to the store trace.
+        // This will be used by desync debug.
+        bool startTraceUpdated_{false};
+
+        // Wrapper method for the static checkForHCCLErrors which can be overridden
         // for tests.
         virtual std::exception_ptr checkForHCCLErrors(
             const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
+        
+        friend std::ostream& operator<<(
+        std::ostream& output,
+        const WorkHCCL& workHCCL);
 
     private:
         // Checks for HCCL errors and sets an appropriate exception_ptr.
@@ -158,6 +192,10 @@ public:
 
         // Checks for HCCL errors and throws an appropriate exception.
         void checkAndThrowException();
+
+        // Just checks whether NPU execution has started, without modifying
+        // exception_ptr.
+        bool startedNPUExecutionInternal() const;
 
         // Just checks whether NPU execution has completed, without modifying
         // exception_ptr.
@@ -170,8 +208,10 @@ public:
         // give a more descriptive message when representing the Work as a string.
         std::shared_ptr<std::vector<at::Tensor>> outputs_;
 
-        // Temporarily not implemented
-        // std::shared_ptr<c10d::Store> store_;
+        // Reference to the store so that we can write aborted communicators
+        // to the store.
+        c10::intrusive_ptr<c10d::Store> store_;
+
         // The future returned by getFuture.
         c10::intrusive_ptr<at::ivalue::Future> future_;
 
@@ -194,7 +234,7 @@ public:
         }
 
         std::chrono::milliseconds opTimeout;
-        // Schedule NCCL operations on high priority CUDA streams
+        // Schedule HCCL operations on high priority CUDA streams
         bool is_high_priority_stream;
     };
 
@@ -209,7 +249,7 @@ public:
     // doesn't create any HCCL communicators. A single HCCL communicator can
     // only be used on a specific set of devices, and are therefore created
     // on-demand when a collective runs. If another collective is executed later,
-    // against a different set of devices, the process group creates another NCCL
+    // against a different set of devices, the process group creates another HCCL
     // communicator. These HCCL communicators are cached and reused if possible.
     ProcessGroupHCCL(
         const c10::intrusive_ptr<c10d::Store>& store,
@@ -336,12 +376,16 @@ public:
 
     std::string getHcclCommName(int rankid);
 
+    // Provides an API to abort the ProcessGroup (similar to hcclCommAbort)
+    // instead of relying on ProcessGroupHCCL destructor.
+    void abort(c10::optional<std::string> abortReason = c10::nullopt);
+
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(HcclRootInfo* hcclID);
 
     // Helper that either looks up the cached HCCL communicators or creates
-    // a new set of NCCL communicators as a cache entry
+    // a new set of HCCL communicators as a cache entry
     std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
         const std::string& devicesKey,
         const std::vector<at::Device>& devices);
@@ -351,12 +395,17 @@ protected:
         const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     virtual c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> initWork(
-        std::vector<at::Device> devices);
+        std::vector<at::Device> devices,
+        int rank,
+        c10d::OpType opType);
 
     static const int64_t kWatchdogThreadSleepMillis;
 
     // The store is used to broadcast the HCCL Master ID of rank 0.
     c10::intrusive_ptr<c10d::Store> store_;
+
+    bool storeError_{false};
+
     const c10::intrusive_ptr<Options> options_;
 
     // The number of HCCL communicators that have been created during
@@ -364,9 +413,15 @@ protected:
     // used to scope keys used in the store.
     uint64_t hcclCommCounter_{0};
 
+    // The store keys to trace the last HCCL collective kernel Ascend events - start
+    // event and end event respectively. These are used to do desync root cause
+    // analysis.
+    const std::string traceKeyStart_;
+    const std::string traceKeyEnd_;
+
     // The HCCL communicator that the process group has cached.
     // The key is a list of NPU devices that an operation is operating on
-    // The NPU devices are stored in a device sequence and the cache NCCL
+    // The NPU devices are stored in a device sequence and the cache HCCL
     // communicator is associated with this NPU device sequence
 
     // e.g. If the process group op only uses device 0, then the value of
@@ -383,13 +438,12 @@ protected:
     //      "0,4,5,6,7,1,2,3"
     //
     //      Note that the order of the device for the tensor list matters.
-    std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
-        devHCCLCommMap_;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>> devHCCLCommMap_;
 
     // Mutex to guard maps like devHCCLCommMap_.
     std::mutex mutex_;
 
-    // Watchdog thread which looks for errors on the cached NCCL communicators.
+    // Watchdog thread which looks for errors on the cached HCCL communicators.
     std::thread hcclCommWatchdogThread_;
 
     // Whether or not we should terminate the watchdog and workCleanup threads.
@@ -401,6 +455,9 @@ protected:
     // Mutex to Guard workMetaList_
     std::mutex workMetaListMutex_;
 
+    // Add Work Pointer to workVector
+    void workEnqueue(c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>);
+
     // Condition Variable for watchdog thread sleep
     std::condition_variable workMetaListCV_;
 
@@ -410,7 +467,7 @@ protected:
     // Mutex for watchdog.
     std::mutex watchdogCVMutex_;
 
-    // The NPU steams used by NCCL kernels
+    // The NPU steams used by HCCL kernels
     std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
         hcclStreams_;
 
@@ -420,6 +477,7 @@ protected:
     // The NPU events used to control task rate to protect streams
     std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
         rateCtrlEvents_;
+    
     std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
 
     // Device Indexes used for all collectives in this group
@@ -438,7 +496,7 @@ protected:
 
     // For each group with the "group name" (which is the key), we need to
     // keep track of a unique process group ID when creating a new
-    // ProcessGroupNCCL for this "group name". Therefore, the value of this
+    // ProcessGroupHCCL for this "group name". Therefore, the value of this
     // map keeps the unique ProcessGroupHCCL's ID for a specific group with
     // the "group name". The reason we need a per-group process group ID counter
     // is that different group can have different ranks and we need ensure that
@@ -456,17 +514,14 @@ protected:
     // Whether or not to enable timeout root cause analysis.
     bool desyncDebug_;
 
-    // Timeout for operations. This is only used when blockingWait_ is enabled.
-    std::chrono::milliseconds opTimeout_;
-
     // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
 
-    // The number of active ncclGroupStart() calls. This counter will be increased
-    // by 1 when ncclGroupStart() is called and decreased by 1 when ncclGroupEnd()
+    // The number of active hcclGroupStart() calls. This counter will be increased
+    // by 1 when hcclGroupStart() is called and decreased by 1 when hcclGroupEnd()
     // is called.
     static thread_local uint64_t hcclActiveGroupCounter_;
 
-    // Counting for the sequential number of NCCL collective call.
+    // Counting for the sequential number of HCCL collective call.
     uint64_t seq_{0};
 
 
@@ -479,14 +534,16 @@ private:
     c10::intrusive_ptr<c10d::Work> collective(
         std::vector<at::Tensor>& input,
         std::vector<at::Tensor>& output,
-        Fn fn);
+        Fn fn,
+        c10d::OpType opType);
     template <typename Fn, typename PreProcess, typename PostProcess>
     c10::intrusive_ptr<c10d::Work> collective(
         std::vector<at::Tensor>& input,
         std::vector<at::Tensor>& output,
         Fn fn,
         PreProcess pre,
-        PostProcess post);
+        PostProcess post,
+        c10d::OpType opType);
 
     // Checks for HCCL errors on each of the communicators and returns an
     // appropriate exception_ptr (nullptr if no errors).
@@ -501,11 +558,17 @@ private:
     // class. Attempting to modify the communicator cache from the WorkHCCL class
     // might run into issues with object lifetime since the ProcessGroupHCCL
     // object might get destroyed before the WorkHCCL object.
-    void hcclCommWatchdog(int device_id);
+    void hcclCommWatchdog();
 
     // Watchdog's inside loop.
     // Takes care of cleaning up completed work, and aborting upon failure or
     // timeout.
     void workCleanupLoop();
+
+        // Desync debug helper
+    void logWorkStart(WorkHCCL& work);
+
+    // Desync debug helper
+    void logWorkEnd(WorkHCCL& work);
 };
 } // namespace c10d_npu

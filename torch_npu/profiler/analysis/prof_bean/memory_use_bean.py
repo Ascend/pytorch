@@ -3,6 +3,7 @@ from enum import Enum
 
 from ..profiler_config import ProfilerConfig
 from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import convert_ns2us_str
 
 
 class MemoryEnum(Enum):
@@ -31,10 +32,9 @@ class MemoryUseBean:
         return int(self._constant_data[MemoryEnum.PTR.value])
 
     @property
-    def time_us(self) -> float:
-        memory_ns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[MemoryEnum.TIME_NS.value])
-        time_us = int(memory_ns) / Constant.NS_TO_US
-        return ProfilerConfig().get_local_time(time_us)
+    def time_ns(self) -> int:
+        time_ns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[MemoryEnum.TIME_NS.value])
+        return ProfilerConfig().get_local_time(time_ns)
 
     @property
     def alloc_size(self) -> int:
@@ -76,4 +76,4 @@ class MemoryUseBean:
 
     @property
     def row(self) -> list:
-        return [Constant.PTA, self.time_us, self.total_allocated, self.total_reserved, self.device_tag]
+        return [Constant.PTA, convert_ns2us_str(self.time_ns, tail="\t"), self.total_allocated, self.total_reserved, self.device_tag]

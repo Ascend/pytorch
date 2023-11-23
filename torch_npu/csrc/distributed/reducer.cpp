@@ -1646,7 +1646,7 @@ bool Reducer::rebuild_buckets() {
   bucket_size_limits.push_back(bucket_bytes_cap_);
   std::vector<size_t> per_bucket_size_limits;
   auto ddp_set_last_bucket_as_small =
-      (c10d::parse_env("DDP_SET_LAST_BUCKET_CAP").compare("1") == 0);
+      (c10d::getCvarString({"DDP_SET_LAST_BUCKET_CAP"}, "N/A").compare("1") == 0);
   if (ddp_set_last_bucket_as_small) {
     // Reverse so that first_bucket_bytes_cap_ (smaller bucket) becomes the last
     // bucket. We cannot simply pass in {bucket_bytes_cap_, first_bucket_bytes_cap}

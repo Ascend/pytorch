@@ -281,8 +281,9 @@ void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::str
   if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
     uint32_t e2e_category = (category == 0 || category == 1) ? 0 : 1;
     torch_npu::profiler::MarkQueueStamp(e2e_category, data);
+    return;
   }
-  if (torch_npu::profiler::profDataReportEnable()) {
+  if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
     torch_npu::profiler::reportMarkDataToNpuProfiler(category, data, correlation_id);
   }
 }
@@ -301,28 +302,28 @@ void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t cat
 }
 
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
-  std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
-    {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
-    {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
-    {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
-    {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
-    {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
-    {c10_npu::queue::RESET_EVENT, &DqueueEvent},
-  };
-  if (!data) {
+  if (C10_UNLIKELY(!data)) {
     return;
   }
   if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
     uint32_t e2e_category = (category == 2 || category == 3) ? 1 : 0;
     torch_npu::profiler::MarkQueueStamp(e2e_category, data, offset);
+    return;
   }
-  if (torch_npu::profiler::profDataReportEnable()) {
+  if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
+    static const std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
+      {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
+      {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
+      {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
+      {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
+      {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
+      {c10_npu::queue::RESET_EVENT, &DqueueEvent},
+    };
     void *cur_addr = (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
     auto cur_param = static_cast<c10_npu::queue::QueueParas *>(cur_addr);
-    for (auto [key, value] : DEQUEUE_CALL_FUNC_MAP) {
-      if (key == cur_param->paramType) {
-        value(cur_param, category);
-      }
+    auto entry = DEQUEUE_CALL_FUNC_MAP.find(cur_param->paramType);
+    if (entry != DEQUEUE_CALL_FUNC_MAP.end()) {
+      entry->second(cur_param, category);
     }
   }
 }

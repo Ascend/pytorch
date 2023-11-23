@@ -73,12 +73,15 @@ class FileManager:
 
     @classmethod
     def create_json_file_by_path(cls, output_path: str, data: list, indent: int = None) -> None:
+        if not data:
+            return
         dir_name = os.path.dirname(output_path)
         PathManager.make_dir_safety(dir_name)
         PathManager.create_file_safety(output_path)
         PathManager.check_directory_path_writeable(output_path)
         try:
             with open(output_path, "w") as file:
-                json.dump(data, file, indent=indent, ensure_ascii=False)
+                data = json.dumps(data, indent=indent, ensure_ascii=False)
+                file.write(data)
         except Exception as err:
             raise RuntimeError(f"Can't create file: {output_path}") from err
