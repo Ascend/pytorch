@@ -558,7 +558,7 @@ private:
     // class. Attempting to modify the communicator cache from the WorkHCCL class
     // might run into issues with object lifetime since the ProcessGroupHCCL
     // object might get destroyed before the WorkHCCL object.
-    void hcclCommWatchdog(int device_id);
+    void hcclCommWatchdog();
 
     // Watchdog's inside loop.
     // Takes care of cleaning up completed work, and aborting upon failure or

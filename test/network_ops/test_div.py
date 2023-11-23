@@ -151,7 +151,6 @@ class TestDiv(TestCase):
             npu_output_inp = self.npu_op_exec_mode_inp(npu_input1, npu_input2, item[3])
             self.assertRtolEqual(cpu_output, npu_output_inp)
 
-    @unittest.skip("skip test_div_scalar_mode now")
     def test_div_scalar_mode(self):
         shape_format = [
             [[np.float32, 0, (20, 16)], 15.9, 'floor'],

@@ -96,7 +96,7 @@ const char* OptionsManager::GetAclConfigJsonPath() {
 
 uint32_t OptionsManager::CheckUseHcclAsyncErrorHandleEnable() {
   char* asyncErrorHandling_val = std::getenv("HCCL_ASYNC_ERROR_HANDLING");
-  int64_t asyncErrorHandlingFlag = (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 0;
+  int64_t asyncErrorHandlingFlag = (asyncErrorHandling_val != nullptr) ? strtol(asyncErrorHandling_val, nullptr, 10) : 1;
   return static_cast<uint32_t>(asyncErrorHandlingFlag);
 }
 

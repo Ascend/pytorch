@@ -232,7 +232,7 @@ class _KinetoProfile:
 
 
 def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None):
-    ProfManager().init(worker_name=worker_name, dir_path=dir_name)
+    ProfManager().init(worker_name=worker_name, dir_name=dir_name)
 
     def handler_fn(prof_inst) -> None:
         prof_inst._analyse()
@@ -324,29 +324,24 @@ class profile(_KinetoProfile):
         return action_map
 
     def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exe_type, exe_val, exc_tb):
+        self.stop()
+
+    def start(self):
         if not self.on_trace_ready:
             ProfManager().init()
         self._transit_action(ProfilerAction.NONE, self.current_action)
         if self.record_steps:
             self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num))
             self.step_rec_fn.__enter__()
-        return self
 
-    def __exit__(self, exe_type, exe_val, exc_tb):
+    def stop(self):
         if self.record_steps and self.step_rec_fn:
             self.step_rec_fn.__exit__(None, None, None)
         self._transit_action(self.current_action, None)
-
-    def start(self):
-        if not self.on_trace_ready:
-            ProfManager().init()
-        self.init_trace()
-        self.start_trace()
-
-    def stop(self):
-        self.stop_trace()
-        self.finalize_trace()
-        self._trace_ready()
 
     def step(self):
         if self.record_steps and self.step_rec_fn:

@@ -12,10 +12,10 @@ from abc import ABC, abstractmethod
 
 # 并发模式，非互斥的属性可以通过|同时设置
 class ConcurrentMode:
-    MAIN_PROCESS = 0    # 在主进程中执行，阻塞式，建议用于公共前置任务或好事很短的任务
-    SUB_PROCESS = 1     # 独立子进程，建议计算量大、需要独占Cpu核的任务使用
-    PTHREAD = 2         # 子线程调度，建议计算量小或是返回数据很大的任务使用
-    NON_BLOCKING = 4    # 非阻塞任务，若任务管理器中仅剩具有该属性的任务，则结束调度；建议用于可能卡死的辅助型中间任务
+    MAIN_PROCESS = 0  # 在主进程中执行，阻塞式，建议用于公共前置任务或好事很短的任务
+    SUB_PROCESS = 1  # 独立子进程，建议计算量大、需要独占Cpu核的任务使用
+    PTHREAD = 2  # 子线程调度，建议计算量小或是返回数据很大的任务使用
+    NON_BLOCKING = 4  # 非阻塞任务，若任务管理器中仅剩具有该属性的任务，则结束调度；建议用于可能卡死的辅助型中间任务
 
 
 class ConcurrentTask(ABC):
@@ -62,7 +62,7 @@ def send_result_to_manager(fd, ret_code, output):
     # 预期大多数情况一次就写完了，因此while外面单独写一次减少无用操作
     send_len = os.write(fd, msg)
     while send_len < msg_len:
-        msg = msg[send_len :]
+        msg = msg[send_len:]
         msg_len = msg_len - send_len
         send_len = os.write(fd, msg)
 
@@ -76,7 +76,7 @@ def send_print_req_to_manager(fd, text):
     msg_len = len(msg)
     send_len = os.write(fd, msg)
     while send_len < msg_len:
-        msg = msg[send_len :]
+        msg = msg[send_len:]
         msg_len = msg_len - send_len
         send_len = os.write(fd, msg)
 
@@ -105,9 +105,10 @@ class ConcurrentTasksManager:
     """A concurrent-task manager.
        Create tasks of class ConcurrentTask, add them into manager, then call manager.run().
     """
+
     def __init__(self, *, max_concurrent_num=16, progress_bar=None):
-        self.task_infos = {}        # format: {task_name: task_info, ...}
-        self.listening_infos = {}   # format: {recv_fd: task_info, ...}
+        self.task_infos = {}  # format: {task_name: task_info, ...}
+        self.listening_infos = {}  # format: {recv_fd: task_info, ...}
         self.ready_tasks = []
         self.epoll = None
         self.max_concurrent_num = max_concurrent_num
@@ -391,4 +392,3 @@ class ConcurrentTasksManager:
 
     def __del__(self):
         self.clear()
-

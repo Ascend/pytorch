@@ -592,18 +592,7 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     }
 
 #ifdef ENABLE_HCCL_ERROR_CHECKING
-    int device_id = 0;
-    aclError ret = aclrtGetDevice(&device_id);
-    if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("Device has not been set.");
-        TORCH_NPU_WARN("Device has not been set, please ensure set_device() has been done before init_process_group. "
-            "Both HCCL_ASYNC_ERROR_HANDLING and HCCL_DESYNC_DEBUG have been disabled, watchdog not start.");
-        asyncErrorHandling_ = NoHandling;
-        desyncDebug_ = false;
-        ASCEND_LOGD("Both HCCL_ASYNC_ERROR_HANDLING and HCCL_DESYNC_DEBUG have been disabled, watchdog not started");
-    } else {
-        hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this, device_id);
-    }
+    hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
 #endif
 }
 
@@ -671,10 +660,9 @@ ProcessGroupHCCL::~ProcessGroupHCCL()
     }
 }
 
-void ProcessGroupHCCL::hcclCommWatchdog(int device_id)
+void ProcessGroupHCCL::hcclCommWatchdog()
 {
     try {
-        NPU_CHECK_ERROR(aclrtSetDevice(device_id));
         VLOG(2) << "[Rank " << rank_ << "] HCCL watchdog thread started!";
         workCleanupLoop();
         VLOG(2) << "[Rank " << rank_
@@ -728,7 +716,77 @@ void ProcessGroupHCCL::logWorkEnd(WorkHCCL& work)
     storeError_ = !c10d::traceUpdate(store_, traceKeyEnd_, work.seq_, opTypeToString(work.opType_));
 }
 
-void ProcessGroupHCCL::workCleanupLoop() {}
+void ProcessGroupHCCL::workCleanupLoop()
+{
+    bool needSetDevice = true;
+    bool done = false;
+    std::list<ProcessGroupHCCL::WorkHCCL> completedWorkList;
+    while (!done || !terminateProcessGroup_.load()) {
+        std::unique_lock<std::mutex> lock(workMetaListMutex_);
+        // We busy-poll the work vector every kWatchdogThreadSleepMillis
+        // milliseconds as long as the atomic is True.
+        workMetaListCV_.wait_for(lock, std::chrono::milliseconds(kWatchdogThreadSleepMillis),
+                                 [&]() -> bool { return terminateProcessGroup_.load(); });
+
+        for (auto it = workMetaList_.begin(); it != workMetaList_.end();
+             /* no increment */) {
+            auto& work = *it;
+            if (needSetDevice) {
+                NPU_CHECK_ERROR(aclrtSetDevice(static_cast<int>(work.devices_[0].index())));
+                needSetDevice = false;
+            }
+            work.checkAndSetException();
+            bool timedOut = work.checkTimeout();
+
+            // If work hits an exception (either an error or timeout)
+            if (work.exception()) {
+                if (SHOULD_CLEAN_UP(asyncErrorHandling_)) {
+                    // Abort work and corresponding communicators
+                    work.abort();
+                    // PG level abort, which would abort all other communicators on this
+                    // rank
+                    abort();
+                }
+                // Report desync state in case of timeout
+                if (desyncDebug_ && timedOut) {
+                    try {
+                        auto desyncMsg = retrieveDesyncReport(store_, "HCCL", rank_, size_);
+                        LOG(ERROR) << desyncMsg;
+                    } catch (const std::exception& e) {
+                        LOG(ERROR) << "Failed to retrieve HCCL_DESYNC_DEBUG report. "
+                                   << " Please file an issue. Error: " << e.what();
+                    } catch (...) {
+                        LOG(ERROR) << "Failed to rerieve HCCL_DESYNC_DEBUG report with unknown error."
+                                   << " Please file an issue.";
+                    }
+                }
+                // Throw exception
+                work.handleException(asyncErrorHandling_);
+            }
+
+            // Work status logging for desync debug
+            if (desyncDebug_) {
+                if (work.isStarted()) {
+                    logWorkStart(work);
+                }
+                if (work.isCompleted()) {
+                    logWorkEnd(work);
+                }
+            }
+
+            // Clean up completed work
+            if (work.isCompleted()) {
+                it = workMetaList_.erase(it);
+            } else {
+                // Increment the iterator if the current WorkHCCL object is not
+                // completed.
+                ++it;
+            }
+        }
+
+        done = workMetaList_.empty();
+    }
+}
 
 std::exception_ptr ProcessGroupHCCL::WorkHCCL::checkForHCCLErrors(
     const std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const {
