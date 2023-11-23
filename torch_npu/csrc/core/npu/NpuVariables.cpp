@@ -59,7 +59,8 @@ const SocVersion& GetSocVersion()
 bool IsSupportInfNan()
 {
     return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-           (GetSocVersion() >= SocVersion::Ascend910B1);
+           (((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
+           (GetSocVersion() >= SocVersion::Ascend910C1));
 }
 
 bool IsBF16Supported()
