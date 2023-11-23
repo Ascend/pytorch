@@ -22,6 +22,7 @@
 #include <ATen/Tensor.h>
 #include <ATen/ATen.h>
 #include <c10/core/Device.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace key {
@@ -74,6 +75,11 @@ static at::Tensor& nan_to_num_out(
     c10::optional<double> neginf,
     at::Tensor& out);
 
+TORCH_NPU_API static at::Tensor tensor_with_format(const at::Tensor &src, int64_t format, bool keep_format = false);
+TORCH_NPU_API static at::Tensor tensor_with_format(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
+                                                   bool keep_format = false);
+TORCH_NPU_API static at::Tensor tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format,
+                                                   bool keep_format = false);
 ${dispatch_declarations}
 
 };
