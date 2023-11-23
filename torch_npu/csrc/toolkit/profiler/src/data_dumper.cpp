@@ -66,7 +66,7 @@ void DataDumper::Run() {
     if (!start_.load()) {
       break;
     }
-    if (data_chunk_buf_.Size() % kNotifyInterval == 0) {
+    if (data_chunk_buf_.Size() > kNotifyInterval) {
       GatherAndDumpData();
     } else {
       usleep(kMaxWaitTimeUs);
