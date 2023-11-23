@@ -1,8 +1,11 @@
+import os
+import unittest
 import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+IS_HOSTAPI_ENABLED = os.getenv('HOSTAPI_ENABLED') == 'ON'
 
 class TestPtaUnsupportApi(TestCase):
 
@@ -134,6 +137,7 @@ class TestPtaUnsupportApi(TestCase):
         with self.assertRaisesRegex(RuntimeError, "geqrf is unsupported!"):
             torch.geqrf(torch.randn(3, 3).npu())
 
+    @unittest.skipIf(IS_HOSTAPI_ENABLED, "Hostapi support logdet.")
     def test_logdet(self):
         with self.assertRaisesRegex(RuntimeError, "logdet is unsupported!"):
             torch.logdet(torch.randn(3, 3).npu())
