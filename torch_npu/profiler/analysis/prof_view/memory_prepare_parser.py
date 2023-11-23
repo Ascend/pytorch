@@ -21,7 +21,8 @@ from ..prof_common_func.file_tag import FileTag
 from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_bean.memory_use_bean import MemoryUseBean
-from ..prof_common_func.constant import Constant, print_error_msg, convert_ns2us_str
+from ..prof_common_func.constant import Constant, print_error_msg
+from ..prof_common_func.constant import convert_ns2us_float, convert_ns2us_str
 
 
 class MemoryPrepareParser(BaseParser):
@@ -80,17 +81,17 @@ class MemoryPrepareParser(BaseParser):
     def _combine_memory_record(self: any, allocate_record: MemoryUseBean,
                                release_record: MemoryUseBean, torch_ops: list) -> list:
         if not allocate_record:
-            return ["", release_record.alloc_size, None, convert_ns2us_str(release_record.time_ns), None, None, None,
+            return ["", release_record.alloc_size, None, convert_ns2us_str(release_record.time_ns, "\t"), None, None, None,
                     release_record.total_allocated, release_record.total_reserved, release_record.device_tag]
         torch_name = self._find_matched_torch_op_name(allocate_record.time_ns, torch_ops)
         if release_record:
-            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns),
-                    convert_ns2us_str(release_record.time_ns),
-                    convert_ns2us_str(release_record.time_ns - allocate_record.time_ns),
+            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"),
+                    convert_ns2us_str(release_record.time_ns, "\t"),
+                    convert_ns2us_float(release_record.time_ns - allocate_record.time_ns),
                     allocate_record.total_allocated, allocate_record.total_reserved, release_record.total_allocated,
                     release_record.total_reserved, allocate_record.device_tag]
         else:
-            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns), None, None,
+            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"), None, None,
                     allocate_record.total_allocated, allocate_record.total_reserved, None, None,
                     allocate_record.device_tag]
 

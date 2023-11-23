@@ -2,6 +2,8 @@ from typing import Union, Optional
 from decimal import Decimal
 
 from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import convert_us2ns
+from ..prof_common_func.constant import convert_ns2us_str
 
 
 class GeOpMemoryBean:
@@ -10,7 +12,7 @@ class GeOpMemoryBean:
 
     @property
     def row(self) -> list:
-        return [self.name, self.size, self.allocation_time, self.release_time + "\t",
+        return [self.name, self.size, self.allocation_time, self.release_time,
                 self.dur, self.allocation_total_allocated, self.allocation_total_reserved,
                 self.release_total_allocated, self.release_total_reserved, self.device]
 
@@ -33,10 +35,10 @@ class GeOpMemoryBean:
     @property
     def release_time(self) -> Optional[str]:
         if self.allocation_time and self.dur:
-            alloc_us_dcm = Decimal(str(self.allocation_time))
-            dur_us_dcm = Decimal(str(self.dur))
-            rls_us_dcm = alloc_us_dcm + dur_us_dcm
-            return str(rls_us_dcm)
+            alloc_ns = convert_us2ns(self.allocation_time)
+            dur_ns = convert_us2ns(self.dur)
+            rls_us = convert_ns2us_str(alloc_ns + dur_ns, "\t")
+            return rls_us
         return None
 
     @property
