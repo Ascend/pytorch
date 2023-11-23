@@ -103,8 +103,8 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
 void ProfilerMgr::Stop() {
   c10_npu::npuSynchronizeDevice();
   if (report_enable_.load() == true) {
-    dataReceiver_.Flush();
     dataReceiver_.Stop();
+    dataReceiver_.UnInit();
   }
   report_enable_.store(false);
   if (npu_trace_.load() == true) {
