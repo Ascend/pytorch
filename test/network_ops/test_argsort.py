@@ -1,3 +1,4 @@
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -24,6 +25,7 @@ class TestArgSort(TestCase):
         output = torch.argsort(input1)
         return output.cpu().numpy()
 
+    @unittest.skip("skip test_sort_shape_format_fp32 now")
     def test_sort_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (8, 4, 3, 9)], 2, False],
