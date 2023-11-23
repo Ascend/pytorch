@@ -44,6 +44,7 @@ from torch.distributed._shard.sharded_tensor import (
 from torch.distributed.distributed_c10d import _get_default_group
 from torch.nn.parameter import Parameter
 
+_TORCHDISTX_AVAIL = True
 try:
     from torchdistx import deferred_init, fake
 except ImportError:
@@ -104,7 +105,6 @@ from .wrap import (
     _wrap_batchnorm_individually,
 )
 
-_TORCHDISTX_AVAIL = True
 
 _TORCH_FX_AVAIL = True
 if not hasattr(torch, "fx"):
