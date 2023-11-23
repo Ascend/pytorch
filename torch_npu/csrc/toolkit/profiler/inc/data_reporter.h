@@ -89,6 +89,7 @@ struct BaseReportData {
     this->device_id = device_id;
     this->tag = tag;
   }
+  virtual ~BaseReportData() = default;
   virtual std::vector<uint8_t> encode() = 0;
 };
 
