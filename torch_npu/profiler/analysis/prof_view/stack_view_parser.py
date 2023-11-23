@@ -46,7 +46,7 @@ class StackViewParser(BaseParser):
 
     def generate_view(self) -> None:
         self._init_data()
-        if self._torch_op_node:
+        if not self._torch_op_node:
             return
         output_path = os.path.realpath(self._output_path)
         parent_dir = os.path.dirname(self._output_path)
