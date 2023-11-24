@@ -1145,6 +1145,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     work->outputs_ = std::make_shared<std::vector<at::Tensor>>(outputs);
     
     c10_npu::OptionalNPUGuard npuGuard;
+
+    if (desyncDebug_) {
+        for (const auto i : c10::irange(devices.size())) {
+            c10_npu::NPUStream& hcclStream = hcclStreams[i];
+            (*(work->hcclStartEvents_))[i].record(hcclStream);
+        }
+    }
+
     pre(hcclStreams, work);
 
     for (const auto i : c10::irange(inputs.size())) {
