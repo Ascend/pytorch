@@ -225,7 +225,7 @@ def exec_ut(files):
     def get_ut_cmd(ut_type, ut_file):
         cmd = [sys.executable, "run_test.py", "-v", "-i"]
         if ut_type == "op_ut_files":
-            return cmd + ["test_ops", "--", "-k", get_op_name(ut_file)]
+            return cmd + ["test_ops", "--", "-k", '_' + get_op_name(ut_file)]
         return cmd + [get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
