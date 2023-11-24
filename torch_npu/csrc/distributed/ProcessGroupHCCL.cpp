@@ -810,24 +810,13 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     hcclCommWatchdogThread_ = std::thread(&ProcessGroupHCCL::hcclCommWatchdog, this);
 #endif
     if (asyncErrorHandling_ != NoHandling) {
-        int device_id = 0;
-        auto ret = aclrtGetDevice(&device_id);
-        if (ret != ACL_ERROR_NONE) {
-            asyncErrorHandling_ = NoHandling;
-            desyncDebug_ = false;
-            TORCH_NPU_WARN("Device has not been set, And need ensure set_deivce() operation before init_process_group(). \
-			    Both HCCL_ASYNC_ERROR_HANDLING and HCCL_DESYNC_DEBUG has been disabled, some wathdog feature cannot be used");
-            ASCEND_LOGD("Device has not been set, And need ensure set_deivce() operation before init_process_group(). \
-				Both HCCL_ASYNC_ERROR_HANDLING and HCCL_DESYNC_DEBUG has been disabled, some wathdog feature cannot be used");
-        } else {
-            workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this, device_id);
-        }
+        workCleanupThread_ = std::thread(&ProcessGroupHCCL::workCleanupLoop, this);
     }
 }
 
-void ProcessGroupHCCL::workCleanupLoop(int device_id)
+void ProcessGroupHCCL::workCleanupLoop()
 {
-    NPU_CHECK_ERROR(aclrtSetDevice(device_id));
+    bool threadSetDeviceFlag = true;
     while (!terminateProcessGroup_.load()) {
         std::list<WorkHCCL> doneWorks;
         {
@@ -840,6 +829,10 @@ void ProcessGroupHCCL::workCleanupLoop(int device_id)
 
             for (auto it = workMetaList_.begin(); it != workMetaList_.end();) {
                 auto& work = *it;
+                if (threadSetDeviceFlag) {
+                    NPU_CHECK_ERROR(aclrtSetDevice(static_cast<int>(work.devices_[0].index())));
+                    threadSetDeviceFlag = false;
+                }
 
                 if (desyncDebug_ && !work.exception()) {
                     if (!work.startTraceUpdated_ && work.isStarted() && !terminateProcessGroup_.load() &&
