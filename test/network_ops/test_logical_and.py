@@ -88,13 +88,13 @@ class TestLogicalAnd(TestCase):
         self.logical_and_out_result(shape_format)
 
     def test_logical_and_bool(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(0, 2, (2, 5), np.bool)
+        npu_input1, npu_input2 = self.generate_data(0, 2, (2, 5), np.bool_)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2).astype(np.float32)
         npu_output = self.npu_op_exec(npu_input1, npu_input2).astype(np.float32)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_logical_and_inplace_bool(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(0, 2, (2, 5), np.bool)
+        npu_input1, npu_input2 = self.generate_data(0, 2, (2, 5), np.bool_)
         cpu_output = self.cpu_op_exec_(npu_input1, npu_input2).astype(np.float32)
         npu_output = self.npu_op_exec_(npu_input1, npu_input2).astype(np.float32)
         self.assertRtolEqual(cpu_output, npu_output)

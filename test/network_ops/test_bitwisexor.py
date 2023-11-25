@@ -157,7 +157,7 @@ class TestBitwiseXor(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_bitwise_xor_bool(self, device="npu"):
-        npu_input1, npu_input2 = self.generate_data(0, 2, (1, 3), (1, 3), np.bool)
+        npu_input1, npu_input2 = self.generate_data(0, 2, (1, 3), (1, 3), np.bool_)
         cpu_output = self.cpu_op_exec(npu_input1, True)
         npu_output = self.npu_op_exec_scalar(npu_input1, True)
         cpu_output = cpu_output.astype(np.float32)
