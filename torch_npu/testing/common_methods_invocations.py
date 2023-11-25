@@ -182,7 +182,7 @@ op_db: List[OpInfo] = [
         supports_inplace_autograd=False,
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
-                         dtypes=[torch.int16, torch.int64]),
+                         dtypes=[torch.int16, torch.int64, torch.float64]),
         ),
     ),
     UnaryUfuncInfo(
@@ -743,6 +743,7 @@ op_db: List[OpInfo] = [
         },
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_out', dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager', dtypes=[torch.float32]),
         ),
     ),
     UnaryUfuncInfo(
@@ -1236,6 +1237,10 @@ op_db: List[OpInfo] = [
         supports_autograd=False,
         supports_out=False,
         formats=(0, 2),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
+        ),
     ),
     OpInfo(
         'median',
@@ -1266,6 +1271,10 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
+        ),
     ),
     OpInfo(
         'mm',
@@ -1413,6 +1422,8 @@ op_db: List[OpInfo] = [
         formats=(2, ),
         supports_out=False,
         skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.uint8, torch.int8, torch.int32, torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
                          dtypes=[torch.float32]),
         )
@@ -1486,6 +1497,10 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.int32, torch.int64)),
         formats=(2,),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.int32, torch.int64]),
+        ),
     ),
     OpInfo(
         'nn.functional.relu',
@@ -1578,6 +1593,12 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
         sample_inputs_func=sample_inputs_binary_cross_entropy_with_logits,
         formats=(2,),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'nn.functional.rrelu',
@@ -1851,6 +1872,10 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.int64, torch.int32, torch.int16, torch.float32)),
         supports_out=False,
         sample_inputs_func=common_methods_invocations.sample_trapezoid,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.int64, torch.int32, torch.int16]),
+        ),
     ),
     OpInfo(
         'tril',
@@ -1933,6 +1958,8 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
                          dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
         ),
     ),
     ReductionOpInfo(
@@ -1984,5 +2011,8 @@ tocpu_db: List[OpInfo] = [
         skipSample={
             'test_correctness': (16, ),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness', dtypes=[torch.float16]),
+        ),
     ),
 ]

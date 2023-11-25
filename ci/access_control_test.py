@@ -226,8 +226,11 @@ def exec_ut(files):
     """
 
     def get_op_name(ut_file):
-        return ut_file.split('/')[-1].split('.')[0].lstrip('test_')
-
+        result = ut_file.split('/')[-1].split('.')[0]
+        if result.startswith('test_'):
+            return result[5:]
+        return result
+    
     def get_ut_name(ut_file):
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 
