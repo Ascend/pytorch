@@ -66,7 +66,6 @@ def get_env_info():
     run_lambda = torch_collect_env.run
     pip_version, pip_list_output = torch_collect_env.get_pip_packages(run_lambda)
 
-
     version_str = torch.__version__
     debug_mode_str = str(torch.version.debug)
 
@@ -87,12 +86,13 @@ def get_env_info():
         clang_version=torch_collect_env.get_clang_version(run_lambda),
         cmake_version=torch_collect_env.get_cmake_version(run_lambda),
         caching_allocator_config=torch_collect_env.get_cachingallocator_config(),
-        is_xnnpack_available=torch_collect_env.is_xnnpack_available() 
-            if hasattr(torch_collect_env, "is_xnnpack_available") else "not known",
-        cpu_info=torch_collect_env.get_cpu_info(run_lambda) 
-            if hasattr(torch_collect_env, "get_cpu_info") else "not known",
+        is_xnnpack_available=torch_collect_env.is_xnnpack_available()
+        if hasattr(torch_collect_env, "is_xnnpack_available") else "not known",
+        cpu_info=torch_collect_env.get_cpu_info(run_lambda)
+        if hasattr(torch_collect_env, "get_cpu_info") else "not known",
         cann_version=get_cann_version(),
     )
+
 
 env_info_fmt = """
 PyTorch version: {torch_version}
@@ -197,9 +197,8 @@ def main():
             ctime = os.path.getctime(latest)
             creation_time = datetime.datetime.fromtimestamp(ctime).strftime('%Y-%m-%d %H:%M:%S')
             msg = (f"\n*** Detected a minidump at {latest} created on {creation_time}, "
-                    "if this is related to your bug please include it when you file a report ***")
+                   "if this is related to your bug please include it when you file a report ***")
             print(msg, file=sys.stderr)
-
 
 
 if __name__ == '__main__':

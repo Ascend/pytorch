@@ -40,7 +40,7 @@ def npu_combine_tensors(list_of_tensor, require_copy_value=True):
 def get_part_combined_tensor(combined_tensor, index, size):
     if combined_tensor is None or size == 0:
         return None
-    
+
     if (index + size) > torch_npu.get_storage_size(combined_tensor):
         raise RuntimeError("(index + size) ({}) > torch_npu.get_storage_size(combined_tensor) ({})".format(
                            index + size, torch_npu.get_storage_size(combined_tensor)))
@@ -59,12 +59,12 @@ def is_combined_tensor_valid(combined_tensor, list_of_tensor):
 
     combined_tensor_start_addr = combined_tensor.data_ptr()
     combined_tensor_end_addr = combined_tensor_start_addr + \
-                               torch_npu.get_storage_size(combined_tensor) * combined_tensor.element_size()
-    
+        torch_npu.get_storage_size(combined_tensor) * combined_tensor.element_size()
+
     for tensor in list_of_tensor:
         if tensor is None or \
-            tensor.data_ptr() < combined_tensor_start_addr or \
-            tensor.data_ptr() >= combined_tensor_end_addr:
+                tensor.data_ptr() < combined_tensor_start_addr or \
+                tensor.data_ptr() >= combined_tensor_end_addr:
             return False
 
     return True

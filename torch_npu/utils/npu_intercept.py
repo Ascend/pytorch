@@ -68,7 +68,7 @@ def create_wrap_func(check_func):
         def wrapper(*args, **kwargs):
             if check_func(*args, **kwargs):
                 raise RuntimeError(f"{str(func)} is not supported in npu.")
-            
+
             return func(*args, **kwargs)
         return wrapper
     return decorator
