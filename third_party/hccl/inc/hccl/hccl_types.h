@@ -111,6 +111,8 @@ typedef enum {
 union  HcclConfigValue {
     int32_t value;
 };
+
+const uint32_t MAX_GROUP_NAME = 128; // group name max length
 #ifdef __cplusplus
 }
 #endif // __cplusplus

@@ -40,6 +40,7 @@
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/framework/interface/HcclInterface.h"
 
 #include "op_plugin/OpInterface.h"
 
@@ -703,6 +704,20 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
   auto ret_hcom = hcclComms[0]->getHcclComm();
   int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
   return hccl_comm;
+}
+
+std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
+  at::Device device = getDeviceForRank(rankid);
+  std::vector<at::Device> devices = {device};
+  const auto key = getKeyFromDevices(devices);
+  auto& hcclComms = getHCCLComm(key, devices);
+  TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+      hcclComms.size());
+  HcclComm ret_hcom = hcclComms[0]->getHcclComm();
+  char commName[MAX_GROUP_NAME];
+  HCCL_CHECK_ERROR(at_npu::native::hccl::HcclGetCommNameFace(ret_hcom, commName));
+  std::string name_str(commName);
+  return name_str;
 }
 
 template <typename Fn, typename PreProcess, typename PostProcess>

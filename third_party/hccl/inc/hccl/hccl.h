@@ -61,6 +61,16 @@ extern HcclResult HcclGetRootInfo(HcclRootInfo *rootInfo);
 extern HcclResult HcclCommInitRootInfo(uint32_t nRanks, const HcclRootInfo *rootInfo, uint32_t rank, HcclComm *comm);
 
 /**
+ * @brief get hccl comm name
+ *
+ * @param commHandle [IN]    query hccl commHandle
+ * @param commName [OUT]     hccl come name
+ *
+ * @return HcclResult
+ */
+extern HcclResult HcclGetCommName(HcclComm commHandle, char* commName);
+
+/**
  * @brief AllReduce operator.
  *
  * @param sendBuf A pointer identifying the input data address of the operator.

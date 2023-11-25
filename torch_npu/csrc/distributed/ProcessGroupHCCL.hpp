@@ -310,6 +310,8 @@ public:
 
   int64_t getHcclComm(int rankid);
 
+  std::string getHcclCommName(int rankid);
+
 protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);
