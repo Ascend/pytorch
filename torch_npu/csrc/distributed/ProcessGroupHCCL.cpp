@@ -1455,8 +1455,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
             },
             c10d::OpType::ALLGATHER);
     } else {
-        TORCH_NPU_WARN("The current allgather operator has a defect in handling different tensor shape, \
-            the work event forces a wait operation, and the allgather wait on the python side would be fake");
+        TORCH_NPU_WARN_ONCE("The current allgather operator has a defect in handling different tensor shape, \
+        the work event forces a wait operation, and the allgather wait on the python side would be fake");
         const auto num_devices = outputTensors.size();
         const auto num_reduces = outputTensors[0].size();
         std::vector<c10::intrusive_ptr<c10d::Work>> works;
@@ -1497,7 +1497,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
             work->wait();
         }
         // Create a fake_work for python side;
-        auto fake_work = initWork(getDeviceList(inputTensors), rank_, c10d::OpType::BROADCAST);
+        auto fake_work = initWork(getDeviceList(inputTensors), rank_, c10d::OpType::ALLGATHER);
         return fake_work;
     }
 }
