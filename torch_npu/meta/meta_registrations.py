@@ -102,3 +102,8 @@ def _npu_dropout_meta(self, p):
 @impl(m, "npu_dropout_backward")
 def npu_dropout_backward_meta(grad_output, mask, p):
     return torch.empty_like(grad_output, dtype=grad_output.dtype)
+
+
+@impl(m, "npu_masked_softmax_with_rel_pos_bias")
+def npu_masked_softmax_with_rel_pos_bias_meta(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
+    return torch.empty_like(x, dtype=x.dtype)

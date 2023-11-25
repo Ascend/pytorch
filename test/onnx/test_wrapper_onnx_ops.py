@@ -1203,6 +1203,27 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `MaskedSoftmaxWithRelPosBias` is only supported on 910B, skip this ut!")
+    def test_wrapper_npu_masked_softmax_with_rel_pos_bias(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, atten_mask, relative_pos_bias):
+                return torch_npu.npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias)
+
+        def export_onnx(onnx_model_name):
+            x = torch.rand([16, 2, 3, 4, 5], dtype=torch.float32).npu()
+            atten_mask = torch.rand([2, 4, 5], dtype=torch.float32).npu()
+            relative_pos_bias = torch.rand([3, 4, 5], dtype=torch.float32).npu()
+            model = Model().to("npu")
+            model(x, atten_mask, relative_pos_bias)
+            self.onnx_export(model, (x, atten_mask, relative_pos_bias), onnx_model_name, ["x", "atten_mask", "relative_pos_bias"])
+
+        onnx_model_name = "model_npu_masked_softmax_with_rel_pos_bias.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
+
 
 if __name__ == '__main__':
     run_tests()

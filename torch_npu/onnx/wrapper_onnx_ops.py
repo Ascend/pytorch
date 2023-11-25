@@ -624,6 +624,23 @@ class NPUIncreFlashAttentionOP(torch.autograd.Function):
                     num_heads, scale_value, input_layout, num_key_value_heads)
 
 
+class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_masked_softmax_with_rel_pos_bias(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, x: Tensor, atten_mask: Optional[Tensor], relative_pos_bias: Tensor, scale_value: float = 1.0,
+                 inner_precision_mode: int = 0):
+        return g.op("npu::NPUMaskedSoftmaxWithRelPosBias", x, atten_mask, relative_pos_bias, scale_value,
+                    inner_precision_mode)
+
+
+def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode):
+    return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
+
+
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
@@ -901,3 +918,4 @@ def add_onnx_ops():
     torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
     torch_npu.npu_prompt_flash_attention = wrapper_npu_prompt_flash_attention
     torch_npu.npu_incre_flash_attention = wrapper_npu_incre_flash_attention
+    torch_npu.npu_masked_softmax_with_rel_pos_bias = wrapper_npu_masked_softmax_with_rel_pos_bias
