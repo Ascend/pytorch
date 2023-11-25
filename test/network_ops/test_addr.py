@@ -26,18 +26,18 @@ class TestAddr(TestCase):
 
     def test_addr_common_shape_format(self):
         shape_format = [
-            [[np.bool, 0, (5, 3)], [np.bool, 0, (5)], [np.bool, 0, (3)]],
-            [[np.bool, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
-            [[np.bool, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
-            [[np.bool, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.bool_, 0, (5, 3)], [np.bool_, 0, (5)], [np.bool_, 0, (3)]],
+            [[np.bool_, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
+            [[np.bool_, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
+            [[np.bool_, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
             [[np.int32, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
             [[np.int32, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
             [[np.int32, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
-            [[np.int32, 0, (5, 3)], [np.bool, 0, (5)], [np.float32, 0, (3)]],
+            [[np.int32, 0, (5, 3)], [np.bool_, 0, (5)], [np.float32, 0, (3)]],
             [[np.float32, 0, (5, 3)], [np.float32, 0, (5)], [np.float32, 0, (3)]],
             [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.float32, 0, (3)]],
             [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.int32, 0, (3)]],
-            [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.bool, 0, (3)]],
+            [[np.float32, 0, (5, 3)], [np.int32, 0, (5)], [np.bool_, 0, (3)]],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)

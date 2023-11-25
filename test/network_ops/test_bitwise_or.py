@@ -30,8 +30,8 @@ class TestBitwiseOr(TestCase):
         for i in enumerate(seq):
             if input2[i] < 0.5:
                 input2[i] = 0
-        input1 = input1.astype(np.bool)
-        input2 = input2.astype(np.bool)
+        input1 = input1.astype(np.bool_)
+        input2 = input2.astype(np.bool_)
         input1 = input1.reshape(shape)
         input2 = input2.reshape(shape)
         # modify from numpy.ndarray to torch.tensor
@@ -53,7 +53,7 @@ class TestBitwiseOr(TestCase):
         for i in enumerate(seq):
             if input1[i] < 0.5:
                 input1[i] = 0
-        input1 = input1.astype(np.bool)
+        input1 = input1.astype(np.bool_)
         input1 = input1.reshape(shape)
         # modify from numpy.ndarray to torch.tensor
         npu_input1 = torch.from_numpy(input1)
