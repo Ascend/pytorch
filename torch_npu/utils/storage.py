@@ -28,7 +28,7 @@ def _cpu(self):
     if self.device.type != 'cpu':
         fake_tensor = torch_npu._C._tensor_construct_from_storage(self)
         return fake_tensor.cpu().untyped_storage()
-    else: 
+    else:
         return self
 
 

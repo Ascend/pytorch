@@ -6,22 +6,22 @@ value: parent_module(object)
 """
 
 unsupported_Tensor_api = {
-  "is_shared": torch.Tensor,
-  "share_memory_": torch.Tensor
+    "is_shared": torch.Tensor,
+    "share_memory_": torch.Tensor
 }
 
 unsupported_nn_api = {
-  "__init__": torch.nn.DataParallel,
-  "data_parallel": torch.nn.parallel,
-  "share_memory": torch.nn.Module,
-  "add_module": torch.jit.ScriptModule,
-  "bfloat16": torch.jit.ScriptModule,
-  "register_buffer": torch.jit.ScriptModule,
-  "register_parameter": torch.jit.ScriptModule,
-  "register_module": torch.jit.ScriptModule
+    "__init__": torch.nn.DataParallel,
+    "data_parallel": torch.nn.parallel,
+    "share_memory": torch.nn.Module,
+    "add_module": torch.jit.ScriptModule,
+    "bfloat16": torch.jit.ScriptModule,
+    "register_buffer": torch.jit.ScriptModule,
+    "register_parameter": torch.jit.ScriptModule,
+    "register_module": torch.jit.ScriptModule
 }
 
 unsupported_nested_api = {
-  "nested_tensor": torch.nested,
-  "as_nested_tensor": torch.nested
+    "nested_tensor": torch.nested,
+    "as_nested_tensor": torch.nested
 }

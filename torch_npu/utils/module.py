@@ -72,7 +72,7 @@ def cast_weight(self, device):
     def _format_cast(module, class_name):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
-            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
+            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29)  # ACL_FORMAT_FRACTAL_NZ
         if issubclass(class_name, torch.nn.MultiheadAttention) and \
            module.q_proj_weight is not None and \
            not torch.npu.get_mm_bmm_format_nd():
@@ -103,7 +103,7 @@ def cast_weight(self, device):
             if module.groups > 1:
                 return
             if hasattr(module, "weight") and module.weight is not None and \
-                "weight" in dict(module.named_parameters()):
+                    "weight" in dict(module.named_parameters()):
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
         if issubclass(class_name, torch.nn.LazyConv3d):
@@ -119,7 +119,7 @@ def cast_weight(self, device):
     _format_cast(self, current_class)
 
     if not self.children:
-        return 
+        return
 
     for sub_module in self.children():
         if isinstance(sub_module, torch.nn.Module):
@@ -251,11 +251,11 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
 
 
 def _ddp_init_helper(
-    self,
-    parameters,
-    expect_sparse_gradient,
-    param_to_name_mapping,
-    static_graph,):
+        self,
+        parameters,
+        expect_sparse_gradient,
+        param_to_name_mapping,
+        static_graph,):
     """
     Initialization helper function that does the following:
     (1) bucketing the parameters for reductions

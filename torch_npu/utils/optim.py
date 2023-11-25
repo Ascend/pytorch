@@ -38,13 +38,13 @@ def wrap_optim_warning_func(func, name):
 
 
 def partialclass(cls, *args, **kwargs):
-    
+
     class NewCls(cls):
         __init__ = partialmethod(cls.__init__, *args, **kwargs)
         __name__ = cls.__name__
-    
+
     NewCls.__name__ = cls.__name__
-    
+
     return NewCls
 
 

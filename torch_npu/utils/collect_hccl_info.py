@@ -21,7 +21,7 @@ def get_mpi_install_path():
     mpirun_path = shutil.which("mpirun")
     if not mpirun_path:
         raise FileNotFoundError(
-            """MPI package not found. Please download from official website. 
+            """MPI package not found. Please download from official website.
             If package already downloaded, please check and set environment variables."""
         )
 
@@ -60,7 +60,7 @@ def compile_hccl_test():
 -t: test suite type. e.g: -t all_reduce_test denotes running all reduce test.
 -b: begin size of data flow. e.g: -b 8k denotes data flow begins with 8KB
 -e: end size of data flow. e.g: -e 64M denotes data flow ends with 64MB
--i: step bytes. increment size. 
+-i: step bytes. increment size.
 -f: ratio of increment. e.g: -f 2 denotes data flow increases exponentially
 -d: data type. e.g: -d fp32 denotes dtype is float32.
 -o: operation type. Legal: sum/prod/min/max
@@ -71,7 +71,7 @@ def compile_hccl_test():
 -p: number of npus: e.g: -n denotes 8 use 8 NPUs per node.
 -h: help info
 -file: host file to enable multi-node test
--multinode: whether to use multi-node test. e.g: False: disable, True: enable 
+-multinode: whether to use multi-node test. e.g: False: disable, True: enable
 """
 
 parser = argparse.ArgumentParser(description="test options")

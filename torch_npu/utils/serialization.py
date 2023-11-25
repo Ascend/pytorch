@@ -20,12 +20,12 @@ def _get_always_warn_legacy_serialization():
     return ALWAYS_WARN_LEGACY_SERIALIZATION
 
 
-def _set_always_warn_legacy_serialization(always_warn:bool):
+def _set_always_warn_legacy_serialization(always_warn: bool):
     global ALWAYS_WARN_LEGACY_SERIALIZATION
     ALWAYS_WARN_LEGACY_SERIALIZATION = always_warn
 
 
-def _warn_legacy_serialization(warn_massages, key_flag:str):
+def _warn_legacy_serialization(warn_massages, key_flag: str):
     def is_first_time(flag):
         warn_key = "has_warned_for" + flag if flag else None
         if not hasattr(_warn_legacy_serialization, warn_key):
@@ -164,7 +164,7 @@ def load(
             with _open_zipfile_reader(opened_file) as opened_zipfile:
                 if _is_torchscript_zip(opened_zipfile):
                     print(f"Warning: 'torch.load' received a zip file that looks like a TorchScript archive"
-                                  " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to silence this warning)")
+                          " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to silence this warning)")
                     opened_file.seek(orig_position)
                     return torch.jit.load(opened_file, map_location=map_location)
                 if mmap:
@@ -174,14 +174,16 @@ def load(
                     overall_storage = torch.UntypedStorage.from_file(f, False, size)
                 if weights_only:
                     try:
-                        return _load(opened_zipfile, map_location, _weights_only_unpickler, overall_storage=overall_storage, **pickle_load_args)
+                        return _load(opened_zipfile, map_location, _weights_only_unpickler,
+                                     overall_storage=overall_storage, **pickle_load_args)
                     except RuntimeError as e:
                         raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e)) from None
-                return _load(opened_zipfile, map_location, pickle_module, overall_storage=overall_storage, **pickle_load_args)
+                return _load(opened_zipfile, map_location, pickle_module,
+                             overall_storage=overall_storage, **pickle_load_args)
         else:
             if mmap:
                 raise RuntimeError("mmap can only be used with files saved with `torch.save(_use_new_zipfile_serialization=True), ",
-                               "please torch.save your checkpoint with this option in order to use mmap.")
+                                   "please torch.save your checkpoint with this option in order to use mmap.")
             if weights_only:
                 try:
                     return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
@@ -221,7 +223,7 @@ def save(
         )
         _warn_legacy_serialization(warn_massage, "save")
     return torch.serialization.save(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
-               
+
 
 def save_async(
     obj: object,
@@ -237,7 +239,7 @@ def save_async(
                            is not recommended for npu tensor, which may bring unexpected errors and hopefully \
                            set \"_use_new_zipfile_serialization = True\"",
                            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving")
-    
+
     _check_dill_version(pickle_module)
     save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
 
@@ -278,7 +280,7 @@ def save_data_thread(save_args,
             # Now that it is on the CPU we can directly copy it into the zip file
             num_bytes = storage.nbytes()
             storage_value.append((name, storage, num_bytes))
-    
+
     with _open_zipfile_writer(f) as opened_zipfile:
         opened_zipfile.write_record('data.pkl', data_value, len(data_value))
 
@@ -349,6 +351,7 @@ def _save(obj, pickle_module, pickle_protocol):
     data_value = data_buf.getvalue()
     return data_value, serialized_storages
 
+
 def add_serialization_methods():
     torch.save = save
-    torch.load =load
+    torch.load = load
