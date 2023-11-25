@@ -166,7 +166,7 @@ class TestSum(TestCase):
         format_list = [0, 2, 30]
         shape_list = [[18], [256, 1000], [32, 48, 64], [32, 24, 18, 18]]
         shape_format = [
-            [np.bool, i, j] for i in format_list for j in shape_list
+            [np.bool_, i, j] for i in format_list for j in shape_list
         ]
         self.sum_result(shape_format)
 
@@ -248,7 +248,7 @@ class TestSum(TestCase):
         format_list = [0, 2, 30]
         shape_list = [[18], [256, 1000], [32, 48, 64], [32, 24, 18, 18]]
         shape_format = [
-            [np.bool, i, j] for i in format_list for j in shape_list
+            [np.bool_, i, j] for i in format_list for j in shape_list
         ]
         self.sum_dim_result(shape_format)
 

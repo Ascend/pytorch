@@ -220,7 +220,10 @@ def exec_ut(files):
     执行单元测试文件，其中存在失败，则标识异常并打印相关信息
     """
     def get_op_name(ut_file):
-        return ut_file.split('/')[-1].split('.')[0].lstrip('test_')
+        result = ut_file.split('/')[-1].split('.')[0]
+        if ut_file.startswith('test_'):
+            return result[5:]
+        return result
 
     def get_ut_name(ut_file):
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]

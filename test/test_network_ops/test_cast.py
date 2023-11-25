@@ -41,7 +41,7 @@ def npu_op_exec(input1, func):
 
 
 shape_format = [
-    [[np.bool, -1, (4, 3, 1)]],
+    [[np.bool_, -1, (4, 3, 1)]],
     [[np.int64, -1, (4, 3)]],
     [[np.int32, -1, (4, 3, 1)]],
     [[np.int8, -1, (2, 3)]],

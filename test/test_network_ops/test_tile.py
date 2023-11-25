@@ -49,7 +49,7 @@ class TestTile(TestCase):
             [[np.float16, 0, (1024, 4)], [2, 3, 4]],
             [[np.float16, 0, (1, 6, 4)], [2, 4, 8]],
             [[np.float16, 0, (2, 4, 5)], [2, 6, 10]],
-            [[np.bool, 0, (1024, 4)], [2, 3, 4]]
+            [[np.bool_, 0, (1024, 4)], [2, 3, 4]]
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)

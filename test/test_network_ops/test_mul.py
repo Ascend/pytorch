@@ -130,7 +130,7 @@ class TestMuls(TestCase):
             [np.int32, 0, (2, 3, 8)],
             [np.int64, 0, (2, 32, 8, 16)],
             [np.uint8, 0, (8)],
-            [np.bool, 0, (2, 2, 3, 8)],
+            [np.bool_, 0, (2, 2, 3, 8)],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)

@@ -63,7 +63,7 @@ class TestNlllossbackward(TestCase):
                 [[np.float32, 0, [4800, 3003]], reduction, None],
             ]
             for item in shape_format:
-                np_target = np.random.randint(0, item[0][2][1], (item[0][2][0])).astype(np.long)
+                np_target = np.random.randint(0, item[0][2][1], (item[0][2][0])).astype(np.int64)
                 target = torch.from_numpy(np_target)
                 cpu_input, npu_input = create_common_tensor(item[0], -100, 100)
                 cpu_output, cpu_grad = self.cpu_op_exec_new(cpu_input, target, item[1], item[2])
@@ -84,7 +84,7 @@ class TestNlllossbackward(TestCase):
                 [[np.float16, 0, [4800, 3003]], reduction, None]
             ]
             for item in shape_format:
-                np_target = np.random.uniform(0, item[0][2][1], (item[0][2][0])).astype(np.long)
+                np_target = np.random.uniform(0, item[0][2][1], (item[0][2][0])).astype(np.int64)
                 target = torch.from_numpy(np_target)
                 cpu_input, npu_input = create_common_tensor(item[0], -100, 100)
                 cpu_input = cpu_input.to(torch.float32)

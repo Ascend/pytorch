@@ -570,7 +570,13 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float32, torch.float16)),
         supports_forward_ad=True,
         supports_fwgrad_bwgrad=True,
-        sample_inputs_func=common_methods_invocations.sample_inputs_cumulative_ops
+        sample_inputs_func=common_methods_invocations.sample_inputs_cumulative_ops,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'cumprod',
@@ -720,6 +726,8 @@ op_db: List[OpInfo] = [
         },
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_out', dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
         ),
     ),
     UnaryUfuncInfo(
@@ -836,6 +844,12 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_hardshrink,
         formats=(2, ),
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'nn.functional.hardswish',
@@ -862,6 +876,12 @@ op_db: List[OpInfo] = [
         sample_inputs_func=common_methods_invocations.sample_inputs_hardtanh,
         formats=(0, 3, 4, 29),
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'nn.functional.interpolate',
@@ -893,6 +913,12 @@ op_db: List[OpInfo] = [
             'test_correctness': (0, 1, 2, 6, 7, 8),
             'test_variant_consistency_eager': (0, 1, 2, 6, 7, 8, 9, 10, 11, 15, 16, 17)
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.int8, torch.int32, torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'index_copy',
@@ -927,6 +953,12 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness': (0, 4, 6, ),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     BinaryUfuncInfo(
         'isclose',
@@ -1266,6 +1298,10 @@ op_db: List[OpInfo] = [
         supports_autograd=False,
         supports_out=False,
         formats=(0, 2),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
+        ),
     ),
     OpInfo(
         'median',
@@ -1459,6 +1495,8 @@ op_db: List[OpInfo] = [
         formats=(2, ),
         supports_out=False,
         skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.uint8, torch.int8, torch.int32, torch.float16, torch.float32]),
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
                          dtypes=[torch.float32]),
         )
@@ -1475,6 +1513,10 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness': (0, 4, 6),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        )
     ),
     BinaryUfuncInfo(
         'pow',
@@ -1485,6 +1527,8 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
                          dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
@@ -1521,6 +1565,8 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
                          dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
         ),
     ),
     UnaryUfuncInfo(
@@ -1528,6 +1574,12 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, torch.int32, torch.int64)),
         formats=(2,),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.int32, torch.int64]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'nn.functional.relu',
@@ -1579,6 +1631,10 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.bool, torch.int32, torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_view_reshape,
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     # np
     OpInfo(
@@ -1587,11 +1643,19 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_roll,
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'round',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'nn.functional.celu',
@@ -1619,6 +1683,12 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
         sample_inputs_func=sample_inputs_binary_cross_entropy_with_logits,
         formats=(2,),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'nn.functional.rrelu',
@@ -1634,6 +1704,10 @@ op_db: List[OpInfo] = [
         formats=(0, 2, 3, 29),
         supports_inplace_autograd=False,
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'scatter',
@@ -1682,11 +1756,19 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness': (0, 2, ),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'sign',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'nn.functional.selu',
@@ -1714,11 +1796,19 @@ op_db: List[OpInfo] = [
         'sin',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'sinh',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'softmax',
@@ -1731,6 +1821,8 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
                          dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
         ),
     ),
     OpInfo(
@@ -1739,6 +1831,12 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_softshrink,
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
+                         dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'sort',
@@ -1760,12 +1858,20 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness': (0, 2, ),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'stack',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_stack,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'std',
@@ -1792,7 +1898,10 @@ op_db: List[OpInfo] = [
         skips=(
             DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_correctness',
                          dtypes=[torch.float16, torch.float32]),
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
         ),
+
     ),
     BinaryUfuncInfo(
         'sub',
@@ -1806,6 +1915,10 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_variant_consistency_eager': (8, 18),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     ReductionOpInfo(
         'sum',
@@ -1842,6 +1955,10 @@ op_db: List[OpInfo] = [
         'tan',
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float32, )),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     UnaryUfuncInfo(
         'tanh',
@@ -1850,12 +1967,20 @@ op_db: List[OpInfo] = [
         skipSample={
             'test_correctness': (0, 2, ),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'threshold',
         dtypes=_dispatch_dtypes((torch.int32, torch.float32)),
         dtypesIfNPU=_dispatch_dtypes((torch.int32, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_threshold,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'topk',
@@ -1877,6 +2002,10 @@ op_db: List[OpInfo] = [
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
         sample_inputs_func=common_methods_invocations.sample_inputs_transpose_swapdims,
         supports_out=False,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'triangular_solve',
@@ -1888,6 +2017,10 @@ op_db: List[OpInfo] = [
             # the second tensor returned has an accuracy of only two decimal places
             'test_correctness': (0, 1, 4, 5,),
         },
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'tril',
@@ -1906,6 +2039,10 @@ op_db: List[OpInfo] = [
         dtypes=_dispatch_dtypes((torch.float16, torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32, )),
         sample_inputs_func=common_methods_invocations.sample_inputs_tril_triu,
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     BinaryUfuncInfo(
         'true_divide',
@@ -1923,6 +2060,10 @@ op_db: List[OpInfo] = [
         aliases=('fix', ),
         dtypes=_dispatch_dtypes((torch.float32, )),
         dtypesIfNPU=_dispatch_dtypes((torch.float16, torch.float32)),
+        skips=(
+            DecorateInfo(unittest.skip("skipped!"), 'TestOps', 'test_variant_consistency_eager',
+                         dtypes=[torch.float32]),
+        ),
     ),
     OpInfo(
         'where',

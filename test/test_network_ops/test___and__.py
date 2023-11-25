@@ -43,7 +43,7 @@ class Test__And__(TestCase):
             [[np.int16, 0, [256, 1000]], [np.int16, 0, [256, 1000]]],
             [[np.int8, 0, [256, 1000]], [3]],
             [[np.int8, 0, [256, 1000]], [np.int8, 0, [256, 1000]]],
-            [[np.bool, 0, [256, 1000]], [np.bool, 0, [256, 1000]]],
+            [[np.bool_, 0, [256, 1000]], [np.bool_, 0, [256, 1000]]],
         ]
 
         for item in shape_format:
