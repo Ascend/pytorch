@@ -88,6 +88,23 @@ class HcclReduceTest(TestCase):
                 self._test_multiprocess(HcclReduceTest._test_reduce,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_reduce_uint8_dist(self):
+        ranks = [2]
+        dtype_list = [np.uint8]
+        format_list = [0, 2]
+        shape_format = [
+            [i, j, [12, 56, 256]] for i in dtype_list for j in format_list
+        ] + [[i, j, [1]] for i in dtype_list for j in format_list]
+        for world_size in ranks:
+            for shape in shape_format:
+                exp_input, input1 = create_common_tensor(shape, -10, 10)
+                expected = 0
+                for _ in range(world_size):
+                    expected += exp_input
+                self._test_multiprocess(HcclReduceTest._test_reduce,
+                                        HcclReduceTest._init_dist_hccl, expected, input1, world_size)
+
 
 if __name__ == '__main__':
     run_tests()

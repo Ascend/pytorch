@@ -84,16 +84,16 @@ class HcomAllReduceTest(TestCase):
 
     @skipIfUnsupportMultiNPU(2)
     def test_dist_all_reduce_uint8(self):
-        # CI currently supports only 2 devices
         ranks = [2]
-        shape_format = [np.uint8, 2, [2, 3, 16]]
-        for world_size in ranks:
-            exp_input, input1 = create_common_tensor(shape_format, 0, 10)
-            expected = 0
-            for _ in range(world_size):
-                expected += exp_input
-            self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
-                                    HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
+        shape_format = [[np.uint8, 2, [2, 3, 16]], [np.uint8, 2, [1]]]
+        for sfmt in shape_format:
+            for world_size in ranks:
+                exp_input, input1 = create_common_tensor(sfmt, 0, 10)
+                expected = 0
+                for _ in range(world_size):
+                    expected += exp_input
+                self._test_multiprocess(HcomAllReduceTest._test_all_reduce,
+                                        HcomAllReduceTest._init_dist_hccl, expected, input1, world_size)
 
 
 if __name__ == '__main__':
