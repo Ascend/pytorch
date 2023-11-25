@@ -139,7 +139,7 @@ class CheckpointFunction(torch.autograd.Function):
 
         global FLAG_SUPPORT_INF_NAN
         FLAG_SUPPORT_INF_NAN = hasattr(torch_npu.npu.utils, 'is_support_inf_nan') \
-                               and torch_npu.npu.utils.is_support_inf_nan()
+            and torch_npu.npu.utils.is_support_inf_nan()
         if not FLAG_SUPPORT_INF_NAN:
             global CKPT_INIT_FLAG, CKPT_OVERFLOW_FLAG, CKPT_CONST_VAR
             if not CKPT_INIT_FLAG:

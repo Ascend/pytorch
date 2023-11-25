@@ -49,7 +49,7 @@ def _tensor_str(self, indent):
     is_npu = self.is_npu
     if is_npu:
         self = self.cpu()
-    
+
     summarize = self.numel() > PRINT_OPTS.threshold
     if self.dtype is torch.float16 or self.dtype is torch.bfloat16:
         self = self.float()
@@ -61,7 +61,7 @@ def _tensor_str(self, indent):
     else:
         formatter = _Formatter(get_summarized_data(self) if summarize else self)
         rst = _tensor_str_with_formatter(self, indent, summarize, formatter)
-    
+
     # step 2:
     # When above operations finished, we need to do 'to-npu' with self for following operations.
     if is_npu:
@@ -217,7 +217,7 @@ class Tensor(torch.Tensor):
         """
         if has_torch_function_unary(self):
             return handle_torch_function(Tensor.share_memory_, (self,), self)
-        
+
         if self.device.type == 'npu':
             self.storage()
         else:

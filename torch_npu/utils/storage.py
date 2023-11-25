@@ -56,7 +56,7 @@ def _rebuild_tensor(storage, storage_offset, size, stride):
 
 
 def _reduce_ex(self, proto):
-    if type(self) is torch.Tensor:
+    if isinstance(self, torch.Tensor):
         if has_torch_function_unary(self):
             return handle_torch_function(torch.Tensor.__reduce_ex__, (self,), self, proto)
         check_serializing_named_tensor(self)
@@ -75,7 +75,7 @@ def _reduce_ex(self, proto):
             return (_rebuild_npu_tensor, arg_npu)
         return self._reduce_ex_internal(proto)
     relevant_args = (self,)
-    if type(self) is not torch.Tensor and has_torch_function(relevant_args):
+    if not isinstance(self, torch.Tensor) and has_torch_function(relevant_args):
         return handle_torch_function(torch.Tensor.__reduce_ex__, relevant_args, self, proto)
     func, args = self._reduce_ex_internal(proto)
     return (torch._rebuild_from_type, (func, type(self), args, self.__dict__))

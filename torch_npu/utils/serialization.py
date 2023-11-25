@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -60,7 +60,7 @@ def _npu_deserialize(obj, location):
         device = validate_npu_device(location)
         obj.is_npu = True
         obj.npu_index = device
-    return obj 
+    return obj
 
 
 def normalize_map_location_type(map_location):
@@ -77,7 +77,7 @@ def update_cpu_remap_info(map_location):
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=True):
     """Saves the input data into a file.
 
-    The saved data is saved by using the PyTorch CPU storage structure, but 
+    The saved data is saved by using the PyTorch CPU storage structure, but
     following `torch.load()`  will load the corresponding NPU data.
 
     Care must be taken when working with views. Instead of saving views it's
@@ -87,7 +87,7 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     Args:
     data: The input data to be saved. Any nested combination of Python objects
         (list, tuples, sets, dicts, ...).
-    path: The destination file for the data saving operation. all the writes from 
+    path: The destination file for the data saving operation. all the writes from
     the same host will override each other.
     """
     se.save(obj, f, pickle_module, pickle_protocol, True)
@@ -104,7 +104,7 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     map_location = normalize_map_location_type(map_location)
 
     update_cpu_remap_info(map_location)
-    
+
     se._check_dill_version(pickle_module)
 
     if 'encoding' not in pickle_load_args.keys():
@@ -141,7 +141,7 @@ def save_async(
                            is not recommended for npu tensor, which may bring unexpected errors and hopefully \
                            set \"_use_new_zipfile_serialization = True\"",
                            "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving")
-    
+
     _check_dill_version(pickle_module)
     save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
 
@@ -182,7 +182,7 @@ def save_data_thread(save_args,
             # Now that it is on the CPU we can directly copy it into the zip file
             num_bytes = storage.nbytes()
             storage_value.append((name, storage.data_ptr(), num_bytes))
-    
+
     with _open_zipfile_writer(f) as opened_zipfile:
         opened_zipfile.write_record('data.pkl', data_value, len(data_value))
 
