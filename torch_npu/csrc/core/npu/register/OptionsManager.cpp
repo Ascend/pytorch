@@ -121,5 +121,16 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable()
     int64_t desyncDebugFlag = (desyncDebug_val != nullptr) ? strtol(desyncDebug_val, nullptr, 10) : 0;
     return static_cast<uint32_t>(desyncDebugFlag);
 }
+
+bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
+{
+    const static int getACLGlobalLogLevel = []() -> int {
+        char* env_val = std::getenv("ASCEND_GLOBAL_LOG_LEVEL");
+        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : ACL_ERROR;
+        return static_cast<int>(envFlag);
+    }();
+    return (getACLGlobalLogLevel <= level);
+}
+
 } // namespace option
 } // namespace c10_npu
