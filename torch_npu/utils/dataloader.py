@@ -68,10 +68,10 @@ def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
 
 
 def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
-                  auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
-                  num_workers, persistent_workers):
+                    auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
+                    num_workers, persistent_workers):
     # valid only in DVPP acceleration scenario
-    os.environ["TE_PARALLEL_COMPILER"] = "1" # set the number of operator compilation processes to 1
+    os.environ["TE_PARALLEL_COMPILER"] = "1"  # set the number of operator compilation processes to 1
     torch_npu.npu.set_device(dataset.device)
     torch_npu.npu.current_stream().set_data_preprocess_stream(True)
     torch.npu.set_compile_mode(jit_compile=False)
@@ -144,7 +144,7 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
             # if enable dvpp, worker process start method should be spawn and cannot be daemonic
             if hasattr(self._dataset, 'accelerate_enable') and self._dataset.accelerate_enable:
                 multiprocessing_context = multiprocessing.get_context('spawn')
-                worker_loop = npu_worker_loop # set device and priority
+                worker_loop = npu_worker_loop  # set device and priority
                 daemon = False
         else:
             multiprocessing_context = loader.multiprocessing_context

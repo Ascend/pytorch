@@ -161,8 +161,8 @@ class CheckpointFunction(torch.autograd.Function):
             if not FLAG_SUPPORT_INF_NAN:
                 CKPT_OVERFLOW_FLAG = torch_npu.npu.get_npu_overflow_flag()
             with torch.enable_grad(), \
-                 torch.npu.amp.autocast(**ctx.npu_autocast_kwargs), \
-                 torch.cpu.amp.autocast(**ctx.cpu_autocast_kwargs):
+                    torch.npu.amp.autocast(**ctx.npu_autocast_kwargs), \
+                    torch.cpu.amp.autocast(**ctx.cpu_autocast_kwargs):
                 outputs = ctx.run_function(*detached_inputs)
                 if not FLAG_SUPPORT_INF_NAN:
                     torch_npu.npu.clear_npu_overflow_flag()

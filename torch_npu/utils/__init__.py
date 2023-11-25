@@ -29,7 +29,7 @@ from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_c
 from .dynamo import add_dynamo_patch
 from .collect_env import add_collect_env_methods, get_cann_version
 
-__all__ = []
+__all__ = ["save_async"]
 
 serialization_patches = [
     ["save", save],

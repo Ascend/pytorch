@@ -28,7 +28,7 @@ import torch_npu
 _register_custom_builtin('torch_npu', 'import torch_npu', torch_npu)
 
 
-def to_folder(self, folder: Union[str, os.PathLike], module_name : str = "FxModule"):
+def to_folder(self, folder: Union[str, os.PathLike], module_name: str = "FxModule"):
     """Dumps out module to ``folder`` with ``module_name`` so that it can be
     imported with ``from <folder> import <module_name>``
     Args:
@@ -83,7 +83,7 @@ class {module_name}(torch.nn.Module):
 
     if len(blobified_modules) > 0:
         warnings.warn("Was not able to save the following children modules as reprs -"
-                        f"saved as pickled files instead: {blobified_modules}")
+                      f"saved as pickled files instead: {blobified_modules}")
 
 
 def add_fx_methods():

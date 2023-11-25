@@ -45,6 +45,7 @@ def torch_device_guard(func):
         return func(*args, **kwargs)
     return wrapper
 
+
 env_device_cnt = None
 
 

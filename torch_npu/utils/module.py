@@ -90,7 +90,7 @@ def cast_weight(self, device):
     def _format_cast(module, class_name):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
-            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
+            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29)  # ACL_FORMAT_FRACTAL_NZ
         if issubclass(class_name, torch.nn.MultiheadAttention) and \
            module.q_proj_weight is not None and \
            not torch.npu.get_mm_bmm_format_nd():
@@ -121,7 +121,7 @@ def cast_weight(self, device):
             if module.groups > 1:
                 return
             if hasattr(module, "weight") and module.weight is not None and \
-                "weight" in dict(module.named_parameters()):
+                    "weight" in dict(module.named_parameters()):
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
         if issubclass(class_name, torch.nn.LazyConv3d):
@@ -139,7 +139,7 @@ def cast_weight(self, device):
     _format_cast(self, current_class)
 
     if not self.children:
-        return 
+        return
 
     for sub_module in self.children():
         if isinstance(sub_module, torch.nn.Module):
@@ -375,7 +375,7 @@ def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
 
 
 def npu_ddp_init_helper(
-    self, parameters, expect_sparse_gradient, param_to_name_mapping, static_graph):
+        self, parameters, expect_sparse_gradient, param_to_name_mapping, static_graph):
     """
     Initialization helper function that does the following:
     (1) bucketing the parameters for reductions
@@ -526,8 +526,8 @@ def _normbase_init_(self, num_features: int, eps: float = 1e-5, momentum: float 
         self.running_mean: Optional[Tensor]
         self.running_var: Optional[Tensor]
         self.register_buffer('num_batches_tracked',
-                                torch.tensor(0, dtype=torch.int32,
-                                            **{k: v for k, v in factory_kwargs.items() if k != 'dtype'}))
+                             torch.tensor(0, dtype=torch.int32,
+                                          **{k: v for k, v in factory_kwargs.items() if k != 'dtype'}))
         self.num_batches_tracked: Optional[Tensor]
     else:
         self.register_buffer('running_mean', None)
@@ -657,7 +657,7 @@ def gru_forward(self, input_tensor, hx=None):
                 cat_list = []
                 for i in batch_list:
                     if (i < batch_list[0]):
-                        slice_tensor = result[0][start : cur + i, :]
+                        slice_tensor = result[0][start: cur + i, :]
                         start = cur + i
                         cur = start
                         cat_list.append(slice_tensor)
