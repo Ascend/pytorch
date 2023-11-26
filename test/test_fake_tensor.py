@@ -150,6 +150,22 @@ class TestPromptFlashAttention(TestCase):
             self.assertTrue(q.shape == res.shape)
 
 
+class TestMaskedSoftmaxWithRelPosBias(TestCase):
+    # meta shape推导
+    def testMaskedSoftmaxWithRelPosBias(self):
+        with fake_mode:
+            x = torch.randn(96, 2, 2, 32, 32, dtype=torch.float)
+            relative_pos_bias = torch.randn(1, 1, 2, 32, 32, dtype=torch.float)
+            atten_mask = torch.randn(1, 2, 1, 32, 32, dtype=torch.float)
+            x.requires_grad = True
+            atten_mask.requires_grad = True
+            relative_pos_bias.requires_grad = True
+            res = torch.ops.npu.npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias)
+            print("x.shape: ", x.shape)
+            print("res.shape: ", res.shape)
+            self.assertTrue(x.shape == res.shape)
+
+
 class TestScatterUpdateMeta(TestCase):
 
     def test_scatter_update_meta(self):
