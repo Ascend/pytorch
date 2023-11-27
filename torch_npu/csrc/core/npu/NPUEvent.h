@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "third_party/acl/inc/acl/acl.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
@@ -30,7 +31,7 @@ namespace c10_npu {
 * NPUEvents are movable not copyable wrappers around NPU's events.
 * NPUEvents are constructed lazily when first recorded.
 */
-struct NPUEvent {
+struct C10_NPU_API NPUEvent {
   // Constructors
   // Default value for `flags` is specified below
   NPUEvent() {}

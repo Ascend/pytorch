@@ -5,6 +5,7 @@
 #include <ATen/Tensor.h>
 #include <ATen/Context.h>
 #include <limits>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 
 namespace at_npu {
@@ -118,7 +119,7 @@ struct PhiloxNpuState {
   bool captured_ = false;
 };
 
-struct NPUGeneratorImpl : public c10::GeneratorImpl {
+struct C10_NPU_API NPUGeneratorImpl : public c10::GeneratorImpl {
   // Constructors
   NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
   ~NPUGeneratorImpl() = default;
@@ -151,7 +152,7 @@ private:
 };
 
 namespace detail {
-const at::Generator& getDefaultNPUGenerator(
+C10_NPU_API const at::Generator& getDefaultNPUGenerator(
     c10::DeviceIndex device_index = -1);
 at::Generator createNPUGenerator(c10::DeviceIndex device_index = -1);
 

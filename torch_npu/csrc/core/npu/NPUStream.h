@@ -33,7 +33,7 @@
 
 namespace c10_npu {
 
-class NPUStream {
+class C10_NPU_API NPUStream {
 public:
   enum Unchecked { UNCHECKED };
 
@@ -94,7 +94,7 @@ public:
   }
 
   /// Explicit conversion to rtStream_t.
-  C10_NPU_API aclrtStream stream() const;
+  aclrtStream stream() const;
 
   /// Explicit conversion to Stream.
   c10::Stream unwrap() const {
@@ -121,11 +121,11 @@ private:
 
 NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
-NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
 C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
-NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
 aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
@@ -137,7 +137,7 @@ void enCurrentNPUStream(
     void* cur_paras,
     c10::DeviceIndex device_index = -1);
 
-void setCurrentNPUStream(NPUStream stream);
+C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
 } // namespace c10_npu

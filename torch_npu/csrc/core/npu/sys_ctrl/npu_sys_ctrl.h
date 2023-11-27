@@ -47,7 +47,7 @@ public:
      SysStatus ExchangeDevice(int pre_device, int device);
 
     // Init backwards thread
-     SysStatus BackwardsInit();
+     C10_NPU_API SysStatus BackwardsInit();
 
     // Set overflow switch
      SysStatus OverflowSwitchEnable();

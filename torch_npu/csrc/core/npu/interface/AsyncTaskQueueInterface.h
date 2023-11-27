@@ -3,6 +3,7 @@
 #include "c10/core/Storage.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10_npu {
 namespace queue {
@@ -59,13 +60,13 @@ aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
 aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
                                            c10_npu::NPUStream npuStream);
 
-aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
+C10_NPU_API aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
-aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
+C10_NPU_API aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchResetEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
-aclError LaunchLazyDestroyEventTask(aclrtEvent event);
+C10_NPU_API aclError LaunchLazyDestroyEventTask(aclrtEvent event);
 
 } // namespace queue
 } // namespace c10_npu
