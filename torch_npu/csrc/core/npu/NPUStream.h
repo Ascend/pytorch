@@ -33,7 +33,7 @@
 
 namespace c10_npu {
 
-class NPUStream {
+class C10_NPU_API NPUStream {
 public:
   enum Unchecked { UNCHECKED };
 
@@ -99,7 +99,7 @@ public:
   }
 
   /// Explicit conversion to rtStream_t.
-  C10_NPU_API aclrtStream stream() const;
+  aclrtStream stream() const;
 
   /// Explicit conversion to Stream.
   c10::Stream unwrap() const {
