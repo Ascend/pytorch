@@ -158,6 +158,17 @@ class NPUMultiHeadAttentionOP(torch.autograd.Function):
                     outputs=8)
 
 
+class NPURmsNormOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_rms_norm(*args, **kwargs)
+    
+    @staticmethod
+    def symbolic(g, self: Tensor, gamma: Tensor, epsilon: float = 1e-6):
+        return g.op("npu::NPURmsNorm", self, gamma, epsilon_f=epsilon, outputs=2)
+
+
 class NPUDiouOP(torch.autograd.Function):
 
     @staticmethod
@@ -720,6 +731,10 @@ def wrapper_npu_normalize_batch(self, seq_len, normalize_type=0):
     return NPUNormalizeBatchOP.apply(self, seq_len, normalize_type)
 
 
+def wrapper_npu_rms_norm(self, gamma, epsilon=1e-6):
+    return NPURmsNormOP.apply(self, gamma, epsilon)
+
+
 def wrapper_npu_nms_v4(self, scores, max_output_size, iou_threshold, scores_threshold,
                        pad_to_max_output_size=False):
     return NPUNmsV4OP.apply(self, scores, max_output_size,
@@ -861,6 +876,7 @@ def add_onnx_ops():
     torch_npu.npu_stride_add = wrapper_npu_stride_add
     torch_npu.npu_scatter = wrapper_npu_scatter
     torch_npu.npu_lstm = wrapper_npu_lstm
+    torch_npu.npu_rms_norm = wrapper_npu_rms_norm
     torch_npu.npu_lstm_cell = wrapper_npu_lstm_cell
     torch_npu.npu_gru = wrapper_npu_gru
     torch_npu.npu_dropout_with_add_softmax = wrapper_npu_dropout_with_add_softmax
