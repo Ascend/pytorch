@@ -131,6 +131,7 @@ class _KinetoProfile:
             PathManager.make_dir_safety(fwk_path)
         metadata_path = os.path.join(fwk_path, "profiler_metadata.json")
         FileManager.create_json_file_by_path(metadata_path, self.metadata, indent=4)
+        self.metadata = {}
 
     def _dump_profiler_info(self):
         start_info = {
@@ -281,6 +282,7 @@ class profile(_KinetoProfile):
             print_warn_msg("This is npu environment, use_cuda is invalid")
         self._check_params()
         self.action_map = self._init_action_map()
+        self.stopped = False
 
     def _init_action_map(self):
         action_map = {
@@ -316,9 +318,22 @@ class profile(_KinetoProfile):
             (ProfilerAction.RECORD_AND_SAVE, ProfilerAction.RECORD_AND_SAVE): [self.stop_trace, self.finalize_trace, self._trace_ready,
                                                                                self.init_trace, self.start_trace],
             # used for exit action
-            (ProfilerAction.WARMUP, None): [self.start_trace, self.stop_trace, self.finalize_trace],
-            (ProfilerAction.RECORD, None): [self.stop_trace, self.finalize_trace, self._trace_ready],
-            (ProfilerAction.RECORD_AND_SAVE, None): [self.stop_trace, self.finalize_trace, self._trace_ready],
+            (ProfilerAction.WARMUP, None): [
+                partial(print_warn_msg,
+                        "Incorrect schedule: Stop profiler while current state is WARMUP "
+                        "which will result in empty parsed data."),
+                self.start_trace,
+                self.stop_trace, self.finalize_trace],
+            (ProfilerAction.RECORD, None): [
+                partial(print_warn_msg,
+                        "Incorrect schedule: Stop profiler while current state is RECORD "
+                        "which may result in incomplete parsed data."),
+                self.stop_trace, self.finalize_trace, self._trace_ready],
+            (ProfilerAction.RECORD_AND_SAVE, None): [
+                partial(print_warn_msg,
+                        "Stop profiler while current state is RECORD_AND_SAVE, "
+                        "perhaps the scheduling cycle has not yet completed."),
+                self.stop_trace, self.finalize_trace, self._trace_ready],
         }
 
         return action_map
@@ -331,6 +346,7 @@ class profile(_KinetoProfile):
         self.stop()
 
     def start(self):
+        self.stopped = False
         if not self.on_trace_ready:
             ProfManager().init()
         self._transit_action(ProfilerAction.NONE, self.current_action)
@@ -342,8 +358,12 @@ class profile(_KinetoProfile):
         if self.record_steps and self.step_rec_fn:
             self.step_rec_fn.__exit__(None, None, None)
         self._transit_action(self.current_action, None)
+        self.stopped = True
 
     def step(self):
+        if self.stopped:
+            print_warn_msg("Profiler is stopped, step takes no effect!")
+            return
         if self.record_steps and self.step_rec_fn:
             self.step_rec_fn.__exit__(None, None, None)
         prev_action = self.current_action
