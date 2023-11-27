@@ -171,18 +171,6 @@ def check_operators_in_prof(expected_operators, prof, unexpected_operators=None)
     return False
 
 
-def skipIfUnsupportMultiNPU(npu_number_needed):
-    def skip_dec(func):
-        def wrapper(self):
-            if not torch.npu.is_available() or torch.npu.device_count() < npu_number_needed:
-                raise unittest.SkipTest("Multi-NPU condition not satisfied")
-            return func(self)
-
-        return wrapper
-
-    return skip_dec
-
-
 class SkipIfNoLapack(object):
 
     def __call__(self, fn):
