@@ -93,6 +93,24 @@ def scatter_update__meta(self, indices, updates, axis):
     return self
 
 
+@impl(m, "npu_rms_norm")
+def npu_rms_norm_meta(self, gamma, epsilon=1e-6):
+    rstd_dim = self.dim() - gamma.dim()
+    ret = []
+    for i in range(self.dim()):
+        if i < rstd_dim:
+            ret.append(self.size(i))
+        else:
+            ret.append(1)
+    rstd = torch.empty(ret, dtype=torch.float32)
+    return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(rstd))
+
+
+@impl(m, "npu_rms_norm_backward")
+def npu_rms_norm_backward_meta(dy, self, rstd, gamma):
+    return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(gamma, dtype=gamma.dtype))
+
+
 @impl(m, "_npu_dropout")
 def _npu_dropout_meta(self, p):
     mask = math.floor(math.floor((self.numel() + BIT_NUMBER - 1) / BIT_NUMBER) * BIT_NUMBER / UINT8_BIT_NUMBER)
