@@ -17,7 +17,7 @@ from typing import (
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import skipIfUnsupportMultiNPU
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 from torch_npu.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler as NpuShardedGradScaler
 
 import torch
