@@ -59,7 +59,6 @@ aclError NPUEventManager::QueryAndDestroyEvent() {
         break;
       }
     }
-    c10_npu::NPUCachingAllocator::NpuAllocatorEraseRecordedEvent(event);
     {
       thread_pool_->run(std::bind(
           &NPUEventManager::run,
