@@ -119,8 +119,7 @@ aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uin
     ret = aclrtCreateStream(stream);
   }
   if (ret == ACL_SUCCESS && stream != nullptr) {
-    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-      (c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1)) {
+    if (!c10_npu::IsSupportInfNan()) {
       TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.");
     }
     return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
