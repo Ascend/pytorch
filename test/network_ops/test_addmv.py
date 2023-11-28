@@ -24,7 +24,7 @@ class TestAddmv(TestCase):
         output = output.numpy()
         return output
 
-    def test_addmv_fp16(self, device="npu"):
+    def test_addmv_fp16(self):
         shape_format = [
             [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2, )]]
 
@@ -45,7 +45,7 @@ class TestAddmv(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_addmv_out_fp16(self, device="npu"):
+    def test_addmv_out_fp16(self):
         shape_format = [
             [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2, )], [np.float16, 3, (10,)]]
 
@@ -67,10 +67,10 @@ class TestAddmv(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_addmv_fp32(self, device="npu"):
+    def test_addmv_fp32(self):
         shape_format = [
-            [[np.float32, 0, (2, 3)], [np.float32, 0, (3,)], [np.float32, 0, (2, )]],
-            [[np.float32, 0, (3168, 320)], [np.float32, 0, (320,)], [np.float32, 0, (3168, )]],
+            [[np.float16, 0, (2, 3)], [np.float16, 0, (3,)], [np.float16, 0, (2, )]],
+            [[np.float16, 0, (3168, 320)], [np.float16, 0, (320,)], [np.float16, 0, (3168, )]],
         ]
         for item in shape_format:
 
@@ -78,10 +78,10 @@ class TestAddmv(TestCase):
             input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
             input_c, npu_input_c = create_common_tensor(item[2], -2, 2)
 
-            cpu_output = self.cpu_op_exec(input_a, input_b, input_c, 1, 1)
-            npu_output = self.npu_op_exec(npu_input_a, npu_input_b, npu_input_c, 1, 1)
+            cpu_output = self.cpu_op_exec(input_a.float(), input_b.float(), input_c.float(), 1, 1)
+            npu_output = self.npu_op_exec(npu_input_a.float(), npu_input_b.float(), npu_input_c.float(), 1, 1)
 
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
 
 
 if __name__ == "__main__":

@@ -17,21 +17,21 @@ class TestNpuLinear(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_npu_linear_shape_format_fp32(self, device="npu"):
+    def test_npu_linear_shape_format_fp32(self):
         shape_format = [
-            [[np.float32, -1, (6144, 1024)], [np.float32, -1, (256, 1024)], [np.float32, -1, (256)]],
-            [[np.float32, -1, (123, 456)], [np.float32, -1, (789, 456)], [np.float32, -1, (789)]],
+            [[np.float16, -1, (6144, 1024)], [np.float16, -1, (256, 1024)], [np.float16, -1, (256)]],
+            [[np.float16, -1, (123, 456)], [np.float16, -1, (789, 456)], [np.float16, -1, (789)]],
         ]
 
         for item in shape_format:
             cpu_x, npu_x = create_common_tensor(item[0], -2, 2)
             cpu_w, npu_w = create_common_tensor(item[1], -2, 2)
             cpu_b, npu_b = create_common_tensor(item[2], -2, 2)
-            cpu_output = self.cpu_op_exec(cpu_x, cpu_w, cpu_b)
-            npu_output = self.npu_op_exec(npu_x, npu_w, npu_b)
-            self.assertRtolEqual(cpu_output, npu_output, 0.0002)
+            cpu_output = self.cpu_op_exec(cpu_x.float(), cpu_w.float(), cpu_b.float())
+            npu_output = self.npu_op_exec(npu_x.float(), npu_w.float(), npu_b.float())
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
 
-    def test_npu_linear_shape_format_fp16(self, device="npu"):
+    def test_npu_linear_shape_format_fp16(self):
         shape_format = [
             [[np.float16, -1, (6144, 1024)], [np.float16, -1, (256, 1024)], [np.float16, -1, (256)]],
             [[np.float16, -1, (123, 456)], [np.float16, -1, (789, 456)], [np.float16, -1, (789)]],

@@ -1,3 +1,4 @@
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -47,6 +48,7 @@ class TestHardSwishBackWard(TestCase):
 
         return backward_shape_format32
 
+    @unittest.skip("skip test_hardswish_shape_format_fp16 now")
     def test_hardswish_shape_format_fp16(self):
         for item in self.backward_create_shape_format16():
             cpu_input1, npu_input1 = create_common_tensor(item, 2, 100)

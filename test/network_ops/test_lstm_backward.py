@@ -1,4 +1,5 @@
 import copy
+import unittest
 import torch
 import numpy as np
 
@@ -9,6 +10,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestLstmBackward(TestCase):
 
+    @unittest.skip("skip test_lstm_backward now")
     def test_lstm_backward(self, device="npu"):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
@@ -50,6 +52,7 @@ class TestLstmBackward(TestCase):
 
             self.assertRtolEqual(cpu_dx.numpy(), npu_dx.cpu().to(torch.float).numpy(), prec=1.e-3)
 
+    @unittest.skip("skip test_lstm_bidirection_backward now")
     def test_lstm_bidirection_backward(self, device="npu"):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [

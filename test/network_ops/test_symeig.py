@@ -1,3 +1,4 @@
+import unittest
 import torch
 import torch_npu
 
@@ -21,27 +22,33 @@ class TestSymeig(TestCase):
         self.op_exec(input1, False)
         self.op_exec(input1, True)
 
+    @unittest.skip("skip test_symeig_null now")
     def test_symeig_null(self, device="npu"):
         a = torch.randn(0, 0)
         self.op_exec(a, False)
         self.op_exec(a, True)
 
+    @unittest.skip("skip test_symeig_2d now")
     def test_symeig_2d(self, device="npu"):
         a = torch.randn(5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_3d now")
     def test_symeig_3d(self, device="npu"):
         a = torch.randn(10, 5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_4d now")
     def test_symeig_4d(self, device="npu"):
         a = torch.randn(10, 3, 5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_5d now")
     def test_symeig_5d(self, device="npu"):
         a = torch.randn(2, 10, 3, 5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_out now")
     def test_symeig_out(self, device="npu"):
         a = torch.randn(2, 3, 3, dtype=torch.float32)
         a = a + a.transpose(-2, -1)

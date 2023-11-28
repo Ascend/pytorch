@@ -39,16 +39,16 @@ class TestBaddBmm(TestCase):
         input1 = input1.numpy()
         return input1
 
-    def test_baddbmm_common_shape_format(self, device="npu"):
+    def test_baddbmm_common_shape_format(self):
         shape_format = [
-            [[np.float32, -1, (1, 3, 5)], [np.float32, -1, (1, 3, 4)],
-             [np.float32, -1, (1, 4, 5)], "float32"],
-            [[np.float32, -1, (6, 4, 3)], [np.float32, -1, (6, 4, 5)],
-             [np.float32, -1, (6, 5, 3)], "float32"],
-            [[np.float32, -1, (175, 455, 22)], [np.float32, -1, (175, 455, 116)],
-             [np.float32, -1, (175, 116, 22)], "float32"],
-            [[np.float32, -1, (25, 56, 12)], [np.float32, -1, (25, 56, 51)],
-             [np.float32, -1, (25, 51, 12)], "float32"]
+            [[np.float16, -1, (1, 3, 5)], [np.float16, -1, (1, 3, 4)],
+             [np.float16, -1, (1, 4, 5)], "float32"],
+            [[np.float16, -1, (6, 4, 3)], [np.float16, -1, (6, 4, 5)],
+             [np.float16, -1, (6, 5, 3)], "float32"],
+            [[np.float16, -1, (175, 455, 22)], [np.float16, -1, (175, 455, 116)],
+             [np.float16, -1, (175, 116, 22)], "float32"],
+            [[np.float16, -1, (25, 56, 12)], [np.float16, -1, (25, 56, 51)],
+             [np.float16, -1, (25, 51, 12)], "float32"]
         ]
 
         for item in shape_format:
@@ -57,14 +57,14 @@ class TestBaddBmm(TestCase):
             cpu_input3, npu_input3 = create_common_tensor(item[2], 0, 1)
             scalar1 = self.generate_scalar(item[3], 0, 2)
             scalar2 = self.generate_scalar(item[3], 0, 2)
-            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, scalar1, scalar2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2, npu_input3, scalar1, scalar2)
+            cpu_output = self.cpu_op_exec(cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), scalar1, scalar2)
+            npu_output = self.npu_op_exec(npu_input1.float(), npu_input2.float(), npu_input3.float(), scalar1, scalar2)
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
-            cpu_output_ = self.cpu_op_exec_(cpu_input1, cpu_input2, cpu_input3, scalar1, scalar2)
-            npu_output_ = self.npu_op_exec_(npu_input1, npu_input2, npu_input3, scalar1, scalar2)
+            cpu_output_ = self.cpu_op_exec_(cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), scalar1, scalar2)
+            npu_output_ = self.npu_op_exec_(npu_input1.float(), npu_input2.float(), npu_input3.float(), scalar1, scalar2)
             self.assertRtolEqual(cpu_output_, npu_output_, prec=1.e-3, prec16=1.e-3)
 
-    def test_baddbmm_float16_shape_format(self, device="npu"):
+    def test_baddbmm_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, input2, input3, scalar1, scalar2):
             input1 = input1.to(torch.float32)
             input2 = input2.to(torch.float32)

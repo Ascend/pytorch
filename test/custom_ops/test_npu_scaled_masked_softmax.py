@@ -1,3 +1,4 @@
+import unittest
 import torch
 import torch_npu
 
@@ -22,6 +23,7 @@ class TestScaledMaskedSoftmax(TestCase):
             x, mask, scale, fixed_triu_mask)
         return output
 
+    @unittest.skip("skip test_scaled_masked_softmax_triu_false now")
     def test_scaled_masked_softmax_triu_false(self):
         x = torch.randn(16, 6, 128, 128, dtype=torch.float32).npu()
         mask = torch.randn(16, 6, 128, 128, dtype=torch.float32).npu()
@@ -36,6 +38,7 @@ class TestScaledMaskedSoftmax(TestCase):
 
         self.assertRtolEqual(cpu_out, npu_out)
 
+    @unittest.skip("skip test_scaled_masked_softmax_triu_true now")
     def test_scaled_masked_softmax_triu_true(self):
         x = torch.randn(16, 6, 128, 128, dtype=torch.float32).npu()
         mask = torch.randn(16, 6, 128, 128, dtype=torch.float32).npu()

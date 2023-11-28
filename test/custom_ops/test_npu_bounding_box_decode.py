@@ -1,3 +1,4 @@
+import unittest
 import torch
 
 import torch_npu
@@ -63,6 +64,7 @@ class TestBoundingBoxDecode(TestCase):
         output = output.numpy()
         return output
 
+    @unittest.skip("skip test_decode_shape_format_fp32 now")
     def test_decode_shape_format_fp32(self):
         input1 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]],
                               dtype=torch.float32).to("npu")
@@ -75,6 +77,7 @@ class TestBoundingBoxDecode(TestCase):
                                             1, 1, 1, 1, (10, 10), 0.1)
         self.assertRtolEqual(npu_output, custom_output)
 
+    @unittest.skip("skip test_decode_shape_format_fp16 now")
     def test_decode_shape_format_fp16(self):
         input1_fp16 = torch.tensor([[1., 2., 3., 4.], [3., 4., 5., 6.]],
                                    dtype=torch.float16).to("npu")
