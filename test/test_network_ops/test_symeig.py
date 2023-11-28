@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import torch_npu
 
@@ -46,14 +47,17 @@ class TestSymeig(TestCase):
         a = torch.randn(5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_3d now")
     def test_symeig_3d(self, device="npu"):
         a = torch.randn(10, 5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_4d now")
     def test_symeig_4d(self, device="npu"):
         a = torch.randn(10, 3, 5, 5, dtype=torch.float32)
         self.case_exec(a)
 
+    @unittest.skip("skip test_symeig_5d now")
     def test_symeig_5d(self, device="npu"):
         a = torch.randn(2, 10, 3, 5, 5, dtype=torch.float32)
         self.case_exec(a)

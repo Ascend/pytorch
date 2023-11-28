@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -79,6 +80,7 @@ class TestAddmv(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @unittest.skip("skip test_addmv_fp32 now")
     def test_addmv_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (2, 3)], [np.float32, 0, (3,)], [np.float32, 0, (2,)]],

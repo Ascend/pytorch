@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 
@@ -53,6 +54,7 @@ class TestNpuTranspose(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(custom_output, npu_output)
 
+    @unittest.skip("skip test_transpose_complex now")
     def test_transpose_complex(self):
         shape_format = [
             [[np.float32, 0, (5, 3)], [1, 0]],

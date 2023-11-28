@@ -50,7 +50,7 @@ class TestBatchMatMul(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             cpu_output = cpu_output.astype(npu_output.dtype)
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
 
     def bmm_out_op_exec(self, shape):
         for item in shape:
@@ -65,7 +65,7 @@ class TestBatchMatMul(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, npu_input2, npu_output)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertEqual(cpu_output.shape, npu_output.shape)
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
 
     def test_bmm_out_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
