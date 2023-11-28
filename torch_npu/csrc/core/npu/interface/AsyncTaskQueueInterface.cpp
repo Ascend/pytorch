@@ -57,7 +57,7 @@ public:
   void LaunchRecordTask(
       c10_npu::NPUStream npuStream);
   void LaunchWaitTask(c10_npu::NPUStream npuStream);
-  void LaunchLazyDestroyTask();
+  void LaunchLazyDestroyTask(c10::DeviceIndex device_index);
 
 private:
   EventParas eventParam_;
@@ -165,14 +165,14 @@ aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
   return ACL_ERROR_NONE;
 }
 
-void EventTask::LaunchLazyDestroyTask() {
+void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index) {
   RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], std::vector<c10::IValue>({}));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType]);
 #endif
     QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
-    c10_npu::enCurrentNPUStream(&params);
+    c10_npu::enCurrentNPUStream(&params, device_index);
     ASCEND_LOGI("Event: LaunchLazyDestroyTask is successfully executed.");
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
@@ -183,9 +183,9 @@ void EventTask::LaunchLazyDestroyTask() {
   }
 }
 
-aclError LaunchLazyDestroyEventTask(aclrtEvent event) {
+aclError LaunchLazyDestroyEventTask(aclrtEvent event, c10::DeviceIndex device_index) {
   EventTask lazyDestroyTask(event);
-  lazyDestroyTask.LaunchLazyDestroyTask();
+  lazyDestroyTask.LaunchLazyDestroyTask(device_index);
   return ACL_ERROR_NONE;
 }
 } // namespace queue
