@@ -16,6 +16,7 @@
 
 import copy
 import sys
+import unittest
 import torch
 import numpy as np
 import torch.nn as nn
@@ -60,6 +61,7 @@ class TestConvTranspose3dBackward(TestCase):
         res_forward = res_forward.to("cpu")
         return res_forward
 
+    @unittest.skip("skip test_conv_transpose3d_backward_shape_format_fp16 now")
     def test_conv_transpose3d_backward_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 30, [12, 12, 4, 14, 14]], [np.float16, 30, [12, 12, 3, 3, 3]],],

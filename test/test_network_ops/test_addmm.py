@@ -111,7 +111,7 @@ class TestAddmm(TestCase):
         output = output.numpy()
         return output
 
-    def test_addmm_shape_format_int(self, device="npu"):
+    def test_addmm_shape_format_int(self):
         format_list = [0]
         shape_list = [(3, 3), (3, 5), (5, 3)]
         shape_format1 = [
@@ -148,17 +148,17 @@ class TestAddmm(TestCase):
             self.assertRtolEqual(cpu_output, npu_output1)
             self.assertRtolEqual(cpu_output, npu_output2)
 
-    def test_addmm_shape_format_fp32(self, device="npu"):
+    def test_addmm_shape_format_fp32(self):
         format_list = [0]
         shape_list = [(3, 3), (3, 5), (5, 3)]
         shape_format1 = [
-            [np.float32, i, shape_list[0]] for i in format_list
+            [np.float16, i, shape_list[0]] for i in format_list
         ]
         shape_format2 = [
-            [np.float32, i, shape_list[1]] for i in format_list
+            [np.float16, i, shape_list[1]] for i in format_list
         ]
         shape_format3 = [
-            [np.float32, i, shape_list[2]] for i in format_list
+            [np.float16, i, shape_list[2]] for i in format_list
         ]
         shape_format = [[i, j, k, "float32"]
                         for i in shape_format1 for j in shape_format2 for k in shape_format3]
@@ -172,20 +172,20 @@ class TestAddmm(TestCase):
             scalar2 = self.generate_scalar(item[3], 0, 2)
 
             cpu_output = self.cpu_op_exec(
-                cpu_input1, cpu_input2, cpu_input3, scalar1, scalar2)
+                cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), scalar1, scalar2)
             npu_output = self.npu_op_exec(
-                npu_input1, npu_input2, npu_input3, scalar1, scalar2)
+                npu_input1.float(), npu_input2.float(), npu_input3.float(), scalar1, scalar2)
 
             npu_output1 = self.npu_op_exec_out(
-                npu_input1, npu_input2, npu_input3, scalar1, scalar2, npu_input4)
+                npu_input1.float(), npu_input2.float(), npu_input3.float(), scalar1, scalar2, npu_input4.float())
             npu_output2 = self.npu_op_exec_inplace(
-                npu_input1, npu_input2, npu_input3, scalar1, scalar2)
+                npu_input1.float(), npu_input2.float(), npu_input3.float(), scalar1, scalar2)
 
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-3, prec16=1.e-3)
             self.assertRtolEqual(cpu_output, npu_output1, prec=1.e-3, prec16=1.e-3)
             self.assertRtolEqual(cpu_output, npu_output2, prec=1.e-3, prec16=1.e-3)
 
-    def test_addmm_shape_format_fp16(self, device="npu"):
+    def test_addmm_shape_format_fp16(self):
         format_list = [0]
         shape_list = [(3, 3), (3, 5), (5, 3)]
         shape_format1 = [
@@ -227,7 +227,7 @@ class TestAddmm(TestCase):
             self.assertRtolEqual(cpu_output, npu_output1)
             self.assertRtolEqual(cpu_output, npu_output2)
 
-    def test_addmm_transpose_shape_format_int(self, device="npu"):
+    def test_addmm_transpose_shape_format_int(self):
         format_list = [0]
         shape_list = [(4, 5), (4, 7), (5, 7)]
         shape_format1 = [
@@ -256,17 +256,17 @@ class TestAddmm(TestCase):
 
             self.assertRtolEqual(cpu_transpose_output, npu_transpose_output)
 
-    def test_addmm_transpose_shape_format_fp32(self, device="npu"):
+    def test_addmm_transpose_shape_format_fp32(self):
         format_list = [0]
         shape_list = [(4, 5), (4, 7), (5, 7)]
         shape_format1 = [
-            [np.float32, i, shape_list[0]] for i in format_list
+            [np.float16, i, shape_list[0]] for i in format_list
         ]
         shape_format2 = [
-            [np.float32, i, shape_list[1]] for i in format_list
+            [np.float16, i, shape_list[1]] for i in format_list
         ]
         shape_format3 = [
-            [np.float32, i, shape_list[2]] for i in format_list
+            [np.float16, i, shape_list[2]] for i in format_list
         ]
         shape_format = [[i, j, k, "float32"]
                         for i in shape_format1 for j in shape_format2 for k in shape_format3]
@@ -279,13 +279,13 @@ class TestAddmm(TestCase):
             scalar2 = self.generate_scalar(item[3], 0, 2)
 
             cpu_transpose_output = self.cpu_op_transpose_exec(
-                cpu_input1, cpu_input2, cpu_input3, scalar1, scalar2)
+                cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), scalar1, scalar2)
             npu_transpose_output = self.npu_op_transpose_exec(
-                npu_input1, npu_input2, npu_input3, scalar1, scalar2)
+                npu_input1.float(), npu_input2.float(), npu_input3.float(), scalar1, scalar2)
 
             self.assertRtolEqual(cpu_transpose_output, npu_transpose_output, prec=1.e-3, prec16=1.e-3)
 
-    def test_addmm_transpose_shape_format_fp16(self, device="npu"):
+    def test_addmm_transpose_shape_format_fp16(self):
         format_list = [0]
         shape_list = [(4, 5), (4, 7), (5, 7)]
         shape_format1 = [

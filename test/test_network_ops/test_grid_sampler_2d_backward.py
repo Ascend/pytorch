@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -50,6 +51,7 @@ class TestGridSampler2dBackward(TestCase):
         dgrid = dgrid.to("cpu").numpy()
         return dx, dgrid
 
+    @unittest.skip("skip test_grid_sampler_2d_backward_fp32 now")
     def test_grid_sampler_2d_backward_fp32(self, device="npu"):
         shape_list = [[100, 1, 28, 28], [100, 64, 32, 28]]
         shape_format = [

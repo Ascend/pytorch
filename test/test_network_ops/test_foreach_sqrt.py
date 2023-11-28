@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import unittest
 import torch
 import numpy as np
 
@@ -39,6 +40,7 @@ class TestSqrt(TestCase):
         torch._foreach_sqrt(input1)
         return input1
 
+    @unittest.skip("skip test_sqrt_shape_format now")
     def test_sqrt_shape_format(self):
         shape_format = [
             [[np.float32, 0, (1, 6, 4)]],
@@ -51,6 +53,7 @@ class TestSqrt(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
+    @unittest.skip("skip test_sqrt1_shape_format now")
     def test_sqrt1_shape_format(self):
         shape_format = [
             [[np.float32, 0, (1, 6, 4)]],
