@@ -71,8 +71,8 @@ bool SetSocVersion(const char* const socVersion) {
 const SocVersion& GetSocVersion() { return g_curSocVersion; }
 
 bool IsSupportInfNan() {
-  return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-         (GetSocVersion() >= SocVersion::Ascend910B1);
+    return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
+           (((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
+           (GetSocVersion() >= SocVersion::Ascend910C1));
 }
 }  // namespace c10_npu
-
