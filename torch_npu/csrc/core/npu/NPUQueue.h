@@ -21,6 +21,7 @@ enum RepoStatus {
   RUN = 1,
   NEED_EXIT = 2,
   CAN_EXIT = 3,
+  ERROR_EXIT = 4,
 };
 
 // c10::SmallVector max size
