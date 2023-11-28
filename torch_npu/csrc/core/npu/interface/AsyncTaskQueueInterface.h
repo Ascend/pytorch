@@ -53,17 +53,11 @@ struct QueueParas {
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
 
-aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
-                                            c10_npu::NPUStream npuStream);
-
-aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
-                                           c10_npu::NPUStream npuStream);
-
 aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
-aclError LaunchLazyDestroyEventTask(aclrtEvent event);
+aclError LaunchLazyDestroyEventTask(aclrtEvent event, c10::DeviceIndex device_index);
 
 } // namespace queue
 } // namespace c10_npu
