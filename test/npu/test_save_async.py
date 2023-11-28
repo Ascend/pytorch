@@ -21,18 +21,34 @@ class TestAsyncSave(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        time.sleep(5)
         PathManager.remove_path_safety(TestAsyncSave.test_save_path)
+    
+    def wait_for_save_completion(self, file_path, timeout_sec=60, poll_interval_sec=0.5):
+        start_time = time.time()
+
+        while time.time() - start_time < timeout_sec:
+            if os.path.exists(file_path):
+                current_size = os.path.getsize(file_path)
+                time.sleep(poll_interval_sec)
+                new_size = os.path.getsize(file_path)
+
+                if current_size == new_size:
+                    return True
+            else:
+                time.sleep(poll_interval_sec)
+
+        return False
 
     def test_save_async_tensor(self):
         save_tensor = torch.rand(1024, dtype=torch.float32).npu()
         async_save_path = os.path.join(TestAsyncSave.test_save_path, "async_save_tensor.pt")
         torch_npu.utils.save_async(save_tensor, async_save_path)
-
-        torch.npu.synchronize()
-        tensor_async = torch.load(async_save_path)
-
-        self.assertEqual(save_tensor, tensor_async)
+     
+        if self.wait_for_save_completion(async_save_path):
+            tensor_async = torch.load(async_save_path)
+            self.assertEqual(tensor_async, save_tensor)
+        else:
+            self.assertTrue(False, f"{async_save_path} is not exist!")
     
     def test_save_async(self):
         loss1 = [1.6099495, 1.6099086, 1.6098710]
@@ -75,18 +91,19 @@ class TestAsyncSave(TestCase):
             torch_npu.utils.save_async(checkpoint, checkpoint_async_path, model=model)
             torch_npu.utils.save_async(model, model_async_path, model=model)
 
-            time.sleep(1)
-
-        torch.npu.synchronize()
-
         for i in range(3):
             self.assertEqual(loss1[i], loss2[i].item())
             checkpoint_async_path = os.path.join(TestAsyncSave.test_save_path, f"checkpoint_async_{i}.path")
-            checkpoint_async = torch.load(checkpoint_async_path)
-            self.assertEqual(checkpoint_list[i], checkpoint_async, prec=2e-3)
+            if self.wait_for_save_completion(checkpoint_async_path):
+                checkpoint_async = torch.load(checkpoint_async_path)
+                self.assertEqual(checkpoint_list[i], checkpoint_async, prec=2e-3)
+            else:
+                self.assertTrue(False, f"{checkpoint_async_path} is not exist!")
             model_async_path = os.path.join(TestAsyncSave.test_save_path, f"model_async_{i}.path")
-            model_async = torch.load(model_async_path)
-
+            if self.wait_for_save_completion(model_async_path):
+                model_async = torch.load(model_async_path)
+            else:
+                self.assertTrue(False, f"{model_async_path} is not exist!")
             state_dict_sync = model_list[i].state_dict()
             state_dict_async = model_async.state_dict()
 
