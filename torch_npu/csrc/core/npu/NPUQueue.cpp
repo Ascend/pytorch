@@ -212,6 +212,14 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     }
   }
 
+  if (GetStatus() == RepoStatus::ERROR_EXIT) {
+    // Avoid repeatedly throwing exceptions
+    SetStatus(CAN_EXIT);
+    throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
+                            "so the stacktrace below is not the root cause of the problem.\n" \
+                            "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
+  }
+
 #ifndef BUILD_LIBTORCH
   // Get the GIL
   if (gilState) {
@@ -256,10 +264,13 @@ bool Repository::ReadQueue() {
       manager().Release(datas, read_idx.idx, releaseQueue);
       read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
     }
-    ReleaseResource();
-    throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
-                             "so the stacktrace below is not the root cause of the problem.\n" \
-                             "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
+
+    SetStatus(ERROR_EXIT);
+    read_idx.idx = write_idx.idx;
+    __sync_synchronize();
+    eventfd_write(efd_empty, 1);
+    eventfd_write(efd_write, 1);
+    return false;
   }
 
   manager().Release(datas, read_idx.idx, releaseQueue);
@@ -275,6 +286,14 @@ void Repository::Enqueue(void* cur_paras) {
     ASCEND_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
     return;
   }
+
+  if (GetStatus() == RepoStatus::ERROR_EXIT) {
+    SetStatus(CAN_EXIT);
+    throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
+                            "so the stacktrace below is not the root cause of the problem.\n" \
+                            "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
+  }
+
   if (GetStatus() != RUN && GetStatus() != INIT) {
     ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue(). !!");
     return;
@@ -345,6 +364,10 @@ void Repository::Dequeue() {
     if (ret == false) {
       if (GetStatus() == RepoStatus::NEED_EXIT) {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
+        break;
+      }
+
+      if (GetStatus() == RepoStatus::ERROR_EXIT) {
         break;
       }
 
@@ -440,7 +463,7 @@ void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
     ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);
   }
 
-  while (repo->GetStatus() != RepoStatus::CAN_EXIT) {
+  while (repo->GetStatus() != RepoStatus::CAN_EXIT and repo->GetStatus() != RepoStatus::ERROR_EXIT) {
     repo->Dequeue();
   }
   return;
