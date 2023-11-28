@@ -598,6 +598,16 @@ void check_npu_single_tensor(const at::Tensor& tensor)
     }
 }
 
+bool check_same_size(const std::vector<at::Tensor>& input_tensors)
+{
+    for (const auto& input_tensor : input_tensors) {
+        if (!input_tensors[0].is_same_size(input_tensor)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::vector<at::Tensor> cast_to_origin_format(const std::vector<at::Tensor>& inputTensors)
 {
     std::vector<at::Tensor> inputTensors_;
@@ -922,6 +932,7 @@ at::Tensor ProcessGroupHCCL::byte_alignment(at::Tensor& tensors)
     }
     return inter_tensors;
 }
+
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
     std::vector<std::vector<at::Tensor>>& outputTensors,
     std::vector<at::Tensor>& inputTensors,
@@ -929,70 +940,113 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
 {
     check_npu_tensors_different_devices(inputTensors);
     auto inputTensors_ = cast_to_origin_format(inputTensors);
-
-    int outsize = static_cast<int>(outputTensors[0].size());
-    uint64_t output_nums[outsize];
-    for (const auto i : c10::irange(outputTensors.size())) {
-        for (const auto j : c10::irange(outsize)) {
-            output_nums[j] = static_cast<uint64_t>(outputTensors[0][j].numel());
+    bool same_size = check_same_size(outputTensors.back());
+    if (same_size) {
+        int outsize = static_cast<int>(outputTensors[0].size());
+        uint64_t output_nums[outsize];
+        for (const auto i : c10::irange(outputTensors.size())) {
+            for (const auto j : c10::irange(outsize)) {
+                output_nums[j] = static_cast<uint64_t>(outputTensors[0][j].numel());
+            }
         }
-    }
 
-    std::vector<at::Tensor> byte_alignment_inputTensors_ = {byte_alignment(inputTensors_[0])};
-    std::vector<at::Tensor> byte_alignment_outputTensors_;
-    for (unsigned int i = 0; i < outputTensors[0].size(); i++) {
-        byte_alignment_outputTensors_.push_back(byte_alignment(outputTensors[0][i]));
-    }
-    std::vector<std::vector<at::Tensor>> byte_alignment_outputTensors;
-    byte_alignment_outputTensors.push_back(byte_alignment_outputTensors_);
+        std::vector<at::Tensor> byte_alignment_inputTensors_ = {byte_alignment(inputTensors_[0])};
+        std::vector<at::Tensor> byte_alignment_outputTensors_;
+        for (unsigned int i = 0; i < outputTensors[0].size(); i++) {
+            byte_alignment_outputTensors_.push_back(byte_alignment(outputTensors[0][i]));
+        }
+        std::vector<std::vector<at::Tensor>> byte_alignment_outputTensors;
+        byte_alignment_outputTensors.push_back(byte_alignment_outputTensors_);
+        auto outputFlattened =
+            flatten_for_scatter_gather(byte_alignment_outputTensors, byte_alignment_inputTensors_, size_);
+        check_npu_tensors_different_devices(outputFlattened);
 
-    auto outputFlattened =
-        flatten_for_scatter_gather(byte_alignment_outputTensors, byte_alignment_inputTensors_, size_);
-    check_npu_tensors_different_devices(outputFlattened);
+        return collective(
+            byte_alignment_inputTensors_,
+            outputFlattened,
+            [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+                RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
 
-    return collective(
-        byte_alignment_inputTensors_,
-        outputFlattened,
-        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
-            RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+                auto inputDataPtr = input.data_ptr();
+                auto outputDataPtr = output.data_ptr();
+                auto numel = getNumelForHCCL(input);
+                auto hcclType = getHcclDataType(input.scalar_type());
+                auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
+                    return HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
+                };
+                at_npu::native::OpCommand cmd;
+                cmd.Name("HcclAllgather");
+                cmd.SetCustomHandler(hccl_call);
+                cmd.Run();
 
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
-            auto inputDataPtr = input.data_ptr();
-            auto outputDataPtr = output.data_ptr();
-            auto numel = getNumelForHCCL(input);
-            auto hcclType = getHcclDataType(input.scalar_type());
-            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, comm, stream]() -> int {
-                return HcclAllGather(inputDataPtr, outputDataPtr, numel, hcclType, comm, stream.stream(false));
-            };
-            at_npu::native::OpCommand cmd;
-            cmd.Name("HcclAllgather");
-            cmd.SetCustomHandler(hccl_call);
-            cmd.Run();
+                return HCCL_SUCCESS;
+            },
+            [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+            [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+                work->lazyDestory(byte_alignment_inputTensors_);
+                work->lazyDestory(outputFlattened);
+                // Copy the flattened output tensors to the outputs.
+                for (const auto i : c10::irange(outputTensors.size())) {
+                    c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                    for (const auto j : c10::irange(outputTensors[0].size())) {
+                        // See [Sync Streams].
+                        c10_npu::NPUCachingAllocator::recordStream(
+                            outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
-            return HCCL_SUCCESS;
-        },
-        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
-        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
-            work->lazyDestory(byte_alignment_inputTensors_);
-            work->lazyDestory(outputFlattened);
-            // Copy the flattened output tensors to the outputs.
-            for (const auto i : c10::irange(outputTensors.size())) {
-                c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-                for (const auto j : c10::irange(outputTensors[0].size())) {
-                    // See [Sync Streams].
-                    c10_npu::NPUCachingAllocator::recordStream(
-                        outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-
-                    if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-                        work->recorded_outputs_.push_back(
-                            std::make_pair(outputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                        if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+                            work->recorded_outputs_.push_back(
+                                std::make_pair(outputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                        }
+                        at::Tensor output_tensor = outputFlattened[i][j].slice(1, 0, output_nums[j]);
+                        at::Tensor output_tensor_shape = at::reshape(output_tensor, outputTensors[i][j].sizes());
+                        outputTensors[i][j].copy_(output_tensor_shape, true);
                     }
-                    at::Tensor output_tensor = outputFlattened[i][j].slice(1, 0, output_nums[j]);
-                    at::Tensor output_tensor_shape = at::reshape(output_tensor, outputTensors[i][j].sizes());
-                    outputTensors[i][j].copy_(output_tensor_shape, true);
+                }
+            });
+    } else {
+        TORCH_NPU_WARN_ONCE("The current allgather operator has a defect in handling different tensor shape, \
+        the work event forces a wait operation, and the allgather wait on the python side would be fake");
+        const auto num_devices = outputTensors.size();
+        const auto num_reduces = outputTensors[0].size();
+        std::vector<c10::intrusive_ptr<c10d::Work>> works;
+        // Need to add a method like startCoalescing();
+        for (const auto i : c10::irange(num_reduces)) {
+            std::vector<at::Tensor> inputs_multi_dev(num_devices);
+            std::vector<at::Tensor> outputs_multi_dev(num_devices);
+            for (const auto j : c10::irange(num_devices)) {
+                // @lint-ignore CLANGTIDY
+                outputs_multi_dev[j] = outputTensors[j][i];
+                if (i == (rank_ * num_devices + j)) {
+                    outputs_multi_dev[j].copy_(inputTensors[j]);
                 }
             }
-        });
+
+            auto broadcastOpts = c10d::BroadcastOptions{
+                static_cast<int64_t>(i / num_devices),
+                static_cast<int64_t>(i % num_devices),
+                opts.timeout};
+            
+            auto work = collective(
+                outputs_multi_dev, outputs_multi_dev, [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+                RECORD_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
+                const auto root = broadcastOpts.rootRank * inputs_multi_dev.size() + broadcastOpts.rootTensor;
+
+                auto inputDataPtr = input.data_ptr();
+                auto numel = getNumelForHCCL(input);
+                auto hcclType = getHcclDataType(input.scalar_type());
+                return HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
+            });
+            works.push_back(work);
+        }
+        // Need to add a method like endCoalescing();
+        for (auto& work : works) {
+            work->wait();
+        }
+        // Create a fake_work for python side;
+        auto fake_work = initWork(getDeviceList(inputTensors));
+        return fake_work;
+    }
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(

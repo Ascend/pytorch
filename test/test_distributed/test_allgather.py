@@ -14,6 +14,7 @@
 
 import unittest
 import os
+from random import randint
 
 import numpy as np
 import torch
@@ -58,6 +59,15 @@ class HcclReduceTest(TestCase):
         pg.barrier()
 
     @classmethod
+    def _test_all_gather_different_shape(cls, rank, input1, gather_tensor, world_size, init_pg, c2p):
+        pg = init_pg(rank, world_size)
+        input1 = input1.npu()
+        gather_tensor = [tensor.npu() for tensor in gather_tensor]
+        pg.all_gather(gather_tensor, input1)
+        c2p.put((rank, [tensor.cpu() for tensor in gather_tensor]))
+        pg.barrier()
+
+    @classmethod
     def _test_all_gather_base(cls, rank, input1, world_size, init_pg, c2p):
         pg = init_pg(rank, world_size)
         input1 = input1.npu()
@@ -94,6 +104,30 @@ class HcclReduceTest(TestCase):
             rank, output = c2p.get()
             self.assertEqual(output, expected,
                              ("rank {} Expect receive tensor {} but got {}.").format(rank, expected, output))
+
+        for p in ps:
+            p.join()
+
+    def _test_multiprocess_with_inputlist(self, f, init_pg, cpu_expected, inputlist, world_size):
+        ctx = mp.get_context('spawn')
+        c2p = ctx.Queue(world_size)
+        ps = []
+
+        gather_tensor = list()
+        for input_tensor in inputlist:
+            gather_tensor.append(torch.empty_like(input_tensor, device="cpu"))
+        
+        for i in range(world_size):
+            p = ctx.Process(
+                target=f,
+                args=(i, inputlist[i].cpu(), gather_tensor, world_size, init_pg, c2p))
+            p.start()
+            ps.append(p)
+
+        for _ in range(world_size):
+            rank, output = c2p.get()
+            self.assertEqual(output, cpu_expected,
+                             ("rank {} Expect receive tensor {} but got {}.").format(rank, cpu_expected, output))
 
         for p in ps:
             p.join()
@@ -145,6 +179,27 @@ class HcclReduceTest(TestCase):
                 expected = self._construct_excepted_result(input1, world_size, dist.all_gather_togather)
                 self._test_multiprocess(HcclReduceTest._test_all_gather_togather,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_all_gather_dist_different_shape(self):
+        ranks = [2]
+        format_list = [0, 2, 3, 29]
+
+        def get_random_input(dim=1, max_value=20):
+            shape_list = list()
+            for _ in range(dim):
+                shape_list.append(randint(1, max_value))
+            return create_common_tensor([np.float32, format_list[randint(0, 3)], shape_list], -10, 10)
+        
+        for world_size in ranks:
+            cpu_excepted_result = list()
+            npu_excepted_result = list()
+            for _ in range(world_size):
+                cpu_input, npu_input = get_random_input(randint(1, 5))
+                cpu_excepted_result.append(cpu_input)
+                npu_excepted_result.append(npu_input)
+            self._test_multiprocess_with_inputlist(HcclReduceTest._test_all_gather_different_shape,
+                                                   HcclReduceTest._init_dist_hccl, cpu_excepted_result, npu_excepted_result, world_size)
 
     @skipIfUnsupportMultiNPU(2)
     def test_all_gather_base_dist(self):
