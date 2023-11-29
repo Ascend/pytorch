@@ -41,7 +41,10 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     NPU_CHECK_ERROR(aclrtGetDevice(&device));
     return c10::Device(c10::DeviceType::PrivateUse1, device);
   }
-  void setDevice(c10::Device d) const override;
+  void setDevice(c10::Device d) const override{
+    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1);
+    uncheckedSetDevice(d);
+  }
   void uncheckedSetDevice(c10::Device d) const noexcept override {
     int old_device = 0;
     aclError ret = aclrtGetDevice(&old_device);
