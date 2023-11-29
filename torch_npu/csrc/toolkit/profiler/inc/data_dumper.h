@@ -30,15 +30,15 @@ public:
 
 private:
   void Flush();
-  void Dump(std::map<std::string, std::vector<uint8_t>> &dataMap);
+  void Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap);
   void Run();
-  void DataClassifyGather(std::map<std::string, std::vector<uint8_t>> &dataMap);
   void GatherAndDumpData();
 
 private:
   std::string path_;
   std::atomic<bool> start_;
   std::atomic<bool> init_;
+  std::map<std::string, FILE*> fd_map_;
   RingBuffer<std::unique_ptr<BaseReportData>> data_chunk_buf_;
 };
 } // profiler
