@@ -3,8 +3,13 @@ import time
 import warnings
 import torch
 import torch.distributed as dist
-from torch import multiprocessing as mp
+import torch.distributed.autograd as dist_autograd
 import torch.distributed.rpc as rpc
+from torch import multiprocessing as mp
+from torch import nn, Tensor
+from torch.distributed.nn.api.remote_module import RemoteModule
+from torch.distributed.rpc import WorkerInfo, PyRRef
+
 import torch_npu
 from torch_npu.distributed.rpc.options import NPUTensorPipeRpcBackendOptions
 from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
@@ -198,6 +203,121 @@ class TestRpc(TestCase):
                          backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
         rpc.shutdown()
 
+    @classmethod
+    def _test_dist_autograd_sync_cpu(cls, pid, inputs, world_size):
+        npu_id_, worker_name_ = TestRpc.init_worker_info(pid)
+        if pid == 0:
+            options = TestRpc.set_options()
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=options)
+
+            with dist_autograd.context() as context_id:
+                t1 = torch.rand((3, 3), requires_grad=True)
+                t2 = torch.rand((3, 3), requires_grad=True)
+                t3 = rpc.rpc_sync('worker1', torch.add, args=(t1, t2))
+                t4 = torch.rand((3, 3), requires_grad=True)
+                t5 = torch.mul(t3, t4)
+                loss = t5.sum()
+                dist_autograd.backward(context_id, [loss])
+                dist_autograd.get_gradients(context_id)
+        else:
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
+        rpc.shutdown()
+
+    @classmethod
+    def _test_dist_autograd_sync_npu(cls, pid, inputs, world_size):
+        npu_id_, worker_name_ = TestRpc.init_worker_info(pid)
+        if pid == 0:
+            options = TestRpc.set_options()
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=options)
+
+            with dist_autograd.context() as context_id:
+                t1 = torch.rand((3, 3), requires_grad=True).npu()
+                t2 = torch.rand((3, 3), requires_grad=True).npu()
+                t3 = rpc.rpc_sync('worker1', torch.add, args=(t1, t2))
+                t4 = torch.rand((3, 3), requires_grad=True).npu()
+                t5 = torch.mul(t3, t4)
+                loss = t5.sum()
+                dist_autograd.backward(context_id, [loss])
+                dist_autograd.get_gradients(context_id)
+        else:
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
+        rpc.shutdown()
+
+    @classmethod
+    def _test_remote_pyrref_api(cls, pid, inputs, world_size):
+        npu_id_, worker_name_ = TestRpc.init_worker_info(pid)
+        if pid == 0:
+            options = TestRpc.set_options()
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=options)
+            t1 = torch.ones(3, requires_grad=True).npu()
+            t2 = torch.ones(3, requires_grad=True).npu()
+            pyrref = rpc.remote('worker1', torch.add, args=(t1, t2))
+            TestCase().assertEqual(pyrref.rpc_async().size().wait(), torch.Size([3]))
+            TestCase().assertEqual(pyrref.rpc_sync().size(), torch.Size([3]))
+            TestCase().assertEqual(pyrref.to_here().sum(), torch.tensor(6))
+            TestCase().assertEqual(pyrref.owner_name(), 'worker1')
+            TestCase().assertEqual(pyrref.is_owner(), False)
+            TestCase().assertEqual(pyrref.confirmed_by_owner(), True)
+            TestCase().assertEqual(pyrref.remote().size().to_here(), torch.Size([3]))
+            TestCase().assertEqual(pyrref.owner(), WorkerInfo(id=1, name='worker1'))
+        else:
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
+        rpc.shutdown()
+
+    @classmethod
+    def _test_get_module_rref(cls, pid, inputs, world_size):
+        npu_id_, worker_name_ = TestRpc.init_worker_info(pid)
+        if pid == 0:
+            options = TestRpc.set_options()
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=options)
+
+            remote_linear_module = RemoteModule("worker1/npu:1", nn.Linear, args=(20, 30), )
+            TestCase().assertEqual(remote_linear_module.get_module_rref(), remote_linear_module.module_rref)
+        else:
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
+        rpc.shutdown()
+
+    @classmethod
+    def _test_remote_parameters(cls, pid, inputs, world_size):
+        npu_id_, worker_name_ = TestRpc.init_worker_info(pid)
+        if pid == 0:
+            options = TestRpc.set_options()
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=options)
+
+            remote_linear_module = RemoteModule("worker1/npu:1", nn.Linear, args=(20, 30), )
+            param_rrefs = remote_linear_module.remote_parameters()
+            TestCase().assertEqual(len(param_rrefs), 2)
+        else:
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
+        rpc.shutdown()
+
+    @classmethod
+    def _test_local_value(cls, pid, inputs, world_size):
+        npu_id_, worker_name_ = TestRpc.init_worker_info(pid)
+        if pid == 0:
+            options = TestRpc.set_options()
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE, rpc_backend_options=options)
+
+            t1 = torch.ones(10, requires_grad=True).npu()
+            pyrref = rpc.PyRRef(t1.sum() + t1.sum())
+            pyrref.backward()
+            TestCase().assertEqual(pyrref.local_value(), torch.tensor(20))
+        else:
+            rpc.init_rpc(worker_name_, rank=pid, world_size=world_size,
+                         backend=rpc.backend_registry.BackendType.NPU_TENSORPIPE)
+        rpc.shutdown()
+
     def _test_multiprocess(self, f, inputs, world_size):
         ctx = mp.get_context('spawn')
         ps = []
@@ -243,6 +363,29 @@ class TestRpc(TestCase):
     def test_get_worker_info(self):
         self._test_multiprocess(TestRpc._test_get_worker_info, [], self.world_size_3p)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_autograd_sync_cpu(self):
+        self._test_multiprocess(TestRpc._test_dist_autograd_sync_cpu, [], self.world_size_2p)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_dist_autograd_sync_npu(self):
+        self._test_multiprocess(TestRpc._test_dist_autograd_sync_npu, [], self.world_size_2p)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_remote_pyrref_npu(self):
+        self._test_multiprocess(TestRpc._test_remote_pyrref_api, [], self.world_size_2p)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_get_module_rref_npu(self):
+        self._test_multiprocess(TestRpc._test_get_module_rref, [], self.world_size_2p)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_remote_parameters_npu(self):
+        self._test_multiprocess(TestRpc._test_remote_parameters, [], self.world_size_2p)
+
+    @skipIfUnsupportMultiNPU(2)
+    def test_local_value_npu(self):
+        self._test_multiprocess(TestRpc._test_local_value, [], self.world_size_2p)
 
 if __name__ == '__main__':
     run_tests()
