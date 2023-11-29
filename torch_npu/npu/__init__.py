@@ -10,6 +10,7 @@ __all__ = [
     "get_device_name",
     "get_device_properties",
     "get_device_capability",
+    "mem_get_info",
     "is_available",
     "device",
     "device_of",
@@ -111,7 +112,7 @@ from .utils import (synchronize, device_count, can_device_access_peer, set_devic
                     get_device_properties, get_device_capability, _get_device_index,
                     device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
                     get_sync_debug_mode, init_dump, current_blas_handle, is_bf16_supported,
-                    utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag)
+                    utilization, finalize_dump, set_dump, get_npu_overflow_flag, clear_npu_overflow_flag, mem_get_info)
 from .streams import Stream, Event
 
 from .npu_config import *  # noqa: F403
