@@ -5,15 +5,16 @@ from torch.distributed._tensor.ops.basic_strategy import (
     gen_einsum_strategies,
 )
 
-from torch.testing._internal.common_utils import run_tests, TestCase
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
+from torch.testing._internal.common_utils import TestCase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestEinsumDims(TestCase):
+    @skipIfUnsupportMultiNPU(4)
     def test_batch_dims(self):
         equation = "abc,abc->abc"
         input_dims, output_dim = EinsumDims.parse_equation(equation)
@@ -24,6 +25,7 @@ class TestEinsumDims(TestCase):
         self.assertEqual(edims.lhs_out_only_dims, [])
         self.assertEqual(edims.rhs_out_only_dims, [])
 
+    @skipIfUnsupportMultiNPU(4)
     def test_mm_dims(self):
         equation = "mk,kn->mn"
         input_dims, output_dim = EinsumDims.parse_equation(equation)
@@ -34,6 +36,7 @@ class TestEinsumDims(TestCase):
         self.assertEqual(edims.lhs_out_only_dims, ["m"])
         self.assertEqual(edims.rhs_out_only_dims, ["n"])
 
+    @skipIfUnsupportMultiNPU(4)
     def test_bmm_dims(self):
         equation = "bmk,bkn->bmn"
         input_dims, output_dim = EinsumDims.parse_equation(equation)
@@ -53,6 +56,7 @@ class TestEinsumDims(TestCase):
         self.assertEqual(edims.lhs_out_only_dims, ["m"])
         self.assertEqual(edims.rhs_out_only_dims, ["n"])
 
+    @skipIfUnsupportMultiNPU(4)
     def test_free_dims(self):
         equation = "abc,ab->abc"
         input_dims, output_dim = EinsumDims.parse_equation(equation)
@@ -73,12 +77,12 @@ class TestEinsumDims(TestCase):
         self.assertEqual(edims.rhs_out_only_dims, ["f"])
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestEinsumStrategies(DTensorTestBase):
     @property
     def world_size(self) -> int:
         return 4
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_mm_1d_mesh(self):
         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -86,6 +90,7 @@ class TestEinsumStrategies(DTensorTestBase):
         all_strats = gen_einsum_strategies("mk,kn->mn", mesh)
         self.assertEqual(len(all_strats.strategies), 4)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_mm_2d_mesh(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size).reshape(2, 2))
@@ -93,6 +98,7 @@ class TestEinsumStrategies(DTensorTestBase):
         all_strats = gen_einsum_strategies("mk,kn->mn", mesh)
         self.assertEqual(len(all_strats.strategies), 16)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_bmm_1d_mesh(self):
         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -100,6 +106,7 @@ class TestEinsumStrategies(DTensorTestBase):
         all_strats = gen_einsum_strategies("bmk,bkn->bmn", mesh)
         self.assertEqual(len(all_strats.strategies), 5)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_bmm_2d_mesh(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size).reshape(2, 2))
@@ -107,6 +114,7 @@ class TestEinsumStrategies(DTensorTestBase):
         all_strats = gen_einsum_strategies("bmk,bkn->bmn", mesh)
         self.assertEqual(len(all_strats.strategies), 25)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_pointwise_1d_mesh(self):
         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -117,6 +125,7 @@ class TestEinsumStrategies(DTensorTestBase):
         broadcast_strats = gen_einsum_strategies("bcd,abcd->abcd", mesh)
         self.assertEqual(len(broadcast_strats.strategies), 5)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_linearity_1d_mesh(self):
         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))

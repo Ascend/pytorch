@@ -9,7 +9,6 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.tensor.parallel import PairwiseParallel, parallelize_module
 from torch.distributed.tensor.parallel.fsdp import enable_2d_with_fsdp
 from torch.testing._internal.common_distributed import skip_if_lt_x_gpu
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import (
     DTensorTestBase,
     MLPModule
@@ -18,6 +17,7 @@ from torch.testing._internal.distributed.fake_pg import FakeStore
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
 class SimpleModel(nn.Module):
@@ -30,12 +30,12 @@ class SimpleModel(nn.Module):
         return self.mlp_1(self.mlp_0(input_x))
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestDTensorCompile(DTensorTestBase):
     @property
     def world_size(self) -> int:
         return 2
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_fakify_dtensor(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -51,6 +51,7 @@ class TestDTensorCompile(DTensorTestBase):
         res = opt_fn(x)
         self.assertEqual(res, ref)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dynamo_dtensor(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -66,6 +67,7 @@ class TestDTensorCompile(DTensorTestBase):
         res = opt_fn(x)
         self.assertEqual(res, ref)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dynamo_dtensor_from_local(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -81,6 +83,7 @@ class TestDTensorCompile(DTensorTestBase):
         res = opt_fn(x)
         self.assertEqual(res, ref)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dynamo_dtensor_from_local_redistribute(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -98,12 +101,12 @@ class TestDTensorCompile(DTensorTestBase):
         self.assertEqual(res, ref)
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestDTensorCompileE2E(DTensorTestBase):
     @property
     def world_size(self):
         return 4
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_tp_compile_fullgraph(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))

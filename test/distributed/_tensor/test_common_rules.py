@@ -10,14 +10,13 @@ from torch.distributed._tensor.ops.common_rules import (
 )
 from torch.distributed._tensor.placement_types import DTensorSpec
 from torch.fx.passes.shape_prop import _extract_tensor_metadata
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
 class CommonRulesTest(DTensorTestBase):
     @property
     def world_size(self) -> int:
@@ -29,6 +28,7 @@ class CommonRulesTest(DTensorTestBase):
         empty_tensor = torch.empty(shape)
         return _extract_tensor_metadata(empty_tensor)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_einop_basic_propagation(self):
         # plain einsum, mm
@@ -83,6 +83,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertIsNotNone(output_spec)
         self.assertTrue(output_spec.placements[0].is_partial())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_einop_pointwise_propagation(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -137,6 +138,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertIsNotNone(output_spec)
         self.assertEqual(output_spec.dim_map, [0, -1, -1])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_einop_merge_sharding(self):
         # 2d mesh einop merge sharding
@@ -163,6 +165,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertIsNotNone(output_spec)
         self.assertEqual(output_spec.dim_map, [0, 1])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_einop_linearity(self):
         mesh_shape = torch.arange(self.world_size).reshape(
@@ -233,6 +236,7 @@ class CommonRulesTest(DTensorTestBase):
         # mat2 mesh dim 1 should become partial now!
         self.assertTrue(mat2_spec.placements[1].is_partial())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_einop_multi_sharding_on_mesh_dim(self):
         # einop prop with multi sharding on same mesh dim
@@ -262,6 +266,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, [0, -1])
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, [-1, -1])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_einop_errors(self):
         mesh_shape = torch.arange(self.world_size).reshape(
@@ -285,6 +290,7 @@ class CommonRulesTest(DTensorTestBase):
         with self.assertRaisesRegex(RuntimeError, "sharded two different ways:"):
             einop_rule("ij,ij->ij", OpSchema(func_schema, (mat1_spec, mat2_spec), {}))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_pointwise_rules_broadcasting(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -313,6 +319,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertIsNotNone(output_spec)
         self.assertEqual(output_spec.dim_map, [-1, 0])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_pointwise_rules_suggestion(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -343,6 +350,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertEqual(len(schema_suggestion.args_schema), 3)
         self.assertEqual(schema_suggestion.args_schema[2], -1)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_pointwise_multi_sharding_on_mesh_dim(self):
         # 2d mesh pointwise sharding
@@ -395,6 +403,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, [-1, -1, -1, 1])
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, mat2)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_pointwise_enforce_sharding_multi_sharding_on_mesh_dim(self):
         # 2d mesh pointwise sharding
@@ -430,6 +439,7 @@ class CommonRulesTest(DTensorTestBase):
         self.assertEqual(schema_suggestion.args_schema[0].dim_map, mat1)
         self.assertEqual(schema_suggestion.args_schema[1].dim_map, mat1)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_reduction_rule(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))

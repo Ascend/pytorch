@@ -8,11 +8,11 @@ from torch.distributed._tensor import DeviceMesh, distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import _Partial, Replicate, Shard
 from torch.distributed.tensor.parallel import PairwiseParallel, parallelize_module
 
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
 class DummyMLP(torch.nn.Module):
@@ -33,8 +33,8 @@ class DummyMLP(torch.nn.Module):
             self.net2.bias.fill_(1.2)
 
 
-@skipIfUnsupportMultiNPU(4)
 class DTensorTest(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_constructor(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -75,6 +75,7 @@ class DTensorTest(DTensorTestBase):
                 stride=local_tensor.stride(),
             )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_meta_dtensor(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -98,6 +99,7 @@ class DTensorTest(DTensorTestBase):
             value_tensor = torch.empty_like(meta_dtensor.to_local()).fill_(1.5)
             self.assertEqual(meta_dtensor.to_local(), value_tensor)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_modules_w_meta_dtensor(self):
         model = DummyMLP("meta")
@@ -129,6 +131,7 @@ class DTensorTest(DTensorTestBase):
         inp = torch.randn(20, 5, device=self.device_type)
         self.assertEqual(model_tp(inp), model_regular_tp(inp))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_stride(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -155,6 +158,7 @@ class DTensorTest(DTensorTestBase):
         global_stride = (8 * self.world_size, 1, 32 * self.world_size)
         self.assertEqual(dist_tensor.stride(), global_stride)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_from_local(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -192,6 +196,7 @@ class DTensorTest(DTensorTestBase):
         expected_grad = torch.ones(3, 3) * 9
         self.assertEqual(local_tensor_with_grad.grad, expected_grad)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_to_local(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -243,6 +248,7 @@ class DTensorTest(DTensorTestBase):
         except RuntimeError:
             self.assertEqual(sharded_tensor.grad.stride(), [1, 3 * self.world_size])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_new_empty_strided(self):
         device_mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -266,6 +272,7 @@ class DTensorTest(DTensorTestBase):
             local_tensor.grad,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_async_output(self):
         # Tests that if the output of some dtensor operations  isn't used in any compute,
@@ -305,6 +312,7 @@ class DTensorTest(DTensorTestBase):
         self.assertEqual(type(out_data), torch.Tensor)
         self.assertEqual(out_data, ref)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_from_local_then_to_local(self):
         # this test ensure end to end from torch.Tensor -> dist tensor -> torch.Tensor works
@@ -338,6 +346,7 @@ class DTensorTest(DTensorTestBase):
         expected_grad = torch.ones(3, 3) * 6
         self.assertEqual(local_tensor_with_grad.grad, expected_grad)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_spec_read_only_after_set(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -350,6 +359,7 @@ class DTensorTest(DTensorTestBase):
         self.assertTrue(sharded_tensor.placements is not shard_spec)
         self.assertNotEqual(sharded_tensor.placements, shard_spec)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_spec_hash(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -370,6 +380,7 @@ class DTensorTest(DTensorTestBase):
         )
         self.assertNotEqual(hash(sharded_tensor._spec), hash(replica_tensor._spec))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_properties(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -378,6 +389,7 @@ class DTensorTest(DTensorTestBase):
         sharded_tensor = DTensor.from_local(local_tensor, device_mesh, shard_spec)
         self.assertEqual(sharded_tensor.device.type, self.device_type)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_save_load(self):
         import io
@@ -393,7 +405,6 @@ class DTensorTest(DTensorTestBase):
         self.assertEqual(sharded_tensor, reloaded_st)
 
 
-@skipIfUnsupportMultiNPU(4)
 class DTensorMeshTest(DTensorTestBase):
     @property
     def world_size(self):
@@ -405,6 +416,7 @@ class DTensorMeshTest(DTensorTestBase):
         else:
             self.assertEqual(tensor, exp_out_of_mesh)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_device_mesh_device_conversion(self):
         # construct a cuda device mesh
@@ -418,6 +430,7 @@ class DTensorMeshTest(DTensorTestBase):
         self.assertEqual(dist_tensor.device.type, self.device_type)
         self.assertEqual(dist_tensor.to_local().device.type, self.device_type)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_api_device_mesh_context_manager(self):
         with DeviceMesh(self.device_type, list(range(self.world_size))) as mesh:
@@ -457,6 +470,7 @@ class DTensorMeshTest(DTensorTestBase):
             sharded_after_2d = distribute_tensor(global_tensor, placements=shard_spec)
             self.assertEqual(sharded_after_2d.to_local().shape, torch.Size([3, 3]))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_2d_mesh(self):
         mesh_tensor = torch.arange(self.world_size).reshape(2, 4)
@@ -480,6 +494,7 @@ class DTensorMeshTest(DTensorTestBase):
         dist_tensor = DTensor.from_local(local_tensor, mesh, shard_same_dim_spec)
         self.assertEqual(dist_tensor.size(), torch.Size([3 * self.world_size, 3]))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_device_mesh_nd(self):
         # construct a cuda device mesh
@@ -501,6 +516,7 @@ class DTensorMeshTest(DTensorTestBase):
         self.assertEqual(dist_tensor.device.type, self.device_type)
         self.assertEqual(dist_tensor.to_local().device.type, self.device_type)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dtensor_spec_local_shard_offset(self):
         device_mesh = DeviceMesh(
@@ -538,6 +554,7 @@ class DTensorMeshTest(DTensorTestBase):
             )
             self.assertEqual(expected_shard_offsets, offset)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_from_local_sub_mesh(self):
         mesh = DeviceMesh(self.device_type, [0, 2])
@@ -565,6 +582,7 @@ class DTensorMeshTest(DTensorTestBase):
             dtensor.to_local(),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_default_value_sub_mesh(self):
         mesh = DeviceMesh(self.device_type, [0, 2])
@@ -603,6 +621,7 @@ class DTensorMeshTest(DTensorTestBase):
             [dt.to_local() for dt in dtensor_list],
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_redistribute_sub_mesh(self):
         mesh = DeviceMesh(self.device_type, [0, 2])
@@ -620,7 +639,6 @@ class DTensorMeshTest(DTensorTestBase):
         )
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestDTensorPlacementTypes(DTensorTestBase):
     @property
     def world_size(self):
@@ -635,6 +653,7 @@ class TestDTensorPlacementTypes(DTensorTestBase):
         else:
             return tensor
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_split_tensor(self) -> None:
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))

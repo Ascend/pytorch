@@ -8,12 +8,12 @@ from torch.distributed._tensor import (
     Replicate,
     Shard,
 )
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
 class MyModel(nn.Module):
@@ -31,7 +31,6 @@ class MyModel(nn.Module):
             m.reset_parameters()
 
 
-@skipIfUnsupportMultiNPU(4)
 class DTensorAPITest(DTensorTestBase):
     @property
     def world_size(self) -> int:
@@ -39,6 +38,7 @@ class DTensorAPITest(DTensorTestBase):
         # at least with 2d mesh
         return 4
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_distribute_tensor(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -56,6 +56,7 @@ class DTensorAPITest(DTensorTestBase):
                 self.assertTrue(dist_tensor.requires_grad)
                 self.assertTrue(dist_tensor.is_leaf)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_distribute_tensor_uneven_sharding(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -78,6 +79,7 @@ class DTensorAPITest(DTensorTestBase):
             local_tensor = dist_tensor.to_local()
             self.assertEqual(local_tensor, splitted_tensor_list[self.rank])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_distribute_module(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -141,6 +143,7 @@ class DTensorAPITest(DTensorTestBase):
             else:
                 self.assertEqual(param.placements, replica_spec)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_distribute_module_input_fn_output_fn(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -185,6 +188,7 @@ class DTensorAPITest(DTensorTestBase):
         self.assertTrue(isinstance(param_grad, DTensor))
         self.assertTrue(isinstance(param_grad.placements[0], Replicate))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_distribute_module_meta(self):
         # If  the model is too big, the user may first the create entire model on the meta device and then initialize

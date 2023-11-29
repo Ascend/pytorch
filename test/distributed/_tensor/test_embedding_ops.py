@@ -3,17 +3,13 @@ import sys
 import torch
 from torch.distributed._tensor import distribute_tensor, DTensor, DeviceMesh
 from torch.distributed._tensor.placement_types import Replicate, Shard
-from torch.testing._internal.common_utils import run_tests, TEST_WITH_DEV_DBG_ASAN
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
-
-if TEST_WITH_DEV_DBG_ASAN:
-    raise RuntimeError("Skip dev-asan as torch + multiprocessing spawn have known issues")
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestEmbeddingOp(DTensorTestBase):
     def _run_embedding_op_test(
         self,
@@ -105,6 +101,7 @@ class TestEmbeddingOp(DTensorTestBase):
             ).to_local(),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_sharded_embedding_colwise_errors(self):
         with self.assertRaisesRegex(
@@ -115,6 +112,7 @@ class TestEmbeddingOp(DTensorTestBase):
                 1, [8, 6, 5, 4], 23, 13, padding_idx=12, max_norm=2.0
             )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_sharded_embedding_rowwise(self):
         with self.assertRaisesRegex(

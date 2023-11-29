@@ -3,15 +3,16 @@ import itertools
 import torch
 from torch.distributed._tensor import DeviceMesh, distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import _Partial, Replicate, Shard
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
+
 class RedistributeTest(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_shard_to_replicate_forward_backward(self):
         # 1) test shard -> replicate forward
@@ -47,6 +48,7 @@ class RedistributeTest(DTensorTestBase):
                 grad_input.to_local(), torch.ones(dtensor.to_local().size())
             )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_replicate_to_replicate_forward_backward(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -66,6 +68,7 @@ class RedistributeTest(DTensorTestBase):
         self.assertEqual(grad_input.placements, replica_spec)
         self.assertEqual(grad_input.to_local(), torch.ones(12, 3))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_replicate_to_shard_forward_backward(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -105,6 +108,7 @@ class RedistributeTest(DTensorTestBase):
             self.assertEqual(grad_input.placements, replica_spec)
             self.assertEqual(grad_input.to_local(), torch.ones(input_size).npu())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_partial_to_replicate_forward_backward(self):
         # Although we don't allow user to reshard to produce a partial
@@ -130,6 +134,7 @@ class RedistributeTest(DTensorTestBase):
         if device_mesh.get_rank() == 0:
             self.assertEqual(partial_local.grad, torch.ones_like(partial_local))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_replicate_to_partial(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -173,6 +178,7 @@ class RedistributeTest(DTensorTestBase):
         else:
             self.assertEqual(replica_tensor.to_local(), torch.zeros_like(local_tensor))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_partial_to_shard(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))

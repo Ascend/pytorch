@@ -4,15 +4,15 @@ import torch
 
 from torch.distributed._tensor import distribute_tensor, DeviceMesh
 from torch.distributed._tensor.placement_types import Replicate, Shard
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
 class DistMathOpsTest(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_sum(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))

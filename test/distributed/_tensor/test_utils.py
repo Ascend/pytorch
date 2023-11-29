@@ -3,19 +3,19 @@ from torch.distributed._tensor._utils import compute_local_offset, compute_local
 from torch.distributed._tensor.device_mesh import DeviceMesh
 from torch.distributed._tensor.placement_types import Replicate, Shard
 
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
 class UtilTest(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_compute_local_offset_1d(self):
         # mesh: 8 * 1
@@ -41,6 +41,7 @@ class UtilTest(DTensorTestBase):
         # global tensor dim size on the current dimension.
         self.assertEqual(local_offset[0], sum(chunk_sizes[:my_rank]))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_compute_local_shape_2d(self):
         # mesh: 4 * 2
@@ -63,6 +64,7 @@ class UtilTest(DTensorTestBase):
         local_size3 = compute_local_shape(size, mesh, placements3)
         self.assertEqual(local_size3, torch.Size([2, 3]))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_compute_local_shape_2d_uneven(self):
         # mesh: 4 * 2

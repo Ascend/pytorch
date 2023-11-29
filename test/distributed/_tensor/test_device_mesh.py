@@ -21,12 +21,12 @@ from torch.distributed.distributed_c10d import (
     is_initialized,
     ProcessGroup,
 )
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 from torch.testing._internal.distributed.fake_pg import FakeStore
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
 def _get_device_type(world_size):
@@ -47,12 +47,12 @@ def _set_env_var(addr="localhost", port="29500", world_size=1, rank=0):
     os.environ["RANK"] = f"{rank}"
 
 
-@skipIfUnsupportMultiNPU(4)
 class DeviceMeshTest(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     def test_init_process_group(self):
         device_type = _get_device_type(self.world_size)
         mesh_tensor = torch.arange(4).reshape(2, 2)
@@ -62,6 +62,7 @@ class DeviceMeshTest(DTensorTestBase):
         self.assertTrue(is_initialized())
         self.destroy_pg()
 
+    @skipIfUnsupportMultiNPU(4)
     def test_fake_pg_device_mesh(self):
         fake_store = FakeStore()
         init_process_group("fake", store=fake_store, rank=0, world_size=self.world_size)
@@ -76,12 +77,12 @@ class DeviceMeshTest(DTensorTestBase):
         self.assertEqual(global_tensor.shape, (self.world_size * 2, 8))
 
 
-@skipIfUnsupportMultiNPU(4)
 class DeviceMeshTestDim(DTensorTestBase):
     @property
     def world_size(self):
         return 4
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_device_mesh_2d(self):
         mesh_tensor = torch.arange(4).reshape(2, 2)
@@ -107,6 +108,7 @@ class DeviceMeshTestDim(DTensorTestBase):
             )
             self.assertEqual(global_ranks, current_rank_expected_group_ranks)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_lazy_init_device_mesh(self):
         mesh = DeviceMesh(self.device_type, [1], _init_process_groups=False)
@@ -114,6 +116,7 @@ class DeviceMeshTestDim(DTensorTestBase):
         with self.assertRaisesRegex(RuntimeError, "process groups not initialized!"):
             mesh.get_dim_groups()
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_validate_device_mesh(self):
         mesh = torch.arange(self.world_size).reshape(2, -1)
@@ -126,12 +129,12 @@ class DeviceMeshTestDim(DTensorTestBase):
                 mesh = DeviceMesh(self.device_type, mesh_subpg_2)
 
 
-@skipIfUnsupportMultiNPU(4)
 class DeviceMeshTestNDim(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_device_mesh_nd(self):
         # construct a cuda device mesh
@@ -155,6 +158,7 @@ class DeviceMeshTestNDim(DTensorTestBase):
                 if self.rank in ranks:
                     self.assertEqual(global_ranks, ranks.tolist())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_device_mesh_hash(self):
         mesh_tensor_2d = torch.arange(8).reshape(4, 2)
@@ -167,12 +171,12 @@ class DeviceMeshTestNDim(DTensorTestBase):
         self.assertNotEqual(hash(mesh2), hash(mesh3))
 
 
-@skipIfUnsupportMultiNPU(4)
 class InitDeviceMeshTest(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_init_device_mesh(self):
         mesh_shape = (2, 4)
@@ -191,24 +195,26 @@ class InitDeviceMeshTest(DTensorTestBase):
         self.assertEqual(two_d_mesh, ref_mesh)
 
 
-@skipIfUnsupportMultiNPU(4)
 class TestDeviceMeshGetItem(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_raises_mesh_dim_less_than_2(self):
         with self.assertRaisesRegex(RuntimeError, "Cannot slice a DeviceMesh"):
             mesh = init_device_mesh(self.device_type, (8,))
             child_mesh = mesh["DP"]
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_raises_no_mesh_dim_found(self):
         with self.assertRaisesRegex(KeyError, "No `mesh_dim_names` found."):
             mesh = init_device_mesh(self.device_type, (2, 4))
             child_mesh = mesh["DP"]
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_raises_invalid_mesh_dim_name(self):
         child_mesh_dim_name = "PP"
@@ -221,6 +227,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
             )
             child_mesh = mesh[child_mesh_dim_name]
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_get_item(self):
         mesh_shape = (2, 4)
@@ -246,6 +253,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
             two_d_mesh["DP"].mesh, pg_ranks_by_dim_name.get("DP")[dp_group_idx]
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_get_parent_mesh(self):
         mesh_shape = (2, 4)
@@ -258,12 +266,12 @@ class TestDeviceMeshGetItem(DTensorTestBase):
         self.assertEqual(mesh_resources.get_parent_mesh(two_d_mesh["TP"]), two_d_mesh)
 
 
-@skipIfUnsupportMultiNPU(4)
 class DeviceMeshCollectiveTest(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_broadcast_1d(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -271,6 +279,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
         mesh_broadcast(local_tensor, mesh, mesh_dim=0)
         self.assertEqual(local_tensor, torch.zeros(3, 3))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_scatter_1d(self):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
@@ -289,6 +298,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
             mesh_scatter(recv_tensor, splitted_list, mesh, mesh_dim=0)
             self.assertEqual(recv_tensor, splitted_list[mesh.get_rank()])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_scatter_uneven(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -334,6 +344,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
                 )
                 self.assertEqual(scattered_tensor, tensor_splitted_list[my_rank])
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_all_gather_uneven(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -370,6 +381,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
             self.assertEqual(all_gathered_tensor.size(), tensor_to_split.size())
             self.assertEqual(all_gathered_tensor, tensor_to_split)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_reduce_scatter_uneven(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -432,6 +444,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
                     torch.ones_like(tensor_splitted_list[my_rank]) * res_num,
                 )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_broadcast_nd(self):
         mesh_tensor = torch.arange(8).reshape(2, 2, 2)
@@ -450,6 +463,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
             res_num = global_ranks[0]
             self.assertEqual(cloned_local_tensor, torch.ones(3, 3) * res_num)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_scatter_nd(self):
         mesh_tensor = torch.arange(8).reshape(2, 2, 2)
@@ -472,6 +486,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
             mesh_scatter(received_tensor, scattered_tensors, mesh, mesh_dim=dim)
             self.assertEqual(received_tensor, torch.ones(3, 3) * self.rank)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_all_to_all_1d(self):
         # transpose on a 2D tensor distributed over N nodes:
@@ -499,6 +514,7 @@ class DeviceMeshCollectiveTest(DTensorTestBase):
 
             self.assertEqual(output_tensor, expected_tensor)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_all_to_all_nd(self):
         mesh_tensor = torch.arange(8).reshape(2, 2, 2)

@@ -1,13 +1,12 @@
 import torch
 from torch.distributed._tensor import DeviceMesh, DTensor, Replicate, Shard, zeros
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
-@skipIfUnsupportMultiNPU(4)
 class DTensorInitOpsTest(DTensorTestBase):
     def _run_init_op(self, init_op, *args, **kwargs):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -22,13 +21,13 @@ class DTensorInitOpsTest(DTensorTestBase):
         dtensor = init_op(dtensor, *args, **kwargs)
         self.assertEqual(local_tensor_clone, dtensor.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_init_ops(self):
         # NOTE: random init tests are moved to test_random_ops.py
         self._run_init_op(torch.nn.init.constant_, 2.4)
 
 
-@skipIfUnsupportMultiNPU(4)
 class DTensorConstructorTest(DTensorTestBase):
     @property
     def world_size(self):
@@ -82,6 +81,7 @@ class DTensorConstructorTest(DTensorTestBase):
                 exp_tensor = init_op(tensor_size, *args, **kwargs)
                 eq_op(exp_tensor, dist_tensor.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_ones(self):
         self._run_init_op(
@@ -91,6 +91,7 @@ class DTensorConstructorTest(DTensorTestBase):
             requires_grad=True,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_empty(self):
         self._run_init_op(
@@ -102,6 +103,7 @@ class DTensorConstructorTest(DTensorTestBase):
             requires_grad=True,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_full(self):
         self._run_init_op(
@@ -112,6 +114,7 @@ class DTensorConstructorTest(DTensorTestBase):
             requires_grad=True,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_zeros(self):
         self._run_init_op(
@@ -121,6 +124,7 @@ class DTensorConstructorTest(DTensorTestBase):
             requires_grad=True,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_zeros_full_mesh(self):
         # construct a npu device 1d mesh
@@ -186,6 +190,7 @@ class DTensorConstructorTest(DTensorTestBase):
         elif self.rank == 3:
             self.assertEqual(local_tensor, torch.zeros([15, 1]))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_zeros_submesh(self):
         # default world_size is 4

@@ -16,7 +16,6 @@ from torch.distributed._tensor.ops.view_ops import (
     view_groups,
 )
 from torch.distributed._tensor.placement_types import Placement
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import (
     DTensorTestBase,
     redistribute_profiler
@@ -25,6 +24,7 @@ from torch.utils._pytree import tree_flatten
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
 class TestViewOps(DTensorTestBase):
