@@ -57,7 +57,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   }
   void setDevice(c10::Device d) const override {
     TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
-    c10_npu::NpuSysCtrl::GetInstance().BackwardsInit();
+    uncheckedSetDevice(d);
   }
   void uncheckedSetDevice(c10::Device d) const noexcept override {
     int old_device = 0;
