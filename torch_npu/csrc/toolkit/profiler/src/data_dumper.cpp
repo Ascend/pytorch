@@ -28,11 +28,18 @@ void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuf
 }
 
 void DataDumper::UnInit() {
-  if (init_.load()) {
-    data_chunk_buf_.UnInit();
-    init_.store(false);
-    start_.store(false);
-  }
+    if (init_.load()) {
+        data_chunk_buf_.UnInit();
+        init_.store(false);
+        start_.store(false);
+        for (auto &f : fd_map_) {
+          if (f.second != nullptr) {
+            fclose(f.second);
+            f.second = nullptr;
+          }
+        }
+        fd_map_.clear();
+    }
 }
 
 void DataDumper::Start() {
@@ -54,24 +61,39 @@ void DataDumper::Stop() {
 }
 
 void DataDumper::GatherAndDumpData() {
-  std::map<std::string, std::vector<uint8_t>> dataMap;
-  DataClassifyGather(dataMap);
-  if (dataMap.size() > 0) {
-    Dump(dataMap);
-  }
+    std::map<std::string, std::vector<uint8_t>> dataMap;
+    uint64_t batchSize = 0;
+    while (batchSize < kBatchMaxLen) {
+        std::unique_ptr<BaseReportData> data = nullptr;
+        if (!data_chunk_buf_.Pop(data) || data == nullptr) {
+            break;
+        }
+        std::vector<uint8_t> encodeData = data->encode();
+        batchSize += encodeData.size();
+        const std::string &key = data->tag;
+        auto iter = dataMap.find(key);
+        if (iter == dataMap.end()) {
+            dataMap.insert({key, encodeData});
+        } else {
+            iter->second.insert(iter->second.end(), encodeData.cbegin(), encodeData.cend());
+        }
+    }
+    if (dataMap.size() > 0) {
+        Dump(dataMap);
+    }
 }
 
 void DataDumper::Run() {
-  for (;;) {
-    if (!start_.load()) {
-      break;
+    for (;;) {
+        if (!start_.load()) {
+            break;
+        }
+        if (data_chunk_buf_.Size() > kNotifyInterval) {
+            GatherAndDumpData();
+        } else {
+            usleep(kMaxWaitTimeUs);
+        }
     }
-    if (data_chunk_buf_.Size() > kNotifyInterval) {
-      GatherAndDumpData();
-    } else {
-      usleep(kMaxWaitTimeUs);
-    }
-  }
 }
 
 void DataDumper::Flush() {
@@ -87,42 +109,25 @@ void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
   data_chunk_buf_.Push(std::move(data));
 }
 
-void DataDumper::Dump(std::map<std::string, std::vector<uint8_t>> &dataMap) {
-  std::ofstream file;
-  for (auto &data : dataMap) {
-    std::string dump_file = path_ + "/" + data.first;
-    if (!Utils::IsFileExist(dump_file) && !Utils::CreateFile(dump_file)) {
-      continue;
+void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap) {
+    for (auto &data : dataMap) {
+        FILE *fd = nullptr;
+        const std::string dump_file = path_ + "/" + data.first;
+        auto iter = fd_map_.find(dump_file);
+        if (iter == fd_map_.end()) {
+            if (!Utils::IsFileExist(dump_file) && !Utils::CreateFile(dump_file)) {
+                continue;
+            }
+            fd = fopen(dump_file.c_str(), "ab");
+            if (fd == nullptr) {
+              continue;
+            }
+            fd_map_.insert({dump_file, fd});
+        } else {
+            fd = iter->second;
+        }
+        fwrite(reinterpret_cast<const char*>(data.second.data()), sizeof(char), data.second.size(), fd);
     }
-    file.open(dump_file, std::ios::out | std::ios::app | std::ios::binary);
-    if (!file.is_open()) {
-      continue;
-    }
-    file.write(reinterpret_cast<const char*>(data.second.data()), data.second.size());
-    file.close();
-  }
-}
-
-void DataDumper::DataClassifyGather(std::map<std::string, std::vector<uint8_t>> &dataMap) {
-  uint64_t batchSize = 0;
-  while (batchSize < kBatchMaxLen) {
-    std::unique_ptr<BaseReportData> data = nullptr;
-    if (!data_chunk_buf_.Pop(data)) {
-      break;
-    }
-    if (data == nullptr) {
-      return;
-    }
-    std::vector<uint8_t> encodeData = data->encode();
-    batchSize += encodeData.size();
-    std::string key = data->tag;
-    auto iter = dataMap.find(key);
-    if (iter == dataMap.end()) {
-      dataMap.insert({key, encodeData});
-    } else {
-        iter->second.insert(iter->second.end(), encodeData.begin(), encodeData.end());
-    }
-  }
 }
 } // profiler
 } // toolkit

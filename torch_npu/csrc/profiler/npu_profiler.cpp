@@ -13,8 +13,8 @@ namespace profiler {
 using torch_npu::toolkit::profiler::Utils;
 
 struct NpuObserverContext : public at::ObserverContext {
-    explicit NpuObserverContext(torch_npu::toolkit::profiler::OpRangeData *data) : data_(data) {}
-    torch_npu::toolkit::profiler::OpRangeData *data_;
+    explicit NpuObserverContext(std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data) : data_(std::move(data)) {}
+    std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData> data_;
 };
 
 struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
@@ -40,34 +40,18 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
   }
 
   std::unique_ptr<NpuObserverContext> newOpEvent(const at::RecordFunction &fn) {
-    std::lock_guard<std::mutex> guard(state_mutex_);
-    op_events_.emplace_back(std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(
-      static_cast<int64_t>(Utils::GetClockTime()),
-      0,
-      fn.seqNr(),
-      Utils::GetPid(),
-      Utils::GetTid(),
-      0,
-      fn.forwardThreadId(),
-      fn.isAsync(),
-      fn.name()
-    ));
-    return std::make_unique<NpuObserverContext>(op_events_.back().get());
-  }
-
-  void removeOpEvent() {
-    std::lock_guard<std::mutex> guard(state_mutex_);
-    if (ProfilerMgr::GetInstance()->ReportEnable().load(std::memory_order_relaxed)) {
-      ProfilerMgr::GetInstance()->Upload(std::move(op_events_.back()));
-    } else {
-      op_events_.back().reset(nullptr);
-    }
-    op_events_.pop_back();
-  }
-
-  void finalizeTrace() {
-    std::lock_guard<std::mutex> guard(state_mutex_);
-    op_events_.clear();
+    return std::make_unique<NpuObserverContext>(
+      std::make_unique<torch_npu::toolkit::profiler::OpRangeData>(
+        static_cast<int64_t>(Utils::GetClockTime()),
+        0,
+        fn.seqNr(),
+        Utils::GetPid(),
+        Utils::GetTid(),
+        0,
+        fn.forwardThreadId(),
+        fn.isAsync(),
+        fn.name())
+    );
   }
 
   bool memoryProfilingEnabled() const {
@@ -114,8 +98,6 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
 protected:
   NpuProfilerConfig config_;
   std::set<NpuActivityType> activities_;
-  std::deque<std::unique_ptr<torch_npu::toolkit::profiler::OpRangeData>> op_events_;
-  std::mutex state_mutex_;
   at::CallbackHandle handle_ = 0;
 };
 
@@ -190,7 +172,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             }
             const auto &config = state_ptr->config();
             auto ctx_ptr = state_ptr->newOpEvent(fn);
-            auto data_ptr = ctx_ptr->data_;
+            auto &data_ptr = ctx_ptr->data_;
             if ((C10_UNLIKELY(config.record_shapes))) {
                 parseInputShapesAndDtypes(fn, data_ptr->input_dtypes, data_ptr->input_shapes);
             }
@@ -209,12 +191,14 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
             if (!state_ptr) {
               return;
             }
-            auto *npu_profiler_ctx_ptr = static_cast<NpuObserverContext *>(ctx_ptr);
-            TORCH_INTERNAL_ASSERT(npu_profiler_ctx_ptr != nullptr);
-            auto data_ptr = npu_profiler_ctx_ptr->data_;
+            auto *npu_ctx_ptr = static_cast<NpuObserverContext *>(ctx_ptr);
+            TORCH_INTERNAL_ASSERT(npu_ctx_ptr != nullptr);
+            auto data_ptr = std::move(npu_ctx_ptr->data_);
             data_ptr->end_ns = static_cast<int64_t>(Utils::GetClockTime());
             data_ptr->end_thread_id = Utils::GetTid();
-            state_ptr->removeOpEvent();
+            if (ProfilerMgr::GetInstance()->ReportEnable().load(std::memory_order_relaxed)) {
+              ProfilerMgr::GetInstance()->Upload(std::move(data_ptr));
+            }
           }
       )
       .needsInputs(registeration_state_ptr->config().record_shapes)
@@ -250,7 +234,6 @@ void stopNpuProfiler() {
     return;
   }
   if (state_ptr->hasCallbackHandle()) {
-    state_ptr->finalizeTrace();
     at::removeCallback(state_ptr->callbackHandle());
   }
   ProfilerMgr::GetInstance()->Stop();
