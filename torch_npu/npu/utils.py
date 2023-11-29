@@ -192,6 +192,17 @@ def get_device_capability(device=None):
     return None
 
 
+def mem_get_info(device=None):
+    if device is None:
+        device = torch_npu.npu.current_device()
+    device_id = _get_device_index(device)
+    if device_id < 0 or device_id >= device_count():
+        raise AssertionError("Invalid device id")
+    torch_npu.npu._lazy_init()
+    device_prop = torch_npu._C._npu_getDeviceMemories(device_id)
+    return device_prop.free_memory, device_prop.total_memory
+
+    
 def utilization(device=None):
     r"""Query the comprehensive utilization rate of device
     """

@@ -82,6 +82,13 @@ class TorchNPUDeviceTestCase(TestCase):
         self.assertEqual(res, None)
 
 
+def test_npu_mem_get_info(self):
+    before_free_memory, before_total_memory = torch_npu.npu.mem_get_info(0)
+    torch.randn(1024 * 1024 * 1024, device='npu:0')
+    torch_npu.npu.synchronize()
+    after_free_memory, after_total_memory = torch_npu.npu.mem_get_info(0)
+    self.assertEqual(before_total_memory, after_total_memory)
+
 class TorchNPUMemoryApiTestCase(TestCase):
     def test_npu_memory_stats(self):
         res = torch_npu.npu.memory_stats()
