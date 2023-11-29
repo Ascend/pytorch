@@ -34,8 +34,8 @@ std::vector<uint8_t> OpRangeData::encode() {
   for (size_t i = 0; i < sizeof(uint32_t); ++i) {
     resultTLV.push_back((length >> (i * 8)) & 0xff);
   }
-  resultTLV.insert(resultTLV.end(), result.begin(), result.end());
-  return resultTLV;
+  resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
+  return std::move(resultTLV);
 }
 
 std::vector<uint8_t> OpMarkData::encode() {
@@ -53,8 +53,8 @@ std::vector<uint8_t> OpMarkData::encode() {
   for (size_t i = 0; i < sizeof(uint32_t); ++i) {
     resultTLV.push_back((length >> (i * 8)) & 0xff);
   }
-  resultTLV.insert(resultTLV.end(), result.begin(), result.end());
-  return resultTLV;
+  resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
+  return std::move(resultTLV);
 }
 
 std::vector<uint8_t> MemoryData::encode() {
@@ -73,8 +73,8 @@ std::vector<uint8_t> MemoryData::encode() {
   for (size_t i = 0; i < sizeof(uint32_t); ++i) {
     resultTLV.push_back((length >> (i * 8)) & 0xff);
   }
-  resultTLV.insert(resultTLV.end(), result.begin(), result.end());
-  return resultTLV;
+  resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
+  return std::move(resultTLV);
 }
 } // profiler
 } // toolkit
