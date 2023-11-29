@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import multiprocessing
 
 from .prof_common_func.constant import Constant
 from .prof_common_func.prof_process import NoDaemonProcessPool
@@ -33,6 +34,7 @@ class NpuProfiler:
         if not profiler_path_list:
             return
         # 多profiling数据的解析
+        multiprocessing.set_start_method("fork", force=True)
         pool = NoDaemonProcessPool(processes=os.cpu_count() // 2)
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
