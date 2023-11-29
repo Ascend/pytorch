@@ -120,6 +120,8 @@ PyObject* initModule() {
 
   RegisterNPUDeviceProperties(module);
   BindGetDeviceProperties(module);
+  RegisterNPUDeviceMemories(module);
+  BindGetDeviceMemories(module);
   return module;
 }
 
