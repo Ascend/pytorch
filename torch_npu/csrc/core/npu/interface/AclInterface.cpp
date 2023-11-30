@@ -48,6 +48,12 @@ LOAD_FUNCTION(aclrtMallocAlign32)
 LOAD_FUNCTION(aclrtDeviceCanAccessPeer)
 LOAD_FUNCTION(aclrtSynchronizeStream)
 LOAD_FUNCTION(aclrtStreamQuery)
+LOAD_FUNCTION(aclrtReserveMemAddress)
+LOAD_FUNCTION(aclrtReleaseMemAddress)
+LOAD_FUNCTION(aclrtMallocPhysical)
+LOAD_FUNCTION(aclrtFreePhysical)
+LOAD_FUNCTION(aclrtMapMem)
+LOAD_FUNCTION(aclrtUnmapMem)
 
 aclprofStepInfoPtr init_stepinfo() {
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -406,6 +412,67 @@ bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_de
   TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer");
   NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id));
   return can_access_peer != 0;
+}
+
+aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags) {
+  typedef aclError (*AclrtReserveMemAddress)(void**, size_t, size_t, void*, uint64_t);
+  static AclrtReserveMemAddress func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtReserveMemAddress)GET_FUNC(aclrtReserveMemAddress);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress");
+  return func(virPtr, size, alignment, expectPtr, flags);
+}
+
+aclError AclrtReleaseMemAddress(void *virPtr) {
+  typedef aclError (*AclrtReleaseMemAddress)(void*);
+  static AclrtReleaseMemAddress func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtReleaseMemAddress)GET_FUNC(aclrtReleaseMemAddress);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress");
+  return func(virPtr);
+}
+
+aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrtPhysicalMemProp *prop,
+    uint64_t flags) {
+  typedef aclError (*AclrtMallocPhysical)(aclrtDrvMemHandle*, size_t, const aclrtPhysicalMemProp*, uint64_t);
+  static AclrtMallocPhysical func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMallocPhysical)GET_FUNC(aclrtMallocPhysical);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMallocPhysical");
+  return func(handle, size, prop, flags);
+}
+
+aclError AclrtFreePhysical(aclrtDrvMemHandle handle) {
+  typedef aclError (*AclrtFreePhysical)(aclrtDrvMemHandle);
+  static AclrtFreePhysical func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtFreePhysical)GET_FUNC(aclrtFreePhysical);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtFreePhysical");
+  return func(handle);
+}
+
+aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags) {
+  typedef aclError (*AclrtMapMem)(void*, size_t, size_t, aclrtDrvMemHandle, uint64_t);
+  static AclrtMapMem func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtMapMem)GET_FUNC(aclrtMapMem);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem");
+  return func(virPtr, size, offset, handle, flags);
+}
+
+aclError AclrtUnmapMem(void *virPtr) {
+  typedef aclError (*AclrtUnmapMem)(void*);
+  static AclrtUnmapMem func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtUnmapMem)GET_FUNC(aclrtUnmapMem);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem");
+  return func(virPtr);
 }
 
 } // namespace acl
