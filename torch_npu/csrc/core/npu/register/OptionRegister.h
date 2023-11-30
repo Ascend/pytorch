@@ -147,6 +147,27 @@ c10::optional<std::string> GetOption(const std::string& key);
     return (defaultVal) == (trueVal);                                                     \
   }
 
+#define REGISTER_OPTION_CACHE(type, valueName, ...)                 \
+    static thread_local type valueName##Value;                      \
+    static thread_local bool valueName##Initialized = false;        \
+    inline type GetWithCache##valueName() {                         \
+        if (!valueName##Initialized) {                              \
+            valueName##Value = __VA_ARGS__();                       \
+            valueName##Initialized = true;                          \
+        }                                                           \
+        return valueName##Value;                                    \
+    }                                                               \
+    inline void SetWithCache##valueName(type value) {               \
+        valueName##Value = value;                                   \
+        valueName##Initialized = true;                              \
+    }
+
+#define GET_OPTION_WITH_CACHE(valueName)                            \
+    GetWithCache##valueName()
+
+#define SET_OPTION_WITH_CACHE(valueName, value)                     \
+    SetWithCache##valueName(value)
+
 } // namespace option
 } // namespace c10_npu
 
