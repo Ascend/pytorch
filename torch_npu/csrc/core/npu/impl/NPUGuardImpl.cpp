@@ -1,5 +1,3 @@
-#include <thread>
-
 #include <torch/csrc/jit/serialization/pickler.h>
 #include "torch_npu/csrc/core/npu/impl/NPUGuardImpl.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
@@ -10,16 +8,6 @@ namespace c10_npu {
 namespace impl {
 
 constexpr c10::DeviceType NPUGuardImpl::static_type;
-thread_local std::once_flag set_device_flag;
-
-void setDeviceOnce() {
-  c10_npu::NpuSysCtrl::GetInstance().BackwardsInit();
-}
-
-void NPUGuardImpl::setDevice(c10::Device d) const {
-  TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1);
-  std::call_once(set_device_flag, setDeviceOnce);
-}
 
 C10_REGISTER_GUARD_IMPL(PrivateUse1, NPUGuardImpl);
 
