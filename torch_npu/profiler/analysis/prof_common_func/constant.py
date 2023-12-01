@@ -15,7 +15,6 @@
 
 import os
 from datetime import datetime
-from decimal import Decimal
 from typing import Union
 
 
@@ -150,6 +149,8 @@ class Constant(object):
     RELATION_PARSER = "relation"
     STACK_VIEW_PARSER = "export_stack"
     MEMORY_PREPARE = "memory_prepare"
+
+    TRACE_VIEW_TEMP = "trace_view_temp.json"
 
 
 def print_info_msg(message: str):

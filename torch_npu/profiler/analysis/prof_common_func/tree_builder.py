@@ -21,28 +21,34 @@ from ..prof_bean.torch_op_node import TorchOpNode
 
 class TreeBuilder:
     @classmethod
-    def build_tree(cls, event_list: list) -> TorchOpNode:
-        root_node = TorchOpNode(all_node_num=len(event_list))
+    def build_tree(cls, event_list: list, enqueue_list: list) -> TorchOpNode:
+        all_node_list = [None] * (len(event_list) + 1)
+        event_list.extend(enqueue_list)
         event_list.sort(key=lambda x: x.ts)
+        root_node = TorchOpNode()
         last_node = root_node
+        index = 0
+        all_node_list[index] = root_node
         for event in event_list:
             while last_node:
-                if last_node == root_node or event.ts < last_node.end_time:
+                if last_node != root_node and event.ts > last_node.end_time:
+                    last_node = last_node.parent_node
+                    continue
+                if event.is_torch_op:
                     tree_node = TorchOpNode(event, last_node)
                     last_node.add_child_node(tree_node)
                     last_node = tree_node
-                    break
-                last_node = last_node.parent_node
-        return root_node
+                    index += 1
+                    all_node_list[index] = tree_node
+                else:
+                    last_node.update_corr_id(event.corr_id)
+                break
+        return all_node_list
 
     @classmethod
-    def update_tree_node_info(cls, info_data: any, root_node: TorchOpNode):
-        if isinstance(info_data, OpMarkBean):
-            ts = info_data.ts
-            corr_id = info_data.corr_id
-        else:
-            ts = info_data
-            corr_id = info_data
+    def update_tree_node_info(cls, acl_ts: int, root_node: TorchOpNode):
+        ts = acl_ts
+        corr_id = acl_ts
         matched_child_node = root_node.match_child_node(ts)
         if not matched_child_node:
             return
@@ -71,20 +77,3 @@ class TreeBuilder:
                 node_queue.put(matched_child_node)
             else:
                 return tree_node
-
-    @classmethod
-    def go_through_tree(cls, root_node: TorchOpNode) -> list:
-        if not root_node.all_node_num:
-            return []
-        result_list = [None] * (root_node.all_node_num + 1)
-        result_list[0] = root_node
-        node_queue = Queue()
-        for child_node in root_node.child_node_list:
-            node_queue.put(child_node)
-        index = 1
-        while not node_queue.empty():
-            result_list[index] = node_queue.get()
-            for child_node in result_list[index].child_node_list:
-                node_queue.put(child_node)
-            index += 1
-        return result_list

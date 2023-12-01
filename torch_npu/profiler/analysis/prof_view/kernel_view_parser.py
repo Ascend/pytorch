@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from .base_parser import BaseParser
-from ..prof_common_func.constant import Constant, print_error_msg
+from ..prof_common_func.constant import Constant, print_error_msg, convert_ns2us_str
 from ..prof_common_func.csv_headers import CsvHeaders
 from ..prof_common_func.file_manager import FileManager
 from ..prof_bean.op_summary_bean import OpSummaryBean
@@ -69,7 +69,7 @@ class KernelViewParser(BaseParser):
             for data in all_data:
                 step_id = None
                 for step_data in self.step_range:
-                    if step_data.get(Constant.START_TS, 0) <= data.ts <= step_data.get(Constant.END_TS, 0):
+                    if step_data.get(Constant.START_TS) <= data.ts <= step_data.get(Constant.END_TS):
                         step_id = step_data.get(Constant.STEP_ID)
                         break
                 summary_data.append([step_id] + data.row)
@@ -80,5 +80,11 @@ class KernelViewParser(BaseParser):
     def _init_step_range(self, deps_data: dict):
         torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
         if torch_op_node:
-            self.step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], deps_data.get(
+            step_range = FwkCANNRelationParser(self._profiler_path).get_step_range(torch_op_node[0], deps_data.get(
                 Constant.RELATION_PARSER, {}))
+            for step_data in step_range:
+                step_id = step_data.get(Constant.STEP_ID)
+                step_start = convert_ns2us_str(step_data.get(Constant.START_TS, 0))
+                step_end = convert_ns2us_str(step_data.get(Constant.END_TS, 0))
+                self.step_range.append(
+                    {Constant.STEP_ID: step_id, Constant.START_TS: step_start, Constant.END_TS: step_end})

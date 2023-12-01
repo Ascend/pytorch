@@ -19,10 +19,9 @@ from ..prof_common_func.constant import Constant
 
 
 class TorchOpNode:
-    def __init__(self, event=None, parent_node=None, all_node_num=None):
+    def __init__(self, event=None, parent_node=None):
         self._event = event
         self._parent_node = parent_node
-        self._all_node_num = all_node_num
         self._child_list = []
         self._corr_id_total = []
         self._corr_id_self = []
@@ -40,10 +39,6 @@ class TorchOpNode:
         return self._event.name
 
     @property
-    def all_node_num(self):
-        return self._all_node_num
-
-    @property
     def input_shape(self):
         return self._event.args.get(Constant.INPUT_SHAPES, "")
 
@@ -52,16 +47,12 @@ class TorchOpNode:
         return self._event.args.get(Constant.CALL_STACK, "")
 
     @property
-    def kernel_list(self):
-        return self._kernel_list
-
-    @property
     def start_time(self) -> int:
         return self._event.ts
 
     @property
     def end_time(self) -> int:
-        return self._event.ts + self._event.dur
+        return self._event.end_ns
 
     @property
     def host_self_dur(self):
@@ -113,3 +104,10 @@ class TorchOpNode:
 
     def update_corr_id_self(self, corr_id: int):
         self._corr_id_self.append(corr_id)
+
+    def update_corr_id(self, corr_id: int):
+        self.update_corr_id_self(corr_id)
+        node = self
+        while node.parent_node:
+            node.update_corr_id_total(corr_id)
+            node = node.parent_node
