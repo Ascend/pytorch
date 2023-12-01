@@ -5,9 +5,6 @@ from ..prof_common_func.constant import convert_us2ns
 
 
 class EventBean:
-    HOST_TO_DEVICE = "HostToDevice"
-    START_FLOW = "s"
-    END_FLOW = "f"
 
     def __init__(self, data: dict):
         self._origin_data = data
@@ -33,6 +30,13 @@ class EventBean:
         return self._origin_data.get("dur", 0)
 
     @property
+    def end_ns(self) -> int:
+        # Time unit is ns
+        start = convert_us2ns(self._origin_data.get("ts", 0))
+        dur = int(self._origin_data.get("dur", 0) * 1000)
+        return int(start + dur)
+
+    @property
     def name(self) -> str:
         return self._origin_data.get("name", "")
 
@@ -42,7 +46,7 @@ class EventBean:
 
     @property
     def unique_id(self) -> str:
-        return "{}-{}-{}".format(self.pid, self.tid, self.ts)
+        return f"{self.pid}-{self.tid}-{self.ts}"
 
     @property
     def is_ai_core(self) -> bool:
@@ -50,12 +54,3 @@ class EventBean:
         if args:
             return args.get("Task Type") == Constant.AI_CORE
         return False
-
-    def is_flow_start_event(self) -> bool:
-        return self._origin_data.get("cat") == self.HOST_TO_DEVICE and self._origin_data.get("ph") == self.START_FLOW
-
-    def is_flow_end_event(self) -> bool:
-        return self._origin_data.get("cat") == self.HOST_TO_DEVICE and self._origin_data.get("ph") == self.END_FLOW
-
-    def is_x_event(self) -> bool:
-        return self._origin_data.get("ph") == "X"

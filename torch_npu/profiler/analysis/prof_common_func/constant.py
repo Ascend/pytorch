@@ -135,6 +135,8 @@ class Constant(object):
     STACK_VIEW_PARSER = "export_stack"
     MEMORY_PREPARE = "memory_prepare"
 
+    TRACE_VIEW_TEMP = "trace_view_temp.json"
+
 
 def print_info_msg(message: str):
     time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")

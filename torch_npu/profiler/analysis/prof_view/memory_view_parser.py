@@ -1,16 +1,12 @@
 from warnings import warn
-from math import ceil
 import os
 
 from .base_parser import BaseParser
 from .memory_prepare_parser import MemoryPrepareParser
-from ..prof_common_func.file_tag import FileTag
 from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.constant import convert_ns2us_str
-from ..prof_common_func.constant import convert_ns2us_float
-from ..prof_bean.memory_use_bean import MemoryUseBean
 from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_bean.npu_mem_bean import NpuMemoryBean
 from ..prof_bean.ge_op_memory_bean import GeOpMemoryBean

@@ -60,13 +60,15 @@ class FwkCANNRelationParser:
             self._update_step_node_info(step_node_list, acl_start_time_list)
         step_range = []
         for step_node in step_node_list:
-            kernel_list = []
-            for corr_id in step_node.corr_id_total:
-                kernel_list.extend(kernel_dict.get(corr_id, []))
+            min_corr_id = min(step_node.corr_id_total) if step_node.corr_id_total else None
+            max_corr_id = max(step_node.corr_id_total) if step_node.corr_id_total else None
+            min_kernel_list = kernel_dict.get(min_corr_id, [])
+            max_kernel_list = kernel_dict.get(max_corr_id, [])
             step_id = step_node.event.name.split("#")[-1]
-            device_start_ts = min([kernel.ts for kernel in kernel_list]) if kernel_list else step_node.start_time
+            device_start_ts = min(
+                [kernel.ts for kernel in min_kernel_list]) if min_kernel_list else step_node.start_time
             device_end_ts = max(
-                [kernel.ts + convert_us2ns(kernel.dur) for kernel in kernel_list]) if kernel_list else Constant.INVALID_VALUE
+                [kernel.end_ns for kernel in max_kernel_list]) if max_kernel_list else Constant.INVALID_VALUE
             step_range.append(
                 {Constant.STEP_ID: step_id, Constant.START_TS: device_start_ts,
                  Constant.END_TS: max(device_end_ts, step_node.end_time), Constant.COMM_OPS: {}})

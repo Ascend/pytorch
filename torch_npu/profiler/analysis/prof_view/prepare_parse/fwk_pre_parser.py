@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from ...prof_common_func.constant import print_error_msg, Constant
+from ...prof_common_func.file_manager import FileManager
 from ...prof_parse.fwk_file_parser import FwkFileParser
 from ...prof_view.base_parser import BaseParser
 
@@ -26,10 +29,12 @@ class TracePreParser(BaseParser):
     def run(self, deps_data: dict):
         try:
             fwk_trace_data = FwkFileParser(self._profiler_path).get_fwk_trace_data()
+            trace_file_path = os.path.join(self._output_path, Constant.TRACE_VIEW_TEMP) if os.path.isdir(
+                self._output_path) else self._output_path
+            FileManager.create_prepare_trace_json_by_path(trace_file_path, fwk_trace_data)
         except Exception:
-            print_error_msg("Failed to preprocess framework trace data.")
-            return Constant.FAIL, []
-        return Constant.SUCCESS, fwk_trace_data
+            return Constant.FAIL, None
+        return Constant.SUCCESS, None
 
 
 class TreeBuildParser(BaseParser):
