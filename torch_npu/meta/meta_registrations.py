@@ -117,6 +117,19 @@ def _npu_dropout_meta(self, p):
     return (torch.empty_like(self, dtype=self.dtype), torch.empty(mask, dtype=torch.uint8, device='meta'))
 
 
+@impl(m, "npu_scatter_list_")
+def scatter_list__meta(self, indices, updates, mask, reduce='update', axis=-2):
+    return self
+
+
+@impl(m, "npu_scatter_list")
+def scatter_list_meta(self, indices, updates, mask, reduce='update', axis=-2):
+    var_list = []
+    for item in self:
+        var_list.append(torch.empty_like(item))
+    return var_list
+
+
 @impl(m, "npu_dropout_backward")
 def npu_dropout_backward_meta(grad_output, mask, p):
     return torch.empty_like(grad_output, dtype=grad_output.dtype)
