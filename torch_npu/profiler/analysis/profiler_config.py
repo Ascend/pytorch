@@ -140,7 +140,7 @@ class ProfilerConfig:
             return False
 
     def get_local_time(self, monotonic_time: int):
-        return monotonic_time + self._localtime_diff
+        return int(monotonic_time + self._localtime_diff)
 
     def _get_l2_cache_bean(self):
         return [(CANNDataEnum.L2_CACHE, L2CacheBean)] if self._l2_cache else []

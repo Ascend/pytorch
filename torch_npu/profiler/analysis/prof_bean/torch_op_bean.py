@@ -31,32 +31,57 @@ class TorchOpBean:
         self._origin_data = data
         self._constant_data = struct.unpack(self.CONSTANT_STRUCT, data.get(Constant.CONSTANT_BYTES))
         self._kernel_list = []
+        self._pid = None
+        self._tid = None
+        self._name = None
+        self._start_ns = None
+        self._end_ns = None
+        self._args = None
+        self.init()
 
     @property
     def pid(self) -> int:
-        return int(self._constant_data[TorchOpEnum.PROCESS_ID.value])
+        return self._pid
 
     @property
     def tid(self) -> int:
-        return int(self._constant_data[TorchOpEnum.START_THREAD_ID.value])
+        return self._tid
 
     @property
     def name(self) -> str:
-        return str(self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.OP_NAME), ""))
+        return self._name
 
     @property
     def ts(self) -> int:
-        startns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value])
-        return ProfilerConfig().get_local_time(startns)
+        return self._start_ns
 
     @property
     def dur(self) -> int:
-        startns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value])
-        endns = ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.END_NS.value])
-        return int(endns) - int(startns)
+        return int(self._end_ns) - int(self._start_ns)
 
     @property
-    def args(self) -> dict:
+    def end_ns(self):
+        return self._end_ns
+
+    @property
+    def args(self):
+        return self._args
+
+    @property
+    def is_torch_op(self):
+        return True
+
+    def init(self):
+        self._pid = int(self._constant_data[TorchOpEnum.PROCESS_ID.value])
+        self._tid = int(self._constant_data[TorchOpEnum.START_THREAD_ID.value])
+        self._name = str(self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.OP_NAME), ""))
+        self._start_ns = ProfilerConfig().get_local_time(
+            ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value]))
+        self._end_ns = ProfilerConfig().get_local_time(
+            ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.END_NS.value]))
+        self._args = self.get_args()
+
+    def get_args(self) -> dict:
         args = {
             Constant.SEQUENCE_UNMBER: int(self._constant_data[TorchOpEnum.SEQUENCE_UNMBER.value]),
             Constant.FORWORD_THREAD_ID: int(

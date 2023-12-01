@@ -19,7 +19,7 @@ from ..prof_common_func.task_manager import ConcurrentMode
 
 class ParserDepsConfig:
     COMMON_CONFIG = {
-        Constant.TRACE_PRE_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD, Constant.DEPS: []},
+        Constant.TRACE_PRE_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.TREE_BUILD_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD, Constant.DEPS: []},
         Constant.CANN_EXPORT_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.CANN_TIMELINE_PARSER: {Constant.MODE: ConcurrentMode.NON_BLOCKING | ConcurrentMode.PTHREAD,
