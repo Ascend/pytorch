@@ -25,7 +25,7 @@ from .analysis.prof_common_func.path_manager import ProfilerPathManager
 
 
 @Singleton
-class ProfManager:
+class ProfPathCreator:
 
     def __init__(self):
         self._prof_path = None
