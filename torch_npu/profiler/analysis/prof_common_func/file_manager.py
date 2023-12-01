@@ -100,3 +100,30 @@ class FileManager:
                 file.write(data)
         except Exception as err:
             raise RuntimeError(f"Can't create file: {output_path}") from err
+
+    @classmethod
+    def append_trace_json_by_path(cls, output_path: str, data: list, new_name: str) -> None:
+        try:
+            with open(output_path, "a") as file:
+                data = json.dumps(data, ensure_ascii=False)
+                data = f",{data[1:]}"
+                file.write(data)
+        except Exception as err:
+            raise RuntimeError(f"Can't create file: {output_path}") from err
+        if output_path != new_name:
+            os.rename(output_path, new_name)
+
+    @classmethod
+    def create_prepare_trace_json_by_path(cls, output_path: str, data: list) -> None:
+        if not data:
+            return
+        dir_name = os.path.dirname(output_path)
+        PathManager.make_dir_safety(dir_name)
+        PathManager.create_file_safety(output_path)
+        PathManager.check_directory_path_writeable(output_path)
+        try:
+            with open(output_path, "w") as file:
+                data = json.dumps(data, ensure_ascii=False)
+                file.write(data[:-1])
+        except Exception as err:
+            raise RuntimeError(f"Can't create file: {output_path}") from err

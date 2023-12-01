@@ -96,6 +96,10 @@ class OpMarkBean:
         return self.is_enqueue_start or self.is_enqueue_end
 
     @property
+    def is_torch_op(self) -> bool:
+        return False
+
+    @property
     def ts(self) -> int:
         return self._ts
 

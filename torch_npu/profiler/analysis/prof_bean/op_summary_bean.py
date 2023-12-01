@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from ..prof_common_func.csv_headers import CsvHeaders
-from ..prof_common_func.constant import convert_us2ns
 
 
 class OpSummaryBean:
@@ -32,11 +31,9 @@ class OpSummaryBean:
         return row
 
     @property
-    def ts(self) -> int:
-        # Time unit is ns
-        ts_us = self._data.get(CsvHeaders.TASK_START_TIME, 0)
-        ts_ns = convert_us2ns(ts_us)
-        return ts_ns
+    def ts(self) -> str:
+        # Time us str
+        return self._data.get(CsvHeaders.TASK_START_TIME, "0")
 
     @property
     def all_headers(self) -> list:

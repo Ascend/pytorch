@@ -44,12 +44,12 @@ class CANNDataEnum(Enum):
 
 
 class CANNFileParser:
-    ACL_TO_NPU = "acl_to_npu"
     START_FLOW = "s"
     END_FLOW = "f"
     SUMMARY = "summary"
     TIMELINE = "timeline"
     ANALYZE = "analyze"
+    HOST_TO_DEVICE = "HostToDevice"
     CANN_DATA_MATCH = {
         CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d+_\d+\.csv", r"^op_summary_\d+_\d+_\d+\.csv",
                                   r"^op_summary_\d+_\d+_\d+_\d+\.csv"],
@@ -112,21 +112,33 @@ class CANNFileParser:
 
     @classmethod
     def combine_acl_to_npu(cls, timeline_data: list) -> dict:
-        flow_start_dict, flow_end_dict = {}, {}
+        flow_dict, event_dict = {}, {}
         for data in timeline_data:
-            event_bean = EventBean(data)
-            if event_bean.is_flow_start_event():
-                flow_start_dict[event_bean.id] = event_bean.ts
-            elif event_bean.is_flow_end_event():
-                flow_end_dict[event_bean.unique_id] = event_bean.id
+            if data.get("cat") == cls.HOST_TO_DEVICE and data.get("ph") == cls.START_FLOW:
+                flow_dict.setdefault(data.get("id", 0), {}).setdefault("start", data)
+                continue
+            if data.get("cat") == cls.HOST_TO_DEVICE and data.get("ph") == cls.END_FLOW:
+                flow_dict.setdefault(data.get("id", 0), {}).setdefault("end", data)
+                continue
+            if data.get("ph") == "X":
+                pid = data.get("pid")
+                tid = data.get("tid")
+                ts = data.get("ts")
+                unique_id = f"{pid}-{tid}-{ts}"
+                event_dict[unique_id] = data
         acl_to_npu_dict = {}
-        for data in timeline_data:
-            event_bean = EventBean(data)
-            if event_bean.is_x_event():
-                corr_id = flow_end_dict.get(event_bean.unique_id)
-                acl_ts = flow_start_dict.get(corr_id)
-                if corr_id is not None and acl_ts is not None:
-                    acl_to_npu_dict.setdefault(acl_ts, []).append(event_bean)
+        for flow in flow_dict.values():
+            start_event = flow.get("start")
+            end_event = flow.get("end")
+            if start_event and end_event:
+                pid = end_event.get("pid")
+                tid = end_event.get("tid")
+                ts = end_event.get("ts")
+                unique_id = f"{pid}-{tid}-{ts}"
+                kernel_event = event_dict.get(unique_id)
+                if not kernel_event:
+                    continue
+                acl_to_npu_dict.setdefault(convert_us2ns(start_event.get("ts", 0)), []).append(EventBean(kernel_event))
         return acl_to_npu_dict
 
     def get_timeline_all_data(self) -> list:

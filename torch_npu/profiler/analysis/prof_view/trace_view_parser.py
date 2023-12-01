@@ -34,6 +34,8 @@ class TraceViewParser(BaseParser):
         super().__init__(name, param_dict)
         self._trace_file_path = os.path.join(self._output_path, self.TRACE_VIEW) if os.path.isdir(
             self._output_path) else self._output_path
+        self._temp_trace_file_path = os.path.join(self._output_path, Constant.TRACE_VIEW_TEMP) if os.path.isdir(
+            self._output_path) else self._output_path
         self._trace_data = []
         self._torch_op_node = []
         self._root_node = None
@@ -68,7 +70,6 @@ class TraceViewParser(BaseParser):
             if torch_op_node:
                 self._root_node = torch_op_node[0]
                 self._torch_op_node = torch_op_node[1:]
-            self._trace_data = deps_data.get(Constant.TRACE_PRE_PARSER, [])
             self.generate_view()
         except Exception:
             print_error_msg("Failed to generate trace_view.json.")
@@ -84,7 +85,10 @@ class TraceViewParser(BaseParser):
                 self._prune_trace_by_level(msprof_timeline_data))
             if self._torch_op_node:
                 self._trace_data.extend(self._get_flow_event(msprof_timeline_data))
-        FileManager.create_json_file_by_path(self._trace_file_path, self._trace_data)
+        if os.path.exists(self._temp_trace_file_path):
+            FileManager.append_trace_json_by_path(self._temp_trace_file_path, self._trace_data, self._trace_file_path)
+        else:
+            FileManager.create_json_file_by_path(self._trace_file_path, self._trace_data)
 
     def _get_flow_event(self, msprof_timeline_data: list) -> list:
         flow_event_list = []
