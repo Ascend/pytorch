@@ -125,3 +125,10 @@ def npu_dropout_backward_meta(grad_output, mask, p):
 @impl(m, "npu_masked_softmax_with_rel_pos_bias")
 def npu_masked_softmax_with_rel_pos_bias_meta(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
     return torch.empty_like(x, dtype=x.dtype)
+
+
+@impl(m, "npu_ffn")
+def npu_ffn_meta(x, weight1, weight2, activation, expert_tokens=None, bias1=None, bias2=None, inner_precise=0):
+    dim1 = x.size(0)
+    dim2 = weight2.size(1)
+    return x.new_empty((dim1, dim2))
