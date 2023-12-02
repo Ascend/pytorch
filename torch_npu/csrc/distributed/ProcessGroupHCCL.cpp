@@ -1733,12 +1733,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     if (getRank() == opts.rootRank) {
         inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
     } else {
-        std::vector<at::Tensor> empty;
-        for (int i = 0; i < size_; i++) {
-            empty.push_back(at::empty_like(outputTensors[0]));
-        }
-        inputTensors.push_back(empty);
-        inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+        inputFlattened.push_back(at::empty(0).to(outputTensors[0]));
     }
 
     return collective(
