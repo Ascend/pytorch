@@ -142,10 +142,27 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     c10_npu::NPUCachingAllocator::init();
     NPU_LOGD("Npu caching allocator initialize successfully");
 
+    NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count_));
+    for (int i = 0; i < device_count_; i++) {
+        NPU_CHECK_ERROR(aclrtSetDevice(i));
+        uint32_t enable_flag_value = 0;
+        for (int j = 0; j < device_count_; j++) {
+            if (i == j) {
+                continue;
+            }
+            int32_t can_access_peer = -1;
+            NPU_CHECK_ERROR(aclrtDeviceCanAccessPeer(&can_access_peer, i, j));
+            if (can_access_peer) {
+                NPU_CHECK_ERROR(aclrtDeviceEnablePeerAccess(j, enable_flag_value));
+            }
+        }
+    }
+
     auto ret = aclrtGetDevice(&device_id_);
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
         NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+        used_devices.insert(device_id_);
     } else {
         NPU_LOGE("Npu device %d has been set before global init.", device_id_);
     }
@@ -187,14 +204,16 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-    NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
+    used_devices.insert(pre_device);
     NPU_CHECK_ERROR(aclrtSetDevice(device));
+    used_devices.insert(device);
     device_id_ = device;
     return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
     NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+    used_devices.insert(device_id_);
     return INIT_SUCC;
 }
 
@@ -213,11 +232,13 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
     }
 
     this->RegisterReleaseFn([=]() ->void {
-          c10_npu::NPUEventManager::GetInstance().ClearEvent();
-          auto stream = c10_npu::getCurrentNPUStream();
-          NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
-          NPU_CHECK_WARN(aclrtResetDevice(device_id_));
-          NPU_CHECK_WARN(aclFinalize());
+        c10_npu::NPUEventManager::GetInstance().ClearEvent();
+        auto stream = c10_npu::getCurrentNPUStream();
+        NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+        for (const auto i : used_devices) {
+            NPU_CHECK_WARN(aclrtResetDevice(i));
+        }
+        NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;
