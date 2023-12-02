@@ -1,3 +1,4 @@
+#pragma GCC visibility push(default)
 #include <torch/csrc/jit/serialization/pickler.h>
 #include "torch_npu/csrc/core/npu/impl/NPUGuardImpl.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
@@ -25,3 +26,4 @@ REGISTER_PRIVATEUSE1_BACKEND(npu)
 } // namespace impl
 
 } // namespace c10_npu
+#pragma GCC visibility pop
