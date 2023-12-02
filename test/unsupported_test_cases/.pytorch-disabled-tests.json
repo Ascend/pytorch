@@ -1,4 +1,9 @@
 {
+  "test_cudnn_rnn (__main__.FakeTensorTest)": ["", [""]],
+  "test_cudnn_rnn_with_fallback (__main__.FakeTensorTest)": ["", [""]],
+  "test_cudnn_rnn_without_fallback (__main__.FakeTensorTest )": ["", [""]],
+  "test_lstm (__main__.FakeTensorTest)": ["", [""]],
+  "test_flash_attention (__main__.FakeTensorOperatorInvariants)": ["", [""]],
   "test_check_inplace_nn_CELU_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
   "test_check_inplace_nn_ELU_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
   "test_check_inplace_nn_Hardswish_npu_float64 (__main__.TestModulePRIVATEUSE1)": ["", [""]],
