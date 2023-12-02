@@ -15,9 +15,9 @@ class TestLstmBackward(TestCase):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
             [[np.float16, (16, 32, 64)], 64, 32, True],
-            [[np.float16, (5, 32, 64)], 64, 32, False],
+            [[np.float16, (5, 32, 64)], 64, 32, True],
             [[np.float32, (16, 32, 64)], 64, 32, True],
-            [[np.float32, (5, 32, 64)], 64, 32, False],
+            [[np.float32, (5, 32, 64)], 64, 32, True],
         ]
 
         for item in shape_format:
@@ -57,9 +57,9 @@ class TestLstmBackward(TestCase):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
             [[np.float16, (16, 32, 64)], 64, 32, True],
-            [[np.float16, (5, 32, 64)], 64, 32, False],
+            [[np.float16, (5, 32, 64)], 64, 32, True],
             [[np.float32, (16, 32, 64)], 64, 32, True],
-            [[np.float32, (5, 32, 64)], 64, 32, False],
+            [[np.float32, (5, 32, 64)], 64, 32, True],
         ]
 
         for item in shape_format:
@@ -97,8 +97,8 @@ class TestLstmBackward(TestCase):
 
     def test_lstm_backward_output_shape(self):
         cpu_lstm = torch.nn.LSTM(input_size=512, hidden_size=512, num_layers=2, bias=True,
-                                 batch_first=True, dropout=0.1, bidirectional=False)
-        cpu_lstm.training = False
+                                 batch_first=True, bidirectional=False)
+        cpu_lstm.training = True
         npu_lstm = copy.deepcopy(cpu_lstm).npu()
         shape_format = [
             [np.float16, 2, (8, 1, 512)],  # the operator uses fp16  for calculation.
