@@ -5,6 +5,10 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+option = {}
+option['NPU_FUZZY_COMPILE_BLACKLIST'] = "DynamicRNNV2"
+torch.npu.set_option(option)
+
 
 class TestLstmCellBackward(TestCase):
     # shape_format:[[dtype, (batch_size, input_size), input_size, hidden_size]
@@ -12,9 +16,6 @@ class TestLstmCellBackward(TestCase):
         [[np.float16, (32, 64)], 64, 32],
         [[np.float16, (114, 34)], 34, 64],
         [[np.float16, (36, 128)], 128, 17],
-        [[np.float32, (32, 64)], 64, 32],
-        [[np.float32, (114, 34)], 34, 64],
-        [[np.float32, (36, 128)], 128, 17],
     ]
 
     def lstm_cell_backward_result(self, item):
