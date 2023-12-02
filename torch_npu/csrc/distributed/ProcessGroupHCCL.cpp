@@ -8,6 +8,7 @@
 #include <c10/util/irange.h>
 #include <c10d/ParamCommsUtils.hpp>
 #include <c10d/TraceUtils.h>
+#include <c10d/Utils.hpp>
 
 #include "op_plugin/OpInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
@@ -1727,18 +1728,60 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     std::vector<std::vector<at::Tensor>>& inputTensors,
     const c10d::ScatterOptions& opts)
 {
-    //  throw std::runtime_error("ProcessGroupHCCL does not support scatter");
-    //  use reduce_scatter to implement scatter temporarily;
-    if (inputTensors.size() == 0) {
-        std::vector<at::Tensor> zeros;
+    check_npu_tensors_different_devices(outputTensors);
+    std::vector<at::Tensor> inputFlattened;
+    if (getRank() == opts.rootRank) {
+        inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
+    } else {
+        std::vector<at::Tensor> empty;
         for (int i = 0; i < size_; i++) {
-            zeros.push_back(at::zeros_like(outputTensors[0]));
+            empty.push_back(at::empty_like(outputTensors[0]));
         }
-        inputTensors.push_back(zeros);
+        inputTensors.push_back(empty);
+        inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);
     }
-    c10d::ReduceScatterOptions reduceScatterOps = c10d::ReduceScatterOptions();
-    reduceScatterOps.reduceOp = c10d::ReduceOp::SUM;
-    return reduce_scatter(outputTensors, inputTensors, reduceScatterOps);
+
+    return collective(
+        inputFlattened,
+        outputTensors,
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+            RECORD_FUNCTION("HcclScatter", std::vector<c10::IValue>({input}));
+            const auto root = opts.rootRank;
+            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            auto inputDataPtr = input.data_ptr();
+            auto outputDataPtr = output.data_ptr();
+            auto numel = getNumelForHCCL(output);
+            auto hcclType = getHcclDataType(input.scalar_type());
+            auto hccl_call = [inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream]() -> int {
+                return hcclScatter(inputDataPtr, outputDataPtr, numel, hcclType, root, comm, stream.stream(false));
+            };
+            at_npu::native::OpCommand cmd;
+            cmd.Name("HcclScatter");
+            cmd.SetCustomHandler(hccl_call);
+            cmd.Run();
+
+            return HCCL_SUCCESS;
+        },
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
+            work->lazyDestory(inputFlattened);
+            // Copy the input tensors to the flattened inputs.
+            for (const auto i : c10::irange(inputTensors.size())) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[i]);
+                for (const auto j : c10::irange(inputTensors[0].size())) {
+                    // See [Sync Streams].
+                    c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+
+                    if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+                        work->recorded_inputs_.push_back(
+                            std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                    }
+
+                    inputFlattened[i][j].copy_(inputTensors[i][j], true);
+                }
+            }
+        },
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        c10d::OpType::SCATTER);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& tensors, int dstRank, int tag)

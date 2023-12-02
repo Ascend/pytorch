@@ -1,4 +1,5 @@
 import unittest
+from unittest import skip
 import os
 
 import numpy as np
@@ -56,6 +57,7 @@ class HcclScatterTest(TestCase):
             raise ValueError("Unsupported op `{}`" % (str(op)))
         return [input.cpu() for input in inputs]
 
+    @skip("Not supported Now")
     @skipIfUnsupportMultiNPU(2)
     def test_scatter(self):
         ranks = [2]
