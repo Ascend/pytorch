@@ -15,12 +15,12 @@ import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
-@skipIfUnsupportMultiNPU(4)
 class UtilTest(DTensorTestBase):
     @property
     def world_size(self):
         return 8
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_compute_local_shape_2d_uneven(self):
         # mesh: 4 * 2
@@ -51,6 +51,7 @@ class UtilTest(DTensorTestBase):
         else:
             self.assertEqual(local_size3[1], 3)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_compute_local_shape_and_global_offset_1D(self):
         one_d_placements = [[Shard(0)], [Replicate()]]
@@ -76,6 +77,7 @@ class UtilTest(DTensorTestBase):
                 global_tensor[dim0_start:dim0_end],
             )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_compute_local_shape_and_global_offset_2D(self):
         two_d_placements_options = [Shard(0), Shard(1), Replicate()]

@@ -69,7 +69,6 @@ def deepcopy_convert_from_dtensor(val: Any) -> Any:
     return pytree.tree_map(f, [val])[0]
 
 
-@skipIfUnsupportMultiNPU(4)
 class DistElementwiseOpsTest(DTensorTestBase):
     def _compare_pairwise_ops(
         self,
@@ -134,6 +133,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
             kwargs=kwargs,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_partial_add(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -142,6 +142,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
         d_3 = d_1 + d_2
         self.assertEqual(d_3._spec.placements[0].is_partial(), True)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_activations(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -182,6 +183,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
             op=torch.sigmoid,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @skip("testing RNG based ops is broken")
     @with_comms
     def test_dropout(self):
@@ -209,6 +211,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
             training=True,
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_dropout_errors(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -220,6 +223,7 @@ class DistElementwiseOpsTest(DTensorTestBase):
                 op=torch.nn.functional.dropout,
             )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_mul_out(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))

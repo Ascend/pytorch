@@ -31,7 +31,6 @@ class MyModel(nn.Module):
             m.reset_parameters()
 
 
-@skipIfUnsupportMultiNPU(4)
 class DTensorAPITest(DTensorTestBase):
     @property
     def world_size(self) -> int:
@@ -40,6 +39,7 @@ class DTensorAPITest(DTensorTestBase):
         return 4
 
     @with_comms
+    @skipIfUnsupportMultiNPU(4)
     def test_distribute_tensor(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         shard_spec = [Shard(0)]
@@ -57,6 +57,7 @@ class DTensorAPITest(DTensorTestBase):
                 self.assertTrue(dist_tensor.is_leaf)
 
     @with_comms
+    @skipIfUnsupportMultiNPU(4)
     def test_distribute_tensor_uneven_sharding(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         input_sizes_and_shard_dims = [
@@ -79,6 +80,7 @@ class DTensorAPITest(DTensorTestBase):
             self.assertEqual(local_tensor, splitted_tensor_list[self.rank])
 
     @with_comms
+    @skipIfUnsupportMultiNPU(4)
     def test_distribute_module(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
         # fully shard all linear modules on dim 0
@@ -142,6 +144,7 @@ class DTensorAPITest(DTensorTestBase):
                 self.assertEqual(param.placements, replica_spec)
 
     @with_comms
+    @skipIfUnsupportMultiNPU(4)
     def test_distribute_module_input_fn_output_fn(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
 
@@ -186,6 +189,7 @@ class DTensorAPITest(DTensorTestBase):
         self.assertTrue(isinstance(param_grad.placements[0], Replicate))
 
     @with_comms
+    @skipIfUnsupportMultiNPU(4)
     def test_distribute_module_meta(self):
         # If  the model is too big, the user may first the create entire model on the meta device and then initialize
         # it on the device in the partition function.

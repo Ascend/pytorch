@@ -13,11 +13,11 @@ from torch.distributed._tensor.random import is_rng_supported_mesh, manual_seed
 
 from torch.distributed.distributed_c10d import broadcast_object_list
 
-from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import DTensorTestBase
 
 import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
+from torch_npu.testing.testcase import run_tests
 
 
 class DistTensorRandomInitTest(DTensorTestBase):
@@ -145,6 +145,7 @@ class DistTensorRandomOpTest(DTensorTestBase):
                     local_tensor[other_slice, :],
                 )
 
+    @skip("OffsetBaseRNGTracker needs to support cuda-like device")
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_deterministic_uniform_2d(self):

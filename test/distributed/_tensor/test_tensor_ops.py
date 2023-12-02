@@ -11,8 +11,8 @@ import torch_npu
 from torch_npu.testing.common_distributed import with_comms, skipIfUnsupportMultiNPU
 
 
-@skipIfUnsupportMultiNPU(4)
 class DistTensorOpsTest(DTensorTestBase):
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_aten_contiguous(self):
         # this op not covered by dtensor_ops
@@ -23,6 +23,7 @@ class DistTensorOpsTest(DTensorTestBase):
             torch.randn(16, 32),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_detach(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -33,6 +34,7 @@ class DistTensorOpsTest(DTensorTestBase):
         detached_mat = mat.detach()
         self.assertFalse(detached_mat is mat)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_clone(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -44,6 +46,7 @@ class DistTensorOpsTest(DTensorTestBase):
             self.assertFalse(cloned_mat is mat)
             self.assertEqual(cloned_mat.to_local(), mat.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_inplace_op(self):
         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -71,6 +74,7 @@ class DistTensorOpsTest(DTensorTestBase):
         self.assertTrue(res is dt_to_inplace_add)
         self.assertTrue(res.placements == tuple(shard_spec))
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_op_out_variant(self):
         mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -92,6 +96,7 @@ class DistTensorOpsTest(DTensorTestBase):
         self.assertTrue(res.placements == tuple(replica_spec))
         self.assertEqual(replicate_out.to_local(), expected_dt.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_empty_like(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -103,6 +108,7 @@ class DistTensorOpsTest(DTensorTestBase):
         # empty is not deterministic, so we only check that the shard propagation worked
         self.assertEqual((4, 8), empty_like_dt.to_local().shape)
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_fill_inplace(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -115,6 +121,7 @@ class DistTensorOpsTest(DTensorTestBase):
         self.assertEqual(full_expected, full_like_dt.to_local())
         self.assertEqual(full_expected, dist_tensor.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_full_like(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -126,6 +133,7 @@ class DistTensorOpsTest(DTensorTestBase):
         full_expected = torch.full((4, 8), 42.0)
         self.assertEqual(full_expected, full_like_dt.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_ones_like(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -137,6 +145,7 @@ class DistTensorOpsTest(DTensorTestBase):
         ones_expected = torch.ones(4, 8)
         self.assertEqual(ones_expected, ones_like_dt.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_ones_like_partial_sum(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -153,6 +162,7 @@ class DistTensorOpsTest(DTensorTestBase):
             ones_like_dt.redistribute(device_mesh, [Replicate()]).to_local(),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_fill_inplace_partial_sum(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -162,13 +172,13 @@ class DistTensorOpsTest(DTensorTestBase):
         dist_tensor = DTensor.from_local(input_tensor, device_mesh, shard_spec)
         self.assertEqual(dist_tensor.shape, (4, 8))
 
-        torch.fill_(dist_tensor, 42)
-        fill_expected = torch.full(dist_tensor.shape, 42, dtype=input_tensor.dtype)
-        self.assertEqual(
-            fill_expected,
-            dist_tensor.redistribute(device_mesh, [Replicate()]).to_local(),
+        torch.fill_(dist_tensor, 8)
+        fill_expected = torch.full(
+            dist_tensor.shape, 8 * self.world_size, dtype=input_tensor.dtype
         )
+        self.assertEqual(fill_expected, dist_tensor.full_tensor())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_zeros_like_partial_sum(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -185,6 +195,7 @@ class DistTensorOpsTest(DTensorTestBase):
             zeros_like_dt.redistribute(device_mesh, [Replicate()]).to_local(),
         )
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_zero_inplace(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -197,6 +208,7 @@ class DistTensorOpsTest(DTensorTestBase):
         self.assertEqual(zeros_expected, zeros_like_dt.to_local())
         self.assertEqual(zeros_expected, dist_tensor.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_zeros_like(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
@@ -208,6 +220,7 @@ class DistTensorOpsTest(DTensorTestBase):
         zeros_expected = torch.zeros(4, 8)
         self.assertEqual(zeros_expected, zeros_like_dt.to_local())
 
+    @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_equal(self):
         device_mesh = DeviceMesh(self.device_type, list(range(self.world_size)))
