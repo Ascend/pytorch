@@ -42,7 +42,7 @@ at::TensorBase empty_cpu(
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(device.type() == at::DeviceType::CPU);
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(layout_or_default(layout_opt) == at::Layout::Strided);
 
-  auto pin_memory = pinned_memory_or_default(pin_memory_opt);
+  auto pin_memory = c10::pinned_memory_or_default(pin_memory_opt);
   auto dtype = dtype_or_default(dtype_opt);
   return empty_cpu(size, dtype, pin_memory, memory_format_opt);
 }
@@ -51,7 +51,7 @@ at::TensorBase empty_cpu(
     c10::IntArrayRef size, const at::TensorOptions &options) {
   return empty_cpu(
       size,
-      optTypeMetaToScalarType(options.dtype_opt()),
+      c10::optTypeMetaToScalarType(options.dtype_opt()),
       options.layout_opt(),
       options.device_opt(),
       options.pinned_memory_opt(),
@@ -69,7 +69,7 @@ at::TensorBase empty_strided_cpu(
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(device.type() == at::DeviceType::CPU);
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(layout_or_default(layout_opt) == at::Layout::Strided);
 
-  auto pin_memory = pinned_memory_or_default(pin_memory_opt);
+  auto pin_memory = c10::pinned_memory_or_default(pin_memory_opt);
   auto dtype = dtype_or_default(dtype_opt);
   return empty_strided_cpu(size, stride, dtype, pin_memory);
 }
@@ -81,7 +81,7 @@ at::TensorBase empty_strided_cpu(
   return empty_strided_cpu(
       size,
       stride,
-      optTypeMetaToScalarType(options.dtype_opt()),
+      c10::optTypeMetaToScalarType(options.dtype_opt()),
       options.layout_opt(),
       options.device_opt(),
       options.pinned_memory_opt());

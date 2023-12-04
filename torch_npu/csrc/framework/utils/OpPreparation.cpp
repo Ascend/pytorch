@@ -255,7 +255,7 @@ namespace at_npu
           "Expected NPU tensor, please check whether the input tensor device is correct.");
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
       return NPUNativeFunctions::unsafe_empty_with_format(
-          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          sizes, c10::optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
     }
 
@@ -263,7 +263,7 @@ namespace at_npu
     {
       auto format = InferFormat::GuessBaseFormat(sizes);
       return NPUNativeFunctions::empty_with_format(
-          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          sizes, c10::optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), format);
     }
 
@@ -427,7 +427,7 @@ namespace at_npu
           "Expected NPU tensor, please check whether the input tensor device is correct.");
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
       return NPUNativeFunctions::unsafe_empty_with_format(
-          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          sizes, c10::optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
     }
 
@@ -435,7 +435,7 @@ namespace at_npu
     {
       auto format = InferFormat::GuessBaseFormat(sizes);
       return NPUNativeFunctions::empty_with_format(
-          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          sizes, c10::optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), format);
     }
 
