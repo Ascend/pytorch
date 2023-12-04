@@ -309,7 +309,7 @@ struct ExpandableSegment {
     // This allows for some cases where we have to unmap pages earlier in the
     // segment to put them at the end.
     max_handles_ = numSegments(device_total + device_total / 8);
-    NPU_CHECK_ERROR(aclrtReserveMemAddress(
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtReserveMemAddress(
         &ptr_, segment_size_ * max_handles_, 0, NULL, 1));
   }
   // begin must be aligned to segment_size_.
@@ -337,12 +337,12 @@ struct ExpandableSegment {
       prop.location.id = device_;
       prop.reserve = 0;
       auto status =
-          aclrtMallocPhysical(&handle, segment_size_, &prop, 0);
+          c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
       if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
         for (auto j : c10::irange(begin, i)) {
           auto h = handles_.at(j).value();
           handles_.at(j) = c10::nullopt;
-          NPU_CHECK_ERROR(aclrtFreePhysical(h));
+          NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
         }
         trimHandles();
         return rangeFromHandles(begin, begin);
@@ -351,7 +351,7 @@ struct ExpandableSegment {
       handles_.at(i) = handle;
     }
     for (auto i : c10::irange(begin, end)) {
-      NPU_CHECK_ERROR(aclrtMapMem(
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem(
           ptr_ + i * segment_size_,
           segment_size_,
           0,
@@ -385,7 +385,7 @@ struct ExpandableSegment {
   ~ExpandableSegment() {
     forEachAllocatedRange(
         [&](size_t begin, size_t end) { unmapHandles(begin, end); });
-    NPU_CHECK_ERROR(aclrtReleaseMemAddress(ptr_));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr_));
   }
 
  private:
@@ -401,8 +401,8 @@ struct ExpandableSegment {
     for (auto i : c10::irange(begin, end)) {
       aclrtDrvMemHandle h = handles_.at(i).value();
       handles_.at(i) = c10::nullopt;
-      NPU_CHECK_ERROR(aclrtUnmapMem(ptr_ + segment_size_ * i));
-      NPU_CHECK_ERROR(aclrtFreePhysical(h));
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem(ptr_ + segment_size_ * i));
+      NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
     }
     trimHandles();
   }
@@ -697,9 +697,9 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
         "Expected a single True/False argument for expandable_segments");
     m_expandable_segments = (config[i] == "True");
     void* ptr = nullptr;
-    auto status = aclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
+    auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
     NPU_CHECK_SUPPORTED_OR_ERROR(status);
-    NPU_CHECK_ERROR(aclrtReleaseMemAddress(ptr));
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
   } else {
     TORCH_CHECK(
         false, "Error, expecting expandable_segments value");
