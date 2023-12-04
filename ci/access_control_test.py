@@ -196,7 +196,7 @@ class TestMgr():
         if rank > world_size:
             raise Exception(f'rank {rank} is greater than world_size {world_size}')
         all_files = [str(i) for i in (BASE_DIR / 'test').rglob('test_*.py')
-                      if 'distributed' not in str(i) and 'test_ops.py' not in str(i)]
+                      if 'distributed' not in str(i)]
         begin = (rank - 1) * len(all_files) // world_size
         end = rank * len(all_files) // world_size
         self.test_files['ut_files'] = all_files[begin:end]
