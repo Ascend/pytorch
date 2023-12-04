@@ -10,7 +10,8 @@ class IntegrateParser(BaseViewParser):
     """
     CSV_FILENAME_MAP = {
         CANNDataEnum.AI_CPU: "data_preprocess.csv",
-        CANNDataEnum.L2_CACHE: "l2_cache.csv"
+        CANNDataEnum.L2_CACHE: "l2_cache.csv",
+        CANNDataEnum.NPU_MODULE_MEM: "npu_module_mem.csv"
     }
 
     def __init__(self, profiler_path: str):
