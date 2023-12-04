@@ -138,5 +138,17 @@ aclError AclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatu
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id);
 
+aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, void *expectPtr, uint64_t flags);
+
+aclError AclrtReleaseMemAddress(void *virPtr);
+
+aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrtPhysicalMemProp *prop,
+    uint64_t flags);
+
+aclError AclrtFreePhysical(aclrtDrvMemHandle handle);
+
+aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags);
+
+aclError AclrtUnmapMem(void *virPtr);
 } // namespace acl
 } // namespace c10_npu
