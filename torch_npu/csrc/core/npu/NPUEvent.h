@@ -43,7 +43,7 @@ struct NPUEvent {
   ~NPUEvent() {
     try {
       if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
-        NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
+        NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
         NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
     }

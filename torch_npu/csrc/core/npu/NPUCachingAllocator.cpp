@@ -2187,11 +2187,5 @@ void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
   return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
 }
 
-void NpuAllocatorEraseRecordedEvent(aclrtEvent event) {
-  int device = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&device));
-  return caching_allocator.device_allocator[device]->eraseRecordedEvent(event);
-}
-
 } // namespace NPUCachingAllocator
 } // namespace c10_npu

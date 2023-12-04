@@ -360,7 +360,6 @@ NPUStatus emptyAllNPUStream() {
     if (default_streamsi.stream == nullptr) {
       continue;
     }
-    NPUGuard device_guard{i};
     if (default_streamsi.stream != nullptr && default_streamsi.repo->CheckInit()) {
       ret = default_streamsi.repo->MakeSureQueueEmpty();
       if (ret != SUCCESS) {
