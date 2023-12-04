@@ -1387,6 +1387,40 @@ class TestScatterUpdateMeta(TestCase):
             self.assertIsNot(fake_result, in_self)
 
 
+class TestNpuRmsNorm(TestCase):
+    def test_npu_rms_norm(self):
+        with FakeTensorMode():
+            npu_x = torch.randn((2, 3), dtype=torch.float32).npu()
+            npu_gamma = torch.randn((3,), dtype=torch.float32).npu()
+
+            result_y, result_rstd = torch_npu.npu_rms_norm(npu_x, npu_gamma)
+
+            self.assertEqual(result_y.dtype, npu_x.dtype)
+            self.assertEqual(result_y.shape, npu_x.shape)
+            self.assertEqual(result_y.device, npu_x.device)
+            self.assertEqual(result_rstd.shape, torch.Size([2, 1]))
+            self.assertEqual(result_rstd.device, npu_x.device)
+
+    def test_npu_rms_norm_backward(self):
+        with FakeTensorMode():
+            npu_x = torch.randn((2, 3), dtype=torch.float32).npu()
+            npu_gamma = torch.randn((3,), dtype=torch.float32).npu()
+            npu_x.requires_grad = True
+            npu_gamma.requires_grad = True
+
+            out = torch_npu.npu_rms_norm(npu_x, npu_gamma)[0]
+            grad_y = torch.randn((2, 3), dtype=torch.float32).npu()
+            out.backward(grad_y)
+            dx = npu_x.grad
+            dw = npu_gamma.grad
+            self.assertEqual(dx.dtype, npu_x.dtype)
+            self.assertEqual(dx.shape, npu_x.shape)
+            self.assertEqual(dx.device, npu_x.device)
+            self.assertEqual(dw.shape, npu_gamma.shape)
+            self.assertEqual(dw.device, npu_gamma.device)
+
+
+
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
 

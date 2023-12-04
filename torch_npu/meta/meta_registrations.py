@@ -102,12 +102,12 @@ def npu_rms_norm_meta(self, gamma, epsilon=1e-6):
             ret.append(self.size(i))
         else:
             ret.append(1)
-    rstd = torch.empty(ret, dtype=torch.float32)
+    rstd = torch.empty(ret, dtype=torch.float32, device='meta')
     return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(rstd))
 
 
 @impl(m, "npu_rms_norm_backward")
-def npu_rms_norm_backward_meta(dy, self, rstd, gamma):
+def npu_rms_norm_backward_meta(dy, self, gamma, rstd):
     return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(gamma, dtype=gamma.dtype))
 
 
