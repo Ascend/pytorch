@@ -42,6 +42,7 @@ class CANNDataEnum(Enum):
     AI_CPU = 7
     COMMUNICATION = 8
     MATRIX = 9
+    NPU_MODULE_MEM = 11
 
 
 class CANNFileParser:
@@ -75,7 +76,8 @@ class CANNFileParser:
                                 r"^l2_cache_\d+_\d+_\d+_\d+\.csv"],
         CANNDataEnum.AI_CPU: [r"^aicpu_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+_\d+\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
-        CANNDataEnum.MATRIX: [r"^communication_matrix\.json"]
+        CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
+        CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d_\d_\d+\.csv"],
     }
 
     def __init__(self, profiler_path: str):
