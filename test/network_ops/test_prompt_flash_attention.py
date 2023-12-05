@@ -22,7 +22,7 @@ class TestPromptFlashAttetion(TestCase):
     def prompt_flash_attention_npu(self, q, k, v, head_dim):
         scale = 1 / 0.0078125
         return torch_npu.npu_prompt_flash_attention(
-            q, k, v, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535)
+            q, k, v, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535, sparse_mode=0)
 
     @unittest.skipIf(DEVICE_NAME != 'Ascend910B',
         "OP `PromptFlashAttention` is only supported on 910B, skip this ut for this device type!")
