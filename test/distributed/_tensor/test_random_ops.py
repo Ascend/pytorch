@@ -251,6 +251,7 @@ class DistTensorRandomOpTest(DTensorTestBase):
                 else:
                     self.assertNotEqual(local_tensor_gathered[slice_idx], local_tensor)
 
+    @skip("OffsetBaseRNGTracker needs to support cuda-like device")
     @skipIfUnsupportMultiNPU(4)
     @with_comms
     def test_meta_tensor_init(self):
