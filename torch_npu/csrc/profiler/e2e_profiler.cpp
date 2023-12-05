@@ -458,6 +458,11 @@ void FinalizeE2eProfiler() {
     ASCEND_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
+    ret = at_npu::native::AclProfilingDestroyConfig(local_profCfg);
+    if (ret != ACL_SUCCESS) {
+        ASCEND_LOGE("AclProfDestoryConfig fail, error code: %d", ret);
+    }
+    local_profCfg = nullptr;
   if (g_concatenateReport) {
     FlushRangeStamp();
     FlushMarkStamp();
