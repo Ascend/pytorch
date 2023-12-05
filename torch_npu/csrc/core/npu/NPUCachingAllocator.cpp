@@ -33,6 +33,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "NPUBlockHandle.h"
@@ -1820,8 +1821,9 @@ class DeviceCachingAllocator {
   }
 
   void insert_events(Block* block) {
-    int prev_device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&prev_device));
+    aclrtContext compiler_ctx = aclrtContext();
+    aclError ret_ctx = aclrtGetCurrentContext(&compiler_ctx);
+    NPU_CHECK_ERROR(aclrtSetCurrentContext(c10_npu::NpuSysCtrl::GetInstance().InitializedContext(block->device)));
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
@@ -1842,12 +1844,8 @@ class DeviceCachingAllocator {
       npu_events[stream].emplace_back(std::move(event), block);
     }
 
-    int cur_device = 0;
-    aclError ret = aclrtGetDevice(&cur_device);
-    if (ret != ACL_ERROR_NONE) {
-      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
-    } else if (cur_device != prev_device) {
-      NPU_CHECK_ERROR(aclrtSetDevice(prev_device));
+    if (ret_ctx == ACL_ERROR_NONE) {
+      NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx));
     }
   }
 
