@@ -109,6 +109,11 @@ void ProfilerMgr::Stop() {
   report_enable_.store(false);
   if (npu_trace_.load() == true) {
     at_npu::native::AclProfilingStop(profConfig_);
+    auto ret = at_npu::native::AclProfilingDestroyConfig(profConfig_);
+    if (ret != ACL_SUCCESS) {
+        NPU_LOGE("AclProfDestoryConfig fail, error code: %d", ret);
+    }
+    profConfig_ = nullptr;
   }
   if (record_op_args_.load() == true) {
     at_npu::native::AclopStopDumpArgs(ACL_OP_DUMP_OP_AICORE_ARGS);
