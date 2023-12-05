@@ -18,10 +18,8 @@ def npu_incre_flash_attention_forward(query, key, value, *, padding_mask=None, a
 
 
 @impl(m, "npu_prompt_flash_attention")
-def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, atten_mask=None,
-                                       actual_seq_lengths=None, num_heads=1, scale_value=1.0, pre_tokens=2147473647,
-                                       next_tokens=0, input_layout="BSH", num_key_value_heads=0):
-    return torch.empty_like(query)
+def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, atten_mask=None, actual_seq_lengths=None, num_heads=1, scale_value=1.0, pre_tokens=2147473647, next_tokens=0, input_layout="BSH", num_key_value_heads=0, actual_seq_lengths_kv=None, sparse_mode=0):
+    return torch.empty_like(query, dtype=query.dtype)
 
 
 @impl(m, "npu_fusion_attention")
