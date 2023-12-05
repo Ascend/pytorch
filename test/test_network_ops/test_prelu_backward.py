@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -22,31 +21,38 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestPreluBackward(TestCase):
-    def cpu_op_back_exec_ext(self, input1, weight):
-        w = torch.ones_like(input1)
-        input1.requires_grad_(True)
-        m = torch.nn.PReLU(weight)
-        tmp = m(input1)
-        tmp.backward(w)
-        output = input1.grad
-        output = output.numpy()
-        return output
+    @staticmethod
+    def cpu_op_back_exec_ext(input1):
+        is_float16 = input1.dtype == torch.float16
+        if is_float16:
+            input1 = input1.to(torch.float32)
+        num_parameters = input1.shape[1] if input1.dim() > 1 else 1
+        input1.requires_grad = True
+        prelu = torch.nn.PReLU(num_parameters)
+        weight = torch.ones([num_parameters], dtype=input1.dtype) * 0.25
+        prelu.weight.data = weight.data
+        output = prelu(input1)
+        loss = output.sum()
+        loss.backward(torch.ones_like(loss))
+        input_grad = input1.grad.numpy()
+        if is_float16:
+            return input_grad.astype(np.float16)
+        return input_grad
 
-    def npu_op_back_exec_ext(self, input1, weight):
-        w = torch.ones_like(input1)
-        w = w.to("npu")
-        m = torch.nn.PReLU(weight)
-        m = m.to("npu")
-        input1.requires_grad_(True)
-        input1 = input1.to("npu")
-        tmp = m(input1)
-        tmp.backward(w)
-        output = input1.grad.to("cpu")
-        output = output.numpy()
-        return output
+    @staticmethod
+    def npu_op_back_exec_ext(input1):
+        num_parameters = input1.shape[1] if input1.dim() > 1 else 1
+        input1.requires_grad = True
+        prelu = torch.nn.PReLU(num_parameters)
+        weight = torch.ones([num_parameters], dtype=input1.dtype) * 0.25
+        prelu.weight.data = weight.data.npu()
+        output = prelu(input1)
+        loss = output.sum()
+        loss.backward(torch.ones_like(loss))
+        input_grad = input1.grad.detach().cpu().numpy()
+        return input_grad
 
-    @unittest.skip("skip test_PreluBackward_shape_format_fp32 now")
-    def test_PreluBackward_shape_format_fp32(self, device="npu"):
+    def test_PreluBackward_shape_format_fp32(self):
         shape_format = [
             [np.float32, 0, (17, 12, 38, 15)],
             [np.float32, 0, (1, 12, 38, 5)],
@@ -56,25 +62,11 @@ class TestPreluBackward(TestCase):
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, -2, 2)
-            cpu_weight = npu_weight = torch.randn(12)
-            cpu_output = self.cpu_op_back_exec_ext(cpu_input, cpu_weight)
-            npu_output = self.npu_op_back_exec_ext(npu_input, npu_weight)
+            cpu_output = self.cpu_op_back_exec_ext(cpu_input)
+            npu_output = self.npu_op_back_exec_ext(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_PreluBackward_shape_format_fp16 now")
-    def test_PreluBackward_shape_format_fp16(self, device="npu"):
-        def cpu_op_back_exec_fp16_ext(input1, weight):
-            input1 = input1.to(torch.float32)
-            weight = weight.to(torch.float32)
-            w = torch.ones_like(input1)
-            input1.requires_grad_(True)
-            m = torch.nn.PReLU(weight)
-            tmp = m(input1)
-            tmp.backward(w)
-            output = input1.grad
-            output = output.detach().numpy()
-            output = output.astype(np.float16)
-            return output
+    def test_PreluBackward_shape_format_fp16(self):
         shape_format = [
             [np.float16, 0, (3, 5, 4)],
             [np.float16, 0, (32, 1, 1)],
@@ -86,9 +78,8 @@ class TestPreluBackward(TestCase):
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, -2, 2)
-            cpu_weight = npu_weight = torch.randn(1)
-            cpu_output = cpu_op_back_exec_fp16_ext(cpu_input, cpu_weight)
-            npu_output = self.npu_op_back_exec_ext(npu_input, npu_weight)
+            cpu_output = self.cpu_op_back_exec_ext(cpu_input)
+            npu_output = self.npu_op_back_exec_ext(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
 
