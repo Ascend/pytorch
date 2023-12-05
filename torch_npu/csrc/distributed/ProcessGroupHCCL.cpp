@@ -1314,6 +1314,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             for (size_t i = 0; i < tensors_.size(); ++i) {
+                c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                 c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
                 if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
                     work->recorded_outputs_.push_back(
