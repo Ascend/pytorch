@@ -36,7 +36,7 @@ bool OptionsManager::IsResumeModeEnable()
 bool OptionsManager::IsMultiStreamMemoryReuse()
 {
     const static bool hcclRealTimeMemoryReuse = []() -> bool {
-        int32_t enable = OptionsManager::GetBoolTypeOption("MULTI_STREAM_MEMORY_REUSE", 0);
+        int32_t enable = OptionsManager::GetBoolTypeOption("MULTI_STREAM_MEMORY_REUSE", 1);
         return enable != 0;
     }();
     return hcclRealTimeMemoryReuse;
