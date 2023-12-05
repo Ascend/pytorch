@@ -22,6 +22,8 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+
 
 class TestScaledMaskedSoftmax(TestCase):
     def test_scaled_masked_softmax_shape_format(self):
@@ -72,7 +74,7 @@ class TestScaledMaskedSoftmax(TestCase):
             cpu_x_grad = cpu_x_grad.astype(npu_x_grad.dtype)
             self.assertRtolEqual(cpu_x_grad, npu_x_grad)
 
-    @unittest.skip("skip test_scaled_masked_softmax_bf16 now")
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', 'dtype `bf16` is only supported on 910B, skip this ut!')
     def test_scaled_masked_softmax_bf16(self):
         shape_format = [
             [[torch.bfloat16, 29, (16, 6, 128, 128)], [torch.float16, 29, (16, 6, 128, 128)]],

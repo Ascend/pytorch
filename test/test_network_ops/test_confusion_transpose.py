@@ -43,8 +43,8 @@ class TestConfusionTransposeD(TestCase):
             [[np.float32, 0, [1, 32, 576, 80]], [1, 576, 2560], (0, 2, 1, 3), True],
             [[np.float16, 0, [1, 576, 2560]], [1, 576, 32, 80], (0, 2, 1, 3), False],
             [[np.float16, 0, [1, 32, 576, 80]], [1, 576, 2560], (0, 2, 1, 3), True],
-            [[np.int, 0, [1, 576, 2560]], [1, 576, 32, 80], (0, 2, 1, 3), False],
-            [[np.int, 0, [1, 32, 576, 80]], [1, 576, 2560], (0, 2, 1, 3), True],
+            [[np.int_, 0, [1, 576, 2560]], [1, 576, 32, 80], (0, 2, 1, 3), False],
+            [[np.int_, 0, [1, 32, 576, 80]], [1, 576, 2560], (0, 2, 1, 3), True],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
