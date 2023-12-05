@@ -22,21 +22,21 @@ struct UnifiedResult {
   bool result_type_defined = false;
 };
 
-class OpCommand {
+class TORCH_NPU_API OpCommand {
 public:
-  TORCH_NPU_API OpCommand() {
+   OpCommand() {
     aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
     aclCmds->Push(aclCmd);
     aclCmd->SetCustomHandler(nullptr);
   }
-  TORCH_NPU_API ~OpCommand() {}
+  ~OpCommand() {}
 
   OpCommand(const OpCommand &other) = delete;
   OpCommand(OpCommand &&other) = delete;
   OpCommand &operator=(const OpCommand &) = delete;
   OpCommand &operator=(OpCommand &&) = delete;
 
-  TORCH_NPU_API OpCommand& Name(const string &name);
+  OpCommand& Name(const string &name);
 
   OpCommand& SetCustomHandler(PROC_FUNC func);
 
@@ -47,10 +47,10 @@ public:
   OpCommand& Expect(UnifiedResult unified_result);
 
   // None Input
-  TORCH_NPU_API OpCommand& Input();
+  OpCommand& Input();
 
   // Tensor Input which need contiguous
-  TORCH_NPU_API OpCommand& Input(
+  OpCommand& Input(
       const at::Tensor &input,
       const string &descName = "",
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
@@ -63,7 +63,7 @@ public:
 
   // ArrayRef Input, usually hostmemory input, we will do h2d in launch kernel
   template <typename T>
-  TORCH_NPU_API OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
+  OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
                    at::ScalarType toType,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "",
@@ -76,20 +76,20 @@ public:
   }
   
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
-  TORCH_NPU_API OpCommand& Input(const c10::IntArrayRef &dimListRef,
+  OpCommand& Input(const c10::IntArrayRef &dimListRef,
                    at::ScalarType toType = at::kLong,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "",
                    const string& descName = "");
 
   // DoubleArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
-  TORCH_NPU_API OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
+  OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
                    at::ScalarType toType = at::kDouble,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "");
 
   // Scalar Input, we will do h2d in launch kernel
-  TORCH_NPU_API OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
+  OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
                  CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
 
   // A list of Tensor
@@ -98,7 +98,7 @@ public:
   OpCommand& InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type);
 
   // Output Tensor
-  TORCH_NPU_API OpCommand& Output(
+  OpCommand& Output(
       at::Tensor &output,
       const string &descName = "",
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
@@ -106,14 +106,14 @@ public:
 
   // Attr
   template<typename dataType>
-  TORCH_NPU_API OpCommand& Attr(const string &name, dataType value) {
+  OpCommand& Attr(const string &name, dataType value) {
     aclCmd->AddAttr(name, value);
     return *this;
   }
 
   // Attr depend on condition
   template<typename dataType>
-  TORCH_NPU_API OpCommand& Attr(const string &name, dataType value, bool cond) {
+  OpCommand& Attr(const string &name, dataType value, bool cond) {
     if (!cond) {
       return *this;
     }
@@ -121,11 +121,11 @@ public:
   }
 
   // Run a single op
-  TORCH_NPU_API void Run();
+  void Run();
 
-  TORCH_NPU_API OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
+  OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
 
-  TORCH_NPU_API OpCommand& Sync();
+  OpCommand& Sync();
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
