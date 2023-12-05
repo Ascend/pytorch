@@ -9,6 +9,7 @@ import queue
 import argparse
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
+import psutil
 from torch_npu.utils.path_manager import PathManager
 
 
@@ -265,6 +266,9 @@ def exec_ut(files):
                 print_subprocess_log(stdout_queue)
             if not event_timer.is_set():
                 ret = 1
+                parent_process = psutil.Process(p.pid)
+                for children_process in parent_process.children(recursive=True):
+                    children_process.kill()
                 p.kill()
                 p.terminate()
                 print("Timeout: Command '{}' timed out after 2000 seconds".format(" ".join(cmd)))
