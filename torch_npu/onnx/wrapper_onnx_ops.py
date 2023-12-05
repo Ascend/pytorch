@@ -627,12 +627,14 @@ class NPUIncreFlashAttentionOP(torch.autograd.Function):
     @staticmethod
     def symbolic(g, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
                  padding_mask: Optional[Tensor], atten_mask: Optional[Tensor],
-                 actual_seq_lengths: Optional[Tensor],
-                 num_heads: int = 1, scale_value: float = 1.0,
-                 input_layout: str = "BSH", num_key_value_heads: int = 0):
+                 actual_seq_lengths: Optional[Tensor], antiquant_scale: Optional[Tensor],
+                 antiquant_offset: Optional[Tensor], block_table: Optional[Tensor],
+                 num_heads: int = 1, scale_value: float = 1.0, input_layout: str = "BSH", 
+                 num_key_value_heads: int = 0, block_size: int = 0, inner_precise: int = 1):
         return g.op("npu::NPUIncreFlashAttention", self, query, key, value,
-                    padding_mask, atten_mask, actual_seq_lengths,
-                    num_heads, scale_value, input_layout, num_key_value_heads)
+                    padding_mask, atten_mask, actual_seq_lengths, antiquant_scale, antiquant_offset,
+                    block_table, num_heads, scale_value, input_layout, num_key_value_heads,
+                    block_size, inner_precise)
 
 
 class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
@@ -881,9 +883,11 @@ def wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, at
 
 
 def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
-                                      num_heads, scale_value, input_layout, num_key_value_heads):
+                                      antiquant_scale, antiquant_offset, block_table, num_heads, scale_value,
+                                      input_layout, num_key_value_heads, block_size, inner_precise):
     return NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
-                                          num_heads, scale_value, input_layout, num_key_value_heads)
+                                          antiquant_scale, antiquant_offset, block_table, num_heads, scale_value,
+                                          input_layout, num_key_value_heads, block_size, inner_precise)
 
 
 def add_onnx_ops():
