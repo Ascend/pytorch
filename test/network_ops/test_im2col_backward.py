@@ -15,7 +15,7 @@ class TestIm2colBackward(TestCase):
         for dtype, shape in itertools.product(dtype_list, shape_list):
             fold_cpu = torch.nn.Fold(output_size=(18, 18), kernel_size=(3, 3))
             fold_npu = fold_cpu.npu()
-            cpu_input, npu_input = create_common_tensor((dtype, 0, shape), 0, -100, 100)
+            cpu_input, npu_input = create_common_tensor((dtype, 0, shape), -100, 100)
             cpu_output = fold_cpu(cpu_input)
             npu_output = fold_npu(npu_input)
             self.assertRtolEqual(cpu_output, npu_output.cpu())
