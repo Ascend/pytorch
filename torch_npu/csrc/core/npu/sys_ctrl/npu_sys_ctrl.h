@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <functional>
 #include "c10/macros/Export.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
@@ -62,10 +63,10 @@ public:
         return -1;
     }
 
-    aclrtContext InitializedContext()
+    aclrtContext InitializedContext(int device_index)
     {
         if (GetInitFlag()) {
-            return ctx_;
+            return ctx_[device_index];
         }
         TORCH_CHECK(false, "no npu device context has been initialized!");
         return nullptr;
@@ -81,8 +82,10 @@ private:
 private:
     bool init_flag_;
     int device_id_;
-    aclrtContext ctx_{nullptr};
+    uint32_t device_count_;
+    aclrtContext ctx_[C10_COMPILE_TIME_MAX_NPUS] = {nullptr};
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
+    std::unordered_set<int> used_devices;
 };
 
 aclError SetCurrentDevice();
