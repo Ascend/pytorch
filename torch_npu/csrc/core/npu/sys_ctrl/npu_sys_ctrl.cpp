@@ -204,9 +204,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
       {"ACL_OP_DEBUG_LEVEL", ge::OP_DEBUG_LEVEL},
       {"ACL_DEBUG_DIR", ge::DEBUG_DIR},
       {"ACL_OP_COMPILER_CACHE_MODE", ge::OP_COMPILER_CACHE_MODE},
-      {"ACL_OP_COMPILER_CACHE_DIR", ge::OP_COMPILER_CACHE_DIR},
-      {"ACL_OP_SELECT_IMPL_MODE", ge::OP_SELECT_IMPL_MODE},
-      {"ACL_OPTYPELIST_FOR_IMPLMODE", ge::OPTYPELIST_FOR_IMPLMODE}
+      {"ACL_OP_COMPILER_CACHE_DIR", ge::OP_COMPILER_CACHE_DIR}
   };
 
   for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
