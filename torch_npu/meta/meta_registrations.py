@@ -145,3 +145,12 @@ def npu_ffn_meta(x, weight1, weight2, activation, expert_tokens=None, bias1=None
     dim1 = x.size(0)
     dim2 = weight2.size(1)
     return x.new_empty((dim1, dim2))
+
+
+@impl(m, "npu_group_norm_silu")
+def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
+    N = self.size(1)
+    if gemma is None or beta is None:
+        return (torch.empty_like(self, dtype=self.dtype), self.new_empty((N, group), dtype=self.dtype), self.new_empty((N, group), dtype=self.dtype))
+    else:
+        return (torch.empty_like(self, dtype=self.dtype), gemma.new_empty((N, group), dtype=gemma.dtype), beta.new_empty((N, group), dtype=beta.dtype))
