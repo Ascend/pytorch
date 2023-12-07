@@ -30,7 +30,6 @@
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/irange.h>
 #include <c10/util/Exception.h>
-#include <torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h>
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -128,14 +127,6 @@ namespace at_npu
 
       auto tensor =
           at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
-
-      // NB
-      // Store weak intrusive ptr of storage impl in both graph mode and single op mode
-      // because we need to get all live tensor in context in mode change scene
-      // we want to manage all storage without affect their life cycle
-      // so in graph mode, we can get all live tensor storage
-      NpuGraphContextManager::GetInstance().AddOutputStorage(
-          storage_impl);
 
       // Default at::TensorImpl has size [0]
       if (size.size() != 1 || size[0] != 0)
@@ -316,12 +307,7 @@ namespace at_npu
       aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
       int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
       auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-
-      // In graph mode, empty with format is used to make inner tensor,
-      // ASCEND-GE will take charge of the memory of them
-      int64_t size_bytes =
-          c10_npu::NpuRunMode::IsGraphMode() ? 0 : nelements * dtype.itemsize();
-
+      int64_t size_bytes = nelements * dtype.itemsize();
       c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           size_bytes,
@@ -331,11 +317,6 @@ namespace at_npu
 
       auto tensor =
           at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
-
-      // NB Store weak intrusive ptr of storage impl in graph mode
-      // see note above
-      NpuGraphContextManager::GetInstance().AddOutputStorage(
-          storage_impl);
 
       // Default NPUTensorImpl has size [0]
       if (size.size() != 1 || size[0] != 0)
@@ -381,11 +362,7 @@ namespace at_npu
       aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
       int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
       auto dtype = options.dtype();
-      // In graph mode, empty with format is used to make inner tensor,
-      // ASCEND-GE will take charge of the memory of them
-      auto size_bytes =
-          c10_npu::NpuRunMode::IsGraphMode() ? 0 : nelements * dtype.itemsize();
-
+      auto size_bytes = nelements * dtype.itemsize();
       c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           size_bytes,
@@ -394,11 +371,6 @@ namespace at_npu
           true);
       auto tensor =
           at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
-
-      // NB Store weak intrusive ptr of storage impl in graph mode
-      // see note above
-      NpuGraphContextManager::GetInstance().AddOutputStorage(
-          storage_impl);
 
       // Default at::TensorImpl has size [0]
       if (size.size() != 1 || size[0] != 0)

@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestBn2d(TestCase):
@@ -49,7 +48,6 @@ class TestBn2d(TestCase):
         output = output.detach().numpy()
         return output, input_npu
 
-    @graph_mode
     def test_batchnorm3d_shape_format_fp16(self):
         format_list = [30]
         shape_list = [[256, 164, 7, 7, 7], [148, 16, 28, 28, 28]]
@@ -66,7 +64,6 @@ class TestBn2d(TestCase):
             cpu_input = cpu_input.astype(npu_input.dtype)
             self.assertRtolEqual(cpu_input, npu_input)
 
-    @graph_mode
     def test_batchnorm3d_shape_format_fp32(self):
         format_list = [30]
         shape_list = [(256, 32, 7, 7, 7)]

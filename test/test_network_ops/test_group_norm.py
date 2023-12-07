@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestGroupNorm(TestCase):
@@ -39,7 +38,6 @@ class TestGroupNorm(TestCase):
         output = output.to("cpu").detach().numpy()
         return output
 
-    @graph_mode
     def test_GroupNorm_default_fp32(self):
         shape_format = [
             [[np.float32, 0, [20, 6, 10, 10]], 2],
@@ -53,7 +51,6 @@ class TestGroupNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_GroupNorm_default_fp16(self):
         shape_format = [
             [[np.float16, 0, [20, 6, 10, 10]], 2],
@@ -67,7 +64,6 @@ class TestGroupNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_GroupNorm_case1(self):
         shape_format = [
             [[np.float32, 0, [48, 32, 320, 320]], 32],
@@ -87,7 +83,6 @@ class TestGroupNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_GroupNorm_case2(self):
         shape_format = [
             [[np.float32, 0, [4, 128, 384, 384]], 32],
@@ -117,7 +112,6 @@ class TestGroupNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_GroupNorm_case3(self):
         shape_format = [
             [[np.float32, 0, [1, 256, 100, 152]], 32],

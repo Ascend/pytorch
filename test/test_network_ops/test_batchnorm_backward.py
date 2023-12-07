@@ -19,7 +19,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -75,7 +74,6 @@ class TestBatchNorm(TestCase):
 
         return output, running_mean, running_var, input_grad, weight_grad, bias_grad
 
-    @graph_mode
     def test_BatchNorm1D_float32(self):
         np.random.seed(1234)
         format_list = [-1]
@@ -118,7 +116,6 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-2)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
-    @graph_mode
     def test_BatchNorm1D_float16(self):
         np.random.seed(1234)
         format_list = [-1]
@@ -161,7 +158,6 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-2)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
-    @graph_mode
     def test_BatchNorm2D_float32(self):
         np.random.seed(1234)
         format_list = [-1]
@@ -204,7 +200,6 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-2)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
-    @graph_mode
     def test_BatchNorm2D_float16(self):
         np.random.seed(1234)
         format_list = [-1]
@@ -247,7 +242,6 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-1)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
-    @graph_mode
     def test_BatchNorm3D_float32(self):
         np.random.seed(1234)
         format_list = [-1]
@@ -290,7 +284,6 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-2)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
-    @graph_mode
     @unittest.skip("skip test_BatchNorm3D_float16 now")
     def test_BatchNorm3D_float16(self):
         np.random.seed(1234)

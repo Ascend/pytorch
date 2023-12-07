@@ -18,7 +18,6 @@ import torch.nn as nn
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -99,7 +98,6 @@ class TestConv2d(TestCase):
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy())
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
 
-    @graph_mode
     def test_conv2d_backward_shape_format_fp16(self):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             # shuflenet

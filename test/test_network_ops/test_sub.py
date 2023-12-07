@@ -20,7 +20,6 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -45,7 +44,6 @@ class TestSub(TestCase):
         output = output.numpy()
         return output
 
-    @graph_mode
     def test_sub_common_shape_format(self):
         shape_format = [
             [[np.int32, -1, (2, 3)], [np.int32, -1, (2, 3)]],
@@ -63,7 +61,6 @@ class TestSub(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_sub_float16_shape_format(self):
         shape_format = [
             [[np.float16, -1, (2, 3)], [np.float16, -1, (2, 3)]],
@@ -79,7 +76,6 @@ class TestSub(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_sub_mix_dtype(self):
         dtype_list = [
             [np.int32, np.int64],
@@ -95,7 +91,6 @@ class TestSub(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_sub_inplace_and_out_mix_dtype(self):
         dtype_list = [
             [np.int32, np.int64, np.int64],

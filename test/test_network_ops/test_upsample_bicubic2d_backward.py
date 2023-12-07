@@ -21,7 +21,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestUpsampleBicubic2dBackward(TestCase):
@@ -42,7 +41,6 @@ class TestUpsampleBicubic2dBackward(TestCase):
         output_grad = output_grad.to("cpu").detach().numpy()
         return output_grad
 
-    @graph_mode
     @unittest.skip("skip test_upsample_bicubic2d_common_shape_format now")
     def test_upsample_bicubic2d_common_shape_format(self):
         shape_format = [
@@ -61,7 +59,6 @@ class TestUpsampleBicubic2dBackward(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1], item[2], item[3], item[4])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     @unittest.skip("skip test_upsample_bicubic2d_float16_shape_format now")
     def test_upsample_bicubic2d_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, output_size, align_corners, scale_h, scale_w):

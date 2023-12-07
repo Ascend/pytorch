@@ -5,7 +5,6 @@
 #include <c10/core/Allocator.h>
 #include <c10/core/ScalarType.h>
 #include <c10/util/typeid.h>
-#include <torch_npu/csrc/framework/graph/util/NPUGraph.h>
 #include <c10/util/order_preserving_flat_hash_map.h>
 
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -28,17 +27,6 @@ public:
     caffe2::TypeMeta data_type_;
 };
 
-struct NpuGraphDesc {
-public:
-  NpuGraphDesc() {
-    static int64_t idx = 0;
-    unique_id = idx++;
-  }
-
-  uint64_t unique_id = 0;
-  at_npu::native::Value graph_value;
-};
-
 struct NPUStorageImpl : public c10::StorageImpl {
   explicit NPUStorageImpl(use_byte_size_t use_byte_size,
       size_t size_bytes,
@@ -52,24 +40,8 @@ struct NPUStorageImpl : public c10::StorageImpl {
   // not private
   NPUStorageDesc npu_desc_;
 
-  std::unique_ptr<NpuGraphDesc> npu_graph_desc = nullptr;
-
   NPUStorageDesc get_npu_desc() const {
     return npu_desc_;
-  }
-
-  const NpuGraphDesc& get_npu_graph_desc() const {
-    if (npu_graph_desc == nullptr) {
-      AT_ERROR("npu graph desc has not been initialized");
-    }
-    return *npu_graph_desc;
-  }
-
-  NpuGraphDesc& get_mutable_npu_graph_desc() const {
-    if (npu_graph_desc == nullptr) {
-      AT_ERROR("npu graph desc has not been initialized");
-    }
-    return *npu_graph_desc;
   }
 };
 

@@ -104,33 +104,6 @@ private:
       return false;
     }
 
-    if (c10_npu::NpuRunMode::IsGraphMode()) {
-      // Could be permute or squeeze/unsqueeze + permute
-      auto view_sizes_squeeze = view_sizes;
-      auto view_strides_squeeze = view_strides;
-      squeeze_shape_and_stride(view_sizes_squeeze, view_strides_squeeze);
-      auto base_sizes_squeeze = base_sizes;
-      auto base_strides_squeeze = base_strides;
-      squeeze_shape_and_stride(base_sizes_squeeze, base_strides_squeeze);
-      bool dim_equal =
-          (view_sizes_squeeze.size() == base_sizes_squeeze.size()) &&
-          (view_strides_squeeze.size() == base_strides_squeeze.size());
-      if (!dim_equal) {
-        NPU_LOGD(
-            "After squeezing, reordered shape and base shape do not match, "
-            "and permute pattern cannot be used.");
-        return false;
-      }
-      for (const auto i : c10::irange(view_sizes_squeeze.size())) {
-        if ((view_sizes_squeeze[i] != base_sizes_squeeze[i]) ||
-            (view_strides_squeeze[i]) != base_strides_squeeze[i]) {
-          NPU_LOGD("After squeezing, reordered shape and base shape do not "
-                   "match, and permute pattern cannot be used.");
-          return false;
-        }
-      }
-    }
-
     // Calculate perm and sizes for permute
     for (const auto ele : view_sizes) {
       sizes.emplace_back(ele);
@@ -201,7 +174,6 @@ private:
   }
 
   template <typename T> void squeeze_shape_and_stride(T &shape, T &stride) {
-    IF_GRAPH_MODE_THEN_RUN(return;)
     int64_t shape_size = static_cast<int64_t>(shape.size());
     for (int64_t i = 0; i < shape_size; i++) {
       if (shape[i] == 1) {

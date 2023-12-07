@@ -18,25 +18,11 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
-
-#define IF_GRAPH_MODE_THEN_RUN(...)            \
-  do {                                         \
-    if (c10_npu::NpuRunMode::IsGraphMode()) { \
-      __VA_ARGS__;                             \
-    }                                          \
-  } while (false);
-
-#define IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(...) \
-  do {                                            \
-    if (c10_npu::NpuRunMode::IsGraphMode()) {    \
-      __VA_ARGS__;                                \
-      return *this;                              \
-    }                                             \
-  } while (false);
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 
 namespace at_npu {
 namespace native {
@@ -52,12 +38,7 @@ struct UnifiedResult {
 
 class TORCH_NPU_API OpCommand {
 public:
-  OpCommand() {
-    if (c10_npu::NpuRunMode::IsGraphMode()) {return;}
-    aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
-    aclCmds->Push(aclCmd);
-    aclCmd->SetCustomHandler(nullptr);
-  }
+  OpCommand();
   ~OpCommand() {}
 
   OpCommand(const OpCommand &other) = delete;
@@ -84,10 +65,6 @@ public:
       const string &descName = "",
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
       const string &realData = "");
-
-  // Tensor Input with stride info, only used in OutfeedEnqueueOpV2
-  OpCommand& InputWithMetaInfo(const at::Tensor &input, const string &descName,
-                               string &meta);
 
   // Tensor Input which no need contiguous
   OpCommand& InputWithoutContiguous(const at::Tensor &input,
@@ -143,9 +120,6 @@ public:
   // Attr
   template<typename dataType>
   OpCommand& Attr(const string &name, dataType value) {
-    IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-        graphCmd.AddAttr<dataType>(name, value);
-    )
     aclCmd->AddAttr(name, value);
     return *this;
   }
@@ -203,7 +177,6 @@ private:
   c10::SmallVector<at::Tensor, N> storage; // tensor's life cycle should maintain when Run() is called
   OpCommandImpls *aclCmds = nullptr; // owned
   OpCommandImpl *aclCmd = nullptr;
-  GraphCommandImpl graphCmd;
 
   c10::optional<at::ScalarType> commonType = c10::nullopt;
   c10::optional<c10::IntArrayRef> commonShape = c10::nullopt;

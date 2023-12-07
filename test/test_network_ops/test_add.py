@@ -18,7 +18,6 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -145,7 +144,6 @@ class TestAdd(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_1d(self):
         format_list = [0, 3]
         scalar_list = [0, 1]
@@ -154,7 +152,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_1d(self):
         format_list = [0, 3]
         scalar_list = [0, 1]
@@ -163,7 +160,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_2d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -172,7 +168,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_2d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -181,7 +176,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -190,7 +184,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -199,7 +192,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_4d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -208,7 +200,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_4d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -217,7 +208,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_1d(self):
         format_list = [0, 3]
         scalar_list = [0, 1]
@@ -226,7 +216,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_1d(self):
         format_list = [0, 3]
         scalar_list = [0, 1]
@@ -235,7 +224,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_2d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -244,7 +232,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_2d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -253,7 +240,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -262,7 +248,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -271,7 +256,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp16_4d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -280,7 +264,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_scalar_shape_format_fp32_4d(self):
         format_list = [0, 3, 29]
         scalar_list = [0, 1]
@@ -289,7 +272,6 @@ class TestAdd(TestCase):
         ]
         self.add_scalar_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_1d(self):
         format_list = [0, 3]
         shape_format = [
@@ -297,7 +279,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_1d(self):
         format_list = [0, 3]
         shape_format = [
@@ -305,7 +286,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_2d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -313,7 +293,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_2d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -321,7 +300,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -329,7 +307,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -337,7 +314,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_4d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -345,7 +321,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_4d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -353,7 +328,6 @@ class TestAdd(TestCase):
         ]
         self.add_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_1d(self):
         format_list = [0, 3]
         shape_format = [
@@ -361,7 +335,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_1d(self):
         format_list = [0, 3]
         shape_format = [
@@ -369,7 +342,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_2d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -377,7 +349,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_2d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -385,7 +356,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -393,7 +363,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -401,7 +370,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp16_4d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -409,7 +377,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_shape_format_fp32_4d(self):
         format_list = [0, 3, 29]
         shape_format = [
@@ -417,7 +384,6 @@ class TestAdd(TestCase):
         ]
         self.add_alpha_result(shape_format)
 
-    @graph_mode
     def test_add_mix_dtype(self):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_input2, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
@@ -466,7 +432,6 @@ class TestAdd(TestCase):
         self.assertRtolEqual(cpu_out2, npu_out2.cpu())
         self.assertRtolEqual(cpu_out3, npu_out3.cpu())
 
-    @graph_mode
     def test_add_inplace_and_out_mix_dtype(self):
         dtype_list = [
             [np.int32, np.int64, np.int64],

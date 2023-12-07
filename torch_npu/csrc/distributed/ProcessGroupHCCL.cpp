@@ -34,7 +34,6 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
@@ -241,9 +240,6 @@ void syncStreams(
     std::vector<c10_npu::NPUEvent>& hcclEvents,
     std::vector<c10_npu::NPUStream>& hcclStreams)
 {
-    if (c10_npu::NpuRunMode::IsGraphMode()) {
-        return;
-    }
     for (size_t i = 0; i < devices.size(); ++i) {
         c10_npu::NPUStream& hcclStream = hcclStreams[i];
         c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
@@ -482,9 +478,7 @@ void ProcessGroupHCCL::WorkHCCL::handleHCCLGuard(ErrorHandlingMode asyncErrorHan
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout)
 {
-    if (!c10_npu::NpuRunMode::IsGraphMode()) {
-        synchronize();
-    }
+    synchronize();
     // Always return true, because abort API is not implemented.
     return true;
 }
@@ -1241,23 +1235,21 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
 
     pre(hcclStreams, work);
 
-    if (!c10_npu::NpuRunMode::IsGraphMode()) {
-        for (const auto i : c10::irange(inputs.size())) {
-            npuGuard.set_index(devices[i].index());
-            c10_npu::NPUStream& hcclStream = hcclStreams[i];
+    for (const auto i : c10::irange(inputs.size())) {
+        npuGuard.set_index(devices[i].index());
+        c10_npu::NPUStream& hcclStream = hcclStreams[i];
 
-            // Both `inputs' and `outputs' are created on a worker stream and used in
-            // different hcclStreams.  Hence, both must record the hcclStream to
-            // prevent being freed before the collective finishes.
-            //
-            // We only record `inputs' here, and leave recording `outputs' to `fn' for
-            // operations where `inputs' and `outputs' are not the same.
-            //
-            // See [Sync Streams].
-            c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-            if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-                work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
-            }
+        // Both `inputs' and `outputs' are created on a worker stream and used in
+        // different hcclStreams.  Hence, both must record the hcclStream to
+        // prevent being freed before the collective finishes.
+        //
+        // We only record `inputs' here, and leave recording `outputs' to `fn' for
+        // operations where `inputs' and `outputs' are not the same.
+        //
+        // See [Sync Streams].
+        c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
+        if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+            work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
         }
     }
     {
@@ -1276,18 +1268,22 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     }
     post(hcclStreams, work);
 
-    if (!c10_npu::NpuRunMode::IsGraphMode()) {
-        for (size_t i = 0; i < inputs.size(); ++i) {
-            c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
-            (*work->npuEvents_)[i].record(hcclStream);
-            work->hcclComms_[i] = hcclComms[i];
-        }
-        work->blockingWait_ = blockingWait_;
-        work->opTimeout_ = opTimeout_;
-        work->store_ = store_;
-        if (asyncErrorHandling_ != NoHandling) {
-            workEnqueue(work);
-        }
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+        (*work->npuEvents_)[i].record(hcclStream);
+        work->hcclComms_[i] = hcclComms[i];
+    }
+    work->blockingWait_ = blockingWait_;
+    work->opTimeout_ = opTimeout_;
+    work->store_ = store_;
+    if (asyncErrorHandling_ != NoHandling) {
+        workEnqueue(work);
+    }
+    work->blockingWait_ = blockingWait_;
+    work->opTimeout_ = opTimeout_;
+    work->store_ = store_;
+    if (asyncErrorHandling_ != NoHandling) {
+        workEnqueue(work);
     }
     return work;
 }
@@ -1323,17 +1319,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataTypeOfAllReduce(hcclType);
             RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
-
-            // allreduce_out is used in hook func by reducer, so fusion id can be specified correctly.
-            // allreduce may be directly called by external users, so fusion id cannot be specified.
-            // If the default fusion rule is used, it may not be a Direct Acyclic Graph after fusion.
-            // To sum up, this pr adopts fusion parameter: no fusion.
-            if (c10_npu::NpuRunMode::IsGraphMode()) {
-                int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
-                at_npu::native::NPUNativeFunctions::npu_hcom_allreduce_out(
-                    input, "sum", "hccl_world_group", 0, -1, 1, 0, hccl_comm, output);
-                return HCCL_SUCCESS;
-            }
 
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
@@ -1508,13 +1493,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
         outputFlattened,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
-
-            if (c10_npu::NpuRunMode::IsGraphMode()) {
-                int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
-                at_npu::native::NPUNativeFunctions::npu_hcom_allgather_out(
-                    input, size_, "hccl_world_group", 1, 0, hccl_comm, output);
-                return HCCL_SUCCESS;
-            }
 
             c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
 

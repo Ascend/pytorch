@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import unittest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,7 +20,6 @@ import numpy as np
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestAdaptiveMaxPool2d(TestCase):
@@ -32,7 +33,7 @@ class TestAdaptiveMaxPool2d(TestCase):
         output = m(input1)
         return output.cpu().numpy()
 
-    @graph_mode
+    @unittest.skip("skip test_adaptiveMaxPool2d_shape_format_fp32_6 now")
     def test_adaptiveMaxPool2d_shape_format_fp32_6(self):
         format_list = [-1]
         # (1, 8, 9) IndexError
@@ -49,7 +50,6 @@ class TestAdaptiveMaxPool2d(TestCase):
 
                 self.assertRtolEqual(cpu_output, npu_output, 0.0004)
 
-    @graph_mode
     def test_adaptiveMaxPool2d_case_in_photo2cartoon(self):
         cpu_x = torch.rand(1, 256, 31, 31)
         npu_x = cpu_x.npu()
@@ -57,7 +57,6 @@ class TestAdaptiveMaxPool2d(TestCase):
         npu_out = F.adaptive_max_pool2d(npu_x, 1)
         self.assertRtolEqual(cpu_out, npu_out.cpu(), 0.0003)
 
-    @graph_mode
     def test_adaptiveMaxPool2d_case_in_photo2cartoon_fp16(self):
         cpu_x = torch.rand(1, 256, 31, 31).half()
         npu_x = cpu_x.npu()

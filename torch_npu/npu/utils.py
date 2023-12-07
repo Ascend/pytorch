@@ -425,10 +425,6 @@ if not hasattr(torch_npu._C, '_NPUStreamBase'):
     torch_npu._C.__dict__['_NPUStreamBase'] = _dummy_type('NPUStreamBase')
     torch_npu._C.__dict__['_NPUEventBase'] = _dummy_type('NPUEventBase')
 
-if not hasattr(torch_npu._C, '_NPUReplayGraphBase'):
-    # Define dummy base classes
-    torch_npu._C.__dict__['_NPUReplayGraphBase'] = _dummy_type('NPUReplayGraphBase')
-
 
 def init_dump():
     torch_npu.npu._lazy_init()

@@ -176,8 +176,7 @@ at::Tensor metadata_convert_match_with_copy_optimize(const at::Tensor &src) {
 
   // For unmatched Tensors with base format, we can:
   OptimizationCases optimizations_reshape{"reshapeV2"};
-  if ((!c10_npu::NpuRunMode::IsGraphMode()) && numelEq &&
-      src_desc.npu_format_ == ACL_FORMAT_ND &&
+  if (numelEq && src_desc.npu_format_ == ACL_FORMAT_ND &&
       src_desc.origin_format_ == ACL_FORMAT_ND && (src.dim() != 0) &&
       !src_desc.base_sizes_.empty()) {
     // 1. directly rewrite their storage description to get matched tensors.

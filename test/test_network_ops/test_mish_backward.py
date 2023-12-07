@@ -22,7 +22,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestMishBackward(TestCase):
@@ -46,7 +45,6 @@ class TestMishBackward(TestCase):
         output = output.detach().numpy()
         return output_grad, output
 
-    @graph_mode
     @unittest.skip("skip test_mish_fp32 now")
     def test_mish_fp32(self):
         npu_input = torch.tensor([1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]).npu()

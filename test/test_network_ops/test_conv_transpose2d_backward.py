@@ -22,7 +22,6 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestConvTranspose2dBackward(TestCase):
@@ -77,7 +76,6 @@ class TestConvTranspose2dBackward(TestCase):
             self.assertRtolEqual(cpu_input_grad, npu_input_grad, prec=1e-3)
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, prec=1e-3)
 
-    @graph_mode
     def test_conv_transpose2d_backward_shape_format(self):
         shape_format = [
             [[np.float16, 0, [1, 4, 5, 5]], [np.float16, 0, [4, 4, 3, 3]]],

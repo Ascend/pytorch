@@ -23,7 +23,6 @@ import torch.nn.functional as F
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestMaxPool2dWithIndicesBackward(TestCase):
@@ -50,7 +49,6 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
         output = output.cpu().detach()
         return output, npu_grad
 
-    @graph_mode
     @unittest.skip("skip test_max_pool2d_with_indices_backward now")
     def test_max_pool2d_with_indices_backward(self):
         dtype_list = [np.float32, np.float16]

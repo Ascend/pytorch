@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestSmoothL1loss(TestCase):
@@ -32,7 +31,6 @@ class TestSmoothL1loss(TestCase):
         output = torch.nn.functional.smooth_l1_loss(input1, target, beta=2.0, reduction=reduction)
         return output.cpu().numpy()
 
-    @graph_mode
     def test_smoothl1loss_shape_format_fp32(self):
         format_list = [0]
         shape_list = [[256, 10], [256, 1000], [256, 10000],
@@ -51,7 +49,6 @@ class TestSmoothL1loss(TestCase):
             npu_output = self.npu_op_exec_new(npu_input1, target, item[2])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_nllloss_shape_format_fp16(self):
         format_list = [0]
         shape_list = [[256, 10], [256, 1000], [256, 10000],

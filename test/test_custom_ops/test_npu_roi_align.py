@@ -16,11 +16,9 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestNpuRoiAlign(TestCase):
-    @graph_mode
     def test_npu_roi_align_fp32(self):
         _input = torch.FloatTensor([[[[1, 2, 3, 4, 5, 6],
                                       [7, 8, 9, 10, 11, 12],

@@ -3,13 +3,6 @@ FILE(GLOB _FRAMEWORK_SRCS
     aoe/*.cpp
     autograd/*.cpp
     contiguous/*.cpp
-    graph/*.cpp
-    graph/cache/*.cpp
-    graph/construct/*.cpp
-    graph/execute/*.cpp
-    graph/scalar/*.cpp
-    graph/util/*.cpp
-    graph/tools/*.cpp
     interface/*.cpp
     utils/*.cpp)
 

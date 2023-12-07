@@ -23,8 +23,6 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
@@ -89,21 +87,14 @@ static void storage_resize_npu(
 static inline void maybe_resize_storage_npu(
     at::TensorImpl* self,
     int64_t new_size,
-    c10::IntArrayRef size,
-    bool is_empty_tensor) {
+    c10::IntArrayRef size) {
   if (new_size > 0) {
     if (!self->storage().unsafeGetStorageImpl()) {
       AT_ERROR("Try to resize a tensor with null storage");
     }
     int64_t new_size_bytes =
         (new_size + self->storage_offset()) * static_cast<int64_t>(self->dtype().itemsize());
-    int64_t old_size_bytes;
-    if ((c10_npu::NpuRunMode::IsGraphMode()) && (!is_empty_tensor)) {
-      old_size_bytes = static_cast<int64_t>(GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl()));
-    } else {
-      old_size_bytes = static_cast<int64_t>(self->storage().nbytes());
-    }
-
+    int64_t old_size_bytes = static_cast<int64_t>(self->storage().nbytes());
     if (new_size_bytes > old_size_bytes) {
       storage_resize_npu(
           *torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()),
@@ -121,13 +112,6 @@ inline at::TensorImpl* resize_impl_npu_(
     return self;
   }
 
-  // In graph mode, we cannot justify whether
-  // a tensor is empty only using storage.
-  bool is_empty_tensor = false;
-  if (self->sizes()[0] == 0) {
-    is_empty_tensor = true;
-  }
-
   int64_t storage_size = 1;
   if (stride) {
     self->set_sizes_and_strides(size, *stride);
@@ -142,7 +126,7 @@ inline at::TensorImpl* resize_impl_npu_(
     self->set_sizes_contiguous(size);
     storage_size = self->numel();
   }
-  maybe_resize_storage_npu(self, storage_size, size, is_empty_tensor);
+  maybe_resize_storage_npu(self, storage_size, size);
 
   return self;
 }
@@ -174,14 +158,7 @@ static inline void checkInBoundsForStorage(
     // NB: (a tensor with arbitrary 0 dims)'s storage can have any numel.
     return;
   }
-
-  int64_t new_storage_size_bytes;
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    new_storage_size_bytes = static_cast<int64_t>(GraphUtils::GetTensorCapacity(new_storage.unsafeGetStorageImpl()));
-  } else {
-    new_storage_size_bytes = static_cast<int64_t>(new_storage.nbytes());
-  }
-  
+  int64_t new_storage_size_bytes = static_cast<int64_t>(new_storage.nbytes());
   TORCH_CHECK(
       storage_size_bytes + storage_offset_bytes <= new_storage_size_bytes,
       "setStorage: sizes ",

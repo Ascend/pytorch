@@ -19,7 +19,6 @@ import numpy as np
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestAdaptiveMaxPool2dBackward(TestCase):
@@ -40,7 +39,6 @@ class TestAdaptiveMaxPool2dBackward(TestCase):
         npu_grad = npu_grad.to("cpu")
         return npu_grad
 
-    @graph_mode
     def test_adaptiveMaxPool2d_shape_format_fp32_6(self):
         format_list = [0, 3]
         shape_list = [(1, 3, 8, 9)]
@@ -57,7 +55,6 @@ class TestAdaptiveMaxPool2dBackward(TestCase):
                 npu_output = self.npu_op_exec(npu_input, output_size)
                 self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_adaptiveMaxPool2d_backward_case_in_photo2cartoon(self):
         cpu_x = torch.rand(1, 256, 31, 31)
         npu_x = cpu_x.npu()
@@ -69,7 +66,6 @@ class TestAdaptiveMaxPool2dBackward(TestCase):
         npu_out.backward(torch.ones_like(npu_out))
         self.assertRtolEqual(cpu_x.grad, npu_x.grad.cpu(), 0.0003)
 
-    @graph_mode
     def test_adaptiveMaxPool2d_backward_case_in_photo2cartoon_fp16(self):
         cpu_x = torch.rand(1, 256, 31, 31).half()
         npu_x = cpu_x.npu()

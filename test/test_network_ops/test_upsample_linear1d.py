@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestUpsampleLinear1D(TestCase):
@@ -93,7 +92,6 @@ class TestUpsampleLinear1D(TestCase):
         ]
         return test_cases
 
-    @graph_mode
     @unittest.skip("skip test_upsample_linear1d now")
     def test_upsample_linear1d(self):
         for item in self.creat_shape_format1():
@@ -120,7 +118,6 @@ class TestUpsampleLinear1D(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_out_result, npu_out_result)
 
-    @graph_mode
     def test_upsample_scale_linear1d(self):
         for item in self.creat_shape_format1():
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)

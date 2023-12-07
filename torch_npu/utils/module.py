@@ -56,14 +56,8 @@ def npu(self, device=None):
     """
     device = torch.device("npu")
     if torch_npu.npu.is_available():
-        # Ref [cast weight in single op mode]
-        is_graph_mode = torch_npu.npu.is_graph_mode()
-        if is_graph_mode:
-            torch_npu.npu.disable_graph_mode()
         with torch.no_grad():
             self.cast_weight(device)
-        if is_graph_mode:
-            torch_npu.npu.enable_graph_mode()
     return self._apply(lambda t: t.npu(device))
 
 
@@ -80,14 +74,7 @@ def to(self, *args, **kwargs):
                 "and some modules might not work as expected when using complex tensors as parameters or buffers. ")
     if torch_npu.npu.is_available():
         with torch.no_grad():
-            # Ref [cast weight in single op mode]
-            is_graph_mode = torch_npu.npu.is_graph_mode()
-            if is_graph_mode:
-                torch_npu.npu.disable_graph_mode()
-            with torch.no_grad():
-                self.cast_weight(device)
-            if is_graph_mode:
-                torch_npu.npu.enable_graph_mode()
+            self.cast_weight(device)
 
     def convert(t):
         if convert_to_format is not None and t.dim() == 4:

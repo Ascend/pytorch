@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestGroupNormBackward(TestCase):
@@ -57,7 +56,6 @@ class TestGroupNormBackward(TestCase):
 
         return output, input_grad
 
-    @graph_mode
     def test_GroupNorm_Backward_default_fp32(self):
         # create inputs and params
         shape_format = [
@@ -77,7 +75,6 @@ class TestGroupNormBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
-    @graph_mode
     def test_GroupNorm_Backward_default_fp16(self):
         # create inputs and params
         shape_format = [
@@ -97,7 +94,6 @@ class TestGroupNormBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
-    @graph_mode
     def test_GroupNorm_Backward_case1(self):
         # create inputs and params
         shape_format = [
@@ -123,7 +119,6 @@ class TestGroupNormBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
-    @graph_mode
     def test_GroupNorm_Backward_case2(self):
         # create inputs and params
         shape_format = [
@@ -159,7 +154,6 @@ class TestGroupNormBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
-    @graph_mode
     def test_GroupNorm_Backward_case3(self):
         # create inputs and params
         shape_format = [

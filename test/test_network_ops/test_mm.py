@@ -16,12 +16,10 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMM(TestCase):
-    @graph_mode
     def test_mm_mat1_mat2_transpose(self):
         dtype_list = [np.float16, np.float32]
         format_list = [2, 29]
@@ -48,7 +46,6 @@ class TestMM(TestCase):
                 cpu_out = cpu_out.half()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy(), prec=1.e-3, prec16=1.e-3)
 
-    @graph_mode
     def test_mm_mat1_view_mat2_view_transpose(self):
         dtype_list = [np.float16, np.float32]
         format_list = [2, 29]

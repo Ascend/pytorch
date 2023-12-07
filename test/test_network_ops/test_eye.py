@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestEye(TestCase):
@@ -58,7 +57,6 @@ class TestEye(TestCase):
         output = output.numpy()
         return output
 
-    @graph_mode
     def test_eye_int32_common_shape_format(self):
         shape_format = [
             [np.int32, 0, (3563, 4000)],
@@ -69,7 +67,6 @@ class TestEye(TestCase):
             npu_output = self.npu_op_exec(item[2])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_eye_bool_common_shape_format(self):
         shape_format = [
             [torch.bool, 3, 3],
@@ -80,7 +77,6 @@ class TestEye(TestCase):
             npu_output = torch.eye(item[1], item[2], dtype=item[0], device="npu")
             self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
     def test_eye_float32_common_shape_format(self):
         shape_format = [
             [np.float32, 0, (5, 5)],
@@ -101,7 +97,6 @@ class TestEye(TestCase):
             npu_output = self.npu_op_exec(item[2])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_eye_out_float32_common_shape_format(self):
         shape_format = [
             [np.float32, 0, (5, 5)],

@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestConvTbc(TestCase):
@@ -36,7 +35,6 @@ class TestConvTbc(TestCase):
         npu_output = npu_output.numpy().astype('float16')
         return npu_output
 
-    @graph_mode
     def test_conv_tbc_shape_format(self):
         inputs = np.random.uniform(0, 2, [5, 1, 2])
         npu_input = torch.from_numpy(inputs.astype('float16'))

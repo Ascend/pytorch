@@ -17,7 +17,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -75,79 +74,66 @@ class TestStack(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    @graph_mode
     def test_stack_shape_format_fp16_1d(self):
         format_list = [0, 3]
         shape_format = [[[np.float16, i, [18]], np.random.randint(0, 1)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp16_2d(self):
         format_list = [0, 3, 29]
         shape_format = [[[np.float16, i, [5, 256]], np.random.randint(0, 2)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp16_3d(self):
         format_list = [0, 3, 29]
         shape_format = [[[np.float16, i, [32, 3, 3]], np.random.randint(0, 3)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp16_4d(self):
         format_list = [0, 3, 29]
         shape_format = [[[np.float16, i, [32, 32, 3, 3]], np.random.randint(0, 4)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp32_1d(self):
         format_list = [0, 3]
         shape_format = [[[np.float32, i, [18]], np.random.randint(0, 1)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp32_2d(self):
         format_list = [0, 3, 29]
         shape_format = [[[np.float32, i, [5, 256]], np.random.randint(0, 2)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp32_3d(self):
         format_list = [0, 3, 29]
         shape_format = [[[np.float32, i, [32, 3, 3]], np.random.randint(0, 3)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_fp32_4d(self):
         format_list = [0, 3, 29]
         shape_format = [[[np.float32, i, [32, 32, 3, 3]], np.random.randint(0, 4)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_int32_1d(self):
         format_list = [0]
         shape_format = [[[np.int32, i, [18]], np.random.randint(0, 1)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_int32_2d(self):
         format_list = [0]
         shape_format = [[[np.int32, i, [5, 256]], np.random.randint(0, 2)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_int32_3d(self):
         format_list = [0]
         shape_format = [[[np.int32, i, [32, 3, 3]], np.random.randint(0, 3)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_shape_format_int32_4d(self):
         format_list = [-1]
         shape_format = [[[np.int32, i, [32, 32, 3, 3]], np.random.randint(0, 4)] for i in format_list]
         self.stack_result(shape_format)
 
-    @graph_mode
     def test_stack_size_dim(self):
         def cpu_op_exec(input1):
             output = torch.stack((input1, input1, input1, input1, input1, input1, input1, input1, input1))

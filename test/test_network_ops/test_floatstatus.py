@@ -18,7 +18,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestFloatStatus(TestCase):
@@ -28,7 +27,6 @@ class TestFloatStatus(TestCase):
         output = output.numpy()
         return output
 
-    @graph_mode
     def test_floatstatus(self):
         input1 = torch.randn([1, 2, 3]).npu()
         exoutput = torch.tensor([0., 0., 0., 0., 0., 0., 0., 0.])

@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestSlowConvTranspose2d(TestCase):
@@ -65,7 +64,6 @@ class TestSlowConvTranspose2d(TestCase):
         npu_output = npu_output.numpy()
         return npu_output
 
-    @graph_mode
     def test_slow_conv_transpose2d_fp16(self):
         # input_1, weight, kernel_size
         shape_format1 = [
@@ -83,7 +81,6 @@ class TestSlowConvTranspose2d(TestCase):
             npu_output = self.npu_op_exec(input_1_npu, weight_npu, item[2])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_slow_conv_transpose2d_fp32(self):
         # input_1, weight, kernel_size
         shape_format2 = [
@@ -103,7 +100,6 @@ class TestSlowConvTranspose2d(TestCase):
             # fp32 isn't enough precision, relaxation of precision requirement temporary
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
 
-    @graph_mode
     def test_slow_conv_transpose2d_out_fp16(self):
         # input_1, weight, kernel_size, out
         shape_format3 = [
@@ -123,7 +119,6 @@ class TestSlowConvTranspose2d(TestCase):
             npu_output = self.npu_op_exec_out(input_1_npu, weight_npu, item[2], out_npu)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_slow_conv_transpose2d_out_fp32(self):
         # input_1, weight, kernel_size, out
         shape_format4 = [

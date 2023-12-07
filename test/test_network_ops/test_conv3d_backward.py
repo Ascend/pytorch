@@ -20,7 +20,6 @@ import torch.nn as nn
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -52,7 +51,6 @@ class TestConv3dBackward(TestCase):
             output = output.to("cpu")
         return output
 
-    @graph_mode
     def test_conv3d_backward_shape_format_fp32(self):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             [[np.float32, 30, [128, 128, 4, 14, 14]],

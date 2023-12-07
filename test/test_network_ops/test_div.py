@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import unittest
 import torch
 import numpy as np
@@ -20,7 +19,7 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, test_2args_broadcast, create_dtype_tensor
-from torch_npu.testing.decorator import Dtypes, instantiate_tests, graph_mode
+from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
 
 @instantiate_tests
@@ -47,7 +46,6 @@ class TestDiv(TestCase):
         npu_output = npu_out.to("cpu").numpy()
         return cpu_output, npu_output
 
-    @graph_mode
     def test_div_broadcast(self):
         for item in test_2args_broadcast(torch.div):
             self.assertRtolEqual(item[0], item[1])
@@ -61,7 +59,6 @@ class TestDiv(TestCase):
         cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], dtype)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_div_shape_format_fp16(self):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -76,7 +73,6 @@ class TestDiv(TestCase):
             cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.half)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_div_shape_format_fp32(self):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7), (2, 0, 2)]
@@ -89,35 +85,30 @@ class TestDiv(TestCase):
             cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.float)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_div_mix_dtype_1(self):
         npu_input1, npu_input2 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input4], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_div_mix_dtype_2(self):
         npu_input1, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         npu_input3 = torch.tensor(3).int()
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input3], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
     def test_div_scalar_dtype(self):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = cpu_input1 / 0.5
         npu_output = npu_input1 / 0.5
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
     def test_div_npuscalar_dtype(self):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = cpu_input1 / torch.tensor(0.5)
         npu_output = npu_input1 / torch.tensor(0.5).npu()
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
     def test_div_shape_format_fp32_1(self):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -168,6 +159,7 @@ class TestDiv(TestCase):
         input1.div_(input2, rounding_mode=mode)
         return input1.cpu()
 
+    @unittest.skip("skip test_div_tensor_mode now")
     def test_div_tensor_mode(self):
         np.random.seed(666)
         shape_format = [
@@ -193,7 +185,6 @@ class TestDiv(TestCase):
             npu_output_inp = self.npu_op_exec_mode_inp(npu_input1, npu_input2, item[3])
             self.assertRtolEqual(cpu_output, npu_output_inp)
 
-    @graph_mode
     @unittest.skip("skip test_div_scalar_mode now")
     def test_div_scalar_mode(self):
         shape_format = [

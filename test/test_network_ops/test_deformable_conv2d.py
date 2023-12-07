@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestDeformableConv2d(TestCase):
@@ -33,7 +32,6 @@ class TestDeformableConv2d(TestCase):
             npu_input = npu_input.npu_format_cast(format1)
         return npu_input
 
-    @graph_mode
     @unittest.skip("skip test_deformable_conv2d_fp32 now")
     def test_deformable_conv2d_fp32(self):
         np.random.seed(1234)
@@ -55,7 +53,6 @@ class TestDeformableConv2d(TestCase):
                                           52.3312, 34.1246, 8.6705, 3.3515, 9.9513, 15.3604, 38.9772, 57.1306])
         self.assertRtolEqual(expect_offset_out, offset_out_select.cpu().detach())
 
-    @graph_mode
     @unittest.skip("skip test_deformable_conv2d_fp16 now")
     def test_deformable_conv2d_fp16(self):
         np.random.seed(1234)

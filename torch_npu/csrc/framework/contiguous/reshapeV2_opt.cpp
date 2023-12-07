@@ -25,7 +25,7 @@ public:
                  const ContiguousTensorDesc &src_desc) override {
     ContiguousTensorDesc result_desc = TransContiguous::GetTensorDescInfo(result);
     if (check_reshape_match(result_desc, src_desc)) {
-      if ((!c10_npu::NpuRunMode::IsGraphMode()) && can_use_memory_repoint(src_desc) &&
+      if (can_use_memory_repoint(src_desc) &&
           reshape_match_by_memory_repoint(src, result)) {
         return true;
       }

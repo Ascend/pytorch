@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestUpsampleLinear1DBackward(TestCase):
@@ -69,7 +68,6 @@ class TestUpsampleLinear1DBackward(TestCase):
         output = output.to("cpu")
         return output.detach().numpy(), gradnpu.detach().numpy()
 
-    @graph_mode
     def test_upsample_linear1d_backward(self):
         for item in self.creat_shape_format():
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -113,7 +111,6 @@ class TestUpsampleLinear1DBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    @graph_mode
     def test_upsample_linear1d_backward_scale(self):
         for item in self.creat_shape_format():
             cpu_input, npu_input = create_common_tensor(item, 0, 100)

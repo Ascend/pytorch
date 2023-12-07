@@ -31,7 +31,6 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
-#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
@@ -90,19 +89,6 @@ constexpr aclDataType kATenScalarTypeToAclDataTypeTable
 AT_ALL_SCALAR_TYPE_AND_ACL_DATATYPE_PAIR(ENUM_PAIR_FUNC)
 #undef DEFINE_ENUM
 
-static std::unordered_map<aclDataType, at::ScalarType>
-    ACL_SCALAR_TYPE_TO_AT_TYPE_MAP = {
-        {ACL_UINT8, at::ScalarType::Byte},
-        {ACL_INT8, at::ScalarType::Char},
-        {ACL_INT16, at::ScalarType::Short},
-        {ACL_INT32, at::ScalarType::Int},
-        {ACL_FLOAT16, at::ScalarType::Half},
-        {ACL_FLOAT, at::ScalarType::Float},
-        {ACL_BOOL, at::ScalarType::Bool},
-        {ACL_INT64, at::ScalarType::Long},
-        {ACL_DOUBLE, at::ScalarType::Double},
-};
-
 static std::map<const string, const aclDataType>
     STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {{"uint16", ACL_UINT16},
                                           {"uint8", ACL_UINT8},
@@ -112,28 +98,12 @@ static std::map<const string, const aclDataType>
 aclError AclrtMemcpyAsyncParamCheck(void *dst, size_t destMax, const void *src,
                                     size_t count, aclrtMemcpyKind kind,
                                     aclrtStream stream) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    if (dst == nullptr || src == nullptr) {
-      AT_ERROR("Dst ptr or Src ptr of aclrtMemcpyAsync is nullptr!",
-               "Current run mode is graph mode, "
-               "try to use torch.npu.disable_graph_mode() to fix this error.");
-    }
-  }
-
   auto ret = aclrtMemcpyAsync(dst, destMax, src, count, kind, stream);
   return ret;
 }
 
 aclError AclrtMemcpyParamCheck(void *dst, size_t destMax, const void *src,
                                size_t count, aclrtMemcpyKind kind) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    if (dst == nullptr || src == nullptr) {
-      AT_ERROR("Dst ptr or Src ptr of aclrtMemcpy is nullptr!",
-               "Current run mode is graph mode, "
-               "try to use torch.npu.disable_graph_mode() to fix this error.");
-    }
-  }
-
   auto ret = aclrtMemcpy(dst, destMax, src, count, kind);
   return ret;
 }
@@ -159,15 +129,6 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(
     return STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP[realDataType];
   }
   return acl_dtype;
-}
-
-at::ScalarType CalcuOpUtil::ConvertToATDataType(const aclDataType &acl_type) {
-  auto iter = ACL_SCALAR_TYPE_TO_AT_TYPE_MAP.find(acl_type);
-  if (iter == ACL_SCALAR_TYPE_TO_AT_TYPE_MAP.end()) {
-    NPU_LOGE("Unsupport data type: %d.", static_cast<int32_t>(acl_type));
-    return at::ScalarType::Undefined;
-  }
-  return iter->second;
 }
 
 c10::Scalar CalcuOpUtil::ConvertTensorToScalar(const at::Tensor &tensor) {
@@ -237,7 +198,6 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
     size_t dst_size,
     const std::pair<at::Tensor, int64_t> &src,
     size_t src_size, aclrtMemcpyKind kind) {
-  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
   void *dst_ptr = reinterpret_cast<uint8_t *>(dst.first.data_ptr()) +
                   dst.second * dst.first.itemsize();
   void *src_ptr = reinterpret_cast<uint8_t *>(src.first.data_ptr()) +
@@ -253,10 +213,6 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     size_t dstMax,
     const StorageAndOffsetMemSizePair &src,
     size_t count, aclrtMemcpyKind kind) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  }
-
   void *dst_ptr = static_cast<void *>(
       static_cast<uint8_t *>(dst.first->data()) + dst.second);
   void *src_ptr = static_cast<void *>(
@@ -269,10 +225,6 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     const StorageAndOffsetMemSizePair &dst,
     size_t dstMax, const void *src,
     size_t count, aclrtMemcpyKind kind) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  }
-
   void *dst_ptr = static_cast<void *>(
       static_cast<uint8_t *>(dst.first->data()) + dst.second);
   return AclrtMemcpyParamCheck(dst_ptr, dstMax, src, count, kind);
@@ -282,10 +234,6 @@ aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
     void *dst, size_t dstMax,
     const StorageAndOffsetMemSizePair &src,
     size_t count, aclrtMemcpyKind kind) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  }
-
   void *src_ptr = static_cast<void *>(
       static_cast<uint8_t *>(src.first->data()) + src.second);
   return AclrtMemcpyParamCheck(dst, dstMax, const_cast<void *>(src_ptr), count,
@@ -297,10 +245,6 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(const at::Tensor &dst,
                                                         const at::Tensor &src,
                                                         size_t count,
                                                         aclrtMemcpyKind kind) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  }
-
   aclError ret = c10_npu::queue::LaunchAsyncCopyTask(
       dst.data_ptr(), dstMax, src.data_ptr(), count, kind);
   return ret;
@@ -309,10 +253,6 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(const at::Tensor &dst,
 aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
     const c10::StorageImpl &dst, size_t dstMax, void *src, size_t count,
     aclrtMemcpyKind kind) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  }
-
   aclError ret =
       c10_npu::queue::LaunchAsyncCopyTask(dst.data(), dstMax, src, count, kind);
   return ret;

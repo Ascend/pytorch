@@ -22,7 +22,6 @@ import numpy as np
 import torch.nn as nn
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestConvTranspose3dBackward(TestCase):
@@ -62,7 +61,6 @@ class TestConvTranspose3dBackward(TestCase):
         res_forward = res_forward.to("cpu")
         return res_forward
 
-    @graph_mode
     @unittest.skip("skip test_conv_transpose3d_backward_shape_format_fp16 now")
     def test_conv_transpose3d_backward_shape_format_fp16(self):
         shape_format = [
@@ -96,7 +94,6 @@ class TestConvTranspose3dBackward(TestCase):
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy())
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
 
-    @graph_mode
     def test_conv_transpose3d_backward_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 30, [12, 12, 4, 14, 14]], [np.float32, 30, [12, 12, 3, 3, 3]], ],

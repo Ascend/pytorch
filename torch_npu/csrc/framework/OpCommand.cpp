@@ -23,7 +23,6 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
-#include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 
 namespace {
 const uint64_t kStringOffset = 16UL;
@@ -46,8 +45,14 @@ static std::unordered_map<at::ScalarType, std::vector<long>> integral_limits_map
 namespace at_npu {
 namespace native {
 
+OpCommand::OpCommand()
+{
+    aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
+    aclCmds->Push(aclCmd);
+    aclCmd->SetCustomHandler(nullptr);
+}
+
 OpCommand& OpCommand::Name(const string &name) {
-    IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(graphCmd.SetName(name);)
     aclCmd->SetName(name);
     return *this;
 }
@@ -60,9 +65,7 @@ OpCommand& OpCommand::SetCustomHandler(PROC_FUNC func) {
 OpCommand& OpCommand::DynamicInputReg(
     DynamicInputRegFunc func,
     DyNumAndIndex num_and_index) {
-  IF_GRAPH_MODE_THEN_RUN(
-    graphCmd.AddDynamicInputRegFunc(func, num_and_index);)
-return *this;
+  return *this;
 }
 
 OpCommand& OpCommand::Expect(UnifiedResult unified_result) {
@@ -73,35 +76,7 @@ OpCommand& OpCommand::Expect(UnifiedResult unified_result) {
 }
 
 OpCommand& OpCommand::Input() {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      graphCmd.AddInput();
-  )
   return AddNoneTensor();
-}
-
-OpCommand &OpCommand::InputWithMetaInfo(const at::Tensor &input,
-                                        const string &descName, string &meta) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(Input(input, descName);)
-
-  auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(input);
-  std::stringstream ss;
-  ss << '|';
-  ss << input.sizes() << '#';
-  ss << input.strides() << '#';
-  ss << std::to_string(input.storage_offset()) << '#';
-  ss << std::to_string(desc.npu_format_);
-  meta += ss.str();
-
-  auto tmpInput = const_cast<at::Tensor &>(input);
-  auto baseFormat = FormatHelper::GetBaseFormat(tmpInput);
-  if (desc.npu_format_ != baseFormat) {
-    tmpInput = custom_ops::npu_format_cast(tmpInput, baseFormat);
-    inputTensor.emplace_back(tmpInput);
-  }
-
-  NpuStorageOffsetGuard guard(tmpInput);
-  AddTensorInput(tmpInput, c10::ScalarType::Undefined, descName, "");
-  return *this;
 }
 
 OpCommand& OpCommand::Input(
@@ -109,14 +84,6 @@ OpCommand& OpCommand::Input(
     const string &descName,
     const c10::optional<aclFormat> &sensitive_format,
     const string &realData) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      auto contiguous_input = Contiguous(input);
-      if (commonType.has_value() &&
-          commonType.value() != contiguous_input.scalar_type()) {
-        contiguous_input = custom_ops::npu_dtype_cast(contiguous_input, commonType.value());
-      }
-      graphCmd.AddInput(contiguous_input, descName, realData, sensitive_format);
-  )
   return AddTensorInput(
       Contiguous(input), c10::ScalarType::Undefined, descName, realData);
 }
@@ -125,9 +92,6 @@ OpCommand& OpCommand::InputWithoutContiguous(
     const at::Tensor &input,
     const string &descName,
     const string &realData) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      graphCmd.AddInput(input, descName, realData);
-  )
   if (input.storage_offset() != 0) {
     TORCH_WARN_ONCE(
         "[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy",
@@ -138,26 +102,16 @@ OpCommand& OpCommand::InputWithoutContiguous(
 
 OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType,
     CompileType compileType, const string& realDtype, const string& descName) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      graphCmd.AddInput(dimListRef, toType);
-  )
   return Input<int64_t>(dimListRef, dimListRef.size(), toType, compileType, realDtype, descName);
 }
 
 OpCommand& OpCommand::Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
     at::ScalarType toType, CompileType compileType, const string& realDtype) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      TORCH_CHECK(false, "In Graph Mode, DoubleArrayRef Input is not supported");
-  )
   return Input<double>(dimListRef, realShape, toType, compileType, realDtype);
 }
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
     CompileType compileType) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      auto true_type = commonType.has_value() ? commonType.value() : type;
-      graphCmd.AddInput(input, true_type, compileType);
-  )
   const auto &scalarTensor = CreateScalarTensor(input, type);
   return AddHostTensorInput(scalarTensor, compileType);
 }
@@ -182,9 +136,6 @@ OpCommand &OpCommand::Input(const string &str) {
 
   NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
                                                         cal_stream));
-
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      graphCmd.AddInput(input, "", kStringDType, c10::nullopt);)
 
   std::tuple<aclTensorDesc *, aclDataBuffer *> res =
       OpCmdHelper::CovertTensorToAclInput(input, "", kStringDType);
@@ -212,25 +163,11 @@ OpCommand& OpCommand::Output(
     const string &descName,
     const c10::optional<aclFormat> &sensitive_format,
     const string &realType) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      if (sensitive_format.has_value() &&
-          FormatHelper::GetBaseFormat(output) != sensitive_format.value()) {
-        output = custom_ops::npu_format_cast(output, sensitive_format.value());
-      }
-      graphCmd.AddOutput(output, descName, realType, sensitive_format);
-      if (!resultTypeDefined && commonType.has_value() &&
-          output.scalar_type() != commonType.value()) {
-        output = custom_ops::npu_dtype_cast(output, commonType.value());
-      }
-  )
   outputTensor.emplace_back(output);
   return AddOutput(output, realType);
 }
 
 void OpCommand::Run() {
-  IF_GRAPH_MODE_THEN_RUN(
-    graphCmd.Run();
-    return;)
   aclCmd->SetEnginePriority();
   const string &op_name = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {

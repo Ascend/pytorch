@@ -17,7 +17,6 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -41,7 +40,6 @@ class TestBatchNorm(TestCase):
         output = output.to("cpu").detach().numpy()
         return output
 
-    @graph_mode
     def test_batchnorm_shape_format(self):
         format_list = [-1, 3, 0]
         shape_list = [(10, 32, 35, 45), (256, 100, 7, 7), (256, 100, 14, 14), (10, 56, 28, 28), (10, 56, 56, 56)]
@@ -76,7 +74,6 @@ class TestBatchNorm(TestCase):
         output = output.to("cpu").detach().numpy()
         return output
 
-    @graph_mode
     def test_batchnorm_shape_format_3d(self):
         format_list = [-1]
         shape_list = [[8, 512, 4, 28, 28], [8, 256, 8, 56, 56]]

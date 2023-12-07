@@ -20,7 +20,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestHardtanhBackward(TestCase):
@@ -42,7 +41,6 @@ class TestHardtanhBackward(TestCase):
         output = output.to("cpu")
         return output, res
 
-    @graph_mode
     def test_floor_shape_format(self):
         shape_format = [
             [[np.float32, 0, (64, 10)], 0, 1],

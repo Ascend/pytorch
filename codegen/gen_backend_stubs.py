@@ -453,7 +453,6 @@ static bool isDeviceTensor(const at::Tensor &tensor) {
 
             native_func_header = """
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"

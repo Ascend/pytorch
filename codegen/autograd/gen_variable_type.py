@@ -521,7 +521,7 @@ def gen_select_patch(fn: NativeFunctionWithDifferentiabilityInfo, aclnn_return: 
     path_five = f"{type_wrapper_name(f)}({aclnn_return})"
 
     return_code = f"""\
-if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str} && !c10_npu::NpuRunMode::IsGraphMode()) {{
+if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str}) {{
         return {path_five};
     }} else {{
         return {path_three};

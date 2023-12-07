@@ -18,7 +18,6 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestBatchNormReduce(TestCase):
@@ -33,7 +32,6 @@ class TestBatchNormReduce(TestCase):
         out_square_sum = npu_square_sum.cpu().numpy()
         return out_sum, out_square_sum
 
-    @graph_mode
     def test_batch_norm_reduce(self):
         np.random.seed(1234)
         shape_format = [

@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestSlowConvDilated2D(TestCase):
@@ -93,11 +92,9 @@ class TestSlowConvDilated2D(TestCase):
 
         return npu_output
 
-    @graph_mode
     def test_slow_conv_dilated2d_shape_format_fp16(self):
         self._slow_conv_dilated2d_shape_format(np.float16)
 
-    @graph_mode
     def test_slow_conv_dilated2d_shape_format_fp32(self):
         self._slow_conv_dilated2d_shape_format(np.float32, 3, 5)
 

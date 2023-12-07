@@ -19,7 +19,6 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestHardsigmoid(TestCase):
@@ -41,7 +40,6 @@ class TestHardsigmoid(TestCase):
         output = input1.cpu().numpy()
         return output
 
-    @graph_mode
     def test_hardsigmoid(self):
         shape_foramt = [
             [np.int32, 0, (3, 6)],

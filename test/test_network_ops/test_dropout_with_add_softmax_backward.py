@@ -19,7 +19,6 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestDropOutWithAddSoftMax(TestCase):
@@ -37,7 +36,6 @@ class TestDropOutWithAddSoftMax(TestCase):
         output.backward(torch.ones_like(output) * 400)
         return softmax_out.cpu().detach().numpy(), output.cpu().detach().numpy(), x2.grad.cpu().detach().numpy()
 
-    @graph_mode
     def test_dropout_shape_format(self):
         dtypes = [torch.half, torch.float]
         for dtype in dtypes:

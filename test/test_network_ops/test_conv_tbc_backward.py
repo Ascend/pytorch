@@ -18,7 +18,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestConvTbcBackward(TestCase):
@@ -57,7 +56,6 @@ class TestConvTbcBackward(TestCase):
         npu_output = npu_output.detach().numpy()
         return npu_output, bias1.grad.to("cpu")
 
-    @graph_mode
     def test_conv_tbc_backward_shape_format(self):
         shape_format = [  # input(TBC1), weight(Lc1c0), bias(c0), pad
             [[np.float16, -1, (5, 1, 2)], [np.float16, -1, (1, 2, 2)], [np.float16, -1, (2)], 0],

@@ -73,15 +73,6 @@ bool check_reshape_match(const ContiguousTensorDesc &self_desc,
       return false;
     }
 
-    IF_GRAPH_MODE_THEN_RUN(
-      // In single op mode, this opt will be used for reshape/slice/select
-      // scenes. In graph mode, reshape opt is only used for reshape scenes,
-      // npu-reshape is used to calculae and get contiguous tensor.
-      if (c10::multiply_integers(src_desc.base_sizes_) != c10::multiply_integers(src_desc.sizes_)) {
-        return false;
-      }
-    );
-
     return true;
   }
   return false;

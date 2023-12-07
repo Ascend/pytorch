@@ -23,7 +23,6 @@
 #include "torch_npu/csrc/aten/NPUNativeOpApiFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 

@@ -17,7 +17,6 @@
 #include <torch/csrc/python_headers.h>
 
 #include <ATen/ATen.h>
-#include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -40,13 +39,10 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
-#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/npu/Module.h"
-#include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 
@@ -299,70 +295,6 @@ PyObject* THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
     }
     c10_npu::setCurrentNPUStream(stream);
     Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* arg)
-{
-    HANDLE_TH_ERRORS
-    pybind11::gil_scoped_release no_gil;
-    bool verbose = THPUtils_unpackBool(arg);
-    at_npu::native::GraphExecutor::GetInstance().SetVerbose(verbose);
-    c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::GRAPH_MODE);
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_disable_graph_mode_wrap(PyObject* self, PyObject* noargs)
-{
-    HANDLE_TH_ERRORS
-    pybind11::gil_scoped_release no_gil;
-    at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-    c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::SINGLE_OP_MODE);
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_enable_replay_graph_mode_wrap(PyObject* self, PyObject* arg)
-{
-    HANDLE_TH_ERRORS
-    pybind11::gil_scoped_release no_gil;
-    bool verbose = THPUtils_unpackBool(arg);
-    at_npu::native::GraphExecutor::GetInstance().SetVerbose(verbose);
-    c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::REPLAY_MODE);
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_disable_replay_graph_mode_wrap(PyObject* self, PyObject* noargs)
-{
-    HANDLE_TH_ERRORS
-    pybind11::gil_scoped_release no_gil;
-    at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-    c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::SINGLE_OP_MODE);
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_launch_graph_wrap(PyObject* self, PyObject* noargs)
-{
-    HANDLE_TH_ERRORS
-    pybind11::gil_scoped_release no_gil;
-    at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-    Py_RETURN_NONE;
-    END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs)
-{
-    HANDLE_TH_ERRORS
-    pybind11::gil_scoped_release no_gil;
-    auto is_graph_mode = c10_npu::NpuRunMode::IsGraphMode();
-    if (is_graph_mode) {
-      Py_RETURN_TRUE;
-    } else {
-      Py_RETURN_FALSE;
-    }
     END_HANDLE_TH_ERRORS
 }
 
@@ -672,47 +604,6 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args)
     END_HANDLE_TH_ERRORS
 }
 
-PyObject* wrap_tuple_to_print(at_npu::native::TupleToPrint& tuple_to_print)
-{
-    std::vector<at::Tensor>& tensors = std::get<0>(tuple_to_print);
-    auto tensor_num = tensors.size();
-    if (tensor_num == 0) {
-      auto ret = THPObjectPtr{PyTuple_New(0)};
-      return ret.release();
-    }
-    auto ret = THPObjectPtr{PyTuple_New(tensor_num + 1)};
-    if (!ret) {
-      throw python_error();
-    }
-    for (size_t i = 0UL; i < tensor_num; i++) {
-      at::Tensor tensor = tensors[i];
-      PyTuple_SET_ITEM(ret.get(), i, torch::autograd::utils::wrap(tensor));
-    }
-    std::string& format_string = std::get<1>(tuple_to_print);
-    PyTuple_SET_ITEM(ret.get(), tensor_num, PYBIND11_BYTES_FROM_STRING(format_string.c_str()));
-    return ret.release();
-}
-
-PyObject* THNPModule_npu_deque_tensor(PyObject* self, PyObject* args)
-{
-    HANDLE_TH_ERRORS
-    at_npu::native::TupleToPrint tuple_to_print;
-    {
-      pybind11::gil_scoped_release no_gil;
-      do {
-        tuple_to_print =
-            at_npu::native::TdtChannelForPrint::GetInstance().GetTupleToPrint();
-        if (std::get<0>(tuple_to_print).size() == 0) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        } else {
-          break;
-        }
-      } while (true);
-    }
-    return wrap_tuple_to_print(tuple_to_print);
-    END_HANDLE_TH_ERRORS
-}
-
 PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args)
 {
     HANDLE_TH_ERRORS
@@ -885,12 +776,6 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
-    {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_O, nullptr},
-    {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
-    {"_npu_enable_replay_graph_mode", (PyCFunction)THNPModule_enable_replay_graph_mode_wrap, METH_O, nullptr},
-    {"_npu_disable_replay_graph_mode", (PyCFunction)THNPModule_disable_replay_graph_mode_wrap, METH_NOARGS, nullptr},
-    {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
-    {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_setMemoryFraction", (PyCFunction) THNPModule_setMemoryFraction, METH_VARARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
@@ -909,7 +794,6 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_prof_start", (PyCFunction)THNPModule_prof_start, METH_VARARGS, nullptr},
     {"_enable_e2e_profiler", (PyCFunction)THNPModule_enable_e2eProfiler, METH_VARARGS, nullptr},
     {"_disable_e2e_profiler", (PyCFunction)THNPModule_disable_e2eProfiler, METH_NOARGS, nullptr},
-    {"_npu_deque_tensor", (PyCFunction)THNPModule_npu_deque_tensor, METH_VARARGS, nullptr},
     {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
     {"_enable_overflow_npu", (PyCFunction)THNPModule_enable_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_is_support_inf_nan", (PyCFunction)THNPModule_npu_is_support_inf_nan, METH_NOARGS, nullptr},

@@ -20,7 +20,6 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -123,74 +122,62 @@ class TestPow(TestCase):
             self.assertRtolEqual(cpu_output_tensor_scalar, npu_output_tensor_scalar_out)
 
     # scalar_tensor-------------------------------------------------------
-    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64, 128]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64, 128]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     # tensor_scalar-----------------------------------------------------------
-    @graph_mode
     def test_pow_shape_format_tensor_scala_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_tensor_scalar_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_tensor_scala_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_tensor_scalar_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_tensor_scala_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64, 128]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @graph_mode
     def test_pow_shape_format_tensor_scalar_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64, 128]] for i in format_list]
@@ -198,7 +185,6 @@ class TestPow(TestCase):
     '''
 
     # tensor_tensor-----------------------------------------------------------
-    @graph_mode
     def test_pow_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, (5,)], [np.float32, -1, (1,)]],
@@ -217,7 +203,6 @@ class TestPow(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    @graph_mode
     def test_pow_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)
@@ -244,7 +229,6 @@ class TestPow(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    @graph_mode
     def test_pow_int32_float_format(self):
         a = torch.randn(64).to(torch.int32)
         na = a.npu()
@@ -252,7 +236,6 @@ class TestPow(TestCase):
         npu_out = self.npu_op_exec(na, 1.0)
         self.assertRtolEqual(cpu_out, npu_out)
 
-    @graph_mode
     def test_pow_float_int32_format(self):
         a = torch.randn(64).to(torch.int32)
         na = a.npu()

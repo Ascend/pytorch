@@ -19,7 +19,6 @@ import torch.nn as nn
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -97,7 +96,6 @@ class TestConv3d(TestCase):
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].cpu().numpy(), 1e-3)
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].cpu().numpy(), 1e-3)
 
-    @graph_mode
     def test_conv3d_backward_shape_format_fp16(self):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             [[np.float16, 30, [1, 128, 4, 14, 14]],
@@ -107,7 +105,6 @@ class TestConv3d(TestCase):
         ]
         self.conv3d_backward_result(shape_format)
 
-    @graph_mode
     def test_conv3d_backward_shape_format_fp32(self):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             [[np.float32, 30, [1, 128, 4, 14, 14]],

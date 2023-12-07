@@ -19,7 +19,6 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.testing.decorator import graph_mode
 
 
 class TestStrideAdd(TestCase):
@@ -30,7 +29,6 @@ class TestStrideAdd(TestCase):
 
         return output
 
-    @graph_mode
     def test_StrideAdd(self):
         input1 = torch.tensor([[[[[1.]]]]]).npu()
         input2 = input1

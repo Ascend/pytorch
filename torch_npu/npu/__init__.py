@@ -32,7 +32,7 @@ __all__ = [
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor",
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
-    "get_rng_state_all", "set_rng_state_all", "make_replay_graph", "is_jit_compile_false",
+    "get_rng_state_all", "set_rng_state_all", "is_jit_compile_false",
     "current_blas_handle", "config", "matmul", "conv", "mem_get_info",
 ]
 
@@ -59,8 +59,6 @@ from .memory import (caching_allocator_alloc, caching_allocator_delete,
                      max_memory_allocated, memory_reserved, max_memory_reserved,
                      memory_cached, max_memory_cached, memory_snapshot, memory_summary)
 from .streams import Stream, Event
-from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
-from .replay_graph import make_replay_graph
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
                                    prof_start, prof_stop, prof_finalize, iteration_start, iteration_end,
