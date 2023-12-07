@@ -14,13 +14,13 @@ from torch.nn.parameter import Parameter, UninitializedParameter, UninitializedB
 from torch.nn.modules.batchnorm import _NormBase, _LazyNormBase
 from torch.nn.modules.module import Module
 from torch.nn.parallel._functions import _streams
-from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 
 import torch_npu
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 import torch_npu.distributed as dist
 
-origin_ddp_init = DistributedDataParallel.__init__
+origin_mpdl_iter_init = _MultiProcessingDataLoaderIter.__init__
 
 
 def npu(self, device=None):
@@ -343,9 +343,9 @@ def _ddp_init_helper(
     self._passing_sync_batchnorm_handle(self.module)
 
 
-def ddp_init(self, *args, **kwargs):
-    origin_ddp_init(self, *args, **kwargs)
+def mpdl_iter_init(self, *args, **kwargs):
     torch_npu.npu.synchronize()
+    origin_mpdl_iter_init(self, *args, **kwargs)
 
 
 def apply_module_patch():
@@ -354,4 +354,4 @@ def apply_module_patch():
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
-    torch.nn.parallel.DistributedDataParallel.__init__ = ddp_init
+    torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = mpdl_iter_init
