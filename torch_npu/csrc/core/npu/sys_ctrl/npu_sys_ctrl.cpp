@@ -13,6 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <torch/csrc/python_headers.h>
+#include <torch/csrc/THP.h>
+#include <torch/csrc/utils/python_arg_parser.h>
+#include <torch/csrc/utils/pybind.h>
+#include <torch/csrc/utils/python_strings.h>
+#include <torch/csrc/utils/python_numbers.h>
+
 #include "npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
@@ -109,9 +116,41 @@ void SetHF32DefaultValue() {
   }
 }
 
+std::string GetTorchNpuFile() {
+  PyObject* file_attr = nullptr;
+  {
+    pybind11::gil_scoped_acquire get_gil;
+    auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
+    if (!torch) {
+      throw python_error();
+    }
+    file_attr = PyObject_GetAttrString(torch, "__file__");
+  }
+  if (file_attr) {
+    const char* file_path = PyUnicode_AsUTF8(file_attr);
+    std::string file_path_str = std::string(file_path);
+    std::string key_word = "torch";
+    size_t pos = file_path_str.rfind(key_word);
+    if(pos != std::string::npos) {
+      return file_path_str.substr(0, pos);
+    }
+  }
+  ASCEND_LOGW("Failed to get __file__ attribute.");
+  return "";
+}
+
 std::string GetAclConfigJsonPath() {
-  const char *acl_json =c10_npu::option::OptionsManager::GetAclConfigJsonPath();
-  return torch_npu::toolkit::profiler::Utils::RealPath(acl_json);
+  std::string npu_path = GetTorchNpuFile();
+  if (npu_path == "") {
+    ASCEND_LOGW("Failed to get npu path!");
+    return "";
+  }
+  std::string json_path = npu_path.append("torch_npu/acl.json");
+  std::string json_path_str = torch_npu::toolkit::profiler::Utils::RealPath(json_path);
+  if (json_path_str == "") {
+    ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
+  }
+  return json_path_str;
 }
 } // namespace
 
@@ -132,6 +171,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
     std::string json_path = GetAclConfigJsonPath();
     const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
+    ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
     NPU_CHECK_ERROR(aclInit(json_path_ptr));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {

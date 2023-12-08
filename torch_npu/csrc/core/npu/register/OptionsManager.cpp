@@ -116,10 +116,5 @@ int32_t OptionsManager::GetACLExecTimeout()
     return static_cast<int32_t>(envFlag);
 }
 
-const char* OptionsManager::GetAclConfigJsonPath()
-{
-    char* env_val = std::getenv("ACL_CONFIG_JSON_PATH");
-    return env_val == nullptr ? "" : env_val;
-}
 } // namespace option
 } // namespace c10_npu
