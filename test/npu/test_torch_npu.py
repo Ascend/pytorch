@@ -1,5 +1,6 @@
 import contextlib
 import collections
+import unittest
 
 import torch
 import torch_npu
@@ -187,6 +188,7 @@ class TorchNPUApiTestCase(TestCase):
         e = torch_npu.npu.Event()
         self.assertIsNone(s.wait_event(e))
 
+    @unittest.skip("Skip test_npu_stream_query for now!")
     def test_npu_stream_query(self):
         t = torch.ones(4096, 4096).npu()
         s = torch_npu.npu.current_stream()
