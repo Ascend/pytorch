@@ -287,9 +287,11 @@ namespace at_npu
         } catch (std::exception& e) {
           ret = ACL_ERROR_INVALID_PARAM;
           ASCEND_LOGE("Custom hand error:%s", e.what());
+          C10_NPU_SHOW_ERR_MSG();
         }
         if (ret != ACL_ERROR_NONE) {
           ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
+          C10_NPU_SHOW_ERR_MSG();
         }
         return ret;
       }
@@ -314,8 +316,9 @@ namespace at_npu
             at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
             nullptr);
         if (ret != ACL_ERROR_NONE) {
+          ASCEND_LOGE("In aoe mode, AclGenGraphAndDumpForOp failed!");
           C10_NPU_SHOW_ERR_MSG();
-          TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
+          return ret;
         }
       }
       ret = aclopCompileAndExecute(
