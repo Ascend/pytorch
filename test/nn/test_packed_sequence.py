@@ -4,8 +4,9 @@ import itertools
 import random
 
 import torch
-from torch.testing._internal.common_utils import TestCase, run_tests
 import torch.nn.utils.rnn as rnn_utils
+import torch_npu
+from torch.testing._internal.common_utils import TestCase, run_tests
 
 
 class PackedSequenceTest(TestCase):

@@ -11,6 +11,9 @@ from collections import OrderedDict, namedtuple
 import math
 import warnings
 
+import torch
+import torch.nn as nn
+import torch_npu
 from torch.testing._internal.common_utils import (
     TestCase,
     run_tests,
@@ -20,8 +23,6 @@ from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests
 )
 from torch.testing._internal.common_nn import NNTestCase, _create_basic_net
-import torch
-import torch.nn as nn
 
 
 class Net(nn.Module):

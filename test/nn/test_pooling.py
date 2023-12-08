@@ -12,6 +12,10 @@ import math
 
 from torch import inf, nan
 import torch
+import torch.nn.functional as F
+import torch.nn as nn
+from torch.autograd import gradcheck, gradgradcheck
+import torch_npu
 from torch.testing import make_tensor
 from torch.testing._internal.common_utils import TestCase, run_tests, TEST_WITH_UBSAN, set_default_dtype, \
     instantiate_parametrized_tests, slowTest, parametrize as parametrize_test, subtest, skipIfMps, gcIfJetson, \
@@ -20,11 +24,8 @@ from torch.testing._internal.common_cuda import TEST_CUDA
 from torch.testing._internal.common_nn import NNTestCase, _test_bfloat16_ops, _test_module_empty_input
 from torch.testing._internal.common_device_type import largeTensorTest, onlyNativeDeviceTypes, dtypes, \
     instantiate_device_type_tests, skipCUDAIfRocm, expectedFailureMeta, dtypesIfCUDA, onlyCPU, onlyCUDA, \
-    TEST_WITH_ROCM
+    TEST_WITH_ROCM, onlyCUDAAndPRIVATEUSE1, dtypesIfPRIVATEUSE1
 from torch.testing._internal.common_dtype import floating_types_and
-import torch.nn.functional as F
-import torch.nn as nn
-from torch.autograd import gradcheck, gradgradcheck
 
 
 class TestAvgPool(TestCase):
@@ -850,11 +851,11 @@ torch.cuda.synchronize()
         check(tensor, 3, 2, 1, 2, ceil_mode=True)
         check(tensor.transpose(1, 2), 3, 2, 1, 2, ceil_mode=True)
 
-    @onlyCUDA
+    @onlyCUDAAndPRIVATEUSE1
     @gcIfJetson
     def test_max_pool2d(self, device):
         def helper(n, c, h, w, ks):
-            x = torch.randn(n, c, h, w, device='cuda', dtype=torch.float, requires_grad=True)
+            x = torch.randn(n, c, h, w, device=device, dtype=torch.float, requires_grad=True)
             ref_x = x.detach().clone().cpu().requires_grad_()
 
             pool = torch.nn.MaxPool2d(kernel_size=ks)
@@ -1011,14 +1012,14 @@ torch.cuda.synchronize()
         helper((4, 10, 8, 8, 8), 7, 1, torch.channels_last_3d)
 
 
-    @onlyCUDA
+    @onlyCUDAAndPRIVATEUSE1
     @gcIfJetson
     def test_max_pool2d_indices(self, device):
         def helper(n, c, h, w, ks):
             if n is None:
-                x = torch.randn(c, h, w, device='cuda', dtype=torch.float, requires_grad=True)
+                x = torch.randn(c, h, w, device=device, dtype=torch.float, requires_grad=True)
             else:
-                x = torch.randn(n, c, h, w, device='cuda', dtype=torch.float, requires_grad=True)
+                x = torch.randn(n, c, h, w, device=device, dtype=torch.float, requires_grad=True)
 
             ref_x = x.detach().clone().cpu().requires_grad_()
 
@@ -1139,7 +1140,7 @@ torch.cuda.synchronize()
             helper(4, 8, 9, 14, (2, 2), (1, 1), (1, 1), (2, 2), contig, device)
             helper(4, 8, 11, 11, (4, 4), (2, 2), (2, 2), (2, 2), contig, device)
 
-    @onlyCUDA
+    @onlyCUDAAndPRIVATEUSE1
     def test_pool3d_size_one_feature_dim(self, device):
         # Tests crazy strides for feature dim of size 1
         x = torch.randn(7, 1, 5, 3, 2, device=device)
@@ -1179,7 +1180,6 @@ torch.cuda.synchronize()
         self.assertEqual(y, ref_y, exact_dtype=False)
         self.assertEqual(x.grad, ref_x.grad, exact_dtype=False)
 
-    @onlyCUDA
     def test_AvgPool3d_backward_after_cat_dim1_device(self, device):
         # x has to have batch_size 1 to test contiguous checks
         x = torch.randn(1, 3, 4, 4, 4, device=device, requires_grad=True)
@@ -1457,6 +1457,7 @@ torch.cuda.synchronize()
                 self.assertRaisesRegex(RuntimeError, r"stride should not be zero|stride must be greater than zero",
                                        lambda: fn_module(x))
 
+    @dtypesIfPRIVATEUSE1(*floating_types_and(torch.half, torch.bfloat16))
     @dtypesIfCUDA(*floating_types_and(torch.half, torch.bfloat16))
     @skipIfMps
     @dtypes(torch.float)
@@ -1509,7 +1510,7 @@ torch.cuda.synchronize()
                         # some implementations do not support dilation
                         res = fn(x, 6, stride=2, padding=0)
 
-    @onlyCUDA
+    @onlyCUDAAndPRIVATEUSE1
     def test_pooling_bfloat16(self, device):
         _test_bfloat16_ops(self, torch.nn.AvgPool1d(3, stride=2), device, inp_dims=(8, 4, 16), prec=0.05)
         _test_bfloat16_ops(self, torch.nn.AvgPool2d(3, stride=2), device, inp_dims=(8, 4, 16, 16), prec=0.05)
