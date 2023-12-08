@@ -131,11 +131,5 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable()
     return static_cast<uint32_t>(desyncDebugFlag);
 }
 
-const char* OptionsManager::GetAclConfigJsonPath()
-{
-    char* env_val = std::getenv("ACL_CONFIG_JSON_PATH");
-    return env_val == nullptr ? "" : env_val;
-};
-
 } // namespace option
 } // namespace c10_npu
