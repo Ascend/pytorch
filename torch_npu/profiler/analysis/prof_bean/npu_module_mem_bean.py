@@ -5,7 +5,7 @@ class NpuModuleMemoryBean:
     SHOW_HEADERS = ["Component", "Timestamp(us)", "Total Reserved(MB)", "Device"]
 
     def __init__(self, data: dict):
-        total_reverved = int(data.get("Total Reserved(KB)", 0))
+        total_reverved = float(data.get("Total Reserved(KB)", 0))
         data["Total Reserved(MB)"] = str(total_reverved / Constant.KB_TO_MB)
         self._data = data
 
