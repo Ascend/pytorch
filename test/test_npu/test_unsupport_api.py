@@ -109,37 +109,6 @@ class TestPtaUnsupportApi(TestCase):
         with self.assertRaisesRegex(RuntimeError, "frexp.Tensor_out is unsupported!"):
             torch.frexp(a, out = (mantissa, exponent))
 
-    def test_isin_Tensor_Tensor_out(self):
-        a = torch.tensor([-1, -2, 3]).npu()
-        b = torch.tensor([1, 0, 3]).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor_out is unsupported!"):
-            torch.isin(a, b, out = result)
-    
-    def test_isin_Tensor_Tensor(self):
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Tensor is unsupported!"):
-            torch.isin(torch.tensor([-1, -2, 3]).npu(), torch.tensor([1, 0, 3]).npu())
-
-    def test_isin_Tensor_Scalar_out(self):
-        a = torch.tensor([-1, -2, 3]).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Scalar_out is unsupported!"):
-            torch.isin(a, 1, out = result)
-    
-    def test_isin_Tensor_Scalar(self):
-        with self.assertRaisesRegex(RuntimeError, "isin.Tensor_Scalar is unsupported!"):
-            torch.isin(torch.tensor([-1, -2, 3]).npu(), 1)
-    
-    def test_isin_Scalar_Tensor_out(self):
-        a = torch.tensor([-1, -2, 3]).npu()
-        result = torch.empty_like(a)
-        with self.assertRaisesRegex(RuntimeError, "isin.Scalar_Tensor_out is unsupported!"):
-            torch.isin(1, a, out = result)
-    
-    def test_isin_Scalar_Tensor(self):
-        with self.assertRaisesRegex(RuntimeError, "isin.Scalar_Tensor is unsupported!"):
-            torch.isin(1, torch.tensor([-1, -2, 3]).npu())
-    
     def test_cholesky_out(self):
         a = torch.randn(3, 3).npu()
         result = torch.empty_like(a)
