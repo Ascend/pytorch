@@ -667,6 +667,20 @@ class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
                     inner_precision_mode)
 
 
+
+class NPUMmAllReduceBaseOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_mm_all_reduce_base(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: torch.Tensor, x2: torch.Tensor, hcom: str,
+                 reduce_op: str = 'sum', bias: Optional[Tensor] = None, comm_turn: int = 0):
+        return g.op("npu::NPUMmAllReduceBase", self, x2, hcom,
+                    reduce_op, bias, comm_turn)
+
+
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode):
     return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
@@ -912,6 +926,11 @@ def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, att
                                           input_layout, num_key_value_heads, block_size, inner_precise)
 
 
+
+def wrapper_npu_mm_all_reduce_base(self, x2, hcom, reduce_op, bias, comm_turn):
+    return NPUMmAllReduceBaseOP.apply(self, x2, hcom, reduce_op, bias, comm_turn)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -962,4 +981,4 @@ def add_onnx_ops():
     torch_npu.npu_prompt_flash_attention = wrapper_npu_prompt_flash_attention
     torch_npu.npu_incre_flash_attention = wrapper_npu_incre_flash_attention
     torch_npu.npu_masked_softmax_with_rel_pos_bias = wrapper_npu_masked_softmax_with_rel_pos_bias
-
+    torch_npu.npu_mm_all_reduce_base = wrapper_npu_mm_all_reduce_base
