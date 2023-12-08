@@ -152,3 +152,12 @@ def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
         return (torch.empty_like(self, dtype=self.dtype), self.new_empty((N, group), dtype=self.dtype), self.new_empty((N, group), dtype=self.dtype))
     else:
         return (torch.empty_like(self, dtype=self.dtype), gemma.new_empty((N, group), dtype=gemma.dtype), beta.new_empty((N, group), dtype=beta.dtype))
+
+
+@impl(m, "npu_mm_all_reduce_base")
+def npu_mm_all_reduce_base_forward(self, x2, hcom, reduce_op='sum', bias=None, comm_turn=0):
+    dim_list = []
+    for i in range(self.dim()):
+        dim_list.append(self.size(i))
+    dim_list[-1] = x2.size(1)
+    return self.new_empty(tuple(dim_list))
