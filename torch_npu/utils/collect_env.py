@@ -28,9 +28,6 @@ SystemEnv = namedtuple('SystemEnv', [
     'is_xnnpack_available',
     'cpu_info',
     'cann_version',
-    'cann_driver_version',
-    'npu_mapping_info',
-    'npu_count_info',
 ])
 
 
@@ -40,39 +37,15 @@ def get_cann_version():
     PathManager.check_directory_path_readable(os.path.realpath(ascend_home_path))
     for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
         install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
-        if len(install_files) == 0:
-            install_files = [file for file in filenames if re.match(r"version*.cfg", file)]
         if install_files:
             filepath = os.path.realpath(os.path.join(dirpath, install_files[0]))
             PathManager.check_directory_path_readable(filepath)
             with open(filepath, "r") as f:
-                cann_version = " ".join(f.readlines())
-                break
+                for line in f:
+                    if line.find("version") != -1:
+                        cann_version = line.strip().split("=")[-1]
+                        break
     return cann_version
-
-
-def get_npu_board_info(run_lambda):
-    npu_smi = " npu-smi info -t board -i 0"
-    rc, out, _ = run_lambda(npu_smi)
-    if rc != 0:
-        return "not known"
-    return out
-
-
-def get_npu_mapping_info(run_lambda):
-    npu_smi = " npu-smi info -m"
-    rc, out, _ = run_lambda(npu_smi)
-    if rc != 0:
-        return "not known"
-    return out
-
-
-def get_npu_count_info(run_lambda):
-    npu_smi = " npu-smi info -l"
-    rc, out, _ = run_lambda(npu_smi)
-    if rc != 0:
-        return "not known"
-    return out
 
 
 def get_torch_npu_version():
@@ -119,9 +92,6 @@ def get_env_info():
         cpu_info=torch_collect_env.get_cpu_info(run_lambda) 
             if hasattr(torch_collect_env, "get_cpu_info") else "not known",
         cann_version=get_cann_version(),
-        cann_driver_version=get_npu_board_info(run_lambda),
-        npu_mapping_info=get_npu_mapping_info(run_lambda),
-        npu_count_info=get_npu_count_info(run_lambda),
     )
 
 env_info_fmt = """
@@ -143,15 +113,6 @@ CPU:
 
 CANN:
 {cann_version}
-
-CANN driver:
-{cann_driver_version}
-
-NPU mapping info:
-{npu_mapping_info}
-
-NPU count info:
-{npu_count_info}
 
 Versions of relevant libraries:
 {pip_packages}
@@ -217,6 +178,10 @@ def pretty_str(envinfo):
 
 def get_pretty_env_info():
     return pretty_str(get_env_info())
+
+
+def add_collect_env_methods():
+    torch.version.cann = get_cann_version()
 
 
 def main():

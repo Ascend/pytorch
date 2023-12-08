@@ -42,7 +42,7 @@ import torch_npu._C
 from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
-from torch_npu.utils import apply_module_patch, add_tensor_methods, \
+from torch_npu.utils import apply_module_patch, add_tensor_methods, add_collect_env_methods,\
      add_storage_methods, add_optim_method, add_serialization_methods, apply_device_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
@@ -129,7 +129,7 @@ def apply_class_patches():
     add_optim_method()
     add_serialization_methods()
     add_intercept_methods()
-
+    add_collect_env_methods()
 
 
 torch.utils.rename_privateuse1_backend("npu")
