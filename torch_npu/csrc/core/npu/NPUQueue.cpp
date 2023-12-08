@@ -208,9 +208,10 @@ NPUStatus Repository::MakeSureQueueEmpty() {
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
-    throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
-                            "so the stacktrace below is not the root cause of the problem.\n" \
-                            "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
+    throw std::runtime_error("The Inner error as above.\n "\
+                             "ASCEND kernel errors might be asynchronously reported at some other API call, "\
+                             "so the stacktrace may not correct.\n" \
+                             "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
   }
 
   // Get the GIL
@@ -276,10 +277,12 @@ void Repository::Enqueue(void* cur_paras) {
   }
 
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
+    // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
-    throw std::runtime_error("ASCEND kernel errors might be asynchronously reported at some other API call, "\
-                            "so the stacktrace below is not the root cause of the problem.\n" \
-                            "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
+    throw std::runtime_error("The Inner error as above.\n "\
+                             "ASCEND kernel errors might be asynchronously reported at some other API call, "\
+                             "so the stacktrace may not correct.\n" \
+                             "For getting the stacktrace of OP in PyTorch, consider passing ASCEND_LAUNCH_BLOCKING=1.");
   }
 
   if (GetStatus() != RUN && GetStatus() != INIT) {
