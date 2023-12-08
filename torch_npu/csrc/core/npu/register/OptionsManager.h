@@ -22,7 +22,6 @@ public:
     static uint32_t GetHCCLExecTimeout();
     static std::string CheckDisableDynamicPath();
     static int32_t GetACLExecTimeout();
-    static const char* GetAclConfigJsonPath();
     static uint32_t CheckUseHcclAsyncErrorHandleEnable();
     static uint32_t CheckUseDesyncDebugEnable();
 
