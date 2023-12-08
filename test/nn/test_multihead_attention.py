@@ -4,15 +4,16 @@ import random
 import unittest
 import unittest.mock as mock
 
+import torch
 from torch.nn import MultiheadAttention
+import torch.nn as nn
+import torch_npu
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, dtypes, \
     onlyCUDAAndPRIVATEUSE1
 from torch.testing._internal.common_nn import NNTestCase
 from torch.testing._internal.common_utils import run_tests, \
     TEST_NUMPY, TEST_WITH_CROSSREF, \
     parametrize as parametrize_test, instantiate_parametrized_tests
-import torch.nn as nn
-import torch
 
 if TEST_NUMPY:
     import numpy as np
