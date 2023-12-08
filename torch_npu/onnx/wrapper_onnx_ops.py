@@ -114,6 +114,23 @@ class NPUCiouOP(torch.autograd.Function):
                     atan_sub_flag_i=atan_sub_flag)
 
 
+class NPUGroupNormSiluOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_group_norm_silu(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, gamma: Optional[Tensor], beta: Optional[Tensor],
+                 group: int, eps: float = 0.00001):
+        if gamma is None:
+            gamma = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        if beta is None:
+            beta = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        return g.op("npu::NPUGroupNormSilu", self, gamma, beta, group_i=group, eps_f=eps,
+                    outputs=3)
+
+
 class NPUMultiHeadAttentionOP(torch.autograd.Function):
 
     @staticmethod
@@ -742,6 +759,11 @@ def wrapper_npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_
                                          num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all)
 
 
+
+def wrapper_npu_group_norm_silu(x, gamma, beta, group, eps=0.00001):
+    return NPUGroupNormSiluOP.apply(x, gamma, beta, group, eps)
+
+
 def wrapper_npu_ifmr(data, data_min, data_max, cumsum, min_percentile, max_percentile,
                      search_start, search_end, search_step, with_offset):
     return NPUIfmrOP.apply(data, data_min, data_max, cumsum, min_percentile, max_percentile,
@@ -894,6 +916,7 @@ def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
     torch_npu.npu_roi_align = wrapper_npu_roi_align
+    torch_npu.npu_group_norm_silu = wrapper_npu_group_norm_silu
     torch_npu.npu_iou = wrapper_npu_iou
     torch_npu.npu_batch_nms = wrapper_npu_batch_nms
     torch_npu.fast_gelu = wrapper_npu_fast_gelu
