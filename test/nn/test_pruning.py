@@ -4,9 +4,9 @@ import unittest.mock as mock
 import pickle
 
 import torch
-
 import torch.nn as nn
 import torch.nn.utils.prune as prune
+import torch_npu
 from torch.testing._internal.common_utils import TEST_NUMPY, TemporaryFileName, \
     instantiate_parametrized_tests, run_tests
 from torch.testing._internal.common_nn import NNTestCase

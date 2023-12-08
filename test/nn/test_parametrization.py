@@ -4,12 +4,12 @@ from itertools import product
 import pickle
 
 import torch
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 import torch.nn.utils.parametrize as parametrize
 from torch.nn import Parameter
+import torch_npu
 from torch.testing._internal.common_utils import run_tests, skipIfNoLapack, \
     TemporaryFileName, instantiate_parametrized_tests, set_default_dtype
 from torch.testing._internal.common_cuda import TEST_MULTIGPU
