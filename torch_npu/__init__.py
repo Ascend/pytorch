@@ -61,9 +61,9 @@ from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.function import fusion_attention
 from torch_npu.contrib.module import npu_modules
-from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
+from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, get_cann_version,\
     serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
-    add_fx_methods, add_checkpoint_methods, add_launch_methods, path_manager
+    add_fx_methods, add_checkpoint_methods, add_launch_methods, path_manager, add_collect_env_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 from torch_npu.distributed import fsdp_patches
@@ -83,24 +83,6 @@ cann_pytorch_version_map = {
     "6.0.1" : ["1.8.1", "1.11.0.rc2"],
     "6.0.RC1" : ["1.8.1", "1.11.0.rc1"]
 }
-
-
-def get_cann_version(ascend_home_path):
-    cann_version = ""
-    path_manager.PathManager.check_directory_path_readable(os.path.realpath(ascend_home_path))
-    for dirpath, _, filenames in os.walk(os.path.realpath(ascend_home_path)):
-        if cann_version:
-            break
-        install_files = [file for file in filenames if re.match(r"ascend_.*_install\.info", file)]
-        if install_files:
-            filepath = os.path.realpath(os.path.join(dirpath, install_files[0]))
-            path_manager.PathManager.check_directory_path_readable(filepath)
-            with open(filepath, "r") as f:
-                for line in f:
-                    if line.find("version") != -1:
-                        cann_version = line.strip().split("=")[-1]
-                        break
-    return cann_version
 
 
 def cann_package_check():
@@ -135,7 +117,7 @@ def cann_package_check():
                             "'source set_env.sh' in the CANN installation path.")
 
         # get the cann version
-        cann_version = get_cann_version(ascend_home_path)
+        cann_version = get_cann_version()
 
         # check whether the CANN package version matches the pytorch version
         if cann_version in cann_pytorch_version_map and \
@@ -265,6 +247,7 @@ def apply_class_patches():
     add_checkpoint_methods()
     apply_autocast_patch()
     add_launch_methods()
+    add_collect_env_methods()
 
 
 # Apply monkey-patches.
