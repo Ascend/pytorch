@@ -1404,6 +1404,7 @@ class DeviceCachingAllocator {
     auto erased =
         src->mapped ? pool.blocks.erase(src) : pool.unmapped.erase(src);
     delete src;
+    src = nullptr;
 
     return subsumed_size;
   }
@@ -1691,7 +1692,9 @@ class DeviceCachingAllocator {
     expandable_segments_.erase(it);
     block->pool->unmapped.erase(block);
     delete block->expandable_segment_;
+    block->expandable_segment_ = nullptr;
     delete block;
+    block = nullptr;
   }
 
   void release_block(Block* block) {
@@ -1714,6 +1717,7 @@ class DeviceCachingAllocator {
 
     pool->blocks.erase(block);
     delete block;
+    block = nullptr;
     }
 
   void unmap_block(Block* block) {
