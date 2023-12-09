@@ -813,33 +813,18 @@ void Reducer::all_reduce_bucket(Bucket& bucket) {
   }
 
   auto variables_for_bucket = get_variables_for_bucket(next_bucket_, bucket);
-  if (comm_hook_ == nullptr) {
-    c10d::GradBucket grad_bucket(
-        next_bucket_,
-        buckets_.size(),
-        tensors[0],
-        // Since we only support single-process single-device
-        // mode, there is always only one replica in the bucket.
-        bucket.replicas[0].offsets,
-        bucket.replicas[0].lengths,
-        bucket.replicas[0].sizes_vec,
-        variables_for_bucket,
-        c10::nullopt);
-    bucket.future_work = run_comm_hook(grad_bucket);
-  } else {
-    c10d::GradBucket grad_bucket(
-        next_bucket_,
-        buckets_.size(),
-        tensors[0],
-        // Since we only support single-process single-device mode,
-        // there is always only one replica in the bucket.
-        bucket.replicas[0].offsets,
-        bucket.replicas[0].lengths,
-        bucket.replicas[0].sizes_vec,
-        variables_for_bucket,
-        c10::nullopt);
-    bucket.future_work = run_comm_hook(grad_bucket);
-  }
+  c10d::GradBucket grad_bucket(
+      next_bucket_,
+      buckets_.size(),
+      tensors[0],
+      // Since we only support single-process single-device
+      // mode, there is always only one replica in the bucket.
+      bucket.replicas[0].offsets,
+      bucket.replicas[0].lengths,
+      bucket.replicas[0].sizes_vec,
+      variables_for_bucket,
+      c10::nullopt);
+  bucket.future_work = run_comm_hook(grad_bucket);
 }
 
 std::vector<at::Tensor> Reducer::get_variables_for_bucket(
