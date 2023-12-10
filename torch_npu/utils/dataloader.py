@@ -112,6 +112,7 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
     r"""Iterates once over the DataLoader's dataset, as specified by the sampler"""
 
     def __init__(self, loader):
+        torch_npu.npu.synchronize()
         self._dataset = loader.dataset
         self._dataset_kind = loader._dataset_kind
         self._IterableDataset_len_called = loader._IterableDataset_len_called

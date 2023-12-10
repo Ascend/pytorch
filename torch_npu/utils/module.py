@@ -37,7 +37,6 @@ from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
 
 logger = logging.getLogger(__name__)
-origin_mpdl_iter_init = _MultiProcessingDataLoaderIter.__init__
 
 
 def npu(self, device=None):
@@ -222,11 +221,6 @@ def ddp_forward(self, *inputs, **kwargs):
             self.require_forward_param_sync = False
 
     return output
-
-
-def mpdl_iter_init(self, *args, **kwargs):
-    torch_npu.npu.synchronize()
-    origin_mpdl_iter_init(self, *args, **kwargs)
 
 
 def lstm_forward(self, input1, hx=None):
@@ -726,7 +720,6 @@ def apply_module_patch():
     torch.nn.parallel.DistributedDataParallel._register_builtin_comm_hook = ddp_register_builtin_comm_hook
     torch.nn.parallel.DistributedDataParallel._set_static_graph = ddp_set_static_graph
     torch.nn.parallel.DistributedDataParallel.forward = ddp_forward
-    torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = mpdl_iter_init
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.modules.rnn.GRU.forward = gru_forward
     torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
