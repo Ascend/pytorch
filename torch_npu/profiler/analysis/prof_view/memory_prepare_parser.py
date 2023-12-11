@@ -73,7 +73,7 @@ class MemoryPrepareParser(BaseParser):
         matched_torch_op = torch_ops[matched_torch_op_idx]
         while matched_torch_op.end_time < mem_start_ts:
             matched_torch_op = matched_torch_op.parent_node
-            if not matched_torch_op:
+            if not matched_torch_op or not matched_torch_op.event:
                 warn(f"Can't find matched torch ops for a memory record!")
                 return ""
         return matched_torch_op.name
