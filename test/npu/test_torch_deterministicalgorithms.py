@@ -63,7 +63,7 @@ def test_npu_set_deterministic_true():
 
 def test_deterministic_newprocessing():
     Process_jobs = []
-    multiprocessing.set_start_method("spawn")
+    multiprocessing.set_start_method("spawn", force=True)
     p = multiprocessing.Process(target=test_npu_set_deterministic_true)
     Process_jobs.append(p)
     p.start()
