@@ -257,7 +257,7 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
             return 1
 
     # Wipe the build folder, if it exists already
-    test_cpp_extensions_directory = os.path.join(test_directory, "test_cpp_extension")
+    test_cpp_extensions_directory = os.path.join(test_directory, "cpp_extension")
     cpp_extensions_src_dir = os.path.join(test_cpp_extensions_directory, "cpp_extensions")
     cpp_extensions_test_build_dir = os.path.join(cpp_extensions_src_dir, "build")
     if os.path.exists(cpp_extensions_test_build_dir):
@@ -313,8 +313,8 @@ def run_cpp_extensions(test, test_directory, options):
 
 
 CUSTOM_HANDLERS = {
-    "test_distributed": run_distributed_test,
-    "test_cpp_extension": run_cpp_extensions,
+    "distributed": run_distributed_test,
+    "cpp_extension": run_cpp_extensions,
 }
 
 

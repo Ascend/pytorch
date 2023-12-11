@@ -92,7 +92,7 @@ class CoreTestStrategy(AccurateTest):
     Determine whether the core tests should be runned
     """
     block_list = ['test', 'docs']
-    core_test_cases = [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+    core_test_cases = [str(i) for i in (BASE_DIR / 'test/npu').rglob('test_*.py')]
 
     def identify(self, modify_file):
         modified_module = str(Path(modify_file).parts[0])
@@ -118,14 +118,14 @@ class DirectoryMappingStrategy(AccurateTest):
     Map the modified files to the corresponding test cases
     """
     mapping_list = {
-        'contrib': 'test/test_contrib',
-        'cpp_extension': 'test/test_cpp_extension',
-        'distributed': 'test/test_distributed',
-        'fx': 'test/test_fx',
-        'optim': 'test/test_optim',
-        'profiler': 'test/test_profiler',
-        'onnx': 'test/test_onnx',
-        'utils': 'test/test_utils',
+        'contrib': 'test/contrib',
+        'cpp_extension': 'test/cpp_extension',
+        'distributed': 'test/distributed',
+        'fx': 'test/test_fx.py',
+        'optim': 'test/optim',
+        'profiler': 'test/profiler',
+        'onnx': 'test/onnx',
+        'utils': 'test/test_utils.py',
         'testing': 'test/test_testing.py',
     }
 
@@ -183,10 +183,10 @@ class TestMgr():
         self.test_files['ut_files'] = exist_ut_file
 
     def load_core_ut(self):
-        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/test_npu').rglob('test_*.py')]
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/npu').rglob('test_*.py')]
 
     def load_distributed_ut(self):
-        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/test_distributed').rglob('test_*.py')]
+        self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/distributed').rglob('test_*.py')]
 
     def load_ut_in_parallel(self, rank, world_size):
         if rank > world_size:
