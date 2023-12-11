@@ -21,7 +21,7 @@ class Constant(object):
     MAX_PATH_LENGTH = 4096
     MAX_WORKER_NAME_LENGTH = 226
     MAX_FILE_NAME_LENGTH = 255
-    PROF_WARN_SIZE = 1024 * 1024 * 400
+    PROF_WARN_SIZE = 1024 * 1024 * 1024
 
     # tlv constant struct
     CONSTANT_BYTES = "constant_bytes"
