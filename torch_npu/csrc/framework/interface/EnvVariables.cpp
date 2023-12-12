@@ -107,6 +107,18 @@ bool IsAllowFP32ToFP16() {
   return is_allow_fp32_to_fp16;
 }
 
+REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_OP_SELECT_IMPL_MODE, result = ", ret, ", set value ", val);
+})
+
+REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val) {
+  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str());
+  TORCH_CHECK(ret == ACL_SUCCESS,
+              "Failed to set compile option ACL_OPTYPELIST_FOR_IMPLMODE, result = ", ret, ", set value ", val);
+})
+
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val) {
   ForceJitCompileList::GetInstance().RegisterJitlist(val);
 })
