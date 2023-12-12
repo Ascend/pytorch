@@ -875,7 +875,7 @@ class TestModuleGlobalHooks(TestCase):
             with self.assertRaisesRegex(RuntimeError, 'got 2, but expected 1'):
                 module(input1).sum().backward()
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/847")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 847")
     def test_module_backward_global_hook_writeable(self):
         module = nn.Sigmoid()
         input1 = torch.randn(5, 5, requires_grad=True)

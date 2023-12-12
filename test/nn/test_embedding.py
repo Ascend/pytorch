@@ -405,7 +405,7 @@ class TestEmbeddingNNDeviceType(NNTestCase):
     # with an offset array. Compare against an equivalent 2D input that uses
     # padding indices to fill in the gaps indicated by the offset array
 
-    @skipIfTorchDynamo("see https://github.com/pytorch/pytorch/pull/95621")
+    @skipIfTorchDynamo("see pytorch PR 95621")
     @onlyNativeDeviceTypes
     @dtypes(torch.float32, torch.float64)
     @dtypesIfCUDA(torch.half, torch.bfloat16)

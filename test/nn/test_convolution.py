@@ -30,6 +30,8 @@ from torch.testing._internal.common_utils import gradcheck, gradgradcheck, \
 from torch.testing._internal.common_utils import dtype2prec_DONTUSE
 from torch.testing._internal.common_cuda import tf32_on_and_off, tf32_is_not_fp32
 
+from url import get_url
+
 AMPERE_OR_ROCM = TEST_WITH_ROCM or tf32_is_not_fp32()
 
 
@@ -53,7 +55,7 @@ class TestConvolutionNN(NNTestCase):
         #     torch.save(m, 'legacy_conv2d.pt')
         #
         # NB: This Pickle also contains some Unicode data!
-        path = download_file('https://download.pytorch.org/test_data/legacy_conv2d.pt')
+        path = download_file(get_url('legacy_conv2d'))
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', SourceChangeWarning)
             m = torch.load(path, encoding='utf-8')

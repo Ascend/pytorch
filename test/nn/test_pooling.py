@@ -824,7 +824,7 @@ torch.cuda.synchronize()
 
     @onlyCPU
     @dtypes(torch.float, torch.double)
-    @skipIfTorchDynamo("OOMs https://github.com/pytorch/pytorch/issues/111320")
+    @skipIfTorchDynamo("OOMs pytorch issue 111320")
     def test_max_pool1d(self, device, dtype):
         def check(x, *args, **kwargs):
             model = torch.nn.MaxPool1d(*args, **kwargs)
