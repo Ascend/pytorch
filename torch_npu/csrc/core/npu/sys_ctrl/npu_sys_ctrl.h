@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <functional>
 #include "c10/macros/Export.h"
+#include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #define NpuSysStatus c10_npu::NpuSysCtrl::SysStatus
@@ -55,22 +56,11 @@ public:
     // Get Init_flag
      C10_NPU_API bool GetInitFlag();
 
-    int InitializedDeviceID() {
-        if (GetInitFlag()) {
-            return device_id_;
-        }
-        TORCH_CHECK(false, "no npu device has been initialized!");
-        return -1;
-    }
+    int InitializedDeviceID();
 
-    aclrtContext InitializedContext(int device_index)
-    {
-        if (GetInitFlag()) {
-            return ctx_[device_index];
-        }
-        TORCH_CHECK(false, "no npu device context has been initialized!");
-        return nullptr;
-    }
+    aclrtContext InitializedContext(int device_index);
+
+    void UpdateDeviceAccess(int peer_device_index);
 
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
