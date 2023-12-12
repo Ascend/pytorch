@@ -28,13 +28,13 @@ __all__ = ["set_option", "set_compile_mode", "set_aoe", "profile", "prof_init",
            "set_mm_bmm_format_nd"]
 
 _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
+               "ACL_OP_SELECT_IMPL_MODE": ["high_performance", "high_precision"],
                "ACL_AICORE_NUM": (lambda value: value.isdigit() and 1 <= int(value) <= 32),
+               "ACL_OPTYPELIST_FOR_IMPLMODE": None,
                "ACL_OP_DEBUG_LEVEL": ["0", "1", "2", "3", "4"],
                "ACL_DEBUG_DIR": None,
                "ACL_OP_COMPILER_CACHE_MODE": ["disable", "enable", "force"],
                "ACL_OP_COMPILER_CACHE_DIR": None}
-
-_deprecated_option_set = {"ACL_OP_SELECT_IMPL_MODE", "ACL_OPTYPELIST_FOR_IMPLMODE"}
 
 
 def _check_compile_option(name, value) -> bool:
@@ -65,12 +65,7 @@ def set_option(option):
         else:
             raise ValueError(f"value of {option_name} should be in %s "
                              % (_option_map[option_name]) + f"but got {option_value}")
-        
-        if option_name in _deprecated_option_set:
-            warnings.warn(f'{option_name} is deprecated and will not work.')
-    
-    work_option = {key: val for key, val in option.items() if key not in _deprecated_option_set}
-    torch_npu._C._npu_setOption(work_option)
+    torch_npu._C._npu_setOption(option)
 
 
 def init_dump():
