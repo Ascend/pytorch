@@ -519,14 +519,11 @@ class TestModule(TestCase):
         self._test_gradients_helper(device, dtype, module_info, training, gradgradcheck)
 
     @onlyPRIVATEUSE1
-    @with_tf32_off  # Turn off TF32 to compute at full precision https://github.com/pytorch/pytorch/issues/86798
+    @with_tf32_off
     @toleranceOverride({torch.float32: tol(5e-2, 0),
                         torch.float64: tol(4e-4, 0)})
     @modules(module_db)
     def test_cpu_gpu_parity(self, device, dtype, module_info, training):
-        # RNN / GRU / LSTM don't support backwards on eval mode for cuDNN; skip this in a
-        # nicer way for eval mode only.
-        # See https://github.com/pytorch/pytorch/issues/79161
         rnn_modules = {torch.nn.RNN, torch.nn.GRU, torch.nn.LSTM}
         if (module_info.module_cls in rnn_modules
                 and not training
@@ -714,7 +711,6 @@ class TestModule(TestCase):
                     d_args = _to_mem_format(input_mem_format, module_input.forward_input.args)
                     d_kwargs = _to_mem_format(input_mem_format, module_input.forward_input.kwargs)
 
-                    # See https://github.com/pytorch/pytorch/issues/107861
                     # When inductor tests are turned on, the setting of requires_grad will be lost
                     for t1, t2 in zip(
                             torch.utils._pytree.tree_flatten(d_args)[0],
