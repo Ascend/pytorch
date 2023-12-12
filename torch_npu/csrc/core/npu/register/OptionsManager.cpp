@@ -76,9 +76,6 @@ bool OptionsManager::CheckCombinedOptimizerEnable() {
 }
 
 bool OptionsManager::CheckAclDumpDateEnable() {
-  TORCH_NPU_WARN_ONCE(
-      "The environment variable ACL_DUMP_DATA has been deprecated, "
-      "please use torch_npu.npu.init_dump() instead");
   const static bool checkAclDumpDateEnable = []() -> bool {
     int32_t acl_dump_data = OptionsManager::GetBoolTypeOption("ACL_DUMP_DATA");
     return acl_dump_data != 0;
