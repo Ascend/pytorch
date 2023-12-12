@@ -187,6 +187,9 @@ public:
         const WorkHCCL& workHCCL);
 
     private:
+        // Helper function for synchronize
+        void synchronizeInternal(std::chrono::milliseconds timeout);
+
         // Checks for HCCL errors and sets an appropriate exception_ptr.
         void checkAndSetException();
 
