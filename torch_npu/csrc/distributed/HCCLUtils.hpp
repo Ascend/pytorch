@@ -127,7 +127,12 @@ public:
           return hcclAsyncErr_;
         }
         if (hcclComm_ != nullptr) {
-            C10D_HCCL_CHECK(hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_));
+            auto ret = hcclGetCommAsyncError(hcclComm_, &hcclAsyncErr_);
+            if (ret != HCCL_SUCCESS) {
+                TORCH_NPU_WARN("hcclGetCommAsyncError interface query error");
+                ASCEND_LOGD("hcclGetCommAsyncError interface query error");
+                return HCCL_SUCCESS;
+            }
         }
         return hcclAsyncErr_;
 #else

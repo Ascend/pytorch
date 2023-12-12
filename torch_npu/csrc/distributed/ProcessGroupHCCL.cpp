@@ -532,8 +532,13 @@ std::string getHcclAbortedCommStoreKey(const std::string hcclIdStr)
 std::exception_ptr ProcessGroupHCCL::rts_device_error_query(int32_t devId)
 {
     aclrtDeviceStatus deviceStatus = ACL_RT_DEVICE_STATUS_NORMAL;
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtQueryDeviceStatus(devId, &deviceStatus));
-    if (deviceStatus != ACL_RT_DEVICE_STATUS_NORMAL) {
+    auto ret = c10_npu::acl::AclrtQueryDeviceStatus(devId, &deviceStatus);
+    if (ret != 0) {
+        TORCH_NPU_WARN("AclrtQueryDeviceStatus interface query error, device[%d] error code[%d]", ret, devId);
+        ASCEND_LOGD("AclrtQueryDeviceStatus interface query error, device[%d] error code[%d]", ret, devId);
+    }
+
+    if (ret == 0 && deviceStatus != ACL_RT_DEVICE_STATUS_NORMAL) {
         return std::make_exception_ptr(std::runtime_error(c10::str("rts error: ", deviceStatus)));
     }
     return nullptr;
