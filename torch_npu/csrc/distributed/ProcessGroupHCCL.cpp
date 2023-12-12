@@ -412,6 +412,12 @@ bool ProcessGroupHCCL::WorkHCCL::checkTimeout(c10::optional<std::chrono::millise
     return true;
 }
 
+void ProcessGroupHCCL::WorkHCCL::synchronize() {
+    // Call Synchronize without a timeout. We use this method to avoid adding a
+    // timeout argument to the public synchronize API.
+    synchronizeInternal(kNoTimeout);
+}
+
 void ProcessGroupHCCL::WorkHCCL::handleException(ErrorHandlingMode errorHandling)
 {
     if (exception_) {
@@ -443,7 +449,7 @@ void ProcessGroupHCCL::WorkHCCL::checkAndThrowException()
 }
 
 // Waiting on the work's corresponding NPU events
-void ProcessGroupHCCL::WorkHCCL::synchronize()
+void ProcessGroupHCCL::WorkHCCL::synchronizeInternal(std::chrono::milliseconds timeout)
 {
     for (const auto i : c10::irange(devices_.size())) {
         auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
@@ -482,15 +488,30 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
     if (blockingWait_) {
         // Wait for the operation to complete.
         while (!isCompleted()) {
-            auto currentTimepoint = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTimepoint - workStartTime_) > opTimeout_) {
-                throw std::runtime_error("Operation timed out!");
+            bool timedOut = checkTimeout(
+                timeout == kNoTimeout ? c10::nullopt : c10::make_optional(timeout));
+            // Explicitly abort hcclComms here before throwing this timed out
+            // exception to users.
+            // If throwing timed out excepiton without aborting hccl communicators
+            // here, ASCEND NPU may not run new events successfully.
+            if (timedOut) {
+                std::string exceptionMsg = c10::str(
+                    "[Rank ",
+                    rank_,
+                    "] Work ",
+                    (*this),
+                    " timed out in blocking wait (HCCL_BLOCKING_WAIT=1).");
+                LOG(ERROR) << exceptionMsg;
+                break;
             }
-            // Check for errors and throw appropriate exception.
-            checkAndThrowException();
             std::this_thread::sleep_for(std::chrono::milliseconds(kSynchronizeBusyWaitMillis));
         }
-        checkAndThrowException();
+        if (exception()) {
+            // Abort HCCL communicators
+            abort();
+            // Throw exception (from main thread here)
+            handleException(TearDown);
+        }
     }
 }
 
@@ -507,7 +528,7 @@ void ProcessGroupHCCL::WorkHCCL::lazyDestory(std::vector<at::Tensor> tensors) {
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout)
 {
-    synchronize();
+    synchronizeInternal(timeout);
     // Always return true, because abort API is not implemented.
     return true;
 }
