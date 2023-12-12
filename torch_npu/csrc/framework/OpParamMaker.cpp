@@ -283,8 +283,8 @@ namespace at_npu
           ret = cur_paras->customHandler();
         } catch (std::exception& e) {
           ret = ACL_ERROR_INVALID_PARAM;
+          LOG(ERROR) << e.what();
           ASCEND_LOGE("Custom hand error:%s", e.what());
-          C10_NPU_SHOW_ERR_MSG();
         }
         if (ret != ACL_ERROR_NONE) {
           ASCEND_LOGE("Custom hand fail! name=%s, ret=0x%#x", cur_paras->opType, ret);
