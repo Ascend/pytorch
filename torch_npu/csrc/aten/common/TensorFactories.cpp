@@ -113,6 +113,7 @@ namespace at_npu
       AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
+      c10_npu::NpuSysCtrl::GetInstance().UpdateDeviceAccess(c10::device_or_default(device_opt).index());
       c10_npu::NPUGuard guard(c10::device_or_default(device_opt));
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       int64_t nelements = c10::multiply_integers(size);
@@ -301,6 +302,7 @@ namespace at_npu
       torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
+      c10_npu::NpuSysCtrl::GetInstance().UpdateDeviceAccess(c10::device_or_default(device_opt).index());
       c10_npu::NPUGuard guard(c10::device_or_default(device_opt));
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
@@ -356,6 +358,7 @@ namespace at_npu
       AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
       TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
+      c10_npu::NpuSysCtrl::GetInstance().UpdateDeviceAccess(c10::device_or_default(options.device_opt()).index());
       c10_npu::NPUGuard guard(c10::device_or_default(options.device_opt()));
       static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
