@@ -28,8 +28,9 @@ from torch.testing._internal.common_utils import gradcheck, gradgradcheck, \
     GRADCHECK_NONDET_TOL
 from torch.testing._internal.common_utils import dtype2prec_DONTUSE
 from torch.testing._internal.common_cuda import tf32_on_and_off, tf32_is_not_fp32
-
 from url import get_url
+import torch_npu.testing
+
 
 AMPERE_OR_ROCM = TEST_WITH_ROCM or tf32_is_not_fp32()
 
@@ -89,7 +90,6 @@ class TestConvolutionNN(NNTestCase):
 
     def test_conv2d_discontiguous_weight(self):
         for dtype in (torch.float, torch.cfloat):
-            # Test for https://github.com/pytorch/pytorch/issues/55781
             x = torch.ones(64, 16, 16, 16, dtype=dtype)
             weight = torch.arange(0, 1.0, 1 / 2.0 ** 10).reshape(32, 16, 1, 2).to(dtype)[:, :, :, ::2]
             self.assertFalse(weight.is_contiguous())
@@ -479,8 +479,6 @@ class TestConvolutionNN(NNTestCase):
             output = deconv(inputs)
             output.mean().backward()
 
-    # For https://github.com/pytorch/pytorch/pull/1273
-    # Almost identical to the above `test_Conv2d_naive_groups`
     @torch.backends.cudnn.flags(enabled=True, benchmark=False)
     def test_Conv2d_groups_nobias(self):
         dev_dtypes = [("cpu", torch.float)]
@@ -515,10 +513,6 @@ class TestConvolutionNN(NNTestCase):
                              torch.cat([m1.weight.grad.data, m2.weight.grad.data], 0),
                              atol=1e-1 if dtype == torch.half else dtype2prec_DONTUSE[dtype], rtol=0)
 
-    # Almost identical to the above `test_Conv2d_naive_groups`
-    # Covering special case when group > 1, input-channel / group < 16 and output-channel is multiple of 16
-    # See also https://github.com/pytorch/pytorch/pull/18463#issuecomment-476563686
-    # and https://github.com/pytorch/pytorch/pull/18463#issuecomment-477001024
     @torch.backends.cudnn.flags(enabled=True, benchmark=False)
     def test_Conv2d_groups_nobias_v2(self):
         torch.manual_seed(123)
@@ -554,8 +548,6 @@ class TestConvolutionNN(NNTestCase):
                              torch.cat([m1.weight.grad.data, m2.weight.grad.data], 0),
                              atol=1e-1 if dtype == torch.half else dtype2prec_DONTUSE[dtype], rtol=0)
 
-    # CPU-only test for group conv3d fast implementation using bmm
-    # See: https://github.com/pytorch/pytorch/pull/36355
     def test_Conv3d_groups_nobias(self):
         torch.manual_seed(123)
         m = nn.Conv3d(4, 16, kernel_size=3, groups=2, bias=False).to("cpu", torch.float)
@@ -1339,7 +1331,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
         gradcheck(lambda x, y: F.conv3d(x, y, padding='same', dilation=2), (x, y),
                   check_forward_ad=check_forward_ad, nondet_tol=1e-5)
         if torch.device(device).type != 'cuda':
-            # https://github.com/pytorch/pytorch/issues/70702
             gradgradcheck(lambda x, y: F.conv3d(x, y, padding='same', dilation=2), (x, y),
                           check_fwd_over_rev=True)
 
@@ -1358,7 +1349,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
         gradcheck(lambda x, y: F.conv3d(x, y, padding='same'), (x, y),
                   check_forward_ad=check_forward_ad, nondet_tol=1e-5)
         if torch.device(device).type != 'cuda':
-            # https://github.com/pytorch/pytorch/issues/70702
             gradgradcheck(lambda x, y: F.conv3d(x, y, padding='same'), (x, y),
                           check_fwd_over_rev=True)
 
@@ -1535,8 +1525,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
 
     @parametrize_test("N", range(2, 4), name_fn=lambda N: f'ConvTranspose{N}d')
     def test_conv_transpose_with_output_size_and_no_batch_dim(self, device, N):
-        # For inputs with no batch dim, verify output is the correct shape when output_size is set.
-        # See https://github.com/pytorch/pytorch/issues/75889
         inp = torch.randn((1, 15, 13) if N == 2 else (1, 15, 13, 13), device=device)
         output_size = (1, 240, 200) if N == 2 else (1, 240, 200, 200)
         ConvTransposeNd = getattr(nn, f'ConvTranspose{N}d')
@@ -1639,7 +1627,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
                 decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn2d'),
         subtest(((2, 6, 7, 8, 9), False, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
                 decorators=[onlyCPU, skipCPUIfNoMkldnn], name='mkldnn3d'),
-        # Transposed convolution is broken for mkldnn. See https://github.com/pytorch/pytorch/issues/68775.
         subtest(((2, 6, 7), True, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
                 decorators=[onlyCPU, skipCPUIfNoMkldnn, unittest.expectedFailure], name='mkldnn1d_transposed'),
         subtest(((2, 6, 7, 8), True, False, 3, torch._mkldnn, torch._C._ConvBackend.Mkldnn),
@@ -1770,7 +1757,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
 
     @onlyCPU
     def test_conv_contiguous_for_oneDNN(self):
-        # See https://github.com/pytorch/pytorch/issues/80837.
         for dtype in [torch.float, torch.bfloat16]:
             conv = nn.Conv2d(
                 1,
@@ -1796,7 +1782,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
 
     @onlyCPU
     def test_conv_ic1_channels_last_for_oneDNN(self):
-        # See https://github.com/pytorch/pytorch/issues/82060, N > 1 will call in OneDNN path.
         for dtype in [torch.float, torch.bfloat16]:
             conv = torch.nn.Conv2d(1, 64, kernel_size=(3, 3), padding=(1, 1), bias=False)
             conv = conv.to(memory_format=torch.channels_last).to(dtype=dtype)
@@ -1888,7 +1873,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
                 y.sum().backward()
 
     def test_conv_noncontig_weights_and_bias(self, device):
-        # need floats to exercise https://github.com/pytorch/pytorch/issues/16018
         for bias in [True, False]:
             conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                               bias=bias).to(device, torch.float)
@@ -2333,8 +2317,6 @@ class TestConvolutionNNDeviceType(NNTestCase):
         self.assertTrue(out.is_contiguous(memory_format=torch.channels_last))
         out.sum().backward()
 
-    # Test that faster algorithms used for inference produce the same results
-    # Validates depthwise3x3 bug reported in https://github.com/pytorch/pytorch/issues/60176
     @onlyCPU
     @dtypes(torch.float)
     def test_conv2d_no_grad(self, device, dtype):

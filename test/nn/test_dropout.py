@@ -13,6 +13,7 @@ from torch.testing._internal.common_nn import NNTestCase, freeze_rng_state
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, expectedFailureXLA
 import torch.nn.functional as F
 import torch.nn as nn
+import torch_npu.testing
 
 
 class TestDropoutNN(NNTestCase):
@@ -116,10 +117,6 @@ class TestDropoutNNDeviceType(NNTestCase):
         str(module)
 
     def _test_dropout_discontiguous(self, cls, device, memory_format=torch.contiguous_format):
-        # In this test, we verify that dropout preserves the layout and data for different memory formats.
-        # We check whether, we get same values for the output of dropout, when the probability
-        # of dropout is 0 or very close to 0.
-        # Reference: https://github.com/pytorch/pytorch/issues/47176
         close_to_zero_p = 1e-10  # Should be almost zero but not zero, as for p=0 different path is taken
         for p in [0, close_to_zero_p]:
             inp = torch.ones(2, 3, 3, 3, device=device)
@@ -231,9 +228,6 @@ class TestDropoutNNDeviceType(NNTestCase):
 
         with self.assertWarnsRegex(UserWarning, "Received a 2-D input to dropout2d"):
             nn.Dropout2d(p=0.5)(torch.rand(1, 2, device=device))
-
-        # For now, the historical dropout1d behavior is performed for 3D inputs.
-        # See https://github.com/pytorch/pytorch/issues/77081
 
         # input1 = torch.rand(50, 2, 2, device=device)
         # self._test_dropoutNd_no_batch(nn.Dropout2d(p=0.5), input1)
