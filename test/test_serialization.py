@@ -17,6 +17,7 @@ from copy import deepcopy
 from itertools import product
 
 import torch
+from url import get_url
 import torch_npu
 import torch_npu.testing
 from torch._utils_internal import get_file_path_2
@@ -29,9 +30,6 @@ from torch.testing._internal.common_utils import IS_FILESYSTEM_UTF8_ENCODING, Te
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
 from torch.testing._internal.common_dtype import all_types_and_complex_and
 
-# These tests were all copied from `test/test_torch.py` at some point, so see
-# the actual blame, see this revision
-# https://github.com/pytorch/pytorch/blame/9a2691f2fc948b9792686085b493c61793c2de30/test/test_torch.py
 
 if TEST_DILL:
     import dill
@@ -425,7 +423,7 @@ class SerializationMixin:
         b = [a[i % 2] for i in range(4)]
         b += [a[0].storage()]
         b += [a[0].reshape(-1)[1:4].clone().storage()]
-        path = download_file('https://download.pytorch.org/test_data/legacy_serialized.pt')
+        path = download_file(get_url("legacy_serialized"))
         c = torch.load(path, weights_only=weights_only)
         self.assertEqual(b, c, atol=0, rtol=0)
         self.assertTrue(isinstance(c[0], torch.FloatTensor))
@@ -484,7 +482,7 @@ class SerializationMixin:
                 self.assertEqual(len(warning), 0)
 
     def test_serialization_map_location(self):
-        test_file_path = download_file('https://download.pytorch.org/test_data/gpu_tensors.pt')
+        test_file_path = download_file(get_url("gpu_tensors"))
 
         def map_location(storage, loc):
             return storage
@@ -552,7 +550,7 @@ class SerializationMixin:
         with self.assertRaisesRegex(RuntimeError, error_msg):
             _ = torch.load(buf)
 
-    @unittest.skipIf((3, 8, 0) <= sys.version_info < (3, 8, 2), "See https://bugs.python.org/issue39681")
+    @unittest.skipIf((3, 8, 0) <= sys.version_info < (3, 8, 2), "See bugs.python.org issue 39681")
     def test_serialization_filelike_api_requirements(self):
         filemock = FilelikeMock(b'', has_readinto=False)
         tensor = torch.randn(3, 5)
@@ -579,7 +577,7 @@ class SerializationMixin:
         b = torch.load(data)
         self.assertTrue(torch.equal(tensor, b), msg.format(desc))
 
-    @unittest.skipIf((3, 8, 0) <= sys.version_info < (3, 8, 2), "See https://bugs.python.org/issue39681")
+    @unittest.skipIf((3, 8, 0) <= sys.version_info < (3, 8, 2), "See bugs.python.org issue 39681")
     def test_serialization_filelike_missing_attrs(self):
         # Test edge cases where filelike objects are missing attributes.
         # The Python io docs suggests that these attributes should really exist
@@ -594,7 +592,7 @@ class SerializationMixin:
         for desc, mock in mocks:
             self._test_serialization_filelike(to_serialize, mock, desc)
 
-    @unittest.skipIf((3, 8, 0) <= sys.version_info < (3, 8, 2), "See https://bugs.python.org/issue39681")
+    @unittest.skipIf((3, 8, 0) <= sys.version_info < (3, 8, 2), "See bugs.python.org issue 39681")
     def test_serialization_filelike_stress(self):
         a = torch.randn(11 * (2 ** 9) + 1, 5 * (2 ** 9))
 
@@ -618,9 +616,6 @@ class SerializationMixin:
         self.assertTrue(data.was_called('readinto'))
 
     def test_serialization_filelike_exceptions(self):
-        # Try to serialize to buffers that does not have write method
-        # Or have a malfrormed one, and make sure it does not cause an abort
-        # See https://github.com/pytorch/pytorch/issues/87997
         x = torch.rand(10)
         with self.assertRaises(AttributeError):
             # Tries to serialize str into tensor
@@ -678,12 +673,12 @@ class SerializationMixin:
     def test_load_unicode_error_msg(self):
         # This Pickle contains a Python 2 module with Unicode data and the
         # loading should fail if the user explicitly specifies ascii encoding!
-        path = download_file('https://download.pytorch.org/test_data/legacy_conv2d.pt')
+        path = download_file(get_url("legacy_conv2d"))
         self.assertRaises(UnicodeDecodeError, lambda: torch.load(path, encoding='ascii'))
 
     def test_load_python2_unicode_module(self):
         # This Pickle contains some Unicode data!
-        path = download_file('https://download.pytorch.org/test_data/legacy_conv2d.pt')
+        path = download_file(get_url("legacy_conv2d"))
         with warnings.catch_warnings(record=True) as w:
             self.assertIsNotNone(torch.load(path))
 

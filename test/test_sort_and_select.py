@@ -371,7 +371,6 @@ class TestSortAndSelect(TestCase):
 
     @dtypes(torch.float)
     def test_sort_expanded_tensor(self, device, dtype):
-        # https://github.com/pytorch/pytorch/issues/91420
         data = torch.scalar_tensor(True, device=device, dtype=dtype)
         data = data.expand([1, 1, 1])
         ref = torch.Tensor([[[True]]])
@@ -799,7 +798,6 @@ class TestSortAndSelect(TestCase):
     @dtypesIfPRIVATEUSE1(*all_types_and(torch.bfloat16))
     @dtypes(*all_types())
     def test_topk_zero(self, device, dtype):
-        # https://github.com/pytorch/pytorch/issues/49205
         t = torch.rand(2, 2, device=device).to(dtype=dtype)
         val, idx = torch.topk(t, k=0, largest=False)
         self.assertEqual(val.size(), torch.Size([2, 0]))
@@ -963,7 +961,6 @@ class TestSortAndSelect(TestCase):
         self.assertEqual(res1val, res2val, atol=0, rtol=0)
         self.assertEqual(res1ind, res2ind, atol=0, rtol=0)
 
-        # non-contiguous [Reference: https://github.com/pytorch/pytorch/issues/45721]
         non_contig_t = torch.tensor([0, -1, 1, -2, 2], dtype=dtype, device=device)[::2]
         expected_val, expected_ind = non_contig_t.contiguous().kthvalue(2)
         non_contig_cpu_t = non_contig_t.cpu()
@@ -997,8 +994,6 @@ class TestSortAndSelect(TestCase):
     @dtypes(torch.float)
     @onlyNativeDeviceTypes   # Fails on XLA
     def test_kthvalue_scalar(self, device, dtype):
-        # Test scalar input (test case from https://github.com/pytorch/pytorch/issues/30818)
-        # Tests that passing a scalar tensor or 1D tensor with 1 element work either way
         res = torch.tensor(2, device=device, dtype=dtype).kthvalue(1)
         ref = torch.tensor([2], device=device, dtype=dtype).kthvalue(1)
         self.assertEqual(res[0], ref[0].squeeze())
