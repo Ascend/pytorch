@@ -46,7 +46,6 @@ class FakeTensorTest(TestCase):
         self.assertEqual(t.device.type, device_str)
         self.assertEqual(list(t.size()), size)
 
-
     @unittest.skipIf(not RUN_NPU, "requires npu")
     def test_npu_initialized(self):
         # doesnt error
@@ -285,7 +284,7 @@ class FakeTensorTest(TestCase):
             x = torch.empty([2, 2], dtype=torch.float)
             y = torch.empty([2, 2], dtype=torch.int64)
             try:
-                out = x / y     
+                out = x / y
             except ZeroDivisionError:
                 print("Error: Division by zero is not allowed")
             self.assertEqual(out.dtype, torch.float)
@@ -361,7 +360,6 @@ class FakeTensorTest(TestCase):
 
             with self.assertRaisesRegex(Exception, "found two different devices"):
                 x.add_(y)
-
 
     @unittest.skipIf(TEST_WITH_TORCHDYNAMO, "isinstance check for FakeTensor won't work with compile")
     @unittest.skipIf(not RUN_NPU, "requires npu")
@@ -500,8 +498,8 @@ class FakeTensorTest(TestCase):
             H_out = proj_size if proj_size > 0 else hidden_size
 
             lstm = torch.nn.LSTM(input_size=H_in, hidden_size=hidden_size,
-                                    num_layers=num_layers, proj_size=proj_size, batch_first=False,
-                                    bias=True, bidirectional=bidir, device='npu')
+                                 num_layers=num_layers, proj_size=proj_size, batch_first=False,
+                                 bias=True, bidirectional=bidir, device='npu')
 
             h_0 = torch.randn((num_layers * D, N, H_out), requires_grad=False, device='npu')
             c_0 = torch.randn((num_layers * D, N, hidden_size), requires_grad=False, device='npu')
@@ -613,7 +611,7 @@ class FakeTensorTest(TestCase):
             def forward(self, ipt):
                 running_std = torch.sqrt(self.bn.running_var + self.bn.eps)
                 try:
-                    scale_factor = self.bn.weight / running_std    
+                    scale_factor = self.bn.weight / running_std
                 except ZeroDivisionError:
                     print("Error: Division by zero is not allowed")
                 weight_shape = [1] * len(self.conv.weight.shape)
@@ -624,7 +622,7 @@ class FakeTensorTest(TestCase):
                 zero_bias = torch.zeros_like(self.conv.bias, dtype=ipt.dtype)
                 conv = self.conv._conv_forward(ipt, scaled_weight, zero_bias)
                 try:
-                    conv_orig = conv / scale_factor.reshape(bias_shape)  
+                    conv_orig = conv / scale_factor.reshape(bias_shape)
                 except ZeroDivisionError:
                     print("Error: Division by zero is not allowed")
                 conv_orig = conv_orig + self.conv.bias.reshape(bias_shape)
@@ -820,7 +818,8 @@ class FakeTensorConverterTest(TestCase):
         x = torch.rand(2, 2).to(device="meta")
         mode = FakeTensorMode()
         converter = mode.fake_tensor_converter
-        self.assertTrue(converter.from_meta_and_device(mode, x, "cpu") is converter.from_meta_and_device(mode, x, "cpu"))
+        self.assertTrue(
+            converter.from_meta_and_device(mode, x, "cpu") is converter.from_meta_and_device(mode, x, "cpu"))
 
     def test_separate_tensor_storages_view(self):
         x = torch.rand(2, 2, 2)
@@ -831,7 +830,7 @@ class FakeTensorConverterTest(TestCase):
         y_conv = converter(mode, y)
         self.assertEqual(torch._C._storage_id(x_conv), torch._C._storage_id(y_conv))
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1991")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1991")
     def test_separate_tensor_storages_non_view(self):
         x = torch.rand(2, 2, 2)
         y = torch.rand(4, 2)
@@ -851,8 +850,7 @@ class FakeTensorConverterTest(TestCase):
         converter.meta_converter.check_for_expired_weak_storages()
         self.assertEqual(len(converter.meta_converter.storage_memo), 0)
 
-
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1991")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1991")
     def test_dead_weak_ref(self):
         x = torch.rand(2, 2, 2)
         y = x[0]
@@ -865,7 +863,7 @@ class FakeTensorConverterTest(TestCase):
         y_conv = converter(mode, y)
         self.assertEqual(x_conv_storage, torch._C._storage_id(y_conv))
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1991")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1991")
     def test_dead_key(self):
         x = torch.rand(2, 2, 2)
         mode = FakeTensorMode()
@@ -905,7 +903,7 @@ class FakeTensorConverterTest(TestCase):
             y = torch.empty(2, 2, device="cpu")
         self.assertRaises(Exception, lambda: x, y)
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1991")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1991")
     def test_no_ref_cycle(self):
         x = torch.rand([4])
         mode = FakeTensorMode()
@@ -924,12 +922,11 @@ class FakeTensorOperatorInvariants(TestCase):
     def get_aten_op(schema):
         namespace, name = schema.name.split("::")
         overload = schema.overload_name if schema.overload_name else "default"
-        try: 
+        try:
             namespace == "aten"
         except AttributeError:
             print("AttributeError: torch.ops.aten has no attribute")
         return getattr(getattr(torch.ops.aten, name), overload)
-        
 
     @staticmethod
     def get_all_aten_schemas():
@@ -943,8 +940,8 @@ class FakeTensorOperatorInvariants(TestCase):
         for schema in self.get_all_aten_schemas():
             ten_type = torch._C.TensorType.get()
             if not any(
-                contains_type(arg.type, ten_type)
-                for arg in itertools.chain(schema.arguments, schema.returns)
+                    contains_type(arg.type, ten_type)
+                    for arg in itertools.chain(schema.arguments, schema.returns)
             ):
                 continue
 
@@ -1055,7 +1052,8 @@ class FakeTensorOperatorInvariants(TestCase):
             # We expect the cross ref to succed for the first output to fail
             # for the rng state, see Note [Seed and Offset]
             self.assertTrue("output[0]" not in str(e))
-            self.assertTrue("found mismatched tensor metadata for output[6]: Devices cpu and cuda:0 are not equal!" in str(e))
+            self.assertTrue(
+                "found mismatched tensor metadata for output[6]: Devices cpu and cuda:0 are not equal!" in str(e))
 
     @skipIfRocm
     @unittest.skipIf(not RUN_NPU, "requires npu")
@@ -1136,13 +1134,14 @@ class FakeTensorPropTest(TestCase):
                 if isinstance(x, torch.Tensor) and not isinstance(x, FakeTensor):
                     return fake_tensor_mode.from_tensor(x)
                 return x
+
             chain_iter = itertools.chain(graph_model.named_parameters(), graph_model.named_buffers())
             fake_parameters_and_buffers = {
                 k: to_fake_tensor(v)
                 for k, v in chain_iter
             }
             with torch.nn.utils.stateless._reparametrize_module(
-                graph_model, fake_parameters_and_buffers
+                    graph_model, fake_parameters_and_buffers
             ):
                 # This case uses the **same** fake tensor mode to
                 #  1. create fake parameters and fake buffers, and
@@ -1162,7 +1161,6 @@ class FakeTensorPropTest(TestCase):
                     # AssertionError: tensor's device must be `meta`, got cpu instead
                     failed = True
                 self.assertTrue(failed)
-
 
     def test_fake_tensor_prop_on_nn_module_with_optional_args(self):
         class OptionalArgumentInBetween(torch.nn.Module):
@@ -1420,10 +1418,8 @@ class TestNpuRmsNorm(TestCase):
             self.assertEqual(dw.device, npu_gamma.device)
 
 
-
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
-
 
 if __name__ == "__main__":
     run_tests()
