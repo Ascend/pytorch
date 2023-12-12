@@ -125,7 +125,7 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
       " (something has gone horribly wrong!)");
 }
 
-static thread_local LeakyStreamInternals** current_streams = nullptr;
+static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
 
 static void initGlobalStreamState() {
   num_npus = c10_npu::device_count();
@@ -189,12 +189,7 @@ static void initNPUStreamsOnce() {
   }
 
   // Inits current streams (thread local) to default streams
-  current_streams =
-      (LeakyStreamInternals**)malloc(num_npus * sizeof(LeakyStreamInternals*));
-  if (current_streams == nullptr) {
-    ASCEND_LOGE("current_streams malloc failed.");
-    return;
-  }
+  current_streams = std::make_unique<LeakyStreamInternals* []>(num_npus);
   for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
     current_streams[i] = &default_streams[i];
   }
