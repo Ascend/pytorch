@@ -746,10 +746,6 @@ class TestStateDictHooks(TestCase):
             self.assertTrue(hasattr(m, '_load_state_dict_post_hooks'))
             # Simulate an older model that did not have this attr
             delattr(m, '_load_state_dict_post_hooks')
-            # Save and load, and ensure that load_state_dict works (without proper
-            # BC we would run into errors because this attribute would be expected).
-            # In particular, Softmax runs into the issue described here:
-            # https://github.com/pytorch/pytorch/issues/77280
             with NamedTemporaryFile() as f:
                 # Note that torch.save / torch.load is not recommended to save/load
                 # modules.
