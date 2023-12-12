@@ -66,7 +66,7 @@ class DirectoryStrategy(AccurateTest):
     """
     
     def identify(self, modify_file):
-        skip_list = ["test_modules.py"]
+        skip_list = ["test_modules.py", "test_nn.py"]
         is_test_file = str(Path(modify_file).parts[0]) == "test" \
             and re.match("test_(.+).py", Path(modify_file).name) \
             and Path(modify_file).name not in skip_list
