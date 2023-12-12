@@ -25,6 +25,7 @@ from typing import Tuple
 import numpy as np
 
 import torch
+from url import get_url
 import torch_npu
 import torch_npu.testing
 import torch.utils.data
@@ -129,8 +130,6 @@ class TestTorchDeviceType(TestCase):
             shape.append(random.randint(min_size, max_size))
         return tuple(shape)
 
-    # Validates that mathematical constants are defined properly, as required by
-    # the Python Array API (https://data-apis.org/array-api/latest/API_specification/constants.html)
     @onlyCPU
     def test_constants(self, device):
         self.assertIsInstance(torch.e, float)
@@ -225,7 +224,7 @@ class TestTorchDeviceType(TestCase):
         s[2:7] = 1
         self.assertEqual(s, storage_type(n_list))
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1991")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1991")
     @onlyNativeDeviceTypes
     @dtypes(*all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16))
     def test_tensor_storage_type(self, device, dtype):
@@ -377,8 +376,6 @@ class TestTorchDeviceType(TestCase):
 
     @onlyPRIVATEUSE1
     def test_module_share_memory(self):
-        # Test fix for issue #80733
-        # See https://github.com/pytorch/pytorch/issues/80733
         model = torch.nn.Linear(3, 1)
         model_npu = model.to('npu')
         model.share_memory()
@@ -1019,7 +1016,6 @@ class TestTorchDeviceType(TestCase):
         self.assertFalse(t1.is_set_to(t2))
         self.assertFalse(t2.is_set_to(t1))
 
-    # See https://github.com/pytorch/pytorch/issues/72650
     @skipIfMps
     @skipMeta
     @parametrize(
@@ -3106,7 +3102,6 @@ else:
             dst._neg_view().copy_(src)
             self.assertEqual(dst, src.neg(), exact_dtype=False)
 
-            # issue: https://github.com/pytorch/pytorch/issues/106051
             dst._neg_view().copy_(dst)
             self.assertEqual(dst, src, exact_dtype=False)
 
@@ -3123,7 +3118,7 @@ else:
             dst.conj().copy_(src._neg_view())
             self.assertEqual(dst, src.neg().conj_physical(), exact_dtype=False)
 
-    @skipIfTorchInductor("https://github.com/pytorch/pytorch/issues/98175")
+    @skipIfTorchInductor("see pytorch issue 98175")
     @onlyNativeDeviceTypes
     @dtypes(torch.int64, torch.float32, torch.complex64)
     def test_copy_transpose_math_view(self, device, dtype):
@@ -3158,7 +3153,6 @@ else:
         self.assertEqual(y, y.clone())
 
     def test_clone_not_memory_dense(self):
-        # github issue: https://github.com/pytorch/pytorch/issues/64176
         x = torch.randn(10, 8).t()[::2, ::2]
         y = x.clone()
         # should retain permutation after densification
@@ -3215,7 +3209,6 @@ else:
             self.assertEqual(sz, y.size())
 
     def test_narrow_copy_non_contiguous(self, device):
-        # see https://github.com/pytorch/pytorch/issues/91690.
         inp = torch.randn(10, 2, device=device).movedim(-1, 0)
         expected = torch.narrow_copy(inp.contiguous(), 1, 0, 10)
         actual = torch.narrow_copy(inp, 1, 0, 10)
@@ -3301,8 +3294,6 @@ else:
                     ref_index_copy(dest2, dim, idx, src)
                     self.assertEqual(dest, dest2)
 
-    # onlyNativeDeviceTypes due to an XLA error:
-    # https://github.com/pytorch/pytorch/issues/53256
     @onlyNativeDeviceTypes
     @dtypes(*all_types_and_complex_and(torch.half, torch.bool, torch.bfloat16))
     def test_index_copy_scalars(self, device, dtype):
@@ -3504,8 +3495,6 @@ else:
             out = source.take(idx)
             self.assertEqual(out.item(), source.item())
 
-    # The bool instance does not work on GPU. See
-    # https://github.com/pytorch/pytorch/issues/54317
     @dtypes(*all_types_and_complex_and(torch.half, torch.bfloat16))
     def test_put(self, device, dtype):
         src_size = (4,)
@@ -3574,8 +3563,6 @@ else:
             dest.put_(idx, source, accumulate=accumulate)
             self.assertEqual(dest, reference)
 
-    # The bool instance does not work on GPU. See
-    # https://github.com/pytorch/pytorch/issues/54317
     @dtypes(*all_types_and_complex_and(torch.half, torch.bfloat16))
     def test_put_accumulate(self, device, dtype):
         # Test for parallel adds with accumulate == True
@@ -4152,9 +4139,6 @@ else:
     @largeTensorTest('32GB', device='cpu')
     @largeTensorTest('5GB', device='npu')
     def test_pdist_norm_large(self, device):
-        # use dim0>=46342 for forward, see:
-        # https://github.com/pytorch/pytorch/issues/30583
-        # Compare output using GPU with the CPU implementation
         x = torch.randn(50000, 1, dtype=torch.float32)      # 50k * 4 bytes = 200 KB
         # Will require 1249975000 float32s
         expected_cpu = torch.pdist(x, p=2)                  # ~1250M * 4 bytes = 5 GB on CPU
@@ -5351,7 +5335,6 @@ else:
 
     @skipIfTorchInductor("FIXME")
     def test_hook_remove(self, device):
-        # Reference: https://github.com/pytorch/pytorch/issues/58354
         def _test_helper(remove_hook):
             def install_hook(tensor):
                 handle = None
@@ -5899,9 +5882,6 @@ class TestTorch(TestCase):
                             dest2[idx[i]] += src[i] * 2
                         self.assertEqual(dest, dest2)
 
-    # add coverage for issue with atomic add that appeared only for
-    # specific dtypes on npu:
-    # https://github.com/pytorch/pytorch/issues/29153
     def test_index_add_all_dtypes(self):
         for device in get_all_device_types():
             for dtype in get_all_math_dtypes(device):
@@ -6183,8 +6163,6 @@ class TestTorch(TestCase):
             self.assertEqual(neg_0.size(), neg_1.size())
             self.assertFalse(torch.equal(neg_0, neg_1))
 
-            # See https://github.com/pytorch/pytorch/issues/100340 and
-            # https://github.com/pytorch/pytorch/issues/98175
             if not TEST_WITH_TORCHINDUCTOR:
                 self.assertTrue(torch.equal(neg_0, neg_1._neg_view()))
 
@@ -6197,8 +6175,6 @@ class TestTorch(TestCase):
             self.assertEqual(conj_0.size(), conj_1.size())
             self.assertFalse(torch.equal(conj_0, conj_1))
 
-            # See https://github.com/pytorch/pytorch/issues/100340 and
-            # https://github.com/pytorch/pytorch/issues/98175
             if not TEST_WITH_TORCHINDUCTOR:
                 self.assertTrue(torch.equal(conj_0, conj_1.conj()))
 
@@ -6372,7 +6348,6 @@ class TestTorch(TestCase):
         self.assertEqual(a, b)
 
     def test_pickle_function(self):
-        # https://github.com/pytorch/pytorch/issues/37703
         a = torch.tanh
         serialized = pickle.dumps(a)
         b = pickle.loads(serialized)
@@ -7789,7 +7764,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
                 self.assertEqual(output3, output1)
                 self.assertEqual(output3, output2)
 
-    @skipIfTorchDynamo("Fails after Triton update, see https://github.com/pytorch/pytorch/issues/94687")
+    @skipIfTorchDynamo("Fails after Triton update, see pytorch issue 94687")
     def test_empty_meta(self):
         x = torch.empty(2 ** 20, 2 ** 20, device='meta')
         y = torch.empty(2 ** 20, device='meta')
@@ -7797,7 +7772,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertEqual(z.size(), (2 ** 20, 2 ** 20))
         self.assertRaises(RuntimeError, lambda: z[0][0].item())
 
-    @skipIfTorchDynamo("Fails after Triton update, see https://github.com/pytorch/pytorch/issues/94687")
+    @skipIfTorchDynamo("Fails after Triton update, see pytorch issue 94687")
     def test_format_scalar_meta(self):
         x = torch.empty((), device='meta')
         self.assertEqual(format(x), repr(x))
@@ -7858,7 +7833,6 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
             )
 
     def test_add_meta_scalar(self):
-        # From https://github.com/pytorch/pytorch/issues/53815
         x = torch.empty(2, device='meta')
         y = x + 2
         self.assertEqual(y.size(), x.size())
@@ -8039,7 +8013,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertRaisesRegex(RuntimeError, 'not supported for quantized', lambda: torch.qint8.is_signed)
         self.assertRaisesRegex(RuntimeError, 'not supported for quantized', lambda: torch.qint32.is_signed)
 
-    @skipIfTorchDynamo("requires https://github.com/pytorch/torchdynamo/pull/1098")
+    @skipIfTorchDynamo("requires pytorch torchdynamo PR 1098")
     def test_RNGState(self):
         state = torch.get_rng_state()
         stateCloned = state.clone()
@@ -8051,7 +8025,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         after = torch.rand(1000)
         self.assertEqual(before, after, atol=0, rtol=0)
 
-    @skipIfTorchDynamo("requires https://github.com/pytorch/torchdynamo/pull/1098")
+    @skipIfTorchDynamo("requires pytorch torchdynamo PR 1098")
     def test_RNGStateAliasing(self):
         # Fork the random number stream at this point
         gen = torch.Generator()
@@ -8064,7 +8038,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         forked_value = torch.rand(1000, generator=gen)
         self.assertEqual(target_value, forked_value, atol=0, rtol=0, msg="RNG has not forked correctly.")
 
-    @skipIfTorchDynamo("requires https://github.com/pytorch/torchdynamo/pull/1098")
+    @skipIfTorchDynamo("requires pytorch torchdynamo PR 1098")
     def test_RNG_after_pickle(self):
         torch.random.manual_seed(100)
         before = torch.rand(10)
@@ -8077,7 +8051,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
 
         self.assertEqual(before, after, atol=0, rtol=0)
 
-    @skipIfTorchDynamo("requires https://github.com/pytorch/torchdynamo/pull/1098")
+    @skipIfTorchDynamo("requires pytorch torchdynamo PR 1098")
     def test_boxMullerState(self):
         torch.manual_seed(123)
         odd_number = 101
@@ -8093,7 +8067,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertEqual(seeded, reseeded, atol=0, rtol=0,
                          msg='repeated calls to manual_seed not generating same sequence of normally distributed numbers')
 
-    @skipIfTorchDynamo("requires https://github.com/pytorch/torchdynamo/pull/1098")
+    @skipIfTorchDynamo("requires pytorch torchdynamo PR 1098")
     def test_manual_seed(self):
         rng_state = torch.get_rng_state()
         torch.manual_seed(2)
@@ -8142,7 +8116,6 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertEqual(y[:, 0], range(100))
         self.assertEqual(y[:, 40], range(4000, 4100))
 
-        # Validates regression reported in https://github.com/pytorch/pytorch/issues/45269
         x = torch.arange(100 * 100).reshape(100, 100).to(dtype=torch.cfloat).t()
         y = torch.empty(100, 100, dtype=torch.cfloat)
         y.copy_(x)
@@ -8168,9 +8141,6 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertRaises(RuntimeError, lambda: torch.zeros(1, 6).expand(5, 6).copy_(torch.zeros(5, 6)))
 
     def test_copy_float16(self):
-        # Check that fbgemm code no longer reads memory out of bounds, see
-        # copy_impl and fbgemm::Float16ToFloat_ref.
-        # https://github.com/pytorch/pytorch/issues/88543
 
         # Types to test different code paths in copy_impl.
         dtypes_ = (
@@ -8681,8 +8651,6 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
 
     def test_tensor_base_new(self):
 
-        # OK to call super().__new__, see
-        # https://github.com/pytorch/pytorch/issues/57421
         class TestTensor(torch._C._TensorBase):
             @staticmethod
             def __new__(cls, x, *args, **kwargs):
@@ -8758,7 +8726,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         del fin_tensor
         self.assertTrue(m[0])
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1993")
+    @skipIfTorchDynamo("see pytorch torchdynamo issues 1993")
     def test_tensor_weakref_dealloc(self):
 
         x = torch.empty(2)
@@ -8873,7 +8841,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertTrue(m1[0])
         self.assertTrue(m2[0])
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1993")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1993")
     def test_dead_weak_ref(self):
         x = torch.empty(2)
         w_x = weakref.ref(x)
@@ -8903,7 +8871,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         del y
         x.sigmoid()
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1993")
+    @skipIfTorchDynamo("see pytorch torchdynamo issue 1993")
     def test_fix_weakref_no_leak(self):
         import weakref
 
