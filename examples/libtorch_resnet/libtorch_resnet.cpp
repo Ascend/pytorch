@@ -36,5 +36,6 @@ int main(int argc, const char* argv[]) {
   std::cout << output.slice(1, 0, 5) << std::endl;
   std::cout << "resnet_model run success!" << std::endl;
 
+  torch_npu::finalize_npu();
   return 0;
 }
