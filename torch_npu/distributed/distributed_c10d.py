@@ -1919,10 +1919,8 @@ def all_to_all_single(output_tensor,
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
     input_format = torch_npu.get_npu_format(input_tensor)
     output_format = torch_npu.get_npu_format(output_tensor)
-    judge_format = input_format != 0 and input_format != 2
+    judge_format = (input_format != 0 and input_format != 2) or (output_format != 0 and output_format != 2)
 
-    if input_format != output_format:
-        raise RuntimeError("Input and output formats should be the same!")
     in_tensor = input_tensor
     out_tensor = output_tensor
     if judge_format:
