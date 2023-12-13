@@ -7,6 +7,7 @@ import torch
 from torch.serialization import _check_dill_version, _open_file_like, _is_zipfile,\
     _open_zipfile_reader, _is_torchscript_zip, _weights_only_unpickler,\
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL
+import torch_npu
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
@@ -127,6 +128,7 @@ def load(
     mmap: Optional[bool] = None,
     **pickle_load_args: Any
 ) -> Any:
+    torch_npu.npu._lazy_init()
     update_cpu_remap_info(map_location)
     torch._C._log_api_usage_once("torch.load")
     UNSAFE_MESSAGE = (
