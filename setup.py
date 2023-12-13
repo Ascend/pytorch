@@ -25,9 +25,13 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 from wheel.bdist_wheel import bdist_wheel
 
+from codegen.utils import PathManager
+
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
-VERSION = '2.2.0'
+PathManager.check_directory_path_readable(os.path.join(BASE_DIR, "version.txt"))
+with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
+    VERSION = version_f.read().strip()
 UNKNOWN = "Unknown"
 DISABLE_TORCHAIR = "TRUE"
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
