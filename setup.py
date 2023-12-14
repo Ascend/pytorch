@@ -444,6 +444,7 @@ else:
     extra_compile_args += ['-DNDEBUG']
     extra_link_args += ['-Wl,-z,now,-s']
 
+requirements = ['torch==2.0.1+cpu' if platform.machine() == 'x86_64' else 'torch==2.0.1']
 
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
@@ -463,6 +464,7 @@ setup(
             extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
         ),
     ],
+    install_requires=requirements,
     extras_require={
     },
     package_data={
