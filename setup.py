@@ -535,6 +535,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
 ]
 
+requirements = ['torch==2.1.0+cpu' if platform.machine() == 'x86_64' else 'torch==2.1.0']
 
 setup(
     name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
@@ -558,6 +559,7 @@ setup(
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
             ),
     ],
+    install_requires=requirements,
     extras_require={
     },
     package_data={
