@@ -18,9 +18,11 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at:
       "src with dtype ", src_scalar_type,
       ", dst with dtype ", dst_scalar_type);
   TORCH_CHECK(
-      (src_scalar_type == at::ScalarType::Half) || (dst_scalar_type == at::ScalarType::Float),
-      "Only supports src and dst tensors with dtype float32 or float16, got: ", src_scalar_type);
-    
+      (src_scalar_type == at::ScalarType::Half) ||
+      (src_scalar_type == at::ScalarType::Float) ||
+      (src_scalar_type == at::ScalarType::BFloat16),
+      "Only supports src and dst tensors with dtype float32, float16 or bfloat16, got: ", src_scalar_type);
+
   auto dst_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_.storage_sizes_;
   auto src_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_.storage_sizes_;
   int64_t dst_storage_size = c10::multiply_integers(dst_sizes);
@@ -37,6 +39,9 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at:
   at::DataPtr aim_data_ptr;
   if (src_scalar_type == at::ScalarType::Float) {
     float* data_ptr = static_cast<float*>(src.storage().data_ptr().get()) + offset;
+    aim_data_ptr = at::DataPtr(data_ptr, dst.storage().device());
+  } else if (src_scalar_type == at::ScalarType::BFloat16) {
+    at::BFloat16* data_ptr = static_cast<at::BFloat16*>(src.storage().data_ptr().get()) + offset;
     aim_data_ptr = at::DataPtr(data_ptr, dst.storage().device());
   } else {
     at::Half* data_ptr = static_cast<at::Half*>(src.storage().data_ptr().get()) + offset;
