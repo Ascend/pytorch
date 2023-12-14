@@ -428,6 +428,17 @@ class BoolStorage(_NPULegacyStorage):
         return torch.bool
 
 
+class BFloat16Storage(_NPULegacyStorage):
+    @classproperty
+    def dtype(self):
+        _warn_typed_storage_removal()
+        return self._dtype
+
+    @classproperty
+    def _dtype(self):
+        return torch.bfloat16
+
+
 del _LegacyStorage
 del _NPULegacyStorage
 
@@ -440,3 +451,4 @@ torch._storage_classes.add(CharStorage)
 torch._storage_classes.add(ByteStorage)
 torch._storage_classes.add(HalfStorage)
 torch._storage_classes.add(BoolStorage)
+torch._storage_classes.add(BFloat16Storage)
