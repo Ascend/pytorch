@@ -106,7 +106,10 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
     r"""Iterates once over the DataLoader's dataset, as specified by the sampler"""
 
     def __init__(self, loader):
-        torch_npu.npu.synchronize()
+        try:
+            torch_npu.npu.synchronize()
+        except:
+            pass
         self._dataset = loader.dataset
         self._shared_seed = None
         self._pg = None
