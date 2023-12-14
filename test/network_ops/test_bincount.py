@@ -1,10 +1,13 @@
-import unittest
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
+
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
 
 
 class TestBincount(TestCase):
@@ -26,8 +29,7 @@ class TestBincount(TestCase):
         output = output.cpu()
         return output.numpy()
 
-    @unittest.skip("skip test_bincount now")
-    def test_bincount(self, device="npu"):
+    def test_bincount(self):
         input_param = [
             [np.int8, -1, [0]],
             [np.int8, -1, [np.random.randint(1, 65536)]],
