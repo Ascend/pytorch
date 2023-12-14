@@ -184,6 +184,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
 
     c10_npu::NPUCachingAllocator::init();
     NPU_LOGD("Npu caching allocator initialize successfully");
+
     auto ret = aclrtGetDevice(&device_id_);
     NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count_));
     if (ret != ACL_ERROR_NONE) {
@@ -193,7 +194,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
         NPU_LOGE("Npu device %d has been set before global init.", device_id_);
     }
 
-    UpdateDeviceAccess(device_id_);
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
@@ -236,16 +237,15 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-    UpdateDeviceAccess(pre_device);
+    NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
     NPU_CHECK_ERROR(aclrtSetDevice(device));
-    UpdateDeviceAccess(device);
     device_id_ = device;
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
     return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
     NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
-    used_devices.insert(device_id_);
     return INIT_SUCC;
 }
 
@@ -267,9 +267,7 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
         c10_npu::NPUEventManager::GetInstance().ClearEvent();
         auto stream = c10_npu::getCurrentNPUStream();
         NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
-        for (const auto i : used_devices) {
-            NPU_CHECK_WARN(aclrtResetDevice(i));
-        }
+        NPU_CHECK_WARN(aclrtResetDevice(device_id_));
         NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
@@ -305,65 +303,13 @@ int NpuSysCtrl::InitializedDeviceID()
     return -1;
 }
 
-aclrtContext NpuSysCtrl::InitializedContext(int device_index)
+aclrtContext NpuSysCtrl::InitializedContext()
 {
     if (GetInitFlag()) {
-        return ctx_[device_index];
+        return ctx_;
     }
     TORCH_CHECK(false, "no npu device context has been initialized!");
     return nullptr;
-}
-
-void NpuSysCtrl::UpdateDeviceAccess(int peer_device_index)
-{
-    peer_device_index = (peer_device_index < 0) ? 0 : peer_device_index;
-    if (used_devices.empty()) {
-        used_devices.insert(peer_device_index);
-        NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[peer_device_index]));
-        return;
-    } else if (used_devices.count(peer_device_index)) {
-        return;
-    } else if (used_devices.size() >= C10_P2P_ACCESS_MAX_NPUS) {
-        ASCEND_LOGW(
-            "At most only %d NPU devices can establish a direct connection "
-            "to achieve cross-card d2d copying through Tensor.to in a process", C10_P2P_ACCESS_MAX_NPUS);
-        int32_t cur_device = 0;
-        NPU_CHECK_ERROR(aclrtGetDevice(&cur_device));
-        NPU_CHECK_ERROR(aclrtSetDevice(peer_device_index));
-        NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[peer_device_index]));
-        used_devices.insert(peer_device_index);
-        NPU_CHECK_ERROR(aclrtSetDevice(cur_device));
-        return;
-    }
-
-    int32_t cur_device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&cur_device));
-
-    uint32_t enable_flag_value = 0;
-    for (auto i : used_devices) {
-        NPU_CHECK_ERROR(aclrtSetDevice(i));
-        int32_t can_access_peer = -1;
-        NPU_CHECK_ERROR(aclrtDeviceCanAccessPeer(&can_access_peer, i, peer_device_index));
-        if (can_access_peer) {
-            NPU_CHECK_ERROR(aclrtDeviceEnablePeerAccess(peer_device_index, enable_flag_value));
-        }
-    }
-
-    NPU_CHECK_ERROR(aclrtSetDevice(peer_device_index));
-    for (auto i : used_devices) {
-        int32_t can_access_peer = -1;
-        NPU_CHECK_ERROR(aclrtDeviceCanAccessPeer(&can_access_peer, peer_device_index, i));
-        if (can_access_peer) {
-            NPU_CHECK_ERROR(aclrtDeviceEnablePeerAccess(i, enable_flag_value));
-        }
-    }
-
-    // Updated the newly added devcie information
-    used_devices.insert(peer_device_index);
-    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[peer_device_index]));
-
-    // Restore the device that was originally set
-    NPU_CHECK_ERROR(aclrtSetDevice(cur_device));
 }
 
 void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,
