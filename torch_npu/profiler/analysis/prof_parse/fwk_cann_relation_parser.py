@@ -15,9 +15,8 @@
 
 from .fwk_file_parser import FwkFileParser
 from ..prof_bean.torch_op_node import TorchOpNode
-from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_parse.cann_file_parser import CANNFileParser
-from ..prof_common_func.constant import convert_us2ns
 
 
 class FwkCANNRelationParser:
@@ -64,22 +63,38 @@ class FwkCANNRelationParser:
         return self.combine_kernel_dict(acl_to_npu_dict, dequeue_data_list)
 
     def get_step_range(self, root_node: TorchOpNode, kernel_dict: dict):
+        if not kernel_dict:
+            print_error_msg("Failed to get acl to npu flow events.")
+            return []
         step_node_list = []
         for level1_node in root_node.child_node_list:
             if level1_node.is_profiler_step():
                 step_node_list.append(level1_node)
         if not step_node_list:
             return []
-        if kernel_dict and not FwkFileParser(self._profiler_path).has_task_queue_data():
+        if not FwkFileParser(self._profiler_path).has_task_queue_data():
             acl_start_time_list = sorted(list(kernel_dict.keys()))
             self._update_step_node_info(step_node_list, acl_start_time_list)
         step_range = []
         for step_node in step_node_list:
-            min_corr_id = min(step_node.corr_id_total) if step_node.corr_id_total else None
-            max_corr_id = max(step_node.corr_id_total) if step_node.corr_id_total else None
-            min_kernel_list = kernel_dict.get(min_corr_id, [])
-            max_kernel_list = kernel_dict.get(max_corr_id, [])
             step_id = step_node.event.name.split("#")[-1]
+            if not step_node.corr_id_total:
+                print_error_msg("Some step lost the correlation id information.")
+                return []
+            corr_id_list = sorted(step_node.corr_id_total)
+            min_index, max_index = 0, len(corr_id_list) - 1
+            min_kernel_list, max_kernel_list = [], []
+            while min_index < len(corr_id_list):
+                min_kernel_list = kernel_dict.get(corr_id_list[min_index], [])
+                if min_kernel_list:
+                    break
+                min_index += 1
+            while max_index >= 0:
+                max_kernel_list = kernel_dict.get(corr_id_list[max_index], [])
+                if max_kernel_list:
+                    break
+                max_index -= 1
+
             device_start_ts = min(
                 [kernel.ts for kernel in min_kernel_list]) if min_kernel_list else step_node.start_time
             device_end_ts = max(
