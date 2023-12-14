@@ -142,12 +142,12 @@ def check_operators_in_prof(expected_operators, prof, unexpected_operators=None)
     if not prof_key_averages:
         return print("torch profiling is empty, please check it")
     for prof_item in prof_key_averages:
-        if prof_item.key in unexpected_operators:
+        if prof_item.key.replace("cached_", "") in unexpected_operators:
             # if unexpected oprators are called, pattern inferring in trans-contiguous is failed
             return False
-        elif prof_item.key in expected_operators:
+        elif prof_item.key.replace("cached_", "") in expected_operators:
             # if expected oprator is called, empty it in expected_operators list
-            expected_operators.remove(prof_item.key)
+            expected_operators.remove(prof_item.key.replace("cached_", ""))
 
     # if expected_operators list is empty, all oprators have been called
     if not expected_operators:
