@@ -61,8 +61,11 @@ class _KinetoProfile:
         self.max_meta_size = 50 * 1024
         self.max_str_len = 4096
 
+    def __del__(self):
+        ProfPathCreator().delete_export_only_prof()
+
     def start(self):
-        ProfPathCreator().init()
+        ProfPathCreator().init(export_only_mode=True)
         self.prof_if.init_trace()
         self.prof_if.start_trace()
 
@@ -206,7 +209,7 @@ class profile(_KinetoProfile):
     def start(self):
         self.stopped = False
         if not self.on_trace_ready:
-            ProfPathCreator().init()
+            ProfPathCreator().init(export_only_mode=True)
         self.action_controller.transit_action(ProfilerAction.NONE, self.current_action)
         if self.record_steps:
             self.step_rec_fn = prof.record_function("ProfilerStep#" + str(self.step_num))
