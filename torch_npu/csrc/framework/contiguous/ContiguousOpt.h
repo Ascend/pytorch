@@ -9,6 +9,23 @@
 namespace at_npu {
 namespace native {
 
+    constexpr int MaxCombinedCasesNum = 2;
+    constexpr int ViewAndBaseInfoStackNum = 2;
+    using ShapeStrideStack =
+            c10::SmallVector<c10::SmallVector<FormatShape, ViewAndBaseInfoStackNum>,
+                    MaxCombinedCasesNum>;
+    using OffsetStack = c10::SmallVector<int64_t, MaxCombinedCasesNum>;
+
+    constexpr int CachedMaxSize = 1000000;
+    constexpr int CachedOptParaNum = 5;
+    struct CachedContiguousOpt {
+        string cached_opt_case;
+        c10::SmallVector<c10::SmallVector<int64_t, MAX_DIM>, CachedOptParaNum> cached_opt_parameters;
+        ShapeStrideStack shape_stride_stack;
+        OffsetStack offset_stack;
+        ContiguousTensorDesc contiguous_tensor_desc;
+    };
+
 class TransContiguous {
 public:
   TransContiguous() {}
@@ -34,6 +51,9 @@ public:
       at::Tensor &self, const at::Tensor &src,
       const OptimizationCases &opt_cases = optCasesDefault,
       bool OpenCombined = true);
+    static bool cached_contiguous_optimize_with_anyformat_(
+            at::Tensor &self, const at::Tensor &src, ContiguousTensorDesc &src_desc);
+    static ska::flat_hash_map<size_t, CachedContiguousOpt> cached_contiguous_opt;
 
 private:
   static OptimizationCases optCasesDefault;

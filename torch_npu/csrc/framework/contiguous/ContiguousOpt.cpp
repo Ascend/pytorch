@@ -6,6 +6,8 @@ namespace native {
 
 OptimizationCases TransContiguous::optCasesDefault = {};
 OptimizationCases TransContiguous::optCasesAnyFormat = {"reshape", "slice"};
+ska::flat_hash_map<size_t, CachedContiguousOpt> TransContiguous::cached_contiguous_opt;
+
 
 ContiguousTensorDesc TransContiguous::GetTensorDescInfo(
     const at::Tensor &src, const OptimizationCases &opt_cases) {
@@ -75,17 +77,85 @@ bool TransContiguous::CanOptimize(const at::Tensor &tensor,
 bool TransContiguous::contiguous_optimize_with_anyformat_(
     at::Tensor &self, const at::Tensor &src, ContiguousTensorDesc &src_desc) {
   if (!CheckClone(src, self)) {
-    return false;
-  }
-  for (auto &opt_case : src_desc.opt_cases_) {
-    bool res = register_opt::CopyOptRegister::GetInstance()->Run(opt_case, self,
-                                                                 src, src_desc);
-    if (res) {
-      return true;
+        return false;
     }
-  }
+    for (auto &opt_case : src_desc.opt_cases_) {
+        bool res = register_opt::CopyOptRegister::GetInstance()->Run(opt_case, self,
+                                                                     src, src_desc);
+        if (res) {
+            return true;
+        }
+    }
   return false;
 }
+
+    size_t GetHash_(const c10::SmallVector<int64_t, MAX_DIM>& small_vector_size)
+    {
+        size_t seed = 0;
+        for (auto i = 0; i < small_vector_size.size(); i++) {
+            seed ^= small_vector_size[i] + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+
+    size_t GetHash_(const ContiguousTensorDesc &src_desc)
+    {
+        size_t hash_src_desc = (GetHash_(src_desc.sizes_)<<52) +
+                               (GetHash_(src_desc.base_sizes_)<<40) +
+                               (GetHash_(src_desc.strides_)<<28) +
+                               (GetHash_(src_desc.base_strides_)<<16) +
+                               (src_desc.offset_ << 4) +
+                               src_desc.npu_format_;
+        return hash_src_desc;
+    }
+
+    bool equalDesc(const ContiguousTensorDesc &src_desc, const ContiguousTensorDesc &desc_desc)
+    {
+        if (src_desc.sizes_ == desc_desc.sizes_ &&
+            src_desc.base_sizes_ == desc_desc.base_sizes_ &&
+            src_desc.strides_ == desc_desc.strides_ &&
+            src_desc.base_strides_ == desc_desc.base_strides_ &&
+            src_desc.offset_ == desc_desc.offset_ &&
+            src_desc.npu_format_ == desc_desc.npu_format_) {
+            return true;
+        }
+        return false;
+    }
+
+    bool TransContiguous::cached_contiguous_optimize_with_anyformat_(
+        at::Tensor &self, const at::Tensor &src, ContiguousTensorDesc &src_desc)
+    {
+        // No cached, try caching
+        if (!CheckClone(src, self)) {
+            return false;
+        }
+        src_desc.hash_src_desc = GetHash_(src_desc);
+        auto it = TransContiguous::cached_contiguous_opt.find(src_desc.hash_src_desc);
+        if (it != TransContiguous::cached_contiguous_opt.end()) {
+            // Cached
+            if (equalDesc(src_desc, it->second.contiguous_tensor_desc)) {
+                src_desc.cached_contiguous = true;
+                auto &opt_case = it->second.cached_opt_case;
+                return register_opt::CopyOptRegister::GetInstance()->CachedRun(opt_case, self,
+                                                                               src, src_desc);
+            }
+            return contiguous_optimize_with_anyformat_(self, src, src_desc);
+        }
+
+        for (auto &opt_case : src_desc.opt_cases_) {
+            bool res = false;
+            if (TransContiguous::cached_contiguous_opt.size() >= CachedMaxSize) {
+                res = register_opt::CopyOptRegister::GetInstance()->Run(opt_case, self, src, src_desc);
+            } else {
+                src_desc.cached_contiguous = false;
+                res =  register_opt::CopyOptRegister::GetInstance()->CachedRun(opt_case, self, src, src_desc);
+            }
+            if (res) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 bool TransContiguous::ContiguousOptimizeWithAnyFormat(
     at::Tensor &self, const at::Tensor &src,
@@ -102,7 +172,7 @@ c10::optional<at::Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
   auto self = OpPreparation::ApplyTensorWithFormat(
       src.sizes(), src.options(), torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc().npu_format_);
   ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
-  if (contiguous_optimize_with_anyformat_(self, src, src_desc)) {
+  if (cached_contiguous_optimize_with_anyformat_(self, src, src_desc)) {
     return self;
   }
   return c10::nullopt;
@@ -120,7 +190,7 @@ bool TransContiguous::ContiguousOptimizeWithBaseFormat(
       c10_npu::option::OptionsManager::CheckCombinedOptimizerEnable()) {
     src_desc.add_optimization_case("combined");
   }
-  return contiguous_optimize_with_anyformat_(self, src, src_desc);
+  return cached_contiguous_optimize_with_anyformat_(self, src, src_desc);
 }
 
 } // namespace native
