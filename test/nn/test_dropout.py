@@ -6,13 +6,15 @@ import itertools
 
 
 import torch
+import torch.nn.functional as F
+import torch.nn as nn
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import run_tests, set_default_dtype, \
     instantiate_parametrized_tests, TEST_PRIVATEUSE1
 from torch.testing._internal.common_cuda import TEST_CUDA
 from torch.testing._internal.common_nn import NNTestCase, freeze_rng_state
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, expectedFailureXLA
-import torch.nn.functional as F
-import torch.nn as nn
 
 
 class TestDropoutNN(NNTestCase):
@@ -164,7 +166,7 @@ class TestDropoutNNDeviceType(NNTestCase):
 
         self._test_dropout_stride_mean_preserve(nn.Dropout, device)
 
-        if self.device_type == 'cuda' or self.device_type == 'cpu':
+        if self.device_type == 'npu' or self.device_type == 'cpu':
             input1 = input1.bfloat16()
             self._test_dropout(nn.Dropout, device, input1)
 
