@@ -75,6 +75,8 @@ class HcclReduceTest(TestCase):
             [i, j, [12, 56, 256]] for i in dtype_list for j in format_list
         ]
         for world_size in ranks:
+            if torch.npu.device_count() < world_size:
+                continue
             for shape in shape_format:
                 if shape[0] == np.int8:
                     shape[1] = 0
@@ -94,6 +96,8 @@ class HcclReduceTest(TestCase):
             [i, j, [12, 56, 256]] for i in dtype_list for j in format_list
         ]
         for world_size in ranks:
+            if torch.npu.device_count() < world_size:
+                continue
             for shape in shape_format:
                 exp_input, input1 = create_common_tensor(shape, -10, 10)
                 expected = 0
