@@ -332,30 +332,6 @@ namespace at_npu
           options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
     }
 
-    at::Tensor NPUNativeFunctions::tensor_with_format(const at::Tensor &src, int64_t format,
-                                                      bool keep_format)
-    {
-        return tensor_with_format(src, src.sizes(), format, keep_format);
-    }
-
-    at::Tensor NPUNativeFunctions::tensor_with_format(const at::Tensor &src, c10::IntArrayRef sizes, int64_t format,
-                                                      bool keep_format)
-    {
-        return tensor_with_format(sizes, src.options(), format, keep_format);
-    }
-
-    at::Tensor NPUNativeFunctions::tensor_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
-                                                      int64_t format, bool keep_format)
-    {
-        TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
-            "Expected all tensors to be on the same device. "
-            "Expected NPU tensor, please check whether the input tensor device is correct.");
-        auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-        return NPUNativeFunctions::unsafe_empty_with_format(
-            sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
-            options.device_opt(), options.pinned_memory_opt(), fixFormat, keep_format);
-    }
-
     at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
     {
       auto format = InferFormat::GuessBaseFormat(sizes);

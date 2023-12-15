@@ -100,7 +100,7 @@ public:
 
   // Scalar Input, we will do h2d in launch kernel
   OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
-                 CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
 
   // String Input Node in graph mode
   OpCommand& Input(const string &str);
@@ -143,7 +143,7 @@ public:
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
-                          const string &descName = "", const string &realData = "") ;
+                          const string &descName = "", const string &realData = "");
   
   OpCommand& AddTensorInput(const string &str);
 

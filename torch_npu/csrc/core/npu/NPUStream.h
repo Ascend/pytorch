@@ -119,7 +119,7 @@ private:
   c10::Stream stream_;
 };
 
-NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
+C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
 C10_NPU_API NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
@@ -133,9 +133,7 @@ NPUStatus emptyAllNPUStream();
 
 C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);
 
-void enCurrentNPUStream(
-    void* cur_paras,
-    c10::DeviceIndex device_index = -1);
+void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index = -1);
 
 C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 

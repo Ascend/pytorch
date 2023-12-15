@@ -24,7 +24,7 @@ namespace at_npu {
 namespace native {
 
 class OpPreparation {
- public:
+public:
   static UnifiedResult binary_op_check(at::Tensor &out, const at::Tensor &a, const at::Tensor &b,
                                        bool check_mem_overlap);
   static UnifiedResult binary_op_check(at::Tensor &out, const at::Tensor &a, const c10::Scalar b,

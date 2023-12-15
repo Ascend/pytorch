@@ -1,5 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
+// Copyright (c) 2023 Huawei Technologies Co., Ltd
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -13,22 +12,20 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #pragma once
 
-#include "torch_npu/csrc/core/npu/NPUEvent.h"
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
-#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include <ATen/ATen.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 
-namespace c10_npu {
-struct C10_NPU_API SecondaryStreamGuard {
-  explicit SecondaryStreamGuard() = delete;
-  explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {};
+namespace at_npu {
+namespace native {
 
-  ~SecondaryStreamGuard();
+TORCH_NPU_API int64_t get_npu_format(const at::Tensor &tensor);
 
-private:
-  c10_npu::NPUStreamGuard guard_;
-};
-}  // namespace c10_npu
+TORCH_NPU_API at::Tensor npu_format_cast(const at::Tensor &tensor, int64_t acl_format);
+
+TORCH_NPU_API at::Tensor empty_with_format(c10::IntArrayRef sizes, const c10::TensorOptions &options,
+                                           int64_t format, bool keep_format = false);
+
+} // namespace native
+} // namespace at_npu

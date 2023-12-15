@@ -5,7 +5,6 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
-#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 
 namespace c10_npu {
@@ -59,7 +58,7 @@ NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, a
 /**
   This API is used to get error msg
   */
-C10_NPU_API const char *AclGetErrMsg();
+const char *AclGetErrMsg();
 
 /**
  * This API is used to create fast streams through the param flag
@@ -105,7 +104,7 @@ bool IsExistQueryEventRecordedStatus();
 /**
   This API is used to query recorded status of event task
   */
-C10_NPU_API aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status);
+aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status);
 
 aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);

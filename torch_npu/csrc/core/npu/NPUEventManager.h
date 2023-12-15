@@ -1,14 +1,13 @@
 #pragma once
 
 #include "torch_npu/csrc/core/npu/NPUException.h"
-#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include <c10/core/thread_pool.h>
 #include <third_party/acl/inc/acl/acl.h>
 #include <deque>
 #include <mutex>
 namespace c10_npu {
 
-class C10_NPU_API NPUEventManager {
+class NPUEventManager {
 public:
   static NPUEventManager& GetInstance();
   aclError QueryAndDestroyEvent();
