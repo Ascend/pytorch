@@ -13,8 +13,12 @@ from sysconfig import get_paths
 from distutils.version import LooseVersion
 from distutils import file_util
 
+from codegen.utils import PathManager
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '2.2.0'
+PathManager.check_directory_path_readable(os.path.join(BASE_DIR, "version.txt"))
+with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
+    VERSION = version_f.read().strip()
 
 
 def which(thefile):

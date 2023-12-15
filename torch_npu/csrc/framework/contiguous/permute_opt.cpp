@@ -16,16 +16,7 @@ public:
     c10::SmallVector<int64_t, 5> sizes;
     if (can_use_permute(src_desc, perm, sizes)) {
       RECORD_FUNCTION("contiguous_d_Transpose", std::vector<c10::IValue>({src}));
-      // Refresh src Tensor to match output self Tensor
-      auto src_desc_stored = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
-      auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
-      src_desc.base_sizes_ = sizes;
-      src_desc.base_strides_ = StorageDescHelper::ComputeStrideFromShape(
-          static_cast<FormatShape>(sizes));
-      src_desc.storage_sizes_ = sizes;
-
-      op_plugin::npu_transpose_out(src, perm, false, self);
-      src_desc = src_desc_stored;
+      permute_to_contiguous(self, src, perm, sizes);
       return true;
     }
     return false;
@@ -37,7 +28,52 @@ public:
     return can_use_permute(src_desc, perm, sizes);
   }
 
+    bool CachedOptimizer(at::Tensor &self, const at::Tensor &src,
+                         const ContiguousTensorDesc &src_desc) override
+    {
+        if (src_desc.cached_contiguous) {
+            RECORD_FUNCTION("cached_contiguous_d_Transpose", std::vector<c10::IValue>({src}));
+            CachedContiguousOpt cachedContiguousOpt = TransContiguous::cached_contiguous_opt[src_desc.hash_src_desc];
+            c10::SmallVector<int64_t, MAX_DIM> sizes = cachedContiguousOpt.cached_opt_parameters.pop_back_val();
+            c10::SmallVector<int64_t, MAX_DIM> perm = cachedContiguousOpt.cached_opt_parameters.pop_back_val();
+            permute_to_contiguous(self, src, perm, sizes);
+            return true;
+        }
+
+        // pattern permute
+        c10::SmallVector<int64_t, MAX_DIM> perm;
+        c10::SmallVector<int64_t, MAX_DIM> sizes;
+        if (can_use_permute(src_desc, perm, sizes)) {
+            RECORD_FUNCTION("contiguous_d_Transpose", std::vector<c10::IValue>({src}));
+            CachedContiguousOpt cached_opt = CachedContiguousOpt{
+                    "permute"
+            };
+            cached_opt.cached_opt_parameters.emplace_back(perm);
+            cached_opt.cached_opt_parameters.emplace_back(sizes);
+            cached_opt.contiguous_tensor_desc = src_desc;
+            TransContiguous::cached_contiguous_opt[src_desc.hash_src_desc] = cached_opt;
+            permute_to_contiguous(self, src, perm, sizes);
+            return true;
+        }
+        return false;
+    }
+
 private:
+
+    void permute_to_contiguous(at::Tensor &self, const at::Tensor &src,
+                               const c10::SmallVector<int64_t, MAX_DIM> &perm,
+                               const c10::SmallVector<int64_t, MAX_DIM> &sizes)
+    {
+        // Refresh src Tensor to match output self Tensor
+        auto src_desc_stored = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
+        auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+        src_desc.base_sizes_ = sizes;
+        src_desc.base_strides_ = StorageDescHelper::ComputeStrideFromShape(static_cast<FormatShape>(sizes));
+        src_desc.storage_sizes_ = sizes;
+        op_plugin::npu_transpose_out(src, perm, false, self);
+        src_desc = src_desc_stored;
+    }
+
   bool can_use_permute(const ContiguousTensorDesc &src_desc,
                        c10::SmallVector<int64_t, MAX_DIM> &perm,
                        c10::SmallVector<int64_t, 5> &sizes) {

@@ -1,5 +1,6 @@
 import os
 import socket
+import shutil
 from datetime import datetime
 
 from ..utils.path_manager import PathManager
@@ -16,9 +17,14 @@ class ProfPathCreator:
         self._prof_path = None
         self._worker_name = None
         self._dir_path = None
+        # When _export_only_mode is True, raw profiling data will be saved to
+        # a temporary directory and deleted completely after profiler is finalized.
+        self._export_only_mode = False
+        self._export_only_prof_dir = "export_only_prof_dir"
         self.is_prof_inited = False
 
-    def init(self, worker_name: str = None, dir_name: str = None) -> None:
+    def init(self, worker_name: str = None, dir_name: str = None, export_only_mode: bool = False) -> None:
+        self._export_only_mode = export_only_mode
         valid_wk_name = worker_name and isinstance(worker_name, str)
         valid_wk_len = isinstance(worker_name, str) and len(worker_name) < Constant.MAX_WORKER_NAME_LENGTH
         if (valid_wk_name and valid_wk_len) or worker_name is None:
@@ -38,10 +44,25 @@ class ProfPathCreator:
             print_warn_msg("Invalid parameter dir_name, reset it to default.")
             self._dir_path = None
 
+    def delete_export_only_prof(self):
+        if not self._export_only_mode:
+            return
+        try:
+            shutil.rmtree(os.path.dirname(self._prof_path))
+        except Exception:
+            msg = f"Remove temporary profiling data saving path failed."
+            print_warn_msg(msg)
+
     def create_prof_dir(self):
         if not self._dir_path:
             dir_path = os.getenv(Constant.ASCEND_WORK_PATH, default=None)
-            dir_path = os.path.join(os.path.abspath(dir_path), Constant.PROFILING_WORK_PATH) if dir_path else os.getcwd()
+            self._export_only_mode = self._export_only_mode and (dir_path is None)
+            if dir_path:
+                dir_path = os.path.join(os.path.abspath(dir_path), Constant.PROFILING_WORK_PATH)
+            elif self._export_only_mode:
+                dir_path = os.path.join(os.getcwd(), self._export_only_prof_dir)
+            else:
+                dir_path = os.getcwd()
         else:
             dir_path = self._dir_path
         if not self._worker_name:

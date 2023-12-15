@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from torch.nn.parameter import UninitializedParameter, UninitializedBuffer
 from torch.nn import Parameter
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, run_tests, suppress_warnings, TEST_PRIVATEUSE1
 from torch.testing._internal.common_cuda import TEST_CUDA
 

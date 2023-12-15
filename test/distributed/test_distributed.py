@@ -19,13 +19,13 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
-from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.utils.path_manager import PathManager
-from torch_npu.testing.common_distributed import TEST_SKIPS
+from torch_npu.testing.common_distributed import TEST_SKIPS, skipIfUnsupportMultiNPU
 
 try:
     import torchvision
@@ -670,6 +670,8 @@ class _DistTestBase(object):
         torch.testing.assert_allclose(running_mean, all_input_var.mean(1))
         torch.testing.assert_allclose(running_var.cpu(), all_input_var.cpu().var(1, unbiased=False))
 
+    # need more 4 device, less 4 divice there may be accuracy issues 
+    @skipIfUnsupportMultiNPU(4)
     def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self):
         for bk in [True, False]:
             self._test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(bk)

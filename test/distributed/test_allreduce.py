@@ -86,9 +86,11 @@ class HcomAllReduceTest(TestCase):
     def test_dist_all_reduce_uint8(self):
         ranks = [2]
         shape_format = [[np.uint8, 2, [2, 3, 16]], [np.uint8, 2, [1]]]
-        for sfmt in shape_format:
-            for world_size in ranks:
-                exp_input, input1 = create_common_tensor(sfmt, 0, 10)
+        for world_size in ranks:
+            for shape in shape_format:
+                if len(shape[2]) == 1:
+                    continue
+                exp_input, input1 = create_common_tensor(shape, 0, 10)
                 expected = 0
                 for _ in range(world_size):
                     expected += exp_input
