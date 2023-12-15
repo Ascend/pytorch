@@ -4,12 +4,13 @@
 #include <c10/macros/Macros.h>
 #include <c10/util/Exception.h>
 #include <third_party/acl/inc/acl/acl_base.h>
-#include"torch_npu/csrc/core/npu/interface/AclInterface.h"
-#include"torch_npu/csrc/core/npu/NPUErrorCodes.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
+#include "torch_npu/csrc/core/npu/NPUErrorCodes.h"
 
-#define C10_NPU_SHOW_ERR_MSG()                            \
-do {                                                      \
-  std::cout<<c10_npu::acl::AclGetErrMsg()<<std::endl;    \
+#define C10_NPU_SHOW_ERR_MSG()                                     \
+do {                                                               \
+  std::cout<< c10_npu::c10_npu_get_error_message() << std::endl;   \
 } while (0)
 
 #define NPU_CHECK_ERROR(err_code)                                    \
@@ -28,7 +29,7 @@ do {                                                      \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
         "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
-        "\n", c10_npu::acl::AclGetErrMsg());                         \
+        "\n", c10_npu::c10_npu_get_error_message());                 \
     }                                                                \
   } while (0)
 
@@ -57,7 +58,7 @@ do {                                                      \
           (err_map.error_code_map.find(Error) !=                       \
           err_map.error_code_map.end() ?                               \
           "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
-          "\n", c10_npu::acl::AclGetErrMsg());                         \
+          "\n", c10_npu::c10_npu_get_error_message());                 \
       }                                                                \
     }                                                                  \
   } while (0)
@@ -72,7 +73,7 @@ do {                                                      \
         (err_map.error_code_map.find(Error) !=                       \
         err_map.error_code_map.end() ?                               \
         "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
-        "\n", c10_npu::acl::AclGetErrMsg());                         \
+        "\n", c10_npu::c10_npu_get_error_message());                 \
     }                                                                \
   } while (0)
 
@@ -91,3 +92,9 @@ void warn_(const ::c10::Warning& warning);
         TORCH_NPU_WARN(__VA_ARGS__);                                      \
         return true;                                                      \
       }()
+
+namespace c10_npu {
+
+C10_NPU_API const char *c10_npu_get_error_message();
+
+} // namespace c10_npu

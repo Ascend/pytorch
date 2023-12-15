@@ -24,11 +24,7 @@ struct UnifiedResult {
 
 class TORCH_NPU_API OpCommand {
 public:
-   OpCommand() {
-    aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
-    aclCmds->Push(aclCmd);
-    aclCmd->SetCustomHandler(nullptr);
-  }
+  OpCommand();
   ~OpCommand() {}
 
   OpCommand(const OpCommand &other) = delete;
@@ -90,7 +86,7 @@ public:
 
   // Scalar Input, we will do h2d in launch kernel
   OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
-                 CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
 
   // A list of Tensor
   OpCommand& Inputs(const at::TensorList &inputs);
@@ -129,7 +125,7 @@ public:
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
-                          const string &descName = "", const string &realData = "") ;
+                          const string &descName = "", const string &realData = "");
   
   OpCommand& AddTensorInput(const string &str);
 

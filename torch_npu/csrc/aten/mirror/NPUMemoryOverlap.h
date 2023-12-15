@@ -2,8 +2,10 @@
 #define __PLUGIN_NATIVE_UTILS_NPU_MEMORY_OVERLAP__
 
 #include <ATen/ATen.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
-namespace at_npu { namespace native {
+namespace at_npu {
+namespace native {
 
 // MemOverlap: Whether or not there is memory overlap
 //
@@ -15,18 +17,19 @@ namespace at_npu { namespace native {
 enum class MemOverlap { NO, YES, TOO_HARD };
 enum class MemOverlapStatus { FULL, PARTIAL, NO, TOO_HARD };
 
-MemOverlap has_internal_overlap(const at::Tensor& t);
-MemOverlap has_internal_overlap(at::TensorImpl* t);
+TORCH_NPU_API MemOverlap has_internal_overlap(const at::Tensor& t);
+TORCH_NPU_API MemOverlap has_internal_overlap(at::TensorImpl* t);
 
-void assert_no_internal_overlap(const at::Tensor& t);
-void assert_no_internal_overlap(at::TensorImpl* t);
+TORCH_NPU_API void assert_no_internal_overlap(const at::Tensor& t);
+TORCH_NPU_API void assert_no_internal_overlap(at::TensorImpl* t);
 
-MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b);
-MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImpl* b);
+TORCH_NPU_API MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b);
+TORCH_NPU_API MemOverlapStatus get_overlap_status(const at::TensorImpl* a, const at::TensorImpl* b);
 
-void assert_no_partial_overlap(const at::Tensor& a, const at::Tensor& b);
-void assert_no_partial_overlap(at::TensorImpl* a, at::TensorImpl* b);
+TORCH_NPU_API void assert_no_partial_overlap(const at::Tensor& a, const at::Tensor& b);
+TORCH_NPU_API void assert_no_partial_overlap(at::TensorImpl* a, at::TensorImpl* b);
 
-}}
+} // namespace native
+} // namespace at_npu
 
 #endif

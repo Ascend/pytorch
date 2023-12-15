@@ -114,7 +114,7 @@ private:
 
 C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
-NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
 NPUStream getStreamFromPool(
     const bool isHighPriority,
@@ -122,7 +122,7 @@ NPUStream getStreamFromPool(
 
 C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
-NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
+C10_NPU_API NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
 aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
@@ -130,11 +130,9 @@ NPUStatus emptyAllNPUStream();
 
 C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);
 
-void enCurrentNPUStream(
-    void* cur_paras,
-    c10::DeviceIndex device_index = -1);
+void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index = -1);
 
-void setCurrentNPUStream(NPUStream stream);
+C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
 } // namespace c10_npu
