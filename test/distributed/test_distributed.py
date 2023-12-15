@@ -25,6 +25,7 @@ from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
 
 import torch_npu
 from torch_npu.utils.path_manager import PathManager
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
 try:
@@ -675,6 +676,8 @@ class _DistTestBase(object):
         torch.testing.assert_allclose(running_mean, all_input_var.mean(1))
         torch.testing.assert_allclose(running_var.cpu(), all_input_var.cpu().var(1, unbiased=False))
 
+    # need more 4 device, less 4 divice there may be accuracy issues 
+    @skipIfUnsupportMultiNPU(4)
     def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self):
         for bk in [True, False]:
             self._test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(bk)
