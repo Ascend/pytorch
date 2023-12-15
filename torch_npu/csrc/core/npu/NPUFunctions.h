@@ -10,6 +10,7 @@
 #include <c10/core/Device.h>
 #include <c10/macros/Macros.h>
 
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
@@ -17,7 +18,7 @@
 
 namespace c10_npu {
 
-inline c10::DeviceIndex device_count() noexcept {
+C10_NPU_API inline c10::DeviceIndex device_count() noexcept {
   unsigned int count = 1;
   // NB: In the past, we were inconsistent about whether or not this reported
   // an error if there were driver problems are not.  Based on experience
@@ -58,13 +59,13 @@ C10_NPU_API aclError GetDevice(int32_t *device);
  */
 C10_NPU_API aclError SetDevice(c10::DeviceIndex device);
 
-inline c10::DeviceIndex current_device() {
+C10_NPU_API inline c10::DeviceIndex current_device() {
   int cur_device = 0;
   NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
   return static_cast<c10::DeviceIndex>(cur_device);
 }
 
-inline void set_device(c10::DeviceIndex device) {
+C10_NPU_API inline void set_device(c10::DeviceIndex device) {
 }
 
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
@@ -85,14 +86,14 @@ class WarningState {
   SyncDebugMode sync_debug_mode = SyncDebugMode::L_DISABLED;
 };
 
-inline WarningState& warning_state() {
+C10_NPU_API inline WarningState& warning_state() {
   static WarningState warning_state_;
   return warning_state_;
 }
 
 // this function has to be called from callers performing npu synchronizing
 // operations, to raise proper error or warning
-inline void warn_or_error_on_sync() {
+C10_NPU_API inline void warn_or_error_on_sync() {
   if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_ERROR) {
     TORCH_CHECK(false, "called a synchronizing NPU operation");
   } else if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_WARN) {

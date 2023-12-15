@@ -32,6 +32,13 @@ static std::unordered_map<at::ScalarType, std::vector<long>> integral_limits_map
 namespace at_npu {
 namespace native {
 
+OpCommand::OpCommand()
+{
+    aclCmds = OpCommandImpls::GetInstanceByTid(std::this_thread::get_id());
+    aclCmds->Push(aclCmd);
+    aclCmd->SetCustomHandler(nullptr);
+}
+
 OpCommand& OpCommand::Name(const string &name) {
     aclCmd->SetName(name);
     return *this;
