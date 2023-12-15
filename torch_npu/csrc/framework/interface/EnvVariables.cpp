@@ -45,12 +45,18 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
   aclmdlSetDump(val.c_str());
 })
 
+REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisableInner, jitCompile, "enable", "disable")
+REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_OP_JIT_COMPILE, result = ", ret, ", set value ", val);
+    auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str());
+    TORCH_CHECK(ret == ACL_SUCCESS,
+        "Failed to set compile option ACL_OP_JIT_COMPILE, result = ", ret, ", set value ", val);
+    SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
-REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisable, jitCompile, "enable", "disable")
+
+bool CheckJitDisable() {
+    return GET_OPTION_WITH_CACHE(isJitDisable);
+}
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string &val) {
   auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str());

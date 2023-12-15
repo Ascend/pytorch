@@ -1,4 +1,3 @@
-import unittest
 import torch
 import numpy as np
 
@@ -12,7 +11,7 @@ class TestApplyAdam(TestCase):
     def cpu_op_exec(self, var, m, v, beta1_power, beta2_power, lr, weight_decay,
                     beta1, beta2, eps, grad, max_grad_norm, amsgrad, maximize):
         if amsgrad:
-            max_grad_norm = np.random.uniform(-5.0, 5.0, var_shape).astype(dtype)
+            max_grad_norm = np.random.uniform(-5.0, 5.0, var.shape)
         gt = -grad if maximize else grad
         m_out = m * beta1 - (beta1 + (-1)) * gt
         v_out = v * beta2 - (beta2 + (-1)) * gt * gt
@@ -35,7 +34,6 @@ class TestApplyAdam(TestCase):
                                                                        amsgrad, maximize, out=(var_tensor, m_tensor, v_tensor))
         return var_out_npu, m_out_npu, v_out_npu
 
-    @unittest.skip("skip test_apply_adam_w_maximize_true now")
     def test_apply_adam_w_maximize_true(self):
         amsgrad = False  # at present, the operator supports only false.
         maximize = True
@@ -54,13 +52,13 @@ class TestApplyAdam(TestCase):
         v_cpu = v_cpu.numpy()
         grad_cpu = grad_cpu.numpy()
 
-        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape).astype(dtype)
-        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape).astype(dtype)
-        lr = np.random.uniform(0.0001, 0.1, scalar_shape).astype(dtype)
-        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape).astype(dtype)
-        beta1 = np.random.uniform(0.5, 1.0, scalar_shape).astype(dtype)
-        beta2 = np.random.uniform(0.5, 1.0, scalar_shape).astype(dtype)
-        eps = np.random.uniform(0.00001, 0.01, scalar_shape).astype(dtype)
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
         max_grad_norm = None
 
         var_ret_cpu, m_ret_cpu, v_ret_cpu = self.cpu_op_exec(var_cpu, m_cpu, v_cpu, beta1_power, beta2_power, lr,
@@ -69,11 +67,10 @@ class TestApplyAdam(TestCase):
         var_ret_npu, m_ret_npu, v_ret_npu = self.npu_op_exec(var_npu, m_npu, v_npu, beta1_power,
                                                              beta2_power, lr, weight_decay, beta1, beta2, eps, grad_npu, max_grad_norm, amsgrad, maximize)
 
-        self.assertRtolEqual(var_ret_cpu, var_ret_npu.cpu().numpy())
-        self.assertRtolEqual(m_ret_cpu, m_ret_npu.cpu().numpy())
-        self.assertRtolEqual(v_ret_cpu, v_ret_npu.cpu().numpy())
+        self.assertRtolEqual(var_ret_cpu.astype(dtype), var_ret_npu.cpu().numpy())
+        self.assertRtolEqual(m_ret_cpu.astype(dtype), m_ret_npu.cpu().numpy())
+        self.assertRtolEqual(v_ret_cpu.astype(dtype), v_ret_npu.cpu().numpy())
 
-    @unittest.skip("skip test_apply_adam_w_maximize_false now")
     def test_apply_adam_w_maximize_false(self):
         amsgrad = False  # at present, the operator supports only false.
         maximize = False
@@ -92,13 +89,13 @@ class TestApplyAdam(TestCase):
         v_cpu = v_cpu.numpy()
         grad_cpu = grad_cpu.numpy()
 
-        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape).astype(dtype)
-        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape).astype(dtype)
-        lr = np.random.uniform(0.0001, 0.1, scalar_shape).astype(dtype)
-        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape).astype(dtype)
-        beta1 = np.random.uniform(0.5, 1.0, scalar_shape).astype(dtype)
-        beta2 = np.random.uniform(0.5, 1.0, scalar_shape).astype(dtype)
-        eps = np.random.uniform(0.00001, 0.01, scalar_shape).astype(dtype)
+        beta1_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        beta2_power = np.random.uniform(0.0, 1.0, scalar_shape)
+        lr = np.random.uniform(0.0001, 0.1, scalar_shape)
+        weight_decay = np.random.uniform(0.001, 0.1, scalar_shape)
+        beta1 = np.random.uniform(0.5, 1.0, scalar_shape)
+        beta2 = np.random.uniform(0.5, 1.0, scalar_shape)
+        eps = np.random.uniform(0.00001, 0.01, scalar_shape)
         max_grad_norm = None
 
         var_ret_cpu, m_ret_cpu, v_ret_cpu = self.cpu_op_exec(var_cpu, m_cpu, v_cpu, beta1_power, beta2_power, lr,
@@ -107,9 +104,9 @@ class TestApplyAdam(TestCase):
         var_ret_npu, m_ret_npu, v_ret_npu = self.npu_op_exec(var_npu, m_npu, v_npu, beta1_power,
                                                              beta2_power, lr, weight_decay, beta1, beta2, eps, grad_npu, max_grad_norm, amsgrad, maximize)
 
-        self.assertRtolEqual(var_ret_cpu, var_ret_npu.cpu().numpy())
-        self.assertRtolEqual(m_ret_cpu, m_ret_npu.cpu().numpy())
-        self.assertRtolEqual(v_ret_cpu, v_ret_npu.cpu().numpy())
+        self.assertRtolEqual(var_ret_cpu.astype(dtype), var_ret_npu.cpu().numpy())
+        self.assertRtolEqual(m_ret_cpu.astype(dtype), m_ret_npu.cpu().numpy())
+        self.assertRtolEqual(v_ret_cpu.astype(dtype), v_ret_npu.cpu().numpy())
 
 
 if __name__ == "__main__":

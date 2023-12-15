@@ -19,7 +19,7 @@ class TestStorage(TestCase):
             torch.float64,
             torch.bool,
             torch.uint8,
-            # torch.bfloat16,
+            torch.bfloat16,
             # torch.cdouble,
             # torch.cfloat,
             # torch.qint8,

@@ -7,6 +7,9 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
+torch.npu.conv.allow_hf32 = False
+
+
 class TestConvDepthwise2d(TestCase):
     weight_grad = []
     input_grad = []
@@ -80,14 +83,14 @@ class TestConvDepthwise2d(TestCase):
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy())
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
 
-    def test_conv_depthwise2d_backward_shape_format_fp16(self, device="npu"):
+    def test_conv_depthwise2d_backward_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, [1024, 116, 28, 28]], [np.float16, 0, [116, 1, 3, 3]], 1, 2, 1, 0],
             [[np.float16, 3, [1024, 116, 14, 14]], [np.float16, 0, [116, 1, 3, 3]], 1, 1, 1, 0],
         ]
         self.conv_depthwise2d_backward_result(shape_format)
 
-    def test_conv_depthwise2d_backward_shape_format_fp32(self, device="npu"):
+    def test_conv_depthwise2d_backward_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 3, [256, 32, 112, 112]], [np.float32, 0, [32, 1, 3, 3]], 1, 1, 1, None],
             [[np.float32, 3, [256, 96, 112, 112]], [np.float32, 0, [96, 1, 3, 3]], 1, 2, 1, None],

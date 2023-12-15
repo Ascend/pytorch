@@ -25,6 +25,11 @@ public:
   virtual bool CanOptimizer(const ContiguousTensorDesc &src_desc) {
     return false;
   }
+    virtual bool CachedOptimizer(at::Tensor &self, const at::Tensor &src,
+                                 const ContiguousTensorDesc &src_desc)
+    {
+        return Optimizer(self, src, src_desc);
+    }
 };
 
 namespace register_opt {
@@ -56,6 +61,16 @@ public:
     }
     return false;
   }
+
+    bool CachedRun(const std::string &name, at::Tensor &self, const at::Tensor &src,
+                   const ContiguousTensorDesc &src_desc)
+    {
+        auto itr = registry.find(name);
+        if (itr != registry.end()) {
+            return itr->second->CachedOptimizer(self, src, src_desc);
+        }
+        return false;
+    }
 
 private:
   CopyOptRegister() {}

@@ -10,6 +10,9 @@ TORCH_NPU_API void init_npu(const c10::DeviceIndex device_index = 0);
 TORCH_NPU_API void init_npu(const std::string& device_str);
 TORCH_NPU_API void init_npu(const at::Device& device);
 
+// device finalize related funcs
+TORCH_NPU_API void finalize_npu();
+
 } // namespace torch_npu
 
 

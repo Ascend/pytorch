@@ -8,59 +8,92 @@
 namespace at_npu {
 namespace native {
 
-constexpr int MaxCombinedCasesNum = 2;
-constexpr int ViewAndBaseInfoStackNum = 2;
-// Stacks used for storing inferred infos about shape, stride, offset
-// "shape_stride_stacks": [[[shape1],[stride1];[[shape2],[stride2]];...]
-// "offset_stack": [storage_offset1, storage_offset2,...]
-using ShapeStrideStack =
-    c10::SmallVector<c10::SmallVector<FormatShape, ViewAndBaseInfoStackNum>,
-                     MaxCombinedCasesNum>;
-using OffsetStack = c10::SmallVector<int64_t, MaxCombinedCasesNum>;
-
 class CombinedContiguousOpt : public ContiguousOpt {
 public:
-  // Combined tensor == discontiguous tensor caused by combined view operators.
-  bool Optimizer(at::Tensor &self, const at::Tensor &src,
-                 const ContiguousTensorDesc &src_desc) override {
-    // Maximum combined operators suggested: combined_cases_num = 2
-    // NOTE: n-cmobined(n>2) can also be supported
-    int combined_cases_num = MaxCombinedCasesNum;
+    // Combined tensor == discontiguous tensor caused by combined view operators.
+    bool Optimizer(at::Tensor &self, const at::Tensor &src,
+                   const ContiguousTensorDesc &src_desc) override {
+        // Maximum combined operators suggested: combined_cases_num = 2
+        // NOTE: n-cmobined(n>2) can also be supported
+        int combined_cases_num = MaxCombinedCasesNum;
 
-    ShapeStrideStack shape_stride_stacks;
-    OffsetStack offset_stack;
+        ShapeStrideStack shape_stride_stacks;
+        OffsetStack offset_stack;
 
-    if (can_use_combined(shape_stride_stacks, offset_stack, src_desc,
-                         combined_cases_num)) {
-      RECORD_FUNCTION("contiguous_h_combined", std::vector<c10::IValue>({src}));
-      // Record src infos for recovering after trans-contiguous
-      auto src_storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
-
-      at::Tensor base_tensor =
-          at::empty(src_storage_desc.base_sizes_, src.options());
-      base_tensor.set_(src.storage());
-
-      // Reconstruct combined discontiguous tensor ==trans==> contiguous tensor
-      bool contiguousOrNot = combined_to_contiguous(
-          self, base_tensor, shape_stride_stacks, offset_stack);
-
-      // Recover modified tensor infos of src after trans-contiguous
-      StorageDescHelper::CopyDesc(base_tensor, src_storage_desc);
-      return contiguousOrNot;
+        if (can_use_combined(shape_stride_stacks, offset_stack, src_desc,
+                             combined_cases_num)) {
+            RECORD_FUNCTION("contiguous_h_combined", std::vector<c10::IValue>({src}));
+            return pre_combined_to_contiguous(self, src, shape_stride_stacks, offset_stack);
+        }
+        return false;
     }
-    return false;
-  }
+
+    bool CachedOptimizer(at::Tensor &self, const at::Tensor &src,
+                         const ContiguousTensorDesc &src_desc) override
+    {
+        ShapeStrideStack shape_stride_stacks;
+        OffsetStack offset_stack;
+        if (src_desc.cached_contiguous) {
+            RECORD_FUNCTION("cached_contiguous_h_combined", std::vector<c10::IValue>({src}));
+
+            CachedContiguousOpt cachedContiguousOpt = TransContiguous::cached_contiguous_opt[src_desc.hash_src_desc];
+            shape_stride_stacks = cachedContiguousOpt.shape_stride_stack;
+            offset_stack = cachedContiguousOpt.offset_stack;
+            return pre_combined_to_contiguous(self, src, shape_stride_stacks, offset_stack);
+        }
+
+        int combined_cases_num = MaxCombinedCasesNum;
+        if (can_use_combined(shape_stride_stacks, offset_stack, src_desc,
+                             combined_cases_num)) {
+            ShapeStrideStack cached_shape_stride_stacks = shape_stride_stacks;
+            OffsetStack cached_offset_stack = offset_stack;
+            RECORD_FUNCTION("contiguous_h_combined", std::vector<c10::IValue>({src}));
+
+            bool contiguousOrNot = pre_combined_to_contiguous(self, src, shape_stride_stacks, offset_stack);
+            if (contiguousOrNot) {
+                CachedContiguousOpt cached_opt = CachedContiguousOpt{
+                        "combined"
+                };
+                cached_opt.shape_stride_stack = cached_shape_stride_stacks;
+                cached_opt.offset_stack = cached_offset_stack;
+                cached_opt.contiguous_tensor_desc = src_desc;
+                TransContiguous::cached_contiguous_opt[src_desc.hash_src_desc] = cached_opt;
+            }
+            return contiguousOrNot;
+        }
+        return false;
+    }
 
 private:
-  bool cases_avoid(const ContiguousTensorDesc &tensor_desc) {
-    for (const auto i : c10::irange(tensor_desc.sizes_.size())) {
-      // expand+x,x+expand
-      if (tensor_desc.strides_[i] == 0) {
-        return true;
-      }
+
+    bool pre_combined_to_contiguous(at::Tensor &self, const at::Tensor &src,
+                                    ShapeStrideStack &shape_stride_stacks,
+                                    OffsetStack &offset_stack)
+    {
+        // Record src infos for recovering after trans-contiguous
+        auto src_storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
+
+        at::Tensor base_tensor =
+                at::empty(src_storage_desc.base_sizes_, src.options());
+        base_tensor.set_(src.storage());
+
+        // Reconstruct combined discontiguous tensor ==trans==> contiguous tensor
+        bool contiguousOrNot = combined_to_contiguous(self, base_tensor, shape_stride_stacks, offset_stack);
+        // Recover modified tensor infos of src after trans-contiguous
+        StorageDescHelper::CopyDesc(base_tensor, src_storage_desc);
+        return contiguousOrNot;
     }
-    return false;
-  }
+
+    bool cases_avoid(const ContiguousTensorDesc &tensor_desc)
+    {
+        for (const auto i : c10::irange(tensor_desc.sizes_.size())) {
+            // expand+x,x+expand
+            if (tensor_desc.strides_[i] == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 
   // Unmatched tensor ==refresh(no copy)==> macthed tensor
   bool reshape_without_copy_match(at::Tensor &tensor) {

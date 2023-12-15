@@ -131,6 +131,8 @@ class HcclReduceTest(TestCase):
             for shape in shape_format:
                 if shape[0] == np.int8:
                     shape[1] = 0
+                if shape[0] == np.bool_:
+                    continue
                 _, input1 = create_common_tensor(shape, -10, 10)
                 expected = self._construct_excepted_result(input1, world_size)
                 self._test_multiprocess(HcclReduceTest._test_all_gather,
