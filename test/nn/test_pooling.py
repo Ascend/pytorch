@@ -16,6 +16,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.autograd import gradcheck, gradgradcheck
 import torch_npu
+import torch_npu.testing
 from torch.testing import make_tensor
 from torch.testing._internal.common_utils import TestCase, run_tests, TEST_WITH_UBSAN, set_default_dtype, \
     instantiate_parametrized_tests, slowTest, parametrize as parametrize_test, subtest, skipIfMps, gcIfJetson, \
@@ -394,10 +395,6 @@ class TestPoolingNNDeviceType(NNTestCase):
         mod = torch.nn.AdaptiveAvgPool3d((5, 5, 5)).to(device)
         _test_module_empty_input(self, mod, inp, check_size=False)
 
-    # The tests are used to verify the functions raises errors for backward propagation
-    # when output_size = 0, in adaptive_{avg, max}_pool and its variants.
-    # These tests are explicitly written because ErrorInputs does not support backward calls
-    # Issue: https://github.com/pytorch/pytorch/issues/78868
     @onlyNativeDeviceTypes
     @dtypes(torch.float32, torch.float64)
     @dtypesIfCUDA(torch.float32, torch.float64, torch.bfloat16, torch.float16)
@@ -550,7 +547,6 @@ class TestPoolingNNDeviceType(NNTestCase):
     @onlyNativeDeviceTypes
     @skipCUDAIfRocm
     @parametrize_test("module_name,module_size,output_size,test_index,should_error", [
-        # Some tests are failing in trunk https://github.com/pytorch/pytorch/issues/103854
         subtest(
             ('MaxUnpool2d', (2, 2), (1, 3, 4, 5), -1, True),
             name='case1',
@@ -698,7 +694,6 @@ torch.cuda.synchronize()
         check((1, 1, 2, 3, 3), (1, 1, 3, 4, 5), kernel_size=2, stride=2, padding=1, ceil_mode=False)
         check((1, 1, 2, 3, 3), (1, 1, 3, 4, 5), kernel_size=2, stride=2, padding=1, ceil_mode=True)
 
-        # Test case from issue https://github.com/pytorch/pytorch/issues/45357
         x = torch.randn(1, 1, 6, 7, device=device)
         y = torch.nn.functional.max_pool2d(x, 1, stride=(2, 2), padding=0, ceil_mode=True)
         self.assertEqual(y.size(), (1, 1, 3, 4))
@@ -1163,7 +1158,6 @@ torch.cuda.synchronize()
     @largeTensorTest('18GB')
     @largeTensorTest('180GB', 'cpu')
     def test_pool3d_large_size_int64(self, device):
-        # See https://github.com/pytorch/pytorch/issues/52822
         x = torch.randn(70, 32, 100, 100, 100, dtype=torch.half, device=device, requires_grad=True)
         y = torch.nn.functional.max_pool3d(x, 5)
         g = torch.randn_like(y, dtype=torch.half)
@@ -1367,9 +1361,6 @@ torch.cuda.synchronize()
             x = torch.randn(2, 7, 7, requires_grad=True, device=device)
             self.assertEqual(func(x).shape, (2, 3, 3))
             if self.device_type != 'cuda':
-                # Reference: https://github.com/pytorch/pytorch/issues/52427
-                # Raises -> RuntimeError: TensorAccessor expected 4 dims but tensor has 3
-                # on CUDA in gradcheck
                 gradcheck(func, [x])
                 gradgradcheck(func, [x])
 
@@ -1531,7 +1522,6 @@ torch.cuda.synchronize()
 
     @slowTest
     def test_adaptive_pool_odd_size(self, device):
-        # See https://github.com/pytorch/pytorch/issues/81409
         Ih, Iw, Oh, Ow = 5873, 3693, 3527, 2219
         imgs = torch.randint(low=0, high=256, size=(11, Ih, Iw), dtype=torch.float)
         imgs_ = F.adaptive_avg_pool2d(imgs, (Oh, Ow))
