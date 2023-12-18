@@ -45,7 +45,7 @@ class TestScaledMaskedSoftmax(TestCase):
 
         cpu_out = self.cpu_to_exec_fixed_triu_mask_false(x, mask, scale)
         npu_out = self.npu_to_exec(x, mask, scale, fixed_triu_mask)
-        cpu_out = cpu_out.half().cpu().numpy()
+        cpu_out = cpu_out.cpu().numpy()
         npu_out = npu_out.cpu().numpy()
 
         self.assertRtolEqual(cpu_out, npu_out)
@@ -59,7 +59,7 @@ class TestScaledMaskedSoftmax(TestCase):
 
         cpu_out = self.cpu_to_exec_fixed_triu_mask_true(x, mask, scale)
         npu_out = self.npu_to_exec(x, mask, scale, fixed_triu_mask)
-        cpu_out = cpu_out.half().cpu().numpy()
+        cpu_out = cpu_out.cpu().numpy()
         npu_out = npu_out.cpu().numpy()
 
         self.assertRtolEqual(cpu_out, npu_out)
