@@ -657,8 +657,6 @@ class TestShapeOps(TestCase):
 
         self.assertEqual(torch.nonzero(t, as_tuple=False, out=out), torch.nonzero(t, out=out))
 
-        # Verifies that JIT script cannot handle the as_tuple kwarg
-        # See Issue https://github.com/pytorch/pytorch/issues/45499.
         def _foo(t):
             tuple_result = torch.nonzero(t, as_tuple=True)
             nontuple_result = torch.nonzero(t, as_tuple=False)

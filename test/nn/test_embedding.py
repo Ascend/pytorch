@@ -230,7 +230,6 @@ class TestEmbeddingNN(NNTestCase):
             self.assertTrue(a.norm(p=opts["norm_type"], dim=1).le(opts["max_norm"]).all())
 
     def test_embeddingbag_include_last_offset(self):
-        # Test case from https://github.com/pytorch/pytorch/issues/89677
         embeddingbag = nn.EmbeddingBag(100, 3, include_last_offset=True, padding_idx=61)
         input1 = torch.tensor([0, 1, 2, 3])
         out = embeddingbag(input1, torch.tensor([0, 3, 3]))
