@@ -1946,6 +1946,7 @@
   "test_lstmcell_backward_only_one_output_grad_npu_float64 (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_GroupNorm_general_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_GroupNorm_memory_format_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_GroupNorm_numeric_npu (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_GRU_grad_and_gradgrad_npu_float64 (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_pad_npu_float64 (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_pad_npu_complex128 (__main__.TestNNDeviceTypePRIVATEUSE1)": ["", [""]],
