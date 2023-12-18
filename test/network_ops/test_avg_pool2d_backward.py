@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -20,6 +20,9 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
 
 
 class TestAvgPool2dBackward(TestCase):
@@ -83,7 +86,6 @@ class TestAvgPool2dBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output_grad, npu_output_grad)
 
-    @unittest.skip("skip test_avg_pool2d_backward_3d_fp32 now")
     def test_avg_pool2d_backward_3d_fp32(self):
         cpu_input, npu_input = create_common_tensor([np.float32, 0, (1, 13, 13)], 0, 1)
         cpu_output_grad, _ = self.cpu_op_exec(cpu_input)

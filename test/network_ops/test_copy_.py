@@ -15,7 +15,6 @@
 # limitations under the License.
 
 
-import unittest
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -23,6 +22,10 @@ import numpy as np
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
+
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
 
 
 class TestCopy(TestCase):
@@ -52,7 +55,6 @@ class TestCopy(TestCase):
                 npu_output = npu_output.float()
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_copy_memery_stampede now")
     def test_copy_memery_stampede(self):
         x = torch.randn((1, 6), device='npu:0').expand((6, 6))
         with self.assertRaises(RuntimeError):
