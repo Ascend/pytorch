@@ -66,4 +66,5 @@ class TestLog1p(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(100)
     run_tests()

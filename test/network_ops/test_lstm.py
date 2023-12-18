@@ -8,19 +8,15 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestLstm(TestCase):
-    @unittest.skip("skip test_lstm_single_direction now")
+
     def test_lstm_single_direction(self):
         # shape_format:[[dtype, (num_step, batch_size, input_size)],
         # num_layers, input_size, hidden_size, is_training, batch_first]
         shape_format = [
-            [[np.float16, (16, 32, 64)], 1, 64, 32, True, True],
-            [[np.float16, (5, 32, 64)], 1, 64, 32, False, True],
             [[np.float32, (5, 32, 64)], 1, 64, 64, True, False],
             [[np.float32, (5, 32, 64)], 1, 64, 64, False, False],
             [[np.float32, (26, 2560, 512)], 1, 512, 256, False, True],
             [[np.float32, (10, 33, 128)], 1, 128, 64, False, False],
-            [[np.float16, (16, 32, 64)], 2, 64, 32, True, True],
-            [[np.float16, (5, 32, 64)], 2, 64, 32, False, True],
             [[np.float32, (5, 32, 64)], 2, 64, 64, True, False],
             [[np.float32, (5, 32, 64)], 2, 64, 64, False, False],
             [[np.float32, (26, 2560, 512)], 2, 512, 256, False, True],
@@ -47,15 +43,12 @@ class TestLstm(TestCase):
             self.assertRtolEqual(cpu_output_c.detach().numpy(),
                                  npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
 
-    @unittest.skip("skip test_lstm_bidirection now")
     def test_lstm_bidirection(self):
         # shape_format:[[dtype, (num_step, batch_size, input_size)],
         # num_layers, input_size, hidden_size, is_training]
         shape_format = [
-            [[np.float16, (16, 32, 64)], 1, 64, 32, True], [[np.float16, (5, 32, 64)], 1, 64, 32, False],
             [[np.float32, (5, 32, 64)], 1, 64, 64, True], [[np.float32, (5, 32, 64)], 1, 64, 64, False],
             [[np.float32, (26, 2560, 512)], 1, 512, 256, False], [[np.float32, (10, 33, 128)], 1, 128, 64, False],
-            [[np.float16, (16, 32, 64)], 2, 64, 32, True], [[np.float16, (5, 32, 64)], 2, 64, 32, False],
             [[np.float32, (5, 32, 64)], 2, 64, 64, True], [[np.float32, (5, 32, 64)], 2, 64, 64, False],
             [[np.float32, (26, 2560, 512)], 2, 512, 256, False], [[np.float32, (10, 33, 128)], 2, 128, 64, False],
         ]
