@@ -374,6 +374,14 @@ Refer to [API of PyTorch Ascend Adapter](docs/api/torch_npu_apis.md) for more de
 </tbody>
 </table>
 
+## Pipeline Status
+
+Due to the asynchronous development mechanism of upstream and downstream, incompatible modifications of upstream may cause some functions of **torch_npu** to be unavailable (only involving the development branches of upstream and downstream, not including stable branches). Therefore, we have built a set of daily tasks, It is easy to detect relevant problems in time and repair them within 48 hours (under normal circumstances), providing users with new features and stable quality.
+
+| **OS** | **CANN Version(Docker Image)** | **Upstream Branch** | **Downstream Branch** | **Period** | **Status** |
+|:---:|:---:|:---:|:---:| :---: | :---: |
+| openEuler 22.03 SP2 | [CANN 7.0.RC1](https://hub.docker.com/layers/ascendai/cann/7.0.RC1.alpha005-openeuler2203sp2/images/sha256-5ec4793c1bd6ebb34b731ee0819a5a81c4298a04d9a1fa27df6c56a4d5aa290e) | main | master | UTC 1200 daily | [![Ascend NPU](https://github.com/Ascend/pytorch/actions/workflows/periodic.yml/badge.svg)](https://github.com/Ascend/pytorch/actions/workflows/periodic.yml) |
+
 ## Suggestions and Communication
 
 Everyone is welcome to contribute to the community. If you have any questions or suggestions, you can submit [Github Issues](https://github.com/Ascend/pytorch/issues). We will reply to you as soon as possible. Thank you very much.

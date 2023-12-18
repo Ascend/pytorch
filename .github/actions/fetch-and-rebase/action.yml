@@ -23,7 +23,10 @@ runs:
         LOOP: ${{ inputs.loop }}
       shell: bash
       run: |
+        set +e
+
         COUNT=0
+
         for i in $(seq 1 ${LOOP})
         do
           pushd ${REPO_PATH} &&
@@ -36,6 +39,7 @@ runs:
           git submodule foreach git reset --hard HEAD &&
           git submodule foreach git clean -dfx &&
           popd
+
           if [[ $? -ne 0 ]]
           then
             let COUNT++
