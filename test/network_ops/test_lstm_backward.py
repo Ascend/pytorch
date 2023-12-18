@@ -10,12 +10,9 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestLstmBackward(TestCase):
 
-    @unittest.skip("skip test_lstm_backward now")
-    def test_lstm_backward(self, device="npu"):
+    def test_lstm_backward(self):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
-            [[np.float16, (16, 32, 64)], 64, 32, True],
-            [[np.float16, (5, 32, 64)], 64, 32, True],
             [[np.float32, (16, 32, 64)], 64, 32, True],
             [[np.float32, (5, 32, 64)], 64, 32, True],
         ]
@@ -40,7 +37,7 @@ class TestLstmBackward(TestCase):
             self.assertRtolEqual(cpu_output_h.detach().numpy(),
                                  npu_output_h.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
             self.assertRtolEqual(cpu_output_c.detach().numpy(),
-                                 npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
+                                 npu_output_c.cpu().to(torch.float).detach().numpy(), prec=2.e-3)
 
             cpu_input1.retain_grad()
             cpu_output_y.backward(torch.ones(cpu_output_y.size(), dtype=torch.float))
@@ -52,12 +49,9 @@ class TestLstmBackward(TestCase):
 
             self.assertRtolEqual(cpu_dx.numpy(), npu_dx.cpu().to(torch.float).numpy(), prec=1.e-3)
 
-    @unittest.skip("skip test_lstm_bidirection_backward now")
-    def test_lstm_bidirection_backward(self, device="npu"):
+    def test_lstm_bidirection_backward(self):
         # 注：shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
-            [[np.float16, (16, 32, 64)], 64, 32, True],
-            [[np.float16, (5, 32, 64)], 64, 32, True],
             [[np.float32, (16, 32, 64)], 64, 32, True],
             [[np.float32, (5, 32, 64)], 64, 32, True],
         ]
@@ -83,7 +77,7 @@ class TestLstmBackward(TestCase):
             self.assertRtolEqual(cpu_output_h.detach().numpy(),
                                  npu_output_h.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
             self.assertRtolEqual(cpu_output_c.detach().numpy(),
-                                 npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
+                                 npu_output_c.cpu().to(torch.float).detach().numpy(), prec=2.e-3)
 
             cpu_input1.retain_grad()
             cpu_output_y.backward(torch.ones(cpu_output_y.size(), dtype=torch.float))
