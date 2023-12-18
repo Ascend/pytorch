@@ -29,7 +29,9 @@ from torch.nn.utils.fusion import fuse_linear_bn_weights
 from torch.nn import Parameter
 from torch.nn.parallel._functions import Broadcast
 from torch.types import _TensorOrTensors
+from url import get_url
 import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_dtype import integral_types, get_all_math_dtypes, floating_types
 from torch.testing._internal.common_utils import freeze_rng_state, run_tests, TestCase, skipIfNoLapack, skipIfRocm, \
     TEST_NUMPY, TEST_SCIPY, TEST_WITH_CROSSREF, TEST_WITH_ROCM, \
@@ -165,7 +167,7 @@ class TestNN(NNTestCase):
 
     def test_module_backcompat(self):
         from torch.serialization import SourceChangeWarning
-        path = download_file('https://download.pytorch.org/test_data/linear.pt')
+        path = download_file(get_url("linear"))
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', SourceChangeWarning)
             m = torch.load(path)
@@ -1974,7 +1976,6 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
                 self.assertEqual(last_train_u, m.weight_u)
                 self.assertEqual(last_train_v, m.weight_v)
 
-                # see https://github.com/pytorch/pytorch/issues/13818
                 if apply_dp:
                     continue
 
@@ -2225,7 +2226,6 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
         self.assertTrue(gradcheck(lambda x: F.normalize(x, p=1, dim=-1), (inputs,)))
 
     @unittest.skipIf(not TEST_MULTIGPU, "multi-GPU not supported")
-    # Skip the test for ROCm as per https://github.com/pytorch/pytorch/issues/53190
     @skipIfRocm
     def test_broadcast_double_backwards_gpu(self):
         tensors = (torch.randn(4, 4, device=TEST_DEVICE, requires_grad=True, dtype=torch.double),
@@ -2308,7 +2308,6 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
         self.assertEqual(state_dict['weight'].data_ptr(), linear.weight.data_ptr())
         self.assertEqual(state_dict['bias'].data_ptr(), linear.bias.data_ptr())
 
-        # Reference https://github.com/pytorch/pytorch/pull/75507#issuecomment-1110291545
         self.assertNotWarn(lambda: linear.state_dict(destination=dict()),
                            "Should not warn kwarg destination w/o _metadata")
 
@@ -5374,8 +5373,6 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
         inp = torch.randn(4, 5, device='cuda', requires_grad=True)
         gradgradcheck(F.pdist, (inp,))
 
-    # Merge into OpInfo?
-    # test for backward in https://github.com/pytorch/pytorch/issues/15511
     def test_pdist_large(self):
         for device in device_():
             def func(x):
@@ -5559,8 +5556,6 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
                         self.assertEqual(out.size(), target.size())
                     self.assertTrue(gradcheck(fn, (input1, target, reduction)))
 
-    # https://github.com/pytorch/pytorch/issues/27692 reports
-    # that l1_loss get a wrong result for big batch size
     def test_l1_loss_correct(self):
         for dtype in [torch.float, torch.cfloat]:
             for N in range(1, 50, 10):
@@ -6696,9 +6691,6 @@ tensor(..., device='meta', size=(1,), requires_grad=True)""")
         self.assertRaises(RuntimeError, lambda: F.interpolate(x, scale_factor=1e20, mode="bilinear"))
 
     def test_interpolate_buffer_overflow(self):
-        # Test buffer overflow issue due to inaccurate floating point
-        # representation for integer values. See issue below for details.
-        # https://github.com/pytorch/pytorch/issues/88939
 
         def helper(size, dtype, mode, device, is_channels_last):
             input1 = torch.ones(size, dtype=dtype, device=device)
@@ -8413,7 +8405,6 @@ class TestNNDeviceType(NNTestCase):
         weight = weight.contiguous()
         out_ref = F.conv2d(input2d, weight, bias, (1, 1), 0, (1, 1), 1)
         self.assertEqual(out_ref, out)
-        # sigfpe reported in https://github.com/pytorch/pytorch/issues/94125
         with self.assertRaises(RuntimeError):
             inp = torch.empty([1, 1, 1, 0], dtype=dtype, device=device)
             weight = torch.empty([1, 0, 1], dtype=dtype, device=device)
@@ -8643,7 +8634,6 @@ class TestNNDeviceType(NNTestCase):
 
     @onlyNativeDeviceTypes
     def test_GroupNorm_memory_format(self, device):
-        # Tests for regression reported in https://github.com/pytorch/pytorch/issues/92166
 
         def helper(input_format, grad_format, B=2, C=4, W=4, H=4):
             import copy
@@ -9474,11 +9464,8 @@ class TestNNDeviceType(NNTestCase):
         self.assertEqual(out_t, expected_out)
 
     def test_upsamplingNearestExact1d_rescale(self, device):
-        # Checks https://github.com/pytorch/pytorch/issues/62237
         isize = 20
         in_t = torch.arange(isize, dtype=torch.float, device=device).unsqueeze(0).unsqueeze(0)
-        # for s in [1.00001, 0.99999]:  # 0.9999 case is broken
-        # See issue: https://github.com/pytorch/pytorch/issues/62396
         for s in [1.00001, ]:
             out_t = F.interpolate(
                 in_t, scale_factor=s, recompute_scale_factor=False, mode="nearest-exact"
@@ -9486,9 +9473,6 @@ class TestNNDeviceType(NNTestCase):
             expected_out = in_t
             self.assertEqual(out_t, expected_out, msg=f"scale: {s}")
 
-        # checks data duplication if output_size == 2 * input_size
-        # for s in [2.00001, 1.99999]:  # 1.99999 case is broken
-        # See issue: https://github.com/pytorch/pytorch/issues/62396
         for s in [2.00001, ]:
             out_t = F.interpolate(
                 in_t, scale_factor=s, recompute_scale_factor=False, mode="nearest-exact"
@@ -9500,8 +9484,6 @@ class TestNNDeviceType(NNTestCase):
 
     @parametrize_test("isize, osize", [(20, 11), (10, 15)])
     def test_upsamplingNearestExact1d_correctness(self, device, isize, osize):
-        # Here we check if output matches Scikit-Image/Scipy-like result
-        # Checks https://github.com/pytorch/pytorch/issues/34808
         in_t = torch.arange(isize, dtype=torch.float, device=device).unsqueeze(0).unsqueeze(0)
         out_t = F.interpolate(
             in_t, size=(osize, ), recompute_scale_factor=False, mode="nearest-exact"
@@ -9559,8 +9541,6 @@ class TestNNDeviceType(NNTestCase):
         gradcheck(lambda x: F.interpolate(x, 4, mode=mode), [input1], check_forward_ad=check_forward_ad)
         gradgradcheck(lambda x: F.interpolate(x, 4, mode=mode), [input1], check_fwd_over_rev=check_forward_ad)
 
-        # Assert that cpu and cuda handle channels_last memory format in the same way
-        # https://github.com/pytorch/pytorch/issues/54590
         if torch.device(device).type == 'cuda':
             for shapes, scale_factor in product([
                 (2, 2, 3, 4), (2, 3, 4, 5), (3, 1, 2, 2), (1, 5, 3, 2)
@@ -9608,8 +9588,6 @@ class TestNNDeviceType(NNTestCase):
     @parametrize_test("memory_format", [torch.contiguous_format, torch.channels_last])
     @parametrize_test("isize, osize", [(20, 11), (10, 15)])
     def test_upsamplingNearestExact2d_correctness(self, device, memory_format, isize, osize):
-        # Here we check if output matches Scikit-Image/Scipy-like result
-        # Checks https://github.com/pytorch/pytorch/issues/34808
         in_t = torch.arange(isize * isize, dtype=torch.float, device=device).reshape(1, 1, isize, isize)
         in_t = in_t.contiguous(memory_format=memory_format)
         out_t = F.interpolate(
@@ -9657,8 +9635,6 @@ class TestNNDeviceType(NNTestCase):
         gradcheck(lambda x: F.interpolate(x, 4, mode=mode), [input1], check_forward_ad=check_forward_ad)
         gradgradcheck(lambda x: F.interpolate(x, 4, mode=mode), [input1], check_fwd_over_rev=check_forward_ad)
 
-        # Assert that cpu and cuda handle channels_last memory format in the same way
-        # https://github.com/pytorch/pytorch/issues/54590
         if torch.device(device).type == 'cuda':
             a = torch.ones(
                 2, 2, 2, 3, 4, device=device, requires_grad=True, dtype=torch.double
@@ -9705,8 +9681,6 @@ class TestNNDeviceType(NNTestCase):
     @parametrize_test("memory_format", [torch.contiguous_format, torch.channels_last_3d])
     @parametrize_test("isize, osize", [(20, 11), (10, 15)])
     def test_upsamplingNearestExact3d_correctness(self, device, memory_format, isize, osize):
-        # Here we check if output matches Scikit-Image/Scipy-like result
-        # Checks https://github.com/pytorch/pytorch/issues/34808
         in_t = torch.arange(isize * isize * isize, dtype=torch.float, device=device)
         in_t = in_t.reshape(1, 1, isize, isize, isize)
         in_t = in_t.contiguous(memory_format=memory_format)
@@ -9892,8 +9866,6 @@ class TestNNDeviceType(NNTestCase):
         if non_contig is False:
             self.assertTrue(input_ui8.is_contiguous(memory_format=memory_format))
 
-        # Ideally we want to fix it such that both the ui8 and f32 outputs are also channels_last
-        # See for more details: https://github.com/pytorch/pytorch/pull/100373
         if batch_size == 1 and check_as_unsqueezed_3d_tensor and memory_format == torch.channels_last:
             self.assertTrue(output_ui8.is_contiguous())
             self.assertTrue(output_f32.is_contiguous())
@@ -9937,7 +9909,6 @@ class TestNNDeviceType(NNTestCase):
     @parametrize_test("align_corners", [True, False])
     @parametrize_test("input_size, output_size", [(399, 437), (403, 377)])
     def test_upsamplingBiLinear2d_consistency_interp_size_bug(self, device, memory_format, align_corners, input_size, output_size):
-        # Non-regression test for https://github.com/pytorch/pytorch/pull/101403
 
         if torch.device(device).type == "cuda":
             raise SkipTest("CUDA implementation is not yet supporting uint8")
@@ -10336,8 +10307,8 @@ class TestNNDeviceType(NNTestCase):
             rtol, _ = torch.testing._comparison.get_tolerances(torch.half, rtol=None, atol=None)
             self.assertTrue(torch.allclose(x.grad.cpu(), xx.grad, rtol=rtol, atol=1e-3))
 
-        run_test(1100000000, 2)  # Illegal memory access https://github.com/pytorch/pytorch/issues/52715
-        run_test(2200000000, 1)  # invalid configuration argument https://github.com/pytorch/pytorch/issues/52716
+        run_test(1100000000, 2)
+        run_test(2200000000, 1)
 
     @onlyCUDA
     @dtypes(torch.half)
@@ -10352,7 +10323,7 @@ class TestNNDeviceType(NNTestCase):
             self.assertEqual(y[0], y[-1])
             self.assertEqual(x.grad[0], x.grad[-1])
 
-        run_test(1024 * 256 + 1, 8192)  # https://github.com/pytorch/pytorch/issues/84144
+        run_test(1024 * 256 + 1, 8192)
 
     @dtypesIfPRIVATEUSE1(torch.float, torch.half)
     @dtypes(torch.float)
@@ -10687,9 +10658,6 @@ class TestNNDeviceType(NNTestCase):
             gradgradcheck(gradcheckfunc, inp, check_batched_grad=False)
 
         if inp.is_cuda and not TEST_WITH_ROCM:
-            # Assert that we have good error message around unsupported CuDNN double backward
-            # NB: we trigger double backward using .backward() instead of autograd.grad due to
-            # https://github.com/pytorch/pytorch/issues/37874
             with torch.backends.cudnn.flags(enabled=True):
                 result = gradcheckfunc(inp)
                 result[0].sum().backward(create_graph=True)
@@ -10698,8 +10666,6 @@ class TestNNDeviceType(NNTestCase):
                                             "please disable the CuDNN backend temporarily"):
                     grad0.sum().backward()
 
-                # Here we avoid the backward(create_graph=True) memory leak
-                # described in https://github.com/pytorch/pytorch/issues/7343
                 for param in mod.parameters():
                     param.grad = None
                 inp.grad = None
@@ -10955,8 +10921,6 @@ class TestNNDeviceType(NNTestCase):
         mw = m.weight[:]
         m.to(device)
         with torch.no_grad():
-            # Without using `torch.no_grad()`, this will leak CUDA memory.
-            # (Issue is filed at https://github.com/pytorch/pytorch/issues/21875)
             mw[0][0] = 5
             self.assertTrue(mw[0][0].device.type == "cpu")
             device_name = device.rstrip(':0123456789')
@@ -11277,7 +11241,7 @@ class TestNNDeviceType(NNTestCase):
 
     # Merge into OpInfo?
     @skipCUDAIf(True, """Test is flaky on Linux and Windows, typical error message:
-                          https://github.com/pytorch/pytorch/issues/34870""")
+                          pytorch issue 34870""")
     def test_ctc_loss(self, device):
         batch_size = 64
         num_labels = 101
@@ -11565,7 +11529,6 @@ class TestNNDeviceType(NNTestCase):
             with self.assertRaisesRegex(RuntimeError, msg):
                 F.nll_loss(x, t, weight=weight)
 
-    # Ref: https://github.com/pytorch/pytorch/issue/85005
     @onlyCUDA
     @largeTensorTest("120GB", "cpu")
     @largeTensorTest("45GB", "cuda")
@@ -11903,7 +11866,6 @@ class TestNNDeviceType(NNTestCase):
                 # i.e. we don't count the ignored_idx at all.
                 check_equal(loss, (inp1, targ_positive_ignore_index), (inp2[1:], targ_positive_ignore_index[1:]))
 
-    # Ref: https://github.com/pytorch/pytorch/issue/85005
     @onlyCUDA
     @largeTensorTest("45GB", "cpu")
     @largeTensorTest("45GB", "cuda")
@@ -11971,8 +11933,6 @@ class TestNNDeviceType(NNTestCase):
                 test_dtype(func, x, torch.bfloat16)
 
     def test_logsigmoid_out(self, device):
-        # this isn't actually documented, but was broken previously:
-        # https://github.com/pytorch/pytorch/issues/36499
         x = torch.randn(2, 3, device=device).t()
         empty_out = torch.randn(0, device=device)
         self.assertEqual(F.logsigmoid(x), F.logsigmoid(x, out=empty_out))
@@ -12129,7 +12089,7 @@ class TestNNDeviceType(NNTestCase):
         with self.assertRaisesRegex(RuntimeError, "call out-of-place version"):
             b.backward(torch.ones(2, device=device))
 
-    @expectedFailureMeta  # https://github.com/pytorch/pytorch/issues/54897
+    @expectedFailureMeta
     def test_hardswish_inplace_overlap(self, device):
         x = torch.randn((1, 6), device=device).expand((6, 6))
         with self.assertRaisesRegex(RuntimeError, 'unsupported operation'):
