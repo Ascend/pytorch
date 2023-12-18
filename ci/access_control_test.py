@@ -16,6 +16,10 @@ from torch_npu.utils.path_manager import PathManager
 BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
 
+SLOW_TEST_BLOCKLIST = [
+    'test_modules'
+]
+
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
@@ -68,10 +72,8 @@ class DirectoryStrategy(AccurateTest):
     """
 
     def identify(self, modify_file):
-        skip_list = ["test_modules.py"]
         is_test_file = str(Path(modify_file).parts[0]) == "test" \
-            and re.match("test_(.+).py", Path(modify_file).name) \
-            and Path(modify_file).name not in skip_list
+            and re.match("test_(.+).py", Path(modify_file).name)
         return [(str(BASE_DIR / modify_file))] if is_test_file else []
 
 
@@ -149,7 +151,7 @@ class DirectoryMappingStrategy(AccurateTest):
         return current_all_ut_path
 
 
-class TestMgr():
+class TestMgr:
     def __init__(self):
         self.modify_files = []
         self.test_files = {
@@ -180,6 +182,7 @@ class TestMgr():
             if Path(changed_file).exists()
         ]
         self.test_files['ut_files'] = exist_ut_file
+        self.exclude_test_files(SLOW_TEST_BLOCKLIST)
 
     def load_core_ut(self):
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/npu').rglob('test_*.py')]
@@ -195,6 +198,18 @@ class TestMgr():
         begin = (rank - 1) * len(all_files) // world_size
         end = rank * len(all_files) // world_size
         self.test_files['ut_files'] = all_files[begin:end]
+
+    def exclude_test_files(self, block_list):
+        def remove_test_files(key):
+            for test_name in block_list:
+                test_files_copy = self.test_files[key][:]
+                for test_file in test_files_copy:
+                    if test_name in test_file:
+                        print(f'Excluding slow test: {test_name}')
+                        self.test_files[key].remove(test_file)
+
+        for test_files_key in self.test_files.keys():
+            remove_test_files(test_files_key)
 
     def get_test_files(self):
         return self.test_files

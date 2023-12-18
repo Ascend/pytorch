@@ -439,7 +439,7 @@ class TestModule(TestCase):
                                                        requires_grad=True, training=training)
         # === Set nondet tol for gradcheck to user-defined value if on CUDA and cudNN is enabled
         gradcheck_nondet_tol = 0.0
-        if (torch.device(device).type == 'npu' and torch.backends.cudnn.enabled):
+        if torch.device(device).type == 'npu' and torch.backends.cudnn.enabled:
             gradcheck_nondet_tol = module_info.gradcheck_nondet_tol
 
         for module_input in module_inputs:
