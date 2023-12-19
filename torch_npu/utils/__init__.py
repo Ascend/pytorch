@@ -7,5 +7,6 @@ from .serialization import add_serialization_methods, save_async
 from .npu_intercept import cann_package_check, add_intercept_methods
 from .dtensor import register_ops_under_dtensor_rules
 from .collect_env import add_collect_env_methods
+from ._dynamo import add_dynamo_methods
 
 __all__ = ["save_async"]
