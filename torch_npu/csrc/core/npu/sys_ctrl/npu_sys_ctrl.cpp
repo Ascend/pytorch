@@ -33,6 +33,7 @@
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include  "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -237,7 +238,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
-    NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
     used_devices.insert(device_id_);
     return INIT_SUCC;
 }

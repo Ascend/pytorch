@@ -46,26 +46,26 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
     c10::Device old_device = getDevice();
     if (old_device.index() != d.index()) {
-      NPU_CHECK_ERROR(aclrtSetDevice(d.index()));
+      NPU_CHECK_ERROR(c10_npu::SetDevice(d.index()));
     }
     return old_device;
   }
   c10::Device getDevice() const override {
     int device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     return c10::Device(at_npu::key::NativeDeviceType, device);
   }
   void setDevice(c10::Device d) const override {
     TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
-    uncheckedSetDevice(d);
-  }
+    c10_npu::NpuSysCtrl::GetInstance().BackwardsInit();
+  };
   void uncheckedSetDevice(c10::Device d) const noexcept override {
     int old_device = 0;
-    aclError ret = aclrtGetDevice(&old_device);
+    aclError ret = c10_npu::GetDevice(&old_device);
     if (ret != ACL_ERROR_NONE) {
-      NPU_CHECK_WARN(aclrtSetDevice(d.index()));
+      NPU_CHECK_WARN(c10_npu::SetDevice(d.index()));
     } else if (old_device != d.index()) {
-      NPU_CHECK_WARN(aclrtSetDevice(d.index()));
+      NPU_CHECK_WARN(c10_npu::SetDevice(d.index()));
     }
   }
   c10::Stream getStream(c10::Device d) const noexcept override {
@@ -119,7 +119,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
 
     // Moves to stream's device to record
     const auto orig_device = getDevice();
-    setDevice(stream.device());
+    c10_npu::SetDevice(stream.device_index());
 
     // Creates the event (lazily)
     if (!npu_event) {
@@ -132,7 +132,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     *event = npu_event;
 
     // Resets device
-    setDevice(orig_device);
+    c10_npu::SetDevice(orig_device.index());
   }
 
   void block(void* event, const c10::Stream& stream) const override {
@@ -141,10 +141,10 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     aclrtEvent npu_event = static_cast<aclrtEvent>(event);
     NPUStream npu_stream{stream};
     const auto orig_device = getDevice();
-    setDevice(stream.device());
+    c10_npu::SetDevice(stream.device_index());
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npu_stream, npu_event));
     ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, npu_event=%p.", npu_event);
-    setDevice(orig_device);
+    c10_npu::SetDevice(orig_device.index());
   }
 
   // May be called from any device

@@ -34,9 +34,32 @@ C10_NPU_API inline c10::DeviceIndex device_count() noexcept {
   return static_cast<c10::DeviceIndex>(count);
 }
 
+/**
+ * @ingroup torch_npu
+ * @brief get device id from local thread cache preferentially for performance.
+ * If the thread cache has not been initialized, it will get from ACL interface:
+ * aclrtGetDevice, and initialize the local thread cache
+ *
+ * @param device [IN]           device id
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+C10_NPU_API aclError GetDevice(int32_t *device);
+
+/**
+ * @ingroup torch_npu
+ * @brief set device id by ACL interface: aclrtSetDevice,
+ * and update the local thread cache
+ *
+ * @param device [IN]           device id
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+C10_NPU_API aclError SetDevice(c10::DeviceIndex device);
+
 C10_NPU_API inline c10::DeviceIndex current_device() {
   int cur_device = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&cur_device));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
   return static_cast<c10::DeviceIndex>(cur_device);
 }
 
