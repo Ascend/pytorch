@@ -79,4 +79,6 @@ hcclResult_t HcclRecv(void *recvBuf, u64 count, HcclDataType dataType, u32 srcRa
 hcclResult_t HcclSend(void *sendBuf, u64 count, HcclDataType dataType, u32 destRank, HcclComm comm, aclrtStream stream);
 hcclResult_t HcclGetRootInfo(HcclRootInfo *rootInfo);
 hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, hcclResult_t* asyncError);
+hcclResult_t HcclScatter(void *sendBuf, void *recvBuf, u64 count, HcclDataType dataType, u32 root, HcclComm comm,
+    aclrtStream stream);
 }
