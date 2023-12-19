@@ -60,4 +60,5 @@ class TestGeluBackward(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(20)
     run_tests()
