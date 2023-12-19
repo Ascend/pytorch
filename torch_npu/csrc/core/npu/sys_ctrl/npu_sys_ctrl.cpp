@@ -193,8 +193,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
     } else {
         NPU_LOGE("Npu device %d has been set before global init.", device_id_);
     }
-
-    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
+    
+    used_devices.insert(device_id_);
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[device_id_]));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
@@ -237,15 +238,17 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-    NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
     NPU_CHECK_ERROR(aclrtSetDevice(device));
+    used_devices.insert(pre_device);
+    used_devices.insert(device);
     device_id_ = device;
-    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[device_id_]));
     return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
     NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+    used_devices.insert(device_id_);
     return INIT_SUCC;
 }
 
@@ -267,7 +270,9 @@ NpuSysCtrl::SysStatus NpuSysCtrl::OverflowSwitchEnable() {
         c10_npu::NPUEventManager::GetInstance().ClearEvent();
         auto stream = c10_npu::getCurrentNPUStream();
         NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
-        NPU_CHECK_WARN(aclrtResetDevice(device_id_));
+        for (const auto i : used_devices) {
+            NPU_CHECK_WARN(aclrtResetDevice(i));
+        }
         NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
@@ -303,10 +308,10 @@ int NpuSysCtrl::InitializedDeviceID()
     return -1;
 }
 
-aclrtContext NpuSysCtrl::InitializedContext()
+aclrtContext NpuSysCtrl::InitializedContext(int device_index)
 {
     if (GetInitFlag()) {
-        return ctx_;
+        return ctx_[device_index];
     }
     TORCH_CHECK(false, "no npu device context has been initialized!");
     return nullptr;

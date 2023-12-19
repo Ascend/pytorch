@@ -64,8 +64,8 @@ static constexpr int kStreamsPerPool = 1 << kStreamsPerPoolBits;
 // static constexpr unsigned int kDefaultFlags = npuStreamNonBlocking;
 
 // Default streams
-static int initialize_flag = 0;
-std::mutex mtx;
+static int initialize_flag[C10_COMPILE_TIME_MAX_NPUS] = {0};
+std::mutex mtx[C10_COMPILE_TIME_MAX_NPUS];
 static LeakyStreamInternals default_streams[C10_COMPILE_TIME_MAX_NPUS];
 
 // In a specific scenario, the two operators have no value dependence
@@ -191,24 +191,25 @@ static void initDeviceStreamState(c10::DeviceIndex device_index) {
 }
 
 static void initNPUStreamsOnce() {
-  // Inits default and secondary streams (once, globally)
-  if (initialize_flag == 0) {
-    std::lock_guard<std::mutex> lock(mtx);
-    if (initialize_flag == 0) {
-      initGlobalStreamState();
-      initialize_flag = 1;
+    // Inits default and secondary streams (once, globally)
+    c10::DeviceIndex device_index = current_device();
+    if (initialize_flag[device_index] == 0) {
+        std::lock_guard<std::mutex> lock(mtx[device_index]);
+        if (initialize_flag[device_index] == 0) {
+            initGlobalStreamState();
+            initialize_flag[device_index] = 1;
+        }
     }
-  }
 
-  if (current_streams) {
-    return;
-  }
+    if (current_streams) {
+        return;
+    }
 
-  // Inits current streams (thread local) to default streams
-  current_streams = std::make_unique<LeakyStreamInternals* []>(num_npus);
-  for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
-    current_streams[i] = &default_streams[i];
-  }
+    // Inits current streams (thread local) to default streams
+    current_streams = std::make_unique<LeakyStreamInternals* []>(num_npus);
+    for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+        current_streams[i] = &default_streams[i];
+    }
 }
 
 static inline void check_npu(c10::DeviceIndex device_index) {
