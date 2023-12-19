@@ -1749,7 +1749,38 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
     std::vector<std::vector<at::Tensor>>& inputTensors,
     const c10d::ScatterOptions& opts)
 {
+    static auto invalidArgument = [](const std::string& msg) {
+        C10_THROW_ERROR(ValueError, "ProcessGroupHCCL::scatter: " + msg);
+    };
+
+    c10d::assertRootRank(invalidArgument, opts.rootRank, size_);
     check_npu_tensors_different_devices(outputTensors);
+    c10d::assertSingleElementInput(invalidArgument, outputTensors);
+
+    if (getRank() == opts.rootRank) {
+        if (inputTensors.size() != 1) {
+            std::stringstream ss;
+            ss << "requires a single-element input list containing a list with "
+                << getSize() << " tensors.";
+            invalidArgument(ss.str());
+        } else if (inputTensors[0].size() != static_cast<size_t>(getSize())) {
+            std::stringstream ss;
+            ss << "Incorrect input list size " << inputTensors[0].size()
+                << ". Input list size should be " << getSize()
+                << ", same as size of the process group.";
+            invalidArgument(ss.str());
+        }
+
+        const auto& options = outputTensors[0].options();
+        const auto& sizes = outputTensors[0].sizes();
+        c10d::assertTypeAndSizesMatch(invalidArgument, inputTensors[0], options, sizes);
+    } else {
+        // if not in the root rank, initialize inputTensors as empty place holder
+        // with an empty list
+        if (inputTensors.size() != 0) {
+            invalidArgument("requires empty input on non-root");
+        }
+    }
     std::vector<at::Tensor> inputFlattened;
     if (getRank() == opts.rootRank) {
         inputFlattened = flatten_for_scatter_gather(inputTensors, outputTensors, size_);

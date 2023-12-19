@@ -57,11 +57,10 @@ class HcclScatterTest(TestCase):
             raise ValueError("Unsupported op `{}`" % (str(op)))
         return [input.cpu() for input in inputs]
 
-    @skip("Not supported Now")
     @skipIfUnsupportMultiNPU(2)
     def test_scatter(self):
         ranks = [2]
-        dtype_list = [np.float32, np.float16]
+        dtype_list = [np.float32, np.float16, bool]
         format_list = [0]
         shape_format = [
             [i, j, [4, 9]] for i in dtype_list for j in format_list] + \
