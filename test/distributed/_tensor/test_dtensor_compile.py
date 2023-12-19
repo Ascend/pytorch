@@ -20,7 +20,6 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     parallelize_module,
-    PairwiseParallel,
     PrepareModuleInput,
     RowwiseParallel,
 )
@@ -178,14 +177,45 @@ class TestDTensorCompileE2E(DTensorTestBase):
 
     @skipIfUnsupportMultiNPU(4)
     @with_comms
-    def test_tp_compile_fullgraph(self):
+    @parametrize("is_seq_parallel", [True, False])
+    def test_tp_compile_fullgraph(self, is_seq_parallel):
         mesh = DeviceMesh(self.device_type, torch.arange(self.world_size))
 
-        model = MLPModule(self.device_type)
-        model = parallelize_module(model, mesh, PairwiseParallel())
+        model = SimpleModel(self.device_type)
+        module_prepare_input = (
+            PrepareModuleInput()
+            if is_seq_parallel
+            else PrepareModuleInput(input_layouts=Replicate())
+        )
+        no_input_prepare_colwise_style = ColwiseParallel(input_layouts=None)
+        colwise_style = (
+            ColwiseParallel(input_layouts=Shard(0))
+            if is_seq_parallel
+            else ColwiseParallel()
+        )
+        rowwise_style = (
+            RowwiseParallel(output_layouts=Shard(0))
+            if is_seq_parallel
+            else RowwiseParallel()
+        )
+        model = parallelize_module(
+            model,
+            mesh,
+            parallelize_plan={
+                "mlp_0": module_prepare_input,
+                "mlp_0.net1": no_input_prepare_colwise_style,
+                "mlp_0.net2": rowwise_style,
+                "mlp_1.net1": colwise_style,
+                "mlp_1.net2": rowwise_style,
+            },
+        )
+        rng_seed = self.rank if is_seq_parallel else 0
+        torch.manual_seed(rng_seed)
         inp = torch.rand(20, 10, device=self.device_type)
         out = model(inp)
-        compiled_mod = torch.compile(model, backend="eager", fullgraph=True)
+        compiled_mod = torch.compile(
+            model, backend="aot_eager", fullgraph=True, dynamic=False
+        )
         compiled_out = compiled_mod(inp)
         self.assertEqual(compiled_out, out)
 
