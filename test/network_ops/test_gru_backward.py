@@ -1,5 +1,4 @@
 import copy
-import unittest
 import torch
 import numpy as np
 
@@ -9,7 +8,6 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestGruBackward(TestCase):
 
-    @unittest.skip("skip test_gru_backward now")
     def test_gru_backward(self):
         shape_format = [
             [[np.float16, (16, 32, 64)], 64, 32],
@@ -21,11 +19,9 @@ class TestGruBackward(TestCase):
 
         for item in shape_format:
             cpu_gru = torch.nn.GRU(input_size=item[1], hidden_size=item[2], num_layers=1, bidirectional=False)
-            cpu_gru.weight_ih_l0.requires_grad_(True)
-            cpu_gru.weight_hh_l0.requires_grad_(True)
-            cpu_gru.bias_ih_l0.requires_grad_(True)
-            cpu_gru.bias_hh_l0.requires_grad_(True)
             npu_gru = copy.deepcopy(cpu_gru).npu()
+            if item[0][0] == np.float16:
+                npu_gru = npu_gru.half()
 
             input1 = np.random.uniform(0, 1, item[0][1]).astype(item[0][0])
             cpu_input1 = torch.from_numpy(input1.astype(np.float32))

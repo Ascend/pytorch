@@ -1,5 +1,4 @@
 import copy
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -30,7 +29,6 @@ class TestGeluBackward(TestCase):
         res = input1.grad.to("cpu")
         return res.detach().numpy()
 
-    @unittest.skip("skip test_gelu_backward_float32_1 now")
     def test_gelu_backward_float32_1(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (4, 3, 1, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -38,7 +36,6 @@ class TestGeluBackward(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_gelu_backward_float32_2 now")
     def test_gelu_backward_float32_2(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (15, 3, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -46,7 +43,6 @@ class TestGeluBackward(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_gelu_backward_float32_3 now")
     def test_gelu_backward_float32_3(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (4, 4), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -64,4 +60,5 @@ class TestGeluBackward(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(20)
     run_tests()

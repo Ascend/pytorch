@@ -1,4 +1,3 @@
-import unittest
 import torch
 
 import torch_npu
@@ -86,7 +85,6 @@ class TestFusedAttentionScore(TestCase):
 
         return context_layer.detach().cpu(), query_layer.grad.cpu(), key_layer.grad.cpu(), value_layer.grad.cpu()
 
-    @unittest.skip("skip test_fused_attention_score_bert_large now")
     def test_fused_attention_score_bert_large(self):
         q = torch.rand(24, 16, 512, 64).uniform_(-3, 3).half()
         k = torch.rand(24, 16, 512, 64).uniform_(-3, 3).half()
