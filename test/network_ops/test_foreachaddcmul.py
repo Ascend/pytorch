@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import unittest
 import torch
 import numpy as np
 
@@ -22,423 +21,54 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-class TestAdd(TestCase):
+class TestAddcMul(TestCase):
 
-    def cpu_op_exec(self, input1, scalar):
-        output = torch._foreach_add(input1, scalar)
-        return output
-
-    def npu_op_exec(self, input1, scalar):
-        output = torch._foreach_add(input1, scalar)
-        return output
-
-    def cpu_op_exec_alpha(self, input1, input2):
-        output = torch._foreach_add(input1, input2, alpha=1)
-        return output
-
-    def npu_op_exec_alpha(self, input1, input2):
-        output = torch._foreach_add(input1, input2, alpha=1)
-        return output
-
-    def cpu_op_scalar_exec(self, input1, scalararray):
-        output = torch._foreach_add(input1, scalararray)
-        return output
-
-    def npu_op_scalar_exec(self, input1, scalararray):
-        output = torch._foreach_add(input1, scalararray)
-        return output
-
-    def cpu_op_exec_(self, input1, scalar):
-        torch._foreach_add_(input1, scalar)
-        return input1
-
-    def npu_op_exec_(self, input1, scalar):
-        torch._foreach_add_(input1, scalar)
-        return input1
-
-    def cpu_op_exec_alpha_(self, input1, input2):
-        torch._foreach_add_(input1, input2, alpha=1)
-        return input1
-
-    def npu_op_exec_alpha_(self, input1, input2):
-        torch._foreach_add_(input1, input2, alpha=1)
-        return input1
-
-    def cpu_op_scalar_exec_(self, input1, scalararray):
-        torch._foreach_add_(input1, scalararray)
-        return input1
-
-    def npu_op_scalar_exec_(self, input1, scalararray):
-        torch._foreach_add_(input1, scalararray)
-        return input1
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_1d now")
-    def test_add_scalar_shape_format_fp16_1d(self):
+    def test_add_scalar_shape_format_fp32(self):
         shape_format = [
-            [[np.float16, 2, [50]], [np.float16, 2, [50]]],
+            [np.float32, 2, [50]],
+            [np.float32, 2, [50, 25]],
+            [np.float32, 2, [50, 25, 7]],
+            [np.float32, 2, [50, 25, 7, 100]],
         ]
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
+            cpu_input1, npu_input1 = create_common_tensor(item, -10, 10)
+            cpu_input2, npu_input2 = create_common_tensor(item, -10, 10)
+            cpu_input3, npu_input3 = create_common_tensor(item, -10, 10)
+            cpu_output1 = torch._foreach_addcmul([cpu_input1], [cpu_input2], [cpu_input3], 1.0)
+            npu_output1 = torch._foreach_addcmul([npu_input1], [npu_input2], [npu_input3], 1.0)
+            cpu_output2 = torch._foreach_addcmul([cpu_input1], [cpu_input2], [cpu_input3], [1.0])
+            npu_output2 = torch._foreach_addcmul([npu_input1], [npu_input2], [npu_input3], [1.0])
             for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
                 self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
             for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
                 self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
 
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_1d now")
-    def test_add_scalar_shape_format_fp32_1d(self):
+    def test_add_scalar_shape_format_fp32_(self):
         shape_format = [
-            [[np.float32, 2, [50]], [np.float32, 2, [50]]],
+            [np.float32, 2, [50]],
+            [np.float32, 2, [50, 25]],
+            [np.float32, 2, [50, 25, 7]],
+            [np.float32, 2, [50, 25, 7, 100]],
         ]
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
+            cpu_input1, npu_input1 = create_common_tensor(item, -10, 10)
+            cpu_input2, npu_input2 = create_common_tensor(item, -10, 10)
+            cpu_input3, npu_input3 = create_common_tensor(item, -10, 10)
+            torch._foreach_addcmul_([cpu_input1], [cpu_input2], [cpu_input3], 1.0)
+            torch._foreach_addcmul_([npu_input1], [npu_input2], [npu_input3], 1.0)
+
+            for (cpu_tmp1, npu_tmp1) in zip(cpu_input1, npu_input1):
                 self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
+            cpu_input1, npu_input1 = create_common_tensor(item, -10, 10)
+            cpu_input2, npu_input2 = create_common_tensor(item, -10, 10)
+            cpu_input3, npu_input3 = create_common_tensor(item, -10, 10)
+            torch._foreach_addcmul_([cpu_input1], [cpu_input2], [cpu_input3], [1.0])
+            torch._foreach_addcmul_([npu_input1], [npu_input2], [npu_input3], [1.0])
+
+            for (cpu_tmp2, npu_tmp2) in zip(cpu_input1, npu_input1):
                 self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_2d now")
-    def test_add_scalar_shape_format_fp16_2d(self):
-        shape_format = [
-            [[np.float16, 2, [50, 25]], [np.float16, 2, [50, 25]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_2d now")
-    def test_add_scalar_shape_format_fp32_2d(self):
-        shape_format = [
-            [[np.float32, 2, [50, 25]], [np.float32, 2, [50, 25]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_3d now")
-    def test_add_scalar_shape_format_fp16_3d(self):
-        shape_format = [
-            [[np.float16, 2, [50, 25, 7]], [np.float16, 2, [50, 25, 7]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_3d now")
-    def test_add_scalar_shape_format_fp32_3d(self):
-        shape_format = [
-            [[np.float32, 2, [50, 25, 7]], [np.float32, 2, [50, 25, 7]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_4d now")
-    def test_add_scalar_shape_format_fp16_4d(self):
-        shape_format = [
-            [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 7, 100]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_4d now")
-    def test_add_scalar_shape_format_fp32_4d(self):
-        shape_format = [
-            [[np.float32, 2, [50, 25, 7, 100]], [np.float32, 2, [50, 25, 7, 100]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_1d_ now")
-    def test_add_scalar_shape_format_fp16_1d_(self):
-        shape_format = [
-            [[np.float16, 2, [50]], [np.float16, 2, [50]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_1d_ now")
-    def test_add_scalar_shape_format_fp32_1d_(self):
-        shape_format = [
-            [[np.float32, 2, [50]], [np.float32, 2, [50]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_2d_ now")
-    def test_add_scalar_shape_format_fp16_2d_(self):
-        shape_format = [
-            [[np.float16, 2, [50, 25]], [np.float16, 2, [50, 25]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_2d_ now")
-    def test_add_scalar_shape_format_fp32_2d_(self):
-        shape_format = [
-            [[np.float32, 2, [50, 25]], [np.float32, 2, [50, 25]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_3d_ now")
-    def test_add_scalar_shape_format_fp16_3d_(self):
-        shape_format = [
-            [[np.float16, 2, [50, 25, 7]], [np.float16, 2, [50, 25, 7]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_3d_ now")
-    def test_add_scalar_shape_format_fp32_3d_(self):
-        shape_format = [
-            [[np.float32, 2, [50, 25, 7]], [np.float32, 2, [50, 25, 7]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp16_4d_ now")
-    def test_add_scalar_shape_format_fp16_4d_(self):
-        shape_format = [
-            [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 7, 100]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
-
-    @unittest.skip("skip test_add_scalar_shape_format_fp32_4d_ now")
-    def test_add_scalar_shape_format_fp32_4d_(self):
-        shape_format = [
-            [[np.float32, 2, [50, 25, 7, 100]], [np.float32, 2, [50, 25, 7, 100]]],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], -10, 10)
-            cpu_output1 = self.cpu_op_exec_([cpu_input1, cpu_input2], 1.0)
-            npu_output1 = self.npu_op_exec_([npu_input1, npu_input2], 1.0)
-            cpu_output2 = self.cpu_op_exec_alpha_([cpu_input1, cpu_input2], [cpu_input2, cpu_input1])
-            npu_output2 = self.npu_op_exec_alpha_([npu_input1, npu_input2], [npu_input2, npu_input1])
-            cpu_output3 = self.cpu_op_scalar_exec_([cpu_input1, cpu_input2], [1.0, 2.0])
-            npu_output3 = self.npu_op_scalar_exec_([npu_input1, npu_input2], [1.0, 2.0])
-            for (cpu_tmp1, npu_tmp1) in zip(cpu_output1, npu_output1):
-                self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
-
-            for (cpu_tmp2, npu_tmp2) in zip(cpu_output2, npu_output2):
-                self.assertRtolEqual(cpu_tmp2.numpy(), npu_tmp2.to("cpu").numpy())
-
-            for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
-                self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
 
 if __name__ == "__main__":
