@@ -182,6 +182,9 @@ extern HcclResult HcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclData
  */
 extern HcclResult HcclSetConfig(HcclConfig config, HcclConfigValue configValue);
 
+extern HcclResult HcclScatter(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType dataType, uint32_t root,
+    HcclComm comm, aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
