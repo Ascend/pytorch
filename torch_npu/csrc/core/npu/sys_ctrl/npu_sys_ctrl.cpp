@@ -192,7 +192,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
         device_id_ = (device_id == -1) ? 0 : device_id;
         NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
     } else {
-        NPU_LOGE("Npu device %d has been set before global init.", device_id_);
+        ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
     }
     
     used_devices.insert(device_id_);
