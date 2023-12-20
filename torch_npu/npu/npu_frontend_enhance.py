@@ -37,6 +37,8 @@ _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dt
                "ACL_OP_COMPILER_CACHE_MODE": ["disable", "enable", "force"],
                "ACL_OP_COMPILER_CACHE_DIR": None}
 
+_deprecated_option_set = {"ACL_OP_SELECT_IMPL_MODE", "ACL_OPTYPELIST_FOR_IMPLMODE"}
+
 
 def _check_compile_option(name, value) -> bool:
     if name in _option_map.keys():
@@ -66,6 +68,11 @@ def set_option(option):
         else:
             raise ValueError(f"value of {option_name} should be in %s "
                              % (_option_map[option_name]) + f"but got {option_value}")
+        
+        if option_name in _deprecated_option_set:
+            warnings.warn(f"{option_name} will be deprecated in future version. The accuracy or performance "
+                          f"may not be the optimal when configuring this option. We do not recommend setting it.")
+
     torch_npu._C._npu_setOption(option)
 
 
