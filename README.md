@@ -56,9 +56,9 @@ Take **Aarch64** architecture and **Python 3.8** as an example.
 
 
 ```Python
-wget https://gitee.com/ascend/pytorch/releases/download/v5.0.0-pytorch1.11.0/torch_npu-1.11.0.post7-cp38-cp38-linux_aarch64.whl
+wget https://gitee.com/ascend/pytorch/releases/download/v5.0.0-pytorch1.11.0/torch_npu-1.11.0.post8-cp38-cp38-linux_aarch64.whl
 
-pip3 install torch_npu-1.11.0.post7-cp38-cp38-linux_aarch64.whl
+pip3 install torch_npu-1.11.0.post8-cp38-cp38-linux_aarch64.whl
 ```
 
 ### From Source
@@ -136,7 +136,7 @@ print(z)
 |----------------|--------------|-------------------|-------------------|----------------------|
 | CANN 7.0.0     | 2.1.0        | 2.1.0             | v2.1.0-5.0.0      | -                    |
 |                | 2.0.1        | 2.0.1.post1       | v2.0.1-5.0.0      | -                    |
-|                | 1.11.0       | 1.11.0.post7      | v1.11.0-5.0.0     | -                    |
+|                | 1.11.0       | 1.11.0.post8      | v1.11.0-5.0.0     | -                    |
 | CANN 7.0.RC1   | 2.1.0        | 2.1.0.rc1         | v2.1.0-5.0.rc3    | -                    |
 |                | 2.0.1        | 2.0.1             | v2.0.1-5.0.rc3    | -                    |
 |                | 1.11.0       | 1.11.0.post4      | v1.11.0-5.0.rc3   | -                    |
