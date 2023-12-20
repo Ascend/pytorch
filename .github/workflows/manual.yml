@@ -1,0 +1,37 @@
+name: Ascend NPU(Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        required: true
+        type: string
+        default: 'self-hosted'
+        description: The runner selected to run on
+      devices:
+        required: true
+        type: string
+        default: '--device /dev/davinci6'
+        description: The devices selected to run on
+      image:
+        required: true
+        type: string
+        default: 'ascendai/cann:7.1-openeuler2203sp2'
+        description: The docker iamge which will be loaded
+
+jobs:
+  linux-py3_8-fetch-and-rebase:
+    name: linux-py3_8-7.0.RC1.alpha005
+    uses: ./.github/workflows/_fetch_and_rebase.yml
+    with:
+      runner: ${{ inputs.runner }}
+      loop: 10
+
+  linux-py3_8-build-and-test:
+    name: linux-py3_8-7.0.RC1.alpha005
+    uses: ./.github/workflows/_build-and-test.yml
+    needs: linux-py3_8-fetch-and-rebase
+    with:
+      runner: ${{ inputs.runner }}
+      devices: ${{ inputs.devices }}
+      image: ${{ inputs.image }}

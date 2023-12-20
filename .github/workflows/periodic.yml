@@ -23,4 +23,4 @@ jobs:
     with:
       runner: self-hosted
       devices: --device /dev/davinci6
-      image: ascendai/cann:7.0.RC1.alpha005-openeuler2203sp2
+      image: ascendai/cann:7.1-openeuler2203sp2
