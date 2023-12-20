@@ -175,7 +175,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         device_id_ = (device_id == -1) ? 0 : device_id;
         NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
     } else {
-        ASCEND_LOGE("Npu device %d has been set before global init.", device_id_);
+        ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
     }
 
     UpdateDeviceAccess(device_id_);
