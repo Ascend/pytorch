@@ -1,10 +1,11 @@
 import ctypes
 
+from torch._streambase import _StreamBase, _EventBase
 import torch_npu
 import torch_npu._C
 
 
-class Stream(torch_npu._C._NPUStreamBase):
+class Stream(torch_npu._C._NPUStreamBase, _StreamBase):
     r"""Wrapper around a NPU stream.
 
     A NPU stream is a linear sequence of execution that belongs to a specific
@@ -108,7 +109,7 @@ class Stream(torch_npu._C._NPUStreamBase):
                 .format(self.device, self.npu_stream))
 
 
-class Event(torch_npu._C._NPUEventBase):
+class Event(torch_npu._C._NPUEventBase, _EventBase):
     r"""Wrapper around a NPU event.
 
     NPU events are synchronization markers that can be used to monitor the
