@@ -8,8 +8,9 @@ import torch
 from torch.nn import MultiheadAttention
 import torch.nn as nn
 import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_device_type import instantiate_device_type_tests, dtypes, \
-    onlyCUDAAndPRIVATEUSE1
+    onlyPRIVATEUSE1
 from torch.testing._internal.common_nn import NNTestCase
 from torch.testing._internal.common_utils import run_tests, \
     TEST_NUMPY, TEST_WITH_CROSSREF, \
@@ -615,7 +616,7 @@ class TestMultiheadAttentionNNDeviceType(NNTestCase):
                 # If mock was called, fastpath was taken
                 self.assertTrue(fastpath_mock.called)
 
-    @onlyCUDAAndPRIVATEUSE1
+    @onlyPRIVATEUSE1
     @dtypes(torch.half, torch.float, torch.double)
     def test_multihead_attention_dtype(self, device, dtype):
         embed_dim = 128
@@ -630,7 +631,7 @@ class TestMultiheadAttentionNNDeviceType(NNTestCase):
         self.assertEqual(q.size(), out[0].size())
         self.assertEqual(dtype, out[0].dtype)
 
-    @onlyCUDAAndPRIVATEUSE1
+    @onlyPRIVATEUSE1
     @dtypes(torch.half, torch.float, torch.double)
     def test_multihead_attention_dtype_batch_first(self, device, dtype):
         embed_dim = 128

@@ -14,6 +14,7 @@ import warnings
 import torch
 import torch.nn as nn
 import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (
     TestCase,
     run_tests,

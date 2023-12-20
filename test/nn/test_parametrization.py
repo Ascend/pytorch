@@ -10,11 +10,13 @@ import torch.nn.init as init
 import torch.nn.utils.parametrize as parametrize
 from torch.nn import Parameter
 import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import run_tests, skipIfNoLapack, \
     TemporaryFileName, instantiate_parametrized_tests, set_default_dtype
-from torch.testing._internal.common_cuda import TEST_MULTIGPU
 from torch.testing._internal.common_nn import NNTestCase
-from torch.testing._internal.common_utils import gradcheck
+from torch.testing._internal.common_utils import gradcheck, TEST_PRIVATEUSE1
+
+TEST_MULTINPU = TEST_PRIVATEUSE1 and torch_npu.npu.device_count() >= 2
 
 
 class TestNNParametrization(NNTestCase):
@@ -1140,9 +1142,9 @@ class TestNNParametrization(NNTestCase):
             # test correctness in training/eval modes and cpu/multi-gpu settings
             for apply_dp in (True, False):
                 if apply_dp:
-                    if not TEST_MULTIGPU:
+                    if not TEST_MULTINPU:
                         continue
-                    device = torch.device('cuda:0')
+                    device = torch.device('npu:0')
 
                     def maybe_wrap(m):
                         return torch.nn.DataParallel(m, [0, 1])
