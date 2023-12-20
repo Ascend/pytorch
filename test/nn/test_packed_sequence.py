@@ -6,6 +6,7 @@ import random
 import torch
 import torch.nn.utils.rnn as rnn_utils
 import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, run_tests
 
 
@@ -127,13 +128,13 @@ class PackedSequenceTest(TestCase):
             self.assertIs(a, a.to('cpu', dtype=torch.int32))
             self.assertEqual(a.long(), a.to(torch.int64))
 
-            if torch.cuda.is_available():
-                for cuda in ['cuda', 'cuda:0' if torch.cuda.device_count() == 1 else 'cuda:1']:
-                    b = a.cuda(device=cuda)
-                    self.assertIs(b, b.to(cuda))
-                    self.assertIs(b, b.cuda())
+            if torch_npu.npu.is_available():
+                for npu in ['npu', 'npu:0' if torch_npu.npu.device_count() == 1 else 'npu:1']:
+                    b = a.npu(device=npu)
+                    self.assertIs(b, b.to(npu))
+                    self.assertIs(b, b.npu())
                     self.assertEqual(a, b.to('cpu'))
-                    self.assertEqual(b, a.to(cuda))
+                    self.assertEqual(b, a.to(npu))
                     self.assertEqual(a, b.to('cpu', dtype=torch.int32))
                     self.assertIs(b, b.to(dtype=torch.int32))
                     self.assertEqual(b.long(), b.to(dtype=torch.int64))
