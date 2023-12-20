@@ -159,7 +159,7 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
         torch.device,
     ]:
         return NPUTorchVariable(value, **kwargs)
-    return cls.__new__(value, **kwargs)
+    return cls.__new__raw(cls)
 
 
 def SkipFilesVariable__new__(cls, value, **kwargs):
@@ -168,9 +168,11 @@ def SkipFilesVariable__new__(cls, value, **kwargs):
         torch_npu.npu.stream,
     ]:
         return NPUTorchVariable(value, **kwargs)
-    return cls.__new__(value, **kwargs)
+    return cls.__new__raw(cls)
 
 
 def add_dynamo_methods():
+    UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
+    SkipFilesVariable.__new__raw = SkipFilesVariable.__new__
     SkipFilesVariable.__new__ = SkipFilesVariable__new__
