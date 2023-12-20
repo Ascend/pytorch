@@ -27,6 +27,7 @@ from typing import Callable, Dict, Optional, Tuple, Union
 import torch
 from torch.distributed.constants import default_pg_timeout
 from torch.distributed.rendezvous import rendezvous  # noqa: F401
+from torch.distributed.distributed_c10d import _tensor_to_object, _object_to_tensor
 from torch._C._distributed_c10d import (
     AllreduceOptions,
     AllreduceCoalescedOptions,
@@ -2238,22 +2239,6 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None, pg_options=N
     return pg
 
 
-def _object_to_tensor(obj):
-    f = io.BytesIO()
-    _pickler(f).dump(obj)
-    byte_storage = torch.ByteStorage.from_buffer(f.getvalue())  # type: ignore[attr-defined]
-    # Do not replace `torch.ByteTensor` or `torch.LongTensor` with torch.tensor and specifying dtype.
-    # Otherwise, it will casue 100X slowdown.
-    byte_tensor = torch.ByteTensor(byte_storage)
-    local_size = torch.LongTensor([byte_tensor.numel()])
-    return byte_tensor, local_size
-
-
-def _tensor_to_object(tensor, tensor_size):
-    buf = tensor.numpy().tobytes()[:tensor_size]
-    return _unpickler(io.BytesIO(buf)).load()
-
-
 def _check_for_hccl_backend(group):
     pg = group or _get_default_group()
     while isinstance(pg, _ProcessGroupWrapper):
@@ -2308,17 +2293,15 @@ def all_gather_object(object_list, obj, group=None):
     if _rank_not_in_group(group):
         _warn_not_in_group("all_gather_object")
         return
-
-    input_tensor, local_size = _object_to_tensor(obj)
-    current_device = torch.device("cpu")
+    
     # only support hccl backend
     is_hccl_backend = _check_for_hccl_backend(group)
     if is_hccl_backend:
         current_device = torch.device("npu", torch.npu.current_device())
-        input_tensor = input_tensor.to(current_device)
-        # warnning: HCCL does not support torch.long, change the dtype
-        # from torch.long(torch.int64) to torch.int32
-        local_size = local_size.to(current_device).to(dtype=torch.int32)
+    else:
+        current_device = torch.device("cpu")
+
+    input_tensor, local_size = _object_to_tensor(obj, current_device)
 
     # Gather all local sizes. This is so that we can find the max size, and index
     # until the correct size when deserializing the tensors.
@@ -2404,7 +2387,7 @@ def broadcast_object_list(object_list, src=0, group=None, device=None):
         >>>     objects = ["foo", 12, {1: 2}] # any picklable object
         >>> else:
         >>>     objects = [None, None, None]
-        >>> # Assumes backend is not NCCL
+        >>> # Assumes backend is not HCCL
         >>> device = torch.device("cpu")
         >>> dist.broadcast_object_list(objects, src=0, device=device)
         >>> objects
@@ -2415,16 +2398,14 @@ def broadcast_object_list(object_list, src=0, group=None, device=None):
         return
 
     my_rank = get_rank()
+     # Only support npu device
+    current_device = torch.device("npu", torch.npu.current_device())
     # Serialize object_list elements to tensors on src rank.
     if my_rank == src:
-        tensor_list, size_list = zip(*[_object_to_tensor(obj) for obj in object_list])
+        tensor_list, size_list = zip(*[_object_to_tensor(obj, current_device) for obj in object_list])
         object_sizes_tensor = torch.cat(size_list)
     else:
-        object_sizes_tensor = torch.empty(len(object_list), dtype=torch.long)
-
-    # Only support npu device
-    current_device = torch.device("npu", torch.npu.current_device())
-    object_sizes_tensor = object_sizes_tensor.to(current_device)
+        object_sizes_tensor = torch.empty(len(object_list), dtype=torch.long, device=current_device)
 
     # Broadcast object sizes
     broadcast(object_sizes_tensor, src=src, group=group)
@@ -2449,3 +2430,107 @@ def broadcast_object_list(object_list, src=0, group=None, device=None):
                 obj_view = obj_view.cpu()
             offset += obj_size
             object_list[i] = _tensor_to_object(obj_view, obj_size)
+
+
+def scatter_object_list(
+    scatter_object_output_list, scatter_object_input_list, src=0, group=None
+):
+    """
+    Scatters picklable objects in ``scatter_object_input_list`` to the whole
+    group. Similar to :func:`scatter`, but Python objects can be passed in. On
+    each rank, the scattered object will be stored as the first element of
+    ``scatter_object_output_list``. Note that all objects in
+    ``scatter_object_input_list`` must be picklable in order to be scattered.
+
+    Args:
+        scatter_object_output_list (List[Any]): Non-empty list whose first
+            element will store the object scattered to this rank.
+        scatter_object_input_list (List[Any]): List of input objects to scatter.
+            Each object must be picklable. Only objects on the ``src`` rank will
+            be scattered, and the argument can be ``None`` for non-src ranks.
+        src (int): Source rank from which to scatter
+            ``scatter_object_input_list``.
+        group: (ProcessGroup, optional): The process group to work on. If None,
+            the default process group will be used. Default is ``None``.
+
+    Returns:
+        ``None``. If rank is part of the group, ``scatter_object_output_list``
+        will have its first element set to the scattered object for this rank.
+
+    .. note:: Note that this API differs slightly from the scatter collective
+        since it does not provide an ``async_op`` handle and thus will be a
+        blocking call.
+
+    .. warning::
+        :func:`scatter_object_list` uses ``pickle`` module implicitly, which
+        is known to be insecure. It is possible to construct malicious pickle
+        data which will execute arbitrary code during unpickling. Only call this
+        function with data you trust.
+
+    Example::
+        >>> # xdoctest: +SKIP("need process group init")
+        >>> # Note: Process group initialization omitted on each rank.
+        >>> import torch.distributed as dist
+        >>> if dist.get_rank() == 0:
+        >>>     # Assumes world_size of 3.
+        >>>     objects = ["foo", 12, {1: 2}] # any picklable object
+        >>> else:
+        >>>     # Can be any list on non-src ranks, elements are not used.
+        >>>     objects = [None, None, None]
+        >>> output_list = [None]
+        >>> dist.scatter_object_list(output_list, objects, src=0)
+        >>> # Rank i gets objects[i]. For example, on rank 2:
+        >>> output_list
+        [{1: 2}]
+    """
+    if _rank_not_in_group(group):
+        _warn_not_in_group("scatter_object_list")
+        return
+
+    if (
+        not isinstance(scatter_object_output_list, list)
+        or len(scatter_object_output_list) < 1
+    ):
+        raise RuntimeError(
+            "Expected argument scatter_object_output_list to be a list of size at least 1."
+        )
+
+    my_rank = get_rank(group)
+     # Only support npu device
+    current_device = torch.device("npu", torch.npu.current_device())
+    if my_rank == src:
+        tensor_list, tensor_sizes = zip(
+            *[_object_to_tensor(obj, current_device) for obj in scatter_object_input_list]
+        )
+        tensor_list, tensor_sizes = list(tensor_list), list(tensor_sizes)
+
+    # Src rank broadcasts the maximum tensor size. This is because all ranks are
+    # expected to call into scatter() with equal-sized tensors.
+    if my_rank == src:
+        max_tensor_size = max(tensor_sizes)
+        for tensor in tensor_list:
+            tensor.resize_(max_tensor_size)
+    else:
+        max_tensor_size = torch.tensor([0], dtype=torch.long, device=current_device)
+    broadcast(max_tensor_size, src=src, group=group)
+
+    # Scatter actual serialized objects
+    output_tensor = torch.empty(max_tensor_size.item(), dtype=torch.uint8, device=current_device)
+    scatter(
+        output_tensor,
+        scatter_list=None if my_rank != src else tensor_list,
+        src=src,
+        group=group,
+    )
+
+    # Scatter per-object sizes to trim tensors when deserializing back to object
+    obj_tensor_size = torch.tensor([0], dtype=torch.long, device=current_device)
+    scatter(
+        obj_tensor_size,
+        scatter_list=None if my_rank != src else tensor_sizes,
+        src=src,
+        group=group,
+    )
+
+    # Deserialize back to object
+    scatter_object_output_list[0] = _tensor_to_object(output_tensor, obj_tensor_size)

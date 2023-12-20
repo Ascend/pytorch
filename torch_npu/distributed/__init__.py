@@ -12,7 +12,7 @@ __all__ = [
     "_verify_params_across_processes", "DebugLevel", "get_debug_level", "set_debug_level",
     "_create_process_group_wrapper", "_rank_not_in_group", "Logger", "all_gather_object",
     "broadcast_object_list", "all_gather_togather", "_reduce_scatter_base", "all_gather_into_tensor",
-    "reduce_scatter_tensor"
+    "reduce_scatter_tensor", "scatter_object_list"
 ]
 
 
@@ -50,7 +50,7 @@ from .distributed_c10d import (
     all_to_all_single, all_to_all, barrier, new_group, ProcessGroupHCCL, _get_global_rank, DebugLevel,
     get_debug_level, set_debug_level, set_debug_level_from_env, _create_process_group_wrapper,
     _rank_not_in_group, Logger, all_gather_object, broadcast_object_list, all_gather_togather,
-    _reduce_scatter_base, all_gather_into_tensor, reduce_scatter_tensor
+    _reduce_scatter_base, all_gather_into_tensor, reduce_scatter_tensor, scatter_object_list,
 )
 
 set_debug_level_from_env()

@@ -103,6 +103,17 @@ class TestObjectCollectives(TestCase):
         dist.broadcast_object_list(objects, src=0)
         self.assertEqual(objects, expected_objects)
 
+    @skipIfUnsupportMultiNPU(4)
+    def test_scatter_object_list(self):
+        self.dist_init()
+        input_list = list(range(dist.get_world_size())) if self.rank == 0 else None
+        output_list = [None]
+        dist.scatter_object_list(
+            scatter_object_output_list=output_list,
+            scatter_object_input_list=input_list)
+
+        self.assertEqual(self.rank, output_list[0])
+
 
 if __name__ == "__main__":
     run_tests()
