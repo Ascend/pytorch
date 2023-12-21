@@ -831,7 +831,7 @@ void ProcessGroupHCCL::workCleanupLoop()
             for (auto it = workMetaList_.begin(); it != workMetaList_.end();) {
                 auto& work = *it;
                 if (threadSetDeviceFlag) {
-                    NPU_CHECK_ERROR(aclrtSetDevice(static_cast<int>(work.devices_[0].index())));
+                    NPU_CHECK_ERROR(c10_npu::SetDevice(static_cast<int>(work.devices_[0].index())));
                     threadSetDeviceFlag = false;
                 }
 

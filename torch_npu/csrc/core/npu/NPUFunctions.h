@@ -12,6 +12,7 @@
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include <third_party/acl/inc/acl/acl.h>
 
 namespace c10_npu {
@@ -38,7 +39,8 @@ C10_NPU_API inline c10::DeviceIndex device_count() noexcept {
  * @ingroup torch_npu
  * @brief get device id from local thread cache preferentially for performance.
  * If the thread cache has not been initialized, it will get from ACL interface:
- * aclrtGetDevice, and initialize the local thread cache
+ * aclrtGetDevice, and initialize the local thread cache.
+ * If the context is empty, it will set device 0.
  *
  * @param device [IN]           device id
  * @retval ACL_ERROR_NONE The function is successfully executed.

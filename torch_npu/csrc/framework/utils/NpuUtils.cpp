@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
@@ -260,18 +261,18 @@ at::Tensor NpuUtils::format_contiguous_add_copy_optimize(const at::Tensor &src) 
 }
 
 bool NpuUtils::IsOomError(aclError ret, int index) {
-  if (ret == ACL_ERROR_GE_DEVICE_MEMORY_ALLOCATION_FAILED) {
-    int deviceId = 0;
-    // free devcie cached memory when return value of the first op execution is
-    // oom
-    if (index == 1) {
-      NPU_CHECK_ERROR(aclrtGetDevice(&deviceId));
-      c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
-      return true;
+    if (ret == ACL_ERROR_GE_DEVICE_MEMORY_ALLOCATION_FAILED) {
+        int deviceId = 0;
+        // free devcie cached memory when return value of the first op execution is
+        // oom
+        if (index == 1) {
+            NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceId));
+            c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
+            return true;
+        }
+        AT_ERROR("NPU out of memory. device id: ", deviceId);
     }
-    AT_ERROR("NPU out of memory. device id: ", deviceId);
-  }
-  return false;
+    return false;
 }
 
 void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {

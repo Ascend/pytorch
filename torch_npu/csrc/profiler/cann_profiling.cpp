@@ -15,6 +15,7 @@
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -40,7 +41,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP,
       "start current profile status is: ", status, " error!");
   int deviceIndex = 0;
-  aclError ret = aclrtGetDevice(&deviceIndex);
+  aclError ret = c10_npu::GetDevice(&deviceIndex);
   if (ret) {
     NPU_LOGE("npu profiling aclrtGetDevice fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();

@@ -748,7 +748,7 @@ class DeviceCachingAllocator {
     std::unique_lock<std::recursive_mutex> lock(mutex);
 
     if (device == -1) {
-        NPU_CHECK_ERROR(aclrtGetDevice(&device));
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     }
 
     // process outstanding npuEvents
@@ -1829,13 +1829,7 @@ class DeviceCachingAllocator {
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-      int pre_device = 0;
-      aclError ret = aclrtGetDevice(&pre_device);
-      if (ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(aclrtSetDevice(it->device_index()));
-      } else if (pre_device != it->device_index()) {
-        NPU_CHECK_ERROR(aclrtSetDevice(it->device_index()));
-      }
+      NPU_CHECK_ERROR(c10_npu::SetDevice(it->device_index()));
 
       aclrtEvent event = create_event_internal();
       c10_npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
@@ -1983,11 +1977,9 @@ class THNCachingAllocator {
         "invalid fraction:",
         fraction,
         ". Please set within (0, 1).");
-    int activated_device;
-    aclrtGetDevice(&activated_device);
-    if (activated_device != device) {
-        aclrtSetDevice(device);
-    }
+
+    c10_npu::SetDevice(device);
+
     device_allocator[device]->setMemoryFraction(fraction);
   }
 
@@ -2075,7 +2067,7 @@ THNCachingAllocator caching_allocator;
 struct NpuCachingAllocator : public c10::Allocator {
   c10::DataPtr allocate(size_t size) const override {
     int device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     void* r = nullptr;
     if (size != 0) {
       caching_allocator.malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
@@ -2160,7 +2152,7 @@ void* raw_alloc(size_t nbytes) {
     return nullptr;
   }
   int device = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
   void* r = nullptr;
   caching_allocator.malloc(&r, device, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
   return r;
@@ -2171,7 +2163,7 @@ void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) {
     return nullptr;
   }
   int device;
-  NPU_CHECK_ERROR(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
   void* r = nullptr;
   caching_allocator.malloc(&r, device, nbytes, stream);
   return r;
@@ -2187,7 +2179,7 @@ void FreeDeviceCachedMemory(int device) {
 
 void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
   int device = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&device));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
   return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
 }
 

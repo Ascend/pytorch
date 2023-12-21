@@ -12,6 +12,10 @@ namespace c10_npu {
         aclError err =  aclrtGetDevice(device);
         if (err == ACL_ERROR_NONE) {
             local_device = *device;
+        } else if (err == ACL_ERROR_RT_CONTEXT_NULL && aclrtSetDevice(0) == ACL_ERROR_NONE) {
+            *device = 0;
+            local_device = 0;
+            return ACL_ERROR_NONE;
         }
         return err;
     }
@@ -19,11 +23,11 @@ namespace c10_npu {
     aclError SetDevice(c10::DeviceIndex device)
     {
         TORCH_CHECK(device >= 0, "device id must be positive!");
-        int cur_device = -1;
-        aclError ret = c10_npu::GetDevice(&cur_device);
-        if (ret == ACL_ERROR_NONE && device == cur_device) {
+
+        if (local_device == device) {
             return ACL_ERROR_NONE;
         }
+
         aclError err = aclrtSetDevice(device);
         if (err == ACL_ERROR_NONE) {
             local_device = device;
