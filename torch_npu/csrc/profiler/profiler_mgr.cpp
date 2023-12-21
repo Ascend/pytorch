@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -75,7 +76,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
       }
     }
     int32_t deviceId = 0;
-    auto ret = aclrtGetDevice(&deviceId);
+    auto ret = c10_npu::GetDevice(&deviceId);
     if (ret != ACL_ERROR_NONE) {
       NPU_LOGE("Get Device ID failed.");
       return;

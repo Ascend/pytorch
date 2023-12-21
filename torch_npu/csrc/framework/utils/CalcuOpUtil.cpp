@@ -37,6 +37,7 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace {
 constexpr float EPSILON = 1e-6;
@@ -138,7 +139,7 @@ at::Tensor CalcuOpUtil::CopyScalarToDevice(const c10::Scalar &cpu_scalar,
 at::Tensor CalcuOpUtil::CopyTensorHostToDevice(const at::Tensor &cpu_tensor) {
   at::Tensor cpuPinMemTensor = cpu_tensor.pin_memory();
   int deviceIndex = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&deviceIndex));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
   return cpuPinMemTensor.to(
       c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
       cpuPinMemTensor.scalar_type(), true, true);

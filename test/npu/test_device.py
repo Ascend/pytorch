@@ -124,6 +124,23 @@ class TestDevice(TestCase):
         device = torch.device(device=None)
         assert device.type == "cpu"
 
+    def test_multithread_device(self):
+        import threading
+
+        def _worker(result):
+            try:
+                cur = torch_npu.npu.current_device()
+                self.assertEqual(cur, 0)
+            except Exception:
+                result[0] = 1
+
+        result = [0]
+        torch.npu.set_device("npu:0")
+        thread = threading.Thread(target=_worker, args=(result,))
+        thread.start()
+        thread.join()
+        self.assertEqual(result[0], 0)
+
 
 if __name__ == '__main__':
     run_tests()

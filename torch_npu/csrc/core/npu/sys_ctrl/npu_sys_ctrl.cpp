@@ -32,6 +32,7 @@
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include  "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #ifdef SUCCESS
@@ -182,11 +183,13 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
     c10_npu::NPUCachingAllocator::init();
     NPU_LOGD("Npu caching allocator initialize successfully");
+
+    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
     auto ret = aclrtGetDevice(&device_id_);
     NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count_));
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
-        NPU_CHECK_ERROR(aclrtSetDevice(device_id_));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
     } else {
         ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
     }
@@ -231,7 +234,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
     UpdateDeviceAccess(pre_device);
-    NPU_CHECK_ERROR(aclrtSetDevice(device));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
     UpdateDeviceAccess(device);
     device_id_ = device;
     return INIT_SUCC;
@@ -322,20 +325,20 @@ void NpuSysCtrl::UpdateDeviceAccess(int peer_device_index)
             "At most only %d NPU devices can establish a direct connection "
             "to achieve cross-card d2d copying through Tensor.to in a process", C10_P2P_ACCESS_MAX_NPUS);
         int32_t cur_device = 0;
-        NPU_CHECK_ERROR(aclrtGetDevice(&cur_device));
-        NPU_CHECK_ERROR(aclrtSetDevice(peer_device_index));
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(peer_device_index));
         NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[peer_device_index]));
         used_devices.insert(peer_device_index);
-        NPU_CHECK_ERROR(aclrtSetDevice(cur_device));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(cur_device));
         return;
     }
 
     int32_t cur_device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&cur_device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
 
     uint32_t enable_flag_value = 0;
     for (auto i : used_devices) {
-        NPU_CHECK_ERROR(aclrtSetDevice(i));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(i));
         int32_t can_access_peer = -1;
         NPU_CHECK_ERROR(aclrtDeviceCanAccessPeer(&can_access_peer, i, peer_device_index));
         if (can_access_peer) {
@@ -343,7 +346,7 @@ void NpuSysCtrl::UpdateDeviceAccess(int peer_device_index)
         }
     }
 
-    NPU_CHECK_ERROR(aclrtSetDevice(peer_device_index));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(peer_device_index));
     for (auto i : used_devices) {
         int32_t can_access_peer = -1;
         NPU_CHECK_ERROR(aclrtDeviceCanAccessPeer(&can_access_peer, peer_device_index, i));
@@ -357,7 +360,7 @@ void NpuSysCtrl::UpdateDeviceAccess(int peer_device_index)
     NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[peer_device_index]));
 
     // Restore the device that was originally set
-    NPU_CHECK_ERROR(aclrtSetDevice(cur_device));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(cur_device));
 }
 
 void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,

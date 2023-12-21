@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace {
 const uint64_t kStringOffset = 16UL;
@@ -257,7 +258,7 @@ at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType
 at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
   at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
   int deviceIndex = 0;
-  NPU_CHECK_ERROR(aclrtGetDevice(&deviceIndex));
+  NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
   auto tensor = cpuPinMemTensor.to(
       c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
       cpuPinMemTensor.scalar_type(),
