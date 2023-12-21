@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/core/npu/NPUFormat.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
@@ -24,6 +25,14 @@ namespace native {
 int64_t get_npu_format(const at::Tensor &tensor)
 {
     return CalcuOpUtil::GetTensorNpuFormat(tensor);
+}
+
+std::vector<int64_t> get_npu_storage_sizes(const at::Tensor &tensor)
+{
+    torch_npu::utils::torch_check_npu(tensor);
+    auto storage_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.storage_sizes_;
+    std::vector<int64_t> vector_storage_sizes(storage_sizes.begin(), storage_sizes.end());
+    return vector_storage_sizes;
 }
 
 at::Tensor npu_format_cast(const at::Tensor &tensor, int64_t acl_format)
