@@ -168,8 +168,8 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     c10_npu::NPUCachingAllocator::init();
     ASCEND_LOGD("Npu caching allocator initialize successfully");
 
-    auto ret = c10_npu::GetDevice(&device_id_);
-
+    // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
+    auto ret = aclrtGetDevice(&device_id_);
     NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count_));
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;

@@ -1815,13 +1815,7 @@ class DeviceCachingAllocator {
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
     for (auto& stream : streams) {
-      int pre_device = 0;
-      aclError ret = c10_npu::GetDevice(&pre_device);
-      if (ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(c10_npu::SetDevice(stream.device_index()));
-      } else if (pre_device != stream.device_index()) {
-        NPU_CHECK_ERROR(c10_npu::SetDevice(stream.device_index()));
-      }
+      NPU_CHECK_ERROR(c10_npu::SetDevice(stream.device_index()));
 
       EventPool::Event event = create_event_internal(stream.device_index());
       event->record(stream);
@@ -1955,11 +1949,9 @@ class THNCachingAllocator {
         "invalid fraction:",
         fraction,
         ". Please set within (0, 1).");
-    int activated_device;
-      c10_npu::GetDevice(&activated_device);
-    if (activated_device != device) {
-        c10_npu::SetDevice(device);
-    }
+
+    c10_npu::SetDevice(device);
+
     device_allocator[device]->setMemoryFraction(fraction);
   }
 
