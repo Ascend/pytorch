@@ -5,6 +5,7 @@
 #include <torch/csrc/jit/frontend/tracer.h>
 #include <torch/csrc/jit/runtime/interpreter.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
@@ -322,7 +323,7 @@ void InitMsPorf(const std::string dump_path, uint64_t npu_event,
   // 5. init local stamp info
 
   int deviceIndex = 0;
-  aclError ret = aclrtGetDevice(&deviceIndex);
+  aclError ret = c10_npu::GetDevice(&deviceIndex);
   if (ret) {
     ASCEND_LOGE("In npu e2e profiling, aclrtGetDevice fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();

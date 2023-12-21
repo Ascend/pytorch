@@ -754,7 +754,7 @@ void ProcessGroupHCCL::workCleanupLoop()
              /* no increment */) {
             auto& work = *it;
             if (needSetDevice) {
-                NPU_CHECK_ERROR(aclrtSetDevice(static_cast<int>(work.devices_[0].index())));
+                NPU_CHECK_ERROR(c10_npu::SetDevice(static_cast<int>(work.devices_[0].index())));
                 needSetDevice = false;
             }
             work.checkAndSetException();

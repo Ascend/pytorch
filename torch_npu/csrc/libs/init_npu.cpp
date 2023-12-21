@@ -81,7 +81,7 @@ namespace npu {
 DeviceIndex current_device() {
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     int device;
-    aclrtGetDevice(&device);
+    c10_npu::GetDevice(&device);
     return (c10::DeviceIndex)device;
   } else {
     TORCH_NPU_WARN("Please init npu device first!");

@@ -160,7 +160,7 @@ PyObject* THNPModule_npuSynchronize(PyObject* _unused, PyObject* noargs)
 
 void THNPModule_setDevice(int device)
 {
-    NPU_CHECK_ERROR(aclrtSetDevice(device));
+    NPU_CHECK_ERROR(c10_npu::SetDevice(device));
 }
 
 PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
@@ -177,9 +177,9 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
     }
 
     int pre_device = 0;
-    auto ret = aclrtGetDevice(&pre_device);
+    auto ret = c10_npu::GetDevice(&pre_device);
     if (ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(aclrtSetDevice(device));
+        NPU_CHECK_ERROR(c10_npu::SetDevice(device));
     } else if (pre_device != device) {
         c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
     }
@@ -193,7 +193,7 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs)
     HANDLE_TH_ERRORS
     int device;
     torch_npu::utils::npu_lazy_init();
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     return PyLong_FromLong(device);
     END_HANDLE_TH_ERRORS
 }
@@ -317,7 +317,7 @@ PyObject* THNPModule_setStream_wrap(
         stream_id, device_index, static_cast<c10::DeviceType>(device_type));
 
     int device;
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     if (device != stream.device_index()) {
       THNPModule_setDevice(stream.device_index());
     }

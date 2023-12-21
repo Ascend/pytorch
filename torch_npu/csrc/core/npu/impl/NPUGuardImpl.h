@@ -32,13 +32,13 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1);
     c10::Device old_device = getDevice();
     if (old_device.index() != d.index()) {
-      NPU_CHECK_ERROR(aclrtSetDevice(d.index()));
+      NPU_CHECK_ERROR(c10_npu::SetDevice(d.index()));
     }
     return old_device;
   }
   c10::Device getDevice() const override {
     int device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     return c10::Device(c10::DeviceType::PrivateUse1, device);
   }
   void setDevice(c10::Device d) const override{
@@ -46,13 +46,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     uncheckedSetDevice(d);
   }
   void uncheckedSetDevice(c10::Device d) const noexcept override {
-    int old_device = 0;
-    aclError ret = aclrtGetDevice(&old_device);
-    if (ret != ACL_ERROR_NONE) {
-      NPU_CHECK_WARN(aclrtSetDevice(d.index()));
-    } else if (old_device != d.index()) {
-      NPU_CHECK_WARN(aclrtSetDevice(d.index()));
-    }
+    NPU_CHECK_WARN(c10_npu::SetDevice(d.index()));
   }
   c10::Stream getStream(c10::Device d) const noexcept override {
     return c10_npu::getCurrentNPUStream(d.index()).unwrap();

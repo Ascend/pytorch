@@ -2,6 +2,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -456,20 +457,20 @@ bool Repository::CheckInit() const {
 }
 
 void StartConsume(Repository* repo, c10::DeviceIndex device_id) {
-  if (prctl(PR_SET_NAME, ("ACL_thread")) != 0) {
-    ASCEND_LOGE("set thread name failed!");
-  }
+    if (prctl(PR_SET_NAME, ("ACL_thread")) != 0) {
+        ASCEND_LOGE("set thread name failed!");
+    }
 
-  aclError ret = aclrtSetDevice(device_id);
-  if (ret != 0) {
-    C10_NPU_SHOW_ERR_MSG();
-    ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);
-  }
+    aclError ret = c10_npu::SetDevice(device_id);
+    if (ret != 0) {
+        C10_NPU_SHOW_ERR_MSG();
+        ASCEND_LOGE("***Thread*%d: set device (%d): ret = %d", std::this_thread::get_id(), device_id, ret);
+    }
 
-  while (repo->GetStatus() != RepoStatus::CAN_EXIT and repo->GetStatus() != RepoStatus::ERROR_EXIT) {
-    repo->Dequeue();
-  }
-  return;
+    while (repo->GetStatus() != RepoStatus::CAN_EXIT and repo->GetStatus() != RepoStatus::ERROR_EXIT) {
+        repo->Dequeue();
+    }
+    return;
 }
 
 void Repository::InitRepo(c10::DeviceIndex device_id) {

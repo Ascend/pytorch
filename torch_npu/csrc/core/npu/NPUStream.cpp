@@ -139,7 +139,7 @@ static void initGlobalStreamState() {
       "). Increase that and recompile.");
 
   int device_id = 0;
-  auto ret = aclrtGetDevice(&device_id);
+  auto ret = c10_npu::GetDevice(&device_id);
   if (ret != ACL_ERROR_NONE) {
     ASCEND_LOGE("Device has not been set");
   }
