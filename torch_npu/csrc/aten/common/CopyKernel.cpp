@@ -10,6 +10,7 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
+#include "torch_npu/csrc/aten/common/PeerToPeerAccess.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
@@ -78,11 +79,21 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
 }
 
 void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  if (self.dtype() != src.dtype()) {
-    custom_ops::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
-    return;
-  }
-  copy_d2d_dtype(self, src, non_blocking);
+    if (self.device().index() != src.device().index()) {
+        bool p2p_enabled = NpuP2pCtrl::get_instance().get_p2p_access(src.device().index(), self.device().index());
+        // In the same 'os', tensor can copy even if the enable fails
+        if (!p2p_enabled) {
+            ASCEND_LOGW("p2p enable from %d to %d is fails", src.device().index(), self.device().index());
+        }
+    }
+
+    if (self.dtype() != src.dtype()) {
+        // npu_dtype_cast_ will call copy function.
+        custom_ops::npu_dtype_cast_(self, src);
+        return;
+    }
+
+    copy_d2d_dtype(self, src, non_blocking);
 }
 
 // the format of dst and src is base format now
