@@ -60,7 +60,7 @@ public:
 
     aclrtContext InitializedContext(int device_index);
 
-    void UpdateDeviceAccess(int peer_device_index);
+    int64_t InitializedDeviceCount();
 
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
