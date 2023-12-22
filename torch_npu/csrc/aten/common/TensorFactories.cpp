@@ -113,7 +113,6 @@ at::Tensor NPUNativeFunctions::empty(
     c10::optional<bool> pin_memory_opt,
     c10::optional<c10::MemoryFormat> memory_format_opt) {
   AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
-  c10_npu::NpuSysCtrl::GetInstance().UpdateDeviceAccess(c10::device_or_default(device_opt).index());
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   auto unsymbolic_size = asIntArrayRefUnchecked(size);
   check_size_nonnegative(unsymbolic_size);
@@ -283,7 +282,6 @@ at::Tensor NPUNativeFunctions::empty_with_format(
     c10::optional<bool> pin_memory_opt,
     int64_t dst_format) {
   torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
-  c10_npu::NpuSysCtrl::GetInstance().UpdateDeviceAccess(c10::device_or_default(device_opt).index());
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   c10_npu::NPUGuard guard(c10::device_or_default(device_opt));
@@ -338,7 +336,6 @@ at::Tensor empty_with_format_npu(
     int64_t dst_format) {
   torch_npu::utils::torch_check_npu(options);
   AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
-  c10_npu::NpuSysCtrl::GetInstance().UpdateDeviceAccess(c10::device_or_default(options.device_opt()).index());
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
   c10_npu::NPUGuard guard(c10::device_or_default(options.device_opt()));
