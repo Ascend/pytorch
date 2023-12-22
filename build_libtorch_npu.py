@@ -126,6 +126,16 @@ def check_gtest_valid(base_dir):
     return os.path.exists(gtest_path)
 
 
+def generate_dbg_files_and_strip():
+    library_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu")
+    dbg_dir = Path(BASE_DIR).joinpath("build/dbg_libtorch")
+    os.makedirs(dbg_dir, exist_ok=True)
+    library_files = [Path(i) for i in library_dir.rglob('*.so')]
+    for library_file in library_files:
+        subprocess.check_call(["eu-strip", library_file, "-f",
+                                str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
+
+
 def run_cmake():
     cmake = get_cmake_command()
 
@@ -163,6 +173,8 @@ def run_cmake():
 
     subprocess.check_call([cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
     subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+    if which('eu-strip') is not None:
+        generate_dbg_files_and_strip()
 
 
 def check_opplugin_valid(base_dir):

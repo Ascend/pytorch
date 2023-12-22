@@ -211,6 +211,16 @@ def check_tensorpipe_valid(base_dir):
     return os.path.exists(tensorpipe_path)
 
 
+def generate_dbg_files_and_strip():
+    library_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu")
+    dbg_dir = Path(BASE_DIR).joinpath("build/dbg")
+    os.makedirs(dbg_dir, exist_ok=True)
+    library_files = [Path(i) for i in library_dir.rglob('*.so')]
+    for library_file in library_files:
+        subprocess.check_call(["eu-strip", library_file, "-f",
+                                str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
+
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -427,6 +437,9 @@ class PythonPackageBuild(build_py, object):
 
 class BdistWheelBuild(bdist_wheel):
     def run(self):
+        if which('eu-strip') is not None:
+            generate_dbg_files_and_strip()
+
         torch_dependencies = ["libc10.so", "libtorch.so", "libtorch_cpu.so", "libtorch_python.so"]
         cann_dependencies = ["libhccl.so", "libascendcl.so", "libacl_op_compiler.so", "libge_runner.so",
                              "libgraph.so", "libacl_tdt_channel.so", "libfmk_parser.so", "libascend_protobuf.so"]
@@ -488,7 +501,7 @@ if DEBUG:
     extra_link_args += ['-O0', '-g', '-Wl,-z,now']
 else:
     extra_compile_args += ['-DNDEBUG']
-    extra_link_args += ['-Wl,-z,now,-s']
+    extra_link_args += ['-Wl,-z,now']
 
 # valid manylinux tags
 manylinux_tags = [
