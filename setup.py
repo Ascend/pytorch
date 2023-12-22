@@ -44,6 +44,7 @@ THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '1.11.0.post5'
 UNKNOWN = "Unknown"
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+call_once_flag = 0
 
 
 def get_submodule_folders():
@@ -202,6 +203,20 @@ def build_stub(base_dir):
         sys.exit(1)
 
 
+def generate_dbg_files_and_strip():
+    global call_once_flag
+    if call_once_flag == 1:
+        return
+    library_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu")
+    dbg_dir = Path(BASE_DIR).joinpath("build/dbg")
+    os.makedirs(dbg_dir, exist_ok=True)
+    library_files = [Path(i) for i in library_dir.rglob('*.so')]
+    for library_file in library_files:
+        subprocess.check_call(["eu-strip", library_file, "-f",
+                                str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
+    call_once_flag = 1
+
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -324,6 +339,8 @@ class Build(build_ext, object):
         self.library_dirs.append(
             os.path.relpath(os.path.join(BASE_DIR, "build/packages/torch_npu/lib")))
         super(Build, self).run()
+        if which('eu-strip') is not None:
+            generate_dbg_files_and_strip()
 
 
 class InstallCmd(install):
@@ -442,7 +459,7 @@ if DEBUG:
     extra_link_args += ['-O0', '-g', '-Wl,-z,now']
 else:
     extra_compile_args += ['-DNDEBUG']
-    extra_link_args += ['-Wl,-z,now,-s']
+    extra_link_args += ['-Wl,-z,now']
 
 
 setup(
