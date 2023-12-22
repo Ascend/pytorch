@@ -17,7 +17,12 @@ BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
 
 SLOW_TEST_BLOCKLIST = [
-    'test_modules'
+    'test_modules',
+    'test_binary_ufuncs',
+    'test_ops_fwd_gradients',
+    'test_ops_gradients',
+    'test_reductions',
+    'test_unary_ufuncs'
 ]
 
 
