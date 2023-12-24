@@ -163,3 +163,12 @@ def npu_mm_all_reduce_base_forward(self, x2, hcom, reduce_op='sum', bias=None, c
         dim_list.append(self.size(i))
     dim_list[-1] = x2.size(1)
     return self.new_empty(tuple(dim_list))
+
+
+@impl(m, "npu_weight_quant_batchmatmul")
+def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None):
+    dim_m = x.size(0)
+    dim_n = weight.size(1)
+    if quant_scale is not None:
+        return x.new_empty((dim_m, dim_n), dtype=torch.int8)
+    return x.new_empty((dim_m, dim_n), dtype=x.dtype)
