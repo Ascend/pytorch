@@ -25,8 +25,8 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
 
 
 @impl(m, "npu_fusion_attention")
-def npu_fusion_attention_forward(query, key, value, head_num, input_layout, *, pse=None, padding_mask=None, 
-                                atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, 
+def npu_fusion_attention_forward(query, key, value, head_num, input_layout, *, pse=None, padding_mask=None,
+                                atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
                                 inner_precise=0, prefix=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
     return torch.empty_like(query)
 
@@ -165,3 +165,12 @@ def npu_mm_all_reduce_base_forward(self, x2, hcom, reduce_op='sum', bias=None, c
         dim_list.append(self.size(i))
     dim_list[-1] = x2.size(1)
     return self.new_empty(tuple(dim_list))
+
+
+@impl(m, "npu_weight_quant_batchmatmul")
+def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None):
+    dimm = x.size(0)
+    dimn = weight.size(1)
+    if quant_scale is not None:
+        return x.new_empty((dimm, dimn), dtype=torch.int8)
+    return x.new_empty((dimm, dimn), dtype=x.dtype)
