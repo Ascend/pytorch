@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
 
 
 class TestLog(TestCase):
@@ -94,7 +96,6 @@ class TestLog(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_log_inp_shape_format_fp32 now")
     def test_log_inp_shape_format_fp32(self, device="npu"):
         format_list = [3]
         shape_list = [(4, 4)]
@@ -107,7 +108,6 @@ class TestLog(TestCase):
             npu_output = self.npu_inp_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_log_inp_shape_format_fp16 now")
     def test_log_inp_shape_format_fp16(self, device="npu"):
         format_list = [3]
         shape_list = [(4, 4)]
@@ -122,7 +122,6 @@ class TestLog(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_log_inp_uncon_shape_format_fp32 now")
     def test_log_inp_uncon_shape_format_fp32(self, device="npu"):
         format_list = [3]
         shape_list = [(8, 6)]
@@ -135,7 +134,6 @@ class TestLog(TestCase):
             npu_output = self.npu_inp_uncon_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_log_inp_uncon_shape_format_fp16 now")
     def test_log_inp_uncon_shape_format_fp16(self, device="npu"):
         format_list = [3]
         shape_list = [(8, 6)]

@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import unittest
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
 
 
 class TestReal(TestCase):
@@ -32,7 +34,6 @@ class TestReal(TestCase):
         output = output.numpy()
         return output
 
-    @unittest.skip("skip test_real_shape_format_complex now")
     def test_real_shape_format_complex(self, device="npu"):
         format_list = [0]
         shape_list = [[5], [5, 10], [1, 3, 2], [52, 15, 15, 20]]
