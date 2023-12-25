@@ -24,7 +24,8 @@ import weakref
 import collections
 import pickle
 import torch
-
+import torch_npu
+import torch_npu.testing
 from torch import nn
 from torch import inf, nan
 from torch.autograd.function import once_differentiable
@@ -32,11 +33,10 @@ from torch.autograd.profiler import (profile, record_function, emit_nvtx, emit_i
 from torch.autograd.profiler_util import (_format_time, EventList, FunctionEvent, FunctionEventAvg)
 from torch.utils.checkpoint import checkpoint, checkpoint_sequential
 from torch.testing import make_tensor
-from torch.testing._internal.common_cuda import TEST_CUDA
 from torch.testing._internal.common_utils import (
     TestCase, run_tests, skipIfNoLapack, slowTest, IS_WINDOWS, IS_MACOS,
     disable_gc, gradcheck, gradgradcheck, parametrize,
-    instantiate_parametrized_tests, skipIfMps, set_warn_always_context)
+    instantiate_parametrized_tests, skipIfMps, set_warn_always_context, TEST_PRIVATEUSE1)
 from torch.autograd import Variable, Function, detect_anomaly, kineto_available, _calculate_shape
 from torch.autograd.function import InplaceFunction
 import torch.autograd.forward_ad as fwAD
@@ -44,7 +44,7 @@ from torch.autograd.graph import GradientEdge
 import torch.autograd._functions
 from torch.testing._internal.common_methods_invocations import mask_not_all_zeros
 from torch.testing._internal.common_device_type import (instantiate_device_type_tests,
-                                                        onlyCPU, onlyCUDA, dtypes, dtypesIfCUDA,
+                                                        onlyCPU, onlyPRIVATEUSE1, dtypes, dtypesIfPRIVATEUSE1,
                                                         deviceCountAtLeast, skipMeta, dtypesIfMPS)
 from torch.testing._internal.common_dtype import floating_types_and
 from torch.utils._mode_utils import no_dispatch
@@ -117,7 +117,6 @@ class TestAutograd(TestCase):
 
         out, b = f3(x, y_safe)
         torch.autograd.grad(out.sum(), (b, y_safe))
-
 
     def test_grad_mode_class_decoration(self):
         # Decorating class is deprecated and should not be used
@@ -3401,21 +3400,21 @@ class TestAutograd(TestCase):
         x = torch.randn(5, 5)
         self.assertIsInstance(x.float(), torch.FloatTensor)
         self.assertIsInstance(x.int(), torch.IntTensor)
-        if torch.cuda.is_available():
-            self.assertIsInstance(x.float().cuda(), torch.cuda.FloatTensor)
-            self.assertIsInstance(x.int().cuda(), torch.cuda.IntTensor)
-            self.assertIsInstance(x.int().cuda().cpu(), torch.IntTensor)
-            if torch.cuda.device_count() >= 2:
-                x2 = x.float().cuda(1)
-                self.assertIsInstance(x2, torch.cuda.FloatTensor)
+        if torch.npu.is_available():
+            self.assertIsInstance(x.float().npu(), torch.npu.FloatTensor)
+            self.assertIsInstance(x.int().npu(), torch.npu.IntTensor)
+            self.assertIsInstance(x.int().npu().cpu(), torch.IntTensor)
+            if torch.npu.device_count() >= 2:
+                x2 = x.float().npu(1)
+                self.assertIsInstance(x2, torch.npu.FloatTensor)
                 self.assertIs(x2.get_device(), 1)
-                x2 = x.float().cuda()
-                self.assertIsInstance(x2, torch.cuda.FloatTensor)
+                x2 = x.float().npu()
+                self.assertIsInstance(x2, torch.npu.FloatTensor)
                 self.assertIs(x2.get_device(), 0)
-                x2 = x2.cuda(1)
-                self.assertIsInstance(x2, torch.cuda.FloatTensor)
+                x2 = x2.npu(1)
+                self.assertIsInstance(x2, torch.npu.FloatTensor)
                 self.assertIs(x2.get_device(), 1)
-                y = Variable(torch.randn(5).cuda(1), requires_grad=True)
+                y = Variable(torch.randn(5).npu(1), requires_grad=True)
                 y.cpu().sum().backward()
                 self.assertIs(y.grad.get_device(), 1)
                 self.assertIs(y.long().get_device(), 1)
@@ -3430,24 +3429,24 @@ class TestAutograd(TestCase):
                 self.assertIsInstance(x.type(t_dtype), t)
                 self.assertIs(t_dtype, x.type(t_dtype).dtype)
                 self.assertEqual(y.data_ptr(), y.type(t).data_ptr())
-                if torch.cuda.is_available():
-                    for x_cuda in (True, False):
-                        for y_cuda in (True, False):
-                            x_c = x.cuda() if x_cuda else x
-                            y_c = y.cuda() if y_cuda else y
+                if torch.npu.is_available():
+                    for x_npu in (True, False):
+                        for y_npu in (True, False):
+                            x_c = x.npu() if x_npu else x
+                            y_c = y.npu() if y_npu else y
                             _, y_type = y_c.type().rsplit('.', 1)
-                            y_typestr = ('torch.cuda.' if y_cuda else 'torch.') + y_type
+                            y_typestr = ('torch.npu.' if y_npu else 'torch.') + y_type
                             self.assertEqual(y_c.type(), x_c.type(y_typestr).type())
                             self.assertIs(y_c.dtype, x_c.type(y_c.dtype).dtype)
-                            self.assertEqual(y_c.data_ptr(), y_c.cuda().data_ptr() if y_cuda else y_c.data_ptr())
+                            self.assertEqual(y_c.data_ptr(), y_c.npu().data_ptr() if y_npu else y_c.data_ptr())
 
         self._test_type_conversion_backward(lambda x: x)
-        if torch.cuda.is_available():
-            self._test_type_conversion_backward(lambda x: x.cuda())
-            if torch.cuda.device_count() >= 2:
+        if torch.npu.is_available():
+            self._test_type_conversion_backward(lambda x: x.npu())
+            if torch.npu.device_count() >= 2:
                 # one of these has to be the non-default device
-                self._test_type_conversion_backward(lambda x: x.cuda(0))
-                self._test_type_conversion_backward(lambda x: x.cuda(1))
+                self._test_type_conversion_backward(lambda x: x.npu(0))
+                self._test_type_conversion_backward(lambda x: x.npu(1))
 
     def test_isolated_node(self):
         x = torch.randn(5, 5, requires_grad=True)
@@ -3776,7 +3775,7 @@ class TestAutograd(TestCase):
                     ctx.output_var.sum().backward()
                 return ctx.x.grad * grad_output
 
-        # Reentrant starts on CPU thread, finishs on GPU thread
+        # Reentrant starts on CPU thread, finishs on NPU thread
         x = torch.randn(2, 2, requires_grad=True)
         out = Reenter.apply(x)
         out.sum().backward()
@@ -4355,11 +4354,11 @@ Done""")
         self.assertEqual(avg.count, 4)
         self.assertEqual(avg.cpu_time_total, 30)
         self.assertEqual(avg.self_cpu_time_total, 30)
-        self.assertEqual(avg.cuda_time_total, 0)
+        self.assertEqual(avg.npu_time_total, 0)
 
         # average stats
         self.assertEqual(avg.cpu_time, 7.5)
-        self.assertEqual(avg.cuda_time_total, 0)
+        self.assertEqual(avg.npu_time_total, 0)
 
     def test_profiler_shapes(self):
         print("")
@@ -5668,19 +5667,19 @@ class MyFunction(Function):
     def backward(ctx, grad):
         return grad
 
-# Run on cuda if it is available to ensure that the worker thread
+# Run on npu if it is available to ensure that the worker thread
 # is properly initialized by the time we exit.
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "npu" if torch.npu.is_available() else "cpu"
 
 for shape in [(1,), ()]:
     v = torch.ones(shape, requires_grad=True, device=device)
     MyFunction.apply(v).backward()
 """
         s = TestCase.runWithPytorchAPIUsageStderr(code)
-        # The autograd engine creates worker threads only when GPU devices are present.
-        # So make sure that we do shutdown threads when we're testing cuda and make sure
-        # that there is no thread to shutdown when we're not using cuda.
-        if TEST_CUDA or torch.backends.mps.is_available():
+        # The autograd engine creates worker threads only when NPU devices are present.
+        # So make sure that we do shutdown threads when we're testing npu and make sure
+        # that there is no thread to shutdown when we're not using npu.
+        if TEST_PRIVATEUSE1 or torch.backends.mps.is_available():
             self.assertRegex(s, "PYTORCH_API_USAGE torch.autograd.thread_shutdown")
         else:
             self.assertNotRegex(s, "PYTORCH_API_USAGE torch.autograd.thread_shutdown")
@@ -5803,10 +5802,10 @@ for shape in [(1,), ()]:
             x = torch.randn(3, 3, requires_grad=True)
             y = torch.randn(3, 3, requires_grad=True)
             z = torch.randn(3, 3, requires_grad=True)
-            if device_type == 'cuda':
-                x = x.cuda()
-                y = y.cuda()
-                z = z.cuda()
+            if device_type == 'npu':
+                x = x.npu()
+                y = y.npu()
+                z = z.npu()
 
             with torch.autocast(enabled=enabled, device_type=device_type, dtype=torch.bfloat16):
                 loss = checkpoint(foo, x, y, z, use_reentrant=False)
@@ -5824,17 +5823,17 @@ for shape in [(1,), ()]:
         self._test_checkpointing_non_reentrant_autocast(device_type='cpu')
 
     @unittest.skipIf(
-        not torch.cuda.is_available() or not torch.cuda.is_bf16_supported(),
-        "Test requires CUDA bf16 support"
+        not torch.npu.is_available() or not torch.npu.is_bf16_supported(),
+        "Test requires NPU bf16 support"
     )
     def test_checkpointing_non_reentrant_autocast_gpu(self):
         """
         Test that autocast args/kwargs such as the dtype are preserved during
-        non-reentrant checkpoint recomputation on GPU.
+        non-reentrant checkpoint recomputation on NPU.
         """
-        self._test_checkpointing_non_reentrant_autocast(device_type='cuda')
+        self._test_checkpointing_non_reentrant_autocast(device_type='npu')
 
-    @unittest.skipIf(not torch.cuda.is_available(), "Test requires CUDA")
+    @unittest.skipIf(not torch.npu.is_available(), "Test requires NPU")
     @slowTest
     def test_checkpointing_without_reentrant_memory_savings(self):
         class MyModel(nn.Module):
@@ -5865,26 +5864,26 @@ for shape in [(1,), ()]:
 
                 return x
 
-        model_no_checkpoint = MyModel(8, use_checkpoint=False, use_reentrant=False).cuda()
-        model_reentrant_checkpoint = MyModel(8, use_checkpoint=True, use_reentrant=True).cuda()
-        model_no_reentrant_checkpoint = MyModel(8, use_checkpoint=True, use_reentrant=False).cuda()
+        model_no_checkpoint = MyModel(8, use_checkpoint=False, use_reentrant=False).npu()
+        model_reentrant_checkpoint = MyModel(8, use_checkpoint=True, use_reentrant=True).npu()
+        model_no_reentrant_checkpoint = MyModel(8, use_checkpoint=True, use_reentrant=False).npu()
 
-        x = torch.randn(100, 256, requires_grad=True, device='cuda')
+        x = torch.randn(100, 256, requires_grad=True, device='npu')
 
-        torch.cuda.reset_peak_memory_stats()
+        torch.npu.reset_peak_memory_stats()
         loss = model_no_checkpoint(x.clone()).sum()
         loss.backward()
-        mem_no_checkpoint = torch.cuda.max_memory_allocated()
+        mem_no_checkpoint = torch.npu.max_memory_allocated()
 
-        torch.cuda.reset_peak_memory_stats()
+        torch.npu.reset_peak_memory_stats()
         loss = model_reentrant_checkpoint(x.clone()).sum()
         loss.backward()
-        mem_reentrant_checkpoint = torch.cuda.max_memory_allocated()
+        mem_reentrant_checkpoint = torch.npu.max_memory_allocated()
 
-        torch.cuda.reset_peak_memory_stats()
+        torch.npu.reset_peak_memory_stats()
         loss = model_no_reentrant_checkpoint(x.clone()).sum()
         loss.backward()
-        mem_no_reentrant_checkpoint = torch.cuda.max_memory_allocated()
+        mem_no_reentrant_checkpoint = torch.npu.max_memory_allocated()
 
         self.assertTrue(mem_reentrant_checkpoint < mem_no_checkpoint)
         self.assertTrue(mem_no_reentrant_checkpoint < mem_no_checkpoint)
@@ -6237,12 +6236,12 @@ for shape in [(1,), ()]:
                 return self.linear(inp)
 
         a = torch.randn(2, 2, requires_grad=True)
-        if torch.cuda.is_available():
-            a = a.cuda()
+        if torch.npu.is_available():
+            a = a.npu()
 
         model = LinearModule()
-        if torch.cuda.is_available():
-            model = model.cuda()
+        if torch.npu.is_available():
+            model = model.npu()
 
         b = deepcopy(model)(a).sum()
         b.backward()
@@ -6344,7 +6343,7 @@ for shape in [(1,), ()]:
 
         self.assertEqual(called[0], 2)
 
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires NPU")
     def test_callback_propagates_errors_from_device_thread(self):
         def callback():
             raise RuntimeError("blah")
@@ -6352,7 +6351,7 @@ for shape in [(1,), ()]:
         def hook_with_callback(*args):
             torch.autograd.Variable._execution_engine.queue_callback(callback)
 
-        t = torch.tensor([1., 2.], requires_grad=True, device=torch.device("cuda"))
+        t = torch.tensor([1., 2.], requires_grad=True, device=torch.device("npu"))
         t.register_hook(hook_with_callback)
         output = t ** 2
         loss = output.sum()
@@ -8475,11 +8474,11 @@ for shape in [(1,), ()]:
             torch.autograd.grad(out, (a,))
 
     def test_graph_save_on_cpu(self):
-        def test(get_input, cuda, pin_memory):
+        def test(get_input, npu, pin_memory):
             with torch.autograd.graph.save_on_cpu(pin_memory):
                 a = get_input()
-                if cuda:
-                    a.cuda()
+                if npu:
+                    a.npu()
                 y = a * a
                 self.assertEqual(a, y.grad_fn._saved_self)
                 self.assertEqual(a, y.grad_fn._saved_other)
@@ -8497,35 +8496,35 @@ for shape in [(1,), ()]:
 
                 self.assertEqual(actual, expected)
 
-        for cuda in [False] + ([True] if torch.cuda.is_available() else []):
+        for npu in [False] + ([True] if torch.npu.is_available() else []):
             for pin_memory in [True, False]:
                 # FloatTensor
-                test(lambda: torch.randn(5, requires_grad=True), cuda, pin_memory)
+                test(lambda: torch.randn(5, requires_grad=True), npu, pin_memory)
                 # DoubleTensor
-                test(lambda: torch.randn(5, requires_grad=True, dtype=torch.double), cuda, pin_memory)
+                test(lambda: torch.randn(5, requires_grad=True, dtype=torch.double), npu, pin_memory)
                 # Sparse tensor
                 x = torch.sparse_coo_tensor(torch.tensor([[1, 1]]).long(), torch.tensor([1., 1.]), requires_grad=True)
-                test(lambda: x, cuda, pin_memory)
+                test(lambda: x, npu, pin_memory)
 
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
-    def test_graph_save_on_cpu_cuda(self):
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires NPU")
+    def test_graph_save_on_cpu_NPU(self):
         def f(x):
             a = x + 1
             return a * a
 
         # with grad
-        a = torch.ones(1, requires_grad=True, device="cuda")
+        a = torch.ones(1, requires_grad=True, device="npu")
         y = f(a)
-        memory_with_grad = torch.cuda.memory_allocated()
+        memory_with_grad = torch.npu.memory_allocated()
 
         del a
         del y
 
         # without grad
-        a = torch.ones(1, requires_grad=True, device="cuda")
+        a = torch.ones(1, requires_grad=True, device="npu")
         with torch.no_grad():
             y = f(a)
-        memory_without_grad = torch.cuda.memory_allocated()
+        memory_without_grad = torch.npu.memory_allocated()
 
         self.assertGreater(memory_with_grad, memory_without_grad)
 
@@ -8534,9 +8533,9 @@ for shape in [(1,), ()]:
 
         # with hooks
         with torch.autograd.graph.save_on_cpu():
-            a = torch.ones(1, requires_grad=True, device="cuda")
+            a = torch.ones(1, requires_grad=True, device="npu")
             y = f(a)
-            memory_with_hooks = torch.cuda.memory_allocated()
+            memory_with_hooks = torch.npu.memory_allocated()
             self.assertEqual(memory_with_hooks, memory_without_grad)
 
     def test_multi_grad_hooks(self):
@@ -8718,11 +8717,11 @@ get_out().sum().backward()
         self.assertEqual(y, y2)
         self.assertEqual(y_expected, y2_expected)
 
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires NPU")
     def test_gradcheck_default_device_placement_context(self):
         # During gradcheck with fast_mode=True, we create a random vector on the CPU device using a CPU generator.
         # This test ensures that this still works when the default device is set to something else by the user.
-        with torch.device('cuda'):
+        with torch.device('npu'):
             x = torch.randn(3, dtype=torch.double, requires_grad=True)
 
             def func(inp):
@@ -9685,7 +9684,7 @@ class TestAutogradDeviceType(TestCase):
         _test_pyscalar_conversions(lambda x: x.to(device), lambda x: int(x))
 
     @dtypesIfMPS(torch.float32)
-    @dtypesIfCUDA(torch.half, torch.float, torch.double, torch.int8, torch.int16, torch.int32, torch.int64)
+    @dtypesIfPRIVATEUSE1(torch.half, torch.float, torch.double, torch.int8, torch.int16, torch.int32, torch.int64)
     @dtypes(torch.float, torch.double, torch.int8, torch.int16, torch.int32, torch.int64)
     def test_set_requires_grad_only_for_floats(self, device, dtype):
         def f1():
@@ -9710,7 +9709,7 @@ class TestAutogradDeviceType(TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'floating point', msg=f"dt: {a.dtype} device: {a.device}"):
                     f()
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_advanced_indexing_backwards_large(self, device):
         n = (1 << 16)
         x = torch.rand(n, 1, device=device, requires_grad=True)
@@ -9764,27 +9763,27 @@ class TestAutogradDeviceType(TestCase):
         self.assertIsNone(t1.grad)
         self.assertIsNone(t3.grad)
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_reentrant_parent_error_on_cpu(self, device):
-        def _get_cuda_memory_usage():
-            # we don't need CUDA synchronize because the statistics are not tracked at
+        def _get_npu_memory_usage():
+            # we don't need NPU synchronize because the statistics are not tracked at
             # actual freeing, but at when marking the block as free.
-            num_devices = torch.cuda.device_count()
+            num_devices = torch.npu.device_count()
             gc.collect()
-            return tuple(torch.cuda.memory_allocated(i) for i in range(num_devices))
+            return tuple(torch.npu.memory_allocated(i) for i in range(num_devices))
 
-        before = _get_cuda_memory_usage()
+        before = _get_npu_memory_usage()
 
         # Run as separate function so that gc can clean up everything when we
         # check for memory usage.
         self._test_reentrant_parent_error_on_cpu(device)
 
         # Wait for autograd thread to cleanup failed tasks.
-        after = _get_cuda_memory_usage()
+        after = _get_npu_memory_usage()
         start = time.time()
         while before != after and time.time() - start < 30:
             time.sleep(0.1)
-            after = _get_cuda_memory_usage()
+            after = _get_npu_memory_usage()
 
         self.assertEqual(before, after)
 
@@ -9823,22 +9822,22 @@ class TestAutogradDeviceType(TestCase):
         gradcheck(where_scalar_second, (cond, x))
         gradgradcheck(where_scalar_second, (cond, x))
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_free_unneeded_tensor(self, device):
         x = torch.randn(2, 3, 10, 10, device=device, requires_grad=True)
         m = torch.randn(1, 3, 1, 1, device=device)
 
         z = x.sum()
-        base_mem = torch.cuda.memory_allocated()
+        base_mem = torch.npu.memory_allocated()
         z = ((x + 2) * m).sum()
-        end_mem = torch.cuda.memory_allocated()
+        end_mem = torch.npu.memory_allocated()
 
         # In the end the memory usage should remain equal, because neither of
         # (x + 2) and ((x + 2) * m) should be kept alive for backward, while the
         # previous allocation of z had the same size as the current one.
         self.assertEqual(base_mem, end_mem)
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_pin_memory(self, device):
         x = torch.randn(2, 2, dtype=torch.double, requires_grad=True)
         self.assertEqual(x, x.pin_memory())
@@ -9847,18 +9846,20 @@ class TestAutogradDeviceType(TestCase):
         gradcheck(lambda x: x.pin_memory(), [x])
         gradgradcheck(lambda x: x.pin_memory(), [x])
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_profiler_emit_nvtx(self, device):
         # This test is not intended to ensure correctness of nvtx ranges.
         # That would require something a great deal more complex (you'd have to create a
         # profile in a subprocess, open it, and parse the sql somehow).
         # This test is merely intended to catch if emit_nvtx breaks on construction.
         a = torch.tensor([1, 2, 3], dtype=torch.float32, device=device)
-        with torch.cuda.profiler.profile():
+        with torch_npu.profiler.profile(
+            on_trace_ready=torch_npu.profiler.tensorboard_trace_handler()
+        ) as prof:
             with emit_nvtx():
                 a.add(1.0)
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_rnn_backward_to_input_but_not_parameters(self, device):
         # this checks whether it is possible to not require
         # weight parameters, but require inputs, see #7722
@@ -9907,8 +9908,8 @@ class TestAutogradDeviceType(TestCase):
                 t_cpu = torch.rand(5, 5)
                 t_cpu.grad = torch.randn(5, 5, device=devices[0])
 
-        # Tests half type on CUDA
-        if self.device_type == 'cuda':
+        # Tests half type on NPU
+        if self.device_type == 'npu':
             x = x.to(dtype=torch.half, device=devices[0])
             x.grad = torch.zeros_like(x)
 
@@ -10000,7 +10001,7 @@ class TestAutogradDeviceType(TestCase):
             non_dual.copy_(x_dual)
             self.assertTrue(fwAD.unpack_dual(non_dual).tangent is not tangent)
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_simple_reentrant_cross_device(self, device):
         class ReentrantFunc(Function):
             _cpu_mode = True
@@ -10020,26 +10021,26 @@ class TestAutogradDeviceType(TestCase):
                         (new_param ** 2).sum().backward()
                 return grad_output
 
-        # Reentrant starts on GPU thread, finishs on GPU thread
+        # Reentrant starts on NPU thread, finishs on NPU thread
         x = torch.randn(2, 2, device=device, requires_grad=True)
         out = ReentrantFunc.apply(x)
         out.sum().backward()
 
-        # Reentrant starts on CPU thread, finishs on GPU thread
+        # Reentrant starts on CPU thread, finishs on NPU thread
         x = torch.randn(2, 2, requires_grad=True)
-        # set ReentrantFunc node to GPU to emit tasks to GPU queue
+        # set ReentrantFunc node to NPU to emit tasks to NPU queue
         ReentrantFunc._cpu_mode = False
         out = ReentrantFunc.apply(x)
         out.sum().backward()
 
-        # Reentrant starts on GPU thread, finishs on CPU thread
+        # Reentrant starts on NPU thread, finishs on CPU thread
         x = torch.randn(2, 2, device=device, requires_grad=True)
         # set ReentrantFunc node to CPU to emit tasks to CPU queue
         ReentrantFunc._cpu_mode = True
         out = ReentrantFunc.apply(x)
         out.sum().backward()
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_cross_device_reentrant_autograd(self, device):
         # Output on gpu so that this task will be associated with the gpu thread
         def fn_on_gpu(inp):
@@ -10289,13 +10290,13 @@ class TestAutogradDeviceType(TestCase):
         gradcheck(fn, (vec))
         gradgradcheck(fn, (vec))
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_gradcheck_input_output_different_device(self, device):
-        x = torch.ones((1,), dtype=torch.double, device="cuda", requires_grad=True)
+        x = torch.ones((1,), dtype=torch.double, device="npu", requires_grad=True)
         gradcheck(lambda x: x.to("cpu"), (x,))
 
         x = torch.ones((1,), dtype=torch.double, device="cpu", requires_grad=True)
-        gradcheck(lambda x: x.to("cuda"), (x,))
+        gradcheck(lambda x: x.to("npu"), (x,))
 
     def test_strided_leaf_grad_layout(self, device):
         # (1) If leaf is non-overlapping and dense, grad's layout should match its leaf.
@@ -10369,7 +10370,7 @@ class TestAutogradDeviceType(TestCase):
 
     def test_warning_in_backward(self, device):
         # Test warning during backward are always propagated as python warnings (gh-50209)
-        # NOTE: For device=cuda, warning gets propagated from a worker thread
+        # NOTE: For device=npu, warning gets propagated from a worker thread
         a = torch.zeros((), device=device, requires_grad=True)
         b = torch._C._nn._test_warn_in_autograd(a)
 
@@ -11132,7 +11133,7 @@ class TestMultithreadAutograd(TestCase):
             def forward(self, x):
                 with warnings.catch_warnings(record=True) as w:
                     y = x * x
-                    if torch.cuda.device_count() >= 2:
+                    if torch.npu.device_count() >= 2:
                         # DataParallel is calling the forward in different threads
                         # without progating TLS, so hooks should not be called here
                         _self.assertEqual(len(w), 0)
@@ -11291,7 +11292,7 @@ class TestMultithreadAutograd(TestCase):
         torch.autograd.set_multithreading_enabled(True)
         self.assertTrue(torch.autograd.is_multithreading_enabled())
 
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires NPU")
     def test_custom_function_propagates_errors_from_device_thread(self):
         class MyFunc(Function):
             @staticmethod
@@ -11303,7 +11304,7 @@ class TestMultithreadAutograd(TestCase):
                 raise RuntimeError("blah")
                 return gO
 
-        t = torch.tensor([1., 2.], requires_grad=True, device=torch.device("cuda"))
+        t = torch.tensor([1., 2.], requires_grad=True, device=torch.device("npu"))
         out = MyFunc.apply(t).sum()
 
         with self.assertRaisesRegex(RuntimeError, "blah"):
@@ -11624,16 +11625,16 @@ class TestAutogradMultipleDispatch(TestCase):
     def test_autograd_multiple_dispatch_registrations(self, device):
         t = torch.randn(3, 3, device=device, requires_grad=True)
         # using _test_autograd_multiple_dispatch.fullcoverage which has
-        # registrations in derivatives.yaml for Default, AutogradCUDA and NestedTensorAutograd
+        # registrations in derivatives.yaml for Default, AutogradNPU and NestedTensorAutograd
         out = torch._test_autograd_multiple_dispatch(t)
         grad = torch.randn(3, 3, device=device)
         out.backward(grad)
 
-        if 'cuda' not in device:
+        if 'npu' not in device:
             # bogus default gradient registered for Autograd is grad + 1
             self.assertEqual(t.grad, grad + 1)
         else:
-            # bogus gradient registered for AutogradCUDA is grad * 2
+            # bogus gradient registered for AutogradNPU is grad * 2
             self.assertEqual(t.grad, grad * 2)
 
         # test registered AutogradNestedTensor formula
@@ -11679,7 +11680,7 @@ class TestAutogradMultipleDispatch(TestCase):
 
     def test_foward_mode_AD(self, device):
         # check that forward mode AD is only registered for the Default
-        # dispatch for _test_autograd_multiple_dispatch.fullcoverage and not AutogradCUDA
+        # dispatch for _test_autograd_multiple_dispatch.fullcoverage and not AutogradNPU
 
         primal = torch.randn(3, device=device)
         tangent = torch.randn(3, device=device)
@@ -11690,7 +11691,7 @@ class TestAutogradMultipleDispatch(TestCase):
             err_msg = r"Trying to use forward AD with .* that does not support it"
             hint_msg = "Running forward AD for an OP that does not implement it should raise a NotImplementedError"
 
-            if 'cuda' in device:
+            if 'npu' in device:
                 with self.assertRaisesRegex(NotImplementedError, err_msg, msg=hint_msg):
                     torch._test_autograd_multiple_dispatch(dual_input)
             else:
@@ -11713,8 +11714,8 @@ class TestAutogradMultipleDispatch(TestCase):
         self.assertEqual(t_view_copy, t_view)
         self.assertEqual(t.grad, t_ref.grad)
         # backward results are per-dispatch-key in derivatives.yaml
-        if 'cuda' in device:
-            # gradient registered to AutogradCUDA is grad.reshape_as(self) + 1
+        if 'npu' in device:
+            # gradient registered to AutogradNPU is grad.reshape_as(self) + 1
             self.assertEqual(t.grad, grad.reshape_as(t) + 1)
         else:
             # Default gradient registered is grad.reshape_as(self)
@@ -11739,7 +11740,7 @@ class TestAutogradMultipleDispatch(TestCase):
         with self.assertRaisesRegex(RuntimeError, "modified by an inplace operation"):
             foo(nt).backward(torch.nested.nested_tensor([torch.rand(1), torch.rand(1)], device=device))
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_backward_single_threaded(self):
 
         threads_eq = None
@@ -11757,7 +11758,7 @@ class TestAutogradMultipleDispatch(TestCase):
                 threads_eq = ctx.tid == threading.get_ident()
                 return gO, None
 
-        inp = torch.rand(10, device="cuda", requires_grad=True)
+        inp = torch.rand(10, device="npu", requires_grad=True)
 
         with torch.autograd.set_multithreading_enabled(False):
             TestFn.apply(inp, None).sum().backward()
@@ -11766,7 +11767,7 @@ class TestAutogradMultipleDispatch(TestCase):
         TestFn.apply(inp, None).sum().backward()
         self.assertFalse(threads_eq)
 
-    @onlyCUDA
+    @onlyPRIVATEUSE1
     def test_backward_tls_stash(self):
 
         local = threading.local()
@@ -11787,7 +11788,7 @@ class TestAutogradMultipleDispatch(TestCase):
                 torch._C._get_obj_in_tls("my_obj")[10] = 5
                 return gO, None
 
-        inp = torch.rand(10, device="cuda", requires_grad=True)
+        inp = torch.rand(10, device="npu", requires_grad=True)
 
         TestFn.apply(inp, None).sum().backward()
         self.assertEqual(local.my_obj[10], 5)
@@ -11841,21 +11842,21 @@ class TestAutogradMultipleDispatch(TestCase):
 from autograd.test_complex import TestAutogradComplex  # noqa: F401
 from autograd.test_functional import TestAutogradFunctional  # noqa: F401
 
-# e.g., TestAutogradDeviceTypeCPU and TestAutogradDeviceTypeCUDA
+# e.g., TestAutogradDeviceTypeCPU and TestAutogradDeviceTypeNPU
 instantiate_device_type_tests(
     TestAutogradDeviceType,
     globals(),
-    except_for=None
+    only_for='privateuse1'
 )
 
 instantiate_device_type_tests(
     TestAutogradMultipleDispatch,
     globals(),
-    only_for=('cpu', 'cuda')
+    only_for='privateuse1'
 )
 
 instantiate_parametrized_tests(TestAutograd)
 instantiate_parametrized_tests(TestNestedCheckpoint)
 
 if __name__ == '__main__':
-    pass
+    run_tests()

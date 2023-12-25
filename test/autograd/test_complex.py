@@ -1,7 +1,8 @@
 # Owner(s): ["module: autograd"]
 
 import torch
-
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, run_tests, gradcheck
 
 
@@ -102,4 +103,4 @@ class TestAutogradComplex(TestCase):
 
 
 if __name__ == '__main__':
-    pass
+    run_tests()

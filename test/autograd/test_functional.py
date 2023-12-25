@@ -5,11 +5,12 @@ import unittest
 import warnings
 
 import torch
+import torch_npu
+import torch_npu.testing
 import torch.autograd.functional as autogradF
 
-from torch.testing._internal.common_cuda import TEST_CUDA
 from torch.testing._internal.common_utils import (
-    TestCase, run_tests, subtest, gradcheck, gradgradcheck, parametrize, instantiate_parametrized_tests)
+    TestCase, run_tests, subtest, gradcheck, gradgradcheck, parametrize, instantiate_parametrized_tests, TEST_PRIVATEUSE1)
 from torch.testing._internal.logging_tensor import LoggingTensor
 
 # Utilities for parametrizing the tensor constructors used in autograd tests
@@ -493,12 +494,12 @@ class TestAutogradFunctional(TestCase):
         for inputs in test_cases:
             self._test_construct_standard_basis_for(inputs)
 
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires CUDA")
     @base_and_logging_tensor
-    def test_construct_standard_basis_for_cuda(self, ctors):
+    def test_construct_standard_basis_for_NPU(self, ctors):
         test_cases = [
-            (ctors.randn(2), ctors.randn(3, device='cuda')),
-            (ctors.randn(3, device='cuda'), ctors.randn(2)),
+            (ctors.randn(2), ctors.randn(3, device='npu')),
+            (ctors.randn(3, device='npu'), ctors.randn(2)),
         ]
 
         for inputs in test_cases:
@@ -760,11 +761,11 @@ class TestAutogradFunctional(TestCase):
         y = ctors.randn(1)
         self._check_jacobian_vectorize_correctness(h, (x, y))
 
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires CUDA")
     @base_and_logging_tensor
     def test_jacobian_vectorize_correctness_different_devices(self, ctors):
         def f(x, y):
-            return x * y, (x * y).cuda()
+            return x * y, (x * y).npu()
 
         x = ctors.randn(3)
         y = ctors.randn(3)
@@ -1410,4 +1411,4 @@ class TestAutogradFunctional(TestCase):
 instantiate_parametrized_tests(TestAutogradFunctional)
 
 if __name__ == '__main__':
-    pass
+    run_tests()
