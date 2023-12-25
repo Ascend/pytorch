@@ -1,10 +1,12 @@
-import unittest
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
 
 
 class TestMatMul(TestCase):
@@ -47,7 +49,6 @@ class TestMatMul(TestCase):
             self.assertRtolEqual(cpu_mat1_grad.astype(npu_mat1_grad.dtype), npu_mat1_grad)
             self.assertRtolEqual(cpu_mat2_grad.astype(npu_mat2_grad.dtype), npu_mat2_grad)
 
-    @unittest.skip("skip test_matmul_backward_shape_format_fp16_case1 now")
     def test_matmul_backward_shape_format_fp16_case1(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 1dim
@@ -56,7 +57,6 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
 
-    @unittest.skip("skip test_matmul_backward_shape_format_fp16_case3 now")
     def test_matmul_backward_shape_format_fp16_case3(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 2dim, mat1 2dim, mat2 1dim
@@ -74,7 +74,6 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
 
-    @unittest.skip("skip test_matmul_backward_shape_format_fp16_case5 now")
     def test_matmul_backward_shape_format_fp16_case5(self, device="npu"):
         shape_format = [
             # mat1 >2dim, mat2 1dim
@@ -94,7 +93,6 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
 
-    @unittest.skip("skip test_matmul_backward_shape_format_fp16_case7 now")
     def test_matmul_backward_shape_format_fp16_case7(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 >2dim
@@ -122,7 +120,6 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
 
-    @unittest.skip("skip test_matmul_allow_hf32 now")
     def test_matmul_allow_hf32(self, device="npu"):
         torch.npu.matmul.allow_hf32 = True
         shape_format = [
