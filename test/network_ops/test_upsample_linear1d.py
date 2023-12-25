@@ -5,6 +5,9 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
+
 
 class TestUpsampleLinear1D(TestCase):
     def cpu_op_exec(self, input1, size, align_corners):
