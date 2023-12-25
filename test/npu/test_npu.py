@@ -353,16 +353,16 @@ class TestNpu(TestCase):
             # Pushes an 0.1 second spin to stream so if the copy is non blocking,
             # stream will almost surely be active when we query().
             b = a.to(device=dst, non_blocking=non_blocking)
+            self.assertEqual(stream.query(), not non_blocking)
             stream.synchronize()
             self.assertEqual(a, b)
             self.assertTrue(b.is_pinned() == (non_blocking and dst == "cpu"))
 
-        for dst, try_non_blocking in product(("npu", ), (True, )):
+        for dst, try_non_blocking in product(("npu", "cpu"), (True, False)):
             # Creates source on the opposite device from destination.
             src = torch.randn(1000000,
-                              device="npu" if dst == "cpu" else "cpu")
-            if dst == "npu":
-                src = src.pin_memory()
+                              device="npu" if dst == "cpu" else "cpu",
+                              pin_memory=True if dst == "npu" else False)
             _test_to_non_blocking(src, try_non_blocking, dst)
 
     def test_to_cpu_blocking_by_default(self):

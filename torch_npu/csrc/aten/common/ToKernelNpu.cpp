@@ -55,11 +55,14 @@ static inline at::Tensor to_impl_npu(
     return self;
   }
 
+    bool pin_out = non_blocking && torch_npu::utils::is_npu(self) && options.device().is_cpu() &&
+                    (options.layout() == c10::kStrided);
+
   if (memory_format == c10::MemoryFormat::Preserve) {
     if (self.is_non_overlapping_and_dense()) {
       // Copy all strides
       auto r = at::empty_strided(
-          self.sizes(), self.strides(), options.memory_format(c10::nullopt));
+          self.sizes(), self.strides(), options.memory_format(c10::nullopt).pinned_memory(pin_out));
       r.copy_(self, non_blocking);
       return r;
     } else {
@@ -68,7 +71,7 @@ static inline at::Tensor to_impl_npu(
   }
   // See Note [Explicit nullopt c10::MemoryFormat argument]
   auto r = at::empty(
-      self.sizes(), options.memory_format(memory_format), c10::nullopt);
+      self.sizes(), options.memory_format(memory_format).pinned_memory(pin_out), c10::nullopt);
   r.copy_(self, non_blocking);
   return r;
 }
