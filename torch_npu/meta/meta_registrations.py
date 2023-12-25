@@ -167,6 +167,37 @@ def npu_mm_all_reduce_base_forward(self, x2, hcom, reduce_op='sum', bias=None, c
     return self.new_empty(tuple(dim_list))
 
 
+@impl(m, "npu_mm_reduce_scatter_base")
+def npu_mm_reduce_scatter_base_meta(self, x2, hcom, world_size, reduce_op='sum',
+                                    bias=None, comm_turn=0):
+    if world_size <= 0:
+        world_size = 1
+    out_m = math.floor(self.size(0) / world_size)
+    return self.new_empty(out_m, x2.size(1))
+
+
+@impl(m, "npu_all_gather_base_mm")
+def npu_all_gather_base_mm_meta(self, x2, hcom, world_size, bias=None,
+                                gather_index=0, gather_output=True, comm_turn=0):
+    if world_size <= 0:
+        world_size = 1
+    # out_gather_mm
+    out_x = self.size(0)
+    if gather_index == 0:
+        out_x = self.size(0) * world_size
+    out_y = x2.size(1)
+    # out_gather
+    out_gather_x = x2.size(0) * world_size
+    out_gather_y = x2.size(1)
+    if gather_index == 0:
+        out_gather_x = self.size(0) * world_size
+        out_gather_y = self.size(1)
+    if gather_output:
+        return (self.new_empty((out_x, out_y)), self.new_empty(out_gather_x, out_gather_y))
+    else:
+        return (self.new_empty((out_x, out_y)), self.new_empty(0))
+
+
 @impl(m, "npu_weight_quant_batchmatmul")
 def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None):
     dimm = x.size(0)
