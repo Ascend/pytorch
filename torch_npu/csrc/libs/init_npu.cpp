@@ -3,6 +3,8 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 
 namespace torch_npu {
@@ -32,6 +34,30 @@ void init_npu(const std::string& device_str) {
 void init_npu(const at::Device& device) {
   TORCH_CHECK(is_npu_device(device), "NPU device init fail, except got NPU device, but got ", str(device));
   init_npu(device.index());
+}
+
+void finalize_npu() {
+  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    try {
+      c10_npu::npuSynchronizeDevice();
+    } catch (std::exception& e) {
+      TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what());
+    }
+
+    THNPUCachingHostAllocator_emptyCache();
+    try {
+      c10_npu::NPUCachingAllocator::emptyCache();
+    } catch (std::exception& e) {
+      TORCH_CHECK(false, "NPU CachingAllocator::emptyCache failed err=:%s", e.what());
+    }
+
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
+    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
+      TORCH_CHECK(false, "NPU sys finalize failed.\n");
+    }
+  } else {
+    TORCH_WARN("Please init npu device first!");
+  }
 }
 
 } // namespace torch_npu

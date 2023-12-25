@@ -1,9 +1,11 @@
+#ifndef BUILD_LIBTORCH
 #include <torch/csrc/python_headers.h>
 #include <torch/csrc/THP.h>
 #include <torch/csrc/utils/python_arg_parser.h>
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/utils/python_numbers.h>
+#endif
 
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -102,6 +104,7 @@ void SetHF32DefaultValue() {
   }
 }
 
+#ifndef BUILD_LIBTORCH
 std::string GetTorchNpuFile() {
   PyObject* file_attr = nullptr;
   {
@@ -124,8 +127,10 @@ std::string GetTorchNpuFile() {
   ASCEND_LOGW("Failed to get __file__ attribute.");
   return "";
 }
+#endif
 
 std::string GetAclConfigJsonPath() {
+#ifndef BUILD_LIBTORCH
   std::string npu_path = GetTorchNpuFile();
   if (npu_path == "") {
     ASCEND_LOGW("Failed to get npu path!");
@@ -137,6 +142,9 @@ std::string GetAclConfigJsonPath() {
     ASCEND_LOGW("this path:%s is not exist!", json_path.c_str());
   }
   return json_path_str;
+#else
+  return "";
+#endif
 }
 } // namespace
 
