@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import copy
 import numpy as np
 import torch
@@ -98,7 +97,6 @@ class TestComparisonOps(TestCase):
 
         self.assertFalse(npu_output)
 
-    @unittest.skip("skip test_isneginf now")
     def test_isneginf(self):
         input1 = torch.tensor([-float('inf'), float('inf'), 1.2])
         npu_input1 = input1.npu()
@@ -108,7 +106,6 @@ class TestComparisonOps(TestCase):
 
         self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
 
-    @unittest.skip("skip test_isposinf now")
     def test_isposinf(self):
         input1 = torch.tensor([-float('inf'), float('inf'), 1.2])
         npu_input1 = input1.npu()
