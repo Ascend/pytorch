@@ -8335,6 +8335,21 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
         self.assertEqual(x.type(torch.FloatTensor).dtype, torch.float32)
         self.assertEqual(x.int().type(torch.Tensor).dtype, torch.get_default_dtype())
         self.assertEqual(x.type(torch.int32).dtype, torch.int32)
+        self.assertEqual(x.type('torch.npu.FloatTensor').dtype, torch.float32)
+        self.assertEqual(x.type(torch.npu.FloatTensor).dtype, torch.float32)
+        self.assertEqual(x.type('torch.npu.FloatTensor').device.type, 'npu')
+        self.assertEqual(x.type(torch.npu.FloatTensor).device.type, 'npu')
+
+        x = torch.randn(3, 3).npu().half()
+        self.assertEqual(x.type('torch.FloatTensor').dtype, torch.float32)
+        self.assertEqual(x.type(torch.FloatTensor).dtype, torch.float32)
+        self.assertEqual(x.type('torch.FloatTensor').device.type, 'cpu')
+        self.assertEqual(x.type(torch.FloatTensor).device.type, 'cpu')
+        self.assertEqual(x.int().type(torch.Tensor).dtype, torch.get_default_dtype())
+        self.assertEqual(x.type(torch.int32).dtype, torch.int32)
+        self.assertEqual(x.type('torch.npu.FloatTensor').dtype, torch.float32)
+        self.assertEqual(x.type(torch.npu.FloatTensor).dtype, torch.float32)
+
 
     def test_qengine(self):
         qengines = torch.backends.quantized.supported_engines
