@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -33,7 +32,6 @@ class TestAdaptiveMaxPool2d(TestCase):
         output = m(input1)
         return output.cpu().numpy()
 
-    @unittest.skip("skip test_adaptiveMaxPool2d_shape_format_fp32_6 now")
     def test_adaptiveMaxPool2d_shape_format_fp32_6(self):
         format_list = [-1]
         # (1, 8, 9) IndexError
