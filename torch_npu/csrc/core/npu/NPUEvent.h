@@ -39,17 +39,19 @@ struct NPUEvent {
 
   // npu do not support IpcEventHandle until now
 
-  ~NPUEvent() {
-    try {
-      if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
-        NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
-        NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
-      }
+    ~NPUEvent() {
+        try {
+            if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
+                NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
+                if (!c10_npu::acl::IsExistCreateEventExWithFlag()) {
+                    NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
+                }
+            }
+        }
+        catch (...) {
+            // stay consistent with pytorch, no throw
+        }
     }
-    catch (...) {
-      // stay consistent with pytorch, no throw
-    }
-  }
 
   NPUEvent(const NPUEvent&) = delete;
   NPUEvent& operator=(const NPUEvent&) = delete;
@@ -151,7 +153,7 @@ struct NPUEvent {
   // npu do not support IpcEventHandle until now
 
 private:
-  unsigned int flags_ = ACL_EVENT_DEFAULT;
+  unsigned int flags_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
   bool is_created_ = false;
   bool was_recorded_ = false;
   c10::DeviceIndex device_index_ = -1;

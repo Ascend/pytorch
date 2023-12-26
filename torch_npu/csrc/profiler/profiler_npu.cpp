@@ -59,7 +59,7 @@ struct NPUMethods : public DeviceStubs {
             init_flag = true;
         }
         device = local_device;
-        TORCH_NPU_CHECK(aclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
+        TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
         static auto stream = c10_npu::getCurrentNPUStream();
         *cpu_ns = getTime();
         TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));

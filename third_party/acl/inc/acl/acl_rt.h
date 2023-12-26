@@ -542,6 +542,18 @@ ACL_FUNC_VISIBILITY aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_
 
 /**
  * @ingroup AscendCL
+ * @brief create event instance with flag, event semantics is same as cuda
+ *
+ * @param event [OUT]   created event
+ * @param flag [IN]     event flag
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtCreateEventExWithFlag(aclrtEvent *event, uint32_t flag);
+
+/**
+ * @ingroup AscendCL
  * @brief destroy event instance
  *
  * @par Function
