@@ -75,6 +75,12 @@ aclError AclrtSetStreamFailureMode(aclrtStream stream, uint64_t mode);
 aclError AclrtSetOpWaitTimeout(uint32_t timeout);
 
 /**
+ * This API is used to check whether aclrtCreateEventExWithFlag exist
+ * Compatible CANN, delete in future
+*/
+bool IsExistCreateEventExWithFlag();
+
+/**
  * @ingroup AscendCL
  * @brief create event instance
  *

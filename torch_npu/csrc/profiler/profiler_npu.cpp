@@ -40,7 +40,7 @@ struct NPUMethods : public ProfilerStubs {
             *device = local_device;
         }
         aclrtEvent npu_event = nullptr;
-        TORCH_NPU_CHECK(aclrtCreateEventWithFlag(&npu_event, ACL_EVENT_TIME_LINE));
+        TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_TIME_LINE));
         *event = std::shared_ptr<void>(npu_event, [](aclrtEvent ptr) {
             TORCH_NPU_CHECK(aclrtDestroyEvent(ptr));
         });
