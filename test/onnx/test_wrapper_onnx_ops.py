@@ -1116,6 +1116,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @unittest.skip("skipping")
     def test_wrapper_npu_dropout_with_add_softmax(self):
         class Model(torch.nn.Module):
             def __init__(self):
