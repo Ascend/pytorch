@@ -2,6 +2,7 @@ import inspect
 from typing import Dict, List
 
 import torch
+from torch._dynamo.utils import tensortype_to_dtype
 from torch._dynamo.utils import get_fake_value
 from torch._dynamo.exc import unimplemented
 from torch._dynamo.variables.torch import TorchVariable
@@ -9,6 +10,9 @@ from torch._dynamo.variables.base import VariableTracker
 from torch._dynamo.variables.ctx_manager import AutocastModeVariable, CUDAStreamContextVariable, CUDAStreamVariable
 from torch._dynamo.variables.user_defined import UserDefinedClassVariable
 from torch._dynamo.variables.misc import SkipFilesVariable
+from torch._dynamo.variables.constant import ConstantVariable
+from torch._dynamo.variables.tensor import TensorVariable
+from torch._dynamo.variables.lists import TupleVariable
 import torch_npu
 
 
@@ -157,6 +161,15 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
         torch.npu.streams.Stream,
         torch_npu.npu.streams.Stream,
         torch.device,
+        torch_npu.npu.BoolTensor,
+        torch_npu.npu.ByteTensor,
+        torch_npu.npu.CharTensor,
+        torch_npu.npu.DoubleTensor,
+        torch_npu.npu.FloatTensor,
+        torch_npu.npu.HalfTensor,
+        torch_npu.npu.IntTensor,
+        torch_npu.npu.LongTensor,
+        torch_npu.npu.ShortTensor,
     ]:
         return NPUTorchVariable(value, **kwargs)
     return cls.__new__raw(cls)
@@ -171,8 +184,31 @@ def SkipFilesVariable__new__(cls, value, **kwargs):
     return cls.__new__raw(cls)
 
 
+def TensorVariable_call_method(self, tx, name, args, kwargs):
+    if (
+        name == 'type'
+        and self.dtype is not None
+        and len(args) == 0
+        and isinstance(self.device, torch.device)
+        and self.device.type == 'npu'
+    ):
+        tensortype = next(
+            k for k, v in tensortype_to_dtype.items() if self.dtype in v)
+        constant_result = ConstantVariable(f"torch.npu.{tensortype.__name__}")
+
+        if len(args) == 1:
+            return constant_result.getitem_const(args[0])
+        elif args:
+            return TupleVariable([constant_result.getitem_const(a) for a in args])
+        return constant_result
+    else:
+        return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
     SkipFilesVariable.__new__raw = SkipFilesVariable.__new__
     SkipFilesVariable.__new__ = SkipFilesVariable__new__
+    TensorVariable.call_method_raw = TensorVariable.call_method
+    TensorVariable.call_method = TensorVariable_call_method

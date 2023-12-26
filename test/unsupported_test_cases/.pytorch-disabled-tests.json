@@ -5,8 +5,6 @@
   "test_stack_state1 (__main__.SubGraphTests)": ["", [""]],
   "test_dataclass_input (__main__.ExportTests)": ["", [""]],
   "test_device_constant (__main__.FunctionTests)": ["", [""]],
-  "test_tensor_type2 (__main__.FunctionTests)": ["", [""]],
-  "test_tensor_type5 (__main__.FunctionTests)": ["", [""]],
   "test_lazy_module3 (__main__.NNModuleTests)": ["", [""]],
   "test_lazy_module2 (__main__.NNModuleTests)": ["", [""]],
   "test_lazy_module4 (__main__.NNModuleTests)": ["", [""]],
