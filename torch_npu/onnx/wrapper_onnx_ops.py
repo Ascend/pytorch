@@ -542,7 +542,7 @@ class NPULstmOP(torch.autograd.Function):
                  bidirectional: bool, batch_first: bool, flagSeq: bool, direction: bool):
         if train:
             raise ValueError("Value of param 'train' must be False.")
-        return g.op("npu::NPULstm", input, weight, bias, seqMask, h, c, has_biases_i=has_biases,
+        return g.op("npu::NPULstm", inputs, weight, bias, seqMask, h, c, has_biases_i=has_biases,
                     num_layers_i=num_layers, dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, flagSeq_i=flagSeq, direction_i=direction, outputs=8)
 
