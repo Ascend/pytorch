@@ -12,10 +12,6 @@ namespace c10_npu {
         aclError err =  aclrtGetDevice(device);
         if (err == ACL_ERROR_NONE) {
             local_device = *device;
-        } else if (err == ACL_ERROR_RT_CONTEXT_NULL && aclrtSetDevice(0) == ACL_ERROR_NONE) {
-            *device = 0;
-            local_device = 0;
-            return ACL_ERROR_NONE;
         }
         return err;
     }
