@@ -2015,10 +2015,11 @@ class THNCachingAllocator {
     device_allocator[block->device]->recordStream(block, stream);
   }
 
-  void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
-    if (!ptr.get()) {
-      return;
-    }
+  void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
+  {
+      if (!ptr.get()) {
+          return;
+      }
 
       // If a tensor is not allocated by this instance, simply skip
       // This usually happens when NPU tensors are shared across processes,
@@ -2030,11 +2031,20 @@ class THNCachingAllocator {
           return;
       }
 
-    Block* block = get_allocated_block(ptr.get());
-    if (!block) {
-      AT_ERROR("invalid device pointer: ", ptr.get());
-    }
-    device_allocator[block->device]->eraseStream(block, stream);
+      Block* block = get_allocated_block(ptr.get());
+      if (!block) {
+          AT_ERROR("invalid device pointer: ", ptr.get());
+      }
+
+      if (block->stream != c10_npu::getCurrentNPUStream(block->device)) {
+          // If the Stream applying for tensor block different from
+          // the stream of submiting event wait task in HCCL synchronize()
+          // method, the recordSteam can not be erased.
+          // New tensor creation may use the block before HCCL op is complete.
+          return;
+      }
+
+      device_allocator[block->device]->eraseStream(block, stream);
   }
 
   std::vector<SegmentInfo> snapshot() {
