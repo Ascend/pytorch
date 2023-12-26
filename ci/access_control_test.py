@@ -241,10 +241,10 @@ def exec_ut(files):
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 
     def get_ut_cmd(ut_type, ut_file):
-        cmd = [sys.executable, "run_test.py", "-v", "-i"]
+        cmd = [sys.executable, "run_test.py", "-v", "-e"] + SLOW_TEST_BLOCKLIST
         if ut_type == "op_ut_files":
-            return cmd + ["test_ops", "--", "-k", '_' + get_op_name(ut_file)]
-        return cmd + [get_ut_name(ut_file)]
+            return cmd + ["-i", "test_ops", "--", "-k", '_' + get_op_name(ut_file)]
+        return cmd + ["-i", get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
         process.wait()
