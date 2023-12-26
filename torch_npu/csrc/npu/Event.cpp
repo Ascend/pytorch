@@ -11,29 +11,34 @@
 PyObject *THNPEventClass = nullptr;
 
 static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-  HANDLE_TH_ERRORS
-  unsigned char enable_timing = 0;
-  unsigned char blocking = 0;
-  unsigned char interprocess = 0;
+    HANDLE_TH_ERRORS
+    unsigned char enable_timing = 0;
+    unsigned char blocking = 0;
+    unsigned char interprocess = 0;
 
-  static char *kwlist[] = {"enable_timing", "blocking", "interprocess", nullptr};
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|bbb", kwlist,
-      &enable_timing, &blocking, &interprocess)) {
-    return nullptr;
-  }
+    static char *kwlist[] = {"enable_timing", "blocking", "interprocess", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|bbb", kwlist,
+        &enable_timing, &blocking, &interprocess)) {
+        return nullptr;
+    }
 
-  THPObjectPtr ptr(type->tp_alloc(type, 0));
-  if (!ptr) {
-    return nullptr;
-  }
+    THPObjectPtr ptr(type->tp_alloc(type, 0));
+    if (!ptr) {
+        return nullptr;
+    }
 
-  THNPEvent* self = (THNPEvent *)ptr.get();
+    THNPEvent* self = (THNPEvent *)ptr.get();
 
-  unsigned int flags = enable_timing ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
-  new (&self->npu_event) c10_npu::NPUEvent(flags);
+    unsigned int flags = 0;
+    if (c10_npu::acl::IsExistCreateEventExWithFlag()) {
+        flags = enable_timing ? (ACL_EVENT_TIME_LINE | ACL_EVENT_SYNC) : ACL_EVENT_SYNC;
+    } else {
+        flags = enable_timing ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
+    }
+    new (&self->npu_event) c10_npu::NPUEvent(flags);
 
-  return (PyObject *)ptr.release();
-  END_HANDLE_TH_ERRORS
+    return (PyObject *)ptr.release();
+    END_HANDLE_TH_ERRORS
 }
 
 static void THNPEvent_dealloc(THNPEvent *self) {

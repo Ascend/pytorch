@@ -19,6 +19,7 @@ namespace acl {
 REGISTER_LIBRARY(libascendcl)
 LOAD_FUNCTION(aclGetRecentErrMsg)
 LOAD_FUNCTION(aclrtCreateEventWithFlag)
+LOAD_FUNCTION(aclrtCreateEventExWithFlag)
 LOAD_FUNCTION(aclrtQueryEventWaitStatus)
 LOAD_FUNCTION(aclrtQueryEventStatus)
 LOAD_FUNCTION(aclprofCreateStepInfo)
@@ -156,14 +157,29 @@ aclError AclrtSetOpWaitTimeout(uint32_t timeout) {
   return func(timeout);
 }
 
-aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
-  typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
-  static AclrtCreateEventWithFlagFunc func = nullptr;
-  if (func == nullptr) {
-    func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag");
-  return func(event, flag);
+bool IsExistCreateEventExWithFlag()
+{
+    typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
+    static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventExWithFlag);
+    return func != nullptr;
+}
+
+aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
+{
+    typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
+    // Recommend aclrtCreateEventExWithFlag.
+    // Differences from aclrtCreateEventWithFlag:
+    //   1. Event can be reused naturally, aclrtResetEvent is not supported.
+    //   2. There is no limit on the number of events.
+    //   3. Only support query event record status, aclrtQueryEvent and aclrtQueryEventWaitStatus are not supported.
+    //   4. aclrtDestroyEvent change to asynchronous destroy event.
+    static AclrtCreateEventWithFlagFunc func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventExWithFlag);
+    if (func == nullptr) {
+        TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtCreateEventExWithFlag");
+        func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag");
+    return func(event, flag);
 }
 
 aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus)
