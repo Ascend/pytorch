@@ -716,6 +716,9 @@ class TestNpu(TestCase):
         if torch.npu.is_available():
             self._test_type_conversion_backward(lambda x: x.npu())
 
+    def test_get_allocator_backend(self):
+        npu_allocator_name = torch.npu.get_allocator_backend()
+        self.assertEqual(npu_allocator_name, "native")
 
 if __name__ == '__main__':
     run_tests()
