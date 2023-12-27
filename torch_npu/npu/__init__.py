@@ -46,6 +46,7 @@ __all__ = [
     "max_memory_cached",
     "memory_snapshot",
     "memory_summary",
+    "get_allocator_backend",
     "Stream",
     "Event",
     "set_option",
