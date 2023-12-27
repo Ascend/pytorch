@@ -22,7 +22,7 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory']
+                       'empty_quantized', '_pin_memory', 'load']
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
 torch_cuda_fn_white_list = [
@@ -32,7 +32,7 @@ torch_cuda_fn_white_list = [
     'reset_peak_memory_stats'
 ]
 torch_distributed_fn_white_list = ['__init__']
-device_kwargs_list = ['device', 'device_type']
+device_kwargs_list = ['device', 'device_type', 'map_location']
 
 
 def wrapper_cuda(fn):
@@ -45,13 +45,8 @@ def wrapper_cuda(fn):
         if kwargs:
             for device_arg in device_kwargs_list:
                 device = kwargs.get(device_arg, None)
-                if type(device) == str and 'cuda' in device:
-                    kwargs[device_arg] = device.replace('cuda', 'npu')
-                if type(device) == torch.device and 'cuda' in device.type:
-                    device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
-                    kwargs[device_arg] = torch.device(device_info)
-                if type(device) == int:
-                    kwargs[device_arg] = f'npu:{device}'
+                if device is not None:
+                    replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
             if type(device_ids) == list:
                 device_ids = replace_cuda_to_npu_in_list(device_ids, replace_int)
@@ -60,16 +55,41 @@ def wrapper_cuda(fn):
     return decorated
 
 
+def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
+    if type(device) == str and 'cuda' in device:
+        kwargs[device_arg] = device.replace('cuda', 'npu')
+    elif type(device) == torch.device and 'cuda' in device.type:
+        device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
+        kwargs[device_arg] = torch.device(device_info)
+    elif type(device) == int:
+        kwargs[device_arg] = f'npu:{device}'
+    elif type(device) == dict:
+        kwargs[device_arg] = replace_cuda_to_npu_in_dict(device)
+
+
 def replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
             args_list[idx] = arg.replace('cuda', 'npu')
-        if isinstance(arg, torch.device) and 'cuda' in arg.type:
+        elif isinstance(arg, torch.device) and 'cuda' in arg.type:
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
             args_list[idx] = torch.device(device_info)
-        if replace_int and not isinstance(arg, bool) and isinstance(arg, int):
+        elif replace_int and not isinstance(arg, bool) and isinstance(arg, int):
             args_list[idx] = f'npu:{arg}'
+        elif isinstance(arg, dict):
+            args_list[idx] = replace_cuda_to_npu_in_dict(arg)
     return args_list
+
+
+def replace_cuda_to_npu_in_dict(device_dict):
+    new_dict = {}
+    for key, value in device_dict.items():
+        if isinstance(key, str):
+            key = key.replace('cuda', 'npu')
+        if isinstance(value, str):
+            value = value.replace('cuda', 'npu')
+        new_dict[key] = value
+    return new_dict
 
 
 def device_wrapper(enter_fn, white_list):
