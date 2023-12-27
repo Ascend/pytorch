@@ -70,7 +70,7 @@ class TestFwdGradients(TestGradients):
 
         self._forward_grad_helper(device, dtype, op, self._get_safe_inplace(op.get_inplace()), is_inplace=True)
 
-instantiate_device_type_tests(TestFwdGradients, globals(), only_for='privateuseone')
+instantiate_device_type_tests(TestFwdGradients, globals(), only_for='privateuse1')
 
 if __name__ == '__main__':
     run_tests()

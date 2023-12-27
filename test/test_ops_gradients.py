@@ -88,7 +88,7 @@ class TestBwdGradients(TestGradients):
         self._check_helper(device, dtype, op, self._get_safe_inplace(op.get_inplace()), "bwgrad_bwgrad")
 
 
-instantiate_device_type_tests(TestBwdGradients, globals(), only_for='privateuseone')
+instantiate_device_type_tests(TestBwdGradients, globals(), only_for='privateuse1')
 
 if __name__ == '__main__':
     run_tests()

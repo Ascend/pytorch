@@ -2,10 +2,12 @@ import json
 import os
 import unittest
 import warnings
+import torch
 from torch.testing._internal import common_utils
 from torch.testing._internal.opinfo.core import OpInfo
 from torch.testing._internal.common_utils import remove_device_and_dtype_suffixes, TEST_WITH_SLOW, \
         IS_SANDCASTLE, TEST_SKIP_FAST, RERUN_DISABLED_TESTS, DISABLED_TESTS_FILE, SLOW_TESTS_FILE, maybe_load_json
+from torch.testing._internal.common_dtype import floating_and_complex_types_and
 from torch_npu.testing.npu_testing_utils import update_skip_list, get_decorators
 
 __all__ = []
@@ -90,9 +92,27 @@ def check_if_enable_npu(test: unittest.TestCase):
             raise unittest.SkipTest("test is fast; we disabled it with PYTORCH_TEST_SKIP_FAST")
 
 
+def _supported_dtypes(self, device_type):
+    return self.dtypes
+
+
+def _supported_backward_dtypes(self, device_type):
+    if not self.supports_autograd:
+        return set()
+
+    backward_dtypes = self.backward_dtypes
+
+    allowed_backward_dtypes = floating_and_complex_types_and(
+        torch.bfloat16, torch.float16, torch.complex32
+    )
+    return set(allowed_backward_dtypes).intersection(backward_dtypes)
+
+
 def apply_test_patchs():
     update_skip_list()
     OpInfo.get_decorators = get_decorators
+    OpInfo.supported_dtypes = _supported_dtypes
+    OpInfo.supported_backward_dtypes = _supported_backward_dtypes
     common_utils.check_if_enable = check_if_enable_npu
 
 #apply test_ops related patch
