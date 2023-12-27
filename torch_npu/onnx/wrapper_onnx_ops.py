@@ -663,8 +663,8 @@ class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
     @staticmethod
     def symbolic(g, x: Tensor, atten_mask: Optional[Tensor], relative_pos_bias: Tensor, scale_value: float = 1.0,
                  inner_precision_mode: int = 0):
-        return g.op("npu::NPUMaskedSoftmaxWithRelPosBias", x, atten_mask, relative_pos_bias, scale_value,
-                    inner_precision_mode)
+        return g.op("npu::NPUMaskedSoftmaxWithRelPosBias", x, atten_mask, relative_pos_bias, scale_value_f=scale_value,
+                    inner_precision_mode_i=inner_precision_mode)
 
 
 
@@ -681,7 +681,7 @@ class NPUMmAllReduceBaseOP(torch.autograd.Function):
                     reduce_op, bias, comm_turn)
 
 
-def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode):
+def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
     return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
 

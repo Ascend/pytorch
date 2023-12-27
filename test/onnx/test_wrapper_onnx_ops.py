@@ -1233,7 +1233,9 @@ class TestOnnxOps(TestCase):
                 super().__init__()
 
             def forward(self, x, atten_mask, relative_pos_bias):
-                return torch_npu.npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias)
+                scale_value = 1.0
+                inner_precision_mode = 0
+                return torch_npu.npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
         def export_onnx(onnx_model_name):
             x = torch.rand([16, 2, 3, 4, 5], dtype=torch.float32).npu()
