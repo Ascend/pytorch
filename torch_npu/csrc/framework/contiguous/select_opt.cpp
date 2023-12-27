@@ -102,9 +102,7 @@ private:
                             const ContiguousTensorDesc &src_desc) {
     const auto &base_size = src_desc.base_sizes_;
     // Recover base tensor(necessary) a = b.select(1, 1)
-    at::Tensor temp_src = at::empty(base_size, src.options());
-    temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
-                  temp_src.strides());
+    at::Tensor temp_src = TransContiguous::view_tensor(src, src_desc.base_offset_, base_size, src_desc.base_strides_);
 
     // construct StridedSlice param
     int64_t axis_size = static_cast<int64_t>(start.size());

@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include <ATen/quantized/QTensorImpl.h>
 
 namespace at_npu {
 namespace native {
@@ -192,6 +193,34 @@ bool TransContiguous::ContiguousOptimizeWithBaseFormat(
   }
   return cached_contiguous_optimize_with_anyformat_(self, src, src_desc);
 }
+
+
+    at::Tensor TransContiguous::view_tensor(const at::Tensor& self,
+                                            int64_t offset,
+                                            const c10::IntArrayRef& sizes,
+                                            const c10::IntArrayRef& strides)
+    {
+        at::Tensor self_;
+        if (self.is_quantized()) {
+            self_ = at::detail::make_tensor<at::QTensorImpl>(
+                    c10::TensorImpl::VIEW,
+                    c10::Storage(self.storage()),
+                    self.key_set(),
+                    self.dtype(),
+                    get_qtensorimpl(self)->quantizer());
+        } else {
+            self_ = at::detail::make_tensor<at::TensorImpl>(
+                    c10::TensorImpl::VIEW,
+                    c10::Storage(self.storage()),
+                    self.key_set(),
+                    self.dtype());
+        }
+        auto* self_tmp_ = self_.unsafeGetTensorImpl();
+        self_tmp_->set_storage_offset(offset);
+        self_tmp_->set_sizes_and_strides(sizes, strides);
+        at::namedinference::propagate_names(self_, self);
+        return self_;
+    }
 
 } // namespace native
 } // namespace at_npu

@@ -54,6 +54,7 @@ public:
     static bool cached_contiguous_optimize_with_anyformat_(
             at::Tensor &self, const at::Tensor &src, ContiguousTensorDesc &src_desc);
     static ska::flat_hash_map<size_t, CachedContiguousOpt> cached_contiguous_opt;
+    static at::Tensor view_tensor(const at::Tensor& self, int64_t offset, const c10::IntArrayRef& sizes, const c10::IntArrayRef& strides);
 
 private:
   static OptimizationCases optCasesDefault;
