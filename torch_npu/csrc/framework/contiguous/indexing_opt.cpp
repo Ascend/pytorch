@@ -117,9 +117,7 @@ private:
                               const ContiguousTensorDesc &src_desc) {
     const auto &base_size = src_desc.base_sizes_;
     // recover contiguous base tensor
-    at::Tensor temp_src = at::empty(src_desc.base_sizes_, src.options());
-    temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
-                  temp_src.strides());
+    at::Tensor temp_src = TransContiguous::view_tensor(src, src_desc.base_offset_, base_size, src_desc.base_strides_);
 
     // call StridedSlice op
     custom_ops::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0, 0, self);

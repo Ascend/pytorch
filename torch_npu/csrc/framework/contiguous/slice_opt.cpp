@@ -129,19 +129,18 @@ private:
     return true;
   }
 
-  void slice_to_contiguous(at::Tensor &self, const at::Tensor &src,
-                           const c10::SmallVector<int64_t, MAX_DIM> &offsets,
-                           const c10::SmallVector<int64_t, MAX_DIM> &size,
-                           const ContiguousTensorDesc &src_desc) {
-    // create contiguous tensor for npu slice
-    const auto &temp_tensor_size = src_desc.base_sizes_;
-    at::Tensor temp_src = at::empty(temp_tensor_size, src.options());
-    temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
-                  temp_src.strides());
 
-    custom_ops::npu_slice_out(temp_src, offsets, size, self);
-    return;
-  }
+    void slice_to_contiguous(at::Tensor &self, const at::Tensor &src,
+                             const c10::SmallVector<int64_t, MAX_DIM> &offsets,
+                             const c10::SmallVector<int64_t, MAX_DIM> &size,
+                             const ContiguousTensorDesc &src_desc) {
+        // create contiguous tensor for npu slice
+        const auto &temp_tensor_size = src_desc.base_sizes_;
+        at::Tensor temp_src = TransContiguous::view_tensor(src, src_desc.base_offset_, temp_tensor_size, src_desc.base_strides_);
+
+        custom_ops::npu_slice_out(temp_src, offsets, size, self);
+        return;
+    }
 }; // class SliceContiguousOpt
 
 REGISTER_COPY_OPT(slice, SliceContiguousOpt)
