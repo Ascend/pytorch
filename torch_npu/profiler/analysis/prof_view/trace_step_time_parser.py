@@ -51,7 +51,7 @@ class TraceStepTimeParser(BaseParser):
         addtime = float(addtime)
         durtime = float(durtime)
         for step in step_list:
-            if step[1] < addtime and step[2] > addtime:
+            if step[1] <= addtime <= step[2]:
                 cur_step = step[0]
                 break
         for step in step_list:
