@@ -2211,5 +2211,9 @@ size_t GetBlockSize(const void *handle) {
   return block->size;
 }
 
+std::string name() {
+    return "native";
+}
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu

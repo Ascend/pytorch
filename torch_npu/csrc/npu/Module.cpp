@@ -523,6 +523,13 @@ PyObject* THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject 
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_getAllocatorBackend(PyObject *_unused, PyObject *noargs)
+{
+    HANDLE_TH_ERRORS
+    return THPUtils_packString(c10_npu::NPUCachingAllocator::name());
+    END_HANDLE_TH_ERRORS
+}
+
 // We need to ensure that as long as a thread will NEVER loose the GIL as long as
 // it holds the NPU mutex. Otherwise another thread might be scheduled and try to
 // e.g. allocate a new tensor which will cause a deadlock. It's enough to have a
@@ -826,6 +833,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_memorySnapshot", (PyCFunction) THNPModule_memorySnapshot, METH_NOARGS, nullptr},
     {"_npu_npuCachingAllocator_raw_alloc", (PyCFunction)THNPModule_npuCachingAllocator_raw_alloc, METH_VARARGS, nullptr},
     {"_npu_npuCachingAllocator_raw_delete", (PyCFunction)THNPModule_npuCachingAllocator_raw_delete, METH_O, nullptr},
+    {"_npu_getAllocatorBackend", (PyCFunction)THNPModule_getAllocatorBackend, METH_NOARGS, nullptr},
     {"_npu_lock_mutex",   (PyCFunction)THNPModule_npuLockMutex,   METH_NOARGS,  nullptr},
     {"_npu_unlock_mutex", (PyCFunction)THNPModule_npuUnlockMutex, METH_NOARGS,  nullptr},
     {"_npu_initDump", (PyCFunction)THNPModule_initDump, METH_NOARGS, nullptr},

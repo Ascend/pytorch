@@ -152,5 +152,6 @@ std::mutex* getFreeMutex();
 
 void FreeDeviceCachedMemory(int device);
 
+std::string name();
 } // namespace NPUCachingAllocator
 } // namespace c10_npu

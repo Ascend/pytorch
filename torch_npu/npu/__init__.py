@@ -22,7 +22,7 @@ __all__ = [
     "init_dump", "utilization", "finalize_dump", "set_dump", "manual_seed", "manual_seed_all",
     "seed", "seed_all", "initial_seed", "caching_allocator_alloc",
     "caching_allocator_delete", "set_per_process_memory_fraction", "empty_cache", "memory_stats",
-    "memory_stats_as_nested_dict", "reset_accumulated_memory_stats",
+    "memory_stats_as_nested_dict", "reset_accumulated_memory_stats", "get_allocator_backend",
     "reset_peak_memory_stats", "reset_max_memory_allocated", "reset_max_memory_cached",
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
@@ -57,7 +57,8 @@ from .memory import (caching_allocator_alloc, caching_allocator_delete,
                      reset_accumulated_memory_stats, reset_peak_memory_stats,
                      reset_max_memory_allocated, reset_max_memory_cached, memory_allocated,
                      max_memory_allocated, memory_reserved, max_memory_reserved,
-                     memory_cached, max_memory_cached, memory_snapshot, memory_summary)
+                     memory_cached, max_memory_cached, memory_snapshot, memory_summary,
+                     get_allocator_backend)
 from .streams import Stream, Event
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,

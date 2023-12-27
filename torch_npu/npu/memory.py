@@ -527,3 +527,14 @@ def memory_summary(device=None, abbreviated=False):
     for k, v in stats.items():
         fmt_dict[k.replace(".", "-")] = v
     return "|" + "|\n|".join(lines).format(**fmt_dict) + "|\n"
+
+
+def get_allocator_backend() -> str:
+    r"""Returns a string describing the active allocator backend as set by
+    ``PYTORCH_NPU_ALLOC_CONF``. Currently available backends are
+    ``native`` (PyTorch's native caching allocator).
+
+    .. note::
+        See :ref:`npu-memory-management` for details on choosing the allocator backend.
+    """
+    return torch_npu._C._npu_getAllocatorBackend()
