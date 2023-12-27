@@ -35,7 +35,7 @@ std::vector<uint8_t> OpRangeData::encode() {
     resultTLV.push_back((length >> (i * 8)) & 0xff);
   }
   resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
-  return std::move(resultTLV);
+  return resultTLV;
 }
 
 std::vector<uint8_t> OpMarkData::encode() {
@@ -54,7 +54,7 @@ std::vector<uint8_t> OpMarkData::encode() {
     resultTLV.push_back((length >> (i * 8)) & 0xff);
   }
   resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
-  return std::move(resultTLV);
+  return resultTLV;
 }
 
 std::vector<uint8_t> MemoryData::encode() {
@@ -74,7 +74,7 @@ std::vector<uint8_t> MemoryData::encode() {
     resultTLV.push_back((length >> (i * 8)) & 0xff);
   }
   resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
-  return std::move(resultTLV);
+  return resultTLV;
 }
 } // profiler
 } // toolkit
