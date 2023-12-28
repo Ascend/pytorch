@@ -53,6 +53,15 @@ def a_lifted_leaf2(a, b):
     return a[0] + a[1] + b
 
 
+@torch.fx.wrap
+def npu_diou(x, y):
+    return torch_npu.contrib.function.npu_diou(x, y)
+
+
+@torch.fx.wrap
+def npu_format_cast(x, y):
+    return torch_npu.npu_format_cast(x, y)
+
 wrap(a_lifted_leaf2)
 
 real_a_lifed_leaf = a_lifted_leaf
@@ -269,11 +278,10 @@ class TestFX(TestCase):
         with self.assertRaisesRegex(TraceError, 'Proxy object cannot be iterated.'):
             symbolic_trace(ud)
 
-    @unittest.skip("skip test_npu_contrib_function_trace now")
     def test_npu_contrib_function_trace(self):
         class MyModule(torch.nn.Module):
             def forward(self, x):
-                return torch_npu.contrib.function.npu_diou(x, x)
+                return npu_diou(x, x)
 
         module = MyModule()
         traced = symbolic_trace(module)
@@ -296,11 +304,10 @@ class TestFX(TestCase):
         x = torch.rand(4, 3).npu()
         self.assertEqual(traced(x), module(x))
 
-    @unittest.skip("skip test_npu_custom_op_trace now")
     def test_npu_custom_op_trace(self):
         class MyModule(torch.nn.Module):
             def forward(self, x):
-                return torch_npu.npu_format_cast(x, 2)
+                return npu_format_cast(x, 2)
 
         module = MyModule()
         traced = symbolic_trace(module)
