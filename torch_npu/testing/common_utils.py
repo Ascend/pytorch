@@ -10,8 +10,9 @@ import stat
 import atexit
 import threading
 import tempfile
-import torch
+import functools
 import numpy as np
+import torch
 
 import torch_npu
 from torch_npu.utils.path_manager import PathManager
@@ -225,3 +226,68 @@ PerfBaseline = Baseline(PERF_BASELINE_FILE)
 def dump_baseline():
     if PERF_TEST_ENABLE:
         PerfBaseline.save_baseline()
+
+
+# Shared by test_cuda.py and test_multigpu.py
+def _create_scaling_models_optimizers(device="npu", optimizer_ctor=torch.optim.SGD, optimizer_kwargs=None):
+    # Create a module+optimizer that will use scaling, and a control module+optimizer
+    # that will not use scaling, against which the scaling-enabled module+optimizer can be compared.
+    mod_control = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.Linear(8, 8)).to(device=device)
+    mod_scaling = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.Linear(8, 8)).to(device=device)
+    with torch.no_grad():
+        for c, s in zip(mod_control.parameters(), mod_scaling.parameters()):
+            s.copy_(c)
+
+    kwargs = {"lr": 1.0}
+    if optimizer_kwargs is not None:
+        kwargs.update(optimizer_kwargs)
+    opt_control = optimizer_ctor(mod_control.parameters(), **kwargs)
+    opt_scaling = optimizer_ctor(mod_scaling.parameters(), **kwargs)
+
+    return mod_control, mod_scaling, opt_control, opt_scaling
+
+
+def _create_scaling_case(device="npu", dtype=torch.float, optimizer_ctor=torch.optim.SGD, optimizer_kwargs=None):
+    data = [(torch.randn((8, 8), dtype=dtype, device=device), torch.randn((8, 8), dtype=dtype, device=device)),
+            (torch.randn((8, 8), dtype=dtype, device=device), torch.randn((8, 8), dtype=dtype, device=device)),
+            (torch.randn((8, 8), dtype=dtype, device=device), torch.randn((8, 8), dtype=dtype, device=device)),
+            (torch.randn((8, 8), dtype=dtype, device=device), torch.randn((8, 8), dtype=dtype, device=device))]
+
+    loss_fn = torch.nn.MSELoss().npu()
+
+    skip_iter = 2
+
+    return _create_scaling_models_optimizers(
+        device=device, optimizer_ctor=optimizer_ctor, optimizer_kwargs=optimizer_kwargs,
+    ) + (data, loss_fn, skip_iter)
+
+
+@functools.lru_cache
+def get_cycles_per_ms() -> float:
+    """Measure and return approximate number of cycles per millisecond for torch.cuda._sleep
+    """
+
+    def measure() -> float:
+        start = torch_npu.npu.Event(enable_timing=True)
+        end = torch_npu.npu.Event(enable_timing=True)
+        start.record()
+        torch_npu.npu._sleep(1000000)
+        end.record()
+        end.synchronize()
+        cycles_per_ms = 1000000 / start.elapsed_time(end)
+        return cycles_per_ms
+
+    # Get 10 values and remove the 2 max and 2 min and return the avg.
+    # This is to avoid system disturbance that skew the results, e.g.
+    # the very first cuda call likely does a bunch of init, which takes
+    # much longer than subsequent calls.
+    #
+    # Tested on both Tesla V100, Quadro GP100, Titan RTX, RTX 3090 GPUs
+    # and seems to return stable values. Therefore, we enable caching
+    # using lru_cache decorator above.
+    num = 10
+    vals = []
+    for _ in range(num):
+        vals.append(measure())
+    vals = sorted(vals)
+    return mean(vals[2 : num - 2])
