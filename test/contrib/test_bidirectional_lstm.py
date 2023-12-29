@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import unittest
+import numpy as np
 import torch
 import torch_npu
 
@@ -32,26 +33,28 @@ class TestBidirectionalLstm(TestCase):
         output.backward(torch.ones(input1.size(), dtype=torch.float).npu())
         input_grad = input1.grad.cpu()
         return output.detach().cpu(), input_grad.cpu()
-    
-    @unittest.skip("skip test_bidirectional_lstm now")
+
     def test_bidirectional_lstm(self):
-        cpu_input = torch.rand(2, 2, 8)
+        np.random.seed(123)
+        data1 = np.random.randn(2, 2, 8)
+        cpu_input = torch.tensor(data1, dtype=torch.float32)
         npu_input = cpu_input.npu()
 
         npu_output, npu_inputgrad = self.npu_bidirectional_lstm(npu_input)
-        expedt_cpu_output = torch.tensor([[[-0.1025, -0.1874, 0.0458, -0.1486, -0.0266, 0.1953, -0.1688, 0.0765],
-                                         [-0.1941, -0.2162, -0.2046, -0.1855, -0.0262, 0.1460, -0.1729, 0.1274]],
-            [[-0.2140, -0.2439, -0.0682, -0.1685, -0.0381, 0.1166, -0.1262, 0.1035],
-             [-0.2947, -0.2786, -0.2559, -0.1584, -0.0176, 0.1005, -0.1135, 0.1113]]],
-            dtype=torch.float32)
-        expedt_cpu_inputgrad = torch.tensor([[[-0.1387, 0.4024, -0.2715, -0.0965, -0.4193, 0.3688, 0.1259, -0.3764],
-                                            [-0.1760, 0.4257, -0.2285, -0.2325, -0.3738, 0.3502, -0.0338, -0.3057]],
-            [[-0.0190, 0.4121, -0.2733, -0.1313, -0.1804, 0.3720, -0.0196, -0.1863],
-             [-0.0638, 0.4532, -0.2258, -0.2342, -0.1488, 0.3592, -0.0708, -0.2137]]],
-            dtype=torch.float32)
+        expect_cpu_output = torch.tensor([[[0.1078, 0.0723, 0.0158, 0.1555, -0.0975, 0.0867, -0.1653, -0.0974],
+                                           [0.1635, 0.3083, -0.2793, 0.0748, -0.1528, 0.1982, -0.0063, 0.1506]],
 
-        self.assertRtolEqual(expedt_cpu_output, npu_output)
-        self.assertRtolEqual(expedt_cpu_inputgrad, npu_inputgrad)
+                                          [[0.0743, 0.1489, -0.0777, 0.0052, -0.2747, 0.0872, -0.1923, -0.2612],
+                                           [-0.1760, 0.2629, -0.2959, 0.0299, 0.3979, 0.1146, -0.1663, 0.0682]]],
+                                         dtype=torch.float32)
+        expect_cpu_inputgrad = torch.tensor([[[0.5643, -0.2415, -0.7003, -0.1445, 0.3078, 0.0442, -0.5876, -0.3430],
+                                              [-0.1395, 0.2832, -0.3813, 0.0043, 0.0973, 0.0093, -0.2702, -0.0069]],
+
+                                             [[-0.0751, -0.0903, -0.4377, -0.2069, 0.0934, -0.1738, -0.1134, -0.0765],
+                                              [0.3855, -0.1033, -0.2906, -0.2387, -0.0037, 0.0606, -0.2736, -0.1440]]],
+                                            dtype=torch.float32)
+        self.assertRtolEqual(expect_cpu_output, npu_output)
+        self.assertRtolEqual(expect_cpu_inputgrad, npu_inputgrad)
 
 
 if __name__ == "__main__":

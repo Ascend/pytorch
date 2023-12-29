@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import unittest
+import numpy as np
 import torch
 import torch_npu
 
@@ -22,10 +23,12 @@ from torch_npu.contrib.module import LabelSmoothingCrossEntropy
 
 
 class TestCrossentropy(TestCase):
-    @unittest.skip("skip test_npu_crossentropy_1 now")
     def test_npu_crossentropy_1(self):
-        x = torch.randn(2, 10)
-        y = torch.randint(0, 10, size=(2,))
+        np.random.seed(123)
+        data1 = np.random.randn(2, 10)
+        x = torch.tensor(data1, dtype=torch.float32)
+        data2 = np.random.randint(low=0, high=10, size=(2,))
+        y = torch.tensor(data2, dtype=torch.float32)
 
         x = x.npu()
         y = y.npu()
@@ -33,17 +36,19 @@ class TestCrossentropy(TestCase):
         m = LabelSmoothingCrossEntropy(10)
         npu_output = m(x, y)
         npu_output.backward()
-        expedt_cpu_xgrad = torch.tensor([[0.0465, 0.0317, 0.0612, 0.0215, 0.0695,
-                                          0.0849, 0.0354, 0.0255, -0.4017, 0.0255],
-                                         [0.0133, 0.0225, 0.0104, 0.0787, 0.0202,
-                                          0.1322, -0.4969, 0.1719, 0.0331, 0.0145]], dtype=torch.float32)
-        self.assertTrue(3.3496, npu_output.detach().cpu())
-        self.assertRtolEqual(expedt_cpu_xgrad, x.grad.cpu())
-     
-    @unittest.skip("skip test_npu_crossentropy_2 now")
+        expect_cpu_xgrad = torch.tensor([[0.0112, 0.0899, 0.0440, 0.0074, 0.0186, 0.1729, 0.0029, 0.0216,
+                                          0.1176, -0.4861],
+                                         [0.0085, 0.0152, 0.0744, -0.4912, 0.0107, 0.0108, 0.1520, 0.1491,
+                                          0.0457, 0.0246]], dtype=torch.float32)
+        self.assertRtolEqual(torch.tensor(3.8078), npu_output.detach().cpu())
+        self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu())
+
     def test_npu_crossentropy_2(self):
-        x = torch.randn(2, 10)
-        y = torch.randint(0, 10, size=(2,))
+        np.random.seed(234)
+        data1 = np.random.randn(2, 10)
+        x = torch.tensor(data1, dtype=torch.float32)
+        data2 = np.random.randint(low=0, high=10, size=(2,))
+        y = torch.tensor(data2, dtype=torch.float32)
 
         x = x.npu()
         y = y.npu()
@@ -51,12 +56,13 @@ class TestCrossentropy(TestCase):
         m = LabelSmoothingCrossEntropy(10, 0.1)
         npu_output = m(x, y)
         npu_output.backward()
-        expedt_cpu_xgrad = torch.tensor([[0.0410, 0.0261, 0.0557, 0.0160, 0.0639,
-                                          0.0793, 0.0298, 0.0200, -0.3517, 0.0199],
-                                        [0.0077, 0.0170, 0.0049, 0.0732, 0.0146,
-                                         0.1267, -0.4469, 0.1663, 0.0275, 0.0090]], dtype=torch.float32)
-        self.assertTrue(3.2760, npu_output.cpu())
-        self.assertRtolEqual(expedt_cpu_xgrad, x.grad.cpu())
+        expect_cpu_xgrad = torch.tensor([[6.6930e-02, 5.7021e-03, 3.9844e-02, 7.4777e-02, 2.3734e-02,
+                                          -4.1566e-03, 6.5645e-03, 7.5835e-02, -4.1660e-01, 1.2737e-01],
+                                         [1.4708e-02, 8.3806e-02, 4.2438e-03, 1.0031e-01, -4.3430e-04,
+                                          5.1546e-02, 1.3015e-01, 2.4124e-02, 2.7007e-02, -4.3545e-01]],
+                                        dtype=torch.float32)
+        self.assertRtolEqual(torch.tensor(3.0848), npu_output.cpu())
+        self.assertRtolEqual(expect_cpu_xgrad, x.grad.cpu())
 
 
 if __name__ == "__main__":
