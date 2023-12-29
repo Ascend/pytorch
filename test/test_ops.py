@@ -1398,10 +1398,10 @@ class TestFakeTensor(TestCase):
         self._test_fake_crossref_helper(device, dtype, op, torch.npu.amp.autocast)
 
 
-instantiate_device_type_tests(TestCommon, globals(), only_for='privateuseone')
-instantiate_device_type_tests(TestCompositeCompliance, globals(), only_for='privateuseone')
-instantiate_device_type_tests(TestMathBits, globals(), only_for='privateuseone')
-instantiate_device_type_tests(TestFakeTensor, globals(), only_for='privateuseone')
+instantiate_device_type_tests(TestCommon, globals(), only_for='privateuse1')
+instantiate_device_type_tests(TestCompositeCompliance, globals(), only_for='privateuse1')
+instantiate_device_type_tests(TestMathBits, globals(), only_for='privateuse1')
+instantiate_device_type_tests(TestFakeTensor, globals(), only_for='privateuse1')
 
 
 """
