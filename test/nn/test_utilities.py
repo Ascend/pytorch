@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import unittest
 
 import torch
 import torch.nn as nn
@@ -143,25 +142,23 @@ class TestUtilities(TestCase):
         expected_cpu_mbias_mask = torch.tensor([1., 1., 1.])
         self.assertEqual(expected_cpu_mbias_mask.numpy(), m.bias_mask.cpu().numpy())
 
-    @unittest.skip("skip test_prune_random_unstructured now")
     def test_prune_random_unstructured(self):
         m = nn.utils.prune.random_unstructured(nn.Linear(2, 3).npu(), 'weight', amount=1)
         output = torch.sum(m.weight_mask == 0)
-        expected_cpu_output = torch.tensor([0])
+        expected_cpu_output = torch.tensor([1])
         self.assertEqual(expected_cpu_output.numpy(), output.cpu().numpy())
 
     def test_prune_l1_unstructured(self):
         m = nn.utils.prune.l1_unstructured(nn.Linear(2, 3).npu(), 'weight', amount=0.2)
         output = m.state_dict().keys()
         self.assertEqual(m is not None, True)
-    
-    @unittest.skip("skip test_prune_random_structured now")
+
     def test_prune_random_structured(self):
         m = nn.utils.prune.random_structured(
             nn.Linear(5, 3).npu(), 'weight', amount=3, dim=1
         )
         columns_pruned = int(sum(torch.sum(m.weight, dim=0) == 0))
-        self.assertEqual(5, columns_pruned)
+        self.assertEqual(3, columns_pruned)
 
     def test_prune_ln_structured(self):
         m = prune.ln_structured(
