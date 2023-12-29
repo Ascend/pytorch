@@ -50,7 +50,6 @@ class TestVisionFunctions(TestCase):
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
 
-    @unittest.skip("skip test_upsample now")
     def test_upsample(self):
         input1 = torch.empty(3, 3, 4, 2)
         npu_input = input1.npu()
@@ -60,7 +59,6 @@ class TestVisionFunctions(TestCase):
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
 
-    @unittest.skip("skip test_upsample_nearest now")
     def test_upsample_nearest(self):
         input1 = torch.empty(3, 3, 4, 2)
         npu_input = input1.npu()
