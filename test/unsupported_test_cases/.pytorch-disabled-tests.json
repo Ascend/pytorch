@@ -4075,6 +4075,7 @@
   "test_view_tensor_vsplit_npu_bfloat16 (__main__.TestViewOpsPRIVATEUSE1)": ["", [""]],
   "test_view_tensor_vsplit_npu_complex128 (__main__.TestViewOpsPRIVATEUSE1)": ["", [""]],
   "test_view_tensor_vsplit_npu_complex64 (__main__.TestViewOpsPRIVATEUSE1)": ["", [""]],
+  "test_generate_tensor_from_list_of_numpy_primitive_type (__main__.MiscTests)": ["", [""]],
   "test_all_any_empty_npu (__main__.TestReductionsPRIVATEUSE1)": ["", [""]],
   "test_all_any_npu (__main__.TestReductionsPRIVATEUSE1)": ["", [""]],
   "test_all_any_vs_numpy_npu_complex128 (__main__.TestReductionsPRIVATEUSE1)": ["", [""]],
