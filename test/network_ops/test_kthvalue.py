@@ -1,5 +1,4 @@
 import random
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -85,7 +84,6 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    @unittest.skip("skip test_kthvalues_without_dim now")
     def test_kthvalues_without_dim(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.int32)
         k = self.generate_int_k(3)
@@ -128,9 +126,8 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    @unittest.skip("skip test_kthvalues_dimname_without_dim now")
     def test_kthvalues_dimname_without_dim(self, device="npu"):
-        x = self.generate_data(-100, 100, (3, 4, 5, 6), np.int32)
+        x = self.generate_data(-300, 300, (3, 4, 5, 6), np.int32)
         x.names = ['A', 'B', 'C', 'D']
         k = self.generate_int_k(3)
         keepdim = self.generate_bool_keepdim()
@@ -148,9 +145,8 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    @unittest.skip("skip test_kthvalues_dimname_out now")
     def test_kthvalues_dimname_out(self, device="npu"):
-        x = self.generate_data(-100, 100, (3, 4, 5, 6), np.int32)
+        x = self.generate_data(-300, 300, (3, 4, 5, 6), np.int32)
         x.names = ['A', 'B', 'C', 'D']
         k = self.generate_int_k(3)
         dim = 'C'
@@ -166,4 +162,5 @@ class TestKthvalues(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(123)
     run_tests()
