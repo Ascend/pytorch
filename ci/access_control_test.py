@@ -17,6 +17,7 @@ BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
 
 SLOW_TEST_BLOCKLIST = [
+    'test_ops',
     'test_modules',
     'test_binary_ufuncs',
     'test_ops_fwd_gradients',
@@ -246,9 +247,11 @@ def exec_ut(files):
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
 
     def get_ut_cmd(ut_type, ut_file):
-        cmd = [sys.executable, "run_test.py", "-v", "-e"] + SLOW_TEST_BLOCKLIST
+        cmd = [sys.executable, "run_test.py", "-v"]
         if ut_type == "op_ut_files":
-            return cmd + ["-i", "test_ops", "--", "-k", '_' + get_op_name(ut_file)]
+            # do not skip ops related test entries
+            SLOW_TEST_BLOCKLIST.remove("test_ops")
+            return cmd + ["-e"] + SLOW_TEST_BLOCKLIST + ["-i", "test_ops", "--", "-k", get_op_name(ut_file)]
         return cmd + ["-i", get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
@@ -267,7 +270,7 @@ def exec_ut(files):
         stdout_t.start()
 
     def print_subprocess_log(log_queue):
-        while (not log_queue.empty()):
+        while not log_queue.empty():
             print((log_queue.get()).strip())
 
     def run_cmd_with_timeout(cmd):
@@ -304,7 +307,9 @@ def exec_ut(files):
         for ut_type, ut_files in files.items():
             for ut_file in ut_files:
                 cmd = get_ut_cmd(ut_type, ut_file)
-                ut_info = " ".join(cmd[4:]).replace(" -- -k", "")
+                ut_info = str(cmd[-1])
+                if ut_type == "op_ut_files":
+                    ut_info = "test_ops " + ut_info
                 ret = run_cmd_with_timeout(cmd)
                 if ret:
                     has_failed = ret
