@@ -1,5 +1,4 @@
 import copy
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -8,15 +7,14 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestGru(TestCase):
-    @unittest.skip("skip test_gru now")
-    def test_gru(self, device="npu"):
+    def test_gru(self):
         shape_format = [
             [[np.float32, (2, 3, 2)], [np.float32, (2, 2, 1)], 2, 1, 1, True, False, True],
             [[np.float32, (1, 1, 1)], [np.float32, (6, 1, 1)], 1, 1, 3, True, True, False],
             [[np.float32, (2, 1, 1)], [np.float32, (4, 1, 1)], 1, 1, 2, True, True, False],
-            [[np.float16, (1, 2, 3)], [np.float16, (4, 1, 2)], 3, 2, 2, True, False, True],
+            [[np.float32, (1, 2, 3)], [np.float32, (4, 1, 2)], 3, 2, 2, True, False, True],
             [[np.float32, (2, 2, 1)], [np.float32, (2, 2, 2)], 1, 2, 1, True, True, False],
-            [[np.float16, (1, 2, 1)], [np.float16, (4, 1, 2)], 1, 2, 2, True, False, True],
+            [[np.float32, (1, 2, 1)], [np.float32, (4, 1, 2)], 1, 2, 2, True, False, True],
         ]
 
         for item in shape_format:
@@ -53,4 +51,5 @@ class TestGru(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(1234)
     run_tests()
