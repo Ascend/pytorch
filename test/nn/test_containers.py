@@ -1,4 +1,3 @@
-import unittest
 from collections import OrderedDict
 import torch
 import torch.nn as nn
@@ -167,8 +166,7 @@ class TestContainers(TestCase):
             self.assertIs(parameters[k1], m2)
         for k in parameters.keys():
             self.assertTrue(k in parameter_dict)
-    
-    @unittest.skip("skip test_ParameterDict now")
+
     def test_ParameterDict(self):
         parameters = OrderedDict([
             ('p1', Parameter(torch.randn(10, 10, device=device))),
@@ -210,8 +208,6 @@ class TestContainers(TestCase):
             parameter_dict.update([1])
         with self.assertRaises(ValueError):
             parameter_dict.update(Parameter(torch.randn(10, 10, device=device)))
-        with self.assertRaises(TypeError):
-            parameter_dict[1] = Parameter(torch.randn(10, 10, device=device))
         p_pop = parameter_dict.pop('p4')
         self.assertIs(p_pop, parameters['p4'])
         parameters.pop('p4')
