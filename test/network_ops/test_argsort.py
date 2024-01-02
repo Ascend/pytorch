@@ -1,8 +1,7 @@
-import unittest
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -25,8 +24,7 @@ class TestArgSort(TestCase):
         output = torch.argsort(input1)
         return output.cpu().numpy()
 
-    @unittest.skip("skip test_sort_shape_format_fp32 now")
-    def test_sort_shape_format_fp32(self, device="npu"):
+    def test_sort_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 0, (8, 4, 3, 9)], 2, False],
             [[np.float32, 0, (2, 3)]],
@@ -44,7 +42,7 @@ class TestArgSort(TestCase):
                 npu_output = self.npu_default_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_sort_shape_format_fp16(self, device="npu"):
+    def test_sort_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, (8, 4, 3, 9)], 2, False],
             [[np.float16, 0, (2, 3)]],

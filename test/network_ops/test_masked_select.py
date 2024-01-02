@@ -1,4 +1,3 @@
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -43,7 +42,6 @@ class TestMaskedSelect(TestCase):
         output = torch.masked_select(input1, mask, out=output)
         return output.detach().to("cpu").numpy()
 
-    @unittest.skip("skip test_maskedselect_out_result now")
     def test_maskedselect_out_result(self):
         shape_format = [
             [[np.float16, 2, [15, 15, 15, 16]], [np.float16, 2, [15, 15, 15, 16]]],
@@ -109,16 +107,6 @@ class TestMaskedSelect(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input, mask)
             npu_output = self.npu_op_exec(npu_input, mask)
             self.assertRtolEqual(cpu_output, npu_output)
-
-    @unittest.skip("skip test_maskedselect_case_in_gaitset now")
-    def test_maskedselect_case_in_gaitset(self):
-        cpu_in = torch.rand(1015808)
-        npu_in = cpu_in.npu()
-        cpu_mask = (torch.randn(1015808) > 0).byte()
-        npu_mask = cpu_mask.npu()
-        cpu_out = torch.masked_select(cpu_in, cpu_mask)
-        npu_out = torch.masked_select(npu_in, npu_mask)
-        self.assertRtolEqual(cpu_out, npu_out.cpu())
 
     def test_maskedselect_shape_mask_nobroadcast(self):
         cpu_input = torch.randn(2, 4, 1, 5)
