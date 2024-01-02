@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -75,7 +74,6 @@ class TestLog2(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_log2_shape_format_fp16 now")
     def test_log2_shape_format_fp16(self):
         format_list = [0, 3]
         shape_list = [(4, 4)]
@@ -144,4 +142,5 @@ class TestLog2(TestCase):
 
 
 if __name__ == '__main__':
+    np.random.seed(100)
     run_tests()

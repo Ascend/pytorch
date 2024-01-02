@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -54,21 +53,20 @@ class TestLayerNorm(TestCase):
         grad_weight = m.weight.grad.cpu().detach().numpy()
         return grad_output, grad_weight, grad_bias
 
-    @unittest.skip("skip test_layernorm_shape_format now")
     def test_layernorm_shape_format(self, device="npu"):
         shape_format = [
-            [np.float32, 3, [256, 32, 112, 112]],
-            [np.float16, 3, [256, 672, 7, 7]],
-            [np.float16, 3, [256, 288, 14, 14]],
-            [np.float16, 3, [1024, 58, 28, 28]],
-            [np.float16, 3, [1024, 116, 14, 14]],
-            [np.float16, 3, [1024, 24, 112, 112]],
-            [np.float16, 0, [1024, 58, 56, 56]],
-            [np.float16, 0, [1024, 58, 56, 56]],
-            [np.float16, 2, [1024, 24, 28, 28]],
-            [np.float16, 2, [1024, 116, 28, 28]],
-            [np.float16, 29, [1024, 232, 7, 7]],
-            [np.float16, 29, [1024, 232, 14, 14]],
+            [np.float32, 3, [1, 32, 11, 112]],
+            [np.float16, 3, [1, 67, 7, 7]],
+            [np.float16, 3, [1, 88, 14, 14]],
+            [np.float16, 3, [1, 58, 28, 28]],
+            [np.float16, 3, [1, 116, 14, 14]],
+            [np.float16, 3, [1, 24, 11, 112]],
+            [np.float16, 0, [1, 8, 56, 56]],
+            [np.float16, 0, [1, 8, 56, 56]],
+            [np.float16, 2, [1, 24, 28, 28]],
+            [np.float16, 2, [1, 16, 28, 28]],
+            [np.float16, 29, [1, 232, 7, 7]],
+            [np.float16, 29, [1, 23, 14, 14]],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 1, 100)
@@ -90,4 +88,5 @@ class TestLayerNorm(TestCase):
 
 
 if __name__ == "__main__":
+    np.random.seed(20)
     run_tests()
