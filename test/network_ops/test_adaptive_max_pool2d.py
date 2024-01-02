@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -33,6 +34,7 @@ class TestAdaptiveMaxPool2d(TestCase):
         return output.cpu().numpy()
 
     def test_adaptiveMaxPool2d_shape_format_fp32_6(self):
+        np.random.seed(1234)
         format_list = [-1]
         # (1, 8, 9) IndexError
         shape_list = [(1, 5, 9, 9)]

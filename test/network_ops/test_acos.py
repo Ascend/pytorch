@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+
 import torch
 import numpy as np
 
@@ -32,7 +32,7 @@ class TestAcos(TestCase):
         output = output.numpy()
         return output
 
-    def test_acos_common_shape_format(self, device="npu"):
+    def test_acos_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, 1]],
             [[np.float32, -1, (64, 10)]],
@@ -44,8 +44,7 @@ class TestAcos(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skip("skip test_acos_float16_shape_format now")
-    def test_acos_float16_shape_format(self, device="npu"):
+    def test_acos_float16_shape_format(self):
         def cpu_op_exec_fp16(input_para):
             input_para = input_para.to(torch.float32)
             output = torch.acos(input_para)

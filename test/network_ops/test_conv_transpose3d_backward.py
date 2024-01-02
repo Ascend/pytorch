@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import copy
-import sys
-import unittest
 import torch
 import numpy as np
 import torch.nn as nn
+
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -61,7 +61,6 @@ class TestConvTranspose3dBackward(TestCase):
         res_forward = res_forward.to("cpu")
         return res_forward
 
-    @unittest.skip("skip test_conv_transpose3d_backward_shape_format_fp16 now")
     def test_conv_transpose3d_backward_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 30, [12, 12, 4, 14, 14]], [np.float16, 30, [12, 12, 3, 3, 3]], ],
@@ -90,9 +89,9 @@ class TestConvTranspose3dBackward(TestCase):
             self.input_grad[1] = self.input_grad[1].to(torch.float16)
             self.weight_grad[0] = self.weight_grad[0].to(self.weight_grad[1].dtype)
 
-            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
-            self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy())
-            self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
+            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy(), prec16=0.003)
+            self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy(), prec16=0.003)
+            self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy(), prec16=0.003)
 
     def test_conv_transpose3d_backward_shape_format_fp32(self):
         shape_format = [

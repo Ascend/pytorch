@@ -15,7 +15,6 @@
 # limitations under the License.
 
 
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -60,7 +59,6 @@ class TestMaskedSelect(TestCase):
         output = torch.masked_select(input1, mask, out=output)
         return output.detach().to("cpu").numpy()
 
-    @unittest.skip("skip test_maskedselect_out_result now")
     def test_maskedselect_out_result(self):
         shape_format = [
             [[np.float16, 2, [15, 15, 15, 16]], [np.float16, 2, [15, 15, 15, 16]]],
