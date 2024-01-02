@@ -1,4 +1,3 @@
-import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -53,7 +52,6 @@ class TestNorm(TestCase):
         npu_out = self.npu_dtype_out_exec(npu_input, float("-inf"), [1, 2], False, torch.float)
         self.assertRtolEqual(cpu_out, npu_out)
 
-    @unittest.skip("skip test_norm_shape_format now")
     def test_norm_shape_format(self):
         shape_format = [
             [[np.float32, 0, (64, 64, 64, 64)]],

@@ -1,14 +1,15 @@
-import unittest
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
+torch.npu.set_compile_mode(jit_compile=False)
+torch.npu.config.allow_internal_format = False
+
 
 class TestUnique2(TestCase):
 
-    @unittest.skip("skip test_unique2 now")
     def test_unique2(self):
         shape_format = [
             [[np.uint8, (2, 3)], True, True, True],
@@ -18,12 +19,12 @@ class TestUnique2(TestCase):
             [[np.int64, (2, 3)], True, True, False],
             [[np.int64, (5, 3)], True, False, True],
             [[np.int64, (2, 3, 4)], True, False, False],
-            [[np.int64, (3, 3)], False, True, True],
-            [[np.int64, (2, 3)], False, False, False],
+            [[np.int64, (3, 3)], True, True, True],
+            [[np.int64, (2, 3)], True, False, False],
             [[np.float32, (2, 3)], True, False, False],
             [[np.bool_, (2, 3)], True, True, True],
             [[np.float16, (2, 3)], True, True, True],
-            [[np.float16, (208, 3136, 19, 5)], False, False, True]
+            [[np.float16, (208, 3136, 19, 5)], True, False, True]
         ]
 
         for item in shape_format:
