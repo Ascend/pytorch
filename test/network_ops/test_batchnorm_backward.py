@@ -1,9 +1,8 @@
 import copy
-import unittest
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
@@ -270,11 +269,10 @@ class TestBatchNorm(TestCase):
             self.assertRtolEqual(cpu_weight_grad, npu_weight_grad, 1e-2)
             self.assertRtolEqual(cpu_bias_grad, npu_bias_grad)
 
-    @unittest.skip("skip test_BatchNorm3D_float16 now")
     def test_BatchNorm3D_float16(self):
         np.random.seed(1234)
         format_list = [-1]
-        shape_list = [[8, 512, 4, 28, 28], [8, 256, 8, 56, 56]]
+        shape_list = [[8, 512, 4, 28, 28], [2, 256, 8, 16, 56]]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
         ]
