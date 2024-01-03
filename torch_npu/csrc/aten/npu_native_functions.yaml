@@ -80,6 +80,7 @@ custom:
   - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
     exposed: True
   - func: get_storage_size(Tensor self) -> int
+  - func: get_storage_base_nbytes(Tensor self) -> int
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
     exposed: True
   - func: _npu_format_cast(Tensor self, int acl_format) -> Tensor
