@@ -15,6 +15,7 @@
 
 import unittest
 import os
+import json
 
 import torch
 
@@ -64,6 +65,8 @@ class TestNpuProfiler(TestCase):
     OPERATOR_FILE_NAME = "operator_details.csv"
     OPERATOR_MEMORY = "operator_memory.csv"
     MEMORY_RECORD = "memory_record.csv"
+    STACK_FILE_NAME = "profiler_stacks.log"
+    METADATA_FILE_NAME = "profiler_metadata.json"
     results_path = "./results"
     results_work_path = "./work_result_path"
     model_train = TrainModel()
@@ -81,6 +84,8 @@ class TestNpuProfiler(TestCase):
     def tearDownClass(cls):
         if os.path.exists(TestNpuProfiler.results_path):
             PathManager.remove_path_safety(TestNpuProfiler.results_path)
+        if os.path.exists(TestNpuProfiler.results_work_path):
+            PathManager.remove_path_safety(TestNpuProfiler.results_work_path)
 
     @unittest.skip("skip test_default_profiler now")
     def test_default_profiler(self):
@@ -90,23 +95,25 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
-        # self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["async_npu"]))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        # self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
 
     def test_start_stop_profiler(self):
         worker_name = self.worker_name
         prof = torch_npu.profiler.profile(
+            schedule=torch_npu.profiler.schedule(wait=0, warmup=1, active=1, repeat=1, skip_first=2),
             on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name))
-        for step in range(self.small_steps):
-            prof.start()
+        prof.start()
+        for step in range(self.large_steps):
             self.model_train.train_one_step()
-            prof.stop()
-        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
-        # self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["async_npu"]))
+            prof.step()
+        prof.stop()
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        # self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
 
     def test_activities_cpu(self):
         worker_name = self.worker_name
@@ -116,10 +123,10 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(False, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["async_npu"]))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(False, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(False, self._check_trace_view_keywords(self.results_path, worker_name, ["async_npu"]))
 
     def test_activities_npu(self):
         worker_name = self.worker_name
@@ -130,8 +137,8 @@ class TestNpuProfiler(TestCase):
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
         # self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(False, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(False, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
         # self.assertEqual(False, self._check_trace_view_keywords(worker_name, ["async_npu"]))
 
     def test_record_shapes(self):
@@ -142,10 +149,10 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["Input Dims", "Input type"]))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["Input Dims", "Input type"]))
 
     def test_with_stack(self):
         worker_name = self.worker_name
@@ -155,10 +162,10 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True, self._check_trace_view_keywords(worker_name, ["Call stack"]))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["Call stack"]))
 
     def test_schedule(self):
         worker_name = self.worker_name
@@ -169,16 +176,19 @@ class TestNpuProfiler(TestCase):
             for step in range(self.large_steps):
                 self.model_train.train_one_step()
                 prof.step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.TRACE_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.KERNEL_FILE_NAME))
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
 
     def test_export_chrome_trace(self):
-        trace_path = f"{self.results_path}/chrome_trace.json"
+        PathManager.remove_path_safety(self.results_work_path)
+        os.environ["ASCEND_WORK_PATH"] = self.results_work_path
+        trace_path = f"{self.results_work_path}/chrome_trace.json"
         with torch_npu.profiler.profile() as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
         prof.export_chrome_trace(trace_path)
+        os.environ["ASCEND_WORK_PATH"] = ""
         self.assertEqual(True, os.path.isfile(trace_path))
 
     def test_memory_view(self):
@@ -189,10 +199,11 @@ class TestNpuProfiler(TestCase):
         ) as prof:
             for step in range(self.small_steps):
                 self.model_train.train_one_step()
-        self.assertEqual(True, self._has_view_result(worker_name, self.OPERATOR_MEMORY))
-        self.assertEqual(True, self._has_view_result(worker_name, self.MEMORY_RECORD))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_MEMORY))
+        self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.MEMORY_RECORD))
 
     def test_ascend_work_path(self):
+        PathManager.remove_path_safety(self.results_work_path)
         os.environ["ASCEND_WORK_PATH"] = self.results_work_path
         with torch_npu.profiler.profile(
                 on_trace_ready=torch_npu.profiler.tensorboard_trace_handler()
@@ -203,23 +214,113 @@ class TestNpuProfiler(TestCase):
         os.environ["ASCEND_WORK_PATH"] = ""
         self.assertEqual(True, os.path.exists(os.path.join(self.results_work_path, "profiling_data")))
 
-    def _get_tensorboard_output(self, worker_name: str) -> str:
-        sub_dirs = os.listdir(os.path.realpath(self.results_path))
+    def test_add_metadata(self):
+        worker_name = self.worker_name
+        with torch_npu.profiler.profile(
+                on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.results_path, worker_name=worker_name)
+        ) as prof:
+            for step in range(self.small_steps):
+                self.model_train.train_one_step()
+                prof.add_metadata("test_key1", "test_val1")
+                prof.add_metadata_json("test_key2", "[1,2, 3]")
+        works = os.listdir(self.results_path)
+        work_name = None
+        for work in works:
+            if worker_name in work:
+                work_name = work
+                break
+        self.assertEqual(False, work_name is None)
+        fw_path = os.path.join(self.results_path, work_name)
+        fname = os.path.join(fw_path, self.METADATA_FILE_NAME)
+        with open(fname) as fp:
+            data = json.load(fp)
+        has_key1 = "test_key1" in data
+        has_key2 = "test_key2" in data
+        match_val1 = data["test_key1"] == "test_val1"
+        match_val2 = data["test_key2"] == [1, 2, 3]
+        self.assertEqual(True, has_key1)
+        self.assertEqual(True, has_key2)
+        self.assertEqual(True, match_val1)
+        self.assertEqual(True, match_val2)
+
+    def test_export_stacks(self):
+        PathManager.remove_path_safety(self.results_work_path)
+        os.environ["ASCEND_WORK_PATH"] = self.results_work_path
+        with torch_npu.profiler.profile(
+            with_stack=True
+        ) as prof:
+            for step in range(self.small_steps):
+                self.model_train.train_one_step()
+        stack_path = os.path.join(self.results_work_path, self.STACK_FILE_NAME)
+        PathManager.remove_path_safety(stack_path)
+        prof.export_stacks(stack_path)
+        os.environ["ASCEND_WORK_PATH"] = ""
+        with open(stack_path) as fp:
+            lines = fp.readlines()
+        not_empty = len(lines) > 0
+        self.assertEqual(True, not_empty)
+        for line in lines:
+            is_int = False
+            try:
+                metrics = int(line.split(" ")[-1])
+                is_int = True
+            except ValueError:
+                pass
+            self.assertEqual(True, is_int)
+            self.assertEqual(True, metrics > 0)
+
+    def test_kineto_start_stop(self):
+        PathManager.remove_path_safety(self.results_work_path)
+        os.environ["ASCEND_WORK_PATH"] = self.results_work_path
+        prof = torch_npu.profiler._KinetoProfile(with_stack=True)
+        prof.start()
+        self.model_train.train_one_step()
+        prof.stop()
+        stack_path = os.path.join(self.results_work_path, self.STACK_FILE_NAME)
+        trace_path = os.path.join(self.results_work_path, self.TRACE_FILE_NAME)
+        PathManager.remove_path_safety(stack_path)
+        PathManager.remove_path_safety(trace_path)
+        prof.export_stacks(stack_path)
+        prof.export_chrome_trace(trace_path)
+        os.environ["ASCEND_WORK_PATH"] = ""
+        self.assertEqual(True, os.path.isfile(stack_path))
+        self.assertEqual(True, os.path.isfile(trace_path))
+
+    def test_offline_analyse(self):
+        PathManager.remove_path_safety(self.results_work_path)
+        os.environ["ASCEND_WORK_PATH"] = self.results_work_path
+        prof = torch_npu.profiler._KinetoProfile()
+        prof.start()
+        self.model_train.train_one_step()
+        prof.stop()
+        result_dir = os.path.join(self.results_work_path, "profiling_data")
+        torch_npu.profiler.profiler.analyse(result_dir)
+        work_names = os.listdir(result_dir)
+        os.environ["ASCEND_WORK_PATH"] = ""
+        # only one device
+        valid_work_name = len(work_names) == 1 and work_names[0].endswith("ascend_pt")
+        self.assertEqual(True, valid_work_name)
+        self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.TRACE_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.KERNEL_FILE_NAME))
+        self.assertEqual(True, self._has_view_result(result_dir, work_names[0], self.OPERATOR_FILE_NAME))
+
+    def _get_tensorboard_output(self, dir_name: str, worker_name: str) -> str:
+        sub_dirs = os.listdir(os.path.realpath(dir_name))
         for sub_dir in sub_dirs:
             if sub_dir.find(worker_name) != -1:
-                return os.path.join(self.results_path, sub_dir, "ASCEND_PROFILER_OUTPUT")
+                return os.path.join(dir_name, sub_dir, "ASCEND_PROFILER_OUTPUT")
         return ""
 
-    def _has_view_result(self, worker_name: str, view_name: str) -> bool:
-        output_path = self._get_tensorboard_output(worker_name)
+    def _has_view_result(self, dir_name: str, worker_name: str, view_name: str) -> bool:
+        output_path = self._get_tensorboard_output(dir_name, worker_name)
         if os.path.isdir(output_path):
             return os.path.isfile(os.path.join(output_path, view_name))
         return False
 
-    def _check_trace_view_keywords(self, worker_name: str, keywords: list) -> bool:
-        if not self._has_view_result(worker_name, self.TRACE_FILE_NAME):
+    def _check_trace_view_keywords(self, dir_name: str, worker_name: str, keywords: list) -> bool:
+        if not self._has_view_result(dir_name, worker_name, self.TRACE_FILE_NAME):
             return False
-        trace_path = os.path.realpath(os.path.join(self._get_tensorboard_output(worker_name), self.TRACE_FILE_NAME))
+        trace_path = os.path.realpath(os.path.join(self._get_tensorboard_output(dir_name, worker_name), self.TRACE_FILE_NAME))
         file_size = os.path.getsize(trace_path)
         if file_size <= 0:
             return False
