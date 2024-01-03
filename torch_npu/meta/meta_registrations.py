@@ -166,7 +166,7 @@ def npu_mm_all_reduce_base_forward(self, x2, hcom, reduce_op='sum', bias=None, c
 
 
 @impl(m, "npu_weight_quant_batchmatmul")
-def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None):
+def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None, antiquant_group_size=0):
     dim_m = x.size(0)
     dim_n = weight.size(1)
     if quant_scale is not None:
