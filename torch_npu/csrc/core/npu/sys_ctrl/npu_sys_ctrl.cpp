@@ -224,7 +224,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
-    NPU_CHECK_ERROR(aclrtResetDevice(pre_device));
     NPU_CHECK_ERROR(c10_npu::SetDevice(device));
     device_id_ = device;
     aclrtGetCurrentContext(&ctx_);
@@ -251,11 +250,11 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
 
     this->RegisterReleaseFn([=]() ->void {
-          c10_npu::NPUEventManager::GetInstance().ClearEvent();
-          auto stream = c10_npu::getCurrentNPUStream();
-          NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
-          NPU_CHECK_WARN(aclrtResetDevice(device_id_));
-          NPU_CHECK_WARN(aclFinalize());
+        c10_npu::NPUEventManager::GetInstance().ClearEvent();
+        auto stream = c10_npu::getCurrentNPUStream();
+        NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+        NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
+        NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;

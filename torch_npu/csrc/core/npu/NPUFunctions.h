@@ -60,6 +60,15 @@ C10_NPU_API aclError GetDevice(int32_t *device);
  */
 C10_NPU_API aclError SetDevice(c10::DeviceIndex device);
 
+/**
+ * @ingroup torch_npu
+ * @brief reset all device id by ACL interface: aclrtResetDevice.
+ *
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+C10_NPU_API aclError ResetUsedDevices();
+
 C10_NPU_API inline c10::DeviceIndex current_device() {
   int cur_device = 0;
   NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
