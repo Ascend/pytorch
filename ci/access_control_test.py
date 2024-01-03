@@ -16,6 +16,7 @@ from torch_npu.utils.path_manager import PathManager
 BASE_DIR = Path(__file__).absolute().parent.parent
 TEST_DIR = BASE_DIR / 'test'
 
+# Add slow test cases here (first element must be test_ops)
 SLOW_TEST_BLOCKLIST = [
     'test_ops',
     'test_modules',
@@ -250,8 +251,7 @@ def exec_ut(files):
         cmd = [sys.executable, "run_test.py", "-v"]
         if ut_type == "op_ut_files":
             # do not skip ops related test entries
-            SLOW_TEST_BLOCKLIST.remove("test_ops")
-            return cmd + ["-e"] + SLOW_TEST_BLOCKLIST + ["-i", "test_ops", "--", "-k", get_op_name(ut_file)]
+            return cmd + ["-e"] + SLOW_TEST_BLOCKLIST[1:] + ["-i", "test_ops", "--", "-k", get_op_name(ut_file)]
         return cmd + ["-i", get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
