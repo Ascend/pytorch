@@ -1249,6 +1249,27 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `WeightQuantBatchmatmul` is only supported on 910B, skip this ut!")        
+    def test_wrapper_npu_weight_quant_batchmatmul(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, weight, antiquant_scale, antiquant_offset, quant_scale, quant_offset, bias):
+                return torch_npu.npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset, quant_scale, quant_offset, bias)
+
+        def export_onnx(onnx_model_name):
+            x = torch.randn((8192, 320), dtype=torch.bfloat16).npu()
+            weight = torch.randn((320, 256), dtype=torch.int8).npu()
+            antiquantscale = torch.randn((1, 256), dtype=torch.bfloat16).npu()
+            antiquantoffset = torch.randn((1, 256), dtype=torch.bfloat16).npu()
+            model = Model().to("npu")
+            model(x, weight, antiquantscale, antiquantoffset, None, None, None)
+            self.onnx_export(model, (x, weight, antiquantscale, antiquantoffset, None, None, None), onnx_model_name)
+
+        onnx_model_name = "model_npu_weight_quant_batchmatmul.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
 if __name__ == '__main__':
     run_tests()
