@@ -4,7 +4,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <unordered_set>
 #include <functional>
 #include "c10/macros/Export.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -58,7 +57,7 @@ public:
 
      int InitializedDeviceID();
 
-     aclrtContext InitializedContext(int device_index);
+     aclrtContext InitializedContext();
 
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
@@ -72,9 +71,8 @@ private:
     bool init_flag_;
     int device_id_;
     uint32_t device_count_;
-    aclrtContext ctx_[C10_COMPILE_TIME_MAX_NPUS] = {nullptr};
+    aclrtContext ctx_ = nullptr;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
-    std::unordered_set<int> used_devices;
 };
 } // namespace c10_npu
 
