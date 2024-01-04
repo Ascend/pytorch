@@ -16,7 +16,6 @@
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
@@ -96,7 +95,6 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(!c10::pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
-  c10_npu::NPUGuard guard(device_);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
   int64_t nelements = c10::multiply_integers(size);
   auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
@@ -272,7 +270,6 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(!c10::pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
-  c10_npu::NPUGuard guard(device_);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
   // when the shape and format are not match, fix format here.
   aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
@@ -327,7 +324,6 @@ at::Tensor empty_with_format_npu(c10::IntArrayRef size,
   torch_npu::utils::maybe_initialize_npu(options);
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
-  c10_npu::NPUGuard guard(c10::device_or_default(options.device_opt()));
   static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
   // when the shape and format are not match, fix format here.
   aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);

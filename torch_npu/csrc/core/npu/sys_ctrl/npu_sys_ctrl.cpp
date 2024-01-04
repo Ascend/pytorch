@@ -186,8 +186,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
     }
 
-    used_devices.insert(device_id_);
-    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[device_id_]));
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
@@ -227,16 +226,13 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
     NPU_CHECK_ERROR(c10_npu::SetDevice(device));
-    used_devices.insert(pre_device);
-    used_devices.insert(device);
     device_id_ = device;
-    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_[device_id_]));
+    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
     return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::BackwardsInit() {
     NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
-    used_devices.insert(device_id_);
     return INIT_SUCC;
 }
 
@@ -258,9 +254,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         c10_npu::NPUEventManager::GetInstance().ClearEvent();
         auto stream = c10_npu::getCurrentNPUStream();
         NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
-        for (const auto i : used_devices) {
-            NPU_CHECK_WARN(aclrtResetDevice(i));
-        }
+        NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
         NPU_CHECK_WARN(aclFinalize());
         }, ReleasePriority::PriorityLast);
 
@@ -296,10 +290,10 @@ int NpuSysCtrl::InitializedDeviceID()
     return -1;
 }
 
-aclrtContext NpuSysCtrl::InitializedContext(int device_index)
+aclrtContext NpuSysCtrl::InitializedContext()
 {
     if (GetInitFlag()) {
-        return ctx_[device_index];
+        return ctx_;
     }
     TORCH_CHECK(false, "no npu device context has been initialized!");
     return nullptr;
