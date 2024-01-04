@@ -1824,7 +1824,7 @@ class DeviceCachingAllocator {
   void insert_events(Block* block) {
     aclrtContext compiler_ctx = aclrtContext();
     aclError ret_ctx = aclrtGetCurrentContext(&compiler_ctx);
-    NPU_CHECK_ERROR(aclrtSetCurrentContext(c10_npu::NpuSysCtrl::GetInstance().InitializedContext(block->device)));
+    NPU_CHECK_ERROR(aclrtSetCurrentContext(c10_npu::NpuSysCtrl::GetInstance().InitializedContext()));
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
