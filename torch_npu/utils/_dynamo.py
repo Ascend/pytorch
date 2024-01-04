@@ -75,7 +75,7 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
     return cls.__new__raw(cls)
 
 
-def SkipFilesVariable__new__(cls, value, reason, **kwargs):
+def SkipFilesVariable__new__(cls, value, reason=None, **kwargs):
     if value in [
         torch.npu.stream,
         torch_npu.npu.stream,
