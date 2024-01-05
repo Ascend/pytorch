@@ -15,6 +15,7 @@
 import unittest
 import contextlib
 import collections
+import multiprocessing
 
 import torch
 import torch_npu
@@ -254,6 +255,23 @@ class TorchNPUApiTestCase(TestCase):
     def test_npu_get_aclnn_version(self):
         res = torch_npu.npu.aclnn.version()
         self.assertEqual(res, None)
+
+    def test_lazy_init(self):
+        def run(queue):
+            try:
+                a = torch.tensor([2]).to('npu:0')
+            except Exception as e:
+                queue.put(e)
+
+        option = {"MM_BMM_ND_ENABLE": "disable"}
+        torch_npu.npu.set_option(option)
+        with self.assertRaisesRegex(RuntimeError, "Cannot re-initialize NPU in forked subprocess"):
+            result_queue = multiprocessing.Queue()
+            p = multiprocessing.Process(target=run, args=(result_queue,))
+            p.start()
+            p.join(timeout=100)
+            if not result_queue.empty():
+                raise result_queue.get()
 
 
 if __name__ == "__main__":
