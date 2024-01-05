@@ -1415,6 +1415,15 @@ class TestNpuRmsNorm(TestCase):
             self.assertEqual(dw.device, npu_gamma.device)
 
 
+class TestFFN(TestCase):
+    def test_npu_ffn_meta(self):
+        with FakeTensorMode():
+            x = torch.randn(1, 320, dtype=torch.float16).npu()
+            w1 = torch.randn(320, 2560, dtype=torch.float16).npu()
+            w2 = torch.randn(2560, 320, dtype=torch.float16).npu()
+            activation = "gelu"
+            res = torch_npu.npu_ffn(x, w1, w2, activation, inner_precise=1)
+            self.assertTrue(x.shape == res.shape)
 
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
