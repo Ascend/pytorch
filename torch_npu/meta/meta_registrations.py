@@ -141,7 +141,9 @@ def npu_masked_softmax_with_rel_pos_bias_meta(x, atten_mask, relative_pos_bias, 
 
 
 @impl(m, "npu_ffn")
-def npu_ffn_meta(x, weight1, weight2, activation, expert_tokens=None, bias1=None, bias2=None, inner_precise=0):
+def npu_ffn_meta(x, weight1, weight2, activation, *, expert_tokens=None, bias1=None, bias2=None, scale=None,
+                 offset=None, deq_scale1=None, deq_scale2=None, antiquant_scale1=None, antiquant_scale2=None,
+                 antiquant_offset1=None, antiquant_offset2=None, inner_precise=0):
     dim_list = []
     for i in range(0, x.dim() - 1):
         dim_list.append(x.size(i))
