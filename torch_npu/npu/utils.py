@@ -120,7 +120,7 @@ def _after_fork(arg):
     if _initialized and _original_pid != os.getpid():
         _initialized = False
         _in_bad_fork = True
-        torch._C._npu_set_run_yet_variable_to_false()
+        torch_npu._C._npu_set_run_yet_variable_to_false()
 
 
 _register_after_fork(_after_fork, _after_fork)
