@@ -207,3 +207,26 @@ def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offs
     if quant_scale is not None:
         return x.new_empty((dimm, dimn), dtype=torch.int8)
     return x.new_empty((dimm, dimn), dtype=x.dtype)
+
+
+@impl(m, "npu_quant_matmul")
+def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None):
+    x1_dim_num = x1.dim()
+    x2_dim_num = x2.dim()
+    out_dim_num = max(x1_dim_num, x2_dim_num)
+    shape_long = x1 if x1_dim_num > x2_dim_num else x2
+    shape_short = x2 if x1_dim_num > x2_dim_num else x1
+    vaild_offset = out_dim_num - min(x1_dim_num, x2_dim_num)
+    dim_list = []
+    for i in range(0, out_dim_num - 2):
+        short_dim = 1 if i < vaild_offset else shape_short.size(i - vaild_offset)
+        long_dim = shape_long.size(i)
+        cur_batch_val = max(short_dim, long_dim)
+        dim_list.append(cur_batch_val)
+    dimm = x1.size(x1.dim() - 2)
+    dimn = x2.size(x2.dim() - 1)
+    dim_list.append(dimm)
+    dim_list.append(dimn)
+    if offset is None:
+        return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
+    return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
