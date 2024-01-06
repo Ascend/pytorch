@@ -221,8 +221,9 @@ def _get_npu_save_result(
 
     def npu_nbytes(self):
         if self.device.type != 'cpu':
-            src_tensor = torch_npu._C._tensor_construct_from_storage(self)
-            return torch_npu.get_storage_base_nbytes(src_tensor)
+            storage_tensor = torch_npu._C._tensor_construct_from_storage(self)
+            base_nbytes = storage_tensor.size().numel() * storage_tensor.element_size()
+            return base_nbytes
         else:
             return cpu_nbytes(self)
 
