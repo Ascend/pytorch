@@ -197,3 +197,12 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None):
     if offset is None:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
     return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
+
+
+@impl(m, "npu_trans_quant_param")
+def npu_trans_quant_param_meta(scale, offset=None):
+    dim_max = scale.size(0)
+    if offset is not None:
+        dim_offset = offset.size(0)
+        dim_max = max(dim_max, dim_offset)
+    return scale.new_empty((dim_max), dtype=torch.int64)
