@@ -221,6 +221,13 @@ def generate_dbg_files_and_strip():
                                 str(dbg_dir.joinpath(library_file.name)) + ".debug"], cwd=BASE_DIR)  # Compliant
 
 
+def patchelf_dynamic_library():
+    library_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu/lib")
+    library_files = [str(i) for i in library_dir.rglob('*.so')]
+    for library_file in library_files:
+        subprocess.check_call(["patchelf", "--remove-needed", "libgomp.so.1", library_file], cwd=BASE_DIR)  # Compliant
+
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -437,6 +444,9 @@ class PythonPackageBuild(build_py, object):
 
 class BdistWheelBuild(bdist_wheel):
     def run(self):
+        if which('patchelf') is not None:
+            patchelf_dynamic_library()
+
         if which('eu-strip') is not None:
             generate_dbg_files_and_strip()
 
