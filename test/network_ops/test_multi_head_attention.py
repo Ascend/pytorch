@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -44,6 +43,27 @@ class MatmulApply(torch.autograd.Function):
 
 def Matmul_transpose(tensor1, tensor2):
     return MatmulApply.apply(tensor1, tensor2)
+
+
+class DropoutApply(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input1, prob):
+        attn_probs, dropout_mask = torch_npu._npu_dropout(input1, prob)
+        ctx.save_for_backward(dropout_mask)
+        ctx.prob = prob
+        return attn_probs, dropout_mask
+
+    @staticmethod
+    def backward(ctx, grad1, grad2):
+        prob = ctx.prob
+        grad1_nz = torch_npu.npu_format_cast(grad1, FORMAT_NZ)
+        mask = ctx.saved_tensors[0]
+        attn_probs, dropout_mask = torch_npu.npu_dropout_do_mask(grad1_nz, mask, prob)
+        return attn_probs, None
+
+
+def Dropout(tensor1, prob):
+    return DropoutApply.apply(tensor1, prob)
 
 
 def create_common_tensor(item, minValue, maxValue, need_grad=True):
@@ -84,9 +104,10 @@ class TestMultiHeadAttention(TestCase):
 
         attn_weights = attn_batch1.view(batch, attn_head_num, tgt_len, src_len)
         attn_adds = attn_weights + attn_mask
-        attn_weights_float = F.softmax(attn_adds, dim=-1, dtype=torch.float32)
+        attn_adds_nz = torch_npu.npu_format_cast(attn_adds, FORMAT_NZ)
+        attn_weights_float = F.softmax(attn_adds_nz, dim=-1, dtype=torch.float32)
         attn_softmax = attn_weights_float.to(attn_weights.dtype)
-        attn_probs, dropout_mask = torch_npu._npu_dropout(attn_softmax, p=dropout_prob)
+        attn_probs, dropout_mask = Dropout(attn_softmax, dropout_prob)
         attn_batch2 = torch.matmul(attn_probs, v)
         context = torch_npu.npu_confusion_transpose(attn_batch2,
                                                     perm,
@@ -125,7 +146,6 @@ class TestMultiHeadAttention(TestCase):
         self.assertRtolEqual(cpu_value_bias.grad.cpu(), npu_value_bias.grad.cpu())
         self.assertRtolEqual(cpu_out_proj_bias.grad.cpu(), npu_out_proj_bias.grad.cpu())
 
-    @unittest.skip("skip test_mv_out_shape_format now")
     def test_mv_out_shape_format(self):
 
         shape_format = [
@@ -167,6 +187,7 @@ class TestMultiHeadAttention(TestCase):
                     cpu_query_bias, cpu_key_bias, cpu_value_bias, cpu_out_proj_bias, None, batch,
                     attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float
                 )
+            npu_attn_mask.requires_grad_(False)
             npu_result, npu_dropout_mask, npu_query_res, npu_key_res, npu_value_res, npu_attn_scores, \
                 npu_attn_res, npu_context = self.npu_exec(
                     npu_query, npu_key, npu_value, npu_query_weight, npu_key_weight, npu_value_weight, npu_attn_mask,
