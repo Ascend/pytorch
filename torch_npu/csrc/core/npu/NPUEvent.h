@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include <cstdint>
 #include <utility>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -32,25 +33,23 @@ namespace c10_npu {
 * NPUEvents are constructed lazily when first recorded.
 */
 struct C10_NPU_API NPUEvent {
-  // Constructors
-  // Default value for `flags` is specified below
-  NPUEvent() {}
+    // Constructors
+    // Default value for `flags` is specified below
+    NPUEvent() {}
+    NPUEvent(unsigned int flags) : flags_(flags) {}
 
-  // flags is an useless parameter for npu
-  // NPUEvent(unsigned int flags) : flags_{flags} {}
+    // npu do not support IpcEventHandle until now
 
-  // npu do not support IpcEventHandle until now
-
-  ~NPUEvent() {
-    try {
-      if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
-        NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
-        NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
-      }
-    }
-    catch (...) {
-      // stay consistent with pytorch, no throw
-    }
+    ~NPUEvent() {
+        try {
+            if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
+                NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
+                NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
+            }
+        }
+        catch (...) {
+            // stay consistent with pytorch, no throw
+        }
   }
 
   NPUEvent(const NPUEvent&) = delete;
@@ -82,9 +81,9 @@ struct C10_NPU_API NPUEvent {
     if (!is_created_) {
       return true;
     }
-    NPUStatus ret = c10_npu::emptyAllNPUStream();
-    if (ret != SUCCESS) {
-      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+    if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
+        !c10_npu::NPUEventManager::GetInstance().IsEventRecorded(event_)) {
+      return false;
     }
     acl::aclrtEventRecordedStatus currStatus =
         acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
@@ -114,25 +113,6 @@ struct C10_NPU_API NPUEvent {
     was_recorded_ = true;
   }
 
-  void recordTimeEvent(const NPUStream& stream) {
-    if (!is_created_) {
-      createInfiniteEvent(stream.device_index());
-    }
-
-    TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
-        " does not match recording stream's device ", stream.device_index(), ".");
-    NPUGuard guard(device_index_);
-    NPU_CHECK_ERROR(c10_npu::queue::LaunchRecordEventTask(event_, stream));
-    was_recorded_ = true;
-  }
-
-  void reset(const NPUStream& stream) {
-    if (is_created_) {
-      NPUGuard guard(stream.device_index());
-      NPU_CHECK_ERROR(c10_npu::queue::LaunchResetEventTask(event_, stream));
-    }
-  }
-
   void block(const NPUStream& stream) {
     if (is_created_) {
       NPUGuard guard(stream.device_index());
@@ -150,9 +130,9 @@ struct C10_NPU_API NPUEvent {
     }
 
     NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
     NPU_CHECK_ERROR(aclrtSynchronizeEvent(other.event_));
-    ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
+    ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
     // raise error if either event is recorded but not yet completed
     NPU_CHECK_ERROR(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
@@ -165,13 +145,14 @@ struct C10_NPU_API NPUEvent {
         NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       }
       NPU_CHECK_ERROR(aclrtSynchronizeEvent(event_));
-      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
+      ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
     }
   }
 
   // npu do not support IpcEventHandle until now
 
 private:
+  unsigned int flags_ = ACL_EVENT_DEFAULT;
   bool is_created_ = false;
   bool was_recorded_ = false;
   c10::DeviceIndex device_index_ = -1;
@@ -180,16 +161,8 @@ private:
   void createEvent(c10::DeviceIndex device_index) {
     device_index_ = device_index;
     NPUGuard guard(device_index_);
-    NPU_CHECK_ERROR(aclrtCreateEvent(&event_));
-    ASCEND_LOGI("aclrtCreateEvent is successfully executed.");
-    is_created_ = true;
-  }
-
-  void createInfiniteEvent(c10::DeviceIndex device_index) {
-    device_index_ = device_index;
-    NPUGuard guard(device_index_);
-    NPU_CHECK_ERROR(aclrtCreateEventWithFlag(&event_, 0x02U));
-    ASCEND_LOGI("aclrtCreateEvent is successfully executed.");
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&event_, flags_));
+    ASCEND_LOGI("Event: aclrtCreateEvent is successfully executed.");
     is_created_ = true;
   }
 

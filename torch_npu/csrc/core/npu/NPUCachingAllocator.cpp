@@ -38,6 +38,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -698,9 +699,6 @@ class DeviceCachingAllocator {
   // lock around all operations
   mutable std::recursive_mutex mutex;
 
-  // lock around taskqueue events operations
-  mutable std::mutex recorded_event_mutex;
-
   // device statistics
   DeviceStats stats;
 
@@ -714,10 +712,10 @@ class DeviceCachingAllocator {
   ska::flat_hash_set<Block*> active_blocks;
 
   // outstanding acl events
-  std::deque<std::pair<aclrtEvent, Block*>> npu_events;
-
-  // outstanding taskqueue events
-  std::set<aclrtEvent> recorded_events;
+  ska::flat_hash_map<
+      c10_npu::NPUStream,
+      std::deque<std::pair<NPUEvent, Block*>>>
+      npu_events;
 
   // record used memory.
   size_t total_allocated_memory = 0;
@@ -1000,19 +998,17 @@ class DeviceCachingAllocator {
     block->stream_uses.erase(stream);
 
     // free block, lazy destory block related events
-    for (auto it = npu_events.begin(); it != npu_events.end();) {
-      if (block != (*it).second) {
+    for (auto it = npu_events[stream].begin(); it != npu_events[stream].end();) {
+      if (block != it->second) {
         it++;
         continue;
       }
-      aclrtEvent event = (*it).first;
-      c10_npu::NPUEventManager::GetInstance().LazyDestroy(event);
-      it = npu_events.erase(it);
+      it = npu_events[stream].erase(it);
       block->event_count--;
       if (block->event_count == 0) {
         free_block(block);
         break;
-      }
+      }      
     }
   }
 
@@ -1144,19 +1140,6 @@ class DeviceCachingAllocator {
       return kMinBlockSize;
     } else {
       return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
-    }
-  }
-
-  void insertRecordedEvent(aclrtEvent event) {
-    std::lock_guard<std::mutex> lock(recorded_event_mutex);
-    recorded_events.insert(event);
-  }
-
-  void eraseRecordedEvent(aclrtEvent event) {
-    std::lock_guard<std::mutex> lock(recorded_event_mutex);
-    auto it = recorded_events.find(event);
-    if (it != recorded_events.end()) {
-      recorded_events.erase(it);
     }
   }
 
@@ -1640,12 +1623,12 @@ class DeviceCachingAllocator {
   }
 
   bool release_cached_blocks(bool check_error) {
+    c10_npu::npuSynchronizeDevice(check_error);
     // First ensure that all blocks that can't currently be allocated due to
     // outstanding events are returned to the pool.
     synchronize_and_free_events(check_error);
 
     // Free all non-split cached blocks
-    c10_npu::npuSynchronizeDevice(check_error);
     release_blocks(large_blocks);
     release_blocks(small_blocks);
 
@@ -1766,55 +1749,24 @@ class DeviceCachingAllocator {
     }
   }
 
-  aclrtEvent create_event_internal() {
-    aclrtEvent event = nullptr;
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
-    return event;
-  }
-
-  void free_event_internal(aclrtEvent event) {
-    NPU_CHECK_ERROR(aclrtDestroyEvent(event));
-    ASCEND_LOGI("aclrtDestroyEvent is successfully executed.");
-  }
-
   void synchronize_and_free_events(bool check_error) {
     // Synchronize on outstanding events and then free associated blocks.
+    for (auto& st : npu_events) {
+      for (auto& e : st.second) {
+        NPUEvent event = std::move(e.first);
+        Block* block = e.second;
 
-    for (auto& e : npu_events) {
-      aclrtEvent event = e.first;
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() && it == recorded_events.end()) {
-            break;
+        if (check_error) {
+          NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));
+        } else {
+          NPU_CHECK_WARN(aclrtSynchronizeEvent(event));
         }
-      }
-      Block* block = e.second;
+        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
 
-      if (check_error) {
-        NPU_CHECK_ERROR(aclrtSynchronizeEvent(event));
-      } else {
-        NPU_CHECK_WARN(aclrtSynchronizeEvent(event));
-      }
-      ASCEND_LOGI("aclrtSynchronizeEvent is successfully executed.");
-
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (it != recorded_events.end()) {
-          recorded_events.erase(it);
+        block->event_count--;
+        if (block->event_count == 0) {
+          free_block(block);
         }
-      }
-
-      if (check_error) {
-        free_event_internal(event);
-      } else {
-        NPU_CHECK_WARN(aclrtDestroyEvent(event));
-      }
-
-      block->event_count--;
-      if (block->event_count == 0) {
-        free_block(block);
       }
     }
 
@@ -1828,14 +1780,15 @@ class DeviceCachingAllocator {
 
     stream_set streams(std::move(block->stream_uses));
     AT_ASSERT(block->stream_uses.empty());
-    for (auto it = streams.begin(); it != streams.end(); ++it) {
-      NPU_CHECK_ERROR(c10_npu::SetDevice(it->device_index()));
+    for (auto& stream : streams) {
+      NPU_CHECK_ERROR(c10_npu::SetDevice(stream.device_index()));
 
-      aclrtEvent event = create_event_internal();
-      c10_npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
+      NPUEvent event;
+      event.record(stream);
+      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed.");
 
       block->event_count++;
-      npu_events.emplace_back(event, block);
+      npu_events[stream].emplace_back(std::move(event), block);
     }
     if (ret_ctx == ACL_ERROR_NONE) {
       NPU_CHECK_ERROR(aclrtSetCurrentContext(compiler_ctx));
@@ -1848,44 +1801,27 @@ class DeviceCachingAllocator {
     // is decremented. Stops at the first event which has not been completed.
     // Since events on different devices or streams may occur out of order,
     // the processing of some events may be delayed.
-    while (!npu_events.empty()) {
-      auto& e = npu_events.front();
-      aclrtEvent event = e.first;
-      Block* block = e.second;
+    for (auto it = npu_events.begin(); it != npu_events.end();) {
+      while (!it->second.empty()) {
+        auto& e = it->second.front();
+        Block* block = e.second;
 
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.begin();
-        it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() && it == recorded_events.end()) {
-            break;
+        if (!e.first.query()) {
+          break;
         }
-      }
 
-      c10_npu::acl::aclrtEventRecordedStatus status = c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-      aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
-      if (err != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(err);
-      }
-      if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-        break;
-      }
-
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (it != recorded_events.end()) {
-          recorded_events.erase(it);
+        block->event_count--;
+        if (block->event_count == 0) {
+          free_block(block);
         }
+        it->second.pop_front();
       }
 
-      free_event_internal(event);
-
-      block->event_count--;
-      if (block->event_count == 0) {
-        free_block(block);
+      if (it->second.empty()) {
+        it = npu_events.erase(it);
+      } else {
+        it++;
       }
-      npu_events.pop_front();
     }
   }
 
@@ -2185,12 +2121,6 @@ void raw_delete(void* ptr) {
 
 void FreeDeviceCachedMemory(int device) {
   caching_allocator.device_allocator[device]->emptyCache(true);
-}
-
-void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
-  int device = 0;
-  NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
-  return caching_allocator.device_allocator[device]->insertRecordedEvent(event);
 }
 
 } // namespace NPUCachingAllocator

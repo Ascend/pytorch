@@ -45,7 +45,8 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
 
   THNPEvent* self = (THNPEvent *)ptr.get();
 
-  new (&self->npu_event) c10_npu::NPUEvent();
+  unsigned int flags = enable_timing ? ACL_EVENT_TIME_LINE : ACL_EVENT_DEFAULT;
+  new (&self->npu_event) c10_npu::NPUEvent(flags);
 
   return (PyObject *)ptr.release();
   END_HANDLE_TH_ERRORS
@@ -75,6 +76,7 @@ static PyObject* THNPEvent_get_device(THNPEvent *self, void *unused) {
 static PyObject* THNPEvent_record(THNPEvent *self, THNPStream *stream) {
   HANDLE_TH_ERRORS
   self->npu_event.record(stream->npu_stream);
+  ASCEND_LOGI("Event: record api is successfully executed.");
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -84,6 +86,7 @@ static PyObject* THNPEvent_wait(THNPEvent *self, THNPStream *stream) {
   {
     pybind11::gil_scoped_release no_gil;
     self->npu_event.block(stream->npu_stream);
+    ASCEND_LOGI("Event: wait api is successfully executed.");
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -106,6 +109,7 @@ static PyObject* THNPEvent_synchronize(THNPEvent *self, PyObject *noargs) {
   {
     pybind11::gil_scoped_release no_gil;
     self->npu_event.synchronize();
+    ASCEND_LOGI("Event: synchronize api is successfully executed.");
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS

@@ -81,8 +81,9 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
 
   // Event-related functions
   void createEvent(aclrtEvent* acl_event, const c10::EventFlag flag) const {
-    NPU_CHECK_ERROR(aclrtCreateEvent(acl_event));
-    ASCEND_LOGI("aclrtCreateEvent is successfully executed, *acl_event=%p.", *acl_event);
+    // Only ACL_EVENT_DEFAULT can wait event
+    NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(acl_event, ACL_EVENT_DEFAULT));
+    ASCEND_LOGI("Event: aclrtCreateEvent is successfully executed.");
   }
 
   void destroyEvent(void* event, const c10::DeviceIndex device_index)
@@ -90,9 +91,8 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
-    int orig_device;
-    NPU_CHECK_WARN(aclrtDestroyEvent(acl_event));
-    ASCEND_LOGI("aclrtDestroyEvent is successfully executed, acl_event=%p.", acl_event);
+    NPU_CHECK_WARN(c10_npu::NPUEventManager::GetInstance().LazyDestroy(acl_event));
+    ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed.");
   }
 
   void record(
@@ -118,10 +118,10 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     // Creates the event (lazily)
     if (!npu_event) {
       aclrtCreateEvent(&npu_event);
-      ASCEND_LOGI("aclrtCreateEvent is successfully executed, npu_event=%p.", npu_event);
+      ASCEND_LOGI("Event: aclrtCreateEvent is successfully executed");
     }
     NPU_CHECK_ERROR(aclrtRecordEvent(npu_event, npu_stream));
-    ASCEND_LOGI("aclrtRecordEvent is successfully executed, npu_event=%p.", npu_event);
+    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed");
     // Makes the void* point to the (possibly just allocated) NPU event
     *event = npu_event;
 
@@ -137,7 +137,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     const auto orig_device = getDevice();
     c10_npu::SetDevice(stream.device_index());
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npu_stream, npu_event));
-    ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed, npu_event=%p.", npu_event);
+    ASCEND_LOGI("aclrtStreamWaitEvent is successfully executed.");
     c10_npu::SetDevice(orig_device.index());
   }
 

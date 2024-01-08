@@ -34,7 +34,7 @@
 #include <utility>
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "third_party/acl/inc/acl/acl.h"
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 
 namespace {
 struct BlockSize {
@@ -63,22 +63,6 @@ static bool BlockComparator(const BlockSize &a, const BlockSize &b)
 
 struct HostAllocator {
     using Comparison = bool (*)(const BlockSize &, const BlockSize &);
-
-    // lock around all operations
-    std::mutex mutex;
-
-    // blocks by pointer
-    std::unordered_map<void *, Block> blocks;
-
-    // pointers that are ready to be allocated (event_count=0)
-    std::set<BlockSize, Comparison> available;
-
-    // outstanding ACL events
-    std::deque<std::pair<aclrtEvent, void *>> npu_events;
-
-    // record events
-    std::mutex record_mutex;
-    std::set<aclrtEvent> complete_events;
 
     HostAllocator() : available(BlockComparator) {}
 
@@ -123,12 +107,6 @@ struct HostAllocator {
             return ACL_ERROR_NONE;
         }
 
-        // process outstanding npu events which may have occurred
-        aclError err = processEvents();
-        if (err != ACL_ERROR_NONE) {
-            return err;
-        }
-
         auto it = blocks.find(ptr);
         AT_ASSERT(it != blocks.end());
 
@@ -140,7 +118,7 @@ struct HostAllocator {
         block.allocated = false;
 
         // insert npu events for each stream on which this block was used. This
-        err = insertEvents(block);
+        aclError err = insertEvents(block);
         if (err != ACL_ERROR_NONE) {
             return err;
         }
@@ -181,27 +159,6 @@ struct HostAllocator {
         return blocks.find(ptr) != blocks.end();
     }
 
-    void insertCompleteEvent(aclrtEvent event)
-    {
-        if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-            std::lock_guard<std::mutex> lock(record_mutex);
-            complete_events.insert(event);
-        }
-    }
-
-    bool findAndEraseCompleteEvent(aclrtEvent event)
-    {
-        if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-            std::lock_guard<std::mutex> lock(record_mutex);
-            auto it = complete_events.find(event);
-            if (it == complete_events.end()) {
-                return false;
-            }
-            complete_events.erase(it);
-        }
-        return true;
-    }
-
     aclError processEvents()
     {
         // Process outstanding npuEvents. Events that are completed are removed
@@ -211,32 +168,10 @@ struct HostAllocator {
         // the processing of some events may be delayed.
         while (!npu_events.empty()) {
             auto &e = npu_events.front();
-            aclrtEvent event = e.first;
-            // when TASK_QUEUE_ENABLE is set, pytorch thread can destroy event
-            // after acl thread has launched record event task
-            if (!findAndEraseCompleteEvent(event)) {
-                break;
-            }
-            c10_npu::acl::aclrtEventRecordedStatus status =
-                c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-            aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
-            if (err != ACL_ERROR_NONE) {
-                C10_NPU_SHOW_ERR_MSG();
-                insertCompleteEvent(event);
-                return err;
-            }
-            if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-                insertCompleteEvent(event);
-                break;
-            }
 
-            err = aclrtDestroyEvent(event);
-            if (err != ACL_ERROR_NONE) {
-                C10_NPU_SHOW_ERR_MSG();
-                insertCompleteEvent(event);
-                return err;
+            if (!e.first.query()) {
+                break;
             }
-            ASCEND_LOGI("aclrtDestroyEvent is successfully executed.");
 
             Block &block = blocks.at(e.second);
             block.event_count--;
@@ -252,22 +187,8 @@ struct HostAllocator {
     {
         std::lock_guard<std::mutex> lock(mutex);
 
-        // remove events for freed blocks
-        for (auto it = npu_events.begin(); it != npu_events.end(); ++it) {
-            aclrtEvent event = it->first;
-            Block &block = blocks.at(it->second);
-            if (!block.allocated) {
-                if (aclrtDestroyEvent(event) != ACL_ERROR_NONE) {
-                    C10_NPU_SHOW_ERR_MSG();
-                    NPU_LOGW("destory acl event fail");
-                }
-                ASCEND_LOGI("aclrtDestroyEvent is successfully executed.");
-                block.event_count--;
-            }
-        }
-
-        // all npu_events have been processed
-        npu_events.clear();
+        // process outstanding npu events which may have occurred
+        processEvents();
 
         // clear list of available blocks
         available.clear();
@@ -304,24 +225,31 @@ struct HostAllocator {
                 break;
             }
 
-            aclrtEvent event = nullptr;
-            err = c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE);
-            if (err != ACL_ERROR_NONE) {
-                C10_NPU_SHOW_ERR_MSG();
-                break;
-            }
-            err = c10_npu::queue::HostAllocatorLaunchRecordEventTask(event, *it);
-            if (err != ACL_ERROR_NONE)
-                break;
+            c10_npu::NPUEvent event;
+            event.record(*it);
+            ASCEND_LOGI("Event: record HostAllocator is successfully executed.");
 
             block.event_count++;
-            npu_events.emplace_back(event, block.ptr);
+            npu_events.emplace_back(std::move(event), block.ptr);
         }
 
         c10_npu::SetDevice(prev_device);
 
         return err;
     }
+
+private:
+    // lock around all operations
+    std::mutex mutex;
+
+    // blocks by pointer
+    std::unordered_map<void*, Block> blocks;
+
+    // pointers that are ready to be allocated (event_count=0)
+    std::set<BlockSize, Comparison> available;
+
+    // outstanding ACL events
+    std::deque<std::pair<c10_npu::NPUEvent, void*>> npu_events;
 };
 } // namespace
 static HostAllocator allocator;
@@ -331,11 +259,6 @@ aclError THNPUCachingHostAllocator_recordEvent(
     c10_npu::NPUStream stream)
 {
     return allocator.recordEvent(ptr, stream);
-}
-
-void THNPUCachingHostAllocator_insertCompleteEvent(aclrtEvent event)
-{
-    return allocator.insertCompleteEvent(event);
 }
 
 bool THNPUCachingHostAllocator_isPinndPtr(void *ptr)
