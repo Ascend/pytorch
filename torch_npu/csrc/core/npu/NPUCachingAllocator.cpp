@@ -1651,16 +1651,18 @@ class DeviceCachingAllocator {
   }
 
   bool release_cached_blocks(bool check_error) {
-    // First ensure that all blocks that can't currently be allocated due to
-    // outstanding events are returned to the pool.
-    synchronize_and_free_events(check_error);
+      // Make sure event deque from taskqueue, then synchronize Event
+      c10_npu::npuSynchronizeDevice(check_error);
 
-    // Free all non-split cached blocks
-    c10_npu::npuSynchronizeDevice(check_error);
-    release_blocks(large_blocks);
-    release_blocks(small_blocks);
+      // First ensure that all blocks that can't currently be allocated due to
+      // outstanding events are returned to the pool.
+      synchronize_and_free_events(check_error);
 
-    return true;
+      // Free all non-split cached blocks
+      release_blocks(large_blocks);
+      release_blocks(small_blocks);
+
+      return true;
   }
 
   void release_expandable_segment(Block* block) {
