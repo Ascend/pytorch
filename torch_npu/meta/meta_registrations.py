@@ -148,7 +148,10 @@ def npu_ffn_meta(x, weight1, weight2, activation, *, expert_tokens=None, bias1=N
     for i in range(0, x.dim() - 1):
         dim_list.append(x.size(i))
     dim_list.append(weight2.size(weight2.dim() - 1))
-    return x.new_empty(tuple(dim_list))
+    if x.dtype == torch.int8:
+        return x.new_empty(tuple(dim_list), dtype=torch.float16)
+    else:
+        return x.new_empty(tuple(dim_list))
 
 
 @impl(m, "npu_group_norm_silu")
