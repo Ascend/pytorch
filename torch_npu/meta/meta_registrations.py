@@ -204,7 +204,7 @@ def npu_all_gather_base_mm_meta(self, x2, hcom, world_size, bias=None,
 
 
 @impl(m, "npu_weight_quant_batchmatmul")
-def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None):
+def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None, antiquant_group_size=0):
     dimm = x.size(0)
     dimn = weight.size(1)
     if quant_scale is not None:

@@ -695,7 +695,8 @@ class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
                  antiquant_offset: Optional[Tensor], 
                  quant_scale: Optional[Tensor],
                  quant_offset: Optional[Tensor],
-                 bias: Optional[Tensor]):
+                 bias: Optional[Tensor],
+                 antiquant_group_size: int = 0):
         if antiquant_offset is None:
             antiquant_offset = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         if quant_scale is None:
@@ -711,7 +712,8 @@ class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
                     antiquant_offset, 
                     quant_scale, 
                     quant_offset, 
-                    bias)
+                    bias,
+                    antiquant_group_size_i=antiquant_group_size)
     
 
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
@@ -965,9 +967,9 @@ def wrapper_npu_mm_all_reduce_base(self, x2, hcom, reduce_op, bias, comm_turn):
 
 
 def wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset, 
-                                           quant_scale, quant_offset, bias):
+                                           quant_scale, quant_offset, bias, antiquant_group_size):
     return NPUWeightQuantBatchMatmulOP.apply(x, weight, antiquant_scale, antiquant_offset, 
-                                               quant_scale, quant_offset, bias)
+                                               quant_scale, quant_offset, bias, antiquant_group_size)
 
 
 def add_onnx_ops():
