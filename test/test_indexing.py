@@ -1204,6 +1204,32 @@ class TestIndexing(TestCase):
         self.assertRaisesRegex(IndexError, 'index 12 is out of bounds for dimension 2 with size 10',
                                lambda: x[:, :, 12])
 
+    def test_unravel_index_errors(self, device):
+        with self.assertRaisesRegex(TypeError, r"expected 'indices' to be integer"):
+            torch.unravel_index(
+                torch.tensor(0.5, device=device),
+                (2, 2))
+
+        with self.assertRaisesRegex(TypeError, r"expected 'indices' to be integer"):
+            torch.unravel_index(
+                torch.tensor([], device=device),
+                (10, 3, 5))
+
+        with self.assertRaisesRegex(TypeError, r"expected 'shape' to be int or sequence"):
+            torch.unravel_index(
+                torch.tensor([1], device=device, dtype=torch.int64),
+                torch.tensor([1, 2, 3]))
+
+        with self.assertRaisesRegex(TypeError, r"expected 'shape' sequence to only contain ints"):
+            torch.unravel_index(
+                torch.tensor([1], device=device, dtype=torch.int64),
+                (1, 2, 2.0))
+
+        with self.assertRaisesRegex(ValueError, r"'shape' cannot have negative values, but got \(2, -3\)"):
+            torch.unravel_index(
+                torch.tensor(0, device=device),
+                (2, -3))
+
     def test_zero_dim_index(self, device):
         x = torch.tensor(10, device=device)
         self.assertEqual(x, x.item())

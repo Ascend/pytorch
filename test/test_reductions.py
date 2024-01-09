@@ -2833,6 +2833,19 @@ class TestReductions(TestCase):
                     self.assertEqual(amin1, amin2)
                     self.assertEqual(amax1, amax2)
 
+    @dtypes(torch.float, torch.double, torch.cfloat, torch.cdouble)
+    def test_warn_invalid_degrees_of_freedom(self, device, dtype):
+        def _assert_warning(_func, _tensor, _correction):
+            with warnings.catch_warnings(record=True) as w:
+                _func(_tensor, dim=-1, correction=_correction)
+            self.assertIn('degrees of freedom is <= 0', str(w[0].message))
+
+        correction = 20
+        size = (10, correction)
+        tensor = make_tensor(size, dtype=dtype, device=device)
+        for f in [torch.std, torch.var, torch.var_mean, torch.std_mean]:
+            _assert_warning(f, tensor, correction)
+
     def test_histc(self, device):
         # negative nbins throws
         with self.assertRaisesRegex(RuntimeError, 'bins must be > 0'):
