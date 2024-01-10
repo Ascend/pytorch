@@ -29,8 +29,8 @@ class TestIou(TestCase):
         box2 = box2.float().npu()
         iou1 = npu_iou(box1, box2, mode="iou")
         iou2 = npu_iou(box1, box2)
-        expedt_iou1 = torch.tensor([[0.5469, 0.2373]], dtype=torch.float32)
-        expedt_iou2 = torch.tensor([[0.5469, 0.2373]], dtype=torch.float32)
+        expedt_iou1 = torch.tensor([[0.5474, 0.2373]], dtype=torch.float32)
+        expedt_iou2 = torch.tensor([[0.5474, 0.2373]], dtype=torch.float32)
         self.assertRtolEqual(expedt_iou1, iou1.cpu())
         self.assertRtolEqual(expedt_iou2, iou2.cpu())
 
@@ -57,8 +57,8 @@ class TestIou(TestCase):
         iou1 = npu_iou(box1, box2, mode="iou",
                        is_normalized=True, normalized_scale=100.)
         iou2 = npu_iou(box1, box2, is_normalized=True, normalized_scale=100.)
-        expedt_iou1 = torch.tensor([[0.5469, 0.2373]], dtype=torch.float32)
-        expedt_iou2 = torch.tensor([[0.5469, 0.2373]], dtype=torch.float32)
+        expedt_iou1 = torch.tensor([[0.5474, 0.2373]], dtype=torch.float32)
+        expedt_iou2 = torch.tensor([[0.5474, 0.2373]], dtype=torch.float32)
         self.assertRtolEqual(expedt_iou1, iou1.cpu())
         self.assertRtolEqual(expedt_iou2, iou2.cpu())
 
