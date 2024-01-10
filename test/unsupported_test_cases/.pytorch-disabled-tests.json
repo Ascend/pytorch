@@ -24658,5 +24658,11 @@
   "test_silu_complex_npu_complex64 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_silu_npu_float64 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_sinc_npu_float64 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
-  "test_special_i0_i1_vs_scipy_npu_bfloat16 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]]
+  "test_special_i0_i1_vs_scipy_npu_bfloat16 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
+  "test_conv_after_fork (__main__.TestConvAfterFork)": ["", [""]],
+  "test_multiprocessing_contexts (__main__.TestDataLoader)": ["", [""]],
+  "test_multiprocessing_contexts (__main__.TestDataLoaderPeristentWorkers)": ["", [""]],
+  "test_cache_disabled (__main__.TestAutocastNPU)": ["", [""]],
+  "test_cast_cache_is_global (__main__.TestAutocastNPU)": ["", [""]]
+
 }
