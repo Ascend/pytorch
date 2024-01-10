@@ -134,7 +134,6 @@ public:
     virtual void resetPeakStats(int device) = 0;
     virtual std::vector<SegmentInfo> snapshot() = 0;
     virtual void FreeDeviceCachedMemory(int device) = 0;
-    virtual void setShutdownStats() = 0;
     virtual std::string name() = 0;
 };
 
@@ -232,11 +231,6 @@ inline std::vector<SegmentInfo> snapshot()
 inline void FreeDeviceCachedMemory(int device)
 {
     return get()->FreeDeviceCachedMemory(device);
-}
-
-C10_NPU_API inline void setShutdownStats()
-{
-    return get()->setShutdownStats();
 }
 
 inline std::string name()
