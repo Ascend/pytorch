@@ -24,26 +24,8 @@ class Conv(nn.Module):
 
 
 def fast_slice(x):
-    _, _, w, _ = x.shape
-    device = x.device
-    if device.type == "npu":
-        w_zerostart = torch.linspace(0, w - 1 - 1, w // 2, dtype=torch.float32, device=device).int()
-        w_onestart = torch.linspace(1, w - 1, w // 2, dtype=torch.float32, device=device).int()
-    else:
-        w_zerostart = torch.linspace(0, w - 1 - 1, w // 2, dtype=torch.int64, device=device)
-        w_onestart = torch.linspace(1, w - 1, w // 2, dtype=torch.int64, device=device)
-
-    x_all_all_all_zerostart = x[..., ::2].contiguous()
-    x_all_all_zerostart_zerostart = x_all_all_all_zerostart.index_select(2, w_zerostart)
-    x_all_all_onestart_zerostart = x_all_all_all_zerostart.index_select(2, w_onestart)
-
-    x_all_all_all_onestart = x[..., 1::2].contiguous()
-    x_all_all_zerostart_onestart = x_all_all_all_onestart.index_select(2, w_zerostart)
-    x_all_all_onestart_onestart = x_all_all_all_onestart.index_select(2, w_onestart)
-
-    result = [x_all_all_zerostart_zerostart, x_all_all_onestart_zerostart, 
-              x_all_all_zerostart_onestart, x_all_all_onestart_onestart]
-    return result
+    return [x[..., ::2, ::2], x[..., 1::2, ::2],
+            x[..., ::2, 1::2], x[..., 1::2, 1::2]]
 
 
 class Focus(nn.Module):
