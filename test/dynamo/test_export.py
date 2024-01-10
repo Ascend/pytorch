@@ -2379,6 +2379,8 @@ def forward(self, x):
             torch.export.export(qux, (t,), dynamic_shapes=dynamic_shapes)
 
     def test_untracked_inputs_in_constraints(self):
+        
+        from copy import copy
 
         def foo(x, y):
             return y + 1
