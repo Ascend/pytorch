@@ -129,6 +129,17 @@ class NPUCiouOP(torch.autograd.Function):
                     atan_sub_flag_i=atan_sub_flag)
 
 
+class NPUDeepNormOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_deep_norm(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, gx: Tensor, beta: Tensor, gamma: Tensor, alpha: float = 0.3, epsilon: float = 1e-6):
+        return g.op("npu::NPUDeepNorm", self, gx, beta, gamma, alpha_f=alpha, epsilon_f=epsilon, outputs=3)
+
+
 class NPUMultiHeadAttentionOP(torch.autograd.Function):
 
     @staticmethod
@@ -741,6 +752,10 @@ def wrapper_npu_nms_v4(self, scores, max_output_size, iou_threshold, scores_thre
                             iou_threshold, scores_threshold, pad_to_max_output_size)
 
 
+def wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
+    return NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
+
+
 def wrapper_npu_bounding_box_decode(rois, deltas, means0, means1, means2, means3, stds0,
                                     stds1, stds2, stds3, max_shape, wh_ratio_clip):
     return NPUBoundingBoxDecodeOP.apply(rois, deltas, means0, means1, means2, means3,
@@ -861,6 +876,7 @@ def add_onnx_ops():
     torch_npu.npu_ptiou = wrapper_npu_ptiou
     torch_npu.npu_normalize_batch = wrapper_npu_normalize_batch
     torch_npu.npu_nms_v4 = wrapper_npu_nms_v4
+    torch_npu.npu_deep_norm = wrapper_npu_deep_norm
     torch_npu.npu_bounding_box_decode = wrapper_npu_bounding_box_decode
     torch_npu.npu_bounding_box_encode = wrapper_npu_bounding_box_encode
     torch_npu.npu_nms_with_mask = wrapper_npu_nms_with_mask
