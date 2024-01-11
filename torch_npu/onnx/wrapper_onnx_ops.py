@@ -160,6 +160,17 @@ class NPUMultiHeadAttentionOP(torch.autograd.Function):
                     outputs=8)
 
 
+class NPUDeepNormOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_deep_norm(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, gx: Tensor, beta: Tensor, gamma: Tensor, alpha: float = 0.3, epsilon: float = 1e-6):
+        return g.op("npu::NPUDeepNorm", self, gx, beta, gamma, alpha_f=alpha, epsilon_f=epsilon, outputs=3)
+
+
 class NPURmsNormOP(torch.autograd.Function):
 
     @staticmethod
@@ -796,6 +807,10 @@ def wrapper_npu_softmax_cross_entropy_with_logits(self, labels):
     return NPUSoftmaxCrossEntropyWithLogitsOP.apply(self, labels)
 
 
+def wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
+    return NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
+
+
 def wrapper_npu_ps_roi_pooling(self, rois, spatial_scale, group_size, output_dim):
     return NPUPsRoiPoolingOP.apply(self, rois, spatial_scale, group_size, output_dim)
 
@@ -1000,6 +1015,7 @@ def add_onnx_ops():
     torch_npu.npu_bounding_box_decode = wrapper_npu_bounding_box_decode
     torch_npu.npu_bounding_box_encode = wrapper_npu_bounding_box_encode
     torch_npu.npu_nms_with_mask = wrapper_npu_nms_with_mask
+    torch_npu.npu_deep_norm = wrapper_npu_deep_norm
     torch_npu.npu_rotated_iou = wrapper_npu_rotated_iou
     torch_npu.npu_rotated_overlaps = wrapper_npu_rotated_overlaps
     torch_npu.npu_rotated_box_decode = wrapper_npu_rotated_box_decode

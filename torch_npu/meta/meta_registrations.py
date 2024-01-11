@@ -83,6 +83,19 @@ def npu_transpose_meta(self, perm, require_contiguous=True):
     return torch.empty_like(output, dtype=self.dtype)
 
 
+@impl(m, "npu_deep_norm")
+def npu_deep_norm_meta(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
+    rstd_dim = self.dim() - gamma.dim()
+    ret = []
+    for i in range(self.dim()):
+        if i < rstd_dim:
+            ret.append(self.size(i))
+        else:
+            ret.append(1)
+    rstd = torch.empty(ret, dtype=torch.float32, device='meta')
+    return (torch.empty_like(rstd), torch.empty_like(rstd), torch.empty_like(self, dtype=self.dtype))
+
+
 @impl(m, "scatter_update")
 def scatter_update_meta(self, indices, updates, axis):
     return torch.empty_like(self)

@@ -1385,6 +1385,25 @@ class TestScatterUpdateMeta(TestCase):
             self.assertIsNot(fake_result, in_self)
 
 
+class TestNpuDeepNorm(TestCase):
+    def test_npu_deep_norm(self):
+        with FakeTensorMode():
+            npu_x = torch.randn((2, 3), dtype=torch.float32).npu()
+            npu_gx = torch.randn((2, 3), dtype=torch.float32).npu()
+            npu_beta = torch.randn((3,), dtype=torch.float32).npu()
+            npu_gamma = torch.randn((3,), dtype=torch.float32).npu()
+
+            result_mean, result_rstd, result_y = torch_npu.npu_deep_norm(npu_x, npu_gx, npu_beta, npu_gamma)
+
+            self.assertEqual(result_y.dtype, npu_x.dtype)
+            self.assertEqual(result_y.shape, npu_x.shape)
+            self.assertEqual(result_y.device, npu_x.device)
+            self.assertEqual(result_rstd.shape, torch.Size([2, 1]))
+            self.assertEqual(result_rstd.device, npu_x.device)
+            self.assertEqual(result_mean.shape, torch.Size([2, 1]))
+            self.assertEqual(result_mean.device, npu_x.device)
+
+
 class TestNpuRmsNorm(TestCase):
     def test_npu_rms_norm(self):
         with FakeTensorMode():
