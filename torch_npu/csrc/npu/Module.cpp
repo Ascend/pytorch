@@ -822,6 +822,23 @@ PyObject* THNPModule_tensor_construct_from_storage(PyObject* self, PyObject* arg
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_tensor_storage_resize(PyObject* self, PyObject* args)
+{
+    HANDLE_TH_ERRORS
+    static torch::PythonArgParser parser(
+        {"resize_storage_nbytes_(Tensor self, int64_t size)", },
+        false);
+
+    torch::ParsedArgs<2> parsed_args;
+    auto _r = parser.parse(args, nullptr, parsed_args);
+
+    at::Tensor tensor = _r.tensor(0);
+    int64_t new_size = _r.toInt64(1);
+    return THPVariable_Wrap(at_npu::native::npu_storage_resize(tensor, new_size));
+
+    END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -863,6 +880,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_set_sync_debug_mode", (PyCFunction)THNPModule_npu_set_sync_debug_mode, METH_O, nullptr},
     {"_npu_get_sync_debug_mode", (PyCFunction)THNPModule_npu_get_sync_debug_mode, METH_NOARGS, nullptr},
     {"_tensor_construct_from_storage", (PyCFunction)THNPModule_tensor_construct_from_storage, METH_VARARGS, nullptr},
+    {"_tensor_storage_resize", (PyCFunction)THNPModule_tensor_storage_resize, METH_VARARGS, nullptr},
     {nullptr}};
 
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
