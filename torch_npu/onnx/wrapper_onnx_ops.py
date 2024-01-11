@@ -160,6 +160,17 @@ class NPUMultiHeadAttentionOP(torch.autograd.Function):
                     outputs=8)
 
 
+class NPUDeepNormOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_deep_norm(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, gx: Tensor, beta: Tensor, gamma: Tensor, alpha: float = 0.3, epsilon: float = 1e-6):
+        return g.op("npu::NPUDeepNorm", self, gx, beta, gamma, alpha_f=alpha, epsilon_f=epsilon, outputs=3)
+
+
 class NPURmsNormOP(torch.autograd.Function):
 
     @staticmethod
@@ -805,6 +816,9 @@ def wrapper_npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_
                                          num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all)
 
 
+def wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
+    return NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
+
 
 def wrapper_npu_group_norm_silu(x, gamma, beta, group, eps=0.00001):
     return NPUGroupNormSiluOP.apply(x, gamma, beta, group, eps)
@@ -1004,6 +1018,7 @@ def add_onnx_ops():
     torch_npu.npu_indexing = wrapper_npu_indexing
     torch_npu.npu_sign_bits_pack = wrapper_npu_sign_bits_pack
     torch_npu.npu_stride_add = wrapper_npu_stride_add
+    torch_npu.npu_deep_norm = wrapper_npu_deep_norm
     torch_npu.npu_scatter = wrapper_npu_scatter
     torch_npu.npu_lstm = wrapper_npu_lstm
     torch_npu.npu_rms_norm = wrapper_npu_rms_norm
