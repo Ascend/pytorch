@@ -14,6 +14,7 @@ from .drop_path import NpuDropPath
 from .focus import Focus
 from .batchnorm_with_int32_count import FastBatchNorm1d, \
     FastBatchNorm2d, FastBatchNorm3d, FastSyncBatchNorm
+from .linear_a8w8_quant import LinearA8W8Quant
 
 __all__ = [
     "ChannelShuffle",
@@ -34,4 +35,5 @@ __all__ = [
     "FusedColorJitter",
     "NpuDropPath",
     "Focus",
+    "LinearA8W8Quant",
 ]
