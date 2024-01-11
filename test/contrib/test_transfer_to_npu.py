@@ -40,6 +40,25 @@ class TestTransferToNpu(TestCase):
         c = a.to(device_id)
         d = torch.tensor(1, device=device_id)
 
+    def test_wrap_autocast(self):
+        a = torch.randn([3, 3], device='cuda')
+        b = torch.randn([3, 3], device='cuda')
+        c = a @ b
+        c_before_autocast = c.dtype
+
+        with torch.autocast('cuda'):
+            c = a @ b
+        c_after_autocast_args = c.dtype
+
+        with torch.autocast(device_type='cuda'):
+            c = a @ b
+        c_after_autocast_kwargs = c.dtype
+
+        self.assertNotEqual(c_before_autocast, c_after_autocast_args)       
+        self.assertEqual(c_after_autocast_args, c_after_autocast_kwargs)
+
+
+
 
 if __name__ == "__main__":
     run_tests()
