@@ -127,6 +127,17 @@ class NPUFusedAttentionScoreOP(torch.autograd.Function):
                     dx_transpose_i=dx_transpose)
 
 
+class NPUDeepNormOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_deep_norm(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, gx: Tensor, beta: Tensor, gamma: Tensor, alpha: float = 0.3, epsilon: float = 1e-6):
+        return g.op("npu::NPUDeepNorm", self, gx, beta, gamma, alpha_f=alpha, epsilon_f=epsilon, outputs=3)
+
+
 class NPUCiouOP(torch.autograd.Function):
 
     @staticmethod
@@ -658,6 +669,10 @@ def wrapper_npu_flash_attention(query, key, value, head_num,
                                      next_tockens, inner_precise, prefix, sparse_mode, gen_mask_parallel, sync)
 
 
+def wrapper_npu_deep_norm(self, gx, beta, gamma, alpha=0.3, epsilon=1e-6):
+    return NPUDeepNormOP.apply(self, gx, beta, gamma, alpha, epsilon)
+
+
 def wrapper_npu_one_hot(self, num_classes=-1, depth=1, on_value=1, off_value=0):
     return NPUOneHotOP.apply(self, num_classes, depth, on_value, off_value)
 
@@ -907,6 +922,7 @@ def add_onnx_ops():
     torch_npu.npu_fused_attention_score_fwd = wrapper_npu_fused_attention_score_fwd
     torch_npu.npu_sign_bits_unpack = wrapper_npu_sign_bits_unpack
     torch_npu.npu_ptiou = wrapper_npu_ptiou
+    torch_npu.npu_deep_norm = wrapper_npu_deep_norm
     torch_npu.npu_normalize_batch = wrapper_npu_normalize_batch
     torch_npu.npu_nms_v4 = wrapper_npu_nms_v4
     torch_npu.npu_bounding_box_decode = wrapper_npu_bounding_box_decode

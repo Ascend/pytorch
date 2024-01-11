@@ -980,6 +980,31 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_deep_norm` is only supported on 910B, skip this ut!")
+    def test_wrapper_npu_deep_norm(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, x, gx, beta, gamma):
+                alpha = 0.3
+                epsilon = 1e-6
+                mean, rstd, y = torch_npu.npu_deep_norm(x, gx, beta, gamma, alpha, epsilon)
+                return mean, rstd, y
+
+        def export_onnx(onnx_model_name):
+            x = torch.rand([10, 1024], dtype=torch.float32).npu()
+            gx = torch.rand([10, 1024], dtype=torch.float32).npu()
+            beta = torch.rand([1024], dtype=torch.float32).npu()
+            gamma = torch.rand([1024], dtype=torch.float32).npu()
+            model = Model().to("npu")
+            model(x, gx, beta, gamma)
+            self.onnx_export(model, (x, gx, beta, gamma), onnx_model_name)
+        onnx_model_name = "model_npu_deep_norm.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
     def test_wrapper_npu_lstm_cell(self):
         class Model(torch.nn.Module):
             def __init__(self):
