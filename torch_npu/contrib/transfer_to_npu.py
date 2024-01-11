@@ -255,7 +255,7 @@ def init():
 
     torch.jit.script = jit_script
 
-    torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
+    torch._dynamo.trace_rules._disallowed_callable_ids.function_ids = None
 
     if IS_TORCHAIR_INSTALLED:
         torch.compile = wrapper_compile(torch.compile)
