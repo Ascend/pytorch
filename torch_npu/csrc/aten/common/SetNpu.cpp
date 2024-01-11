@@ -91,7 +91,7 @@ at::Tensor set_tensor_with_storage_format(c10::Storage src) {
     auto desc = torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl())->npu_desc_;
     auto dist_tensor = NPUNativeFunctions::empty(
         {0}, desc.data_type_.toScalarType(), c10::nullopt,
-        at::Device(c10::DeviceType::PrivateUse1), false, c10::MemoryFormat::Contiguous);
+        src.device(), false, c10::MemoryFormat::Contiguous);
     set_storage_nd_npu(dist_tensor, src, 0, desc.base_sizes_.size(), desc.base_sizes_, desc.base_strides_);
     return dist_tensor;
   } else {
@@ -99,7 +99,7 @@ at::Tensor set_tensor_with_storage_format(c10::Storage src) {
     // and the tensor object self needs to be brushed to be the 1 dimension
     auto dist_tensor = NPUNativeFunctions::empty(
         {0}, at::ScalarType::Char, c10::nullopt,
-        at::Device(c10::DeviceType::PrivateUse1), false, c10::MemoryFormat::Contiguous);
+        src.device(), false, c10::MemoryFormat::Contiguous);
     int64_t new_size = static_cast<int64_t>(src.nbytes() / dist_tensor.dtype().itemsize());
     set_storage_nd_npu(dist_tensor, src, 0, 1, {new_size}, {});
     StorageDescHelper::SetDesc(
