@@ -45,6 +45,43 @@ class TestCombineTensors(TestCase):
             idx += torch_npu.get_storage_size(tensor)
 
     @Dtypes(torch.half, torch.float, torch.bfloat16)
+    def test_storage_resize(self, dtype, device="npu"):
+        x = torch.randn((2, 2, 2, 2), device=device, dtype=dtype)
+        y = torch.randn((4, 4), device=device, dtype=dtype)
+        z = torch.randn((3, 3, 3), device=device, dtype=dtype)
+        x_clone = x.view(-1)[:4].clone()
+        y_clone = y.view(-1)[:4].clone()
+        z_clone = z.view(-1)[:4].clone()
+
+        x.storage().resize_(4)
+        y.storage().resize_(4)
+        z.storage().resize_(4)
+
+        list_of_tensor = [x, y, z]
+        total_numel = 12
+        combined_tensor = torch.zeros(total_numel, dtype=dtype).npu()
+        idx = 0
+        for tensor in list_of_tensor:
+            tmp = tensor.clone()
+            torch_npu.npu_change_data_ptr(tensor, combined_tensor, idx)
+            tensor.copy_(tmp)
+            idx += torch_npu.get_storage_size(tensor)
+
+        self.assertEqual(x.storage(), x_clone.storage())
+        self.assertEqual(y.storage(), y_clone.storage())
+        self.assertEqual(z.storage(), z_clone.storage())
+
+        x_new = torch.zeros((4), device=device, dtype=dtype)
+        y_new = torch.zeros((4), device=device, dtype=dtype)
+        z_new = torch.zeros((4), device=device, dtype=dtype)
+        list_of_tensor_new = [x_new, y_new, z_new]
+        idx = 0
+        for tensor_new, tensor in zip(list_of_tensor_new, list_of_tensor):
+            torch_npu.npu_change_data_ptr(tensor_new, combined_tensor, idx)
+            self.assertEqual(tensor_new.storage(), tensor.storage())
+            idx += torch_npu.get_storage_size(tensor)
+
+    @Dtypes(torch.half, torch.float, torch.bfloat16)
     def test_combine_tensors(self, dtype, device="npu"):
         x = torch.zeros((2, 2, 2, 2), device=device, dtype=dtype)
         y = torch.zeros((4, 4), device=device, dtype=dtype)

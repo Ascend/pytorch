@@ -1,5 +1,7 @@
 import copy
 import torch
+from torch.storage import _warn_typed_storage_removal
+
 import torch_npu
 from . import serialization as se
 
@@ -42,6 +44,17 @@ def _deepcopy(self, memo):
         return self._new_wrapped_storage(copy.deepcopy(self._untyped_storage, memo))
 
 
+def _resize(self, size):
+    if self.device.type != 'cpu':
+        src_tensor = torch_npu._C._tensor_construct_from_storage(self)
+        dst_tensor = torch_npu._C._tensor_storage_resize(src_tensor, size)
+        return dst_tensor._typed_storage()
+    else:
+        _warn_typed_storage_removal()
+        return self._resize_(size)
+
+
 def add_storage_methods():
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.TypedStorage._deepcopy = _deepcopy
+    torch.storage.TypedStorage.resize_ = _resize
