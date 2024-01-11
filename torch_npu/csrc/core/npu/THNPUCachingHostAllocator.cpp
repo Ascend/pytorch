@@ -225,7 +225,7 @@ struct HostAllocator {
                 break;
             }
 
-            c10_npu::NPUEvent event;
+            c10_npu::NPUEvent event(ACL_EVENT_CAPTURE_STREAM_PROGRESS);
             event.record(*it);
             ASCEND_LOGI("Event: record HostAllocator is successfully executed.");
 

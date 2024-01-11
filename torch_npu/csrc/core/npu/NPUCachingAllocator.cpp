@@ -1783,7 +1783,7 @@ class DeviceCachingAllocator {
     for (auto& stream : streams) {
       NPU_CHECK_ERROR(c10_npu::SetDevice(stream.device_index()));
 
-      NPUEvent event;
+      NPUEvent event(ACL_EVENT_CAPTURE_STREAM_PROGRESS);
       event.record(stream);
       ASCEND_LOGI("Event: record DeviceAllocator is successfully executed.");
 
