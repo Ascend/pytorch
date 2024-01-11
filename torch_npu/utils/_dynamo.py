@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import torch
 from torch._dynamo.utils import tensortype_to_dtype
-from torch._dynamo.variables.torch import TorchVariable, TorchCtxManagerClassVariable, TorchInGraphFunctionVariable
+from torch._dynamo.variables.torch import TorchCtxManagerClassVariable, TorchInGraphFunctionVariable
 from torch._dynamo.variables.base import VariableTracker
 from torch._dynamo.variables.ctx_manager import AutocastModeVariable
 from torch._dynamo.variables.user_defined import UserDefinedClassVariable
@@ -66,9 +66,6 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
         torch_npu.npu.IntTensor,
         torch_npu.npu.LongTensor,
         torch_npu.npu.ShortTensor,
-    ]:
-        return TorchVariable(value, **kwargs)
-    elif value in [
         torch.device,
     ]:
         return TorchInGraphFunctionVariable(value, **kwargs)
