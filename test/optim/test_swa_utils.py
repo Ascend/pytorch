@@ -4,6 +4,8 @@ import itertools
 import pickle
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.optim.swa_utils import AveragedModel, update_bn, get_swa_multi_avg_fn, get_ema_multi_avg_fn
 from torch.testing._internal.common_utils import (
     TestCase,
@@ -97,20 +99,20 @@ class TestSWAUtils(TestCase):
     def test_averaged_model_all_devices(self, ema):
         cpu = torch.device("cpu")
         self._test_averaged_model(cpu, cpu, ema)
-        if torch.cuda.is_available():
-            cuda = torch.device(0)
-            self._test_averaged_model(cuda, cpu, ema)
-            self._test_averaged_model(cpu, cuda, ema)
-            self._test_averaged_model(cuda, cuda, ema)
+        if torch.npu.is_available():
+            npu = torch.device(0)
+            self._test_averaged_model(npu, cpu, ema)
+            self._test_averaged_model(cpu, npu, ema)
+            self._test_averaged_model(npu, npu, ema)
 
     @parametrize("ema", [True, False])
     def test_averaged_model_mixed_device(self, ema):
-        if not torch.cuda.is_available():
+        if not torch.npu.is_available():
             return
         dnn = torch.nn.Sequential(
             torch.nn.Conv2d(1, 5, kernel_size=3), torch.nn.Linear(5, 10)
         )
-        dnn[0].cuda()
+        dnn[0].npu()
         dnn[1].cpu()
 
         averaged_params, averaged_dnn = self._run_averaged_steps(dnn, None, ema)
@@ -205,18 +207,18 @@ class TestSWAUtils(TestCase):
             for b_avg, b_swa in zip(dnn.buffers(), averaged_dnn.module.buffers()):
                 self.assertEqual(b_avg, b_swa)
 
-    def _test_update_bn(self, dnn, dl_x, dl_xy, cuda):
+    def _test_update_bn(self, dnn, dl_x, dl_xy, npu):
 
         preactivation_sum = torch.zeros(dnn.n_features)
         preactivation_squared_sum = torch.zeros(dnn.n_features)
-        if cuda:
-            preactivation_sum = preactivation_sum.cuda()
-            preactivation_squared_sum = preactivation_squared_sum.cuda()
+        if npu:
+            preactivation_sum = preactivation_sum.npu()
+            preactivation_squared_sum = preactivation_squared_sum.npu()
         total_num = 0
         for x in dl_x:
             x = x[0]
-            if cuda:
-                x = x.cuda()
+            if npu:
+                x = x.npu()
 
             dnn.forward(x)
             preactivations = dnn.compute_preactivation(x)
@@ -264,10 +266,10 @@ class TestSWAUtils(TestCase):
         dnn = self.SWATestDNN(input_features=input_features)
         dnn.train()
         self._test_update_bn(dnn, dl_x, dl_xy, False)
-        if torch.cuda.is_available():
+        if torch.npu.is_available():
             dnn = self.SWATestDNN(input_features=input_features)
             dnn.train()
-            self._test_update_bn(dnn.cuda(), dl_x, dl_xy, True)
+            self._test_update_bn(dnn.npu(), dl_x, dl_xy, True)
         self.assertTrue(dnn.training)
 
     def test_update_bn_cnn(self):
@@ -284,10 +286,10 @@ class TestSWAUtils(TestCase):
         cnn = self.SWATestCNN(input_channels=input_channels)
         cnn.train()
         self._test_update_bn(cnn, dl_x, dl_xy, False)
-        if torch.cuda.is_available():
+        if torch.npu.is_available():
             cnn = self.SWATestCNN(input_channels=input_channels)
             cnn.train()
-            self._test_update_bn(cnn.cuda(), dl_x, dl_xy, True)
+            self._test_update_bn(cnn.npu(), dl_x, dl_xy, True)
         self.assertTrue(cnn.training)
 
     def test_bn_update_eval_momentum(self):
