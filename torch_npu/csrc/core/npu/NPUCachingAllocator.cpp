@@ -2020,7 +2020,7 @@ class THNCachingAllocator {
           AT_ERROR("invalid device pointer: ", ptr.get());
       }
 
-      if (block->stream != c10_npu::getCurrentNPUStream(block->device)) {
+      if (block->stream != c10_npu::getCurrentNPUStream(block->device).stream(false)) {
           // If the Stream applying for tensor block different from
           // the stream of submiting event wait task in HCCL synchronize()
           // method, the recordSteam can not be erased.
