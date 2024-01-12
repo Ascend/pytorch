@@ -4,6 +4,8 @@ from typing import List, Optional, Tuple
 import unittest
 
 import torch
+import torch_npu
+import torch_npu.testing
 import torch.distributed
 import torch.nn as nn
 import torch.nn.functional as F
@@ -156,4 +158,4 @@ class TestFunctionalOptimParity(TestCase):
 
 
 if __name__ == "__main__":
-    pass
+    run_tests()

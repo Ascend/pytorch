@@ -8,6 +8,8 @@ from copy import deepcopy
 from unittest.mock import patch
 from typing import Dict, Any, Tuple
 import torch
+import torch_npu
+import torch_npu.testing
 import torch.optim as optim
 from torch.nn import Parameter
 from torch.optim import Adam, SGD, Optimizer
@@ -24,14 +26,15 @@ from torch.testing._internal.common_utils import (
     load_tests,
     gradcheck,
     skipIfRocm,
-    skipIfTorchDynamo
+    skipIfTorchDynamo,
+    TEST_PRIVATEUSE1
 )
 
 from torch._dynamo import disable as disable_dynamo
 
-from torch.testing._internal.common_cuda import TEST_MULTIGPU, TEST_CUDA
 from torch.testing._internal.common_device_type import largeTensorTest
 from torch.optim.optimizer import register_optimizer_step_pre_hook, register_optimizer_step_post_hook
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 # load_tests from common_utils is used to automatically filter tests for
 # sharding on sandcastle. This line silences flake warnings
@@ -172,8 +175,8 @@ class TestOptim(TestCase):
             def fn():
                 optimizer.zero_grad()
                 y = weight.mv(input_)
-                if y.is_cuda and bias.is_cuda and y.get_device() != bias.get_device():
-                    y = y.cuda(bias.get_device())
+                if y.is_npu and bias.is_npu and y.get_device() != bias.get_device():
+                    y = y.npu(bias.get_device())
                 loss = (y + bias).pow(2).sum()
                 loss.backward()
                 return loss
@@ -204,14 +207,14 @@ class TestOptim(TestCase):
             input_ = input_.clone().detach().requires_grad_()
 
         # Note: Disable dynamo on this function
-        # This avoids a bug where input_cuda is not detected in the environment
+        # This avoids a bug where input_npu is not detected in the environment
         # because it currently is not defined in the local environmet. Unable to repro
         # anywhere else however and this is test code that we don't need to spend
         # time getting dynamo to trace unless the issue repros in real models.
         @disable_dynamo(recursive=False)
         def fn_base(optimizer, weight, bias):
             optimizer.zero_grad()
-            i = input_cuda if weight.is_cuda else input_
+            i = input_npu if weight.is_npu else input_
             loss = (weight.mv(i) + bias).pow(2).sum()
             loss.backward()
             return loss
@@ -281,29 +284,29 @@ class TestOptim(TestCase):
 
         # Check that state dict can be loaded even when we cast parameters
         # to a different type and move to a different device.
-        if not torch.cuda.is_available():
+        if not torch.npu.is_available():
             return
 
         with torch.no_grad():
-            input_cuda = input_.clone().detach().to(dtype=torch.float32, device="cuda")
-            weight_cuda = Parameter(
-                weight.clone().detach().to(dtype=torch.float32, device="cuda")
+            input_npu = input_.clone().detach().to(dtype=torch.float32, device="npu")
+            weight_npu = Parameter(
+                weight.clone().detach().to(dtype=torch.float32, device="npu")
             )
-            bias_cuda = Parameter(
-                bias.clone().detach().to(dtype=torch.float32, device="cuda")
+            bias_npu = Parameter(
+                bias.clone().detach().to(dtype=torch.float32, device="npu")
             )
-        optimizer_cuda = constructor(weight_cuda, bias_cuda)
-        fn_cuda = functools.partial(fn_base, optimizer_cuda, weight_cuda, bias_cuda)
+        optimizer_npu = constructor(weight_npu, bias_npu)
+        fn_npu = functools.partial(fn_base, optimizer_npu, weight_npu, bias_npu)
 
         state_dict = deepcopy(optimizer.state_dict())
         state_dict_c = deepcopy(optimizer.state_dict())
-        optimizer_cuda.load_state_dict(state_dict_c)
+        optimizer_npu.load_state_dict(state_dict_c)
 
         # Make sure state_dict_c isn't modified by merely calling load_state_dict
         self.assertEqual(state_dict, state_dict_c)
 
         # Make sure that device of state['step'] is still CPU
-        new_state_dict = optimizer_cuda.state_dict()
+        new_state_dict = optimizer_npu.state_dict()
         if "step" in state_dict["state"][0] and torch.is_tensor(
             state_dict["state"][0]["step"]
         ):
@@ -312,9 +315,9 @@ class TestOptim(TestCase):
 
         for _ in range(20):
             optimizer.step(fn)
-            optimizer_cuda.step(fn_cuda)
-            self.assertEqual(weight, weight_cuda)
-            self.assertEqual(bias, bias_cuda, atol=atol, rtol=rtol)
+            optimizer_npu.step(fn_npu)
+            self.assertEqual(weight, weight_npu)
+            self.assertEqual(bias, bias_npu, atol=atol, rtol=rtol)
 
         # validate deepcopy() copies all public attributes
         def getPublicAttr(obj):
@@ -377,25 +380,25 @@ class TestOptim(TestCase):
             constructor_accepts_maximize,
             constructor_accepts_foreach,
         )
-        # CUDA
-        if not torch.cuda.is_available():
+        # NPU
+        if not torch.npu.is_available():
             return
         self._test_basic_cases_template(
-            torch.randn(10, 5).cuda(),
-            torch.randn(10).cuda(),
-            torch.randn(5).cuda(),
+            torch.randn(10, 5).npu(),
+            torch.randn(10).npu(),
+            torch.randn(5).npu(),
             constructor,
             scheduler_constructors,
             constructor_accepts_maximize,
             constructor_accepts_foreach,
         )
         # Multi-GPU
-        if not torch.cuda.device_count() > 1 or ignore_multidevice:
+        if not torch.npu.device_count() > 1 or ignore_multidevice:
             return
         self._test_basic_cases_template(
-            torch.randn(10, 5).cuda(0),
-            torch.randn(10).cuda(1),
-            torch.randn(5).cuda(0),
+            torch.randn(10, 5).npu(0),
+            torch.randn(10).npu(1),
+            torch.randn(5).npu(0),
             constructor,
             scheduler_constructors,
             constructor_accepts_maximize,
@@ -639,7 +642,7 @@ class TestOptim(TestCase):
             )
 
     def _test_derived_optimizers_varying_tensors(self, optimizer_with_kwargs, kwarg):
-        if not torch.cuda.is_available():
+        if not torch.npu.is_available():
             return
         assert kwarg in ("foreach", "fused")
 
@@ -647,17 +650,17 @@ class TestOptim(TestCase):
         # is handled equivalently on the foreach and fused implementations as the
         # single tensor implementations. We need multiple GPUs (vs just a CPU and
         # GPU) because fused adam only works on GPUs. (Thus we only run the tests
-        # that call into this helper when TEST_MULTIGPU.)
+        # that call into this helper when TEST_MULTINPU.)
         params = [
-            torch.rand(2, 3, dtype=torch.float64, device='cuda:0', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.float32, device='cuda:0', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.float16, device='cuda:0', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.bfloat16, device='cuda:0', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.float64, device='cuda:1', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.float32, device='cuda:1', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.float16, device='cuda:1', requires_grad=True),
-            torch.rand(2, 3, dtype=torch.bfloat16, device='cuda:1', requires_grad=True),
-            torch.randint(1024, (2, 3), dtype=torch.int64, device='cuda:1', requires_grad=False),
+            torch.rand(2, 3, dtype=torch.float64, device='npu:0', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.float32, device='npu:0', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.float16, device='npu:0', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.bfloat16, device='npu:0', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.float64, device='npu:1', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.float32, device='npu:1', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.float16, device='npu:1', requires_grad=True),
+            torch.rand(2, 3, dtype=torch.bfloat16, device='npu:1', requires_grad=True),
+            torch.randint(1024, (2, 3), dtype=torch.int64, device='npu:1', requires_grad=False),
         ]
 
         for p in params:
@@ -706,7 +709,7 @@ class TestOptim(TestCase):
                     self.assertEqual(st_p_state[k], actual, rtol=rtol, atol=atol)
 
     def _test_derived_optimizers(self, optimizer_pairs_with_flags, flag):
-        if not torch.cuda.is_available():
+        if not torch.npu.is_available():
             return
         assert flag in ("foreach", "fused")
 
@@ -714,7 +717,7 @@ class TestOptim(TestCase):
         # params interacting with the small eps value, because that's right
         # after rho_t becomes greater than 5 in step 6.
         kIterations = 7
-        device = "cuda"
+        device = "npu"
         for optimizer_constructor, params in optimizer_pairs_with_flags:
             res, state = [], []
             for flag_value in (False, True):
@@ -767,10 +770,10 @@ class TestOptim(TestCase):
                     self.assertEqual(st_p_state[k], mt_p_state[k])
 
     def _test_foreach_memory(self, optimizer_pairs_with_flags):
-        if not torch.cuda.is_available():
+        if not torch.npu.is_available():
             return
 
-        device = "cuda"
+        device = "npu"
         nparams = 10
         for optimizer_constructor, kwargs in optimizer_pairs_with_flags:
             max_mems = []
@@ -778,7 +781,7 @@ class TestOptim(TestCase):
                 kwargs_with_flags = deepcopy(kwargs)
                 kwargs_with_flags['foreach'] = flag_value
 
-                # The 128 is critical here! Our CUDACachingAllocator allocates in blocks of 512,
+                # The 128 is critical here! Our NPUCachingAllocator allocates in blocks of 512,
                 # meaning any tensor that occupies <512 bytes of memory will allocate a whole
                 # 512 bytes anyway. We use 128 (since datasize would be 4 bytes) so that param
                 # is size 512 exactly, making our later calculations for intermediate_size easy.
@@ -795,10 +798,10 @@ class TestOptim(TestCase):
                 optimizer.step()
                 import gc
                 gc.collect()
-                torch.cuda.reset_peak_memory_stats()
+                torch.npu.reset_peak_memory_stats()
                 optimizer.step()
                 gc.collect()
-                max_mems.append(torch.cuda.max_memory_allocated())
+                max_mems.append(torch.npu.max_memory_allocated())
 
             st_max_mem, mt_max_mem = max_mems
             intermediate_size = nparams * param.nelement() * param.element_size()
@@ -908,18 +911,18 @@ class TestOptim(TestCase):
     def test_multi_tensor_optimizers(self):
         self._test_derived_optimizers(self._multi_tensor_optimizer_configs, "foreach")
 
-    @unittest.skipIf(not TEST_MULTIGPU, "only one GPU detected")
+    @skipIfUnsupportMultiNPU(2)
     def test_multi_tensor_optimizers_with_varying_tensors(self):
         self._test_derived_optimizers_varying_tensors(self._multi_tensor_optimizer_configs, "foreach")
 
-    @unittest.skipIf(not torch.cuda.is_available(), "Requires a GPU")
-    @largeTensorTest("72GB", "cuda")
+    @unittest.skipIf(not torch.npu.is_available(), "Requires a GPU")
+    @largeTensorTest("72GB", "npu")
     def test_multi_tensor_optimizers_with_large_tensors(self):
         for optimizer_ctor, optimizer_params in self._multi_tensor_optimizer_configs:
             # note(crcrpar): H100 wasn't sufficient for Adamax, surprisingly
             if optimizer_ctor == optim.Adamax:
                 continue
-            params = [torch.ones(2 ** 32, device="cuda", dtype=torch.float16)]
+            params = [torch.ones(2 ** 32, device="npu", dtype=torch.float16)]
             params[0].grad = torch.zeros_like(params[0])
             optimizer = optimizer_ctor(params, foreach=True, **optimizer_params)
             optimizer.step()
@@ -951,15 +954,15 @@ class TestOptim(TestCase):
     def test_fused_optimizers(self):
         self._test_derived_optimizers(self._fused_optimizer_configs, "fused")
 
-    @unittest.skipIf(not TEST_MULTIGPU, "only one GPU detected")
+    @skipIfUnsupportMultiNPU(2)
     def test_fused_optimizers_with_varying_tensors(self):
         self._test_derived_optimizers_varying_tensors(self._fused_optimizer_configs, "fused")
 
-    @unittest.skipIf(not torch.cuda.is_available(), "Requires a GPU")
-    @largeTensorTest("64GB", "cuda")
+    @unittest.skipIf(not torch.npu.is_available(), "Requires a GPU")
+    @largeTensorTest("64GB", "npu")
     def test_fused_optimizers_with_large_tensors(self):
         for optimizer_ctor, optimizer_params in self._fused_optimizer_configs:
-            params = [torch.ones(2 ** 32, device="cuda", dtype=torch.float16)]
+            params = [torch.ones(2 ** 32, device="npu", dtype=torch.float16)]
             params[0].grad = torch.zeros_like(params[0])
             optimizer = optimizer_ctor(params, fused=True, **optimizer_params)
             optimizer.step()
@@ -1646,9 +1649,7 @@ class TestOptim(TestCase):
     @skipIfRocm
     @skipIfTorchDynamo()
     def test_rprop(self):
-        is_cuda_sm86 = torch.cuda.is_available() and torch.cuda.get_device_capability(
-            0
-        ) == (8, 6)
+        is_npu_sm86 = torch.npu.is_available()
         for foreach in (False, True):
             self._test_basic_cases(
                 lambda weight, bias, maximize, foreach: optim.Rprop(
@@ -1666,8 +1667,8 @@ class TestOptim(TestCase):
                 ),
                 constructor_accepts_maximize=True,
                 constructor_accepts_foreach=True,
-                atol=4e-5 if is_cuda_sm86 else None,
-                rtol=3e-5 if is_cuda_sm86 else None,
+                atol=4e-5 if is_npu_sm86 else None,
+                rtol=3e-5 if is_npu_sm86 else None,
             )
             self._test_complex_2d(lambda param: optim.Rprop(param, foreach=foreach))
             self._test_complex_optimizer(
@@ -1784,20 +1785,20 @@ class TestOptim(TestCase):
 
 
     def test_fused_optimizer_does_not_step_if_foundinf(self):
-        if not torch.cuda.is_available():
-            self.skipTest("CUDA is required.")
+        if not torch.npu.is_available():
+            self.skipTest("NPU is required.")
 
         from torch.optim import adam, adamw
 
         num_tensors = 5
         for functional_optim, amsgrad, no_grad_scale in itertools.product((adam.adam, adamw.adamw), (False, True), (False, True)):
             params, grads, exp_avgs, exp_avg_sqs = (
-                [torch.ones((1,), device="cuda") for _ in range(num_tensors)] for _ in range(4))
+                [torch.ones((1,), device="npu") for _ in range(num_tensors)] for _ in range(4))
             prev_params = [t.clone().detach() for t in params]
-            max_exp_avg_sqs = [torch.ones((1,), device="cuda") for _ in range(num_tensors)] if amsgrad else []
-            state_steps = [torch.ones((), dtype=torch.float32, device="cuda") for _ in range(num_tensors)]
-            grad_scale = None if no_grad_scale else torch.ones((1,), dtype=torch.float32, device="cuda")
-            found_inf = torch.ones((), dtype=torch.float32, device="cuda")
+            max_exp_avg_sqs = [torch.ones((1,), device="npu") for _ in range(num_tensors)] if amsgrad else []
+            state_steps = [torch.ones((), dtype=torch.float32, device="npu") for _ in range(num_tensors)]
+            grad_scale = None if no_grad_scale else torch.ones((1,), dtype=torch.float32, device="npu")
+            found_inf = torch.ones((), dtype=torch.float32, device="npu")
 
             functional_optim(
                 params,
@@ -1823,18 +1824,18 @@ class TestOptim(TestCase):
             self.assertEqual(
                 state_steps,
                 [
-                    torch.ones((), dtype=torch.float32, device="cuda")
+                    torch.ones((), dtype=torch.float32, device="npu")
                     for _ in range(num_tensors)
                 ],
             )
             self.assertEqual(params, prev_params)
 
 
-    @unittest.skipIf(not torch.cuda.is_available(), "CUDA is required.")
+    @unittest.skipIf(not torch.npu.is_available(), "NPU is required.")
     def test_fused_optimizer_load_state_dict(self):
         # NOTE: This SIMULATES a fused/capturable optimizer with state moved to CPU, issue 103256
-        # How do we get there? Users typically create CUDA models on fused optimizers and then
-        # store checkpoints on CPU as CUDA memory is limited with torch.load(...map_location="cpu").
+        # How do we get there? Users typically create NPU models on fused optimizers and then
+        # store checkpoints on CPU as NPU memory is limited with torch.load(...map_location="cpu").
         # Since this is a unit test, it is more expedient to simulate what the state_dict
         # would look like, which is basically CPU tensors with fused/capturable flag = True.
         for optimC, kwarg in itertools.product((Adam, optim.AdamW), ("fused", "capturable")):
@@ -1847,13 +1848,13 @@ class TestOptim(TestCase):
             optim_state_dict_cpu["param_groups"][0][kwarg] = True
 
             # load
-            input_cuda = input_.clone().detach().to(device="cuda")
+            input_npu = input_.clone().detach().to(device="npu")
             defaults = {kwarg: True}
-            optimizer_cuda = optimC([input_cuda], **defaults)
-            optimizer_cuda.load_state_dict(optim_state_dict_cpu)
-            optimizer_cuda.zero_grad()
-            input_cuda.grad = torch.rand_like(input_cuda)
-            optimizer_cuda.step()
+            optimizer_npu = optimC([input_npu], **defaults)
+            optimizer_npu.load_state_dict(optim_state_dict_cpu)
+            optimizer_npu.zero_grad()
+            input_npu.grad = torch.rand_like(input_npu)
+            optimizer_npu.step()
 
 
     @skipIfTorchDynamo()
@@ -1953,13 +1954,13 @@ class TestOptim(TestCase):
         self.assertListEqual(data, [0, 1, 2, 5, 0, 1, 2, 5, 0, 1, 2, 5])
 
     def test_fused_optimizer_raises(self):
-        if not torch.cuda.is_available():
-            self.skipTest("Requires CUDA devices")
+        if not torch.npu.is_available():
+            self.skipTest("Requires NPU devices")
         for optimizer_ctor in (torch.optim.Adam, torch.optim.AdamW):
             with self.assertRaisesRegex(RuntimeError, "`fused` and `foreach` cannot be `True` together."):
-                optimizer_ctor([torch.empty((), device="cuda")], foreach=True, fused=True)
+                optimizer_ctor([torch.empty((), device="npu")], foreach=True, fused=True)
             with self.assertRaisesRegex(RuntimeError, "`fused` does not support `differentiable`"):
-                optimizer_ctor([torch.empty((), device="cuda")], differentiable=True, fused=True)
+                optimizer_ctor([torch.empty((), device="npu")], differentiable=True, fused=True)
 
     @staticmethod
     def _state_dict_pre_hook(optimizer: Optimizer) -> None:
@@ -2350,8 +2351,7 @@ class TestDifferentiableOptimizer(TestCase):
             ),
         )
 
-
-    @unittest.skipIf(not TEST_CUDA, "test requires CUDA")
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "test requires NPU")
     def test_defaults_changed_to_foreach(self):
         from torch.optim import (adam, adamw, nadam, sgd, radam, rmsprop, rprop,
                                  asgd, adamax, adadelta, adagrad)
@@ -2368,8 +2368,8 @@ class TestDifferentiableOptimizer(TestCase):
                         (optim.Adagrad, adagrad, "_multi_tensor_adagrad"),)
 
         model = torch.nn.Linear(5, 5)
-        model.to(dtype=torch.float64, device="cuda")
-        input_ = torch.rand(2, 5, dtype=torch.float64, device="cuda")
+        model.to(dtype=torch.float64, device="npu")
+        input_ = torch.rand(2, 5, dtype=torch.float64, device="npu")
 
         for opt, mod, func in multi_optims:
             defaults = {}

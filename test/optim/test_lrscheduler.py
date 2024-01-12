@@ -5,6 +5,8 @@ import math
 import pickle
 
 import torch
+import torch_npu
+import torch_npu.testing
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn import Parameter
@@ -51,7 +53,6 @@ class TestLRScheduler(TestCase):
 
         def forward(self, x):
             return self.conv2(F.relu(self.conv1(x)))
-
 
     class LambdaLRTestObject:
         def __init__(self, value):
