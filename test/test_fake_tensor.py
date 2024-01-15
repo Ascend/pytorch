@@ -1339,6 +1339,20 @@ class TestMaskedSoftmaxWithRelPosBias(TestCase):
             self.assertTrue(x.shape == res.shape)
 
 
+class TestGeGlu(TestCase):
+    # meta shape infer
+    def TestGeGlu(self):
+        with FakeTensorMode():
+            x = torch.randn(2, 10, 1024, dtype=torch.float)
+            dim = -1
+            approximate = 1
+            activate_left = False
+            atten_mask.requires_grad = True
+            relative_pos_bias.requires_grad = True
+            res = torch.ops.npu.npu_geglu(x, dim, approximate, activate_left)
+            self.assertTrue(x.shape == res.shape)
+
+
 class TestScatterUpdateMeta(TestCase):
 
     def test_scatter_update_meta(self):

@@ -183,6 +183,27 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_rms_norm` is only supported on 910B, skip this ut!")
+    def test_wrapper_npu_geglu(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+            
+            def forward(self, x):
+                return torch_npu.npu_geglu(x)
+
+        def export_onnx(onnx_model_name):
+            x = torch.rand(2, 10, 1024).npu().half()
+            model = Model().to("npu")
+            model(x)
+            self.onnx_export(model, x, onnx_model_name, ["input"], ["output1", "output2"])
+        
+        onnx_model_name = "model_npu_geglu.onnx"
+        export_onnx(onnx_model_name)
+        assert(os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                           onnx_model_name)))
+
+
     def test_wrapper_npu_fused_attention_score(self):
         class Model(torch.nn.Module):
             def __init__(self):

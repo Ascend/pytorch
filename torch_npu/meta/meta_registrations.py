@@ -141,6 +141,16 @@ def scatter_list_meta(self, indices, updates, mask, reduce='update', axis=-2):
     return var_list
 
 
+@impl(m, "npu_geglu")
+def npu_geglu_meta(self, dim, approximate, activate_left=False):
+    return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(self, dtype=self.dtype))
+
+
+@impl(m, "npu_geglu_grad")
+def npu_geglu_backward_meta(grad_output, self, gelu, dim, approximate, activate_left=False):
+    return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(self, dtype=self.dtype))
+
+
 @impl(m, "npu_dropout_backward")
 def npu_dropout_backward_meta(grad_output, mask, p):
     return torch.empty_like(grad_output, dtype=grad_output.dtype)
