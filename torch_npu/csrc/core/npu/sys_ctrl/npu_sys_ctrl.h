@@ -57,8 +57,6 @@ public:
 
     int InitializedDeviceID();
 
-    aclrtContext InitializedContext();
-
     int64_t InitializedDeviceCount();
 
     // Register fn to be called during stage of exit and
@@ -72,7 +70,6 @@ private:
     bool init_flag_;
     int device_id_;
     uint32_t device_count_;
-    aclrtContext ctx_ = nullptr;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
 
