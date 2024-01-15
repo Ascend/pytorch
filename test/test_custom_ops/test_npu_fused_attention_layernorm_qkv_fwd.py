@@ -32,7 +32,8 @@ class TestFusedAttentionQKV(TestCase):
         v_kernel = torch_npu.npu_format_cast(v_kernel.t().contiguous(), 29)
 
         norm_shape = (1024,)
-        norm, mean, variance = torch.native_layer_norm(ln_input, norm_shape, gamma, beta, eps=1e-05)
+        norm, mean, _ = torch.native_layer_norm(ln_input, norm_shape, gamma, beta, eps=1e-05)
+        variance = torch.var(ln_input, -1, keepdim=False, unbiased=False)
         q_layer = self.confusion_transpose(torch.nn.functional.linear(norm, q_kernel, q_bias), (24, 512, 16, 64))
         k_layer = self.confusion_transpose(torch.nn.functional.linear(norm, k_kernel, k_bias), (24, 512, 16, 64))
         v_layer = self.confusion_transpose(torch.nn.functional.linear(norm, v_kernel, v_bias), (24, 512, 16, 64))
