@@ -185,7 +185,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         ASCEND_LOGW("Npu device %d has been set before global init.", device_id_);
     }
 
-    NPU_CHECK_ERROR(aclrtGetCurrentContext(&ctx_));
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
       const char *aclConfigPath = "acl.json";
@@ -226,7 +225,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
     NPU_CHECK_ERROR(c10_npu::SetDevice(device));
     device_id_ = device;
-    aclrtGetCurrentContext(&ctx_);
     return INIT_SUCC;
 }
 
