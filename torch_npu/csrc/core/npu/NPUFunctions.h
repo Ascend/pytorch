@@ -69,6 +69,8 @@ C10_NPU_API aclError SetDevice(c10::DeviceIndex device);
  */
 aclError ResetUsedDevices();
 
+aclrtContext GetDeviceContext(int32_t device);
+
 C10_NPU_API inline c10::DeviceIndex current_device() {
   int cur_device = 0;
   NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
