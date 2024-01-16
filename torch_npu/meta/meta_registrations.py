@@ -210,7 +210,7 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None):
     dimn = x2.size(x2.dim() - 1)
     dim_list.append(dimm)
     dim_list.append(dimn)
-    if offset is None:
+    if offset is not None:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
     return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
 
