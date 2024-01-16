@@ -69,4 +69,10 @@ class LinearA8W8Quant(nn.Module):
             self.register_parameter('bias', None)
 
     def forward(self, linear_quant_input: Tensor) -> Tensor:
-        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight, self.scale, self.offset, self.bias)
+        scale_quant = self.scale
+        first_last_dim = self.weight.dim() - 1
+        second_last_dim = self.weight.dim() - 2
+        if self.scale.dtype == torch.float32:
+            scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
+        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
+                                          scale_quant, self.offset, self.bias)
