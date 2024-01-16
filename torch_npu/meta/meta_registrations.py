@@ -222,3 +222,14 @@ def npu_trans_quant_param_meta(scale, offset=None):
         dim_offset = offset.size(0)
         dim_max = max(dim_max, dim_offset)
     return scale.new_empty((dim_max), dtype=torch.int64)
+
+
+@impl(m, "npu_quantize")
+def npu_quantize_meta(self, scales, zero_points, dtype, axis=1):
+    if dtype == torch.quint8:
+        return torch.empty_like(self, dtype=torch.uint8)
+    elif dtype == torch.qint8:
+        return torch.empty_like(self, dtype=torch.int8)
+    elif dtype == torch.qint32:
+        return torch.empty_like(self, dtype=torch.int32)
+    return torch.empty_like(self, dtype=torch.int8)
