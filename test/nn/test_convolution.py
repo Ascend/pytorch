@@ -1901,6 +1901,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
 
     @onlyPRIVATEUSE1
     @largeTensorTest('12GB')
+    @skipIfRocmVersionLessThan((6, 0))
     def test_conv_transposed_large(self, device):
         dtype = torch.half if self.device_type == 'npu' else torch.float
         conv = nn.ConvTranspose2d(1, 1, 1, 1, bias=False).to(device).to(dtype)
@@ -2031,6 +2032,7 @@ class TestConvolutionNNDeviceType(NNTestCase):
     @dtypesIfPRIVATEUSE1(*floating_types_and(torch.half, *[torch.bfloat16] if AMPERE_OR_ROCM else []))
     @dtypes(torch.float)
     @torch.backends.cudnn.flags(enabled=True, benchmark=False)
+    @unittest.skipIf(TEST_WITH_ROCM, "Skipped on ROCm, since it is failing on ROCm 5.7")
     def test_Conv2d_naive_groups(self, device, dtype):
         # Check that grouped convolutions matches two half convolutions
         m = nn.Conv2d(4, 4, kernel_size=3, groups=2).to(device, dtype)
