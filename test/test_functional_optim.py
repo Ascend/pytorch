@@ -4,6 +4,8 @@ from typing import List, Optional, Tuple
 import unittest
 
 import torch
+import torch_npu
+import torch_npu.testing
 import torch.distributed
 import torch.nn as nn
 import torch.nn.functional as F
@@ -77,6 +79,7 @@ class TestFunctionalOptimParity(TestCase):
         for p1, p2 in zip(params_1, params_2):
             self.assertEqual(p1, p2)
 
+    @torch._disable_dynamo(recursive=False)
     def _test_functional_optim_parity(self, optim_cls, *args, **kwargs):
         module_optim = MyModule()
         module_functional = MyModule()
@@ -156,4 +159,4 @@ class TestFunctionalOptimParity(TestCase):
 
 
 if __name__ == "__main__":
-    pass
+    run_tests()
