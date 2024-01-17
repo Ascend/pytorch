@@ -391,8 +391,8 @@ class TestModule(TestCase):
                     grad_output = tuple(self._traverse_obj(obj,
                                                            lambda obj: obj.clone().detach_().normal_()
                                                            if obj.requires_grad else None) for obj in default_output)
-                    flattened_default_output, _ = torch.utils._pytree.tree_flatten(default_output)
-                    flattened_grad_output, _ = torch.utils._pytree.tree_flatten(grad_output)
+                    flattened_default_output = torch.utils._pytree.tree_leaves(default_output)
+                    flattened_grad_output = torch.utils._pytree.tree_leaves(grad_output)
                     for d_out, g_out in zip(flattened_default_output, flattened_grad_output):
                         if d_out.requires_grad:
                             d_out.backward(g_out, retain_graph=True)
@@ -418,8 +418,8 @@ class TestModule(TestCase):
                     if isinstance(out, torch.Tensor):
                         out.backward(g_out_copy, retain_graph=True)
                     else:
-                        flattened_out, _ = torch.utils._pytree.tree_flatten(out)
-                        flattened_g_out_copy, _ = torch.utils._pytree.tree_flatten(g_out_copy)
+                        flattened_out = torch.utils._pytree.tree_leaves(out)
+                        flattened_g_out_copy = torch.utils._pytree.tree_leaves(g_out_copy)
                         for f_out, f_g_out in zip(flattened_out, flattened_g_out_copy):
                             if f_out.requires_grad:
                                 f_out.backward(f_g_out, retain_graph=True)
@@ -437,7 +437,7 @@ class TestModule(TestCase):
         module_cls = module_info.module_cls
         module_inputs = module_info.module_inputs_func(module_info, device=device, dtype=dtype,
                                                        requires_grad=True, training=training)
-        # === Set nondet tol for gradcheck to user-defined value if on CUDA and cudNN is enabled
+        # === Set nondet tol for gradcheck to user-defined value if on NPU and cudNN is enabled
         gradcheck_nondet_tol = 0.0
         if torch.device(device).type == 'npu' and torch.backends.cudnn.enabled:
             gradcheck_nondet_tol = module_info.gradcheck_nondet_tol
@@ -477,7 +477,7 @@ class TestModule(TestCase):
 
                 with freeze_rng_state():
                     output = m(*new_input_args, **new_kwargs, **other_kwargs)
-                    output_flattened, _ = torch.utils._pytree.tree_flatten(output)
+                    output_flattened = torch.utils._pytree.tree_leaves(output)
                     return output_flattened
 
             # check total derivative
@@ -603,8 +603,8 @@ class TestModule(TestCase):
                 if isinstance(cpu_outputs, torch.Tensor):
                     check_backward(cpu_outputs, gpu_outputs)
                 else:
-                    flatten_cpu_outputs, _ = torch.utils._pytree.tree_flatten(cpu_outputs)
-                    flatten_gpu_outputs, _ = torch.utils._pytree.tree_flatten(gpu_outputs)
+                    flatten_cpu_outputs = torch.utils._pytree.tree_leaves(cpu_outputs)
+                    flatten_gpu_outputs = torch.utils._pytree.tree_leaves(gpu_outputs)
                     for cpu_output, gpu_output in zip(flatten_cpu_outputs, flatten_gpu_outputs):
                         if cpu_output.requires_grad:
                             check_backward(cpu_output, gpu_output)
@@ -688,12 +688,12 @@ class TestModule(TestCase):
                 desired_outputs = m(*args, **kwargs)
                 # === Do backward pass. ===
                 ref_diff_outputs = tuple(
-                    t for t in torch.utils._pytree.tree_flatten(desired_outputs)[0] if _req_grad(t))
+                    t for t in torch.utils._pytree.tree_leaves(desired_outputs) if _req_grad(t))
                 if training and len(ref_diff_outputs) > 0:
                     params = tuple(p for p in m.parameters())
                     ref_diff_inputs = tuple(
                         t
-                        for t in torch.utils._pytree.tree_flatten((args, kwargs, params))[0]
+                        for t in torch.utils._pytree.tree_leaves((args, kwargs, params))
                         if _req_grad(t)
                     )
                     ref_grad_outputs = tuple(
@@ -712,13 +712,13 @@ class TestModule(TestCase):
                     d_kwargs = _to_mem_format(input_mem_format, module_input.forward_input.kwargs)
 
                     for t1, t2 in zip(
-                            torch.utils._pytree.tree_flatten(d_args)[0],
-                            torch.utils._pytree.tree_flatten(module_input.forward_input.args)[0],
+                            torch.utils._pytree.tree_leaves(d_args),
+                            torch.utils._pytree.tree_leaves(module_input.forward_input.args),
                     ):
                         t1.requires_grad_(t2.requires_grad)
                     for t1, t2 in zip(
-                            torch.utils._pytree.tree_flatten(d_kwargs)[0],
-                            torch.utils._pytree.tree_flatten(module_input.forward_input.kwargs)[0],
+                            torch.utils._pytree.tree_leaves(d_kwargs),
+                            torch.utils._pytree.tree_leaves(module_input.forward_input.kwargs),
                     ):
                         t1.requires_grad_(t2.requires_grad)
 
@@ -741,12 +741,12 @@ class TestModule(TestCase):
                         _check_out_mem_format(outputs, input_mem_format, module_mem_format)
 
                         # === Do backward pass. ===
-                        diff_outputs = tuple(t for t in torch.utils._pytree.tree_flatten(outputs)[0] if _req_grad(t))
+                        diff_outputs = tuple(t for t in torch.utils._pytree.tree_leaves(outputs) if _req_grad(t))
                         if training and len(diff_outputs) > 0:
                             params = tuple(p for p in m.parameters())
                             diff_inputs = tuple(
                                 t
-                                for t in torch.utils._pytree.tree_flatten((args, kwargs, params))[0]
+                                for t in torch.utils._pytree.tree_leaves((args, kwargs, params))
                                 if _req_grad(t)
                             )
                             grad_outputs = tuple(

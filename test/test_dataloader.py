@@ -13,6 +13,8 @@ import unittest
 import itertools
 import warnings
 import tempfile
+import functools
+import operator
 import torch
 import torch_npu
 import torch_npu.testing
@@ -37,7 +39,8 @@ from torch._utils import ExceptionWrapper
 from torch.testing._internal.common_utils import (TestCase, run_tests, TEST_NUMPY, IS_WINDOWS, IS_JETSON,
                                                   IS_CI, NO_MULTIPROCESSING_SPAWN, skipIfRocm, slowTest,
                                                   load_tests, TEST_WITH_ASAN, TEST_WITH_TSAN, IS_SANDCASTLE,
-                                                  IS_MACOS)
+                                                  IS_MACOS, parametrize)
+from torch.testing._internal.common_device_type import instantiate_device_type_tests
 
 
 try:
@@ -104,6 +107,11 @@ JOIN_TIMEOUT = 60.0  # seconds
 supported_multiprocessing_contexts = [None] + list(torch.multiprocessing.get_all_start_methods())
 
 
+# collate_fn that returns the batch cloned; defined globally here for pickle purposes.
+def _clone_collate(b):
+    return [x.clone() for x in b]
+
+
 @unittest.skipIf(
     TEST_WITH_TSAN,
     "Fails with TSAN with the following error: starting new threads after multi-threaded "
@@ -137,7 +145,6 @@ class TestDatasetRandomSplit(TestCase):
         self.assertEqual(len(splits[1]), 22)
         self.assertEqual(len(splits[2]), 31)
         self.assertEqual(len(splits[3]), 42)
-
 
     def test_splits_are_mutually_exclusive(self):
         data = [5, 2, 3, 4, 1, 6]
@@ -265,7 +272,7 @@ class TestDatasetRandomSplit(TestCase):
         subset1, subset2 = random_split(dataset, [4, 1])
         subset_of_subset1, subset_of_subset2 = random_split(subset1, [3, 1])
         idx = [subset1.indices[i] for i in subset_of_subset1.indices]
-        self.assertEqual(subset_of_subset1[:], dataset[idx[:]])
+        self.assertEqual(subset_of_subset1[:], dataset[idx.copy()])
         self.assertEqual(subset_of_subset1[0:2], dataset[idx[0:2]])
         self.assertEqual(subset_of_subset1[0:-1:2], dataset[idx[0:-1:2]])
 
@@ -403,6 +410,80 @@ class TestStackDataset(TestCase):
         for i in range(15):
             self.assertEqual(t[i], source[i]['a'])
             self.assertEqual(d[i], source[i]['b'])
+
+    def test_getitems(self):
+        class GetItemsDataset(Dataset):
+            def __init__(self):
+                self.data = torch.randn(4)
+
+            def __getitem__(self, item):
+                return self.data[item]
+
+            def __getitems__(self, items):
+                return self.data[items]
+
+            def __len__(self):
+                return 4
+
+        t = GetItemsDataset()
+        ls = [1, 2, 3, 4]
+
+        source = StackDataset(t, ls)
+        batch = source.__getitems__([0, 1, 2, 3])
+        for i in range(4):
+            self.assertEqual(t[i], batch[i][0])
+            self.assertEqual(ls[i], batch[i][1])
+
+        source = StackDataset(t=t, l=ls)
+        batch = source.__getitems__([0, 1, 2, 3])
+        for i in range(4):
+            self.assertEqual(t[i], batch[i]['t'])
+            self.assertEqual(ls[i], batch[i]['l'])
+
+    def test_getitems_raises_index_error(self):
+        class GetItemsDataset(Dataset):
+            def __init__(self):
+                self.data = torch.randn(4)
+
+            def __getitem__(self, item):
+                return self.data[item]
+
+            def __getitems__(self, items):
+                return self.data[items]
+
+            def __len__(self):
+                return 4
+
+        t = GetItemsDataset()
+        ls = [1, 2, 3, 4]
+
+        source = StackDataset(t, ls)
+
+        with self.assertRaises(IndexError):
+            source.__getitems__([0, 4])
+
+    def test_getitems_value_error(self):
+        class GetItemsDataset(Dataset):
+            def __init__(self):
+                self.data = torch.randn(4)
+
+            def __getitem__(self, item):
+                return self.data[item]
+
+            def __getitems__(self, items):
+                return self.data[items][:-1]  # return less
+
+            def __len__(self):
+                return 4
+
+        t = GetItemsDataset()
+        ls = [1, 2, 3, 4]
+
+        source = StackDataset(t, ls)
+
+        with self.assertRaisesRegex(ValueError,
+                                    "Nested dataset's output size mismatch. Expected 4, got 3"):
+            source.__getitems__([0, 1, 2, 3])
 
 
 @unittest.skipIf(
@@ -1324,7 +1405,7 @@ except RuntimeError as e:
         # [no auto-batching] multiprocessing loading
         num_workers = 3
         sizes_for_all_workers = [0, 4, 20]
-        expected = sorted(sum((list(range(s)) for s in sizes_for_all_workers), []))
+        expected = sorted(functools.reduce(operator.iadd, (list(range(s)) for s in sizes_for_all_workers), []))
         assert len(sizes_for_all_workers) == num_workers, 'invalid test case'
         for prefetch_factor in [2, 3, 4]:
             dataset = WorkerSpecificIterableDataset(sizes_for_all_workers)
@@ -1383,7 +1464,7 @@ except RuntimeError as e:
         # [auto-batching] multiprocessing loading
         num_workers = 3
         sizes_for_all_workers = [0, 4, 20]
-        expected = sorted(sum((list(range(s)) for s in sizes_for_all_workers), []))
+        expected = sorted(functools.reduce(operator.iadd, (list(range(s)) for s in sizes_for_all_workers), []))
         assert len(sizes_for_all_workers) == num_workers, 'invalid test case'
         for prefetch_factor in [2, 3, 4]:
             dataset = WorkerSpecificIterableDataset(sizes_for_all_workers)
@@ -1419,7 +1500,7 @@ except RuntimeError as e:
         # [auto-batching & drop_last] multiprocessing loading
         num_workers = 3
         sizes_for_all_workers = [0, 4, 20]
-        expected = sorted(sum((list(range(s)) for s in sizes_for_all_workers), []))
+        expected = sorted(functools.reduce(operator.iadd, (list(range(s)) for s in sizes_for_all_workers), []))
         assert len(sizes_for_all_workers) == num_workers, 'invalid test case'
         for prefetch_factor in [2, 3, 4]:
             dataset = WorkerSpecificIterableDataset(sizes_for_all_workers)
