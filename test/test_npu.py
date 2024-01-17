@@ -67,6 +67,7 @@ if TEST_PRIVATEUSE1:
 _cycles_per_ms = None
 
 
+@torch.testing._internal.common_utils.markDynamoStrictTest
 class TestNpu(TestCase):
     _do_cuda_memory_leak_check = True
     _do_cuda_non_default_stream = True
@@ -79,6 +80,28 @@ class TestNpu(TestCase):
     def tearDown(self):
         del self.autocast_lists
         super().tearDown()
+
+    def test_pinned_memory_with_cudaregister(self):
+        torch_npu.npu.memory._set_allocator_settings("pinned_use_npu_host_register:True,pinned_num_register_threads:8")
+        t = torch.ones(20)
+        self.assertFalse(t.is_pinned())
+        try:
+            pinned_t = torch.ones(1 << 21).pin_memory()
+            self.assertTrue(pinned_t.is_pinned())
+            pinned_t = torch.ones(1 << 24).pin_memory()
+            self.assertTrue(pinned_t.is_pinned())
+        except RuntimeError as e:
+            # Some NPUs don't support same address space on host and device side
+            pass
+
+    def test_pinned_memory_with_cudaregister_multithread(self):
+        num_threads = 4
+        threads = [threading.Thread(target=self.test_pinned_memory_with_cudaregister)
+                   for t in range(num_threads)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
     def test_cudart_register(self):
         t = torch.ones(20)
@@ -854,7 +877,7 @@ except RuntimeError as e:
             @staticmethod
             def backward(ctx, grad):
                 self.assertEqual(torch_npu.npu.current_stream(), ctx.stream)
-                # delays the operation in the the background stream
+                # delays the operation in the background stream
                 torch_npu.npu._sleep(1000 * 5000)
                 return grad * ctx.val, None
 
@@ -1361,7 +1384,7 @@ torch_npu.npu.synchronize()
         scaler.scale(z).backward()
         scaler.step(optimizer)
         scaler.update()
-        assert(scaler._scale != float('inf') and scaler._scale != float('nan'))
+        assert scaler._scale != float('inf') and scaler._scale != float('nan')
 
     def test_grad_scaling_clipping(self):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
@@ -1811,8 +1834,7 @@ torch_npu.npu.synchronize()
                     ('TORCH_CUDNN_V8_API_DISABLED' in os.environ and
                      int(os.environ['TORCH_CUDNN_V8_API_DISABLED']) or
                      torch_npu.npu.get_device_capability() < (8, 0))
-                should_error_from_not_implemented = should_error_from_cudnn or 'thnn' in op \
-                    or 'fused' in op or 'gru' in op or op == '_thnn_fused_lstm_cell' or op == 'lstm_cell'
+                should_error_from_not_implemented = should_error_from_cudnn
                 if not skip_test:
                     if should_error_from_not_implemented:
                         with self.assertRaises(RuntimeError, msg=str(op) + ' should not be supported for bfloat16!'):
@@ -2137,7 +2159,7 @@ torch_npu.npu.synchronize()
     def test_graph_is_current_stream_capturing(self):
         self.assertFalse(torch_npu.npu.is_current_stream_capturing())
 
-        if (TEST_PRIVATEUSE1 and (not TEST_WITH_ROCM) and int(torch.version.npu.split(".")[0]) >= 11):
+        if (TEST_PRIVATEUSE1 and (not TEST_WITH_ROCM)):
             s = torch_npu.npu.Stream()
             with torch_npu.npu.stream(s):
                 g = torch_npu.npu.NPUGraph()
@@ -2164,6 +2186,41 @@ torch_npu.npu.synchronize()
         g.replay()
 
         self.assertTrue(b.sum().item() == 11000.)
+
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "NPU not available")
+    def test_graph_capture_reset_recapture(self):
+        s = torch_npu.npu.Stream()
+
+        with torch_npu.npu.stream(s):
+            a = torch.full((1000,), 1, device="npu")
+            g = torch_npu.npu.NPUGraph()
+            torch_npu.npu.empty_cache()
+            g.capture_begin()
+            b = a
+            for _ in range(10):
+                b = b + 1
+            g.capture_end()
+        torch_npu.npu.current_stream().wait_stream(s)
+
+        g.replay()
+
+        self.assertTrue(b.sum().item() == 11000.)
+
+        g.reset()
+
+        with torch_npu.npu.stream(s):
+            g.capture_begin()
+            b.fill_(2.0)
+            for _ in range(10):
+                b = b + 2
+            g.capture_end()
+        torch_npu.npu.current_stream().wait_stream(s)
+
+        g.replay()
+        self.assertTrue(b.sum().item() == 22000.)
+
+        g.reset()
+        del g
 
     @unittest.skipIf(not TEST_PRIVATEUSE1, "NPU not available")
     def test_graph_error(self):
@@ -3041,6 +3098,9 @@ exit(2)
         ] + [
             (optimizer_ctor, {"lr": 0.1, "betas": (0.8, 0.7), "fused": True, "amsgrad": amsgrad})
             for optimizer_ctor, amsgrad in product((torch.optim.Adam, torch.optim.AdamW), (False, True))
+        ] + [
+            (torch.optim.ASGD, {"lr": 0.1, "foreach": True, "maximize": maximize, "weight_decay": weight_decay})
+            for maximize, weight_decay in product((False, True), (0.0, 0.1))
         ]
 
         for optimizer_ctor, kwargs in cases:
@@ -3222,6 +3282,30 @@ exit(2)
         # Exception would Corrupt Process and make other tests fail
         # self.assertTrue(throws_on_cuda_event("global"))
 
+    @unittest.skipIf(not TEST_PRIVATEUSE1, "NPU not available")
+    def test_cuda_graph_allocator_propagates_stream(self):
+        segments = torch_npu.npu.memory_snapshot()
+        existing_pools = {s["segment_pool_id"] for s in segments}
+        x = torch.randn(10240000, device="npu")
+        y = torch.rand_like(x)
+        g = torch_npu.npu.NPUGraph()
+        s0 = torch_npu.npu.Stream()
+        s1 = torch_npu.npu.Stream()
+        s0.wait_stream(torch_npu.npu.current_stream())
+        with torch_npu.npu.stream(s0):
+            g.capture_begin()
+            z = x + y
+        with torch_npu.npu.stream(s1):
+            s1.wait_stream(s0)
+            w = z + y
+        s0.wait_stream(s1)
+        with torch_npu.npu.stream(s0):
+            g.capture_end()
+        segments = torch_npu.npu.memory_snapshot()
+        x = [s["segment_pool_id"] for s in segments if s["segment_pool_id"] not in existing_pools]
+        self.assertEqual(len(x), 2)
+        self.assertEqual(x[0], x[1])
+
     def test_batch_norm_gather_stats(self):
         input1 = torch.randn(1, 3, 3, 3, device='npu')
         mean, invstd = torch.batch_norm_gather_stats(
@@ -3309,14 +3393,24 @@ exit(2)
                 with self.assertRaisesRegex(RuntimeError, "Expected all tensors to be on the same device"):
                     torch.addmm(s, m1, m2)
 
-    @unittest.skipIf(not TEST_MULTINPU, "Testing on one NPU is sufficient")
+    @unittest.skipIf(TEST_MULTINPU, "Testing on one NPU is sufficient")
     def test_lazy_init(self):
         """ Validate that no NPU calls are made during `import torch` call"""
-        from subprocess import check_output
+        def check_output(script: str) -> str:
+            return subprocess.check_output([sys.executable, "-c", script]).decode("ascii").strip()
+
         VISIBLE_DEVICES = "HIP_VISIBLE_DEVICES" if TEST_WITH_ROCM else "CUDA_VISIBLE_DEVICES"
-        test_script = f"import os; import torch; import torch_npu; os.environ['{VISIBLE_DEVICES}']='32';print(torch_npu.npu.device_count())"
-        rc = check_output([sys.executable, '-c', test_script]).decode("ascii").strip()
+        test_script = f"import os; import torch;os.environ['{VISIBLE_DEVICES}']='32';print(torch.cuda.device_count())"
+        rc = check_output(test_script)
         self.assertEqual(rc, "0")
+        if not TEST_WITH_ROCM:
+            # Check that `cuInit` was not called during the import
+            # By using ctypes and calling cuDeviceCountGet() and expect CUDA_ERROR_NOT_INITIALIZED == 3
+            # See pytorch issues 116276 for more details
+            libcuda_name = "libcuda.so.1" if not IS_WINDOWS else "nvcuda.dll"
+            cuda_driver_api_call = f"ctypes.CDLL('{libcuda_name}').cuDeviceGetCount(ctypes.byref(x))"
+            rc = check_output(f"import torch; import ctypes;x=ctypes.c_int(-1);print({cuda_driver_api_call})")
+            self.assertEqual(rc, "3")
 
 
 class TestNpuMallocAsync(TestCase):
@@ -3595,8 +3689,15 @@ class TestNpuMallocAsync(TestCase):
 
         pow2_div2_mem = torch_npu.npu.memory_stats()[key_allocated]
         if not TEST_NPUMALLOCASYNC:
-            # not supported with the cudaMallocAsync backend
+            # not supported with the npuMallocAsync backend
             self.assertTrue(pow2_div2_mem - start_mem == power2_div(nbytes_big, 2))
+
+        torch_npu.npu.memory.empty_cache()
+        torch_npu.npu.memory._set_allocator_settings("release_lock_on_npumalloc:True")
+        start_mem = torch_npu.npu.memory_stats()[key_allocated]
+        w = torch.rand(nelems, device='npu')
+        reg_mem = torch_npu.npu.memory_stats()[key_allocated]
+        self.assertTrue(reg_mem - start_mem == nbytes)
 
         with self.assertRaises(RuntimeError):
             torch_npu.npu.memory._set_allocator_settings("foo:1,bar:2")
@@ -3606,6 +3707,18 @@ class TestNpuMallocAsync(TestCase):
 
         with self.assertRaises(RuntimeError):
             torch_npu.npu.memory._set_allocator_settings("max_split_size_mb:2")
+
+        with self.assertRaises(RuntimeError):
+            torch_npu.npu.memory._set_allocator_settings("release_lock_on_npumalloc:none")
+
+        with self.assertRaises(RuntimeError):
+            torch_npu.npu.memory._set_allocator_settings("pinned_use_npu_host_register:none")
+
+        with self.assertRaises(RuntimeError):
+            torch_npu.npu.memory._set_allocator_settings("pinned_num_register_threads:none")
+
+        with self.assertRaises(RuntimeError):
+            torch_npu.npu.memory._set_allocator_settings("pinned_num_register_threads:1024")
 
     def test_raises_oom(self):
         with self.assertRaises(torch_npu.npu.OutOfMemoryError):
@@ -3798,6 +3911,7 @@ def reconstruct_from_tensor_metadata(metadata):
 
 
 @unittest.skipIf(TEST_NPUMALLOCASYNC or TEST_WITH_ROCM, "NYI")
+@torch.testing._internal.common_utils.markDynamoStrictTest
 class TestBlockStateAbsorption(TestCase):
 
     def checkCheckpointedBlock(self, before_block, after_block):
