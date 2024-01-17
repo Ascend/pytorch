@@ -539,6 +539,12 @@ def gen_quantize_register(
         """\
 TORCH_LIBRARY_IMPL(aten, $dispatch_key, m) {
 $dispatch_registrations_body
+m.impl("q_scale", TORCH_FN(at::native::q_scale_quant));
+m.impl("q_per_channel_scales", TORCH_FN(at::native::q_per_channel_scales));
+m.impl("q_zero_point", TORCH_FN(at::native::q_zero_point_quant));
+m.impl("q_per_channel_zero_points", TORCH_FN(at::native::q_per_channel_zero_points));
+m.impl("q_per_channel_axis", TORCH_FN(at::native::q_per_channel_axis));
+m.impl("qscheme", TORCH_FN(at::native::qscheme_quant));
 };"""
     )
     kernel_template = CodeTemplate(
