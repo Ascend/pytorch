@@ -119,6 +119,7 @@ PyObject* initModule() {
     BindGetDeviceProperties(module);
     RegisterNPUDeviceMemories(module);
     BindGetDeviceMemories(module);
+    RegisterNpuPluggableAllocator(module);
     return module;
 }
 

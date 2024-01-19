@@ -1878,9 +1878,6 @@ class NpuCachingAllocator : public NPUAllocator {
   // allocated blocks by device pointer
   ska::flat_hash_map<void*, Block*> allocated_blocks;
 
-  // lock around calls to aclFree (to prevent deadlocks with HCCL)
-  mutable std::mutex npu_free_mutex;
-
   void add_allocated_block(Block* block) {
     std::lock_guard<std::mutex> lock(mutex);
     allocated_blocks[block->ptr] = block;
@@ -1889,11 +1886,6 @@ class NpuCachingAllocator : public NPUAllocator {
  public:
 
   std::vector<std::unique_ptr<DeviceCachingAllocator>> device_allocator;
-
-  std::mutex* getFreeMutex() const override
-  {
-      return &npu_free_mutex;
-  }
 
   Block* get_allocated_block(void* ptr, bool remove = false) {
     std::lock_guard<std::mutex> lock(mutex);
@@ -2092,7 +2084,7 @@ class NpuCachingAllocator : public NPUAllocator {
       return nullptr;
     }
     int device = 0;
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     void* r = nullptr;
     malloc(&r, device, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
     return r;
@@ -2104,7 +2096,7 @@ class NpuCachingAllocator : public NPUAllocator {
       return nullptr;
     }
     int device;
-    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     void* r = nullptr;
     malloc(&r, device, nbytes, stream);
     return r;
@@ -2179,6 +2171,11 @@ struct BackendStaticInitializer {
 
 std::atomic<NPUAllocator*> allocator;
 BackendStaticInitializer backend_static_initializer;
+
+std::mutex* getFreeMutex() {
+  static std::mutex npu_free_mutex;
+  return &npu_free_mutex;
+}
 
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
