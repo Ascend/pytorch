@@ -8,6 +8,7 @@
 #include <Python.h>
 #endif
 
+#include <ATen/record_function.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/eventfd.h>
@@ -172,7 +173,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
     return FAILED;
   }
-
+    RECORD_FUNCTION("MakeSureQueueEmpty", std::vector<c10::IValue>({}));
   // While waiting for ACL thread to launch tasks,
   // the current thread should not hold GIL.
   // When the operator compilation is triggered in the ACL thread,
