@@ -33,13 +33,28 @@ bool OptionsManager::IsResumeModeEnable()
     return isResumeModeEnable;
 }
 
-bool OptionsManager::IsMultiStreamMemoryReuse()
+ReuseMode OptionsManager::GetMultiStreamMemoryReuse()
 {
-    const static bool hcclRealTimeMemoryReuse = []() -> bool {
-        int32_t enable = OptionsManager::GetBoolTypeOption("MULTI_STREAM_MEMORY_REUSE", 1);
-        return enable != 0;
+    const static ReuseMode reuseMode = []() -> ReuseMode {
+        char *env_val = std::getenv("MULTI_STREAM_MEMORY_REUSE");
+        int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 1;
+        ReuseMode mode = ERASE_RECORD_STREAM;
+        switch (envFlag) {
+            case 0:
+                mode = CLOSE;
+                break;
+            case 1:
+                mode = ERASE_RECORD_STREAM;
+                break;
+            case 2:
+                mode = AVOID_RECORD_STREAM;
+                break;
+            default:
+                TORCH_CHECK(false, "MULTI_STREAM_MEMORY_REUSE only allow 0, 1, 2");
+        }
+        return mode;
     }();
-    return hcclRealTimeMemoryReuse;
+    return reuseMode;
 }
 
 bool OptionsManager::CheckInfNanModeEnable()
