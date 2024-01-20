@@ -338,8 +338,10 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
         }
     }
 
-    if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
         lazy_destory_tensors_.clear();
+    } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+        stashed_for_allocator_safety_.clear();
     }
 
     // In case of blocking, wait for the operation to complete.
@@ -359,7 +361,8 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
 }
 
 void ProcessGroupHCCL::WorkHCCL::lazyDestory(std::vector<at::Tensor> tensors) {
-    if (tensors.empty() || !c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+    if (tensors.empty() ||
+        (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::ERASE_RECORD_STREAM)) {
         return;
     }
 
@@ -767,9 +770,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
         // operations where `inputs' and `outputs' are not the same.
         //
         // See [Sync Streams].
-        c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
-        if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-            work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+            work->stashed_for_allocator_safety_.push_back(inputs[i]);
+        } else {
+            c10_npu::NPUCachingAllocator::recordStream(inputs[i].storage().data_ptr(), hcclStream);
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                work->recorded_inputs_.push_back(std::make_pair(inputs[i].storage().getWeakStorageImpl(), hcclStream));
+            }
         }
     }
     {
@@ -780,9 +787,11 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             hcclUs startut = TIME_NOW();
             HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream));
-            if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
                 work->recorded_outputs_.push_back(
                     std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
+            } else if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                work->stashed_for_allocator_safety_.push_back(outputs[i]);
             }
         }
     }
@@ -967,8 +976,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
             outputFlattened,
             [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
                 RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
-
-                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                    c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+                }
                 auto inputDataPtr = input.data_ptr();
                 auto outputDataPtr = output.data_ptr();
                 auto numel = getNumelForHCCL(input);
@@ -992,12 +1002,16 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                     c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                     for (const auto j : c10::irange(outputTensors[0].size())) {
                         // See [Sync Streams].
-                        c10_npu::NPUCachingAllocator::recordStream(
-                            outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                            work->stashed_for_allocator_safety_.push_back(outputTensors[i][j]);
+                        } else {
+                            c10_npu::NPUCachingAllocator::recordStream(
+                                outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
-                        if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-                            work->recorded_outputs_.push_back(
-                                std::make_pair(outputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                                work->recorded_outputs_.push_back(
+                                    std::make_pair(outputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                            }
                         }
                         at::Tensor output_tensor = outputFlattened[i][j].slice(1, 0, output_nums[j]);
                         at::Tensor output_tensor_shape = at::reshape(output_tensor, outputTensors[i][j].sizes());
@@ -1064,8 +1078,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
         outputTensors,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             RECORD_FUNCTION("HcclAllgatherTogather", std::vector<c10::IValue>({input}));
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
-
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            }
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
@@ -1106,7 +1121,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
         outputTensors,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             RECORD_FUNCTION("HcclAllgatherBase", std::vector<c10::IValue>({input}));
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            }
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(input);
@@ -1142,7 +1159,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataTypeOfAllReduce(hcclType);
             RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            }
             return HcclReduceScatter(
                 input.data_ptr(),
                 output.data_ptr(),
@@ -1159,13 +1178,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                 for (const auto j : c10::irange(inputTensors[0].size())) {
                     // See [Sync Streams].
-                    c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-
-                    if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-                        work->recorded_inputs_.push_back(
-                            std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                        work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
+                    } else {
+                        c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                            work->recorded_inputs_.push_back(
+                                std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                        }
                     }
-
                     inputFlattened[i][j].copy_(inputTensors[i][j], true);
                 }
             }
@@ -1193,7 +1214,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
         inputs,
         outputs,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            }
             auto hcclType = getHcclDataType(input.scalar_type());
             checkSupportedDataTypeOfAllReduce(hcclType);
             RECORD_FUNCTION("HcclReduceScatterBase", std::vector<c10::IValue>({input}));
@@ -1314,7 +1337,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             RECORD_FUNCTION("HcclScatter", std::vector<c10::IValue>({input}));
             const auto root = opts.rootRank;
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            }
             auto inputDataPtr = input.data_ptr();
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
@@ -1336,13 +1361,15 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
                 for (const auto j : c10::irange(inputTensors[0].size())) {
                     // See [Sync Streams].
-                    c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
-
-                    if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-                        work->recorded_inputs_.push_back(
-                            std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                        work->stashed_for_allocator_safety_.push_back(inputTensors[i][j]);
+                    } else {
+                        c10_npu::NPUCachingAllocator::recordStream(inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
+                        if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                            work->recorded_inputs_.push_back(
+                                std::make_pair(inputTensors[i][j].storage().getWeakStorageImpl(), hcclStreams[i]));
+                        }
                     }
-
                     inputFlattened[i][j].copy_(inputTensors[i][j], true);
                 }
             }
@@ -1381,8 +1408,9 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
         tensors_,
         [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
             RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
-            c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
-
+            if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() != c10_npu::option::AVOID_RECORD_STREAM) {
+                c10_npu::NPUCachingAllocator::recordStream(output.storage().data_ptr(), stream);
+            }
             auto outputDataPtr = output.data_ptr();
             auto numel = getNumelForHCCL(output);
             auto hcclType = getHcclDataType(output.scalar_type());
@@ -1400,10 +1428,14 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {
             for (size_t i = 0; i < tensors_.size(); ++i) {
                 c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-                c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
-                if (c10_npu::option::OptionsManager::IsMultiStreamMemoryReuse()) {
-                    work->recorded_outputs_.push_back(
-                        std::make_pair(tensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
+                if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::AVOID_RECORD_STREAM) {
+                    work->stashed_for_allocator_safety_.push_back(tensors_[i]);
+                } else {
+                    c10_npu::NPUCachingAllocator::recordStream(tensors_[i].storage().data_ptr(), hcclStreams[i]);
+                    if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
+                        work->recorded_outputs_.push_back(
+                            std::make_pair(tensors_[i].storage().getWeakStorageImpl(), hcclStreams[i]));
+                    }
                 }
                 if (!at_npu::native::FormatHelper::IsBaseFormatType(tensors[i])) {
                     tensors[i].copy_(tensors_[i], true);

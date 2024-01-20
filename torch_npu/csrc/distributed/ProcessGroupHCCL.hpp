@@ -162,6 +162,8 @@ public:
 
     std::vector<at::Tensor> lazy_destory_tensors_;
 
+    std::vector<at::Tensor> stashed_for_allocator_safety_;
+
     friend class ProcessGroupHCCL;
   };
 

@@ -23,10 +23,16 @@
 namespace c10_npu {
 namespace option {
 
+enum ReuseMode {
+    CLOSE = 0,
+    ERASE_RECORD_STREAM = 1,
+    AVOID_RECORD_STREAM = 2,
+};
+
 class OptionsManager {
 public:
     static bool IsResumeModeEnable();
-    static bool IsMultiStreamMemoryReuse();
+    static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
     static bool CheckBlockingEnable();
     static bool CheckQueueEnable();
