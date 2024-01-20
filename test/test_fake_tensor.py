@@ -1434,6 +1434,25 @@ class TestNpuRmsNorm(TestCase):
             self.assertEqual(dw.device, npu_gamma.device)
 
 
+class TestNpuAddRmsNorm(TestCase):
+    def test_npu_add_rms_norm(self):
+        with FakeTensorMode():
+            npu_x1 = torch.randn((2, 3), dtype=torch.float32).npu()
+            npu_x2 = torch.randn((2, 3), dtype=torch.float32).npu()
+            npu_gamma = torch.randn((3,), dtype=torch.float32).npu()
+
+            result_y, result_rstd, result_x = torch_npu.npu_add_rms_norm(npu_x1, npu_x2, npu_gamma)
+
+            self.assertEqual(result_y.dtype, npu_x1.dtype)
+            self.assertEqual(result_y.shape, npu_x1.shape)
+            self.assertEqual(result_y.device, npu_x1.device)
+            self.assertEqual(result_rstd.shape, torch.Size([2, 1]))
+            self.assertEqual(result_rstd.device, npu_x1.device)
+            self.assertEqual(result_x.dtype, npu_x1.dtype)
+            self.assertEqual(result_x.shape, npu_x1.shape)
+            self.assertEqual(result_x.device, npu_x1.device)
+
+
 class TestFFN(TestCase):
     def test_npu_ffn_meta(self):
         with FakeTensorMode():
