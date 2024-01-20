@@ -33,7 +33,7 @@ class LinearA8W8Quant(nn.Module):
                 :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})` where
                 :math:`k = \frac{1}{\text{in\_features}}`
 
-    Examples::        
+    Examples::
         >>> x1 = torch.randint(-1, 1, (1, 5), dtype=torch.int8).npu()
         >>> x2 = torch.randint(-1, 1, (5, 127), dtype=torch.int8).npu()
         >>> scale = torch.randn(1, dtype=torch.float32).npu()
@@ -52,13 +52,14 @@ class LinearA8W8Quant(nn.Module):
     offset: Tensor
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True, offset: bool = False,
-                 device=None, dtype=None) -> None:
+                 device=None, dtype=None, output_dtype=None) -> None:
 
         super(LinearA8W8Quant, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.weight = Parameter(torch.empty((out_features, in_features)), False)
         self.scale = Parameter(torch.empty(out_features), False)
+        self.output_dtype = output_dtype
         if offset:
             self.offset = Parameter(torch.empty(out_features, dtype=torch.float32), False)
         else:
@@ -75,4 +76,4 @@ class LinearA8W8Quant(nn.Module):
         if self.scale.dtype == torch.float32:
             scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
         return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
-                                          scale_quant, self.offset, self.bias)
+                                          scale_quant, self.offset, self.bias, self.output_dtype)
