@@ -1245,6 +1245,29 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_add_rms_norm` is only supported on 910B, skip this ut!")
+    def test_wrapper_npu_add_rms_norm(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, x1, x2, gamma):
+                epsilon = 1e-6
+                x = torch_npu.npu_add_rms_norm(x1, x2, gamma, epsilon)
+                return x
+            
+        def export_onnx(onnx_model_name):
+            x1 = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
+            x2 = torch.rand(10, 1024).uniform_(-3, 3).npu().half()
+            gamma = torch.rand(10).uniform_(-3, 3).npu().half()
+            model = Model().to("npu")
+            model(x1, x2, gamma)
+            self.onnx_export(model, (x1, x2, gamma), onnx_model_name)
+        onnx_model_name = "model_npu_add_rms_norm.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
     def test_wrapper_npu_rotary_mul(self):
         class Model(torch.nn.Module):
             def __init__(self):
