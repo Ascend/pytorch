@@ -223,6 +223,8 @@ public:
         std::vector<std::pair<c10::weak_intrusive_ptr<c10::StorageImpl>, c10_npu::NPUStream>> recorded_outputs_;
 
         std::vector<at::Tensor> lazy_destory_tensors_;
+		
+        std::vector<at::Tensor> stashed_for_allocator_safety_;
 
         friend class ProcessGroupHCCL;
     };
