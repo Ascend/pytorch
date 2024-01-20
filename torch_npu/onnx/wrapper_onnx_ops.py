@@ -191,6 +191,17 @@ class NPURmsNormOP(torch.autograd.Function):
         return g.op("npu::NPURmsNorm", self, gamma, epsilon_f=epsilon, outputs=2)
 
 
+class NPUAddRmsNormOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_add_rms_norm(*args, **kwargs)
+    
+    @staticmethod
+    def symbolic(g, x1: Tensor, x2: Tensor, gamma: Tensor, epsilon: float = 1e-6):
+        return g.op("npu::NPURmsNorm", x1, x2, gamma, epsilon_f=epsilon, outputs=3)
+
+
 class NPUDiouOP(torch.autograd.Function):
 
     @staticmethod
@@ -711,6 +722,10 @@ def wrapper_npu_rms_norm(self, gamma, epsilon=1e-6):
     return NPURmsNormOP.apply(self, gamma, epsilon)
 
 
+def wrapper_npu_add_rms_norm(x1, x2, gamma, epsilon=1e-6):
+    return NPUAddRmsNormOP.apply(x1, x2, gamma, epsilon)
+
+
 def wrapper_npu_fused_attention_score(query_layer, key_layer, value_layer, attention_mask,
                                       scale, keep_prob, query_transpose=False, key_transpose=False,
                                       bmm_score_transpose_a=False, bmm_score_transpose_b=False,
@@ -947,4 +962,5 @@ def add_onnx_ops():
     torch_npu.npu_mish = wrapper_npu_mish
     torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
     torch_npu.npu_rms_norm = wrapper_npu_rms_norm
+    torch_npu.npu_add_rms_norm = wrapper_npu_add_rms_norm
     torch_npu.npu_flash_attention = wrapper_npu_flash_attention
