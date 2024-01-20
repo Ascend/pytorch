@@ -226,7 +226,7 @@ def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offs
 
 
 @impl(m, "npu_quant_matmul")
-def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None):
+def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=None):
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
     out_dim_num = max(x1_dim_num, x2_dim_num)
@@ -243,9 +243,11 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None):
     dimn = x2.size(x2.dim() - 1)
     dim_list.append(dimm)
     dim_list.append(dimn)
-    if offset is not None:
-        return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
-    return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
+    if output_dtype == "float16":
+        return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
+    elif output_dtype == "bfloat16":
+        return shape_long.new_empty(tuple(dim_list), dtype=torch.bfloat16)
+    return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
 
 
 @impl(m, "npu_trans_quant_param")
