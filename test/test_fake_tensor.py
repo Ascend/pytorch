@@ -1466,6 +1466,22 @@ class TestFFN(TestCase):
             res = torch_npu.npu_ffn(x, w1, w2, activation, inner_precise=1)
             self.assertTrue(x.shape == res.shape)
 
+
+class TestAntiQuant(TestCase):
+    @unittest.skipIf(torch.__version__ != "2.1.0",
+                     "OP `AntiQuant` is only supported on torch v2.1.0, skip this ut for this torch version")
+    def test_npu_anti_quant_meta(self):
+        with FakeTensorMode():
+            x = torch.randint(low=-128, high=127, size=(20, 100), dtype=torch.int8).npu()
+            scale = torch.randn(100, dtype=torch.float).npu()
+            offset = torch.randn(100, dtype=torch.float).npu()
+            dstType = torch.float16
+            res = torch_npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dstType)
+            
+            self.assertTrue(x.shape == res.shape)
+            x = x.to(dstType)
+            self.assertTrue(x.numel() * x.element_size() == res.numel() * res.element_size())
+
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
 
