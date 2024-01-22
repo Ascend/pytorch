@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import torch
 import torch.nn.functional as F
 import torch_npu
@@ -80,9 +79,13 @@ class TestVisionFunctions(TestCase):
 
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
 
-    @unittest.skip("skip test_affine_grid now")
     def test_affine_grid(self):
-        input1 = torch.empty(1, 2, 3)
+        '''
+        Because of the limitation of NPU op, the NPU op will automatically convert the input 
+        fp32 to fp16 for calculation, so the input must be passed data within the representable
+        range of fp16.
+        '''
+        input1 = torch.arange(1., 7).view(1, 2, 3)
         size = torch.Size([1, 1, 2, 2])
 
         npu_input = input1.npu()
