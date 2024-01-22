@@ -66,7 +66,8 @@ class _ExperimentalConfig:
 
     def _check_params(self):
         if self._profiler_level == Constant.LEVEL0 and self._aic_metrics != Constant.AicMetricsNone:
-            print_warn_msg("Please use leve1 or level2 if you want to collect aic metrics!")
+            print_warn_msg("Please use level1 or level2 if you want to collect aic metrics, reset aic metrics to None!")
+            self._aic_metrics = Constant.AicMetricsNone
         if not isinstance(self._l2_cache, bool):
             print_warn_msg("Invalid parameter l2_cache, which must be of boolean type, reset it to False.")
             self._l2_cache = False
