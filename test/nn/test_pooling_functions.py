@@ -89,23 +89,23 @@ class TestPoolingFunctions(TestCase):
 
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
 
-    @unittest.skip("skip test_lp_pool1d now")
     def test_lp_pool1d(self):
-        input1 = torch.randn(2, 3, 4)
-        cpu_output = F.lp_pool1d(input1, norm_type=1, kernel_size=2, stride=1)
+        # Because of the limitation of NPU op, dtype only supports fp16.
+        input1 = torch.randn(2, 3, 4, dtype=torch.half)
+        cpu_output = F.lp_pool1d(input1.float(), norm_type=1, kernel_size=2, stride=1)
         input1 = input1.npu()
         npu_output = F.lp_pool1d(input1, norm_type=1, kernel_size=2, stride=1)
 
-        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+        self.assertRtolEqual(cpu_output.half().numpy(), npu_output.cpu().numpy())
 
-    @unittest.skip("skip test_lp_pool2d now")
     def test_lp_pool2d(self):
-        input1 = torch.randn(1, 2, 3, 4)
-        cpu_output = F.lp_pool2d(input1, norm_type=1, kernel_size=2, stride=1)
+        # Because of the limitation of NPU op, dtype only supports fp16.
+        input1 = torch.randn(1, 2, 3, 4, dtype=torch.half)
+        cpu_output = F.lp_pool2d(input1.float(), norm_type=1, kernel_size=2, stride=1)
         input1 = input1.npu()
         npu_output = F.lp_pool2d(input1, norm_type=1, kernel_size=2, stride=1)
 
-        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+        self.assertRtolEqual(cpu_output.half().numpy(), npu_output.cpu().numpy())
 
     @unittest.skip("skip test_adaptive_max_pool1d now")
     def test_adaptive_max_pool1d(self):
