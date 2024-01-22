@@ -369,6 +369,14 @@ class InstallCmd(install):
         return super(InstallCmd, self).finalize_options()
 
 
+def add_ops_files(base_dir, file_list):
+    # add ops header files
+    plugin_path = os.path.join(base_dir, 'third_party/op-plugin/op_plugin/include')
+    if os.path.exists(plugin_path):
+        file_list.append('third_party/op-plugin/op_plugin/include/*.h')
+    return
+
+
 def get_src_py_and_dst():
     ret = []
     generated_python_files = glob.glob(
@@ -394,6 +402,7 @@ def get_src_py_and_dst():
         "third_party/acl/inc/*/*.h",
         "third_party/acl/inc/*/*/*.h"
     ]
+    add_ops_files(BASE_DIR, header_files)
     glob_header_files = []
     for regex_pattern in header_files:
         glob_header_files += glob.glob(os.path.join(BASE_DIR, regex_pattern), recursive=True)
