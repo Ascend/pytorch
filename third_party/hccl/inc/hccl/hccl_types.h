@@ -93,6 +93,20 @@ typedef enum {
     HCCL_DATA_TYPE_RESERVED     /**< reserved */
 } HcclDataType;
 
+typedef enum {
+    HCCL_SEND = 0,
+    HCCL_RECV = 1,
+    HCCL_SEND_RECV_RESERVED
+} HcclSendRecvType;
+
+typedef struct HcclSendRecvItemDef {
+    HcclSendRecvType sendRecvType;
+    void *buf;
+    uint64_t count;
+    HcclDataType dataType;
+    uint32_t remoteRank;
+} HcclSendRecvItem;
+
 const uint32_t HCCL_ROOT_INFO_BYTES =  4108; // 4108: root info length
 
 /**

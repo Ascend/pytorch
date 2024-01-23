@@ -128,6 +128,8 @@ HcclReduceOp op, HcclComm comm, aclrtStream stream);
 extern HcclResult HcclAllGather(void *sendBuf, void *recvBuf, uint64_t sendCount, HcclDataType dataType, 
 HcclComm comm, aclrtStream stream);
 
+extern HcclResult HcclBatchSendRecv(HcclSendRecvItemDef *sendRecvInfo, uint32_t itemNum, HcclComm comm, aclrtStream stream);
+
 /**
  * @brief Destroy HCCL comm
  *

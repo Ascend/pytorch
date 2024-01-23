@@ -111,7 +111,7 @@ std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
 
-int64_t physical_numel(at::Tensor& self)
+int64_t physical_numel(const at::Tensor& self)
 {
     auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
     int64_t n = 1;
@@ -122,7 +122,7 @@ int64_t physical_numel(at::Tensor& self)
 }
 
 // use tensor numel when the format is ACL_FORMAT_ND or ACL_FORMAT_NCHW
-uint64_t getNumelForHCCL(at::Tensor& self)
+uint64_t getNumelForHCCL(const at::Tensor& self)
 {
     aclFormat format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
     if (format != ACL_FORMAT_ND and format != ACL_FORMAT_NCHW) {
@@ -1379,6 +1379,55 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
             return HCCL_SUCCESS;
         },
         c10d::OpType::ALLREDUCE);
+}
+
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::batch_isend_irecv(
+    std::vector<std::string>& op_type,
+    std::vector<at::Tensor>& tensors,
+    std::vector<uint32_t> remote_rank_list)
+{
+    std::vector<at::Tensor> tensors_tmp = {tensors[0]};
+    return collective(
+        tensors_tmp,
+        tensors_tmp,
+        [&](at::Tensor& input, at::Tensor& output, HcclComm comm, c10_npu::NPUStream& stream) {
+            RECORD_FUNCTION("HcclBatchSendRecv", std::vector<c10::IValue>({input}));
+			auto itemNum = static_cast<uint32_t>(op_type.size());
+			std::vector<void *> tensor_ptr_list;
+			std::vector<uint64_t> numel_list;
+			std::vector<HcclDataType> type_list;
+			for (size_t i = 0; i < op_type.size(); ++i) {
+			    tensor_ptr_list.push_back(tensors[i].data_ptr());
+			    numel_list.push_back(getNumelForHCCL(tensors[i]));
+			    type_list.push_back(getHcclDataType(tensors[i].scalar_type()));
+			}
+			auto hccl_call = [tensor_ptr_list, numel_list, type_list, remote_rank_list, op_type, itemNum, comm, stream]() -> int {
+			HcclSendRecvItem sendRecvInfo[itemNum];
+		    HcclSendRecvType currType;
+		    for (size_t i = 0; i < op_type.size(); ++i) {
+		        if (op_type[i] == "isend") {
+		            currType = HcclSendRecvType::HCCL_SEND;
+		        } else if (op_type[i] == "irecv") {
+		            currType = HcclSendRecvType::HCCL_RECV;
+		        } else {
+		            currType = HcclSendRecvType::HCCL_SEND_RECV_RESERVED;
+		        }
+		        sendRecvInfo[i] = HcclSendRecvItem{currType,
+		                                           tensor_ptr_list[i],
+		                                           numel_list[i],
+		                                           type_list[i],
+		                                           remote_rank_list[i]
+		                                           };
+            }
+			    return hcclBatchIsendIrecv(sendRecvInfo, itemNum, comm, stream.stream(false));
+			};
+			at_npu::native::OpCommand cmd;
+            cmd.Name("HcclBatchSendRecv");
+            cmd.SetCustomHandler(hccl_call);
+            cmd.Run();
+            return HCCL_SUCCESS;
+        },
+        c10d::OpType::UNKNOWN);
 }
 
 int g_broadcastID = 100000;

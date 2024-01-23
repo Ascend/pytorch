@@ -89,6 +89,20 @@ typedef enum tagHcclResult {
     HCCL_SUCCESS = 0          /**< success */
 } hcclResult_t;
 
+typedef enum {
+    HCCL_SEND = 0,
+    HCCL_RECV = 1,
+    HCCL_SEND_RECV_RESERVED
+} HcclSendRecvType;
+
+typedef struct HcclSendRecvItemDef {
+    HcclSendRecvType sendRecvType;
+    void *buf;
+    u64 count;
+    HcclDataType dataType;
+    u32 remoteRank;
+} HcclSendRecvItem;
+
 /* handle to communicator */
 typedef void *hcclComm_t;
 typedef void *rtStream_t;
@@ -106,4 +120,5 @@ hcclResult_t HcclCommDestroy(hcclComm_t comm);
 hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, HcclResult* asyncError);
 hcclResult_t HcclScatter(void *sendBuf, void *recvBuf, u64 count, HcclDataType dataType, u32 root, HcclComm comm,
     aclrtStream stream);
+hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, hcclComm_t comm, aclrtStream stream);
 }

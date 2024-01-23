@@ -303,6 +303,11 @@ public:
       std::vector<at::Tensor>& inputTensors,
       const c10d::GatherOptions& opts = c10d::GatherOptions()) override;
 
+    c10::intrusive_ptr<c10d::ProcessGroup::Work> batch_isend_irecv(
+        std::vector<std::string>& op_type,
+        std::vector<at::Tensor>& tensors,
+        std::vector<uint32_t> remote_rank_list);
+
   c10::intrusive_ptr<c10d::ProcessGroup::Work> scatter(
       std::vector<at::Tensor>& outputTensors,
       std::vector<std::vector<at::Tensor>>& inputTensors,
