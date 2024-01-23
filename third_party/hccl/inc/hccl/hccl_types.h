@@ -94,6 +94,20 @@ typedef enum {
     HCCL_CONFIG_RESERVED
 } HcclConfig;
 
+typedef enum {
+    HCCL_SEND = 0,
+    HCCL_RECV = 1,
+    HCCL_SEND_RECV_RESERVED
+} HcclSendRecvType;
+
+typedef struct HcclSendRecvItemDef {
+    HcclSendRecvType sendRecvType;
+    void *buf;
+    uint64_t count;
+    HcclDataType dataType;
+    uint32_t remoteRank;
+} HcclSendRecvItem;
+
 union  HcclConfigValue {
     int32_t value;
 };
