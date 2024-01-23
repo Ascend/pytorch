@@ -18,23 +18,9 @@
 
 namespace c10_npu {
 
-C10_NPU_API inline c10::DeviceIndex device_count() noexcept {
-  unsigned int count = 1;
-  // NB: In the past, we were inconsistent about whether or not this reported
-  // an error if there were driver problems are not.  Based on experience
-  // interacting with users, it seems that people basically ~never want this
-  // function to fail; it should just return zero if things are not working.
-  // Oblige them.
-  aclError error = aclrtGetDeviceCount(&count);
-  if (error != ACL_ERROR_NONE) {
-    // Clear out the error state, so we don't spuriously trigger someone else.
-    // (This shouldn't really matter, since we won't be running very much CUDA
-    // code in this regime.)
-    ASCEND_LOGE("get device count of NPU failed");
-    return 0;
-  }
-  return static_cast<c10::DeviceIndex>(count);
-}
+C10_NPU_API c10::DeviceIndex device_count() noexcept;
+
+C10_NPU_API c10::DeviceIndex device_count_ensure_non_zero();
 
 /**
  * @ingroup torch_npu
@@ -77,8 +63,11 @@ C10_NPU_API inline c10::DeviceIndex current_device() {
   return static_cast<c10::DeviceIndex>(cur_device);
 }
 
-C10_NPU_API inline void set_device(c10::DeviceIndex device) {
-}
+C10_NPU_API void set_device(c10::DeviceIndex device);
+
+C10_NPU_API void device_synchronize();
+
+C10_NPU_API int ExchangeDevice(int device);
 
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 
