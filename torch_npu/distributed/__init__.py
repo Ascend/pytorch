@@ -28,3 +28,5 @@ from torch_npu._C._distributed_c10d import (
     _verify_params_across_processes,
     _broadcast_coalesced
 )
+
+from .distributed_c10d import batch_isend_irecv

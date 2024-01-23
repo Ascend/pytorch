@@ -151,6 +151,8 @@ extern HcclResult HcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
 extern HcclResult HcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
     HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream);
 
+extern HcclResult HcclBatchSendRecv(HcclSendRecvItemDef *sendRecvInfo, uint32_t itemNum, HcclComm comm, aclrtStream stream);
+
 /**
  * @ingroup AscendCL
  * @brief set hccl config option value
