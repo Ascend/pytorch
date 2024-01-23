@@ -385,7 +385,15 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
            py::call_guard<py::gil_scoped_release>())
       .def("get_hccl_comm", &::c10d_npu::ProcessGroupHCCL::getHcclComm)
       .def("get_hccl_comm_name", &::c10d_npu::ProcessGroupHCCL::getHcclCommName)
-      .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions);
+      .def_property_readonly("options", &::c10d_npu::ProcessGroupHCCL::getOptions)
+      .def("batch_isend_irecv",
+           [](::c10d_npu::ProcessGroupHCCL &pg, std::vector<std::string> &op_type,
+               std::vector<at::Tensor> &tensors,
+               std::vector<uint32_t> remote_rank_list)
+               -> c10::intrusive_ptr<c10d::Work> {
+               return pg.batch_isend_irecv(op_type, tensors, remote_rank_list);
+           },
+           py::call_guard<py::gil_scoped_release>());
 
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
       processGroupHCCL,

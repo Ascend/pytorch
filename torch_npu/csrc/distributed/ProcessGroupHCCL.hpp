@@ -299,6 +299,11 @@ public:
         std::vector<at::Tensor>& tensors,
         const c10d::ReduceOptions& opts = c10d::ReduceOptions()) override;
 
+    c10::intrusive_ptr<c10d::Work>batch_isend_irecv(
+	    std::vector<std::string>& op_type,
+	    std::vector<at::Tensor>& tensors,
+	    std::vector<uint32_t> remote_rank_list);
+
     at::Tensor byte_alignment(at::Tensor& tensors);
 
     c10::intrusive_ptr<c10d::Work> allgather(
