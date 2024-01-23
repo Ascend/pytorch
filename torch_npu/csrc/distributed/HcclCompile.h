@@ -28,6 +28,7 @@ REGISTER_LIBRARY(libhccl)
 LOAD_FUNCTION(HcclAlltoAllV)
 LOAD_FUNCTION(HcclReduce)
 LOAD_FUNCTION(HcclScatter)
+LOAD_FUNCTION(HcclBatchSendRecv)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -71,6 +72,19 @@ HcclResult hcclScatter(void *sendBuf, void *recvBuf, uint64_t count, HcclDataTyp
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclScatter");
     auto ret = func(sendBuf, recvBuf, count, dataType, root, comm, stream);
+    return ret;
+}
+
+HcclResult hcclBatchIsendIrecv(void* sendRecvInfo, uint32_t itemNum, HcclComm comm, aclrtStream stream)
+{
+    typedef HcclResult(*HcclBatchIsendIrecvVFunc)(
+        void *, uint32_t, HcclComm, aclrtStream);
+    static HcclBatchIsendIrecvVFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclBatchIsendIrecvVFunc)GET_FUNC(HcclBatchSendRecv);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclBatchSendRecv");
+    auto ret = func(sendRecvInfo, itemNum, comm, stream);
     return ret;
 }
 } // namespace c10d_npu

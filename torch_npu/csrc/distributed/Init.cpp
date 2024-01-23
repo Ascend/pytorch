@@ -416,6 +416,14 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
               return self->allgather_togather(
                   output_tensors, input_tensor);
            },
+           py::call_guard<py::gil_scoped_release>())
+      .def("batch_isend_irecv",
+           [](::c10d_npu::ProcessGroupHCCL &pg,
+              std::vector<std::string> &op_type,
+              std::vector<at::Tensor> &tensors,
+              std::vector<uint32_t> remote_rank_list) -> c10::intrusive_ptr<c10d::Work> {
+                  return pg.batch_isend_irecv(op_type, tensors, remote_rank_list);
+               },
            py::call_guard<py::gil_scoped_release>());
 
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(

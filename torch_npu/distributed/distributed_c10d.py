@@ -993,7 +993,7 @@ def batch_isend_irecv(p2p_op_list):
     Send or Receive a batch of tensors asynchronously and return a list of requests.
 
     Process each of the operations in p2p_op_list and return the corresponding
-    requests. NCCL and Gloo backend are currently supported.
+    requests. HCCL, NCCL and Gloo backend are currently supported.
 
     Args:
         p2p_op_list: A list of point-to-point operations(type of each operator is
@@ -1017,25 +1017,38 @@ def batch_isend_irecv(p2p_op_list):
         tensor([2, 3])     # Rank 0
         tensor([0, 1])     # Rank 1
 
-    .. note:: Note that when this API is used with the NCCL PG backend, users must set
-        the current GPU device with `torch.cuda.set_device`, otherwise it will
+    .. note:: Note that when this API is used with the HCCL PG backend, users must set
+        the current NPU device with `torch.npu.set_device`, otherwise it will
         lead to unexpected hang issues.
     """
-    _check_p2p_op_list(p2p_op_list)
-    backend = get_backend(p2p_op_list[0].group)
-    reqs = []
-    with _batch_p2p_manager(backend):
+    group = p2p_op_list[0].group
+    device = p2p_op_list[0].tensor.device
+    is_multi_pg = True
+    if device.type == "cuda":
+        with _coalescing_manager(group, device, async_ops=True) as cm:
+            for p2p_op in p2p_op_list:
+                p2p_op.op(p2p_op.tensor, p2p_op.peer, p2p_op.group, p2p_op.tag)
+        return cm.works
+    elif device.type == "npu":
+        if group is None:
+            group = _get_default_group()
+            is_multi_pg = False
+        op_type = []
+        tensors = []
+        remote_rank_list = []
         for p2p_op in p2p_op_list:
-            op = p2p_op.op
-            tensor = p2p_op.tensor
-            peer = p2p_op.peer
-            curr_group = p2p_op.group
-            tag = p2p_op.tag
-
-            ret = op(tensor, peer, curr_group, tag)
-
-            if ret is not None:
-                reqs.append(ret)
+            op_type.append(p2p_op.op.__name__)
+            tensors.append(p2p_op.tensor)
+            rank_for_op = _get_group_rank(group, p2p_op.peer) if is_multi_pg else p2p_op.peer
+            remote_rank_list.append(rank_for_op)
+        return [group.batch_isend_irecv(op_type, tensors, remote_rank_list)]
+    else:
+        # Backward support for Gloo
+        reqs = []
+        for p2p_op in p2p_op_list:
+            work = p2p_op.op(p2p_op.tensor, p2p_op.peer, p2p_op.group, p2p_op.tag)
+            if work:
+                reqs.append(work)
     return reqs
 
 
