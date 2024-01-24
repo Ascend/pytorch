@@ -10,7 +10,8 @@ class GeMemoryRecordBean:
 
     @property
     def row(self) -> list:
-        return [Constant.GE, convert_ns2us_str(self.time_ns, "\t"), self.total_allocated, self.total_reserved, self.device_tag]
+        return [Constant.GE, convert_ns2us_str(self.time_ns, "\t"), self.total_allocated,
+                self.total_reserved, None, self.device_tag]
 
     @property
     def component(self) -> str:
@@ -29,6 +30,10 @@ class GeMemoryRecordBean:
     @property
     def total_reserved(self) -> float:
         return float(self._data.get("Total Reserved(KB)", 0)) / Constant.KB_TO_MB
+
+    @property
+    def total_active(self) -> float:
+        return 0
 
     @property
     def device_tag(self) -> float:

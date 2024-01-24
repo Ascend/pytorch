@@ -59,9 +59,10 @@ std::vector<uint8_t> OpMarkData::encode() {
 
 std::vector<uint8_t> MemoryData::encode() {
   std::vector<uint8_t> result;
-  encodeFixedData<int64_t>({ptr, time_ns, alloc_size, total_allocated, total_reserved}, result);
+    encodeFixedData<int64_t>({ptr, time_ns, alloc_size, total_allocated,
+        total_reserved, total_active, stream_ptr}, result);
   encodeFixedData<int8_t>({device_type}, result);
-  encodeFixedData<uint8_t>({device_index}, result);
+    encodeFixedData<uint8_t>({device_index, data_type}, result);
   encodeFixedData<uint64_t>({thread_id, process_id}, result);
 
   std::vector<uint8_t> resultTLV;
