@@ -27,14 +27,17 @@ class MemoryEnum(Enum):
     ALLOC_SIZE = 2
     TOTAL_ALLOCATED = 3
     TOTAL_RESERVED = 4
-    DEVICE_TYPE = 5
-    DEVICE_INDEX = 6
-    THREAD_ID = 7
-    PROCESS_ID = 8
+    TOTAL_ACTIVE = 5
+    STREAM_PTR = 6
+    DEVICE_TYPE = 7
+    DEVICE_INDEX = 8
+    DATA_TYPE = 9
+    THREAD_ID = 10
+    PROCESS_ID = 11
 
 
 class MemoryUseBean:
-    CONSTANT_STRUCT = "<5qbB2Q"
+    CONSTANT_STRUCT = "<7qb2B2Q"
     NPU_ID = 9
     CPU_ID = 0
 
@@ -45,6 +48,10 @@ class MemoryUseBean:
     @property
     def ptr(self) -> int:
         return int(self._constant_data[MemoryEnum.PTR.value])
+
+    @property
+    def stream_ptr(self) -> int:
+        return int(self._constant_data[MemoryEnum.STREAM_PTR.value])
 
     @property
     def time_ns(self) -> int:
@@ -64,12 +71,20 @@ class MemoryUseBean:
         return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value]) / Constant.B_TO_MB
 
     @property
+    def total_active(self) -> int:
+        return int(self._constant_data[MemoryEnum.TOTAL_ACTIVE.value]) / Constant.B_TO_MB
+
+    @property
     def device_type(self) -> int:
         return int(self._constant_data[MemoryEnum.DEVICE_TYPE.value])
 
     @property
     def device_index(self) -> int:
         return int(self._constant_data[MemoryEnum.DEVICE_INDEX.value])
+
+    @property
+    def data_type(self) -> int:
+        return int(self._constant_data[MemoryEnum.DATA_TYPE.value])
 
     @property
     def tid(self) -> int:
@@ -91,4 +106,5 @@ class MemoryUseBean:
 
     @property
     def row(self) -> list:
-        return [Constant.PTA, convert_ns2us_str(self.time_ns, tail="\t"), self.total_allocated, self.total_reserved, self.device_tag]
+        return [Constant.PTA, convert_ns2us_str(self.time_ns, tail="\t"), self.total_allocated,
+                self.total_reserved, self.total_active, self.device_tag]

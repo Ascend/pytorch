@@ -39,6 +39,7 @@
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -921,13 +922,17 @@ class DeviceCachingAllocator {
       stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
       stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
-  c10::reportMemoryUsageToProfiler(
-      block->ptr,
-      block->size,
-      stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-      stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-      c10::Device(at_npu::key::NativeDeviceType, block->device)
-  );
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(at_npu::key::NativeDeviceType),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+        reinterpret_cast<int64_t>(block->ptr),
+        block->size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
+    );
 
   return block;
 }
@@ -962,12 +967,16 @@ class DeviceCachingAllocator {
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
-    c10::reportMemoryUsageToProfiler(
-        orig_block_ptr,
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(at_npu::key::NativeDeviceType),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+        reinterpret_cast<int64_t>(orig_block_ptr),
         -orig_block_size,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        c10::Device(at_npu::key::NativeDeviceType, block->device)
+        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
     );
   }
 
@@ -1331,6 +1340,17 @@ class DeviceCachingAllocator {
           stats.requested_bytes[stat_type],
           -static_cast<std::int64_t>(requested_size));
     });
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(at_npu::key::NativeDeviceType),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE),
+        reinterpret_cast<int64_t>(block->ptr),
+        -original_block_size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
+    );
   }
 
   /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. **/

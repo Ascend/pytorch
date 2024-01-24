@@ -74,6 +74,7 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
     return handle_ > 0;
   }
 
+  // Only CPU
   void reportMemoryUsage(
     void *ptr,
     int64_t alloc_size,
@@ -87,8 +88,11 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
         alloc_size,
         total_allocated,
         total_reserved,
+        0,
+        0,
         static_cast<int8_t>(device.type()),
         device.index(),
+        0,
         Utils::GetTid(),
         Utils::GetPid()
       ));
@@ -225,6 +229,27 @@ void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint
     Utils::GetPid(),
     msg
   ));
+}
+
+void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
+{
+    if (!ProfilerMgr::GetInstance()->ReportMemEnable().load()) {
+        return;
+    }
+    ProfilerMgr::GetInstance()->Upload(std::make_unique<torch_npu::toolkit::profiler::MemoryData>(
+        data.ptr,
+        static_cast<int64_t>(Utils::GetClockTime()),
+        data.alloc_size,
+        data.total_allocated,
+        data.total_reserved,
+        data.total_active,
+        data.stream_ptr,
+        data.device_type,
+        data.device_index,
+        data.data_type,
+        Utils::GetTid(),
+        Utils::GetPid()
+    ));
 }
 } // profiler
 } // torch_npu

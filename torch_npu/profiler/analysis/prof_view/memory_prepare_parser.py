@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import defaultdict
 from warnings import warn
 from math import ceil
 
@@ -21,7 +22,7 @@ from ..prof_common_func.file_tag import FileTag
 from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_bean.memory_use_bean import MemoryUseBean
-from ..prof_common_func.constant import Constant, print_error_msg
+from ..prof_common_func.constant import Constant, print_error_msg, print_warn_msg
 from ..prof_common_func.constant import convert_ns2us_float, convert_ns2us_str
 
 
@@ -32,16 +33,7 @@ class MemoryPrepareParser(BaseParser):
         self.pta_record_list = []
         self.memory_data = []
         self._torch_op_node = []
-
-    @staticmethod
-    def _check_whether_invalid_match(allocate_record: MemoryUseBean, release_record: MemoryUseBean):
-        if allocate_record.alloc_size < 0 or release_record.alloc_size > 0:
-            return True
-        if abs(allocate_record.alloc_size) != abs(release_record.alloc_size):
-            warn(f"Memory records matching fails, alloc_sizes are "
-                 f"{allocate_record.alloc_size} and {release_record.alloc_size}")
-            return True
-        return False
+        self._incomplete_num = 0
 
     @staticmethod
     def _find_torch_ops_by_binary_search(ts: int, torch_ops: list):
@@ -62,6 +54,8 @@ class MemoryPrepareParser(BaseParser):
         except Exception:
             print_error_msg("Failed to generate operator_memory.csv or memory_record.csv.")
             return Constant.FAIL, {}
+        if self._incomplete_num > 0:
+            print_warn_msg(f"{self._incomplete_num} memory record(s) are incomplete.")
         return Constant.SUCCESS, {"pta_record_list": self.pta_record_list, "memory_data": self.memory_data}
 
     def generate_view(self) -> None:
@@ -78,57 +72,97 @@ class MemoryPrepareParser(BaseParser):
                 return ""
         return matched_torch_op.name
 
-    def _combine_memory_record(self: any, allocate_record: MemoryUseBean,
-                               release_record: MemoryUseBean, torch_ops: list) -> list:
-        if not allocate_record:
-            return ["", release_record.alloc_size, None, convert_ns2us_str(release_record.time_ns, "\t"), None, None, None,
-                    release_record.total_allocated, release_record.total_reserved, release_record.device_tag]
-        torch_name = self._find_matched_torch_op_name(allocate_record.time_ns, torch_ops)
-        if release_record:
-            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"),
-                    convert_ns2us_str(release_record.time_ns, "\t"),
-                    convert_ns2us_float(release_record.time_ns - allocate_record.time_ns),
-                    allocate_record.total_allocated, allocate_record.total_reserved, release_record.total_allocated,
-                    release_record.total_reserved, allocate_record.device_tag]
-        else:
-            return [torch_name, allocate_record.alloc_size, convert_ns2us_str(allocate_record.time_ns, "\t"), None, None,
-                    allocate_record.total_allocated, allocate_record.total_reserved, None, None,
-                    allocate_record.device_tag]
-
     def _add_pta_memory_data(self):
         pta_memory_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.MEMORY)
-        pta_memory_dict = {}
+        npu_memory_dict = {}
         torch_op_dict = {}
-        pta_memory_record = []
+        npu_memory_record = []
         pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_ns)
-        for memory_re in pta_memory_data:
-            if memory_re.is_npu():
-                pta_memory_dict.setdefault(memory_re.pid, []).append(memory_re)
-                self.pta_record_list.append(memory_re)
+        for record in pta_memory_data:
+            if record.is_npu():
+                npu_memory_dict.setdefault(record.pid, []).append(record)
+                self.pta_record_list.append(record)
         for torch_op in self._torch_op_node:
             torch_op_dict.setdefault(torch_op.pid, []).append(torch_op)
-        for pid_key in pta_memory_dict:
-            memory_records = pta_memory_dict.get(pid_key, [])
+        for pid_key, memory_records in npu_memory_dict.items():
             torch_ops = torch_op_dict.get(pid_key, [])
             if not torch_ops:
                 warn(f"Lack of torch ops to connect memory record, whose process id is {pid_key}")
                 continue
             torch_ops = sorted(torch_ops, key=lambda x: x.start_time)
-            memory_dict = {}
-            for memory_record in memory_records:
-                if memory_record.ptr not in memory_dict or \
-                        self._check_whether_invalid_match(memory_dict.get(memory_record.ptr), memory_record):
-                    memory_dict[memory_record.ptr] = memory_record
+            memory_dict = defaultdict(list)
+            for record in memory_records:
+                memory_dict[record.ptr].append(record)
+            pid_mem_buf = list()
+            for ptr_records in memory_dict.values():
+                ptr_records.sort(key=lambda x: x.time_ns)
+                valid_record_list = self._get_valid_record_entry(ptr_records)
+                pid_mem_buf.extend(valid_record_list)
+            pid_mem_buf.sort(key=lambda x: x[0].time_ns)
+            complete_records = self._complete_record_entry(pid_mem_buf, torch_ops)
+            self.memory_data.extend(complete_records)
+
+    @staticmethod
+    def _get_valid_record_entry(records: list) -> list:
+        ret_list = list()
+        l_idx = r_idx = 0
+        data_buf = list()
+        type_buf = list()
+        while l_idx < len(records) and r_idx < len(records):
+            if records[l_idx].data_type != 0:
+                l_idx += 1
+                r_idx = l_idx
+            else:
+                if len(data_buf) < Constant.PTA_RECORD_TYPE_NUM and records[r_idx].data_type not in type_buf:
+                    type_buf.append(records[r_idx].data_type)
+                    data_buf.append(records[r_idx])
+                    r_idx += 1
                 else:
-                    pta_memory_record.append(
-                        self._combine_memory_record(memory_dict.get(memory_record.ptr), memory_record, torch_ops))
-                    del memory_dict[memory_record.ptr]
-            for memory_record in memory_dict.values():
-                if memory_record.alloc_size > 0:
-                    pta_memory_record.append(self._combine_memory_record(memory_record, None, torch_ops))
-                else:
-                    pta_memory_record.append(self._combine_memory_record(None, memory_record, torch_ops))
-        self.memory_data.extend(pta_memory_record)
+                    ret_list.append(data_buf[:])
+                    data_buf.clear()
+                    type_buf.clear()
+                    l_idx = r_idx
+        if data_buf:
+            ret_list.append(data_buf[:])
+        return ret_list
+
+    def _complete_record_entry(self, ptr_records: list, torch_ops: list) -> list:
+        ret_list = list()
+        for records in ptr_records:
+            if not records:
+                continue
+            combine_data = list()
+            records_len = len(records)
+            op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
+            if records_len == 1:
+                self._incomplete_num += 2
+                combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), None, None, None, None,
+                                records[0].total_allocated, records[0].total_reserved, records[0].total_active,
+                                None, None, None,
+                                records[0].stream_ptr, records[0].device_tag]
+            elif records_len == 2:
+                self._incomplete_num += 1
+                active_release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == 2 else None
+                release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == 1 else None
+                duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == 1 else None
+                active_duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == 2 else None
+                combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
+                                active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
+                                records[1].total_allocated, records[1].total_reserved, records[1].total_active,
+                                records[0].stream_ptr, records[0].device_tag]
+            elif records_len == 3:
+                free_idx = 1 if records[1].data_type == 1 else 2
+                active_idx = 1 if free_idx == 2 else 2
+                active_release_time = convert_ns2us_str(records[active_idx].time_ns, "\t")
+                release_time = convert_ns2us_str(records[free_idx].time_ns, "\t")
+                duration_time = convert_ns2us_str(records[free_idx].time_ns - records[0].time_ns, "\t")
+                active_duration_time = convert_ns2us_str(records[active_idx].time_ns - records[0].time_ns, "\t")
+                combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
+                                active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
+                                records[free_idx].total_allocated, records[free_idx].total_reserved, records[free_idx].total_active,
+                                records[0].stream_ptr, records[0].device_tag]
+            ret_list.append(combine_data[:])
+        return ret_list
 
     def _init_torch_op(self):
         if not ProfilerPathManager.get_cann_path(self._profiler_path):

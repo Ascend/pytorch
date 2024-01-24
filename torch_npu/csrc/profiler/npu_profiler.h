@@ -18,6 +18,25 @@ enum class NpuActivityType {
   NPU,
 };
 
+enum class MemoryDataType {
+    MEMORY_MALLOC = 0,
+    MEMORY_FREE,
+    MEMORY_BLOCK_FREE,
+    MEMORY_INVALID
+};
+
+struct MemoryUsage {
+    int8_t device_type{0};
+    uint8_t device_index{0};
+    uint8_t data_type{static_cast<uint8_t>(MemoryDataType::MEMORY_INVALID)};
+    int64_t ptr{0};
+    int64_t alloc_size{0};
+    int64_t total_allocated{0};
+    int64_t total_reserved{0};
+    int64_t total_active{0};
+    int64_t stream_ptr{0};
+};
+
 struct ExperimentalConfig {
   ExperimentalConfig(std::string level = "Level0", std::string metrics = "ACL_AICORE_NONE", bool l2_cache = false, bool record_op_args = false)
       : trace_level(level),
@@ -70,6 +89,8 @@ void stopNpuProfiler();
 void finalizeNpuProfiler();
 
 void reportMarkDataToNpuProfiler(uint32_t category, const std::string &msg, uint64_t correlation_id);
+
+void reportMemoryDataToNpuProfiler(const MemoryUsage& data);
 } // profiler
 } // torch_npu
 #endif

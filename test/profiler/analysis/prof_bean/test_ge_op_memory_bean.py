@@ -19,7 +19,8 @@ class TestGeOpMemoryBean(TestCase):
                 "Release Total Reserved(KB)": "502336",
                 "Device": "NPU:0",
                 # The following is the auxiliary data
-                "row": ["cann::Graph_21", "192", "16995.950\t", "17088.550\t", "92.6", 0.1875, 490.5625, 0.0, 490.5625, "NPU:0"],
+                "row": ["cann::Graph_21", "192", "16995.950\t", "17088.550\t", None, "92.6", None,
+                        0.1875, 490.5625, None, 0.0, 490.5625, None, None, "NPU:0"],
                 "name": "cann::Graph_21",
                 "release_time": "17088.550\t",
                 "total_alloc": 0.1875,

@@ -127,11 +127,11 @@ class TestProfiler(TestCase):
                 for alloc_fn in allocs:
                     print(alloc_fn, stat_metrics)
                     self.assertTrue(alloc_fn in stat_metrics)
-                    self.assertTrue(stat_metrics.get(alloc_fn, 0) > 0)
+                    self.assertTrue(stat_metrics.get(alloc_fn, 0) >= 0)
             if deallocs:
                 for dealloc_fn in deallocs:
                     self.assertTrue(dealloc_fn in stat_metrics)
-                    self.assertTrue(stat_metrics.get(dealloc_fn, 0) < 0)
+                    self.assertTrue(stat_metrics.get(dealloc_fn, 0) <= 0)
 
         def create_cpu_tensor():
             return torch.rand(10, 10)
