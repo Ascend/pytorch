@@ -34,7 +34,7 @@ class ProfilerConfig:
         self._profiler_level = Constant.LEVEL0
         self._ai_core_metrics = Constant.AicMetricsNone
         self._l2_cache = False
-        self._data_simplification = None
+        self._data_simplification = True
         self._is_cluster = False
         self._localtime_diff = 0
         self._syscnt_enable = False
@@ -124,9 +124,7 @@ class ProfilerConfig:
         self._ai_core_metrics = experimental_config.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
         self._l2_cache = experimental_config.get(Constant.L2_CACHE, self._l2_cache)
         self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
-        if self._data_simplification is None:
-            self._data_simplification = self._get_default_state()
-
+    
     def get_parser_bean(self):
         return self.LEVEL_PARSER_CONFIG.get(self._profiler_level) + self._get_l2_cache_bean()
 
@@ -144,6 +142,3 @@ class ProfilerConfig:
 
     def _get_l2_cache_bean(self):
         return [(CANNDataEnum.L2_CACHE, L2CacheBean)] if self._l2_cache else []
-
-    def _get_default_state(self):
-        return self._is_cluster
