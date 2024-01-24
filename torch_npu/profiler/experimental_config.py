@@ -47,7 +47,7 @@ class _ExperimentalConfig:
                  profiler_level: int = Constant.LEVEL0,
                  aic_metrics: int = Constant.AicMetricsNone,
                  l2_cache: bool = False,
-                 data_simplification: bool = None,
+                 data_simplification: bool = True,
                  record_op_args: bool = False):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
