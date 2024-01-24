@@ -12,7 +12,7 @@ m = Library("npu", "IMPL", "Meta")
 
 
 @impl(m, "npu_incre_flash_attention")
-def npu_incre_flash_attention_forward(query, key, value, *, padding_mask=None, atten_mask=None, actual_seq_lengths=None,
+def npu_incre_flash_attention_forward(query, key, value, *, padding_mask=None, atten_mask=None, pse_shift=None, actual_seq_lengths=None,
                                       num_heads=1, scale_value=1.0, input_layout="BSH", num_key_value_heads=0):
     return torch.empty_like(query)
 
