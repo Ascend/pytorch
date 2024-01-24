@@ -15,10 +15,11 @@ from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 
 
 class MemoryViewParser(BaseParser):
-    HEADERS_OPERATOR = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Duration(us)",
-                        "Allocation Total Allocated(MB)", "Allocation Total Reserved(MB)",
-                        "Release Total Allocated(MB)", "Release Total Reserved(MB)", "Device Type"]
-    HEADERS_RECORD = ["Component", "Timestamp(us)", "Total Allocated(MB)", "Total Reserved(MB)", "Device Type"]
+    HEADERS_OPERATOR = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Active Release Time(us)",
+                        "Duration(us)", "Active Duration(us)", "Allocation Total Allocated(MB)",
+                        "Allocation Total Reserved(MB)", "Allocation Total Active(MB)", "Release Total Allocated(MB)",
+                        "Release Total Reserved(MB)", "Release Total Active(MB)", "Stream Ptr", "Device Type"]
+    HEADERS_RECORD = ["Component", "Timestamp(us)", "Total Allocated(MB)", "Total Reserved(MB)", "Total Active(MB)", "Device Type"]
     OPERATOR_MEMORY = "operator_memory.csv"
     MEMORY_RECORD = "memory_record.csv"
     MAX_FIND_LAYERS = 100
@@ -52,10 +53,12 @@ class MemoryViewParser(BaseParser):
             pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
                                   cur_record.total_allocated + last_record.total_allocated,
                                   cur_record.total_reserved + last_record.total_reserved,
+                                  cur_record.total_active + last_record.total_active,
                                   cur_record.device_tag]
         else:
             pta_ge_record_list = [Constant.PTA_GE, convert_ns2us_str(cur_record.time_ns, tail="\t"),
-                                  cur_record.total_allocated, cur_record.total_reserved, cur_record.device_tag]
+                                  cur_record.total_allocated, cur_record.total_reserved, cur_record.total_active,
+                                  cur_record.device_tag]
         return [cur_record_list, pta_ge_record_list]
 
     def run(self, deps_data: dict):
@@ -134,7 +137,8 @@ class MemoryViewParser(BaseParser):
         add ge memory and app memory from cann files
         """
         npu_app_memory_file_set = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.NPU_MEMORY)
-        self.size_record_list.extend(self._get_data_from_file(npu_app_memory_file_set, NpuMemoryBean))
+        app_record_data = self._get_data_from_file(npu_app_memory_file_set, NpuMemoryBean)
+        self.size_record_list.extend(app_record_data)
         self._add_device_type_for_npu(npu_app_memory_file_set)
         ge_memory_record_file = CANNFileParser(self._profiler_path).get_file_list_by_type(CANNDataEnum.GE_MEMORY_RECORD)
         self.split_component_ge(self._get_data_from_file(ge_memory_record_file, GeMemoryRecordBean, bean_list=True))

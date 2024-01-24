@@ -15,7 +15,7 @@ class TestGeMemoryRecordBean(TestCase):
                 "Total Reserved(KB)": "502336",
                 "Device": "NPU:0",
                 # The following is the auxiliary data
-                "row": ["GE", "1699.550\t", 0.1875, 490.5625, "NPU:0"],
+                "row": ["GE", "1699.550\t", 0.1875, 490.5625, None, "NPU:0"],
                 "time_ns": 1699550,
                 "total_alloc": 0.1875,
                 "total_reserve": 490.5625

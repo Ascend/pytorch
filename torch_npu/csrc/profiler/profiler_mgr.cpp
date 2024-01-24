@@ -29,6 +29,7 @@ ProfilerMgr::ProfilerMgr()
     : report_enable_(false),
       npu_trace_(false),
       record_op_args_(false),
+      profile_memory_(false),
       profConfig_(nullptr) {}
 
 void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
@@ -92,6 +93,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
     dataReceiver_.Init(fwk_path, capacity);
     dataReceiver_.Start();
     report_enable_.store(true);
+    profile_memory_.store(npu_config.npu_memory);
   }
   if (npu_config.record_op_args) {
     record_op_args_.store(true);
@@ -106,6 +108,7 @@ void ProfilerMgr::Stop() {
   if (report_enable_.load() == true) {
     dataReceiver_.Stop();
     dataReceiver_.UnInit();
+    profile_memory_.store(false);
   }
   report_enable_.store(false);
   if (npu_trace_.load() == true) {
