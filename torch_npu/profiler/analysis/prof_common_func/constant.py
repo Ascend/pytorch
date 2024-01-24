@@ -63,6 +63,11 @@ class Constant(object):
     B_TO_KB = 1024.0
     KB_TO_MB = 1024.0
     B_TO_MB = 1024.0 ** 2
+    CANN_OP_MEM_LEN = 10
+    PTA_OP_MEM_LEN = 14
+    CANN_MEM_RECORD_LEN = 4
+    PTA_MEM_RECORD_LEN = 5
+    PTA_RECORD_TYPE_NUM = 3
 
     # profiler config
     CONFIG = "config"
