@@ -34,6 +34,11 @@ public:
     return report_enable_;
   }
 
+    std::atomic<bool>& ReportMemEnable()
+    {
+        return profile_memory_;
+    }
+
 private:
   ProfilerMgr();
   explicit ProfilerMgr(const ProfilerMgr &obj) = delete;
@@ -48,6 +53,7 @@ private:
   std::atomic<bool> report_enable_;
   std::atomic<bool> npu_trace_;
   std::atomic<bool> record_op_args_;
+  std::atomic<bool> profile_memory_;
   std::string path_;
   aclprofConfig *profConfig_;
   torch_npu::toolkit::profiler::DataDumper dataReceiver_;

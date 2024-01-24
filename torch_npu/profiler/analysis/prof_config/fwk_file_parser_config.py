@@ -29,5 +29,5 @@ class FwkFileParserConfig:
     FILE_BEAN_MAP = {
         FileTag.TORCH_OP: {"bean": TorchOpBean, "is_tlv": True, "struct_size": 57},
         FileTag.OP_MARK: {"bean": OpMarkBean, "is_tlv": True, "struct_size": 40},
-        FileTag.MEMORY: {"bean": MemoryUseBean, "is_tlv": True, "struct_size": 58}
+        FileTag.MEMORY: {"bean": MemoryUseBean, "is_tlv": True, "struct_size": 75}
     }
