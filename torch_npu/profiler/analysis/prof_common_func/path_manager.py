@@ -148,18 +148,11 @@ class ProfilerPathManager:
         return os.path.realpath(path)
     
     @classmethod
-    def simplify_data(cls, profiler_path: str) -> str:
-        fwk_path = cls.get_fwk_path(profiler_path)
-        PathManager.remove_path_safety(fwk_path)
+    def simplify_data(cls, profiler_path: str, simplify_flag: bool):
         cann_path = cls.get_cann_path(profiler_path)
-        if cann_path:
-            cann_rm_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
-            for cann_rm_dir in cann_rm_dirs:
-                target_path = os.path.join(cann_path, cann_rm_dir)
-                PathManager.remove_path_safety(target_path)
         device_path = cls.get_device_path(cann_path)
         host_path = cls.get_host_path(cann_path)
-        rm_dirs = ['log', 'sqlite', 'summary', 'timeline']
+        rm_dirs = ['log', 'sqlite', 'summary', 'timeline'] if simplify_flag else ['log', 'sqlite']
         for rm_dir in rm_dirs:
             if device_path:
                 target_path = os.path.join(device_path, rm_dir)
@@ -167,3 +160,11 @@ class ProfilerPathManager:
             if host_path:
                 target_path = os.path.join(host_path, rm_dir)
                 PathManager.remove_path_safety(target_path)
+        if simplify_flag:
+            fwk_path = cls.get_fwk_path(profiler_path)
+            PathManager.remove_path_safety(fwk_path)
+            if cann_path:
+                cann_rm_dirs = ['analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output']
+                for cann_rm_dir in cann_rm_dirs:
+                    target_path = os.path.join(cann_path, cann_rm_dir)
+                    PathManager.remove_path_safety(target_path)
