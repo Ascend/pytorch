@@ -192,7 +192,7 @@ class npu_autocast(torch.amp.autocast_mode.autocast):
                 warnings.warn(error_message)
                 enabled = False
         if self.device == 'npu':
-            if self.fast_dtype == torch.bfloat16 and not torch.cuda.is_bf16_supported():
+            if self.fast_dtype == torch.bfloat16 and not torch.npu.is_bf16_supported():
                 raise RuntimeError('Current NPU Device does not support bfloat16. Please switch dtype to float16.')
         self._enabled = enabled
 

@@ -33,7 +33,7 @@ __all__ = [
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
     "get_rng_state_all", "set_rng_state_all", "is_jit_compile_false",
-    "current_blas_handle", "config", "matmul", "conv", "mem_get_info",
+    "current_blas_handle", "config", "matmul", "conv", "mem_get_info", "is_bf16_supported",
 ]
 
 from typing import Tuple
@@ -48,7 +48,7 @@ from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     get_device_properties, get_device_capability, _get_device_index, is_available, device, device_of,
                     stream, set_stream, current_stream, default_stream, set_sync_debug_mode, get_sync_debug_mode,
                     init_dump, utilization, finalize_dump, set_dump, _in_bad_fork,
-                    get_npu_overflow_flag, clear_npu_overflow_flag, current_blas_handle, mem_get_info)
+                    get_npu_overflow_flag, clear_npu_overflow_flag, current_blas_handle, mem_get_info, is_bf16_supported)
 from .random import (manual_seed, manual_seed_all, seed, seed_all, initial_seed, 
                      get_rng_state_all, set_rng_state_all,
                      get_rng_state, set_rng_state)
