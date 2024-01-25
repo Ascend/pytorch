@@ -51,6 +51,7 @@ class TorchOpBean:
         self._name = None
         self._start_ns = None
         self._end_ns = None
+        self._call_stack = None
         self._args = None
         self.init()
 
@@ -79,6 +80,10 @@ class TorchOpBean:
         return self._end_ns
 
     @property
+    def call_stack(self):
+        return self._call_stack
+
+    @property
     def args(self):
         return self._args
 
@@ -94,6 +99,7 @@ class TorchOpBean:
             ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.START_NS.value]))
         self._end_ns = ProfilerConfig().get_local_time(
             ProfilerConfig().get_timestamp_from_syscnt(self._constant_data[TorchOpEnum.END_NS.value]))
+        self._call_stack = self._origin_data.get(self.TLV_TYPE_DICT.get(Constant.CALL_STACK), "").replace(";", ";\r\n")
         self._args = self.get_args()
 
     def get_args(self) -> dict:
@@ -106,7 +112,7 @@ class TorchOpBean:
                 continue
             if type_id not in self._origin_data.keys():
                 continue
-            if type_name in [Constant.INPUT_SHAPES, Constant.INPUT_DTYPES, Constant.CALL_STACK]:
+            if type_name in [Constant.INPUT_SHAPES, Constant.INPUT_DTYPES]:
                 args[type_name] = self._origin_data.get(type_id).replace(";", ";\r\n")
             else:
                 args[type_name] = self._origin_data.get(type_id)

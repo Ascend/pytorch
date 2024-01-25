@@ -165,7 +165,7 @@ class TestNpuProfiler(TestCase):
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.TRACE_FILE_NAME))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.KERNEL_FILE_NAME))
         self.assertEqual(True, self._has_view_result(self.results_path, worker_name, self.OPERATOR_FILE_NAME))
-        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["Call stack"]))
+        self.assertEqual(True, self._check_trace_view_keywords(self.results_path, worker_name, ["python_function"]))
 
     def test_schedule(self):
         worker_name = self.worker_name
