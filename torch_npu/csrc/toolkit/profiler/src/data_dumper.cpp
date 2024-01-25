@@ -43,13 +43,10 @@ void DataDumper::UnInit() {
 }
 
 void DataDumper::Start() {
-  if (!init_.load() || !Utils::CreateDir(path_)) {
-    return;
-  }
-  if (Thread::Start() != 0) {
-    return;
-  }
-  start_.store(true);
+    if (!init_.load() || Thread::Start() != 0) {
+        return;
+    }
+    start_.store(true);
 }
 
 void DataDumper::Stop() {
@@ -79,6 +76,10 @@ void DataDumper::GatherAndDumpData() {
         }
     }
     if (dataMap.size() > 0) {
+        static bool create_flag = true;
+        if (create_flag) {
+            create_flag = !Utils::CreateDir(this->path_);
+        }
         Dump(dataMap);
     }
 }
