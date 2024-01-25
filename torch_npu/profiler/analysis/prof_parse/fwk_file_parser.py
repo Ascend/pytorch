@@ -26,6 +26,7 @@ from ..prof_common_func.tlv_decoder import TLVDecoder
 from ..prof_common_func.trace_event_manager import TraceEventManager
 from ..prof_common_func.tree_builder import TreeBuilder
 from ..prof_config.fwk_file_parser_config import FwkFileParserConfig
+from .python_trace_parser import PythonTraceParser
 
 
 class FwkFileParser:
@@ -158,7 +159,16 @@ class FwkFileParser:
         other_event_list = TraceEventManager.create_m_event(pid, tid_dict)
         other_event_list.extend(TraceEventManager.create_fwd_flow(fwd_dict))
         fwk_x_event_list.extend(other_event_list)
+        python_trace_data = self.get_python_trace_data()
+        if python_trace_data:
+            fwk_x_event_list.extend(python_trace_data)
         return fwk_x_event_list
+    
+    def get_python_trace_data(self) -> list:
+        module_call_data = self.get_file_data_by_tag(FileTag.PYTHON_MODULE_CALL)
+        python_call_data = self.get_file_data_by_tag(FileTag.PYTHON_FUNC_CALL)
+        python_trace_parser = PythonTraceParser(module_call_data, python_call_data)
+        return python_trace_parser.get_python_trace_data()
 
     @classmethod
     def filter_fwd_bwd_event(cls, fwd_dict: dict, torch_op: TorchOpBean):

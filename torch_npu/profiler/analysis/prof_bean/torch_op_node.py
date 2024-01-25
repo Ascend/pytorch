@@ -44,7 +44,7 @@ class TorchOpNode:
 
     @property
     def call_stack(self):
-        return self._event.args.get(Constant.CALL_STACK, "")
+        return self._event.call_stack
 
     @property
     def start_time(self) -> int:

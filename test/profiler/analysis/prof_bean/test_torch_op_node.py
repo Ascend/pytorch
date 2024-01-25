@@ -15,39 +15,43 @@ class TestTorchOpNode(TestCase):
         root_event = MagicMock()
         root_event.pid = 999
         root_event.name = "ProfilerStep#1"
-        root_event.args = {Constant.INPUT_SHAPES: "[2, 2048]", Constant.CALL_STACK: "call stack string0"}
+        root_event.args = {Constant.INPUT_SHAPES: "[2, 2048]"}
         root_event.ts = 10
         root_event.end_ns = 100
         root_event.dur = 90
+        root_event.call_stack = "call stack string0"
         root_node = TorchOpNode(root_event)
         # level1 event1
         level1_event1 = MagicMock()
         level1_event1.pid = 999
         level1_event1.name = "MatMul"
-        level1_event1.args = {Constant.INPUT_SHAPES: "[2, 2048]", Constant.CALL_STACK: "call stack string1"}
+        level1_event1.args = {Constant.INPUT_SHAPES: "[2, 2048]"}
         level1_event1.ts = 20
         level1_event1.end_ns = 30
         level1_event1.dur = 10
+        level1_event1.call_stack = "call stack string1"
         level1_node1 = TorchOpNode(level1_event1, root_node)
         root_node.add_child_node(level1_node1)
         # level1 event2
         level1_event2 = MagicMock()
         level1_event2.pid = 999
         level1_event2.name = "Div"
-        level1_event2.args = {Constant.INPUT_SHAPES: "[2, 2048]", Constant.CALL_STACK: "call stack string2"}
+        level1_event2.args = {Constant.INPUT_SHAPES: "[2, 2048]"}
         level1_event2.ts = 40
         level1_event2.end_ns = 80
         level1_event2.dur = 40
+        level1_event2.call_stack = "call stack string2"
         level1_node2 = TorchOpNode(level1_event2, root_node)
         root_node.add_child_node(level1_node2)
         # level2 event
         level2_event = MagicMock()
         level2_event.pid = 999
         level2_event.name = "Add"
-        level2_event.args = {Constant.INPUT_SHAPES: "[2, 2048]", Constant.CALL_STACK: "call stack string3"}
+        level2_event.args = {Constant.INPUT_SHAPES: "[2, 2048]"}
         level2_event.ts = 60
         level2_event.end_ns = 70
         level2_event.dur = 10
+        level2_event.call_stack = "call stack string3"
         level2_node = TorchOpNode(level2_event, level1_node2)
         level1_node2.add_child_node(level2_node)
 

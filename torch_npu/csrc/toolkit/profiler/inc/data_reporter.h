@@ -215,6 +215,57 @@ struct MemoryData : BaseReportData {
           process_id(process_id) {}
     std::vector<uint8_t> encode();
 };
+
+enum class PythonFuncCallDataType {
+    PYTHON_FUNC_CALL_DATA = 1,
+    NAME = 2
+};
+
+struct PythonFuncCallData : BaseReportData {
+    uint64_t start_ns{0};
+    uint64_t thread_id{0};
+    uint64_t process_id{0};
+    uint8_t trace_tag{0};
+    std::string func_name;
+    PythonFuncCallData(uint64_t start_ns,
+        uint64_t thread_id,
+        uint64_t process_id,
+        uint8_t trace_tag,
+        std::string func_name)
+        : BaseReportData(0, "torch.python_func_call"),
+          start_ns(start_ns),
+          thread_id(thread_id),
+          process_id(process_id),
+          trace_tag(trace_tag),
+          func_name(std::move(func_name)) {}
+    std::vector<uint8_t> encode();
+};
+
+enum class PythonModuleCallDataType {
+    PYTHON_MODULE_CALL_DATA = 1,
+    MODULE_UID = 2,
+    MODULE_NAME = 3
+};
+
+struct PythonModuleCallData : BaseReportData {
+    uint64_t idx{0};
+    uint64_t thread_id{0};
+    uint64_t process_id{0};
+    std::string module_uid;
+    std::string module_name;
+    PythonModuleCallData(uint64_t idx,
+        uint64_t thread_id,
+        uint64_t process_id,
+        std::string module_uid,
+        std::string module_name)
+        : BaseReportData(0, "torch.python_module_call"),
+          idx(idx),
+          thread_id(thread_id),
+          process_id(process_id),
+          module_uid(std::move(module_uid)),
+          module_name(std::move(module_name)) {}
+    std::vector<uint8_t> encode();
+};
 } // profiler
 } // toolkit
 } // torch_npu
