@@ -9,6 +9,8 @@ import os
 import unittest
 from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS
 import torch
+import torch_npu
+import torch_npu.testing
 
 
 NOT_IMPORTED_WHEN_TEST_WRITTEN = {
@@ -19,6 +21,9 @@ NOT_IMPORTED_WHEN_TEST_WRITTEN = {
     "torch.fx.passes.backends.cudagraphs",
     "torch.fx.passes.infra.partitioner",
     "torch.fx.passes.utils.fuser_utils",
+    "torch_npu.npu_fast_gelu",
+    "torch_npu.npu_fused_attention_layernorm_qkv_fwd",
+    "torch_npu.npu_fused_attention_score_fwd"
 }
 
 
@@ -323,7 +328,6 @@ class TestPublicBindings(TestCase):
                     failure_list.append(f"    - To make it{looks_public_str} public: {fix_is_public}")
                     failure_list.append(f"    - To make it{is_public_str} look public: {fix_looks_public}")
 
-
             if hasattr(mod, '__all__'):
                 public_api = mod.__all__
                 all_api = dir(mod)
@@ -338,7 +342,11 @@ class TestPublicBindings(TestCase):
         for _, modname, ispkg in pkgutil.walk_packages(path=torch.__path__, prefix=torch.__name__ + '.'):
             test_module(modname)
 
+        for _, modname, ispkg in pkgutil.walk_packages(path=torch_npu.__path__, prefix=torch_npu.__name__ + '.'):
+            test_module(modname)
+
         test_module('torch')
+        test_module('torch_npu')
 
         msg = "All the APIs below do not meet our guidelines for public API from " \
               "pytorch wiki Public-API-definition-and-documentation.\n"
@@ -350,6 +358,7 @@ class TestPublicBindings(TestCase):
 
         # empty lists are considered false in python
         self.assertTrue(not failure_list, msg)
+
 
 if __name__ == '__main__':
     pass

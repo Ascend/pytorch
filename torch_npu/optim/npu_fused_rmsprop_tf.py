@@ -4,6 +4,8 @@ import torch
 from torch_npu.utils import npu_combine_tensors
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
+__all__ = ["NpuFusedRMSpropTF"]
+
 
 class NpuFusedRMSpropTF(NpuFusedOptimizerBase):
     """Implements NpuFusedRMSpropTF algorithm.

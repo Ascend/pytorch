@@ -6,6 +6,8 @@ from torch.optim.optimizer import required
 from torch_npu.utils import npu_combine_tensors
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
+__all__ = ["NpuFusedBertAdam"]
+
 
 WARMUP_DEFAULT = 0.002
 DEGREE_DEFAULT = 0.5
@@ -21,35 +23,35 @@ def _clip_grad_norm_(combined_param, combined_grad, max_norm):
         combined_grad.mul_(clip_coef)
 
 
-def warmup_cosine(x, warmup=WARMUP_DEFAULT):
+def _warmup_cosine(x, warmup=WARMUP_DEFAULT):
     if x < warmup:
         return x / warmup
     return 0.5 * (1.0 + torch.cos(math.pi * x))
 
 
-def warmup_constant(x, warmup=WARMUP_DEFAULT):
+def _warmup_constant(x, warmup=WARMUP_DEFAULT):
     if x < warmup:
         return x / warmup
     return 1.0
 
 
-def warmup_linear(x, warmup=WARMUP_DEFAULT):
+def _warmup_linear(x, warmup=WARMUP_DEFAULT):
     if x < warmup:
         return x / warmup
     return max((x - 1.) / (warmup - 1.), 0.)
 
 
-def warmup_poly(x, warmup=WARMUP_DEFAULT, degree=DEGREE_DEFAULT):
+def _warmup_poly(x, warmup=WARMUP_DEFAULT, degree=DEGREE_DEFAULT):
     if x < warmup:
         return x / warmup
-    return (1.0 - x)**degree
+    return (1.0 - x) ** degree
 
 
 SCHEDULES = {
-    'warmup_cosine':warmup_cosine,
-    'warmup_constant':warmup_constant,
-    'warmup_linear':warmup_linear,
-    'warmup_poly':warmup_poly,
+    'warmup_cosine': _warmup_cosine,
+    'warmup_constant': _warmup_constant,
+    'warmup_linear': _warmup_linear,
+    'warmup_poly': _warmup_poly,
 }
 
 
