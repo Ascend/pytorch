@@ -70,6 +70,9 @@ class Constant(object):
     CANN_MEM_RECORD_LEN = 4
     PTA_MEM_RECORD_LEN = 5
     PTA_RECORD_TYPE_NUM = 3
+    MEMORY_MALLOC = 0
+    MEMORY_FREE = 1
+    MEMORY_BLOCK_FREE = 2
 
     # profiler config
     CONFIG = "config"
