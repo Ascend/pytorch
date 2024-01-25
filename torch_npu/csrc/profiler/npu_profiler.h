@@ -12,6 +12,12 @@
 
 namespace torch_npu {
 namespace profiler {
+namespace python_tracer {
+enum class Command { kStartOne = 0, kStartAll, kStop, kClear };
+using CallFn = void (*)(Command);
+void registerFunctions(CallFn call);
+} // python_tracer
+
 enum class NpuActivityType {
   NONE = 0,
   CPU,

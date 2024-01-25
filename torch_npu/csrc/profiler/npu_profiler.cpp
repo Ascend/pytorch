@@ -10,6 +10,23 @@
 #include "torch_npu/csrc/toolkit/profiler/inc/data_reporter.h"
 namespace torch_npu {
 namespace profiler {
+namespace python_tracer {
+namespace {
+CallFn call_fn;
+}
+
+void registerFunctions(CallFn call)
+{
+    call_fn = call;
+}
+
+void call(Command c)
+{
+    if (call_fn != nullptr) {
+        call_fn(c);
+    }
+}
+} // python_tracer
 using torch_npu::toolkit::profiler::Utils;
 
 struct NpuObserverContext : public at::ObserverContext {
@@ -215,34 +232,43 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
 
 void startNpuProfiler(const NpuProfilerConfig &config,
     const std::set<NpuActivityType> &activities,
-    const std::unordered_set<at::RecordScope> &scopes) {
-  auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
-  if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
-    ASCEND_LOGE("Profiler is already enabled.");
-    return;
-  }
-  c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
-  bool cpu_trace = activities.count(NpuActivityType::CPU);
-  ExperimentalConfig experimental_config = config.experimental_config;
-  NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
-      config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args};
-  ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
-  if (cpu_trace) {
-    registerCallback(scopes);
-  }
+    const std::unordered_set<at::RecordScope> &scopes)
+{
+    auto state = std::make_shared<NpuProfilerThreadLocalState>(config, activities);
+    if (c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::PROFILER_STATE) != nullptr) {
+        ASCEND_LOGE("Profiler is already enabled.");
+        return;
+    }
+    c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
+    bool cpu_trace = activities.count(NpuActivityType::CPU);
+    ExperimentalConfig experimental_config = config.experimental_config;
+    NpuTraceConfig npu_config = {experimental_config.trace_level, experimental_config.metrics,
+        config.profile_memory, experimental_config.l2_cache, experimental_config.record_op_args};
+    ProfilerMgr::GetInstance()->Start(npu_config, cpu_trace);
+    if (state->tracePython()) {
+        python_tracer::call(python_tracer::Command::kStartOne);
+    }
+    if (cpu_trace) {
+        registerCallback(scopes);
+    }
 }
 
-void stopNpuProfiler() {
-  auto state = c10::ThreadLocalDebugInfo::_pop(c10::DebugInfoKind::PROFILER_STATE);
-  auto state_ptr = static_cast<NpuProfilerThreadLocalState *>(state.get());
-  if (state_ptr == nullptr) {
-    ASCEND_LOGE("Can't disable Ascend Pytorch Profiler when it's not running.");
-    return;
-  }
-  if (state_ptr->hasCallbackHandle()) {
-    at::removeCallback(state_ptr->callbackHandle());
-  }
-  ProfilerMgr::GetInstance()->Stop();
+void stopNpuProfiler()
+{
+    auto state = c10::ThreadLocalDebugInfo::_pop(c10::DebugInfoKind::PROFILER_STATE);
+    auto state_ptr = static_cast<NpuProfilerThreadLocalState *>(state.get());
+    if (state_ptr == nullptr) {
+        ASCEND_LOGE("Can't disable Ascend Pytorch Profiler when it's not running.");
+        return;
+    }
+    if (state_ptr->hasCallbackHandle()) {
+        at::removeCallback(state_ptr->callbackHandle());
+    }
+    if (state_ptr->tracePython()) {
+        python_tracer::call(python_tracer::Command::kStop);
+        python_tracer::call(python_tracer::Command::kClear);
+    }
+    ProfilerMgr::GetInstance()->Stop();
 }
 
 void finalizeNpuProfiler() {

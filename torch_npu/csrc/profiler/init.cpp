@@ -13,6 +13,7 @@
 #include <torch/csrc/utils/pycfunction_helpers.h>
 
 #include "torch_npu/csrc/profiler/init.h"
+#include "torch_npu/csrc/profiler/profiler_python.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
@@ -80,6 +81,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
   m.def("_get_syscnt", torch_npu::toolkit::profiler::Utils::getClockSyscnt);
   m.def("_get_monotonic", torch_npu::toolkit::profiler::Utils::GetClockMonotonicRawNs);
 
+  torch_npu::profiler::python_tracer::init();
   Py_RETURN_TRUE;
 }
 
