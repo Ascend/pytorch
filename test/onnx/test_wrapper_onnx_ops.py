@@ -20,14 +20,13 @@ import unittest
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import SupportedDevices
 import torch_npu.onnx
 from torch_npu.utils.path_manager import PathManager
 
 # acl format
 FORMAT_ND = 2
 FORMAT_NZ = 29
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestOnnxOps(TestCase):
@@ -1178,7 +1177,7 @@ class TestOnnxOps(TestCase):
                                             onnx_model_name)))
 
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_deep_norm` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_deep_norm(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1223,7 +1222,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_rms_norm` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_rms_norm(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1245,7 +1244,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_add_rms_norm` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_add_rms_norm(self):
         class Model(torch.nn.Module):
             def __init__(self):

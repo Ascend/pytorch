@@ -19,7 +19,7 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestAddCMul(TestCase):
@@ -50,6 +50,7 @@ class TestAddCMul(TestCase):
         torch._foreach_addcdiv(input1, input2, input3, value=scalar)
         return input1
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_3_3_float32(self):
         input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float32)
         input1_npu = input1.npu()
@@ -60,6 +61,7 @@ class TestAddCMul(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_10_10_float32(self):
         input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float32)
         input1_npu = input1.npu()
@@ -70,6 +72,7 @@ class TestAddCMul(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_3_3_float32_inplace(self):
         input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float32)
         input1_npu = input1.npu()
@@ -80,6 +83,7 @@ class TestAddCMul(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_10_10_float32_inplace(self):
         input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float32)
         input1_npu = input1.npu()
@@ -90,6 +94,7 @@ class TestAddCMul(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.numpy(), npu_tmp1.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_3_3_float16(self):
         input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float16)
         input1_cpu = input1.float()
@@ -103,6 +108,7 @@ class TestAddCMul(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.to(torch.float16).numpy(), npu_tmp1.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_10_10_float16(self):
         input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float16)
         input1_cpu = input1.float()
@@ -116,6 +122,7 @@ class TestAddCMul(TestCase):
         for (cpu_tmp1, npu_tmp1) in zip(cpu_output, npu_output):
             self.assertRtolEqual(cpu_tmp1.to(torch.float16).numpy(), npu_tmp1.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_addcmul_10_23_float32(self):
         input1, input2, input3 = self.generate_data(0, 100, (10, 23), np.float32)
         input1_npu = input1.npu()
@@ -128,5 +135,4 @@ class TestAddCMul(TestCase):
 
 
 if __name__ == "__main__":
-    if torch_npu.npu.get_device_name(0)[:10] == 'Ascend910B':
-        run_tests()
+    run_tests()

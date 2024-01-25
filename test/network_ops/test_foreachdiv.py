@@ -18,7 +18,7 @@ import numpy as np
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 
 
 class TestAdd(TestCase):
@@ -71,6 +71,7 @@ class TestAdd(TestCase):
         torch._foreach_div_(input1, scalararray)
         return input1
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_1d(self):
         shape_format = [
             [[np.float16, 2, [50]], [np.float16, 2, [50]]],
@@ -93,6 +94,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_1d(self):
         shape_format = [
             [[np.float32, 2, [50]], [np.float32, 2, [50]]],
@@ -115,6 +117,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_2d(self):
         shape_format = [
             [[np.float16, 2, [50, 25]], [np.float16, 2, [50, 25]]],
@@ -137,6 +140,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_2d(self):
         shape_format = [
             [[np.float32, 2, [50, 25]], [np.float32, 2, [50, 25]]],
@@ -159,6 +163,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_3d(self):
         shape_format = [
             [[np.float16, 2, [50, 25, 7]], [np.float16, 2, [50, 25, 7]]],
@@ -181,6 +186,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_3d(self):
         shape_format = [
             [[np.float32, 2, [50, 25, 7]], [np.float32, 2, [50, 25, 7]]],
@@ -203,6 +209,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_4d(self):
         shape_format = [
             [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 7, 100]]],
@@ -225,6 +232,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_4d(self):
         shape_format = [
             [[np.float32, 2, [50, 25, 7, 100]], [np.float32, 2, [50, 25, 7, 100]]],
@@ -247,6 +255,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_1d_(self):
         shape_format = [
             [[np.float16, 2, [50]], [np.float16, 2, [50]]],
@@ -269,6 +278,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_1d_(self):
         shape_format = [
             [[np.float32, 2, [50]], [np.float32, 2, [50]]],
@@ -291,6 +301,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_2d_(self):
         shape_format = [
             [[np.float16, 2, [50, 25]], [np.float16, 2, [50, 25]]],
@@ -313,6 +324,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_2d_(self):
         shape_format = [
             [[np.float32, 2, [50, 25]], [np.float32, 2, [50, 25]]],
@@ -335,6 +347,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_3d_(self):
         shape_format = [
             [[np.float16, 2, [50, 25, 7]], [np.float16, 2, [50, 25, 7]]],
@@ -357,6 +370,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_3d_(self):
         shape_format = [
             [[np.float32, 2, [50, 25, 7]], [np.float32, 2, [50, 25, 7]]],
@@ -379,6 +393,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp16_4d_(self):
         shape_format = [
             [[np.float16, 2, [50, 25, 7, 100]], [np.float16, 2, [50, 25, 7, 100]]],
@@ -401,6 +416,7 @@ class TestAdd(TestCase):
             for (cpu_tmp3, npu_tmp3) in zip(cpu_output3, npu_output3):
                 self.assertRtolEqual(cpu_tmp3.numpy(), npu_tmp3.to("cpu").numpy())
 
+    @SupportedDevices(['Ascend910B'])
     def test_add_scalar_shape_format_fp32_4d_(self):
         shape_format = [
             [[np.float32, 2, [50, 25, 7, 100]], [np.float32, 2, [50, 25, 7, 100]]],
@@ -425,5 +441,4 @@ class TestAdd(TestCase):
 
 
 if __name__ == "__main__":
-    if torch_npu.npu.get_device_name(0)[:10] == 'Ascend910B':
-        run_tests()
+    run_tests()

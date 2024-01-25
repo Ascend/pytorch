@@ -20,8 +20,7 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestRotaryMul(TestCase):
@@ -47,7 +46,7 @@ class TestRotaryMul(TestCase):
         out = torch_npu.npu_rotary_mul(x, r1, r2)
         return out.cpu().numpy()
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `RotaryMul` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_rotary_mul(self):
         dtype_list = [torch.float16, torch.float32]
         shape_list = [
