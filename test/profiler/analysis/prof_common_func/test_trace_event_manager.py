@@ -1,5 +1,6 @@
+import random
 from unittest.mock import patch, Mock, MagicMock
-from torch_npu.profiler.analysis.prof_common_func.constant import Constant
+from torch_npu.profiler.analysis.prof_common_func.constant import Constant, convert_ns2us_str, convert_ns2us_float
 from torch_npu.profiler.analysis.prof_common_func.trace_event_manager import TraceEventManager
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -14,7 +15,7 @@ class TestTraceEventManager(TestCase):
         event = MagicMock()
         event.pid = 999
         event.name = "MatMul"
-        event.args = {Constant.INPUT_SHAPES: "[2, 2048]", Constant.CALL_STACK: "call stack string1"}
+        event.args = {Constant.INPUT_SHAPES: "[2, 2048]"}
         event.ts = 2000
         event.end_ns = 30
         event.dur = 1000
@@ -86,6 +87,26 @@ class TestTraceEventManager(TestCase):
              "tid": 444, "ts": "4.000", "cat": "fwdbwd"}
         ]
         self.assertEqual(expect, TraceEventManager.create_fwd_flow(events))
+    
+    def test_python_event(self):
+        process_id = random.randint(1, 2**64 - 1)
+        thread_id = random.randint(1, 2**64 - 1)
+        start_time = int(random.random() * 1e8)
+        end_time = start_time + int(random.random() * 1e5)
+        args = {"Python id": random.randint(10, 100), "Python parent id": random.randint(10, 100)}
+        py_event = MagicMock()
+        py_event.name = 'python_event'
+        py_event.pid = process_id
+        py_event.tid = thread_id
+        py_event.ts = start_time
+        py_event.dur = end_time - start_time
+        py_event.args = args
+        expect = {
+            "ph": "X", "name": 'python_event', "pid": process_id, "tid": thread_id,
+            "ts": convert_ns2us_str(start_time), "dur": convert_ns2us_float(end_time - start_time),
+            "cat": "python_function", "args": args
+        }
+        self.assertEqual(expect, TraceEventManager.create_x_event(py_event, "python_function"))
 
 
 if __name__ == "__main__":
