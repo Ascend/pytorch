@@ -308,8 +308,8 @@ void NpuUtils::DqueueCompileExcute(c10_npu::queue::QueueParas * para, uint32_t c
   torch_npu::profiler::reportMarkDataToNpuProfiler(category, std::string(param_val->opType), para->correlation_id);
 }
 void NpuUtils::DqueueEvent(c10_npu::queue::QueueParas * para, uint32_t category) {
-  auto param_val = static_cast<c10_npu::queue::EventParas *>(para->paramVal);
-  torch_npu::profiler::reportMarkDataToNpuProfiler(category, c10_npu::queue::EventParas::EVENT_PARAS_MAP[param_val->eventAllocatorType], para->correlation_id);
+    torch_npu::profiler::reportMarkDataToNpuProfiler(category,
+        c10_npu::queue::EventParas::EVENT_PARAS_MAP[para->paramType], para->correlation_id);
 }
 void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t category) {
   auto param_val = static_cast<c10_npu::queue::CopyParas *>(para->paramVal);

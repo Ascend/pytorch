@@ -30,9 +30,9 @@ std::map<int64_t, std::string> CopyParas::COPY_PARAS_MAP{
   {ACL_MEMCPY_DEVICE_TO_DEVICE, "acl_memcpy_device_to_device"},
 };
 std::map<int64_t, std::string> EventParas::EVENT_PARAS_MAP{
-  {HOST_ALLOCATOR_EVENT, "host_allocator_event"},
-  {NPU_ALLOCATOR_EVENT, "npu_alloctor_event"},
-  {RESERVED, "reserved"},
+    {RECORD_EVENT, "record_event"},
+    {WAIT_EVENT, "wait_event"},
+    {LAZY_DESTROY_EVENT, "destroy_event"},
 };
 void CopyParas::Copy(CopyParas& other) {
   this->dst = other.dst;
@@ -123,9 +123,9 @@ aclError LaunchAsyncCopyTask(
 
 void EventTask::LaunchRecordTask(
     c10_npu::NPUStream npuStream) {
-  RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], std::vector<c10::IValue>({}));
+    RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[RECORD_EVENT], std::vector<c10::IValue>({}));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType]);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[RECORD_EVENT]);
     c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
     c10_npu::setCurrentNPUStream(npuStream);
     QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
@@ -133,7 +133,7 @@ void EventTask::LaunchRecordTask(
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
     ASCEND_LOGI("Event: LaunchRecordTask is successfully executed.");
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[RECORD_EVENT], params.correlation_id);
   } else {
     NPU_CHECK_ERROR(aclrtRecordEvent(eventParam_.event, npuStream));
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");
@@ -147,16 +147,16 @@ aclError LaunchRecordEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
 }
 
 void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
-  RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], std::vector<c10::IValue>({}));
+    RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[WAIT_EVENT], std::vector<c10::IValue>({}));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType]);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[WAIT_EVENT]);
     c10_npu::NPUStream currentStream = c10_npu::getCurrentNPUStream();
     c10_npu::setCurrentNPUStream(npuStream);
     QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
     ASCEND_LOGI("Event: LaunchWaitTask is successfully executed.");
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[WAIT_EVENT], params.correlation_id);
   } else {
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npuStream, eventParam_.event));
     ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed.");
@@ -170,13 +170,13 @@ aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream) {
 }
 
 void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index) {
-  RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], std::vector<c10::IValue>({}));
+    RECORD_FUNCTION(EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT], std::vector<c10::IValue>({}));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType]);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT]);
     QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params, device_index);
     ASCEND_LOGI("Event: LaunchLazyDestroyTask is successfully executed.");
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[eventParam_.eventAllocatorType], params.correlation_id);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT], params.correlation_id);
   } else {
     NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().LazyDestroy(
         eventParam_.event));
