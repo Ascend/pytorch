@@ -109,7 +109,7 @@ class MemoryPrepareParser(BaseParser):
         data_buf = list()
         type_buf = list()
         while l_idx < len(records) and r_idx < len(records):
-            if records[l_idx].data_type != 0:
+            if records[l_idx].data_type != Constant.MEMORY_MALLOC:
                 l_idx += 1
                 r_idx = l_idx
             else:
@@ -129,10 +129,10 @@ class MemoryPrepareParser(BaseParser):
     def _complete_record_entry(self, ptr_records: list, torch_ops: list) -> list:
         ret_list = list()
         for records in ptr_records:
-            if not records:
-                continue
             combine_data = list()
             records_len = len(records)
+            if not records or records_len > 3:
+                continue
             op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
             if records_len == 1:
                 self._incomplete_num += 2
@@ -142,16 +142,16 @@ class MemoryPrepareParser(BaseParser):
                                 records[0].stream_ptr, records[0].device_tag]
             elif records_len == 2:
                 self._incomplete_num += 1
-                active_release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == 2 else None
-                release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == 1 else None
-                duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == 1 else None
-                active_duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == 2 else None
+                active_release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
+                release_time = convert_ns2us_str(records[1].time_ns, "\t") if records[1].data_type == Constant.MEMORY_FREE else None
+                duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == Constant.MEMORY_FREE else None
+                active_duration_time = convert_ns2us_str(records[1].time_ns - records[0].time_ns, "\t") if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
                 combine_data = [op_name, records[0].alloc_size, convert_ns2us_str(records[0].time_ns, "\t"), release_time, active_release_time, duration_time,
                                 active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 records[1].total_allocated, records[1].total_reserved, records[1].total_active,
                                 records[0].stream_ptr, records[0].device_tag]
             elif records_len == 3:
-                free_idx = 1 if records[1].data_type == 1 else 2
+                free_idx = 1 if records[1].data_type == Constant.MEMORY_FREE else 2
                 active_idx = 1 if free_idx == 2 else 2
                 active_release_time = convert_ns2us_str(records[active_idx].time_ns, "\t")
                 release_time = convert_ns2us_str(records[free_idx].time_ns, "\t")
