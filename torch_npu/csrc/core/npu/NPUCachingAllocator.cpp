@@ -588,7 +588,18 @@ class CachingAllocatorConfig {
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0),
-        m_expandable_segments(false) {}
+        m_expandable_segments(true)
+        {
+            void* ptr = nullptr;
+            auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
+            if (status == ACL_ERROR_NONE) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+            } else {
+                TORCH_NPU_WARN_ONCE("expandable_segments feature is not supportted \
+                    and the possible cause is that driver and firmware packages do not match.");
+                m_expandable_segments = false;
+            }
+        }
 
   void lexArgs(const char* env, std::vector<std::string>& config);
   void consumeToken(
@@ -681,10 +692,17 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
         i < config.size() && (config[i] == "True" || config[i] == "False"),
         "Expected a single True/False argument for expandable_segments");
     m_expandable_segments = (config[i] == "True");
-    void* ptr = nullptr;
-    auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
-    NPU_CHECK_SUPPORTED_OR_ERROR(status);
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+    if (m_expandable_segments) {
+        void* ptr = nullptr;
+        auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
+        if (status == ACL_ERROR_NONE) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+        } else {
+            NPU_CHECK_SUPPORTED_OR_ERROR(status);
+            TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to expandable_segments = false.");
+            m_expandable_segments = false;
+        }
+    }
   } else {
     TORCH_CHECK(
         false, "Error, expecting expandable_segments value");
@@ -1605,6 +1623,7 @@ class DeviceCachingAllocator {
     }
 
     if (p.err != ACL_ERROR_NONE) {
+      p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
       return false;
     }
 
