@@ -258,3 +258,10 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1):
     elif dtype == torch.qint32:
         return torch.empty_like(self, dtype=torch.int32)
     return torch.empty_like(self, dtype=torch.int8)
+
+
+@impl(m, "npu_anti_quant")
+def npu_anti_quant_meta(x, scale, *, offset=None, dst_dtype=None, src_dtype=None):
+    if dst_dtype is None:
+        return torch.empty_like(x, dtype=torch.float16)
+    return torch.empty_like(x, dtype=dst_dtype)

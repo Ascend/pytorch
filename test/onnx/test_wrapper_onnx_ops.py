@@ -1339,6 +1339,26 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `AntiQuant` is only supported on 910B, skip this ut!")   
+    def test_wrapper_npu_anti_quant(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, scale, offset=None, dst_dtype=torch.float16, src_dtype=torch.int8):
+                return torch_npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dst_dtype, src_dtype=src_dtype)
+
+        def export_onnx(onnx_model_name):
+            x = torch.randint(low=-128, high=127, size=(10, 1), dtype=torch.int8).npu()
+            scale = torch.randn((1,), dtype=torch.float).npu()
+            offset = torch.randn((1,), dtype=torch.float).npu()
+            model = Model().to("npu")
+            model(x, scale, offset, None, None)
+            self.onnx_export(model, (x, scale, offset, None, None), onnx_model_name)
+
+        onnx_model_name = "mode_npu_anti_quant.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
 if __name__ == '__main__':
     run_tests()
