@@ -5,9 +5,7 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestIncreFlashAttention(TestCase):
@@ -31,8 +29,7 @@ class TestIncreFlashAttention(TestCase):
         scale = 1 / 0.0078125
         return torch_npu.npu_incre_flash_attention(query, key, value, num_heads=32, input_layout="BSH", scale_value=scale)
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B',
-        "OP `IncreFlashAttention` is only supported on 910B, skip this ut for this device type!")
+    @SupportedDevices(['Ascend910B'])
     def test_npu_incre_flash_attention(self, device="npu"):
 
         q = torch.randn(1, 32, 1, 128, dtype=torch.float16).npu()
