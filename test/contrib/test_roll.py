@@ -21,10 +21,8 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.common_utils import create_common_tensor, SupportedDevices
 from torch_npu.contrib.function import roll
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestRoll(TestCase):
@@ -74,7 +72,7 @@ class TestRoll(TestCase):
                 continue
             self.assertTrue(slow_time > fast_time)
 
-    @unittest.skipIf(DEVICE_NAME != "Ascend910B", "it's OK on Ascend910B only.")
+    @SupportedDevices(['Ascend910B'])
     def test_roll_shape_format_uint8(self):
         dtype_list = [np.uint8]
         format_list = [-1, 2]

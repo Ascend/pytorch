@@ -4,9 +4,7 @@ import numpy as np
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import get_npu_device
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 def tsoftmax_grad(dp, softmax_res):
@@ -57,7 +55,7 @@ class TestNPUFlashAttention(TestCase):
         tensor = torch.reshape(tensor, (tensor.shape[0], tensor.shape[1], -1))
         return tensor
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', 'device type is not supported, skip this ut!')
+    @SupportedDevices(['Ascend910B'])
     def test_npu_flash_attention(self, device="npu"):
         query = torch.randn(1, 32, 128, 128, dtype=torch.float16)
         key = torch.randn(1, 32, 128, 128, dtype=torch.float16)
