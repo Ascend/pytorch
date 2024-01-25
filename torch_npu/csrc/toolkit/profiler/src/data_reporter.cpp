@@ -77,6 +77,46 @@ std::vector<uint8_t> MemoryData::encode() {
   resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
   return resultTLV;
 }
+
+std::vector<uint8_t> PythonFuncCallData::encode()
+{
+    std::vector<uint8_t> result;
+    encodeFixedData<uint64_t>({start_ns, thread_id, process_id}, result);
+    encodeFixedData<uint8_t>({trace_tag}, result);
+    encodeStrData(static_cast<uint16_t>(PythonFuncCallDataType::NAME), func_name, result);
+
+    std::vector<uint8_t> resultTLV;
+    uint16_t dataType = static_cast<uint16_t>(PythonFuncCallDataType::PYTHON_FUNC_CALL_DATA);
+    for (size_t i = 0; i < sizeof(uint16_t); ++i) {
+        resultTLV.push_back((dataType >> (i * 8)) & 0xff);
+    }
+    uint32_t length = result.size();
+    for (size_t i = 0; i < sizeof(uint32_t); ++i) {
+        resultTLV.push_back((length >> (i * 8)) & 0xff);
+    }
+    resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
+    return resultTLV;
+}
+
+std::vector<uint8_t> PythonModuleCallData::encode()
+{
+    std::vector<uint8_t> result;
+    encodeFixedData<uint64_t>({idx, thread_id, process_id}, result);
+    encodeStrData(static_cast<uint16_t>(PythonModuleCallDataType::MODULE_UID), module_uid, result);
+    encodeStrData(static_cast<uint16_t>(PythonModuleCallDataType::MODULE_NAME), module_name, result);
+
+    std::vector<uint8_t> resultTLV;
+    uint16_t dataType = static_cast<uint16_t>(PythonModuleCallDataType::PYTHON_MODULE_CALL_DATA);
+    for (size_t i = 0; i < sizeof(uint16_t); ++i) {
+        resultTLV.push_back((dataType >> (i * 8)) & 0xff);
+    }
+    uint32_t length = result.size();
+    for (size_t i = 0; i < sizeof(uint32_t); ++i) {
+        resultTLV.push_back((length >> (i * 8)) & 0xff);
+    }
+    resultTLV.insert(resultTLV.end(), result.cbegin(), result.cend());
+    return resultTLV;
+}
 } // profiler
 } // toolkit
 } // torch_npu
