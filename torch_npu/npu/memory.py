@@ -431,7 +431,7 @@ def _format_count(cnt, pref_cnt):
     return "{:7d} {} ".format(cnt, prefix)
 
 
-def create_metrics_to_display():
+def _create_metrics_to_display():
     metrics_to_display = [
         ("allocated_bytes", "Allocated memory", _format_size),
         ("active_bytes", "Active memory", _format_size),
@@ -473,7 +473,7 @@ def memory_summary(device=None, abbreviated=False):
     """
     device = _get_device_index(device, optional=True)
     stats = memory_stats(device=device)
-    metrics_to_display, lines = create_metrics_to_display()
+    metrics_to_display, lines = _create_metrics_to_display()
 
     for metric_key, metric_name, formatter in metrics_to_display:
         lines.append("-" * 75)
