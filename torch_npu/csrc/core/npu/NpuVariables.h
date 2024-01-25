@@ -48,6 +48,8 @@ bool SetSocVersion(const char* const socVersion);
 const SocVersion& GetSocVersion();
 
 bool IsSupportInfNan();
+
+bool IsBF16Supported();
 }  // namespace c10_npu
 #endif
 

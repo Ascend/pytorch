@@ -665,6 +665,17 @@ PyObject* THNPModule_npu_is_support_inf_nan(PyObject* self, PyObject* noargs)
     END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_is_bf16_supported(PyObject* self, PyObject* noargs)
+{
+    HANDLE_TH_ERRORS
+    if (c10_npu::IsBF16Supported()) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+    END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_enable_overflow_npu(
     PyObject* self,
     PyObject* noargs)
@@ -797,6 +808,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
     {"_enable_overflow_npu", (PyCFunction)THNPModule_enable_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_is_support_inf_nan", (PyCFunction)THNPModule_npu_is_support_inf_nan, METH_NOARGS, nullptr},
+    {"_npu_is_bf16_supported", (PyCFunction)THNPModule_npu_is_bf16_supported, METH_NOARGS, nullptr},
     {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {"_npu_getOption", (PyCFunction)THNPModule_getOption_wrap, METH_O, nullptr},

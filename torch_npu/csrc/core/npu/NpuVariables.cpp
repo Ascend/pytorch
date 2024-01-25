@@ -76,4 +76,9 @@ bool IsSupportInfNan() {
            (((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
            (GetSocVersion() >= SocVersion::Ascend910C1));
 }
+
+bool IsBF16Supported()
+{
+    return GetSocVersion() >= SocVersion::Ascend910B1;
+}
 }  // namespace c10_npu

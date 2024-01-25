@@ -453,6 +453,11 @@ def is_support_inf_nan():
     return torch_npu._C._npu_is_support_inf_nan()
 
 
+def is_bf16_supported():
+    torch_npu.npu._lazy_init()
+    return torch_npu._C._npu_is_bf16_supported()
+
+
 def get_npu_overflow_flag():
     if is_support_inf_nan():
         raise RuntimeError("Unsupport api when soc_version >= Ascend910B1, please use npu_check_overflow")
