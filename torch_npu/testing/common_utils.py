@@ -1,6 +1,7 @@
 from functools import wraps
 from itertools import product
 from contextlib import contextmanager
+from typing import List
 
 import os
 import sys
@@ -187,6 +188,22 @@ class SkipIfNotRegistered(object):
         except ImportError:
             skipper = unittest.skip("Cannot import `caffe2.python.core`")
         return skipper
+
+
+class SupportedDevices:
+    def __init__(self, supported_devices: List[str]) -> None:
+        self.supported_devices = supported_devices
+
+    def __call__(self, fn):
+        @wraps(fn)
+        def dep_fn(slf, *args, **kwargs):
+            device_name = torch_npu.npu.get_device_name(0)[:10]
+            if device_name not in self.supported_devices:
+                reason = f"Only run on {repr(self.supported_devices)}, current device is {device_name}."
+                raise unittest.SkipTest(reason)
+            return fn(slf, *args, **kwargs)
+        
+        return dep_fn
 
 
 PERF_TEST_ENABLE = (os.getenv('PERF_TEST_ENABLE', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])

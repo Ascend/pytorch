@@ -4,8 +4,7 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestNanToNum(TestCase):
@@ -51,7 +50,7 @@ class TestNanToNum(TestCase):
             return input1.cpu().float().numpy()
         return input1.cpu().numpy()
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `NanToNum` is supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_nan_to_num(self):
         dtype_list = [torch.float16, torch.float32, torch.bfloat16]
         nan_list = [None, 0, -1.1]

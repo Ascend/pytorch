@@ -4,8 +4,7 @@ import torch
 
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestMaskedSoftmaxWithRelPosBias(TestCase):
@@ -20,8 +19,7 @@ class TestMaskedSoftmaxWithRelPosBias(TestCase):
     def custom_op_exec(self, x, relative_pos_bias, atten_mask):
         return torch_npu.npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias).cpu()
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B',
-        "OP `MaskedSoftmaxWithRelPosBias` is only supported on 910B, skip this ut for this device type!")
+    @SupportedDevices(['Ascend910B'])
     def test_npu_masked_softmax_with_rel_pos_bias(self, device="npu"):
         x = torch.randn(1, 2, 3, 4, 4, dtype=torch.float)
         relative_pos_bias = torch.randn(1, 1, 3, 4, 4, dtype=torch.float)
