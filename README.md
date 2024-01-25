@@ -194,11 +194,11 @@ For more detailed information on installation guides, model migration, training/
 
 | Document Name                    | Document Link                                                 |
 | -------------------------------- | ------------------------------------------------------------ |
-| AscendPyTorch Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/envdeployment/instg/instg_0083.html) |
-| AscendPyTorch Network Model Migration and Training | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/AImpug_0002.html) |
-| AscendPyTorch Online Inference    | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
-| AscendPyTorch Operator Adaptation | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
-| AscendPyTorch API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/ptaoplist_001.html) |
+| AscendPyTorch Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/envdeployment/instg/instg_0163.html) |
+| AscendPyTorch Network Model Migration and Training | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000002.html) |
+| AscendPyTorch Online Inference    | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| AscendPyTorch Operator Adaptation | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
+| AscendPyTorch API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/ptaoplist_000002.html) |
 
 ## License
 
