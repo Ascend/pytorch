@@ -122,13 +122,13 @@ void EventTask::LaunchRecordTask(c10_npu::NPUStream npuStream) {
     c10_npu::NPUEventManager::GetInstance().IncreaseUnrecordedCount(eventParam_.event);
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
-    ASCEND_LOGI("Event: LaunchRecordTask is successfully executed.");
+    ASCEND_LOGI("Event: LaunchRecordTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[RECORD_EVENT], params.correlation_id);
 #endif
   } else {
     NPU_CHECK_ERROR(aclrtRecordEvent(eventParam_.event, npuStream));
-    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");
+    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, stream=%p, event=%p", npuStream.stream(false), eventParam_.event);
   }
 }
 
@@ -149,13 +149,13 @@ void EventTask::LaunchWaitTask(c10_npu::NPUStream npuStream) {
     QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params);
     c10_npu::setCurrentNPUStream(currentStream);
-    ASCEND_LOGI("Event: LaunchWaitTask is successfully executed.");
+    ASCEND_LOGI("Event: LaunchWaitTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[WAIT_EVENT], params.correlation_id);
 #endif
   } else {
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npuStream, eventParam_.event));
-    ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed.");
+    ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, stream=%p, event=%p", npuStream.stream(false), eventParam_.event);
   }
 }
 
@@ -173,7 +173,7 @@ void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index) {
 #endif
     QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
     c10_npu::enCurrentNPUStream(&params, device_index);
-    ASCEND_LOGI("Event: LaunchLazyDestroyTask is successfully executed.");
+    ASCEND_LOGI("Event: LaunchLazyDestroyTask is successfully executed, event=%p", eventParam_.event);
 #ifndef BUILD_LIBTORCH
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT], params.correlation_id);
 #endif

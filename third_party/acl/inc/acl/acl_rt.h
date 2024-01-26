@@ -542,7 +542,7 @@ ACL_FUNC_VISIBILITY aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_
 
 /**
  * @ingroup AscendCL
- * @brief create event instance with flag, event semantics is same as cuda
+ * @brief create event instance with flag, event can be reused naturally
  *
  * @param event [OUT]   created event
  * @param flag [IN]     event flag
