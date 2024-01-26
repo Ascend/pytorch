@@ -1800,7 +1800,7 @@ class DeviceCachingAllocator {
         } else {
           NPU_CHECK_WARN(aclrtSynchronizeEvent(event));
         }
-        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
+        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.event());
 
         block->event_count--;
         if (block->event_count == 0) {
@@ -1824,7 +1824,7 @@ class DeviceCachingAllocator {
 
       NPUEvent event(ACL_EVENT_CAPTURE_STREAM_PROGRESS);
       event.record(stream);
-      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed.");
+      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed, event=%p", event.event());
 
       block->event_count++;
       npu_events[stream].emplace_back(std::move(event), block);
