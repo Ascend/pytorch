@@ -2100,6 +2100,10 @@ struct NpuCachingAllocator : public c10::Allocator {
   c10::DeleterFnPtr raw_deleter() const override {
     return &raw_delete;
   }
+  // Note [COW/lazy_clone is not supported yet]
+  void copy_data(void* dest, const void* src, std::size_t count) const final {
+    default_copy_data(dest, src, count);
+  }
 };
 
 static NpuCachingAllocator device_allocator;

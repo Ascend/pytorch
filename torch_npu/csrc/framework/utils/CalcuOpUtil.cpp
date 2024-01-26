@@ -62,6 +62,13 @@ AT_FORALL_SCALAR_TYPES_WITH_COMPLEX_AND_QINTS(ENUM_PAIR_FUNC)
   _(at::ScalarType::UInt16, ACL_UINT16)                                        \
   _(at::ScalarType::UInt32, ACL_UINT32)                                        \
   _(at::ScalarType::UInt64, ACL_UINT64)                                        \
+  _(at::ScalarType::UInt1, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::UInt2, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::UInt3, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::UInt4, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::UInt5, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::UInt6, ACL_DT_UNDEFINED)                                   \
+  _(at::ScalarType::UInt7, ACL_DT_UNDEFINED)                                   \
   _(at::ScalarType::Undefined, ACL_DT_UNDEFINED)                               \
   _(at::ScalarType::NumOptions, ACL_DT_UNDEFINED)
 
