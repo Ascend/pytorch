@@ -220,9 +220,9 @@ void syncStreams(
         c10_npu::NPUStream& hcclStream = hcclStreams[i];
         c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
         hcclEvent.record(c10_npu::getCurrentNPUStream(devices[i].index()));
-        ASCEND_LOGI("Event: record hccl group is successfully executed.");
+        ASCEND_LOGI("Event: record hccl group is successfully executed, event=%p", hcclEvent.event());
         hcclEvent.block(hcclStream);
-        ASCEND_LOGI("Event: block hccl group is successfully executed.");
+        ASCEND_LOGI("Event: block hccl group is successfully executed, event=%p", hcclEvent.event());
     }
 }
 
@@ -313,7 +313,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
         auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
         // Block the current stream on the HCCL stream
         npuEvents_[i].block(currentStream);
-        ASCEND_LOGI("Event: block hccl work is successfully executed.");
+        ASCEND_LOGI("Event: block hccl work is successfully executed, event=%p", npuEvents_[i].event());
         // If we use the work to do barrier, we should block here
         if (!barrierTensors_.empty()) {
             c10_npu::NPUGuard npuGuard(devices_[i]);
@@ -800,7 +800,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     for (size_t i = 0; i < inputs.size(); ++i) {
         c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
         work->npuEvents_[i].record(hcclStream);
-        ASCEND_LOGI("Event: record hccl work is successfully executed.");
+        ASCEND_LOGI("Event: record hccl work is successfully executed, event=%p", work->npuEvents_[i].event());
         work->hcclComms_[i] = hcclComms[i];
         work->blockingWait_ = blockingWait_;
         work->opTimeout_ = opTimeout_;
