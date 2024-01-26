@@ -98,7 +98,7 @@ def gen_ops_info(summary_dict):
     )
     fm = FileManager(os.path.join("torch_npu", "testing"), os.path.join("codegen", "templates"), False)
 
-    fm.write_with_template(f"npu_testing_utils.py", "npu_testing_utils.py", lambda:{
+    fm.write_with_template(f"_npu_testing_utils.py", "npu_testing_utils.py", lambda:{
         "skip_detail": [skip_template.substitute(op_name=op, decorators=doc) for op, doc in skip_list.items()]
     })
 
