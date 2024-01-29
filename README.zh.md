@@ -1,4 +1,4 @@
-# PyTorch Ascend Adapter插件
+# Ascend Adapter for PyTorch
 
 ## 简介
 
