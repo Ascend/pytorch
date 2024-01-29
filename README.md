@@ -1,8 +1,8 @@
-# PyTorch Ascend Adapter
+# Ascend Adapter for PyTorch
 
 ## Overview
 
-This repository develops the **PyTorch Ascend Adapter** named **torch_npu** to adapt **Ascend NPU** to **PyTorch** so that developers who use the **PyTorch** can obtain powerful compute capabilities of **Ascend AI Processors**.
+This repository develops the **Ascend Adapter for PyTorch** named **torch_npu** to adapt **Ascend NPU** to **PyTorch** so that developers who use the **PyTorch** can obtain powerful compute capabilities of **Ascend AI Processors**.
 
 Ascend is a full-stack AI computing infrastructure for industry applications and services based on Huawei Ascend processors and software. For more information about Ascend, see [Ascend Community](https://www.hiascend.com/en/).
 
@@ -115,7 +115,7 @@ print(z)
 
 ## User Manual
 
-Refer to [API of PyTorch Ascend Adapter](docs/api/torch_npu_apis.md) for more detailed informations.
+Refer to [API of Ascend Adapter for PyTorch](docs/api/torch_npu_apis.md) for more detailed informations.
 
 ## PyTorch and Python Version Matching Table
 
@@ -194,7 +194,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 ## Reference Documents
 
-For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [PyTorch Ascend Adapter on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
+For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Adapter for PyTorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
 
 | Document Name                    | Document Link                                                 |
 | -------------------------------- | ------------------------------------------------------------ |
@@ -206,4 +206,4 @@ For more detailed information on installation guides, model migration, training/
 
 ## License
 
-PyTorch Ascend Adapter has a BSD-style license, as found in the [LICENSE](LICENSE) file.
+Ascend Adapter for PyTorch has a BSD-style license, as found in the [LICENSE](LICENSE) file.
