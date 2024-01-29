@@ -1,8 +1,8 @@
-# Ascend Adapter for PyTorch
+# Ascend Adapter for PyTorch插件
 
 ## 简介
 
-本项目开发了名为**torch_npu**的**PyTorch Ascend Adapter**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
+本项目开发了名为**torch_npu**的**Ascend Adapter for PyTorch**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
 
 昇腾为基于华为昇腾处理器和软件的行业应用及服务提供全栈AI计算基础设施。您可以通过访问[昇腾社区](https://www.hiascend.com/zh/)，了解关于昇腾的更多信息。
 
@@ -195,7 +195,7 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## 参考文档
 
-有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Ascend Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
+有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Adapter for PyTorch](https://www.hiascend.com/software/ai-frameworks/commercial)。
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
@@ -207,4 +207,4 @@ AscendPyTorch版本分支的维护阶段如下：
 
 ## 许可证
 
-PyTorch Ascend Adapter插件使用BSD许可证。详见[LICENSE](LICENSE)文件。
+Ascend Adapter for PyTorch插件使用BSD许可证。详见[LICENSE](LICENSE)文件。
