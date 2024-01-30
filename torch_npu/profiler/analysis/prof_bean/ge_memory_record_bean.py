@@ -11,7 +11,7 @@ class GeMemoryRecordBean:
     @property
     def row(self) -> list:
         return [Constant.GE, convert_ns2us_str(self.time_ns, "\t"), self.total_allocated,
-                self.total_reserved, None, self.device_tag]
+                self.total_reserved, None, None, self.device_tag]
 
     @property
     def component(self) -> str:
@@ -34,6 +34,10 @@ class GeMemoryRecordBean:
     @property
     def total_active(self) -> float:
         return 0
+
+    @property
+    def stream_ptr(self) -> int:
+        return None
 
     @property
     def device_tag(self) -> float:

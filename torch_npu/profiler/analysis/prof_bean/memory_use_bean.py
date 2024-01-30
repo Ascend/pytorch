@@ -92,4 +92,4 @@ class MemoryUseBean:
     @property
     def row(self) -> list:
         return [Constant.PTA, convert_ns2us_str(self.time_ns, tail="\t"), self.total_allocated,
-                self.total_reserved, self.total_active, self.device_tag]
+                self.total_reserved, self.total_active, self.stream_ptr, self.device_tag]
