@@ -6,7 +6,7 @@ from torch.testing._internal import common_utils
 from torch.testing._internal.opinfo.core import OpInfo
 from torch.testing._internal.common_utils import remove_device_and_dtype_suffixes, TEST_WITH_SLOW, \
         IS_SANDCASTLE, TEST_SKIP_FAST, RERUN_DISABLED_TESTS, DISABLED_TESTS_FILE, SLOW_TESTS_FILE, maybe_load_json
-from torch_npu.testing.npu_testing_utils import update_skip_list, get_decorators
+from torch_npu.testing._npu_testing_utils import update_skip_list, get_decorators
 
 __all__ = []
 
