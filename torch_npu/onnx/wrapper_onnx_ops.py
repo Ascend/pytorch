@@ -666,12 +666,13 @@ class NPUIncreFlashAttentionOP(torch.autograd.Function):
     @staticmethod
     def symbolic(g, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
                  padding_mask: Optional[Tensor], atten_mask: Optional[Tensor],
+                 pse_shift: Optional[Tensor],
                  actual_seq_lengths: Optional[Tensor], antiquant_scale: Optional[Tensor],
                  antiquant_offset: Optional[Tensor], block_table: Optional[Tensor],
                  num_heads: int = 1, scale_value: float = 1.0, input_layout: str = "BSH", 
                  num_key_value_heads: int = 0, block_size: int = 0, inner_precise: int = 1):
         return g.op("npu::NPUIncreFlashAttention", self, query, key, value,
-                    padding_mask, atten_mask, actual_seq_lengths, antiquant_scale, antiquant_offset,
+                    pse_shift, atten_mask, actual_seq_lengths, antiquant_scale, antiquant_offset,
                     block_table, num_heads, scale_value, input_layout, num_key_value_heads,
                     block_size, inner_precise)
 
@@ -736,7 +737,36 @@ class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
                     quant_offset, 
                     bias,
                     antiquant_group_size_i=antiquant_group_size)
+
+
+class NPUAntiQuantOP(torch.autograd.Function):
     
+    @staticmethod
+    def forward(ctx, x, scale, offset, dst_dtype, src_dtype):
+        return torch.ops.npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dst_dtype, src_dtype=src_dtype)
+
+    @staticmethod
+    def symbolic(g,
+                 x: torch.Tensor,
+                 scale: torch.Tensor,
+                 offset: Optional[Tensor],
+                 dst_dtype: Optional[int],
+                 src_dtype: Optional[int]
+                 ):
+        if dst_dtype is None or dst_dtype == torch.float16:
+            dst_dtype = 1
+        elif dst_dtype == torch.bfloat16:
+            dst_dtype = 27
+        else:
+            raise ValueError("The argument 'dst_dtype' must be torch.float16 or torch.bfloat16.")
+        
+        if src_dtype is None or src_dtype == torch.int8:
+            src_dtype = 2
+        else:
+            raise ValueError("The argument 'src_dtype' must be torch.int8.")
+        
+        return g.op("npu::NPUAntiQuant", x, scale, offset, dst_dtype_i=dst_dtype, src_dtype_i=src_dtype)
+
 
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
     return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
@@ -983,10 +1013,10 @@ def wrapper_npu_prompt_flash_attention(self, query, key, value, padding_mask, at
                                            num_heads, scale_value, pre_tokens, next_tokens, input_layout, num_key_value_heads)
 
 
-def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
+def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
                                       antiquant_scale, antiquant_offset, block_table, num_heads, scale_value,
                                       input_layout, num_key_value_heads, block_size, inner_precise):
-    return NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, actual_seq_lengths,
+    return NPUIncreFlashAttentionOP.apply(self, query, key, value, padding_mask, atten_mask, pse_shift, actual_seq_lengths,
                                           antiquant_scale, antiquant_offset, block_table, num_heads, scale_value,
                                           input_layout, num_key_value_heads, block_size, inner_precise)
 
@@ -1000,6 +1030,10 @@ def wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_o
                                            quant_scale, quant_offset, bias, antiquant_group_size):
     return NPUWeightQuantBatchMatmulOP.apply(x, weight, antiquant_scale, antiquant_offset, 
                                                quant_scale, quant_offset, bias, antiquant_group_size)
+
+
+def wrapper_npu_anti_quant(x, scale, offset=None, dst_dtype=None, src_dtype=None):
+    return NPUAntiQuantOP.apply(x, scale, offset, dst_dtype, src_dtype)
 
 
 def add_onnx_ops():
@@ -1056,3 +1090,4 @@ def add_onnx_ops():
     torch_npu.npu_masked_softmax_with_rel_pos_bias = wrapper_npu_masked_softmax_with_rel_pos_bias
     torch_npu.npu_mm_all_reduce_base = wrapper_npu_mm_all_reduce_base
     torch_npu.npu_weight_quant_batchmatmul = wrapper_npu_weight_quant_batchmatmul
+    torch_npu.npu_anti_quant = wrapper_npu_anti_quant

@@ -28,8 +28,8 @@ class ProfilingParser:
             self.run_parser()
         except Exception as err:
             print_error_msg(f"Failed to parsing profiling data. {err}")
-        if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER and ProfilerConfig().data_simplification:
-            ProfilerPathManager.simplify_data(self._profiler_path)
+        if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER:
+            ProfilerPathManager.simplify_data(self._profiler_path, ProfilerConfig().data_simplification)
         end_time = datetime.utcnow()
         print_info_msg(f"All profiling data parsed in a total time of {end_time - self._start_time}")
 

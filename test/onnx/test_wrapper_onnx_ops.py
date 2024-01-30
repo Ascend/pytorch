@@ -7,13 +7,12 @@ import torch
 import torch_npu
 import torch_npu.onnx
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.utils.path_manager import PathManager
 
 # acl format
 FORMAT_ND = 2
 FORMAT_NZ = 29
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestOnnxOps(TestCase):
@@ -1182,7 +1181,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_deep_norm` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_deep_norm(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1207,7 +1206,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_rms_norm` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_rms_norm(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1229,7 +1228,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `npu_add_rms_norm` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_add_rms_norm(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1252,7 +1251,7 @@ class TestOnnxOps(TestCase):
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `RotaryMul` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_rotary_mul(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1273,7 +1272,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `MaskedSoftmaxWithRelPosBias` is only supported on 910B, skip this ut!")
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_masked_softmax_with_rel_pos_bias(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1296,7 +1295,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `WeightQuantBatchmatmul` is only supported on 910B, skip this ut!")        
+    @SupportedDevices(['Ascend910B'])      
     def test_wrapper_npu_weight_quant_batchmatmul(self):
         class Model(torch.nn.Module):
             def __init__(self):
@@ -1315,6 +1314,27 @@ class TestOnnxOps(TestCase):
             self.onnx_export(model, (x, weight, antiquantscale, antiquantoffset, None, None, None, 0), onnx_model_name)
 
         onnx_model_name = "model_npu_weight_quant_batchmatmul.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
+
+    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `AntiQuant` is only supported on 910B, skip this ut!")      
+    def test_wrapper_npu_anti_quant(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, scale, offset=None, dst_dtype=torch.float16, src_dtype=torch.int8):
+                return torch_npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dst_dtype, src_dtype=src_dtype)
+
+        def export_onnx(onnx_model_name):
+            x = torch.randint(low=-128, high=127, size=(10, 1), dtype=torch.int8).npu()
+            scale = torch.randn((1,), dtype=torch.float).npu()
+            offset = torch.randn((1,), dtype=torch.float).npu()
+            model = Model().to("npu")
+            model(x, scale, offset, None, None)
+            self.onnx_export(model, (x, scale, offset, None, None), onnx_model_name)
+
+        onnx_model_name = "mode_npu_anti_quant.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 

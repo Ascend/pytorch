@@ -2,7 +2,7 @@ from ..prof_common_func.constant import Constant
 
 
 class NpuMemoryBean:
-    SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)"]
+    SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)", "active"]
 
     def __init__(self, data: list):
         self._data = data

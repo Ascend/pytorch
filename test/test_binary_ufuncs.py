@@ -125,7 +125,6 @@ class TestBinaryUfuncs(TestCase):
                 exact_dtype = False
 
             if dtype is torch.bfloat16 and expected.dtype == np.float32:
-                # Ref: https://github.com/pytorch/pytorch/blob/master/torch/testing/_internal/common_utils.py#L1149
                 self.assertEqualHelper(
                     actual,
                     expected,
@@ -1878,7 +1877,6 @@ class TestBinaryUfuncs(TestCase):
             return a // 5
 
         # NOTE: this fails if the input is not an integer tensor
-        # See https://github.com/pytorch/pytorch/issues/45199
         def _wrapped_rfloordiv_scalar(a):
             return 5 // a
 
@@ -2672,7 +2670,6 @@ class TestBinaryUfuncs(TestCase):
             self.assertTrue(torch.all(fn(x, 0.0).isnan()))
             self.assertTrue(torch.all(fn(x, zero).isnan()))
 
-      # Check Issue https://github.com/pytorch/pytorch/issues/48130
     @dtypes(*integral_types())
     def test_fmod_remainder_by_zero_integral(self, device, dtype):
         fn_list = (torch.fmod, torch.remainder)
@@ -3990,7 +3987,6 @@ class TestBinaryUfuncs(TestCase):
 
         base = make_tensor((30,), dtype=base_dtype, device=device, low=1, high=100)
         # Complex and real results do not agree between PyTorch and NumPy when computing negative and zero power of 0
-        # Related: https://github.com/pytorch/pytorch/issues/48000
         # base[0] = base[3] = base[7] = 0
         exp = make_tensor((30,), dtype=exp_dtype, device=device, low=-2, high=2)
         exp[0] = exp[4] = exp[6] = 0
@@ -4355,7 +4351,6 @@ class TestBinaryUfuncs(TestCase):
         # `index_select` which is not implemented for `complex32` at the
         # time of writing this test.
         # Remove this test once above issue is fixed.
-        # Ref: https://github.com/pytorch/pytorch/pull/76364
         x = make_tensor((2, 2), device=device, dtype=dtype)
         self.assertEqual(x * 2.5, x * torch.tensor(2.5, device=device, dtype=dtype))
 

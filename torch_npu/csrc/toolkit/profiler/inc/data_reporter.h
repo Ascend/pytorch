@@ -179,8 +179,11 @@ struct MemoryData : BaseReportData {
     int64_t alloc_size{0};
     int64_t total_allocated{0};
     int64_t total_reserved{0};
+    int64_t total_active{0};
+    int64_t stream_ptr{0};
     int8_t device_type{0};
     uint8_t device_index{0};
+    uint8_t data_type{0};
     uint64_t thread_id{0};
     uint64_t process_id{0};
     MemoryData(
@@ -189,8 +192,11 @@ struct MemoryData : BaseReportData {
         int64_t alloc_size,
         int64_t total_allocated,
         int64_t total_reserved,
+        int64_t total_active,
+        int64_t stream_ptr,
         int8_t device_type,
         uint8_t device_index,
+        uint8_t data_type,
         uint64_t thread_id,
         uint64_t process_id)
         : BaseReportData(0, "torch.memory_usage"),
@@ -199,10 +205,64 @@ struct MemoryData : BaseReportData {
           alloc_size(alloc_size),
           total_allocated(total_allocated),
           total_reserved(total_reserved),
+          total_active(total_active),
+          stream_ptr(stream_ptr),
           device_type(device_type),
           device_index(device_index),
+          data_type(data_type),
           thread_id(thread_id),
           process_id(process_id) {}
+    std::vector<uint8_t> encode();
+};
+
+enum class PythonFuncCallDataType {
+    PYTHON_FUNC_CALL_DATA = 1,
+    NAME = 2
+};
+
+struct PythonFuncCallData : BaseReportData {
+    uint64_t start_ns{0};
+    uint64_t thread_id{0};
+    uint64_t process_id{0};
+    uint8_t trace_tag{0};
+    std::string func_name;
+    PythonFuncCallData(uint64_t start_ns,
+        uint64_t thread_id,
+        uint64_t process_id,
+        uint8_t trace_tag,
+        std::string func_name)
+        : BaseReportData(0, "torch.python_func_call"),
+          start_ns(start_ns),
+          thread_id(thread_id),
+          process_id(process_id),
+          trace_tag(trace_tag),
+          func_name(std::move(func_name)) {}
+    std::vector<uint8_t> encode();
+};
+
+enum class PythonModuleCallDataType {
+    PYTHON_MODULE_CALL_DATA = 1,
+    MODULE_UID = 2,
+    MODULE_NAME = 3
+};
+
+struct PythonModuleCallData : BaseReportData {
+    uint64_t idx{0};
+    uint64_t thread_id{0};
+    uint64_t process_id{0};
+    std::string module_uid;
+    std::string module_name;
+    PythonModuleCallData(uint64_t idx,
+        uint64_t thread_id,
+        uint64_t process_id,
+        std::string module_uid,
+        std::string module_name)
+        : BaseReportData(0, "torch.python_module_call"),
+          idx(idx),
+          thread_id(thread_id),
+          process_id(process_id),
+          module_uid(std::move(module_uid)),
+          module_name(std::move(module_name)) {}
     std::vector<uint8_t> encode();
 };
 } // profiler

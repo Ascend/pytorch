@@ -75,7 +75,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   void createEvent(aclrtEvent* acl_event, const c10::EventFlag flag) const {
       auto flag_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
       NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(acl_event, flag_));
-      ASCEND_LOGI("Event: aclrtCreateEvent is successfully executed.");
+      ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", *acl_event);
   }
 
   void destroyEvent(void* event, const c10::DeviceIndex device_index)
@@ -84,7 +84,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
     NPU_CHECK_WARN(c10_npu::NPUEventManager::GetInstance().LazyDestroy(acl_event));
-    ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, acl_event=%p.", acl_event);
+    ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", acl_event);
   }
 
   void record(
@@ -111,10 +111,10 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!npu_event) {
         auto flag_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
         NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, flag_));
-        ASCEND_LOGI("Event: aclrtCreateEvent is successfully executed");
+        ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", npu_event);
     }
     NPU_CHECK_ERROR(aclrtRecordEvent(npu_event, npu_stream));
-    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, npu_event=%p.", npu_event);
+    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false), npu_event);
     // Makes the void* point to the (possibly just allocated) NPU event
     *event = npu_event;
 
@@ -130,7 +130,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     const auto orig_device = getDevice();
     setDevice(stream.device());
     NPU_CHECK_ERROR(aclrtStreamWaitEvent(npu_stream, npu_event));
-    ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, npu_event=%p.", npu_event);
+    ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false), npu_event);
     setDevice(orig_device);
   }
 

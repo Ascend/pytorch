@@ -280,13 +280,8 @@ def _npu_tensorpipe_init_backend_handler(
             return agent
 
 
-# Backend Reg
-def is_available() -> bool:
-    return hasattr(torch_npu._C, "_rpc_npu_init")
-
-
-def rpc_backend_registry():
-    if is_available():
+def _rpc_backend_registry():
+    if hasattr(torch_npu._C, "_rpc_npu_init"):
         torch_npu._C._rpc_npu_init()
         rpc.backend_registry.register_backend(
             "NPU_TENSORPIPE",

@@ -5,7 +5,7 @@ from .function import npu_iou, npu_ptiou, npu_giou, npu_diou, npu_ciou, npu_mult
 from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
      ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish, NpuFairseqDropout, NpuCachedDropout, \
      MultiheadAttention, FusedColorJitter, NpuDropPath, Focus, FastBatchNorm1d, FastBatchNorm2d, \
-     FastBatchNorm3d, FastSyncBatchNorm, LinearA8W8Quant
+     FastBatchNorm3d, FastSyncBatchNorm, LinearA8W8Quant, LinearWeightQuant
 
 __all__ = [
     # from function
@@ -46,4 +46,5 @@ __all__ = [
     "Focus",
     "LinearA8W8Quant",
     "FusedColorJitter"
+    "LinearWeightQuant",
 ]

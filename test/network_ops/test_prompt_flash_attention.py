@@ -6,8 +6,7 @@ import torch_npu
 import torch_npu.npu.utils as utils
 
 from torch_npu.testing.testcase import TestCase, run_tests
-
-DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestPromptFlashAttetion(TestCase):
@@ -24,8 +23,7 @@ class TestPromptFlashAttetion(TestCase):
         return torch_npu.npu_prompt_flash_attention(
             q, k, v, num_heads=32, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535, sparse_mode=0)
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B',
-        "OP `PromptFlashAttention` is only supported on 910B, skip this ut for this device type!")
+    @SupportedDevices(['Ascend910B'])
     def test_op_exec(self):
         q = torch.randn(1, 32, 2048, 128, dtype=torch.float16).npu()
         k = torch.randn(1, 32, 2048, 128, dtype=torch.float16).npu()

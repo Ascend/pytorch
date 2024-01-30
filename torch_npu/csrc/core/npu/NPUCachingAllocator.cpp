@@ -21,6 +21,7 @@
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/profiler/npu_profiler.h"
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -587,7 +588,18 @@ class CachingAllocatorConfig {
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
         m_garbage_collection_threshold(0),
-        m_expandable_segments(false) {}
+        m_expandable_segments(true)
+        {
+            void* ptr = nullptr;
+            auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
+            if (status == ACL_ERROR_NONE) {
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+            } else {
+                TORCH_NPU_WARN_ONCE("expandable_segments feature is not supportted \
+                    and the possible cause is that driver and firmware packages do not match.");
+                m_expandable_segments = false;
+            }
+        }
 
   void lexArgs(const char* env, std::vector<std::string>& config);
   void consumeToken(
@@ -680,10 +692,17 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
         i < config.size() && (config[i] == "True" || config[i] == "False"),
         "Expected a single True/False argument for expandable_segments");
     m_expandable_segments = (config[i] == "True");
-    void* ptr = nullptr;
-    auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
-    NPU_CHECK_SUPPORTED_OR_ERROR(status);
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+    if (m_expandable_segments) {
+        void* ptr = nullptr;
+        auto status = c10_npu::acl::AclrtReserveMemAddress(&ptr, 512, 0, NULL, 1);
+        if (status == ACL_ERROR_NONE) {
+            NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
+        } else {
+            NPU_CHECK_SUPPORTED_OR_ERROR(status);
+            TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to expandable_segments = false.");
+            m_expandable_segments = false;
+        }
+    }
   } else {
     TORCH_CHECK(
         false, "Error, expecting expandable_segments value");
@@ -946,13 +965,17 @@ class DeviceCachingAllocator {
       stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
       stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
-  c10::reportMemoryUsageToProfiler(
-      block->ptr,
-      block->size,
-      stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-      stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-      c10::Device(c10::DeviceType::PrivateUse1, block->device)
-  );
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+        reinterpret_cast<int64_t>(block->ptr),
+        block->size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
+    );
 
   return block;
 }
@@ -987,12 +1010,16 @@ class DeviceCachingAllocator {
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
-    c10::reportMemoryUsageToProfiler(
-        orig_block_ptr,
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+        reinterpret_cast<int64_t>(orig_block_ptr),
         -orig_block_size,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        c10::Device(c10::DeviceType::PrivateUse1, block->device)
+        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
     );
   }
 
@@ -1352,6 +1379,17 @@ class DeviceCachingAllocator {
           stats.requested_bytes[stat_type],
           -static_cast<std::int64_t>(requested_size));
     });
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE),
+        reinterpret_cast<int64_t>(block->ptr),
+        -original_block_size,
+        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
+    );
   }
 
   /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. **/
@@ -1585,6 +1623,7 @@ class DeviceCachingAllocator {
     }
 
     if (p.err != ACL_ERROR_NONE) {
+      p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
       return false;
     }
 
@@ -1790,7 +1829,7 @@ class DeviceCachingAllocator {
         } else {
           NPU_CHECK_WARN(aclrtSynchronizeEvent(*event));
         }
-        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed.");
+        ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
 
         block->event_count--;
         if (block->event_count == 0) {
@@ -1814,7 +1853,7 @@ class DeviceCachingAllocator {
 
       EventPool::Event event = create_event_internal(stream.device_index());
       event->record(stream);
-      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed.");
+      ASCEND_LOGI("Event: record DeviceAllocator is successfully executed, event=%p", event.get());
 
       block->event_count++;
       npu_events[stream].emplace_back(std::move(event), block);

@@ -127,6 +127,7 @@ class TestCommon(TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
 
+    @unittest.skip("NPU doesn't support yet.")
     def test_pointwise_tag_coverage(self):
 
         pytorch_dir = os.path.abspath(__file__ + "/../../")

@@ -37,7 +37,7 @@ class TestNpuMemoryBean(TestCase):
                 row = []
             else:
                 row = [sample.get("event"), sample.get("timestamp(us)"),
-                       sample.get("allocated(KB)"), float(sample.get("memory(KB)")) / Constant.KB_TO_MB]
+                       sample.get("allocated(KB)"), float(sample.get("memory(KB)")) / Constant.KB_TO_MB, ""]
             self.assertEqual(row, npu_mem_bean.row)
 
 
