@@ -71,9 +71,14 @@ class LinearA8W8Quant(nn.Module):
 
     def forward(self, linear_quant_input: Tensor) -> Tensor:
         scale_quant = self.scale
-        first_last_dim = self.weight.dim() - 1
-        second_last_dim = self.weight.dim() - 2
+        weight_k_dim = self.weight.dim() - 1
+        weight_n_dim = self.weight.dim() - 2
+        scale_first_dim = scale_quant.size(0)
+        torch._check(
+            scale_first_dim == 1 or scale_first_dim == self.weight.size(weight_n_dim)
+            lambda: "the scale 1st dim value should be 1 or x2's n dim value, please check scale 1st dim value",
+        )
         if self.scale.dtype == torch.float32:
             scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
-        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
+        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(weight_n_dim, weight_k_dim),
                                           scale_quant, self.offset, self.bias, self.output_dtype)
