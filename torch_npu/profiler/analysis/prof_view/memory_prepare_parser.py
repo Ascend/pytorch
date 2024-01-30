@@ -76,7 +76,6 @@ class MemoryPrepareParser(BaseParser):
         pta_memory_data = FwkFileParser(self._profiler_path).get_file_data_by_tag(FileTag.MEMORY)
         npu_memory_dict = {}
         torch_op_dict = {}
-        npu_memory_record = []
         pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_ns)
         for record in pta_memory_data:
             if record.is_npu():
