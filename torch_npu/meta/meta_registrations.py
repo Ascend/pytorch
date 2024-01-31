@@ -270,7 +270,7 @@ def bias_shape_check(x2, bias, batch_val):
 
 
 def quant_matmul_shape_check(x1, x2, scale, offset):
-    X_MAX_DIM = 3
+    X_MAX_DIM = 6
     X_MIN_DIM = 2
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
@@ -279,11 +279,11 @@ def quant_matmul_shape_check(x1, x2, scale, offset):
     x2_n_dim = x2.size(x2_dim_num - 1)
     torch._check(
         x1_dim_num >= X_MIN_DIM and x1_dim_num <= X_MAX_DIM,
-        lambda: "x1 dim num should be 2 ~ 3, please check x1 dim num",
+        lambda: "x1 dim num should be 2 ~ 6, please check x1 dim num",
     )
     torch._check(
         x2_dim_num >= X_MIN_DIM and x2_dim_num <= X_MAX_DIM,
-        lambda: "x2 dim num should be 2 ~ 3, please check x1 dim num",
+        lambda: "x2 dim num should be 2 ~ 6, please check x2 dim num",
     )
     torch._check(
         x1_k_dim == x2_k_dim,
@@ -318,7 +318,7 @@ def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
         lambda: "x1'type and x2's type should be int8, but x1.dtype is " + str(x1.dtype) + " and x2.dtype is " +
                 str(x2.dtype),
     )
-    scale_dtype_supported_lst = [torch.float32, torch.int64]
+    scale_dtype_supported_lst = [torch.float32, torch.int64, torch.bfloat16]
     torch._check(
         scale.dtype in scale_dtype_supported_lst,
         lambda: "scale's type supported for float32 and int64, but scale.dtype is " + str(scale.dtype),
@@ -362,7 +362,7 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
     quant_matmul_shape_check(x1, x2, scale, offset)
     if bias is not None:
         bias_shape_check(x2, bias, batch_val)
-    quant_matmul_dtype_check(x2, x2, scale, offset, bias)
+    quant_matmul_dtype_check(x1, x2, scale, offset, bias)
     if output_dtype == "float16":
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
     elif output_dtype == "bfloat16":
@@ -375,7 +375,7 @@ def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()
     torch._check(
         scale_dim_num == 1,
-        lambda: "the scale dim must be 1, please check scale 1st dim value",
+        lambda: "the scale dim num must be 1, please check scale dim num",
     )
     dim_max = scale.size(0)
     if offset is not None:
