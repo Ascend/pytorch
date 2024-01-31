@@ -75,7 +75,7 @@ class LinearA8W8Quant(nn.Module):
         weight_n_dim = self.weight.dim() - 2
         scale_first_dim = scale_quant.size(0)
         torch._check(
-            scale_first_dim == 1 or scale_first_dim == self.weight.size(weight_n_dim)
+            scale_first_dim == 1 or scale_first_dim == self.weight.size(weight_n_dim),
             lambda: "the scale 1st dim value should be 1 or x2's n dim value, please check scale 1st dim value",
         )
         if self.scale.dtype == torch.float32:
