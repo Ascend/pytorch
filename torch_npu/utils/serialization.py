@@ -11,6 +11,8 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL,\
     normalize_storage_type, location_tag, _open_zipfile_writer
 
+import torch_npu
+
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
 save_async_stream_map = {}
@@ -206,6 +208,30 @@ def load(
                 return _legacy_load(opened_file, "cpu", pickle_module, **pickle_load_args)
 
 
+def _get_npu_save_result(
+    obj: object,
+    f: FILE_LIKE,
+    pickle_module: Any = pickle,
+    pickle_protocol: int = DEFAULT_PROTOCOL,
+    _use_new_zipfile_serialization: bool = True,
+    _disable_byteorder_record: bool = False
+) -> None:
+    cpu_nbytes = torch.storage.UntypedStorage.nbytes
+
+    def npu_nbytes(self):
+        if self.device.type != 'cpu':
+            storage_tensor = torch_npu._C._tensor_construct_from_storage(self)
+            base_nbytes = storage_tensor.size().numel() * storage_tensor.element_size()
+            return base_nbytes
+        else:
+            return cpu_nbytes(self)
+
+    torch.storage.UntypedStorage.nbytes = npu_nbytes
+    result = torch.serialization.save(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
+    torch.storage.UntypedStorage.nbytes = cpu_nbytes
+    return result
+
+
 def save(
     obj: object,
     f: FILE_LIKE,
@@ -220,8 +246,8 @@ def save(
             "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving"
         )
         _warn_legacy_serialization(warn_massage, "save")
-    return torch.serialization.save(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
-               
+    return _get_npu_save_result(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
+
 
 def save_async(
     obj: object,
