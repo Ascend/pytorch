@@ -17,17 +17,17 @@ except ImportError as e:
         ei = sys.exc_info()
         if "ASCEND_OPP_PATH" in os.environ:
             newErr = ImportError(str(ei[1]) + ". Please check that the compiler package is installed. "
-                                 "Please run 'source set_env.sh' in the CANN installation path.")
+                                              "Please run 'source set_env.sh' in the CANN installation path.")
         else:
             newErr = ImportError(str(ei[1]) + ". Please check that the cann package is installed. "
-                                 "Please run 'source set_env.sh' in the CANN installation path.")
+                                              "Please run 'source set_env.sh' in the CANN installation path.")
         traceback.print_exception(ei[0], newErr, ei[2])
         sys.exit()
 
     if "libascendcl.so" in str(e):
         ei = sys.exc_info()
         newErr = ImportError(str(ei[1]) + ". Please check that the runtime package is installed. "
-                             "Please run 'source set_env.sh' in the CANN installation path.")
+                                          "Please run 'source set_env.sh' in the CANN installation path.")
         traceback.print_exception(ei[0], newErr, ei[2])
         sys.exit()
 
@@ -42,8 +42,8 @@ import torch_npu._C
 from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
-from torch_npu.utils import apply_module_patch, add_tensor_methods, add_collect_env_methods,\
-    add_storage_methods, add_serialization_methods, apply_device_patch, add_dynamo_methods,\
+from torch_npu.utils import apply_module_patch, add_tensor_methods, add_collect_env_methods, \
+    add_storage_methods, add_serialization_methods, add_dynamo_methods, \
     _dynamo_register_interface_for_device, add_optim_method
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
@@ -57,7 +57,6 @@ from .meta import meta_registrations
 
 cann_package_check()
 
-
 __all__ = []
 
 
@@ -66,6 +65,7 @@ def wrap_torch_error_func(func):
     def wrapper(*args, **kwargs):
         raise RuntimeError(f"torch.{func.__name__} is deprecated and will be removed in future version. "
                            f"Use torch_npu.{func.__name__} instead.")
+
     return wrapper
 
 
@@ -84,7 +84,6 @@ all_monkey_patches = [
 
 
 def _apply_patches(monkey_patches):
-
     def _getattr(module_list, root_module=torch):
         if len(module_list) <= 1:
             return root_module
@@ -129,7 +128,6 @@ def apply_zero_patch():
 def apply_class_patches():
     add_storage_methods()
     apply_module_patch()
-    apply_device_patch()
     add_tensor_methods()
     add_serialization_methods()
     add_intercept_methods()
@@ -137,7 +135,6 @@ def apply_class_patches():
     add_dynamo_methods()
     add_optim_method()
     apply_zero_patch()
-
 
 
 torch.utils.rename_privateuse1_backend("npu")
@@ -151,7 +148,7 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
 apply_class_patches()
-torch.distributed.is_hccl_available = lambda : True
+torch.distributed.is_hccl_available = lambda: True
 
 # this must be placed at the end
 torch_npu._C._initExtension()
@@ -160,7 +157,7 @@ torch_npu._C._initExtension()
 torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout:
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
-#PGHCCL batch_isend_irecv
+# PGHCCL batch_isend_irecv
 torch.distributed.batch_isend_irecv = torch_npu.distributed.batch_isend_irecv
 
 # set default device type for gradient checkpointing
@@ -176,15 +173,11 @@ def _npu_shutdown():
 # register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
 
-
 # init and register rpc npu backend
 _rpc_backend_registry()
-
-torch._dynamo.skipfiles.add(torch_npu.utils._device)
 
 # register rules for ops in dtensor
 register_ops_under_dtensor_rules()
 
 # register npu device interface for dynamo
 _dynamo_register_interface_for_device()
-

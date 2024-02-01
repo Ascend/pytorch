@@ -1,7 +1,6 @@
 import torch
 from torch._dynamo.device_interface import DeviceInterface, register_interface_for_device, \
     caching_worker_current_devices, caching_worker_device_properties
-from ._device import NPUDevice
 from ..npu.streams import Event, Stream
 from ..npu.utils import current_device, set_device, device_count, stream, current_stream, \
     set_stream, synchronize, get_device_capability
@@ -9,8 +8,7 @@ from ..npu.utils import get_device_properties as get_device_properties_npu
 
 
 class NpuInterface(DeviceInterface):
-    device = NPUDevice
-    torch.device = NPUDevice
+    device = torch.device
     Event = Event
     Stream = Stream
 
