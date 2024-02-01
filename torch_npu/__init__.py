@@ -247,6 +247,7 @@ torch_npu._C._initExtension()
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
     torch_npu._C._npu_shutdown()
+    torch_npu.distributed.distributed_c10d._destructor_process_group()
 
 
 #register npu shutdown hook on exit
