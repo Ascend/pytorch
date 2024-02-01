@@ -254,7 +254,7 @@ def bias_shape_check(x2, bias, batch_val):
         )
         return
     bias_second_dim = bias.size(1)
-    bias_third_dim = bias.sinze(2)
+    bias_third_dim = bias.size(2)
     torch._check(
         bias_first_dim == batch_val,
         lambda: "infered batch value should be equal to bias batch dim value, please check bias batch dim value",

@@ -1470,11 +1470,13 @@ class TestFFN(TestCase):
 class TestQuantMatmul(TestCase):
     def test_npu_quant_matmul_meta(self):
         with FakeTensorMode():
-            x1 = torch.randint(-1, 1, (1, 1024), dtype=torch.int8).npu()
-            x2 = torch.randint(-1, 1, (1024, 100), dtype=torch.int8).npu()
-            expect_ret = torch.randint(-1, 1, (1, 100), dtype=torch.int8).npu()
+            x1 = torch.randint(-1, 1, (1, 1, 1024), dtype=torch.int8).npu()
+            x2 = torch.randint(-1, 1, (1, 1024, 100), dtype=torch.int8).npu()
+            expect_ret = torch.randint(-1, 1, (1, 1, 100), dtype=torch.int8).npu()
             scale = torch.randn(1, dtype=torch.bfloat16).npu()
-            res = torch_npu.npu_quant_matmul(x1, x2, scale)
+            offset = torch.randn(1, dtype=torch.float32).npu()
+            bias = torch.randint(-1, -1, (1, 1, 100), dtype=torch.int32).npu()
+            res = torch_npu.npu_quant_matmul(x1, x2, scale, offset, bias)
             self.assertTrue(expect_ret.shape == res.shape)
             self.assertTrue(expect_ret.dtype == res.dtype)
 
