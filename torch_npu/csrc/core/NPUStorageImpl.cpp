@@ -1,4 +1,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/utils/LazyInit.h"
+#endif
 
 namespace torch_npu {
 
@@ -25,6 +28,9 @@ c10::intrusive_ptr<c10::StorageImpl> make_npu_storage_impl(
     c10::SymInt size_bytes,
     c10::Allocator* allocator,
     bool resizable) {
+#ifndef BUILD_LIBTORCH
+    torch_npu::utils::npu_lazy_init();
+#endif
   // Correctly create NPUStorageImpl object.
   c10::intrusive_ptr<c10::StorageImpl> npu_storage_impl = c10::make_intrusive<NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
