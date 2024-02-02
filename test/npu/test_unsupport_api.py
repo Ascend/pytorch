@@ -4,6 +4,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 IS_HOSTAPI_ENABLED = os.getenv('HOSTAPI_ENABLED') == 'ON'
 
@@ -284,6 +285,15 @@ class TestPtaUnsupportApi(TestCase):
         with self.assertRaisesRegex(RuntimeError, "special_zeta.other_scalar_out is unsupported!"):
             torch.special.zeta(torch.tensor([2., 4.]).npu(), 1, out=result)
 
+    @skipIfUnsupportMultiNPU(2)
+    def test_empty_special_devcie_tensor(self):
+        torch.npu.set_device(0)
+        a = torch.tensor([2., 4.], device="npu:1")
+        if hasattr(a.storage(), "device"):
+            self.assertEqual(a.device, a.storage().device)
+            self.assertEqual(a.device.index, a.storage().device.index)
+        with self.assertRaisesRegex(AssertionError, "1 not less than or equal to 1e-05"):
+            self.assertEqual(a.device.index, 1)
 
 if __name__ == "__main__":
     run_tests()
