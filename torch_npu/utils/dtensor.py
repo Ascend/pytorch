@@ -11,6 +11,8 @@ from torch.distributed._tensor.ops.view_ops import (
 )
 import torch_npu
 
+__all__ = []
+
 npu = torch.ops.npu
 aten = torch.ops.aten
 
@@ -39,7 +41,7 @@ matrix_ops = [
 ]
 
 
-def register_ops_under_dtensor_rules():
+def _register_ops_under_dtensor_rules():
     # pointwise rule
     for op in pointwise_ops:
         register_prop_rule(op)(pointwise_rule)

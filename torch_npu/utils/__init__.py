@@ -5,7 +5,7 @@ from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_c
 from ._device import apply_device_patch
 from .serialization import add_serialization_methods
 from .npu_intercept import cann_package_check, add_intercept_methods
-from .dtensor import register_ops_under_dtensor_rules
+from .dtensor import _register_ops_under_dtensor_rules
 from .collect_env import add_collect_env_methods
 from ._dynamo import add_dynamo_methods
 from ._dynamo_device import _dynamo_register_interface_for_device
