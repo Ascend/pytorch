@@ -3,6 +3,8 @@
 PYTEST_DONT_REWRITE (prevents pytest from rewriting assertions, which interferes
 with test_export_persist_assert)
 """
+import os
+import tempfile
 import copy
 import functools
 import inspect
@@ -14,6 +16,7 @@ from enum import Enum
 from typing import Dict, List, Sequence
 from unittest.mock import patch
 
+import onnx
 import torch
 import torch_npu
 
@@ -2310,6 +2313,123 @@ def forward(self, x):
         self.assertTrue(
             isinstance(loaded_model.module().features_0_weight, torch.nn.Parameter)
         )
+
+    @unittest.skipIf(not torch.npu.is_available(), "requires npu")
+    def test_export_for_function(self):
+        def f_function(x, y):
+            a = x * 2
+            a = torch_npu.fast_gelu(a)
+            b = x ** 2
+            return a + b
+        example_args = (torch.randn(10, 10).npu(), torch.randn(10, 10).npu())
+        exported_program = torch.export.export(f_function, args=example_args)
+        self.assertEqual(exported_program(*example_args), f_function(*example_args))
+        with tempfile.NamedTemporaryFile() as f:
+            torch.export.save(exported_program, f)
+            f.seek(0)
+            saved_exported_program = torch.export.load(f)
+        self.assertEqual(exported_program(*example_args), saved_exported_program(*example_args))
+        
+    @unittest.skipIf(not torch.npu.is_available(), "requires npu")
+    def test_export_for_module(self):
+        class Toymodel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.conv = torch.nn.Conv2d(
+                    in_channels=3, out_channels=16, kernel_size=3, padding=1
+                )
+                self.relu = torch.nn.ReLU()
+                self.maxpool = torch.nn.MaxPool2d(kernel_size=3)
+
+            def forward(self, x, *, constant=None):
+                a = self.conv(x)
+                a.add_(constant)
+                a = torch_npu.fast_gelu(a)
+                return self.maxpool(self.relu(a))
+            
+        example_args = (torch.randn(1, 3, 256, 256).npu(),)
+        example_kwargs = {'constant':torch.ones(1, 16, 256, 256).npu()}
+        exported_program = torch.export.export(Toymodel().npu(), args=example_args, kwargs=example_kwargs)
+        self.assertTrue(isinstance(exported_program, torch.export.ExportedProgram))
+
+    @unittest.skipIf(not torch.npu.is_available(), "requires npu")
+    def test_export_for_module_with_dynamic(self):
+        class Toymodel_dynamic(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+                self.branch1 = torch.nn.Sequential(
+                    torch.nn.Linear(64, 32), torch.nn.ReLU()
+                )
+                self.branch2 = torch.nn.Sequential(
+                    torch.nn.Linear(128, 64), torch.nn.ReLU()
+                )
+                self.register_buffer('buffer', torch.ones(32))
+
+            def forward(self, x1, x2):
+                out1 = self.branch1(x1)
+                out2 = self.branch2(x2)
+                return (out1 + self.buffer, out2)
+
+        example_args = (torch.randn(32, 64).npu(), torch.randn(32, 128).npu())
+        constraints = [
+            # first dimension of each input is a dynamic batch size
+            dynamic_dim(example_args[0], 0),
+            dynamic_dim(example_args[1], 0),
+            # The dynamic batch size between the inputs are euqal 
+            dynamic_dim(example_args[0], 0) == dynamic_dim(example_args[1], 0),
+        ]
+        exported_program = torch.export.export(
+            Toymodel_dynamic().npu(), args=example_args, constraints=constraints
+            )
+        self.assertTrue(isinstance(exported_program, torch.export.ExportedProgram))
+
+    @unittest.skipIf(not torch.npu.is_available(), "requires npu")
+    def test_export_save_and_load(self):
+        import pathlib
+        
+        class MyModule_save_and_load(torch.nn.Module):
+            def forward(self, x):
+                return x + 10
+
+        example_args = (torch.randn(5).npu(),)
+        exported_program = torch.export.export(
+            MyModule_save_and_load().npu(), args=example_args)
+        with common_utils.TemporaryFileName() as fname:
+            path = pathlib.Path(fname)
+            torch.export.save(exported_program, path)
+            self.assertTrue(os.path.exists(path))
+            saved_exported_program = torch.export.load(path)
+            self.assertTrue(isinstance(saved_exported_program, torch.export.ExportedProgram))
+        exported_program_res = exported_program(*example_args)
+        saved_exported_program_res = saved_exported_program(*example_args)
+        self.assertTrue(torch.allclose(exported_program_res, saved_exported_program_res))
+
+    @unittest.skipIf(not torch.npu.is_available(), "requires npu")
+    def test_onnx_dynamo_export(self):
+        class MLPModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.fc0 = torch.nn.Linear(8, 8, bias=True)
+                self.fc1 = torch.nn.Linear(8, 4, bias=True)
+                self.fc2 = torch.nn.Linear(4, 2, bias=True)
+                self.fc3 = torch.nn.Linear(2, 2, bias=True)
+
+            def forward(self, tensor_x):
+                tensor_x = self.fc0(tensor_x)
+                tensor_x = torch.sigmoid(tensor_x)
+                tensor_x = self.fc1(tensor_x)
+                tensor_x = torch.sigmoid(tensor_x)
+                tensor_x = self.fc2(tensor_x)
+                tensor_x = torch.sigmoid(tensor_x)
+                output = self.fc3(tensor_x)
+                return output
+            
+        mlpmodel = MLPModel().npu()
+        tensor_x = torch.rand((10, 8), dtype=torch.float32).npu()
+        output_onnx = torch.onnx.dynamo_export(mlpmodel, tensor_x)
+        self.assertIsInstance(output_onnx, torch.onnx.ONNXProgram)
+        self.assertIsInstance(output_onnx.model_proto, onnx.ModelProto)
 
     def test_export_meta(self):
         class MyModule(torch.nn.Module):
