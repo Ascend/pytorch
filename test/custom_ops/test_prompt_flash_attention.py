@@ -33,6 +33,21 @@ class TestPromptFlashAttention(TestCase):
         return torch_npu.npu_prompt_flash_attention(
             query, key, value, num_heads=32, deq_scale1=deq_scale1, quant_scale1=quant_scale1, deq_scale2=deq_scale2, quant_scale2=quant_scale2, quant_offset2=quant_offset2, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535, sparse_mode=0)
 
+    def custom_op_exec_test_int8_fake_tensor(self, query, key, value, head_dim):
+        with FakeTensorMode() as mode:
+            scale = 1 / 0.0078125
+            deq_scale1 = torch.tensor([1], dtype=torch.float32).npu()
+            quant_scale1 = torch.tensor([1], dtype=torch.float32).npu()
+            deq_scale2 = torch.tensor([1], dtype=torch.float32).npu()
+            quant_scale2 = None
+            quant_offset2 = None
+            fake_result = torch.ops.npu.npu_prompt_flash_attention(
+                query, key, value, num_heads=32, deq_scale1=deq_scale1, quant_scale1=quant_scale1, deq_scale2=deq_scale2, quant_scale2=quant_scale2, quant_offset2=quant_offset2, input_layout="BNSD", scale_value=scale, pre_tokens=65535, next_tokens=65535, sparse_mode=0)
+            self.assertRtolEqual(fake_result.shape, query.shape)
+            self.assertRtolEqual(fake_result.dtype, query.dtype)
+            self.assertRtolEqual(fake_result.device, query.device)
+            self.assertTrue(isinstance(fake_result, FakeTensor))
+
     def custom_op_exec_test_int8(self, query, key, value, head_dim):
         scale = 1 / 0.0078125
         deq_scale1 = torch.tensor([1], dtype=torch.float32).npu()
@@ -66,6 +81,8 @@ class TestPromptFlashAttention(TestCase):
         supported_output = self.supported_op_exec(query_test2, key_test2, value_test2, head_dim)
         custom_output = self.vcustom_op_exec_test_int8(query_test2, key_test2, value_test2, head_dim)
         self.assertRtolEqual(supported_output, custom_output)
+
+        self.custom_op_exec_test_int8_fake_tensor(query_test2, key_test2, value_test2, head_dim)
 
 
 if __name__ == "__main__":
