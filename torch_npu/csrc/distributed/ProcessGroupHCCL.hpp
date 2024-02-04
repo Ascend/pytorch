@@ -102,7 +102,7 @@ public:
     // Same as calling synchronize() for HCCL work.
     bool wait(std::chrono::milliseconds timeout) override;
 
-    void handleHCCLGuard(ErrorHandlingMode asyncErrorHandling);
+    void handleExceptionGuard(ErrorHandlingMode asyncErrorHandling);
 
     // Let current stream wait on the completing of the HCCL work
     // Throws on exceptions. Blocking operation, which will wait for work
@@ -159,8 +159,10 @@ public:
 
     bool startTraceUpdated_{false};
 
+    virtual std::exception_ptr checkForRTSErrors(const
+        std::vector<at::Device>& devicelist) const;
     virtual std::exception_ptr checkForHCCLErrors(const
-    std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
+        std::vector<std::shared_ptr<HCCLComm>>& hcclComms) const;
 
   private:
     // Checks for HCCL errors and sets an appropriate exception_ptr.
@@ -357,9 +359,10 @@ public:
 protected:
 
     // Wrapper method which can be overridden for tests.
+    virtual std::exception_ptr checkForRTSErrors(
+        const std::vector<at::Device>& devicelist);
     virtual std::exception_ptr checkForHCCLErrors(
         const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
-    std::exception_ptr rts_device_error_query(int32_t devId);
 
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);
@@ -542,13 +545,14 @@ private:
       PostProcess post,
       c10d::OpType opType);
 
+    static std::exception_ptr checkForRTSErrorsInternal(
+        const std::vector<at::Device>& devicelist);
     static std::exception_ptr checkForHCCLErrorsInternal(
         const std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+    static std::exception_ptr rts_device_error_query(int32_t devId);
 
     void hcclCommWatchdog();
 
     void hcclCommWatchdogInternal();
-
-    std::exception_ptr rts_hccl_exception_ = nullptr;
 };
 } // namespace c10d_npu

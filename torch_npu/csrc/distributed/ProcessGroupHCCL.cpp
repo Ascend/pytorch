@@ -344,14 +344,25 @@ void ProcessGroupHCCL::WorkHCCL::checkAndSetException()
         // We already have an exception.
         return;
     }
-    auto exception_ptr = checkForHCCLErrors(hcclComms_);
-    std::unique_lock<std::mutex> lock(mutex_);
-    exception_ = exception_ptr;
-    if (exception_) {
+
+    // Check rts error for specific devices. If no rts error found, then check hccl error of specific hcclcomms.
+    std::exception_ptr rt_device_status = checkForRTSErrors(devices_);
+    std::exception_ptr hcclErrorException = nullptr;
+    if (!rt_device_status) {
+        hcclErrorException = checkForHCCLErrors(hcclComms_);
+    } else {
+        LOG(INFO) << "[Rank " << rank_ << "]"
+                  << " found exception when checking for RTS errors: "
+                  << getExceptionMsgFromExceptionPtr(rt_device_status);
+    }
+    if (hcclErrorException) {
         LOG(INFO) << "[Rank " << rank_ << "]"
                   << " found async exception when checking for HCCL errors: "
-                  << getExceptionMsgFromExceptionPtr(exception_);
+                  << getExceptionMsgFromExceptionPtr(hcclErrorException);
     }
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    exception_ = (hcclErrorException) ? (hcclErrorException) : (rt_device_status);
 }
 
 void ProcessGroupHCCL::WorkHCCL::setException(std::exception_ptr exception_ptr)
@@ -462,16 +473,16 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
     }
 }
 
-void ProcessGroupHCCL::WorkHCCL::handleHCCLGuard(ErrorHandlingMode asyncErrorHandling)
+void ProcessGroupHCCL::WorkHCCL::handleExceptionGuard(ErrorHandlingMode asyncErrorHandling)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (exception_) {
         auto exceptionMsg = c10::str(
-            "Some HCCL operations have failed or timed out. Due to the ",
+            "Some RTS or HCCL operations have failed or timed out. Due to the ",
             "asynchronous nature of NPU kernels, subsequent NPU operations ",
             "might run on corrupted/incomplete data.");
         LOG(ERROR) << exceptionMsg;
-        C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.WorkHCCL.handleHCCLGuard");
+        C10_LOG_API_USAGE_ONCE("ProcessGroupHCCL.WorkHCCL.handleExceptionGuard");
         if (asyncErrorHandling == TearDown) {
             auto tearDownMsg = c10::str("To avoid data inconsistency, we are taking the entire process down.");
             LOG(ERROR) << tearDownMsg;
@@ -540,14 +551,36 @@ std::exception_ptr ProcessGroupHCCL::rts_device_error_query(int32_t devId)
     aclrtDeviceStatus deviceStatus = ACL_RT_DEVICE_STATUS_NORMAL;
     auto ret = c10_npu::acl::AclrtQueryDeviceStatus(devId, &deviceStatus);
     if (ret != 0) {
-        TORCH_NPU_WARN("AclrtQueryDeviceStatus interface query error, device[%d] error code[%d]", ret, devId);
-        ASCEND_LOGD("AclrtQueryDeviceStatus interface query error, device[%d] error code[%d]", ret, devId);
+        TORCH_NPU_WARN("Device[", devId, "] AclrtQueryDeviceStatus interface get unexpected query, query code is [", ret, "]");
+        ASCEND_LOGD("Device[", devId, "] AclrtQueryDeviceStatus interface get unexpected query, query code is [", ret, "]");
     }
 
     if (ret == 0 && deviceStatus != ACL_RT_DEVICE_STATUS_NORMAL) {
         return std::make_exception_ptr(std::runtime_error(c10::str("rts error: ", deviceStatus)));
     }
     return nullptr;
+}
+
+std::exception_ptr ProcessGroupHCCL::WorkHCCL::checkForRTSErrors(
+    const std::vector<at::Device>& devicelist) const
+{
+    return checkForRTSErrorsInternal(devicelist);
+}
+
+std::exception_ptr ProcessGroupHCCL::checkForRTSErrors(const std::vector<at::Device>& devicelist)
+{
+    return checkForRTSErrorsInternal(devicelist);
+}
+
+std::exception_ptr ProcessGroupHCCL::checkForRTSErrorsInternal(const std::vector<at::Device>& devicelist)
+{
+    std::exception_ptr rt_device_status = nullptr;
+    for (const auto& device : devicelist) {
+        rt_device_status = rts_device_error_query(device.index());
+        if (rt_device_status)
+            break;
+    }
+    return rt_device_status;
 }
 
 std::exception_ptr ProcessGroupHCCL::WorkHCCL::checkForHCCLErrors(
@@ -641,40 +674,34 @@ void ProcessGroupHCCL::hcclCommWatchdogInternal()
                     allCommIds.emplace(buildHcclUniqueIdStr(hcclComm->getHcclId()));
                 }
 
-                // check rts error for specific device
-                std::exception_ptr rt_device_status = nullptr;
+                // Check rts error for specific devices. If no rts error found, then check hccl error of specific hcclcomms.
                 std::vector<at::Device> devicelist = get_device_list_from_devicekey(it.first);
-                for (const auto& device : devicelist) {
-                    rt_device_status = rts_device_error_query(device.index());
-                    if (rt_device_status)
-                        break;
-                }
-
-                // get hccl error of specific hcclcomms
+                std::exception_ptr rt_device_status = checkForRTSErrors(devicelist);
                 std::exception_ptr hcclErrorException = nullptr;
                 if (!rt_device_status) {
                     hcclErrorException = checkForHCCLErrors(hcclComms);
+                } else {
+                    LOG(INFO) << "[Rank " << rank_ << "] Received RTS errors for communicators in the cache: \n"
+                              << "RTS error: \n"
+                              << getExceptionMsgFromExceptionPtr(rt_device_status);
+                }
+                if (hcclErrorException) {
+                    LOG(INFO) << "[Rank " << rank_ << "] Received HCCL errors for communicators in the cache: \n"
+                              << "HCCL error: \n"
+                              << getExceptionMsgFromExceptionPtr(hcclErrorException);
                 }
 
-                // deal with hcclErrorException
-                if (rt_device_status || hcclErrorException) {
-                    rts_hccl_exception_ = (hcclErrorException) ? (hcclErrorException) : (rt_device_status);
-                    auto exceptionMsg = getExceptionMsgFromExceptionPtr(rts_hccl_exception_);
-                    LOG(INFO) << "[Rank " << rank_ << "] Received HCCL or RTS errors for communicators in the cache: \n"
-                              << "HCCL or RTS error: \n"
-                              << exceptionMsg;
-
-                    if (hcclErrorException && (blockingWait_ || asyncErrorHandling_ != NoHandling)) {
-                        LOG(INFO) << "[Rank " << rank_ << "] Aborting communicators that received errors";
-                        // We abort HCCL communicators that have received errors from this
-                        // thread, and exceptions are set on the corresponding work objects.
-                        // The workCleanupThread will then loop through the unfinished
-                        // collectives and throw exceptions if an exception has been set on
-                        // any of the work objects from this thread.
-                        for (const auto& hcclComm : hcclComms) {
-                            hcclComm->destropyHcclComm();
-                            abortedCommIds.emplace(buildHcclUniqueIdStr(hcclComm->getHcclId()));
-                        }
+                if ((hcclErrorException || rt_device_status) && (blockingWait_ || asyncErrorHandling_ != NoHandling)) {
+                    LOG(INFO) << "[Rank " << rank_ << "] Aborting communicators that received errors";
+                    // We abort HCCL communicators that have received errors
+                    // or where the devices have received errors from this thread,
+                    // and exceptions are set on the corresponding work objects.
+                    // The workCleanupThread will then loop through the unfinished
+                    // collectives and throw exceptions if an exception has been set on
+                    // any of the work objects from the thread.
+                    for (const auto& hcclComm : hcclComms) {
+                        hcclComm->destropyHcclComm();
+                        abortedCommIds.emplace(buildHcclUniqueIdStr(hcclComm->getHcclId()));
                     }
                 }
             }
@@ -865,7 +892,7 @@ void ProcessGroupHCCL::workCleanupLoop()
                     // Handle Exceptions on failed GPU operations and remove completed
                     // workHCCL objects from work vector.
                     if (!terminateProcessGroup_.load()) {
-                        work.handleHCCLGuard(asyncErrorHandling_);
+                        work.handleExceptionGuard(asyncErrorHandling_);
                     }
                     doneWorks.emplace_back(std::move(*it));
                     it = workMetaList_.erase(it);
