@@ -101,7 +101,7 @@ __all__ = [
     "conv",
 ]
 
-from typing import Tuple
+from typing import Tuple, Union
 from multiprocessing.util import register_after_fork as _register_after_fork
 import traceback
 import threading

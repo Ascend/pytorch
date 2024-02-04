@@ -5,6 +5,8 @@ from torch.optim.optimizer import Optimizer
 import torch_npu
 from torch_npu.utils import npu_combine_tensors, get_part_combined_tensor
 
+__all__ = ["NpuFusedOptimizerBase"]
+
 
 class NpuFusedOptimizerBase(Optimizer):
 
