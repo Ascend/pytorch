@@ -1,0 +1,8 @@
+{
+  "DTYPE": "some data types cannot be supported",
+  "VALUE": "value error",
+  "MEMORY": "memory error",
+  "NOT_SUPPORT": "feature or operators cannot be supported",
+  "HCCL": "hccl error",
+  "OTHER": "other errors"
+}
