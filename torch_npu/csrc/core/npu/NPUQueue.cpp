@@ -170,7 +170,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     ASCEND_LOGE("Task queue is not initialized, shouldn't call MakeSureQueueEmpty(). !!");
     return FAILED;
   }
-    RECORD_FUNCTION("MakeSureQueueEmpty", std::vector<c10::IValue>({}));
+    ASCEND_LOGI("Begin to makesure queue empty.");
   // While waiting for ACL thread to launch tasks,
   // the current thread should not hold GIL.
   // When the operator compilation is triggered in the ACL thread,
