@@ -14,12 +14,10 @@
 # limitations under the License.
 
 import os.path
-import time
 import json
 from sys import getsizeof
 from typing import Optional, Iterable, Callable, Any
 
-from torch.futures import Future
 import torch.autograd.profiler as prof
 from torch_npu._C._profiler import ProfilerActivity
 
@@ -37,15 +35,15 @@ from ..utils.path_manager import PathManager
 
 class _KinetoProfile:
     def __init__(
-        self,
-        *,
-        activities: Optional[Iterable[ProfilerActivity]] = None,
-        record_shapes: bool = False,
-        profile_memory: bool = False,
-        with_stack: bool = False,
-        with_flops: bool = False,
-        with_modules: bool = False,
-        experimental_config: Optional[_ExperimentalConfig] = None,
+            self,
+            *,
+            activities: Optional[Iterable[ProfilerActivity]] = None,
+            record_shapes: bool = False,
+            profile_memory: bool = False,
+            with_stack: bool = False,
+            with_flops: bool = False,
+            with_modules: bool = False,
+            experimental_config: Optional[_ExperimentalConfig] = None,
     ):
         self.metadata = {}
         self.prof_if = ProfInterface(
@@ -129,7 +127,7 @@ class _KinetoProfile:
             return
         if metric not in self._support_export_stacks_metrics():
             print_warn_msg("Metric should be self_cpu_time_total or self_npu_time_total."
-                  "Here it is presumed to be self_cpu_time_total.")
+                           "Here it is presumed to be self_cpu_time_total.")
             metric = Constant.METRIC_CPU_TIME
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
@@ -156,19 +154,19 @@ def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None):
 
 class profile(_KinetoProfile):
     def __init__(
-        self,
-        *,
-        activities: Optional[Iterable[ProfilerActivity]] = None,
-        schedule: Optional[Callable[[int], ProfilerAction]] = None,
-        on_trace_ready: Optional[Callable[..., Any]] = None,
-        record_shapes: bool = False,
-        profile_memory: bool = False,
-        with_stack: bool = False,
-        with_flops: bool = False,
-        with_modules: bool = False,
-        experimental_config: Optional[_ExperimentalConfig] = None,
-        # deprecated:
-        use_cuda: Optional[bool] = None,
+            self,
+            *,
+            activities: Optional[Iterable[ProfilerActivity]] = None,
+            schedule: Optional[Callable[[int], ProfilerAction]] = None,
+            on_trace_ready: Optional[Callable[..., Any]] = None,
+            record_shapes: bool = False,
+            profile_memory: bool = False,
+            with_stack: bool = False,
+            with_flops: bool = False,
+            with_modules: bool = False,
+            experimental_config: Optional[_ExperimentalConfig] = None,
+            # deprecated:
+            use_cuda: Optional[bool] = None,
     ):
         super().__init__()
         activities_set = set(activities) if activities else supported_activities()
@@ -236,5 +234,11 @@ class profile(_KinetoProfile):
             self.step_rec_fn.__enter__()
 
 
-def analyse(profiler_path: str):
-    NpuProfiler.analyse(profiler_path)
+def analyse(profiler_path: str, max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER):
+    if not isinstance(max_process_number, int) or not max_process_number:
+        max_process_number = Constant.DEFAULT_PROCESS_NUMBER
+        print_warn_msg("Invalid max_process_number, reset it to default!")
+    if max_process_number > os.cpu_count():
+        max_process_number = os.cpu_count()
+        print_warn_msg("max_process_number exceeds the number of cpu cores, reset it to the number of cpu cores!")
+    NpuProfiler.analyse(profiler_path, max_process_number=max_process_number)
