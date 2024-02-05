@@ -21,6 +21,7 @@ from typing import Union
 class Constant(object):
     INVALID_VALUE = -1
     NULL_VALUE = 0
+    DEFAULT_PROCESS_NUMBER = os.cpu_count() // 2
 
     # dir name
     FRAMEWORK_DIR = "FRAMEWORK"

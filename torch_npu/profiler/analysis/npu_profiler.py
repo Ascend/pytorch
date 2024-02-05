@@ -35,7 +35,8 @@ class NpuProfiler:
             return
         # 多profiling数据的解析
         multiprocessing.set_start_method("fork", force=True)
-        pool = NoDaemonProcessPool(processes=os.cpu_count() // 2)
+        process_number = kwargs.get("max_process_number", Constant.DEFAULT_PROCESS_NUMBER)
+        pool = NoDaemonProcessPool(processes=process_number)
         for profiler_path in profiler_path_list:
             PathManager.check_directory_path_writeable(profiler_path)
             profiling_parser = ProfilingParser(profiler_path, analysis_type, output_path, kwargs)
