@@ -294,16 +294,6 @@ def quant_matmul_shape_check(x1, x2, scale, offset):
         x1_k_dim == x2_k_dim,
         lambda: "k dim of x1 and x2 need be same, please check k dim of x1 and x2",
     )
-    scale_dim_num = scale.dim()
-    torch._check(
-        scale_dim_num == 1,
-        lambda: "the scale dim num must be 1, please check scale dim num",
-    )
-    scale_first_dim = scale.size(0)
-    torch._check(
-        scale_first_dim == 1 or scale_first_dim == x2_n_dim,
-        lambda: "the scale 1st dim value must be 1 or x2 n dim value, please check scale 1st dim value ",
-    )
     if offset is not None:
         offset_dim_num = offset.dim()
         torch._check(
@@ -315,6 +305,16 @@ def quant_matmul_shape_check(x1, x2, scale, offset):
             offset_first_dim == 1 or offset_first_dim == x2_n_dim,
             lambda: "the offset 1st dim value must be 1 or x2 n dim value, please check offset 1st dim value",
         )
+    scale_dim_num = scale.dim()
+    torch._check(
+        scale_dim_num == 1,
+        lambda: "the scale dim num must be 1, please check scale dim num",
+    )
+    scale_first_dim = scale.size(0)
+    torch._check(
+        scale_first_dim == 1 or scale_first_dim == x2_n_dim,
+        lambda: "the scale 1st dim value must be 1 or x2 n dim value, please check scale 1st dim value ",
+    )
 
 
 def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
@@ -382,10 +382,16 @@ def npu_trans_quant_param_meta(scale, offset=None):
         scale_dim_num == 1,
         lambda: "the scale dim num must be 1, please check scale dim num",
     )
-    dim_max = scale.size(0)
+    scale_first_dim = scale.size(0)
+    dim_max = scale_first_dim
     if offset is not None:
-        dim_offset = offset.size(0)
-        dim_max = max(dim_max, dim_offset)
+        offset_first_dim = offset.size(0)
+        dim_max = max(dim_max, offset_first_dim)
+        if offset_first_dim != 1 and scale_first_dim != 1:
+            torch._check(
+                offset_first_dim == scale_first_dim,
+                lambda: "offset first dim should be equal to scale first dim if none of them are equal to one",
+            )
     return scale.new_empty((dim_max), dtype=torch.int64)
 
 

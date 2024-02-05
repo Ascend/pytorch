@@ -1481,6 +1481,17 @@ class TestQuantMatmul(TestCase):
             self.assertTrue(expect_ret.dtype == res.dtype)
 
 
+class TestTranQuantParam(TestCase):
+    def test_npu_trans_quant_param_meta(self):
+        with FakeTensorMode():
+            expect_ret = torch.randint(-1, 1, (4,), dtype=torch.int64).npu()
+            scale = torch.randn(1, dtype=torch.float32).npu()
+            offset = torch.randn(4, dtype=torch.float32).npu()
+            res = torch_npu.npu_trans_quant_param(scale, offset)
+            self.assertTrue(res.shape == expect_ret.shape)
+            self.assertTrue(res.dtype == expect_ret.dtype)
+
+
 class TestAntiQuant(TestCase):
     @unittest.skipIf(torch.__version__ != "2.1.0",
                      "OP `AntiQuant` is only supported on torch v2.1.0, skip this ut for this torch version")
