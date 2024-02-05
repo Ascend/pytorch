@@ -1227,6 +1227,18 @@ class TestIncreFlashAttention(TestCase):
             print("res.shape: ", res.shape)
             self.assertTrue(q.shape == res.shape)
 
+    def test_incre_flash_attention_int8_in(self):
+        with FakeTensorMode():
+            q = torch.randint(1, 40, (1, 128), dtype=torch.int8).npu()
+            k = torch.randint(1, 40, (1, 128), dtype=torch.int8).npu()
+            v = torch.randint(1, 40, (1, 128), dtype=torch.int8).npu()
+            res = torch.ops.npu.npu_incre_flash_attention(q, k, v)
+
+            print("q.shape: ", q.shape)
+            print("res.shape: ", res.shape)
+            self.assertTrue(q.shape == res.shape)
+            self.assertTrue(res.dtype == torch.half)
+
 
 class TestNpuBmmV2(TestCase):
     def test_npu_bmmV2(self):

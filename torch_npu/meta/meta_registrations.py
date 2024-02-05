@@ -13,10 +13,19 @@ m = Library("npu", "IMPL", "Meta")
 
 @impl(m, "npu_incre_flash_attention")
 def npu_incre_flash_attention_forward(query, key, value, *, padding_mask=None, atten_mask=None, pse_shift=None, actual_seq_lengths=None,
-                                      num_heads=1, scale_value=1.0, input_layout="BSH", num_key_value_heads=0):
-    return torch.empty_like(query)
+                                      antiquant_scale=None, antiquant_offset=None, block_table=None,
+                                      dequant_scale1=None, quant_scale1=None, dequant_scale2=None, quant_scale2=None,
+                                      quant_offset2=None, num_heads=1, scale_value=1.0, input_layout="BSH",
+                                      num_key_value_heads=0, block_size=0, inner_precise=1):
+    if quant_scale2 is not None:
+        return torch.empty_like(query, dtype=torch.int8)
+    elif query.dtype == torch.int8:
+        return torch.empty_like(query, dtype=torch.half)
+    else:
+        return torch.empty_like(query)
 
 
+@impl(m, "npu_prompt_flash_attention")
 def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, atten_mask=None, pse_shift=None, actual_seq_lengths=None, deq_scale1=None, quant_scale1=None, deq_scale2=None, quant_scale2=None, quant_offset2=None, num_heads=1, scale_value=1.0, pre_tokens=2147473647, next_tokens=0, input_layout="BSH", num_key_value_heads=0, actual_seq_lengths_kv=None, sparse_mode=0):
     if quant_scale2 is not None:
         return torch.empty_like(query, dtype=torch.int8)
