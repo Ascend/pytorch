@@ -58,3 +58,7 @@ ${python_execute} -m codegen.gen_python_functions  \
   --native_yaml="$CDIR/codegen/native_functions.yaml" \
   --template_path="$CDIR/codegen/templates" \
   --op_plugin_yaml_path="$op_plugin_config_path/op_plugin_functions.yaml"
+
+if [ -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py ]; then
+  cp -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py $CDIR/torch_npu/_op_plugin_docs.py
+fi
