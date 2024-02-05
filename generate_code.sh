@@ -36,3 +36,7 @@ ${python_execute} -m codegen.autograd.gen_autograd \
   --npu_native_function_dir="$source_yaml"
 
 ${python_execute} -m codegen.codegen_ops_info
+
+if [ -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py ]; then
+  cp -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py $CDIR/torch_npu/_op_plugin_docs.py
+fi
