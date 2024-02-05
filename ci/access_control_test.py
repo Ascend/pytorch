@@ -245,7 +245,8 @@ def exec_ut(files):
     执行单元测试文件，其中存在失败，则标识异常并打印相关信息
     """
     def get_op_name(ut_file):
-        return ut_file.split('/')[-1].split('.')[0].lstrip('test_')
+        op_name = str(ut_file.split('/')[-1].split('.')[0])
+        return op_name[5:] if op_name.startswith("test_") else op_name
 
     def get_ut_name(ut_file):
         return str(Path(ut_file).relative_to(TEST_DIR))[:-3]
@@ -254,7 +255,7 @@ def exec_ut(files):
         cmd = [sys.executable, "run_test.py", "-v"]
         if ut_type == "op_ut_files":
             # do not skip ops related test entries
-            return cmd + ["-e"] + SLOW_TEST_BLOCKLIST[1:] + ["-i", "test_ops", "--", "-k", get_op_name(ut_file)]
+            return cmd + ["-e"] + SLOW_TEST_BLOCKLIST[1:] + ["-i", "test_ops", "--", "-k", "_" + get_op_name(ut_file)]
         return cmd + ["-i", get_ut_name(ut_file)]
 
     def wait_thread(process, event_timer):
