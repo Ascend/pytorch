@@ -1,8 +1,9 @@
+import re
 from collections import defaultdict
 
 from .base_parser import BaseParser
 from ..prof_bean.torch_op_node import TorchOpNode
-from ..prof_common_func.constant import Constant, print_error_msg
+from ..prof_common_func.constant import Constant, print_error_msg, print_warn_msg
 from ..prof_common_func.file_manager import FileManager
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.cann_file_parser import CANNDataEnum
@@ -19,6 +20,9 @@ class CommunicationParser(BaseParser):
     COMMUNICATION_BANDWIDTH_INFO = "Communication Bandwidth Info"
     HCOM_SEND = "hcom_send"
     HCOM_RECEIVE = "hcom_receive"
+    HCOM_BATCHSENDRECV = "hcom_batchsendrecv"
+    HCCL_PATTERN = r"send|reduce|invalid|broadcast|allreduce|" \
+                   "receive|allgather|reducescatter|scatter|alltoall|alltoallv|alltoallvc|batchsendrecv"
     TOTAL = "Total"
     SYNCHRONIZATION_TIME_RATIO = "Synchronization Time Ratio"
     SYNCHRONIZATION_TIME_MS = "Synchronization Time(ms)"
@@ -102,7 +106,8 @@ class CommunicationParser(BaseParser):
     def split_communication_p2p_ops(self, op_data: dict):
         comm_op_dict = {self.P2P: {}, self.COLLECTIVE: {}}
         for communication_op, communication_info in op_data.items():
-            if communication_op.startswith(self.HCOM_SEND) or communication_op.startswith(self.HCOM_RECEIVE):
+            if communication_op.startswith(self.HCOM_SEND) or communication_op.startswith(self.HCOM_RECEIVE) \
+                    or communication_op.startswith(self.HCOM_BATCHSENDRECV):
                 comm_op_dict[self.P2P][communication_op] = communication_info
             elif communication_op.startswith(self.TOTAL):
                 continue
@@ -112,10 +117,10 @@ class CommunicationParser(BaseParser):
 
     def compute_total_link_info(self, op_matrix_data: dict):
         total_op_info = defaultdict(lambda: {
-                self.TRANSPORT_TYPE: '',
-                self.TRANSIT_TIME_MS: 0,
-                self.TRANSIT_SIZE_MB: 0
-            })
+            self.TRANSPORT_TYPE: '',
+            self.TRANSIT_TIME_MS: 0,
+            self.TRANSIT_SIZE_MB: 0
+        })
         for op_name, link_dict in op_matrix_data.items():
             for link, link_info in link_dict.items():
                 total_op_info[link][self.TRANSIT_TIME_MS] += link_info.get(self.TRANSIT_TIME_MS, 0)
@@ -150,8 +155,55 @@ class CommunicationParser(BaseParser):
 
     def get_matrix_ops_dict(self, op_data: dict) -> dict:
         comm_op_dict = self.split_communication_p2p_ops(op_data)
-        self.compute_total_link_info(comm_op_dict[self.P2P])
-        self.compute_total_link_info(comm_op_dict[self.COLLECTIVE])
+        comm_op_dict[self.P2P] = self.integrate_matrix_data(self.get_comm_type(comm_op_dict[self.P2P]))
+        comm_op_dict[self.COLLECTIVE] = self.integrate_matrix_data(self.get_comm_type(comm_op_dict[self.COLLECTIVE]))
+        return comm_op_dict
+
+    def get_comm_type(self, op_data: dict) -> dict:
+        new_comm_op_dict = defaultdict(list)
+        for communication_op, communication_info in op_data.items():
+            match_obj = re.compile(self.HCCL_PATTERN).search((communication_op.lower()))
+            if match_obj:
+                comm_op_type = match_obj.group()
+            else:
+                comm_op_type = communication_op.split("__")[0]
+                print_warn_msg("Unknown communication op type：{comm_op_type}")
+            for link, data in communication_info.items():
+                new_comm_op_name = (comm_op_type, communication_op.split("@")[-1], link)
+                data['op_name'] = communication_op.split("@")[0]
+                new_comm_op_dict[new_comm_op_name].append(data)
+        return new_comm_op_dict
+
+    def integrate_matrix_data(self, new_comm_op_dict: dict):
+        """integrate the matrix data"""
+        comm_op_dict = defaultdict(dict)
+        for new_comm_op_name, data in new_comm_op_dict.items():
+            data.sort(key=lambda x: x[self.BANDWIDTH_GB_S], reverse=True)
+            t_type = data[0].get(self.TRANSPORT_TYPE, '')
+            t_size = sum(x.get(self.TRANSIT_SIZE_MB, 0) for x in data)
+            t_time = sum(x.get(self.TRANSIT_TIME_MS, 0) for x in data)
+            bandwidth = self.compute_ratio(t_size, t_time)
+
+            link = new_comm_op_name[2]
+            new_comm_op_name_top1 = f'{new_comm_op_name[0]}-top1@{new_comm_op_name[1]}'
+            new_comm_op_name_middle = f'{new_comm_op_name[0]}-middle@{new_comm_op_name[1]}'
+            new_comm_op_name_bottom1 = f'{new_comm_op_name[0]}-bottom1@{new_comm_op_name[1]}'
+            new_comm_op_name_bottom2 = f'{new_comm_op_name[0]}-bottom2@{new_comm_op_name[1]}'
+            new_comm_op_name_bottom3 = f'{new_comm_op_name[0]}-bottom3@{new_comm_op_name[1]}'
+            new_comm_op_name_total = f'{new_comm_op_name[0]}-total@{new_comm_op_name[1]}'
+            comm_op_dict[new_comm_op_name_top1].update({link: data[0]})
+            comm_op_dict[new_comm_op_name_middle].update({link: data[len(data) // 2]})
+            comm_op_dict[new_comm_op_name_bottom1].update({link: data[-1]})
+            comm_op_dict[new_comm_op_name_total].update({link: {
+                self.TRANSPORT_TYPE: t_type,
+                self.TRANSIT_SIZE_MB: t_size,
+                self.TRANSIT_TIME_MS: t_time,
+                self.BANDWIDTH_GB_S: bandwidth
+            }})
+            if len(data) >= 2:
+                comm_op_dict[new_comm_op_name_bottom2].update({link: data[-2]})
+            if len(data) >= 3:
+                comm_op_dict[new_comm_op_name_bottom3].update({link: data[-3]})
         return comm_op_dict
 
     def is_step_list_empty(self):
@@ -201,7 +253,7 @@ class CommunicationParser(BaseParser):
                     self.combine_size_distribution(value, total_bandwidth_info_dict[transport_type][bandwidth_msg])
 
     def compute_time_ratio(self, total_time_info_dict: dict):
-        total_time_info_dict[self.WAIT_TIME_RATIO] =\
+        total_time_info_dict[self.WAIT_TIME_RATIO] = \
             self.compute_ratio(total_time_info_dict.get(self.WAIT_TIME_MS, 0),
                                total_time_info_dict.get(self.WAIT_TIME_MS, 0) +
                                total_time_info_dict.get(self.TRANSIT_TIME_MS, 0))
