@@ -38,6 +38,7 @@ from setuptools.command.install import install
 from setuptools import setup, distutils, Extension
 from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
+from wheel.bdist_wheel import bdist_wheel
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
@@ -243,6 +244,13 @@ def CppExtension(name, sources, *args, **kwargs):
     return Extension(name, sources, *args, **kwargs)
 
 
+def patchelf_dynamic_library():
+    library_dir = Path(BASE_DIR).joinpath("build/packages/torch_npu/lib")
+    library_files = [str(i) for i in library_dir.rglob('*.so')]
+    for library_file in library_files:
+        subprocess.check_call(["patchelf", "--remove-needed", "libgomp.so.1", library_file], cwd=BASE_DIR)  # Compliant
+
+
 class Clean(distutils.command.clean.clean):
 
     def run(self):
@@ -432,6 +440,15 @@ class PythonPackageBuild(build_py, object):
         super(PythonPackageBuild, self).finalize_options()
 
 
+class BdistWheelBuild(bdist_wheel):
+    def run(self):
+        if which('patchelf') is not None:
+            patchelf_dynamic_library()
+        
+        self.run_command('egg_info')
+        bdist_wheel.run(self)
+
+
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
@@ -502,5 +519,6 @@ setup(
         'build_py': PythonPackageBuild,
         'egg_info': EggInfoBuild,
         'clean': Clean,
+        'bdist_wheel': BdistWheelBuild,
         'install': InstallCmd
     })
