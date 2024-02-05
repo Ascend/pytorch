@@ -32,25 +32,17 @@ try:
     import torch_npu.npu
 except ImportError as e:
     if "libhccl.so" in str(e):
-        ei = sys.exc_info()
-        if ("ASCEND_OPP_PATH" in os.environ):
-            newErr = ImportError(str(ei[1]) + ". Please check that the compiler package is installed. " \
-                                 "Please run 'source set_env.sh' in the CANN installation path.")
-        else :
-            newErr = ImportError(str(ei[1]) + ". Please check that the cann package is installed. " \
-                                 "Please run 'source set_env.sh' in the CANN installation path.")
-        traceback.print_exception(ei[0], newErr, ei[2])
-        sys.exit()
-
-    if "libascendcl.so" in str(e):
-        ei = sys.exc_info()
-        newErr = ImportError(str(ei[1]) + ". Please check that the runtime package is installed. " \
-                             "Please run 'source set_env.sh' in the CANN installation path.")
-        traceback.print_exception(ei[0], newErr, ei[2])
-        sys.exit()
-
-    else:
-        traceback.print_exc()
+        if "ASCEND_OPP_PATH" in os.environ:
+            e.msg += ". Please check that the compiler package is installed. "\
+                       "Please run 'source set_env.sh' in the CANN installation path."
+        else:
+            e.msg += ". Please check that the cann package is installed. "\
+                       "Please run 'source set_env.sh' in the CANN installation path."
+    elif "libascendcl.so" in str(e):
+        e.msg += ". Please check that the runtime package is installed. "\
+                   "Please run 'source set_env.sh' in the CANN installation path."
+    raise
+    
 import torch_npu.npu.amp
 import torch_npu.npu.aclnn
 import torch_npu.distributed
