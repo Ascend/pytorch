@@ -12,6 +12,8 @@ MOMENTUM_MIN = 0.0
 DAMPENING_DEFAULT = 0.0
 WEIGHT_DECAY_MIN = 0.0
 
+__all__ = ["NpuFusedSGD"]
+
 
 class NpuFusedSGD(NpuFusedOptimizerBase):
     r"""Implements stochastic gradient descent (optionally with momentum).
