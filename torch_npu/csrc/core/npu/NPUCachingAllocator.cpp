@@ -21,7 +21,9 @@
 #include "NPUBlockHandle.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
+#ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#endif
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -965,6 +967,7 @@ class DeviceCachingAllocator {
       stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
       stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
+#ifndef BUILD_LIBTORCH
     torch_npu::profiler::reportMemoryDataToNpuProfiler({
         static_cast<int8_t>(c10::DeviceType::PrivateUse1),
         block->device,
@@ -976,6 +979,7 @@ class DeviceCachingAllocator {
         stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         reinterpret_cast<int64_t>(block->stream)}
     );
+#endif
 
   return block;
 }
@@ -1010,6 +1014,7 @@ class DeviceCachingAllocator {
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
+#ifndef BUILD_LIBTORCH
     torch_npu::profiler::reportMemoryDataToNpuProfiler({
         static_cast<int8_t>(c10::DeviceType::PrivateUse1),
         block->device,
@@ -1021,6 +1026,7 @@ class DeviceCachingAllocator {
         stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         reinterpret_cast<int64_t>(block->stream)}
     );
+#endif
   }
 
   void* getBaseAllocation(Block* block, size_t* outSize) {
@@ -1379,6 +1385,7 @@ class DeviceCachingAllocator {
           stats.requested_bytes[stat_type],
           -static_cast<std::int64_t>(requested_size));
     });
+#ifndef BUILD_LIBTORCH
     torch_npu::profiler::reportMemoryDataToNpuProfiler({
         static_cast<int8_t>(c10::DeviceType::PrivateUse1),
         block->device,
@@ -1390,6 +1397,7 @@ class DeviceCachingAllocator {
         stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         reinterpret_cast<int64_t>(block->stream)}
     );
+#endif
   }
 
   /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. **/
