@@ -5,6 +5,9 @@ import warnings
 import torch
 import torch_npu._C
 
+__all__ = ["flash_sdp_enabled", "enable_flash_sdp", "mem_efficient_sdp_enabled", "enable_mem_efficient_sdp",
+           "math_sdp_enabled", "enable_math_sdp", "sdp_kernel", "preferred_linalg_library"]
+
 
 def flash_sdp_enabled() -> bool:
     r"""
