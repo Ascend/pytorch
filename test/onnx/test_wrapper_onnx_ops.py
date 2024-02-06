@@ -1317,7 +1317,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
-    @unittest.skipIf(DEVICE_NAME != 'Ascend910B', "OP `AntiQuant` is only supported on 910B, skip this ut!")   
+    @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_anti_quant(self):
         class Model(torch.nn.Module):
             def __init__(self):
