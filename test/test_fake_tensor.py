@@ -1408,6 +1408,29 @@ class TestScatterUpdateMeta(TestCase):
             self.assertIsNot(fake_result, in_self)
 
 
+class TestMmAllReduce(TestCase):
+    def test_mm_all_reduce(self):
+        with FakeTensorMode():
+            dst_dtype = torch.float16
+            x1 = torch.randn(128, 256, dtype=torch.float16).npu()
+            x2 = torch.randn(256, 128, dtype=torch.float16).npu()
+            hcom = "fake group info"
+            output = torch_npu.npu_mm_all_reduce_base(x1, x2, hcom, reduce_op="sum")
+            self.assertEqual(output.shape, (128, 128))
+            self.assertEqual(output.dtype, dst_dtype)
+
+    def test_mm_all_reduce_quant(self):
+        with FakeTensorMode():
+            dst_dtype = torch.float16
+            x1 = torch.randn(128, 256, dtype=torch.float16).to(torch.int8).npu()
+            x2 = torch.randn(256, 128, dtype=torch.float16).to(torch.int8).npu()
+            dequant = torch.randn(128, dtype=torch.float16).to(torch.int64).npu()
+            hcom = "fake group info"
+            output = torch_npu.npu_mm_all_reduce_base(x1, x2, hcom, reduce_op="sum", dequant_scale=dequant)
+            self.assertEqual(output.shape, (128, 128))
+            self.assertEqual(output.dtype, dst_dtype)
+
+
 class TestNpuDeepNorm(TestCase):
     def test_npu_deep_norm(self):
         with FakeTensorMode():
