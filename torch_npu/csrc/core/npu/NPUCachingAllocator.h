@@ -9,6 +9,7 @@
 
 
 #include <mutex>
+#include <atomic>
 
 namespace c10_npu {
 namespace NPUCachingAllocator {
@@ -114,28 +115,134 @@ struct SegmentInfo {
 };
 
 
-void* raw_alloc(size_t nbytes);
-void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
-void raw_delete(void* ptr);
+class NPUAllocator : public c10::Allocator {
+public:
+    virtual std::mutex* getFreeMutex() const = 0;
+    virtual void* raw_alloc(size_t nbytes) = 0;
+    virtual void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) = 0;
+    virtual void raw_delete(void* ptr) = 0;
+    virtual void init(int device_count) = 0;
+    virtual bool initialized() = 0;
+    virtual void setMemoryFraction(double fraction, int device) = 0;
+    virtual void emptyCache(bool check_error) = 0;
+    virtual void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) = 0;
+    virtual void* getBaseAllocation(void* ptr, size_t* size) = 0;
+    virtual void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
+    virtual void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) = 0;
+    virtual DeviceStats getDeviceStats(int device) = 0;
+    virtual void resetAccumulatedStats(int device) = 0;
+    virtual void resetPeakStats(int device) = 0;
+    virtual std::vector<SegmentInfo> snapshot() = 0;
+    virtual void FreeDeviceCachedMemory(int device) = 0;
+    virtual void setShutdownStats() = 0;
+    virtual std::string name() = 0;
+};
 
-c10::Allocator* get();
-void init();
-void setMemoryFraction(double fraction, int device);
-C10_NPU_API void emptyCache(bool check_error = true);
-C10_NPU_API void setShutdownStats();
-void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
-void* getBaseAllocation(void* ptr, size_t* size);
-void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
-void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
-DeviceStats getDeviceStats(int device);
-void resetAccumulatedStats(int device);
-void resetPeakStats(int device);
-std::vector<SegmentInfo> snapshot();
+// Allocator object, statically initialized
+// See BackendInitializer in CUDACachingAllocator.cpp.
+// Atomic loads on x86 are just normal loads,
+// (atomic stores are different), so reading this value
+// is no different than loading a pointer.
+C10_NPU_API extern std::atomic<NPUAllocator*> allocator;
 
-std::mutex* getFreeMutex();
 
-void FreeDeviceCachedMemory(int device);
+inline NPUAllocator* get()
+{
+    return allocator.load();
+}
 
-std::string name();
+// Called directly by clients.
+inline std::mutex* getFreeMutex()
+{
+    return get()->getFreeMutex();
+}
+
+inline void* raw_alloc(size_t nbytes)
+{
+    return get()->raw_alloc(nbytes);
+}
+
+inline void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream)
+{
+    return get()->raw_alloc_with_stream(nbytes, stream);
+}
+
+inline void raw_delete(void* ptr)
+{
+    return get()->raw_delete(ptr);
+}
+
+inline void init()
+{
+    uint32_t device_count = 0;
+    NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count));
+    return get()->init(device_count);
+}
+
+inline void setMemoryFraction(double fraction, int device)
+{
+    return get()->setMemoryFraction(fraction, device);
+}
+
+C10_NPU_API inline void emptyCache(bool check_error = true)
+{
+    return get()->emptyCache(check_error);
+}
+
+inline void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock)
+{
+    return get()->cacheInfo(dev_id, cachedAndFree, largestBlock);
+}
+
+inline void* getBaseAllocation(void* ptr, size_t* size)
+{
+    return get()->getBaseAllocation(ptr, size);
+}
+
+inline void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
+{
+    return get()->recordStream(ptr, stream);
+}
+
+inline void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream)
+{
+    return get()->eraseStream(ptr, stream);
+}
+
+inline DeviceStats getDeviceStats(int device)
+{
+    return get()->getDeviceStats(device);
+}
+
+inline void resetAccumulatedStats(int device)
+{
+    return get()->resetAccumulatedStats(device);
+}
+
+inline void resetPeakStats(int device)
+{
+    return get()->resetPeakStats(device);
+}
+
+inline std::vector<SegmentInfo> snapshot()
+{
+    return get()->snapshot();
+}
+
+inline void FreeDeviceCachedMemory(int device)
+{
+    return get()->FreeDeviceCachedMemory(device);
+}
+
+C10_NPU_API inline void setShutdownStats()
+{
+    return get()->setShutdownStats();
+}
+
+inline std::string name()
+{
+    return get()->name();
+}
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
