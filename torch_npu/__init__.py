@@ -152,8 +152,6 @@ torch_npu._C._initExtension()
 torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout:
     torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
 
-#PGHCCL batch_isend_irecv
-torch.distributed.batch_isend_irecv = torch_npu.distributed.batch_isend_irecv
 
 # set default device type for gradient checkpointing
 DefaultDeviceType.set_device_type("npu")

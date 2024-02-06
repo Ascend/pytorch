@@ -1,7 +1,10 @@
 import torch_npu
 
-__all__ = ["Reducer", "_register_comm_hook", "_register_builtin_comm_hook",
-     "_compute_bucket_assignment_by_size", "_verify_params_across_processes", "_broadcast_coalesced"]
+__all__ = [
+    "Reducer", "_register_comm_hook", "_register_builtin_comm_hook",
+    "_compute_bucket_assignment_by_size", "_verify_params_across_processes", "_broadcast_coalesced",
+    "batch_isend_irecv", "gather", "gather_object"
+]
 
 
 def is_available():
@@ -29,4 +32,4 @@ from torch_npu._C._distributed_c10d import (
     _broadcast_coalesced
 )
 
-from .distributed_c10d import batch_isend_irecv
+from .distributed_c10d import batch_isend_irecv, gather, gather_object
