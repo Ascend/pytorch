@@ -1914,7 +1914,9 @@ class DeviceCachingAllocator {
   }
 };
 
-class THNCachingAllocator {
+void local_raw_delete(void* ptr);
+
+class NpuCachingAllocator : public NPUAllocator {
  private:
 
   std::mutex mutex;
@@ -1934,8 +1936,9 @@ class THNCachingAllocator {
 
   std::vector<std::unique_ptr<DeviceCachingAllocator>> device_allocator;
 
-  std::mutex* getNpuFreeMutex() const {
-    return &npu_free_mutex;
+  std::mutex* getFreeMutex() const override
+  {
+      return &npu_free_mutex;
   }
 
   Block* get_allocated_block(void* ptr, bool remove = false) {
@@ -1951,7 +1954,8 @@ class THNCachingAllocator {
     return block;
   }
 
-  void init(int device_count) {
+  void init(int device_count) override
+    {
     int size = static_cast<int>(device_allocator.size());
     if (size < device_count) {
       device_allocator.resize(device_count);
@@ -1961,6 +1965,10 @@ class THNCachingAllocator {
     }
   }
 
+    bool initialized() override
+    {
+        return !device_allocator.empty();
+    }
   /** allocates a block which is safe to use from the provided stream */
   void malloc(void** devPtr, int device, size_t size, aclrtStream stream) {
     Block* block = device_allocator[device]->malloc(device, size, stream);
@@ -1979,7 +1987,8 @@ class THNCachingAllocator {
     device_allocator[block->device]->free(block);
   }
 
-  void setMemoryFraction(double fraction, int device) {
+  void setMemoryFraction(double fraction, int device) override
+  {
     TORCH_INTERNAL_ASSERT(
         0 <= device && device < device_allocator.size(),
         "Allocator not initialized for device ",
@@ -1996,19 +2005,22 @@ class THNCachingAllocator {
     device_allocator[device]->setMemoryFraction(fraction);
   }
 
-  void emptyCache(bool check_error) {
+  void emptyCache(bool check_error) override
+  {
     int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++)
       device_allocator[i]->emptyCache(check_error);
   }
 
-  void THNSetShutdownStats() {
+    void setShutdownStats() override
+  {
     int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++)
       device_allocator[i]->devSetShutdownStats();
   }
 
-  void* getBaseAllocation(void* ptr, size_t* outSize) {
+  void* getBaseAllocation(void* ptr, size_t* outSize) override
+  {
     Block* block = get_allocated_block(ptr);
     if (!block) {
       AT_ERROR("invalid device pointer: ", ptr);
@@ -2016,7 +2028,8 @@ class THNCachingAllocator {
     return device_allocator[block->device]->getBaseAllocation(block, outSize);
   }
 
-  void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
+  void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) override
+  {
     // Empty tensor's storage().data() might be a null ptr. As there is no
     // blocks associated with those tensors, it is fine to do nothing here.
     if (!ptr.get()) {
@@ -2028,7 +2041,7 @@ class THNCachingAllocator {
     // we have implemented reference counting based sharing mechanism to
     // guarantee tensors won't be accidentally freed by one process while
     // they are still being used in another
-    if (ptr.get_deleter() != &raw_delete) {
+    if (ptr.get_deleter() != &local_raw_delete) {
       return;
     }
 
@@ -2049,7 +2062,7 @@ class THNCachingAllocator {
       // we have implemented reference counting based sharing mechanism to
       // guarantee tensors won't be accidentally freed by one process while
       // they are still being used in another
-      if (ptr.get_deleter() != &raw_delete) {
+      if (ptr.get_deleter() != &local_raw_delete) {
           TORCH_NPU_WARN_ONCE("Tensor not is not allocated by NPUCachingAllocator, skip eraseStream.");
           return;
       }
@@ -2070,35 +2083,99 @@ class THNCachingAllocator {
       device_allocator[block->device]->eraseStream(block, stream);
   }
 
-  std::vector<SegmentInfo> snapshot() {
+  std::vector<SegmentInfo> snapshot() override
+  {
     std::vector<SegmentInfo> result;
     int count = static_cast<int>(device_allocator.size());
     for (int i = 0; i < count; i++) {
       auto snap = device_allocator[i]->snapshot();
       result.insert(result.end(), snap.begin(), snap.end());
     }
-
     return result;
   }
-};
 
-THNCachingAllocator caching_allocator;
-
-// NB: I decided not to fold this into THNCachingAllocator, because the latter
-// has a lot more methods and it wasn't altogether clear that they should
-// actually be publically exposed
-struct NpuCachingAllocator : public c10::Allocator {
-  c10::DataPtr allocate(size_t size) const override {
+  c10::DataPtr allocate(size_t size) const override
+  {
     int device = 0;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     void* r = nullptr;
     if (size != 0) {
-      caching_allocator.malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
+      const_cast<NpuCachingAllocator*>(this)->malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
     }
-    return {r, r, &raw_delete, c10::Device(c10::DeviceType::PrivateUse1, device)};
+    return {r, r, &local_raw_delete, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
-  c10::DeleterFnPtr raw_deleter() const override {
-    return &raw_delete;
+
+  c10::DeleterFnPtr raw_deleter() const override
+  {
+      return &local_raw_delete;
+  }
+
+  void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) override
+  {
+      device_allocator[dev_id]->cacheInfo(cachedAndFree, largestBlock);
+  }
+
+  void assertValidDevice(int device)
+  {
+      int device_num = c10_npu::device_count();
+      AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.");
+  }
+
+  DeviceStats getDeviceStats(int device) override
+  {
+      assertValidDevice(device);
+      return device_allocator[device]->getStats();
+  }
+
+  void resetAccumulatedStats(int device) override
+  {
+      assertValidDevice(device);
+      device_allocator[device]->resetAccumulatedStats();
+  }
+
+  void resetPeakStats(int device) override
+  {
+      assertValidDevice(device);
+      device_allocator[device]->resetPeakStats();
+  }
+    
+  void* raw_alloc(size_t nbytes) override
+  {
+    if (nbytes == 0) {
+      return nullptr;
+    }
+    int device = 0;
+    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    void* r = nullptr;
+    malloc(&r, device, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
+    return r;
+  }
+
+  void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) override
+  {
+    if (nbytes == 0) {
+      return nullptr;
+    }
+    int device;
+    NPU_CHECK_ERROR(aclrtGetDevice(&device));
+    void* r = nullptr;
+    malloc(&r, device, nbytes, stream);
+    return r;
+  }
+
+  void raw_delete(void* ptr) override
+  {
+    this->free(ptr);
+  }
+
+  void FreeDeviceCachedMemory(int device) override
+  {
+    device_allocator[device]->emptyCache(true);
+  }
+
+  std::string name() override
+  {
+    return "native";
   }
   // Note [COW/lazy_clone is not supported yet]
   void copy_data(void* dest, const void* src, std::size_t count) const final {
@@ -2106,104 +2183,14 @@ struct NpuCachingAllocator : public c10::Allocator {
   }
 };
 
-static NpuCachingAllocator device_allocator;
+NpuCachingAllocator caching_allocator;
 
-REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &device_allocator);
+REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &caching_allocator);
 
-c10::Allocator* get(void) {
-  return &device_allocator;
-}
 
-void init() {
-  uint32_t device_count = 0;
-  NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count));
-  caching_allocator.init(device_count);
-}
-
-void setMemoryFraction(double fraction, int device) {
-  caching_allocator.setMemoryFraction(fraction, device);
-}
-
-void emptyCache(bool check_error) {
-  caching_allocator.emptyCache(check_error);
-}
-
-void setShutdownStats() {
-  caching_allocator.THNSetShutdownStats();
-}
-
-void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) {
-  caching_allocator.device_allocator[dev_id]->cacheInfo(cachedAndFree, largestBlock);
-}
-
-void* getBaseAllocation(void* ptr, size_t* size) {
-  return caching_allocator.getBaseAllocation(ptr, size);
-}
-
-void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
-  caching_allocator.recordStream(ptr, stream);
-}
-
-void eraseStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
-  caching_allocator.eraseStream(ptr, stream);
-}
-
-std::mutex* getFreeMutex() {
-  return caching_allocator.getNpuFreeMutex();
-}
-
-static inline void assertValidDevice(int device) {
-  int device_num = c10_npu::device_count();
-  AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.");
-}
-
-DeviceStats getDeviceStats(int device) {
-  assertValidDevice(device);
-  return caching_allocator.device_allocator[device]->getStats();
-}
-
-void resetAccumulatedStats(int device) {
-  assertValidDevice(device);
-  caching_allocator.device_allocator[device]->resetAccumulatedStats();
-}
-
-void resetPeakStats(int device) {
-  assertValidDevice(device);
-  caching_allocator.device_allocator[device]->resetPeakStats();
-}
-
-std::vector<SegmentInfo> snapshot() {
-  return caching_allocator.snapshot();
-}
-
-void* raw_alloc(size_t nbytes) {
-  if (nbytes == 0) {
-    return nullptr;
-  }
-  int device = 0;
-  NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
-  void* r = nullptr;
-  caching_allocator.malloc(&r, device, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
-  return r;
-}
-
-void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) {
-  if (nbytes == 0) {
-    return nullptr;
-  }
-  int device;
-  NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
-  void* r = nullptr;
-  caching_allocator.malloc(&r, device, nbytes, stream);
-  return r;
-}
-
-void raw_delete(void* ptr) {
+void local_raw_delete(void* ptr)
+{
   caching_allocator.free(ptr);
-}
-
-void FreeDeviceCachedMemory(int device) {
-  caching_allocator.device_allocator[device]->emptyCache(true);
 }
 
 void* MallocBlock(size_t size, void *stream, int device) {
@@ -2223,7 +2210,7 @@ void* MallocBlock(size_t size, void *stream, int device) {
 void FreeBlock(void *handle) {
   Block* block = reinterpret_cast<Block*>(handle);
   AT_ASSERT(block);
-  assertValidDevice(block->device);
+  caching_allocator.assertValidDevice(block->device);
   AT_ASSERT(caching_allocator.device_allocator[block->device]);
   return caching_allocator.device_allocator[block->device]->free(block);
 }
@@ -2240,8 +2227,15 @@ size_t GetBlockSize(const void *handle) {
   return block->size;
 }
 
-std::string name() {
-    return "native";
-}
+struct BackendStaticInitializer {
+    BackendStaticInitializer()
+    {
+      allocator.store(&caching_allocator);
+    }
+};
+
+std::atomic<NPUAllocator*> allocator;
+BackendStaticInitializer backend_static_initializer;
+
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
