@@ -201,17 +201,12 @@ def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
 
 
 @impl(m, "npu_mm_all_reduce_base")
-def npu_mm_all_reduce_base_forward(x1, x2, hcom, reduce_op='sum', bias=None, antiquant_scale=None,
-                                   antiquant_offset=None, x3=None, dequant_scale=None, antiquant_group_size=0,
-                                   comm_turn=0):
+def npu_mm_all_reduce_base_forward(self, x2, hcom, reduce_op='sum', bias=None, comm_turn=0):
     dim_list = []
-    for i in range(x1.dim()):
-        dim_list.append(x1.size(i))
+    for i in range(self.dim()):
+        dim_list.append(self.size(i))
     dim_list[-1] = x2.size(1)
-    if dequant_scale is not None:
-        return x1.new_empty(tuple(dim_list), dtype=torch.float16)
-    else:
-        return x1.new_empty(tuple(dim_list))
+    return self.new_empty(tuple(dim_list))
 
 
 @impl(m, "npu_mm_reduce_scatter_base")
