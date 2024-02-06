@@ -45,6 +45,6 @@ __all__ = [
     "NpuDropPath",
     "Focus",
     "LinearA8W8Quant",
-    "FusedColorJitter"
+    "FusedColorJitter",
     "LinearWeightQuant",
 ]
