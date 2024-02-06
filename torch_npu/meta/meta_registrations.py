@@ -234,8 +234,106 @@ def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offs
     return x.new_empty((dim_m, dim_n), dtype=x.dtype)
 
 
+def bias_shape_check(x2, bias, batch_val):
+    bias_dim_num = bias.dim()
+    torch._check(
+        bias_dim_num == 1 or bias_dim_num == 3,
+        lambda: "bias_dim_num should be 1 or 3, please check bias dim num ",
+    )
+    x2_dim_num = x2.dim()
+    x2_n_dim = x2.size(x2_dim_num - 1)
+    bias_first_dim = bias.size(0)
+    if bias_dim_num == 1:
+        torch._check(
+            bias_first_dim == x2_n_dim,
+            lambda: "bias_first_dim should be equal to x2 n dim, please check bias 1st dim value ",
+        )
+        return
+    bias_second_dim = bias.size(1)
+    bias_third_dim = bias.size(2)
+    torch._check(
+        bias_first_dim == batch_val,
+        lambda: "infered batch value should be equal to bias batch dim value, please check bias batch dim value",
+    )
+    torch._check(
+        bias_second_dim == 1,
+        lambda: "bias_second_dim should be 1, please check bias second dim value ",
+    )
+    torch._check(
+        bias_third_dim == x2_n_dim,
+        lambda: "bias_third_dim should be equal to x2_n_dim, please check bias third dim value ",
+    )
+
+
+def quant_matmul_shape_check(x1, x2, scale, offset):
+    X_MAX_DIM = 6
+    X_MIN_DIM = 2
+    x1_dim_num = x1.dim()
+    x2_dim_num = x2.dim()
+    x1_k_dim = x1.size(x1_dim_num - 1)
+    x2_k_dim = x2.size(x2_dim_num - 2)
+    x2_n_dim = x2.size(x2_dim_num - 1)
+    torch._check(
+        x1_dim_num >= X_MIN_DIM and x1_dim_num <= X_MAX_DIM,
+        lambda: "x1 dim num should be 2 ~ 6, please check x1 dim num",
+    )
+    torch._check(
+        x2_dim_num >= X_MIN_DIM and x2_dim_num <= X_MAX_DIM,
+        lambda: "x2 dim num should be 2 ~ 6, please check x2 dim num",
+    )
+    torch._check(
+        x1_k_dim == x2_k_dim,
+        lambda: "k dim of x1 and x2 need be same, please check k dim of x1 and x2",
+    )
+    if offset is not None:
+        offset_dim_num = offset.dim()
+        torch._check(
+            offset_dim_num == 1,
+            lambda: "the offset dim num must be 1, please check offset dim num ",
+        )
+        offset_first_dim = offset.size(0)
+        torch._check(
+            offset_first_dim == 1 or offset_first_dim == x2_n_dim,
+            lambda: "the offset 1st dim value must be 1 or x2 n dim value, please check offset 1st dim value",
+        )
+    scale_dim_num = scale.dim()
+    torch._check(
+        scale_dim_num == 1,
+        lambda: "the scale dim num must be 1, please check scale dim num",
+    )
+    scale_first_dim = scale.size(0)
+    torch._check(
+        scale_first_dim == 1 or scale_first_dim == x2_n_dim,
+        lambda: "the scale 1st dim value must be 1 or x2 n dim value, please check scale 1st dim value ",
+    )
+
+
+def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
+    torch._check(
+        x1.dtype == torch.int8 and x2.dtype == torch.int8,
+        lambda: "x1'type and x2's type should be int8, but x1.dtype is " + str(x1.dtype) + " and x2.dtype is " +
+                str(x2.dtype),
+    )
+    scale_dtype_supported_lst = [torch.float32, torch.int64, torch.bfloat16]
+    torch._check(
+        scale.dtype in scale_dtype_supported_lst,
+        lambda: "scale's type supported for float32 and int64, but scale.dtype is " + str(scale.dtype),
+    )
+    if offset is not None:
+        torch._check(
+            offset.dtype == torch.float32,
+            lambda: "offset's type supported for float32, but offset.dtype is " + str(offset.dtype),
+        )
+    if bias is not None:
+        torch._check(
+            bias.dtype == torch.int32,
+            lambda: "offset's type supported for int32, but bias.dtype is " + str(bias.dtype),
+        )
+
+
 @impl(m, "npu_quant_matmul")
 def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=None):
+    batch_val = 1
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
     out_dim_num = max(x1_dim_num, x2_dim_num)
@@ -246,12 +344,21 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
     for i in range(0, out_dim_num - 2):
         short_dim = 1 if i < vaild_offset else shape_short.size(i - vaild_offset)
         long_dim = shape_long.size(i)
+        torch._check(
+            not (short_dim > 1 and long_dim > 1 and short_dim != long_dim),
+            lambda: "the batch shape cannnot be boardcast",
+        )
         cur_batch_val = max(short_dim, long_dim)
+        batch_val = batch_val * cur_batch_val
         dim_list.append(cur_batch_val)
     dimm = x1.size(x1.dim() - 2)
     dimn = x2.size(x2.dim() - 1)
     dim_list.append(dimm)
     dim_list.append(dimn)
+    quant_matmul_shape_check(x1, x2, scale, offset)
+    if bias is not None:
+        bias_shape_check(x2, bias, batch_val)
+    quant_matmul_dtype_check(x1, x2, scale, offset, bias)
     if output_dtype == "float16":
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
     elif output_dtype == "bfloat16":
@@ -261,10 +368,21 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
 
 @impl(m, "npu_trans_quant_param")
 def npu_trans_quant_param_meta(scale, offset=None):
-    dim_max = scale.size(0)
+    scale_dim_num = scale.dim()
+    torch._check(
+        scale_dim_num == 1,
+        lambda: "the scale dim num must be 1, please check scale dim num",
+    )
+    scale_first_dim = scale.size(0)
+    dim_max = scale_first_dim
     if offset is not None:
-        dim_offset = offset.size(0)
-        dim_max = max(dim_max, dim_offset)
+        offset_first_dim = offset.size(0)
+        dim_max = max(dim_max, offset_first_dim)
+        if offset_first_dim != 1 and scale_first_dim != 1:
+            torch._check(
+                offset_first_dim == scale_first_dim,
+                lambda: "offset first dim should be equal to scale first dim if none of them are equal to one",
+            )
     return scale.new_empty((dim_max), dtype=torch.int64)
 
 
