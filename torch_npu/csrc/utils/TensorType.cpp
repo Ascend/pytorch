@@ -17,7 +17,7 @@ std::vector<std::pair<Backend, ScalarType>> all_declared_types_npu() {
   std::vector<ScalarType> scalar_types = {
     ScalarType::Byte, ScalarType::Char, ScalarType::Double, ScalarType::Float,
     ScalarType::Int, ScalarType::Long, ScalarType::Short, ScalarType::Half,
-    ScalarType::Bool
+    ScalarType::Bool, ScalarType::BFloat16
   };
 
   for (auto& backend : backends) {

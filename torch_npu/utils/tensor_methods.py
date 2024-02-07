@@ -32,6 +32,7 @@ class NPUTensortypeCache(object):
                 torch_npu.npu.IntTensor,
                 torch_npu.npu.LongTensor,
                 torch_npu.npu.ShortTensor,
+                torch_npu.npu.BFloat16Tensor,
             ]
 
             cls.tensortype_str_list = [
@@ -44,6 +45,7 @@ class NPUTensortypeCache(object):
                 "torch_npu.npu.IntTensor",
                 "torch_npu.npu.LongTensor",
                 "torch_npu.npu.ShortTensor",
+                "torch_npu.npu.BFloat16Tensor",
             ]
 
             for tensortype, tensortype_str in zip(cls.tensortype_list, cls.tensortype_str_list):
