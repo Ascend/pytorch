@@ -62,7 +62,6 @@ from torch_npu.distributed import fsdp_patches
 from torch_npu.utils.exposed_api import public_npu_functions
 
 from .version import __version__ as __version__
-from . import _op_plugin_docs
 
 torch_npu.npu_fusion_attention = fusion_attention.npu_fusion_attention
 torch_npu.npu_fusion_attention_grad = fusion_attention.npu_fusion_attention_grad
@@ -246,6 +245,10 @@ def apply_class_patches():
 _apply_patches(all_monkey_patches)
 apply_class_patches()
 torch_npu._C._initExtension()
+
+# Add __doc__ for ops
+from . import _op_plugin_docs
+del _op_plugin_docs
 
 
 # NPU exit, need to synchronize devices
