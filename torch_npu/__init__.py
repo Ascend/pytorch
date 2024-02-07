@@ -45,6 +45,7 @@ from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer
 from .version import __version__ as __version__
 from .meta import meta_registrations
 from . import _op_plugin_docs
+del _op_plugin_docs
 
 
 cann_package_check()
