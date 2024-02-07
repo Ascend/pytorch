@@ -38,5 +38,10 @@ ${python_execute} -m codegen.autograd.gen_autograd \
 ${python_execute} -m codegen.codegen_ops_info
 
 if [ -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py ]; then
+  if [ -f $CDIR/torch_npu/_op_plugin_docs.py ]; then
+      # remove _op_plugin_docs.py
+      rm $CDIR/torch_npu/_op_plugin_docs.py
+      echo "Existing _op_plugin_docs.py in torch_npu deleted."
+  fi
   cp -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py $CDIR/torch_npu/_op_plugin_docs.py
 fi
