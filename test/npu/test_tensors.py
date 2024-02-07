@@ -17,6 +17,8 @@ types = [
     torch.CharTensor,
     torch.ByteTensor,
     torch.HalfTensor,
+    torch.BoolTensor,
+    torch.BFloat16Tensor,
 ]
 
 
@@ -33,7 +35,6 @@ class TestTensor(TestCase):
         for t in types:
             tensor = get_npu_type(t)()
             self.assertTrue(torch.is_tensor(tensor))
-        self.assertTrue(torch.is_tensor(torch.npu.HalfTensor()))
 
     def test_is_storage(self):
         input1 = torch.randn(4, 6).npu()

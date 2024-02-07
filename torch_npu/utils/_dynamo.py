@@ -340,6 +340,7 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
         torch_npu.npu.IntTensor,
         torch_npu.npu.LongTensor,
         torch_npu.npu.ShortTensor,
+        torch_npu.npu.BFloat16Tensor,
     ]:
         return NPUTorchVariable(value, **kwargs)
     return cls.__new__raw(cls)

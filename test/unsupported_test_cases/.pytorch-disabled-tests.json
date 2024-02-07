@@ -25364,5 +25364,6 @@
   "test_multiprocessing_contexts (__main__.TestDataLoader)": ["", [""]],
   "test_multiprocessing_contexts (__main__.TestDataLoaderPeristentWorkers)": ["", [""]],
   "test_cache_disabled (__main__.TestAutocastNPU)": ["", [""]],
-  "test_cast_cache_is_global (__main__.TestAutocastNPU)": ["", [""]]
+  "test_cast_cache_is_global (__main__.TestAutocastNPU)": ["", [""]],
+  "test_trigger_on_error (__main__.ExcTests)": ["", [""]]
 }

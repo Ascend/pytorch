@@ -266,19 +266,22 @@ class TestTensor(TestCase):
     def test_scalar_tensortype(self):
         import numpy as np
         np.random.seed(1024)
-        dtypes = {
-            np.bool_: [torch.npu.BoolTensor, torch.BoolTensor],
-            np.float64: [torch.npu.DoubleTensor, torch.DoubleTensor],
-            np.float32: [torch.npu.FloatTensor, torch.FloatTensor],
-            np.float16: [torch.npu.HalfTensor, torch.HalfTensor],
-            np.int64: [torch.npu.LongTensor, torch.LongTensor],
-            np.int32: [torch.npu.IntTensor, torch.IntTensor],
-            np.int16: [torch.npu.ShortTensor, torch.ShortTensor],
-            np.int8: [torch.npu.CharTensor, torch.CharTensor],
-            np.uint8: [torch.npu.ByteTensor, torch.ByteTensor],
-        }
+        dtypes = [
+            [np.bool_, [torch.npu.BoolTensor, torch.BoolTensor]],
+            [np.float64, [torch.npu.DoubleTensor, torch.DoubleTensor]],
+            [np.float32, [torch.npu.FloatTensor, torch.FloatTensor]],
+            [np.float16, [torch.npu.HalfTensor, torch.HalfTensor]],
+            [np.float32, [torch.npu.BFloat16Tensor, torch.BFloat16Tensor]],
+            [np.int64, [torch.npu.LongTensor, torch.LongTensor]],
+            [np.int32, [torch.npu.IntTensor, torch.IntTensor]],
+            [np.int16, [torch.npu.ShortTensor, torch.ShortTensor]],
+            [np.int8, [torch.npu.CharTensor, torch.CharTensor]],
+            [np.uint8, [torch.npu.ByteTensor, torch.ByteTensor]],
+        ]
 
-        for dt, tt in dtypes.items():
+        for item in dtypes:
+            dt = item[0]
+            tt = item[1]
             np_data = np.random.randn(2, 3, 4).astype(dt)
             npu_tensor = tt[0](np_data)
             cpu_tensor = tt[1](np_data)

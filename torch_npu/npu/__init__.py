@@ -95,6 +95,7 @@ __all__ = [
     "IntTensor",
     "LongTensor",
     "ShortTensor",
+    "BFloat16Tensor",
     "current_blas_handle",
     "config",
     "matmul",
