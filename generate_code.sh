@@ -55,5 +55,10 @@ ${py_exec} -m codegen.gen_python_functions  \
   --op_plugin_yaml_path="$CDIR/third_party/op-plugin/op_plugin/config/$pytorch_dir/op_plugin_functions.yaml"
 
 if [ -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py ]; then
+  if [ -f $CDIR/torch_npu/_op_plugin_docs.py ]; then
+      # remove _op_plugin_docs.py
+      rm $CDIR/torch_npu/_op_plugin_docs.py
+      echo "Existing _op_plugin_docs.py in torch_npu deleted."
+  fi
   cp -f $CDIR/third_party/op-plugin/codegen/templates/_op_plugin_docs.py $CDIR/torch_npu/_op_plugin_docs.py
 fi
