@@ -698,10 +698,13 @@ class NPUMmAllReduceBaseOP(torch.autograd.Function):
         return torch.ops.npu.npu_mm_all_reduce_base(*args, **kwargs)
 
     @staticmethod
-    def symbolic(g, self: torch.Tensor, x2: torch.Tensor, hcom: str,
-                 reduce_op: str = 'sum', bias: Optional[Tensor] = None, comm_turn: int = 0):
-        return g.op("npu::NPUMmAllReduceBase", self, x2, hcom,
-                    reduce_op, bias, comm_turn)
+    def symbolic(g, x1: torch.Tensor, x2: torch.Tensor, hcom: str,
+                 reduce_op: str = 'sum', bias: Optional[Tensor] = None, antiquant_scale: Optional[Tensor] = None,
+                 antiquant_offset: Optional[Tensor] = None, x3: Optional[Tensor] = None,
+                 dequant_scale: Optional[Tensor] = None, antiquant_group_size: int = 0, comm_turn: int = 0):
+        return g.op("npu::NPUMmAllReduceBase", x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
+                    dequant_scale, antiquant_group_size, comm_turn)
+
 
 
 class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
@@ -1022,8 +1025,11 @@ def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, att
 
 
 
-def wrapper_npu_mm_all_reduce_base(self, x2, hcom, reduce_op, bias, comm_turn):
-    return NPUMmAllReduceBaseOP.apply(self, x2, hcom, reduce_op, bias, comm_turn)
+def wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
+                                   dequant_scale, antiquant_group_size, comm_turn):
+    return NPUMmAllReduceBaseOP.apply(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
+                                      dequant_scale, antiquant_group_size, comm_turn)
+
 
 
 def wrapper_npu_weight_quant_batchmatmul(x, weight, antiquant_scale, antiquant_offset, 
