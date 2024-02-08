@@ -31,6 +31,7 @@
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/npu/Module.h"
+#include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "third_party/acl/inc/acl/acl.h"
 
@@ -109,6 +110,96 @@ void BindGetDeviceMemories(PyObject* module)
     m.def("_npu_getDeviceMemories", [](int deviceid) -> NPUDeviceMem* {
       return GetDeviceMemories(deviceid);
     }, py::return_value_policy::reference);
+}
+
+void RegisterNpuPluggableAllocator(PyObject* module)
+{
+    auto m = py::handle(module).cast<py::module>();
+
+    py::class_<
+        c10_npu::NPUCachingAllocator::NPUAllocator,
+        std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>>(
+        m, "_npu_NPUAllocator");
+    m.def("_npu_getAllocator", []() {
+      return py::cast(torch::npu::NPUPluggableAllocator::getCurrentAllocator());
+    });
+
+    m.def(
+        "_npu_changeCurrentAllocator",
+        [](std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>
+              allocator) {
+            torch::npu::NPUPluggableAllocator::changeCurrentAllocator(allocator);
+        });
+    py::class_<
+        torch::npu::NPUPluggableAllocator::NPUPluggableAllocator,
+        c10_npu::NPUCachingAllocator::NPUAllocator,
+        std::shared_ptr<
+            torch::npu::NPUPluggableAllocator::NPUPluggableAllocator>>(
+        m, "_NPUPluggableAllocator")
+        .def(
+        "set_init_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_init_fn(func);
+        })
+        .def(
+        "set_reset_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(bool);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_reset_fn(func);
+        })
+        .def(
+        "set_memory_fraction_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(double, int);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_memory_fraction_fn(func);
+        })
+        .def(
+        "set_base_alloc_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void*(void*, size_t*);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_base_alloc_fn(func);
+        })
+        .def(
+        "set_record_stream_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(void*, aclrtStream);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_record_stream_fn(func);
+        })
+        .def(
+        "set_erase_stream_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(void*, aclrtStream);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_erase_stream_fn(func);
+        });
+    m.def("_npu_customAllocator", [](uint64_t malloc_ptr, uint64_t free_ptr) {
+        using MallocFuncType = void*(size_t, int, aclrtStream);
+        using FreeFuncType = void(void*, size_t, int, aclrtStream);
+        std::function<MallocFuncType> malloc_fn =
+            reinterpret_cast<MallocFuncType*>(malloc_ptr);
+        std::function<FreeFuncType> free_fn =
+            reinterpret_cast<FreeFuncType*>(free_ptr);
+        return torch::npu::NPUPluggableAllocator::createCustomAllocator(
+            malloc_fn, free_fn);
+    });
 }
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs)
