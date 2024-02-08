@@ -6,6 +6,8 @@ import logging
 import sys
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.fx._symbolic_trace import symbolic_trace
 
 from torch.fx.passes.infra.partitioner import CapabilityBasedPartitioner

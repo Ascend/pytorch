@@ -3,6 +3,8 @@
 import unittest
 from contextlib import nullcontext
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (
     TestCase, run_tests, skipIfTorchDynamo, TEST_WITH_TORCHDYNAMO, IS_WINDOWS,
     xfail_inherited_tests
