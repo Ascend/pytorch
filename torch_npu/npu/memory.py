@@ -1,9 +1,11 @@
 import collections
 import contextlib
 import warnings
+import ctypes
 
 import torch_npu
 from . import is_initialized, _get_device_index, _lazy_init
+from .utils import _dummy_type
 
 __all__ = [
     "caching_allocator_alloc",
@@ -24,8 +26,14 @@ __all__ = [
     "max_memory_cached",
     "memory_snapshot",
     "memory_summary",
-    "get_allocator_backend"
+    "get_allocator_backend",
+    "NPUPluggableAllocator",
+    "change_current_allocator"
 ]
+
+if not hasattr(torch_npu._C, "_npu_NPUAllocator"):
+    # Define dummy base classes
+    torch_npu._C.__dict__["_npu_NPUAllocator"] = _dummy_type("_npu_NPUAllocator")
 
 
 @contextlib.contextmanager
@@ -544,3 +552,70 @@ def get_allocator_backend() -> str:
         See :ref:`npu-memory-management` for details on choosing the allocator backend.
     """
     return torch_npu._C._npu_getAllocatorBackend()
+
+
+class _NPUAllocator:
+    r"""Wrapper over internal NPU memory allocators."""
+
+    def __init__(self, allocator: torch_npu._C._npu_NPUAllocator):
+        self._allocator = allocator
+
+    def allocator(self):
+        return self._allocator
+
+
+class NPUPluggableAllocator(_NPUAllocator):
+    r"""NPU memory allocator loaded from a so file."""
+
+    def __init__(self, path_to_so_file: str, alloc_fn_name: str, free_fn_name: str):
+        r"""Memory allocators are compiled in .so files and loaded dynamically using ctypes.
+
+        To change the active allocator use the :func:`torch_npu.npu.change_current_allocator` function.
+
+        Args:
+            path_to_so_file(str): Path in the filesystem to the `.so` file containing
+                the allocator functions
+            alloc_fn_name(str): Name of the function to perform the memory allocation
+                in the so file. The signature must be:
+                void* alloc_fn_name(ssize_t size, int device, aclrtStream stream);
+            free_fn_name(str): Name of the function to perform the memory release
+                in the so file. The signature must be:
+                void free_fn_name(void* ptr, size_t size, aclrtStream stream);
+
+        .. warning::
+            This is currently supported only in unix OSs
+
+        .. note::
+            See :ref:`npu-memory-management` for details on creating and using a custom allocator
+        """
+        allocator = ctypes.CDLL(path_to_so_file)
+        alloc_fn = ctypes.cast(getattr(allocator, alloc_fn_name), ctypes.c_void_p).value
+        free_fn = ctypes.cast(getattr(allocator, free_fn_name), ctypes.c_void_p).value
+        if alloc_fn is None:
+            raise RuntimeError('alloc_fn is None')
+        if free_fn is None:
+            raise RuntimeError('free_fn is None')
+        self._allocator = torch_npu._C._npu_customAllocator(alloc_fn, free_fn)
+
+
+def change_current_allocator(allocator: _NPUAllocator) -> None:
+    r"""Change the currently used memory allocator to be the one provided.
+
+    If the current allocator has already been used/initialized, this function will error.
+
+
+    Args:
+        allocator (torch_npu.npu.memory._NPUAllocator): allocator to be set as the active one.
+    .. note::
+        See :ref:`npu-memory-management` for details on creating and using a custom allocator
+    """
+    torch_npu._C._npu_changeCurrentAllocator(allocator.allocator())
+
+
+def _get_current_allocator() -> _NPUAllocator:
+    r"""Return the allocator being currently used.
+
+    .. note::
+        See :ref:`npu-memory-management` for details on creating and using a custom allocator
+    """
+    return _NPUAllocator(torch_npu._C._npu_getAllocator())

@@ -19,64 +19,61 @@ PyObject* module;
 
 void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
 {
-  if (!vector.empty()) {
-    // remove nullptr terminator
-    vector.pop_back();
-  }
-  while (true) {
-    vector.push_back(*methods);
-    if (!methods->ml_name) {
-      break;
+    if (!vector.empty()) {
+        // remove nullptr terminator
+        vector.pop_back();
     }
-    methods++;
-  }
+    while (true) {
+        vector.push_back(*methods);
+        if (!methods->ml_name) {
+            break;
+        }
+        methods++;
+    }
 }
 
 PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
 {
-  // cudaFree is blocking and will synchronize across all kernels executing
-  // on the current device, while aclrtFree Free device memory immediately.
-  // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
-  // all of op tasks completed before device memory free.
-  ASCEND_LOGI("NPU shutdown begin.");
-  if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    // cudaFree is blocking and will synchronize across all kernels executing
+    // on the current device, while aclrtFree Free device memory immediately.
+    // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
+    // all of op tasks completed before device memory free.
+    ASCEND_LOGI("NPU shutdown begin.");
+    if (!c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+        Py_RETURN_NONE;
+    }
+    
+    // Return aclrtSynchronizeDevice result. If sync device fails, release host
+    // resources forcibly, only record WARN logs when acl interface of stream
+    // or event fails.
+    bool success = true;
+    try {
+        ASCEND_LOGI("NPU shutdown synchronize device.");
+        success = c10_npu::npuSynchronizeDevice(false);
+    } catch (std::exception& e) {
+        ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
+        success = false;
+    }
+    if (!success) {
+        ASCEND_LOGE("NPU shutdown synchronize device failed.");
+    }
+    THNPUCachingHostAllocator_emptyCache();
+    try {
+        ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
+        c10_npu::NPUCachingAllocator::emptyCache(success);
+    } catch (std::exception& e) {
+        ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
+    }
+
+    ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
+    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
+        ASCEND_LOGE("NPU shutdown failed.");
+    } else {
+        ASCEND_LOGI("NPU shutdown success.");
+    }
+    
     Py_RETURN_NONE;
-  }
-  
-  // Return aclrtSynchronizeDevice result. If sync device fails, release host
-  // resources forcibly, only record WARN logs when acl interface of stream
-  // or event fails.
-  bool success = true;
-  try {
-    ASCEND_LOGI("NPU shutdown synchronize device.");
-    success = c10_npu::npuSynchronizeDevice(false);
-  } catch (std::exception& e) {
-    ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
-    success = false;
-  }
-  if (!success) {
-    ASCEND_LOGE("NPU shutdown synchronize device failed.");
-  }
-  THNPUCachingHostAllocator_emptyCache();
-  try {
-    ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
-    c10_npu::NPUCachingAllocator::emptyCache(success);
-  } catch (std::exception& e) {
-    ASCEND_LOGE("NPUCachingAllocator::emptyCache failed err=:%s", e.what());
-  }
-  // To prevent entering the insert_events method of tensor destruction after the device has been released,
-  // a state variable called "shutdown_stats" is set during the shutdown process.
-  ASCEND_LOGI("NPU shutdown NPUCachingAllocator setShutdownStats.");
-  c10_npu::NPUCachingAllocator::setShutdownStats();
-  ASCEND_LOGI("NPU shutdown NpuSysCtrl Finalize.");
-  c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
-  if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
-    ASCEND_LOGE("NPU shutdown failed.");
-  } else {
-    ASCEND_LOGI("NPU shutdown success.");
-  }
-  
-  Py_RETURN_NONE;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
@@ -94,37 +91,38 @@ static std::vector<PyMethodDef> methods;
 extern "C"
 
 PyObject* initModule() {
-  at::internal::lazy_init_num_threads();
+    at::internal::lazy_init_num_threads();
 
-  AddPyMethodDefs(methods, TorchNpuMethods);
-  AddPyMethodDefs(methods, THNPModule_get_methods());
-  AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
-  AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
-  AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
-  AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
-  static struct PyModuleDef torchnpu_module = {
-      PyModuleDef_HEAD_INIT,
-      "torch_npu._C",
-      nullptr,
-      -1,
-      methods.data()
-  };
-  module = PyModule_Create(&torchnpu_module);
+    AddPyMethodDefs(methods, TorchNpuMethods);
+    AddPyMethodDefs(methods, THNPModule_get_methods());
+    AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
+    AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
+    AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
+    AddPyMethodDefs(methods, torch_npu::autocast::autocast_mode_functions());
+    static struct PyModuleDef torchnpu_module = {
+        PyModuleDef_HEAD_INIT,
+        "torch_npu._C",
+        nullptr,
+        -1,
+        methods.data()
+    };
+    module = PyModule_Create(&torchnpu_module);
 
-  // This will only initialize base classes and attach them to library namespace
-  // They won't be ready for real usage until importing npu module, that will
-  // complete the process (but it defines Python classes before calling back into
-  // C, so these lines have to execute first)..
-  THNPStream_init(module);
-  THNPEvent_init(module);
+    // This will only initialize base classes and attach them to library namespace
+    // They won't be ready for real usage until importing npu module, that will
+    // complete the process (but it defines Python classes before calling back into
+    // C, so these lines have to execute first)..
+    THNPStream_init(module);
+    THNPEvent_init(module);
 
-  RegisterNPUDeviceProperties(module);
-  BindGetDeviceProperties(module);
-  RegisterNPUDeviceMemories(module);
-  BindGetDeviceMemories(module);
-  return module;
+    RegisterNPUDeviceProperties(module);
+    BindGetDeviceProperties(module);
+    RegisterNPUDeviceMemories(module);
+    BindGetDeviceMemories(module);
+    RegisterNpuPluggableAllocator(module);
+    return module;
 }
 
 PyMODINIT_FUNC PyInit__C(void) {
-  return initModule();
+    return initModule();
 }

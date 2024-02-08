@@ -14,6 +14,8 @@
 namespace c10_npu {
 namespace NPUCachingAllocator {
 
+C10_NPU_API std::mutex* getFreeMutex();
+
 // Caching allocator will execute every registered callback if it unable to find
 // block inside of already allocated area.
 class FreeMemoryCallback {
@@ -117,7 +119,6 @@ struct SegmentInfo {
 
 class NPUAllocator : public c10::Allocator {
 public:
-    virtual std::mutex* getFreeMutex() const = 0;
     virtual void* raw_alloc(size_t nbytes) = 0;
     virtual void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream) = 0;
     virtual void raw_delete(void* ptr) = 0;
@@ -134,7 +135,6 @@ public:
     virtual void resetPeakStats(int device) = 0;
     virtual std::vector<SegmentInfo> snapshot() = 0;
     virtual void FreeDeviceCachedMemory(int device) = 0;
-    virtual void setShutdownStats() = 0;
     virtual std::string name() = 0;
 };
 
@@ -152,11 +152,6 @@ inline NPUAllocator* get()
 }
 
 // Called directly by clients.
-inline std::mutex* getFreeMutex()
-{
-    return get()->getFreeMutex();
-}
-
 inline void* raw_alloc(size_t nbytes)
 {
     return get()->raw_alloc(nbytes);
@@ -232,11 +227,6 @@ inline std::vector<SegmentInfo> snapshot()
 inline void FreeDeviceCachedMemory(int device)
 {
     return get()->FreeDeviceCachedMemory(device);
-}
-
-C10_NPU_API inline void setShutdownStats()
-{
-    return get()->setShutdownStats();
 }
 
 inline std::string name()
