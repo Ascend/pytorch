@@ -38,16 +38,49 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
 @impl(m, "npu_fusion_attention")
 def npu_fusion_attention_forward(query, key, value, head_num, input_layout, *, pse=None, padding_mask=None,
                                 atten_mask=None, scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
-                                inner_precise=0, prefix=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
-    return torch.empty_like(query)
+                                inner_precise=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
+    B = query.size(0)
+    N = head_num
+    S1 = query.size(2)
+    S2 = key.size(2)
+
+    if input_layout == "BSH":
+        B = query.size(0)
+        S1 = query.size(1)
+        S2 = key.size(1)
+
+    if input_layout == "SBH":
+        B = query.size(1)
+        S1 = query.size(0)
+        S2 = key.size(0)
+
+    seed = 0
+    offset = 0
+    numels = 0
+    attention_score = torch.empty_like(query, dtype=query.dtype, device='meta')
+    softmax_max = torch.empty([B, head_num, S1, 8], dtype=torch.float32, device='meta')
+    softmax_sum = torch.empty([B, head_num, S1, 8], dtype=torch.float32, device='meta')
+    softmax_out = torch.empty([0], dtype=query.dtype, device='meta')
+    return (torch.empty_like(attention_score),
+            torch.empty_like(softmax_max),
+            torch.empty_like(softmax_sum),
+            torch.empty_like(softmax_out),
+            seed,
+            offset,
+            numels)
+
 
 
 @impl(m, "npu_fusion_attention_grad")
 def npu_fusion_attention_backward(query, key, value, dy, head_num, input_layout, *, pse=None, padding_mask=None, atten_mask=None,
                                   softmax_max=None, softmax_sum=None, softmax_in=None, attention_in=None, scale_value=1.0,
                                   keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647, inner_precise=0, seed=0, offset=0,
-                                  numels=0, prefix=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
-    return torch.empty_like(query)
+                                  numels=0, prefix=None, actual_seq_qlen=None, actual_seq_kvlen=None, sparse_mode=0, gen_mask_parallel=True, sync=False):
+    dq = torch.empty_like(query, dtype=query.dtype, device='meta')
+    dk = torch.empty_like(key, dtype=query.dtype, device='meta')
+    dv = torch.empty_like(value, dtype=query.dtype, device='meta')
+    dpse = torch.empty([0], dtype=query.dtype, device='meta')
+    return (torch.empty_like(dq), torch.empty_like(dk), torch.empty_like(dv), torch.empty_like(dpse))
 
 
 @impl(m, "npu_rotary_mul")
