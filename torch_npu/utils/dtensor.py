@@ -4,44 +4,40 @@ from torch.distributed._tensor.ops.utils import register_prop_rule, normalize_di
 from torch.distributed._tensor.ops.matrix_ops import bmm_strategy
 from torch.distributed._tensor.ops.view_ops import (
     register_prop_rule_map,
-    view_groups,
     Op,
     ops,
     InputDim
 )
 import torch_npu
 
-__all__ = []
-
-npu = torch.ops.npu
-aten = torch.ops.aten
-
-pointwise_ops = [
-    # please keep the entries below alphabetically sorted
-    # native ops
-    aten.isclose.default,
-    aten.isfinite.default,
-    aten.true_divide.Scalar,
-    aten.true_divide.Tensor,
-    aten.true_divide.out,
-    aten.true_divide_.Scalar,
-    aten.true_divide_.Tensor,
-    # custom ops
-    npu.fast_gelu.default,
-    npu.npu_dtype_cast.default,
-    npu.npu_fast_gelu.default,
-    npu.npu_layer_norm_eval.default,
-    # backward point-wise ops
-    # please keep the entries below alphabetically sorted
-    npu.npu_fast_gelu_backward.default
-]
-
-matrix_ops = [
-    npu.npu_bmmV2.default
-]
-
 
 def _register_ops_under_dtensor_rules():
+    npu = torch.ops.npu
+    aten = torch.ops.aten
+
+    pointwise_ops = [
+        # please keep the entries below alphabetically sorted
+        # native ops
+        aten.isclose.default,
+        aten.isfinite.default,
+        aten.true_divide.Scalar,
+        aten.true_divide.Tensor,
+        aten.true_divide.out,
+        aten.true_divide_.Scalar,
+        aten.true_divide_.Tensor,
+        # custom ops
+        npu.fast_gelu.default,
+        npu.npu_dtype_cast.default,
+        npu.npu_fast_gelu.default,
+        npu.npu_layer_norm_eval.default,
+        # backward point-wise ops
+        # please keep the entries below alphabetically sorted
+        npu.npu_fast_gelu_backward.default
+    ]
+
+    matrix_ops = [
+        npu.npu_bmmV2.default
+    ]
     # pointwise rule
     for op in pointwise_ops:
         register_prop_rule(op)(pointwise_rule)

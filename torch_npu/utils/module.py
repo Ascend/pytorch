@@ -18,7 +18,6 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter
 
 import torch_npu
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
-import torch_npu.distributed as dist
 
 origin_mpdl_iter_init = _MultiProcessingDataLoaderIter.__init__
 
@@ -271,7 +270,7 @@ def _ddp_init_helper(
             pytorch_dist._DEFAULT_FIRST_BUCKET_BYTES,
             self.bucket_bytes_cap,
         ]
-    (bucket_indices, per_bucket_size_limits) = dist._compute_bucket_assignment_by_size(
+    (bucket_indices, per_bucket_size_limits) = torch_npu.distributed._compute_bucket_assignment_by_size(
         parameters,
         bucket_size_limits,
         expect_sparse_gradient)
@@ -279,7 +278,7 @@ def _ddp_init_helper(
     # Note: reverse list of buckets because we want to approximate the
     # order in which their gradients are produced, and assume they
     # are used in the forward pass in the order they are defined.
-    self.reducer = dist.Reducer(
+    self.reducer = torch_npu.distributed.Reducer(
         parameters,
         list(reversed(bucket_indices)),
         list(reversed(per_bucket_size_limits)),
