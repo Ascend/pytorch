@@ -32,7 +32,6 @@ from torch.nn.utils.rnn import PackedSequence
 from torch._C._nn import _parse_to as torch_parse_to
 
 import torch_npu
-import torch_npu.distributed as dist
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
 
@@ -407,16 +406,16 @@ def ddp_ddp_init_helper(
     # that are defined first, such that their gradients don't spill into
     # a much larger bucket, adding unnecessary latency after gradient
     # computation finishes. Experiments showed 1MB is a reasonable value.
-    bucket_indices, per_bucket_size_limits = dist._compute_bucket_assignment_by_size(
+    bucket_indices, per_bucket_size_limits = torch_npu.distributed._compute_bucket_assignment_by_size(
         parameters,
-        [dist._DEFAULT_FIRST_BUCKET_BYTES, self.bucket_bytes_cap],
+        [torch_npu.distributed._DEFAULT_FIRST_BUCKET_BYTES, self.bucket_bytes_cap],
         expect_sparse_gradient,
     )
 
     # Note: reverse list of buckets because we want to approximate the
     # order in which their gradients are produced, and assume they
     # are used in the forward pass in the order they are defined.
-    self.reducer = dist.Reducer(
+    self.reducer = torch_npu.distributed.Reducer(
         parameters,
         list(reversed(bucket_indices)),
         list(reversed(per_bucket_size_limits)),
@@ -428,7 +427,7 @@ def ddp_ddp_init_helper(
         param_to_name_mapping,
         # User can set dist._DEFAULT_FIRST_BUCKET_BYTES to tune DDP first
         # bucket.
-        dist._DEFAULT_FIRST_BUCKET_BYTES
+        torch_npu.distributed._DEFAULT_FIRST_BUCKET_BYTES
     )
 
     # don't support logger
@@ -481,7 +480,7 @@ def ddp_register_builtin_comm_hook(self, comm_hook_type):
         >>> ddp._register_builtin_comm_hook(dist.BuiltinCommHookType.FP16_COMPRESS)
 
     """
-    dist._register_builtin_comm_hook(self.reducer, comm_hook_type)
+    torch_npu.distributed._register_builtin_comm_hook(self.reducer, comm_hook_type)
 
 
 def ddp_get_ddp_logging_data(self):
