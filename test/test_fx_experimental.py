@@ -12,6 +12,8 @@ from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 import sympy
 
 import torch
+import torch_npu
+import torch_npu.testing
 import torch.fx.experimental.meta_tracer
 import torch.fx.experimental.optimization as optimization
 from torch.fx._symbolic_trace import symbolic_trace
