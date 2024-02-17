@@ -190,6 +190,33 @@ void RegisterNpuPluggableAllocator(PyObject* module)
             std::function<FuncType> func =
                 reinterpret_cast<FuncType*>(func_ptr);
             self.set_erase_stream_fn(func);
+        })
+        .def(
+        "set_get_device_stats_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType=c10_npu::NPUCachingAllocator::DeviceStats(int);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_get_device_stats_fn(func);
+        })
+        .def(
+        "set_reset_peak_status_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = void(int);
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_reset_peak_status_fn(func);
+        })
+        .def(
+        "set_snapshot_fn",
+        [](torch::npu::NPUPluggableAllocator::NPUPluggableAllocator& self,
+            uint64_t func_ptr) {
+            using FuncType = std::vector<c10_npu::NPUCachingAllocator::SegmentInfo>();
+            std::function<FuncType> func =
+                reinterpret_cast<FuncType*>(func_ptr);
+            self.set_snapshot_fn(func);
         });
     m.def("_npu_customAllocator", [](uint64_t malloc_ptr, uint64_t free_ptr) {
         using MallocFuncType = void*(size_t, int, aclrtStream);
