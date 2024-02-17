@@ -48,9 +48,7 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
 REGISTER_OPTION_BOOL_FUNCTION(CheckJitDisableInner, jitCompile, "enable", "disable")
 REGISTER_OPTION_CACHE(bool, isJitDisable, CheckJitDisableInner)
 REGISTER_OPTION_HOOK(jitCompile, [](const std::string &val) {
-    auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str());
-    TORCH_CHECK(ret == ACL_SUCCESS,
-        "Failed to set compile option ACL_OP_JIT_COMPILE, result = ", ret, ", set value ", val);
+    NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, val.c_str()));
     SET_OPTION_WITH_CACHE(isJitDisable, ("disable" == val) ? true : false);
 })
 
@@ -59,38 +57,26 @@ bool CheckJitDisable() {
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_OP_DEBUG_LEVEL, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str()));
 })
 REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_DEBUG_DIR, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_MODE, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_OP_COMPILER_CACHE_MODE, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_OP_COMPILER_CACHE_DIR, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_AICORE_NUM, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_AICORE_NUM, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_AICORE_NUM, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_PRECISION_MODE, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str()));
 })
 
 bool IsAllowFP32ToFP16() {
@@ -114,15 +100,11 @@ bool IsAllowFP32ToFP16() {
 }
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_OP_SELECT_IMPL_MODE, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val) {
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_OPTYPELIST_FOR_IMPLMODE, result = ", ret, ", set value ", val);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str()));
 })
 
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val) {
@@ -150,9 +132,7 @@ REGISTER_OPTION_HOOK(ALLOW_CONV_HF32, [](const std::string &val) {
 
   std::string conv_hf32 = (val == "enable") ? "1" : "0";
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
 REGISTER_OPTION_BOOL_FUNCTION_ALL_CASE(IsAllowConvHF32, ALLOW_CONV_HF32, "enable", "disable", "enable")
@@ -168,9 +148,7 @@ REGISTER_OPTION_HOOK(ALLOW_MATMUL_HF32, [](const std::string &val) {
 
   std::string mm_hf32 = (val == "enable") ? "1" : "0";
   std::string allow_hf32 = conv_hf32 + mm_hf32;
-  auto ret = AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str());
-  TORCH_CHECK(ret == ACL_SUCCESS,
-              "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
+  NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_ALLOW_HF32, allow_hf32.c_str()));
   ASCEND_LOGD("Set ACL option ACL_ALLOW_HF32 value to %s.", allow_hf32.c_str());
 })
 REGISTER_OPTION_BOOL_FUNCTION(IsAllowMatmulHF32, ALLOW_MATMUL_HF32, "disable", "enable")

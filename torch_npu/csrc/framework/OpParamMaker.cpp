@@ -149,7 +149,7 @@ aclError OpCommandImpl::InnerRun(
     SetDeterministic();
     bool reset_flag = false;
     if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable()) {
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
         reset_flag = true;
     }
     int index = 0;
@@ -226,7 +226,7 @@ aclError OpCommandImpl::InnerRun(
         ++index;
     } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     if (reset_flag) {
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
     }
     return ret;
 }
@@ -287,7 +287,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     }
     bool reset_flag = false;
     if (!cur_paras->isJitDisable) {
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable"));
         reset_flag = true;
     }
     if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
@@ -324,7 +324,7 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
         nullptr,
         stream);
     if (reset_flag) {
-        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
+        NPU_CHECK_ERROR(AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable"));
     }
 
     if (ret != ACL_ERROR_NONE) {
