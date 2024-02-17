@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
@@ -128,29 +129,35 @@ OpCommand& OpCommand::Output(
 }
 
 void OpCommand::Run() {
-  aclCmd->SetEnginePriority();
-  const string &op_name = aclCmd->GetName();
-  if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
-    RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
-#ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
-#endif
-    ExecuteParas execParams;
-    aclCmd->ExportParams(execParams);
-    c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
-    c10_npu::enCurrentNPUStream(&params);
-#ifndef BUILD_LIBTORCH
-    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
-#endif
-    aclCmd->releaseSource(false);
-  } else {
-    aclCmd->Run(sync, sync_index, outputTensor);
-    if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
-      Sync();
+    if (task_device_index_ == -1) {
+        int32_t temp_device_index = -1;
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&temp_device_index));
+        task_device_index_ = temp_device_index;
     }
-    aclCmd->releaseSource();
-  }
-  aclCmds->Pop();
+    c10_npu::NPUGuard guard(task_device_index_);
+    aclCmd->SetEnginePriority();
+    const string &op_name = aclCmd->GetName();
+    if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
+        RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
+#ifndef BUILD_LIBTORCH
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
+#endif
+        ExecuteParas execParams;
+        aclCmd->ExportParams(execParams);
+        c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+        c10_npu::enCurrentNPUStream(&params);
+#ifndef BUILD_LIBTORCH
+        at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
+#endif
+        aclCmd->releaseSource(false);
+    } else {
+        aclCmd->Run(sync, sync_index, outputTensor);
+        if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
+            Sync();
+        }
+        aclCmd->releaseSource();
+    }
+    aclCmds->Pop();
 }
 
 OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
@@ -171,22 +178,25 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      at::ScalarType forceScaleType,
                                      const string &descName,
                                      const string &realData) {
-  std::tuple <aclTensorDesc*, aclDataBuffer*> res;
-  if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
-    tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
-  }
-  // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
-  if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
-    if (torch_npu::utils::is_npu(tensor)) {
-      res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);
-    } else {
-      res = OpCmdHelper::CovertTensorWithZeroDimToAclInput(tensor, forceScaleType);
+    if (task_device_index_ == -1) {
+        task_device_index_ = tensor.device().index();
     }
-  } else {
-    res = OpCmdHelper::CovertTensorToAclInput(tensor, descName, realData);
-  }
-  aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
-  return *this;
+    std::tuple <aclTensorDesc*, aclDataBuffer*> res;
+    if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
+        tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
+    }
+    // as for dim=0, the dtype of tensor can not be `uint16` because of `TBE`
+    if (torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor).storage_sizes_.empty()) {
+        if (torch_npu::utils::is_npu(tensor)) {
+            res = OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(tensor, descName);
+        } else {
+            res = OpCmdHelper::CovertTensorWithZeroDimToAclInput(tensor, forceScaleType);
+        }
+    } else {
+        res = OpCmdHelper::CovertTensorToAclInput(tensor, descName, realData);
+    }
+    aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
+    return *this;
 }
 
 OpCommand& OpCommand::AddHostTensorInput(
@@ -224,12 +234,15 @@ OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType ty
 }
 
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
-  if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
-    output = custom_ops::npu_dtype_cast(output, commonType.value());
-  }
-  auto res = OpCmdHelper::CovertToAclOutput(output, realType);
-  aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));
-  return *this;
+    if (task_device_index_ == -1) {
+        task_device_index_ = output.device().index();
+    }
+    if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
+        output = custom_ops::npu_dtype_cast(output, commonType.value());
+    }
+    auto res = OpCmdHelper::CovertToAclOutput(output, realType);
+    aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));
+    return *this;
 }
 
 // 由于format_contiguous会生成新Tensor，为了保证其在生命周期内有效，故而放到对象中存储
@@ -245,16 +258,20 @@ at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType
 }
 
 at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
-  at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
-  int deviceIndex = 0;
-  NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
-  auto tensor = cpuPinMemTensor.to(
-      c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
-      cpuPinMemTensor.scalar_type(),
-      true,
-      true);
-  storage.emplace_back(tensor);
-  return storage.back();
+    at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
+    int deviceIndex = 0;
+    if (task_device_index_ != -1) {
+        deviceIndex = task_device_index_;
+    } else {
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
+    }
+    auto tensor = cpuPinMemTensor.to(
+        c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
+        cpuPinMemTensor.scalar_type(),
+        true,
+        true);
+    storage.emplace_back(tensor);
+    return storage.back();
 }
 
 at::Tensor& OpCommand::CreateHostTensor(
