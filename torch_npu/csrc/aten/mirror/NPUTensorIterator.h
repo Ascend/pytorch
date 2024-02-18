@@ -7,12 +7,11 @@
 #include <c10/util/SmallVector.h>
 #include <c10/util/TypeCast.h>
 
-#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 namespace at_npu {
 namespace native {
 
-struct TORCH_NPU_API NPUOperandInfo {
+struct NPUOperandInfo {
     using StrideVector = c10::SmallVector<int64_t, 6>;
     NPUOperandInfo() {}
     explicit NPUOperandInfo(const at::Tensor& t) : tensor(t) {
@@ -51,7 +50,7 @@ enum class CommonDTypeStrategy : uint8_t {
     PROMOTE // Promote to common dtype.
 };
 
-class TORCH_NPU_API NPUTensorIterator {
+class NPUTensorIterator {
 public:
     NPUTensorIterator() {}
     ~NPUTensorIterator() {}
@@ -100,7 +99,7 @@ public:
         return operands_;
     }
 
-    /// Construction
+    // Construction
     void add_output(const at::Tensor& output) {
         operands_.emplace_back(output);
         num_outputs_++;
@@ -121,7 +120,7 @@ public:
     void compute_types();
     std::tuple<at::ScalarType, bool> compute_common_type();
 
-    private:
+private:
     c10::SmallVector<NPUOperandInfo, 4> operands_;
     int num_outputs_ = 0;
     bool promote_npu_output_dtypes_ = false;
@@ -132,6 +131,6 @@ public:
 }; // class NPUTensorIterator
 
 } // namespace native
-} // namespace at
+} // namespace at_npu
 
 #endif
