@@ -220,7 +220,7 @@ class profile(_KinetoProfile):
 
 
 def analyse(profiler_path: str, max_process_number: int = Constant.DEFAULT_PROCESS_NUMBER):
-    if not isinstance(max_process_number, int) or not max_process_number:
+    if not isinstance(max_process_number, int) or max_process_number <= 0:
         max_process_number = Constant.DEFAULT_PROCESS_NUMBER
         print_warn_msg("Invalid max_process_number, reset it to default!")
     if max_process_number > os.cpu_count():
