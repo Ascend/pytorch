@@ -3,6 +3,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/framework/OpParamMaker.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
@@ -299,10 +300,23 @@ void Repository::Enqueue(void* cur_paras) {
                              "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.");
   }
 
-  if (GetStatus() != RUN && GetStatus() != INIT) {
-    ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue(). !!");
-    return;
-  }
+    if (GetStatus() != RUN && GetStatus() != INIT) {
+        auto queueParam = static_cast<c10_npu::queue::QueueParas *>(cur_paras);
+        auto type = queueParam->paramType;
+        if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
+            auto cur_paras = static_cast<at_npu::native::ExecuteParas *>(queueParam->paramVal);
+            auto op_name = cur_paras->opType;
+            ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for executing and op name is=%s.", *op_name);
+        } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
+            auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(queueParam->paramVal);
+            ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for copy, srclen=%zu, dstlen is %zu, kind=%d",
+                        cur_paras->srcLen, cur_paras->dstLen, cur_paras->kind);
+        } else {
+            auto cur_paras = static_cast<c10_npu::queue::EventParas *>(queueParam->paramVal);
+            ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for event, event is=%p", cur_paras->event);
+        }
+        return;
+    }
   bool ret = false;
   ssize_t s;
   uint64_t u = 1;
