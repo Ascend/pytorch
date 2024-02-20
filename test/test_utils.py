@@ -15,6 +15,8 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 from torch.utils.data import DataLoader
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_device_type import (
     ops,
     onlyCPU,
@@ -36,8 +38,7 @@ from torch.testing._internal.common_utils import load_tests, IS_FBCODE, IS_SANDC
 # sharding on sandcastle. This line silences flake warnings
 load_tests = load_tests
 
-HAS_CUDA = torch.cuda.is_available()
-
+HAS_CUDA = torch.npu.is_available()
 
 from torch.testing._internal.common_utils import TestCase, run_tests
 
@@ -57,12 +58,12 @@ class TestCheckpoint(TestCase):
     # module_lists_to_compare, and compares them against the uncheckpointed model.
     # To compare, it checks outputs as well as input gradients and parameter gradients
     def _check_checkpoint_sequential(
-        self,
-        model,
-        module_lists_to_compare,
-        num_chunks,
-        input_,
-        use_reentrant,
+            self,
+            model,
+            module_lists_to_compare,
+            num_chunks,
+            input_,
+            use_reentrant,
     ):
         # not checkpointed
         out = model(input_)
@@ -271,24 +272,24 @@ class TestCheckpoint(TestCase):
 
             self.assertEqual(grad_with_checkpointing, grad_no_checkpointing)
 
-    @unittest.skipIf(not HAS_CUDA, 'No CUDA')
+    @unittest.skipIf(not HAS_CUDA, 'No NPU')
     def test_checkpoint_rng_cuda(self):
         for _ in range(5):
-            inp = torch.randn(20000, device='cuda').requires_grad_()
+            inp = torch.randn(20000, device='npu').requires_grad_()
             phase1 = torch.nn.Dropout()
             phase2 = torch.nn.Dropout()
 
             def run_fn(input_):
                 return phase2(input_)
 
-            state = torch.cuda.get_rng_state()
+            state = torch.npu.get_rng_state()
 
             out = phase1(inp)
             out = checkpoint(run_fn, out, use_reentrant=True)
             out.sum().backward()
             grad_with_checkpointing = inp.grad
 
-            torch.cuda.set_rng_state(state)
+            torch.npu.set_rng_state(state)
 
             inp.grad = None
 
@@ -299,9 +300,9 @@ class TestCheckpoint(TestCase):
 
             self.assertEqual(grad_with_checkpointing, grad_no_checkpointing)
 
-    @unittest.skipIf(not HAS_CUDA, 'No CUDA')
+    @unittest.skipIf(not HAS_CUDA, 'No NPU')
     def test_checkpoint_not_preserve_rng_state_and_without_reentrant(self):
-        inp = torch.randn(2, device='cuda').requires_grad_()
+        inp = torch.randn(2, device='npu').requires_grad_()
         layer = torch.nn.Dropout()
 
         def run_fn(input_):
@@ -310,7 +311,6 @@ class TestCheckpoint(TestCase):
         out = checkpoint(run_fn, inp, use_reentrant=False, preserve_rng_state=False)
         out.sum().backward()
         # This should run without error
-
 
     def test_checkpoint_non_tensor(self):
 
@@ -386,6 +386,7 @@ class TestCheckpoint(TestCase):
         def run_fn(tensor1, tensor2):
             # tensor 2 is used for other application logic
             return tensor1, tensor2
+
         input_var = torch.randn(1, 4, requires_grad=True)
         input_var2 = torch.randn(1, 4, requires_grad=False)
         out = checkpoint(run_fn, input_var, input_var2, use_reentrant=True)
@@ -393,16 +394,17 @@ class TestCheckpoint(TestCase):
 
         def run_fn2(tensor1, tensor2):
             return tensor1
+
         input_var = torch.randn(1, 4, requires_grad=False)
         input_var2 = torch.randn(1, 4, requires_grad=True)
         with self.assertRaisesRegex(
-            RuntimeError,
-            r"none of output has requires_grad=True, this checkpoint\(\) is not necessary"
+                RuntimeError,
+                r"none of output has requires_grad=True, this checkpoint\(\) is not necessary"
         ):
             out = checkpoint(run_fn2, input_var, input_var2, use_reentrant=True)
             out.sum().backward()
 
-    @unittest.skipIf(not torch.cuda.is_available(), "Test requires CUDA")
+    @unittest.skipIf(not torch.npu.is_available(), "Test requires NPU")
     def test_checkpointing_without_reentrant_early_free(self):
         # I don't know how to check if the temporary saved variable buffer
         # get de-allocated directly. So using cuda memory usage as a proxy
@@ -416,8 +418,8 @@ class TestCheckpoint(TestCase):
                 # emptied at each step)
                 def hook(_unused):
                     self.assertEqual(len(stats), idx)
-                    torch.cuda.synchronize()
-                    stats.append(torch.cuda.memory_allocated())
+                    torch.npu.synchronize()
+                    stats.append(torch.npu.memory_allocated())
                     if idx > 0:
                         if should_free:
                             self.assertLess(stats[idx], stats[idx - 1])
@@ -442,7 +444,7 @@ class TestCheckpoint(TestCase):
 
             return stats
 
-        x = torch.zeros(10, device="cuda", requires_grad=True)
+        x = torch.zeros(10, device="npu", requires_grad=True)
         x.grad = torch.zeros_like(x)
 
         # In a regular backward, buffers get eagerly freed
@@ -455,7 +457,8 @@ class TestCheckpoint(TestCase):
         checkpoint_non_retain_stats = _do_test(lambda fn: checkpoint(fn, x, use_reentrant=False).backward(), True)
 
         # In a retain_grad backward with checkpoint, buffers get eagerly freed
-        checkpoint_retain_stats = _do_test(lambda fn: checkpoint(fn, x, use_reentrant=False).backward(retain_graph=True), True)
+        checkpoint_retain_stats = _do_test(
+            lambda fn: checkpoint(fn, x, use_reentrant=False).backward(retain_graph=True), True)
 
         self.assertEqual(non_retain_stats, checkpoint_non_retain_stats)
         self.assertEqual(non_retain_stats, checkpoint_retain_stats)
@@ -488,37 +491,37 @@ class TestDataLoaderUtils(TestCase):
         # self.dataset is a Tensor here; technically not a valid input because
         # not a Dataset subclass, but needs to stay working so add ignore's
         # for type checking with mypy
-        dataloader : DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
-                                             batch_size=self.batch_size,
-                                             num_workers=0,
-                                             drop_last=False)
+        dataloader: DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
+                                            batch_size=self.batch_size,
+                                            num_workers=0,
+                                            drop_last=False)
         dataiter = iter(dataloader)
         self.assertEqual(len(list(dataiter)), 2)
 
     def test_single_drop(self):
-        dataloader : DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
-                                             batch_size=self.batch_size,
-                                             num_workers=0,
-                                             drop_last=True)
+        dataloader: DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
+                                            batch_size=self.batch_size,
+                                            num_workers=0,
+                                            drop_last=True)
         dataiter = iter(dataloader)
         self.assertEqual(len(list(dataiter)), 1)
 
-    @unittest.skip("FIXME: Intermittent CUDA out-of-memory error on Windows and time-out under ASAN")
+    @unittest.skip("FIXME: Intermittent NPU out-of-memory error on Windows and time-out under ASAN")
     def test_multi_keep(self):
-        dataloader : DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
-                                             batch_size=self.batch_size,
-                                             num_workers=2,
-                                             drop_last=False,
-                                             timeout=self.MAX_TIMEOUT_IN_SECOND)
+        dataloader: DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
+                                            batch_size=self.batch_size,
+                                            num_workers=2,
+                                            drop_last=False,
+                                            timeout=self.MAX_TIMEOUT_IN_SECOND)
         dataiter = iter(dataloader)
         self.assertEqual(len(list(dataiter)), 2)
 
     def test_multi_drop(self):
-        dataloader : DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
-                                             batch_size=self.batch_size,
-                                             num_workers=2,
-                                             drop_last=True,
-                                             timeout=self.MAX_TIMEOUT_IN_SECOND)
+        dataloader: DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
+                                            batch_size=self.batch_size,
+                                            num_workers=2,
+                                            drop_last=True,
+                                            timeout=self.MAX_TIMEOUT_IN_SECOND)
         dataiter = iter(dataloader)
         self.assertEqual(len(list(dataiter)), 1)
 
@@ -555,11 +558,11 @@ class TestBottleneck(TestCase):
 
     def _check_run_args(self):
         # Check that this fails due to missing args
-        rc, out, err = self._run_bottleneck('bottleneck_test/test_args.py')
+        rc, out, err = self._run_bottleneck('bottleneck_test/args_test.py')
         self.assertEqual(rc, 2, atol=0, rtol=0, msg=self._fail_msg('Missing args should error', out + err))
 
         # This should succeed
-        rc, out, err = self._run_bottleneck('bottleneck_test/test_args.py', '--foo foo --bar bar')
+        rc, out, err = self._run_bottleneck('bottleneck_test/args_test.py', '--foo foo --bar bar')
         self.assertEqual(rc, 0, atol=0, rtol=0, msg=self._fail_msg('Should pass args to script', out + err))
 
     def _fail_msg(self, msg, output):
@@ -595,11 +598,11 @@ class TestBottleneck(TestCase):
 
     def _check_cuda(self, output):
         if HAS_CUDA:
-            results = re.search('CUDA mode', output)
-            self.assertIsNotNone(results, self._fail_msg('Should tell users CUDA', output))
+            results = re.search('NPU mode', output)
+            self.assertIsNotNone(results, self._fail_msg('Should tell users NPU', output))
         else:
-            results = re.search('CUDA mode', output)
-            self.assertIsNone(results, self._fail_msg('Should not tell users about CUDA', output))
+            results = re.search('NPU mode', output)
+            self.assertIsNone(results, self._fail_msg('Should not tell users about NPU', output))
 
     @unittest.skipIf(HAS_CUDA, 'CPU-only test')
     def test_bottleneck_cpu_only(self):
@@ -612,9 +615,9 @@ class TestBottleneck(TestCase):
         self._check_cprof_summary(out)
         self._check_cuda(out)
 
-    @unittest.skipIf(not HAS_CUDA, 'No CUDA')
+    @unittest.skipIf(not HAS_CUDA, 'No NPU')
     def test_bottleneck_cuda(self):
-        rc, out, err = self._run_bottleneck('bottleneck_test/test_cuda.py')
+        rc, out, err = self._run_bottleneck('bottleneck_test/test_npu.py')
         self.assertEqual(rc, 0, msg=f'Run failed with\n{err}')
 
         self._check_run_args()
@@ -874,6 +877,7 @@ class TestDeviceUtils(TestCase):
         @set_device('meta')
         def f():
             return torch.empty(3, 3)
+
         self.assertEqual(f().device.type, 'meta')
 
     def test_decorator_generator(self):
@@ -881,10 +885,10 @@ class TestDeviceUtils(TestCase):
         def f():
             yield torch.empty(3, 3)
             yield torch.empty(3, 3)
+
         r1, r2 = list(f())
         self.assertEqual(r1.device.type, 'meta')
         self.assertEqual(r2.device.type, 'meta')
-
 
     def test_nn_module(self):
         with torch.device('meta'):
@@ -910,8 +914,8 @@ class TestDeviceUtils(TestCase):
             # we don't test the factory property on OpInfo as it is very,
             # very incomplete
             if tree_any(
-                lambda x: isinstance(x, torch.Tensor),
-                (sample.input, sample.args, sample.kwargs)
+                    lambda x: isinstance(x, torch.Tensor),
+                    (sample.input, sample.args, sample.kwargs)
             ):
                 continue
             # Many OpInfos will explicitly pass in a device.  DeviceContext
@@ -964,7 +968,8 @@ def f(x):
         try:
             raise RuntimeError()
         except RuntimeError as e:
-            self.assertRegex(format_traceback_short(e.__traceback__), r'.*test_utils.py:\d+ in test_format_traceback_short')
+            self.assertRegex(format_traceback_short(e.__traceback__),
+                             r'.*test_utils.py:\d+ in test_format_traceback_short')
 
     def test_captured_traceback(self):
         self.assertIn('test_captured_traceback', ''.join(CapturedTraceback.extract().format()))
@@ -983,4 +988,4 @@ def f(x):
 
 
 if __name__ == '__main__':
-    pass
+    run_tests()
