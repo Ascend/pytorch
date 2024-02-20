@@ -380,6 +380,11 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
     dim_list.append(dimn)
     quant_matmul_shape_check(x1, x2, scale, offset)
     if bias is not None:
+        if bias.dim() == 3:
+            torch._check(
+                len(dim_list) == 3,
+                lambda:"when bias dim is 3, out dim need to be 3",
+            )
         bias_shape_check(x2, bias, batch_val)
     quant_matmul_dtype_check(x1, x2, scale, offset, bias)
     if output_dtype == "float16":
@@ -393,8 +398,8 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
 def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()
     torch._check(
-        scale_dim_num == 1,
-        lambda: "the scale dim num must be 1, please check scale dim num",
+        scale_dim_num == 1 or scale_dim_num == 2,
+        lambda: "the scale dim num must be 1 or 2, please check scale dim num",
     )
     scale_first_dim = scale.size(0)
     dim_max = scale_first_dim

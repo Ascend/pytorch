@@ -1568,12 +1568,19 @@ class TestQuantMatmul(TestCase):
 class TestTranQuantParam(TestCase):
     def test_npu_trans_quant_param_meta(self):
         with FakeTensorMode():
-            expect_ret = torch.randint(-1, 1, (4,), dtype=torch.int64).npu()
-            scale = torch.randn(1, dtype=torch.float32).npu()
-            offset = torch.randn(4, dtype=torch.float32).npu()
-            res = torch_npu.npu_trans_quant_param(scale, offset)
-            self.assertTrue(res.shape == expect_ret.shape)
-            self.assertTrue(res.dtype == expect_ret.dtype)
+            test_1_expect_ret = torch.randint(-1, 1, (4,), dtype=torch.int64).npu()
+            test_1_scale = torch.randn(1, dtype=torch.float32).npu()
+            test_1_offset = torch.randn(4, dtype=torch.float32).npu()
+            res = torch_npu.npu_trans_quant_param(test_1_scale, test_1_offset)
+            self.assertTrue(res.shape == test_1_expect_ret.shape)
+            self.assertTrue(res.dtype == test_1_expect_ret.dtype)
+
+            test_2_expect_ret = torch.randint(-1, 1, (4,), dtype=torch.int64).npu()
+            test_2_scale = torch.randn(1, 4, dtype=torch.float32).npu()
+            test_2_offset = torch.randn(4, dtype=torch.float32).npu()
+            res = torch_npu.npu_trans_quant_param(test_2_scale, test_2_offset)
+            self.assertTrue(res.shape == test_2_expect_ret.shape)
+            self.assertTrue(res.dtype == test_2_expect_ret.dtype)
             
 
 class TestAntiQuant(TestCase):
