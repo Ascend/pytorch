@@ -1,4 +1,3 @@
-import itertools
 import collections
 import doctest
 import functools
@@ -12,10 +11,10 @@ import subprocess
 import sys
 import unittest.mock
 from typing import Any, Callable, Iterator, List, Tuple
-import numpy as np
 
 import torch
-
+import torch_npu
+import torch_npu.testing
 from torch.testing import make_tensor
 from torch.testing._internal.common_utils import \
     (IS_FBCODE, IS_JETSON, IS_MACOS, IS_SANDCASTLE, IS_WINDOWS, TestCase, run_tests, slowTest,
@@ -29,117 +28,6 @@ from torch.testing._internal import opinfo
 from torch.testing._internal.common_dtype import all_types_and_complex_and, floating_types
 from torch.testing._internal.common_modules import modules, module_db, ModuleInfo
 from torch.testing._internal.opinfo.core import SampleInput, DecorateInfo, OpInfo
-
-from torch_npu.testing.testcase import TestCase as NpuTestCase
-from torch_npu.testing.common_utils import create_dtype_tensor
-from torch_npu.testing.decorator import Dtypes, Formats, instantiate_tests
-
-
-# For testing TestCase methods and torch_npu.testing functions
-@instantiate_tests
-class TestAssertEqual(NpuTestCase):
-
-    # Ensure that assertTensorSlowEqual handles npu arrays properly
-    @Dtypes(torch.int32, torch.bool, torch.half, torch.float)
-    @Formats(0, 3, 4)
-    def test_assert_tensor_slow_equal(self, device, dtype, npu_format):
-        test_sizes = [
-            (),
-            (0,),
-            (5,),
-            (5, 5),
-            (0, 5),
-            (5, 0),
-        ]
-        for test_size in test_sizes:
-            a_cpu, a_npu = create_dtype_tensor(test_size, dtype, npu_format, device=device)
-            msg = f'Device: {device} Size: {test_size} Dtype: {dtype} Npu_format: {npu_format}'
-            self.assertTensorsSlowEqual(a_cpu, a_npu, prec=1e-3, message=msg)
-            self.assertTensorsSlowEqual(a_npu, a_cpu, prec=1e-3, message=msg)
-            self.assertTensorsSlowEqual(a_cpu, a_cpu, prec=1e-3, message=msg)
-
-    # Ensure that assertRtolEqual handles npu arrays properly
-    @Dtypes(torch.int32, torch.bool, torch.half, torch.float)
-    @Formats(0, 3, 4)
-    def test_assert_rtol_equal(self, device, dtype, npu_format):
-        test_sizes = [
-            (),
-            (0,),
-            (6,),
-            (6, 6),
-            (0, 6),
-            (6, 0),
-        ]
-        for test_size in test_sizes:
-            a_cpu, a_npu = create_dtype_tensor(test_size, dtype, npu_format, device=device)
-            msg = f'Device: {device} Size: {test_size} Dtype: {dtype} Npu_format: {npu_format}'
-            self.assertRtolEqual(a_cpu, a_npu.cpu())
-            self.assertRtolEqual(a_npu.cpu(), a_cpu)
-            self.assertRtolEqual(a_cpu, a_cpu)
-
-    # Ensure that assertEqual handles npu arrays properly
-    @Dtypes(torch.int32, torch.bool, torch.half, torch.float)
-    @Formats(0, 3, 4)
-    def test_assert_equal(self, device, dtype, npu_format):
-        test_sizes = [
-            (),
-            (0,),
-            (7,),
-            (7, 7),
-            (0, 7),
-            (7, 0),
-        ]
-        for test_size in test_sizes:
-            a_cpu, a_npu = create_dtype_tensor(test_size, dtype, npu_format, device=device)
-            msg = f'Device: {device} Size: {test_size} Dtype: {dtype} Npu_format: {npu_format}'
-            self.assertEqual(a_cpu, a_npu, message=msg)
-            self.assertEqual(a_npu, a_cpu, message=msg)
-            self.assertEqual(a_cpu, a_cpu, message=msg)
-
-    # Ensure that assertAlmostEqual handles npu arrays properly
-    @Dtypes(torch.int32, torch.bool, torch.half, torch.float)
-    @Formats(0, 3, 4)
-    def test_assert_almost_equal(self, device, dtype, npu_format):
-        test_sizes = [
-            (),
-            (0,),
-            (8,),
-            (8, 8),
-            (0, 8),
-            (8, 0),
-        ]
-        for test_size in test_sizes:
-            a_cpu, a_npu = create_dtype_tensor(test_size, dtype, npu_format, device=device)
-            msg = f'Device: {device} Size: {test_size} Dtype: {dtype} Npu_format: {npu_format}'
-            self.assertAlmostEqual(a_cpu, a_npu, msg=msg)
-            self.assertAlmostEqual(a_npu, a_cpu, msg=msg)
-            self.assertAlmostEqual(a_cpu, a_cpu, msg=msg)
-
-    # Ensure that assertNotEqual handles npu arrays properly
-    @Dtypes(torch.int32, torch.bool, torch.float)
-    @Formats(0, 3, 4)
-    def test_assert_not_equal(self, device, dtype, npu_format):
-        test_sizes = [
-            (),
-            (9,),
-            (9, 9),
-        ]
-        for test_size in test_sizes:
-            if dtype == torch.bool:
-                a_cpu = torch.from_numpy(np.zeros(test_size, bool))
-                a_npu = a_cpu.to(device)
-                b_cpu = torch.from_numpy(np.ones(test_size, bool))
-                b_npu = b_cpu.to(device)
-            else:
-                a_cpu, a_npu = create_dtype_tensor(test_size, dtype, npu_format,
-                                                   min_value=5, max_value=10, device=device)
-                b_cpu, b_npu = create_dtype_tensor(test_size, dtype, npu_format,
-                                                   min_value=-10, max_value=-5, device=device)
-            msg = f'Device: {device} Size: {test_size} Dtype: {dtype} Npu_format: {npu_format}'
-            self.assertNotEqual(a_cpu, b_cpu, message=msg)
-            self.assertNotEqual(a_cpu, b_npu, message=msg)
-            self.assertNotEqual(a_npu, b_cpu, message=msg)
-            self.assertNotEqual(a_npu, b_npu, message=msg)
 
 
 # For testing TestCase methods and torch.testing functions
@@ -397,27 +285,29 @@ class TestTesting(TestCase):
 #!/usr/bin/env python3
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest)
 
 class TestThatContainsCUDAAssertFailure(TestCase):
 
     @slowTest
     def test_throw_unrecoverable_cuda_exception(self):
-        x = torch.rand(10, device='cuda')
-        # cause unrecoverable CUDA exception, recoverable on CPU
+        x = torch.rand(10, device='npu')
+        # cause unrecoverable NPU exception, recoverable on CPU
         y = x[torch.tensor([25])].cpu()
 
     @slowTest
     def test_trivial_passing_test_case_on_cpu_cuda(self):
-        x1 = torch.tensor([0., 1.], device='cuda')
+        x1 = torch.tensor([0., 1.], device='npu')
         x2 = torch.tensor([0., 1.], device='cpu')
         self.assertEqual(x1, x2)
 
 if __name__ == '__main__':
     run_tests()
 """)
-        # should capture CUDA error
-        self.assertIn('CUDA error: device-side assert triggered', stderr)
+        # should capture NPU error
+        self.assertIn('NPU error: device-side assert triggered', stderr)
         # should run only 1 test because it throws unrecoverable error.
         self.assertIn('errors=1', stderr)
 
@@ -431,6 +321,8 @@ if __name__ == '__main__':
 #!/usr/bin/env python3
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (TestCase, run_tests, slowTest)
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
 
@@ -439,7 +331,7 @@ class TestThatContainsCUDAAssertFailure(TestCase):
     @slowTest
     def test_throw_unrecoverable_cuda_exception(self, device):
         x = torch.rand(10, device=device)
-        # cause unrecoverable CUDA exception, recoverable on CPU
+        # cause unrecoverable NPU exception, recoverable on CPU
         y = x[torch.tensor([25])].cpu()
 
     @slowTest
@@ -451,14 +343,14 @@ class TestThatContainsCUDAAssertFailure(TestCase):
 instantiate_device_type_tests(
     TestThatContainsCUDAAssertFailure,
     globals(),
-    only_for='cuda'
+    only_for='privateuse1'
 )
 
 if __name__ == '__main__':
     run_tests()
 """)
-        # should capture CUDA error
-        self.assertIn('CUDA error: device-side assert triggered', stderr)
+        # should capture NPU error
+        self.assertIn('NPU error: device-side assert triggered', stderr)
         # should run only 1 test because it throws unrecoverable error.
         self.assertIn('errors=1', stderr)
 
@@ -467,11 +359,13 @@ if __name__ == '__main__':
     @onlyCUDA
     @slowTest
     def test_cuda_assert_should_not_stop_common_distributed_test_suite(self, device):
-        # test to ensure common_distributed.py override should not early terminate CUDA.
+        # test to ensure common_distributed.py override should not early terminate NPU.
         stderr = TestCase.runWithPytorchAPIUsageStderr("""\
 #!/usr/bin/env python3
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (run_tests, slowTest)
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
 from torch.testing._internal.common_distributed import MultiProcessTestCase
@@ -493,7 +387,7 @@ class TestThatContainsCUDAAssertFailure(MultiProcessTestCase):
 instantiate_device_type_tests(
     TestThatContainsCUDAAssertFailure,
     globals(),
-    only_for='cuda'
+    only_for='privateuse1'
 )
 
 if __name__ == '__main__':
@@ -535,6 +429,8 @@ class TestFrameworkUtils(TestCase):
 #!/usr/bin/env python3
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (TestCase, run_tests)
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
 
@@ -1670,7 +1566,12 @@ def _get_test_names_for_test_class(test_cls):
     """ Convenience function to get all test names for a given test class. """
     test_names = [f'{test_cls.__name__}.{key}' for key in test_cls.__dict__
                   if key.startswith('test_')]
-    return sorted(test_names)
+    names = []
+    for name in test_names:
+        if "privateuse1" in name:
+            name = name.replace("privateuse1", "npu")
+        names.append(name)
+    return sorted(names)
 
 
 def _get_test_funcs_for_test_class(test_cls):
@@ -1874,7 +1775,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_device_dtype_specific_{}_float32',
             '{}.test_device_dtype_specific_{}_float64',
@@ -1898,7 +1799,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_bar_{}',
             '{}.test_foo_{}')
@@ -1941,7 +1842,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_default_names_x_0_{}',
             '{}.test_default_names_x_1_{}',
@@ -1969,7 +1870,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = sorted(name.format(device_cls.__name__, device) for name in (
             '{}.test_default_names_x_1_{}',
             '{}.test_default_names_x_0_5_{}',
@@ -2002,7 +1903,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_custom_names_bias_{}',
             '{}.test_custom_names_no_bias_{}',
@@ -2038,7 +1939,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_custom_names_bias_{}',
             '{}.test_custom_names_no_bias_{}',
@@ -2060,7 +1961,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = []
         for op in op_db:
             for dtype in op.supported_dtypes(torch.device(device).type):
@@ -2083,7 +1984,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = []
         for module_info in module_db:
             for dtype in module_info.dtypes:
@@ -2142,7 +2043,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         device = self.device_type
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
 
         for test_func, name in _get_test_funcs_for_test_class(device_cls):
             should_apply = (name == 'test_op_param_test_op_x_2_cpu_float64' or
@@ -2195,7 +2096,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         device = self.device_type
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
 
         for test_func, name in _get_test_funcs_for_test_class(device_cls):
             should_apply = (name == 'test_module_param_TestModule_x_2_cpu_float64' or
@@ -2218,7 +2119,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         device = self.device_type
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
 
         for test_func, name in _get_test_funcs_for_test_class(device_cls):
             should_apply = ('test_param_x_1_y_True' in name)
@@ -2238,7 +2139,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrized{device.upper()}']
+        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_parametrized_x_0_{}_float32',
             '{}.test_parametrized_x_0_{}_float64',
@@ -2368,7 +2269,7 @@ class TestImports(TestCase):
         out = self._check_python_output("import sys;import torch;print(all(x not in sys.modules for x in torch._lazy_modules))")
         self.assertEqual(out.strip(), "True")
 
-    @unittest.skipIf(IS_WINDOWS, "importing torch+CUDA on CPU results in warning")
+    @unittest.skipIf(IS_WINDOWS, "importing torch+NPU on CPU results in warning")
     def test_no_warning_on_import(self) -> None:
         out = self._check_python_output("import torch")
         self.assertEqual(out, "")
@@ -2384,7 +2285,7 @@ class TestImports(TestCase):
                          "  - Use TYPE_CHECKING if you are using sympy + strings if you are using sympy on type annotations\n"
                          "  - Import things that depend on SymPy locally")
 
-    @unittest.skipIf(IS_WINDOWS, "importing torch+CUDA on CPU results in warning")
+    @unittest.skipIf(IS_WINDOWS, "importing torch+NPU on CPU results in warning")
     @parametrize('path', ['torch', 'functorch'])
     def test_no_mutate_global_logging_on_import(self, path) -> None:
         # Calling logging.basicConfig, among other things, modifies the global
@@ -2491,5 +2392,6 @@ class TestOpInfoSampleFunctions(TestCase):
 instantiate_device_type_tests(TestOpInfoSampleFunctions, globals())
 instantiate_parametrized_tests(TestImports)
 
+
 if __name__ == '__main__':
-    pass
+    run_tests()

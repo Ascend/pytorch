@@ -9,6 +9,9 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._python_dispatcher import PythonDispatcher
 import torch.utils.cpp_extension
 
+import torch_npu
+import torch_npu.testing
+
 
 Result = namedtuple('Result', 'state table provenance')
 
@@ -940,4 +943,4 @@ CompositeImplicitAutograd[alias] fn_CompositeImplicitAutograd
 
 
 if __name__ == '__main__':
-    pass
+    run_tests()

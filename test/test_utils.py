@@ -15,6 +15,8 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 from torch.utils.data import DataLoader
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_device_type import (
     ops,
     onlyCPU,
@@ -36,7 +38,7 @@ from torch.testing._internal.common_utils import load_tests, IS_FBCODE, IS_SANDC
 # sharding on sandcastle. This line silences flake warnings
 load_tests = load_tests
 
-HAS_CUDA = torch.cuda.is_available()
+HAS_CUDA = torch.npu.is_available()
 
 
 from torch.testing._internal.common_utils import TestCase, run_tests
@@ -271,24 +273,24 @@ class TestCheckpoint(TestCase):
 
             self.assertEqual(grad_with_checkpointing, grad_no_checkpointing)
 
-    @unittest.skipIf(not HAS_CUDA, 'No CUDA')
+    @unittest.skipIf(not HAS_CUDA, 'No NPU')
     def test_checkpoint_rng_cuda(self):
         for _ in range(5):
-            inp = torch.randn(20000, device='cuda').requires_grad_()
+            inp = torch.randn(20000, device='npu').requires_grad_()
             phase1 = torch.nn.Dropout()
             phase2 = torch.nn.Dropout()
 
             def run_fn(input_):
                 return phase2(input_)
 
-            state = torch.cuda.get_rng_state()
+            state = torch.npu.get_rng_state()
 
             out = phase1(inp)
             out = checkpoint(run_fn, out, use_reentrant=True)
             out.sum().backward()
             grad_with_checkpointing = inp.grad
 
-            torch.cuda.set_rng_state(state)
+            torch.npu.set_rng_state(state)
 
             inp.grad = None
 
@@ -299,9 +301,9 @@ class TestCheckpoint(TestCase):
 
             self.assertEqual(grad_with_checkpointing, grad_no_checkpointing)
 
-    @unittest.skipIf(not HAS_CUDA, 'No CUDA')
+    @unittest.skipIf(not HAS_CUDA, 'No NPU')
     def test_checkpoint_not_preserve_rng_state_and_without_reentrant(self):
-        inp = torch.randn(2, device='cuda').requires_grad_()
+        inp = torch.randn(2, device='npu').requires_grad_()
         layer = torch.nn.Dropout()
 
         def run_fn(input_):
@@ -402,10 +404,10 @@ class TestCheckpoint(TestCase):
             out = checkpoint(run_fn2, input_var, input_var2, use_reentrant=True)
             out.sum().backward()
 
-    @unittest.skipIf(not torch.cuda.is_available(), "Test requires CUDA")
+    @unittest.skipIf(not torch.npu.is_available(), "Test requires NPU")
     def test_checkpointing_without_reentrant_early_free(self):
         # I don't know how to check if the temporary saved variable buffer
-        # get de-allocated directly. So using cuda memory usage as a proxy
+        # get de-allocated directly. So using npu memory usage as a proxy
 
         def _do_test(fn, should_free):
             stats: List[int] = []
@@ -416,8 +418,8 @@ class TestCheckpoint(TestCase):
                 # emptied at each step)
                 def hook(_unused):
                     self.assertEqual(len(stats), idx)
-                    torch.cuda.synchronize()
-                    stats.append(torch.cuda.memory_allocated())
+                    torch.npu.synchronize()
+                    stats.append(torch.npu.memory_allocated())
                     if idx > 0:
                         if should_free:
                             self.assertLess(stats[idx], stats[idx - 1])
@@ -442,7 +444,7 @@ class TestCheckpoint(TestCase):
 
             return stats
 
-        x = torch.zeros(10, device="cuda", requires_grad=True)
+        x = torch.zeros(10, device="npu", requires_grad=True)
         x.grad = torch.zeros_like(x)
 
         # In a regular backward, buffers get eagerly freed
@@ -503,7 +505,7 @@ class TestDataLoaderUtils(TestCase):
         dataiter = iter(dataloader)
         self.assertEqual(len(list(dataiter)), 1)
 
-    @unittest.skip("FIXME: Intermittent CUDA out-of-memory error on Windows and time-out under ASAN")
+    @unittest.skip("FIXME: Intermittent NPU out-of-memory error on Windows and time-out under ASAN")
     def test_multi_keep(self):
         dataloader : DataLoader = DataLoader(self.dataset,  # type: ignore[arg-type]
                                              batch_size=self.batch_size,
@@ -555,11 +557,11 @@ class TestBottleneck(TestCase):
 
     def _check_run_args(self):
         # Check that this fails due to missing args
-        rc, out, err = self._run_bottleneck('bottleneck_test/test_args.py')
+        rc, out, err = self._run_bottleneck('bottleneck_test/args_test.py')
         self.assertEqual(rc, 2, atol=0, rtol=0, msg=self._fail_msg('Missing args should error', out + err))
 
         # This should succeed
-        rc, out, err = self._run_bottleneck('bottleneck_test/test_args.py', '--foo foo --bar bar')
+        rc, out, err = self._run_bottleneck('bottleneck_test/args_test.py', '--foo foo --bar bar')
         self.assertEqual(rc, 0, atol=0, rtol=0, msg=self._fail_msg('Should pass args to script', out + err))
 
     def _fail_msg(self, msg, output):
@@ -595,11 +597,11 @@ class TestBottleneck(TestCase):
 
     def _check_cuda(self, output):
         if HAS_CUDA:
-            results = re.search('CUDA mode', output)
-            self.assertIsNotNone(results, self._fail_msg('Should tell users CUDA', output))
+            results = re.search('NPU mode', output)
+            self.assertIsNotNone(results, self._fail_msg('Should tell users NPU', output))
         else:
-            results = re.search('CUDA mode', output)
-            self.assertIsNone(results, self._fail_msg('Should not tell users about CUDA', output))
+            results = re.search('NPU mode', output)
+            self.assertIsNone(results, self._fail_msg('Should not tell users about NPU', output))
 
     @unittest.skipIf(HAS_CUDA, 'CPU-only test')
     def test_bottleneck_cpu_only(self):
@@ -612,9 +614,9 @@ class TestBottleneck(TestCase):
         self._check_cprof_summary(out)
         self._check_cuda(out)
 
-    @unittest.skipIf(not HAS_CUDA, 'No CUDA')
+    @unittest.skipIf(not HAS_CUDA, 'No NPU')
     def test_bottleneck_cuda(self):
-        rc, out, err = self._run_bottleneck('bottleneck_test/test_cuda.py')
+        rc, out, err = self._run_bottleneck('bottleneck_test/test_npu.py')
         self.assertEqual(rc, 0, msg=f'Run failed with\n{err}')
 
         self._check_run_args()
@@ -990,4 +992,4 @@ def f(x):
 
 
 if __name__ == '__main__':
-    pass
+    run_tests()
