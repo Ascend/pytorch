@@ -280,9 +280,9 @@ def npu_all_gather_base_mm_meta(self, x2, hcom, world_size, bias=None,
 
 
 @impl(m, "npu_weight_quant_batchmatmul")
-def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_offset=None, quant_scale=None, bias=None, antiquant_group_size=0):
-    dimm = x.size(0)
-    dimn = weight.size(1)
+def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offset=None, quant_scale=None, quant_offset=None, bias=None, antiquant_group_size=0):
+    dim_m = x.size(0)
+    dim_n = weight.size(1)
     if quant_scale is not None:
         return x.new_empty((dimm, dimn), dtype=torch.int8)
     return x.new_empty((dimm, dimn), dtype=x.dtype)
@@ -429,20 +429,29 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
 def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()
     torch._check(
-        scale_dim_num == 1 or scale_dim_num == 2,
-        lambda: "the scale dim num must be 1 or 2, please check scale dim num",
+        scale_dim_num == 1 or (scale_dim_num == 2 and scale.size(0) == 1),
+        lambda: "the scale shape support only (1, ) and (1, n)",
     )
-    scale_first_dim = scale.size(0)
-    dim_max = scale_first_dim
-    if offset is not None:
-        offset_first_dim = offset.size(0)
-        dim_max = max(dim_max, offset_first_dim)
-        if offset_first_dim != 1 and scale_first_dim != 1:
+    if scale_dim_num == 1:
+        scale_first_dim = scale.size(0)
+        dim_max = scale_first_dim
+        if offset is not None:
+            offset_first_dim = offset.size(0)
+            dim_max = max(dim_max, offset_first_dim)
+            if offset_first_dim != 1 and scale_first_dim != 1:
+                torch._check(
+                    offset_first_dim == scale_first_dim,
+                    lambda: "offset first dim should be equal to scale first dim if none of them are equal to one",
+                )
+        output_shape = (dim_max)
+    else:
+        if offset is not None:
             torch._check(
-                offset_first_dim == scale_first_dim,
-                lambda: "offset first dim should be equal to scale first dim if none of them are equal to one",
+                scale.size() == offset.size(),
+                lambda: "when the input shape of scale is (1, n), shape of scale and offset should be equal",
             )
-    return scale.new_empty((dim_max), dtype=torch.int64)
+            output_shape = scale.size()
+    return scale.new_empty(output_shape, dtype=torch.int64)
 
 
 @impl(m, "npu_quantize")
