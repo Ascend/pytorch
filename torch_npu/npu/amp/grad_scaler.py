@@ -493,7 +493,9 @@ class GradScaler(Cuda_GradScaler):
             # so growth_tracker is incremented before comparing to growth_interval.
             self._growth_tracker.add_(1)
             if self._growth_tracker.item() == self._growth_interval:
-                self._scale.mul_(self._growth_factor)
+                new_scale = self._scale * self._growth_factor
+                if not torch.isinf(new_scale):
+                    self._scale = new_scale
                 self._growth_tracker.zero_()
                 print(("Loss scaler increasing loss scale "
                        "to {}").format(self._scale.item()))
