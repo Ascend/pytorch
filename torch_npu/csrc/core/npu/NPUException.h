@@ -1,13 +1,21 @@
 #pragma once
 
+#include <ctime>
 #include <cstdarg>
 #include <iostream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <unistd.h>
+#include <unordered_map>
 #include <c10/macros/Macros.h>
 #include <c10/util/Exception.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUErrorCodes.h"
+
 
 #define C10_NPU_SHOW_ERR_MSG()                                           \
     do {                                                                 \
@@ -121,27 +129,14 @@ enum class ErrCode {
     GE = 300
 };
 
-static std::string formatErrorCode(const char *format, ...)
-{
-    static const size_t ERROR_BUF_SIZE = 10;
-    // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
-    char error_buf[ERROR_BUF_SIZE];
-    va_list fmt_args;
-    va_start(fmt_args, format);
-    vsnprintf(error_buf, ERROR_BUF_SIZE, format, fmt_args);
-    va_end(fmt_args);
+static std::string getCurrentTimestamp();
+std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 
-    // Ensure that the string is null terminated
-    error_buf[sizeof(error_buf) / sizeof(*error_buf) - 1] = 0;
-
-    return std::string(error_buf);
-}
-
-#define PTA_ERROR(error) formatErrorCode("\nERR%02d%03d", SubModule::PTA, error)
-#define OPS_ERROR(error) formatErrorCode("\nERR%02d%03d", SubModule::OPS, error)
-#define DIST_ERROR(error) formatErrorCode("\nERR%02d%03d", SubModule::DIST, error)
-#define GRAPH_ERROR(error) formatErrorCode("\nERR%02d%03d", SubModule::GRAPH, error)
-#define PROF_ERROR(error) formatErrorCode("\nERR%02d%03d", SubModule::PROF, error)
+#define PTA_ERROR(error) formatErrorCode(SubModule::PTA, error)
+#define OPS_ERROR(error) formatErrorCode(SubModule::OPS, error)
+#define DIST_ERROR(error) formatErrorCode(SubModule::DIST, error)
+#define GRAPH_ERROR(error) formatErrorCode(SubModule::GRAPH, error)
+#define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
 namespace c10_npu {
 
