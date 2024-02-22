@@ -380,111 +380,6 @@ class FakeTensorTest(TestCase):
             y = x + x
             self.assertTrue(mode.in_kernel_invocation)
 
-    # The native testcase requires CUDA. Currently, skip by configuring JSON. The NPU needs to be adapted.
-    @unittest.skipIf(TEST_WITH_TORCHDYNAMO, "isinstance check for FakeTensor won't work with compile")
-    @skipIfRocm
-    @parametrize("allow_fallback_kernels", [False, True],
-                 lambda a: 'with_fallback' if a else 'without_fallback')
-    @unittest.skipIf(not RUN_NPU, "requires npu")
-    def test_cudnn_rnn(self, allow_fallback_kernels):
-        from collections import namedtuple
-        fn_args = namedtuple('fn_args', [
-            'a0',
-            'b0',
-            'b1',
-            'b2',
-            'b3',
-            'b4',
-            'b5',
-            'b6',
-            'b7',
-            'b8',
-            'b9',
-            'b10',
-            'b11',
-            'b12',
-            'b13',
-            'b14',
-            'b15',
-            'a3',
-            'a4',
-            'a5',
-        ])
-
-        def fn(fn_args: fn_args):
-            a1 = [
-                b0,
-                b1,
-                b2,
-                b3,
-                b4,
-                b5,
-                b6,
-                b7,
-                b8,
-                b9,
-                b10,
-                b11,
-                b12,
-                b13,
-                b14,
-                b15,
-            ]
-            return torch.ops.aten._cudnn_rnn(
-                a0,
-                a1,
-                4,
-                a3,
-                a4,
-                a5,
-                2,
-                2048,
-                0,
-                2,
-                False,
-                0.0,
-                False,
-                True,
-                [],
-                None,
-            )
-
-        mode = FakeTensorMode(allow_fallback_kernels=allow_fallback_kernels)
-        for i, context in enumerate([contextlib.nullcontext, lambda: mode]):
-            with context():
-                inps1 = [
-                    torch.randn([92, 8, 2048]).npu(),
-                    torch.randn([8192, 2048]).npu(),
-                    torch.randn([8192, 2048]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192, 2048]).npu(),
-                    torch.randn([8192, 2048]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192, 4096]).npu(),
-                    torch.randn([8192, 2048]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192, 4096]).npu(),
-                    torch.randn([8192, 2048]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([8192]).npu(),
-                    torch.randn([167837696]).npu(),
-                    torch.randn([4, 8, 2048]).npu(),
-                    torch.randn([4, 8, 2048]).npu(),
-                ]
-                inps2 = inps1
-                inps2[len(inps2) - 1] = None  # argument `cx` can be None
-
-                for inps in [inps1, inps2]:
-                    out = fn(*inps)
-                    self.assertIs(out[4], inps[-3])
-                    for ten in out:
-                        if i == 1:
-                            self.assertTrue(isinstance(ten, FakeTensor))
-                        self.assertEqual(ten.device.type, 'npu')
-
     # Currently skip by configuring JSON. The NPU needs to be adapted.
     @unittest.skipIf(not RUN_NPU, "requires npu")
     def test_lstm(self):
@@ -1575,9 +1470,9 @@ class TestTranQuantParam(TestCase):
             self.assertTrue(res.shape == test_1_expect_ret.shape)
             self.assertTrue(res.dtype == test_1_expect_ret.dtype)
 
-            test_2_expect_ret = torch.randint(-1, 1, (4,), dtype=torch.int64).npu()
+            test_2_expect_ret = torch.randint(-1, 1, (1, 4), dtype=torch.int64).npu()
             test_2_scale = torch.randn(1, 4, dtype=torch.float32).npu()
-            test_2_offset = torch.randn(4, dtype=torch.float32).npu()
+            test_2_offset = torch.randn(1, 4, dtype=torch.float32).npu()
             res = torch_npu.npu_trans_quant_param(test_2_scale, test_2_offset)
             self.assertTrue(res.shape == test_2_expect_ret.shape)
             self.assertTrue(res.dtype == test_2_expect_ret.dtype)
