@@ -44,6 +44,7 @@ public:
     static uint32_t CheckUseDesyncDebugEnable();
     static std::string CheckDisableDynamicPath();
     static int32_t GetACLExecTimeout();
+    static uint32_t GetRankId();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

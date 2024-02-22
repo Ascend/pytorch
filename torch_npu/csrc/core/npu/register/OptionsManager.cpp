@@ -146,5 +146,12 @@ uint32_t OptionsManager::CheckUseDesyncDebugEnable()
     return static_cast<uint32_t>(desyncDebugFlag);
 }
 
+uint32_t OptionsManager::GetRankId()
+{
+    char* rankId_val = std::getenv("RANK");
+    int64_t rankId = (rankId_val != nullptr) ? strtol(rankId_val, nullptr, 10) : -1;
+    return static_cast<uint32_t>(rankId);
+}
+
 } // namespace option
 } // namespace c10_npu
