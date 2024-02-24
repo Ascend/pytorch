@@ -24,26 +24,24 @@ from typing import List, Dict, Union, Sequence, Optional, Set, Callable
 import yaml
 
 from torchgen.code_template import CodeTemplate
-from torchgen.gen import (parse_tags_yaml, LineLoader, FileManager, parse_native_yaml,
+from torchgen.gen import (parse_tags_yaml, FileManager, parse_native_yaml,
                           get_grouped_native_functions, error_check_native_functions)
-from torchgen.model import (BackendIndex, DispatchKey, Location,
+from torchgen.model import (BackendIndex, DispatchKey,
                             NativeFunction, NativeFunctionsGroup, OperatorName,
                             BackendMetadata, is_cuda_dispatch_key)
 from torchgen.native_function_generation import add_generated_native_functions
 from torchgen.selective_build.selector import SelectiveBuilder
 from torchgen.utils import Target, concatMap, context, NamespaceHelper
-from torchgen.context import native_function_manager
 import torchgen.dest as dest
 import torchgen.api.dispatcher as dispatcher
-from torchgen.api.types import DispatcherSignature
 import torchgen.api.native as native
 from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
 
 from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
                            add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
-                           parse_opplugin_yaml, merge_custom_yaml, field_tag, gen_custom_yaml_path,
-                           update_opapi_info, is_opapi, PathManager, filt_exposed_api)
+                           get_target_functions, merge_custom_yaml, field_tag, gen_custom_yaml_path,
+                           update_opapi_info, is_opapi, PathManager, filt_exposed_api, get_target_native_registration)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
 
@@ -193,7 +191,7 @@ def parse_backend_yaml(
     if not isinstance(yaml_values, dict):
         raise TypeError("yaml_values is not dict")
 
-    valid_keys = ['backend', 'cpp_namespace', 'tocpu', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint']
+    valid_keys = ['backend', 'cpp_namespace', 'supported', 'autograd', 'custom', 'custom_autograd', 'symint']
 
     yaml_backend = yaml_values.pop('backend', None)
     true_backend = 'PrivateUse1' if yaml_backend == 'NPU' else yaml_backend
@@ -224,10 +222,6 @@ def parse_backend_yaml(
         raise TypeError(f'expected "autograd" to be a list, but got: {supported_autograd}')
     supported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported]
     supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
-
-    supported_tocpu = yaml_values.pop('tocpu', [])
-    if not isinstance(supported_tocpu, list):
-        raise TypeError(f'expected "tocpu" to be a list, but got: {supported_tocpu}')
 
     custom = yaml_values.pop('custom', [])
     if not isinstance(custom, list):
@@ -280,19 +274,8 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         backend_indices[autograd_key] = autograd_idx
         backend_indices[str(autograd_key) + opapi_key] = opapi_autograd_idx
 
-    check_op_on_cpu_kernels(supported_tocpu, backend_indices)
     check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
     return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
-
-
-def check_op_on_cpu_kernels(
-        expected_to_cpu: List,
-        backend_indices: Dict[DispatchKey, BackendIndex]):
-    op_names: List[OperatorName] = list(backend_indices[DispatchKey.CPU].index.keys())
-
-    for op_name in op_names:
-        if op_name.name.base not in expected_to_cpu:
-            backend_indices[DispatchKey.CPU].index.pop(op_name, None)
 
 
 def op_plugin_kernel_conut(op_plugin_ops_dir: str):
@@ -344,8 +327,6 @@ def check_op_plugin_kernels(
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate backend stub files')
     parser.add_argument(
-        '--to_cpu', type=str, default="TRUE", help='move op which npu does not support to cpu')
-    parser.add_argument(
         '-s',
         '--source_yaml',
         help='path to source yaml file containing operator external definitions')
@@ -363,7 +344,7 @@ def main() -> None:
         help='path to the source yaml file containing kernel definitions in op_plugin')
     options = parser.parse_args()
 
-    run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run,
+    run(options.source_yaml, options.output_dir, options.dry_run,
         options.impl_path, options.op_plugin_impl_path, options.op_plugin_yaml_path)
 
 
@@ -377,6 +358,7 @@ def gen_dispatcher_registrations(
         selector: "SelectiveBuilder",
         dispatch_key_name: str,
         register_dispatch_key_func: Callable,
+        native_function_registrations: str = '',
 ):
     backend_index = backend_indices[backend_dispatch_key]
     ns_helper = NamespaceHelper(namespace_str="at")
@@ -433,7 +415,7 @@ $dispatch_registrations_body
                 'deferred_dispatch_registrations': '',
                 'dispatch_helpers': dest.gen_registration_helpers(backend_index),
                 'dispatch_namespace': dispatch_key.lower(),
-                'dispatch_namespaced_definitions': '',
+                'dispatch_namespaced_definitions': native_function_registrations,
                 'dispatch_anonymous_definitions': list(
                     concatMap(
                         register_dispatch_key_func(
@@ -509,7 +491,53 @@ m.impl("${schema}", TORCH_FN(at::native::${kernel}));"""
     })
 
 
-def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
+def gen_target_registration(
+        target_op_type: str,
+        dispatch_key: DispatchKey,
+        backend_indices: Dict[DispatchKey, BackendIndex],
+        grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
+        op_plugin_yaml_path: str,
+        fm: FileManager,
+        selector: "SelectiveBuilder",
+        native_functions: List[NativeFunction] = None,
+):
+    target_ops = get_target_functions(op_plugin_yaml_path, target_op_type=target_op_type)
+    target_native_functions = []
+    for f in grouped_native_functions:
+        if isinstance(f, NativeFunctionsGroup):
+            for func in f.functions():
+                if func.func in target_ops:
+                    target_native_functions.append(f)
+        elif f.func in target_ops:
+            target_native_functions.append(f)
+
+    metadata: Dict[OperatorName, BackendMetadata] = {}
+    for op in target_ops:
+        kernel_name = dispatcher.name(op)
+        metadata[op.name] = BackendMetadata(kernel=kernel_name, structured=False, cpp_namespace=target_op_type)
+    backend_indices[dispatch_key] = BackendIndex(
+        dispatch_key=dispatch_key,
+        use_out_as_primary=False,
+        external=True,
+        device_guard=False,
+        index=metadata)
+
+    native_registration = get_target_native_registration(dispatch_key, backend_indices, metadata, native_functions)
+    gen_dispatcher_registrations(
+        fm,
+        backend_indices[dispatch_key].native_function_class_name(),
+        backend_indices,
+        target_native_functions,
+        dispatch_key,
+        dispatch_key,
+        selector,
+        dispatch_key_name=dispatch_key.name,
+        register_dispatch_key_func=dest.RegisterDispatchKey,
+        native_function_registrations=native_registration,
+    )
+
+
+def run(source_yaml: str, output_dir: str, dry_run: bool,
         impl_path: Optional[str], op_plugin_impl_path: Optional[str], op_plugin_yaml_path: Optional[str]) -> None:
     rename_privateuse1_dispatch_key()
     torchgen_path = get_torchgen_dir()
@@ -525,7 +553,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
     tags_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/tags.yaml')
     native_yaml_path = os.path.join(torchgen_path, 'packaged/ATen/native/native_functions.yaml')
     parsed_yaml = parse_native_and_custom_yaml(native_yaml_path, tags_yaml_path, source_yaml)
-    parse_opplugin_yaml(op_plugin_yaml_path)
+    get_target_functions(op_plugin_yaml_path)
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
@@ -576,8 +604,8 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
                 register_dispatch_key_func=dest.RegisterDispatchKey,
             )
 
-        template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
-        fm = FileManager(install_dir=output_dir, template_dir=template_dir, dry_run=dry_run)
+        pta_template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
+        fm = FileManager(install_dir=output_dir, template_dir=pta_template_dir, dry_run=dry_run)
         custom_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
 
         gen_custom_trace(fm, custom_functions)
@@ -590,7 +618,7 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
                              backend_indices[backend_dispatch_key])
 
         custom_ops_patch_dir = os.path.join(output_dir, "../../utils/")
-        fm = FileManager(install_dir=custom_ops_patch_dir, template_dir=template_dir, dry_run=dry_run)
+        fm = FileManager(install_dir=custom_ops_patch_dir, template_dir=pta_template_dir, dry_run=dry_run)
         gen_custom_ops_patch(fm, custom_functions)
 
         filt_exposed_list = filt_exposed_api(source_yaml)
@@ -599,6 +627,17 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool,
         with os.fdopen(os.open(exposed_path, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as f:
             f.write(f'public_npu_functions = {filt_exposed_list}')
         os.chmod(exposed_path, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
+        fm = make_file_manager(output_dir)
+        gen_target_registration(
+            "sparse",
+            DispatchKey.SparsePrivateUse1,
+            backend_indices,
+            grouped_native_functions,
+            op_plugin_yaml_path,
+            fm,
+            selector,
+            native_functions
+        )
 
 
 def apply_torchgen_patch():

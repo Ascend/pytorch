@@ -41,11 +41,6 @@ function parse_script_args() {
             args_num=$((args_num-1))
             shift
             ;;
-        --tocpu=*)
-            export 'NPU_TOCPU'=${1:8}
-            args_num=$((args_num-1))
-            shift
-            ;;
         --disable_torchair)
             export DISABLE_INSTALL_TORCHAIR=TRUE
             shift
