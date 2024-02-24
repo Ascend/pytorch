@@ -188,6 +188,18 @@ def _npu_dropout_meta(self, p):
     return (torch.empty_like(self, dtype=self.dtype), torch.empty(mask, dtype=torch.uint8, device='meta'))
 
 
+@impl(m, "npu_quant_update_scatter")
+def npu_quant_update_scatter_meta(self, indices, updates, quant_scales, quant_zero_points=None, reduce='update',
+                                  axis=0, quant_axis=1):
+    return torch.empty_like(self)
+
+
+@impl(m, "npu_quant_update_scatter_")
+def npu_quant_update_scatter__meta(self, indices, updates, quant_scales, quant_zero_points=None, reduce='update',
+                                   axis=0, quant_axis=1):
+    return self
+
+
 @impl(m, "npu_scatter_list_")
 def scatter_list__meta(self, indices, updates, mask, reduce='update', axis=-2):
     return self
