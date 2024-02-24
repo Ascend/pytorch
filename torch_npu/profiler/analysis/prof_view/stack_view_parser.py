@@ -11,6 +11,8 @@ from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
 from ....utils.path_manager import PathManager
 
+__all__ = []
+
 
 class StackViewParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):

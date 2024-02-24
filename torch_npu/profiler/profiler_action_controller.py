@@ -5,6 +5,8 @@ from .scheduler import ProfilerAction
 from .profiler_interface import ProfInterface
 from .analysis.prof_common_func.constant import print_warn_msg
 
+__all__ = []
+
 
 class ProfActionController:
     def __init__(

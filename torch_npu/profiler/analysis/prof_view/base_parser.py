@@ -20,6 +20,8 @@ from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_common_func.task_manager import ConcurrentMode, ConcurrentTask
 from ..prof_config.parser_deps_config import ParserDepsConfig
 
+__all__ = []
+
 
 class BaseParser(ConcurrentTask, ABC):
     def __init__(self, name: str, param_dict: dict):

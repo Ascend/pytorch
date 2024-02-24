@@ -4,6 +4,8 @@ from ..prof_common_func.file_manager import FileManager
 from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 from ..profiler_config import ProfilerConfig
 
+__all__ = []
+
 
 class IntegrateParser(BaseParser):
     """

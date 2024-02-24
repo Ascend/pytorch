@@ -5,6 +5,8 @@ from ..profiler_config import ProfilerConfig
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.constant import convert_ns2us_str
 
+__all__ = []
+
 
 class MemoryEnum(Enum):
     PTR = 0

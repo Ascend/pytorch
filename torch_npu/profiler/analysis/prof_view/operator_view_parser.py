@@ -7,6 +7,8 @@ from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_common_func.tree_builder import TreeBuilder
 from ..prof_parse.fwk_file_parser import FwkFileParser
 
+__all__ = []
+
 
 class OperatorViewParser(BaseParser):
     OPERATOR_HEADERS = ["Name", "Input Shapes", "Call Stack", "Host Self Duration(us)", "Host Total Duration(us)",

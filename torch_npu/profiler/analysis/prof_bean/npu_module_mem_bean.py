@@ -1,5 +1,7 @@
 from ..prof_common_func.constant import Constant
 
+__all__ = []
+
 
 class NpuModuleMemoryBean:
     SHOW_HEADERS = ["Component", "Timestamp(us)", "Total Reserved(MB)", "Device"]

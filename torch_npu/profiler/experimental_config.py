@@ -2,6 +2,13 @@ import torch_npu._C
 
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
 
+__all__ = [
+    'supported_profiler_level',
+    'supported_ai_core_metrics',
+    'ProfilerLevel', 'AiCMetrics',
+    '_ExperimentalConfig'
+]
+
 
 def supported_profiler_level():
     return set((ProfilerLevel.Level0, ProfilerLevel.Level1, ProfilerLevel.Level2))

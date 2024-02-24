@@ -28,6 +28,8 @@ from ..prof_view.memory_view_parser import MemoryViewParser
 from ..prof_view.integrate_parser import IntegrateParser
 from ..prof_view.communication_parser import CommunicationParser
 
+__all__ = []
+
 
 class ParserConfig:
     COMMON_CONFIG = {

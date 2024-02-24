@@ -9,6 +9,8 @@ from .analysis.prof_common_func.singleton import Singleton
 from .analysis.prof_common_func.constant import print_warn_msg
 from .analysis.prof_common_func.path_manager import ProfilerPathManager
 
+__all__ = []
+
 
 @Singleton
 class ProfPathCreator:

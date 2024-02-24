@@ -11,6 +11,8 @@ from ..profiler_config import ProfilerConfig
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_file_parser import FwkFileParser
 
+__all__ = []
+
 
 class TraceViewParser(BaseParser):
     TRACE_VIEW = "trace_view.json"

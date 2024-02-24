@@ -21,6 +21,8 @@ from ...prof_common_func.constant import print_warn_msg, Constant, print_error_m
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
 
+__all__ = []
+
 
 class CANNAnalyzeParser(BaseParser):
     COMMAND_SUCCESS = 0

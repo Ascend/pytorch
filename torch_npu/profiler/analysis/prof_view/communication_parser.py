@@ -10,6 +10,8 @@ from ..prof_parse.cann_file_parser import CANNDataEnum
 from ..prof_common_func.constant import convert_us2ns
 from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 
+__all__ = []
+
 
 class CommunicationParser(BaseParser):
     """

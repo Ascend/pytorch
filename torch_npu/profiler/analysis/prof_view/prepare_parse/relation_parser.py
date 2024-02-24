@@ -17,6 +17,8 @@ from ...prof_common_func.constant import Constant, print_error_msg
 from ...prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 from ...prof_view.base_parser import BaseParser
 
+__all__ = []
+
 
 class RelationParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):
