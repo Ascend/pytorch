@@ -296,8 +296,8 @@ def npu_weight_quant_batchmatmul_meta(x, weight, antiquant_scale, antiquant_offs
     dim_m = x.size(0)
     dim_n = weight.size(1)
     if quant_scale is not None:
-        return x.new_empty((dimm, dimn), dtype=torch.int8)
-    return x.new_empty((dimm, dimn), dtype=x.dtype)
+        return x.new_empty((dim_m, dim_n), dtype=torch.int8)
+    return x.new_empty((dim_m, dim_n), dtype=x.dtype)
 
 
 def bias_shape_check(x2, bias, batch_val):
@@ -444,6 +444,7 @@ def npu_trans_quant_param_meta(scale, offset=None):
         scale_dim_num == 1 or (scale_dim_num == 2 and scale.size(0) == 1),
         lambda: "the scale shape support only (1, ) and (1, n)",
     )
+    output_shape = scale.size()
     if scale_dim_num == 1:
         scale_first_dim = scale.size(0)
         dim_max = scale_first_dim
@@ -462,7 +463,6 @@ def npu_trans_quant_param_meta(scale, offset=None):
                 scale.size() == offset.size(),
                 lambda: "when the input shape of scale is (1, n), shape of scale and offset should be equal",
             )
-            output_shape = scale.size()
     return scale.new_empty(output_shape, dtype=torch.int64)
 
 
