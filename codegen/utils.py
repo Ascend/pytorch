@@ -18,18 +18,23 @@ import sys
 import stat
 import traceback
 import warnings
-from typing import List, Optional, Set, Dict
+from typing import List, Optional, Set, Dict, Union, Sequence
 from collections import defaultdict
 import yaml
 
+from torchgen.api.types.signatures import NativeSignature
 from torchgen.context import native_function_manager
+from torchgen.code_template import CodeTemplate
 from torchgen.model import (
     Arguments,
+    BackendIndex,
+    BackendMetadata,
     DispatchKey,
     is_cuda_dispatch_key,
     NativeFunction,
     NativeFunctionsGroup,
     FunctionSchema,
+    OperatorName,
 )
 from torchgen.api import cpp
 from torchgen.api.translate import translate
@@ -160,44 +165,6 @@ def filt_exposed_api(custom_path: str):
         if es.get('exposed', False):
             exposed_set.add(es.get('func').split('(')[0].split('.')[0])
     return list(exposed_set)
-
-
-def parse_opplugin_yaml(custom_path: str) -> Dict:
-
-    source_es = parse_npu_yaml(custom_path)
-
-    custom = source_es.pop('custom', [])
-    if custom is None:
-        custom = []  # Allow an empty list of supported ops
-    official = source_es.pop('official', [])
-    if official is None:
-        official = []  # Allow an empty list of supported ops
-
-    support_ops = custom + official
-
-    symint = source_es.pop("symint", [])
-    if symint is None:
-        symint = []
-    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]
-    symint_set = set([str(FunctionSchema.parse(op).name) for op in symint])
-
-    global GLOBAL_STRUCTURED_OP_INFO_CACHE
-    for x in support_ops:
-        funcs = x.get("func", None)
-        if not isinstance(funcs, str):
-            raise TypeError(f'not a str : {funcs}')
-        func = FunctionSchema.parse(funcs)
-        wrap_name = cpp.name(func)
-        op_key = str(func.name)
-        if op_key in symint_set:
-            wrap_name += "_symint"
-        cur_wrap_name = GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
-        if cur_wrap_name and cur_wrap_name != wrap_name:
-            print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
-                  f"with {wrap_name} being used as the actual wrap_name")
-        GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
-
-    return source_es
 
 
 def rename_privateuse1_dispatch_key():
@@ -498,3 +465,104 @@ def update_opapi_info(op_info):
 def is_opapi(op_key):
     global GLOBAL_OPAPI_INFO_CACHE
     return op_key in GLOBAL_OPAPI_INFO_CACHE
+
+
+def get_target_functions(yaml_path: str, target_op_type: str = None) -> List:
+    source_es = parse_npu_yaml(yaml_path)
+
+    custom = source_es.pop('custom', [])
+    if custom is None:
+        custom = []  # Allow an empty list of supported ops
+    official = source_es.pop('official', [])
+    if official is None:
+        official = []  # Allow an empty list of supported ops
+
+    support_ops = custom + official
+
+    symint = source_es.pop("symint", [])
+    if symint is None:
+        symint = []
+    symint = [op['func'] if isinstance(op, Dict) else op for op in symint]
+    symint_set = set([str(FunctionSchema.parse(op).name) for op in symint])
+
+    global GLOBAL_STRUCTURED_OP_INFO_CACHE
+    GLOBAL_STRUCTURED_OP_INFO_CACHE.clear()
+    target_funcs = []
+    for op in support_ops:
+        funcs = op.get("func", None)
+        if not isinstance(funcs, str):
+            raise TypeError(f'not a str : {funcs}')
+        func = FunctionSchema.parse(funcs)
+        wrap_name = cpp.name(func)
+        op_key = str(func.name)
+        if op_key in symint_set:
+            wrap_name += "_symint"
+        if target_op_type is not None:
+            if target_op_type not in op.keys():
+                continue
+            wrap_name += "_" + target_op_type
+        cur_wrap_name = GLOBAL_STRUCTURED_OP_INFO_CACHE.get(op_key, "")
+        if cur_wrap_name and cur_wrap_name != wrap_name:
+            print(f"Find different wrap_name for {cur_wrap_name} and {wrap_name} between pta and opplugin, ",
+                  f"with {wrap_name} being used as the actual wrap_name")
+        GLOBAL_STRUCTURED_OP_INFO_CACHE[op_key] = wrap_name
+        target_funcs.append(func)
+
+    return target_funcs
+
+
+def get_target_native_registration(
+    dispatch_key: DispatchKey,
+    backend_indices: Dict[DispatchKey, BackendIndex],
+    metadata: Dict[OperatorName, BackendMetadata],
+    native_functions: List[NativeFunction],
+):
+    if native_functions is None:
+        return ""
+    cpu_dispatch_key = DispatchKey.parse(dispatch_key.name.replace("PrivateUse1", "CPU"))
+    cpu_backend_indices = backend_indices[cpu_dispatch_key]
+    cuda_dispatch_key = DispatchKey.parse(dispatch_key.name.replace("PrivateUse1", "CUDA"))
+    cuda_backend_indices = backend_indices[cuda_dispatch_key]
+
+    target_native_functions_kernels = {}
+    for op_name in cpu_backend_indices.index.keys():
+        if cpu_backend_indices.index[op_name].kernel == cuda_backend_indices.index[op_name].kernel \
+                and op_name not in metadata.keys():
+            target_native_functions_kernels[op_name] = cpu_backend_indices.index[op_name].kernel
+    target_native_functions = []
+    for f in native_functions:
+        if f.func.name in target_native_functions_kernels.keys():
+            target_native_functions.append(f)
+
+    native_functions_registration_template = CodeTemplate(
+        """\
+namespace {
+
+${dispatch_helpers}
+
+TORCH_LIBRARY_IMPL(aten, ${dispatch_key}, m) {
+${native_kernels}
+}
+}
+""")
+
+    def wrap_native_function(f):
+        kernel_name = target_native_functions_kernels[f.func.name]
+        wrap_func_name = f"wrap_{dispatch_key}_{str(f.func.name.name)}_{f.func.name.overload_name}"
+        with native_function_manager(f):
+            sig = NativeSignature(f.func, prefix='', symint=kernel_name.endswith('symint'))
+            args_exprs_str = ', '.join(a.name for a in sig.arguments())
+            return f"""{sig.decl(name=wrap_func_name)} {{
+    return at::native::{kernel_name}({args_exprs_str});
+}}
+"""
+
+    def register_wrap_native_function(f):
+        wrap_func_name = f"wrap_{dispatch_key}_{str(f.func.name.name)}_{f.func.name.overload_name}"
+        return f"m.impl(\"{f.func.name}\", TORCH_FN({wrap_func_name}));"
+
+    return native_functions_registration_template.substitute(
+        dispatch_helpers=[wrap_native_function(f) for f in target_native_functions],
+        dispatch_key=dispatch_key.name,
+        native_kernels=[register_wrap_native_function(f) for f in target_native_functions]
+    )
