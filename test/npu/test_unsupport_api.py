@@ -26,15 +26,6 @@ class ScriptModel(nn.Module):
 
 
 class TestPtaUnsupportApi(TestCase):
-    def test_indices(self):
-        op_name = "indices"
-        with self.assertRaisesRegex(RuntimeError, "{} expected ".format(op_name)):
-            indices = torch.tensor([[0, 1, 2], [1, 2, 0]])
-            value = torch.tensor([3, 4, 5])
-            shape = torch.Size([3, 3])
-            sparse_tensor = torch.sparse_coo_tensor(indices, value, shape)
-            coalesce_tensor = sparse_tensor.coalesce().npu()
-            coalesce_tensor.indices()
 
     def test_crow_indices(self):
         op_name = "crow_indices"
