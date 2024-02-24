@@ -5,6 +5,8 @@ from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 
+__all__ = []
+
 
 class TraceStepTimeParser(BaseParser):
     STEP_TRACE = "step_trace_time.csv"

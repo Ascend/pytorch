@@ -2,6 +2,8 @@ from enum import Enum
 from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_common_func.trace_event_manager import TraceEventManager
 
+__all__ = []
+
 
 class TraceTag(Enum): 
     kPy_Call = 0

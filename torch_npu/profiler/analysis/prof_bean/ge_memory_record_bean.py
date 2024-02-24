@@ -2,6 +2,8 @@ from ..prof_common_func.constant import Constant
 from ..prof_common_func.constant import convert_ns2us_str
 from ..prof_common_func.constant import convert_us2ns
 
+__all__ = []
+
 
 class GeMemoryRecordBean:
 

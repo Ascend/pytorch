@@ -13,6 +13,8 @@ from ..prof_bean.ge_op_memory_bean import GeOpMemoryBean
 from ..prof_bean.ge_memory_record_bean import GeMemoryRecordBean
 from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 
+__all__ = []
+
 
 class MemoryViewParser(BaseParser):
     HEADERS_OPERATOR = ["Name", "Size(KB)", "Allocation Time(us)", "Release Time(us)", "Active Release Time(us)",

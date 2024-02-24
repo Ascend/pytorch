@@ -3,6 +3,8 @@ from ..prof_bean.torch_op_node import TorchOpNode
 from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_parse.cann_file_parser import CANNFileParser
 
+__all__ = []
+
 
 class FwkCANNRelationParser:
     def __init__(self, profiler_path: str):

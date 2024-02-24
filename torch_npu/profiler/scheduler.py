@@ -2,6 +2,8 @@ from enum import Enum
 
 from .analysis.prof_common_func.constant import print_warn_msg
 
+__all__ = []
+
 
 class ProfilerAction(Enum):
     NONE = 0

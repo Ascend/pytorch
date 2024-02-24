@@ -10,6 +10,8 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from .constant import print_error_msg
 
+__all__ = []
+
 
 # 并发模式，非互斥的属性可以通过|同时设置
 class ConcurrentMode:

@@ -4,6 +4,8 @@ import re
 from ....utils.path_manager import PathManager
 from ..prof_common_func.constant import Constant
 
+__all__ = []
+
 
 class ProfilerPathManager:
     @classmethod

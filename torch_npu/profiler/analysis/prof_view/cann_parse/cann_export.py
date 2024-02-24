@@ -23,6 +23,8 @@ from ...prof_common_func.constant import Constant, print_warn_msg, print_error_m
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
 
+__all__ = []
+
 
 class CANNExportParser(BaseParser):
     COMMAND_SUCCESS = 0

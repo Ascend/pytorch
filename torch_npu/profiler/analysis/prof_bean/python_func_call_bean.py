@@ -3,6 +3,8 @@ from enum import Enum
 from ..profiler_config import ProfilerConfig
 from ..prof_common_func.constant import Constant
 
+__all__ = []
+
 
 class PythonFuncCallEnum(Enum):
     START_NS = 0

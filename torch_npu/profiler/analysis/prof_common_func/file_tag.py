@@ -1,5 +1,7 @@
 from enum import Enum
 
+__all__ = []
+
 
 class FileTag(Enum):
     # pytorch file tag
