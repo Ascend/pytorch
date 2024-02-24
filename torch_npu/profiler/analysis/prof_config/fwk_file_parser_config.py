@@ -5,6 +5,8 @@ from ..prof_bean.torch_op_bean import TorchOpBean
 from ..prof_bean.python_module_call_bean import PythonModuleCallBean
 from ..prof_bean.python_func_call_bean import PythonFuncCallBean
 
+__all__ = []
+
 
 class FwkFileParserConfig:
     FILE_DISPATCH_MAP = {

@@ -20,6 +20,8 @@ from ...prof_common_func.file_manager import FileManager
 from ...prof_parse.fwk_file_parser import FwkFileParser
 from ...prof_view.base_parser import BaseParser
 
+__all__ = []
+
 
 class TracePreParser(BaseParser):
 

@@ -1,5 +1,7 @@
 from ..prof_common_func.csv_headers import CsvHeaders
 
+__all__ = []
+
 
 class OpSummaryBean:
     headers = []

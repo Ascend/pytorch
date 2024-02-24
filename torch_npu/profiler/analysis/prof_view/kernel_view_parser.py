@@ -7,6 +7,8 @@ from ..prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
 from ..profiler_config import ProfilerConfig
 
+__all__ = []
+
 
 class KernelViewParser(BaseParser):
     KERNEL_VIEW = "kernel_details.csv"

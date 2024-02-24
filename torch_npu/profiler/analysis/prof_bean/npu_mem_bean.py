@@ -1,5 +1,7 @@
 from ..prof_common_func.constant import Constant
 
+__all__ = []
+
 
 class NpuMemoryBean:
     SHOW_HEADERS = ["event", "timestamp(us)", "allocated(KB)", "memory(KB)", "active", "stream_ptr"]

@@ -1,6 +1,8 @@
 from typing import List
 from ..prof_common_func.constant import convert_us2ns
 
+__all__ = []
+
 
 class NodeInfoBean:
     def __init__(self, kernel_list: list):

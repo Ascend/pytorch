@@ -13,6 +13,8 @@ from ..prof_common_func.tree_builder import TreeBuilder
 from ..prof_config.fwk_file_parser_config import FwkFileParserConfig
 from .python_trace_parser import PythonTraceParser
 
+__all__ = []
+
 
 class FwkFileParser:
     def __init__(self, profiler_path: str):

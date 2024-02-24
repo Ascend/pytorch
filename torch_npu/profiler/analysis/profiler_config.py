@@ -14,6 +14,8 @@ from .prof_bean.l2_cache_bean import L2CacheBean
 from .prof_bean.op_statistic_bean import OpStatisticBean
 from .prof_bean.npu_module_mem_bean import NpuModuleMemoryBean
 
+__all__ = []
+
 
 @Singleton
 class ProfilerConfig:

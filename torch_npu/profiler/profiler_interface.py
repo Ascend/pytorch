@@ -28,6 +28,8 @@ from .analysis.prof_common_func.file_manager import FileManager
 from .analysis.prof_common_func.path_manager import ProfilerPathManager
 from ..utils.path_manager import PathManager
 
+__all__ = ["supported_activities"]
+
 
 class ProfInterface:
     def __init__(

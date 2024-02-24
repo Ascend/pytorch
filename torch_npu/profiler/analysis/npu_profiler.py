@@ -8,6 +8,8 @@ from .prof_common_func.prof_process import ProfProcess
 from .profiling_parser import ProfilingParser
 from ...utils.path_manager import PathManager
 
+__all__ = []
+
 
 class NpuProfiler:
 

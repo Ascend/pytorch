@@ -1,5 +1,7 @@
 import multiprocessing
 
+__all__ = []
+
 
 class ProfProcess(multiprocessing.Process):
     @property

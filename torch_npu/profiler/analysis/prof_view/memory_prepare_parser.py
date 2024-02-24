@@ -25,6 +25,8 @@ from ..prof_bean.memory_use_bean import MemoryUseBean
 from ..prof_common_func.constant import Constant, print_error_msg, print_warn_msg
 from ..prof_common_func.constant import convert_ns2us_float, convert_ns2us_str
 
+__all__ = []
+
 
 class MemoryPrepareParser(BaseParser):
 

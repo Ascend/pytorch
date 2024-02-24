@@ -12,6 +12,8 @@ from ..prof_common_func.constant import convert_us2ns
 from ..prof_common_func.path_manager import ProfilerPathManager
 from ..prof_common_func.file_manager import FileManager
 
+__all__ = []
+
 
 class CANNDataEnum(Enum):
     OP_SUMMARY = 0

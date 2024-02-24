@@ -9,6 +9,8 @@ from .prof_parse.cann_file_parser import CANNFileParser
 from .profiler_config import ProfilerConfig
 from ...utils.path_manager import PathManager
 
+__all__ = []
+
 
 class ProfilingParser:
     def __init__(self, profiler_path: str, analysis_type: str, output_path: str, kwargs: dict):
