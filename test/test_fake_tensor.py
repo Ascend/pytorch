@@ -1364,6 +1364,65 @@ class TestScatterUpdateMeta(TestCase):
             self.assertIsNot(fake_result, in_self)
 
 
+class TestNpuQuantScatterMeta(TestCase):
+
+    def test_npu_quant_scatter_meta(self):
+        with FakeTensorMode() as mode:
+            data_var = np.random.uniform(0, 1, [1, 1, 32]).astype(np.int8)
+            in_var = torch.from_numpy(data_var).to(torch.int8).npu()
+            data_indices = np.random.uniform(0, 1, [1]).astype(np.int32)
+            in_indices = torch.from_numpy(data_indices).to(torch.int32).npu()
+            data_updates = np.random.uniform(1, 2, [1, 1, 32]).astype(np.float16)
+            in_updates = torch.from_numpy(data_updates).to(torch.bfloat16).npu()
+            data_quant_scales = np.random.uniform(0, 1, [1, 1, 32]).astype(np.float16)
+            in_quant_scales = torch.from_numpy(data_quant_scales).to(torch.bfloat16).npu()
+            fake_var = mode.from_tensor(in_var)
+            fake_indices = mode.from_tensor(in_indices)
+            fake_updates = mode.from_tensor(in_updates)
+            fake_quant_scales = mode.from_tensor(in_quant_scales)
+            self.assertIsNotNone(fake_var)
+            self.assertIsNotNone(fake_indices)
+            self.assertIsNotNone(fake_updates)
+            self.assertIsNotNone(fake_quant_scales)
+            fake_result = torch.ops.npu.npu_quant_scatter(fake_var, fake_indices, fake_updates, fake_quant_scales, None,
+                                                          -2, -1, "update")
+
+            self.assertEqual(fake_result.shape, in_var.shape)
+            self.assertEqual(fake_result.dtype, in_var.dtype)
+            self.assertEqual(fake_result.device, in_var.device)
+            self.assertTrue(isinstance(fake_result, FakeTensor))
+            self.assertIsNot(fake_result, fake_var)
+            self.assertIsNot(fake_result, in_var)
+
+    def test_npu_quant_scatter__meta(self):
+        with FakeTensorMode() as mode:
+            data_var = np.random.uniform(0, 1, [1, 1, 32]).astype(np.int8)
+            in_var = torch.from_numpy(data_var).to(torch.int8).npu()
+            data_indices = np.random.uniform(0, 1, [1]).astype(np.int32)
+            in_indices = torch.from_numpy(data_indices).to(torch.int32).npu()
+            data_updates = np.random.uniform(1, 2, [1, 1, 32]).astype(np.float16)
+            in_updates = torch.from_numpy(data_updates).to(torch.bfloat16).npu()
+            data_quant_scales = np.random.uniform(0, 1, [1, 1, 32]).astype(np.float16)
+            in_quant_scales = torch.from_numpy(data_quant_scales).to(torch.bfloat16).npu()
+            fake_var = mode.from_tensor(in_var)
+            fake_indices = mode.from_tensor(in_indices)
+            fake_updates = mode.from_tensor(in_updates)
+            fake_quant_scales = mode.from_tensor(in_quant_scales)
+            self.assertIsNotNone(fake_var)
+            self.assertIsNotNone(fake_indices)
+            self.assertIsNotNone(fake_updates)
+            self.assertIsNotNone(fake_quant_scales)
+            fake_result = torch.ops.npu.npu_quant_scatter_(fake_var, fake_indices, fake_updates, fake_quant_scales,
+                                                           None, -2, -1, "update")
+
+            self.assertEqual(fake_result.shape, in_var.shape)
+            self.assertEqual(fake_result.dtype, in_var.dtype)
+            self.assertEqual(fake_result.device, in_var.device)
+            self.assertTrue(isinstance(fake_result, FakeTensor))
+            self.assertIs(fake_result, fake_var)
+            self.assertIsNot(fake_result, in_var)
+
+
 class TestNpuDeepNorm(TestCase):
     def test_npu_deep_norm(self):
         with FakeTensorMode():
