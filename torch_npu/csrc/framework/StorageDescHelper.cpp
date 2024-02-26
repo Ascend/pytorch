@@ -126,7 +126,7 @@ void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor, std::u
     std::string storage_sizes_;
     small_vector_to_str(base_sizes_, "base_sizes_", desc.base_sizes_);
     small_vector_to_str(base_strides_, "base_strides_", desc.base_strides_);
-    small_vector_to_str(storage_sizes_, "storage_sizes_", desc.storage_sizes_);
+    small_vector_to_str(storage_sizes_, "storage_sizes_", FormatHelper::GetStorageSizes(ACL_FORMAT_ND, desc.base_sizes_));
     desc_map[base_sizes_] = true;
     desc_map[base_strides_] = true;
     desc_map[storage_sizes_] = true;
