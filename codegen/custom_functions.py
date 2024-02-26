@@ -22,11 +22,6 @@ CUSTOM_FUNCTIONS_DECLARATION = CodeTemplate("""\
 ${return_type} ${func_name}(${args_str});
 """)
 
-EXPORT_CUSTOM_FUNCTIONS_DECLARATION = CodeTemplate("""\
-__attribute__((__visibility__("default"))) \
-${return_type} ${func_name}(${args_str});
-""")
-
 CUSTOM_FUNCTIONS_DEFINITION = CodeTemplate("""\
 ${return_type} ${func_name}(${args_str}) {
     static auto op = c10::Dispatcher::singleton().findSchemaOrThrow("npu::${base_name}", "${overload}").typed<${schema}>();
@@ -178,12 +173,6 @@ def compute_custom_functions_declaration(f: NativeFunction, func_type: str):
             args_str = ', '.join(a.decl() for a in args)
         if func_type == 'redispatch':
             args_str = 'c10::DispatchKeySet dispatchKeySet, ' + ', '.join(a.decl() for a in args)
-
-        if (func_type == 'call') and (name == 'npu_slice_out'):
-            return [EXPORT_CUSTOM_FUNCTIONS_DECLARATION.substitute(
-                    return_type=cpp.returns_type(f.func.returns).cpp_type(),
-                    func_name=name,
-                    args_str=args_str,)]
 
         return [CUSTOM_FUNCTIONS_DECLARATION.substitute(
                 return_type=cpp.returns_type(f.func.returns).cpp_type(),

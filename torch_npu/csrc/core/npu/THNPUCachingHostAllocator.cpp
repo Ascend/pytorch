@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #ifndef BUILD_LIBTORCH
 #include <Python.h>
