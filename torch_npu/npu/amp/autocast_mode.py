@@ -11,6 +11,7 @@ except ModuleNotFoundError:
 
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 class autocast(torch.amp.autocast_mode.autocast):
@@ -94,7 +95,7 @@ def custom_fwd(fwd=None, **kwargs):
             cast_inputs = None
         else:
             if len(kwargs) != 1:
-                raise ValueError("More than one keyword argument.")
+                raise ValueError("More than one keyword argument." + pta_error(ErrCode.PARAM))
             cast_inputs = kwargs.get("cast_inputs", None)
         return functools.partial(custom_fwd, cast_inputs=cast_inputs)
 
@@ -102,7 +103,7 @@ def custom_fwd(fwd=None, **kwargs):
         cast_inputs = None
     else:
         if len(kwargs) != 1:
-            raise ValueError("More than one keyword argument.")
+            raise ValueError("More than one keyword argument." + pta_error(ErrCode.PARAM))
         cast_inputs = kwargs.get("cast_inputs", None)
 
     @functools.wraps(fwd)

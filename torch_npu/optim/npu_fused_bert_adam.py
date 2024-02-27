@@ -4,6 +4,7 @@ from collections import defaultdict
 import torch
 from torch.optim.optimizer import required
 from torch_npu.utils import npu_combine_tensors
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 __all__ = ["NpuFusedBertAdam"]
@@ -74,17 +75,17 @@ class NpuFusedBertAdam(NpuFusedOptimizerBase):
                  b1=0.9, b2=0.999, e=1e-6, weight_decay=0.01,
                  max_grad_norm=1.0):
         if lr is not required and lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError("Invalid learning rate: {}".format(lr) + pta_error(ErrCode.VALUE))
         if (warmup < 0.0 and warmup != -1) or warmup >= 1.0:
-            raise ValueError("Invalid warmup: {}".format(warmup))
+            raise ValueError("Invalid warmup: {}".format(warmup) + pta_error(ErrCode.VALUE))
         if schedule not in SCHEDULES:
-            raise ValueError("Invalid schedule parameter: {}".format(schedule))
+            raise ValueError("Invalid schedule parameter: {}".format(schedule) + pta_error(ErrCode.VALUE))
         if b1 < 0.0 or b1 >= 1.0:
-            raise ValueError("Invalid b1 parameter: {}".format(b1))
+            raise ValueError("Invalid b1 parameter: {}".format(b1) + pta_error(ErrCode.VALUE))
         if b2 < 0.0 or b2 >= 1.0:
-            raise ValueError("Invalid b2 parameter: {}".format(b2))
+            raise ValueError("Invalid b2 parameter: {}".format(b2) + pta_error(ErrCode.VALUE))
         if e < 0.0:
-            raise ValueError("Invalid epsilon value: {}".format(e))
+            raise ValueError("Invalid epsilon value: {}".format(e) + pta_error(ErrCode.VALUE))
         defaults = dict(lr=lr, schedule=schedule, warmup=warmup, t_total=t_total,
                         b1=b1, b2=b2, e=e, weight_decay=weight_decay,
                         max_grad_norm=max_grad_norm)

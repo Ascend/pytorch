@@ -9,6 +9,7 @@ from torch.nn import Parameter
 
 import torch_npu
 from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout, DropOutTask
+from torch_npu.utils.error_code import ErrCode, ops_error
 from ..function import matmul_transpose
 
 dropout_class = NpuCachedDropout
@@ -42,7 +43,7 @@ def _quant_noise(module, p, block_size):
 
     # supported modules
     if not isinstance(module, (nn.Linear, nn.Embedding, nn.Conv2d)):
-        raise TypeError("Expected isinstance(module, (nn.Linear, nn.Embedding, nn.Conv2d))")
+        raise TypeError("Expected isinstance(module, (nn.Linear, nn.Embedding, nn.Conv2d))" + ops_error(ErrCode.TYPE))
 
     # test whether module.weight has the right sizes wrt block_size
     is_conv = module.weight.ndim == 4
@@ -50,19 +51,19 @@ def _quant_noise(module, p, block_size):
     # 2D matrix
     if not is_conv:
         if module.weight.size(1) % block_size != 0:
-            raise ValueError("Input features must be a multiple of block sizes")
+            raise ValueError("Input features must be a multiple of block sizes" + ops_error(ErrCode.VALUE))
 
     # 4D matrix
     else:
         # 1x1 convolutions
         if module.kernel_size == (1, 1):
             if module.in_channels % block_size != 0:
-                raise ValueError("Input channels must be a multiple of block sizes")
+                raise ValueError("Input channels must be a multiple of block sizes" + ops_error(ErrCode.VALUE))
         # regular convolutions
         else:
             k = module.kernel_size[0] * module.kernel_size[1]
             if k % block_size != 0:
-                raise ValueError("Kernel size must be a multiple of block size")
+                raise ValueError("Kernel size must be a multiple of block size" + ops_error(ErrCode.VALUE))
 
     def _forward_pre_hook(mod, input1):
         # no noise for evaluation
@@ -126,7 +127,7 @@ class NpuLinear(nn.Linear):
         elif input2.dim() == 2:
             return torch_npu.npu_linear(input2, self.weight, self.bias)
         else:
-            raise RuntimeError('not support this dim')
+            raise RuntimeError('not support this dim' + ops_error(ErrCode.NOT_SUPPORT))
 
         
 class MHAConfig:
@@ -200,14 +201,15 @@ class MultiheadAttention(nn.Module):
 
         self.head_dim = embed_dim // num_heads
         if self.head_dim * num_heads != self.embed_dim:
-            raise ValueError("embed_dim must be divisible by num_heads")
+            raise ValueError("embed_dim must be divisible by num_heads" + ops_error(ErrCode.VALUE))
         self.scaling = self.head_dim ** -0.5
 
         self.self_attention = self_attention
         self.encoder_decoder_attention = encoder_decoder_attention
 
         if self.self_attention and not self.qkv_same_dim:
-            raise ValueError("Self-attention requires query, key and " "value to be of the same size")
+            raise ValueError("Self-attention requires query, key and " "value to be of the same size" + 
+                             ops_error(ErrCode.VALUE))
 
         self.k_proj = _quant_noise(
             NpuLinear(self.kdim, embed_dim, bias=bias), q_noise, qn_block_size

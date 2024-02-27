@@ -19,6 +19,7 @@ import subprocess
 import time
 from datetime import datetime
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from ...prof_common_func.constant import Constant, print_warn_msg, print_error_msg, print_info_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
@@ -42,7 +43,7 @@ class CANNExportParser(BaseParser):
             if not os.path.isdir(self._cann_path):
                 return Constant.SUCCESS, None
             if not self.msprof_path:
-                err_msg = "Export CANN Profiling data failed! msprof command not found!"
+                err_msg = "Export CANN Profiling data failed! msprof command not found!" + prof_error(ErrCode.NOT_FOUND)
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
             self._check_prof_data_size()
@@ -51,7 +52,7 @@ class CANNExportParser(BaseParser):
                                                capture_output=True, shell=False)
             if completed_process.returncode != self.COMMAND_SUCCESS:
                 print_warn_msg(f"{self.error_msg} --output={self._cann_path}")
-                raise RuntimeError("Failed to export CANN Profiling data.")
+                raise RuntimeError("Failed to export CANN Profiling data." + prof_error(ErrCode.INTERNAL))
         except Exception:
             print_error_msg("Failed to export CANN Profiling data.")
             return Constant.FAIL, None

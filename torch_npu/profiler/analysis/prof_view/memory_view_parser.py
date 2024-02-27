@@ -1,6 +1,7 @@
 from warnings import warn
 import os
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from .base_parser import BaseParser
 from .memory_prepare_parser import MemoryPrepareParser
 from ..prof_common_func.path_manager import ProfilerPathManager
@@ -90,7 +91,7 @@ class MemoryViewParser(BaseParser):
         try:
             self.ge_record_list = sorted(self.ge_record_list, key=lambda x: x.time_ns)
         except Exception as e:
-            raise RuntimeError(f"Can't sort records for cann memory record") from e
+            raise RuntimeError(f"Can't sort records for cann memory record" + prof_error(ErrCode.INTERNAL)) from e
         ge_ptr = 0
         pta_ptr = 0
         last_ge_record = None
