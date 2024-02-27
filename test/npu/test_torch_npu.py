@@ -210,8 +210,8 @@ class TorchNPUApiTestCase(TestCase):
         self.assertIsInstance(res, torch_npu.npu.Event)
 
     def test_npu_event_elapsed_time(self):
-        start_event = torch_npu.npu.Event()
-        end_event = torch_npu.npu.Event()
+        start_event = torch_npu.npu.Event(enable_timing=True)
+        end_event = torch_npu.npu.Event(enable_timing=True)
         start_event.record()
         end_event.record()
         res = start_event.elapsed_time(end_event)
