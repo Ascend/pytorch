@@ -11,6 +11,7 @@ struct TORCH_API NPUHooksInterface : public at::PrivateUse1HooksInterface {
       return device_gen;
     }
     void initPrivateUse1() const override;
+    bool hasPrimaryContext(c10::DeviceIndex device_index) const override;
 };
 
 struct TORCH_API NPUHooksArgs : public at::PrivateUse1HooksArgs {};

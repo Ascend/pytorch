@@ -5,9 +5,8 @@ from typing import List
 
 import torch
 import torch.distributed as dist
-from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, \
-    _refresh_per_optimizer_state
-from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
+from torch.amp.grad_scaler import _MultiDeviceReplicator, OptState, _refresh_per_optimizer_state
+from torch.amp.grad_scaler import GradScaler as BaseGradScaler
 import torch_npu
 from .common import amp_definitely_not_available
 
@@ -24,7 +23,7 @@ class _NpuMultiDeviceReplicator(_MultiDeviceReplicator):
         self._per_device_tensors = {}
 
 
-class GradScaler(Cuda_GradScaler):
+class GradScaler(BaseGradScaler):
     """
     An instance ``scaler`` of :class:`GradScaler` helps perform the steps of gradient scaling
     conveniently.

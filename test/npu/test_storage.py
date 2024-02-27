@@ -1,3 +1,4 @@
+import unittest
 import copy
 import torch
 import torch_npu
@@ -128,6 +129,7 @@ class TestStorage(TestCase):
                 npu_res = npu_storage.tolist()
                 self.assertEqual(cpu_res, npu_res)
 
+            @unittest.skip("Skip untyped storage resize test now (reopen when resizePrivateUse1Bytes is available).")
             def _test_resize_(cpu_storage, npu_storage):
                 cpu_ori_ptr = cpu_storage.data_ptr()
                 npu_ori_ptr = npu_storage.data_ptr()

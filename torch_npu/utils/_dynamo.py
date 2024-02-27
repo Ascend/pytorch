@@ -7,7 +7,7 @@ from torch._dynamo.variables.torch import TorchCtxManagerClassVariable, TorchInG
 from torch._dynamo.variables.base import VariableTracker
 from torch._dynamo.variables.ctx_manager import AutocastModeVariable
 from torch._dynamo.variables.user_defined import UserDefinedClassVariable
-from torch._dynamo.variables.misc import SkipFilesVariable
+from torch._dynamo.variables.functions import SkipFunctionVariable
 from torch._dynamo.variables.constant import ConstantVariable
 from torch._dynamo.variables.tensor import TensorVariable
 from torch._dynamo.variables.lists import TupleVariable
@@ -73,7 +73,7 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
     return cls.__new__raw(cls)
 
 
-def SkipFilesVariable__new__(cls, value, reason=None, **kwargs):
+def SkipFunctionVariable__new__(cls, value, reason=None, **kwargs):
     if value in [
         torch.npu.stream,
         torch_npu.npu.stream,
@@ -106,7 +106,7 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
-    SkipFilesVariable.__new__raw = SkipFilesVariable.__new__
-    SkipFilesVariable.__new__ = SkipFilesVariable__new__
+    SkipFunctionVariable.__new__raw = SkipFunctionVariable.__new__
+    SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
     TensorVariable.call_method_raw = TensorVariable.call_method
     TensorVariable.call_method = TensorVariable_call_method

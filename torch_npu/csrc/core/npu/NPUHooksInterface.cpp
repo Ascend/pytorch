@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/core/npu/NPUHooksInterface.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/utils/LazyInit.h"
 #endif
@@ -16,6 +17,12 @@ void NPUHooksInterface::initPrivateUse1() const
 #ifndef BUILD_LIBTORCH
     torch_npu::utils::npu_lazy_init();
 #endif
+}
+
+bool NPUHooksInterface::hasPrimaryContext(c10::DeviceIndex device_index) const
+{
+    aclrtContext device_context = c10_npu::GetDeviceContext(device_index);
+    return device_context != nullptr;
 }
 
 at::PrivateUse1HooksInterface* get_npu_hooks() {

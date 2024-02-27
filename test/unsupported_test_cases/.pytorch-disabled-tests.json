@@ -32,6 +32,7 @@
   "test_vmap_two_inputs_dynamic_shapes (__main__.DynamicShapesFuncTorchHigherOrderOpTests)": ["", [""]],
   "test_vmap_two_inputs_tuple_in_dims_dynamic_shapes (__main__.DynamicShapesFuncTorchHigherOrderOpTests)": ["", [""]],
   "test_torch_name_rule_map_updated (__main__.TraceRuleTests)": ["", [""]],
+  "test_external_module_register (__main__.TestExtensionUtils)": ["", [""]],
   "test_external_module_and_backend_register (__main__.TestExtensionUtils)": ["", [""]],
   "test_load_standalone (__main__.TestStandaloneCPPJIT)": ["", [""]],
   "test_bottleneck_cuda (__main__.TestBottleneck)": ["", [""]],
@@ -24950,5 +24951,4 @@
   "test_multiprocessing_contexts (__main__.TestDataLoaderPeristentWorkers)": ["", [""]],
   "test_cache_disabled (__main__.TestAutocastNPU)": ["", [""]],
   "test_cast_cache_is_global (__main__.TestAutocastNPU)": ["", [""]]
-
 }
