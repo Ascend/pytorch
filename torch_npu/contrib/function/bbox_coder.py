@@ -14,6 +14,7 @@
 
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 def box_dtype_check(box):
@@ -49,9 +50,9 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
     """
 
     if bboxes.size(0) != gt_bboxes.size(0):
-        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)")
+        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)" + ops_error(ErrCode.VALUE))
     if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
-        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4")
+        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4" + ops_error(ErrCode.VALUE))
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
@@ -100,9 +101,9 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
         stds = [1., 1., 1., 1.]
 
     if bboxes.size(0) != gt_bboxes.size(0):
-        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)")
+        raise ValueError("Expected bboxes.size(0) == gt_bboxes.size(0)" + ops_error(ErrCode.VALUE))
     if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
-        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4")
+        raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4" + ops_error(ErrCode.VALUE))
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
@@ -158,9 +159,9 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
         max_shape = [9999, 9999]
 
     if bboxes.size(0) != pred_bboxes.size(0):
-        raise ValueError("Expected bboxes.size(0) == pred_bboxes.size(0)")
+        raise ValueError("Expected bboxes.size(0) == pred_bboxes.size(0)" + ops_error(ErrCode.VALUE))
     if not (bboxes.size(-1) == pred_bboxes.size(-1) == 4):
-        raise ValueError("Expected bboxes.size(-1) == pred_bboxes.size(-1) == 4")
+        raise ValueError("Expected bboxes.size(-1) == pred_bboxes.size(-1) == 4" + ops_error(ErrCode.VALUE))
 
     bboxes = box_dtype_check(bboxes)
     pred_bboxes = box_dtype_check(pred_bboxes)

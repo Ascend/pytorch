@@ -17,6 +17,8 @@ import os
 from datetime import datetime
 from typing import Union
 
+from torch_npu.utils.error_code import ErrCode, prof_error
+
 
 class Constant(object):
     INVALID_VALUE = -1
@@ -184,7 +186,7 @@ def convert_ns2us_float(ns) -> float:
     if abs(ns) == float("inf"):
         return ns
     if not isinstance(ns, int):
-        raise RuntimeError("Input must be integer.")
+        raise RuntimeError("Input must be integer." + prof_error(ErrCode.TYPE))
     us = float(ns / Constant.NS_TO_US)
     return us
 
@@ -194,7 +196,7 @@ def convert_ns2us_str(ns, tail="") -> str:
     if abs(ns) == float("inf"):
         return str(ns)
     if not isinstance(ns, int):
-        raise RuntimeError("Input must be integer.")
+        raise RuntimeError("Input must be integer." + prof_error(ErrCode.TYPE))
     ns = str(ns)
     if len(ns) <= 3:
         result = "0." + (3 - len(ns)) * "0" + ns
@@ -214,5 +216,5 @@ def convert_us2ns(us: Union[str, float, int], tail="\t") -> int:
     elif len(int_dcm) == 1:
         result = int(int_dcm[0] + 3 * "0")
     else:
-        raise RuntimeError("Invalid input us!")
+        raise RuntimeError("Invalid input us!" + prof_error(ErrCode.PARAM))
     return result

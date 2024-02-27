@@ -26,6 +26,7 @@ from collections import defaultdict
 
 import torch
 from torch_npu.utils import npu_combine_tensors
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 
@@ -51,13 +52,13 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-6,
                  weight_decay=0, adam=False, use_global_grad_norm=False):
         if lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError("Invalid learning rate: {}".format(lr) + pta_error(ErrCode.VALUE))
         if betas[0] < 0.0 or betas[0] >= 1.0:
-            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]) + pta_error(ErrCode.VALUE))
         if betas[1] < 0.0 or betas[1] >= 1.0:
-            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]) + pta_error(ErrCode.VALUE))
         if eps < 0.0:
-            raise ValueError("Invalid epsilon value: {}".format(eps))
+            raise ValueError("Invalid epsilon value: {}".format(eps) + pta_error(ErrCode.VALUE))
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay)
         self.adam = adam
@@ -157,8 +158,8 @@ class NpuFusedLamb(NpuFusedOptimizerBase):
                 grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('NpuFusedLamb does not support sparse gradients, '
-                                       'please consider SparseAdam instead.')
-                
+                                       'please consider SparseAdam instead.' + pta_error(ErrCode.NOT_SUPPORT))
+
                 self._init_param_state(p)
                 state = self.state[p]
                 step_list.append(state['step'])

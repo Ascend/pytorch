@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from ...prof_common_func.constant import print_warn_msg, Constant, print_error_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
@@ -35,7 +36,7 @@ class CANNAnalyzeParser(BaseParser):
             if not os.path.isdir(self._cann_path):
                 return Constant.SUCCESS, None
             if not self.msprof_path:
-                err_msg = "Export CANN Profiling data faile! msprof command not found!"
+                err_msg = "Export CANN Profiling data faile! msprof command not found!" + prof_error(ErrCode.NOT_FOUND)
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
             completed_analysis = subprocess.run(

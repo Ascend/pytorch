@@ -19,6 +19,8 @@ import numbers
 import numpy as np
 import torch
 
+from torch_npu.utils.error_code import ErrCode, ops_error
+
 
 class FusedColorJitterApply(object):
     def __init__(self,
@@ -77,7 +79,8 @@ class FusedColorJitterApply(object):
             elif C == 1:
                 img = img.repeat(3, axis=-1)
             else:
-                raise ValueError('Unknow format using.. Currnet shape is {}'.format(img.shape))
+                raise ValueError('Unknow format using.. Currnet shape is {}'.format(img.shape) + 
+                                 ops_error(ErrCode.VALUE))
             H, W, C = img.shape
         img = np.matmul(img.reshape(-1, 3), transform_matrix) + transform_offset
         return img.reshape(H, W, C)
@@ -142,15 +145,17 @@ class FusedColorJitter(torch.nn.Module):
     def _check_input(self, value, name, center=1, bound=(0, float('inf')), clip_first_on_zero=True):
         if isinstance(value, numbers.Number):
             if value < 0:
-                raise ValueError("If {} is a single number, it must be non negative.".format(name))
+                raise ValueError("If {} is a single number, it must be non negative.".format(name) + 
+                                 ops_error(ErrCode.VALUE))
             value = [center - float(value), center + float(value)]
             if clip_first_on_zero:
                 value[0] = max(value[0], 0.0)
         elif isinstance(value, (tuple, list)) and len(value) == 2:
             if not bound[0] <= value[0] <= value[1] <= bound[1]:
-                raise ValueError("{} values should be between {}".format(name, bound))
+                raise ValueError("{} values should be between {}".format(name, bound) + ops_error(ErrCode.VALUE))
         else:
-            raise TypeError("{} should be a single number or a list/tuple with length 2.".format(name))
+            raise TypeError("{} should be a single number or a list/tuple with length 2.".format(name) + 
+                            ops_error(ErrCode.TYPE))
 
         # if value is 0 or (1., 1.) for brightness/contrast/saturation
         # or (0., 0.) for hue, do nothing

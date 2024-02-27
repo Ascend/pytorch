@@ -16,6 +16,7 @@
 import os
 import re
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from ....utils.path_manager import PathManager
 from ..prof_common_func.constant import Constant
 
@@ -143,7 +144,7 @@ class ProfilerPathManager:
     @classmethod
     def get_realpath(cls, path: str) -> str:
         if os.path.islink(path):
-            msg = f"Invalid input path is a soft chain: {path}"
+            msg = f"Invalid input path is a soft chain: {path}" + prof_error(ErrCode.UNAVAIL)
             raise RuntimeError(msg)
         return os.path.realpath(path)
     

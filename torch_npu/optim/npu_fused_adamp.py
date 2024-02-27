@@ -26,6 +26,7 @@ from collections import defaultdict
 
 import torch
 from torch_npu.utils import npu_combine_tensors
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 
@@ -166,7 +167,7 @@ class NpuFusedAdamP(NpuFusedOptimizerBase):
                 grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('NpuFusedAdamP does not support sparse gradients, '
-                                       'please consider SparseAdam instead')
+                                       'please consider SparseAdam instead' + pta_error(ErrCode.NOT_SUPPORT))
 
                 self._init_param_state(p)
                 state = self.state[p]

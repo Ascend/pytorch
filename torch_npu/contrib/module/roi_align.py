@@ -19,6 +19,7 @@ from torch.nn.modules.utils import _pair
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 class _ROIAlign(Function):
@@ -113,7 +114,7 @@ class ROIAlign(nn.Module):
             rois: Bx5 boxes. First column is the index into N. The other 4 columns are xyxy.
         """
         if rois.dim() != 2 or rois.size(1) != 5:
-            raise ValueError("Expected rois.dim() == 2 and rois.size(1) == 5")
+            raise ValueError("Expected rois.dim() == 2 and rois.size(1) == 5" + ops_error(ErrCode.VALUE))
         return roi_align(
             input_tensor.float(), rois, self.output_size,
             self.spatial_scale, self.sampling_ratio, self.aligned

@@ -28,6 +28,7 @@ except ModuleNotFoundError:
 from torch.types import _dtype
 
 import torch
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .common import amp_definitely_not_available
 
 
@@ -166,7 +167,7 @@ class npu_autocast(torch.amp.autocast_mode.autocast):
             self.device = device_type
             self.fast_dtype = dtype
             if dtype is None:
-                raise ValueError("dtype is None.")
+                raise ValueError("dtype is None." + pta_error(ErrCode.VALUE))
             return
         self.device = device_type
         if self.device == 'npu':
@@ -174,7 +175,8 @@ class npu_autocast(torch.amp.autocast_mode.autocast):
         elif self.device == 'cpu':
             self.fast_dtype = torch.get_autocast_cpu_dtype()
         else:
-            raise RuntimeError('User specified autocast device_type must be \'npu\' or \'cpu\'')
+            raise RuntimeError('User specified autocast device_type must be \'npu\' or \'cpu\'' +
+                               pta_error(ErrCode.VALUE))
         self._cache_enabled = torch.is_autocast_cache_enabled()
         if amp_definitely_not_available() and self.device == 'npu':
             warnings.warn('User provided device_type of \'npu\', but NPU is not available. Disabling')
@@ -193,7 +195,8 @@ class npu_autocast(torch.amp.autocast_mode.autocast):
                 enabled = False
         if self.device == 'npu':
             if self.fast_dtype == torch.bfloat16 and not torch.npu.is_bf16_supported():
-                raise RuntimeError('Current NPU Device does not support bfloat16. Please switch dtype to float16.')
+                raise RuntimeError('Current NPU Device does not support bfloat16. Please switch dtype to float16.' +
+                                   pta_error(ErrCode.NOT_SUPPORT))
         self._enabled = enabled
 
     def __enter__(self):
