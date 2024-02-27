@@ -1423,6 +1423,37 @@ class TestNpuQuantScatterMeta(TestCase):
             self.assertIsNot(fake_result, in_var)
 
 
+class TestNpuApplyRotoryPosEmbMeta(TestCase):
+
+    def test_npu_apply_rotary_pos_emb_meta(self):
+        with FakeTensorMode() as mode:
+            query_var = np.random.uniform(0, 1, [4, 1024, 16, 128]).astype(np.float16)
+            data_query = torch.from_numpy(query_var).to(torch.float16).npu()
+            key_var = np.random.uniform(0, 1, [4, 1024, 16, 128]).astype(np.float16)
+            data_key = torch.from_numpy(key_var).to(torch.float16).npu()
+            cos_var = np.random.uniform(0, 1, [4, 1024, 1, 128]).astype(np.float16)
+            data_cos = torch.from_numpy(cos_var).to(torch.float16).npu()
+            sin_var = np.random.uniform(0, 1, [4, 1024, 1, 128]).astype(np.float16)
+            data_sin = torch.from_numpy(sin_var).to(torch.float16).npu()
+            fake_query = mode.from_tensor(data_query)
+            fake_key = mode.from_tensor(data_key)
+            fake_cos = mode.from_tensor(data_cos)
+            fake_sin = mode.from_tensor(data_sin)
+            self.assertIsNotNone(fake_query)
+            self.assertIsNotNone(fake_key)
+            self.assertIsNotNone(fake_cos)
+            self.assertIsNotNone(fake_sin)
+            fake_query_result, fake_key_result = torch.ops.npu.npu_apply_rotary_pos_emb(fake_query, fake_key, fake_cos, fake_sin, "BSH")
+            self.assertEqual(fake_query_result.shape, data_query.shape)
+            self.assertEqual(fake_query_result.dtype, data_query.dtype)
+            self.assertEqual(fake_query_result.device, data_query.device)
+            self.assertEqual(fake_key_result.shape, data_key.shape)
+            self.assertEqual(fake_key_result.dtype, data_key.dtype)
+            self.assertEqual(fake_key_result.device, data_key.device)
+            self.assertTrue(isinstance(fake_query_result, FakeTensor))
+            self.assertTrue(isinstance(fake_key_result, FakeTensor))
+
+
 class TestNpuDeepNorm(TestCase):
     def test_npu_deep_norm(self):
         with FakeTensorMode():

@@ -451,3 +451,8 @@ def npu_anti_quant_meta(x, scale, *, offset=None, dst_dtype=None, src_dtype=None
     if dst_dtype is None:
         return torch.empty_like(x, dtype=torch.float16)
     return torch.empty_like(x, dtype=dst_dtype)
+
+
+@impl(m, "npu_apply_rotary_pos_emb")
+def npu_apply_rotary_pos_emb_meta(query, key, cos, sin, layout=1):
+    return (torch.empty_like(query, dtype=query.dtype), torch.empty_like(key, dtype=key.dtype))
