@@ -700,6 +700,7 @@ PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg)
 
 PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs)
 {
+    c10_npu::npuSynchronizeDevice();
     HANDLE_TH_ERRORS
     pybind11::gil_scoped_release no_gil;
     NPU_CHECK_ERROR(aclmdlFinalizeDump());
