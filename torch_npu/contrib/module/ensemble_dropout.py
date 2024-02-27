@@ -10,6 +10,14 @@ import torch_npu
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DropOutTask",
+    "NpuCachedDropout",
+    "NpuFairseqDropout",
+    "PreGenDropoutTask",
+    "NpuPreGenDropout"
+]
+
 
 class DropOutTask:
     def __init__(self, shape, dtype, device, p):

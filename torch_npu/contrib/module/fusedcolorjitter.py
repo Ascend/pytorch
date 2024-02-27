@@ -4,6 +4,11 @@ import numbers
 import numpy as np
 import torch
 
+__all__ = [
+    "FusedColorJitter",
+    "FusedColorJitterApply"
+]
+
 
 class FusedColorJitterApply(object):
     def __init__(self,

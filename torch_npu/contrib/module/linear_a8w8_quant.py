@@ -4,6 +4,8 @@ from torch import Tensor
 from torch.nn.parameter import Parameter
 import torch_npu
 
+__all__ = ["LinearA8W8Quant"]
+
 
 class LinearA8W8Quant(nn.Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = xA + b`
