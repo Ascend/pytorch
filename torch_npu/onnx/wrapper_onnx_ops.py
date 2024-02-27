@@ -5,6 +5,7 @@ from torch import Tensor
 import torch.onnx.symbolic_helper as sym_help
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 class NPUOneHotOP(torch.autograd.Function):
@@ -333,7 +334,7 @@ class NPUSignBitsUnpackOP(torch.autograd.Function):
         elif dtype == torch.float16:
             dtype = 1
         else:
-            raise ValueError("The argument 'dtype' must be torch.float32 or torch.float16")
+            raise TypeError("The argument 'dtype' must be torch.float32 or torch.float16" + pta_error(ErrCode.TYPE))
         return g.op("npu::NPUSignBitsUnpack", inputs, size_i=size, dtype_i=dtype)
 
 
@@ -554,7 +555,7 @@ class NPULstmOP(torch.autograd.Function):
                  c: Tensor, has_biases: bool, num_layers: int, dropout: float, train: bool,
                  bidirectional: bool, batch_first: bool, flagSeq: bool, direction: bool):
         if train:
-            raise ValueError("Value of param 'train' must be False.")
+            raise ValueError("Value of param 'train' must be False." + pta_error(ErrCode.VALUE))
         return g.op("npu::NPULstm", inputs, weight, bias, seqMask, h, c, has_biases_i=has_biases,
                     num_layers_i=num_layers, dropout_f=dropout, train_i=train, bidirectional_i=bidirectional,
                     batch_first_i=batch_first, flagSeq_i=flagSeq, direction_i=direction, outputs=8)
@@ -758,12 +759,13 @@ class NPUAntiQuantOP(torch.autograd.Function):
         elif dst_dtype == torch.bfloat16:
             dst_dtype = 27
         else:
-            raise ValueError("The argument 'dst_dtype' must be torch.float16 or torch.bfloat16.")
+            raise TypeError("The argument 'dst_dtype' must be torch.float16 or torch.bfloat16." +
+                            pta_error(ErrCode.TYPE))
         
         if src_dtype is None or src_dtype == torch.int8:
             src_dtype = 2
         else:
-            raise ValueError("The argument 'src_dtype' must be torch.int8.")
+            raise TypeError("The argument 'src_dtype' must be torch.int8." + pta_error(ErrCode.TYPE))
         
         return g.op("npu::NPUAntiQuant", x, scale, offset, dst_dtype_i=dst_dtype, src_dtype_i=src_dtype)
 

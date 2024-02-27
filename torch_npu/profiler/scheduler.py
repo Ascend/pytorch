@@ -1,5 +1,6 @@
 from enum import Enum
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from .analysis.prof_common_func.constant import print_warn_msg
 
 __all__ = ["ProfilerAction", "Schedule"]
@@ -30,7 +31,7 @@ class Schedule:
 
     def __call__(self, step: int) -> ProfilerAction:
         if step < 0:
-            raise ValueError("Invalid parameter step, which must be not less than 0.")
+            raise ValueError("Invalid parameter step, which must be not less than 0." + prof_error(ErrCode.VALUE))
         if step < self.skip_first:
             return ProfilerAction.NONE
         else:

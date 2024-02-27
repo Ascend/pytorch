@@ -5,6 +5,7 @@ import torch
 from torch.optim.optimizer import required
 
 from torch_npu.utils import npu_combine_tensors
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 LR_MIN = 0.0
@@ -39,16 +40,16 @@ class NpuFusedSGD(NpuFusedOptimizerBase):
                  weight_decay=WEIGHT_DECAY_MIN,
                  nesterov=False):
         if lr is not required and lr < LR_MIN:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError("Invalid learning rate: {}".format(lr) + pta_error(ErrCode.VALUE))
         if momentum < MOMENTUM_MIN:
-            raise ValueError("Invalid momentum value: {}".format(momentum))
+            raise ValueError("Invalid momentum value: {}".format(momentum) + pta_error(ErrCode.VALUE))
         if weight_decay < WEIGHT_DECAY_MIN:
             raise ValueError(
-                "Invalid weight_decay value: {}".format(weight_decay))
+                "Invalid weight_decay value: {}".format(weight_decay) + pta_error(ErrCode.VALUE))
         if nesterov and (momentum <= MOMENTUM_MIN
                          or not math.isclose(dampening, DAMPENING_DEFAULT, abs_tol=1e-15)):
             raise ValueError(
-                "Nesterov momentum requires a momentum and zero dampening")
+                "Nesterov momentum requires a momentum and zero dampening" + pta_error(ErrCode.VALUE))
         defaults = dict(lr=lr,
                         momentum=momentum,
                         dampening=dampening,

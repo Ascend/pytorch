@@ -1,5 +1,6 @@
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 def npu_fast_condition_index_put(x, condition, value):
@@ -26,7 +27,7 @@ def npu_fast_condition_index_put(x, condition, value):
     """
 
     if condition.dtype not in [torch.bool]:
-        raise TypeError("Expected condition.dtype in [torch.bool]")
+        raise TypeError("Expected condition.dtype in [torch.bool]" + ops_error(ErrCode.TYPE))
 
     if value == 0:
         mask = torch.zeros_like(x)

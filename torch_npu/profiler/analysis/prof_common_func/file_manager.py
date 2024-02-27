@@ -2,6 +2,7 @@ import csv
 import json
 import os.path
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from ....utils.path_manager import PathManager
 from ..prof_common_func.constant import Constant, print_warn_msg
 
@@ -25,7 +26,7 @@ class FileManager:
             with open(file_path, mode) as file:
                 return file.read()
         except Exception as err:
-            raise RuntimeError(f"Can't read file: {file_path}") from err
+            raise RuntimeError(f"Can't read file: {file_path}" + prof_error(ErrCode.UNAVAIL)) from err
 
     @classmethod
     def read_csv_file(cls, file_path: str, class_bean: any) -> list:
@@ -46,7 +47,7 @@ class FileManager:
                 for row in reader:
                     result_data.append(class_bean(row))
         except Exception as err:
-            raise RuntimeError(f"Failed to read the file: {file_path}") from err
+            raise RuntimeError(f"Failed to read the file: {file_path}" + prof_error(ErrCode.UNAVAIL)) from err
         return result_data
 
     @classmethod
@@ -64,7 +65,7 @@ class FileManager:
                     writer.writerow(headers)
                 writer.writerows(data)
         except Exception as err:
-            raise RuntimeError(f"Can't create file: {file_path}") from err
+            raise RuntimeError(f"Can't create file: {file_path}" + prof_error(ErrCode.SYSCALL)) from err
 
     @classmethod
     def create_json_file(cls, output_path: str, data: list, file_name: str) -> None:
@@ -86,7 +87,7 @@ class FileManager:
                 data = json.dumps(data, indent=indent, ensure_ascii=False)
                 file.write(data)
         except Exception as err:
-            raise RuntimeError(f"Can't create file: {output_path}") from err
+            raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
 
     @classmethod
     def append_trace_json_by_path(cls, output_path: str, data: list, new_name: str) -> None:
@@ -96,7 +97,7 @@ class FileManager:
                 data = f",{data[1:]}"
                 file.write(data)
         except Exception as err:
-            raise RuntimeError(f"Can't create file: {output_path}") from err
+            raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
         if output_path != new_name:
             os.rename(output_path, new_name)
 
@@ -113,4 +114,4 @@ class FileManager:
                 data = json.dumps(data, ensure_ascii=False)
                 file.write(data[:-1])
         except Exception as err:
-            raise RuntimeError(f"Can't create file: {output_path}") from err
+            raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err

@@ -1,5 +1,6 @@
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 class RollWithIndexSelect(torch.autograd.Function):
@@ -57,16 +58,17 @@ class NpuRollWithIndexSelect():
 
     def __call__(self, x, shifts, dims):
         if x.dim() != 4:
-            raise ValueError("Expected x.dim() == 4")
+            raise ValueError("Expected x.dim() == 4" + ops_error(ErrCode.VALUE))
         if len(shifts) != 2:
-            raise ValueError("Expected len(shifts) == 2")
+            raise ValueError("Expected len(shifts) == 2" + ops_error(ErrCode.VALUE))
         if len(dims) != 2:
-            raise ValueError("Expected len(dims) == 2")
+            raise ValueError("Expected len(dims) == 2" + ops_error(ErrCode.VALUE))
         N, H, W, C = x.shape
         key = (H, W, shifts, dims)
         if key not in self.index_dict:
             self.index_dict[key] = get_roll_index(H, W, shifts, device=x.device)
         index_fp, index_bp = self.index_dict[key]
         return roll_with_index_select(x, index_fp, index_bp)
+
 
 roll = NpuRollWithIndexSelect()

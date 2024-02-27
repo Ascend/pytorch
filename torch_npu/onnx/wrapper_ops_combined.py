@@ -2,6 +2,7 @@ import torch
 from torch import _VF
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 class NPULinearOP(object):
@@ -146,7 +147,7 @@ class NPUConvolutionOP(object):
                     output = torch.nn.functional.conv3d(input_, weight, bias, stride,
                                                         padding, dilation, groups)
             else:
-                raise ValueError("input dim must be 4 or 5, but got ", dim)
+                raise ValueError("input dim must be 4 or 5, but got ", dim, pta_error(ErrCode.VALUE))
             return output
         else:
             return torch.ops.npu.npu_convolution(input_, weight, bias,
@@ -166,7 +167,7 @@ class NPUConvolutionTransposeOP(object):
                 output = torch.conv_transpose3d(input_, weight, bias, stride,
                                                 padding, output_padding, groups, dilation)
             else:
-                raise ValueError("input dim must be 4 or 5, but got ", dim)
+                raise ValueError("input dim must be 4 or 5, but got ", dim, pta_error(ErrCode.value))
             return output
         else:
             return torch.ops.npu.npu_convolution_transpose(

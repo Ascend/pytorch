@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch.nn.modules.batchnorm import _NormBase as SrcNormBase
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 __all__ = [
     "FastBatchNorm1d",
@@ -91,9 +92,11 @@ class _BatchNorm(_NormBase):
         used for normalization (i.e. in eval mode when buffers are not None).
         """
         if (self.running_mean is not None) and not isinstance(self.running_mean, torch.Tensor):
-            raise RuntimeError("Expected self.running_mean is None or isinstance(self.running_mean, torch.Tensor)")
+            raise RuntimeError("Expected self.running_mean is None or isinstance(self.running_mean, torch.Tensor)" +
+                               ops_error(ErrCode.TYPE))
         if (self.running_var is not None) and not isinstance(self.running_var, torch.Tensor):
-            raise RuntimeError("Expected self.running_var is None or isinstance(self.running_var, torch.Tensor)")
+            raise RuntimeError("Expected self.running_var is None or isinstance(self.running_var, torch.Tensor)" +
+                               ops_error(ErrCode.TYPE))
         return F.batch_norm(
             input1,
             # If buffers are not to be tracked, ensure that they won't be updated
@@ -134,7 +137,7 @@ class FastBatchNorm1d(_BatchNorm):
     def _check_input_dim(self, input1):
         if input1.dim() != 2 and input1.dim() != 3:
             raise ValueError('expected 2D or 3D input1 (got {}D input1)'
-                             .format(input1.dim()))
+                             .format(input1.dim()) + ops_error(ErrCode.VALUE))
 
 
 class FastBatchNorm2d(_BatchNorm):
@@ -170,7 +173,7 @@ class FastBatchNorm2d(_BatchNorm):
     def _check_input_dim(self, input1):
         if input1.dim() != 4:
             raise ValueError('expected 4D input1 (got {}D input1)'
-                             .format(input1.dim()))
+                             .format(input1.dim()) + ops_error(ErrCode.VALUE))
 
 
 class FastBatchNorm3d(_BatchNorm):
@@ -206,7 +209,7 @@ class FastBatchNorm3d(_BatchNorm):
     def _check_input_dim(self, input1):
         if input1.dim() != 5:
             raise ValueError('expected 5D input1 (got {}D input1)'
-                             .format(input1.dim()))
+                             .format(input1.dim()) + ops_error(ErrCode.VALUE))
 
 
 class FastSyncBatchNorm(_BatchNorm):
@@ -262,19 +265,19 @@ class FastSyncBatchNorm(_BatchNorm):
     def _check_input_dim(self, input1):
         if input1.dim() < 2:
             raise ValueError(
-                "expected at least 2D input1 (got {}D input1)".format(input1.dim())
+                "expected at least 2D input1 (got {}D input1)".format(input1.dim()) + ops_error(ErrCode.VALUE)
             )
 
     def _check_non_zero_input_channels(self, input1):
         if input1.size(1) == 0:
             raise ValueError(
-                "SyncBatchNorm number of input1 channels should be non-zero"
+                "SyncBatchNorm number of input1 channels should be non-zero" + ops_error(ErrCode.VALUE)
             )
 
     def forward(self, input1: Tensor) -> Tensor:
         # currently NPU or GPU input1 is supported
         if not input1.is_cuda and not input1.is_npu:
-            raise ValueError("SyncBatchNorm expected input1 tensor to be on NPU or GPU")
+            raise ValueError("SyncBatchNorm expected input1 tensor to be on NPU or GPU" + ops_error(ErrCode.VALUE))
 
         self._check_input_dim(input1)
         self._check_non_zero_input_channels(input1)
@@ -289,7 +292,7 @@ class FastSyncBatchNorm(_BatchNorm):
 
         if self.training and self.track_running_stats:
             if self.num_batches_tracked is None:
-                raise ValueError("Expected self.num_batches_tracked is not None")
+                raise ValueError("Expected self.num_batches_tracked is not None" + ops_error(ErrCode.VALUE))
             self.num_batches_tracked.add_(1)
             if self.momentum is None:  # use cumulative moving average
                 exponential_average_factor = 1.0 / self.num_batches_tracked.item()
@@ -341,7 +344,7 @@ class FastSyncBatchNorm(_BatchNorm):
             )
         else:
             if not bn_training:
-                raise ValueError("Expected bn_training")
+                raise ValueError("Expected bn_training" + ops_error(ErrCode.VALUE))
             return sync_batch_norm.apply(
                 input1,
                 self.weight,

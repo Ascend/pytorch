@@ -9,6 +9,7 @@ from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, \
     _refresh_per_optimizer_state
 from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .common import amp_definitely_not_available
 
 
@@ -19,7 +20,7 @@ class _NpuMultiDeviceReplicator(_MultiDeviceReplicator):
 
     def __init__(self, master_tensor: torch.Tensor) -> None:
         if not master_tensor.is_npu:
-            raise ValueError("Device type of master_tensor should be npu.")
+            raise ValueError("Device type of master_tensor should be npu." + pta_error(ErrCode.VALUE))
         self.master = master_tensor
         self._per_device_tensors = {}
 
@@ -105,9 +106,9 @@ class GradScaler(Cuda_GradScaler):
 
         if self._enabled:
             if growth_factor <= 1.0:
-                raise ValueError("The growth factor must be > 1.0.")
+                raise ValueError("The growth factor must be > 1.0." + pta_error(ErrCode.VALUE))
             if backoff_factor >= 1.0:
-                raise ValueError("The backoff factor must be < 1.0.")
+                raise ValueError("The backoff factor must be < 1.0." + pta_error(ErrCode.VALUE))
 
             self._init_scale = init_scale
             # self._scale will be lazily initialized during the first call to scale()
@@ -127,7 +128,7 @@ class GradScaler(Cuda_GradScaler):
 
     def _lazy_init_scale_growth_tracker(self, dev):
         if self._growth_tracker is not None:
-            raise RuntimeError("_growth_tracker initialized before _scale")
+            raise RuntimeError("_growth_tracker initialized before _scale" + pta_error(ErrCode.VALUE))
 
         self._scale = torch.full((), self._init_scale, dtype=torch.float32).pin_memory().to(dev, non_blocking=True)
         self._growth_tracker = torch.full((), self._init_growth_tracker, dtype=torch.int32)
@@ -135,7 +136,7 @@ class GradScaler(Cuda_GradScaler):
 
     def _lazy_init_dist_flag_and_dist_overflow_count(self):
         if self._dist_overflow_count is not None:
-            raise RuntimeError("_dist_overflow_count initialized before _scale")
+            raise RuntimeError("_dist_overflow_count initialized before _scale" + pta_error(ErrCode.VALUE))
         try:
             if dist.is_initialized():
                 self._dist_initialized = True
@@ -160,7 +161,7 @@ class GradScaler(Cuda_GradScaler):
         if self._dist_overflow_count is None:
             self._lazy_init_dist_flag_and_dist_overflow_count()
             if self._dist_overflow_count is None:
-                raise RuntimeError("_dist_overflow_count is None.")
+                raise RuntimeError("_dist_overflow_count is None." + pta_error(ErrCode.VALUE))
 
         if self._dynamic and not self._clear_overflow_flag:
             if not torch_npu.npu.utils.is_support_inf_nan():
@@ -170,11 +171,11 @@ class GradScaler(Cuda_GradScaler):
         # Short-circuit for the common case.
         if isinstance(outputs, torch.Tensor):
             if not outputs.is_npu:
-                raise ValueError("Device type of outputs should be npu.")
+                raise ValueError("Device type of outputs should be npu." + pta_error(ErrCode.VALUE))
             if self._scale is None:
                 self._lazy_init_scale_growth_tracker(outputs.device)
             if self._scale is None:
-                raise RuntimeError("_scale is None.")
+                raise RuntimeError("_scale is None." + pta_error(ErrCode.VALUE))
             return outputs * self._scale.to(device=outputs.device, non_blocking=True)
 
         # Invoke the more complex machinery only if we're treating multiple outputs.
@@ -183,12 +184,12 @@ class GradScaler(Cuda_GradScaler):
         def apply_scale(val):
             if isinstance(val, torch.Tensor):
                 if not val.is_npu:
-                    raise ValueError("Device type of val should be npu.")
+                    raise ValueError("Device type of val should be npu." + pta_error(ErrCode.VALUE))
                 if len(stash) == 0:
                     if self._scale is None:
                         self._lazy_init_scale_growth_tracker(val.device)
                     if self._scale is None:
-                        raise RuntimeError("_scale is None.")
+                        raise RuntimeError("_scale is None." + pta_error(ErrCode.VALUE))
                     stash.append(_NpuMultiDeviceReplicator(self._scale))
                 return val * stash[0].get(val.device)
             elif isinstance(val, container_abcs.Iterable):
@@ -198,7 +199,7 @@ class GradScaler(Cuda_GradScaler):
                 else:
                     return iterable
             else:
-                raise ValueError("outputs must be a Tensor or an iterable of Tensors")
+                raise TypeError("outputs must be a Tensor or an iterable of Tensors" + pta_error(ErrCode.TYPE))
 
         return apply_scale(outputs)
 
@@ -237,7 +238,7 @@ class GradScaler(Cuda_GradScaler):
                         if param.grad is None:
                             continue
                         if (not allow_fp16) and param.grad.dtype == torch.float16:
-                            raise ValueError("Attempting to unscale FP16 gradients.")
+                            raise TypeError("Attempting to unscale FP16 gradients." + pta_error(ErrCode.TYPE))
                         if param.grad.is_sparse:
                             # is_coalesced() == False means the sparse grad has values with duplicate indices.
                             # coalesce() deduplicates indices and adds all values that have the same index.
@@ -311,13 +312,15 @@ class GradScaler(Cuda_GradScaler):
         optimizer_state = self._per_optimizer_states[id(optimizer)]
 
         if optimizer_state["stage"] is OptState.UNSCALED:
-            raise RuntimeError("unscale_() has already been called on this optimizer since the last update().")
+            raise RuntimeError("unscale_() has already been called on this optimizer since the last update()." +
+                               pta_error(ErrCode.INTERNAL))
         elif optimizer_state["stage"] is OptState.STEPPED:
-            raise RuntimeError("unscale_() is being called after step().")
+            raise RuntimeError("unscale_() is being called after step()." +
+                               pta_error(ErrCode.INTERNAL))
 
         # FP32 division can be imprecise for certain compile options, so we carry out the reciprocal in FP64.
         if self._scale is None:
-            raise RuntimeError("_scale is None.")
+            raise RuntimeError("_scale is None." + pta_error(ErrCode.VALUE))
         inv_scale = self._scale.float().reciprocal()
         found_inf = torch.full((), 0.0, dtype=torch.float32).pin_memory().to(self._scale.device, non_blocking=True)
 
@@ -357,14 +360,16 @@ class GradScaler(Cuda_GradScaler):
             return optimizer.step(*args, **kwargs)
 
         if "closure" in kwargs:
-            raise RuntimeError("Closure use is not currently supported if GradScaler is enabled.")
+            raise RuntimeError("Closure use is not currently supported if GradScaler is enabled." +
+                               pta_error(ErrCode.NOT_SUPPORT))
 
         self._check_scale_growth_tracker("step")
 
         optimizer_state = self._per_optimizer_states[id(optimizer)]
 
         if optimizer_state["stage"] is OptState.STEPPED:
-            raise RuntimeError("step() has already been called since the last update().")
+            raise RuntimeError("step() has already been called since the last update()." +
+                               pta_error(ErrCode.INTERNAL))
 
         retval = None
 
@@ -381,7 +386,7 @@ class GradScaler(Cuda_GradScaler):
             self.unscale_(optimizer)
 
         if len(optimizer_state["found_inf_per_device"]) <= 0:
-            raise RuntimeError("No inf checks were recorded for this optimizer.")
+            raise RuntimeError("No inf checks were recorded for this optimizer." + pta_error(ErrCode.INTERNAL))
 
         if self._dynamic:
             retval = self._maybe_opt_step(optimizer, optimizer_state, *args, **kwargs)
@@ -423,11 +428,11 @@ class GradScaler(Cuda_GradScaler):
             else:
                 reason = "new_scale should be a float or a 1-element torch.npu.FloatTensor with requires_grad=False."
                 if not isinstance(new_scale, torch.npu.FloatTensor):  # type: ignore[attr-defined]
-                    raise ValueError(reason)
+                    raise TypeError(reason + pta_error(ErrCode.TYPE))
                 if new_scale.numel() != 1:
-                    raise ValueError(reason)
+                    raise ValueError(reason + pta_error(ErrCode.VALUE))
                 if new_scale.requires_grad:
-                    raise ValueError(reason)
+                    raise ValueError(reason + pta_error(ErrCode.VALUE))
                 self._scale = new_scale
         elif self._dynamic:
             self._npu_update_scale()
@@ -449,7 +454,7 @@ class GradScaler(Cuda_GradScaler):
 
         if len(state_dict) == 0:
             raise RuntimeError("The source state dict is empty, possibly because it was saved "
-                               "from a disabled instance of GradScaler.")
+                               "from a disabled instance of GradScaler." + pta_error(ErrCode.VALUE))
 
         super(GradScaler, self).load_state_dict(state_dict)
         self._dynamic = state_dict["dynamic"]
