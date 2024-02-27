@@ -1,0 +1,3 @@
+test/test_comparison_utils.py
+test/test_license.py
+
