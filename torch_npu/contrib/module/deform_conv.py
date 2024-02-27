@@ -5,6 +5,13 @@ from torch.autograd import Function
 from torch.nn.modules.utils import _pair, _single
 import torch_npu
 
+__all__ = [
+    "ModulatedDeformConv2dFunction",
+    "ModulatedDeformConv",
+    "DCNv2"
+]
+
+
 
 class ModulatedDeformConv2dFunction(Function):
 

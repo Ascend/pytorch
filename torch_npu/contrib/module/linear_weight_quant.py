@@ -4,6 +4,8 @@ from torch import Tensor
 from torch.nn.parameter import Parameter
 import torch_npu
 
+__all__ = ["LinearWeightQuant"]
+
 
 class LinearWeightQuant(nn.Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = xA + b`

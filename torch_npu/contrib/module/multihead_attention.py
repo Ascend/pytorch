@@ -13,8 +13,10 @@ from ..function import matmul_transpose
 
 dropout_class = NpuCachedDropout
 
+__all__ = ["MHAConfig", "Matmul_transpose", "MultiheadAttention", "NpuLinear"]
 
-def quant_noise(module, p, block_size):
+
+def _quant_noise(module, p, block_size):
     """
     Wraps modules and applies quantization noise to the weights for
     subsequent quantization with Iterative Product Quantization as
@@ -207,17 +209,17 @@ class MultiheadAttention(nn.Module):
         if self.self_attention and not self.qkv_same_dim:
             raise ValueError("Self-attention requires query, key and " "value to be of the same size")
 
-        self.k_proj = quant_noise(
+        self.k_proj = _quant_noise(
             NpuLinear(self.kdim, embed_dim, bias=bias), q_noise, qn_block_size
         )
-        self.v_proj = quant_noise(
+        self.v_proj = _quant_noise(
             NpuLinear(self.vdim, embed_dim, bias=bias), q_noise, qn_block_size
         )
-        self.q_proj = quant_noise(
+        self.q_proj = _quant_noise(
             NpuLinear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
         )
 
-        self.out_proj = quant_noise(
+        self.out_proj = _quant_noise(
             NpuLinear(embed_dim, embed_dim, bias=bias), q_noise, qn_block_size
         )
 

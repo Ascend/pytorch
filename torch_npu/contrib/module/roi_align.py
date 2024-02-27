@@ -5,6 +5,8 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 import torch_npu
 
+__all__ = ["ROIAlign"]
+
 
 class _ROIAlign(Function):
     @staticmethod
