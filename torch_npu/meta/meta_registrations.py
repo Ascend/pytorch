@@ -361,8 +361,8 @@ def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
         )
     if bias is not None:
         torch._check(
-            bias.dtype == torch.int32,
-            lambda: "offset's type supported for int32, but bias.dtype is " + str(bias.dtype),
+            bias.dtype == torch.int32 or bias.dtype == torch.bfloat16,
+            lambda: "offset's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype),
         )
 
 
