@@ -15,6 +15,7 @@
 import torch
 from torch import nn
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 class PSROIPool(nn.Module):
@@ -39,7 +40,7 @@ class PSROIPool(nn.Module):
         super(PSROIPool, self).__init__()
 
         if not (pooled_height == pooled_width == group_size):
-            raise ValueError("only pooled_height == pooled_width == group_size supported.")
+            raise ValueError("only pooled_height == pooled_width == group_size supported." + ops_error(ErrCode.VALUE))
 
         self.group_size = group_size
         self.spatial_scale = spatial_scale

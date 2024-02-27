@@ -20,6 +20,7 @@ from typing import Optional, Iterable, Callable, Any
 
 import torch.autograd.profiler as prof
 from torch_npu._C._profiler import ProfilerActivity
+from torch_npu.utils.error_code import ErrCode, prof_error
 
 from .experimental_config import _ExperimentalConfig
 from .profiler_path_creator import ProfPathCreator
@@ -76,7 +77,7 @@ class _KinetoProfile:
         PathManager.check_input_file_path(output_path)
         file_name = os.path.basename(output_path)
         if not file_name.endswith(".json"):
-            raise RuntimeError("Invalid parameter output_path, which must be a json file.")
+            raise RuntimeError("Invalid parameter output_path, which must be a json file." + prof_error(ErrCode.VALUE))
         if not self.prof_if.prof_path:
             print_warn_msg("Invalid profiling path.")
             return

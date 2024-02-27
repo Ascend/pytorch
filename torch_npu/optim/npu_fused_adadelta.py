@@ -18,6 +18,7 @@ from collections import defaultdict
 
 import torch
 from torch_npu.utils import npu_combine_tensors
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 
@@ -40,13 +41,13 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
 
     def __init__(self, params, lr=1.0, rho=0.9, eps=1e-6, weight_decay=0):
         if lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError("Invalid learning rate: {}".format(lr) + pta_error(ErrCode.VALUE))
         if rho < 0.0 or rho > 1.0:
-            raise ValueError("Invalid rho value: {}".format(rho))
+            raise ValueError("Invalid rho value: {}".format(rho) + pta_error(ErrCode.VALUE))
         if eps < 0.0:
-            raise ValueError("Invalid epsilon value: {}".format(eps))
+            raise ValueError("Invalid epsilon value: {}".format(eps) + pta_error(ErrCode.VALUE))
         if weight_decay < 0.0:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+            raise ValueError("Invalid weight_decay value: {}".format(weight_decay) + pta_error(ErrCode.VALUE))
 
         defaults = dict(lr=lr, rho=rho, eps=eps, weight_decay=weight_decay)
         super(NpuFusedAdadelta, self).__init__(params, defaults)
@@ -81,7 +82,8 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
                     continue
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('NpuFusedAdadelta does not support sparse gradients')
+                    raise RuntimeError('NpuFusedAdadelta does not support sparse gradients' +
+                                       pta_error(ErrCode.NOT_SUPPORT))
                 
                 self._init_param_state(p)
                 state = self.state[p]
@@ -124,7 +126,8 @@ class NpuFusedAdadelta(NpuFusedOptimizerBase):
                 continue
             grad = p.grad
             if grad.is_sparse:
-                raise RuntimeError('NpuFusedAdadelta does not support sparse gradients')
+                raise RuntimeError('NpuFusedAdadelta does not support sparse gradients' +
+                                   pta_error(ErrCode.NOT_SUPPORT))
             state_p = self.state[p]
             state_p['step'] += 1
 

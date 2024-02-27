@@ -15,6 +15,7 @@
 import torch
 import torch.nn as nn
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
@@ -77,7 +78,7 @@ class NpuDropPath(nn.Module):
             device = x.device
             ndim = x.ndim
         else:
-            raise RuntimeError("input type error!")
+            raise RuntimeError("input type error!" + ops_error(ErrCode.TYPE))
 
         key = (shape, device, dtype, ndim)
         if key not in NpuDropPath.task_dict:

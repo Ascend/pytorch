@@ -8,6 +8,7 @@ import fcntl
 import pickle
 from enum import Enum
 from abc import ABC, abstractmethod
+from torch_npu.utils.error_code import ErrCode, prof_error
 from .constant import print_error_msg
 
 
@@ -33,7 +34,7 @@ class ConcurrentTask(ABC):
         :return: Except 2 return value, the first is return code(0 for OK and others for error),
                  the second is output.
         """
-        raise NotImplementedError("Function run need to be implemented.")
+        raise NotImplementedError("Function run need to be implemented." + prof_error(ErrCode.NOT_SUPPORT))
 
 
 # 消息以TLV格式发送，TL各4字节
@@ -45,7 +46,7 @@ class TaskMsgType(Enum):
 
 def send_result_to_manager(fd, ret_code, output):
     if fd < 0:
-        raise OSError("[Errno 9] Bad file descriptor")
+        raise OSError("[Errno 9] Bad file descriptor" + prof_error(ErrCode.UNAVAIL))
 
     msg = b''
     # 先发output， 再发ret_code， 接受端会在收到ret_code时认为任务执行完成
@@ -117,11 +118,11 @@ class ConcurrentTasksManager:
 
     def add_task(self, task):
         if not isinstance(task, ConcurrentTask):
-            raise TypeError("Task should be an instance of ConcurrentTask")
+            raise TypeError("Task should be an instance of ConcurrentTask" + prof_error(ErrCode.TYPE))
         for pre_task_name in task.deps:
             pre_task_info = self.task_infos.get(pre_task_name)
             if not pre_task_info:
-                raise ValueError("Unknow task %s in deps." % pre_task_name)
+                raise ValueError("Unknow task %s in deps." % pre_task_name + prof_error(ErrCode.VALUE))
             pre_task_info.post_tasks.add(task.name)
         task_info = TaskInfo(task)
         self.task_infos[task.name] = task_info

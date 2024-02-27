@@ -20,6 +20,7 @@ __all__ = ["dropout_with_byte_mask"]
 
 import torch
 import torch_npu as _VF
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 Tensor = torch.Tensor
 
@@ -40,9 +41,9 @@ def dropout_with_byte_mask(input1, p=0.5, training=True, inplace=False):
     """
     if p < 0. or p > 1.:
         raise ValueError("dropout probability has to be between 0 and 1, "
-                         "but got {}".format(p))
+                         "but got {}".format(p) + ops_error(ErrCode.VALUE))
     if inplace:
-        raise ValueError("dropout probability has no-inplace computing.")
+        raise ValueError("dropout probability has no-inplace computing." + ops_error(ErrCode.VALUE))
     return (_VF.dropout_with_byte_mask_(input1, p, training)
             if inplace
             else _VF.dropout_with_byte_mask(input1, p, training))

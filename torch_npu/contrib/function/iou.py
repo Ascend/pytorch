@@ -14,6 +14,7 @@
 
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 def box_dtype_check(box):
@@ -64,7 +65,7 @@ def npu_iou(boxes1,
     """
 
     if mode not in ["iou", "ptiou"]:
-        raise ValueError("Expected mode in [iou, ptiou]")
+        raise ValueError("Expected mode in [iou, ptiou]" + ops_error(ErrCode.VALUE))
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)
@@ -126,7 +127,7 @@ def npu_giou(boxes1,
     """
 
     if boxes1.shape != boxes2.shape:
-        raise ValueError("Expected boxes1.shape == boxes2.shape")
+        raise ValueError("Expected boxes1.shape == boxes2.shape" + ops_error(ErrCode.VALUE))
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)

@@ -18,6 +18,7 @@ import torch
 from torch._six import inf
 from torch.optim.optimizer import Optimizer
 from torch_npu.utils import npu_combine_tensors, get_part_combined_tensor
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 class NpuFusedOptimizerBase(Optimizer):
@@ -76,7 +77,7 @@ class NpuFusedOptimizerBase(Optimizer):
                 else:
                     raise TypeError(
                         "Fused optimizer's parameters must be either float32 or float16, but received {}"
-                        .format(p.dtype))
+                        .format(p.dtype) + pta_error(ErrCode.TYPE))
 
             params_all_group[0] += group_params_list[0]
             params_all_group[1] += group_params_list[1]
@@ -139,7 +140,7 @@ class NpuFusedOptimizerBase(Optimizer):
     def zero_grad(self, set_to_none=False):
         if set_to_none:
             raise ValueError(
-                "set_to_none is not supported in fused optimizers")
+                "set_to_none is not supported in fused optimizers" + pta_error(ErrCode.VALUE))
 
         if not self.is_params_grads_combined:
             self._maybe_init_combined_params_and_grads()
@@ -153,10 +154,10 @@ class NpuFusedOptimizerBase(Optimizer):
             grads_combined_one_dtype.zero_()
 
     def _maybe_init_combined_states(self):
-        raise NotImplementedError
+        raise NotImplementedError(pta_error(ErrCode.NOT_SUPPORT))
 
     def _group_step(self, group_index):
-        raise NotImplementedError
+        raise NotImplementedError(pta_error(ErrCode.NOT_SUPPORT))
 
     def get_combined_params(self):
         return self.params_all_group_combined
@@ -166,7 +167,8 @@ class NpuFusedOptimizerBase(Optimizer):
 
     def _clip_grad_norm_fused_(self, combined_grads, combined_grads_masks, max_norm, norm_type):
         if len(combined_grads) != len(combined_grads_masks):
-            raise ValueError("Length of combined_grads and combined_grads_masks must be equal.")
+            raise ValueError("Length of combined_grads and combined_grads_masks must be equal." +
+                             pta_error(ErrCode.VALUE))
         if len(combined_grads) == 0 or all(i is None for i in combined_grads):
             return torch.tensor(0.)
 
@@ -207,7 +209,7 @@ class NpuFusedOptimizerBase(Optimizer):
     def _maybe_init_combined_grads_masks(self):
         # Create a mask to ensure the padded data to be zero in case of combining tensors with NPU-private format.
         if not self.is_params_grads_combined:
-            raise ValueError("Value of param 'is_params_grads_combined' must be True")
+            raise ValueError("Value of param 'is_params_grads_combined' must be True" + pta_error(ErrCode.VALUE))
 
         combined_grads_masks = []
         for params_group_one_dtype in self.params_all_group:
