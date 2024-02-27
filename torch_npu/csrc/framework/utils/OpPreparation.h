@@ -42,6 +42,8 @@ public:
                                               const string &realDataType);
   static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar,
                                           at::ScalarType scalar_data_type);
+  static at::Tensor copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type,
+                                          const c10::Device device);
   static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
 
   static bool is_scalar_wrapped_to_tensor(const at::Tensor &tensor);

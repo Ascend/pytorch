@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 
 namespace at_npu
 {
@@ -129,6 +130,13 @@ namespace at_npu
                                                     at::ScalarType scalar_data_type)
     {
       return CalcuOpUtil::CopyScalarToDevice(cpu_scalar, scalar_data_type);
+    }
+
+    at::Tensor OpPreparation::copy_scalar_to_device(const c10::Scalar &cpu_scalar, at::ScalarType scalar_data_type,
+                                                    const c10::Device device)
+    {
+        c10_npu::NPUGuard guard(device);
+        return copy_scalar_to_device(cpu_scalar, scalar_data_type);
     }
 
     at::Tensor OpPreparation::copy_tensor_host_to_device(const at::Tensor &cpu_tensor) {
