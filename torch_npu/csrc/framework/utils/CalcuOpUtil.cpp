@@ -234,7 +234,7 @@ int64_t CalcuOpUtil::GetTensorNpuFormat(const at::Tensor &tensor) {
   TORCH_CHECK(tensor.device().type() == c10::DeviceType::PrivateUse1,
               "Expected all tensors to be on the same device. "
               "Expected NPU tensor, please check whether the input tensor "
-              "device is correct.");
+              "device is correct.", OPS_ERROR(ErrCode::TYPE));
   if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor)) {
     const torch_npu::NPUStorageDesc &tensor_desc =
         torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
