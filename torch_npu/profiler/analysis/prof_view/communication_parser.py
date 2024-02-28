@@ -172,7 +172,7 @@ class CommunicationParser(BaseParser):
                 print_warn_msg("Unknown communication op type：{comm_op_type}")
             for link, data in communication_info.items():
                 new_comm_op_name = (comm_op_type, communication_op.split("@")[-1], link)
-                data['op_name'] = communication_op.split("@")[0]
+                data['Op Name'] = communication_op.split("@")[0]
                 new_comm_op_dict[new_comm_op_name].append(data)
         return new_comm_op_dict
 
