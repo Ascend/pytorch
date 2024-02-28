@@ -20,6 +20,7 @@ import os
 import warnings
 import torch_npu._C
 from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils.error_code import pta_error, ErrCode
 
 
 # this file is used to enhance the npu frontend API by set_option or other.
@@ -52,7 +53,7 @@ def _check_compile_option(name, value) -> bool:
 
 def set_option(option):
     if not isinstance(option, dict):
-        raise TypeError("npu option must be a dict.")
+        raise TypeError("npu option must be a dict." + pta_error(ErrCode.PARAM))
 
     if option.get("MM_BMM_ND_ENABLE") == "enable":
         set_mm_bmm_format_nd(True)
@@ -64,10 +65,12 @@ def set_option(option):
             option[option_name] = str(option_value)
         elif callable(_option_map[option_name]):
             raise ValueError(f"value of {option_name} should be in %s "
-                             % (inspect.getsource(_option_map[option_name])) + f"but got {option_value}")
+                             % (inspect.getsource(_option_map[option_name])) + f"but got {option_value}" +
+                             pta_error(ErrCode.PARAM))
         else:
             raise ValueError(f"value of {option_name} should be in %s "
-                             % (_option_map[option_name]) + f"but got {option_value}")
+                             % (_option_map[option_name]) + f"but got {option_value}" +
+                             pta_error(ErrCode.PARAM))
         
         if option_name in _deprecated_option_set:
             warnings.warn(f"{option_name} will be deprecated in future version. The accuracy or performance "

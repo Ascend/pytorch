@@ -113,7 +113,8 @@ c10::optional<at::Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
     const at::Tensor &src, const OptimizationCases &opt_cases) {
   TORCH_CHECK(src.device().type() == at_npu::key::NativeDeviceType,
       "Expected all tensors to be on the same device. "
-      "Expected NPU tensor, please check whether the input tensor device is correct.");
+      "Expected NPU tensor, please check whether the input tensor device is correct.",
+      OPS_ERROR(ErrCode::TYPE));
   auto self = OpPreparation::ApplyTensorWithFormat(
       src.sizes(), src.options(), torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc().npu_format_);
   ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);

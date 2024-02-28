@@ -605,7 +605,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg)
     HANDLE_TH_ERRORS
 
     if (!PyDict_Check(arg)) {
-      throw torch::TypeError("npu option must be a dict.");
+        throw torch::TypeError("npu option must be a dict." + PTA_ERROR(ErrCode::TYPE));
     }
 
     PyObject *key = nullptr;
@@ -615,11 +615,11 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg)
 
     while (PyDict_Next(arg, &pos, &key, &value)) {
       if (key == nullptr || !PyUnicode_Check(key)) {
-        throw torch::TypeError("option name is nullptr or is not string.");
+        throw torch::TypeError("option name is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
       }
 
       if (value == nullptr || !PyUnicode_Check(value)) {
-        throw torch::TypeError("option value is nullptr or is not string.");
+        throw torch::TypeError("option value is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
       }
 
       const char *pKey = PyUnicode_AsUTF8(key);
