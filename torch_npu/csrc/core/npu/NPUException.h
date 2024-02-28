@@ -22,56 +22,6 @@
         std::cout<< c10_npu::c10_npu_get_error_message() << std::endl;   \
     } while (0)
 
-#define NPU_CHECK_ERROR(err_code)                                            \
-    do {                                                                     \
-        auto Error = err_code;                                               \
-        static c10_npu::acl::AclErrorCode err_map;                           \
-        if ((Error) != ACL_ERROR_NONE) {                                     \
-            TORCH_CHECK(                                                     \
-                false,                                                       \
-                __func__,                                                    \
-                ":",                                                         \
-                __FILE__,                                                    \
-                ":",                                                         \
-                __LINE__,                                                    \
-                " NPU error, error code is ", Error,                         \
-                (err_map.error_code_map.find(Error) !=                       \
-                err_map.error_code_map.end() ?                               \
-                "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
-                "\n", c10_npu::c10_npu_get_error_message());                 \
-        }                                                                    \
-    } while (0)
-
-#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                                   \
-    do {                                                                         \
-        auto Error = err_code;                                                   \
-        static c10_npu::acl::AclErrorCode err_map;                               \
-        if ((Error) != ACL_ERROR_NONE) {                                         \
-            if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {                   \
-                static auto feature_not_support_warn_once = []() {               \
-                    printf("[WARN]%s,%s:%u:%s\n",                                \
-                           __FUNCTION__, __FILENAME__, __LINE__,                 \
-                           "Feature is not supportted and the possible cause is" \
-                           " that driver and firmware packages do not match.");  \
-                    return true;                                                 \
-                }();                                                             \
-            } else {                                                             \
-                TORCH_CHECK(                                                     \
-                    false,                                                       \
-                    __func__,                                                    \
-                    ":",                                                         \
-                    __FILE__,                                                    \
-                    ":",                                                         \
-                    __LINE__,                                                    \
-                    " NPU error, error code is ", Error,                         \
-                    (err_map.error_code_map.find(Error) !=                       \
-                    err_map.error_code_map.end() ?                               \
-                    "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
-                    "\n", c10_npu::c10_npu_get_error_message());                 \
-            }                                                                    \
-        }                                                                        \
-    } while (0)
-
 #define NPU_CHECK_WARN(err_code)                                             \
     do {                                                                     \
         auto Error = err_code;                                               \
@@ -138,6 +88,77 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define GRAPH_ERROR(error) formatErrorCode(SubModule::GRAPH, error)
 #define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
+#define NPU_CHECK_ERROR(err_code)                                            \
+    do {                                                                     \
+        auto Error = err_code;                                               \
+        static c10_npu::acl::AclErrorCode err_map;                           \
+        if ((Error) != ACL_ERROR_NONE) {                                     \
+            TORCH_CHECK(                                                     \
+                false,                                                       \
+                __func__,                                                    \
+                ":",                                                         \
+                __FILE__,                                                    \
+                ":",                                                         \
+                __LINE__,                                                    \
+                " NPU error, error code is ", Error,                         \
+                PTA_ERROR(ErrCode::ACL),                                     \
+                (err_map.error_code_map.find(Error) !=                       \
+                err_map.error_code_map.end() ?                               \
+                "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
+                "\n", c10_npu::c10_npu_get_error_message());                 \
+        }                                                                    \
+    } while (0)
+
+#define OPS_CHECK_ERROR(err_code)                                            \
+    do {                                                                     \
+        auto Error = err_code;                                               \
+        static c10_npu::acl::AclErrorCode err_map;                           \
+        if ((Error) != ACL_ERROR_NONE) {                                     \
+            TORCH_CHECK(                                                     \
+                false,                                                       \
+                __func__,                                                    \
+                ":",                                                         \
+                __FILE__,                                                    \
+                ":",                                                         \
+                __LINE__,                                                    \
+                " NPU error, error code is ", Error,                         \
+                OPS_ERROR(ErrCode::ACL),                                     \
+                (err_map.error_code_map.find(Error) !=                       \
+                err_map.error_code_map.end() ?                               \
+                "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
+                "\n", c10_npu::c10_npu_get_error_message());                 \
+        }                                                                    \
+    } while (0)
+
+#define NPU_CHECK_SUPPORTED_OR_ERROR(err_code)                                   \
+    do {                                                                         \
+        auto Error = err_code;                                                   \
+        static c10_npu::acl::AclErrorCode err_map;                               \
+        if ((Error) != ACL_ERROR_NONE) {                                         \
+            if ((Error) == ACL_ERROR_RT_FEATURE_NOT_SUPPORT) {                   \
+                static auto feature_not_support_warn_once = []() {               \
+                    printf("[WARN]%s,%s:%u:%s\n",                                \
+                           __FUNCTION__, __FILENAME__, __LINE__,                 \
+                           "Feature is not supportted and the possible cause is" \
+                           " that driver and firmware packages do not match.");  \
+                    return true;                                                 \
+                }();                                                             \
+            } else {                                                             \
+                TORCH_CHECK(                                                     \
+                    false,                                                       \
+                    __func__,                                                    \
+                    ":",                                                         \
+                    __FILE__,                                                    \
+                    ":",                                                         \
+                    __LINE__,                                                    \
+                    " NPU error, error code is ", Error,                         \
+                    (err_map.error_code_map.find(Error) !=                       \
+                    err_map.error_code_map.end() ?                               \
+                    "\n[Error]: " + err_map.error_code_map[Error] : "."),        \
+                    "\n", c10_npu::c10_npu_get_error_message());                 \
+            }                                                                    \
+        }                                                                        \
+    } while (0)
 namespace c10_npu {
 
 C10_NPU_API const char *c10_npu_get_error_message();

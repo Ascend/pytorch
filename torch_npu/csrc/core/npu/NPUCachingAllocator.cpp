@@ -2104,7 +2104,7 @@ class NpuCachingAllocator : public NPUAllocator {
   void assertValidDevice(int device)
   {
       int device_num = c10_npu::device_count();
-      AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.");
+      AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.", PTA_ERROR(ErrCode::PARAM));
   }
 
   DeviceStats getDeviceStats(int device) override

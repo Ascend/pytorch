@@ -15,9 +15,10 @@
         if (error != HCCL_SUCCESS) {                                  \
             std::string err = "[ERROR] HCCL error in: " +             \
                 std::string(__FILE__) +                               \
-                ":" + std::to_string(__LINE__) + ".\n" +              \
-                c10_npu::acl::AclGetErrMsg();                         \
-            throw std::runtime_error(err);                            \
+                ":" + std::to_string(__LINE__) +                  \
+                DIST_ERROR(ErrCode::HCCL) + ".\n" +                          \
+                c10_npu::acl::AclGetErrMsg();                          \
+            throw std::runtime_error(err) ;                            \
         }                                                             \
     } while (0)
 
