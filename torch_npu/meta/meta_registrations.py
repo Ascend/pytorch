@@ -332,7 +332,7 @@ def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
     scale_dtype_supported_lst = [torch.float32, torch.int64, torch.bfloat16]
     torch._check(
         scale.dtype in scale_dtype_supported_lst,
-        lambda: "scale's type supported for float32 and int64, but scale.dtype is " + str(scale.dtype),
+        lambda: "scale's type supported for float32, int64 and bfloat16, but scale.dtype is " + str(scale.dtype),
     )
     if offset is not None:
         torch._check(
@@ -343,6 +343,25 @@ def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
         torch._check(
             bias.dtype == torch.int32 or bias.dtype == torch.bfloat16,
             lambda: "offset's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype),
+        )
+
+
+def quant_matmul_scale_offset_out_check(scale, offset, output_dtype):
+    if scale.dtype == torch.bfloat16:
+        torch._check(
+            output_dtype == "bfloat16",
+            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " + output_dtype,
+        )
+    if output_dtype == "bfloat16":
+        torch._check(
+            scale.dtype == torch.bfloat16,
+            lambda: "When output_dtype is bfloat16, scale's dtype must be bfloat16, but scale's dtype is " +
+            str(scale.dtype),
+        )
+    if offset is not None:
+        torch._check(
+            output_dtype is None or output_dtype == "int8",
+            lambda: "offset only exists when output_dtype is int8, but output_dtype is " + output_dtype,
         )
 
 
@@ -379,6 +398,7 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
             )
         bias_shape_check(x2, bias, batch_val)
     quant_matmul_dtype_check(x1, x2, scale, offset, bias)
+    quant_matmul_scale_offset_out_check(scale, offset, output_dtype)
     if output_dtype == "float16":
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
     elif output_dtype == "bfloat16":
