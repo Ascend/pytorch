@@ -1137,6 +1137,24 @@ class TestIncreFlashAttention(TestCase):
             self.assertTrue(q.shape == res.shape)
             self.assertTrue(res.dtype == torch.half)
 
+    def test_incre_flash_attention_kv_padding_size(self):
+        with FakeTensorMode():
+            q = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            k = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            v = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            kv_padding_size = torch.randint(1, 2, (1,)).npu()
+
+            s_min = 1
+            s_max = 1
+            actual_seq_shape = [1]
+            actual_seq = np.random.uniform(1, 1, actual_seq_shape).astype(np.int64).tolist()
+            res = torch.ops.npu.npu_incre_flash_attention(q, k, v, actual_seq_lengths=actual_seq,
+                                                          kv_padding_size=kv_padding_size)
+
+            print("q.shape: ", q.shape)
+            print("res.shape: ", res.shape)
+            self.assertTrue(q.shape == res.shape)
+
 
 class TestNpuBmmV2(TestCase):
     def test_npu_bmmV2(self):
