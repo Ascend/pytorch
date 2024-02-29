@@ -65,7 +65,7 @@ from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 from torch_npu.distributed import fsdp_patches
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.utils.error_code import ErrCode, pta_error
-
+from torch_npu.asd.asd import asd_patch
 from .version import __version__ as __version__
 
 torch_npu.npu_fusion_attention = fusion_attention.npu_fusion_attention
@@ -249,6 +249,10 @@ def apply_class_patches():
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 apply_class_patches()
+
+if int(os.getenv("NPU_ASD_ENABLE", "0")):
+    asd_patch()
+
 torch_npu._C._initExtension()
 
 # Add __doc__ for ops
