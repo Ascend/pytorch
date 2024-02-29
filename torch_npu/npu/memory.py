@@ -19,6 +19,7 @@ import contextlib
 import warnings
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .utils import is_initialized, _get_device_index, _lazy_init
 
 
@@ -60,7 +61,7 @@ def caching_allocator_alloc(size, device=None, stream=None):
     if not isinstance(stream, int):
         raise TypeError('Invalid type for stream argument, must be '
                         '`torch_npu.npu.Stream` or `int` representing a pointer '
-                        'to a exisiting stream')
+                        'to a exisiting stream' + pta_error(ErrCode.TYPE))
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_npuCachingAllocator_raw_alloc(size, stream)
 
@@ -100,10 +101,10 @@ def set_per_process_memory_fraction(fraction, device=None) -> None:
         device = torch_npu.npu.current_device()
     device = _get_device_index(device)
     if not isinstance(fraction, float):
-        raise TypeError('Invalid type for fraction argument, must be `float`')
+        raise TypeError('Invalid type for fraction argument, must be `float`' + pta_error(ErrCode.TYPE))
     if fraction < 0 or fraction > 1:
         raise ValueError('Invalid fraction value: {}. '
-                         'Allowed range: 0~1'.format(fraction))
+                         'Allowed range: 0~1'.format(fraction) + pta_error(ErrCode.VALUE))
 
     torch_npu._C._npu_setMemoryFraction(fraction, device)
 

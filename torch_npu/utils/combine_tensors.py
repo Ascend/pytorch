@@ -15,21 +15,23 @@
 
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 def npu_combine_tensors(list_of_tensor, require_copy_value=True):
     if len(list_of_tensor) == 0:
         return None
     if None in list_of_tensor:
-        raise RuntimeError("Tensors to combine must not have `None`.")
+        raise RuntimeError("Tensors to combine must not have `None`." + pta_error(ErrCode.PARAM))
 
     total_numel = 0
     dtype = list_of_tensor[0].dtype
     for tensor in list_of_tensor:
         if tensor.dtype != dtype:
-            raise RuntimeError("Tensors to combine must have the same dtype.")
+            raise RuntimeError("Tensors to combine must have the same dtype." + pta_error(ErrCode.TYPE))
         if tensor.device.type != "npu":
-            raise RuntimeError("Tensors to combine must be on NPU, got {}.".format(tensor.device.type))
+            raise RuntimeError("Tensors to combine must be on NPU, got {}.".format(tensor.device.type) +
+                               pta_error(ErrCode.VALUE))
         total_numel += torch_npu.get_storage_size(tensor)
 
     if total_numel == 0:
@@ -58,7 +60,7 @@ def get_part_combined_tensor(combined_tensor, index, size):
 
     if (index + size) > torch_npu.get_storage_size(combined_tensor):
         raise RuntimeError("(index + size) ({}) > torch_npu.get_storage_size(combined_tensor) ({})".format(
-                           index + size, torch_npu.get_storage_size(combined_tensor)))
+                           index + size, torch_npu.get_storage_size(combined_tensor)) + pta_error(ErrCode.VALUE))
 
     part_tensor = torch.zeros(size, dtype=combined_tensor.dtype).npu()
     torch_npu.npu_change_data_ptr(part_tensor, combined_tensor, index)
