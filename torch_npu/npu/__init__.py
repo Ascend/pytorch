@@ -112,6 +112,7 @@ from torch.storage import _LegacyStorage, _warn_typed_storage_removal
 from torch._utils import classproperty
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error, prof_error
 from .utils import (synchronize, device_count, can_device_access_peer, set_device, current_device, get_device_name,
                     get_device_properties, get_device_capability, _get_device_index,
                     device, device_of, stream, set_stream, current_stream, default_stream, set_sync_debug_mode,
@@ -125,7 +126,7 @@ from .backends import *  # noqa: F403
 
 # init profiler
 if not torch_npu._C._profiler_init():
-    raise RuntimeError("proflier initialization failed")
+    raise RuntimeError("proflier initialization failed" + prof_error(ErrCode.UNAVAIL))
 
 config = npu_config.npuConfig()
 
@@ -184,7 +185,7 @@ def _lazy_init():
             except Exception as e:
                 msg = (f"NPU call failed lazily at initialization with error: {str(e)}\n\n"
                        f"NPU call was originally invoked at:\n\n{orig_traceback}")
-                raise DeferredNpuCallError(msg) from e
+                raise DeferredNpuCallError(msg + pta_error(ErrCode.INTERNAL)) from e
 
     global _initialized, _original_pid, _queued_calls
     if _initialized or hasattr(_tls, 'is_initializing'):
@@ -322,15 +323,15 @@ class _NPULegacyStorage(_LegacyStorage):
     @classmethod
     def from_buffer(cls, *args, **kwargs):
         _warn_typed_storage_removal()
-        raise RuntimeError('from_buffer: Not available for NPU storage')
+        raise RuntimeError('from_buffer: Not available for NPU storage' + pta_error(ErrCode.UNAVAIL))
 
     @classmethod
     def _new_with_weak_ptr(cls, *args, **kwargs):
-        raise RuntimeError('_new_with_weak_ptr: Not available for NPU storage')
+        raise RuntimeError('_new_with_weak_ptr: Not available for NPU storage' + pta_error(ErrCode.UNAVAIL))
 
     @classmethod
     def _new_shared_filename(cls, manager, obj, size, *, device=None, dtype=None):
-        raise RuntimeError('_new_shared_filename: Not available for NPU storage')
+        raise RuntimeError('_new_shared_filename: Not available for NPU storage' + pta_error(ErrCode.UNAVAIL))
 
 
 class ByteStorage(_NPULegacyStorage):

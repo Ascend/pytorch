@@ -3,13 +3,15 @@ from functools import wraps
 import torch
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 def wrap_tensor_error_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         raise RuntimeError(f"torch.Tensor.{func.__name__} is deprecated and "
-                           f"will be removed in future version. Use torch_npu.{func.__name__} instead.")
+                           f"will be removed in future version. Use torch_npu.{func.__name__} instead." +
+                           pta_error(ErrCode.NOT_SUPPORT))
     return wrapper
 
 

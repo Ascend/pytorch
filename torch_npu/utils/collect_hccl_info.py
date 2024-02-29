@@ -3,8 +3,11 @@ import subprocess
 import shutil
 import argparse
 
+from torch_npu.utils.error_code import ErrCode, pta_error
+
+
 if 'ASCEND_HOME_PATH' not in os.environ:
-    raise RuntimeError("Please run 'source set_env.sh' in the CANN installation path.")
+    raise RuntimeError("Please run 'source set_env.sh' in the CANN installation path." + pta_error(ErrCode.NOT_FOUND))
 ascend_dir = os.environ['ASCEND_HOME_PATH']
 
 
@@ -14,7 +17,7 @@ def get_tool_path():
         return tool_path
     else:
         raise RuntimeError("""HCCL test directory doesn't exist.
-                           Please check the integrity of CANN package.""")
+                           Please check the integrity of CANN package.""" + pta_error(ErrCode.NOT_FOUND))
 
 
 def get_mpi_install_path():
@@ -22,7 +25,7 @@ def get_mpi_install_path():
     if not mpirun_path:
         raise FileNotFoundError(
             """MPI package not found. Please download from official website.
-            If package already downloaded, please check and set environment variables."""
+            If package already downloaded, please check and set environment variables.""" + pta_error(ErrCode.NOT_FOUND)
         )
 
     mpi_install_path_list = mpirun_path.decode().strip().split(os.sep)
@@ -48,7 +51,8 @@ def is_compiled():
 def compile_hccl_test():
     make_path = shutil.which("make")
     if not make_path:
-        raise FileNotFoundError("Command 'make' not found. please check and set environment variables.")
+        raise FileNotFoundError("Command 'make' not found. please check and set environment variables." +
+                                pta_error(ErrCode.NOT_FOUND))
 
     try:
         subprocess.check_call(args=[make_path] + build_args, env=os.environ, shell=False)
