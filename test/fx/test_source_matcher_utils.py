@@ -5,6 +5,8 @@ import sys
 import unittest
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.jit_utils import JitTestCase
 from torch.fx.passes.utils.source_matcher_utils import get_source_partitions, check_subgraphs_connected
 from torch._dynamo.eval_frame import is_dynamo_supported
