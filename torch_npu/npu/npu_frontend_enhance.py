@@ -20,7 +20,7 @@ import os
 import warnings
 import torch_npu._C
 from torch_npu.utils.path_manager import PathManager
-from torch_npu.utils.error_code import pta_error, ErrCode
+from torch_npu.utils.error_code import ErrCode, pta_error, prof_error
 
 # this file is used to enhance the npu frontend API by set_option or other.
 
@@ -85,7 +85,7 @@ def init_dump():
 
 def set_dump(cfg_file):
     if not os.path.exists(cfg_file):
-        raise AssertionError("cfg_file %s path does not exists." % (cfg_file))
+        raise AssertionError("cfg_file %s path does not exists." % (cfg_file) + pta_error(ErrCode.NOT_FOUND))
     cfg_file = os.path.realpath(cfg_file)
     option = {"mdldumpconfigpath": cfg_file}
     torch_npu._C._npu_setOption(option)
@@ -106,9 +106,9 @@ def set_aoe(dump_path):
         try:
             PathManager.make_dir_safety(dump_path)
         except TypeError:
-            raise TypeError("Type of dump_path is invalid.") from None
+            raise TypeError("Type of dump_path is invalid." + pta_error(ErrCode.TYPE)) from None
         except OSError:
-            raise OSError("Value of dump_path is invalid.") from None
+            raise OSError("Value of dump_path is invalid." + pta_error(ErrCode.SYSCALL)) from None
     option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
     torch_npu._C._npu_setOption(option)
 
@@ -229,13 +229,13 @@ class profile(object):
         try:
             PathManager.make_dir_safety(self.result_path)
         except TypeError:
-            raise TypeError("Type of result_path is invalid.") from None
+            raise TypeError("Type of result_path is invalid." + prof_error(ErrCode.TYPE)) from None
         except OSError:
-            raise OSError("Value of result_path is invalid.") from None
+            raise OSError("Value of result_path is invalid." + prof_error(ErrCode.SYSCALL)) from None
 
     def __enter__(self):
         if self.entered:
-            raise RuntimeError("npu profiler traces are not reentrant")
+            raise RuntimeError("npu profiler traces are not reentrant" + prof_error(ErrCode.UNAVAIL))
         self.entered = True
         if self.use_e2e_profiler:
             torch_npu._C._enable_e2e_profiler(self.result_path,
@@ -257,7 +257,7 @@ class profile(object):
 
 def prof_init(path):
     if not os.path.exists(path):
-        raise AssertionError("profiler_result_path: %s not exists." % (path))
+        raise AssertionError("profiler_result_path: %s not exists." % (path) + prof_error(ErrCode.NOT_FOUND))
     profiler_result_path = os.path.realpath(path)
     option = {"profilerResultPath": profiler_result_path}
     torch_npu._C._npu_setOption(option)

@@ -64,6 +64,7 @@ from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 from torch_npu.distributed import fsdp_patches
 from torch_npu.utils.exposed_api import public_npu_functions
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 from .version import __version__ as __version__
 
@@ -224,7 +225,7 @@ def _apply_patches(monkey_patches):
             continue
 
         if not hasattr(patch, '__all__'):
-            raise NotImplementedError("Patch module must have __all__ definition.")
+            raise NotImplementedError("Patch module must have __all__ definition." + pta_error(ErrCode.NOT_SUPPORT))
         dest_module = getattr(dest_module, last_module_level)
         for attr in patch.__all__:
             setattr(dest_module, attr, getattr(patch, attr))

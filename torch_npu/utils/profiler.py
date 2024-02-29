@@ -18,6 +18,7 @@ import os
 import time
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, prof_error
 
 
 def Singleton(cls):
@@ -73,21 +74,24 @@ class Profile(object):
             cann_ge_args_set = set(["config"])
             if self.profile_type == "TORCH":
                 if not set(kwargs.keys()).issubset(torch_args_set):
-                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), torch_args_set))
+                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), torch_args_set) +
+                                     prof_error(ErrCode.VALUE))
                 self.prof = torch.autograd.profiler.profile(use_npu=self.use_npu, **kwargs)
             elif self.profile_type == "CANN":
                 if not set(kwargs.keys()).issubset(cann_ge_args_set):
-                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set))
+                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set) +
+                                     prof_error(ErrCode.VALUE))
                 self.prof = torch.npu.profile(self.save_path, self.use_e2e_profiler, **kwargs)
             elif self.profile_type == "GE":
                 if not set(kwargs.keys()).issubset(cann_ge_args_set):
-                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set))
+                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set) +
+                                     prof_error(ErrCode.VALUE))
                 self.prof = torch.npu.profile(self.save_path, self.use_e2e_profiler, **kwargs)
 
             try:
                 os.makedirs(self.save_path, exist_ok=True)
             except Exception as e:
-                raise ValueError("the path of '%s' is invaild." % (self.save_path)) from e
+                raise ValueError("the path of '%s' is invaild." % (self.save_path) + prof_error(ErrCode.VALUE)) from e
 
     def __del__(self):
         if self.count != 0:
@@ -95,7 +99,7 @@ class Profile(object):
 
     def start(self):
         if self.count != 0:
-            raise ValueError("start interface can only be called once")
+            raise ValueError("start interface can only be called once" + prof_error(ErrCode.INTERNAL))
         self.count = self.count + 1
 
         if self.enable:
@@ -105,7 +109,7 @@ class Profile(object):
 
     def end(self):
         if self.count == 0:
-            raise ValueError("start interface must be called after end")
+            raise ValueError("start interface must be called after end" + prof_error(ErrCode.INTERNAL))
         self.count = 0
 
         if self.enable and self.step_count == self.start_step:

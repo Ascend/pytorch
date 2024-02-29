@@ -25,6 +25,7 @@ from torch.serialization import _check_dill_version,\
     _open_zipfile_writer, location_tag, normalize_storage_type
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 DEFAULT_PROTOCOL = 2
 RE_MAP_CPU = False
@@ -140,7 +141,8 @@ def save_async(
         raise RuntimeError("Error: torch_npu.save_async with \"_use_new_zipfile_serialization = False\"\
                            is not recommended for npu tensor, which may bring unexpected errors and hopefully \
                            set \"_use_new_zipfile_serialization = True\"",
-                           "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving")
+                           "if it is necessary to use this, please convert the npu tensor to cpu tensor for saving" +
+                           pta_error(ErrCode.PARAM))
 
     _check_dill_version(pickle_module)
     save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
@@ -221,7 +223,7 @@ def _save(obj, pickle_module, pickle_protocol):
                     if storage_dtype != storage_dtypes[storage.data_ptr()]:
                         raise RuntimeError(
                             'Cannot save multiple tensors or storages that '
-                            'view the same data as different types')
+                            'view the same data as different types' + pta_error(ErrCode.VALUE))
                 else:
                     storage_dtypes[storage.data_ptr()] = storage_dtype
 

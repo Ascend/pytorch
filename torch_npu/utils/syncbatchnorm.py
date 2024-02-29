@@ -17,6 +17,7 @@
 import torch
 import torch.distributed as dist
 from torch.autograd.function import Function
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 class SyncBatchNorm(Function):
@@ -46,7 +47,8 @@ class SyncBatchNorm(Function):
 
         size = count_all.view(-1).sum()
         if size == 1:
-            raise ValueError('Expected more than 1 value per channel when training, got input size {}'.format(size))
+            raise ValueError('Expected more than 1 value per channel when training, got input size {}'.format(size) +
+                             ops_error(ErrCode.VALUE))
 
         # calculate global mean & invstd
         mean, invstd = torch.batch_norm_gather_stats_update(input_tensor,

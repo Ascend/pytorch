@@ -33,6 +33,7 @@ from torch._C._nn import _parse_to as torch_parse_to
 
 import torch_npu
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
+from torch_npu.utils.error_code import ErrCode, pta_error
 from torch_npu.utils.tensor_methods import torch_device_guard
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ def to(self, *args, **kwargs):
     if dtype is not None:
         if not (dtype.is_floating_point or dtype.is_complex):
             raise TypeError('nn.Module.to only accepts floating point or complex '
-                            'dtypes, but got desired dtype={}'.format(dtype))
+                            'dtypes, but got desired dtype={}'.format(dtype) + pta_error(ErrCode.TYPE))
         if dtype.is_complex:
             warnings.warn(
                 "Complex modules are a new feature under active development whose design may change, "
@@ -312,7 +313,7 @@ def pad_packed_sequence(sequence, batch_first=False, padding_value=0.0, total_le
 def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
     # currently only NPU or GPU input is supported
     if (not input1.is_cuda) and (not input1.is_npu):
-        raise ValueError('SyncBatchNorm expected input tensor to be on NPU or GPU')
+        raise ValueError('SyncBatchNorm expected input tensor to be on NPU or GPU' + pta_error(ErrCode.VALUE))
 
     self._check_input_dim(input1)
     self._check_non_zero_input_channels(input1)
@@ -327,7 +328,7 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
 
     if self.training and self.track_running_stats:
         if self.num_batches_tracked is None:
-            raise ValueError("self.num_batches_tracked is None")
+            raise ValueError("self.num_batches_tracked is None" + pta_error(ErrCode.VALUE))
         self.num_batches_tracked.add_(1)
         if self.momentum is None:  # use cumulative moving average
             exponential_average_factor = 1.0 / self.num_batches_tracked.item()
@@ -372,7 +373,7 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             bn_training, exponential_average_factor, self.eps)
     else:
         if not bn_training:
-            raise ValueError("not bn_training")
+            raise ValueError("not bn_training" + pta_error(ErrCode.VALUE))
         return sync_batch_norm.apply(
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
