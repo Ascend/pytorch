@@ -9,6 +9,7 @@ from torch._utils import _get_device_index as _torch_get_device_index
 
 import torch_npu
 import torch_npu._C
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 def synchronize(device=None):
@@ -35,9 +36,9 @@ def can_device_access_peer(device_id, peer_device_id):
     device_id = _get_device_index(device_id, optional=True)
     peer_device_id = _get_device_index(peer_device_id, optional=True)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid devide id")
+        raise AssertionError("Invalid devide id" + pta_error(ErrCode.VALUE))
     if peer_device_id < 0 or peer_device_id >= device_count():
-        raise AssertionError("Invalid peer devide id")
+        raise AssertionError("Invalid peer devide id" + pta_error(ErrCode.VALUE))
     return torch_npu._C._npu_canDeviceAccessPeer(device_id, peer_device_id)
 
 
@@ -55,7 +56,7 @@ def current_device():
 def get_device_name(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id")
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceProperties(device_id)
     return device_prop.name
@@ -64,7 +65,7 @@ def get_device_name(device_name=None):
 def get_device_properties(device_name=None):
     device_id = _get_device_index(device_name, optional=True)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id")
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceProperties(device_id)
 
@@ -74,7 +75,7 @@ def mem_get_info(device=None):
         device = torch_npu.npu.current_device()
     device_id = _get_device_index(device)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id")
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     device_prop = torch_npu._C._npu_getDeviceMemories(device_id)
     return device_prop.free_memory, device_prop.total_memory
@@ -93,7 +94,7 @@ def utilization(device=None):
     """
     device_id = _get_device_index(device, optional=True)
     if device_id < 0 or device_id >= device_count():
-        raise AssertionError("Invalid device id")
+        raise AssertionError("Invalid device id" + pta_error(ErrCode.VALUE))
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDeviceUtilizationRate(device_id)
 
@@ -147,9 +148,9 @@ def _get_device_index(device: Any, optional: bool = False,
     if isinstance(device, torch.device):
         if allow_cpu:
             if device.type not in ['npu', 'cpu']:
-                raise ValueError('Expected a npu or cpu device, but got: {}'.format(device))
+                raise ValueError('Expected a npu or cpu device, but got: {}'.format(device) + pta_error(ErrCode.VALUE))
         elif device.type != 'npu':
-            raise ValueError('Expected a npu device, but got: {}'.format(device))
+            raise ValueError('Expected a npu device, but got: {}'.format(device) + pta_error(ErrCode.VALUE))
     if not torch.jit.is_scripting():
         if isinstance(device, torch.npu.device):
             return device.idx
@@ -271,7 +272,7 @@ def set_sync_debug_mode(debug_mode):
             debug_mode = 2
         else:
             raise RuntimeError(
-                "invalid value of debug_mode, expected one of `default`, `warn`, `error`"
+                "invalid value of debug_mode, expected one of `default`, `warn`, `error`" + pta_error(ErrCode.PARAM)
             )
 
     torch_npu._C._npu_set_sync_debug_mode(debug_mode)
@@ -287,7 +288,8 @@ def _dummy_type(name):
     def init_err(self):
         class_name = self.__class__.__name__
         raise RuntimeError(
-            "Tried to instantiate dummy base class {}".format(class_name))
+            "Tried to instantiate dummy base class {}".format(class_name) + pta_error(ErrCode.UNAVAIL)
+        )
 
     return type(name, (object,), {"__init__": init_err})
 
@@ -332,7 +334,8 @@ def is_bf16_supported():
 
 def get_npu_overflow_flag():
     if is_support_inf_nan():
-        raise RuntimeError("Unsupported api when soc_version >= Ascend910B1, please use npu_check_overflow")
+        raise RuntimeError("Unsupported api when soc_version >= Ascend910B1, please use npu_check_overflow" +
+                           pta_error(ErrCode.NOT_SUPPORT))
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_get_float_status(float_status)
     if result.cpu()[0] != 0:
@@ -348,7 +351,7 @@ def npu_check_overflow(grad):
         elif isinstance(grad, torch.Tensor):
             cpu_sum = float(grad.float().sum())
         else:
-            raise RuntimeError("Unsupported type.")
+            raise RuntimeError("Unsupported type." + pta_error(ErrCode.TYPE))
 
         if cpu_sum == float('inf') or cpu_sum == -float('inf') or cpu_sum != cpu_sum:
             return True

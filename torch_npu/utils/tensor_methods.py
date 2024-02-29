@@ -3,6 +3,7 @@ from functools import wraps
 import torch
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 
 def _npu(self, *args, **kwargs):

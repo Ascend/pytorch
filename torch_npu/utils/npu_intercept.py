@@ -6,6 +6,7 @@ from functools import wraps
 import torch
 import torch_npu
 from torch_npu.utils.path_manager import PathManager
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api, unsupported_nested_api
 from .collect_env import get_cann_version
 
@@ -24,31 +25,36 @@ def cann_package_check():
         ascend_home_path = os.environ["ASCEND_HOME_PATH"]
         if not os.path.exists(ascend_home_path):
             raise Exception(f"ASCEND_HOME_PATH : {ascend_home_path} does not exist. "
-                            "Please run 'source set_env.sh' in the CANN installation path.")
+                            "Please run 'source set_env.sh' in the CANN installation path." +
+                            pta_error(ErrCode.NOT_FOUND))
 
         # check whether environment variables are correctly configured
         if "ASCEND_OPP_PATH" not in os.environ:
             raise Exception(f"ASCEND_OPP_PATH environment variable is not set. "
                             "Please check whether the opp package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
+                            "'source set_env.sh' in the CANN installation path." +
+                            pta_error(ErrCode.NOT_FOUND))
 
         ascend_opp_path = os.environ["ASCEND_OPP_PATH"]
         if not os.path.exists(ascend_opp_path):
             raise Exception(f"ASCEND_OPP_PATH : {ascend_opp_path} does not exist. "
                             "Please check whether the opp package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
+                            "'source set_env.sh' in the CANN installation path." +
+                            pta_error(ErrCode.NOT_FOUND))
 
         ascend_runtime_path = os.path.join(ascend_home_path, "runtime")
         if not os.path.exists(ascend_runtime_path):
             raise Exception(f"ASCEND_RUNTIME_PATH : {ascend_runtime_path} does not exist. "
                             "Please check whether the runtime package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
+                            "'source set_env.sh' in the CANN installation path." +
+                            pta_error(ErrCode.NOT_FOUND))
 
         ascend_compiler_path = os.path.join(ascend_home_path, "compiler")
         if not os.path.exists(ascend_compiler_path):
             raise Exception(f"ASCEND_COMPILER_PATH : {ascend_compiler_path} does not exist. "
                             "Please check whether the compiler package has been installed. If exist, please run "
-                            "'source set_env.sh' in the CANN installation path.")
+                            "'source set_env.sh' in the CANN installation path." +
+                            pta_error(ErrCode.NOT_FOUND))
 
         # get the cann version
         cann_version = get_cann_version()
@@ -67,7 +73,7 @@ def create_wrap_func(check_func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if check_func(*args, **kwargs):
-                raise RuntimeError(f"{str(func)} is not supported in npu.")
+                raise RuntimeError(f"{str(func)} is not supported in npu." + pta_error(ErrCode.NOT_SUPPORT))
 
             return func(*args, **kwargs)
         return wrapper

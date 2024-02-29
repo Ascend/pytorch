@@ -47,6 +47,7 @@ from torch_npu.utils import cann_package_check, add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .version import __version__ as __version__
 from .meta import meta_registrations
 from . import _op_plugin_docs
@@ -61,7 +62,7 @@ def wrap_torch_error_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         raise RuntimeError(f"torch.{func.__name__} is deprecated and will be removed in future version. "
-                           f"Use torch_npu.{func.__name__} instead.")
+                           f"Use torch_npu.{func.__name__} instead." + pta_error(ErrCode.NOT_SUPPORT))
 
     return wrapper
 
@@ -107,7 +108,7 @@ def _apply_patches(monkey_patches):
             continue
 
         if not hasattr(patch, '__all__'):
-            raise NotImplementedError("Patch module must have __all__ definition.")
+            raise NotImplementedError("Patch module must have __all__ definition." + pta_error(ErrCode.NOT_SUPPORT))
         dest_module = getattr(dest_module, last_module_level)
         for attr in patch.__all__:
             setattr(dest_module, attr, getattr(patch, attr))
