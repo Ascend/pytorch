@@ -29,6 +29,7 @@ from .focus import Focus
 from .batchnorm_with_int32_count import FastBatchNorm1d, \
     FastBatchNorm2d, FastBatchNorm3d, FastSyncBatchNorm
 from .linear_weight_quant import LinearWeightQuant
+from .linear_a8w8_quant import LinearA8W8Quant
 
 __all__ = [
     "ChannelShuffle",
@@ -50,4 +51,5 @@ __all__ = [
     "NpuDropPath",
     "Focus",
     "LinearWeightQuant",
+    "LinearA8W8Quant",
 ]
