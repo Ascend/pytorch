@@ -76,6 +76,7 @@ def init_pg(backend: str = "hccl", world_size=1, rank=0, file_name="file://") ->
         raise RuntimeError(f"Backend {backend} not supported!")
 
     dist.init_process_group(
+        backend=backend,
         world_size=world_size,
         rank=rank,  # pyre-ignore[16]
         init_method=f"file://{file_name}",  # pyre-ignore[16]
