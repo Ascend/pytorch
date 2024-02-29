@@ -4,6 +4,7 @@ import warnings
 import ctypes
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 from . import is_initialized, _get_device_index, _lazy_init
 from .utils import _dummy_type
 
@@ -74,7 +75,7 @@ def caching_allocator_alloc(size, device=None, stream=None):
     if not isinstance(stream, int):
         raise TypeError('Invalid type for stream argument, must be '
                         '`torch_npu.npu.Stream` or `int` representing a pointer '
-                        'to a exisiting stream')
+                        'to a exisiting stream' + pta_error(ErrCode.TYPE))
     with torch_npu.npu.device(device):
         return torch_npu._C._npu_npuCachingAllocator_raw_alloc(size, stream)
 
@@ -114,10 +115,10 @@ def set_per_process_memory_fraction(fraction, device=None) -> None:
         device = torch_npu.npu.current_device()
     device = _get_device_index(device)
     if not isinstance(fraction, float):
-        raise TypeError('Invalid type for fraction argument, must be `float`')
+        raise TypeError('Invalid type for fraction argument, must be `float`' + pta_error(ErrCode.TYPE))
     if fraction < 0 or fraction > 1:
         raise ValueError('Invalid fraction value: {}. '
-                         'Allowed range: 0~1'.format(fraction))
+                         'Allowed range: 0~1'.format(fraction) + pta_error(ErrCode.VALUE))
 
     torch_npu._C._npu_setMemoryFraction(fraction, device)
 
@@ -592,9 +593,9 @@ class NPUPluggableAllocator(_NPUAllocator):
         alloc_fn = ctypes.cast(getattr(allocator, alloc_fn_name), ctypes.c_void_p).value
         free_fn = ctypes.cast(getattr(allocator, free_fn_name), ctypes.c_void_p).value
         if alloc_fn is None:
-            raise RuntimeError('alloc_fn is None')
+            raise RuntimeError('alloc_fn is None' + pta_error(ErrCode.NOT_FOUND))
         if free_fn is None:
-            raise RuntimeError('free_fn is None')
+            raise RuntimeError('free_fn is None' + pta_error(ErrCode.NOT_FOUND))
         self._allocator = torch_npu._C._npu_customAllocator(alloc_fn, free_fn)
 
 

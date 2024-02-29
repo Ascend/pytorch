@@ -8,6 +8,7 @@ from torch.serialization import _check_dill_version, _open_file_like, _is_zipfil
     _legacy_load, _load, FILE_LIKE, MAP_LOCATION, DEFAULT_PROTOCOL
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
@@ -141,7 +142,8 @@ def load(
 
     if weights_only:
         if pickle_module is not None:
-            raise RuntimeError("Can not safely load weights when explicit pickle_module is specified")
+            raise RuntimeError("Can not safely load weights when explicit pickle_module is specified" +
+                               pta_error(ErrCode.PARAM))
     else:
         if pickle_module is None:
             pickle_module = pickle
@@ -166,7 +168,8 @@ def load(
                     return torch.jit.load(opened_file, map_location=map_location)
                 if mmap:
                     if not isinstance(f, str):
-                        raise ValueError("f must be a string filename in order to use mmap argument")
+                        raise TypeError("f must be a string filename in order to use mmap argument" +
+                                        pta_error(ErrCode.TYPE))
                     size = os.path.getsize(f)
                     overall_storage = torch.UntypedStorage.from_file(f, False, size)
                 if weights_only:
@@ -174,18 +177,19 @@ def load(
                         return _load(opened_zipfile, map_location, _weights_only_unpickler,
                                      overall_storage=overall_storage, **pickle_load_args)
                     except RuntimeError as e:
-                        raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e)) from None
+                        raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e) + pta_error(ErrCode.SYSCALL)) from None
                 return _load(opened_zipfile, map_location, pickle_module,
                              overall_storage=overall_storage, **pickle_load_args)
         else:
             if mmap:
                 raise RuntimeError("mmap can only be used with files saved with `torch.save(_use_new_zipfile_serialization=True), ",
-                                   "please torch.save your checkpoint with this option in order to use mmap.")
+                                   "please torch.save your checkpoint with this option in order to use mmap." +
+                                   pta_error(ErrCode.PARAM))
             if weights_only:
                 try:
                     return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
                 except RuntimeError as e:
-                    raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e)) from None
+                    raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e) + pta_error(ErrCode.SYSCALL)) from None
 
             warn_massage = (
                 "Warning: since the loaded file is not a zipfile, only \"torch.device\" and \"str\" type parameters are currently supported for parameter types of map_location"
