@@ -3,6 +3,8 @@
 import random
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (
     TestCase, run_tests)
 from torch.fx.experimental.proxy_tensor import make_fx

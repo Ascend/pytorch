@@ -5,6 +5,8 @@ import typing
 
 import torch
 from torch.fx import symbolic_trace
+import torch_npu
+import torch_npu.testing
 
 
 class A:

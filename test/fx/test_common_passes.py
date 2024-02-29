@@ -3,6 +3,8 @@
 import itertools
 
 import torch
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import (
     TestCase, parametrize, instantiate_parametrized_tests, run_tests)
 from torch.fx.experimental.proxy_tensor import make_fx
@@ -70,8 +72,8 @@ Test_Cases = [TakeList,
               MutationTorchTensorCall]
 Factory_Test_Cases = [FactoryFunctionCall, MutationFactory]
 Devices = ["cpu"]
-if torch.cuda.is_available():
-    Devices.append("cuda")
+if torch_npu.npu.is_available():
+    Devices.append("npu")
 
 
 def name_fn(common_pass, f, device):

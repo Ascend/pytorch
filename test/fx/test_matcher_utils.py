@@ -9,6 +9,8 @@ import torch.nn.functional as F
 from torch.fx import symbolic_trace
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch.fx.passes.utils.matcher_utils import SubgraphMatcher
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.jit_utils import JitTestCase
 from torch.fx.passes.utils.matcher_with_name_node_map_utils import SubgraphMatcherWithNameNodeMap
 from torch.testing._internal.common_utils import IS_WINDOWS

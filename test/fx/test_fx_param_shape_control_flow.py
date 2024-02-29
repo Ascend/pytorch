@@ -4,6 +4,8 @@ import unittest
 import torch
 import torch.fx
 
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase
 
 

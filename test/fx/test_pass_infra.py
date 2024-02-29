@@ -10,6 +10,8 @@ from torch.fx.passes.infra.pass_manager import (
     this_before_that_pass_constraint,
 )
 
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase
 
 

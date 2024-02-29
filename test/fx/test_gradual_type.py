@@ -1,6 +1,7 @@
 # Owner(s): ["module: fx"]
 
 import unittest
+import sympy
 import torch
 from torch.fx import symbolic_trace
 from torch.fx.experimental.unify_refinements import infer_symbolic_types
@@ -11,8 +12,9 @@ from torch.fx.experimental.graph_gradual_typechecker import GraphTypeChecker, br
 from torch.fx.experimental.rewriter import RewritingTracer
 from torch.fx import GraphModule
 from torch.fx.passes.shape_prop import ShapeProp
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase
-import sympy
 
 
 try:
