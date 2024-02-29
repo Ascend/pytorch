@@ -1494,7 +1494,7 @@ class TestFFN(TestCase):
             w1 = torch.randn(320, 2560, dtype=torch.float16).npu()
             w2 = torch.randn(2560, 320, dtype=torch.float16).npu()
             activation = "gelu"
-            res = torch_npu.npu_ffn(x, w1, w2, activation, inner_precise=1)
+            res = torch_npu.npu_ffn(x, w1, w2, activation, inner_precise=1, output_dtype=torch.float16)
             self.assertTrue(x.shape == res.shape)
 
 
