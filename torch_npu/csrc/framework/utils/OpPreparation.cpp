@@ -333,7 +333,8 @@ namespace at_npu
     {
       TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
           "Expected all tensors to be on the same device. "
-          "Expected NPU tensor, please check whether the input tensor device is correct.");
+          "Expected NPU tensor, please check whether the input tensor device is correct.",
+          OPS_ERROR(ErrCode::TYPE));
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
       return NPUNativeFunctions::unsafe_empty_with_format(
           sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
@@ -458,7 +459,8 @@ namespace at_npu
     {
       TORCH_CHECK(options.device().type() == at_npu::key::NativeDeviceType,
           "Expected all tensors to be on the same device. "
-          "Expected NPU tensor, please check whether the input tensor device is correct.");
+          "Expected NPU tensor, please check whether the input tensor device is correct.",
+          OPS_ERROR(ErrCode::TYPE));
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
       return NPUNativeFunctions::unsafe_empty_with_format(
           sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),

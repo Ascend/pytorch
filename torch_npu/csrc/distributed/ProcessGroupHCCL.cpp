@@ -143,7 +143,7 @@ HcclDataType getHcclDataType(at::ScalarType type)
     try {
         return kScalarTypeToHcclDataType.at(type);
     } catch (std::out_of_range& e) {
-        throw std::runtime_error("Unsupported data type for HCCL process group");
+        throw std::runtime_error("Unsupported data type for HCCL process group" + DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 }
 
@@ -183,7 +183,7 @@ void checkSupportedDataTypeOfAllReduce(HcclDataType type)
     TORCH_CHECK(
         allReduceSupportedDataTypes.count(type) != 0,
         "HCCL AllReduce & Reduce: Unsupported data type ",
-        getHcclDataTypeSerialString(type));
+        getHcclDataTypeSerialString(type), DIST_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 // Get the deviceList String from the list of devices
@@ -214,7 +214,7 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors)
 // Return device with ordinal given by input rank.
 at::Device getDeviceForRank(int rank)
 {
-    TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
+    TORCH_CHECK(rank >= 0, "Invalid rank ", rank, DIST_ERROR(ErrCode::VALUE));
     auto numNPUs = c10_npu::device_count();
     if (numNPUs == 0) {
         AT_ERROR("Number of NPU devices on the machine is zero. Please check it");
@@ -261,7 +261,7 @@ void exceptionCallback(aclrtExceptionInfo* exceptionInfo)
 // Returns exception's what() given an exception_ptr instance.
 std::string getExceptionMsgFromExceptionPtr(const std::exception_ptr& exceptionPtr)
 {
-    TORCH_CHECK(exceptionPtr != nullptr);
+    TORCH_CHECK(exceptionPtr != nullptr, DIST_ERROR(ErrCode::PTR));
     try {
         std::rethrow_exception(exceptionPtr);
     } catch (const std::exception& e) {
@@ -463,7 +463,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronize()
         while (!isCompleted()) {
             auto currentTimepoint = std::chrono::steady_clock::now();
             if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTimepoint - workStartTime_) > opTimeout_) {
-                throw std::runtime_error("Operation timed out!");
+                throw std::runtime_error("Operation timed out!" + DIST_ERROR(ErrCode::TIMEOUT));
             }
             // Check for errors and throw appropriate exception.
             checkAndThrowException();
@@ -810,11 +810,11 @@ ProcessGroupHCCL::ProcessGroupHCCL(
                 // Make wait() and synchronize() a blocking call.
                 blockingWait_ = true;
             } else if (val != 0) {
-                throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT));
+                throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT) + DIST_ERROR(ErrCode::VALUE));
             }
         }
     } catch (std::exception& e) {
-        throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT));
+        throw std::runtime_error("Invalid value for environment variable: " + std::string(HCCL_BLOCKING_WAIT) + DIST_ERROR(ErrCode::VALUE));
     }
 
     asyncErrorHandling_ =
@@ -976,12 +976,12 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
     } else {
         try {
             auto vec = store_->get(storeKey);
-            TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES);
+            TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES, DIST_ERROR(ErrCode::PARAM));
             std::memcpy(hcclID, vec.data(), vec.size());
         } catch (const std::exception& e) {
-            throw std::runtime_error("store->get() got error: " + std::string(HCCL_BLOCKING_WAIT));
+            throw std::runtime_error("store->get() got error: " + std::string(HCCL_BLOCKING_WAIT) + DIST_ERROR(ErrCode::INTERNAL));
         } catch (...) {
-            throw std::runtime_error("Unknown exception: " + std::string(HCCL_BLOCKING_WAIT));
+            throw std::runtime_error("Unknown exception: " + std::string(HCCL_BLOCKING_WAIT) + DIST_ERROR(ErrCode::INTERNAL));
         }
         auto main_list = store_->get(ver_key);
         if (main_list != ver_list) {
@@ -998,7 +998,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     if (devicesKey.empty()) {
         throw std::runtime_error(
             "Not able to create/get the HCCL Communicator since "
-            "the NPU devices are not known");
+            "the NPU devices are not known" + DIST_ERROR(ErrCode::HCCL));
     }
 
     for (auto& device : devices) {
@@ -1070,11 +1070,11 @@ namespace {
 void check_npu_tensors_different_devices(const std::vector<at::Tensor>& tensors)
 {
     if (tensors.size() == 0) {
-        TORCH_CHECK(false, "Tensor list must be nonempty");
+        TORCH_CHECK(false, "Tensor list must be nonempty", DIST_ERROR(ErrCode::PARAM));
     }
     // HCCL support one NPU per process only
     if (tensors.size() != 1) {
-        TORCH_CHECK(false, "Tensor list mustn't be larger than the number of available NPUs");
+        TORCH_CHECK(false, "Tensor list mustn't be larger than the number of available NPUs", DIST_ERROR(ErrCode::PARAM));
     }
     const auto& first = tensors.front();
     // Set for ensuring that tensors are on separate devices.
@@ -1083,23 +1083,23 @@ void check_npu_tensors_different_devices(const std::vector<at::Tensor>& tensors)
 
     for (const auto& t : tensors) {
         if (!torch_npu::utils::is_npu(t) || t.is_sparse()) {
-            TORCH_CHECK(false, "Tensors must be NPU and dense");
+            TORCH_CHECK(false, "Tensors must be NPU and dense", DIST_ERROR(ErrCode::TYPE));
         }
         if (t.scalar_type() != first.scalar_type()) {
-            TORCH_CHECK(false, "Tensors must have identical type");
+            TORCH_CHECK(false, "Tensors must have identical type", DIST_ERROR(ErrCode::TYPE));
         }
         if (t.sizes() != first.sizes()) {
-            TORCH_CHECK(false, "Tensors must have identical size");
+            TORCH_CHECK(false, "Tensors must have identical size", DIST_ERROR(ErrCode::TYPE));
         }
         if (t.strides() != first.strides()) {
-            TORCH_CHECK(false, "Tensors must have identical strides");
+            TORCH_CHECK(false, "Tensors must have identical strides", DIST_ERROR(ErrCode::TYPE));
         }
         if (!t.is_contiguous(t.suggest_memory_format())) {
-            TORCH_CHECK(false, "Tensors must be contiguous");
+            TORCH_CHECK(false, "Tensors must be contiguous", DIST_ERROR(ErrCode::TYPE));
         }
         const auto inserted = usedDevices.insert(t.get_device()).second;
         if (!inserted) {
-            TORCH_CHECK(false, "Tensors must be on distinct NPU devices");
+            TORCH_CHECK(false, "Tensors must be on distinct NPU devices", DIST_ERROR(ErrCode::TYPE));
         }
     }
 }
@@ -1108,10 +1108,10 @@ void check_npu_tensors_different_devices(const std::vector<at::Tensor>& tensors)
 void check_npu_single_tensor(const at::Tensor& tensor)
 {
     if (!torch_npu::utils::is_npu(tensor) || tensor.is_sparse()) {
-        TORCH_CHECK(false, "Tensors must be NPU and dense");
+        TORCH_CHECK(false, "Tensors must be NPU and dense", DIST_ERROR(ErrCode::TYPE));
     }
     if (!tensor.is_contiguous(tensor.suggest_memory_format())) {
-        TORCH_CHECK(false, "Tensors must be contiguous");
+        TORCH_CHECK(false, "Tensors must be contiguous", DIST_ERROR(ErrCode::TYPE));
     }
 }
 
@@ -1161,7 +1161,7 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
     size_t world_size)
 {
     if (tensor_lists.size() != other.size()) {
-        TORCH_CHECK(false, "Tensor list operands to scatter/gather must have the same length");
+        TORCH_CHECK(false, "Tensor list operands to scatter/gather must have the same length", DIST_ERROR(ErrCode::PARAM));
     }
     const auto num_devices = tensor_lists.size();
 
@@ -1173,7 +1173,7 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
             TORCH_CHECK(
                 false,
                 "Tensor list input to scatter/gather must match number of collective"
-                " participants");
+                " participants", DIST_ERROR(ErrCode::PARAM));
         }
 
         // Only check device match for the first tensor in the list; the call to
@@ -1182,12 +1182,12 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
             TORCH_CHECK(
                 false,
                 "Corresponding input/output tensors to scatter/gather must all reside"
-                " on the same device");
+                " on the same device", DIST_ERROR(ErrCode::PARAM));
         }
 
         for (const auto& t : tensor_lists[i]) {
             if (t.numel() != other[i].numel()) {
-                TORCH_CHECK(false, "All tensor operands to scatter/gather must have the same size");
+                TORCH_CHECK(false, "All tensor operands to scatter/gather must have the same size", DIST_ERROR(ErrCode::PARAM));
             }
         }
         // Flatten the tensors (from all ranks) into a single big tensor.
@@ -1204,7 +1204,7 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
     c10d::OpType opType)
 {
     if (devices.size() != 1) {
-        throw std::runtime_error("ProcessGroupHCCL support one device per process only");
+        throw std::runtime_error("ProcessGroupHCCL support one device per process only" + DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
     return c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(devices, rank, opType, seq_, desyncDebug_);
 }
@@ -1220,7 +1220,7 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid) {
   const auto key = getKeyFromDevices(devices);
   auto& hcclComms = getHCCLComm(key, devices);
   TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
-      hcclComms.size());
+      hcclComms.size(), DIST_ERROR(ErrCode::PARAM));
   auto ret_hcom = hcclComms[0]->getHcclComm();
   int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
   return hccl_comm; 
@@ -1232,7 +1232,7 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
   const auto key = getKeyFromDevices(devices);
   auto& hcclComms = getHCCLComm(key, devices);
   TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
-      hcclComms.size());
+      hcclComms.size(), DIST_ERROR(ErrCode::PARAM));
   HcclComm ret_hcom = hcclComms[0]->getHcclComm();
   char commName[MAX_GROUP_NAME];
   HCCL_CHECK_ERROR(at_npu::native::hccl::HcclGetCommNameFace(ret_hcom, commName));
@@ -1490,7 +1490,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_coalesc
     std::vector<at::Tensor>& /* unused */,
     const c10d::AllreduceCoalescedOptions& /* unused */)
 {
-    throw std::runtime_error("ProcessGroupHCCL does not support allreduce_coalesced");
+    throw std::runtime_error("ProcessGroupHCCL does not support allreduce_coalesced" + DIST_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
@@ -1676,10 +1676,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_allgather_base(
     const c10d::AllgatherOptions& opts)
 {
     if (inputTensor.dtype() != outputTensor.dtype()) {
-        TORCH_CHECK(false, "output tensor must have the same type as input tensor");
+        TORCH_CHECK(false, "output tensor must have the same type as input tensor", DIST_ERROR(ErrCode::PARAM));
     }
     if (inputTensor.numel() * size_ != outputTensor.numel()) {
-        TORCH_CHECK(false, "output tensor size must be equal to world_size times input tensor size");
+        TORCH_CHECK(false, "output tensor size must be equal to world_size times input tensor size", DIST_ERROR(ErrCode::PARAM));
     }
     std::vector<at::Tensor> inputTensors = {inputTensor};
     std::vector<at::Tensor> outputTensors = {outputTensor};
@@ -1779,11 +1779,11 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::_reduce_scatter_b
     const c10d::ReduceScatterOptions& opts)
 {
     if (inputTensor.dtype() != outputTensor.dtype()) {
-        TORCH_CHECK(false, "input tensor must be the same type as the output tensor.");
+        TORCH_CHECK(false, "input tensor must be the same type as the output tensor.", DIST_ERROR(ErrCode::TYPE));
     }
 
     if (inputTensor.numel() != outputTensor.numel() * size_) {
-        TORCH_CHECK(false, "input tensor must be the same size as output size times world size");
+        TORCH_CHECK(false, "input tensor must be the same size as output size times world size", DIST_ERROR(ErrCode::PARAM));
     }
 
     auto inputs = std::vector<at::Tensor>{inputTensor};
@@ -1847,7 +1847,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(const c10
 
     // Work will take over barrierTensors
     auto hcclWork = dynamic_cast<ProcessGroupHCCL::WorkHCCL*>(work.get());
-    TORCH_CHECK(hcclWork);
+    TORCH_CHECK(hcclWork, DIST_ERROR(ErrCode::HCCL));
     hcclWork->barrierTensors_ = std::move(barrierTensors);
 
     return work;
@@ -1858,7 +1858,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::gather(
     std::vector<at::Tensor>& /* unused */,
     const c10d::GatherOptions& /* unused */)
 {
-    throw std::runtime_error("ProcessGroupHCCL does not support gather");
+    throw std::runtime_error("ProcessGroupHCCL does not support gather" + DIST_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::scatter(
@@ -2041,16 +2041,18 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
     std::vector<at::Tensor>& /* unused */,
     int /* unused */)
 {
-    TORCH_CHECK(false, "ProcessGroupHCCL does not support recv");
+    TORCH_CHECK(false, "ProcessGroupHCCL does not support recv", DIST_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 void check_split_sizes(const std::vector<int64_t>& split_sizes, const at::Tensor& tensor, int group_size)
 {
     if (split_sizes.empty()) {
-        TORCH_CHECK(tensor.size(0) % group_size == 0, "Tensor's dim 0 does not divide equally across group size");
+        TORCH_CHECK(tensor.size(0) % group_size == 0, "Tensor's dim 0 does not divide equally across group size",
+                    DIST_ERROR(ErrCode::VALUE));
     } else {
         TORCH_CHECK(
-            split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size");
+            split_sizes.size() == static_cast<size_t>(group_size), "Number of tensor splits not equal to group size",
+            DIST_ERROR(ErrCode::VALUE));
     }
 }
 
@@ -2066,13 +2068,13 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
     std::vector<at::Tensor> inputTensors = {inputTensor};
     std::vector<at::Tensor> outputTensors = {outputTensor};
     int ranks = getSize();
-    TORCH_CHECK(ranks > 0, "Invalid ranks", ranks);
+    TORCH_CHECK(ranks > 0, "Invalid ranks", ranks, DIST_ERROR(ErrCode::VALUE));
     if (inputSplitSizes.empty() && outputSplitSizes.empty()) {
         // We can use alltoall
         TORCH_CHECK(
             outputTensor.numel() == inputTensor.numel() && outputTensor.type() == inputTensor.type(),
-            "Tensors are not equal in size or data type");
-        TORCH_CHECK(outputTensor.size(0) % ranks == 0, "Tensor's dim 0 does not divide equally across group size");
+            "Tensors are not equal in size or data type", DIST_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(outputTensor.size(0) % ranks == 0, "Tensor's dim 0 does not divide equally across group size", DIST_ERROR(ErrCode::PARAM));
         uint64_t output_counts = static_cast<uint64_t>(outputTensor.numel() / ranks);
         uint64_t input_counts = static_cast<uint64_t>(inputTensor.numel() / ranks);
 
@@ -2204,7 +2206,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall(
         check_npu_single_tensor(input_tensors[r]);
         TORCH_CHECK(
             device == output_tensors[r].device() && device == input_tensors[r].device(),
-            "tensors must be on the same device");
+            "tensors must be on the same device", DIST_ERROR(ErrCode::PARAM));
     }
     std::vector<int64_t> output_split_sizes;
     std::vector<int64_t> input_split_sizes;

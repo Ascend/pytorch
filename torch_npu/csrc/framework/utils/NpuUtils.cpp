@@ -162,7 +162,8 @@ at::Tensor metadata_convert_match(const at::Tensor &src, bool numelEq) {
 at::Tensor metadata_convert_match_without_copy_optimize(const at::Tensor &src) {
   TORCH_CHECK(src.device().type() == at_npu::key::NativeDeviceType,
       "Expected all tensors to be on the same device. "
-      "Expected NPU tensor, please check whether the input tensor device is correct.");
+      "Expected NPU tensor, please check whether the input tensor device is correct.",
+      OPS_ERROR(ErrCode::TYPE));
   auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   bool numelEq = (src.numel() == c10::multiply_integers(src_desc.base_sizes_));
   return metadata_convert_match(src, numelEq);
@@ -171,7 +172,8 @@ at::Tensor metadata_convert_match_without_copy_optimize(const at::Tensor &src) {
 at::Tensor metadata_convert_match_with_copy_optimize(const at::Tensor &src) {
   TORCH_CHECK(src.device().type() == at_npu::key::NativeDeviceType,
       "Expected all tensors to be on the same device. "
-      "Expected NPU tensor, please check whether the input tensor device is correct.");
+      "Expected NPU tensor, please check whether the input tensor device is correct.",
+      OPS_ERROR(ErrCode::TYPE));
   auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   bool numelEq = (src.numel() == c10::multiply_integers(src_desc.base_sizes_));
 

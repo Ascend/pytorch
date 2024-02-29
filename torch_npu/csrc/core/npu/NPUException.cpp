@@ -60,7 +60,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
     auto rank_id = c10_npu::option::OptionsManager::GetRankId();
     oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << "). ";
     oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
-    oss << std::setw(2) << std::setfill('0') << static_cast<int>(errorCode);
+    oss << std::setw(3) << std::setfill('0') << static_cast<int>(errorCode);
     oss << " " << submoduleMap[submodule] << " " << errCodeMap[errorCode];
 
     return oss.str();
