@@ -46,6 +46,7 @@ from torch_npu.utils import cann_package_check, add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
+from torch_npu.distributed.checkpoint.checkpoint import apply_dcp_patch
 from .version import __version__ as __version__
 from .meta import meta_registrations
 from . import _op_plugin_docs
@@ -134,6 +135,7 @@ def apply_class_patches():
     add_dynamo_methods()
     add_optim_method()
     apply_zero_patch()
+    apply_dcp_patch()
 
 
 torch.utils.rename_privateuse1_backend("npu")

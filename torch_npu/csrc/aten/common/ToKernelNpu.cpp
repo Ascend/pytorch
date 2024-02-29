@@ -59,46 +59,53 @@ static inline at::Tensor to_impl_npu(
 }
 
 at::Tensor NPUNativeFunctions::to(
-    const at::Tensor& self,
+    const at::Tensor &self,
     c10::optional<at::ScalarType> dtype,
     c10::optional<c10::Layout> layout,
     c10::optional<c10::Device> device,
     c10::optional<bool> pin_memory,
     bool non_blocking,
     bool copy,
-    c10::optional<c10::MemoryFormat> optional_memory_format) {
-  TORCH_CHECK(
-      !optional_memory_format.has_value(),
-      "NPU not support specify memory_format.");
-  c10::TensorOptions options_ = c10::TensorOptions().dtype(dtype)
-                                                    .layout(layout)
-                                                    .device(device);
-  TORCH_CHECK(
-      !(options_.has_memory_format() && optional_memory_format.has_value()),
-      "Cannot set memory_format both in c10::TensorOptions and explicit argument; please delete "
-      "the redundant setter.");
-  auto options =
-      options_.merge_in(c10::TensorOptions().memory_format(optional_memory_format));
+    c10::optional<c10::MemoryFormat> optional_memory_format)
+{
+    if (device.has_value() && device.value().is_cpu() && optional_memory_format.has_value()) {
+        TORCH_CHECK(
+            optional_memory_format.value() == c10::MemoryFormat::Preserve ||
+            optional_memory_format.value() == c10::MemoryFormat::Contiguous,
+            "Only contiguous_format or preserve_format is supported.");
+    } else {
+        TORCH_CHECK(
+            !optional_memory_format.has_value(),
+            "NPU not support specify memory_format.");
+    }
 
-  TORCH_CHECK(
-      options.requires_grad_opt() == c10::nullopt,
-      "to(options) expects unset requires_grad flag, but got "
-      "options.requires_grad set as ",
-      options.requires_grad());
+    c10::TensorOptions options_ = c10::TensorOptions().dtype(dtype).layout(layout).device(device);
+    TORCH_CHECK(
+        !(options_.has_memory_format() && optional_memory_format.has_value()),
+        "Cannot set memory_format both in c10::TensorOptions and explicit argument; please delete "
+        "the redundant setter.");
+    auto options =
+        options_.merge_in(c10::TensorOptions().memory_format(optional_memory_format));
 
-  TORCH_CHECK(
-      !options.has_layout() || self.layout() == options.layout(),
-      "to(options) doesn't support converting to a different layout, "
-      "but got self.layout being ",
-      self.layout(),
-      " and options.layout set as ",
-      options.layout());
+    TORCH_CHECK(
+        options.requires_grad_opt() == c10::nullopt,
+        "to(options) expects unset requires_grad flag, but got "
+        "options.requires_grad set as ",
+        options.requires_grad());
 
-  if (options.has_device()) {
-    options = options.device(ensure_has_index(options.device()));
-  }
-  auto specified_options = self.options().merge_in(options);
-  return to_impl_npu(self, specified_options, non_blocking, copy);
+    TORCH_CHECK(
+        !options.has_layout() || self.layout() == options.layout(),
+        "to(options) doesn't support converting to a different layout, "
+        "but got self.layout being ",
+        self.layout(),
+        " and options.layout set as ",
+        options.layout());
+
+    if (options.has_device()) {
+        options = options.device(ensure_has_index(options.device()));
+    }
+    auto specified_options = self.options().merge_in(options);
+    return to_impl_npu(self, specified_options, non_blocking, copy);
 }
 
 at::Tensor NPUNativeFunctions::to(

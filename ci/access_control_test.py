@@ -127,6 +127,7 @@ class DirectoryMappingStrategy(AccurateTest):
         'jit': 'test/jit',
         'rpc': 'test/distributed/rpc',
         'dynamo': 'test/dynamo',
+        'checkpoint': 'test/distributed/checkpoint',
     }
 
     def get_module_name(self, modify_file):
@@ -134,8 +135,8 @@ class DirectoryMappingStrategy(AccurateTest):
         if module_name == 'csrc':
             module_name = str(Path(modify_file).parts[2])
         for part in Path(modify_file).parts:
-            if part == 'rpc':
-                module_name = 'rpc'
+            if part == 'rpc' or part == 'checkpoint':
+                module_name = part
         if module_name == 'utils' and Path(modify_file).parts[2] == 'cpp_extension.py':
             module_name = 'cpp_extension'
         if module_name == 'utils' and 'dynamo' in Path(modify_file).parts[2]:
