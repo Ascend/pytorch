@@ -48,6 +48,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
 from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.asd.asd import asd_patch
 from .version import __version__ as __version__
 from .meta import meta_registrations
 from . import _op_plugin_docs
@@ -148,6 +149,9 @@ _apply_distributed_patches()
 apply_class_patches()
 torch.distributed.is_hccl_available = lambda: True
 
+if int(os.getenv("NPU_ASD_ENABLE", "0")):
+    asd_patch()
+    
 # this must be placed at the end
 torch_npu._C._initExtension()
 

@@ -9,5 +9,6 @@ from .collect_env import add_collect_env_methods
 from ._dynamo import add_dynamo_methods
 from ._dynamo_device import _dynamo_register_interface_for_device
 from ._optim import add_optim_method
+from .asd_detector import set_asd_loss_scale, register_asd_hook
 
 __all__ = []
