@@ -1,4 +1,7 @@
 {
+  "test_export_dynamo_config (__main__.TestExport)": ["", [""]],
+  "test_views_op_having_view_copy (__main__.TestPasses)": ["", [""]],
+  "test_custom_class (__main__.TestSerializeCustomClass)": ["", [""]],
   "test_build_tuple_unpack_dynamic_shapes (__main__.DynamicShapesMiscTests)": ["", [""]],
   "test_module_attribute_mutation_violation_negative_2 (__main__.MutationExportTests)": ["", [""]],
   "test_module_attribute_mutation_violation_negative_3 (__main__.MutationExportTests)": ["", [""]],
