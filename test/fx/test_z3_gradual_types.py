@@ -13,6 +13,8 @@ from torch.fx.experimental.migrate_gradual_types.z3_types import tensor_type, D,
 from torch.fx.experimental.rewriter import RewritingTracer
 from torch.fx.tensor_type import Dyn, TensorType
 import torch
+import torch_npu
+import torch_npu.testing
 
 
 try:

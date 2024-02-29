@@ -8,6 +8,8 @@ from torch.testing._internal.jit_utils import JitTestCase
 from torch.fx.passes.utils.matcher_utils import SubgraphMatcher
 from torch.fx import symbolic_trace
 from torch.fx.experimental.proxy_tensor import make_fx
+import torch_npu
+import torch_npu.testing
 
 pytorch_test_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(pytorch_test_dir)

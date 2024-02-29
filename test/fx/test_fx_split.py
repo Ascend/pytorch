@@ -3,6 +3,8 @@
 import torch
 from torch.fx.passes.split_utils import split_by_tags
 
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase
 
 

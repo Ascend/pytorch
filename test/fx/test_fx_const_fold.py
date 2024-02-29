@@ -6,6 +6,8 @@ import torch
 import torch.fx
 from torch.fx.experimental import const_fold
 from torch.fx.passes.shape_prop import _extract_tensor_metadata, ShapeProp
+import torch_npu
+import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase
 
 
