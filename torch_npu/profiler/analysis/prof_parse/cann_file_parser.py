@@ -5,6 +5,7 @@ import re
 from enum import Enum
 from json import JSONDecodeError
 
+from torch_npu.utils.error_code import ErrCode, prof_error
 from ....utils.path_manager import PathManager
 from ..prof_bean.event_bean import EventBean
 from ..prof_common_func.constant import Constant, print_warn_msg
@@ -78,7 +79,7 @@ class CANNFileParser:
         try:
             data = json.loads(data)
         except JSONDecodeError as e:
-            raise RuntimeError("Invalid CANN trace data.") from e
+            raise RuntimeError("Invalid CANN trace data." + prof_error(ErrCode.VALUE)) from e
         if not isinstance(data, list):
             return []
         if data and not isinstance(data[0], dict):
@@ -92,7 +93,7 @@ class CANNFileParser:
         try:
             data = json.loads(data)
         except JSONDecodeError as e:
-            raise RuntimeError("Invalid communication data.") from e
+            raise RuntimeError("Invalid communication data." + prof_error(ErrCode.VALUE)) from e
         if not isinstance(data, dict):
             return {}
         return data

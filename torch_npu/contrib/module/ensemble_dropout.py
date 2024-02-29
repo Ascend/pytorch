@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class NpuCachedDropout(torch.nn.Dropout):
             do_mask_flag = False
             return_obj = None
         else:
-            raise RuntimeError("input type error!")
+            raise RuntimeError("input type error!" + ops_error(ErrCode.TYPE))
 
         if self.p == 0:
             return return_obj
@@ -145,14 +146,14 @@ class NpuPreGenDropout(torch.nn.Dropout):
             do_mask_flag = False
             return_obj = None
         else:
-            raise RuntimeError("input type error!")
+            raise RuntimeError("input type error!" + ops_error(ErrCode.TYPE))
 
         if self.p == 0:
             return return_obj
 
         if self.p not in NpuPreGenDropout.task_dict:
             raise RuntimeError(f"NpuPreGenDropout input prob error! "
-                               "You Only Register prob:{NpuPreGenDropout.task_dict.keys()}")
+                               "You Only Register prob:{NpuPreGenDropout.task_dict.keys()}" + ops_error(ErrCode.VALUE))
 
         tmp_len = reduce(lambda a, b: a * b, x.shape)
         mask_len = int(((tmp_len + 128 - 1) // 128 * 128) / 8)

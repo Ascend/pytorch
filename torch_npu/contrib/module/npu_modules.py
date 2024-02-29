@@ -2,6 +2,7 @@ __all__ = ["DropoutWithByteMask"]
 
 
 from torch.nn import Module
+from torch_npu.utils.error_code import ErrCode, ops_error
 from ..function import npu_functional as F
 
 
@@ -36,7 +37,7 @@ class DropoutWithByteMask(Module):
 
         if p < 0 or p > 1:
             raise ValueError("dropout probability has to be between 0 and 1, "
-                             "but got {}".format(p))
+                             "but got {}".format(p) + ops_error(ErrCode.VALUE))
         self.p = p
         self.inplace = inplace
 

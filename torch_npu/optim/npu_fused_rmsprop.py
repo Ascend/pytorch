@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import torch
 from torch_npu.utils import npu_combine_tensors
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .npu_fused_optim_base import NpuFusedOptimizerBase
 
 __all__ = ["NpuFusedRMSprop"]
@@ -32,15 +33,15 @@ class NpuFusedRMSprop(NpuFusedOptimizerBase):
 
     def __init__(self, params, lr=1e-2, alpha=0.99, eps=1e-8, weight_decay=0, momentum=0, centered=False):
         if lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError("Invalid learning rate: {}".format(lr) + pta_error(ErrCode.VALUE))
         if eps < 0.0:
-            raise ValueError("Invalid epsilon value: {}".format(eps))
+            raise ValueError("Invalid epsilon value: {}".format(eps) + pta_error(ErrCode.VALUE))
         if momentum < 0.0:
-            raise ValueError("Invalid momentum value: {}".format(momentum))
+            raise ValueError("Invalid momentum value: {}".format(momentum) + pta_error(ErrCode.VALUE))
         if weight_decay < 0.0:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+            raise ValueError("Invalid weight_decay value: {}".format(weight_decay) + pta_error(ErrCode.VALUE))
         if alpha < 0.0:
-            raise ValueError("Invalid alpha value: {}".format(alpha))
+            raise ValueError("Invalid alpha value: {}".format(alpha) + pta_error(ErrCode.VALUE))
 
         defaults = dict(lr=lr, momentum=momentum, alpha=alpha, eps=eps, centered=centered, weight_decay=weight_decay)
         super(NpuFusedRMSprop, self).__init__(params, defaults)
@@ -94,7 +95,8 @@ class NpuFusedRMSprop(NpuFusedOptimizerBase):
                     continue
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('NpuFusedRMSprop does not support sparse gradients.')
+                    raise RuntimeError('NpuFusedRMSprop does not support sparse gradients.' +
+                                       pta_error(ErrCode.NOT_SUPPORT))
 
                 self._init_param_state(p, momentum, centered)
                 state = self.state[p]
@@ -143,7 +145,8 @@ class NpuFusedRMSprop(NpuFusedOptimizerBase):
                 continue
             grad = p.grad
             if grad.is_sparse:
-                raise RuntimeError('NpuFusedRMSprop does not support sparse gradients')
+                raise RuntimeError('NpuFusedRMSprop does not support sparse gradients' +
+                                   pta_error(ErrCode.NOT_SUPPORT))
 
             state_p = self.state[p]
             state_p['step'] += 1

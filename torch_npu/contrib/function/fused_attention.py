@@ -1,6 +1,7 @@
 import functools
 import torch
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, ops_error
 
 
 def exec_once(func):
@@ -36,27 +37,28 @@ def check_compatibility_once(hidden_states,
     if not is_format_matched(
             [hidden_states, attention_mask, query_kernel, key_kernel, value_kernel, query_bias, key_bias, value_bias]):
         raise RuntimeError(
-            'fused attention check compatibility failed, format not matches')
+            'fused attention check compatibility failed, format not matches' + ops_error(ErrCode.VALUE))
     if gamma is not None and beta is not None:
         if torch_npu.get_npu_format(gamma) != 2 or torch_npu.get_npu_format(
                 beta) != 2:
             raise RuntimeError(
-                'fused attention check compatibility failed, gamma or beta format not matches'
+                'fused attention check compatibility failed, gamma or beta format not matches' +
+                ops_error(ErrCode.VALUE)
             )
     if len(hidden_states.size()) != 2 or hidden_states.shape[
         0] % 32 != 0 or hidden_states.shape[1] not in (1024, 768):
         raise RuntimeError(
-            'fused attention check compatibility failed, shape of hidden_states not matches'
+            'fused attention check compatibility failed, shape of hidden_states not matches' + ops_error(ErrCode.VALUE)
         )
     if len(attention_mask.size()) != 4 or attention_mask.shape[1] != 1 or (
             attention_mask.shape[2] != attention_mask.shape[3]):
         raise RuntimeError(
-            'fused attention check compatibility failed, shape of attention_mask not matches'
+            'fused attention check compatibility failed, shape of attention_mask not matches' + ops_error(ErrCode.VALUE)
         )
     if query_kernel.shape[0] not in (1024, 768) or key_kernel.shape[0] not in (
             1024, 768) or value_kernel.shape[0] not in (1024, 768):
         raise RuntimeError(
-            'fused attention check compatibility failed, shape of kernel not matches'
+            'fused attention check compatibility failed, shape of kernel not matches' + ops_error(ErrCode.VALUE)
         )
 
 
