@@ -105,58 +105,58 @@ static bool pointer_within(const T* ptr, const A& arr) {
 }
 
 static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
-  c10::DeviceIndex device_index = ptr->device_index;
-  if (ptr == &default_streams[device_index]) {
-    return makeStreamId(StreamIdType::DEFAULT, 0);
-  }
-  if (pointer_within<LeakyStreamInternals>(ptr, npu_streams[device_index])) {
-    return makeStreamId(
-        StreamIdType::HCCL, ptr - npu_streams[device_index].data());
-  }
-  if (ptr == &secondary_streams[device_index]) {
-    return makeStreamId(StreamIdType::SECONDARY, 0);
-  }
-  AT_ASSERTM(
-      0,
-      "Could not compute stream ID for ",
-      ptr,
-      " on device ",
-      +device_index,
-      " (something has gone horribly wrong!)");
+    c10::DeviceIndex device_index = ptr->device_index;
+    if (ptr == &default_streams[device_index]) {
+        return makeStreamId(StreamIdType::DEFAULT, 0);
+    }
+    if (pointer_within<LeakyStreamInternals>(ptr, npu_streams[device_index])) {
+        return makeStreamId(
+            StreamIdType::HCCL, ptr - npu_streams[device_index].data());
+    }
+    if (ptr == &secondary_streams[device_index]) {
+        return makeStreamId(StreamIdType::SECONDARY, 0);
+    }
+    AT_ASSERTM(
+        0,
+        "Could not compute stream ID for ",
+        ptr,
+        " on device ",
+        +device_index,
+        " (something has gone horribly wrong!)", PTA_ERROR(ErrCode::PTR));
 }
 
 static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
 
 static void initGlobalStreamState() {
-  num_npus = c10_npu::device_count();
-  // Check if the number of GPUs matches the expected compile-time max number
-  // of GPUs.
-  AT_ASSERTM(
-      num_npus <= C10_COMPILE_TIME_MAX_NPUS,
-      "Number of NPU devices on the machine is larger than the compiled "
-      "max number of npus expected (",
-      C10_COMPILE_TIME_MAX_NPUS,
-      "). Increase that and recompile.");
+    num_npus = c10_npu::device_count();
+    // Check if the number of GPUs matches the expected compile-time max number
+    // of GPUs.
+    AT_ASSERTM(
+        num_npus <= C10_COMPILE_TIME_MAX_NPUS,
+        "Number of NPU devices on the machine is larger than the compiled "
+        "max number of npus expected (",
+        C10_COMPILE_TIME_MAX_NPUS,
+        "). Increase that and recompile.", PTA_ERROR(ErrCode::VALUE));
 
-  int device_id = 0;
-  auto ret = c10_npu::GetDevice(&device_id);
-  if (ret != ACL_ERROR_NONE) {
-    ASCEND_LOGE("Device has not been set");
-  }
-  // Initializes default streams
-  default_streams[device_id].device_index = device_id;
-  npu_counters[device_id] = 0;
-  auto& default_streamsi = default_streams[device_id];
-  NPU_CHECK_SUPPORTED_OR_ERROR(
-      acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
-  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-    default_streamsi.repo->InitRepo(device_id);
-  }
-  // Initializes secondary streams
-  secondary_streams[device_id].device_index = device_id;
-  auto &secondary_streamsi = secondary_streams[device_id];
-  NPU_CHECK_SUPPORTED_OR_ERROR(
-      acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    int device_id = 0;
+    auto ret = c10_npu::GetDevice(&device_id);
+    if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("Device has not been set");
+    }
+    // Initializes default streams
+    default_streams[device_id].device_index = device_id;
+    npu_counters[device_id] = 0;
+    auto& default_streamsi = default_streams[device_id];
+    NPU_CHECK_SUPPORTED_OR_ERROR(
+        acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
+    if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+        default_streamsi.repo->InitRepo(device_id);
+    }
+    // Initializes secondary streams
+    secondary_streams[device_id].device_index = device_id;
+    auto &secondary_streamsi = secondary_streams[device_id];
+    NPU_CHECK_SUPPORTED_OR_ERROR(
+        acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
 }
 
 static void initDeviceStreamState(c10::DeviceIndex device_index) {
@@ -196,7 +196,7 @@ static void initNPUStreamsOnce() {
 }
 
 static inline void check_npu(c10::DeviceIndex device_index) {
-  AT_ASSERT(device_index >= 0 && device_index < num_npus);
+    AT_ASSERT(device_index >= 0 && device_index < num_npus, PTA_ERROR(ErrCode::PARAM));
 }
 
 static uint32_t get_idx(std::atomic<uint32_t>& counter) {
@@ -218,7 +218,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
                 si,
                 ").",
                 " Did you manufacture the StreamId yourself?  Don't do that; use the",
-                " official API like c10::cuda::getStreamFromPool() to get a new stream.");
+                " official API like c10::cuda::getStreamFromPool() to get a new stream.", PTA_ERROR(ErrCode::PARAM));
             return &default_streams[device_index];
         case StreamIdType::HCCL:
             return &npu_streams[device_index][si];
@@ -231,7 +231,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
                 s.unwrap(),
                 " (I didn't recognize the stream type, ",
                 st,
-                ")");
+                ")", PTA_ERROR(ErrCode::PARAM));
     }
 }
 
@@ -246,18 +246,18 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
 } // namespace
 
  aclrtStream NPUStream::stream() const {
-  auto ptr = NPUStream_internals(getDefaultNPUStream());
-  AT_ASSERT(ptr);
-  if (ptr->repo->CheckInit()) {
-    NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
-    if (ret != SUCCESS) {
-      ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
-      return nullptr;
+    auto ptr = NPUStream_internals(getDefaultNPUStream());
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    if (ptr->repo->CheckInit()) {
+        NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
+        if (ret != SUCCESS) {
+          ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+          return nullptr;
+        }
     }
-  }
-  auto cur_ptr = NPUStream_internals(*this);
-  AT_ASSERT(cur_ptr);
-  return cur_ptr->stream;
+    auto cur_ptr = NPUStream_internals(*this);
+    AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
+    return cur_ptr->stream;
 }
 
 NPUStream getNPUStreamFromPool(c10::DeviceIndex device_index) {
@@ -385,10 +385,10 @@ void enCurrentNPUStream(
 }
 
 void setCurrentNPUStream(NPUStream stream) {
-  initNPUStreamsOnce();
-  auto ptr = NPUStream_internals(stream);
-  AT_ASSERT(ptr);
-  current_streams[ptr->device_index] = ptr;
+    initNPUStreamsOnce();
+    auto ptr = NPUStream_internals(stream);
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    current_streams[ptr->device_index] = ptr;
 }
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s) {
@@ -396,25 +396,25 @@ std::ostream& operator<<(std::ostream& stream, const NPUStream& s) {
 }
 
 void NPUStream::setDataPreprocessStream(bool is_data_preprocess_stream) {
-  auto ptr = NPUStream_internals(getCurrentNPUStream());
-  AT_ASSERT(ptr);
-  ptr->is_data_preprocess_stream = is_data_preprocess_stream;
+    auto ptr = NPUStream_internals(getCurrentNPUStream());
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    ptr->is_data_preprocess_stream = is_data_preprocess_stream;
 }
 
 bool NPUStream::isDataPreprocessStream() {
-  auto ptr = NPUStream_internals(getCurrentNPUStream());
-  AT_ASSERT(ptr);
-  return ptr->is_data_preprocess_stream;
+    auto ptr = NPUStream_internals(getCurrentNPUStream());
+    AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
+    return ptr->is_data_preprocess_stream;
 }
 
  aclrtStream NPUStream::stream(const bool need_empty) const {
-   if (!need_empty) {
-     auto cur_ptr = NPUStream_internals(*this);
-     AT_ASSERT(cur_ptr);
-     return cur_ptr->stream;
-   }
-  
-   return stream();
+    if (!need_empty) {
+        auto cur_ptr = NPUStream_internals(*this);
+        AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
+        return cur_ptr->stream;
+    }
+    
+    return stream();
 }
 
 } // namespace c10_npu

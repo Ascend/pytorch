@@ -54,7 +54,7 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self) {
   c10::Storage storage(npu_storage_impl);
   set_storage_nd_npu(self, storage, 0, 1, {0}, {});
   StorageDescHelper::SetDesc(self);
-  TORCH_INTERNAL_ASSERT(dtype == self.dtype());
+  TORCH_INTERNAL_ASSERT(dtype == self.dtype(), OPS_ERROR(ErrCode::TYPE));
   return self;
 }
 
