@@ -4,6 +4,7 @@
 #include <torch/csrc/jit/runtime/interpreter.h>
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
@@ -185,7 +186,7 @@ static void parseInputShapesAndDtypes(const at::RecordFunction &fn,
 
 static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) {
   auto registeration_state_ptr = NpuProfilerThreadLocalState::getTLS();
-  TORCH_INTERNAL_ASSERT(registeration_state_ptr, "Expected profiler state set");
+  TORCH_INTERNAL_ASSERT(registeration_state_ptr, "Expected profiler state set", PROF_ERROR(ErrCode::PTR));
   auto handle = at::addThreadLocalCallback(
       at::RecordFunctionCallback(
           [](const at::RecordFunction &fn) -> std::unique_ptr<at::ObserverContext> {
@@ -215,7 +216,7 @@ static void registerCallback(const std::unordered_set<at::RecordScope> &scopes) 
               return;
             }
             auto *npu_ctx_ptr = static_cast<NpuObserverContext *>(ctx_ptr);
-            TORCH_INTERNAL_ASSERT(npu_ctx_ptr != nullptr);
+            TORCH_INTERNAL_ASSERT(npu_ctx_ptr != nullptr, PROF_ERROR(ErrCode::PTR));
             auto data_ptr = std::move(npu_ctx_ptr->data_);
             data_ptr->end_ns = static_cast<int64_t>(Utils::GetClockTime());
             data_ptr->end_thread_id = Utils::GetTid();

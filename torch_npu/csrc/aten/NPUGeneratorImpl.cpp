@@ -314,7 +314,7 @@ std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t in
   // rounds increment up to the nearest multiple of 4
   increment = ((increment + 3) / 4) * 4;
   // see Note [Why enforce RNG offset % 4 == 0?]
-  TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0);
+  TORCH_INTERNAL_ASSERT(this->philox_offset_per_thread_ % 4 == 0, PTA_ERROR(ErrCode::INTERNAL));
   uint64_t offset = this->philox_offset_per_thread_;
   this->philox_offset_per_thread_ += increment;
   return std::make_pair(this->seed_, offset);
