@@ -5,6 +5,7 @@
 #include <ATen/NativeFunctions.h>
 
 #include <torch/library.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -73,9 +74,9 @@ at::Tensor &scatter_update__functionalization(
     }
 
     // Expect that all input tensors of mutable op are functional tensors
-    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(self));
-    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(indices));
-    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(updates));
+    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(self), OPS_ERROR(ErrCode::PARAM));
+    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(indices), OPS_ERROR(ErrCode::PARAM));
+    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(updates), OPS_ERROR(ErrCode::PARAM));
 
     // Sync and unwrap functional tensors
     at::functionalization::impl::sync(self);

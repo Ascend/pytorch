@@ -91,7 +91,7 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                                      c10::optional<bool> pin_memory_opt,
                                      c10::optional<c10::MemoryFormat> memory_format_opt) {
   auto device_ = c10::device_or_default(device_opt);
-  AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1);
+  AT_ASSERT(device_.type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
   torch_npu::utils::maybe_initialize_npu(device_);
   TORCH_CHECK(!c10::pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
@@ -319,8 +319,8 @@ at::Tensor empty_with_format_npu(c10::IntArrayRef size,
                                  const c10::TensorOptions &options,
                                  int64_t dst_format) {
   torch_npu::utils::torch_check_npu(options);
-  AT_ASSERT(options.device().type() == c10::DeviceType::PrivateUse1);
-  AT_ASSERT(options.backend() == c10::Backend::PrivateUse1);
+  AT_ASSERT(options.device().type() == c10::DeviceType::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
+  AT_ASSERT(options.backend() == c10::Backend::PrivateUse1, OPS_ERROR(ErrCode::PARAM));
   torch_npu::utils::maybe_initialize_npu(options);
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
@@ -627,7 +627,7 @@ template <typename T>
 at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options)
 {
   auto result = at::empty(values.size(), options);
-  AT_ASSERT(result.is_contiguous());
+  AT_ASSERT(result.is_contiguous(), OPS_ERROR(ErrCode::VALUE));
   AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
                                     { std::copy(
                                         values.begin(), values.end(), result.template data_ptr<scalar_t>()); });

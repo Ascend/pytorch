@@ -1,4 +1,5 @@
 #include "NPUMemoryOverlap.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <c10/core/Layout.h>
 
 namespace at_npu { namespace native {
@@ -8,21 +9,21 @@ MemOverlap has_internal_overlap(const at::Tensor& tensor) {
 }
 
 MemOverlap has_internal_overlap(at::TensorImpl* t) {
-  AT_ASSERT(t->layout() == at::kStrided);
+    AT_ASSERT(t->layout() == at::kStrided, PTA_ERROR(ErrCode::PARAM));
 
-  if (t->is_contiguous()) {
-    return MemOverlap::NO;
-  }
-
-  auto strides = t->strides();
-  auto sizes = t->sizes();
-  for (size_t i = 0; i < strides.size(); ++i) {
-    if (strides[i] == 0 && sizes[i] > 1) {
-      return MemOverlap::YES;
+    if (t->is_contiguous()) {
+        return MemOverlap::NO;
     }
-  }
 
-  return MemOverlap::TOO_HARD;
+    auto strides = t->strides();
+    auto sizes = t->sizes();
+    for (size_t i = 0; i < strides.size(); ++i) {
+        if (strides[i] == 0 && sizes[i] > 1) {
+            return MemOverlap::YES;
+        }
+    }
+
+    return MemOverlap::TOO_HARD;
 }
 
 void assert_no_internal_overlap(const at::Tensor& t) {

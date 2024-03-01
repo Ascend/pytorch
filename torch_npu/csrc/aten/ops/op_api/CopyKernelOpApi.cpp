@@ -101,12 +101,12 @@ void copy_h2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
         src_contig = src.expand_as(dst).contiguous();
     }
     // perform a same-dtype copy on contiguous tensors
-    TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()));
-    TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type());
+    TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type(), OPS_ERROR(ErrCode::VALUE));
     copy_h2d_baseformat_dtype_contigous_opapi(dst_contig, src_contig, non_blocking);
     // if necessary, copy back into dst
     if (!dst_contig.is_same(dst)) {
-        TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device());
+        TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
         copy_d2d_dtype(dst, dst_contig, non_blocking);
     }
 }
@@ -123,12 +123,12 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
     at::Tensor dst_contig = (dst_is_contiguous && same_type) ? dst : at::empty_like(dst, src.dtype());
     at::Tensor src_contig = src.expand_as(dst).contiguous();
     // perform a same-dtype copy on contiguous tensors
-    TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()));
-    TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type());
+    TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()), OPS_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type(), OPS_ERROR(ErrCode::VALUE));
     copy_d2h_baseformat_dtype_contigous_opapi(dst_contig, src_contig, non_blocking);
     // if necessary, copy back into dst
     if (!dst_contig.is_same(dst)) {
-        TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device());
+        TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device(), OPS_ERROR(ErrCode::VALUE));
         dst.copy_(dst_contig, non_blocking); // h2h, use cpu copy
     }
 }
