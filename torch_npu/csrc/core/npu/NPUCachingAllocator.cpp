@@ -199,13 +199,13 @@ struct Block {
 
   void splice(Block* before, Block* after) {
     if (before) {
-      TORCH_INTERNAL_ASSERT(before->next == after);
-      before->next = this;
+        TORCH_INTERNAL_ASSERT(before->next == after, PTA_ERROR(ErrCode::PTR));
+        before->next = this;
     }
     prev = before;
     if (after) {
-      TORCH_INTERNAL_ASSERT(after->prev == before);
-      after->prev = this;
+        TORCH_INTERNAL_ASSERT(after->prev == before, PTA_ERROR(ErrCode::PTR));
+        after->prev = this;
     }
     next = after;
   }
@@ -321,7 +321,7 @@ struct ExpandableSegment {
   SegmentRange map(SegmentRange range) {
     auto begin = segmentLeft(range.ptr);
     auto end = segmentRight(range.ptr + range.size);
-    TORCH_INTERNAL_ASSERT(ptr() + begin * segment_size_ == range.ptr);
+    TORCH_INTERNAL_ASSERT(ptr() + begin * segment_size_ == range.ptr, PTA_ERROR(ErrCode::PTR));
     if (begin == end) {
       return rangeFromHandles(begin, end);
     }
@@ -329,28 +329,28 @@ struct ExpandableSegment {
       handles_.emplace_back(c10::nullopt);
     }
     for (auto i : c10::irange(begin, end)) {
-      TORCH_INTERNAL_ASSERT(!handles_.at(i));
-      aclrtDrvMemHandle handle = nullptr;
-      aclrtPhysicalMemProp prop = {};
-      prop.handleType = ACL_MEM_HANDLE_TYPE_NONE;
-      prop.allocationType = ACL_MEM_ALLOCATION_TYPE_PINNED;
-      prop.memAttr = ACL_HBM_MEM_HUGE;
-      prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
-      prop.location.id = device_;
-      prop.reserve = 0;
-      auto status =
-          c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
-      if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
-        for (auto j : c10::irange(begin, i)) {
-          auto h = handles_.at(j).value();
-          handles_.at(j) = c10::nullopt;
-          NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
+        TORCH_INTERNAL_ASSERT(!handles_.at(i), PTA_ERROR(ErrCode::VALUE));
+        aclrtDrvMemHandle handle = nullptr;
+        aclrtPhysicalMemProp prop = {};
+        prop.handleType = ACL_MEM_HANDLE_TYPE_NONE;
+        prop.allocationType = ACL_MEM_ALLOCATION_TYPE_PINNED;
+        prop.memAttr = ACL_HBM_MEM_HUGE;
+        prop.location.type = ACL_MEM_LOCATION_TYPE_DEVICE;
+        prop.location.id = device_;
+        prop.reserve = 0;
+        auto status =
+            c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
+        if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+            for (auto j : c10::irange(begin, i)) {
+                auto h = handles_.at(j).value();
+                handles_.at(j) = c10::nullopt;
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
+            }
+            trimHandles();
+            return rangeFromHandles(begin, begin);
         }
-        trimHandles();
-        return rangeFromHandles(begin, begin);
-      }
-      NPU_CHECK_ERROR(status);
-      handles_.at(i) = handle;
+        NPU_CHECK_ERROR(status);
+        handles_.at(i) = handle;
     }
     for (auto i : c10::irange(begin, end)) {
       NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem(
@@ -893,7 +893,7 @@ class DeviceCachingAllocator {
 
   TORCH_INTERNAL_ASSERT(
       params.err == ACL_ERROR_NONE && params.block != nullptr &&
-      params.block->ptr != nullptr);
+      params.block->ptr != nullptr, PTA_ERROR(ErrCode::PTR));
   Block* block = params.block;
   Block* remaining = nullptr;
 
@@ -1260,7 +1260,7 @@ class DeviceCachingAllocator {
   bool map_block(
       Block* to_map,
       size_t size) {
-    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size);
+    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::VALUE));
     auto mapped_range =
         to_map->expandable_segment_->map(SegmentRange{to_map->ptr, size});
     // failed to map the memory
@@ -1268,7 +1268,7 @@ class DeviceCachingAllocator {
       return false;
     }
     TORCH_INTERNAL_ASSERT(
-        mapped_range.ptr == to_map->ptr && mapped_range.size >= size);
+        mapped_range.ptr == to_map->ptr && mapped_range.size >= size, PTA_ERROR(ErrCode::VALUE));
 
     BlockPool& pool = *to_map->pool;
     pool.unmapped.erase(to_map);
@@ -1319,7 +1319,7 @@ class DeviceCachingAllocator {
         !map_block(candidate, std::min(candidate->size, size))) {
       return nullptr;
     }
-    TORCH_INTERNAL_ASSERT(candidate->mapped);
+    TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::VALUE));
 
     while (candidate->size < size) {
       // invariant: free -> unmapped -> *
@@ -1338,7 +1338,7 @@ class DeviceCachingAllocator {
 
   /** moves a block into a pool of cached free blocks **/
   void free_block(Block* block) {
-    AT_ASSERT(!block->allocated && block->event_count == 0);
+    AT_ASSERT(!block->allocated && block->event_count == 0, PTA_ERROR(ErrCode::VALUE));
 
     size_t original_block_size = block->size;
     size_t requested_size = block->requested_size;
@@ -1405,7 +1405,7 @@ class DeviceCachingAllocator {
       return 0;
     }
 
-    AT_ASSERT(dst->is_split() && src->is_split());
+    AT_ASSERT(dst->is_split() && src->is_split(), PTA_ERROR(ErrCode::VALUE));
 
     if (dst->prev == src) {
       dst->ptr = src->ptr;
@@ -1705,13 +1705,13 @@ class DeviceCachingAllocator {
   void release_expandable_segment(Block* block) {
     TORCH_INTERNAL_ASSERT(
         block->size == block->expandable_segment_->size(),
-        "block disagrees with segment");
-    TORCH_INTERNAL_ASSERT(!block->mapped);
+        "block disagrees with segment", PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::VALUE));
     auto it = std::find(
         expandable_segments_.begin(),
         expandable_segments_.end(),
         block->expandable_segment_);
-    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end());
+    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end(), PTA_ERROR(ErrCode::VALUE));
     expandable_segments_.erase(it);
     block->pool->unmapped.erase(block);
     delete block->expandable_segment_;
@@ -1721,7 +1721,7 @@ class DeviceCachingAllocator {
   }
 
   void release_block(Block* block) {
-    TORCH_INTERNAL_ASSERT(!block->expandable_segment_);
+    TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::VALUE));
     aclrtFree((void*)block->ptr);
     total_allocated_memory -= block->size;
 
@@ -1852,7 +1852,7 @@ class DeviceCachingAllocator {
     NPU_CHECK_ERROR(aclrtSetCurrentContext(c10_npu::NpuSysCtrl::GetInstance().InitializedContext()));
 
     stream_set streams(std::move(block->stream_uses));
-    AT_ASSERT(block->stream_uses.empty());
+    AT_ASSERT(block->stream_uses.empty(), PTA_ERROR(ErrCode::VALUE));
     for (auto& stream : streams) {
       NPU_CHECK_ERROR(c10_npu::SetDevice(stream.device_index()));
 
@@ -1983,12 +1983,12 @@ class THNCachingAllocator {
         0 <= device && device < device_allocator.size(),
         "Allocator not initialized for device ",
         device,
-        ": did you call init?");
+        ": did you call init?", PTA_ERROR(ErrCode::PARAM));
     TORCH_INTERNAL_ASSERT(
         0 <= fraction  && fraction <= 1,
         "invalid fraction:",
         fraction,
-        ". Please set within (0, 1).");
+        ". Please set within (0, 1).", PTA_ERROR(ErrCode::PARAM));
 
     c10_npu::SetDevice(device);
 
@@ -2033,7 +2033,7 @@ class THNCachingAllocator {
 
     Block* block = get_allocated_block(ptr.get());
     // block must not be null reaching here
-    TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found");
+    TORCH_INTERNAL_ASSERT(block != nullptr, "No allocated block can be found", PTA_ERROR(ErrCode::NOT_FOUND));
     device_allocator[block->device]->recordStream(block, stream);
   }
 

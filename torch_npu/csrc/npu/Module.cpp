@@ -235,7 +235,7 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
 PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate");
+    THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate", PTA_ERROR(ErrCode::PARAM));
     int32_t device = static_cast<int32_t>(THPUtils_unpackUInt32(device_index));
     aclrtUtilizationInfo util_info;
     util_info.cubeUtilization = 0;
@@ -254,7 +254,7 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
     } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
         util_rate = (cube + vector) / 2;
     }
-    THPUtils_assert(util_rate <=100 && util_rate >= 0, "invalid result to util_rate");
+    THPUtils_assert(util_rate <=100 && util_rate >= 0, "invalid result to util_rate", PTA_ERROR(ErrCode::VALUE));
     return PyLong_FromLong(util_rate);
     END_HANDLE_TH_ERRORS
 }
@@ -264,7 +264,7 @@ PyObject* THNPModule_getCurrentStream_wrap(
 {
     HANDLE_TH_ERRORS
     THPUtils_assert(
-      THPUtils_checkLong(device_index), "invalid argument to getCurrentStream");
+      THPUtils_checkLong(device_index), "invalid argument to getCurrentStream", PTA_ERROR(ErrCode::PARAM));
     int64_t device = THPUtils_unpackLong(device_index);
     auto stream = c10_npu::getCurrentNPUStream(device);
     PyObject* output_tuple = PyTuple_New(3);
@@ -285,7 +285,7 @@ PyObject* THNPModule_getCurrentStream_wrap(
 PyObject* THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObject *device_index)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDefaultStream");
+    THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDefaultStream", PTA_ERROR(ErrCode::PARAM));
     int64_t device = THPUtils_unpackLong(device_index);
     auto stream = c10_npu::getDefaultNPUStream(device);
     PyObject* output_tuple = PyTuple_New(3);
@@ -384,7 +384,7 @@ PyObject* THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to memory_allocated");
+    THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to memory_allocated", PTA_ERROR(ErrCode::PARAM));
     const int device = (int) THPUtils_unpackLong(arg);
 
     using c10_npu::NPUCachingAllocator::StatType;
@@ -437,7 +437,7 @@ PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
 PyObject* THNPModule_resetAccumulatedMemoryStats(PyObject *_unused, PyObject *arg)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_accumulated_memory_stats");
+    THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_accumulated_memory_stats", PTA_ERROR(ErrCode::PARAM));
     const int device = (int) THPUtils_unpackLong(arg);
     c10_npu::NPUCachingAllocator::resetAccumulatedStats(device);
     END_HANDLE_TH_ERRORS
@@ -447,7 +447,7 @@ PyObject* THNPModule_resetAccumulatedMemoryStats(PyObject *_unused, PyObject *ar
 PyObject* THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_peak_memory_stats");
+    THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_peak_memory_stats", PTA_ERROR(ErrCode::PARAM));
     const int device = (int) THPUtils_unpackLong(arg);
     c10_npu::NPUCachingAllocator::resetPeakStats(device);
     END_HANDLE_TH_ERRORS
@@ -764,7 +764,7 @@ PyObject* THNPModule_clear_overflow_npu(
 PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkString(option_type), "invalid argument to option_type,option_type must string!");
+    THPUtils_assert(THPUtils_checkString(option_type), "invalid argument to option_type,option_type must string!", PTA_ERROR(ErrCode::PARAM));
     std::string option_type_str = THPUtils_unpackString(option_type);
     auto option_key = c10_npu::option::GetOption(option_type_str);
     if (option_key.has_value()) {
@@ -781,7 +781,7 @@ PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg)
         "Synchronization debug mode is a prototype feature and does not yet detect all "
         "synchronizing operations");
     THPUtils_assert(
-        THPUtils_checkLong(arg), "invalid argument to set_sync_debug_mode, debug_mode type must long");
+        THPUtils_checkLong(arg), "invalid argument to set_sync_debug_mode, debug_mode type must long", PTA_ERROR(ErrCode::PARAM));
     int64_t debug_mode = THPUtils_unpackLong(arg);
     TORCH_CHECK(
         debug_mode >= 0 && debug_mode <= 2,

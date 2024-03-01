@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/aten/mirror/NPUTypeProperties.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu
 {
@@ -58,7 +59,7 @@ namespace at_npu
       }
       else
       {
-        AT_ASSERT(b.isIntegral(false));
+        AT_ASSERT(b.isIntegral(false), OPS_ERROR(ErrCode::PARAM));
         scalar_type = at::ScalarType::Int;
       }
       if (a.scalar_type() == at::ScalarType::Half)
@@ -118,18 +119,18 @@ namespace at_npu
 
     std::tuple<at::ScalarType, c10::IntArrayRef> NPUTensorIterator::reduce_op(at::Tensor &out, const at::Tensor &a)
     {
-      TORCH_INTERNAL_ASSERT(out.defined());
-      auto iter = NPUTensorIterator();
-      iter.add_output(out);
-      iter.add_input(a);
-      iter.promote_npu_output_dtypes_ = true;
-      iter.is_reduction_ = true;
-      // (Ascend): This is only really necessary for arg{min,max}
-      iter.compute_common_dtype_only_for_inputs();
-      iter.compute_types();
-      auto common_type = iter.common_dtype();
-      auto common_shape = a.sizes();
-      return std::tie(common_type, common_shape);
+        TORCH_INTERNAL_ASSERT(out.defined(), OPS_ERROR(ErrCode::PARAM));
+        auto iter = NPUTensorIterator();
+        iter.add_output(out);
+        iter.add_input(a);
+        iter.promote_npu_output_dtypes_ = true;
+        iter.is_reduction_ = true;
+        // (Ascend): This is only really necessary for arg{min,max}
+        iter.compute_common_dtype_only_for_inputs();
+        iter.compute_types();
+        auto common_type = iter.common_dtype();
+        auto common_shape = a.sizes();
+        return std::tie(common_type, common_shape);
     }
 
     std::tuple<at::ScalarType, c10::IntArrayRef> NPUTensorIterator::reduce_op(
@@ -137,24 +138,24 @@ namespace at_npu
         at::Tensor &out2,
         const at::Tensor &a)
     {
-      TORCH_INTERNAL_ASSERT(out1.defined());
-      TORCH_INTERNAL_ASSERT(out2.defined());
-      TORCH_CHECK(out1.dim() == out2.dim(), "reduce_op(): expected both outputs to have same number of dims, but output1 has ", out1.dim(),
-                  " and output2 has ", out2.dim());
-      TORCH_CHECK(out1.sizes() == out2.sizes(), "reduce_op(): expected both outputs to have same sizes, but output1 has ", out1.sizes(),
-                  " and output2 has ", out2.sizes());
-      TORCH_CHECK(out1.strides() == out2.strides(), "reduce_op(): expected both outputs to have same strides, but output1 has ", out1.strides(),
-                  " and output2 has ", out2.strides());
-      auto iter = NPUTensorIterator();
-      iter.add_output(out1);
-      iter.add_output(out2);
-      iter.add_input(a);
-      iter.promote_npu_output_dtypes_ = true;
-      iter.is_reduction_ = true;
-      iter.compute_types();
-      auto common_type = iter.common_dtype();
-      auto common_shape = a.sizes();
-      return std::tie(common_type, common_shape);
+        TORCH_INTERNAL_ASSERT(out1.defined(), OPS_ERROR(ErrCode::PARAM));
+        TORCH_INTERNAL_ASSERT(out2.defined(), OPS_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(out1.dim() == out2.dim(), "reduce_op(): expected both outputs to have same number of dims, but output1 has ", out1.dim(),
+                    " and output2 has ", out2.dim());
+        TORCH_CHECK(out1.sizes() == out2.sizes(), "reduce_op(): expected both outputs to have same sizes, but output1 has ", out1.sizes(),
+                    " and output2 has ", out2.sizes());
+        TORCH_CHECK(out1.strides() == out2.strides(), "reduce_op(): expected both outputs to have same strides, but output1 has ", out1.strides(),
+                    " and output2 has ", out2.strides());
+        auto iter = NPUTensorIterator();
+        iter.add_output(out1);
+        iter.add_output(out2);
+        iter.add_input(a);
+        iter.promote_npu_output_dtypes_ = true;
+        iter.is_reduction_ = true;
+        iter.compute_types();
+        auto common_type = iter.common_dtype();
+        auto common_shape = a.sizes();
+        return std::tie(common_type, common_shape);
     }
 
     static std::tuple<at::ScalarType, bool> compute_common_type_(at::ArrayRef<NPUOperandInfo> operands)
@@ -204,7 +205,7 @@ namespace at_npu
       auto dtype = result_type(state);
 
       auto result = std::make_tuple(dtype, false);
-      TORCH_INTERNAL_ASSERT(dtype != at::ScalarType::Undefined);
+      TORCH_INTERNAL_ASSERT(dtype != at::ScalarType::Undefined, OPS_ERROR(ErrCode::TYPE));
       return result;
     }
 

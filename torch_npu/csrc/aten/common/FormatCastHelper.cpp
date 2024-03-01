@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -35,16 +36,16 @@ void FormatCastHelper::base_format_cast_nocheck(at::Tensor& dst, const at::Tenso
 }
 
 void FormatCastHelper::format_cast_as_base_format(const at::Tensor& src, aclFormat format) {
-  AT_ASSERT(FormatHelper::IsBaseFormatType(format), "dst format must be base format");
-  AT_ASSERT(FormatHelper::IsBaseFormatType(src), "src format must be base format");
+    AT_ASSERT(FormatHelper::IsBaseFormatType(format), "dst format must be base format", PTA_ERROR(ErrCode::PARAM));
+    AT_ASSERT(FormatHelper::IsBaseFormatType(src), "src format must be base format", PTA_ERROR(ErrCode::PARAM));
 
-  auto& src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
-  // due to CANN principle : if the ori format of a tensor is the
-  // same as the npu format, then its base shape must be same as storage shape
-  // so we should not change the storage shape when format cast between base format
-  src_desc.origin_format_ = format;
-  src_desc.npu_format_ = format;
-  return;
+    auto& src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+    // due to CANN principle : if the ori format of a tensor is the
+    // same as the npu format, then its base shape must be same as storage shape
+    // so we should not change the storage shape when format cast between base format
+    src_desc.origin_format_ = format;
+    src_desc.npu_format_ = format;
+    return;
 }
 
 bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tensor& src, FormatCastHelper::FormatCastFunc format_cast_inside_group) {
