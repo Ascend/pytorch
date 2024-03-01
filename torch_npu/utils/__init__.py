@@ -28,6 +28,7 @@ from .checkpoint import add_checkpoint_methods
 from .combine_tensors import npu_combine_tensors, get_part_combined_tensor, is_combined_tensor_valid
 from .dynamo import add_dynamo_patch
 from .collect_env import add_collect_env_methods, get_cann_version
+from .asd_detector import set_asd_loss_scale, register_asd_hook
 
 __all__ = []
 
