@@ -58,3 +58,4 @@ def add_storage_methods():
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.TypedStorage._deepcopy = _deepcopy
     torch.storage.TypedStorage.resize_ = _resize
+    torch.storage.TypedStorage._resize_ = _resize
