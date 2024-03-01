@@ -50,6 +50,7 @@ from torch_npu.distributed.rpc.backend_registry import rpc_backend_registry
 from torch_npu.utils import cann_package_check, add_intercept_methods
 from torch_npu.utils import register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
+from torch_npu.asd.asd import asd_patch
 from .version import __version__ as __version__
 from .meta import meta_registrations
 
@@ -143,6 +144,7 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
 apply_class_patches()
+asd_patch()
 torch.distributed.is_hccl_available = lambda : True
 
 # this must be placed at the end
