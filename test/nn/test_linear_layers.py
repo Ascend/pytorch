@@ -18,6 +18,13 @@ class TestLinearLayers(TestCase):
         output = m(input1)
         self.assertEqual(output is not None, True)
 
+    def test_Linear_result(self):
+        m = nn.Linear(20, 30).half()
+        input1 = torch.randn(128, 20).half()
+        cpuout = m(input1)
+        npuout = m.npu()(input1.npu())
+        self.assertRtolEqual(cpuout, npuout, prec16=0.005)
+
     def test_Bilinear(self):
         m = nn.Bilinear(20, 30, 40).npu()
         input1 = torch.randn(128, 20).npu()
