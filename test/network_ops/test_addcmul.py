@@ -91,6 +91,41 @@ class TestAddCMul(TestCase):
         npu_output = self.npu_op_exec(input1, input2, input3, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_tensor_addcmul_3_3_float32(self, device="npu"):
+        input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float32)
+        input1_npu = input1.npu()
+        input2_npu = input2.npu()
+        input3_npu = input3.npu()
+        input1.addcmul_(input2, input3, value=0.5)
+        input1_npu.addcmul_(input2_npu, input3_npu, value=0.5)
+        self.assertRtolEqual(input1, input1_npu)
+
+    def test_tensor_addcmul_10_10_float32(self, device="npu"):
+        input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float32)
+        input1_npu = input1.npu()
+        input2_npu = input2.npu()
+        input3_npu = input3.npu()
+        input1.addcmul_(input2, input3, value=0.5)
+        input1_npu.addcmul_(input2_npu, input3_npu, value=0.5)
+        self.assertRtolEqual(input1, input1_npu)
+
+    def test_tensor_addcmul_3_3_float16(self, device="npu"):
+        input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float16)
+        input1_npu = input1.npu()
+        input2_npu = input2.npu()
+        input3_npu = input3.npu()
+        input1.addcmul_(input2, input3, value=0.5)
+        input1_npu.addcmul_(input2_npu, input3_npu, value=0.5)
+        self.assertRtolEqual(input1, input1_npu)
+
+    def test_tensor_addcmul_10_10_float16(self, device="npu"):
+        input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float16)
+        input1_npu = input1.npu()
+        input2_npu = input2.npu()
+        input3_npu = input3.npu()
+        input1.addcmul_(input2, input3, value=0.5)
+        input1_npu.addcmul_(input2_npu, input3_npu, value=0.5)
+        self.assertRtolEqual(input1, input1_npu)
 
 if __name__ == "__main__":
     run_tests()
