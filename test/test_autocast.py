@@ -227,6 +227,20 @@ class TestAutocastNPU(TestCase):
         finally:
             torch._C._set_cached_tensors_enabled(False)
 
+    def test_set_autocast_dtype(self):
+        torch_npu.npu.set_autocast_dtype(torch.float16)
+        self.assertTrue(torch_npu.npu.get_autocast_dtype(), torch.float16)
+
+        torch_npu.npu.set_autocast_dtype(torch.float32)
+        self.assertTrue(torch_npu.npu.get_autocast_dtype(), torch.float32)
+
+    def test_set_autocast_enable(self):
+        torch_npu.npu.set_autocast_enabled(True)
+        self.assertTrue(torch_npu.npu.is_autocast_enabled())
+
+        torch_npu.npu.set_autocast_enabled(False)
+        self.assertTrue(torch_npu.npu.is_autocast_enabled() is not True)
+
 
 class TestTorchAutocast(TestCase):
     def test_autocast_fast_dtype(self):

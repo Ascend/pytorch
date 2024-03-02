@@ -24,6 +24,17 @@ class TestAdd(TestCase):
         output = output.numpy()
         return output
 
+    def cpu_tensor_op_exec(self, input1, input2):
+        output = input1.add(input2, alpha=1)
+        output = output.numpy()
+        return output
+
+    def npu_tensor_op_exec(self, input1, input2):
+        output = input1.add(input2, alpha=1)
+        output = output.to("cpu")
+        output = output.numpy()
+        return output
+
     def npu_op_exec_new(self, input1, input2):
         output = torch.add(input1, input2, alpha=1)
         output = output.to("cpu")
@@ -445,6 +456,38 @@ class TestAdd(TestCase):
             torch.add(npu_input1, npu_input2, out=npu_output)
             self.assertRtolEqual(cpu_output, npu_output.cpu())
 
+    def test_tensor_add_fp16(self):
+        format_list = [0, 3, 29]
+        shape_format = [
+            [np.float16, i, [5, 256]] for i in format_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
+            if cpu_input1.dtype == torch.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
+                cpu_input2 = cpu_input2.to(torch.float32)
+
+            cpu_output = self.cpu_tensor_op_exec(cpu_input1, cpu_input2)
+            npu_output = self.npu_tensor_op_exec(npu_input1, npu_input2)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_tensor_add_fp32(self):
+        format_list = [0, 3, 29]
+        shape_format = [
+            [np.float32, i, [5, 256]] for i in format_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
+
+            cpu_output = self.cpu_tensor_op_exec(cpu_input1, cpu_input2)
+            npu_output = self.npu_tensor_op_exec(npu_input1, npu_input2)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+
+            self.assertRtolEqual(cpu_output, npu_output)
 
 if __name__ == "__main__":
     run_tests()

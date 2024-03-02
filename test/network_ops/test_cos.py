@@ -37,6 +37,17 @@ class TestCos(TestCase):
         output = output.numpy()
         return output
 
+    def cpu_tensor_op_exec(self, input1):
+        output = input1.cos()
+        output = output.numpy()
+        return output
+
+    def npu_tensor_op_exec(self, input1):
+        output = input1.cos()
+        output = output.to("cpu")
+        output = output.numpy()
+        return output
+
     def test_cos_common_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (5, 3)]],
@@ -68,6 +79,25 @@ class TestCos(TestCase):
             npu_output = self.npu_inp_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_tensor_cos_float32(self, device="npu"):
+        shape_format = [
+            [[np.float32, 0, (5, 3)]],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
+            cpu_output = self.cpu_tensor_op_exec(cpu_input1)
+            npu_output = self.npu_tensor_op_exec(npu_input1)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_tensor_cos_float16(self, device="npu"):
+        shape_format = [
+            [[np.float16, 0, (5, 3)]],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
+            cpu_output = self.cpu_tensor_op_exec(cpu_input1)
+            npu_output = self.npu_tensor_op_exec(npu_input1)
+            self.assertRtolEqual(cpu_output, npu_output)
 
 if __name__ == "__main__":
     run_tests()
