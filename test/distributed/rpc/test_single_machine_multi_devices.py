@@ -1,5 +1,6 @@
 import os
 import time
+import unittest
 import warnings
 import torch
 import torch.distributed as dist
@@ -367,6 +368,7 @@ class TestRpc(TestCase):
     def test_dist_autograd_sync_cpu(self):
         self._test_multiprocess(TestRpc._test_dist_autograd_sync_cpu, [], self.world_size_2p)
 
+    @unittest.skip("NPU doesn't support yet.")
     @skipIfUnsupportMultiNPU(2)
     def test_dist_autograd_sync_npu(self):
         self._test_multiprocess(TestRpc._test_dist_autograd_sync_npu, [], self.world_size_2p)
@@ -386,6 +388,7 @@ class TestRpc(TestCase):
     @skipIfUnsupportMultiNPU(2)
     def test_local_value_npu(self):
         self._test_multiprocess(TestRpc._test_local_value, [], self.world_size_2p)
+
 
 if __name__ == '__main__':
     run_tests()

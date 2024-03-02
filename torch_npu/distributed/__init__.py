@@ -1,4 +1,5 @@
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, dist_error
 
 __all__ = [
     "Reducer", "_register_comm_hook", "_register_builtin_comm_hook",
@@ -20,7 +21,7 @@ def is_available():
 
 
 if is_available() and not torch_npu._C._c10d_npu_init():
-    raise RuntimeError("Failed to initialize torch_npu.distributed")
+    raise RuntimeError("Failed to initialize torch_npu.distributed" + dist_error(ErrCode.INTERNAL))
 
 
 from torch_npu._C._distributed_c10d import (

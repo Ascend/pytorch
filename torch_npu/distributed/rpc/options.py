@@ -5,6 +5,8 @@ from torch._C._distributed_rpc import _TensorPipeRpcBackendOptionsBase
 from torch._C import _get_privateuse1_backend_name
 import torch.distributed.rpc.constants as rpc_constants
 
+from torch_npu.utils.error_code import ErrCode, dist_error
+
 DeviceType = Union[int, str, torch.device]
 
 
@@ -17,7 +19,7 @@ def _to_device(device: DeviceType) -> torch.device:
         raise ValueError(
             "`set_devices` expect a list of "
             f"{_get_privateuse1_backend_name()} devices, but got "
-            f"device type {device.type}."
+            f"device type {device.type}." + dist_error(ErrCode.VALUE)
         )
     return device
 
@@ -32,7 +34,7 @@ def _to_device_map(
         if v in reverse_map:
             raise ValueError(
                 "`device_map` only supports 1-to-1 mapping, "
-                f"trying to map {k} and {reverse_map[v]} to {v}"
+                f"trying to map {k} and {reverse_map[v]} to {v}" + dist_error(ErrCode.VALUE)
             )
         full_device_map[k] = v
         reverse_map[v] = k
@@ -80,7 +82,7 @@ class NPUTensorPipeRpcBackendOptions(_TensorPipeRpcBackendOptionsBase):
                 if k in curr_device_maps[to] and v != curr_device_maps[to][k]:
                     raise ValueError(
                         "`set_device_map` only supports 1-to-1 mapping, trying"
-                        f" to map {k} to {v} and {curr_device_maps[to][k]}"
+                        f" to map {k} to {v} and {curr_device_maps[to][k]}" + dist_error(ErrCode.VALUE)
                     )
 
         super()._set_device_map(to, full_device_map)
