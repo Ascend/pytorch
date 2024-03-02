@@ -7,6 +7,7 @@ from torch.distributed.rpc import api
 from torch.distributed.rpc import constants as rpc_constants
 
 import torch_npu._C
+from torch_npu.utils.error_code import ErrCode, dist_error
 
 
 def _get_device_count_info():
@@ -43,13 +44,13 @@ def _validate_device_maps(
         if len(set(devices)) != len(devices):
             raise ValueError(
                 f"Node {node} has duplicated devices\n"
-                f"devices = {devices}"
+                f"devices = {devices}" + dist_error(ErrCode.VALUE)
             )
         if not _tensorpipe_validate_devices(devices, all_device_counts[node]):
             raise ValueError(
                 f"Node {node} has devices with invalid indices\n"
                 f"devices = {devices}\n"
-                f"device count = {all_device_counts[node]}"
+                f"device count = {all_device_counts[node]}" + dist_error(ErrCode.VALUE)
             )
 
     for source_node in all_names:
@@ -58,14 +59,14 @@ def _validate_device_maps(
             raise ValueError(
                 f"Node {source_node} has invalid target node names in its device maps\n"
                 f"device maps = {all_device_maps[source_node].keys()}\n"
-                f"node names = {all_names}"
+                f"node names = {all_names}" + dist_error(ErrCode.VALUE)
             )
         for target_node, map_ in all_device_maps[source_node].items():
             if len(set(map_.values())) != len(map_):
                 raise ValueError(
                     f"Node {source_node} has duplicated target devices "
                     f"in its device map for {target_node}\n"
-                    f"device map = {map_}"
+                    f"device map = {map_}" + dist_error(ErrCode.VALUE)
                 )
             if all_devices[source_node]:
                 if not set(map_.keys()).issubset(all_devices[source_node]):
@@ -73,7 +74,7 @@ def _validate_device_maps(
                         f"Node {source_node} has unexpected source devices "
                         f"in its device map for {target_node}\n"
                         f"device map = {map_}\n"
-                        f"devices = {all_devices[source_node]}"
+                        f"devices = {all_devices[source_node]}" + dist_error(ErrCode.VALUE)
                     )
             elif not _tensorpipe_validate_devices(
                 map_.keys(), all_device_counts[source_node]
@@ -82,7 +83,7 @@ def _validate_device_maps(
                     f"Node {source_node} has source devices with invalid indices "
                     f"in its device map for {target_node}\n"
                     f"device map = {map_}\n"
-                    f"device count = {all_device_counts[source_node]}"
+                    f"device count = {all_device_counts[source_node]}" + dist_error(ErrCode.VALUE)
                 )
             if all_devices.get(target_node, []):
                 if not set(map_.values()).issubset(all_devices[target_node]):
@@ -90,7 +91,7 @@ def _validate_device_maps(
                         f"Node {source_node} has unexpected target devices "
                         f"in its device map for {target_node}\n"
                         f"device map = {map_}\n"
-                        f"devices = {all_devices[target_node]}"
+                        f"devices = {all_devices[target_node]}" + dist_error(ErrCode.VALUE)
                     )
             elif target_node in all_device_counts and not _tensorpipe_validate_devices(
                 map_.values(), all_device_counts[target_node]
@@ -99,7 +100,7 @@ def _validate_device_maps(
                     f"Node {source_node} has target devices with invalid indices "
                     f"in its device map for {target_node}\n"
                     f"device map = {map_}\n"
-                    f"device count = {all_device_counts[target_node]}"
+                    f"device count = {all_device_counts[target_node]}" + dist_error(ErrCode.VALUE)
                 )
 
 
@@ -217,13 +218,14 @@ def _npu_tensorpipe_init_backend_handler(
     from .options import NPUTensorPipeRpcBackendOptions
 
     if not isinstance(store, dist.Store):
-        raise TypeError(f"`store` must be a c10d::Store. {store}")
+        raise TypeError(f"`store` must be a c10d::Store. {store}" + dist_error(ErrCode.TYPE))
 
     if not isinstance(
         rpc_backend_options, NPUTensorPipeRpcBackendOptions
     ):
         raise TypeError(
-            f"`rpc_backend_options` must be a `NPUTensorPipeRpcBackendOptions`. {rpc_backend_options}"
+            f"`rpc_backend_options` must be a `NPUTensorPipeRpcBackendOptions`. {rpc_backend_options}" +
+            dist_error(ErrCode.TYPE)
         )
 
     device_count = _get_device_count_info()
@@ -274,8 +276,9 @@ def _npu_tensorpipe_init_backend_handler(
             try:
                 _set_devices_and_reverse_device_map(agent)
                 pass
-            except Exception:
+            except Exception as e:
                 api.shutdown()
+                e.msg += dist_error(ErrCode.INTERNAL)
                 raise
             return agent
 
