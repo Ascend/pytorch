@@ -59,9 +59,19 @@ const SocVersion& GetSocVersion()
 
 bool IsSupportInfNan()
 {
-    return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-           (((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
-           (GetSocVersion() >= SocVersion::Ascend910C1));
+    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable()) {
+        return false;
+    }
+    if (c10_npu::acl::IsExistGetCannAttribute()) {
+        const static bool supportInfNan = []() -> bool {
+            int enable = 0;
+            NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_ATTR_INF_NAN, &enable));
+            return enable != 0;
+        }();
+        return supportInfNan;
+    }
+    return ((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
+        (GetSocVersion() >= SocVersion::Ascend910C1);
 }
 
 bool IsBF16Supported()
