@@ -18,7 +18,6 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #ifndef BUILD_LIBTORCH
-#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #endif
 
@@ -268,22 +267,8 @@ void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
 }
 
 #ifndef BUILD_LIBTORCH
-void NpuUtils::ProfReportMarkData(const std::string &msg) {
-  if (msg.empty()) {
-    return;
-  }
-  if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
-    torch_npu::profiler::PutMarkStamp(msg);
-  }
-}
-
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id) {
   if (data.empty()) {
-    return;
-  }
-  if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
-    uint32_t e2e_category = (category == 0 || category == 1) ? 0 : 1;
-    torch_npu::profiler::MarkQueueStamp(e2e_category, data);
     return;
   }
   if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
@@ -306,11 +291,6 @@ void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t cat
 
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
   if (C10_UNLIKELY(!data)) {
-    return;
-  }
-  if (get_global_enable_profiling().load(std::memory_order_relaxed)) {
-    uint32_t e2e_category = (category == 2 || category == 3) ? 1 : 0;
-    torch_npu::profiler::MarkQueueStamp(e2e_category, data, offset);
     return;
   }
   if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
