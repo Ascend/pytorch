@@ -356,7 +356,12 @@ public:
 
   std::string getHcclCommName(int rankid);
 
+  std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 protected:
+
+    // Get the data vol for HCCL operators.
+    void recordDataVol(std::string opName, const std::string dataVol, const int currRank,
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Wrapper method which can be overridden for tests.
     virtual std::exception_ptr checkForRTSErrors(

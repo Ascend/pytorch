@@ -153,5 +153,18 @@ uint32_t OptionsManager::GetRankId()
     return static_cast<uint32_t>(rankId);
 }
 
+bool OptionsManager::CheckNslbEnable()
+{
+    char* nslb_enable = std::getenv("NSLB_CP");
+    return (nslb_enable == nullptr) ? false : true;
+}
+
+uint32_t OptionsManager::GetNslbCntVal()
+{
+    char* nslb_num = std::getenv("NSLB_MAX_RECORD_NUM");
+    int64_t nslb_val = (nslb_num != nullptr) ? strtol(nslb_num, nullptr, 10) : 1000;
+    return static_cast<uint32_t>(nslb_val);
+}
+
 } // namespace option
 } // namespace c10_npu
