@@ -65,7 +65,6 @@ public:
     static bool check_5d_5d_match(const at::Tensor &tensor);
     static bool IsOomError(aclError ret, int index);
     static void check_1d(const at::Tensor &t, const char *arg, const char *fn);
-    static void ProfReportMarkData(const std::string &msg);
     static void ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id = 0);
     static void ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset);
 

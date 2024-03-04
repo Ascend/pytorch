@@ -70,16 +70,16 @@ class Profile(object):
                     raise ValueError("the args '%s' is invaild." % (kwargs.keys()) +
                                      prof_error(ErrCode.VALUE))
                 self.prof = torch.autograd.profiler.profile(**kwargs)
-            elif self.profile_type == "CANN":
+            elif self.profile_type == "CANN" or "GE":
                 if not set(kwargs.keys()).issubset(cann_ge_args_set):
                     raise ValueError("the args '%s' is invaild." % (kwargs.keys()) +
                                      prof_error(ErrCode.VALUE))
-                self.prof = torch.npu.profile(self.save_path, **kwargs)
-            elif self.profile_type == "GE":
-                if not set(kwargs.keys()).issubset(cann_ge_args_set):
-                    raise ValueError("the args '%s' is invaild." % (kwargs.keys()) +
-                                     prof_error(ErrCode.VALUE))
-                self.prof = torch.npu.profile(self.save_path, **kwargs)
+                self.prof = torch_npu.profiler.profile(
+                    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.save_path), 
+                    experimental_config=torch_npu.profiler._ExperimentalConfig(
+                        profiler_level=torch_npu.profiler.ProfilerLevel.Level1
+                    )
+                )
 
             try:
                 os.makedirs(self.save_path, exist_ok=True)

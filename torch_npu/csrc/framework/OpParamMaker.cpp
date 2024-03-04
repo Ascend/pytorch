@@ -147,7 +147,6 @@ aclError OpCommandImpl::InnerRun(
     c10::SmallVector<at::Tensor, N> &outputTensor)
 {
     aclError ret;
-    at_npu::native::NpuUtils::ProfReportMarkData(name);
     auto stream = c10_npu::getCurrentNPUStream();
     auto inputSize = params.inBuffer.size();
     auto outputSize = params.outBuffer.size();
@@ -271,7 +270,6 @@ int ExecFunc(c10_npu::queue::QueueParas *in, aclrtStream stream)
     auto cur_paras = static_cast<ExecuteParas *>(in->paramVal);
     NPU_LOGD("Op %s Run.", cur_paras->opType);
     aclError ret;
-    at_npu::native::NpuUtils::ProfReportMarkData(std::string(cur_paras->opType));
     // open the deterministicAlgorithms config
     SetDeterministic();
     if (cur_paras->customHandler) {
