@@ -26,9 +26,7 @@ __all__ = [
     "reset_peak_memory_stats", "reset_max_memory_allocated", "reset_max_memory_cached",
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
-    "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
-    "prof_start", "prof_stop", "prof_finalize", "iteration_start", "iteration_end",
-    "profileConfig", "_in_bad_fork", "set_compile_mode",
+    "Stream", "Event", "profiler", "set_option", "set_aoe", "_in_bad_fork", "set_compile_mode",
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor",
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
@@ -60,9 +58,7 @@ from .memory import (caching_allocator_alloc, caching_allocator_delete,
                      memory_cached, max_memory_cached, memory_snapshot, memory_summary)
 from .streams import Stream, Event
 from . import profiler
-from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
-                                   prof_start, prof_stop, prof_finalize, iteration_start, iteration_end,
-                                   profileConfig, set_compile_mode, set_mm_bmm_format_nd, get_mm_bmm_format_nd,
+from .npu_frontend_enhance import (set_option, set_aoe, set_compile_mode, set_mm_bmm_format_nd, get_mm_bmm_format_nd,
                                    is_jit_compile_false)
 from .backends import *
 
