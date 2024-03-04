@@ -221,6 +221,9 @@ def parse_backend_yaml(
     if not isinstance(supported_autograd, list):
         raise TypeError(f'expected "autograd" to be a list, but got: {supported_autograd}')
     supported = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported]
+    supported = [op['func'].split("(")[0] for op in supported
+                 if isinstance(op, Dict) and ("impl_ns" in op.keys or "op_api" in op.keys)] + \
+                [op for op in supported if not isinstance(op, Dict)]
     supported_autograd = [op['func'].split("(")[0] if isinstance(op, Dict) else op for op in supported_autograd]
 
     custom = yaml_values.pop('custom', [])
