@@ -131,36 +131,6 @@ static void resize_nd_npu(
     resize_impl_npu_(self, sizes, strides);
 }
 
-static void _npu_storage_resize(at::TensorImpl* self, ptrdiff_t size)
-{
-    if (!self->storage().unsafeGetStorageImpl()) {
-        AT_ERROR("Try to resize a tensor with null storage");
-        return;
-    }
-
-    size_t itemsize = self->itemsize();
-    if (itemsize == 0) {
-        AT_ERROR("When resizing, item size of storage cannot be zero.");
-        return;
-    }
-    std::vector<int64_t> new_size = {size / (ptrdiff_t)itemsize};
-    storage_resize_npu(
-        *torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()),
-        size,
-        new_size);
-}
-
-static at::Tensor npu_storage_resize(const at::Tensor& self, int64_t size)
-{
-    if (!FormatHelper::IsBaseFormatType(self)) {
-        AT_ERROR("Try to resize a tensor without base format");
-    }
-    int64_t new_size_bytes = (size + self.storage_offset()) * static_cast<int64_t>(self.dtype().itemsize());
-    auto* self_impl = self.unsafeGetTensorImpl();
-    _npu_storage_resize(self_impl, new_size_bytes);
-    return self;
-}
-
 static inline void checkInBoundsForStorage(
     c10::IntArrayRef size,
     c10::IntArrayRef stride,

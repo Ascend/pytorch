@@ -1,5 +1,8 @@
 #include "torch_npu/csrc/core/npu/NPUHooksInterface.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/utils/LazyInit.h"
 #endif
@@ -23,6 +26,19 @@ bool NPUHooksInterface::hasPrimaryContext(c10::DeviceIndex device_index) const
 {
     aclrtContext device_context = c10_npu::GetDeviceContext(device_index);
     return device_context != nullptr;
+}
+
+void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size_t new_bytes) const
+{
+    auto storage_impl = static_cast<torch_npu::NPUStorageImpl*>(storage.unsafeGetStorageImpl());
+    auto format = storage_impl->npu_desc_.npu_format_;
+    if (!at_npu::native::FormatHelper::IsBaseFormatType(format)) {
+        AT_ERROR("Try to resize a storage without base format");
+    }
+
+    auto itemsize = storage_impl->npu_desc_.data_type_.itemsize();
+    std::vector<int64_t> new_size = {new_bytes / (ptrdiff_t)itemsize};
+    at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size);
 }
 
 at::PrivateUse1HooksInterface* get_npu_hooks() {
