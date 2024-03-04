@@ -56,6 +56,9 @@ LOAD_FUNCTION(aclrtMallocPhysical)
 LOAD_FUNCTION(aclrtFreePhysical)
 LOAD_FUNCTION(aclrtMapMem)
 LOAD_FUNCTION(aclrtUnmapMem)
+LOAD_FUNCTION(aclGetCannAttributeList)
+LOAD_FUNCTION(aclGetCannAttribute)
+LOAD_FUNCTION(aclGetDeviceCapability)
 
 
 aclprofStepInfoPtr init_stepinfo() {
@@ -501,6 +504,46 @@ aclError AclrtUnmapMem(void *virPtr) {
   }
   TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem");
   return func(virPtr);
+}
+
+bool IsExistGetCannAttribute()
+{
+    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int *);
+    static AclGetCannAttribute func = (AclGetCannAttribute) GET_FUNC(aclGetCannAttribute);
+    return func != nullptr;
+}
+
+aclError AclGetCannAttributeList(const aclCannAttr **cannAttr, int *num)
+{
+    typedef aclError (*AclGetCannAttributeList)(const aclCannAttr **, int *);
+    static AclGetCannAttributeList func = nullptr;
+    if (func == nullptr) {
+        func = (AclGetCannAttributeList) GET_FUNC(aclGetCannAttributeList);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttributeList");
+    return func(cannAttr, num);
+}
+
+aclError AclGetCannAttribute(aclCannAttr cannAttr, int *value)
+{
+    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int *);
+    static AclGetCannAttribute func = nullptr;
+    if (func == nullptr) {
+        func = (AclGetCannAttribute) GET_FUNC(aclGetCannAttribute);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttribute");
+    return func(cannAttr, value);
+}
+
+aclError AclGetDeviceCapability(uint32_t deviceId, aclInfoType infoType, int64_t *value)
+{
+    typedef aclError (*AclGetDeviceCapability)(uint32_t, aclInfoType, int64_t *);
+    static AclGetDeviceCapability func = nullptr;
+    if (func == nullptr) {
+        func = (AclGetDeviceCapability) GET_FUNC(aclGetDeviceCapability);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability");
+    return func(deviceId, infoType, value);
 }
 
 } // namespace acl

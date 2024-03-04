@@ -1,7 +1,7 @@
 /**
 * @file acl_base.h
 *
-* Copyright (C) Huawei Technologies Co., Ltd. 2019-2020. All Rights Reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2019-2020. All rights reserved.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -52,6 +52,10 @@ typedef int aclError;
 typedef uint16_t aclFloat16;
 typedef struct aclDataBuffer aclDataBuffer;
 typedef struct aclTensorDesc aclTensorDesc;
+typedef void *aclrtAllocatorDesc;
+typedef void *aclrtAllocator;
+typedef void *aclrtAllocatorBlock;
+typedef void *aclrtAllocatorAddr;
 
 static const int ACL_ERROR_NONE = 0;
 static const int ACL_SUCCESS = 0;
@@ -149,7 +153,10 @@ typedef enum {
     ACL_STRING = 13,
     ACL_COMPLEX64 = 16,
     ACL_COMPLEX128 = 17,
-    ACL_BF16 = 27
+    ACL_BF16 = 27,
+    ACL_INT4 = 29,
+    ACL_UINT1 = 30,
+    ACL_COMPLEX32 = 33,
 } aclDataType;
 
 typedef enum {
@@ -167,7 +174,7 @@ typedef enum {
     ACL_FORMAT_NDC1HWC0 = 32,
     ACL_FRACTAL_Z_3D = 33,
     ACL_FORMAT_NC = 35,
-    ACL_FORMAT_NCL = 47
+    ACL_FORMAT_NCL = 47,
 } aclFormat;
 
 typedef enum {
@@ -186,6 +193,20 @@ typedef enum {
 typedef enum {
     ACL_OPT_DETERMINISTIC = 0,
 } aclSysParamOpt;
+
+typedef enum {
+    ACL_ATTR_UNDEFINED = -1,
+    ACL_ATTR_INF_NAN = 0,
+    ACL_ATTR_BF16 = 1,
+    ACL_ATTR_JIT_COMPILE = 2
+} aclCannAttr;
+
+typedef enum {
+    ACL_INFO_TYPE_UNDEFINED = -1,
+    ACL_INFO_TYPE_AI_CORE_NUM = 0,
+    ACL_INFO_TYPE_VECTOR_CORE_NUM = 1,
+    ACL_INFO_TYPE_L2_SIZE = 2
+} aclInfoType;
 
 /**
  * @ingroup AscendCL
@@ -659,6 +680,44 @@ ACL_FUNC_VISIBILITY const char *aclrtGetSocName();
 
 #define ACL_APP_LOG(level, fmt, ...) \
     aclAppLog(level, __FUNCTION__, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+
+/**
+ * @ingroup AscendCL
+ * @brief Get a list of the available CANN attributes in current environment
+ *
+ * @param  cannAttr [OUT]  list of the available CANN attributes
+ * @param  num [OUT]  the number of the available CANN attributes
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues  Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclGetCannAttributeList(const aclCannAttr **cannAttr, int *num);
+
+/**
+ * @ingroup AscendCL
+ * @brief Check whether the specified CANN attribute is available in current
+ * environment
+ *
+ * @param  cannAttr [IN]  list of the available CANN attributes
+ * @param  num [OUT]  0/1: 0 represents unavailable , 1 available
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues  Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclGetCannAttribute(aclCannAttr cannAttr, int *value);
+
+/**
+ * @ingroup AscendCL
+ * @brief Get capability value of the specified device
+ *
+ * @param  deviceId [IN]  device id
+ * @param  infoType [IN]  device capability to query
+ * @param  value [OUT]    returned device capability value
+ *
+ * @retval ACL_SUCCESS  The function is successfully executed.
+ * @retval OtherValues  Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclGetDeviceCapability(uint32_t deviceId, aclInfoType infoType, int64_t *value);
 
 #ifdef __cplusplus
 }
