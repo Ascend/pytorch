@@ -390,6 +390,7 @@ public:
     // instead of relying on ProcessGroupHCCL destructor.
     void abort(c10::optional<std::string> abortReason = c10::nullopt);
 
+    std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(HcclRootInfo* hcclID);
@@ -399,6 +400,10 @@ protected:
     std::vector<std::shared_ptr<HCCLComm>>& getHCCLComm(
         const std::string& devicesKey,
         const std::vector<at::Device>& devices);
+
+    // Get the data vol for HCCL operators.
+    void recordDataVol(std::string opName, const std::string dataVol, const int currRank,
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 
     // Wrapper method which can be overridden for tests.
     virtual std::exception_ptr checkForHCCLErrors(
