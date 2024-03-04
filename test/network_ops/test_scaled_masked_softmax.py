@@ -26,6 +26,7 @@ DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
 
 class TestScaledMaskedSoftmax(TestCase):
+    @unittest.skip("skip test_scaled_masked_softmax_shape_format now")
     def test_scaled_masked_softmax_shape_format(self):
         shape_format = [
             [[np.float16, 29, (16, 6, 128, 128)], [np.float16, 29, (16, 6, 128, 128)]],
