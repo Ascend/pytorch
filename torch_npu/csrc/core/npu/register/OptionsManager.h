@@ -33,6 +33,8 @@ public:
     static uint32_t CheckUseDesyncDebugEnable();
     C10_NPU_API static bool isACLGlobalLogOn(aclLogLevel level);
     static uint32_t GetRankId();
+    static bool CheckNslbEnable();
+    static uint32_t GetNslbCntVal();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
