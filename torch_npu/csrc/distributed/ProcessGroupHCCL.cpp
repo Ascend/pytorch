@@ -19,6 +19,9 @@
 #include <map>
 #include <tuple>
 #include <unordered_set>
+#include <unistd.h>
+#include <fstream>
+#include <iostream>
 
 #include <c10/util/Optional.h>
 #include <c10/util/irange.h>
@@ -87,6 +90,7 @@ std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_FP64, "at::kDouble"},
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
+bool nslb_is_end = false;
 
 int64_t physical_numel(const at::Tensor& self)
 {
@@ -231,6 +235,19 @@ void exceptionCallback(aclrtExceptionInfo* exceptionInfo)
 {
     // notice: Do not raise error, otherwise we will get call stacks of the rts callback function.
     fprintf(stdout, "AllReduce error, see details in Ascend logs.");
+}
+
+void nslb_record_end()
+{
+    std::string end_file_path;
+    std::ofstream endfile;
+    end_file_path = c10::str(getenv("NSLB_CP"), "/end_", getenv("MASTER_ADDR"), "_", getpid(), ".log");
+    try {
+        endfile.open(end_file_path, std::ios::out);
+        endfile.close();
+    } catch (std::exception& e) {
+        throw std::runtime_error("NSLB set end failed.");
+    }
 }
 } // namespace
 
@@ -482,6 +499,25 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
     }
 }
 
+// record data volume for HCCL op.
+void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataVol, const int currRank,
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
+    std::ofstream outfile;
+    std::stringstream fileName;
+    std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
+    auto master_addr = getenv("MASTER_ADDR");
+    TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.");
+    fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
+    try {
+        outfile.open(c10::str(getenv("NSLB_CP"), "/", fileName.str()), std::ios::app);
+    } catch (std::exception& e) {
+        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid.");
+    }
+    outfile << opName << " " << dataVol << " " << std::to_string(currRank) << "\n";
+    outfile.close();
+}
+
 std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices)
@@ -727,13 +763,19 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
   std::vector<at::Device> devices = {device};
   const auto key = getKeyFromDevices(devices);
   auto& hcclComms = getHCCLComm(key, devices);
-  TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
-      hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
-  HcclComm ret_hcom = hcclComms[0]->getHcclComm();
-  char commName[MAX_GROUP_NAME];
-  HCCL_CHECK_ERROR(at_npu::native::hccl::HcclGetCommNameFace(ret_hcom, commName));
-  std::string name_str(commName);
+  auto name_str = getHcclCommNameWithoutInit(rankid, hcclComms);
   return name_str;
+}
+
+std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
+    TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+        hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
+    HcclComm ret_hcom = hcclComms[0]->getHcclComm();
+    char commName[MAX_GROUP_NAME];
+    HCCL_CHECK_ERROR(at_npu::native::hccl::HcclGetCommNameFace(ret_hcom, commName));
+    std::string name_str(commName);
+    return name_str;
 }
 
 template <typename Fn, typename PreProcess, typename PostProcess>
@@ -742,7 +784,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& outputs,
     Fn fn,
     PreProcess pre,
-    PostProcess post)
+    PostProcess post,
+    c10d::OpType opType)
 {
     // Bump collective counter
     seq_++;
@@ -760,6 +803,23 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     c10_npu::OptionalNPUGuard npuGuard;
     pre(hcclStreams, work);
 
+    bool nslb_enable = c10_npu::option::OptionsManager::CheckNslbEnable();
+    if (nslb_enable && !nslb_is_end) {
+        auto nslb_num = c10_npu::option::OptionsManager::GetNslbCntVal();
+        if (seq_ <= nslb_num) {
+            auto dataVol = 0;
+            for (auto tensor:inputs) {
+                dataVol += tensor.storage().nbytes();
+            }
+            char* global_rank = getenv("RANK");
+            TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.");
+            recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
+        }
+        if (seq_ >= nslb_num) {
+            nslb_is_end = true;
+            nslb_record_end();
+        }
+    }
     for (const auto i : c10::irange(inputs.size())) {
         npuGuard.set_index(devices[i].index());
         c10_npu::NPUStream& hcclStream = hcclStreams[i];
@@ -814,14 +874,16 @@ template <typename Fn>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs,
-    Fn fn)
+    Fn fn,
+    c10d::OpType opType)
 {
     return collective(
         inputs,
         outputs,
         fn,
         [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
-        [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+        [](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+        opType);
 }
 
 int g_allreduceID = 0;
@@ -852,7 +914,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce(
             cmd.Run();
 
             return HCCL_SUCCESS;
-        });
+        },
+        c10d::OpType::ALLREDUCE);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
@@ -900,7 +963,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::batch_isend_irecv(
             cmd.SetCustomHandler(hccl_call);
             cmd.Run();
             return HCCL_SUCCESS;
-        });
+        },
+        c10d::OpType::UNKNOWN);
 }
 
 int g_broadcastID = 100000;
@@ -925,7 +989,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::broadcast(
             cmd.Run();
 
             return HCCL_SUCCESS;
-        });
+        },
+        c10d::OpType::BROADCAST);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allreduce_coalesced(
@@ -961,7 +1026,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce(
             cmd.Run();
 
             return HCCL_SUCCESS;
-        });
+        },
+        c10d::OpType::REDUCE);
 }
 
 #define ADDRESS_ALIGNMENT_BYTE 512
@@ -1068,7 +1134,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                         outputTensors[i][j].copy_(output_tensor_shape, true);
                     }
                 }
-            });
+            },
+            c10d::OpType::ALLGATHER);
     } else {
         TORCH_NPU_WARN_ONCE("The current allgather operator has a defect in handling different tensor shape, \
         the work event forces a wait operation, and the allgather wait on the python side would be fake");
@@ -1101,7 +1168,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather(
                 auto numel = getNumelForHCCL(input);
                 auto hcclType = getHcclDataType(input.scalar_type());
                 return HcclBroadcast(inputDataPtr, numel, hcclType, root, comm, stream.stream());
-            });
+            },
+            c10d::OpType::ALLGATHER);
             works.push_back(work);
         }
         // Need to add a method like endCoalescing();
@@ -1146,7 +1214,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::allgather_togather(
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
-        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+        c10d::OpType::ALLGATHER);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
@@ -1189,7 +1258,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_allgather_base(
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
-        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+        c10d::OpType::ALLGATHER);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
@@ -1241,7 +1311,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::reduce_scatter(
                 }
             }
         },
-        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+        [&](std::vector<c10_npu::NPUStream>& hcclStreams, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+        c10d::OpType::REDUCE_SCATTER);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
@@ -1287,7 +1358,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::_reduce_scatter_base(
             return HCCL_SUCCESS;
         },
         [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {});
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>& work) {},
+        c10d::OpType::REDUCE_SCATTER);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::barrier(const c10d::BarrierOptions& opts)
@@ -1424,7 +1496,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::scatter(
                 }
             }
         },
-        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {});
+        [&](std::vector<c10_npu::NPUStream>&, c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL>&) {},
+        c10d::OpType::SCATTER);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& tensors, int dstRank, int tag)
@@ -1446,7 +1519,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::send(std::vector<at::Tensor>& t
             cmd.Run();
 
             return HCCL_SUCCESS;
-        });
+        },
+        c10d::OpType::SEND);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& tensors, int srcRank, int tag)
@@ -1491,7 +1565,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recv(std::vector<at::Tensor>& t
                     tensors[i].copy_(tensors_[i], true);
                 }
             }
-        });
+        },
+        c10d::OpType::RECV);
 }
 
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::recvAnysource(std::vector<at::Tensor>& /* unused */, int /* unused */)
@@ -1597,7 +1672,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             cmd.Run();
 
             return HCCL_SUCCESS;
-        });
+        },
+        c10d::OpType::ALLTOALL);
 }
 
 } // namespace c10d_npu

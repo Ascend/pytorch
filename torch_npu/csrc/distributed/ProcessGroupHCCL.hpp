@@ -319,7 +319,12 @@ public:
 
   std::string getHcclCommName(int rankid);
 
+  std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
 protected:
+
+    // Get the data vol for HCCL operators.
+    void recordDataVol(std::string opName, const std::string dataVol, const int currRank,
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);
 
@@ -446,13 +451,15 @@ private:
   c10::intrusive_ptr<c10d::Work> collective(
       std::vector<at::Tensor>& input,
       std::vector<at::Tensor>& output,
-      Fn fn);
+      Fn fn,
+      c10d::OpType opType);
   template <typename Fn, typename PreProcess, typename PostProcess>
   c10::intrusive_ptr<c10d::Work> collective(
       std::vector<at::Tensor>& input,
       std::vector<at::Tensor>& output,
       Fn fn,
       PreProcess pre,
-      PostProcess post);
+      PostProcess post,
+      c10d::OpType opType);
 };
 } // namespace c10d_npu
