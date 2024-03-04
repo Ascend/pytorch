@@ -21,6 +21,8 @@
 #include <map>
 #include <string>
 
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace c10_npu {
@@ -71,9 +73,19 @@ void SetSocVersion(const char* const socVersion) {
 const SocVersion& GetSocVersion() { return g_curSocVersion; }
 
 bool IsSupportInfNan() {
-    return c10_npu::option::OptionsManager::CheckInfNanModeEnable() &&
-           (((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
-           (GetSocVersion() >= SocVersion::Ascend910C1));
+    if (!c10_npu::option::OptionsManager::CheckInfNanModeEnable()) {
+        return false;
+    }
+    if (c10_npu::acl::IsExistGetCannAttribute()) {
+        const static bool supportInfNan = []() -> bool {
+            int enable = 0;
+            NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_ATTR_INF_NAN, &enable));
+            return enable != 0;
+        }();
+        return supportInfNan;
+    }
+    return ((GetSocVersion() >= SocVersion::Ascend910B1) && (GetSocVersion() < SocVersion::Ascend310B1)) ||
+        (GetSocVersion() >= SocVersion::Ascend910C1);
 }
 
 bool IsBF16Supported()

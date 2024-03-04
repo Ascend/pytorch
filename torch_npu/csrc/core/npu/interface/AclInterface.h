@@ -154,5 +154,14 @@ aclError AclrtFreePhysical(aclrtDrvMemHandle handle);
 aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle handle, uint64_t flags);
 
 aclError AclrtUnmapMem(void *virPtr);
+
+bool IsExistGetCannAttribute();
+
+aclError AclGetCannAttributeList(const aclCannAttr **cannAttr, int *num);
+
+aclError AclGetCannAttribute(aclCannAttr cannAttr, int *value);
+
+aclError AclGetDeviceCapability(uint32_t deviceId, aclInfoType infoType, int64_t *value);
+
 } // namespace acl
 } // namespace c10_npu
