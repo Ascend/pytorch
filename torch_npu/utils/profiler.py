@@ -61,16 +61,16 @@ class Profile(object):
                     raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), torch_args_set) +
                                      prof_error(ErrCode.VALUE))
                 self.prof = torch.autograd.profiler.profile(use_npu=self.use_npu, **kwargs)
-            elif self.profile_type == "CANN":
+            elif self.profile_type == "CANN" or "GE":
                 if not set(kwargs.keys()).issubset(cann_ge_args_set):
                     raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set) +
                                      prof_error(ErrCode.VALUE))
-                self.prof = torch.npu.profile(self.save_path, self.use_e2e_profiler, **kwargs)
-            elif self.profile_type == "GE":
-                if not set(kwargs.keys()).issubset(cann_ge_args_set):
-                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set) +
-                                     prof_error(ErrCode.VALUE))
-                self.prof = torch.npu.profile(self.save_path, self.use_e2e_profiler, **kwargs)
+                self.prof = torch_npu.profiler.profile(
+                    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.save_path), 
+                    experimental_config=torch_npu.profiler._ExperimentalConfig(
+                        profiler_level=torch_npu.profiler.ProfilerLevel.Level1
+                    )
+                )
 
             try:
                 os.makedirs(self.save_path, exist_ok=True)

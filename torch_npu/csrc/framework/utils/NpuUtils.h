@@ -48,7 +48,6 @@ public:
     static bool IsOomError(aclError ret, int index);
     static void check_1d(const at::Tensor &t, const char *arg, const char *fn);
 #ifndef BUILD_LIBTORCH
-    static void ProfReportMarkData(const std::string &msg);
     static void ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id = 0);
     static void ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset);
 #endif
