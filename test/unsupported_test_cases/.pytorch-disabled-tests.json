@@ -3958,6 +3958,7 @@
   "test_uniform_kstest_npu_float64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_where_scalar_handcrafted_values_npu (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_multihead_attention_dtype_batch_first_npu_float64 (__main__.TestMultiheadAttentionNNDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_multihead_attention_dtype_batch_first_npu_float16 (__main__.TestMultiheadAttentionNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_multihead_attention_dtype_npu_float64 (__main__.TestMultiheadAttentionNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_multihead_self_attn_two_masks_fast_path_npu (__main__.TestMultiheadAttentionNNDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_multihead_attn_fast_path_small_test_npu_float64 (__main__.TestMultiheadAttentionNNDeviceTypePRIVATEUSE1)": ["", [""]],
