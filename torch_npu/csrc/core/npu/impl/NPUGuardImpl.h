@@ -98,7 +98,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
         device_index,
         " does not match recording stream's device index ",
         stream.device_index(),
-        ".");
+        ".", PTA_ERROR(ErrCode::PARAM));
 
     aclrtEvent npu_event = static_cast<aclrtEvent>(*event);
     NPUStream npu_stream{stream};

@@ -29,9 +29,9 @@ const at::Tensor& NPUNativeFunctions::resize_as_(
     c10::optional<c10::MemoryFormat> format) {
   TORCH_CHECK(
       !(self.is_sparse() || the_template.is_sparse()),
-      "NPU does not support sparse tensors.");
+      "NPU does not support sparse tensors.", OPS_ERROR(ErrCode::NOT_SUPPORT));
   TORCH_CHECK(
-      !format.has_value(), "NPU does not support specify memory_format.");
+      !format.has_value(), "NPU does not support specify memory_format.", OPS_ERROR(ErrCode::NOT_SUPPORT));
 
   const at::Tensor& result = self.resize_(the_template.sizes());
   at::namedinference::propagate_names(result, the_template);

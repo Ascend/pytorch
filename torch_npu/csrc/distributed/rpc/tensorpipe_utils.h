@@ -3,6 +3,7 @@
 #pragma once
 
 #include <torch/csrc/distributed/rpc/utils.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace tensorpipe_npu {
 class Message;

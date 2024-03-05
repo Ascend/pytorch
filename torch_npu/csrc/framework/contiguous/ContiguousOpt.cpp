@@ -185,7 +185,7 @@ bool TransContiguous::ContiguousOptimizeWithBaseFormat(
     bool OpenCombined) {
   TORCH_CHECK(FormatHelper::IsBaseFormatType(src),
               "ContiguousOptimizeWithBaseFormat func requires Input Tensor "
-              "with base format!");
+              "with base format!", OPS_ERROR(ErrCode::TYPE));
   // In non-specific cases, classify the cases and simplify judgement.
   ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
   if (OpenCombined &&

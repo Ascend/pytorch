@@ -1,5 +1,6 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -7,7 +8,7 @@ namespace native {
 int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at::Tensor& src, int64_t offset) {
   TORCH_CHECK(
       offset >= 0,
-      "Expect offset equal or greater than zero, got: ", offset);
+      "Expect offset equal or greater than zero, got: ", offset, PTA_ERROR(ErrCode::VALUE));
 
   const auto& src_scalar_type = src.scalar_type();
   const auto& dst_scalar_type = dst.scalar_type();
@@ -16,12 +17,14 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at:
       src_scalar_type == dst_scalar_type,
       "Expect src and dst tensors having the same dtype, got: ",
       "src with dtype ", src_scalar_type,
-      ", dst with dtype ", dst_scalar_type);
+      ", dst with dtype ", dst_scalar_type,
+      PTA_ERROR(ErrCode::TYPE));
   TORCH_CHECK(
       (src_scalar_type == at::ScalarType::Half) ||
       (src_scalar_type == at::ScalarType::Float) ||
       (src_scalar_type == at::ScalarType::BFloat16),
-      "Only supports src and dst tensors with dtype float32, float16 or bfloat16, got: ", src_scalar_type);
+      "Only supports src and dst tensors with dtype float32, float16 or bfloat16, got: ", src_scalar_type,
+      PTA_ERROR(ErrCode::TYPE));
 
   auto dst_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_.storage_sizes_;
   auto src_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_.storage_sizes_;
@@ -34,7 +37,8 @@ int64_t NPUNativeFunctions::npu_change_data_ptr(const at::Tensor& dst, const at:
       "Offsets overflow, got: ",
       "offset ", offset,
       ", dst storage size ", dst_storage_size,
-      ", src storage size ", src_storage_size);
+      ", src storage size ", src_storage_size,
+      PTA_ERROR(ErrCode::PARAM));
 
   at::DataPtr aim_data_ptr;
   if (src_scalar_type == at::ScalarType::Float) {

@@ -199,10 +199,10 @@ PythonTracer::PythonTracer() : active_(false)
 
 void PythonTracer::start(size_t max_threads)
 {
-    TORCH_CHECK(!active_, "PythonTracer is already active")
-    TORCH_CHECK(!trace_contexts_.size(), "PythonTracer should not have active contexts");
-    TORCH_CHECK(max_threads > 0, "max_threads must be positive, got ", max_threads);
-    TORCH_CHECK(max_threads <= max_py_threads, "max_threads must be less equal to ", max_py_threads);
+    TORCH_CHECK(!active_, "PythonTracer is already active", PROF_ERROR(ErrCode::INTERNAL))
+    TORCH_CHECK(!trace_contexts_.size(), "PythonTracer should not have active contexts", PROF_ERROR(ErrCode::INTERNAL));
+    TORCH_CHECK(max_threads > 0, "max_threads must be positive, got ", max_threads, PROF_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(max_threads <= max_py_threads, "max_threads must be less equal to ", max_py_threads, PROF_ERROR(ErrCode::VALUE));
 
     pybind11::gil_scoped_acquire gil;
 
@@ -262,7 +262,7 @@ void PythonTracer::stop()
 
 void PythonTracer::clear()
 {
-    TORCH_CHECK(!active_, "Cannot clear state while PythonTracer is active.");
+    TORCH_CHECK(!active_, "Cannot clear state while PythonTracer is active.", PROF_ERROR(ErrCode::INTERNAL));
     event_count_ = 0;
     for (auto i : trace_contexts_) {
         Py_DECREF((PyObject*) i);
@@ -362,7 +362,7 @@ void PythonTracer::call(Command c)
 void init()
 {
     pybind11::gil_scoped_acquire gil;
-    TORCH_CHECK(PyType_Ready(&TraceContextType) == 0);
+    TORCH_CHECK(PyType_Ready(&TraceContextType) == 0, PROF_ERROR(ErrCode::INTERNAL));
     registerFunctions(
         &PythonTracer::call
     );

@@ -35,7 +35,7 @@ ReuseMode OptionsManager::GetMultiStreamMemoryReuse()
                 mode = AVOID_RECORD_STREAM;
                 break;
             default:
-                TORCH_CHECK(false, "MULTI_STREAM_MEMORY_REUSE only allow 0, 1, 2");
+                TORCH_CHECK(false, "MULTI_STREAM_MEMORY_REUSE only allow 0, 1, 2", PTA_ERROR(ErrCode::PARAM));
         }
         return mode;
     }();

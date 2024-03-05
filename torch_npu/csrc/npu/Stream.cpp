@@ -88,13 +88,13 @@ static PyObject* THNPStream_get_npu_stream(THNPStream *self, void *unused) {
 
 static PyObject* THNPStream_get_priority(THNPStream *self, void *unused) {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.");
+  TORCH_CHECK(false, "NPU dose not support Stream.get_priority() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
   END_HANDLE_TH_ERRORS
 }
 
 static PyObject* THNPStream_priority_range() {
   HANDLE_TH_ERRORS
-  TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.");
+  TORCH_CHECK(false, "NPU does not support Stream.priority_range() currently.", PTA_ERROR(ErrCode::NOT_SUPPORT));
   END_HANDLE_TH_ERRORS
 }
 

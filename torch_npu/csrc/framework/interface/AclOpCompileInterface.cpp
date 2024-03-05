@@ -33,7 +33,7 @@ aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
   {
     func = (aclSetCompileoptFunc)GET_FUNC(aclSetCompileopt);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt");
+  TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt", PTA_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(opt, value);
   return ret;
 }
@@ -77,7 +77,7 @@ aclError AclGenGraphAndDumpForOp(const char *opType,
   if (func == nullptr) {
     func = (AclGenGraphAndDumpForOpFunc)GET_FUNC(aclGenGraphAndDumpForOp);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclGenGraphAndDumpForOp");
+  TORCH_CHECK(func, "Failed to find function ", "aclGenGraphAndDumpForOp", PTA_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(opType, numInputs, inputDesc, inputs, numOutputs,
       outputDesc, outputs, attr, engineType, graphDumpPath, graphdumpOpt);
   return ret;
@@ -89,7 +89,7 @@ aclGraphDumpOption* AclCreateGraphDumpOpt() {
   if (func == nullptr) {
     func = (AclCreateGraphDumpOptFunc)GET_FUNC(aclCreateGraphDumpOpt);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclCreateGraphDumpOpt");
+  TORCH_CHECK(func, "Failed to find function ", "aclCreateGraphDumpOpt", PTA_ERROR(ErrCode::NOT_FOUND));
   return func();
 }
 
@@ -99,7 +99,7 @@ aclError AclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt) {
   if (func == nullptr) {
     func = (AclDestroyGraphDumpOptFunc)GET_FUNC(aclDestroyGraphDumpOpt);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclDestroyGraphDumpOpt");
+  TORCH_CHECK(func, "Failed to find function ", "aclDestroyGraphDumpOpt", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(aclGraphDumpOpt);
 }
 
@@ -117,7 +117,7 @@ aclError AclopCompileAndExecuteV2(const char *opType,
   if (func == nullptr) {
     func = (AclopCompileAndExecuteV2Func)GET_FUNC(aclopCompileAndExecuteV2);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclopCompileAndExecuteV2");
+  TORCH_CHECK(func, "Failed to find function ", "aclopCompileAndExecuteV2", PTA_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(opType, numInputs, inputDesc, inputs, numOutputs,
       outputDesc, outputs, attr, engineType, compileFlag, opPath, stream);
   return ret;

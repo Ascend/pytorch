@@ -134,7 +134,7 @@ void NPUPluggableAllocator::raw_delete(void* ptr)
         const std::lock_guard<std::mutex> lock(allocator_mutex_);
         TORCH_CHECK(
             allocation_metadata_.count(ptr),
-            "Trying to free a pointer not allocated here");
+            "Trying to free a pointer not allocated here", PTA_ERROR(ErrCode::PTR));
         _AllocationMetadata& metadata = allocation_metadata_[ptr];
         size = metadata.size;
         device_idx = metadata.device_idx;
@@ -264,7 +264,7 @@ void changeCurrentAllocator(
 {
     TORCH_CHECK(
         !c10_npu::NPUCachingAllocator::allocator.load()->initialized(),
-        "Can't swap an already initialized allocator");
+        "Can't swap an already initialized allocator", PTA_ERROR(ErrCode::INTERNAL));
     c10_npu::NPUCachingAllocator::allocator.store(allocator.get());
     current_custom_allocator = allocator;
 }

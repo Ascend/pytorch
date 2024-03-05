@@ -22,7 +22,7 @@ public:
 
     explicit NPUStream(c10::Stream stream) : stream_(stream)
     {
-        TORCH_CHECK(stream_.device_type() == c10::DeviceType::PrivateUse1);
+        TORCH_CHECK(stream_.device_type() == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::TYPE));
     }
 
     explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
