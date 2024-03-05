@@ -65,7 +65,7 @@ bool IsSupportInfNan()
     if (c10_npu::acl::IsExistGetCannAttribute()) {
         const static bool supportInfNan = []() -> bool {
             int enable = 0;
-            NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_ATTR_INF_NAN, &enable));
+            NPU_CHECK_ERROR(c10_npu::acl::AclGetCannAttribute(ACL_CANN_ATTR_INF_NAN, &enable));
             return enable != 0;
         }();
         return supportInfNan;
