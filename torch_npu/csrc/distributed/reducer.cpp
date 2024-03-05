@@ -204,7 +204,7 @@ Reducer::Reducer(
           logger_,
           c10::str(
               "Reducer tried to register duplicate grad accumulator for variable ",
-              variable_index));
+              variable_index), DIST_ERROR(ErrCode::PTR));
 
       grad_accumulators_[variable_index] =
           std::move(grad_accumulator);
@@ -303,7 +303,8 @@ void Reducer::check_grad_layout(
   REDUCER_CHECK(
       grad.options().type_equal(bucket_view.options()),
       logger_,
-      c10::str("Expected ", bucket_view.toString(), ", got ", grad.toString()));
+      c10::str("Expected ", bucket_view.toString(), ", got ", grad.toString()),
+      DIST_ERROR(ErrCode::PARAM));
   TORCH_INTERNAL_ASSERT(grad.device() == bucket_view.device());
   // AccumulateGrad doesn't HAVE to obey the grad layout contract.
   // The penalty for disobedience is reduced performance, not numerical
@@ -403,7 +404,7 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
             logger_,
             "Encountered gradient which is undefined, but still allreduced by "
             "DDP reducer. This indicates a bug in DDP implementation, please "
-            "report a bug with a repro to PyTorch."
+            "report a bug with a repro to PyTorch.", DIST_ERROR(ErrCode::INTERNAL)
         );
       }
       bucket_view.zero_();
@@ -422,11 +423,11 @@ void Reducer::mark_variable_ready_sparse(size_t variable_index) {
 
   runGradCallbackForVariable(variable, [&](auto& grad) {
     REDUCER_CHECK(
-        grad.defined(), logger_, "Expected sparse gradient to be defined.");
+        grad.defined(), logger_, "Expected sparse gradient to be defined.", DIST_ERROR(ErrCode::PARAM));
     REDUCER_CHECK(
         grad.options().layout() == c10::kSparse,
         logger_,
-        "Expected variable to have sparse gradient.");
+        "Expected variable to have sparse gradient.", DIST_ERROR(ErrCode::TYPE));
 
     // Sparse tensors cannot be grouped together with other sparse tensors
     // in a single reduction operation like we can for dense tensors.
@@ -624,7 +625,7 @@ void Reducer::autograd_hook(size_t index) {
         "Your training graph has changed in this iteration, ",
         "e.g., one parameter is unused in first iteration, but ",
         "then got used in the second iteration. this is not ",
-        "compatible with static_graph set to True.");
+        "compatible with static_graph set to True.", DIST_ERROR(ErrCode::NOT_SUPPORT));
     if (--numGradHooksTriggeredMapPerIteration_[index] == 0) {
       if (should_rebuild_buckets()) {
         push_rebuilt_params(index);
@@ -724,8 +725,8 @@ void Reducer::checkAndRaiseMarkedTwiceError(size_t index) {
         "`torch.nn.parallel.DistributedDataParallel`. If unused parameters ",
         "in the model do not change over iterations, You can try to use ",
         "_set_static_graph() as a workaround if this module graph does not ",
-        "change during training loop.");
-    REDUCER_CHECK(!has_marked_unused_parameters_, logger_, common_error);
+        "change during training loop.", DIST_ERROR(ErrCode::PARAM));
+    REDUCER_CHECK(!has_marked_unused_parameters_, logger_, common_error, DIST_ERROR(ErrCode::PARAM));
   }
 }
 
@@ -733,7 +734,7 @@ void Reducer::mark_variable_ready(size_t variable_index) {
   REDUCER_CHECK(
       variable_index < variable_locators_.size(),
       logger_,
-      "Out of range variable index.");
+      "Out of range variable index.", DIST_ERROR(ErrCode::PARAM));
 
   checkAndRaiseMarkedTwiceError(variable_index);
   perIterationReadyParams_.insert(variable_index);
@@ -914,7 +915,7 @@ void Reducer::initialize_buckets(
   REDUCER_CHECK(
       !expect_autograd_hooks_,
       logger_,
-      "`initialize_buckets` must NOT be called during autograd execution.");
+      "`initialize_buckets` must NOT be called during autograd execution.", DIST_ERROR(ErrCode::PARAM));
 
   // Clear current bucket assignment.
   buckets_.clear();
@@ -935,7 +936,7 @@ void Reducer::initialize_buckets(
     REDUCER_CHECK(
         bucket_indices[bucket_index].size() > 0,
         logger_,
-        "Empty bucket specified.");
+        "Empty bucket specified.", DIST_ERROR(ErrCode::PARAM));
 
     // Variables that expect sparse gradients must have their own bucket.
     if (bucket_indices[bucket_index].size() == 1) {
@@ -948,7 +949,7 @@ void Reducer::initialize_buckets(
             !expect_sparse_gradients_[variable_index],
             logger_,
             "Buckets with more than one variable cannot include variables ",
-            "that expect a sparse gradient.");
+            "that expect a sparse gradient.", DIST_ERROR(ErrCode::PARAM));
       }
     }
 
@@ -984,7 +985,7 @@ void Reducer::initialize_buckets(
               variable.device() == options.device(),
               logger_,
               "All parameters in a bucket must be ",
-              "placed on the same device.");
+              "placed on the same device.", DIST_ERROR(ErrCode::PARAM));
         }
         if (!options.has_dtype()) {
           options = options.dtype(variable.dtype());
@@ -992,7 +993,7 @@ void Reducer::initialize_buckets(
           REDUCER_CHECK(
               variable.dtype() == options.dtype(),
               logger_,
-              "All parameters in a bucket must have the same dtype.");
+              "All parameters in a bucket must have the same dtype.", DIST_ERROR(ErrCode::TYPE));
         }
         const auto length = physical_numel(variable);
         replica.variables.push_back(variable);
@@ -1396,7 +1397,7 @@ void Reducer::finalize_bucket_dense(Bucket& bucket) {
                   "expected DDP bucket view with gradient_as_bucket_view=True. "
                   "This may happen (for example) if multiple allreduce hooks "
                   "were registered onto the same parameter. If you hit this error, "
-                  "please file an issue with a minimal repro.");
+                  "please file an issue with a minimal repro.", DIST_ERROR(ErrCode::PARAM));
             }
           }
           // The grad is modified and needs to be written back.
@@ -1685,7 +1686,8 @@ void Reducer::register_comm_hook(std::unique_ptr<c10d::CommHookInterface> iface)
   REDUCER_CHECK(
       comm_hook_ == nullptr,
       logger_,
-      "register_comm_hook or register_builtin_comm_hook can only be called once.");
+      "register_comm_hook or register_builtin_comm_hook can only be called once.",
+      DIST_ERROR(ErrCode::PTR));
 
   comm_hook_ = std::move(iface);
 }
@@ -1695,7 +1697,8 @@ void Reducer::register_builtin_comm_hook(c10d::BuiltinCommHookType comm_hook_typ
     REDUCER_CHECK(
         comm_hook_ == nullptr,
         logger_,
-        "register_builtin_comm_hook or register_comm_hook can only be called once.");
+        "register_builtin_comm_hook or register_comm_hook can only be called once.",
+        DIST_ERROR(ErrCode::PTR));
 
     switch (comm_hook_type) {
         case c10d::BuiltinCommHookType::ALLREDUCE:
@@ -1805,7 +1808,7 @@ void Reducer::ensure_prior_reduction_finished() {
           unmarkedParamInfo);
       kBaseErrorMsg += unmarked_param_indices_info;
     }
-    REDUCER_CHECK(false, logger_, kBaseErrorMsg);
+    REDUCER_CHECK(false, logger_, kBaseErrorMsg, DIST_ERROR(ErrCode::PARAM));
   }
 }
 
@@ -1862,7 +1865,7 @@ void Reducer::set_static_graph() {
       num_iterations_ == 0,
       logger_,
       "set_static_graph() should be called before training loop starts "
-      "and after DistributedDataParallel is constructed.");
+      "and after DistributedDataParallel is constructed.", DIST_ERROR(ErrCode::PARAM));
   static_graph_ = true;
   // when static_graph_ is set as true, always initialize_local_used_map
   // and detect the global unused parameters in the first iteration.
@@ -1930,9 +1933,9 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
     const auto& tensor = tensors[i];
     auto msg = std::string("No support for sparse tensors.");
     if (logger.has_value()) {
-      REDUCER_CHECK(!tensor.is_sparse(), logger.value(), msg);
+      REDUCER_CHECK(!tensor.is_sparse(), logger.value(), msg, DIST_ERROR(ErrCode::NOT_SUPPORT));
     } else {
-      TORCH_CHECK(!tensor.is_sparse(), msg);
+      TORCH_CHECK(!tensor.is_sparse(), msg, DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 
     // when tensor_indices is empty, the index of tensors[i] assigned to
@@ -2063,9 +2066,9 @@ void verify_params_across_processes(
                           t.sizes(),
                           " appears not to match sizes of the same param in process 0.");
       if (logger.has_value()) {
-        REDUCER_CHECK(sz == control_accessor[i++], logger.value(), msg)
+        REDUCER_CHECK(sz == control_accessor[i++], logger.value(), msg, DIST_ERROR(ErrCode::PARAM))
       } else {
-        TORCH_CHECK(sz == control_accessor[i++], msg)
+        TORCH_CHECK(sz == control_accessor[i++], msg, DIST_ERROR(ErrCode::PARAM))
       }
     }
     for (const auto& str : t.strides()) {
@@ -2074,9 +2077,9 @@ void verify_params_across_processes(
                           t.sizes(),
                           " appears not to match strides of the same param in process 0.");
       if (logger.has_value()) {
-        REDUCER_CHECK(str == control_accessor[i++], logger.value(), msg)
+        REDUCER_CHECK(str == control_accessor[i++], logger.value(), msg, DIST_ERROR(ErrCode::PARAM))
       } else {
-        TORCH_CHECK(str == control_accessor[i++], msg)
+        TORCH_CHECK(str == control_accessor[i++], msg, DIST_ERROR(ErrCode::PARAM))
       }
     }
   }

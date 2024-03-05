@@ -75,11 +75,11 @@ void GetAndSetDefaultJitCompileByAcl() {
     ASCEND_LOGW("Get ACL JitCompile default value size failed, use PTA default value: True");
     return;
   }
-  TORCH_CHECK(opt_size.value() != 0, "AclGetCompileoptSize opt_size.value() = 0 !");
+  TORCH_CHECK(opt_size.value() != 0, "AclGetCompileoptSize opt_size.value() = 0 !", PTA_ERROR(ErrCode::ACL));
   char value_name[opt_size.value()];
   auto ret = at_npu::native::AclGetCompileopt(ACL_OP_JIT_COMPILE, value_name, opt_size.value());
   // Get func success but get value failed, throw error
-  TORCH_CHECK(ret == ACL_SUCCESS, "Get ACL JitCompile default value failed.");
+  TORCH_CHECK(ret == ACL_SUCCESS, "Get ACL JitCompile default value failed.", PTA_ERROR(ErrCode::ACL));
   std::string value_str(value_name);
   c10_npu::option::SetOption("jitCompile", value_str);
   ASCEND_LOGI("Get ACL JitCompile default value %s and set", value_str.c_str());
@@ -100,7 +100,7 @@ void SetHF32DefaultValue() {
     // Used to solve version compatibility issues, when ASCEND have not been updated.
     ASCEND_LOGW("Failed to set default value of ACL option ACL_ALLOW_HF32, which is unsupported by current version.");
   } else {
-    TORCH_CHECK(0, "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32);
+    TORCH_CHECK(0, "Failed to set compile option ACL_ALLOW_HF32, result = ", ret, ", set value ", allow_hf32, PTA_ERROR(ErrCode::ACL));
   }
 }
 
@@ -284,7 +284,7 @@ int NpuSysCtrl::InitializedDeviceID()
     if (GetInitFlag()) {
         return device_id_;
     }
-    TORCH_CHECK(false, "no npu device has been initialized!");
+    TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
     return -1;
 }
 
@@ -293,7 +293,7 @@ int64_t NpuSysCtrl::InitializedDeviceCount()
     if (GetInitFlag()) {
         return static_cast<int64_t>(device_count_);
     }
-    TORCH_CHECK(false, "no npu device has been initialized!");
+    TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
     return -1;
 }
 
@@ -312,7 +312,7 @@ aclError SetCurrentDevice() {
     c10_npu::SetDevice(c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceID());
     return ACL_SUCCESS;
   }
-  TORCH_CHECK(false, "npu device has not been inited.");
+  TORCH_CHECK(false, "npu device has not been inited.", PTA_ERROR(ErrCode::INTERNAL));
 }
 
 } // namespace c10_npu

@@ -19,6 +19,7 @@
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/distributed/rpc/tensorpipe_utils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch_npu {
 namespace distributed {
@@ -64,7 +65,7 @@ std::vector<c10::Device> getDevicesForTensors(const std::vector<torch::Tensor> &
         } else {
             const auto deviceIter = deviceMap.find(t.device());
             TORCH_CHECK(deviceIter != deviceMap.end(), errStr, " for device ", t.device(),
-                        " but received a tensor on that device.");
+                        " but received a tensor on that device.", DIST_ERROR(ErrCode::PARAM));
             devices.push_back(deviceIter->second);
             hasMappedDevice = true;
         }
@@ -702,12 +703,12 @@ c10::intrusive_ptr<JitFuture> TensorPipeAgent::send(const WorkerInfo &toWorkerIn
                                                     c10::intrusive_ptr<Message> requestMessage,
                                                     const float rpcTimeoutSeconds, const DeviceMap &deviceMap)
 {
-    TORCH_CHECK(requestMessage->isRequest(), "TensorPipeAgent::send(..) is only for sending requests.");
+    TORCH_CHECK(requestMessage->isRequest(), "TensorPipeAgent::send(..) is only for sending requests.", DIST_ERROR(ErrCode::NOT_SUPPORT));
 
     if (!rpcAgentRunning_.load()) {
         auto err = c10::str("Node ", RpcAgent::getWorkerInfo().id_, "tried to send() a message of type ",
                             requestMessage->type(), " but RPC is no longer running on this node.");
-        TORCH_CHECK(false, err);
+        TORCH_CHECK(false, err, DIST_ERROR(ErrCode::INTERNAL));
     }
 
     const auto &url = findWorkerURL(toWorkerInfo);
@@ -1256,7 +1257,7 @@ std::vector<c10::Device> TensorPipeAgent::getDevicesForRemote(const std::string 
     const auto &iter = deviceMaps.find(remoteName);
     if (iter == deviceMaps.end()) {
         for (const auto &t : message.tensors()) {
-            TORCH_CHECK(t.device().is_cpu(), errStr, ", but found tensor on device: ", t.device());
+            TORCH_CHECK(t.device().is_cpu(), errStr, ", but found tensor on device: ", t.device(), DIST_ERROR(ErrCode::PARAM));
         }
         return {};
     } else {

@@ -16,7 +16,7 @@ namespace env {
 void ValidPathCheck(const std::string& file_path) {
   char abs_path[PATH_MAX] = {'\0'};
   if (realpath(file_path.c_str(), abs_path) == nullptr) {
-    TORCH_CHECK(0, "configPath path Fails, path ", (char*)file_path.c_str());
+    TORCH_CHECK(0, "configPath path Fails, path ", (char*)file_path.c_str(), PTA_ERROR(ErrCode::PTR));
   }
 }
 

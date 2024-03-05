@@ -44,8 +44,8 @@ void NpuP2pCtrl::enable_peer_access(int32_t source_dev, int32_t dest_dev)
 bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev)
 {
     TORCH_INTERNAL_ASSERT(num_devices_ >= 0, "p2p access cache not initialized");
-    TORCH_CHECK(source_dev >= 0 && source_dev < num_devices_, source_dev, " is not a device");
-    TORCH_CHECK(dest_dev >= 0 && dest_dev < num_devices_, dest_dev, " is not a device");
+    TORCH_CHECK(source_dev >= 0 && source_dev < num_devices_, source_dev, " is not a device", PTA_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(dest_dev >= 0 && dest_dev < num_devices_, dest_dev, " is not a device", PTA_ERROR(ErrCode::VALUE));
 
     // get access source_dev -> dest_dev
     auto &cache_s2d = p2p_access_enabled_cache_[source_dev * num_devices_ + dest_dev];

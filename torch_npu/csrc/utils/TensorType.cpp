@@ -226,7 +226,7 @@ static THPObjectPtr get_tensor_dict() {
   }
 
   auto tensor_type = (PyTypeObject*)tensor_class.get();
-  TORCH_CHECK(tensor_type->tp_base, "missing base type for Tensor");
+  TORCH_CHECK(tensor_type->tp_base, "missing base type for Tensor", PTA_ERROR(ErrCode::TYPE));
 
   auto res = THPObjectPtr(PyDict_New());
   if (!res) {

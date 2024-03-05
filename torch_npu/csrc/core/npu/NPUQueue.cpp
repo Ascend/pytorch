@@ -54,31 +54,31 @@ public:
   }
 
   int Call(void* head, int offset) {
-    TORCH_CHECK(this->execFunc, "Failed to find execution function.");
+    TORCH_CHECK(this->execFunc, "Failed to find execution function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto dstPtr = (uint8_t*)head + sizePerParams * offset;
     return this->execFunc(dstPtr);
   }
 
   void Copy(void* dstHead, int offset, void* src) {
-    TORCH_CHECK(this->copyFunc, "Failed to find copy function.");
+    TORCH_CHECK(this->copyFunc, "Failed to find copy function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
     return this->copyFunc(dstPtr, src);
   }
 
   void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
-    TORCH_CHECK(this->releaseFunc, "Failed to find release function.");
+    TORCH_CHECK(this->releaseFunc, "Failed to find release function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto ptr = (uint8_t*)head +  sizePerParams * offset;
     return this->releaseFunc(ptr, releaseQueue);
   }
 
   void CopyRealseParam(void* dstHead, int offset, void* src) {
-    TORCH_CHECK(this->copyReleaseParamFunc, "Failed to find copy release params function.");
+    TORCH_CHECK(this->copyReleaseParamFunc, "Failed to find copy release params function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
     return this->copyReleaseParamFunc(dstPtr, src);
   }
 
   void ReleaseParam(void* head, int offset) {
-    TORCH_CHECK(this->releaseParamFunc, "Failed to find release params function.");
+    TORCH_CHECK(this->releaseParamFunc, "Failed to find release params function.", PTA_ERROR(ErrCode::NOT_FOUND));
     auto ptr = (uint8_t*)head +  sizePerParams * offset;
     return this->releaseParamFunc(ptr);
   }
@@ -91,7 +91,7 @@ public:
 
   void DeInit(void* ptr) {
     if (ptr != nullptr) {
-      TORCH_CHECK(this->deleteFunc, "Failed to find delete function.");
+      TORCH_CHECK(this->deleteFunc, "Failed to find delete function.", PTA_ERROR(ErrCode::NOT_FOUND));
       this->deleteFunc(ptr);
       ptr = nullptr;
     }

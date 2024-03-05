@@ -22,7 +22,8 @@ extern HcclResult HcclGetCommNameFace(HcclComm commHandle, char* commName) {
         func = (HcclGetCommNameFace)GET_FUNC(HcclGetCommName);
     }
     TORCH_CHECK(func, "Failed to find function HcclGetCommName,"
-                " maybe you cann version is too low, please upgrade it");
+                " maybe you cann version is too low, please upgrade it",
+                PTA_ERROR(ErrCode::NOT_FOUND));
     return func(commHandle, commName);
 }
 } // namespace native

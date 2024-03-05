@@ -33,7 +33,7 @@ struct NPUOperandInfo {
     void validate() {
         TORCH_CHECK(
             !tensor.defined() || tensor.layout() == at::kStrided,
-            "unsupported tensor layout: ", tensor.layout());
+            "unsupported tensor layout: ", tensor.layout(), OPS_ERROR(ErrCode::TYPE));
     }
 
     StrideVector stride_bytes;

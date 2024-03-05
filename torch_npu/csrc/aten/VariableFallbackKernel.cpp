@@ -64,7 +64,7 @@ TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
 void npu_Sparse_fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack) {
   TORCH_CHECK(false, "CAUTION: The operator '",
               op.schema().operator_name(),
-              "' is not currently supported on the NPU backend.")
+              "' is not currently supported on the NPU backend.", OPS_ERROR(ErrCode::NOT_SUPPORT))
 }
 
 TORCH_LIBRARY_IMPL(_, SparsePrivateUse1, m) {

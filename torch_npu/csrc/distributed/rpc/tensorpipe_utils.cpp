@@ -179,7 +179,7 @@ std::tuple<tensorpipe_npu::Message, TensorpipeWriteBuffers> tensorpipeSerialize(
         const torch::Tensor &tensor = tensorDataVec[i];
 
         const TensorpipeDeviceTypeConverter *converter = getDeviceTypeConverter(tensor.device().type());
-        TORCH_CHECK(converter != nullptr, "Attempting to send a Tensor with unexpected device type ", tensor.device());
+        TORCH_CHECK(converter != nullptr, "Attempting to send a Tensor with unexpected device type ", tensor.device(), DIST_ERROR(ErrCode::TYPE));
 
         TORCH_INTERNAL_ASSERT(tpMessage.tensors.size() == i);
         c10::optional<std::vector<char>> maybeCopiedTensor =

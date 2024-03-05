@@ -311,7 +311,8 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
 PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index)
 {
     HANDLE_TH_ERRORS
-    TORCH_CHECK(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate", PTA_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate",
+                PTA_ERROR(ErrCode::VALUE));
     int32_t device = static_cast<int32_t>(THPUtils_unpackUInt32(device_index));
     aclrtUtilizationInfo util_info;
     util_info.cubeUtilization = 0;
@@ -807,7 +808,7 @@ PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg)
     int64_t debug_mode = THPUtils_unpackLong(arg);
     TORCH_CHECK(
         debug_mode >= 0 && debug_mode <= 2,
-        "invalid value of debug_mode, expected one of 0,1,2");
+        "invalid value of debug_mode, expected one of 0,1,2", PTA_ERROR(ErrCode::VALUE));
     c10_npu::SyncDebugMode level;
     switch (debug_mode) {
         case 0:
