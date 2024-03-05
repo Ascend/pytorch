@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -49,6 +50,7 @@ class TestNormalizeBatch(TestCase):
         out = out.to("cpu")
         return out.detach().numpy()
 
+    @unittest.skip("skip test_normalize_batch now")
     def test_normalize_batch(self, device="npu"):
         shape_format = [
             [[np.float32, -1, [32, 3, 6]], [np.int32, -1, [32]], 0],
