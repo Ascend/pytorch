@@ -139,7 +139,7 @@ static c10::StreamId NPUStream_getStreamId(const LeakyStreamInternals* ptr) {
       ptr,
       " on device ",
       +device_index,
-      " (something has gone horribly wrong!)");
+      " (something has gone horribly wrong!)", PTA_ERROR(ErrCode::PTR));
 }
 
 static thread_local std::unique_ptr<LeakyStreamInternals* []> current_streams = nullptr;
@@ -153,7 +153,7 @@ static void initGlobalStreamState() {
       "Number of NPU devices on the machine is larger than the compiled "
       "max number of npus expected (",
       C10_COMPILE_TIME_MAX_NPUS,
-      "). Increase that and recompile.");
+      "). Increase that and recompile.", PTA_ERROR(ErrCode::VALUE));
 
   int device_id = 0;
   auto ret = c10_npu::GetDevice(&device_id);
@@ -213,7 +213,7 @@ static void initNPUStreamsOnce() {
 }
 
 static inline void check_npu(c10::DeviceIndex device_index) {
-  AT_ASSERT(device_index >= 0 && device_index < num_npus);
+    AT_ASSERT(device_index >= 0 && device_index < num_npus, PTA_ERROR(ErrCode::PARAM));
 }
 
 static uint32_t get_idx(std::atomic<uint32_t>& counter) {
@@ -235,7 +235,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
                 si,
                 ").",
                 " Did you manufacture the StreamId yourself?  Don't do that; use the",
-                " official API like c10::cuda::getStreamFromPool() to get a new stream.");
+                " official API like c10::cuda::getStreamFromPool() to get a new stream.", PTA_ERROR(ErrCode::PARAM));
             return &default_streams[device_index];
         case StreamIdType::HCCL:
             return &npu_streams[device_index][si];
@@ -248,7 +248,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
                 s.unwrap(),
                 " (I didn't recognize the stream type, ",
                 st,
-                ")");
+                ")", PTA_ERROR(ErrCode::PARAM));
     }
 }
 
@@ -264,7 +264,7 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
 
  aclrtStream NPUStream::stream() const {
   auto ptr = NPUStream_internals(getDefaultNPUStream());
-  AT_ASSERT(ptr);
+  AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
   if (ptr->repo->CheckInit()) {
     NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
     if (ret != SUCCESS) {
@@ -273,7 +273,7 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
     }
   }
   auto cur_ptr = NPUStream_internals(*this);
-  AT_ASSERT(cur_ptr);
+  AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
   return cur_ptr->stream;
 }
 
@@ -404,7 +404,7 @@ void enCurrentNPUStream(
 void setCurrentNPUStream(NPUStream stream) {
   initNPUStreamsOnce();
   auto ptr = NPUStream_internals(stream);
-  AT_ASSERT(ptr);
+  AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
   current_streams[ptr->device_index] = ptr;
 }
 
@@ -414,20 +414,20 @@ std::ostream& operator<<(std::ostream& stream, const NPUStream& s) {
 
 void NPUStream::setDataPreprocessStream(bool is_data_preprocess_stream) {
   auto ptr = NPUStream_internals(getCurrentNPUStream());
-  AT_ASSERT(ptr);
+  AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
   ptr->is_data_preprocess_stream = is_data_preprocess_stream;
 }
 
 bool NPUStream::isDataPreprocessStream() {
   auto ptr = NPUStream_internals(getCurrentNPUStream());
-  AT_ASSERT(ptr);
+  AT_ASSERT(ptr, PTA_ERROR(ErrCode::PTR));
   return ptr->is_data_preprocess_stream;
 }
 
 aclrtStream NPUStream::stream(const bool need_empty) const {
   if (!need_empty) {
     auto cur_ptr = NPUStream_internals(*this);
-    AT_ASSERT(cur_ptr);
+    AT_ASSERT(cur_ptr, PTA_ERROR(ErrCode::PTR));
     return cur_ptr->stream;
   }
   

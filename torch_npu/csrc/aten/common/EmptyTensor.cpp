@@ -54,8 +54,8 @@ at::TensorBase empty_cpu(
     c10::optional<bool> pin_memory_opt,
     c10::optional<c10::MemoryFormat> memory_format_opt) {
   auto device = device_or_default(device_opt);
-  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(device.type() == at::DeviceType::CPU);
-  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(layout_or_default(layout_opt) == at::Layout::Strided);
+  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(device.type() == at::DeviceType::CPU, OPS_ERROR(ErrCode::PARAM));
+  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(layout_or_default(layout_opt) == at::Layout::Strided, OPS_ERROR(ErrCode::PARAM));
 
   auto pin_memory = pinned_memory_or_default(pin_memory_opt);
   auto dtype = dtype_or_default(dtype_opt);
@@ -81,8 +81,8 @@ at::TensorBase empty_strided_cpu(
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
   auto device = device_or_default(device_opt);
-  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(device.type() == at::DeviceType::CPU);
-  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(layout_or_default(layout_opt) == at::Layout::Strided);
+  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(device.type() == at::DeviceType::CPU, OPS_ERROR(ErrCode::PARAM));
+  TORCH_INTERNAL_ASSERT_DEBUG_ONLY(layout_or_default(layout_opt) == at::Layout::Strided, OPS_ERROR(ErrCode::PARAM));
 
   auto pin_memory = pinned_memory_or_default(pin_memory_opt);
   auto dtype = dtype_or_default(dtype_opt);

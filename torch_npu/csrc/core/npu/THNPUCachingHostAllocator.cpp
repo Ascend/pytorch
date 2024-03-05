@@ -81,7 +81,7 @@ struct HostAllocator {
         auto it = available.lower_bound(search_key);
         if (it != available.end()) {
             Block &block = blocks.at(it->ptr);
-            AT_ASSERT(!block.allocated && block.event_count == 0);
+            AT_ASSERT(!block.allocated && block.event_count == 0, PTA_ERROR(ErrCode::PARAM));
             block.allocated = true;
             *ptr = block.ptr;
             available.erase(it);
@@ -108,10 +108,10 @@ struct HostAllocator {
         }
 
         auto it = blocks.find(ptr);
-        AT_ASSERT(it != blocks.end());
+        AT_ASSERT(it != blocks.end(), PTA_ERROR(ErrCode::VALUE));
 
         Block &block = it->second;
-        AT_ASSERT(block.allocated);
+        AT_ASSERT(block.allocated, PTA_ERROR(ErrCode::VALUE));
 
         // free (on valid memory) shouldn't fail, so mark unallocated before
         // we process the streams.
@@ -147,7 +147,7 @@ struct HostAllocator {
         }
 
         Block &block = it->second;
-        AT_ASSERT(block.allocated);
+        AT_ASSERT(block.allocated, PTA_ERROR(ErrCode::VALUE));
 
         block.streams.insert(stream);
         return ACL_ERROR_NONE;
@@ -287,7 +287,7 @@ static void THNPUCachingHostDeleter(void *ptr)
 struct THNPUCachingHostAllocator final : public at::Allocator {
     at::DataPtr allocate(size_t size) const override
     {
-        AT_ASSERT(size >= 0);
+        AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
         void *ptr = nullptr;
         if (allocator.malloc(&ptr, size) != ACL_ERROR_NONE) {
             NPU_LOGE("allocate host pinned memory fail");

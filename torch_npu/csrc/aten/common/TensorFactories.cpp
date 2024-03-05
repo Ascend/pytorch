@@ -109,37 +109,36 @@ namespace at_npu
                                          c10::optional<bool> pin_memory_opt,
                                          c10::optional<c10::MemoryFormat> memory_format_opt)
     {
-      AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
-      TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
-      check_size_nonnegative(size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-      int64_t nelements = c10::multiply_integers(size);
-      auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-      int64_t size_bytes = nelements * dtype.itemsize();
-      c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
-          c10::StorageImpl::use_byte_size_t(),
-          size_bytes,
-          allocator->allocate(size_bytes),
-          allocator,
-          true);
+        AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType, OPS_ERROR(ErrCode::PARAM));
+        TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::PARAM));
+        check_size_nonnegative(size);
+        c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+        int64_t nelements = c10::multiply_integers(size);
+        auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+        int64_t size_bytes = nelements * dtype.itemsize();
+        c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+            c10::StorageImpl::use_byte_size_t(),
+            size_bytes,
+            allocator->allocate(size_bytes),
+            allocator,
+            true);
 
-      auto tensor =
-          at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
+        auto tensor =
+            at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
-      // Default at::TensorImpl has size [0]
-      if (size.size() != 1 || size[0] != 0)
-      {
-        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
-      }
-      auto memory_format =
-          memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
-      TORCH_CHECK(
-          memory_format == c10::MemoryFormat::Contiguous,
-          "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor");
-      tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
-      StorageDescHelper::SetDesc(tensor, size, tensor.strides());
+        // Default at::TensorImpl has size [0]
+        if (size.size() != 1 || size[0] != 0) {
+            tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
+        }
+        auto memory_format =
+            memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
+        TORCH_CHECK(
+            memory_format == c10::MemoryFormat::Contiguous,
+            "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor");
+        tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
+        StorageDescHelper::SetDesc(tensor, size, tensor.strides());
 
-      return tensor;
+        return tensor;
     }
 
     at::Tensor empty_like_npu(
@@ -350,8 +349,8 @@ namespace at_npu
                                      int64_t dst_format)
     {
       torch_npu::utils::torch_check_npu(options);
-      AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
-      TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
+      AT_ASSERT(options.backend() == at_npu::key::NativeBackend, OPS_ERROR(ErrCode::PARAM));
+      TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::PARAM));
       check_size_nonnegative(size);
       static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
@@ -656,7 +655,7 @@ namespace at_npu
     at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options)
     {
       auto result = at::empty(values.size(), options);
-      AT_ASSERT(result.is_contiguous());
+      AT_ASSERT(result.is_contiguous(), OPS_ERROR(ErrCode::PARAM));
       AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
                                         { std::copy(
                                             values.begin(), values.end(), result.template data_ptr<scalar_t>()); });

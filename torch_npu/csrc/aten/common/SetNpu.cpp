@@ -130,7 +130,7 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self) {
 
   set_storage_npu_(self, storage, 0, {0}, {});
   StorageDescHelper::SetDesc(self);
-  TORCH_INTERNAL_ASSERT(dtype == self.dtype());
+  TORCH_INTERNAL_ASSERT(dtype == self.dtype(), OPS_ERROR(ErrCode::TYPE));
   return self;
 }
 
