@@ -3,6 +3,9 @@
 #include <map>
 #include <tuple>
 #include <unordered_set>
+#include <unistd.h>
+#include <fstream>
+#include <iostream>
 
 #include <c10/util/Optional.h>
 #include <c10/util/irange.h>
@@ -71,6 +74,8 @@ std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
     {HCCL_DATA_TYPE_FP64, "at::kDouble"},
     {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
 };
+
+bool nslb_is_end = false;
 
 int64_t physical_numel(const at::Tensor& self)
 {
@@ -876,6 +881,26 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID)
     }
 }
 
+// record data volume for HCCL op.
+void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataVol, const int currRank,
+    std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
+    std::ofstream outfile;
+    std::stringstream fileName;
+    std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
+    auto master_addr = getenv("MASTER_ADDR");
+    TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.");
+    fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
+    try {
+        outfile.open(c10::str(getenv("NSLB_CP"), "/", fileName.str()), std::ios::app);
+    } catch (std::exception& e) {
+        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid.");
+    }
+    std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
+    outfile << opName << " " << dataVol << " " << std::to_string(currRank) << "\n";
+    outfile.close();
+}
+
 std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     const std::string& devicesKey,
     const std::vector<at::Device>& devices)
@@ -1089,6 +1114,19 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
     return flattened;
 }
 
+void nslb_record_end()
+{
+    std::string end_file_path;
+    std::ofstream endfile;
+    end_file_path = c10::str(getenv("NSLB_CP"), "/end_", getenv("MASTER_ADDR"), "_", getpid(), ".log");
+    try {
+        endfile.open(end_file_path, std::ios::out);
+        endfile.close();
+    } catch (std::exception& e) {
+        throw std::runtime_error("NSLB set end failed.");
+    }
+}
+
 } // namespace
 
 c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
@@ -1148,6 +1186,17 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
   return name_str;
 }
 
+std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
+{
+    TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+        hcclComms.size());
+    HcclComm ret_hcom = hcclComms[0]->getHcclComm();
+    char commName[MAX_GROUP_NAME_LEN];
+    HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(ret_hcom, commName));
+    std::string name_str(commName);
+    return name_str;
+}
+
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     std::vector<at::Tensor>& inputs,
@@ -1181,6 +1230,25 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
     }
 
     pre(hcclStreams, work);
+
+    bool nslb_enable = c10_npu::option::OptionsManager::CheckNslbEnable();
+    if (nslb_enable && !nslb_is_end) {
+        auto nslb_num = c10_npu::option::OptionsManager::GetNslbCntVal();
+        if (seq_ <= nslb_num) {
+            auto dataVol = 0;
+            for (auto tensor:inputs) {
+                dataVol += tensor.storage().nbytes();
+            }
+            char* global_rank = getenv("RANK");
+            TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.");
+            recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
+        }
+        if (seq_ >= nslb_num) {
+            nslb_is_end = true;
+            nslb_record_end();
+
+        }
+    }
 
     for (const auto i : c10::irange(inputs.size())) {
         npuGuard.set_index(devices[i].index());
