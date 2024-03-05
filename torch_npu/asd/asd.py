@@ -26,7 +26,6 @@ class SilentFaultDetector:
         self.min_step = 7
         self.set_loss_scale_flag = False
         self.idx = None
-        self.dict_size = 0
         self.step = 0
         self.low_step = None
         self.high_step = None
@@ -49,17 +48,15 @@ class SilentFaultDetector:
 
         val = torch.norm(grad)
         idx = self.idx
-        silent_data_dict = self.silent_data_dict
 
-        if idx not in silent_data_dict:
-            silent_data_dict[idx] = SilentFaultData()
-            self.dict_size += 1
+        if idx not in self.silent_data_dict:
+            self.silent_data_dict[idx] = SilentFaultData()
 
-        sfda = silent_data_dict[idx]
+        sfda = self.silent_data_dict[idx]
         
         if self.global_step <= self.min_step:
             self.step += 1
-            self.global_step = self.step // self.dict_size
+            self.global_step = self.step // (len(self.silent_data_dict) + 1)
             step_tensor = self.low_step
         else:
             step_tensor = self.high_step
@@ -78,13 +75,13 @@ class SilentFaultDetector:
 silent_fault_detector = SilentFaultDetector()
 
 
-def custom_layernorm(input_layernorm, normalized_shape, weight, bias, eps):
+def patch_layernorm(input_layernorm, normalized_shape, weight, bias, eps):
     if input_layernorm is not None and input_layernorm.requires_grad and input_layernorm._backward_hooks is None:
         input_layernorm.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
     return origin_layernorm(input_layernorm, normalized_shape, weight, bias, eps)
 
 
-def custom_embedding(input_embedding, weight, padding_idx, max_norm,
+def patch_embedding(input_embedding, weight, padding_idx, max_norm,
             norm_type, scale_grad_by_freq, sparse):
     if weight is not None and weight.requires_grad and weight._backward_hooks is None:
         weight.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
@@ -93,5 +90,10 @@ def custom_embedding(input_embedding, weight, padding_idx, max_norm,
 
 
 def asd_patch():
-    torch.nn.functional.layer_norm = custom_layernorm
-    torch.nn.functional.embedding = custom_embedding
+    env_value = os.getenv("NPU_ASD_ENABLE", "0")
+    if env_value not in ["0", "1"]:
+        raise ValueError("NPU_ASD_ENABLE should be 0 or 1!")
+
+    if int(env_value):
+        torch.nn.functional.layer_norm = patch_layernorm
+        torch.nn.functional.embedding = patch_embedding

@@ -17,7 +17,7 @@ def parse_thresh(env_var_name, default_value, min_value):
 
 def get_thresh():
     upper_thresh = parse_thresh("NPU_ASD_UPPER_THRESH", "1000000,10000", 3)
-    sigma_thresh = parse_thresh("NPU_ASD_SIGMA_THRESH", "100000,100", 3)
+    sigma_thresh = parse_thresh("NPU_ASD_SIGMA_THRESH", "100000,5000", 3)
     return upper_thresh, sigma_thresh
 
 

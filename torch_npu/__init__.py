@@ -239,9 +239,7 @@ def apply_class_patches():
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 apply_class_patches()
-
-if int(os.getenv("NPU_ASD_ENABLE", "0")):
-    asd_patch()
+asd_patch()
 
 torch_npu._C._initExtension()
 # Add __doc__ for ops
