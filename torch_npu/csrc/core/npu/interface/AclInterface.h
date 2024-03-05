@@ -154,11 +154,11 @@ aclError AclrtUnmapMem(void *virPtr);
 
 bool IsExistGetCannAttribute();
 
-aclError AclGetCannAttributeList(const aclCannAttr **cannAttr, int *num);
+aclError AclGetCannAttributeList(const aclCannAttr **cannAttrList, size_t *num);
 
-aclError AclGetCannAttribute(aclCannAttr cannAttr, int *value);
+aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t *value);
 
-aclError AclGetDeviceCapability(uint32_t deviceId, aclInfoType infoType, int64_t *value);
+aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t *value);
 
 } // namespace acl
 } // namespace c10_npu
