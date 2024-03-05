@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/profiler/profiler.h"
 #include <torch/csrc/autograd/function.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 #include <torch/csrc/jit/frontend/tracer.h>
 #include <torch/csrc/jit/runtime/operator.h>
@@ -461,7 +462,7 @@ ProfilerConfig getProfilerConfig() {
   auto state_ptr = getProfilerTLSState();
   TORCH_CHECK(
       state_ptr,
-      "Tried to access profiler config, but profiler is not enabled!");
+      "Tried to access profiler config, but profiler is not enabled!", PROF_ERROR(ErrCode::INTERNAL));
   return state_ptr->config();
 }
 
@@ -472,7 +473,7 @@ bool profilerEnabled() {
 
 void enableProfilerLegacy(const ProfilerConfig& new_config) {
   auto state_ptr = getProfilerTLSState();
-  TORCH_CHECK(!state_ptr, "Profiler is already enabled on this thread");
+  TORCH_CHECK(!state_ptr, "Profiler is already enabled on this thread", PROF_ERROR(ErrCode::INTERNAL));
   auto state = std::make_shared<ProfilerThreadLocalState>(new_config);
   c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
 
@@ -511,7 +512,7 @@ thread_event_lists disableProfilerLegacy(c10::optional<ProfilerDisableOptions> p
 
   auto state_ptr = static_cast<ProfilerThreadLocalState*>(state.get());
   TORCH_CHECK(state_ptr && state_ptr->config().state != ProfilerState::Disabled,
-      "Can't disable profiler when it's not running");
+      "Can't disable profiler when it's not running", PROF_ERROR(ErrCode::INTERNAL));
 
   if (cleanupTLSState) {
     at::removeCallback(state_ptr->callbackHandle());
@@ -528,7 +529,7 @@ thread_event_lists disableProfilerLegacy(c10::optional<ProfilerDisableOptions> p
 
 void addEventList(std::vector<LegacyEvent>&& profiledEvents) {
   auto state_ptr = getProfilerTLSState();
-  TORCH_CHECK(state_ptr, "Profiler must be enabled.");
+  TORCH_CHECK(state_ptr, "Profiler must be enabled.", PROF_ERROR(ErrCode::PARAM));
   state_ptr->setOrAddRemoteProfiledEvents(std::move(profiledEvents));
 }
 
@@ -627,11 +628,11 @@ at::IValue LegacyEvent::toIValue() const {
 }
 
 double LegacyEvent::npuElapsedUs(const LegacyEvent& e) const {
-  TORCH_CHECK(e.hasNpu() && hasNpu(), "Events were not recorded for NPU");
+  TORCH_CHECK(e.hasNpu() && hasNpu(), "Events were not recorded for NPU", PROF_ERROR(ErrCode::INTERNAL));
   TORCH_CHECK(
       e.device() == device(),
       c10::str(
-          "Events are not on the same device: ", e.device(), " vs ", device()));
+          "Events are not on the same device: ", e.device(), " vs ", device()), PROF_ERROR(ErrCode::INTERNAL));
   return device_stubs()->elapsed(npu_event, e.npu_event);
 }
 
@@ -649,7 +650,7 @@ double LegacyEvent::cudaElapsedUs(const LegacyEvent& e) const {
 DeviceStubs::~DeviceStubs() = default;
 
 void writeProfilerEventsToStream(std::ostream& out, const std::vector<LegacyEvent*>& events) {
-  TORCH_CHECK(out, "Could not open file");
+  TORCH_CHECK(out, "Could not open file", PROF_ERROR(ErrCode::UNAVAIL));
   LegacyEvent* profiler_start = nullptr;
   for (LegacyEvent* e : events) {
     if (0 == strcmp(e->name(), "__start_profile")) {
@@ -657,7 +658,7 @@ void writeProfilerEventsToStream(std::ostream& out, const std::vector<LegacyEven
       break;
     }
   }
-  TORCH_CHECK(profiler_start, "Could not find __start_profile mark");
+  TORCH_CHECK(profiler_start, "Could not find __start_profile mark", PROF_ERROR(ErrCode::INTERNAL));
 
   struct PairHash {
     size_t operator()(std::pair<at::RecordFunctionHandle, int> p) const
@@ -677,7 +678,7 @@ void writeProfilerEventsToStream(std::ostream& out, const std::vector<LegacyEven
       }
       first = false;
       auto it = events_map.find(std::make_pair(evt->handle(), evt->nodeId()));
-      TORCH_CHECK(it != events_map.end(), "Unmatched pop event");
+      TORCH_CHECK(it != events_map.end(), "Unmatched pop event", PROF_ERROR(ErrCode::INTERNAL));
       LegacyEvent* evt_start = it->second;
       events_map.erase(it);
     }

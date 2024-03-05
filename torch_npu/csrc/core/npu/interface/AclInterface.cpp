@@ -67,7 +67,7 @@ aclprofStepInfoPtr init_stepinfo() {
   if (func == nullptr) {
       func = (npdInitFunc)GET_FUNC(aclprofCreateStepInfo);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func();
   return ret;
 }
@@ -78,7 +78,7 @@ NpdStatus destroy_stepinfo(aclprofStepInfoPtr stepInfo) {
   if (func == nullptr) {
       func = (npdDestroyFunc)GET_FUNC(aclprofDestroyStepInfo);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(stepInfo);
   return ret;
 }
@@ -89,7 +89,7 @@ NpdStatus start_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, 
   if (func == nullptr) {
       func = (npdStartProfiling)GET_FUNC(aclprofGetStepTimestamp);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(stepInfo, stepTag, stream);
   return ret;
 }
@@ -100,7 +100,7 @@ NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, a
   if (func == nullptr) {
       func = (npdStopProfiling)GET_FUNC(aclprofGetStepTimestamp);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(stepInfo, stepTag, stream);
   return ret;
 }
@@ -134,7 +134,7 @@ aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uin
   }
   if (ret == ACL_SUCCESS && stream != nullptr) {
     if (!c10_npu::IsSupportInfNan()) {
-      TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.");
+      TORCH_CHECK(AclrtSetStreamOverflowSwitch(*stream, 1) == ACL_SUCCESS, "SET StreamOverflowSwitch Failed.", PTA_ERROR(ErrCode::ACL));
     }
     return AclrtSetStreamFailureMode(*stream, ACL_STOP_ON_FAILURE);
   } else {
@@ -160,7 +160,7 @@ aclError AclrtSetOpWaitTimeout(uint32_t timeout) {
   if (func == nullptr) {
     func = (aclrtSetOpWaitTimeoutFunc)GET_FUNC(aclrtSetOpWaitTimeout);
   }
-  TORCH_CHECK(func, "Failed to find function aclrtSetOpWaitTimeout");
+  TORCH_CHECK(func, "Failed to find function aclrtSetOpWaitTimeout", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(timeout);
 }
 
@@ -185,7 +185,7 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag)
         TORCH_NPU_WARN_ONCE(func, "Failed to find function ", "aclrtCreateEventExWithFlag");
         func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag");
+    TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(event, flag);
 }
 
@@ -208,7 +208,7 @@ aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitSta
   if (func == nullptr) {
     func = (aclQueryEventWaitStatus)GET_FUNC(aclrtQueryEventWaitStatus);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventWaitStatus");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventWaitStatus", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(event, waitStatus);
   }
 
@@ -218,7 +218,7 @@ aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus 
   if (func == nullptr) {
     func = (aclQueryEventStatus)GET_FUNC(aclrtQueryEventStatus);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventStatus");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventStatus", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(event, status);
 }
 
@@ -242,7 +242,7 @@ aclError AclProfilingInit(const char *profilerResultPath, size_t length) {
   if (func == nullptr) {
     func = (AclProfInitFunc)GET_FUNC(aclprofInit);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofInit");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofInit", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerResultPath, length);
 }
 
@@ -252,7 +252,7 @@ aclError AclProfilingStart(const aclprofConfig *profilerConfig) {
   if (func == nullptr) {
     func = (AclProfStartFunc)GET_FUNC(aclprofStart);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofStart");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStart", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
@@ -262,7 +262,7 @@ aclError AclProfilingStop(const aclprofConfig *profilerConfig) {
   if (func == nullptr) {
     func = (AclProfStopFunc)GET_FUNC(aclprofStop);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofStop");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStop", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
@@ -272,7 +272,7 @@ aclError AclProfilingFinalize() {
   if (func == nullptr) {
     func = (AclProfFinalizeFunc)GET_FUNC(aclprofFinalize);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize", PROF_ERROR(ErrCode::NOT_FOUND));
   return func();
 }
 
@@ -288,7 +288,7 @@ aclprofConfig *AclProfilingCreateConfig(
   if (func == nullptr) {
     func = (AclProfCreateConfigFunc)GET_FUNC(aclprofCreateConfig);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(deviceIdList, deviceNums, aicoreMetrics, aicoreEvents, dataTypeConfig);
 }
 
@@ -298,7 +298,7 @@ aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
   if (func == nullptr) {
     func = (AclProfDestroyConfigFunc)GET_FUNC(aclprofDestroyConfig);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
@@ -308,7 +308,7 @@ const char *AclrtGetSocName() {
   if (func == nullptr) {
     func = (aclrtGetSocNameFunc)GET_FUNC(aclrtGetSocName);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtGetSocName");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetSocName", PTA_ERROR(ErrCode::NOT_FOUND));
   return func();
 }
 
@@ -330,7 +330,7 @@ aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {
   if (func == nullptr) {
     func = (AclrtSetDeviceSatMode)GET_FUNC(aclrtSetDeviceSatMode);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtSetDeviceSatMode");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetDeviceSatMode", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(mode);
 }
 
@@ -340,7 +340,7 @@ aclError AclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag) {
   if (func == nullptr) {
     func = (AclrtSetStreamOverflowSwitch)GET_FUNC(aclrtSetStreamOverflowSwitch);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtSetStreamOverflowSwitch");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetStreamOverflowSwitch", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(stream, flag);
 }
 
@@ -350,7 +350,7 @@ aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
   if (func == nullptr) {
     func = (AclrtGetStreamOverflowSwitch)GET_FUNC(aclrtGetStreamOverflowSwitch);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtGetStreamOverflowSwitch");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetStreamOverflowSwitch", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(stream, flag);
 }
 
@@ -371,7 +371,7 @@ aclError AclrtSynchronizeStreamWithTimeout(aclrtStream stream) {
     if (func_backup == nullptr) {
       func_backup = (AclrtSynchronizeStream)GET_FUNC(aclrtSynchronizeStream);
     }
-    TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream");
+    TORCH_CHECK(func_backup, "Failed to find function", "aclrtSynchronizeStreamWithTimeout and aclrtSynchronizeStream", PTA_ERROR(ErrCode::NOT_FOUND));
     return func_backup(stream);
   }
 }
@@ -392,7 +392,7 @@ aclError AclrtGetDeviceUtilizationRate(int32_t deviceId, aclrtUtilizationInfo *u
     if (func == nullptr) {
         func = (AclrtGetDeviceUtilizationRate)GET_FUNC(aclrtGetDeviceUtilizationRate);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclrtGetDeviceUtilizationRate");
+    TORCH_CHECK(func, "Failed to find function ", "aclrtGetDeviceUtilizationRate", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, utilizationInfo);
 }
 
@@ -412,7 +412,7 @@ aclError AclrtStreamQuery(aclrtStream stream, aclrtStreamStatus *status) {
   if (func == nullptr) {
     func = (AclrtStreamQuery)GET_FUNC(aclrtStreamQuery);
   }
-  TORCH_CHECK(func, "Failed to find function aclrtStreamQuery, Please upgrade CANN version.");
+  TORCH_CHECK(func, "Failed to find function aclrtStreamQuery, Please upgrade CANN version.", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(stream, status);
 }
 
@@ -422,15 +422,15 @@ aclError AclrtQueryDeviceStatus(int32_t deviceId, aclrtDeviceStatus *deviceStatu
     if (func == nullptr) {
       func = (AclrtQueryDeviceStatus)GET_FUNC(aclrtQueryDeviceStatus);
     }
-    TORCH_CHECK(func, "Failed to find function aclrtQueryDeviceStatus, Please upgrade CANN version.");
+    TORCH_CHECK(func, "Failed to find function aclrtQueryDeviceStatus, Please upgrade CANN version.", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(deviceId, deviceStatus);
 }
 
 bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_device_id) {
   int32_t can_access_peer = 0;
   c10::DeviceIndex num_npus = c10_npu::device_count();
-  TORCH_CHECK(device_id >= 0 && device_id < num_npus);
-  TORCH_CHECK(peer_device_id >= 0 && peer_device_id < num_npus);
+  TORCH_CHECK(device_id >= 0 && device_id < num_npus, PTA_ERROR(ErrCode::VALUE));
+  TORCH_CHECK(peer_device_id >= 0 && peer_device_id < num_npus, PTA_ERROR(ErrCode::VALUE));
   // To maintain consistency with cuda, returns false when deviceid and peerdeviceid are equal.
   if (device_id == peer_device_id) {
     return false;
@@ -440,7 +440,7 @@ bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_de
   if (func == nullptr) {
     func = (AclrtDeviceCanAccessPeer)GET_FUNC(aclrtDeviceCanAccessPeer);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer", PTA_ERROR(ErrCode::NOT_FOUND));
   NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id));
   return can_access_peer != 0;
 }
@@ -451,7 +451,7 @@ aclError AclrtReserveMemAddress(void **virPtr, size_t size, size_t alignment, vo
   if (func == nullptr) {
     func = (AclrtReserveMemAddress)GET_FUNC(aclrtReserveMemAddress);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtReserveMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(virPtr, size, alignment, expectPtr, flags);
 }
 
@@ -461,7 +461,7 @@ aclError AclrtReleaseMemAddress(void *virPtr) {
   if (func == nullptr) {
     func = (AclrtReleaseMemAddress)GET_FUNC(aclrtReleaseMemAddress);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtReleaseMemAddress", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(virPtr);
 }
 
@@ -472,7 +472,7 @@ aclError AclrtMallocPhysical(aclrtDrvMemHandle *handle, size_t size, const aclrt
   if (func == nullptr) {
     func = (AclrtMallocPhysical)GET_FUNC(aclrtMallocPhysical);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtMallocPhysical");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMallocPhysical", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(handle, size, prop, flags);
 }
 
@@ -482,7 +482,7 @@ aclError AclrtFreePhysical(aclrtDrvMemHandle handle) {
   if (func == nullptr) {
     func = (AclrtFreePhysical)GET_FUNC(aclrtFreePhysical);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtFreePhysical");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtFreePhysical", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(handle);
 }
 
@@ -492,7 +492,7 @@ aclError AclrtMapMem(void *virPtr, size_t size, size_t offset, aclrtDrvMemHandle
   if (func == nullptr) {
     func = (AclrtMapMem)GET_FUNC(aclrtMapMem);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtMapMem", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(virPtr, size, offset, handle, flags);
 }
 
@@ -502,7 +502,7 @@ aclError AclrtUnmapMem(void *virPtr) {
   if (func == nullptr) {
     func = (AclrtUnmapMem)GET_FUNC(aclrtUnmapMem);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtUnmapMem", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(virPtr);
 }
 

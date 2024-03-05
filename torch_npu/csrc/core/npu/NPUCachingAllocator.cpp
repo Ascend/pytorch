@@ -615,7 +615,8 @@ void CachingAllocatorConfig::consumeToken(
     const char c) {
   TORCH_CHECK(
       i < config.size() && config[i].compare(std::string(1, c)) == 0,
-      "Error parsing CachingAllocator settings, expected ", c);
+      "Error parsing CachingAllocator settings, expected ", c,
+      PTA_ERROR(ErrCode::PARAM));
 }
 
 size_t CachingAllocatorConfig::parseMaxSplitSize(
@@ -627,12 +628,12 @@ size_t CachingAllocatorConfig::parseMaxSplitSize(
     TORCH_CHECK(
         val1 > kLargeBuffer / (1024 * 1024),
         "CachingAllocator option max_split_size_mb too small, must be > ",
-        kLargeBuffer / (1024 * 1024));
+        kLargeBuffer / (1024 * 1024), PTA_ERROR(ErrCode::VALUE));
     val1 = std::max(val1, kLargeBuffer / (1024 * 1024));
     val1 = std::min(val1, (std::numeric_limits<size_t>::max() / (1024 * 1024)));
     m_max_split_size = val1 * 1024 * 1024;
   } else {
-    TORCH_CHECK(false, "Error, expecting max_split_size_mb value");
+    TORCH_CHECK(false, "Error, expecting max_split_size_mb value", PTA_ERROR(ErrCode::VALUE));
   }
   return i;
 }
@@ -644,13 +645,13 @@ size_t CachingAllocatorConfig::parseGarbageCollectionThreshold(
   if (++i < config.size()) {
     double val1 = stod(config[i]);
     TORCH_CHECK(
-        val1 > 0, "garbage_collect_threshold too small, set it 0.0~1.0");
+        val1 > 0, "garbage_collect_threshold too small, set it 0.0~1.0", PTA_ERROR(ErrCode::VALUE));
     TORCH_CHECK(
-        val1 < 1.0, "garbage_collect_threshold too big, set it 0.0~1.0");
+        val1 < 1.0, "garbage_collect_threshold too big, set it 0.0~1.0", PTA_ERROR(ErrCode::VALUE));
     m_garbage_collection_threshold = val1;
   } else {
     TORCH_CHECK(
-        false, "Error, expecting garbage_collection_threshold value");
+        false, "Error, expecting garbage_collection_threshold value", PTA_ERROR(ErrCode::VALUE));
   }
   return i;
 }
@@ -662,7 +663,7 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
   if (++i < config.size()) {
     TORCH_CHECK(
         i < config.size() && (config[i] == "True" || config[i] == "False"),
-        "Expected a single True/False argument for expandable_segments");
+        "Expected a single True/False argument for expandable_segments", PTA_ERROR(ErrCode::PARAM));
     m_expandable_segments = (config[i] == "True");
     if (m_expandable_segments) {
         void* ptr = nullptr;
@@ -677,7 +678,7 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
     }
   } else {
     TORCH_CHECK(
-        false, "Error, expecting expandable_segments value");
+        false, "Error, expecting expandable_segments value", PTA_ERROR(ErrCode::VALUE));
   }
   return i;
 }
@@ -702,7 +703,7 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     } else if (config[i] == "expandable_segments") {
       i = parseExpandableSegments(config, i);
     } else {
-      TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i]);
+      TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::PARAM));
     }
 
     if (i + 1 < config.size()) {

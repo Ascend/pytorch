@@ -34,6 +34,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/utils/Device.h"
 #include "torch_npu/csrc/utils/DeviceParser.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 PyObject *TNPDevice_New(const at::Device& device)
 {
@@ -104,7 +105,7 @@ PyObject *TNPDevice_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
       device_index = r.toInt64(1);
       // -1 is allowed in ATen/C++, to mean the default device, but not in
       // Python.
-      TORCH_CHECK(device_index >= 0, "Device index must not be negative");
+      TORCH_CHECK(device_index >= 0, "Device index must not be negative", PTA_ERROR(ErrCode::VALUE));
     }
     at::Device device(as_device.type(), device_index);
     return TNPDevice_New(device);

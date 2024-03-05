@@ -20,6 +20,7 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/utils/Device.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace key {
@@ -29,7 +30,7 @@ static at::Device parse_npu_device(PyObject* obj) {
   }
   if (THPUtils_checkLong(obj)) {
     const auto device_index = THPUtils_unpackLong(obj);
-    TORCH_CHECK(device_index >= 0, "Device index must not be negative");
+    TORCH_CHECK(device_index >= 0, "Device index must not be negative", PTA_ERROR(ErrCode::VALUE));
     return at::Device(at_npu::key::NativeDeviceType, device_index);
   }
   if (THPUtils_checkString(obj)) {

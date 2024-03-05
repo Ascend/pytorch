@@ -53,7 +53,7 @@ void *AclprofCreateStamp() {
     if (func == nullptr) {
         func = (AclprofCreateStampFunc)GET_FUNC(aclprofCreateStamp);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStamp");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStamp", PROF_ERROR(ErrCode::NOT_FOUND));
     return  func();
 }
 
@@ -63,7 +63,7 @@ void AclprofDestroyStamp(void *stamp) {
     if (func == nullptr) {
         func = (AclprofDestroyStampFunc)GET_FUNC(aclprofDestroyStamp);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStamp");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStamp", PROF_ERROR(ErrCode::NOT_FOUND));
     func(stamp);
 }
 
@@ -76,7 +76,7 @@ aclError AclprofSetStampTagName(void *stamp, const char *tagName, uint16_t len) 
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTagName");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTagName", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp, tagName, len);
 }
 
@@ -86,7 +86,7 @@ aclError AclprofSetCategoryName(uint32_t category, const char *categoryName) {
     if (func == nullptr) {
         func = (AclprofSetCategoryNameFunc)GET_FUNC(aclprofSetCategoryName);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetCategoryName");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetCategoryName", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(category, categoryName);
 }
 
@@ -96,7 +96,7 @@ aclError AclprofSetStampCategory(void *stamp, uint32_t category) {
     if (func == nullptr) {
         func = (AclprofSetStampCategoryFunc)GET_FUNC(aclprofSetStampCategory);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampCategory");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampCategory", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp, category);
 }
 
@@ -106,7 +106,7 @@ aclError AclprofSetStampPayload(void *stamp, const int32_t type, void *value) {
     if (func == nullptr) {
         func = (AclprofSetStampPayloadFunc)GET_FUNC(aclprofSetStampPayload);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampPayload");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampPayload", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp, type, value);
 }
 
@@ -116,7 +116,7 @@ aclError AclprofSetStampTraceMessage(void *stamp, const char *msg, uint32_t msgL
     if (func == nullptr) {
         func = (AclprofSetStampTraceMessageFunc)GET_FUNC(aclprofSetStampTraceMessage);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTraceMessage");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTraceMessage", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp, msg, msgLen);
 }
 
@@ -129,7 +129,7 @@ aclError AclprofSetStampCallStack(void *stamp, const char *callStack, uint32_t l
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampCallStack");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampCallStack", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp, callStack, len);
 }
 
@@ -139,7 +139,7 @@ aclError AclprofMsproftxSwitch(bool isOpen) {
     if (func == nullptr) {
         func = (AclprofMsproftxSwitchFunc)GET_FUNC(aclprofMsproftxSwitch);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofMsproftxSwitch");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofMsproftxSwitch", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(isOpen);
 }
 
@@ -149,7 +149,7 @@ aclError AclprofMark(void *stamp) {
     if (func == nullptr) {
         func = (AclprofMarkFunc)GET_FUNC(aclprofMark);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofMark");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofMark", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp);
 }
 
@@ -159,7 +159,7 @@ aclError AclprofPush(void *stamp) {
     if (func == nullptr) {
         func = (AclprofPushFunc)GET_FUNC(aclprofPush);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofPush");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofPush", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp);
 }
 
@@ -169,7 +169,7 @@ aclError AclprofPop() {
     if (func == nullptr) {
         func = (AclprofPopFunc)GET_FUNC(aclprofPop);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofPop");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofPop", PROF_ERROR(ErrCode::NOT_FOUND));
     return func();
 }
 
@@ -179,7 +179,7 @@ aclError AclprofRangeStart(void *stamp, uint32_t *rangeId) {
     if (func == nullptr) {
         func = (AclprofRangeStartFunc)GET_FUNC(aclprofRangeStart);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofRangeStart");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofRangeStart", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(stamp, rangeId);
 }
 
@@ -189,7 +189,7 @@ aclError AclprofRangeStop(uint32_t rangeId) {
     if (func == nullptr) {
         func = (AclprofRangeStopFunc)GET_FUNC(aclprofRangeStop);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofRangeStop");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofRangeStop", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(rangeId);
 }
 
@@ -197,7 +197,7 @@ aclError AclprofReportStamp(const char *tag, unsigned int tagLen,
                             unsigned char *data, unsigned int dataLen) {
     typedef aclError(*AclprofReportStampFunc)(const char *, unsigned int, unsigned char *, unsigned int);
     static AclprofReportStampFunc func = (AclprofReportStampFunc)GET_FUNC(aclprofReportStamp);
-    TORCH_CHECK(func, "Failed to find function ", "aclprofReportStamp");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofReportStamp", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(tag, tagLen, data, dataLen);
 }
 
@@ -216,7 +216,7 @@ aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size
             return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
         }
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclprofSetConfig");
+    TORCH_CHECK(func, "Failed to find function ", "aclprofSetConfig", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(configType, config, configLength);
 }
 }

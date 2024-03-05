@@ -38,7 +38,7 @@ public:
   enum Unchecked { UNCHECKED };
 
   explicit NPUStream(c10::Stream stream) : stream_(stream) {
-    TORCH_CHECK(stream_.device_type() == at_npu::key::NativeDeviceType);
+    TORCH_CHECK(stream_.device_type() == at_npu::key::NativeDeviceType, PTA_ERROR(ErrCode::PARAM));
   }
 
   explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}

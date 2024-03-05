@@ -93,7 +93,7 @@ C10_NPU_API inline WarningState& warning_state() {
 // operations, to raise proper error or warning
 C10_NPU_API inline void warn_or_error_on_sync() {
   if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_ERROR) {
-    TORCH_CHECK(false, "called a synchronizing NPU operation");
+    TORCH_CHECK(false, "called a synchronizing NPU operation", PTA_ERROR(ErrCode::ACL));
   } else if (warning_state().get_sync_debug_mode() == SyncDebugMode::L_WARN) {
     TORCH_WARN("called a synchronizing NPU operation");
   }

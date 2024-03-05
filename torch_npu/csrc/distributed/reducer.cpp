@@ -1938,7 +1938,7 @@ std::tuple<std::vector<std::vector<size_t>>, std::vector<size_t>> compute_bucket
     if (logger.has_value()) {
       REDUCER_CHECK(!tensor.is_sparse(), logger.value(), msg);
     } else {
-      TORCH_CHECK(!tensor.is_sparse(), msg);
+      TORCH_CHECK(!tensor.is_sparse(), msg, DIST_ERROR(ErrCode::NOT_SUPPORT));
     }
 
     // when tensor_indices is empty, the index of tensors[i] assigned to
@@ -2071,7 +2071,7 @@ void verify_params_across_processes(
       if (logger.has_value()) {
         REDUCER_CHECK(sz == control_accessor[i++], logger.value(), msg)
       } else {
-        TORCH_CHECK(sz == control_accessor[i++], msg)
+        TORCH_CHECK(sz == control_accessor[i++], msg, DIST_ERROR(ErrCode::PARAM))
       }
     }
     for (const auto& str : t.strides()) {
@@ -2082,7 +2082,7 @@ void verify_params_across_processes(
       if (logger.has_value()) {
         REDUCER_CHECK(str == control_accessor[i++], logger.value(), msg)
       } else {
-        TORCH_CHECK(str == control_accessor[i++], msg)
+        TORCH_CHECK(str == control_accessor[i++], msg, DIST_ERROR(ErrCode::PARAM))
       }
     }
   }

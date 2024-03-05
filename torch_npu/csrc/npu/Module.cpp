@@ -686,7 +686,7 @@ PyObject* THNPModule_npu_set_sync_debug_mode(PyObject* _unused, PyObject* arg)
     int64_t debug_mode = THPUtils_unpackLong(arg);
     TORCH_CHECK(
         debug_mode >= 0 && debug_mode <= 2,
-        "invalid value of debug_mode, expected one of 0,1,2");
+        "invalid value of debug_mode, expected one of 0,1,2", PTA_ERROR(ErrCode::PARAM));
     c10_npu::SyncDebugMode level;
     switch (debug_mode) {
         case 0:

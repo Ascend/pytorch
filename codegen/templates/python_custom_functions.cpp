@@ -155,7 +155,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
           .pinned_memory(r.toBool(5));
       return torch::autograd::utils::wrap(dispatch_arange(end, options));
     } else {
-      TORCH_CHECK(!r.toBool(5), " `pin_memory` and `out` parameters are incompatible");
+      TORCH_CHECK(!r.toBool(5), " `pin_memory` and `out` parameters are incompatible", OPS_ERROR(ErrCode::PARAM));
       check_out_type_matches(r.tensor(1), r.scalartype(2), r.isNone(2), r.layout(3),
                              device, r.isNone(4));
       return torch::autograd::utils::wrap(dispatch_arange(r.scalar(0), r.tensor(1)).set_requires_grad(r.toBool(6)));
@@ -176,7 +176,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
           .pinned_memory(r.toBool(7));
       return torch::autograd::utils::wrap(dispatch_arange(start, end, step, options));
     } else {
-      TORCH_CHECK(!r.toBool(7), " `pin_memory` and `out` parameters are incompatible");
+      TORCH_CHECK(!r.toBool(7), " `pin_memory` and `out` parameters are incompatible", OPS_ERROR(ErrCode::PARAM));
       check_out_type_matches(r.tensor(3), r.scalartype(4), r.isNone(4), r.layout(5), device, r.isNone(6));
       return torch::autograd::utils::wrap(dispatch_arange(r.scalar(0), r.scalar(1), r.scalar(2), r.tensor(3)).set_requires_grad(r.toBool(8)));
     }
@@ -294,7 +294,7 @@ static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwa
     // full.out
     // Validates out tensor and other kwargs
     auto result = r.tensor(2);
-    TORCH_CHECK(!r.toBool(6), " `pin_memory` and `out` parameters are incompatible");
+    TORCH_CHECK(!r.toBool(6), " `pin_memory` and `out` parameters are incompatible", OPS_ERROR(ErrCode::PARAM));
     check_out_type_matches(result, r.scalartype(3), r.isNone(3), r.layout(4), device, r.isNone(5));
 
     return torch::autograd::utils::wrap(dispatch_full(size, fill_val, result).set_requires_grad(r.toBool(7)));
@@ -443,7 +443,7 @@ static PyObject *THPVariable_new_device(PyObject* self, PyObject* args, PyObject
       device_index = r.toInt64(1);
       // -1 is allowed in ATen/C++, to mean the default device, but not in
       // Python.
-      TORCH_CHECK(device_index >= 0, "Device index must not be negative");
+      TORCH_CHECK(device_index >= 0, "Device index must not be negative", OPS_ERROR(ErrCode::VALUE));
     }
     if (as_device.has_index()) {
       if (device_index != -1) {

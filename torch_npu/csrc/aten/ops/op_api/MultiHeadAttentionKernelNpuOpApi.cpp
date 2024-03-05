@@ -47,7 +47,8 @@ static DropOutStatus get_dropout_status(double keep_prob) {
 
 static at::Tensor format_trans(const at::Tensor& at_tensor) {
   if (at_tensor.defined()) {
-    TORCH_CHECK(at_npu::key::isDeviceTensor(at_tensor), "only npu tensor is supported");
+    TORCH_CHECK(at_npu::key::isDeviceTensor(at_tensor), "only npu tensor is supported",
+                OPS_ERROR(ErrCode::NOT_SUPPORT));
     return NPUNativeFunctions::npu_format_cast(at_tensor, ACL_FORMAT_ND);
   }
   return at_tensor;
@@ -187,16 +188,21 @@ class NPUMultiHeadAttentionFunction : public torch::autograd::Function<NPUMultiH
     const at::Tensor &padding_mask = padding_mask_opt.value_or(at::Tensor());
     const at::Tensor &atten_mask = atten_mask_opt.value_or(at::Tensor());
 
-    TORCH_CHECK(query.dim() == 3, "The shapes of the input query should be 3-dimensional, but got ", query.dim(), "-dimensional");
-    TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional");
-    TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional");
-    TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
+    TORCH_CHECK(query.dim() == 3, "The shapes of the input query should be 3-dimensional, but got ", query.dim(), "-dimensional",
+                OPS_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(key.dim() == 3, "The shapes of the input key should be 3-dimensional, but got ", key.dim(), "-dimensional",
+                OPS_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(value.dim() == 3, "The shapes of the input value should be 3-dimensional, but got ", value.dim(), "-dimensional",
+                OPS_ERROR(ErrCode::PARAM));
+    TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob,
+                OPS_ERROR(ErrCode::VALUE));
     std::string input_layout_str = std::string(input_layout);
     for (auto &c : input_layout_str) {
         c = toupper(c);
     }
     TORCH_CHECK(input_layout_str == "BSH" || input_layout_str == "SBH",
-        "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
+        "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout,
+        OPS_ERROR(ErrCode::TYPE));
 
     int64_t B = 0;
     int64_t S0 = 0; // S for query
@@ -323,20 +329,21 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_multi_head_attention_grad(
     const c10::optional<at::Tensor>& attention_in, double scale_value, double keep_prob, int64_t pre_tockens,
     int64_t next_tockens, bool gen_mask_parallel, bool sync) {
   TORCH_CHECK(query.dim() == DIM_SUPPORT, "The shapes of the input query should be ", DIM_SUPPORT,
-              "-dimensional, but got ", query.dim(), "-dimensional");
+              "-dimensional, but got ", query.dim(), "-dimensional", OPS_ERROR(ErrCode::PARAM));
   TORCH_CHECK(key.dim() == DIM_SUPPORT, "The shapes of the input key should be ", DIM_SUPPORT, "-dimensional, but got ",
-              key.dim(), "-dimensional");
+              key.dim(), "-dimensional", OPS_ERROR(ErrCode::PARAM));
   TORCH_CHECK(value.dim() == DIM_SUPPORT, "The shapes of the input value should be ", DIM_SUPPORT,
-              "-dimensional, but got ", value.dim(), "-dimensional");
+              "-dimensional, but got ", value.dim(), "-dimensional", OPS_ERROR(ErrCode::PARAM));
   TORCH_CHECK(dy.dim() == DIM_SUPPORT, "The shapes of the input dy should be ", DIM_SUPPORT, "-dimensional, but got ",
-              dy.dim(), "-dimensional");
-  TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob);
+              dy.dim(), "-dimensional", OPS_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(keep_prob >= 0 && keep_prob <= 1, "The keep_prob value must be in range of [0, 1], but got ", keep_prob,
+              OPS_ERROR(ErrCode::VALUE));
   std::string input_layout_str = std::string(input_layout);
   for (auto& c : input_layout_str) {
     c = toupper(c);
     }
   TORCH_CHECK(input_layout_str == "BSH" || input_layout_str == "SBH",
-              "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout);
+              "The input_layout should be BSH/SBH(case-insensitive), but got ", input_layout, OPS_ERROR(ErrCode::TYPE));
   int64_t seed;
   int64_t offset;
   int64_t numels;

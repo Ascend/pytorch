@@ -120,7 +120,7 @@ at::Tensor NPUNativeFunctions::view(const at::Tensor& self, c10::IntArrayRef siz
       stride.has_value(),
       "view size is "
       "not compatible with input tensor's size and stride (at least one dimension"
-      " spans across two contiguous subspaces). Use .reshape(...) instead.");
+      " spans across two contiguous subspaces). Use .reshape(...) instead.", OPS_ERROR(ErrCode::NOT_SUPPORT));
   auto stride_value = *stride;
   auto dst = self;
   return alias_with_sizes_and_strides_npu(dst, inferred_size, stride_value);

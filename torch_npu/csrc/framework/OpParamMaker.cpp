@@ -163,7 +163,7 @@ aclError OpCommandImpl::InnerRun(
             ret = params.customHandler();
             if (ret != ACL_ERROR_NONE) {
                 C10_NPU_SHOW_ERR_MSG();
-                TORCH_CHECK(false, "Custom hand fail!");
+                TORCH_CHECK(false, "Custom hand fail!", OPS_ERROR(ErrCode::ACL));
             }
             index++;
             continue;
@@ -185,7 +185,7 @@ aclError OpCommandImpl::InnerRun(
                 nullptr);
             if (ret != ACL_ERROR_NONE) {
                 C10_NPU_SHOW_ERR_MSG();
-                TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
+                TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!", OPS_ERROR(ErrCode::ACL));
             }
         }
         if (!sync) {
@@ -438,7 +438,7 @@ void *NewFunc(int caption, int &size)
 {
     size = static_cast<int>(sizeof(c10_npu::queue::QueueParas) + MAX_PARAS_BYTE_SIZE);
     void *ptr = malloc(size * caption);
-    TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
+    TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL", OPS_ERROR(ErrCode::PTR));
     memset(ptr, 0, size * caption);
     return ptr;
 }
@@ -508,13 +508,13 @@ void OpCommandImpls::Push(OpCommandImpl *&ptr)
         OpCommandImpl impl;
         objs.emplace_back(std::move(impl));
     }
-    TORCH_CHECK(objs.size() > offset, "OpCommand size (", objs.size(), ") is smaller than offset (", offset, ")");
+    TORCH_CHECK(objs.size() > offset, "OpCommand size (", objs.size(), ") is smaller than offset (", offset, ")", OPS_ERROR(ErrCode::PARAM));
     ptr = &objs[offset];
 }
 
 void OpCommandImpls::Pop()
 {
-    TORCH_CHECK(offset >= 0, "OpCommand current offset should not be less than ", offset);
+    TORCH_CHECK(offset >= 0, "OpCommand current offset should not be less than ", offset, OPS_ERROR(ErrCode::VALUE));
     offset -= 1;
 }
 }  // namespace native

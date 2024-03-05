@@ -61,18 +61,18 @@ namespace at_npu
             options.layout() != at::kSparse,
             function_name,
             " is not implemented for sparse types, got: ",
-            options);
+            options, OPS_ERROR(ErrCode::NOT_SUPPORT));
         TORCH_CHECK(
             at::isFloatingType(c10::typeMetaToScalarType(options.dtype())) ||
                 at::isComplexType(c10::typeMetaToScalarType(options.dtype())),
             function_name,
             " expects floating point dtypes, got: ",
-            options);
+            options, OPS_ERROR(ErrCode::TYPE));
         TORCH_CHECK(
             window_length >= 0,
             function_name,
             " requires non-negative window_length, got window_length=",
-            window_length);
+            window_length, OPS_ERROR(ErrCode::VALUE));
       }
 
       size_t computeStorageNbytes(
@@ -109,34 +109,36 @@ namespace at_npu
                                          c10::optional<bool> pin_memory_opt,
                                          c10::optional<c10::MemoryFormat> memory_format_opt)
     {
-        AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType, OPS_ERROR(ErrCode::PARAM));
-        TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::PARAM));
-        check_size_nonnegative(size);
-        c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-        int64_t nelements = c10::multiply_integers(size);
-        auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
-        int64_t size_bytes = nelements * dtype.itemsize();
-        c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
-            c10::StorageImpl::use_byte_size_t(),
-            size_bytes,
-            allocator->allocate(size_bytes),
-            allocator,
-            true);
+      AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
+      TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned",
+                  OPS_ERROR(ErrCode::NOT_SUPPORT));
+      check_size_nonnegative(size);
+      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
+      int64_t nelements = c10::multiply_integers(size);
+      auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+      int64_t size_bytes = nelements * dtype.itemsize();
+      c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
+          c10::StorageImpl::use_byte_size_t(),
+          size_bytes,
+          allocator->allocate(size_bytes),
+          allocator,
+          true);
 
         auto tensor =
             at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
-        // Default at::TensorImpl has size [0]
-        if (size.size() != 1 || size[0] != 0) {
-            tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
-        }
-        auto memory_format =
-            memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
-        TORCH_CHECK(
-            memory_format == c10::MemoryFormat::Contiguous,
-            "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor");
-        tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
-        StorageDescHelper::SetDesc(tensor, size, tensor.strides());
+      // Default at::TensorImpl has size [0]
+      if (size.size() != 1 || size[0] != 0)
+      {
+        tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
+      }
+      auto memory_format =
+          memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
+      TORCH_CHECK(
+          memory_format == c10::MemoryFormat::Contiguous,
+          "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor", OPS_ERROR(ErrCode::NOT_SUPPORT));
+      tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
+      StorageDescHelper::SetDesc(tensor, size, tensor.strides());
 
         return tensor;
     }
@@ -149,14 +151,14 @@ namespace at_npu
       TORCH_CHECK(
           !(options_.has_memory_format() && optional_memory_format.has_value()),
           "Cannot set memory_format both in TensorOptions and explicit argument; please delete "
-          "the redundant setter.");
+          "the redundant setter.", OPS_ERROR(ErrCode::PARAM));
 
       c10::TensorOptions options = self.options().merge_in(options_).merge_in(
           c10::TensorOptions().memory_format(optional_memory_format));
 
       TORCH_CHECK(
           !(options.layout() != at::kStrided && optional_memory_format.has_value()),
-          "memory format option is only supported by strided tensors");
+          "memory format option is only supported by strided tensors", OPS_ERROR(ErrCode::NOT_SUPPORT));
       if (options.layout() == at::kSparse && self.is_sparse())
       {
         auto result = at::empty({0}, options); // to be resized
@@ -200,7 +202,7 @@ namespace at_npu
             "the input tensor's dtype via empty_like.  Specified: ",
             options.dtype(),
             " Input tensor's dtype: ",
-            self.dtype());
+            self.dtype(), OPS_ERROR(ErrCode::TYPE));
         auto qscheme = self.qscheme();
         if (qscheme == at::kPerTensorAffine)
         {
@@ -226,7 +228,7 @@ namespace at_npu
         }
         else
         {
-          TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme));
+          TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme), OPS_ERROR(ErrCode::NOT_SUPPORT));
         }
       }
 
@@ -296,7 +298,7 @@ namespace at_npu
                                                      int64_t dst_format)
     {
       torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
-      TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
+      TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::NOT_SUPPORT));
       check_size_nonnegative(size);
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
@@ -349,8 +351,8 @@ namespace at_npu
                                      int64_t dst_format)
     {
       torch_npu::utils::torch_check_npu(options);
-      AT_ASSERT(options.backend() == at_npu::key::NativeBackend, OPS_ERROR(ErrCode::PARAM));
-      TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::PARAM));
+      AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
+      TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
       static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
@@ -459,7 +461,7 @@ namespace at_npu
       // generator requires the out and non-out overloads to match exactly
       TORCH_CHECK(
           !optional_memory_format.has_value(),
-          "'memory_format' argument is incompatible with 'out' tensor argument");
+          "'memory_format' argument is incompatible with 'out' tensor argument", OPS_ERROR(ErrCode::PARAM));
       check_size_nonnegative(size);
       if (result.is_sparse())
       {
@@ -725,7 +727,7 @@ namespace at_npu
                                           .pinned_memory(pin_memory_opt);
       TORCH_CHECK(
           options.layout() != at::kSparse,
-          "full(...) is not implemented for sparse layout");
+          "full(...) is not implemented for sparse layout", OPS_ERROR(ErrCode::NOT_SUPPORT));
 
       if (!dtype_opt.has_value()) {
         if (fill_value.isBoolean()) {

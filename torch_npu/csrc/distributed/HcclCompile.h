@@ -43,7 +43,7 @@ extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, con
   if (func == nullptr) {
     func = (HcclAlltoAllVFunc)GET_FUNC(HcclAlltoAllV);
   }
-  TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAllV");
+  TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAllV", DIST_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(sendBuf, sendCounts, sdispls, sendType,
       recvBuf, recvCounts, rdispls, recvType, comm, stream);
   return ret;
@@ -57,7 +57,7 @@ extern HcclResult hcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclD
   if (func == nullptr) {
     func = (HcclReduceVFunc)GET_FUNC(HcclReduce);
   }
-  TORCH_CHECK(func, "Failed to find function ", "HcclReduce");
+  TORCH_CHECK(func, "Failed to find function ", "HcclReduce", DIST_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(sendBuf, recvBuf, count, sendType, op, root, comm, stream);
   return ret;
 }
@@ -68,7 +68,7 @@ HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError) {
     if (func == nullptr) {
       func = (HcclGetCommAsyncErrorVFunc)GET_FUNC(HcclGetCommAsyncError);
     }
-    TORCH_CHECK(func, "Failed to find function ", "HcclGetCommAsyncError");
+    TORCH_CHECK(func, "Failed to find function ", "HcclGetCommAsyncError", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(comm, asyncError);
     return ret;
 }
@@ -85,7 +85,7 @@ HcclResult hcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType se
     if (func == nullptr) {
         func = (HcclAlltoAllFunc)GET_FUNC(HcclAlltoAll);
     }
-    TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAll");
+    TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAll", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, sendCount, sendType,
                     recvBuf, recvCount, recvType, comm, stream);
     return ret;
@@ -99,7 +99,7 @@ HcclResult hcclScatter(void *sendBuf, void *recvBuf, uint64_t count, HcclDataTyp
     if (func == nullptr) {
         func = (HcclScatterVFunc)GET_FUNC(HcclScatter);
     }
-    TORCH_CHECK(func, "Failed to find function ", "HcclScatter");
+    TORCH_CHECK(func, "Failed to find function ", "HcclScatter", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendBuf, recvBuf, count, dataType, root, comm, stream);
     return ret;
 }
@@ -112,7 +112,7 @@ HcclResult hcclBatchIsendIrecv(void* sendRecvInfo, uint32_t itemNum, HcclComm co
     if (func == nullptr) {
         func = (HcclBatchIsendIrecvVFunc)GET_FUNC(HcclBatchSendRecv);
     }
-    TORCH_CHECK(func, "Failed to find function ", "HcclBatchSendRecv");
+    TORCH_CHECK(func, "Failed to find function ", "HcclBatchSendRecv", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendRecvInfo, itemNum, comm, stream);
     return ret;
 }

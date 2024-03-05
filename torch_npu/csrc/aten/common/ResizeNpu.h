@@ -173,7 +173,8 @@ static inline void checkInBoundsForStorage(
       " requiring a storage size of ",
       storage_size_bytes,
       " are out of bounds for storage of size ",
-      new_storage_size_bytes);
+      new_storage_size_bytes,
+      OPS_ERROR(ErrCode::PARAM));
 }
 
 inline void setStrided(
@@ -181,13 +182,13 @@ inline void setStrided(
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
     int64_t storage_offset) {
-  TORCH_CHECK(size.size() == stride.size(), "mismatch in length of strides and shape");
+  TORCH_CHECK(size.size() == stride.size(), "mismatch in length of strides and shape", PTA_ERROR(ErrCode::PARAM));
   auto* self_ = self.unsafeGetTensorImpl();
   checkInBoundsForStorage(
       size, stride, storage_offset, self_->dtype(), self_->storage());
 
   /* storage offset */
-  TORCH_CHECK(storage_offset >= 0, "Tensor: invalid storage offset ", storage_offset);
+  TORCH_CHECK(storage_offset >= 0, "Tensor: invalid storage offset ", storage_offset, PTA_ERROR(ErrCode::VALUE));
   self_->set_storage_offset(storage_offset);
 
   /* size and stride */
@@ -197,7 +198,7 @@ inline void setStrided(
   for (auto val : stride) {
     TORCH_CHECK(val >= 0,
                 "as_strided: Negative strides are not supported at the moment, "
-                "got strides: ", stride);
+                "got strides: ", stride, PTA_ERROR(ErrCode::VALUE));
   }
   self_->set_sizes_and_strides(size, stride);
 }

@@ -3,6 +3,7 @@
 #include <torch/csrc/distributed/rpc/message.h>
 #include <torch/csrc/distributed/rpc/request_callback.h>
 #include <torch/csrc/distributed/rpc/types.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 #include <algorithm>
 #include <cctype>
@@ -36,7 +37,7 @@ struct RpcBackendOptions {
   RpcBackendOptions(float rpcTimeoutSeconds, std::string initMethod)
       : rpcTimeoutSeconds(rpcTimeoutSeconds),
         initMethod(std::move(initMethod)) {
-    TORCH_CHECK(rpcTimeoutSeconds >= 0, "RPC Timeout must be non-negative");
+    TORCH_CHECK(rpcTimeoutSeconds >= 0, "RPC Timeout must be non-negative", DIST_ERROR(ErrCode::VALUE));
   }
 
   float rpcTimeoutSeconds;
@@ -51,7 +52,7 @@ struct TORCH_API WorkerInfo : torch::CustomClassHolder {
         id <= std::numeric_limits<worker_id_t>::max(),
         "RPC worker id ",
         id,
-        " out of bound of int16_t.");
+        " out of bound of int16_t.", DIST_ERROR(ErrCode::VALUE));
   }
 
   WorkerInfo(std::string name, worker_id_t id)
@@ -68,7 +69,7 @@ struct TORCH_API WorkerInfo : torch::CustomClassHolder {
         MAX_NAME_LEN,
         " chars, "
         "but got ",
-        name_);
+        name_, DIST_ERROR(ErrCode::PARAM));
   }
 
   bool operator==(const WorkerInfo& rhs) {

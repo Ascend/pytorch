@@ -172,7 +172,6 @@ class TestMgr():
                 os.environ['HOSTAPI_ENABLED'] = 'ON'
 
         for modify_file in self.modify_files:
-            is_hostapi_enabled(modify_file)
             self.test_files['ut_files'] += DirectoryStrategy().identify(modify_file)
             self.test_files['ut_files'] += CopyOptStrategy().identify(modify_file)
             self.test_files['ut_files'] += OpStrategy().identify(modify_file)

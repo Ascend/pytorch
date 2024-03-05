@@ -51,7 +51,7 @@ void assert_no_internal_overlap(at::TensorImpl* t) {
   TORCH_CHECK(has_internal_overlap(t) != MemOverlap::YES,
       "unsupported operation: more than one element of the written-to tensor "
       "refers to a single memory location. Please clone() the tensor before "
-      "performing the operation.");
+      "performing the operation.", OPS_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 MemOverlapStatus get_overlap_status(const at::Tensor& a, const at::Tensor& b) {
@@ -91,7 +91,8 @@ void assert_no_partial_overlap(at::TensorImpl* a, at::TensorImpl* b) {
   TORCH_CHECK(get_overlap_status(a, b) != MemOverlapStatus::PARTIAL,
       "unsupported operation: some elements of the input tensor and "
       "the written-to tensor refer to a single memory location. "
-      "Please clone() the tensor before performing the operation.");
+      "Please clone() the tensor before performing the operation.",
+      OPS_ERROR(ErrCode::NOT_SUPPORT));
 }
 
 }}

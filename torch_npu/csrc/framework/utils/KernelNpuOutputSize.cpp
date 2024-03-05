@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -25,7 +26,7 @@ c10::IntArrayRef input_same_output_size(const at::Tensor &input)
 
 c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor &self, c10::IntArrayRef padding)
 {
-    TORCH_CHECK(self.dim() == 3 || self.dim() == 4, "tensor self's dimension must be 3 or 4");
+    TORCH_CHECK(self.dim() == 3 || self.dim() == 4, "tensor self's dimension must be 3 or 4", OPS_ERROR(ErrCode::PARAM));
     int64_t N = self.dim() == 3 ? 1 : self.size(-4);
     int64_t C = self.size(-3);
     int64_t H = self.size(-2);
