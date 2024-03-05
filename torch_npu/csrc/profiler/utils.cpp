@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -194,7 +195,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     uint64_t output_h = (input_h + 2 * padding[0] - dilation[0] * (kernel_h - 1) - 1) / stride[0] + 1;
     uint64_t output_w = (input_w + 2 * padding[1] - dilation[1] * (kernel_w - 1) - 1) / stride[1] + 1;
     if (groups == 0) {
-      TORCH_CHECK(false, "groups can not be 0.");
+      TORCH_CHECK(false, "groups can not be 0.", PTA_ERROR(ErrCode::VALUE));
     }
     return conv2d_multiply_factor * minibatch * output_h * output_w *
            kernel_h * kernel_w * in_channels * out_channels / groups;
@@ -223,7 +224,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
         flops *= (uint64_t)dim;
       }
       if (overlap_dim == 0) {
-        TORCH_CHECK(false, "overlap_dim can not be 0.");
+        TORCH_CHECK(false, "overlap_dim can not be 0.", PTA_ERROR(ErrCode::VALUE));
       }
       flops /= (uint64_t)overlap_dim;
       for (int64_t dim : mat2_size) {

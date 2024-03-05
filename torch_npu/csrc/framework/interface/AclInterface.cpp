@@ -17,6 +17,7 @@
 
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -48,7 +49,7 @@ aclprofStepInfoPtr init_stepinfo() {
   if (func == nullptr) {
       func = (npdInitFunc)GET_FUNC(aclprofCreateStepInfo);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func();
   return ret;
 }
@@ -59,7 +60,7 @@ NpdStatus destroy_stepinfo(aclprofStepInfoPtr stepInfo) {
   if (func == nullptr) {
       func = (npdDestroyFunc)GET_FUNC(aclprofDestroyStepInfo);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyStepInfo", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(stepInfo);
   return ret;
 }
@@ -70,7 +71,7 @@ NpdStatus start_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, 
   if (func == nullptr) {
       func = (npdStartProfiling)GET_FUNC(aclprofGetStepTimestamp);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(stepInfo, stepTag, stream);
   return ret;
 }
@@ -81,7 +82,7 @@ NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, a
   if (func == nullptr) {
       func = (npdStopProfiling)GET_FUNC(aclprofGetStepTimestamp);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofGetStepTimestamp", PROF_ERROR(ErrCode::NOT_FOUND));
   auto ret = func(stepInfo, stepTag, stream);
   return ret;
 }
@@ -105,7 +106,7 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
   if (func == nullptr) {
     func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag");
+  TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag", PTA_ERROR(ErrCode::NOT_FOUND));
   return func(event, flag);
 }
 
@@ -115,7 +116,7 @@ aclError AclProfilingInit(const char *profilerResultPath, size_t length) {
   if (func == nullptr) {
     func = (AclProfInitFunc)GET_FUNC(aclprofInit);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofInit");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofInit", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerResultPath, length);
 }
 
@@ -125,7 +126,7 @@ aclError AclProfilingStart(const aclprofConfig *profilerConfig) {
   if (func == nullptr) {
     func = (AclProfStartFunc)GET_FUNC(aclprofStart);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofStart");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStart", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
@@ -135,7 +136,7 @@ aclError AclProfilingStop(const aclprofConfig *profilerConfig) {
   if (func == nullptr) {
     func = (AclProfStopFunc)GET_FUNC(aclprofStop);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofStop");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStop", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
@@ -145,7 +146,7 @@ aclError AclProfilingFinalize() {
   if (func == nullptr) {
     func = (AclProfFinalizeFunc)GET_FUNC(aclprofFinalize);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize", PROF_ERROR(ErrCode::NOT_FOUND));
   return func();
 }
 
@@ -161,7 +162,7 @@ aclprofConfig *AclProfilingCreateConfig(
   if (func == nullptr) {
     func = (AclProfCreateConfigFunc)GET_FUNC(aclprofCreateConfig);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(deviceIdList, deviceNums, aicoreMetrics, aicoreEvents, dataTypeConfig);
 }
 
@@ -171,7 +172,7 @@ aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
   if (func == nullptr) {
     func = (AclProfDestroyConfigFunc)GET_FUNC(aclprofDestroyConfig);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig");
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig", PROF_ERROR(ErrCode::NOT_FOUND));
   return func(profilerConfig);
 }
 
@@ -196,7 +197,7 @@ aclError AclopStartDumpArgs(uint32_t dumpType, const char *path) {
             return ACL_ERROR_FEATURE_UNSUPPORTED;
         }
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclopStartDumpArgs");
+    TORCH_CHECK(func, "Failed to find function ", "aclopStartDumpArgs", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(dumpType, path);
 }
 
@@ -209,7 +210,7 @@ aclError AclopStopDumpArgs(uint32_t dumpType) {
             return ACL_ERROR_FEATURE_UNSUPPORTED;
         }
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclopStopDumpArgs");
+    TORCH_CHECK(func, "Failed to find function ", "aclopStopDumpArgs", PTA_ERROR(ErrCode::NOT_FOUND));
     return func(dumpType);
 }
 

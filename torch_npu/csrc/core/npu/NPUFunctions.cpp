@@ -25,7 +25,7 @@ namespace c10_npu {
         unsigned int count = 0;
 
         NPU_CHECK_ERROR(aclrtGetDeviceCount(&count));
-        TORCH_CHECK(count, "No NPUs are available");
+        TORCH_CHECK(count, "No NPUs are available", PTA_ERROR(ErrCode::UNAVAIL));
 
         return static_cast<c10::DeviceIndex>(count);
     }
@@ -51,7 +51,7 @@ namespace c10_npu {
 
     aclError SetDevice(c10::DeviceIndex device)
     {
-        TORCH_CHECK(device >= 0, "device id must be positive!");
+        TORCH_CHECK(device >= 0, "device id must be positive!", PTA_ERROR(ErrCode::VALUE));
 
         if (local_device == device) {
             return ACL_ERROR_NONE;

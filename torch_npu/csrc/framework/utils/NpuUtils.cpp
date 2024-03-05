@@ -277,7 +277,7 @@ bool NpuUtils::IsOomError(aclError ret, int index) {
 
 void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
   TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ",
-              t.dim(), "-D");
+              t.dim(), "-D", OPS_ERROR(ErrCode::PARAM));
 }
 
 void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id) {

@@ -16,7 +16,6 @@
 
 #include "torch_npu/csrc/aten/mirror/NPUTypeProperties.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
-#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu
 {
@@ -141,11 +140,11 @@ namespace at_npu
         TORCH_INTERNAL_ASSERT(out1.defined(), OPS_ERROR(ErrCode::PARAM));
         TORCH_INTERNAL_ASSERT(out2.defined(), OPS_ERROR(ErrCode::PARAM));
         TORCH_CHECK(out1.dim() == out2.dim(), "reduce_op(): expected both outputs to have same number of dims, but output1 has ", out1.dim(),
-                    " and output2 has ", out2.dim());
+                    " and output2 has ", out2.dim(), OPS_ERROR(ErrCode::PARAM));
         TORCH_CHECK(out1.sizes() == out2.sizes(), "reduce_op(): expected both outputs to have same sizes, but output1 has ", out1.sizes(),
-                    " and output2 has ", out2.sizes());
+                    " and output2 has ", out2.sizes(), OPS_ERROR(ErrCode::PARAM));
         TORCH_CHECK(out1.strides() == out2.strides(), "reduce_op(): expected both outputs to have same strides, but output1 has ", out1.strides(),
-                    " and output2 has ", out2.strides());
+                    " and output2 has ", out2.strides(), OPS_ERROR(ErrCode::PARAM));
         auto iter = NPUTensorIterator();
         iter.add_output(out1);
         iter.add_output(out2);
@@ -233,7 +232,8 @@ namespace at_npu
 
       if (common_dtype_strategy_ == CommonDTypeStrategy::PROMOTE_INPUTS)
       {
-        TORCH_CHECK(!missing_output_dtypes, "unable to compute and promote common dtype based only on inputs if there are missing dtypes for outputs");
+        TORCH_CHECK(!missing_output_dtypes, "unable to compute and promote common dtype based only on inputs if there are missing dtypes for outputs",
+                    OPS_ERROR(ErrCode::TYPE));
       }
       bool compute_common_dtype = (common_dtype_strategy_ != CommonDTypeStrategy::NONE);
       bool compute_common_dtype_only_for_inputs = (common_dtype_strategy_ == CommonDTypeStrategy::PROMOTE_INPUTS);

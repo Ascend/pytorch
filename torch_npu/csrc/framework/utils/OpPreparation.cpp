@@ -198,9 +198,11 @@ namespace at_npu
       c10::SmallVector<at::Tensor, N> outputs = {output};
       CalcuOpUtil::CheckMemoryOverLaps(inputs, outputs);
       TORCH_CHECK(at_npu::key::isDeviceTensor(output), "output with device ",
-                  output.device(), " doesn't match the desired device NPU");
+                  output.device(), " doesn't match the desired device NPU",
+                  OPS_ERROR(ErrCode::PARAM));
       TORCH_CHECK(output.scalar_type() == dtype, "expected dtype ",
-                  dtype, " but got dtype ", output.scalar_type());
+                  dtype, " but got dtype ", output.scalar_type(),
+                  OPS_ERROR(ErrCode::TYPE));
 
       bool is_read_write = false;
       // check if output is also an input
@@ -217,13 +219,15 @@ namespace at_npu
       if (!output.sizes().equals(shape))
       {
         TORCH_CHECK(!is_read_write, "output with shape ", output.sizes(),
-                    " doesn't match the broadcast shape ", shape);
+                    " doesn't match the broadcast shape ", shape,
+                    OPS_ERROR(ErrCode::PARAM));
         output.resize_(shape);
       }
 
       if (CalcuOpUtil::GetTensorNpuFormat(output) != format)
       {
-        TORCH_CHECK(!is_read_write, "can not cast format when output is input");
+        TORCH_CHECK(!is_read_write, "can not cast format when output is input",
+                    OPS_ERROR(ErrCode::NOT_SUPPORT));
         NPUNativeFunctions::npu_format_cast_(output, format);
       }
     }
@@ -361,7 +365,7 @@ namespace at_npu
       // Preserve legacy resizing behavior of out=... arguments
       if (!dst.sizes().equals(expect_size)) {
         TORCH_CHECK(!is_inplace, "output with shape ", dst.sizes(), " doesn't match the broadcast shape ",
-                    expect_size);
+                    expect_size, OPS_ERROR(ErrCode::PARAM));
         dst.resize_(expect_size);
       }
       return;
@@ -372,9 +376,9 @@ namespace at_npu
     {
       check_memory(src_list, {dst});
       TORCH_CHECK(at_npu::key::isDeviceTensor(dst), "output with device ", dst.device(),
-                  " doesn't match the desired device NPU");
+                  " doesn't match the desired device NPU", OPS_ERROR(ErrCode::PARAM));
       TORCH_CHECK(dst.scalar_type() == expect_dtype, "expected dtype ", expect_dtype, " but got dtype ",
-                  dst.scalar_type());
+                  dst.scalar_type(), OPS_ERROR(ErrCode::TYPE));
       check_tensor_size(src_list, dst, expect_size);
     }
 
@@ -383,7 +387,7 @@ namespace at_npu
     {
       check_memory(src_list, {dst});
       TORCH_CHECK(at_npu::key::isDeviceTensor(dst), "output with device ", dst.device(),
-                  " doesn't match the desired device NPU");
+                  " doesn't match the desired device NPU", OPS_ERROR(ErrCode::PARAM));
       check_tensor_size(src_list, dst, expect_size);
     }
 

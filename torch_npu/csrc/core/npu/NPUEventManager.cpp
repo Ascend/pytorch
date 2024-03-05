@@ -124,7 +124,7 @@ void NPUEventManager::DecreaseUnrecordedCount(aclrtEvent event)
     TORCH_CHECK(
         it != event_unrecorded_count_.end(),
         "Event: event must enqueue before dequeue, event=",
-        (void *) event);
+        (void *) event, PTA_ERROR(ErrCode::INTERNAL));
     if (it->second == 1) {
         event_unrecorded_count_.erase(event);
         ASCEND_LOGI("Event: unrecorded count decrease, now=%d.", 0);

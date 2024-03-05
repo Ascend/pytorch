@@ -63,7 +63,7 @@ const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index) {
   if (idx == -1) {
     idx = c10_npu::current_device();
   } else {
-    TORCH_CHECK(idx >= 0 && idx < num_npus);
+    TORCH_CHECK(idx >= 0 && idx < num_npus, PTA_ERROR(ErrCode::VALUE));
   }
   std::call_once(npu_gens_init_flag[idx], [&] {
     default_gens_npu[idx] = at::make_generator<NPUGeneratorImpl>(idx);
@@ -81,7 +81,7 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
   if (idx == -1) {
     idx = c10_npu::current_device();
   }
-  TORCH_CHECK(idx >= 0 && idx < num_npus, "The device_index is invalid.");
+  TORCH_CHECK(idx >= 0 && idx < num_npus, "The device_index is invalid.", PTA_ERROR(ErrCode::VALUE));
   auto gen = at::make_generator<NPUGeneratorImpl>(idx);
   auto npu_gen = at::check_generator<NPUGeneratorImpl>(gen);
   npu_gen->set_current_seed(c10::default_rng_seed_val);
@@ -198,7 +198,7 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
   if (new_state_size == total_size - offset_size) {
     no_philox_seed = true;
   } else {
-    TORCH_CHECK(new_state_size == total_size, "RNG state is wrong size");
+    TORCH_CHECK(new_state_size == total_size, "RNG state is wrong size", OPS_ERROR(ErrCode::PARAM));
   }
 
   uint64_t input_seed;
@@ -219,7 +219,7 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
  */
 void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset) {
   // see Note [Why enforce RNG offset % 4 == 0?]
-  TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4");
+  TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4", OPS_ERROR(ErrCode::VALUE));
   philox_offset_per_thread_ = offset;
 }
 

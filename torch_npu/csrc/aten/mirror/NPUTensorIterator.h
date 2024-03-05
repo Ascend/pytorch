@@ -25,6 +25,7 @@
 #include <c10/util/TypeCast.h>
 
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -51,7 +52,7 @@ struct TORCH_NPU_API NPUOperandInfo {
     void validate() {
         TORCH_CHECK(
             !tensor.defined() || tensor.layout() == at::kStrided,
-            "unsupported tensor layout: ", tensor.layout());
+            "unsupported tensor layout: ", tensor.layout(), OPS_ERROR(ErrCode::TYPE));
     }
 
     StrideVector stride_bytes;

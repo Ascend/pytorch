@@ -17,6 +17,7 @@
 #pragma once
 
 #include <c10/core/TensorOptions.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -28,18 +29,18 @@ inline void check_size_nonnegative(c10::IntArrayRef& size) {
         "Trying to create tensor with negative dimension ",
         x,
         ": ",
-        size);
+        size, OPS_ERROR(ErrCode::VALUE));
   }
 }
 
 inline void check_args(int64_t row, int64_t col, const c10::TensorOptions& options) {
-    TORCH_CHECK(row >= 0, "row must be non-negative, got", row);
-    TORCH_CHECK(col >= 0, "col must be non-negative, got", col);
+    TORCH_CHECK(row >= 0, "row must be non-negative, got", row, OPS_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(col >= 0, "col must be non-negative, got", col, OPS_ERROR(ErrCode::VALUE));
     if (options.has_layout()) {
         TORCH_CHECK(
             options.layout() == at::kStrided,
             "only support layout=torch.strided, got",
-            options.layout());
+            options.layout(), OPS_ERROR(ErrCode::TYPE));
     }
 }
 

@@ -150,7 +150,7 @@ static PyObject* THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwarg
   auto local_device = r.isNone(1) ? c10::Device(at_npu::key::NativeDeviceType) : r.device(1);
   auto device = c10::Device(at_npu::key::NativeDeviceType, local_device.index());
   auto opt_memory_format = r.memoryformatOptional(3);
-  TORCH_CHECK((device.type() == at_npu::key::NativeDeviceType), "Invalid device, must be npu device");
+  TORCH_CHECK((device.type() == at_npu::key::NativeDeviceType), "Invalid device, must be npu device", PTA_ERROR(ErrCode::PARAM));
   maybe_initialize_npu(device);
   return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(2), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
@@ -460,7 +460,7 @@ static PyObject* THPVariable_new_tensor(PyObject* self, PyObject* args, PyObject
     PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
   }
   auto& self_ = THPVariable_Unpack(PyDict_GetItem(kwargs, THPUtils_internString("tensor")));
-  TORCH_CHECK(PyDict_DelItem(kwargs, THPUtils_internString("tensor")) == 0, "Fail to Del 'tensor' in kwargs");
+  TORCH_CHECK(PyDict_DelItem(kwargs, THPUtils_internString("tensor")) == 0, "Fail to Del 'tensor' in kwargs", PTA_ERROR(ErrCode::ACL));
   c10::OptionalDeviceGuard device_guard(at::device_of(self_));
   return THPVariable_Wrap(torch::utils::new_tensor(at::legacyExtractDispatchKey(self_), self_.scalar_type(), args, kwargs));
   END_HANDLE_TH_ERRORS

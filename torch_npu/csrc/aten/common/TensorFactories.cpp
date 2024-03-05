@@ -58,18 +58,18 @@ void window_function_checks(
       options.layout() != at::kSparse,
       function_name,
       " is not implemented for sparse types, got: ",
-      options);
+      options, OPS_ERROR(ErrCode::NOT_SUPPORT));
   TORCH_CHECK(
       at::isFloatingType(c10::typeMetaToScalarType(options.dtype())) ||
           at::isComplexType(c10::typeMetaToScalarType(options.dtype())),
       function_name,
       " expects floating point dtypes, got: ",
-      options);
+      options, OPS_ERROR(ErrCode::TYPE));
   TORCH_CHECK(
       window_length >= 0,
       function_name,
       " requires non-negative window_length, got window_length=",
-      window_length);
+      window_length, OPS_ERROR(ErrCode::VALUE));
 }
 
 size_t computeStorageNbytes(
@@ -137,7 +137,8 @@ at::Tensor NPUNativeFunctions::empty(
         memory_format_opt.value_or(c10::MemoryFormat::Contiguous);
     TORCH_CHECK(
         memory_format == c10::MemoryFormat::Contiguous,
-        "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor");
+        "Only c10::MemoryFormat::Contiguous is supported for creating a npu tensor",
+        OPS_ERROR(ErrCode::NOT_SUPPORT));
     tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
     StorageDescHelper::SetDesc(tensor, unsymbolic_size, tensor.strides());
 
@@ -151,14 +152,14 @@ at::Tensor empty_like_npu(
   TORCH_CHECK(
       !(options_.has_memory_format() && optional_memory_format.has_value()),
       "Cannot set memory_format both in TensorOptions and explicit argument; please delete "
-      "the redundant setter.");
+      "the redundant setter.", OPS_ERROR(ErrCode::PARAM));
 
   c10::TensorOptions options = self.options().merge_in(options_).merge_in(
       c10::TensorOptions().memory_format(optional_memory_format));
 
   TORCH_CHECK(
       !(options.layout() != at::kStrided && optional_memory_format.has_value()),
-      "memory format option is only supported by strided tensors");
+      "memory format option is only supported by strided tensors", OPS_ERROR(ErrCode::NOT_SUPPORT));
   if (options.layout() == at::kSparse && self.is_sparse()) {
     auto result = at::empty({0}, options); // to be resized
     result.sparse_resize_and_clear_(
@@ -199,7 +200,7 @@ at::Tensor empty_like_npu(
         "the input tensor's dtype via empty_like.  Specified: ",
         options.dtype(),
         " Input tensor's dtype: ",
-        self.dtype());
+        self.dtype(), OPS_ERROR(ErrCode::TYPE));
     auto qscheme = self.qscheme();
     if (qscheme == at::kPerTensorAffine) {
       return at::_empty_affine_quantized(
@@ -221,7 +222,7 @@ at::Tensor empty_like_npu(
           // See Note [Explicit nullopt c10::MemoryFormat argument]
           c10::nullopt);
     } else {
-      TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme));
+      TORCH_CHECK(false, "Unsupported qscheme: ", toString(qscheme), OPS_ERROR(ErrCode::NOT_SUPPORT));
     }
   }
 
@@ -280,7 +281,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(
     c10::optional<bool> pin_memory_opt,
     int64_t dst_format) {
   torch_npu::utils::torch_check_npu(c10::device_or_default(device_opt));
-  TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
+  TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::NOT_SUPPORT));
   check_size_nonnegative(size);
   c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
   // when the shape and format are not match, fix format here.
@@ -333,7 +334,7 @@ at::Tensor empty_with_format_npu(
     int64_t dst_format) {
   torch_npu::utils::torch_check_npu(options);
   AT_ASSERT(options.backend() == at_npu::key::NativeBackend, OPS_ERROR(ErrCode::PARAM));
-  TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::PARAM));
+  TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned", OPS_ERROR(ErrCode::NOT_SUPPORT));
   check_size_nonnegative(size);
   static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
   // when the shape and format are not match, fix format here.
@@ -450,7 +451,7 @@ at::Tensor &empty_out_npu(
   // generator requires the out and non-out overloads to match exactly
   TORCH_CHECK(
       !optional_memory_format.has_value(),
-      "'memory_format' argument is incompatible with 'out' tensor argument");
+      "'memory_format' argument is incompatible with 'out' tensor argument", OPS_ERROR(ErrCode::PARAM));
   check_size_nonnegative(size);
   if (result.is_sparse()) {
     result.sparse_resize_and_clear_(size, size.size(), 0);
@@ -686,7 +687,7 @@ at::Tensor NPUNativeFunctions::full(
                                       .pinned_memory(pin_memory_opt);
   TORCH_CHECK(
       options.layout() != at::kSparse,
-      "full(...) is not implemented for sparse layout");
+      "full(...) is not implemented for sparse layout", OPS_ERROR(ErrCode::NOT_SUPPORT));
 
   if (!dtype_opt.has_value()) {
     if (fill_value.isBoolean()) {
