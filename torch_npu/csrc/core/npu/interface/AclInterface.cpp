@@ -496,25 +496,25 @@ aclError AclrtUnmapMem(void *virPtr) {
 
 bool IsExistGetCannAttribute()
 {
-    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int *);
+    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int32_t *);
     static AclGetCannAttribute func = (AclGetCannAttribute) GET_FUNC(aclGetCannAttribute);
     return func != nullptr;
 }
 
-aclError AclGetCannAttributeList(const aclCannAttr **cannAttr, int *num)
+aclError AclGetCannAttributeList(const aclCannAttr **cannAttrList, size_t *num)
 {
-    typedef aclError (*AclGetCannAttributeList)(const aclCannAttr **, int *);
+    typedef aclError (*AclGetCannAttributeList)(const aclCannAttr **, size_t *);
     static AclGetCannAttributeList func = nullptr;
     if (func == nullptr) {
         func = (AclGetCannAttributeList) GET_FUNC(aclGetCannAttributeList);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttributeList");
-    return func(cannAttr, num);
+    return func(cannAttrList, num);
 }
 
-aclError AclGetCannAttribute(aclCannAttr cannAttr, int *value)
+aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t *value)
 {
-    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int *);
+    typedef aclError (*AclGetCannAttribute)(aclCannAttr, int32_t *);
     static AclGetCannAttribute func = nullptr;
     if (func == nullptr) {
         func = (AclGetCannAttribute) GET_FUNC(aclGetCannAttribute);
@@ -523,15 +523,15 @@ aclError AclGetCannAttribute(aclCannAttr cannAttr, int *value)
     return func(cannAttr, value);
 }
 
-aclError AclGetDeviceCapability(uint32_t deviceId, aclInfoType infoType, int64_t *value)
+aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int64_t *value)
 {
-    typedef aclError (*AclGetDeviceCapability)(uint32_t, aclInfoType, int64_t *);
+    typedef aclError (*AclGetDeviceCapability)(uint32_t, aclDeviceInfo, int64_t *);
     static AclGetDeviceCapability func = nullptr;
     if (func == nullptr) {
         func = (AclGetDeviceCapability) GET_FUNC(aclGetDeviceCapability);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability");
-    return func(deviceId, infoType, value);
+    return func(deviceId, deviceInfo, value);
 }
 
 } // namespace acl
