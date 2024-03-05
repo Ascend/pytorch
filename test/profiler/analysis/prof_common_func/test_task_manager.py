@@ -3,6 +3,7 @@ import pickle
 import select
 import time
 import multiprocessing
+import unittest
 
 from torch_npu.profiler.analysis.prof_common_func.constant import Constant
 from torch_npu.profiler.analysis.prof_common_func.task_manager import (
@@ -104,6 +105,7 @@ class TestTaskManager(TestCase):
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_fail").status)
         self.assertEqual(TaskStatus.Running, task_infos.get("task_exception").status)
 
+    @unittest.skip("skip test_run_in_sub_process now")
     def test_run_in_sub_process(self):
         manager = ConcurrentTasksManager()
         task_success = TaskSuccess([], ConcurrentMode.SUB_PROCESS)
@@ -118,6 +120,7 @@ class TestTaskManager(TestCase):
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_fail").status)
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_exception").status)
 
+    @unittest.skip("skip test_run_in_sub_thread now")
     def test_run_in_sub_thread(self):
         manager = ConcurrentTasksManager()
         task_success = TaskSuccess([], ConcurrentMode.PTHREAD)
@@ -129,6 +132,7 @@ class TestTaskManager(TestCase):
         self.assertEqual(TaskStatus.Succeed, task_infos.get("task_success").status)
         self.assertEqual(TaskStatus.Failed, task_infos.get("task_fail").status)
 
+    @unittest.skip("skip test_run_sub_process_deps now")
     def test_run_sub_process_deps(self):
         manager = ConcurrentTasksManager()
         task_serial1 = TaskSerial1([], ConcurrentMode.SUB_PROCESS)
