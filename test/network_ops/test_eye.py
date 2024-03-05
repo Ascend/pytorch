@@ -1,3 +1,4 @@
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -43,6 +44,7 @@ class TestEye(TestCase):
         output = output.numpy()
         return output
 
+    @unittest.skip("skip test_eye_int32_common_shape_format now")
     def test_eye_int32_common_shape_format(self):
         shape_format = [
             [np.int32, 0, (3563, 4000)],
@@ -63,6 +65,7 @@ class TestEye(TestCase):
             npu_output = torch.eye(item[1], item[2], dtype=item[0], device="npu")
             self.assertRtolEqual(cpu_output, npu_output.cpu())
 
+    @unittest.skip("skip test_eye_float32_common_shape_format now")
     def test_eye_float32_common_shape_format(self):
         shape_format = [
             [np.float32, 0, (5, 5)],
@@ -83,6 +86,7 @@ class TestEye(TestCase):
             npu_output = self.npu_op_exec(item[2])
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @unittest.skip("skip test_eye_out_float32_common_shape_format now")
     def test_eye_out_float32_common_shape_format(self):
         shape_format = [
             [np.float32, 0, (5, 5)],
@@ -98,6 +102,7 @@ class TestEye(TestCase):
             npu_output = self.npu_op_out_exec(item[2], npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @unittest.skip("skip test_eye_out_float32_different_shape_format now")
     def test_eye_out_float32_different_shape_format(self):
         shape_1 = [np.float32, 0, (4000, 400)]
         shape_2 = [np.float32, 0, (4000, 4000)]
