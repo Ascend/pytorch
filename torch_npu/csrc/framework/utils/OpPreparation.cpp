@@ -367,9 +367,13 @@ namespace at_npu
     }
 
     inline at::Tensor apply_tensor_use_empty(c10::IntArrayRef sizes, const c10::TensorOptions &options) {
-      return NPUNativeFunctions::empty(
-          sizes, options.dtype().toScalarType(), c10::nullopt,
-          options.device_opt(), false, c10::MemoryFormat::Contiguous);
+        c10::optional<c10::Device> device_opt = options.device_opt();
+        if (c10::device_or_default(device_opt).type() != c10::DeviceType::PrivateUse1) {
+            device_opt = at::Device(c10::DeviceType::PrivateUse1);
+        }
+        return NPUNativeFunctions::empty(
+            sizes, options.dtype().toScalarType(), c10::nullopt,
+            device_opt, false, c10::MemoryFormat::Contiguous);
     }
 
     at::Tensor OpPreparation::apply_tensor_without_format(const at::Tensor &src) {
