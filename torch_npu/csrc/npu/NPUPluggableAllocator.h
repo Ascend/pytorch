@@ -47,7 +47,7 @@ struct NPUPluggableAllocator
         std::function<void(void* ptr, aclrtStream stream)> erase_stream_fn);
     void set_get_device_stats_fn(std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn);
     void set_reset_peak_status_fn(std::function<void(int)> reset_peak_status_fn);
-    void set_snapshot_fn(std::function<std::vector<c10_npu::NPUCachingAllocator::SegmentInfo>()> snapshot_fn);
+    void set_snapshot_fn(std::function<c10_npu::NPUCachingAllocator::SnapshotInfo()> snapshot_fn);
     void* malloc(size_t size, int device, aclrtStream stream);
 
     c10::DataPtr allocate(size_t size) const override;
@@ -68,9 +68,15 @@ struct NPUPluggableAllocator
         int device) override;
     void resetAccumulatedStats(int device) override;
     void resetPeakStats(int device) override;
-    std::vector<c10_npu::NPUCachingAllocator::SegmentInfo> snapshot() override;
+    c10_npu::NPUCachingAllocator::SnapshotInfo snapshot() override;
     void FreeDeviceCachedMemory(int device) override;
     std::string name() override;
+    void recordHistory(
+        bool enabled,
+        c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
+        size_t alloc_trace_max_entries,
+        c10_npu::NPUCachingAllocator::RecordContext when) override;
+    void attachOutOfMemoryObserver(c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer) override;
 
 protected:
     std::function<void*(size_t, int, aclrtStream)> alloc_fn_;
@@ -83,7 +89,7 @@ protected:
     std::function<void(void* ptr, aclrtStream stream)> erase_stream_fn_;
     std::function<c10_npu::NPUCachingAllocator::DeviceStats(int)> get_device_stats_fn_;
     std::function<void(int)> reset_peak_status_fn_;
-    std::function<std::vector<c10_npu::NPUCachingAllocator::SegmentInfo>()> snapshot_fn_;
+    std::function<c10_npu::NPUCachingAllocator::SnapshotInfo()> snapshot_fn_;
     std::mutex allocator_mutex_;
     // We do the bookeeping here in order to simplify custom allocators
     std::unordered_map<void*, _AllocationMetadata> allocation_metadata_;

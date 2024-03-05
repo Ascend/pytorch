@@ -94,6 +94,8 @@ struct DeviceStats {
   int64_t max_split_size = 0;
 };
 
+typedef std::shared_ptr<c10::GatheredContext> (*CreateContextFn)(void);
+
 // Struct containing info of an allocation block (i.e. a fractional part of a cudaMalloc)..
 struct BlockInfo {
   int64_t size = 0;
@@ -101,12 +103,14 @@ struct BlockInfo {
   int32_t gc_counter = 0;
   bool allocated = false;
   bool active = false;
+  std::shared_ptr<c10::GatheredContext> context_when_allocated;
 };
 
 // Struct containing info of a memory segment (i.e. one contiguous cudaMalloc).
 struct SegmentInfo {
   int64_t device = 0;
   uintptr_t  address = 0;
+  aclrtStream stream = 0;
   int64_t total_size = 0;
   int64_t requested_size = 0;
   int64_t allocated_size = 0;
@@ -114,8 +118,58 @@ struct SegmentInfo {
   bool is_large = false;
   bool is_expandable = false;
   std::vector<BlockInfo> blocks;
+  std::shared_ptr<c10::GatheredContext> context_when_allocated;
 };
 
+struct TraceEntry {
+    enum Action {
+        ALLOC,          // API made to the caching allocator for new memory
+        FREE_REQUESTED, // API call made to the caching allocator to free memory
+        FREE_COMPLETED, // The allocator might have to delay a free because
+                        // it is still in use on another stream via
+                        // record_stream This event is generated when a free
+                        // actually completes.
+        SEGMENT_ALLOC, // a call to AclrtMalloc to get more memory from the OS
+        SEGMENT_FREE, // a call to aclrtFree to return memory to the OS (e.g. to
+                      // defragment or empty_caches)
+        SEGMENT_MAP,  // a call to AclrtMapMem (used with expandable_segments)
+        SEGMENT_UNMAP, // unmap part of a segment (used with expandable
+                       // segments)
+        SNAPSHOT, // a call to snapshot, used to correlate memory snapshots to
+                  // trace events
+        OOM // the allocator threw an OutOfMemoryError (addr_ is the amount of
+            // free bytes reported by cuda)
+    };
+    TraceEntry(Action action, int device, int64_t addr, size_t size,
+               aclrtStream stream,
+               std::shared_ptr<c10::GatheredContext> context = nullptr)
+        : action_(action), device_(device), addr_(addr),
+          context_(std::move(context)), stream_(stream), size_(size)
+    {
+    }
+    Action action_;
+    int device_;
+    int64_t addr_; // for OOM, this is the amount of free bytes reported by cuda
+    std::shared_ptr<c10::GatheredContext> context_;
+    aclrtStream stream_;
+    int64_t size_;
+};
+
+struct SnapshotInfo {
+    std::vector<SegmentInfo> segments;
+    std::vector<std::vector<TraceEntry> > device_traces;
+};
+
+enum struct RecordContext {
+    NEVER = 0,
+    STATE = 1, // only keep stacks for active allocations
+    ALLOC = 2, // additionally keep stacks for allocations in the trace history
+    ALL = 3,   // additionally record stacks for when something is freed
+};
+
+using OutOfMemoryObserver =
+    std::function<void(int64_t device, int64_t allocated, int64_t device_total,
+                       int64_t device_free)>;
 
 class NPUAllocator : public c10::Allocator {
 public:
@@ -133,9 +187,20 @@ public:
     virtual DeviceStats getDeviceStats(int device) = 0;
     virtual void resetAccumulatedStats(int device) = 0;
     virtual void resetPeakStats(int device) = 0;
-    virtual std::vector<SegmentInfo> snapshot() = 0;
+    virtual SnapshotInfo snapshot() = 0;
     virtual void FreeDeviceCachedMemory(int device) = 0;
     virtual std::string name() = 0;
+    virtual bool isHistoryEnabled()
+    {
+        TORCH_CHECK(
+            false, name(),
+            " does not yet support recordHistory. "
+            "If you need it, please file an issue describing your use case.");
+    }
+    virtual void recordHistory(bool enabled, CreateContextFn context_recorder,
+                               size_t alloc_trace_max_entries,
+                               RecordContext when) = 0;
+    virtual void attachOutOfMemoryObserver(OutOfMemoryObserver observer) = 0;
 };
 
 // Allocator object, statically initialized
@@ -219,7 +284,7 @@ inline void resetPeakStats(int device)
     return get()->resetPeakStats(device);
 }
 
-inline std::vector<SegmentInfo> snapshot()
+inline SnapshotInfo snapshot()
 {
     return get()->snapshot();
 }
@@ -232,6 +297,23 @@ inline void FreeDeviceCachedMemory(int device)
 inline std::string name()
 {
     return get()->name();
+}
+
+inline void recordHistory(bool enabled, CreateContextFn context_recorder,
+                          size_t alloc_trace_max_entries, RecordContext when)
+{
+    return get()->recordHistory(enabled, context_recorder,
+                                alloc_trace_max_entries, when);
+}
+
+inline bool isHistoryEnabled()
+{
+    return get()->isHistoryEnabled();
+}
+
+inline void attachOutOfMemoryObserver(OutOfMemoryObserver observer)
+{
+    return get()->attachOutOfMemoryObserver(observer);
 }
 
 } // namespace NPUCachingAllocator

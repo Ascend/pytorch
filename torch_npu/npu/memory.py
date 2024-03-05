@@ -2,6 +2,11 @@ import collections
 import contextlib
 import warnings
 import ctypes
+import pickle
+import sys
+import os
+import stat
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, pta_error
@@ -413,7 +418,7 @@ def memory_snapshot():
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
-    return torch_npu._C._npu_memorySnapshot()
+    return torch_npu._C._npu_memorySnapshot()["segments"]
 
 
 def _format_size(sz, pref_sz):
@@ -620,3 +625,144 @@ def _get_current_allocator() -> _NPUAllocator:
         See :ref:`npu-memory-management` for details on creating and using a custom allocator
     """
     return _NPUAllocator(torch_npu._C._npu_getAllocator())
+
+
+def _record_memory_history(enabled="all", *args, **kwargs):
+    """Enable recording of stack traces associated with memory
+    allocations, so you can tell what allocated any piece of memory in
+    :func:`torch.npu.memory._snapshot()`.
+
+    In addition too keeping stack traces with each current allocation and free,
+    this will also enable recording of a history of all alloc/free events.
+
+    Use :func:`torch.npu.memory._snapshot()` to retrieve this information,
+    and the tools in `_memory_viz.py` to visualize snapshots.
+
+    The Python trace collection is fast (2us per trace), so you may consider
+    enabling this on production jobs if you anticipate ever having to debug
+    memory issues.
+
+    C++ trace collection is also fast (~50ns/frame), which for many typical programs
+    works out to ~2us per trace, but can vary depending on stack depth.
+
+    Args:
+        enabled (Literal[None, "state", "all"], optional):
+            `None`, disable recording memory history.
+            `"state"`, keep information for currenly allocated memory.
+            `"all"`, additionally keep a history of all alloc/free calls.
+            Defaults to "all".
+        context (Literal[None, "state", "alloc", "all"], optional):
+            `None`, Do not record any tracebacks.
+            `"state"`, Record tracebacks for currently allocated memory.
+            `"alloc"`, additionally keep tracebacks for alloc calls.
+            `"all"`, additionally keep tracebacks for free calls.
+            Defaults to "all".
+        stacks (Literal["python", "all"], optional):
+            `"python"`, include Python, TorchScript, and inductor frames in tracebacks
+            `"all"`, additionally include C++ frames
+            Defaults to "all".
+        max_entries (int, optional): Keep a maximum of `max_entries`
+            alloc/free events in the recorded history recorded.
+    """
+    return _record_memory_history_impl(enabled, *args, **kwargs)
+
+
+def _record_memory_history_impl(
+    enabled: Optional[str] = "all",
+    context: Optional[str] = "all",
+    stacks: str = "all",
+    max_entries: int = sys.maxsize,
+    device=None,
+):
+    torch_npu._C._npu_record_memory_history(enabled, context, stacks, max_entries)
+
+
+def _snapshot(device=None):
+    """Save a snapshot of NPU memory state at the time it was called.
+
+    The state is represented as a dictionary with the following structure.
+
+    .. code-block:: python
+
+        class Snapshot(TypedDict):
+            segments : List[Segment]
+            device_traces: List[List[TraceEntry]]
+
+        class Segment(TypedDict):
+            # Segments are memory returned from a aclrtMalloc call.
+            # The size of reserved memory is the sum of all Segments.
+            # Segments are cached and reused for future allocations.
+            # If the reuse is smaller than the segment, the segment
+            # is split into more then one Block.
+            # empty_cache() frees Segments that are entirely inactive.
+            address: int
+            total_size: int #  aclrtMalloc'd size of segment
+            stream: int
+            segment_type: Literal['small', 'large'] # 'large' (>1MB)
+            allocated_size: int # size of memory in use
+            active_size: int # size of memory in use or in active_awaiting_free state
+            blocks : List[Block]
+
+        class Block(TypedDict):
+            # A piece of memory returned from the allocator, or
+            # current cached but inactive.
+            size: int
+            requested_size: int # size requested during malloc, may be smaller than
+                                # size due to rounding
+            address: int
+            state: Literal['active_allocated', # used by a tensor
+                        'active_awaiting_free', # waiting for another stream to finish using
+                                                # this, then it will become free
+                        'inactive',] # free for reuse
+            frames: List[Frame] # stack trace from where the allocation occurred
+
+        class Frame(TypedDict):
+                filename: str
+                line: int
+                name: str
+
+        class TraceEntry(TypedDict):
+            # When `torch.npu.memory._record_memory_history()` is enabled,
+            # the snapshot will contain TraceEntry objects that record each
+            # action the allocator took.
+            action: Literal[
+            'alloc'  # memory allocated
+            'free_requested', # the allocated received a call to free memory
+            'free_completed', # the memory that was requested to be freed is now
+                            # able to be used in future allocation calls
+            'segment_alloc', # the caching allocator ask aclrtMalloc for more memory
+                            # and added it as a segment in its cache
+            'segment_free',  # the caching allocator called aclrtFree to return memory
+                            # to npu possibly trying free up memory to
+                            # allocate more segments or because empty_caches was called
+            'oom',          # the allocator threw an OOM exception. 'size' is
+                            # the requested number of bytes that did not succeed
+            'snapshot'      # the allocator generated a memory snapshot
+                            # useful to coorelate a previously taken
+                            # snapshot with this trace
+            ]
+            addr: int # not present for OOM
+            frames: List[Frame]
+            size: int
+            stream: int
+            device_free: int # only present for OOM, the amount of
+                            # memory npu still reports to be free
+
+    Returns:
+        The Snapshot dictionary object
+    """
+    return torch_npu._C._npu_memorySnapshot()
+
+
+def _dump_snapshot(filename="dump_snapshot.pickle"):
+    """
+    Save a pickled version of the `torch.memory._snapshot()` dictionary to a file.
+
+    This file can be opened by the interactive snapshot viewer at pytorch.org/memory_viz
+
+    Args:
+        filename (str, optional): Name of the file to create. Defaults to "dump_snapshot.pickle".
+    """
+    s = _snapshot()
+    with os.fdopen(os.open(filename, os.O_WRONLY | os.O_CREAT, stat.S_IWUSR), "wb") as f:
+        pickle.dump(s, f)

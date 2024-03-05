@@ -88,7 +88,7 @@ void NPUPluggableAllocator::set_reset_peak_status_fn(
 }
 
 void NPUPluggableAllocator::set_snapshot_fn(
-    std::function<std::vector<c10_npu::NPUCachingAllocator::SegmentInfo>()> snapshot_fn)
+    std::function<c10_npu::NPUCachingAllocator::SnapshotInfo()> snapshot_fn)
 {
     snapshot_fn_ = std::move(snapshot_fn);
 }
@@ -247,7 +247,7 @@ void NPUPluggableAllocator::resetPeakStats(int device)
     }
 }
 
-std::vector<c10_npu::NPUCachingAllocator::SegmentInfo> NPUPluggableAllocator::snapshot()
+c10_npu::NPUCachingAllocator::SnapshotInfo NPUPluggableAllocator::snapshot()
 {
     if (snapshot_fn_) {
         return snapshot_fn_();
@@ -265,6 +265,25 @@ void NPUPluggableAllocator::FreeDeviceCachedMemory(int device)
 std::string NPUPluggableAllocator::name()
 {
     return "pluggable";
+}
+
+void NPUPluggableAllocator::recordHistory(
+    bool enabled,
+    c10_npu::NPUCachingAllocator::CreateContextFn context_recorder,
+    size_t alloc_trace_max_entries,
+    c10_npu::NPUCachingAllocator::RecordContext when)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support recordHistory. "
+        "If you need it, please file an issue describing your use case.");
+}
+
+void NPUPluggableAllocator::attachOutOfMemoryObserver(
+    c10_npu::NPUCachingAllocator::OutOfMemoryObserver observer)
+{
+    TORCH_NPU_WARN(
+        "NPUPluggableAllocator does not yet support attachOutOfMemoryObserver. "
+        "If you need it, please file an issue describing your use case.");
 }
 
 std::shared_ptr<c10_npu::NPUCachingAllocator::NPUAllocator>

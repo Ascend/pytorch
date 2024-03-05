@@ -8,7 +8,7 @@
 
 extern "C" {
 using c10_npu::NPUCachingAllocator::DeviceStats;
-using c10_npu::NPUCachingAllocator::SegmentInfo;
+using c10_npu::NPUCachingAllocator::SnapshotInfo;
 static bool useflag = false;
 
 void* my_malloc(ssize_t size, int device, aclrtStream stream)
@@ -42,9 +42,9 @@ void my_reset_peak_status(int device)
     std::cout<<"resetPeakStatus success!"<<std::endl;
 }
 
-std::vector<SegmentInfo> my_snapshot()
+SnapshotInfo my_snapshot()
 {
-    std::vector<SegmentInfo> result;
+    SnapshotInfo result;
     return result;
 }
 }
