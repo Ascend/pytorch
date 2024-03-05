@@ -152,10 +152,8 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
 apply_class_patches()
+asd_patch()
 torch.distributed.is_hccl_available = lambda : True
-
-if int(os.getenv("NPU_ASD_ENABLE", "0")):
-    asd_patch()
     
 # this must be placed at the end
 torch_npu._C._initExtension()
