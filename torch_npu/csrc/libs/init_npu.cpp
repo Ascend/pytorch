@@ -26,13 +26,15 @@ void init_npu(const c10::DeviceIndex device_index) {
 
 void init_npu(const std::string& device_str) {
   auto device = at::Device(device_str);
-  TORCH_CHECK(is_npu_device(device), "NPU device init fail, except got NPU device, but got ", device_str);
+  TORCH_CHECK(is_npu_device(device), "NPU device init fail, except got NPU device, but got ", device_str,
+              PTA_ERROR(ErrCode::PARAM));
   init_npu(device.index());
 }
 
 
 void init_npu(const at::Device& device) {
-  TORCH_CHECK(is_npu_device(device), "NPU device init fail, except got NPU device, but got ", str(device));
+  TORCH_CHECK(is_npu_device(device), "NPU device init fail, except got NPU device, but got ", str(device),
+              PTA_ERROR(ErrCode::PARAM));
   init_npu(device.index());
 }
 
@@ -41,19 +43,20 @@ void finalize_npu() {
     try {
       c10_npu::npuSynchronizeDevice();
     } catch (std::exception& e) {
-      TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what());
+      TORCH_CHECK(false, "NPU SynchronizeDevice failed err=:%s", e.what(), PTA_ERROR(ErrCode::ACL));
     }
 
     THNPUCachingHostAllocator_emptyCache();
     try {
       c10_npu::NPUCachingAllocator::emptyCache();
     } catch (std::exception& e) {
-      TORCH_CHECK(false, "NPU CachingAllocator::emptyCache failed err=:%s", e.what());
+      TORCH_CHECK(false, "NPU CachingAllocator::emptyCache failed err=:%s", e.what(),
+                  PTA_ERROR(ErrCode::ACL));
     }
 
     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
     if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
-      TORCH_CHECK(false, "NPU sys finalize failed.\n");
+      TORCH_CHECK(false, "NPU sys finalize failed.", PTA_ERROR(ErrCode::ACL));
     }
   } else {
     TORCH_WARN("Please init npu device first!");

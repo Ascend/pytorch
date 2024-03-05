@@ -58,7 +58,7 @@ public:
         if (GetInitFlag()) {
             return device_id_;
         }
-        TORCH_CHECK(false, "no npu device has been initialized!");
+        TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
         return -1;
     }
 

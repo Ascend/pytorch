@@ -76,22 +76,22 @@ at::Tensor NPUNativeFunctions::to(
     } else {
         TORCH_CHECK(
             !optional_memory_format.has_value(),
-            "NPU not support specify memory_format.");
+            "NPU not support specify memory_format.", OPS_ERROR(ErrCode::NOT_SUPPORT));
     }
 
     c10::TensorOptions options_ = c10::TensorOptions().dtype(dtype).layout(layout).device(device);
     TORCH_CHECK(
         !(options_.has_memory_format() && optional_memory_format.has_value()),
         "Cannot set memory_format both in c10::TensorOptions and explicit argument; please delete "
-        "the redundant setter.");
+        "the redundant setter.", OPS_ERROR(ErrCode::PARAM));
     auto options =
         options_.merge_in(c10::TensorOptions().memory_format(optional_memory_format));
 
-    TORCH_CHECK(
-        options.requires_grad_opt() == c10::nullopt,
-        "to(options) expects unset requires_grad flag, but got "
-        "options.requires_grad set as ",
-        options.requires_grad());
+  TORCH_CHECK(
+      options.requires_grad_opt() == c10::nullopt,
+      "to(options) expects unset requires_grad flag, but got "
+      "options.requires_grad set as ",
+      options.requires_grad(), OPS_ERROR(ErrCode::PARAM));
 
     TORCH_CHECK(
         !options.has_layout() || self.layout() == options.layout(),
@@ -99,7 +99,7 @@ at::Tensor NPUNativeFunctions::to(
         "but got self.layout being ",
         self.layout(),
         " and options.layout set as ",
-        options.layout());
+        options.layout(), OPS_ERROR(ErrCode::TYPE));
 
     if (options.has_device()) {
         options = options.device(ensure_has_index(options.device()));

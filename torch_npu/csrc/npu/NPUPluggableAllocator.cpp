@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch::npu::NPUPluggableAllocator {
 
@@ -152,7 +153,7 @@ void NPUPluggableAllocator::raw_delete(void* ptr)
         const std::lock_guard<std::mutex> lock(allocator_mutex_);
         TORCH_CHECK(
             allocation_metadata_.count(ptr),
-            "Trying to free a pointer not allocated here");
+            "Trying to free a pointer not allocated here", PTA_ERROR(ErrCode::PTR));
         _AllocationMetadata& metadata = allocation_metadata_[ptr];
         size = metadata.size;
         device_idx = metadata.device_idx;
@@ -227,7 +228,7 @@ c10_npu::NPUCachingAllocator::DeviceStats NPUPluggableAllocator::getDeviceStats(
     if (get_device_stats_fn_) {
         return get_device_stats_fn_(device);
     } else {
-        TORCH_CHECK(false, "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn");
+        TORCH_CHECK(false, "get_device_stats_fn_ is not define, please set by set_get_device_stats_fn", PTA_ERROR(ErrCode::INTERNAL));
     }
 }
 
@@ -242,7 +243,7 @@ void NPUPluggableAllocator::resetPeakStats(int device)
     if (reset_peak_status_fn_) {
         reset_peak_status_fn_(device);
     } else {
-        TORCH_CHECK(false, "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn");
+        TORCH_CHECK(false, "reset_peak_status_fn_ is not define, please set by set_reset_peak_status_fn", PTA_ERROR(ErrCode::INTERNAL));
     }
 }
 
@@ -251,7 +252,7 @@ std::vector<c10_npu::NPUCachingAllocator::SegmentInfo> NPUPluggableAllocator::sn
     if (snapshot_fn_) {
         return snapshot_fn_();
     } else {
-        TORCH_CHECK(false, "snapshot_fn_ is not define, please set by set_snapshot_fn");
+        TORCH_CHECK(false, "snapshot_fn_ is not define, please set by set_snapshot_fn", PTA_ERROR(ErrCode::INTERNAL));
     }
 }
 
@@ -291,7 +292,7 @@ void changeCurrentAllocator(
 {
     TORCH_CHECK(
         !c10_npu::NPUCachingAllocator::allocator.load()->initialized(),
-        "Can't swap an already initialized allocator");
+        "Can't swap an already initialized allocator", PTA_ERROR(ErrCode::INTERNAL));
     c10_npu::NPUCachingAllocator::allocator.store(allocator.get());
     current_custom_allocator = allocator;
 }

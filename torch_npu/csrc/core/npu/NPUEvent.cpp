@@ -75,7 +75,8 @@ void NPUEvent::record(const NPUStream& stream)
     }
 
     TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
-        " does not match recording stream's device ", stream.device_index(), ".");
+        " does not match recording stream's device ", stream.device_index(), ".",
+        PTA_ERROR(ErrCode::PARAM));
     NPUGuard guard(device_index_);
     NPU_CHECK_ERROR(c10_npu::queue::LaunchRecordEventTask(event_, stream));
     was_recorded_ = true;
@@ -92,7 +93,7 @@ void NPUEvent::block(const NPUStream& stream)
 float NPUEvent::elapsed_time(const NPUEvent& other) const
 {
     TORCH_CHECK(is_created_ && other.isCreated(),
-        "Both events must be recorded before calculating elapsed time.");
+        "Both events must be recorded before calculating elapsed time.", PTA_ERROR(ErrCode::INTERNAL));
     float time_ms = 0;
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {

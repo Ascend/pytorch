@@ -103,7 +103,8 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(const at::ScalarType &data_type) {
   auto acl_dtype =
       kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
   TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED,
-              std::string(c10::toString(data_type)) + " has not been supported")
+              std::string(c10::toString(data_type)) + " has not been supported",
+              OPS_ERROR(ErrCode::NOT_SUPPORT))
   return acl_dtype;
 }
 
@@ -112,7 +113,8 @@ aclDataType CalcuOpUtil::ConvertToAclDataType(
     const string &realDataType) {
   auto acl_dtype = kATenScalarTypeToAclDataTypeTable[static_cast<int64_t>(data_type)];
   TORCH_CHECK(acl_dtype != ACL_DT_UNDEFINED,
-              std::string(c10::toString(data_type)) + " has not been supported")
+              std::string(c10::toString(data_type)) + " has not been supported",
+              OPS_ERROR(ErrCode::NOT_SUPPORT))
   if (!realDataType.empty()) {
     return STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP[realDataType];
   }

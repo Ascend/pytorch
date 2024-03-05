@@ -11,6 +11,7 @@
 #include <torch/library.h>
 
 #include "torch_npu/csrc/framework/autograd/FunctionsManual.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 using namespace at;
 using namespace at_npu::autograd::generated;
@@ -104,7 +105,7 @@ Tensor _fw_primal(c10::DispatchKeySet ks, const Tensor& self, int64_t level) {
   if (isFwGradDefined(self)) {
     // Modified from original codegen
     // We explicitly want to ignore the forward grad at the given level
-    TORCH_CHECK(level == 0, "Invalid level given to _fw_primal");
+    TORCH_CHECK(level == 0, "Invalid level given to _fw_primal", OPS_ERROR(ErrCode::VALUE));
     // End modified from original codegen
   }
   return result;

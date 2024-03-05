@@ -149,7 +149,7 @@ void initNpuProfiler(const std::string &path, const std::set<NpuActivityType> &a
     npu_trace = true;
   }
   std::string realPath = Utils::RealPath(absPath);
-  TORCH_CHECK(!realPath.empty(), "Invalid path", path);
+  TORCH_CHECK(!realPath.empty(), "Invalid path", path, PROF_ERROR(ErrCode::PARAM));
   ProfilerMgr::GetInstance()->Init(realPath, npu_trace);
 }
 

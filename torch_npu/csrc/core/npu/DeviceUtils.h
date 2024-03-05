@@ -28,17 +28,17 @@ inline bool is_npu(const at::Device& device) {
 
 inline void torch_check_npu(const at::Tensor& tensor) {
   TORCH_CHECK(is_npu(tensor),
-              "Expected NPU tensor, please check whether the input tensor device is correct.");
+              "Expected NPU tensor, please check whether the input tensor device is correct.", PTA_ERROR(ErrCode::PARAM));
 }
 
 inline void torch_check_npu(const at::TensorOptions& options) {
   TORCH_CHECK(is_npu(options),
-              "Expected NPU tensor, please check whether the input tensor device is correct.");
+              "Expected NPU tensor, please check whether the input tensor device is correct.", PTA_ERROR(ErrCode::PARAM));
 }
 
 inline void torch_check_npu(const at::Device& device) {
   TORCH_CHECK(is_npu(device),
-              "Expected NPU tensor, please check whether the input tensor device is correct.");
+              "Expected NPU tensor, please check whether the input tensor device is correct.", PTA_ERROR(ErrCode::PARAM));
 }
 
 inline c10::DeviceType get_npu_device_type() {
@@ -50,7 +50,7 @@ inline void maybe_initialize_npu(const at::TensorOptions& options) {
     c10_npu::NpuSysCtrl::SysStatus status =
         c10_npu::NpuSysCtrl::GetInstance().Initialize(options.device().index());
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
-      TORCH_CHECK(false, "npu device ", options.device().index(), " init failed.");
+      TORCH_CHECK(false, "npu device ", options.device().index(), " init failed.", PTA_ERROR(ErrCode::ACL));
     }
 #ifndef BUILD_LIBTORCH
     torch_npu::utils::npu_lazy_init();
@@ -63,7 +63,7 @@ inline void maybe_initialize_npu(const at::Device& device) {
     c10_npu::NpuSysCtrl::SysStatus status =
         c10_npu::NpuSysCtrl::GetInstance().Initialize(device.index());
     if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
-      TORCH_CHECK(false, "npu device ", device.index(), " init failed.");
+      TORCH_CHECK(false, "npu device ", device.index(), " init failed.", PTA_ERROR(ErrCode::ACL));
     }
 #ifndef BUILD_LIBTORCH
     torch_npu::utils::npu_lazy_init();
