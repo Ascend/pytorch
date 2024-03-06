@@ -16,14 +16,15 @@
 from typing import Union, Optional
 from decimal import Decimal
 
+from .common_bean import CommonBean
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.constant import convert_us2ns
 from ..prof_common_func.constant import convert_ns2us_str
 
 
-class GeOpMemoryBean:
-    def __init__(self, data: list):
-        self._data = data
+class GeOpMemoryBean(CommonBean):
+    def __init__(self, data: dict):
+        super().__init__(data)
 
     @property
     def row(self) -> list:

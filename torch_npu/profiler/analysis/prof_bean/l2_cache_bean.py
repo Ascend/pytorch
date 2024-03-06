@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class L2CacheBean:
+from .common_bean import CommonBean
+
+
+class L2CacheBean(CommonBean):
     HEADERS = ["Stream Id", "Task Id", "Hit Rate", "Victim Rate", "Op Name"]
 
-    def __init__(self, data: list):
-        self._data = data
+    def __init__(self, data: dict):
+        super().__init__(data)
 
     @property
     def row(self) -> list:
