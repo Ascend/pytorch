@@ -68,6 +68,27 @@ class TestDropOutBackward(TestCase):
         ]
         self.dropout_list_exec(shape_format)
 
+    def test_will_engine_execute_node(self):
+
+        def get_grad_fn(t):
+            if t.requires_grad and t.grad_fn is None:
+                return t.clone().grad_fn.next_functions[0][0]
+            else:
+                return t.grad_fn
+
+        m = torch.nn.Dropout(0.1)
+        a = torch.randn(2, 3, 4, requires_grad=True).npu()
+        b = m(a)
+        should_execute = list(map(get_grad_fn, (a, b)))
+
+        def fn(x):
+            for g in should_execute:
+                self.assertTrue(torch._C._will_engine_execute_node(g))
+
+        a.register_hook(fn)
+        out = b.sum()
+        torch.autograd.backward(out, inputs=(a), retain_graph=True)
+
 
 if __name__ == "__main__":
     run_tests()
