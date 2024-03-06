@@ -556,6 +556,17 @@ class NPUScatterOP(torch.autograd.Function):
         return g.op("npu::NPUScatter", self, indices, updates, dim_i=dim)
 
 
+class NPUScatterNdUpdateOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_scatter_nd_update(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, self: Tensor, indices: Tensor, updates: Tensor):
+        return g.op("npu::NPUScatterNdUpdate", self, indices, updates)
+
+
 class NPULstmOP(torch.autograd.Function):
 
     @staticmethod
@@ -998,6 +1009,10 @@ def wrapper_npu_scatter(self, indices, updates, dim):
     return NPUScatterOP.apply(self, indices, updates, dim)
 
 
+def wrapper_npu_scatter_nd_update(self, indices, updates):
+    return NPUScatterNdUpdateOP.apply(self, indices, updates)
+
+
 def wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
@@ -1094,6 +1109,7 @@ def add_onnx_ops():
     torch_npu.npu_stride_add = wrapper_npu_stride_add
     torch_npu.npu_deep_norm = wrapper_npu_deep_norm
     torch_npu.npu_scatter = wrapper_npu_scatter
+    torch_npu.npu_scatter_nd_update = wrapper_npu_scatter_nd_update
     torch_npu.npu_lstm = wrapper_npu_lstm
     torch_npu.npu_rms_norm = wrapper_npu_rms_norm
     torch_npu.npu_add_rms_norm = wrapper_npu_add_rms_norm

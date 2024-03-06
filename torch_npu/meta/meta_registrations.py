@@ -179,6 +179,16 @@ def scatter_list_meta(self, indices, updates, mask, reduce='update', axis=-2):
     return var_list
 
 
+@impl(m, "npu_scatter_nd_update")
+def scatter_nd_update_meta(self, indices, updates):
+    return torch.empty_like(self, dtype=self.dtype)
+
+
+@impl(m, "npu_scatter_nd_update_")
+def scatter_nd_update__meta(self, indices, updates):
+    return self
+
+
 @impl(m, "npu_geglu")
 def npu_geglu_meta(self, dim, approximate, activate_left=False):
     return (torch.empty_like(self, dtype=self.dtype), torch.empty_like(self, dtype=self.dtype))
