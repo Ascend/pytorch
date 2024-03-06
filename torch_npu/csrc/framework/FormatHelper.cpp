@@ -2,6 +2,7 @@
 
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 
 namespace at_npu
@@ -171,7 +172,7 @@ namespace at_npu
       {
         FormatShape res;
         res.resize(4);
-        AT_ASSERT(dims.size() <= 4, "input dim > 4 when InferShapeLessTo4");
+        AT_ASSERT(dims.size() <= 4, "input dim > 4 when InferShapeLessTo4", OPS_ERROR(ErrCode::PARAM));
         switch (dims.size())
         {
             case 0:
@@ -213,7 +214,7 @@ namespace at_npu
 
       FormatShape InferShapeofNHWC(c10::IntArrayRef dims)
       {
-        AT_ASSERT(dims.size() == 4, "input dim should be equal to 4 when InferShapeofNHWC");
+        AT_ASSERT(dims.size() == 4, "input dim should be equal to 4 when InferShapeofNHWC", OPS_ERROR(ErrCode::PARAM));
         return FormatShape(dims.begin(), dims.end());
       }
 
@@ -308,7 +309,7 @@ namespace at_npu
         {
           cur_storage_dims = InferShapeLessTo4(storage_dims);
         }
-        AT_ASSERT(cur_storage_dims.size() == 4, "input dim num not equal 4 when InferShapeNCHWToND");
+        AT_ASSERT(cur_storage_dims.size() == 4, "input dim num not equal 4 when InferShapeNCHWToND", OPS_ERROR(ErrCode::PARAM));
 
         if (base_dims.size() == 0)
         {
@@ -321,23 +322,23 @@ namespace at_npu
             case 1:
                 res.resize(1);
                 res[0] = cur_storage_dims[1];
-                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_C erase dim N must be 1");
-                AT_ASSERT(cur_storage_dims[2] == 1, "reshape type RESHAPE_TYPE_C erase dim H must be 1");
-                AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_C erase dim W must be 1");
+                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_C erase dim N must be 1", OPS_ERROR(ErrCode::PARAM));
+                AT_ASSERT(cur_storage_dims[2] == 1, "reshape type RESHAPE_TYPE_C erase dim H must be 1", OPS_ERROR(ErrCode::PARAM));
+                AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_C erase dim W must be 1", OPS_ERROR(ErrCode::PARAM));
                 break;
             case 2:
                 res.resize(2);
                 res[0] = cur_storage_dims[1];
                 res[1] = cur_storage_dims[2];
-                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CH erase dim N must be 1");
-                AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_CH erase dim W must be 1");
+                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CH erase dim N must be 1", OPS_ERROR(ErrCode::PARAM));
+                AT_ASSERT(cur_storage_dims[3] == 1, "reshape type RESHAPE_TYPE_CH erase dim W must be 1", OPS_ERROR(ErrCode::PARAM));
                 break;
             case 3:
                 res.resize(3);
                 res[0] = cur_storage_dims[1];
                 res[1] = cur_storage_dims[2];
                 res[2] = cur_storage_dims[3];
-                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CHW erase dim N must be 1");
+                AT_ASSERT(cur_storage_dims[0] == 1, "reshape type RESHAPE_TYPE_CHW erase dim N must be 1", OPS_ERROR(ErrCode::PARAM));
                 break;
             case 4:
                 res = cur_storage_dims;
@@ -350,14 +351,14 @@ namespace at_npu
 
       FormatShape InferShapeNDToNCHW(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims)
       {
-        AT_ASSERT(storage_dims.size() <= 4, "input storage dim not less than 4");
-        AT_ASSERT(base_dims.size() <= 4, "input storage dim not less than 4");
+        AT_ASSERT(storage_dims.size() <= 4, "input storage dim not less than 4", OPS_ERROR(ErrCode::PARAM));
+        AT_ASSERT(base_dims.size() <= 4, "input storage dim not less than 4", OPS_ERROR(ErrCode::PARAM));
         return InferShapeLessTo4(base_dims);
       }
 
       FormatShape InferShapeNDToNCDHW(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims)
       {
-        AT_ASSERT(storage_dims.size() == 5, "ND [", storage_dims, "] failed to convert to NCDHW");
+        AT_ASSERT(storage_dims.size() == 5, "ND [", storage_dims, "] failed to convert to NCDHW", OPS_ERROR(ErrCode::PARAM));
         FormatShape res;
         res.resize(5);
         res = storage_dims;
@@ -369,7 +370,7 @@ namespace at_npu
         FormatShape res;
         res.resize(5);
         res = storage_dims;
-        AT_ASSERT(res.size() == 5, "input dim num not equal 5 when InferShapeNCDHWToND");
+        AT_ASSERT(res.size() == 5, "input dim num not equal 5 when InferShapeNCDHWToND", OPS_ERROR(ErrCode::PARAM));
         return res;
       }
 

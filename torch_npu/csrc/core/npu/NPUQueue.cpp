@@ -221,7 +221,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     throw std::runtime_error("The Inner error is reported as above.\n "\
                              "Since the operator is called asynchronously, the stacktrace may be inaccurate. "\
                              "If you want to get the accurate stacktrace, "\
-                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.");
+                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." + PTA_ERROR(ErrCode::INTERNAL));
   }
 
 #ifndef BUILD_LIBTORCH
@@ -297,7 +297,7 @@ void Repository::Enqueue(void* cur_paras) {
     throw std::runtime_error("The Inner error is reported as above.\n "\
                              "Since the operator is called asynchronously, the stacktrace may be inaccurate. "\
                              "If you want to get the accurate stacktrace, "\
-                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1.");
+                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." + PTA_ERROR(ErrCode::INTERNAL));
   }
 
     if (GetStatus() != RUN && GetStatus() != INIT) {

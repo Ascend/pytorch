@@ -256,7 +256,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 return f"""
 {returns_type} {name}({args_str}) {{
 TORCH_CHECK_NOT_IMPLEMENTED({self_arg_name}.is_meta(),
-"Cannot inplace into non-meta tensor with meta tensor argument");
+"Cannot inplace into non-meta tensor with meta tensor argument", OPS_ERROR(ErrCode::NOT_SUPPORT));
 return {self_arg_name};
 }}
 """
