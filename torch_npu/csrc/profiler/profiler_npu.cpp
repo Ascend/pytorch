@@ -31,7 +31,7 @@ static inline void npuCheck(aclError result, const char * file, int line) {
     if (result != ACL_ERROR_NONE) {
         std::stringstream ss;
         ss << file << ":" << line << ": "
-           << ", aclError id:" << result << ".";
+           << ", aclError id:" << result << "." << PROF_ERROR(ErrCode::ACL);
         throw std::runtime_error(ss.str());
     }
 }

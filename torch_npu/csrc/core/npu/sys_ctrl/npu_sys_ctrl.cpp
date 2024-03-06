@@ -119,26 +119,26 @@ void SetHF32DefaultValue() {
 }
 
 std::string GetTorchNpuFile() {
-  PyObject* file_attr = nullptr;
-  {
-    pybind11::gil_scoped_acquire get_gil;
-    auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
-    if (!torch) {
-      throw python_error();
+    PyObject* file_attr = nullptr;
+    {
+        pybind11::gil_scoped_acquire get_gil;
+        auto torch = THPObjectPtr(PyImport_ImportModule("torch"));
+        if (!torch) {
+            throw python_error();
+        }
+        file_attr = PyObject_GetAttrString(torch, "__file__");
     }
-    file_attr = PyObject_GetAttrString(torch, "__file__");
-  }
-  if (file_attr) {
-    const char* file_path = PyUnicode_AsUTF8(file_attr);
-    std::string file_path_str = std::string(file_path);
-    std::string key_word = "torch";
-    size_t pos = file_path_str.rfind(key_word);
-    if (pos != std::string::npos) {
-      return file_path_str.substr(0, pos);
+    if (file_attr) {
+        const char* file_path = PyUnicode_AsUTF8(file_attr);
+        std::string file_path_str = std::string(file_path);
+        std::string key_word = "torch";
+        size_t pos = file_path_str.rfind(key_word);
+        if (pos != std::string::npos) {
+            return file_path_str.substr(0, pos);
+        }
     }
-  }
-  ASCEND_LOGW("Failed to get __file__ attribute.");
-  return "";
+    ASCEND_LOGW("Failed to get __file__ attribute.");
+    return "";
 }
 
 std::string GetAclConfigJsonPath() {

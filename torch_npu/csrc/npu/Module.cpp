@@ -220,7 +220,8 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
     PyObject *value_1 = nullptr;
     PyObject *value_2 = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
-      throw torch::TypeError("Pybind failed to parse parameters.");
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
     }
     int32_t device_id = THPUtils_unpackInt(value_1);
     int32_t peer_device_id = THPUtils_unpackInt(value_2);
@@ -232,7 +233,9 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
 PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* device_index)
 {
     HANDLE_TH_ERRORS
-    THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDeviceUtilizationRate", PTA_ERROR(ErrCode::PARAM));
+    THPUtils_assert(THPUtils_checkLong(device_index),
+                    "invalid argument to getDeviceUtilizationRate",
+                    PTA_ERROR(ErrCode::PARAM));
     int32_t device = static_cast<int32_t>(THPUtils_unpackUInt32(device_index));
     aclrtUtilizationInfo util_info;
     util_info.cubeUtilization = 0;

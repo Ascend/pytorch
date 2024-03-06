@@ -33,6 +33,7 @@
 #include "torch_npu/csrc/profiler/npu_profiler.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/framework/interface/LibAscendHal.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -74,7 +75,7 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
           },
           [](py::tuple t) {
               if (t.size() < 4) {
-                  throw std::runtime_error("Expected atleast 3 values in state");
+                  throw std::runtime_error("Expected atleast 3 values in state" + PROF_ERROR(ErrCode::PARAM));
               }
               return ExperimentalConfig(
                   t[0].cast<std::string>(),

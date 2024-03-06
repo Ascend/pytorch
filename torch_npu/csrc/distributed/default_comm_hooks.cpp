@@ -6,6 +6,8 @@
 #include <c10d/comm.hpp>
 #include <torch/torch.h>
 
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
+
 namespace c10d {
 
 c10::intrusive_ptr<c10::ivalue::Future> AllReduceCommHook::runHook(
@@ -29,13 +31,13 @@ c10::intrusive_ptr<c10::ivalue::Future> FP16CompressCommHook::runHook(
     auto result = allreduce_fut.value();
     TORCH_INTERNAL_ASSERT(
         result.isTensorList(),
-        "ProcessGroup::allreduce should return TensorList");
+        "ProcessGroup::allreduce should return TensorList", DIST_ERROR(ErrCode::INTERNAL));
 
     auto reduce_tensor = result.toTensorVector()[0];
     TORCH_INTERNAL_ASSERT_DEBUG_ONLY(
         reduce_tensor.scalar_type() == at::ScalarType::Half,
         "Expected reduced tensor to be fp16 in FP16CompressHook, but got type ",
-        reduce_tensor.scalar_type()
+        reduce_tensor.scalar_type(), DIST_ERROR(ErrCode::TYPE)
     );
     decompressed_tensor.copy_(reduce_tensor);
     return c10::IValue(decompressed_tensor);
