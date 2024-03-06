@@ -13,16 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .common_bean import CommonBean
 from ..prof_common_func.constant import Constant
 
 
-class NpuModuleMemoryBean:
+class NpuModuleMemoryBean(CommonBean):
     SHOW_HEADERS = ["Component", "Timestamp(us)", "Total Reserved(MB)", "Device"]
 
     def __init__(self, data: dict):
+        super().__init__(data)
         total_reverved = float(data.get("Total Reserved(KB)", 0))
-        data["Total Reserved(MB)"] = str(total_reverved / Constant.KB_TO_MB)
-        self._data = data
+        self._data["Total Reserved(MB)"] = str(total_reverved / Constant.KB_TO_MB)
 
     @property
     def row(self) -> list:

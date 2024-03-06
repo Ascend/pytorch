@@ -16,6 +16,7 @@
 import struct
 from enum import Enum
 
+from .common_bean import CommonBean
 from ..profiler_config import ProfilerConfig
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.constant import convert_ns2us_str
@@ -36,14 +37,14 @@ class MemoryEnum(Enum):
     PROCESS_ID = 11
 
 
-class MemoryUseBean:
+class MemoryUseBean(CommonBean):
     CONSTANT_STRUCT = "<7qb2B2Q"
     NPU_ID = 9
     CPU_ID = 0
 
     def __init__(self, data: dict):
-        self._origin_data = data
-        self._constant_data = struct.unpack(self.CONSTANT_STRUCT, data.get(Constant.CONSTANT_BYTES))
+        super().__init__(data)
+        self._constant_data = struct.unpack(self.CONSTANT_STRUCT, self._data.get(Constant.CONSTANT_BYTES))
 
     @property
     def ptr(self) -> int:

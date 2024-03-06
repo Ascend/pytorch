@@ -108,25 +108,21 @@ class TestPathManager(TestCase):
         self.assertEqual(set((prof_path1, prof_path2)), set(ProfilerPathManager.get_profiler_path_list(self.tmp_dir)))
 
     def test_device_all_file_list_by_tag(self):
-        self.assertEqual([], ProfilerPathManager.get_device_all_file_list_by_type(self.tmp_dir, "summary"))
+        self.assertEqual([], ProfilerPathManager.get_output_all_file_list_by_type(self.tmp_dir, "mindstudio_profiler_output"))
         cann_path = os.path.join(self.tmp_dir, "PROF_1_2_3a")
-        summary_path = os.path.join(cann_path, "device_0", "summary")
-        os.makedirs(summary_path)
-        self.assertEqual([], ProfilerPathManager.get_device_all_file_list_by_type(cann_path, "summary"))
-        timeline_path = os.path.join(cann_path, "device_0", "timeline")
-        os.makedirs(timeline_path)
-        self.assertEqual([], ProfilerPathManager.get_device_all_file_list_by_type(cann_path, "timeline"))
-        with os.fdopen(os.open(os.path.join(summary_path, "test_file1.log"),
+        output_path = os.path.join(cann_path, "mindstudio_profiler_output")
+        os.makedirs(output_path)
+        self.assertEqual([], ProfilerPathManager.get_output_all_file_list_by_type(cann_path, "mindstudio_profiler_output"))
+        with os.fdopen(os.open(os.path.join(output_path, "test_file1.log"),
                                os.O_WRONLY | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as fp:
             fp.write("something")
-        with os.fdopen(os.open(os.path.join(summary_path, "test_file2.log"),
+        with os.fdopen(os.open(os.path.join(output_path, "test_file2.log"),
                                os.O_WRONLY | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as fp:
             fp.write("something")
-        with os.fdopen(os.open(os.path.join(timeline_path, "test_file3.log"),
+        with os.fdopen(os.open(os.path.join(output_path, "test_file3.log"),
                                os.O_WRONLY | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as fp:
             fp.write("something")
-        self.assertEqual(2, len(ProfilerPathManager.get_device_all_file_list_by_type(cann_path, "summary")))
-        self.assertEqual(1, len(ProfilerPathManager.get_device_all_file_list_by_type(cann_path, "timeline")))
+        self.assertEqual(3, len(ProfilerPathManager.get_output_all_file_list_by_type(cann_path, "mindstudio_profiler_output")))
 
     def test_get_analyze_all_file(self):
         self.assertEqual([], ProfilerPathManager.get_analyze_all_file(self.tmp_dir, "analyse"))

@@ -13,15 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .common_bean import CommonBean
 from ..prof_common_func.constant import Constant
 from ..prof_common_func.constant import convert_ns2us_str
 from ..prof_common_func.constant import convert_us2ns
 
+ 
+class GeMemoryRecordBean(CommonBean):
 
-class GeMemoryRecordBean:
-
-    def __init__(self, data: list):
-        self._data = data
+    def __init__(self, data: dict):
+        super().__init__(data)
 
     @property
     def row(self) -> list:
