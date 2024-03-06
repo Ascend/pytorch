@@ -1,13 +1,14 @@
+from .common_bean import CommonBean
 from ..prof_common_func.csv_headers import CsvHeaders
 
 __all__ = []
 
 
-class OpSummaryBean:
+class OpSummaryBean(CommonBean):
     headers = []
 
-    def __init__(self, data: list):
-        self._data = data
+    def __init__(self, data: dict):
+        super().__init__(data)
 
     @property
     def row(self) -> list:

@@ -1,9 +1,12 @@
-class AiCpuBean:
+from .common_bean import CommonBean
+
+
+class AiCpuBean(CommonBean):
     HEADERS = ["Timestamp", "Node", "Compute_time(ms)", "Memcpy_time(us)", "Task_time(ms)", "Dispatch_time(ms)",
                "Total_time(ms)", "Stream ID", "Task ID"]
 
-    def __init__(self, data: list):
-        self._data = data
+    def __init__(self, data: dict):
+        super().__init__(data)
 
     @property
     def row(self) -> list:

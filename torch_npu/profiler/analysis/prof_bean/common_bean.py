@@ -13,20 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .common_bean import CommonBean
+FILTER_COL_LIST = ["Device_id"]
 
 
-class OpStatisticBean(CommonBean):
-    HEADERS = ["OP Type", "Core Type", "Count", "Total Time(us)", "Min Time(us)", "Avg Time(us)",
-               "Max Time(us)", "Ratio(%)"]
-
+class CommonBean:
     def __init__(self, data: dict):
-        super().__init__(data)
-
-    @property
-    def row(self) -> list:
-        return list(self._data.values())
-
-    @property
-    def headers(self) -> list:
-        return list(self._data.keys())
+        for col in FILTER_COL_LIST:
+            if col in data:
+                data.pop(col)
+        self._data = data

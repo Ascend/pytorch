@@ -103,9 +103,9 @@ class ProfilerPathManager:
         return profiler_path_list
 
     @classmethod
-    def get_device_all_file_list_by_type(cls, profiler_path: str, summary_or_timeline: str) -> list:
+    def get_output_all_file_list_by_type(cls, profiler_path: str, mindstudio_profiler_output: str) -> list:
         file_list = []
-        _path = os.path.join(cls.get_device_path(profiler_path), summary_or_timeline)
+        _path = os.path.join(profiler_path, mindstudio_profiler_output)
         if not os.path.isdir(_path):
             return file_list
         sub_files = os.listdir(os.path.realpath(_path))
