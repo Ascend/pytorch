@@ -257,7 +257,7 @@ public:
                              outputTensorDescArrLen + outputDataBuffArrLen;
 
         char* basePtr = static_cast<char* >(malloc(totalMemLen));
-        AT_ASSERT(basePtr != nullptr);
+        AT_ASSERT(basePtr != nullptr, OPS_ERROR(ErrCode::PTR));
         const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
         basePtr += inputTensorDescArrLen;
         const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);

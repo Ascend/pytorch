@@ -56,7 +56,9 @@ static_assert(std::is_standard_layout<PyTensorType>::value, "PyTensorType must b
 static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types);
 
 static TypeError unavailable_type(const PyTensorType& type) {
-  return TypeError("type %s not available. Torch not compiled with npu enabled.", type.name);
+    return TypeError(
+        "type %s not available. Torch not compiled with npu enabled. %s",
+        type.name, PTA_ERROR(ErrCode::TYPE).c_str());
 }
 
 static PyObject* Tensor_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
@@ -286,30 +288,30 @@ void _initialize_python_bindings() {
 }
 
 static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) {
-  auto torch_module = THPObjectPtr(PyImport_ImportModule("torch"));
-  if (!torch_module) throw python_error();
+    auto torch_module = THPObjectPtr(PyImport_ImportModule("torch"));
+    if (!torch_module) throw python_error();
 
-  auto tensor_classes = THPObjectPtr(PyObject_GetAttrString(torch_module.get(), "_tensor_classes"));
-  if (!tensor_classes) throw python_error();
+    auto tensor_classes = THPObjectPtr(PyObject_GetAttrString(torch_module.get(), "_tensor_classes"));
+    if (!tensor_classes) throw python_error();
 
-  for (auto& tensor_type : tensor_types) {
-    auto name = std::string(tensor_type.name);
-    auto idx = name.rfind('.');
-    auto type_name = name.substr(idx + 1);
-    auto module_name = name.substr(0, idx);
+    for (auto& tensor_type : tensor_types) {
+        auto name = std::string(tensor_type.name);
+        auto idx = name.rfind('.');
+        auto type_name = name.substr(idx + 1);
+        auto module_name = name.substr(0, idx);
 
-    auto module_obj = THPObjectPtr(PyImport_ImportModule(module_name.c_str()));
-    if (!module_obj) throw python_error();
+        auto module_obj = THPObjectPtr(PyImport_ImportModule(module_name.c_str()));
+        if (!module_obj) throw python_error();
 
-    PyObject* type_obj = (PyObject*)&tensor_type;
-    Py_INCREF(type_obj);
-    if (PyModule_AddObject(module_obj.get(), type_name.c_str(), type_obj) < 0) {
-      throw python_error();
+        PyObject* type_obj = (PyObject*)&tensor_type;
+        Py_INCREF(type_obj);
+        if (PyModule_AddObject(module_obj.get(), type_name.c_str(), type_obj) < 0) {
+            throw python_error();
+        }
+        if (PySet_Add(tensor_classes.get(), type_obj) < 0) {
+            throw python_error();
+        }
     }
-    if (PySet_Add(tensor_classes.get(), type_obj) < 0) {
-      throw python_error();
-    }
-  }
 }
 
 // Callback for python part. Used for additional initialization of python classes

@@ -301,7 +301,8 @@ PyObject* THNPModule_npuCanDeviceAccessPeer_wrap(PyObject* self, PyObject* args)
     PyObject *value_1 = nullptr;
     PyObject *value_2 = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
-      throw torch::TypeError("Pybind failed to parse parameters.");
+        throw torch::TypeError("Pybind failed to parse parameters." +
+                               PTA_ERROR(ErrCode::TYPE));
     }
     int32_t device_id = THPUtils_unpackInt(value_1);
     int32_t peer_device_id = THPUtils_unpackInt(value_2);

@@ -102,7 +102,7 @@ c10::DeviceType convertDeviceType(const std::string &tpDeviceType)
     } else if (tpDeviceType == tensorpipe_npu::kNpuDeviceType) {
         return c10::DeviceType::PrivateUse1;
     } else {
-        TORCH_INTERNAL_ASSERT(false, "Unrecognized TensorPipe buffer type.");
+        TORCH_INTERNAL_ASSERT(false, "Unrecognized TensorPipe buffer type.", DIST_ERROR(ErrCode::PARAM));
     }
 }
 
@@ -117,7 +117,7 @@ const c10::Stream &getStreamForDevice(const std::vector<c10::Stream> &streams, c
             return stream;
         }
     }
-    TORCH_INTERNAL_ASSERT(false, "No stream found for device ", device);
+    TORCH_INTERNAL_ASSERT(false, "No stream found for device ", device, DIST_ERROR(ErrCode::NOT_FOUND));
 }
 
 std::array<std::atomic<const TensorpipeDeviceTypeConverter *>,
@@ -181,10 +181,10 @@ std::tuple<tensorpipe_npu::Message, TensorpipeWriteBuffers> tensorpipeSerialize(
         const TensorpipeDeviceTypeConverter *converter = getDeviceTypeConverter(tensor.device().type());
         TORCH_CHECK(converter != nullptr, "Attempting to send a Tensor with unexpected device type ", tensor.device(), DIST_ERROR(ErrCode::TYPE));
 
-        TORCH_INTERNAL_ASSERT(tpMessage.tensors.size() == i);
+        TORCH_INTERNAL_ASSERT(tpMessage.tensors.size() == i, DIST_ERROR(ErrCode::INTERNAL));
         c10::optional<std::vector<char>> maybeCopiedTensor =
             converter->prepareTensorForSending(tensor.storage(), streams, tpMessage);
-        TORCH_INTERNAL_ASSERT(tpMessage.tensors.size() == i + 1);
+        TORCH_INTERNAL_ASSERT(tpMessage.tensors.size() == i + 1, DIST_ERROR(ErrCode::INTERNAL));
 
         tensorpipe_npu::Device targetDevice =
             devices.empty() || devices[i].is_cpu()
@@ -208,18 +208,18 @@ std::pair<tensorpipe_npu::Allocation, TensorpipeReadBuffers> tensorpipeAllocate(
 
     TORCH_INTERNAL_ASSERT(tpDescriptor.payloads.size() == 4,
                           "message expected to contain 4 payloads, whereas it contained ", tpDescriptor.payloads.size(),
-                          " payloads");
+                          " payloads", DIST_ERROR(ErrCode::PARAM));
     tpAllocation.payloads.resize(tpDescriptor.payloads.size());
 
     TORCH_INTERNAL_ASSERT(tpDescriptor.payloads[kTpMessageTypeIdx].length == sizeof(MessageType),
                           "first payload expected to contain ", sizeof(MessageType), " bytes, whereas it contained ",
-                          tpDescriptor.payloads[kTpMessageTypeIdx].length, " bytes");
+                          tpDescriptor.payloads[kTpMessageTypeIdx].length, " bytes", DIST_ERROR(ErrCode::PARAM));
     buffers.type = std::make_unique<MessageType>();
     tpAllocation.payloads[kTpMessageTypeIdx].data = buffers.type.get();
 
     TORCH_INTERNAL_ASSERT(tpDescriptor.payloads[kTpMessageIdIdx].length == sizeof(int64_t),
                           "second payload expected to contain ", sizeof(int64_t), " bytes, whereas it contained ",
-                          tpDescriptor.payloads[kTpMessageIdIdx].length, " bytes");
+                          tpDescriptor.payloads[kTpMessageIdIdx].length, " bytes", DIST_ERROR(ErrCode::PARAM));
     buffers.id = std::make_unique<int64_t>();
     tpAllocation.payloads[kTpMessageIdIdx].data = buffers.id.get();
 
@@ -233,17 +233,17 @@ std::pair<tensorpipe_npu::Allocation, TensorpipeReadBuffers> tensorpipeAllocate(
     tpAllocation.tensors.reserve(numTensors);
     for (const auto tensorIdx : c10::irange(numTensors)) {
         const tensorpipe_npu::Descriptor::Tensor &tensor = tpDescriptor.tensors[tensorIdx];
-        TORCH_INTERNAL_ASSERT(tensor.targetDevice.has_value());
+        TORCH_INTERNAL_ASSERT(tensor.targetDevice.has_value(), DIST_ERROR(ErrCode::PARAM));
         c10::DeviceType targetDeviceType = convertDeviceType(tensor.targetDevice->type);
 
         const TensorpipeDeviceTypeConverter *converter = getDeviceTypeConverter(targetDeviceType);
         TORCH_INTERNAL_ASSERT(converter != nullptr, "Attempting to receive a Tensor with unexpected device type ",
-                              targetDeviceType);
+                              targetDeviceType, DIST_ERROR(ErrCode::PARAM));
 
-        TORCH_INTERNAL_ASSERT(tpAllocation.tensors.size() == tensorIdx);
+        TORCH_INTERNAL_ASSERT(tpAllocation.tensors.size() == tensorIdx, DIST_ERROR(ErrCode::PARAM));
         at::DataPtr dataPtr =
             converter->allocateTensorForReceiving(tensor.targetDevice->index, tensor.length, streams, tpAllocation);
-        TORCH_INTERNAL_ASSERT(tpAllocation.tensors.size() == tensorIdx + 1);
+        TORCH_INTERNAL_ASSERT(tpAllocation.tensors.size() == tensorIdx + 1, DIST_ERROR(ErrCode::PARAM));
 
         buffers.tensors.push_back(std::move(dataPtr));
     }
@@ -300,7 +300,7 @@ c10::intrusive_ptr<Message> tensorpipeDeserialize(tensorpipe_npu::Descriptor &&t
         if (tensor.targetDevice.has_value() && tensor.targetDevice->type == tensorpipe_npu::kNpuDeviceType) {
             TORCH_INTERNAL_ASSERT(tensors[i].device() == indexToDevice(tensor.targetDevice->index), "Tensor ", i,
                                   " in message ", *buffers.id, " was expected to be received on device ",
-                                  tensor.targetDevice->index, ", but got it on ", tensors[i].device());
+                                  tensor.targetDevice->index, ", but got it on ", tensors[i].device(), DIST_ERROR(ErrCode::INTERNAL));
         }
     }
 

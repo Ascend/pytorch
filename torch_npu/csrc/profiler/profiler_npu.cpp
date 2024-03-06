@@ -16,11 +16,12 @@ namespace {
 using torch::profiler::impl::ProfilerStubs;
 using torch::profiler::impl::ProfilerVoidEventStub;
 
-static inline void npuCheck(aclError result, const char * file, int line)
+static inline void npuCheck(aclError result, const char *file, int line)
 {
     if (result != ACL_ERROR_NONE) {
         std::stringstream ss;
-        ss << file << ":" << line << ": " << ", aclError id:" << result << ".";
+        ss << file << ":" << line << ": "
+           << ", aclError id:" << result << "." << PROF_ERROR(ErrCode::ACL);
         throw std::runtime_error(ss.str());
     }
 }

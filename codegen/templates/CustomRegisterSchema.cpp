@@ -26,6 +26,7 @@
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/VariableType.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "op_plugin/OpInterface.h"
 
 namespace at_npu {

@@ -85,7 +85,7 @@ std::vector<c10::Stream> getStreamsFromPoolForDevices(const std::vector<c10::Dev
     std::vector<c10::Stream> streams;
     streams.reserve(devices.size());
     for (const c10::Device &device : devices) {
-        TORCH_INTERNAL_ASSERT(device.type() == impl.type());
+        TORCH_INTERNAL_ASSERT(device.type() == impl.type(), DIST_ERROR(ErrCode::PARAM));
         streams.push_back(impl.getStreamFromGlobalPool(device));
     }
     return streams;
@@ -100,7 +100,7 @@ std::vector<c10::Stream> getCurrentStreamsForDevices(const std::vector<c10::Devi
     std::vector<c10::Stream> streams;
     streams.reserve(devices.size());
     for (const c10::Device &device : devices) {
-        TORCH_INTERNAL_ASSERT(device.type() == impl.type());
+        TORCH_INTERNAL_ASSERT(device.type() == impl.type(), DIST_ERROR(ErrCode::PARAM));
         streams.push_back(impl.getStream(device));
     }
     return streams;
@@ -118,8 +118,8 @@ std::vector<c10::Device> getDevicesOfTensors(const std::vector<torch::Tensor> &t
                 impl.emplace(device.type());
                 indexBitset.resize(impl->deviceCount());
             }
-            TORCH_INTERNAL_ASSERT(device.type() == impl->type());
-            TORCH_INTERNAL_ASSERT(device.has_index());
+            TORCH_INTERNAL_ASSERT(device.type() == impl->type(), DIST_ERROR(ErrCode::PARAM));
+            TORCH_INTERNAL_ASSERT(device.has_index(), DIST_ERROR(ErrCode::PARAM));
             if (!indexBitset[device.index()]) {
                 deviceCount++;
                 indexBitset[device.index()] = true;
@@ -755,7 +755,7 @@ c10::intrusive_ptr<JitFuture> TensorPipeAgent::send(const WorkerInfo &toWorkerIn
     }
 
     futureResponseMessage->jitFuture->addCallback([this](JitFuture & /* unused */) {
-        TORCH_INTERNAL_ASSERT(this->threadPool_.inThreadPool(), "Future marked complete from outside the thread pool");
+        TORCH_INTERNAL_ASSERT(this->threadPool_.inThreadPool(), "Future marked complete from outside the thread pool", DIST_ERROR(ErrCode::INTERNAL));
     });
 
     increaseCallCount(clientActiveCalls_);
@@ -835,10 +835,10 @@ c10::intrusive_ptr<JitFuture> TensorPipeAgent::send(const WorkerInfo &toWorkerIn
                     std::lock_guard<std::mutex> lock(clientPipe.mutex_);
                     // A read error will lead all following callbacks to be
                     // invoked with error, and shouldn't reach here.
-                    TORCH_INTERNAL_ASSERT(!clientPipe.inError_, "Shouldn't be in error state");
+                    TORCH_INTERNAL_ASSERT(!clientPipe.inError_, "Shouldn't be in error state", DIST_ERROR(ErrCode::INTERNAL));
                     auto it = clientPipe.pendingResponseMessage_.find(messageId);
                     TORCH_INTERNAL_ASSERT(it != clientPipe.pendingResponseMessage_.end(), "message ID ",
-                                          messageId, " is not recognized");
+                                          messageId, " is not recognized", DIST_ERROR(ErrCode::INTERNAL));
                     futureResponseMessage = std::move(it->second);
                     clientPipe.pendingResponseMessage_.erase(it);
                 }
