@@ -357,7 +357,7 @@ bool ProcessGroupHCCL::WorkHCCL::startedNPUExecutionInternal() const {
         }
     } catch (const std::exception& e) {
         if (std::string(e.what()).find("driver shutting down") == std::string::npos) {
-            throw;
+            throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
     }
@@ -377,7 +377,7 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const
     }
   } catch (const std::exception& e) {
         if (std::string(e.what()).find("driver shutting down") == std::string::npos) {
-            throw;
+            throw std::runtime_error(DIST_ERROR(ErrCode::INTERNAL));
         }
         LOG(INFO) << "[Rank " << rank_ << "] Event query failed with exception: " << e.what();
   }

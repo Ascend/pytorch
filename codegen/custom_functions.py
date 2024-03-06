@@ -98,7 +98,8 @@ def compute_op_definition(f: NativeFunction):
     if enable_opplugin() and is_op_valid(str(f.func.name)):
         impl_name = f"op_plugin::{get_opplugin_wrap_name(f)}"
 
-    check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size());']
+    check_out = [f'TORCH_CHECK(out.size() == {out_num}, "expected tuple of {out_num} elements but got ", out.size(), '
+                 f'OPS_ERROR(ErrCode::PARAM));']
     unpack_out = check_out + [f'at::Tensor {args[-out_num + i].name} = out[{i}];' for i in range(out_num)] \
         if out_num > 1 else ''
     out_return_type = '::std::tuple<{}>'.format(', '.join(['at::Tensor'] * out_num))
