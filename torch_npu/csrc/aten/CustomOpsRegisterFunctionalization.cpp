@@ -207,6 +207,74 @@ TORCH_LIBRARY_IMPL(npu, Functionalize, m)
 {
     m.impl("npu_quant_scatter_", npu_quant_scatter__functionalization);
 }
+// Regster functionalization for custom op npu_scatter_nd_update_.
+// To Get these mutable operators to work with functionalization requires some extra work.
+// We need to register a corresponding out-of-place variant of the op,
+// and register a functionalization kernel that performs some boilerplate to
+// teach functionalization how to map from the mutable op to the out-of-place op.
+at::Tensor &npu_scatter_nd_update__functionalization(
+    at::Tensor &self,
+    const at::Tensor &indices,
+    const at::Tensor &updates)
+{
+    {
+        // Before converting the mutable op to its functional variant, run meta tensors through the original op.
+        // This will help us catch shape errors that apply to inplace ops that wouldn't apply to their functional
+        // variants. (We can only do this for inplace ops today though, because they technicaly all support meta
+        // tensors).
+        auto self_meta = to_meta(self);
+        auto indices_meta = to_meta(indices);
+        auto updates_meta = to_meta(updates);
+
+        at::AutoDispatchSkipFunctionalize func_guard;
+        c10::impl::ExcludeDispatchKeyGuard guard(exclude_keys_for_meta_dispatch);
+        static auto npu_scatter_nd_update___handle = c10::Dispatcher::singleton()
+            // specify namespace::op_name, op_overload_name
+            .findSchemaOrThrow("npu::npu_scatter_nd_update_", "")
+            // specify the C++ schema of the original mutable op
+            .typed<at::Tensor & (at::Tensor &, const at::Tensor &, const at::Tensor &)>();
+
+        npu_scatter_nd_update___handle.call(self_meta, indices_meta, updates_meta);
+    }
+
+    // Expect that all input tensors of mutable op are functional tensors
+    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(self));
+    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(indices));
+    TORCH_INTERNAL_ASSERT(at::functionalization::impl::isFunctionalTensor(updates));
+
+    // Sync and unwrap functional tensors
+    at::functionalization::impl::sync(self);
+    at::functionalization::impl::sync(indices);
+    at::functionalization::impl::sync(updates);
+    auto self_unwrap = at::functionalization::impl::from_functional_tensor(self);
+    auto indices_unwrap = at::functionalization::impl::from_functional_tensor(indices);
+    auto updates_unwrap = at::functionalization::impl::from_functional_tensor(updates);
+
+    // Grab the dispatcher entry corresponding out-of-place variant of the mutable op
+    static auto npu_scatter_nd_update_handle = c10::Dispatcher::singleton()
+        // specify namespace::op_name, op_overload_name
+        .findSchemaOrThrow("npu::npu_scatter_nd_update", "")
+        // specify the C++ schema of the corresponding out-of-place op
+        .typed<at::Tensor (const at::Tensor &, const at::Tensor &, const at::Tensor &)>();
+
+    // Redispath to the out-of-place op when mutable op is called by user
+    at::Tensor tmp_output;
+    {
+        at::AutoDispatchSkipFunctionalize func_guard;
+        tmp_output = npu_scatter_nd_update_handle.call(self_unwrap, indices_unwrap, updates_unwrap);
+    }
+
+    // Finally, tell functionalization about the mutation
+    at::functionalization::impl::replace_(self, tmp_output);
+    at::functionalization::impl::commit_update(self);
+    at::functionalization::impl::sync(self);
+    return self;
+}
+
+TORCH_LIBRARY_IMPL(npu, Functionalize, m)
+{
+    m.impl("npu_scatter_nd_update_", npu_scatter_nd_update__functionalization);
+}
 
 }  // namespace native
 }  // namespace at_npu

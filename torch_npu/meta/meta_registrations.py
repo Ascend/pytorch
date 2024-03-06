@@ -239,6 +239,16 @@ def npu_ffn_meta(x, weight1, weight2, activation, *, expert_tokens=None, bias1=N
         return x.new_empty(tuple(dim_list))
 
 
+@impl(m, "npu_scatter_nd_update")
+def scatter_nd_update_meta(self, indices, updates):
+    return torch.empty_like(self, dtype=self.dtype)
+
+
+@impl(m, "npu_scatter_nd_update_")
+def scatter_nd_update__meta(self, indices, updates):
+    return self
+
+
 @impl(m, "npu_group_norm_silu")
 def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
     N = self.size(1)
