@@ -34,37 +34,23 @@ class CANNDataEnum(Enum):
 class CANNFileParser:
     START_FLOW = "s"
     END_FLOW = "f"
-    SUMMARY = "summary"
-    TIMELINE = "timeline"
+    # msprof output folder name
+    MINDSTUDIO_PROFILER_OUTPUT = "mindstudio_profiler_output"
     ANALYZE = "analyze"
     HOST_TO_DEVICE = "HostToDevice"
     CANN_DATA_MATCH = {
-        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d+_\d+\.csv", r"^op_summary_\d+_\d+_\d+\.csv",
-                                  r"^op_summary_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d+_\d+\.csv", r"^npu_mem_\d+_\d+_\d+\.csv",
-                                  r"^npu_mem_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d+_\d+\.json", r"^msprof_\d+_\d+_\d+\.json",
-                                       r"^msprof_\d+_\d+_\d+_\d+\.json", r"^msprof_\d+_\d+_slice_\d+\.json",
-                                       r"^msprof_\d+_\d+_slice_\d+_\d+\.json",
-                                       r"^msprof_\d+_\d+_\d+_slice_\d+\.json",
-                                       r"^msprof_\d+_\d+_\d+_slice_\d+_\d+\.json"],
-        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d+_\d+\.csv", r"^step_trace_\d+_\d+_\d+\.csv",
-                                  r"^step_trace_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d+_\d+\.csv", r"^ge_memory_record_\d+_\d+_\d+\.csv",
-                                        r"^ge_memory_record_\d+_\d+_\d+_\d+\.csv", r"^memory_record_\d+_\d+\.csv",
-                                        r"^memory_record_\d+_\d+_\d+\.csv", r"^memory_record_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d+_\d+\.csv", r"^ge_operator_memory_\d+_\d+_\d+\.csv",
-                                          r"^ge_operator_memory_\d+_\d+_\d+_\d+\.csv", r"^operator_memory_\d+_\d+\.csv",
-                                          r"^operator_memory_\d+_\d+_\d+\.csv",
-                                          r"^operator_memory_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d+_\d+\.csv", r"^l2_cache_\d+_\d+_\d+\.csv",
-                                r"^l2_cache_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.AI_CPU: [r"^aicpu_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+\.csv", r"^aicpu_\d+_\d+_\d+_\d+\.csv"],
+        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d+.*\.csv"],
+        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d+.*\.csv"],
+        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d+.*\.json"],
+        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d+.*\.csv"],
+        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d+.*\.csv", r"^memory_record_\d+.*\.csv"],
+        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d+.*\.csv", r"^operator_memory_\d+.*\.csv"],
+        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d+.*\.csv"],
+        CANNDataEnum.AI_CPU: [r"^aicpu_\d+.*\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
-        CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+_\d+\.csv", r"^op_statistic_\d+_\d+_\d+\.csv",
-                                    r"^op_statistic_\d+_\d+_\d+_\d+\.csv"],
-        CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d_\d_\d+\.csv"],
+        CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv"],
+        CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv"],
     }
 
     def __init__(self, profiler_path: str):
@@ -177,8 +163,7 @@ class CANNFileParser:
         PathManager.remove_path_safety(timeline_path)
 
     def _file_dispatch(self):
-        all_file_list = ProfilerPathManager.get_device_all_file_list_by_type(self._cann_path, self.SUMMARY)
-        all_file_list += ProfilerPathManager.get_device_all_file_list_by_type(self._cann_path, self.TIMELINE)
+        all_file_list = ProfilerPathManager.get_output_all_file_list_by_type(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)
         all_file_list += ProfilerPathManager.get_analyze_all_file(self._cann_path, self.ANALYZE)
         for file_path in all_file_list:
             if not os.path.isfile(file_path):

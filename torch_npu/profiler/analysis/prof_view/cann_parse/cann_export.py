@@ -84,8 +84,11 @@ class CANNTimelineParser(BaseParser):
     def run(self, deps_data: dict):
         if not os.path.isdir(self._cann_path):
             return Constant.SUCCESS, None
-        summary_path = os.path.join(ProfilerPathManager.get_device_path(self._cann_path), "summary")
+        output_path = os.path.join(self._cann_path, "mindstudio_profiler_output")
         while True:
-            if os.path.exists(summary_path):
-                return Constant.SUCCESS, None
-            time.sleep(1)
+            if not os.path.exists(output_path):
+                continue
+            for file_name in os.listdir(output_path):
+                if file_name.endswith('.csv'):
+                    return Constant.SUCCESS, None
+            time.sleep(0.1)
