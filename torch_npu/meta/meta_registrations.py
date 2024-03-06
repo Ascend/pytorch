@@ -249,6 +249,16 @@ def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
         return (torch.empty_like(self, dtype=self.dtype), gemma.new_empty((N, group), dtype=gemma.dtype), beta.new_empty((N, group), dtype=beta.dtype))
 
 
+@impl(m, "npu_scatter_nd_update")
+def scatter_nd_update_meta(self, indices, updates):
+    return torch.empty_like(self, dtype=self.dtype)
+
+
+@impl(m, "npu_scatter_nd_update_")
+def scatter_nd_update__meta(self, indices, updates):
+    return self
+
+
 @impl(m, "npu_mm_all_reduce_base")
 def npu_mm_all_reduce_base_forward(x1, x2, hcom, reduce_op='sum', bias=None, antiquant_scale=None,
                                    antiquant_offset=None, x3=None, dequant_scale=None, antiquant_group_size=0,
