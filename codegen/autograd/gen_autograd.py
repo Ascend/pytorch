@@ -29,6 +29,7 @@ from .gen_variable_type import (
     gen_variable_type, gen_variable_type_head
 )
 from .gen_variable_factories import gen_variable_factories
+from .gen_autograd_functions import gen_autograd_functions_python
 from .utils import parse_derivatives, filt_npu_autograd_functions
 
 
@@ -60,6 +61,9 @@ def gen_autograd(
 
     # Generate variable_factories.h
     gen_variable_factories(out, torch_template_path, native_funcs)
+
+    # Generate python_functions.h/cpp
+    gen_autograd_functions_python(out, differentiability_infos, template_path)
 
 
 def main() -> None:
