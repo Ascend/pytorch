@@ -131,7 +131,7 @@ public:
     work_->wait();
     auto output_tensors = torch::utils::unflatten_dense_tensors(
         flat_tensor_.front(), cast_tensors_);
-    TORCH_INTERNAL_ASSERT(output_tensors.size() == bucket_tensors_.size());
+    TORCH_INTERNAL_ASSERT(output_tensors.size() == bucket_tensors_.size(), DIST_ERROR(ErrCode::PARAM));
     for (const auto i : c10::irange(output_tensors.size())) {
       bucket_tensors_[i].copy_(output_tensors[i], true);
     }

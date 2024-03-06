@@ -46,6 +46,7 @@
 #include <torch/csrc/autograd/functions/utils.h>
 #include <torch/csrc/autograd/functions/basic_ops.h>
 
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "FunctionsManual.h"
 
 #include "op_plugin/OpInterface.h"
@@ -99,15 +100,19 @@ Tensor toNonOptPrimal(const c10::optional<Tensor>& t) {
 }
 
 void copy_range(variable_list& out, IndexRange range, const Tensor& t) {
-  AT_ASSERT(range.second <= out.size());
-  AT_ASSERTM(range.second - range.first == 1, "inconsistent range for Tensor output");
-  out[range.first] = t;
+    AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));
+    AT_ASSERTM(range.second - range.first == 1,
+               "inconsistent range for Tensor output",
+               OPS_ERROR(ErrCode::PARAM));
+    out[range.first] = t;
 }
 
 void copy_range(variable_list& out, IndexRange range, at::ArrayRef<Tensor> t) {
-  AT_ASSERT(range.second <= out.size());
-  AT_ASSERTM(range.second - range.first == t.size(), "inconsistent range for TensorList output");
-  std::copy(t.begin(), t.end(), out.begin() + range.first);
+    AT_ASSERT(range.second <= out.size(), OPS_ERROR(ErrCode::PARAM));
+    AT_ASSERTM(range.second - range.first == t.size(),
+               "inconsistent range for TensorList output",
+               OPS_ERROR(ErrCode::PARAM));
+    std::copy(t.begin(), t.end(), out.begin() + range.first);
 }
 
 template <typename T>
