@@ -16,9 +16,12 @@
 import sys
 import os
 import time
+from typing import Optional
+
 import torch
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, prof_error
+from torch_npu.profiler import _ExperimentalConfig
 
 
 def Singleton(cls):
@@ -39,16 +42,18 @@ class Profile(object):
                  save_path: str = "./npu_profiling",
                  profile_type: str = None,
                  use_npu: bool = True,
-                 use_e2e_profiler: bool = True,
+                 record_shape: bool = True,
+                 experimental_config: Optional[_ExperimentalConfig] = torch_npu.profiler._ExperimentalConfig(
+                        profiler_level=torch_npu.profiler.ProfilerLevel.Level2
+                    ), 
                  **kwargs):
-        r"""Dump TORCH/CANN/GE profiling data
+        r"""Dump TORCH/ASCEND_PROFILER profiling data
 
         Args:
             start_step:    The step to dump profiling data
             save_path:      Save path of data
-            profile_type:   The type of profile, Optional['TORCH', 'CANN', 'GE']
+            profile_type:   The type of profile, Optional['TORCH', 'ASCEND_PROFILER']
             use_npu:           Whether to output npu data, when torch profiling, Optional[True, False]
-            use_e2e_profiler:  Whether to use e2e profile, when cann/ge profiling, Optional[True, False]
 
         note:
             When dumping GE profiling data, the configuration of 'GE_PROFILING_TO_STD_OUT'
@@ -62,30 +67,31 @@ class Profile(object):
         self.step_count = 0
         self.save_path = save_path
         self.profile_type = profile_type
-        self.enable = self.profile_type in ['TORCH', 'CANN', 'GE']
+        self.enable = self.profile_type in ['TORCH', 'ASCEND_PROFILER']
         self.start_step = start_step
         self.use_npu = use_npu
-        self.use_e2e_profiler = use_e2e_profiler
+        self.record_shape = record_shape
+        self.experimental_config = experimental_config
         self.count = 0
 
         if self.enable:
             torch_args_set = set(["enabled", "use_cuda", "record_shapes", "with_flops", "profile_memory",
                                   "with_stack", "use_kineto", "use_cpu", "use_npu_simple"])
-            cann_ge_args_set = set(["config"])
+            ascend_profiler_args_set = set(["activities", "schedule", "record_shapes", "profile_memory", "with_stack"])
             if self.profile_type == "TORCH":
                 if not set(kwargs.keys()).issubset(torch_args_set):
                     raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), torch_args_set) +
                                      prof_error(ErrCode.VALUE))
                 self.prof = torch.autograd.profiler.profile(use_npu=self.use_npu, **kwargs)
-            elif self.profile_type == "CANN" or "GE":
-                if not set(kwargs.keys()).issubset(cann_ge_args_set):
-                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), cann_ge_args_set) +
+            elif self.profile_type == "ASCEND_PROFILER":
+                if not set(kwargs.keys()).issubset(ascend_profiler_args_set):
+                    raise ValueError("Args '%s' invaild, expect args '%s' ." % (kwargs.keys(), ascend_profiler_args_set) +
                                      prof_error(ErrCode.VALUE))
                 self.prof = torch_npu.profiler.profile(
                     on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(self.save_path), 
-                    experimental_config=torch_npu.profiler._ExperimentalConfig(
-                        profiler_level=torch_npu.profiler.ProfilerLevel.Level1
-                    )
+                    experimental_config=self.experimental_config, 
+                    record_shapes=self.record_shape, 
+                    **kwargs
                 )
 
             try:
