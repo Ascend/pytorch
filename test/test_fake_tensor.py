@@ -1224,6 +1224,20 @@ class TestNpuRotaryMul(TestCase):
             self.assertEqual(embedding.dtype, ret.dtype)
 
 
+class TestNpuRotaryMulBackward(TestCase):
+    def test_npu_rotary_mul_backward(self):
+        with FakeTensorMode():
+            grad = torch.randn(4, 2048, 40, 128, dtype=torch.float16).npu()
+            embedding = torch.randn(4, 2048, 40, 128, dtype=torch.float16).npu()
+            cosine = torch.randn(1, 2048, 1, 128, dtype=torch.float16).npu()
+            sine = torch.randn(1, 2048, 1, 128, dtype=torch.float16).npu()
+            ret = torch.ops.npu.npu_rotary_mul_backward(grad, embedding, cosine, sine)
+
+            self.assertEqual(ret[0].shape, embedding.shape)
+            self.assertEqual(ret[1].shape, cosine.shape)
+            self.assertEqual(ret[2].shape, sine.shape)
+
+
 class TestNpuTranspose(TestCase):
     def test_npu_transpose(self):
         with FakeTensorMode():
