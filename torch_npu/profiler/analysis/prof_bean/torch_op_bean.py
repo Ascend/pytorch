@@ -95,7 +95,7 @@ class TorchOpBean:
             Constant.FORWORD_THREAD_ID: int(
                 self._constant_data[TorchOpEnum.FORWORD_THREAD_ID.value])}
         for type_name, type_id in self.TLV_TYPE_DICT.items():
-            if type_name == Constant.OP_NAME:
+            if type_name in [Constant.OP_NAME, Constant.CALL_STACK]:
                 continue
             if type_id not in self._origin_data.keys():
                 continue
