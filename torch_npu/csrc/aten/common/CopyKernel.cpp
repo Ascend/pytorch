@@ -3,6 +3,7 @@
 #include "op_plugin/OpInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
@@ -10,7 +11,6 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/aten/common/PeerToPeerAccess.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
@@ -79,21 +79,30 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
 }
 
 void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+    c10_npu::NPUGuard guard(src.device());
+    // p2p enable and synchronize self stream
     if (self.device().index() != src.device().index()) {
-        bool p2p_enabled = NpuP2pCtrl::get_instance().get_p2p_access(src.device().index(), self.device().index());
+        bool warning_flag = false;
+        bool p2p_enabled = NpuP2pCtrl::get_instance().get_p2p_access(src.device().index(), self.device().index(), warning_flag);
         // In the same 'os', tensor can copy even if the enable fails
-        if (!p2p_enabled) {
+        if (warning_flag) {
             ASCEND_LOGW("p2p enable from %d to %d is fails", src.device().index(), self.device().index());
         }
+        guard.set_device(self.device());
+        c10_npu::NPUStream dst_stream = c10_npu::getCurrentNPUStream(self.device().index());
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(dst_stream));
+        guard.set_device(src.device());
     }
-
     if (self.dtype() != src.dtype()) {
-        // npu_dtype_cast_ will call copy function.
-        custom_ops::npu_dtype_cast_(self, src);
+        custom_ops::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
         return;
     }
-
     copy_d2d_dtype(self, src, non_blocking);
+    // synchronize src stream for different devices copy
+    if (self.device().index() != src.device().index()) {
+        c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream));
+    }
 }
 
 // the format of dst and src is base format now
@@ -215,22 +224,24 @@ void copy_d2h_baseformat(at::Tensor& dst, const at::Tensor& src, bool non_blocki
 }
 
 void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  if (!FormatHelper::IsBaseFormatType(self)) {
-    at::Tensor dst = OpPreparation::ApplyTensorWithSizes(self.sizes(), self.options());
-    copy_h2d_baseformat(dst, src, non_blocking, true);
-    NPUNativeFunctions::npu_format_cast_(self, dst);
-    return;
-  }
-  copy_h2d_baseformat(self, src, non_blocking);
+    c10_npu::NPUGuard guard(self.device());
+    if (!FormatHelper::IsBaseFormatType(self)) {
+        at::Tensor dst = OpPreparation::ApplyTensorWithSizes(self.sizes(), self.options());
+        copy_h2d_baseformat(dst, src, non_blocking, true);
+        NPUNativeFunctions::npu_format_cast_(self, dst);
+        return;
+    }
+    copy_h2d_baseformat(self, src, non_blocking);
 }
 
 void copy_d2h(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  if (!FormatHelper::IsBaseFormatType(src)) {
-    at::Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
-    copy_d2h_baseformat(self, src_4D, non_blocking);
-    return;
-  }
-  copy_d2h_baseformat(self, src, non_blocking);
+    c10_npu::NPUGuard guard(src.device());
+    if (!FormatHelper::IsBaseFormatType(src)) {
+        at::Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+        copy_d2h_baseformat(self, src_4D, non_blocking);
+        return;
+    }
+    copy_d2h_baseformat(self, src, non_blocking);
 }
 } // namespace
 
