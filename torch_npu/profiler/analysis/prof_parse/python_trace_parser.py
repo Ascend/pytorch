@@ -178,19 +178,15 @@ class PythonTraceParser:
         return output
 
     def _gen_module_call_map(self):
+        self._module_call_data.sort(key=lambda bean: bean.idx)
         self._module_name_map.clear()
         self._module_id_map.clear()
-        module_name_uid_map = {}
+        module_name_counter = {}
+        module_uid_map = {}
         for call_bean in self._module_call_data:
             self._module_name_map[call_bean.idx] = call_bean.module_name
-            self._module_id_map[call_bean.idx] = call_bean.module_uid
-            module_name_uid_map.setdefault(call_bean.module_name, set()).add(call_bean.module_uid)
-        for module_name, uid_set in module_name_uid_map.items():
-            module_name_uid_map[module_name] = sorted(map(int, uid_set))
-        for call_idx, module_uid in self._module_id_map.items():
-            if call_idx not in self._module_name_map:
-                continue
-            module_name = self._module_name_map[call_idx]
-            module_uid = int(module_uid)
-            if module_uid in module_name_uid_map.get(module_name, []):
-                self._module_id_map[call_idx] = module_name_uid_map[module_name].index(module_uid)
+            if call_bean.module_uid not in module_uid_map:
+                cur_count = module_name_counter.get(call_bean.module_name, 0)
+                module_uid_map[call_bean.module_uid] = cur_count
+                module_name_counter[call_bean.module_name] = cur_count + 1
+            self._module_id_map[call_bean.idx] = module_uid_map.get(call_bean.module_uid, call_bean.module_uid)
