@@ -2,9 +2,7 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, dist_error
 
 __all__ = [
-    "Reducer", "_register_comm_hook", "_register_builtin_comm_hook",
-    "_compute_bucket_assignment_by_size", "_verify_params_across_processes", "_broadcast_coalesced",
-    "batch_isend_irecv", "gather", "gather_object"
+    "batch_isend_irecv", "gather", "gather_object", "is_hccl_available", "_verify_params_across_processes"
 ]
 
 
@@ -25,12 +23,7 @@ if is_available() and not torch_npu._C._c10d_npu_init():
 
 
 from torch_npu._C._distributed_c10d import (
-    Reducer,
-    _register_comm_hook,
-    _register_builtin_comm_hook,
-    _compute_bucket_assignment_by_size,
     _verify_params_across_processes,
-    _broadcast_coalesced
 )
 
-from .distributed_c10d import batch_isend_irecv, gather, gather_object
+from .distributed_c10d import batch_isend_irecv, gather, gather_object, is_hccl_available
