@@ -129,7 +129,7 @@ namespace at_npu
 
     bool OpPreparation::is_scalar_wrapped_to_tensor(const at::Tensor &tensor)
     {
-      return CalcuOpUtil::IsScalarWrappedToTensor(tensor);
+        return IsCPUScalar(tensor);
     }
 
     c10::SmallVector<int64_t, 5> OpPreparation::get_tensor_desc_base_sizes(
