@@ -116,7 +116,6 @@ def _apply_patches(monkey_patches):
 
 
 def _apply_distributed_patches():
-    torch.nn.parallel.DistributedDataParallel._ddp_init_helper = torch_npu.utils.module._ddp_init_helper
     _apply_patches([["distributed", torch_npu.distributed]])
 
 
@@ -148,8 +147,6 @@ _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
 apply_class_patches()
 asd_patch()
-torch.distributed.is_hccl_available = lambda: True
-    
 # this must be placed at the end
 torch_npu._C._initExtension()
 

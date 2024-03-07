@@ -258,21 +258,49 @@ bool can_use_memcpy(at::Tensor& dst, const at::Tensor& src) {
   return false;
 }
 
+at::Tensor copy_d2d_format_cast(at::Tensor& dst, const at::Tensor& src)
+{
+    string srcFormat = FormatHelper::GetFormatName(src);
+    string dstFormat = FormatHelper::GetFormatName(dst);
+
+    if (!FormatCastHelper::IsSameGroupType(src, dst)) {
+        bool res = FormatCastHelper::format_cast_between_group(dst, src, copy_d2d_format_cast);
+        if (!res) {
+            AT_ERROR("unsupport cast from ", srcFormat, " to ", dstFormat);
+        }
+    return dst;
+    }
+
+    OpCommand cmd;
+    cmd.Name("Identity")
+        .InputWithoutContiguous(src)
+        .Output(dst)
+        .Run();
+    return dst;
+}
+
 // the dst and src are same dtype now
 void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  if (!is_same_format(self, src)) {
-    at::Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
-    // ApplyBaseFormatTensorBy is redundant for self tensor with base format.
-    if (FormatHelper::IsBaseFormatType(self)) {
-      copy_d2d_dtype_baseformat(self, src_4D, non_blocking);
-      return;
+    if (!is_same_format(self, src)) {
+        auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+        if (src.is_contiguous() && FormatHelper::IsBaseFormatType(src) && src_desc.base_sizes_.size() == 1) {
+            StorageDescHelper::ReflushDescBySelf(src);
+            copy_d2d_format_cast(self, src);
+            torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_ = std::move(src_desc);
+            return;
+        }
+        at::Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+        // ApplyBaseFormatTensorBy is redundant for self tensor with base format.
+        if (FormatHelper::IsBaseFormatType(self)) {
+            copy_d2d_dtype_baseformat(self, src_4D, non_blocking);
+            return;
+        }
+        at::Tensor dst_4D = FormatCastHelper::ApplyBaseFormatTensorBy(self);
+        copy_d2d_dtype_baseformat(dst_4D, src_4D, non_blocking);
+        NPUNativeFunctions::npu_format_cast_(self, dst_4D);
+        return;
     }
-    at::Tensor dst_4D = FormatCastHelper::ApplyBaseFormatTensorBy(self);
-    copy_d2d_dtype_baseformat(dst_4D, src_4D, non_blocking);
-    NPUNativeFunctions::npu_format_cast_(self, dst_4D);
-    return;
-  }
-  copy_d2d_dtype_format(self, src, non_blocking);
+    copy_d2d_dtype_format(self, src, non_blocking);
 }
 
 // the dst and src are same format now
