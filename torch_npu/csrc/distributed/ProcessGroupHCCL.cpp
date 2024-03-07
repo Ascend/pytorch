@@ -1003,12 +1003,13 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     std::stringstream fileName;
     std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
     auto master_addr = getenv("MASTER_ADDR");
-    TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.");
+    TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
     fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
     try {
         outfile.open(c10::str(getenv("NSLB_CP"), "/", fileName.str()), std::ios::app);
     } catch (std::exception& e) {
-        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid.");
+        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid."
+                                 + DIST_ERROR(ErrCode::NOT_FOUND));
     }
     std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
     outfile << opName << " " << dataVol << " " << std::to_string(currRank) << "\n";
