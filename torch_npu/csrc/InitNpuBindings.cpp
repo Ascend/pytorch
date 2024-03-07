@@ -13,6 +13,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/utils/AutocastMode.h"
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
 
 PyObject* module;
 
@@ -82,6 +83,17 @@ static PyMethodDef TorchNpuMethods[] = {
     {nullptr, nullptr, 0, nullptr}
 };
 
+PyObject* THPModule_sanitizer_enable(PyObject* /* unused */)
+{
+    c10_npu::impl::activateNPUTrace();
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef TorchSanitizerMethods[] = {
+    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_NOARGS, nullptr},
+    {nullptr, nullptr, 0, nullptr}
+};
+
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
 PyMethodDef* THNPModule_get_methods();
@@ -94,6 +106,7 @@ PyObject* initModule() {
     at::internal::lazy_init_num_threads();
 
     AddPyMethodDefs(methods, TorchNpuMethods);
+    AddPyMethodDefs(methods, TorchSanitizerMethods);
     AddPyMethodDefs(methods, THNPModule_get_methods());
     AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
     AddPyMethodDefs(methods, torch_npu::distributed::python_functions());

@@ -1,4 +1,5 @@
 #include <ATen/record_function.h>
+#include <string>
 
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -10,6 +11,9 @@
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 namespace {
 const uint64_t kStringOffset = 16UL;
@@ -130,6 +134,9 @@ OpCommand& OpCommand::Output(
 void OpCommand::Run() {
   aclCmd->SetEnginePriority();
   const string &op_name = aclCmd->GetName();
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+#endif
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
 #ifndef BUILD_LIBTORCH
@@ -144,10 +151,20 @@ void OpCommand::Run() {
 #endif
     aclCmd->releaseSource(false);
   } else {
+#ifndef BUILD_LIBTORCH
+    if (C10_UNLIKELY(trigger)) {
+        std::cout << "====== acl operator name: " << op_name << std::endl;
+    }
+#endif
     aclCmd->Run(sync, sync_index, outputTensor);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
       Sync();
     }
+#ifndef BUILD_LIBTORCH
+    if (C10_UNLIKELY(trigger)) {
+        (*trigger)->traceNpuAclExecution(op_name);
+    }
+#endif
     aclCmd->releaseSource();
   }
   aclCmds->Pop();

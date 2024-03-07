@@ -176,3 +176,9 @@ _register_ops_under_dtensor_rules()
 
 # register npu device interface for dynamo
 _dynamo_register_interface_for_device()
+
+# Enable NPU Sanitizer
+if 'TORCH_NPU_SANITIZER' in os.environ:
+    import torch_npu.npu._sanitizer as csan
+
+    csan.enable_npu_sanitizer()
