@@ -265,3 +265,9 @@ def _npu_shutdown():
 
 # register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
+
+# Enable NPU Sanitizer
+if 'TORCH_NPU_SANITIZER' in os.environ:
+    import torch_npu.npu._sanitizer as csan
+
+    csan.enable_npu_sanitizer()

@@ -15,6 +15,7 @@
 
 #include <c10/util/Exception.h>
 #include <ATen/record_function.h>
+#include <string>
 
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -24,6 +25,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/aten/CustomFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
 
 namespace {
 const uint64_t kStringOffset = 16UL;
@@ -171,6 +173,7 @@ OpCommand& OpCommand::Output(
 void OpCommand::Run() {
   aclCmd->SetEnginePriority();
   const string &op_name = aclCmd->GetName();
+  const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     RECORD_FUNCTION(op_name, std::vector<c10::IValue>({}));
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(0, op_name);
@@ -181,9 +184,15 @@ void OpCommand::Run() {
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, op_name, params.correlation_id);
     aclCmd->releaseSource(false);
   } else {
+    if (C10_UNLIKELY(trigger)) {
+        std::cout << "====== acl operator name: " << op_name << std::endl;
+    }
     aclCmd->Run(sync, sync_index, outputTensor);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
       Sync();
+    }
+    if (C10_UNLIKELY(trigger)) {
+        (*trigger)->traceNpuAclExecution(op_name);
     }
     aclCmd->releaseSource();
   }
