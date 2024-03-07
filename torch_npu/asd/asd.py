@@ -4,8 +4,8 @@ from torch.nn.functional import layer_norm as origin_layernorm
 from torch.nn.functional import embedding as origin_embedding
 
 import torch_npu
-from .silent_fault_data import SilentFaultData
 from torch_npu.utils.error_code import ErrCode, pta_error
+from .silent_fault_data import SilentFaultData
 
 
 def Singleton(cls):

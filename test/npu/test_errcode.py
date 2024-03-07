@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 
 import torch_npu
-
 from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestErrorCode(TestCase):
 
@@ -15,7 +15,7 @@ class TestErrorCode(TestCase):
         x1 = torch.tensor(1).npu()
         x2 = torch.tensor(1).npu()
         with self.assertRaisesRegex(RuntimeError, "ERR01001 OPS invalid parameter"):
-            torch.div(x1, x2, rounding_mode = "test")
+            torch.div(x1, x2, rounding_mode="test")
     
 
 if __name__ == "__main__":
