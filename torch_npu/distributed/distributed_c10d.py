@@ -4,7 +4,7 @@ import torch.distributed as dist
 from torch.distributed.distributed_c10d import _get_default_group, get_group_rank, _check_single_tensor, \
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
-    _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather
+    _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend
 
 
 def batch_isend_irecv(p2p_op_list):
@@ -154,3 +154,7 @@ def gather_object(obj, object_gather_list=None, dst=0, group=None):
         tensor = tensor.type(torch.uint8)
         tensor_size = object_size_list[i]
         object_gather_list[i] = _tensor_to_object(tensor, tensor_size)
+
+
+def is_hccl_available():
+    return "hccl" in Backend.backend_list

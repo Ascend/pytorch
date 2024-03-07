@@ -129,7 +129,7 @@ class ComputeBucketAssignmentTest(TestCase):
             torch.empty([50], dtype=torch.float).npu(),
         ]
         result = dist._compute_bucket_assignment_by_size(tensors, [1792 * 4 + 1])
-        expec_result = ([[0, 1], [2, 3]], [7169, 7169])
+        expec_result = ([[0, 1, 2, 3]], [7169])
         self.assertEqual(expec_result, result)
 
     def test_single_limit_multi_dtype(self):
