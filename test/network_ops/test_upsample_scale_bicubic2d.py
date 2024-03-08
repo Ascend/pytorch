@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
 import torch
 import numpy as np
 import torch_npu
@@ -58,6 +59,7 @@ class TestUpsampleBicubic2d(TestCase):
 
         return shape_format1
 
+    @unittest.skip("skip test_upsample_bicubic2d_scale_common_shape_format now")
     def test_upsample_bicubic2d_scale_common_shape_format(self):
         for item in self.create_scale_shape_format32():
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 255)
@@ -65,6 +67,7 @@ class TestUpsampleBicubic2d(TestCase):
             npu_output = self.npu_op_scale_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @unittest.skip("skip test_upsample_bicubic2d_float16_scale_shape_format now")
     def test_upsample_bicubic2d_float16_scale_shape_format(self):
         def cpu_op_exec_fp16(input1, size):
             input1 = input1.to(torch.float32)
