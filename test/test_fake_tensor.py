@@ -285,7 +285,7 @@ class FakeTensorTest(TestCase):
             x = torch.empty([2, 2], dtype=torch.float)
             y = torch.empty([2, 2], dtype=torch.int64)
             try:
-                out = x / y     
+                out = x / y
             except ZeroDivisionError:
                 print("Error: Division by zero is not allowed")
             self.assertEqual(out.dtype, torch.float)
@@ -508,7 +508,7 @@ class FakeTensorTest(TestCase):
             def forward(self, ipt):
                 running_std = torch.sqrt(self.bn.running_var + self.bn.eps)
                 try:
-                    scale_factor = self.bn.weight / running_std    
+                    scale_factor = self.bn.weight / running_std
                 except ZeroDivisionError:
                     print("Error: Division by zero is not allowed")
                 weight_shape = [1] * len(self.conv.weight.shape)
@@ -519,7 +519,7 @@ class FakeTensorTest(TestCase):
                 zero_bias = torch.zeros_like(self.conv.bias, dtype=ipt.dtype)
                 conv = self.conv._conv_forward(ipt, scaled_weight, zero_bias)
                 try:
-                    conv_orig = conv / scale_factor.reshape(bias_shape)  
+                    conv_orig = conv / scale_factor.reshape(bias_shape)
                 except ZeroDivisionError:
                     print("Error: Division by zero is not allowed")
                 conv_orig = conv_orig + self.conv.bias.reshape(bias_shape)
@@ -813,12 +813,12 @@ class FakeTensorOperatorInvariants(TestCase):
     def get_aten_op(schema):
         namespace, name = schema.name.split("::")
         overload = schema.overload_name if schema.overload_name else "default"
-        try: 
+        try:
             namespace == "aten"
         except AttributeError:
             print("AttributeError: torch.ops.aten has no attribute")
         return getattr(getattr(torch.ops.aten, name), overload)
-        
+
 
     @staticmethod
     def get_all_aten_schemas():
@@ -1433,6 +1433,17 @@ class TestMmAllReduce(TestCase):
             self.assertEqual(output.shape, (128, 128))
             self.assertEqual(output.dtype, dst_dtype)
 
+    def test_mm_all_reduce_quant(self):
+        with FakeTensorMode():
+            dst_dtype = torch.bfloat16
+            x1 = torch.randn(128, 256, dtype=torch.float16).to(torch.int8).npu()
+            x2 = torch.randn(256, 128, dtype=torch.float16).to(torch.int8).npu()
+            dequant = torch.randn(128, dtype=torch.bfloat16).npu()
+            hcom = "fake group info"
+            output = torch_npu.npu_mm_all_reduce_base(x1, x2, hcom, reduce_op="sum", dequant_scale=dequant)
+            self.assertEqual(output.shape, (128, 128))
+            self.assertEqual(output.dtype, dst_dtype)
+
 
 class TestNpuDeepNorm(TestCase):
     def test_npu_deep_norm(self):
@@ -1553,7 +1564,7 @@ class TestTranQuantParam(TestCase):
             res = torch_npu.npu_trans_quant_param(test_2_scale, test_2_offset)
             self.assertTrue(res.shape == test_2_expect_ret.shape)
             self.assertTrue(res.dtype == test_2_expect_ret.dtype)
-            
+
 
 class TestAntiQuant(TestCase):
     @unittest.skipIf(torch.__version__ != "2.1.0",
@@ -1565,7 +1576,7 @@ class TestAntiQuant(TestCase):
             offset = torch.randn(100, dtype=torch.float).npu()
             dstType = torch.float16
             res = torch_npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dstType)
-            
+
             self.assertTrue(x.shape == res.shape)
             x = x.to(dstType)
             self.assertTrue(x.numel() * x.element_size() == res.numel() * res.element_size())
