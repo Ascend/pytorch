@@ -129,6 +129,16 @@ class PythonTraceParser:
             trace_data[i] = TraceEventManager.create_x_event(event, "python_function")
         return trace_data
 
+    def get_python_trace_api_data(self) -> list:
+        self._gen_module_call_map()
+        python_trace_event_list = self._replay_stack()
+        if not python_trace_event_list:
+            return []
+        trace_api_data = [None] * len(python_trace_event_list)
+        for i, event in enumerate(python_trace_event_list):
+            trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), DbConstant.DB_INVALID_VALUE, event.name, DbConstant.DB_INVALID_VALUE]
+        return trace_api_data
+
     def _replay_stack(self) -> list:
         id_counter = 0
         event_idx = 0

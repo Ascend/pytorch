@@ -1,6 +1,7 @@
 import torch_npu._C
 
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
+from .analysis.prof_common_func.cann_package_manager import CannPackageManager
 
 __all__ = [
     'supported_profiler_level',
@@ -20,6 +21,10 @@ def supported_ai_core_metrics():
                 AiCMetrics.ResourceConflictRatio, AiCMetrics.L2Cache))
 
 
+def supported_export_type():
+    return set(ExportType.__members__.values())
+
+
 class ProfilerLevel:
     Level0 = Constant.LEVEL0
     Level1 = Constant.LEVEL1
@@ -36,13 +41,19 @@ class AiCMetrics:
     L2Cache = Constant.AicL2Cache
 
 
+class ExportType:
+    Db = Constant.Db
+    Text = Constant.Text
+
+
 class _ExperimentalConfig:
     def __init__(self,
                  profiler_level: int = Constant.LEVEL0,
                  aic_metrics: int = Constant.AicMetricsNone,
                  l2_cache: bool = False,
                  data_simplification: bool = True,
-                 record_op_args: bool = False):
+                 record_op_args: bool = False,
+                 export_type: str = Constant.Text):
         self._profiler_level = profiler_level
         self._aic_metrics = aic_metrics
         if self._profiler_level != Constant.LEVEL0 and self._aic_metrics == Constant.AicMetricsNone:
@@ -50,6 +61,7 @@ class _ExperimentalConfig:
         self._l2_cache = l2_cache
         self._data_simplification = data_simplification
         self.record_op_args = record_op_args
+        self._export_type = export_type
         self._check_params()
 
     def __call__(self) -> torch_npu._C._profiler._ExperimentalConfig:
@@ -57,6 +69,10 @@ class _ExperimentalConfig:
                                                           metrics=self._aic_metrics,
                                                           l2_cache=self._l2_cache,
                                                           record_op_args=self.record_op_args)
+
+    @property
+    def export_type(self):
+        return self._export_type
 
     def _check_params(self):
         if self._profiler_level == Constant.LEVEL0 and self._aic_metrics != Constant.AicMetricsNone:
@@ -83,3 +99,6 @@ class _ExperimentalConfig:
                 self._aic_metrics = Constant.AicMetricsNone
             else:
                 self._aic_metrics = AiCMetrics.PipeUtilization
+        if self._export_type not in (ExportType.Text, ExportType.Db):
+            print_warn_msg("Invalid parameter type, reset it to text.")
+            self._export_type = ExportType.Text

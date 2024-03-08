@@ -51,16 +51,32 @@ class MemoryUseBean(CommonBean):
         return int(self._constant_data[MemoryEnum.ALLOC_SIZE.value]) / Constant.B_TO_KB
 
     @property
+    def alloc_size_for_db(self) -> int:
+        return int(self._constant_data[MemoryEnum.ALLOC_SIZE.value])
+
+    @property
     def total_allocated(self) -> int:
         return int(self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value]) / Constant.B_TO_MB
+
+    @property
+    def total_allocated_for_db(self) -> int:
+        return int(self._constant_data[MemoryEnum.TOTAL_ALLOCATED.value])
 
     @property
     def total_reserved(self) -> int:
         return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value]) / Constant.B_TO_MB
 
     @property
+    def total_reserved_for_db(self) -> int:
+        return int(self._constant_data[MemoryEnum.TOTAL_RESERVED.value])
+
+    @property
     def total_active(self) -> int:
         return int(self._constant_data[MemoryEnum.TOTAL_ACTIVE.value]) / Constant.B_TO_MB
+
+    @property
+    def total_active_for_db(self) -> int:
+        return int(self._constant_data[MemoryEnum.TOTAL_ACTIVE.value])
 
     @property
     def device_type(self) -> int:

@@ -52,12 +52,25 @@ class ParserDepsConfig:
         Constant.STACK_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
                                      Constant.DEPS: [Constant.TREE_BUILD_PARSER, Constant.CANN_TIMELINE_PARSER]},
         Constant.MEMORY_PREPARE: {Constant.MODE: ConcurrentMode.PTHREAD,
-                                  Constant.DEPS: [Constant.TREE_BUILD_PARSER]}
+                                  Constant.DEPS: [Constant.TREE_BUILD_PARSER]},
+        Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
+                                  Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
+        Constant.FWK_API_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                     Constant.DEPS: [Constant.DB_PARSER]},
+        Constant.MEMORY_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                    Constant.DEPS: [Constant.DB_PARSER, Constant.MEMORY_PREPARE]}
     }
 
     ONLY_FWK_CONFIG = {
         Constant.OPERATOR_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.TRACE_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
         Constant.MEMORY_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
-        Constant.STACK_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []}
+        Constant.STACK_VIEW_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
+        Constant.CANN_EXPORT_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS, Constant.DEPS: []},
+        Constant.DB_PARSER: {Constant.MODE: ConcurrentMode.PTHREAD,
+                                  Constant.DEPS: [Constant.CANN_EXPORT_PARSER]},
+        Constant.FWK_API_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                     Constant.DEPS: [Constant.DB_PARSER]},
+        Constant.MEMORY_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                    Constant.DEPS: [Constant.DB_PARSER, Constant.MEMORY_PREPARE]}
     }
