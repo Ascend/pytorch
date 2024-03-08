@@ -3,7 +3,7 @@ import re
 
 from ..prof_bean.torch_op_bean import TorchOpBean
 from ..prof_common_func.binary_decoder import BinaryDecoder
-from ..prof_common_func.constant import Constant
+from ..prof_common_func.constant import Constant, DbConstant, contact_2num
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.file_tag import FileTag
 from ..prof_common_func.path_manager import ProfilerPathManager
@@ -12,6 +12,7 @@ from ..prof_common_func.trace_event_manager import TraceEventManager
 from ..prof_common_func.tree_builder import TreeBuilder
 from ..prof_config.fwk_file_parser_config import FwkFileParserConfig
 from .python_trace_parser import PythonTraceParser
+from ..prof_common_func.id_manager import ApiIdManager
 
 __all__ = []
 
@@ -179,3 +180,68 @@ class FwkFileParser:
             for file_tag, pattern in FwkFileParserConfig.FILE_DISPATCH_MAP.items():
                 if re.match(pattern, file_name):
                     self._file_list.setdefault(file_tag, file_path)
+
+    def filter_fwd_bwd_api(self, fwd_dict: dict, torch_op: TorchOpBean, apiId: int):
+        seq_num = torch_op.args.get("Sequence number", -1)
+        if seq_num < 0:
+            return
+        fwd_event = fwd_dict.get(seq_num, {})
+        mode = "start" if torch_op.args.get("Fwd thread id") == 0 else "end"
+        if fwd_event.get(mode, {}).get("ts", -float('inf')) < torch_op.ts:
+            node = {mode: {'apiId': apiId, 'ts': torch_op.ts}}
+            fwd_dict.setdefault(seq_num, {}).update(node)
+
+    def update_fwk_api_with_fwb_dict(self, fwd_dict: dict, fwk_apis: list, start_connection_id: int):
+        nodes = fwd_dict.values()
+        for node in nodes:
+            if node.get('start') and node.get('end'):
+                fwb_api_id = node['start']['apiId']
+                bwd_api_id = node['end']['apiId']
+                for fwk_api in fwk_apis:
+                    if fwk_api[5] == fwb_api_id:
+                        fwk_api[3] = start_connection_id
+                        continue
+                    if fwk_api[5] == bwd_api_id:
+                        fwk_api[3] = start_connection_id
+                        break
+                
+                start_connection_id += 1
+
+    def get_fwk_api(self) -> dict:
+        torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
+        if not torch_op_data:
+            return {}
+        pid = torch_op_data[0].pid
+        fwk_apis = []
+        fwk_api_infos = []
+        fwd_dict = {}
+        for torch_op in torch_op_data:
+            api_id = ApiIdManager().get_api_id()
+            fwk_apis.append([torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), DbConstant.DB_INVALID_VALUE, torch_op.name, api_id])
+            seq_num = torch_op.args.get(Constant.SEQUENCE_UNMBER, -1)
+            fwd_thread_id = torch_op.args.get(Constant.FORWORD_THREAD_ID)
+            input_dims_id = torch_op.args.get(Constant.INPUT_SHAPES)
+            input_type_id = torch_op.args.get(Constant.INPUT_DTYPES)
+            fwk_api_infos.append([api_id, seq_num, fwd_thread_id, input_dims_id, input_type_id, torch_op.call_stack])
+            self.filter_fwd_bwd_api(fwd_dict, torch_op, api_id)
+
+        connection_ids = []
+        enqueue_data_list, dequeue_data_list = self.get_task_queue_data()
+        for enqueue_data in enqueue_data_list:
+            fwk_apis.append([enqueue_data.ts, enqueue_data.ts + enqueue_data.dur, contact_2num(pid, enqueue_data.tid),
+                             enqueue_data.corr_id, enqueue_data.name, DbConstant.DB_INVALID_VALUE])
+            connection_ids.append(enqueue_data.corr_id)
+        for dequeue_data in dequeue_data_list:
+            fwk_apis.append([dequeue_data.ts, dequeue_data.ts + dequeue_data.dur, contact_2num(pid, dequeue_data.tid),
+                             dequeue_data.corr_id, dequeue_data.name, DbConstant.DB_INVALID_VALUE])
+        
+        start_connection_id = max(connection_ids) + 1 if connection_ids else 0
+        self.update_fwk_api_with_fwb_dict(fwd_dict, fwk_apis, start_connection_id)
+
+        module_call_data = self.get_file_data_by_tag(FileTag.PYTHON_MODULE_CALL)
+        python_call_data = self.get_file_data_by_tag(FileTag.PYTHON_FUNC_CALL)
+        python_trace_parser = PythonTraceParser(module_call_data, python_call_data)
+        python_trace_api_data = python_trace_parser.get_python_trace_api_data()
+        fwk_apis += python_trace_api_data
+        
+        return {"fwk_api": fwk_apis, "fwk_api_info": fwk_api_infos}
