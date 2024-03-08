@@ -43,10 +43,24 @@ class ProfilerConfig:
         self._freq = 100.0
         self._time_offset = 0
         self._start_cnt = 0
+        self._export_type = Constant.Text
+        self._rank_id = -1
 
     @property
     def data_simplification(self):
         return self._data_simplification
+
+    @property
+    def export_type(self):
+        return self._export_type
+
+    @export_type.setter
+    def export_type(self, export_type: str):
+        self._export_type = export_type
+
+    @property
+    def rank_id(self):
+        return self._rank_id
 
     def is_number(self, string):
         pattern = re.compile(r'^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$')
@@ -104,6 +118,7 @@ class ProfilerConfig:
     def load_info(self, profiler_path: str):
         self.load_is_cluster(profiler_path)
         info_json = self._get_profiler_info_json(profiler_path)
+        self.load_rank_info(info_json)
         self.load_experimental_cfg_info(info_json)
         self.load_timediff_info(profiler_path, info_json)
         self.load_syscnt_info(profiler_path, info_json)
@@ -126,6 +141,10 @@ class ProfilerConfig:
         self._ai_core_metrics = experimental_config.get(Constant.AI_CORE_METRICS, self._ai_core_metrics)
         self._l2_cache = experimental_config.get(Constant.L2_CACHE, self._l2_cache)
         self._data_simplification = experimental_config.get(Constant.DATA_SIMPLIFICATION, self._data_simplification)
+        self._export_type = experimental_config.get(Constant.EXPORT_TYPE, self._export_type)
+
+    def load_rank_info(self, info_json: dict):
+        self._rank_id = info_json.get(Constant.RANK_ID, -1)
 
     def get_parser_bean(self):
         return self.LEVEL_PARSER_CONFIG.get(self._profiler_level) + self._get_l2_cache_bean()
