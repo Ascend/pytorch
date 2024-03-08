@@ -579,7 +579,7 @@ torch::CapturedTraceback* getFromContext(const std::shared_ptr<c10::GatheredCont
     if (torch::CapturedTraceback* sc = dynamic_cast<torch::CapturedTraceback*>(x.get())) {
         return sc;
     }
-    TORCH_CHECK(false, "attempting to gather stack context from the wrong StackContext type.");
+    TORCH_CHECK(false, "attempting to gather stack context from the wrong StackContext type.", PTA_ERROR(ErrCode::INTERNAL));
 }
 
 PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
@@ -702,7 +702,7 @@ PyObject* THNPModule_memorySnapshot(PyObject* _unused, PyObject* noargs)
             case TraceEntry::SEGMENT_MAP:
                 return segment_map_s;
             default:
-                AT_ERROR("invalid TraceEntry action");
+                AT_ERROR("invalid TraceEntry action", PTA_ERROR(ErrCode::NOT_FOUND));
         }
         throw std::runtime_error("unreachable");
     };
