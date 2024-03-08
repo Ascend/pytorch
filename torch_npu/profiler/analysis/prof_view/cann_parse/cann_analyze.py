@@ -21,6 +21,7 @@ from torch_npu.utils.error_code import ErrCode, prof_error
 from ...prof_common_func.constant import print_warn_msg, Constant, print_error_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
+from ...profiler_config import ProfilerConfig
 
 
 class CANNAnalyzeParser(BaseParser):
@@ -33,14 +34,16 @@ class CANNAnalyzeParser(BaseParser):
 
     def run(self, deps_data: dict):
         try:
+            ProfilerConfig().load_info(self._profiler_path)
             if not os.path.isdir(self._cann_path):
                 return Constant.SUCCESS, None
             if not self.msprof_path:
                 err_msg = "Export CANN Profiling data faile! msprof command not found!" + prof_error(ErrCode.NOT_FOUND)
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
+            analyze_type = "" if ProfilerConfig().export_type == Constant.Text else "--type=db"
             completed_analysis = subprocess.run(
-                [self.msprof_path, "--analyze=on", f"--output={self._cann_path}"], capture_output=True, shell=False)
+                [self.msprof_path, "--analyze=on", f"--output={self._cann_path}", f"{analyze_type}"], capture_output=True, shell=False)
             if completed_analysis.returncode != self.COMMAND_SUCCESS:
                 print_warn_msg("Failed to analyze CANN Profiling data.")
         except Exception:

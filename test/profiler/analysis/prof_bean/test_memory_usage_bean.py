@@ -33,8 +33,10 @@ class TestMemoryUsageBean(TestCase):
             Constant.CONSTANT_BYTES: struct.pack(
                 "<7qb2B2Q", ptr, time_ns, alloc_size, total_alloc, total_reserve, total_active, stream_ptr, device_type,
                 device_index, data_type, thread_id, process_id),
-            "ptr": ptr, "time_ns": time_ns, "alloc_size": alloc_size / Constant.B_TO_KB, "total_alloc": total_alloc / Constant.B_TO_MB,
-            "total_reserve": total_reserve / Constant.B_TO_MB, "total_active": total_active / Constant.B_TO_MB,
+            "ptr": ptr, "time_ns": time_ns, "alloc_size": alloc_size / Constant.B_TO_KB, "alloc_size_for_db": alloc_size,
+            "total_alloc": total_alloc / Constant.B_TO_MB, "total_alloc_for_db": total_alloc,
+            "total_reserve": total_reserve / Constant.B_TO_MB, "total_reserve_for_db": total_reserve,
+            "total_active": total_active / Constant.B_TO_MB, "total_active_for_db": total_active,
             "stream_ptr": stream_ptr, "dev_type": device_type, "dev_id": device_index,
             "data_type": data_type, "thread_id": thread_id, "process_id": process_id
         }
@@ -47,14 +49,18 @@ class TestMemoryUsageBean(TestCase):
             memory_usage_bean = MemoryUseBean(sample)
             self.assertEqual(sample.get("ptr"), memory_usage_bean.ptr)
             self.assertEqual(sample.get("alloc_size"), memory_usage_bean.alloc_size)
+            self.assertEqual(sample.get("alloc_size_for_db"), memory_usage_bean.alloc_size_for_db)
             self.assertEqual(sample.get("total_alloc"), memory_usage_bean.total_allocated)
+            self.assertEqual(sample.get("total_alloc_for_db"), memory_usage_bean.total_allocated_for_db)
             self.assertEqual(sample.get("total_reserve"), memory_usage_bean.total_reserved)
+            self.assertEqual(sample.get("total_reserve_for_db"), memory_usage_bean.total_reserved_for_db)
             self.assertEqual(sample.get("dev_type"), memory_usage_bean.device_type)
             self.assertEqual(sample.get("dev_id"), memory_usage_bean.device_index)
             self.assertEqual(sample.get("thread_id"), memory_usage_bean.tid)
             self.assertEqual(sample.get("process_id"), memory_usage_bean.pid)
             self.assertEqual(sample.get("is_npu"), memory_usage_bean.is_npu())
             self.assertEqual(sample.get("total_active"), memory_usage_bean.total_active)
+            self.assertEqual(sample.get("total_active_for_db"), memory_usage_bean.total_active_for_db)
             self.assertEqual(sample.get("data_type"), memory_usage_bean.data_type)
             self.assertEqual(sample.get("stream_ptr"), memory_usage_bean.stream_ptr)
 

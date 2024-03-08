@@ -158,7 +158,7 @@ class TestPathManager(TestCase):
             os.makedirs(os.path.join(cann_path, cann_sub))
         device_path = os.path.join(cann_path, "device_0")
         host_path = os.path.join(cann_path, "host")
-        device_sub_dirs = ['log', 'sqlite', 'summary', 'timeline']
+        device_sub_dirs = ['sqlite', 'summary', 'timeline']
         for device_sub in device_sub_dirs:
             os.makedirs(os.path.join(device_path, device_sub))
             os.makedirs(os.path.join(host_path, device_sub))
@@ -180,7 +180,7 @@ class TestPathManager(TestCase):
             os.makedirs(os.path.join(cann_path, cann_sub))
         device_path = os.path.join(cann_path, "device_0")
         host_path = os.path.join(cann_path, "host")
-        device_sub_dirs = ['log', 'sqlite', 'summary', 'timeline']
+        device_sub_dirs = ['sqlite', 'summary', 'timeline']
         for device_sub in device_sub_dirs:
             os.makedirs(os.path.join(device_path, device_sub))
             os.makedirs(os.path.join(host_path, device_sub))
@@ -189,7 +189,6 @@ class TestPathManager(TestCase):
         for cann_sub in cann_sub_dirs:
             self.assertEqual(True, os.path.exists(os.path.join(cann_path, cann_sub)))
         device_sub_dirs.remove('sqlite')
-        device_sub_dirs.remove('log')
         for device_sub in device_sub_dirs:
             self.assertEqual(True, os.path.exists(os.path.join(device_path, device_sub)))
             self.assertEqual(True, os.path.exists(os.path.join(host_path, device_sub)))
