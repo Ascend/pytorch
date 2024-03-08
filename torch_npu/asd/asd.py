@@ -4,6 +4,7 @@ from torch.nn.functional import layer_norm as origin_layernorm
 from torch.nn.functional import embedding as origin_embedding
 
 import torch_npu
+from torch_npu.utils.error_code import ErrCode, pta_error
 from .silent_fault_data import SilentFaultData
 
 
@@ -32,7 +33,7 @@ class SilentFaultDetector:
 
     def set_asd_loss_scale(self, loss_scale=1.0):
         if loss_scale == 0:
-            raise ValueError("loss scale cannot be 0.")
+            raise ValueError("loss scale cannot be 0." + pta_error(ErrCode.VALUE))
         self.set_loss_scale_flag = True
         self.loss_scale = loss_scale
 
@@ -92,7 +93,7 @@ def patch_embedding(input_embedding, weight, padding_idx, max_norm,
 def asd_patch():
     env_value = os.getenv("NPU_ASD_ENABLE", "0")
     if env_value not in ["0", "1"]:
-        raise ValueError("NPU_ASD_ENABLE should be 0 or 1!")
+        raise ValueError("NPU_ASD_ENABLE should be 0 or 1!" + pta_error(ErrCode.VALUE))
 
     if int(env_value):
         torch.nn.functional.layer_norm = patch_layernorm
