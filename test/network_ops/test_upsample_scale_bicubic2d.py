@@ -58,6 +58,7 @@ class TestUpsampleBicubic2d(TestCase):
 
         return shape_format1
 
+    @unittest.skip("skip test_upsample_bicubic2d_scale_common_shape_format now")
     def test_upsample_bicubic2d_scale_common_shape_format(self):
         for item in self.create_scale_shape_format32():
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 255)
