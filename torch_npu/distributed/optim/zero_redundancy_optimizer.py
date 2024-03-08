@@ -11,6 +11,8 @@ from torch.distributed.optim import (
     _FunctionalSGD
 )
 
+from torch_npu.utils.error_code import ErrCode, dist_error
+
 functional_optim_map = {
     "Adagrad": _FunctionalAdagrad,
     "Adam": _FunctionalAdam,
@@ -33,7 +35,7 @@ def _get_optimizer_constructor(self, optimizer_class):
         if optimizer_class in functional_optims:
             raise ValueError(
                 f"Passing in a functional optimizer {optimizer_class_name} "
-                "when `overlap_with_ddp=False`"
+                "when `overlap_with_ddp=False`" + dist_error(ErrCode.VALUE)
             )
         else:
             return optimizer_class
@@ -53,5 +55,5 @@ def _get_optimizer_constructor(self, optimizer_class):
             raise ValueError(
                 "Using `ddp_with_overlap=True` requires using a "
                 "functional optimizer, but there is no supported functional "
-                f"optimizer equivalent for {optimizer_class_name}"
+                f"optimizer equivalent for {optimizer_class_name}" + dist_error(ErrCode.VALUE)
             )

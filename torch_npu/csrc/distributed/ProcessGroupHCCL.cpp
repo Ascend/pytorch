@@ -889,12 +889,12 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     std::stringstream fileName;
     std::string commName = getHcclCommNameWithoutInit(currRank, hcclComms);
     auto master_addr = getenv("MASTER_ADDR");
-    TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.");
+    TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
     fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
     try {
         outfile.open(c10::str(getenv("NSLB_CP"), "/", fileName.str()), std::ios::app);
     } catch (std::exception& e) {
-        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid.");
+        throw std::runtime_error("Open shared directory failed. Please check whether input path is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
     std::transform(opName.begin(), opName.end(), opName.begin(), ::tolower);
     outfile << opName << " " << dataVol << " " << std::to_string(currRank) << "\n";
@@ -1165,7 +1165,8 @@ int64_t ProcessGroupHCCL::getHcclComm(int rankid)
     std::vector<at::Device> devices = {device};
     const auto key = getKeyFromDevices(devices);
     auto& hcclComms = getHCCLComm(key, devices);
-    TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ", hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
+    TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
+                hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
     auto ret_hcom = hcclComms[0]->getHcclComm();
     int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(ret_hcom));
     return hccl_comm;
@@ -1188,7 +1189,7 @@ std::string ProcessGroupHCCL::getHcclCommName(int rankid) {
 std::string ProcessGroupHCCL::getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms)
 {
     TORCH_CHECK(hcclComms.size() == 1, "expect hcclComms.size() = 1, but hcclComms.size() = ",
-        hcclComms.size());
+        hcclComms.size(), DIST_ERROR(ErrCode::VALUE));
     HcclComm ret_hcom = hcclComms[0]->getHcclComm();
     char commName[MAX_GROUP_NAME_LEN];
     HCCL_CHECK_ERROR(at_npu::hccl::HcclGetCommNameFace(ret_hcom, commName));
@@ -1239,7 +1240,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
                 dataVol += tensor.storage().nbytes();
             }
             char* global_rank = getenv("RANK");
-            TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.");
+            TORCH_CHECK(global_rank != nullptr, "Unable to fetch global rank for NSLB.", DIST_ERROR(ErrCode::NOT_FOUND));
             recordDataVol(opTypeToString(opType), std::to_string(dataVol), atoi(global_rank), hcclComms);
         }
         if (seq_ >= nslb_num) {
