@@ -335,7 +335,7 @@ static void THNPUCachingHostDeleter(void *ptr)
 }
 
 struct THNPUCachingHostAllocator final : public at::Allocator {
-    at::DataPtr allocate(size_t size) const override
+    at::DataPtr allocate(size_t size) override
     {
         AT_ASSERT(size >= 0, PTA_ERROR(ErrCode::VALUE));
         void *ptr = nullptr;

@@ -87,13 +87,13 @@ void* NPUPluggableAllocator::malloc(
     return r;
 }
 
-c10::DataPtr NPUPluggableAllocator::allocate(size_t size) const
+c10::DataPtr NPUPluggableAllocator::allocate(size_t size)
 {
     int device = -1;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     aclrtStream stream = c10_npu::getCurrentNPUStreamNoWait(device);
     void* r =
-        const_cast<NPUPluggableAllocator*>(this)->malloc(size, device, stream);
+        this->malloc(size, device, stream);
     c10::DataPtr data_ptr = {
         r,
         r,

@@ -47,7 +47,7 @@ struct NPUPluggableAllocator
         std::function<void(void* ptr, aclrtStream stream)> erase_stream_fn);
     void* malloc(size_t size, int device, aclrtStream stream);
 
-    c10::DataPtr allocate(size_t size) const override;
+    c10::DataPtr allocate(size_t size) override;
     c10::DeleterFnPtr raw_deleter() const override;
 
     void* raw_alloc(size_t nbytes) override;

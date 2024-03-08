@@ -2080,13 +2080,13 @@ class NpuCachingAllocator : public NPUAllocator {
     return result;
   }
 
-  c10::DataPtr allocate(size_t size) const override
+  c10::DataPtr allocate(size_t size) override
   {
     int device = 0;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     void* r = nullptr;
     if (size != 0) {
-      const_cast<NpuCachingAllocator*>(this)->malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
+      this->malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
     }
     return {r, r, &local_raw_delete, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
