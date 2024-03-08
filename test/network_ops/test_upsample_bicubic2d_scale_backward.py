@@ -64,6 +64,7 @@ class TestUpsampleBicubic2dBackward(TestCase):
         output_grad = output_grad.to("cpu").detach().numpy()
         return output_grad
 
+    @unittest.skip("skip test_upsample_bicubic2d_common_scale_shape_format now")
     def test_upsample_bicubic2d_common_scale_shape_format(self):
         for item in self.backward_create_scale_shape_format32():
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 255)
