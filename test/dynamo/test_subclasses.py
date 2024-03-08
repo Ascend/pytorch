@@ -5,7 +5,11 @@ import unittest
 
 import torch
 import torch_npu
-import torchair
+try:
+    import torchair
+    TORCHAIR_AVAILABLE = True
+except ModuleNotFoundError:
+    TORCHAIR_AVAILABLE = False
 
 import torch._dynamo.test_case
 import torch._dynamo.testing
@@ -905,6 +909,7 @@ class TestNestedTensor(torch._dynamo.test_case.TestCase):
     def test_basic_autograd_inductor(self):
         self._test_autograd("inductor")
     
+    @unittest.skipIf(not TORCHAIR_AVAILABLE, "requires compile torchair into the PTA")
     @unittest.skipIf(not torch.npu.is_available(), "requires npu")
     def test_basic_autograd_npu_backend(self):
         npu_backend = torchair.get_npu_backend()
