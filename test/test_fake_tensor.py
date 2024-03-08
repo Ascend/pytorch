@@ -1287,6 +1287,17 @@ class TestMmAllReduce(TestCase):
             self.assertEqual(output.shape, (128, 128))
             self.assertEqual(output.dtype, dst_dtype)
 
+    def test_mm_all_reduce_quant_bf16(self):
+        with FakeTensorMode():
+            dst_dtype = torch.bfloat16
+            x1 = torch.randn(128, 256, dtype=torch.float16).to(torch.int8).npu()
+            x2 = torch.randn(256, 128, dtype=torch.float16).to(torch.int8).npu()
+            dequant = torch.randn(128, dtype=torch.bfloat16).npu()
+            hcom = "fake group info"
+            output = torch_npu.npu_mm_all_reduce_base(x1, x2, hcom, reduce_op="sum", dequant_scale=dequant)
+            self.assertEqual(output.shape, (128, 128))
+            self.assertEqual(output.dtype, dst_dtype)
+
 
 class TestFlashAttentionScore(TestCase):
     def testFlashAttentionScore(self):
@@ -1620,7 +1631,7 @@ class TestAntiQuant(TestCase):
             offset = torch.randn(100, dtype=torch.float).npu()
             dstType = torch.float16
             res = torch_npu.npu_anti_quant(x, scale, offset=offset, dst_dtype=dstType)
-            
+
             self.assertTrue(x.shape == res.shape)
             x = x.to(dstType)
             self.assertTrue(x.numel() * x.element_size() == res.numel() * res.element_size())
