@@ -276,7 +276,10 @@ def npu_mm_all_reduce_base_forward(x1, x2, hcom, reduce_op='sum', bias=None, ant
         dim_list.append(x1.size(i))
     dim_list[-1] = x2.size(1)
     if dequant_scale is not None:
-        return x1.new_empty(tuple(dim_list), dtype=torch.float16)
+        if dequant_scale.dtype == torch.bfloat16:
+            return x1.new_empty(tuple(dim_list), dtype=torch.bfloat16)
+        else:
+            return x1.new_empty(tuple(dim_list), dtype=torch.float16)
     else:
         return x1.new_empty(tuple(dim_list))
 
