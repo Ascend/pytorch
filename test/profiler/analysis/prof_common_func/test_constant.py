@@ -1,5 +1,5 @@
 from torch_npu.profiler.analysis.prof_common_func.constant import (
-    convert_ns2us_float, convert_us2ns, convert_ns2us_str
+    convert_ns2us_float, convert_us2ns, convert_ns2us_str, contact_2num
 )
 
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -32,6 +32,12 @@ class TestConstant(TestCase):
         self.assertEqual(convert_us2ns("1459635878536856.678\t"), 1459635878536856678)
         self.assertEqual(convert_us2ns("1459635878536856.678"), 1459635878536856678)
         self.assertEqual(convert_us2ns(1459635878536856.678), 1459635878536856800)
+
+    def test_contact_2num(self):
+        high_num = 1
+        low_num = 1
+        result = 1 << 32 | 1
+        self.assertEqual(contact_2num(high_num, low_num), result)
 
 
 if __name__ == "__main__":

@@ -127,6 +127,20 @@ class PathManager:
             return
         except Exception as err:
             raise RuntimeError(msg + pta_error(ErrCode.SYSCALL)) from err
+        
+    @classmethod
+    def remove_file_safety(cls, file: str):
+        msg = f"Failed to remove file: {file}"
+        if os.path.islink(file):
+            raise RuntimeError(msg)
+        if not os.path.exists(file):
+            return
+        try:
+            os.remove(file)
+        except FileExistsError:
+            return
+        except Exception as err:
+            raise RuntimeError(msg + pta_error(ErrCode.SYSCALL)) from err
 
     @classmethod
     def make_dir_safety(cls, path: str):

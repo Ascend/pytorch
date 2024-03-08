@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -23,6 +24,7 @@ from torch_npu.utils.error_code import ErrCode, prof_error
 from ...prof_common_func.constant import Constant, print_warn_msg, print_error_msg, print_info_msg
 from ...prof_common_func.path_manager import ProfilerPathManager
 from ...prof_view.base_parser import BaseParser
+from ...profiler_config import ProfilerConfig
 
 
 class CANNExportParser(BaseParser):
@@ -38,6 +40,7 @@ class CANNExportParser(BaseParser):
 
     def run(self, deps_data: dict):
         try:
+            ProfilerConfig().load_info(self._profiler_path)
             if not os.path.isdir(self._cann_path):
                 return Constant.SUCCESS, None
             if not self.msprof_path:
@@ -46,7 +49,8 @@ class CANNExportParser(BaseParser):
                 raise RuntimeError(err_msg)
             self._check_prof_data_size()
             start_time = datetime.utcnow()
-            completed_process = subprocess.run([self.msprof_path, "--export=on", f"--output={self._cann_path}"],
+            export_type = "text" if ProfilerConfig().export_type == Constant.Text else "db"
+            completed_process = subprocess.run([self.msprof_path, "--export=on", f"--type={export_type}", f"--output={self._cann_path}"],
                                                capture_output=True, shell=False)
             if completed_process.returncode != self.COMMAND_SUCCESS:
                 print_warn_msg(f"{self.error_msg} --output={self._cann_path}")
@@ -82,11 +86,20 @@ class CANNTimelineParser(BaseParser):
     def run(self, deps_data: dict):
         if not os.path.isdir(self._cann_path):
             return Constant.SUCCESS, None
-        output_path = os.path.join(self._cann_path, "mindstudio_profiler_output")
-        while True:
-            if not os.path.exists(output_path):
-                continue
-            for file_name in os.listdir(output_path):
-                if file_name.endswith('.csv'):
-                    return Constant.SUCCESS, None
-            time.sleep(0.1)
+        ProfilerConfig().load_info(self._profiler_path)
+        if ProfilerConfig().export_type == Constant.Text:
+            output_path = os.path.join(self._cann_path, "mindstudio_profiler_output")
+            while True:
+                if not os.path.exists(output_path):
+                    continue
+                for file_name in os.listdir(output_path):
+                    if file_name.endswith('.csv'):
+                        return Constant.SUCCESS, None
+                time.sleep(0.1)
+        else:
+            patten = r'report_\d+\.db$'
+            while True:
+                for file in os.listdir(self._output_path):
+                    if re.match(patten, file) and os.path.isfile(os.path.join(self._output_path, file)):
+                        return Constant.SUCCESS, None
+                time.sleep(1)

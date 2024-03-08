@@ -24,6 +24,7 @@ from ..prof_parse.fwk_file_parser import FwkFileParser
 from ..prof_bean.memory_use_bean import MemoryUseBean
 from ..prof_common_func.constant import Constant, print_error_msg, print_warn_msg
 from ..prof_common_func.constant import convert_ns2us_float, convert_ns2us_str
+from ..profiler_config import ProfilerConfig
 
 
 class MemoryPrepareParser(BaseParser):
@@ -52,13 +53,14 @@ class MemoryPrepareParser(BaseParser):
             self._torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             self.generate_view()
         except Exception:
-            print_error_msg("Failed to generate operator_memory.csv or memory_record.csv.")
+            print_error_msg("Failed to generate pytorch memory data.")
             return Constant.FAIL, {}
         if self._incomplete_num > 0:
             print_warn_msg(f"{self._incomplete_num} memory record(s) are incomplete.")
         return Constant.SUCCESS, {"pta_record_list": self.pta_record_list, "memory_data": self.memory_data}
 
     def generate_view(self) -> None:
+        ProfilerConfig().load_info(self._profiler_path)
         self._init_torch_op()
         self._add_pta_memory_data()
 
@@ -98,7 +100,7 @@ class MemoryPrepareParser(BaseParser):
                 valid_record_list = self._get_valid_record_entry(ptr_records)
                 pid_mem_buf.extend(valid_record_list)
             pid_mem_buf.sort(key=lambda x: x[0].time_ns)
-            complete_records = self._complete_record_entry(pid_mem_buf, torch_ops)
+            complete_records = self._complete_record_entry(pid_mem_buf, torch_ops) if ProfilerConfig().export_type == Constant.Text else self._complete_record_entry_for_db(pid_mem_buf, torch_ops)
             self.memory_data.extend(complete_records)
 
     @staticmethod
@@ -160,6 +162,42 @@ class MemoryPrepareParser(BaseParser):
                                 active_duration_time, records[0].total_allocated, records[0].total_reserved, records[0].total_active,
                                 records[free_idx].total_allocated, records[free_idx].total_reserved, records[free_idx].total_active,
                                 records[0].stream_ptr, records[0].device_tag]
+            ret_list.append(combine_data[:])
+        return ret_list
+
+    def _complete_record_entry_for_db(self, ptr_records: list, torch_ops: list) -> list:
+        ret_list = list()
+        for records in ptr_records:
+            combine_data = list()
+            records_len = len(records)
+            if not records or records_len > 3:
+                continue
+            op_name = self._find_matched_torch_op_name(records[0].time_ns, torch_ops)
+            if records_len == 1:
+                self._incomplete_num += 2
+                combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, None, None, None, None,
+                                records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
+                                None, None, None,
+                                records[0].stream_ptr, records[0].device_index]
+            elif records_len == 2:
+                self._incomplete_num += 1
+                active_release_time = records[1].time_ns if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
+                release_time = records[1].time_ns if records[1].data_type == Constant.MEMORY_FREE else None
+                duration_time = records[1].time_ns - records[0].time_ns if records[1].data_type == Constant.MEMORY_FREE else None
+                active_duration_time = records[1].time_ns - records[0].time_ns if records[1].data_type == Constant.MEMORY_BLOCK_FREE else None
+                combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, release_time, active_release_time, duration_time,
+                                active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
+                                records[1].total_allocated_for_db, records[1].total_reserved_for_db, records[1].total_active_for_db,
+                                records[0].stream_ptr, records[0].device_index]
+            elif records_len == 3:
+                free_idx = 1 if records[1].data_type == Constant.MEMORY_FREE else 2
+                active_idx = 1 if free_idx == 2 else 2
+                duration_time = records[free_idx].time_ns - records[0].time_ns
+                active_duration_time = records[active_idx].time_ns - records[0].time_ns
+                combine_data = [op_name, records[0].alloc_size_for_db, records[0].time_ns, records[free_idx].time_ns, records[active_idx].time_ns, duration_time,
+                                active_duration_time, records[0].total_allocated_for_db, records[0].total_reserved_for_db, records[0].total_active_for_db,
+                                records[free_idx].total_allocated_for_db, records[free_idx].total_reserved_for_db, records[free_idx].total_active_for_db,
+                                records[0].stream_ptr, records[0].device_index]
             ret_list.append(combine_data[:])
         return ret_list
 

@@ -128,3 +128,10 @@ class FileManager:
                 file.write(data[:-1])
         except Exception as err:
             raise RuntimeError(f"Can't create file: {output_path}" + prof_error(ErrCode.SYSCALL)) from err
+
+    @classmethod
+    def check_db_file_vaild(cls, db_path: str) -> None:
+        PathManager.check_input_file_path(db_path)
+        db_size = os.path.getsize(db_path)
+        if db_size < 0 or db_size > Constant.MAX_FILE_SIZE:
+            raise RuntimeError(f"Invalid db file size, please check the db file: {db_path}")

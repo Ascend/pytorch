@@ -42,6 +42,8 @@ class CANNDataEnum(Enum):
     MATRIX = 9
     OP_STATISTIC = 10
     NPU_MODULE_MEM = 11
+    REPORT_DB = 12
+    ANALYSIS_DB = 13
 
 
 class CANNFileParser:
@@ -64,6 +66,8 @@ class CANNFileParser:
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
         CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv"],
         CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv"],
+        CANNDataEnum.REPORT_DB: [r"^report_\d+\.db"],
+        CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer.db"]
     }
 
     def __init__(self, profiler_path: str):
@@ -178,6 +182,7 @@ class CANNFileParser:
     def _file_dispatch(self):
         all_file_list = ProfilerPathManager.get_output_all_file_list_by_type(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)
         all_file_list += ProfilerPathManager.get_analyze_all_file(self._cann_path, self.ANALYZE)
+        all_file_list += ProfilerPathManager.get_database_all_file(self._cann_path)
         for file_path in all_file_list:
             if not os.path.isfile(file_path):
                 continue
