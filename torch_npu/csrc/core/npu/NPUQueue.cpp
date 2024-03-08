@@ -214,14 +214,20 @@ NPUStatus Repository::MakeSureQueueEmpty() {
     }
   }
 
-  if (GetStatus() == RepoStatus::ERROR_EXIT) {
-    // Avoid repeatedly throwing exceptions
-    SetStatus(CAN_EXIT);
-    throw std::runtime_error("The Inner error is reported as above.\n "\
-                             "Since the operator is called asynchronously, the stacktrace may be inaccurate. "\
-                             "If you want to get the accurate stacktrace, "\
-                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." + PTA_ERROR(ErrCode::INTERNAL));
-  }
+    if (GetStatus() == RepoStatus::ERROR_EXIT) {
+        // Avoid repeatedly throwing exceptions
+        SetStatus(CAN_EXIT);
+#ifndef BUILD_LIBTORCH
+        if (gilState) {
+            PyEval_RestoreThread(gilState);
+        }
+#endif
+        throw std::runtime_error("The Inner error is reported as above.\n "
+                                "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+                                "If you want to get the accurate stacktrace, "
+                                "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
+                                PTA_ERROR(ErrCode::INTERNAL));
+    }
 
 #ifndef BUILD_LIBTORCH
   // Get the GIL
