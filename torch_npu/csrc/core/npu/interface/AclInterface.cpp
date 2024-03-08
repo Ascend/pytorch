@@ -508,7 +508,7 @@ aclError AclGetCannAttributeList(const aclCannAttr **cannAttrList, size_t *num)
     if (func == nullptr) {
         func = (AclGetCannAttributeList) GET_FUNC(aclGetCannAttributeList);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttributeList");
+    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttributeList", PTA_ERROR(ErrCode::ACL));
     return func(cannAttrList, num);
 }
 
@@ -519,7 +519,7 @@ aclError AclGetCannAttribute(aclCannAttr cannAttr, int32_t *value)
     if (func == nullptr) {
         func = (AclGetCannAttribute) GET_FUNC(aclGetCannAttribute);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttribute");
+    TORCH_CHECK(func, "Failed to find function ", "aclGetCannAttribute", PTA_ERROR(ErrCode::ACL));
     return func(cannAttr, value);
 }
 
@@ -530,7 +530,7 @@ aclError AclGetDeviceCapability(uint32_t deviceId, aclDeviceInfo deviceInfo, int
     if (func == nullptr) {
         func = (AclGetDeviceCapability) GET_FUNC(aclGetDeviceCapability);
     }
-    TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability");
+    TORCH_CHECK(func, "Failed to find function ", "aclGetDeviceCapability", PTA_ERROR(ErrCode::ACL));
     return func(deviceId, deviceInfo, value);
 }
 
