@@ -193,6 +193,10 @@ AscendPyTorch版本分支的维护阶段如下：
 | 1.8.1     |  长期支持  | EOL    | 2022/4/10  |                       | 2023/4/10 |
 | 1.5.0     |  长期支持  | EOL    | 2021/7/29  |                       | 2022/7/29 |
 
+## 安全声明
+
+[Ascend Adapter for PyTorch插件 安全声明](SECURITYNOTE.md)
+
 ## 参考文档
 
 有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Adapter for PyTorch](https://www.hiascend.com/software/ai-frameworks/commercial)。
