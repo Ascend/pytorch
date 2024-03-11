@@ -167,7 +167,7 @@ class ProfilerPathManager:
             for cann_rm_dir in cann_rm_dirs:
                 target_path = os.path.join(cann_path, cann_rm_dir)
                 PathManager.remove_path_safety(target_path)
-            log_patten = r'msprof_anlysis_\d+\.log$'
+            log_patten = r'msprof_analysis_\d+\.log$'
             for cann_file in os.listdir(cann_path):
                 file_path = os.path.join(cann_path, cann_file)
                 if not os.path.isfile(file_path):
