@@ -672,6 +672,31 @@ class NPUFlashAttentionOP(torch.autograd.Function):
                     sparse_mode_i=sparse_mode, gen_mask_parallel_i=gen_mask_parallel, sync_i=sync)
 
 
+class NPUQuantizeOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch_npu._C._VariableFunctionsClass.npu_quantize(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g,
+                 inputs: torch.Tensor,
+                 scales: torch.Tensor,
+                 zero_points: torch.Tensor,
+                 dtype: torch.dtype,
+                 axis: int = 0):
+        acl_dtype = 2
+        if dtype == torch.quint8:
+            acl_dtype = 4
+        elif dtype == torch.qint8:
+            acl_dtype = 2
+        elif dtype == torch.qint32:
+            acl_dtype = 3
+        else:
+            raise ValueError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.qint32")
+        return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis)
+
+
 def wrapper_npu_flash_attention(query, key, value, head_num,
                                 input_layout, pse=None, padding_mask=None, atten_mask=None,
                                 scale=1.0, keep_prob=1.0, pre_tockens=2147483647, next_tockens=2147483647,
@@ -915,6 +940,10 @@ def wrapper_npu_rotary_mul(x, r1, r2):
     return NPURotaryMulOP.apply(x, r1, r2)
 
 
+def wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis):
+    return NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -965,3 +994,4 @@ def add_onnx_ops():
     torch_npu.npu_rms_norm = wrapper_npu_rms_norm
     torch_npu.npu_add_rms_norm = wrapper_npu_add_rms_norm
     torch_npu.npu_flash_attention = wrapper_npu_flash_attention
+    torch_npu.npu_quantize = wrapper_npu_quantize
