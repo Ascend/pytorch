@@ -226,6 +226,32 @@ def npu_ffn_meta(x, weight1, weight2, activation, *, expert_tokens=None, bias1=N
         return x.new_empty(tuple(dim_list))
 
 
+@impl(m, "npu_grouped_matmul")
+def npu_grouped_matmul_meta(x, weight, *, bias, scale=None, offset=None, antiquant_scale=None,
+                            antiquant_offset=None, group_list=None, split_item=0, output_dtype=None):
+    y = []
+    num_x = len(x)
+    if num_x > 0 and output_dtype is None:
+        output_dtype = x[0].dtype
+    if split_item == 0:
+        for i in range(num_x):
+            y.append(x[i].new_empty((*x[i].shape[:-1], weight[i].shape[1]), dtype=output_dtype))
+    elif split_item == 1:
+        num_group_list = len(group_list)
+        y.append(x[0].new_empty((group_list[0], weight[0].shape[1]), dtype=output_dtype))
+        for i in range(1, num_group_list):
+            y.append(x[0].new_empty((group_list[i] - group_list[i - 1], weight[i].shape[1]), dtype=output_dtype))
+    elif split_item == 2:
+        dim_m = 0
+        for i in range(num_x):
+            dim_m += x[i].shape[0]
+        y.append(x[0].new_empty((dim_m, weight[0].shape[1]), dtype=output_dtype))
+    elif split_item == 3:
+        y.append(x[0].new_empty((x[0].shape[0], weight[0].shape[1]), dtype=output_dtype))
+
+    return y
+
+
 @impl(m, "npu_group_norm_silu")
 def group_norm_silu_meta(self, gemma, beta, group, eps=0.00001):
     N = self.size(1)
