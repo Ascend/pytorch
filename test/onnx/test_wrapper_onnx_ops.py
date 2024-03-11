@@ -1359,5 +1359,28 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))
 
+    def test_wrapper_npu_quantize(self):            
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, inputs, scales, zero_points):
+                dtype = torch.quint8
+                axis = 2
+                return torch_npu.npu_quantize(inputs, scales, zero_points, dtype=dtype, axis=axis)
+
+        def export_onnx(onnx_model_name):
+            inputs = torch.randn(5, 16, 8).npu()
+            scales = torch.tensor([0.1] * 8).npu()
+            zero_points = torch.tensor([0] * 8, dtype=torch.int32).npu()
+            model = Model().to("npu")
+            model(inputs, scales, zero_points)
+            self.onnx_export(model, (inputs, scales, zero_points), onnx_model_name)
+
+        onnx_model_name = "model_npu_quantize.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+        
 if __name__ == '__main__':
     run_tests()
