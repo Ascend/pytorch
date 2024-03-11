@@ -72,7 +72,7 @@ def wrapper_cuda(fn):
 def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     if isinstance(device, str) and 'cuda' in device:
         kwargs[device_arg] = device.replace('cuda', 'npu')
-    elif isinstance(device, torch.device) and 'cuda' in device.type:
+    elif (isinstance(device, torch.device) or str(type(device)) == "<class 'torch.device'>") and 'cuda' in device.type:
         device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
         kwargs[device_arg] = torch.device(device_info)
     elif type(device) == dict:
@@ -83,7 +83,7 @@ def replace_cuda_to_npu_in_list(args_list):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
             args_list[idx] = arg.replace('cuda', 'npu')
-        elif isinstance(arg, torch.device) and 'cuda' in arg.type:
+        elif (isinstance(arg, torch.device) or str(type(arg)) == "<class 'torch.device'>") and 'cuda' in arg.type:
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
             args_list[idx] = torch.device(device_info)
         elif isinstance(arg, dict):
@@ -204,9 +204,13 @@ def init():
     # torch.distributed.init_process_group
     torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
+    torch.distributed.distributed_c10d.broadcast_object_list = torch_npu.distributed.distributed_c10d.broadcast_object_list
+    torch.distributed.distributed_c10d.all_gather_object = torch_npu.distributed.distributed_c10d.all_gather_object
 
     # torch.nn.parallel.DistributedDataParallel
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
+
+    torch.npu.amp.autocast_mode.npu_autocast.__init__ = wrapper_cuda(torch.npu.amp.autocast_mode.npu_autocast.__init__)
 
 
 init()
