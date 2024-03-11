@@ -163,10 +163,20 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (init_flag_) {
         return INIT_SUCC;
     }
+    repeat_init_acl_flag_ = true;
     std::string json_path = GetAclConfigJsonPath();
     const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
     ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
-    NPU_CHECK_ERROR(aclInit(json_path_ptr));
+    auto init_ret = aclInit(json_path_ptr);
+    // The aclinit function is an important low-level aclInit interface that can only be called once in PTA.
+    // However, because of the different business codes, aclinit may be successfully invoked by other frameworks or components.
+    // ACL_ERROR_REPEAT_INITIALIZE means that aclInit is not called by PTA, so we save the flag variable to control aclFinalize.
+    if (init_ret == ACL_ERROR_REPEAT_INITIALIZE) {
+        repeat_init_acl_flag_ = false;
+        ASCEND_LOGI("acl has allready init by other component.");
+    } else if (init_ret != ACL_ERROR_NONE) {
+        NPU_CHECK_ERROR(init_ret);
+    }
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
         NPU_CHECK_ERROR(aclmdlInitDump());
@@ -253,7 +263,11 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
         auto stream = c10_npu::getCurrentNPUStream();
         NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
         NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
-        NPU_CHECK_WARN(aclFinalize());
+        // Maintain a basic point of view, who applies for the resource, the resource is released by whom.
+        // If aclInit is not a PTA call, then aclFinalize should not be a PTA call either.
+        if (repeat_init_acl_flag_) {
+            NPU_CHECK_WARN(aclFinalize());
+        }
         }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;

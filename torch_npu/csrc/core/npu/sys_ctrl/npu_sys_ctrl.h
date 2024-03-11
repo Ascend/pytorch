@@ -67,6 +67,7 @@ private:
     NpuSysCtrl();
 
 private:
+    bool repeat_init_acl_flag_;
     bool init_flag_;
     int device_id_;
     uint32_t device_count_;
