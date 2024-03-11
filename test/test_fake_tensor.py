@@ -1582,6 +1582,103 @@ class TestFFN(TestCase):
             self.assertTrue(x.shape == res.shape)
 
 
+class TestGroupedMatmul(TestCase):
+    def test_npu_grouped_matmul_meta_0(self):
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            x2 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            x3 = torch.randn(512, 1024, dtype=torch.float16).npu()
+            x = [x1, x2, x3]
+            w1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            w2 = torch.randn(256, 1024, dtype=torch.float16).npu()
+            w3 = torch.randn(1024, 128, dtype=torch.float16).npu()
+            w = [w1, w2, w3]
+            b1 = torch.randn(256, dtype=torch.float16).npu()
+            b2 = torch.randn(1024, dtype=torch.float16).npu()
+            b3 = torch.randn(128, dtype=torch.float16).npu()
+            b = [b1, b2, b3]
+            group_list = None
+            split_item = 0
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            self.assertTrue(x[0].shape[0] == res[0].shape[0])
+            self.assertTrue(x[1].shape[0] == res[1].shape[0])
+            self.assertTrue(x[2].shape[0] == res[2].shape[0])
+            self.assertTrue(w[0].shape[1] == res[0].shape[1])
+            self.assertTrue(w[1].shape[1] == res[1].shape[1])
+            self.assertTrue(w[2].shape[1] == res[2].shape[1])
+
+    def test_npu_grouped_matmul_meta_1(self):
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(1792, 1024, dtype=torch.float16).npu()
+            x = [x1]
+            w1 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            w2 = torch.randn(1024, 1024, dtype=torch.float16).npu()
+            w3 = torch.randn(1024, 128, dtype=torch.float16).npu()
+            w = [w1, w2, w3]
+            b1 = torch.randn(256, dtype=torch.float16).npu()
+            b2 = torch.randn(1024, dtype=torch.float16).npu()
+            b3 = torch.randn(128, dtype=torch.float16).npu()
+            b = [b1, b2, b3]
+            group_list = [256, 1280, 1792]
+            split_item = 1
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            self.assertTrue(group_list[0] == res[0].shape[0])
+            self.assertTrue(group_list[1] - group_list[0] == res[1].shape[0])
+            self.assertTrue(group_list[2] - group_list[1] == res[2].shape[0])
+            self.assertTrue(w[0].shape[1] == res[0].shape[1])
+            self.assertTrue(w[1].shape[1] == res[1].shape[1])
+            self.assertTrue(w[2].shape[1] == res[2].shape[1])
+
+    def test_npu_grouped_matmul_meta_2(self):
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            x2 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            x3 = torch.randn(512, 1024, dtype=torch.float16).npu()
+            x = [x1, x2, x3]
+            w1 = torch.randn(256, 256, dtype=torch.float16).npu()
+            w2 = torch.randn(256, 256, dtype=torch.float16).npu()
+            w3 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            w = [w1, w2, w3]
+            b1 = torch.randn(256, dtype=torch.float16).npu()
+            b2 = torch.randn(256, dtype=torch.float16).npu()
+            b3 = torch.randn(256, dtype=torch.float16).npu()
+            b = [b1, b2, b3]
+            group_list = None
+            split_item = 2
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            dim0 = 0
+            for xi in x:
+                dim0 += xi.shape[0]
+            self.assertTrue(dim0 == res[0].shape[0])
+            self.assertTrue(w[0].shape[1] == res[0].shape[1])
+
+    def test_npu_grouped_matmul_meta_3(self):
+        with FakeTensorMode():
+            torch.manual_seed(0)
+            x1 = torch.randn(1792, 1024, dtype=torch.float16).npu()
+            x = [x1]
+            w1 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            w2 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            w3 = torch.randn(1024, 256, dtype=torch.float16).npu()
+            w = [w1, w2, w3]
+            b1 = torch.randn(256, dtype=torch.float16).npu()
+            b2 = torch.randn(256, dtype=torch.float16).npu()
+            b3 = torch.randn(256, dtype=torch.float16).npu()
+            b = [b1, b2, b3]
+            group_list = [256, 1280, 1792]
+            split_item = 3
+
+            res = torch_npu.npu_grouped_matmul(x, w, bias=b, group_list=group_list, split_item=split_item)
+            self.assertTrue(x[0].shape[0] == res[0].shape[0])
+            self.assertTrue(w[0].shape[1] == res[0].shape[1])
+
+
 class TestQuantMatmul(TestCase):
     def test_npu_quant_matmul_meta(self):
         with FakeTensorMode():
