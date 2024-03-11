@@ -70,6 +70,7 @@ private:
     NpuSysCtrl();
 
 private:
+    bool repeat_init_acl_flag_;
     bool init_flag_;
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
