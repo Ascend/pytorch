@@ -783,7 +783,32 @@ class NPUAntiQuantOP(torch.autograd.Function):
         
         return g.op("npu::NPUAntiQuant", x, scale, offset, dst_dtype_i=dst_dtype, src_dtype_i=src_dtype)
 
+    
+class NPUQuantizeOP(torch.autograd.Function):
 
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_quantize(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g,
+                 inputs: torch.Tensor,
+                 scales: torch.Tensor,
+                 zero_points: torch.Tensor,
+                 dtype: torch.dtype,
+                 axis: int = 0):
+        acl_dtype = 2
+        if dtype == torch.quint8:
+            acl_dtype = 4
+        elif dtype == torch.qint8:
+            acl_dtype = 2
+        elif dtype == torch.qint32:
+            acl_dtype = 3
+        else:
+            raise ValueError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.qint32")
+        return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis)
+    
+    
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
     return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
@@ -1059,6 +1084,10 @@ def wrapper_npu_anti_quant(x, scale, offset=None, dst_dtype=None, src_dtype=None
     return NPUAntiQuantOP.apply(x, scale, offset, dst_dtype, src_dtype)
 
 
+def wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis):
+    return NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -1115,3 +1144,4 @@ def add_onnx_ops():
     torch_npu.npu_mm_all_reduce_base = wrapper_npu_mm_all_reduce_base
     torch_npu.npu_weight_quant_batchmatmul = wrapper_npu_weight_quant_batchmatmul
     torch_npu.npu_anti_quant = wrapper_npu_anti_quant
+    torch_npu.npu_quantize = wrapper_npu_quantize
