@@ -51,9 +51,10 @@ class CANNExportParser(BaseParser):
                 raise RuntimeError(err_msg)
             self._check_prof_data_size()
             start_time = datetime.utcnow()
-            export_type = "" if ProfilerConfig().export_type == Constant.Text else "--type=db"
-            completed_process = subprocess.run([self.msprof_path, "--export=on", f"{export_type}", f"--output={self._cann_path}"],
-                                               capture_output=True, shell=False)
+            export_cmd_list = [self.msprof_path, "--export=on", f"--output={self._cann_path}"]
+            if ProfilerConfig().export_type == Constant.Db:
+                export_cmd_list.append("--type=db")
+            completed_process = subprocess.run(export_cmd_list, capture_output=True, shell=False)
             if completed_process.returncode != self.COMMAND_SUCCESS:
                 print_warn_msg(f"{self.error_msg} --output={self._cann_path}")
                 raise RuntimeError("Failed to export CANN Profiling data." + prof_error(ErrCode.INTERNAL))
