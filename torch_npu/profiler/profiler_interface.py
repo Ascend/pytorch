@@ -140,7 +140,7 @@ class ProfInterface:
             print_warn_msg("Experimental config will not be uesd while ProfilerActivity.NPU is not set.")
 
         if ProfilerActivity.NPU in self.activities and self.experimental_config.export_type == Constant.Db:
-            if not CannPackageManager.cann_package_support_export_db:
+            if not CannPackageManager.cann_package_support_export_db():
                 raise RuntimeError("Current cann package does not support export db. "
                                    "If you want to export db, you can install supported CANN package version.")
 

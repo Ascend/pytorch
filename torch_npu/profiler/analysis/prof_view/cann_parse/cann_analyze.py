@@ -41,9 +41,10 @@ class CANNAnalyzeParser(BaseParser):
                 err_msg = "Export CANN Profiling data faile! msprof command not found!" + prof_error(ErrCode.NOT_FOUND)
                 print_error_msg(err_msg)
                 raise RuntimeError(err_msg)
-            analyze_type = "text" if ProfilerConfig().export_type == Constant.Text else "db"
-            completed_analysis = subprocess.run(
-                [self.msprof_path, "--analyze=on", f"--output={self._cann_path}", f"--type={analyze_type}"], capture_output=True, shell=False)
+            analyze_cmd_list = [self.msprof_path, "--analyze=on", f"--output={self._cann_path}"]
+            if ProfilerConfig().export_type == Constant.Db:
+                analyze_cmd_list.append("--type=db")
+            completed_analysis = subprocess.run(analyze_cmd_list, capture_output=True, shell=False)
             if completed_analysis.returncode != self.COMMAND_SUCCESS:
                 print_warn_msg("Failed to analyze CANN Profiling data.")
         except Exception:
