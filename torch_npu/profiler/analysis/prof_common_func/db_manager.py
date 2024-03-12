@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from .constant import Constant, print_warn_msg
+from .constant import Constant, print_warn_msg, print_error_msg
 from .file_manager import FileManager
 
 
@@ -71,7 +71,8 @@ class DbManager:
             conn.cursor().execute(sql)
             conn.commit()
             return True
-        except sqlite3.Error:
+        except sqlite3.Error as err:
+            print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return False
 
     @classmethod
@@ -83,7 +84,8 @@ class DbManager:
             conn.cursor().executemany(sql, param)
             conn.commit()
             return True
-        except sqlite3.Error:
+        except sqlite3.Error as err:
+            print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return False
 
     @classmethod
@@ -141,7 +143,8 @@ class DbManager:
                 if len(res) < cls.FETCH_SIZE:
                     break
             return data
-        except sqlite3.Error:
+        except sqlite3.Error as err:
+            print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return []
         
     @classmethod
@@ -151,10 +154,12 @@ class DbManager:
         """
         try:
             cur.execute(sql)
-        except sqlite3.Error:
+        except sqlite3.Error as err:
+            print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return []
         try:
             res = cur.fetchone()
-        except sqlite3.Error:
+        except sqlite3.Error as err:
+            print_error_msg("SQLite Error: %s" % " ".join(err.args))
             return []
         return res

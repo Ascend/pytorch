@@ -54,7 +54,7 @@ class CANNFileParser:
         CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv"],
         CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv"],
         CANNDataEnum.REPORT_DB: [r"^report_\d+\.db"],
-        CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer.db"]
+        CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer\.db"]
     }
 
     def __init__(self, profiler_path: str):
