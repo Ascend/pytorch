@@ -4,6 +4,7 @@
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "third_party/acl/inc/acl/acl_base.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace at_npu
 {
@@ -27,15 +28,19 @@ namespace at_npu
     LOAD_FUNCTION(aclrtCtxSetSysParamOpt)
 
 aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
-  typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);
-  static aclSetCompileoptFunc func = nullptr;
-  if (func == nullptr)
-  {
-    func = (aclSetCompileoptFunc)GET_FUNC(aclSetCompileopt);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt", PTA_ERROR(ErrCode::NOT_FOUND));
-  auto ret = func(opt, value);
-  return ret;
+    bool ge_init_disable = c10_npu::option::OptionsManager::CheckGeInitDisable();
+    if (!ge_init_disable) {
+        typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);
+        static aclSetCompileoptFunc func = nullptr;
+        if (func == nullptr) {
+            func = (aclSetCompileoptFunc)GET_FUNC(aclSetCompileopt);
+        }
+        TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt", OPS_ERROR(ErrCode::NOT_FOUND));
+        auto ret = func(opt, value);
+        return ret;
+    } else {
+        return ACL_ERROR_NONE;
+    }
 }
 
 c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt) {
