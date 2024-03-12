@@ -145,7 +145,7 @@ namespace at_npu
 
     bool OpPreparation::is_scalar_wrapped_to_tensor(const at::Tensor &tensor)
     {
-      return CalcuOpUtil::IsScalarWrappedToTensor(tensor);
+        return IsCPUScalar(tensor);
     }
 
     int64_t OpPreparation::get_tensor_npu_format(const at::Tensor &tensor)
