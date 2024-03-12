@@ -7,6 +7,8 @@ Registering Meta implementations for custom ops
 '''
 BIT_NUMBER = 128
 UINT8_BIT_NUMBER = 8
+INPUTS_DIM_LIMIT_QUANTCONV2D = 4
+ATTR_DIM_LIMIT_QUANTCONV2D = 2
 #meta register implementation
 m = Library("npu", "IMPL", "Meta")
 
@@ -526,3 +528,135 @@ def npu_anti_quant_meta(x, scale, *, offset=None, dst_dtype=None, src_dtype=None
 @impl(m, "npu_apply_rotary_pos_emb")
 def npu_apply_rotary_pos_emb_meta(query, key, cos, sin, layout=1):
     return (torch.empty_like(query, dtype=query.dtype), torch.empty_like(key, dtype=key.dtype))
+
+
+@impl(m, "npu_quant_conv2d")
+def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
+                     groups=1, offset_x=0, round_mode='rint', output_dtype=None, bias=None, offset=None):
+
+    input_shape = input.size()
+    weight_shape = weight.size()
+    scale_shape = scale.size()
+
+    input_dim = input.dim()
+    weight_dim = weight.dim()
+    scale_dim = scale.dim()
+
+    def check_basic_inputs_dim_shape():
+
+        torch._check(
+            input_dim == weight_dim and weight_dim == INPUTS_DIM_LIMIT_QUANTCONV2D,
+            lambda: "input dim or weight dim is not equal to 4, but now input dim is " + str(input_dim) + ", and weight dim is "
+                     + str(weight_dim),
+        )
+
+        torch._check(
+            scale_dim == 1,
+            lambda: "scale dim is not equal to 1, but now scale dim is " + str(scale_dim),
+        )
+
+        torch._check(
+            input_shape[1] == weight_shape[1],
+            lambda: "input cin should equal to weight cin, but now input cin is " + str(input_shape[1]) + ", and weight cin is "
+                    + str(weight_shape[1]),
+        )
+
+        torch._check(
+            scale_shape[0] == weight_shape[0],
+            lambda: "scale shape should equal to cout, but now scale shape is " + str(scale_shape[0]) + ", and cout is " +
+                    str(weight_shape[0]),
+        )
+
+    def check_basic_inputs_dtype():
+        torch._check(
+            input.dtype == torch.int8 and weight.dtype == torch.int8,
+            lambda: "input's dtype and weight's dtype should be int8, but input.dtype is " + str(input.dtype) + ", and weight.dtype is " +
+                    str(weight.dtype),
+        )
+
+        torch._check(
+            scale.dtype == torch.int64,
+            lambda: "scale's dtype should be int64, but scale.dtype is " + str(scale.dtype),
+        )
+
+        torch._check(
+            output_dtype == torch.float16,
+            lambda: "output dtype should be float16, but now dtype is " + str(output_dtype),
+        )
+
+    def check_bias_dim_shape_dtype():
+        bias_dim = bias.dim()
+        bias_shape = bias.size()
+        torch._check(
+            bias_dim == 1,
+            lambda: "bias dim is not equal to 1, but now bias dim is " + str(bias_dim),
+        )
+
+        torch._check(
+            bias.dtype == torch.int32,
+            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input.dtype),
+        )
+
+        torch._check(
+            bias_shape[0] == weight_shape[0],
+            lambda: "bias shape should equal to cout, but now bias shape is " + str(bias_shape[0]) + ", and cout is " +
+                    str(weight_shape[0]),
+        )
+
+    def check_attrs():
+        pads_dim = len(pads)
+        strides_dim = len(strides)
+        dilations_dim = len(dilations)
+        torch._check(
+            pads_dim == ATTR_DIM_LIMIT_QUANTCONV2D and strides_dim == ATTR_DIM_LIMIT_QUANTCONV2D and
+            dilations_dim == ATTR_DIM_LIMIT_QUANTCONV2D,
+            lambda: "attrs's dim should be 2, but pads dim is " + str(pads_dim) + ", strides dim is "
+                    + str(strides_dim) + ", dilations dim is " + str(dilations_dim),
+        )
+        torch._check(
+            pads[0] >= 0 and pads[1] >= 0,
+            lambda: "pads's value should large or equal to 0, but pads is " + str(pads[0]) + ", "
+                    + str(pads[1]),
+        )
+        torch._check(
+            strides[0] > 0 and strides[1] > 0,
+            lambda: "strides's value should large than 0, but strides is " + str(strides[0]) + ", "
+                    + str(strides[1]),
+        )
+        torch._check(
+            dilations[0] > 0 and dilations[1] > 0,
+            lambda: "dilations's value should large than 0, but dilations is " + str(dilations[0]) + ", "
+                    + str(dilations[1]),
+        )
+        torch._check(
+            groups == 1,
+            lambda: "groups should be 1, but now " + str(groups),
+        )
+        torch._check(
+            offset_x <= 127 and offset_x >= -128,
+            lambda: "offset_x should be [-128,127], but offset_x is " + str(offset_x),
+        )
+        torch._check(
+            round_mode == 'rint',
+            lambda: "round_mode should be rint, but round_mode is " + str(round_mode),
+        )
+
+    check_basic_inputs_dim_shape()
+    check_basic_inputs_dtype()
+    if bias is not None:
+        check_bias_dim_shape_dtype()
+    check_attrs()
+
+    nout = input_shape[0]
+    cout = weight_shape[0]
+    hout = (input_shape[2] + pads[0] * 2 - dilations[0] * (weight_shape[2] - 1) - 1) // strides[0] + 1
+    wout = (input_shape[3] + pads[1] * 2 - dilations[1] * (weight_shape[3] - 1) - 1) // strides[1] + 1
+
+    torch._check(
+        hout > 0 and wout > 0,
+        lambda: "ho, wo should larger than 0, but now ho is " + str(hout) + ", and wo is " + str(wout),
+    )
+
+    output_dim_list = [nout, cout, hout, wout]
+
+    return scale.new_empty(tuple(output_dim_list), dtype=output_dtype)
