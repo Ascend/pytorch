@@ -4,6 +4,7 @@ from unittest import mock
 
 import torch
 
+from torch_npu.profiler.analysis.prof_common_func.constant import Constant
 from torch_npu.profiler.profiler_interface import ProfInterface
 from torch_npu.profiler.profiler_path_creator import ProfPathCreator
 from torch_npu.profiler import supported_activities
@@ -85,6 +86,14 @@ class TestActionController(TestCase):
     def _check_metadata_json(self, prof_path: str) -> bool:
         path = os.path.join(os.path.realpath(prof_path), 'profiler_metadata.json')
         return os.path.exists(path)
+
+    def _check_params(self):
+        with mock.patch("torch_npu.profiler.analysis.prof_common_func.cann_package_manager.CannPackageManager.cann_package_support_export_db",
+                        return_value=False):
+            self.prof_if.activities = set(supported_activities())
+            self.prof_if.experimental_config.export_type = Constant.Db
+            with self.assertExpectedRaises(RuntimeError):
+                self._check_params()
 
 
 if __name__ == "__main__":
