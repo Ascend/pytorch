@@ -144,6 +144,7 @@ class Constant(object):
     START_TS = "start_ts"
     END_TS = "end_ts"
     COMM_OPS = "comm_ops"
+    TASK_INFO = "task_info"
 
     # multiprocess
     MODE = "mode"
@@ -170,6 +171,9 @@ class Constant(object):
     DB_PARSER = "cann_db"
     FWK_API_DB_PARSER = "fwk_api_db"
     MEMORY_DB_PARSER = "memory_db"
+    STEP_INFO_DB_PARSER = "step_info_db"
+    COMMUNICATION_DB_PARSER = "communication_db"
+    TRACE_STEP_TIME_DB_PARSER = "trace_step_time_db"
 
     TRACE_VIEW_TEMP = "trace_view_temp.json"
 
@@ -253,8 +257,14 @@ class DbConstant():
     TABLE_API = "API"
     # api info table name
     TABLE_API_INFO = "PYTORCH_API_INFO"
+    # task table name
+    TABLE_TASK = "TASK"
     # api type table name
     TABLE_ENUM_API_TYPE = "ENUM_API_TYPE"
+    # compute task table name
+    TABLE_COMPUTE_TASK_INFO = "COMPUTE_TASK_INFO"
+    # communication task table name
+    TABLE_COMMUNICATION_TASK_INFO = "COMMUNICATION_TASK_INFO"
 
     # api type table name
     TABLE_API_TYPE = "ENUM_API_TYPE"
@@ -267,11 +277,6 @@ class DbConstant():
     TABLE_MEMORY_RECORD = "MEMORY_RECORD"
     TABLE_OPERATOR_MEMORY = "OP_MEMORY"
     TABLE_NPU_OP_MEM = "NPU_OP_MEM"
-
-    # analyzer table name
-    TABLE_ANALYZER_BANDWIDTH = "CommAnalyzerBandwidth"
-    TABLE_ANALYZER_MATRIX = "CommAnalyzerMatrix"
-    TABLE_ANALYZER_TIME = "CommAnalyzerTime"
 
     # session info table name
     TABLE_SESSION_INFO = "SESSION_INFO"

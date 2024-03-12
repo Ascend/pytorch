@@ -91,16 +91,15 @@ class CANNTimelineParser(BaseParser):
         if ProfilerConfig().export_type == Constant.Text:
             output_path = os.path.join(self._cann_path, "mindstudio_profiler_output")
             while True:
-                if not os.path.exists(output_path):
-                    continue
-                for file_name in os.listdir(output_path):
-                    if file_name.endswith('.csv'):
-                        return Constant.SUCCESS, None
+                if os.path.exists(output_path):
+                    for file_name in os.listdir(output_path):
+                        if file_name.endswith('.csv'):
+                            return Constant.SUCCESS, None
                 time.sleep(0.1)
         else:
-            patten = r'report_\d+\.db$'
+            patten = r'ascend_pytorch\.db$'
             while True:
                 for file in os.listdir(self._output_path):
                     if re.match(patten, file) and os.path.isfile(os.path.join(self._output_path, file)):
                         return Constant.SUCCESS, None
-                time.sleep(1)
+                time.sleep(0.5)

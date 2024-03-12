@@ -56,7 +56,14 @@ class ParserDepsConfig:
         Constant.FWK_API_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
                                      Constant.DEPS: [Constant.DB_PARSER]},
         Constant.MEMORY_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
-                                    Constant.DEPS: [Constant.DB_PARSER, Constant.MEMORY_PREPARE]}
+                                    Constant.DEPS: [Constant.DB_PARSER, Constant.MEMORY_PREPARE]},
+        Constant.STEP_INFO_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                       Constant.DEPS: [Constant.DB_PARSER, Constant.TREE_BUILD_PARSER]},
+        Constant.COMMUNICATION_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                           Constant.DEPS: [Constant.DB_PARSER, Constant.CANN_ANALYZE_PARSER,
+                                                           Constant.STEP_INFO_DB_PARSER]},
+        Constant.TRACE_STEP_TIME_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
+                                             Constant.DEPS: [Constant.DB_PARSER, Constant.STEP_INFO_DB_PARSER]}      
     }
 
     ONLY_FWK_CONFIG = {
