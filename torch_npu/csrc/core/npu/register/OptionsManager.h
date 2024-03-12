@@ -47,6 +47,7 @@ public:
     static uint32_t GetRankId();
     static bool CheckNslbEnable();
     static uint32_t GetNslbCntVal();
+    static bool CheckGeInitDisable();
 
 private:
     static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);

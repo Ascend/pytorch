@@ -166,5 +166,19 @@ uint32_t OptionsManager::GetNslbCntVal()
     return static_cast<uint32_t>(nslb_val);
 }
 
+bool OptionsManager::CheckGeInitDisable()
+{
+    const static bool Check_Ge_Init_Disable = []() -> bool {
+        int32_t ge_init_disable = OptionsManager::GetBoolTypeOption("GE_INIT_DISABLE");
+        return ge_init_disable != 0;
+    }();
+    if (Check_Ge_Init_Disable) {
+        TORCH_NPU_WARN_ONCE(
+            "The environment variable GE_INIT_DISABLE has been enabled, "
+            "this switch is only used for single operator simulation");
+    }
+    return Check_Ge_Init_Disable;
+}
+
 } // namespace option
 } // namespace c10_npu
