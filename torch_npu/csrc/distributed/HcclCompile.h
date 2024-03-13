@@ -15,6 +15,7 @@ LOAD_FUNCTION(HcclReduce)
 LOAD_FUNCTION(HcclGetCommAsyncError)
 LOAD_FUNCTION(HcclScatter)
 LOAD_FUNCTION(HcclBatchSendRecv)
+LOAD_FUNCTION(HcclAlltoAll)
 
 extern HcclResult hcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls,
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls,
@@ -83,6 +84,24 @@ HcclResult hcclBatchIsendIrecv(void* sendRecvInfo, uint32_t itemNum, HcclComm co
     }
     TORCH_CHECK(func, "Failed to find function ", "HcclBatchSendRecv", DIST_ERROR(ErrCode::NOT_FOUND));
     auto ret = func(sendRecvInfo, itemNum, comm, stream);
+    return ret;
+}
+
+HcclResult hcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType sendType,
+    const void *recvBuf, uint64_t recvCount, HcclDataType recvType,
+    HcclComm comm, aclrtStream stream)
+{
+    typedef HcclResult(*HcclAlltoAllFunc)(
+        const void *, uint64_t, HcclDataType,
+        const void *, uint64_t, HcclDataType,
+        HcclComm, aclrtStream);
+    static HcclAlltoAllFunc func = nullptr;
+    if (func == nullptr) {
+        func = (HcclAlltoAllFunc)GET_FUNC(HcclAlltoAll);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "HcclAlltoAll", DIST_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(sendBuf, sendCount, sendType,
+                    recvBuf, recvCount, recvType, comm, stream);
     return ret;
 }
 } // namespace c10d_npu
