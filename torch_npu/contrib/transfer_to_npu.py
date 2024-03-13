@@ -204,6 +204,7 @@ def init():
     # torch.distributed.init_process_group
     torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
+    torch.distributed.ProcessGroup._get_backend = wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
     torch.distributed.distributed_c10d.broadcast_object_list = torch_npu.distributed.distributed_c10d.broadcast_object_list
     torch.distributed.distributed_c10d.all_gather_object = torch_npu.distributed.distributed_c10d.all_gather_object
 
