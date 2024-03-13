@@ -9,6 +9,17 @@ from torch.library import Library, impl
 __all__ = []
 
 
+class _LazyException:
+    def __init__(self, e):
+        self._e = e
+
+    def __getattr__(self, name):
+        raise self._e
+
+    def __call__(self, *args, **kwargs):
+        raise self._e
+
+
 def _eager_npu_backend(gm, *args, **kwargs):
     return gm
 
@@ -24,6 +35,9 @@ def _get_default_backend():
         sys.path.insert(0, os.path.dirname(__file__))
         from . import torchair
         return torchair.get_npu_backend()
+    except Exception as e:
+        sys.modules['torchair'] = _LazyException(e)
+        return _LazyException(e)
     finally:
         del sys.path[0]
 
