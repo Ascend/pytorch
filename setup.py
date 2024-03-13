@@ -29,8 +29,9 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 THIRD_PARTY_PATH = os.path.join(BASE_DIR, "third_party")
 VERSION = '2.1.0'
 UNKNOWN = "Unknown"
-DISABLE_TORCHAIR = "TRUE"
 BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+
+DISABLE_TORCHAIR = "FALSE"
 if os.environ.get("DISABLE_INSTALL_TORCHAIR") is not None:
     DISABLE_TORCHAIR = os.environ.get("DISABLE_INSTALL_TORCHAIR")
 DISABLE_RPC = "FALSE"
