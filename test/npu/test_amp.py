@@ -11,22 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import unittest
 from itertools import chain
 
 import torch
 
 import torch_npu
 from torch_npu.npu.amp import GradScaler, autocast
+from torch_npu.testing.common_utils import SupportedDevices
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
-class TestAmp(TestCase):
-    def make_device_overflow(self):
-        float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
-        float_tensor = float_tensor + float_tensor
+def make_device_overflow_1():
+    float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
+    float_tensor = float_tensor + float_tensor
 
-    def test_grad_scaling_scale(self, device="npu"):
+
+def make_device_overflow_2(model):
+    for param in model.parameters():
+        if param.grad is not None:
+            param.grad = torch.full_like(param.grad, float("inf"))
+            break
+
+
+class TestAmp(TestCase):
+
+    def test_grad_scaling_scale(self):
         scaler = GradScaler(init_scale=2.)
         t0 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
         t1 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
@@ -37,7 +47,7 @@ class TestAmp(TestCase):
                         outputs[2][0] == 8.0 and outputs[2][1][0] == 8.0 and outputs[2][1][1] == 8.0)
         self.assertTrue(scaler._scale.device == t1.device)
 
-    def test_grad_scaling_state_dict(self, device="npu"):
+    def test_grad_scaling_state_dict(self):
         for lazy_init_scale in True, False:
             s0 = GradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
             s1 = GradScaler(init_scale=6., growth_factor=7., backoff_factor=.8, growth_interval=1)
@@ -115,7 +125,8 @@ class TestAmp(TestCase):
                 self.assertRtolEqual(c, s, atol)
 
     # Compares no scaling + no autocasting against scaling + autocasting.
-    def test_grad_scaling_autocast(self, device="npu"):
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
+    def test_grad_scaling_autocast_1(self):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
                 optimizer.zero_grad()
@@ -125,7 +136,7 @@ class TestAmp(TestCase):
                 if try_scaling_api:
                     scaler.scale(loss).backward()
                     if i == skip_iter and scaler.is_enabled():
-                        self.make_device_overflow()
+                        make_device_overflow_1()
                     scaler.step(optimizer)
                     scaler.update()
                 else:
@@ -137,7 +148,31 @@ class TestAmp(TestCase):
         # sets atol=1e-3 because we're comparing pure fp32 arithmetic vs a mixture of fp16 and fp32
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
 
-    def test_grad_scaling_clipping(self, device="npu"):
+    @SupportedDevices(['Ascend910B'])
+    def test_grad_scaling_autocast_2(self):
+        def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
+            for i, (input_data, target) in enumerate(data):
+                optimizer.zero_grad()
+                with torch.autocast('npu', enabled=try_scaling_api):
+                    output = model(input_data)
+                    loss = loss_fn(output, target)
+                if try_scaling_api:
+                    scaler.scale(loss).backward()
+                    if i == skip_iter and scaler.is_enabled():
+                        make_device_overflow_2(model)
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    if (not scaler.is_enabled()) or (i != skip_iter):
+                        optimizer.step()
+            return scaler
+
+        # sets atol=1e-3 because we're comparing pure fp32 arithmetic vs a mixture of fp16 and fp32
+        self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
+
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
+    def test_grad_scaling_clipping_1(self):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
             for i, (input_data, target) in enumerate(data):
@@ -148,7 +183,7 @@ class TestAmp(TestCase):
                     scaler.scale(loss).backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm * scaler.get_scale())
                     if i == skip_iter and scaler.is_enabled():
-                        self.make_device_overflow()
+                        make_device_overflow_1()
                     scaler.step(optimizer)
                     scaler.update()
                 else:
@@ -159,7 +194,31 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-6)
 
-    def test_grad_scaling_clipping_separate_unscale(self, device="npu"):
+    @SupportedDevices(['Ascend910B'])
+    def test_grad_scaling_clipping_2(self):
+        def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
+            max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
+            for i, (input_data, target) in enumerate(data):
+                optimizer.zero_grad()
+                output = model(input_data)
+                loss = loss_fn(output, target)
+                if try_scaling_api:
+                    scaler.scale(loss).backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm * scaler.get_scale())
+                    if i == skip_iter and scaler.is_enabled():
+                        make_device_overflow_2(model)
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+                    if (not scaler.is_enabled()) or (i != skip_iter):
+                        optimizer.step()
+
+        self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-6)
+
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
+    def test_grad_scaling_clipping_separate_unscale_1(self):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
             for i, (input_data, target) in enumerate(data):
@@ -169,7 +228,7 @@ class TestAmp(TestCase):
                 if try_scaling_api:
                     scaler.scale(loss).backward()
                     if i == skip_iter and scaler.is_enabled():
-                        self.make_device_overflow()
+                        make_device_overflow_1()
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
                     scaler.step(optimizer)
@@ -182,7 +241,32 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=3, skipped=1)
 
-    def test_grad_scaling_penalty(self, device="npu"):
+    @SupportedDevices(['Ascend910B'])
+    def test_grad_scaling_clipping_separate_unscale_2(self):
+        def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
+            max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
+            for i, (input_data, target) in enumerate(data):
+                optimizer.zero_grad()
+                output = model(input_data)
+                loss = loss_fn(output, target)
+                if try_scaling_api:
+                    scaler.scale(loss).backward()
+                    if i == skip_iter and scaler.is_enabled():
+                        make_device_overflow_2(model)
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+                    if (not scaler.is_enabled()) or (i != skip_iter):
+                        optimizer.step()
+
+        self._run_scaling_case(run, unskipped=3, skipped=1)
+
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
+    def test_grad_scaling_penalty_1(self):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
                 optimizer.zero_grad()
@@ -206,7 +290,7 @@ class TestAmp(TestCase):
                 if try_scaling_api:
                     scaler.scale(loss).backward()
                     if i == skip_iter and scaler.is_enabled():
-                        self.make_device_overflow()
+                        make_device_overflow_1()
                     scaler.step(optimizer)
                     scaler.update()
                 else:
@@ -216,7 +300,42 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=3, skipped=1)
 
-    def test_grad_scaling_accumulation(self, device="npu"):
+    @SupportedDevices(['Ascend910B'])
+    def test_grad_scaling_penalty_2(self):
+        def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
+            for i, (input_data, target) in enumerate(data):
+                optimizer.zero_grad()
+                output = model(input_data)
+                loss = loss_fn(output, target)
+
+                if try_scaling_api:
+                    grad_params = torch.autograd.grad(scaler.scale(loss),
+                                                      model.parameters(), create_graph=True)
+                    inv_scale = 1. / scaler.get_scale()
+                    grad_params = [p * inv_scale for p in grad_params]
+                else:
+                    grad_params = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+
+                grad_norm = 0
+                for grad in grad_params:
+                    grad_norm += grad.pow(2).sum()
+                grad_norm = grad_norm.sqrt()
+                loss = loss + grad_norm
+
+                if try_scaling_api:
+                    scaler.scale(loss).backward()
+                    if i == skip_iter and scaler.is_enabled():
+                        make_device_overflow_2(model)
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    if (not scaler.is_enabled()) or (i != skip_iter):
+                        optimizer.step()
+
+        self._run_scaling_case(run, unskipped=3, skipped=1)
+
+    def test_grad_scaling_accumulation(self):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             iters_to_accumulate = 2
             for i, (input_data, target) in enumerate(data):
@@ -238,7 +357,8 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=2, skipped=0)
 
-    def test_grad_scaling_multiple(self, device="npu"):
+    @SupportedDevices(['Ascend910A', 'Ascend910P'])
+    def test_grad_scaling_multiple_1(self):
         # Tests gradient scaling with 2 models and 2 optimizers that both receive gradients from 2 losses.
         # Some of the logic here cannot reuse the generic helper functions created for the 1-optimizer cases.
         for enabled in True, False:
@@ -262,7 +382,7 @@ class TestAmp(TestCase):
                         scaler.scale(loss0).backward(retain_graph=True)
                         scaler.scale(loss1).backward()
                         if i == skip_iter and scaler.is_enabled():
-                            self.make_device_overflow()
+                            make_device_overflow_1()
 
                         # As an additional stress test, separately unscale for one of the optimizers.
                         scaler.unscale_(optimizer0)
@@ -283,6 +403,59 @@ class TestAmp(TestCase):
             # The loss scale should have been multiplied by the growth factor 3 times and the backoff factor once.
             self.assertTrue(scaler.get_scale() == (128. * scaler.get_growth_factor()**3 *
                                                    scaler.get_backoff_factor()**1) if enabled else 1.0)
+
+            for c, s in zip(chain(mod_control0.parameters(), mod_control1.parameters()),
+                            chain(mod_scaling0.parameters(), mod_scaling1.parameters())):
+                c = c.cpu().to(torch.float).detach().numpy()
+                s = s.cpu().to(torch.float).detach().numpy()
+                self.assertRtolEqual(c, s, 1e-7)
+
+    @SupportedDevices(['Ascend910B'])
+    def test_grad_scaling_multiple_2(self):
+        # Tests gradient scaling with 2 models and 2 optimizers that both receive gradients from 2 losses.
+        # Some of the logic here cannot reuse the generic helper functions created for the 1-optimizer cases.
+        for enabled in True, False:
+            mod_control0, mod_scaling0, opt_control0, opt_scaling0, data, loss_fn, skip_iter = \
+                self._create_scaling_case()
+            mod_control1, mod_scaling1, opt_control1, opt_scaling1 = \
+                self._create_scaling_models_optimizers()
+
+            scaler = GradScaler(init_scale=128., growth_factor=2.0, enabled=enabled, growth_interval=1)
+
+            def run(model0, model1, optimizer0, optimizer1, try_scaling_api):
+                for i, (input_data, target) in enumerate(data):
+                    optimizer0.zero_grad()
+                    optimizer1.zero_grad()
+                    output0 = model0(input_data)
+                    output1 = model1(input_data)
+                    loss0 = loss_fn(0.3 * output0 + 0.7 * output1, target)
+                    loss1 = loss_fn(0.6 * output0 - 0.4 * output1, target)
+
+                    if try_scaling_api:
+                        scaler.scale(loss0).backward(retain_graph=True)
+                        scaler.scale(loss1).backward()
+                        if i == skip_iter and scaler.is_enabled():
+                            make_device_overflow_2(model0)
+
+                        # As an additional stress test, separately unscale for one of the optimizers.
+                        scaler.unscale_(optimizer0)
+
+                        scaler.step(optimizer0)
+                        scaler.step(optimizer1)
+                        scaler.update()
+                    else:
+                        loss0.backward(retain_graph=True)
+                        loss1.backward()
+                        if (not scaler.is_enabled()) or (i != skip_iter):
+                            optimizer0.step()
+                            optimizer1.step()
+
+            run(mod_control0, mod_control1, opt_control0, opt_control1, False)
+            run(mod_scaling0, mod_scaling1, opt_scaling0, opt_scaling1, True)
+
+            # The loss scale should have been multiplied by the growth factor 3 times and the backoff factor once.
+            self.assertTrue(scaler.get_scale() == (128. * scaler.get_growth_factor() ** 3 *
+                                                   scaler.get_backoff_factor() ** 1) if enabled else 1.0)
 
             for c, s in zip(chain(mod_control0.parameters(), mod_control1.parameters()),
                             chain(mod_scaling0.parameters(), mod_scaling1.parameters())):
