@@ -247,6 +247,7 @@ def init():
     # torch.distributed.init_process_group
     torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
+    torch.distributed.ProcessGroup._get_backend = wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
 
     # torch.nn.parallel.DistributedDataParallel
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
