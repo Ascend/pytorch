@@ -42,7 +42,7 @@ class StepInfoDbParser(BaseParser):
         return Constant.SUCCESS, step_range
 
     def get_api_data_in_time_range(self, begin_ts, end_ts, db_cur) -> list:
-        if not DbManager.judge_table_exit(db_cur, DbConstant.TABLE_API):
+        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_API):
             print_warn_msg("Failed to get api data from db.")
             return []
         sql = f"select connectionId from {DbConstant.TABLE_API} " \
@@ -50,14 +50,14 @@ class StepInfoDbParser(BaseParser):
         return DbManager.fetch_all_data(db_cur, sql)
 
     def get_all_api_data(self, db_cur) -> list:
-        if not DbManager.judge_table_exit(db_cur, DbConstant.TABLE_API):
+        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_API):
             print_warn_msg("Failed to get api data from db.")
             return []
         sql = f"select connectionId from {DbConstant.TABLE_API} where type={self.NODE_LEVEL}"
         return DbManager.fetch_all_data(db_cur, sql)
 
     def get_task_info_from_api(self, api_data, db_cur) -> dict:
-        if not DbManager.judge_table_exit(db_cur, DbConstant.TABLE_TASK):
+        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_TASK):
             print_warn_msg("Failed to get task data from db.")
             return {}
         sql = f"select startNs, endNs, connectionId, globalTaskId from {DbConstant.TABLE_TASK}"

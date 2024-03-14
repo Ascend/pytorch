@@ -88,7 +88,7 @@ class CommunicationDbParser(CommunicationParser):
         self.step_list = deps_data.get(Constant.STEP_INFO_DB_PARSER, [])
         if not self.step_list:
             self.step_list = [{
-                Constant.STEP_ID: None, Constant.START_TS: 0, Constant.END_TS: float('inf'), Constant.TASK_IDS: []
+                Constant.STEP_ID: None, Constant.START_TS: 0, Constant.END_TS: float('inf'), Constant.TASK_INFO: []
             }]
 
     def generate_view(self) -> None:
@@ -112,17 +112,17 @@ class CommunicationDbParser(CommunicationParser):
             return band_width_data, matrix_data, time_data
         self.cann_comm_db_conn = conn
         self.cann_comm_db_curs = curs
-        if DbManager.judge_table_exit(curs, DbConstant.TABLE_ANALYZER_BANDWIDTH):
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_ANALYZER_BANDWIDTH):
             sql = "select hccl_op_name, group_name, transport_type, transit_size, transit_time, " \
                   "bandwidth, large_packet_ratio, package_size, count, total_duration" \
                   " from {};".format(DbConstant.TABLE_ANALYZER_BANDWIDTH)
             band_width_data = DbManager.fetch_all_data(curs, sql)
-        if DbManager.judge_table_exit(curs, DbConstant.TABLE_ANALYZER_MATRIX):
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_ANALYZER_MATRIX):
             sql = "select hccl_op_name, group_name, src_rank, dst_rank, "\
                   "transport_type, transit_size, transit_time, bandwidth" \
                   " from {};".format(DbConstant.TABLE_ANALYZER_MATRIX)
             matrix_data = DbManager.fetch_all_data(curs, sql)
-        if DbManager.judge_table_exit(curs, DbConstant.TABLE_ANALYZER_TIME):
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_ANALYZER_TIME):
             sql = "select hccl_op_name, group_name, start_timestamp, elapse_time, "\
                   "transit_time, wait_time, synchronization_time, idle_time" \
                   " from {};".format(DbConstant.TABLE_ANALYZER_TIME)

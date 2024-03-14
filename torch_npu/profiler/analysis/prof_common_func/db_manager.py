@@ -89,7 +89,7 @@ class DbManager:
             return False
 
     @classmethod
-    def judge_table_exit(cls, cur: sqlite3.Cursor, table_name: str) -> bool:
+    def judge_table_exist(cls, cur: sqlite3.Cursor, table_name: str) -> bool:
         """
         judge table if exit
         """
@@ -105,7 +105,7 @@ class DbManager:
         """
         create table
         """
-        if cls.judge_table_exit(cur, table_name):
+        if cls.judge_table_exist(cur, table_name):
             return
         table_headers = ", ".join([f"{col[0]} {col[1]}" for col in headers])
         sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({table_headers})"
