@@ -227,7 +227,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
                                 "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
                                 "If you want to get the accurate stacktrace, "
                                 "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
-                                PTA_ERROR(ErrCode::INTERNAL));
+                                PTA_ERROR(ErrCode::ACL));
     }
 
 #ifndef BUILD_LIBTORCH
