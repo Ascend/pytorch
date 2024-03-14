@@ -8,6 +8,7 @@ from torch_npu.contrib.module import LinearWeightQuant
 
 DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 
+
 def f32_2_s9(array):
     array_round = np.round(array)
     array_round_clip = np.clip(array_round, -256, 255)
