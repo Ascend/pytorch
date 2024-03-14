@@ -198,6 +198,28 @@ inline Tensor dispatch_range(Scalar start, Scalar end, Scalar step, const Tensor
   return torch::range(start, end, step, options);
 }
 
+static PyObject * THPVariable_asarray(PyObject* self_, PyObject* args, PyObject* kwargs)
+{
+    HANDLE_TH_ERRORS
+    static torch::PythonArgParser parser({
+      "asarray(PyObject* obj, *, ScalarType? dtype=None, Device? device=None, bool? copy=None, bool requires_grad=False)",
+        }, false);
+
+    torch::ParsedArgs<5> parsed_args;
+    auto r = parser.parse(args, kwargs, parsed_args);
+    if (r.idx == 0) {
+        auto obj = r.pyobject(0);
+        auto dtype = r.scalartypeOptional(1);
+        auto device  = at_npu::key::parse_npu_device(r.args[2]);
+        auto copy = r.toBoolOptional(3);
+        auto requires_grad = r.toBool(4);
+        return torch::autograd::utils::wrap(torch::utils::asarray(obj, dtype, device, copy, requires_grad));
+    }
+
+    Py_RETURN_NONE;
+    END_HANDLE_TH_ERRORS
+}
+
 static PyObject * THPVariable_range(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
@@ -471,6 +493,7 @@ static PyMethodDef torch_functions[] = {
   {"full", castPyCFunctionWithKeywords(THPVariable_full), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"randint", castPyCFunctionWithKeywords(THPVariable_randint), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"range", castPyCFunctionWithKeywords(THPVariable_range), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
+  {"asarray", castPyCFunctionWithKeywords(THPVariable_asarray), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   ${py_method_defs}
   ${py_device_method_defs}
   {NULL}
