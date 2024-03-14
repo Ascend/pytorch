@@ -94,6 +94,8 @@ class MemoryDbParser(BaseParser):
         DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_OPERATOR_MEMORY, self._memory_data)
 
     def get_ge_memory_record_list(self):
+        if not DbManager.judge_table_exist(self._cur, DbConstant.TABLE_NPU_OP_MEM):
+            return
         sql = "select timestampNs, totalAllocate, totalReserve, deviceId from {}".format(DbConstant.TABLE_NPU_OP_MEM)
         ge_records = DbManager.fetch_all_data(self._cur, sql)
         for record in ge_records:
@@ -148,6 +150,8 @@ class MemoryDbParser(BaseParser):
         self.get_ge_memory_record_list()
         self.get_pta_memort_record_list()
         self.get_pta_ge_record_list()
+        if not self._record_list:
+            return
         DbManager.create_table_with_headers(self._conn, self._cur, DbConstant.TABLE_MEMORY_RECORD, TableColumnsManager.TableColumns.get(DbConstant.TABLE_MEMORY_RECORD))
         DbManager.insert_data_into_table(self._conn, DbConstant.TABLE_MEMORY_RECORD, self._record_list)
 
