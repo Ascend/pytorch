@@ -33,8 +33,9 @@ constexpr int kDefaultBucketBytesCap = int(25 * 1024 * 1024);
 constexpr int kDDPRuntimeLoggingSampleRate = 100;
 constexpr int kUnsetTime = -1;
 
-inline int64_t current_time_in_nanos() {
-  return c10::getTime();
+inline int64_t current_time_in_nanos()
+{
+    return c10::getTime();
 }
 
 // Forward declaration

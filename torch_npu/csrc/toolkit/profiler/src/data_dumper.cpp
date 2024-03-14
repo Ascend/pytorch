@@ -27,16 +27,17 @@ void DataDumper::Init(const std::string &path, size_t capacity = kDefaultRingBuf
   init_.store(true);
 }
 
-void DataDumper::UnInit() {
+void DataDumper::UnInit()
+{
     if (init_.load()) {
         data_chunk_buf_.UnInit();
         init_.store(false);
         start_.store(false);
         for (auto &f : fd_map_) {
-          if (f.second != nullptr) {
-            fclose(f.second);
-            f.second = nullptr;
-          }
+            if (f.second != nullptr) {
+                fclose(f.second);
+                f.second = nullptr;
+            }
         }
         fd_map_.clear();
     }
@@ -103,14 +104,16 @@ void DataDumper::Flush() {
   }
 }
 
-void DataDumper::Report(std::unique_ptr<BaseReportData> data) {
-  if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
-    return;
-  }
-  data_chunk_buf_.Push(std::move(data));
+void DataDumper::Report(std::unique_ptr<BaseReportData> data)
+{
+    if (C10_UNLIKELY(!start_.load() || data == nullptr)) {
+        return;
+    }
+    data_chunk_buf_.Push(std::move(data));
 }
 
-void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap) {
+void DataDumper::Dump(const std::map<std::string, std::vector<uint8_t>> &dataMap)
+{
     for (auto &data : dataMap) {
         FILE *fd = nullptr;
         const std::string dump_file = path_ + "/" + data.first;

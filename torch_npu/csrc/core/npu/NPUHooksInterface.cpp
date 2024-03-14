@@ -41,7 +41,8 @@ void NPUHooksInterface::resizePrivateUse1Bytes(const c10::Storage &storage, size
     at_npu::native::storage_resize_npu(*storage_impl, new_bytes, new_size);
 }
 
-at::PrivateUse1HooksInterface* get_npu_hooks() {
+at::PrivateUse1HooksInterface* get_npu_hooks()
+{
     static at::PrivateUse1HooksInterface* npu_hooks;
     static c10::once_flag once;
     c10::call_once(once, [] {

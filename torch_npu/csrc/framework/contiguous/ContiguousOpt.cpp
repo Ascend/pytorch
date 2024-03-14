@@ -182,17 +182,18 @@ c10::optional<at::Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
 
 bool TransContiguous::ContiguousOptimizeWithBaseFormat(
     at::Tensor &self, const at::Tensor &src, const OptimizationCases &opt_cases,
-    bool OpenCombined) {
-  TORCH_CHECK(FormatHelper::IsBaseFormatType(src),
-              "ContiguousOptimizeWithBaseFormat func requires Input Tensor "
-              "with base format!", OPS_ERROR(ErrCode::TYPE));
-  // In non-specific cases, classify the cases and simplify judgement.
-  ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
-  if (OpenCombined &&
-      c10_npu::option::OptionsManager::CheckCombinedOptimizerEnable()) {
-    src_desc.add_optimization_case("combined");
-  }
-  return cached_contiguous_optimize_with_anyformat_(self, src, src_desc);
+    bool OpenCombined)
+{
+    TORCH_CHECK(FormatHelper::IsBaseFormatType(src),
+                "ContiguousOptimizeWithBaseFormat func requires Input Tensor "
+                "with base format!", OPS_ERROR(ErrCode::TYPE));
+    // In non-specific cases, classify the cases and simplify judgement.
+    ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
+    if (OpenCombined &&
+        c10_npu::option::OptionsManager::CheckCombinedOptimizerEnable()) {
+        src_desc.add_optimization_case("combined");
+    }
+    return cached_contiguous_optimize_with_anyformat_(self, src, src_desc);
 }
 
 
