@@ -23,12 +23,12 @@
 
 namespace c10_npu {
 struct C10_NPU_API SecondaryStreamGuard {
-  explicit SecondaryStreamGuard() = delete;
-  explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {};
+    explicit SecondaryStreamGuard() = delete;
+    explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {};
 
-  ~SecondaryStreamGuard();
+    ~SecondaryStreamGuard();
 
 private:
-  c10_npu::NPUStreamGuard guard_;
+    c10_npu::NPUStreamGuard guard_;
 };
 }  // namespace c10_npu

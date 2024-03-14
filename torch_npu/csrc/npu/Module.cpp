@@ -58,14 +58,14 @@ void RegisterNPUDeviceProperties(PyObject* module)
 {
     auto m = py::handle(module).cast<py::module>();
     py::class_<NPUDeviceProp>(m, "_NPUDeviceProperties")
-              .def_readonly("name", &NPUDeviceProp::name)
-              .def_readonly("total_memory", &NPUDeviceProp::totalGlobalMem)
-              .def("__repr__", [](const NPUDeviceProp &prop) {
-                std::ostringstream stream;
-                stream << "_NPUDeviceProperties(name='" << prop.name << "', total_memory="
-                  << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
-                return stream.str();
-              });
+        .def_readonly("name", &NPUDeviceProp::name)
+        .def_readonly("total_memory", &NPUDeviceProp::totalGlobalMem)
+        .def("__repr__", [](const NPUDeviceProp &prop) {
+            std::ostringstream stream;
+            stream << "_NPUDeviceProperties(name='" << prop.name << "', total_memory="
+                << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
+            return stream.str();
+        });
 }
 
 NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
@@ -75,10 +75,10 @@ NPUDeviceProp* GetDeviceProperties(int64_t deviceid)
     size_t device_total;
     device_name = c10_npu::acl::AclrtGetSocName();
     if (device_name == nullptr) {
-      prop.name = " ";
-      NPU_LOGE("NPU get device name fail.");
+        prop.name = " ";
+        NPU_LOGE("NPU get device name fail.");
     } else {
-      prop.name = std::string(device_name);
+        prop.name = std::string(device_name);
     }
     NPU_CHECK_ERROR(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
     prop.totalGlobalMem = device_total;
@@ -125,13 +125,12 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
     {
-      pybind11::gil_scoped_release no_gil;
-      c10_npu::NpuSysCtrl::SysStatus status =
-          c10_npu::NpuSysCtrl::GetInstance().Initialize();
-      if (status !=
-          c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+    pybind11::gil_scoped_release no_gil;
+    c10_npu::NpuSysCtrl::SysStatus status =
+        c10_npu::NpuSysCtrl::GetInstance().Initialize();
+    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
         throw python_error();
-      }
+    }
     }
     auto m = THPObjectPtr(PyImport_ImportModule("torch_npu.npu"));
     if (!m) {
@@ -139,18 +138,18 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs)
     }
 
     auto set_module_attr = [&](const char* name, PyObject* v) {
-      // PyObject_SetAttrString doesn't steal reference. So no need to incref.
-      if (PyObject_SetAttrString(m, name, v) < 0) {
-        throw python_error();
-      }
+        // PyObject_SetAttrString doesn't steal reference. So no need to incref.
+        if (PyObject_SetAttrString(m, name, v) < 0) {
+            throw python_error();
+        }
     };
     auto num_npus = c10_npu::device_count();
     auto default_npu_generators = PyTuple_New(static_cast<Py_ssize_t>(num_npus));
     for (int i = 0; i < num_npus; i++) {
-      auto gen = at_npu::detail::getDefaultNPUGenerator(i);
-      auto cast_gen = (THPGenerator*)THPGenerator_initDefaultGenerator(gen);
-      // This reference is meant to be given away, so no need to incref here.
-      PyTuple_SetItem(default_npu_generators, i, (PyObject*)cast_gen);
+        auto gen = at_npu::detail::getDefaultNPUGenerator(i);
+        auto cast_gen = (THPGenerator*)THPGenerator_initDefaultGenerator(gen);
+        // This reference is meant to be given away, so no need to incref here.
+        PyTuple_SetItem(default_npu_generators, i, (PyObject*)cast_gen);
     }
     set_module_attr("default_generators", default_npu_generators);
 
@@ -177,12 +176,12 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg)
     HANDLE_TH_ERRORS
     int device = THPUtils_unpackLong(arg);
     {
-      pybind11::gil_scoped_release no_gil;
-      c10_npu::NpuSysCtrl::SysStatus status =
-          c10_npu::NpuSysCtrl::GetInstance().Initialize(device);
-      if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+    pybind11::gil_scoped_release no_gil;
+    c10_npu::NpuSysCtrl::SysStatus status =
+        c10_npu::NpuSysCtrl::GetInstance().Initialize(device);
+    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
         NPU_LOGE("Npu init fail.");
-      }
+    }
     }
 
     int pre_device = 0;
@@ -248,11 +247,11 @@ PyObject* THNPModule_getDeviceUtilizationRate_wrap(PyObject* self, PyObject* dev
     // whoever supports vector or cube will return their usage rate,
     // If both support calculation (vector * 1+cube * 1)/2.
     if (cube == DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
-      util_rate = vector;
+        util_rate = vector;
     } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector == DEVICE_UTILIZATION_NOT_SUPPORT) {
-      util_rate = cube;
+        util_rate = cube;
     } else if (cube != DEVICE_UTILIZATION_NOT_SUPPORT && vector != DEVICE_UTILIZATION_NOT_SUPPORT) {
-      util_rate = (cube + vector) / 2;
+        util_rate = (cube + vector) / 2;
     }
     THPUtils_assert(util_rate <=100 && util_rate >= 0, "invalid result to util_rate", PTA_ERROR(ErrCode::VALUE));
     return PyLong_FromLong(util_rate);
@@ -286,13 +285,13 @@ PyObject* THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
     THPUtils_assert(PyLong_Check(obj), "invalid stream");
     uint64_t bits = PyLong_AsUnsignedLongLong(obj);
     if (bits == static_cast<uint64_t>(-1) && PyErr_Occurred()) {
-      throw python_error();
+        throw python_error();
     }
     auto stream = c10_npu::NPUStream::unpack(bits);
     int device;
     NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
     if (device != stream.device_index()) {
-      THNPModule_setDevice(stream.device_index());
+        THNPModule_setDevice(stream.device_index());
     }
     c10_npu::setCurrentNPUStream(stream);
     Py_RETURN_NONE;
@@ -306,9 +305,9 @@ PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs)
     static const std::string jit_compile_option_name = "jitCompile";
     auto option_value = c10_npu::option::GetOption(jit_compile_option_name);
     if (option_value.has_value() && (option_value.value() == "disable")) {
-      Py_RETURN_TRUE;
+        Py_RETURN_TRUE;
     } else {
-      Py_RETURN_FALSE;
+        Py_RETURN_FALSE;
     }
     END_HANDLE_TH_ERRORS
 }
@@ -319,13 +318,13 @@ PyObject* THNPModule_setMemoryFraction(PyObject *_unused, PyObject *args)
     PyObject* fraction_o = nullptr;
     PyObject* device_o = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &fraction_o, &device_o)) {
-      THPUtils_invalidArguments(
-          args,
-          nullptr,
-          "set_memory_fraction",
-          1,
-          "(double fraction, int device);");
-      return nullptr;
+        THPUtils_invalidArguments(
+            args,
+            nullptr,
+            "set_memory_fraction",
+            1,
+            "(double fraction, int device);");
+        return nullptr;
     }
     double fraction = PyFloat_AsDouble(fraction_o);
     int64_t device = PyLong_AsLongLong(device_o);
@@ -355,24 +354,24 @@ PyObject* THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
     using c10_npu::NPUCachingAllocator::DeviceStats;
 
     const auto statToDict = [](const Stat& stat) {
-      py::dict dict;
+        py::dict dict;
 
-      dict["current"] = stat.current;
-      dict["peak"] = stat.peak;
-      dict["allocated"] = stat.allocated;
-      dict["freed"] = stat.freed;
-      return dict;
+        dict["current"] = stat.current;
+        dict["peak"] = stat.peak;
+        dict["allocated"] = stat.allocated;
+        dict["freed"] = stat.freed;
+        return dict;
     };
 
     const auto statArrayToDict = [=](const StatArray& statArray) {
-      const std::array<const char*, static_cast<size_t>(StatType::NUM_TYPES)> statTypeNames = {
-          "all", "small_pool", "large_pool"
-      };
-      py::dict dict;
-      for (size_t i = 0; i < statTypeNames.size(); ++i) {
-        dict[statTypeNames[i]] = statToDict(statArray[i]);
-      }
-      return dict;
+        const std::array<const char*, static_cast<size_t>(StatType::NUM_TYPES)> statTypeNames = {
+            "all", "small_pool", "large_pool"
+        };
+        py::dict dict;
+        for (size_t i = 0; i < statTypeNames.size(); ++i) {
+            dict[statTypeNames[i]] = statToDict(statArray[i]);
+        }
+        return dict;
     };
 
     const DeviceStats stats = c10_npu::NPUCachingAllocator::getDeviceStats(device);
@@ -424,31 +423,31 @@ PyObject* THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
     using c10_npu::NPUCachingAllocator::BlockInfo;
 
     const auto segmentInfoToDict = [](const SegmentInfo& segmentInfo) {
-      py::dict segmentDict;
-      segmentDict["device"] = segmentInfo.device;
-      segmentDict["address"] = segmentInfo.address;
-      segmentDict["total_size"] = segmentInfo.total_size;
-      segmentDict["allocated_size"] = segmentInfo.allocated_size;
-      segmentDict["active_size"] = segmentInfo.active_size;
-      segmentDict["segment_type"] = (segmentInfo.is_large ? "large" : "small");
+        py::dict segmentDict;
+        segmentDict["device"] = segmentInfo.device;
+        segmentDict["address"] = segmentInfo.address;
+        segmentDict["total_size"] = segmentInfo.total_size;
+        segmentDict["allocated_size"] = segmentInfo.allocated_size;
+        segmentDict["active_size"] = segmentInfo.active_size;
+        segmentDict["segment_type"] = (segmentInfo.is_large ? "large" : "small");
 
-      py::list blocks;
-      for (const auto& blockInfo : segmentInfo.blocks) {
-        py::dict blockDict;
-        blockDict["size"] = blockInfo.size;
-        blockDict["state"] = (blockInfo.allocated ? "active_allocated" : (blockInfo.active ? "active_pending_free" : "inactive"));
-        blocks.append(blockDict);
-      }
-      segmentDict["blocks"] = blocks;
+        py::list blocks;
+        for (const auto& blockInfo : segmentInfo.blocks) {
+            py::dict blockDict;
+            blockDict["size"] = blockInfo.size;
+            blockDict["state"] = (blockInfo.allocated ? "active_allocated" : (blockInfo.active ? "active_pending_free" : "inactive"));
+            blocks.append(blockDict);
+        }
+        segmentDict["blocks"] = blocks;
 
-      return segmentDict;
+        return segmentDict;
     };
 
     const std::vector<SegmentInfo>& snapshot = c10_npu::NPUCachingAllocator::snapshot();
     py::list result;
 
     for (const auto& segmentInfo : snapshot) {
-      result.append(segmentInfoToDict(segmentInfo));
+        result.append(segmentInfoToDict(segmentInfo));
     }
 
     return result.release().ptr();
@@ -460,13 +459,13 @@ PyObject* THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject *
     PyObject* size_o = nullptr;
     PyObject* stream_o = nullptr;
     if (!PyArg_ParseTuple(args, "OO", &size_o, &stream_o)) {
-      THPUtils_invalidArguments(
-          args,
-          nullptr,
-          "caching_allocator_alloc",
-          1,
-          "(ssize_t size, intptr_t stream);");
-      return nullptr;
+        THPUtils_invalidArguments(
+            args,
+            nullptr,
+            "caching_allocator_alloc",
+            1,
+            "(ssize_t size, intptr_t stream);");
+        return nullptr;
     }
     ssize_t size = PyLong_AsSsize_t(size_o);
     aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
@@ -499,13 +498,13 @@ PyObject* THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
     // free a CUDA tensor and acquire the cudaMutex without giving up the GIL,
     // because it happens deep within THC).
     while (true) {
-      if (mutex->try_lock()) {
-          break;
-      }
-      {
-        pybind11::gil_scoped_release no_gil;
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
-      }
+        if (mutex->try_lock()) {
+            break;
+        }
+        {
+            pybind11::gil_scoped_release no_gil;
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
+        }
     }
 
     npuMutexGILState = PyGILState_Ensure();
@@ -533,12 +532,12 @@ PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg)
 {
     HANDLE_TH_ERRORS
     if (!THPUtils_checkString(arg)) {
-      THPUtils_setError("npu set dump error, cfg_file must string");
+        THPUtils_setError("npu set dump error, cfg_file must string");
     }
     std::string cfg_file = THPUtils_unpackString(arg);
     {
-      pybind11::gil_scoped_release no_gil;
-      NPU_CHECK_ERROR(aclmdlSetDump(cfg_file.c_str()));
+        pybind11::gil_scoped_release no_gil;
+        NPU_CHECK_ERROR(aclmdlSetDump(cfg_file.c_str()));
     }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
@@ -568,22 +567,22 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg)
     std::map<std::string, std::string> option;
 
     while (PyDict_Next(arg, &pos, &key, &value)) {
-      if (key == nullptr || !PyUnicode_Check(key)) {
-        throw torch::TypeError("option name is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
-      }
+        if (key == nullptr || !PyUnicode_Check(key)) {
+            throw torch::TypeError("option name is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
+        }
 
-      if (value == nullptr || !PyUnicode_Check(value)) {
-        throw torch::TypeError("option value is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
-      }
+        if (value == nullptr || !PyUnicode_Check(value)) {
+            throw torch::TypeError("option value is nullptr or is not string." + PTA_ERROR(ErrCode::TYPE));
+        }
 
-      const char *pKey = PyUnicode_AsUTF8(key);
-      const char *pValue = PyUnicode_AsUTF8(value);
-      option[pKey] = pValue;
+        const char *pKey = PyUnicode_AsUTF8(key);
+        const char *pValue = PyUnicode_AsUTF8(value);
+        option[pKey] = pValue;
     }
     torch_npu::utils::npu_lazy_init();
     {
-      pybind11::gil_scoped_release no_gil;
-      c10_npu::option::SetOption(option);
+        pybind11::gil_scoped_release no_gil;
+        c10_npu::option::SetOption(option);
     }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS
@@ -610,9 +609,9 @@ PyObject* THNPModule_npu_is_support_inf_nan(PyObject* self, PyObject* noargs)
 {
     HANDLE_TH_ERRORS
     if (c10_npu::IsSupportInfNan()) {
-      Py_RETURN_TRUE;
+        Py_RETURN_TRUE;
     } else {
-      Py_RETURN_FALSE;
+        Py_RETURN_FALSE;
     }
     END_HANDLE_TH_ERRORS
 }
@@ -644,13 +643,10 @@ PyObject* THNPModule_check_overflow_npu(
 {
     HANDLE_TH_ERRORS
     auto has_overflow = torch_npu::utils::OverflowUtil::GetInstance()->CheckOverflowNpu();
-    if (has_overflow)
-    {
-      Py_RETURN_TRUE;
-    }
-    else
-    {
-      Py_RETURN_FALSE;
+    if (has_overflow) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
     }
     END_HANDLE_TH_ERRORS
 }
@@ -672,7 +668,7 @@ PyObject* THNPModule_getOption_wrap(PyObject* self, PyObject* option_type)
     std::string option_type_str = THPUtils_unpackString(option_type);
     auto option_key = c10_npu::option::GetOption(option_type_str);
     if (option_key.has_value()) {
-      return PyBytes_FromString(option_key.value().c_str());
+        return PyBytes_FromString(option_key.value().c_str());
     }
     Py_RETURN_NONE;
     END_HANDLE_TH_ERRORS

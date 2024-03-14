@@ -441,7 +441,7 @@ def gen_npu_variable_type(
                     type_definition_body=emit_body(fn),
                     formals=formals,
                 )
-                if str(f.func.name) in  NPU_NATIVEFUNCTIONS:
+                if str(f.func.name) in NPU_NATIVEFUNCTIONS:
                     type_definition = type_definition.replace('at::redispatch', 'at_npu::native::NPUNativeFunctions')
                 else:
                     cpp_namespace = 'op_plugin' if enable_opplugin() else 'at_npu::native::NPUNativeFunctions'
@@ -501,6 +501,7 @@ def gen_aclnn_variable_type(
         'wrapper_registrations': wrapper_registrations
     })
 
+
 def gen_select_patch(fn: NativeFunctionWithDifferentiabilityInfo, aclnn_return: str):
     f = fn.func
     tensor_check_str = ""
@@ -528,6 +529,7 @@ if (({force_aclnn} || at_npu::native::env::CheckJitDisable()){tensor_check_str})
     }}
 """
     return return_code
+
 
 @with_native_function
 def gen_aclnn_formals(f: NativeFunction) -> str:
@@ -1209,6 +1211,7 @@ def emit_body(fn: NativeFunctionWithDifferentiabilityInfo) -> List[str]:
     if not returns_void:
         body.append(f'return {get_return_value(f)};')
     return body
+
 
 def declare_returned_variables(f: NativeFunction) -> str:
     modified_arguments = f.func.kind() in (SchemaKind.inplace, SchemaKind.out)

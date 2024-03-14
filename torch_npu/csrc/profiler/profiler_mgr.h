@@ -30,9 +30,10 @@ public:
   void Finalize();
   void Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data);
 
-  std::atomic<bool>& ReportEnable() {
-    return report_enable_;
-  }
+    std::atomic<bool>& ReportEnable()
+    {
+        return report_enable_;
+    }
 
     std::atomic<bool>& ReportMemEnable()
     {

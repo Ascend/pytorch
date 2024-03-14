@@ -321,25 +321,26 @@ bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& sr
   return TransContiguous::ContiguousOptimizeWithAnyFormat(self, src);
 }
 
-at::Tensor& copy_real_number_nocheck(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  // save tensor dim name
-  c10::optional<at::DimnameList> names = src.opt_names();
-  if (names.has_value()) {
-    internal_set_names_inplace(self, names);
-  }
+at::Tensor& copy_real_number_nocheck(at::Tensor& self, const at::Tensor& src, bool non_blocking)
+{
+    // save tensor dim name
+    c10::optional<at::DimnameList> names = src.opt_names();
+    if (names.has_value()) {
+        internal_set_names_inplace(self, names);
+    }
 
-  if (at_npu::key::isDeviceTensor(self)) {
-    if (at_npu::key::isDeviceTensor(src)) {
-      copy_d2d(self, src, non_blocking);
+    if (at_npu::key::isDeviceTensor(self)) {
+        if (at_npu::key::isDeviceTensor(src)) {
+            copy_d2d(self, src, non_blocking);
+        } else {
+            copy_h2d(self, src, non_blocking);
+        }
     } else {
-      copy_h2d(self, src, non_blocking);
+        if (at_npu::key::isDeviceTensor(src)) {
+            copy_d2h(self, src, non_blocking);
+        }
     }
-  } else {
-    if (at_npu::key::isDeviceTensor(src)) {
-      copy_d2h(self, src, non_blocking);
-    }
-  }
-  return self;
+    return self;
 }
 
 at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {

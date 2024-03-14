@@ -276,7 +276,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 else:
                     impl_name = f"at::native::{metadata.kernel}"
 
-                trans_to_cpu_code, args_name =  transfer_args_of_wrapper_func_to_cpu(sig, f)
+                trans_to_cpu_code, args_name = transfer_args_of_wrapper_func_to_cpu(sig, f)
                 args_exprs_str = ', '.join(_ for _ in args_name)
                 func_call_code = f"{impl_name}({args_exprs_str})"
                 return_part = transfer_ret_of_wrapper_func_to_xla(sig, func_call_code)

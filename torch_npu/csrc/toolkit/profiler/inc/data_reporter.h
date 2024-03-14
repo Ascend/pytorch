@@ -83,13 +83,12 @@ void encode2DIntegerMatrixDatas(uint16_t type, std::vector<std::vector<T>> &data
 }
 
 struct BaseReportData {
-  int32_t device_id{0};
-  std::string tag;
-  BaseReportData(int32_t device_id, std::string tag)
-    : device_id(device_id),
-      tag(std::move(tag)) {}
-  virtual ~BaseReportData() = default;
-  virtual std::vector<uint8_t> encode() = 0;
+    int32_t device_id{0};
+    std::string tag;
+    BaseReportData(int32_t device_id, std::string tag)
+        : device_id(device_id), tag(std::move(tag)) {}
+    virtual ~BaseReportData() = default;
+    virtual std::vector<uint8_t> encode() = 0;
 };
 
 enum class OpRangeDataType {

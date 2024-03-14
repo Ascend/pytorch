@@ -120,7 +120,8 @@ class DbManager:
         index = 0
         if not data:
             return
-        sql = "insert into {table_name} values ({value_form})".format(table_name = table_name, value_form = "?," * (len(data[0]) - 1) + "?")
+        sql = "insert into {table_name} values ({value_form})".format(
+            table_name=table_name, value_form="?," * (len(data[0]) - 1) + "?")
         while index < len(data):
             if not cls.executemany_sql(conn, sql, data[index:index + cls.INSERT_SIZE]):
                 raise RuntimeError("Failed to insert data into profiler db file")
