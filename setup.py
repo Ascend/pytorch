@@ -521,4 +521,9 @@ setup(
         'clean': Clean,
         'bdist_wheel': BdistWheelBuild,
         'install': InstallCmd
+    },
+    entry_points={
+        'console_scripts': [
+            'torch_npu_run = torch_npu.distributed.run:main',
+        ],
     })

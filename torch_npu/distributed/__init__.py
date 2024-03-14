@@ -32,6 +32,7 @@ if is_available() and not torch_npu._C._c10d_init():
 
 
 from torch_npu._C._distributed_c10d import (
+    ParallelStore,
     Reducer,
     _DEFAULT_FIRST_BUCKET_BYTES,
     _register_comm_hook,
@@ -40,6 +41,9 @@ from torch_npu._C._distributed_c10d import (
     _compute_bucket_assignment_by_size,
     _verify_params_across_processes,
 )
+
+from torch_npu.distributed import rendezvous
+
 from .distributed_c10d import Group as group
 from .distributed_c10d import (
     _backend, Backend, GroupMember, is_hccl_available, is_initialized, get_backend,
@@ -60,3 +64,4 @@ fsdp_patches = [
     ["distributed.fsdp", fsdp]
 ]
 
+rendezvous.rendezvous_init()

@@ -252,7 +252,7 @@ def _store_based_barrier(rank, store, timeout):
     start = time.time()
     log_time = time.time()
     while worker_count != world_size:
-        time.sleep(0.01)
+        time.sleep(0.1)
         worker_count = store.add(store_key, 0)
 
         # Print status periodically to keep track.
