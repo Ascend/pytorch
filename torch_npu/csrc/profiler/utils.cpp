@@ -181,7 +181,7 @@ uint64_t computeFlops(const std::string &op_name, const std::unordered_map<std::
     }
     // format of the input is defined in torch.nn.quantized.functional.conv2d()
     uint64_t minibatch = 0;
-    uint64_t in_channels = 0; 
+    uint64_t in_channels = 0;
     uint64_t input_h = 0;
     uint64_t input_w = 0;
     uint64_t out_channels = 0;
