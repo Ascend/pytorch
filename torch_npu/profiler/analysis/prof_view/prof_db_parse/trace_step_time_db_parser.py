@@ -119,15 +119,18 @@ class TraceStepTimeDbParser(BaseParser):
             return
         self.task_db_con = conn
         self.task_db_curs = curs
-        sql = "select id, value from {}".format(DbConstant.TABLE_STRING_IDS)
-        string_id_data = DbManager.fetch_all_data(curs, sql)
-        self.string_id_map = {data[0]: data[1] for data in string_id_data}
-        sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMPUTE_TASK_INFO)
-        compute_task_data = DbManager.fetch_all_data(curs, sql)
-        self.compute_task_info = {data[1]: data[0] for data in compute_task_data}
-        sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMMUNICATION_TASK_INFO)
-        communication_task_data = DbManager.fetch_all_data(curs, sql)
-        self.communication_task_info = {data[1]: data[0] for data in communication_task_data}
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_STRING_IDS):
+            sql = "select id, value from {}".format(DbConstant.TABLE_STRING_IDS)
+            string_id_data = DbManager.fetch_all_data(curs, sql)
+            self.string_id_map = {data[0]: data[1] for data in string_id_data}
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_COMPUTE_TASK_INFO):
+            sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMPUTE_TASK_INFO)
+            compute_task_data = DbManager.fetch_all_data(curs, sql)
+            self.compute_task_info = {data[1]: data[0] for data in compute_task_data}
+        if DbManager.judge_table_exist(curs, DbConstant.TABLE_COMMUNICATION_TASK_INFO):
+            sql = "select name, globalTaskId from {}".format(DbConstant.TABLE_COMMUNICATION_TASK_INFO)
+            communication_task_data = DbManager.fetch_all_data(curs, sql)
+            self.communication_task_info = {data[1]: data[0] for data in communication_task_data}
         DbManager.destroy_db_connect(conn, curs)
 
     def _get_task_data_in_step(self, step_info):

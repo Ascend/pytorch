@@ -88,7 +88,7 @@ class FwkApiDbParser(BaseParser):
         Str2IdManager().set_start_id(DbConstant.START_STRING_ID_FWK_API)
     
     def get_max_cann_id(self):
-        if not DbManager.judge_table_exit(self._cur, DbConstant.TABLE_API):
+        if not DbManager.judge_table_exist(self._cur, DbConstant.TABLE_API):
             return
         sql = "select max(apiId) from {}".format(DbConstant.TABLE_API)
         apiIds = DbManager.fetch_one_data(self._cur, sql)
