@@ -23,13 +23,15 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
 
   NPUGuardImpl() {}
   explicit NPUGuardImpl(c10::DeviceType t) {
-    TORCH_INTERNAL_ASSERT(t == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::PARAM));
+    TORCH_INTERNAL_ASSERT(t == c10::DeviceType::PrivateUse1,
+                          "DeviceType must be NPU. Actual DeviceType is: ", t, PTA_ERROR(ErrCode::PARAM));
   }
   c10::DeviceType type() const override {
     return c10::DeviceType::PrivateUse1;
   }
   c10::Device exchangeDevice(c10::Device d) const override {
-    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::PARAM));
+    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1,
+                          "DeviceType must be NPU. Actual DeviceType is: ", d.type(), PTA_ERROR(ErrCode::PARAM));
     c10::Device old_device = getDevice();
     if (old_device.index() != d.index()) {
       NPU_CHECK_ERROR(c10_npu::SetDevice(d.index()));
@@ -42,7 +44,8 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     return c10::Device(c10::DeviceType::PrivateUse1, device);
   }
   void setDevice(c10::Device d) const override{
-    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1, PTA_ERROR(ErrCode::PARAM));
+    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::PrivateUse1,
+                          "DeviceType must be NPU. Actual DeviceType is: ", d.type(), PTA_ERROR(ErrCode::PARAM));
     NPU_CHECK_ERROR(c10_npu::SetDevice(d.index()));
   }
   void uncheckedSetDevice(c10::Device d) const noexcept override {
