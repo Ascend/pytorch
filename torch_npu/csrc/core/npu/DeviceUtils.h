@@ -12,15 +12,15 @@ namespace torch_npu {
 namespace utils {
 
 inline bool is_npu(const at::Tensor& tensor) {
-  return tensor.is_privateuseone();
+    return tensor.is_privateuseone();
 }
 
 inline bool is_npu(const at::TensorOptions& options) {
-  return options.device().is_privateuseone();
+    return options.device().is_privateuseone();
 }
 
 inline bool is_npu(const at::Device& device) {
-  return device.is_privateuseone();
+    return device.is_privateuseone();
 }
 
 inline void torch_check_npu(const at::Tensor& tensor) {

@@ -85,14 +85,15 @@ public:
     return true;
   }
 
-  size_t Size() {
-    size_t curr_read_index = read_index_.load(std::memory_order_relaxed);
-    size_t curr_write_index = write_index_.load(std::memory_order_relaxed);
-    if (curr_read_index > curr_write_index) {
-      return capacity_ - (curr_read_index & mask_) + (curr_write_index & mask_);
+    size_t Size()
+    {
+        size_t curr_read_index = read_index_.load(std::memory_order_relaxed);
+        size_t curr_write_index = write_index_.load(std::memory_order_relaxed);
+        if (curr_read_index > curr_write_index) {
+            return capacity_ - (curr_read_index & mask_) + (curr_write_index & mask_);
+        }
+        return curr_write_index - curr_read_index;
     }
-    return curr_write_index - curr_read_index;
-  }
 
 private:
   bool is_inited_;

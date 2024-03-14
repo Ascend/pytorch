@@ -246,19 +246,20 @@ at::Tensor NpuUtils::format_contiguous_add_copy_optimize(const at::Tensor &src) 
   return src;
 }
 
-bool NpuUtils::IsOomError(aclError ret, int index) {
-  if (ret == ACL_ERROR_GE_DEVICE_MEMORY_ALLOCATION_FAILED) {
-    int deviceId = 0;
-    // free devcie cached memory when return value of the first op execution is
-    // oom
-    if (index == 1) {
-      NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceId));
-      c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
-      return true;
+bool NpuUtils::IsOomError(aclError ret, int index)
+{
+    if (ret == ACL_ERROR_GE_DEVICE_MEMORY_ALLOCATION_FAILED) {
+        int deviceId = 0;
+        // free devcie cached memory when return value of the first op execution is
+        // oom
+        if (index == 1) {
+            NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceId));
+            c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
+            return true;
+        }
+        AT_ERROR("NPU out of memory. device id: ", deviceId);
     }
-    AT_ERROR("NPU out of memory. device id: ", deviceId);
-  }
-  return false;
+    return false;
 }
 
 void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
@@ -267,13 +268,14 @@ void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
 }
 
 #ifndef BUILD_LIBTORCH
-void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id) {
-  if (data.empty()) {
-    return;
-  }
-  if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
-    torch_npu::profiler::reportMarkDataToNpuProfiler(category, data, correlation_id);
-  }
+void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, const std::string &data, uint64_t correlation_id)
+{
+    if (data.empty()) {
+        return;
+    }
+    if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
+        torch_npu::profiler::reportMarkDataToNpuProfiler(category, data, correlation_id);
+    }
 }
 
 void NpuUtils::DqueueCompileExcute(c10_npu::queue::QueueParas * para, uint32_t category) {
@@ -289,26 +291,27 @@ void NpuUtils::DqueueAnyncMemcpy(c10_npu::queue::QueueParas * para, uint32_t cat
   torch_npu::profiler::reportMarkDataToNpuProfiler(category, c10_npu::queue::CopyParas::COPY_PARAS_MAP[param_val->kind], para->correlation_id);
 }
 
-void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset) {
-  if (C10_UNLIKELY(!data)) {
-    return;
-  }
-  if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
-    static const std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
-      {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
-      {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
-      {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
-      {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
-      {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
-      {c10_npu::queue::RESET_EVENT, &DqueueEvent},
-    };
-    void *cur_addr = (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
-    auto cur_param = static_cast<c10_npu::queue::QueueParas *>(cur_addr);
-    auto entry = DEQUEUE_CALL_FUNC_MAP.find(cur_param->paramType);
-    if (entry != DEQUEUE_CALL_FUNC_MAP.end()) {
-      entry->second(cur_param, category);
+void NpuUtils::ProfReportMarkDataToNpuProfiler(uint32_t category, void *data, size_t offset)
+{
+    if (C10_UNLIKELY(!data)) {
+        return;
     }
-  }
+    if (torch_npu::profiler::profDataReportEnable().load(std::memory_order_relaxed)) {
+        static const std::map<int64_t, DqueueCall> DEQUEUE_CALL_FUNC_MAP{
+            {c10_npu::queue::COMPILE_AND_EXECUTE, &DqueueCompileExcute},
+            {c10_npu::queue::ASYNC_MEMCPY, &DqueueAnyncMemcpy},
+            {c10_npu::queue::RECORD_EVENT, &DqueueEvent},
+            {c10_npu::queue::WAIT_EVENT, &DqueueEvent},
+            {c10_npu::queue::LAZY_DESTROY_EVENT, &DqueueEvent},
+            {c10_npu::queue::RESET_EVENT, &DqueueEvent},
+        };
+        void *cur_addr = (uint8_t *)data + (sizeof(c10_npu::queue::QueueParas) + at_npu::native::MAX_PARAS_BYTE_SIZE) * offset;
+        auto cur_param = static_cast<c10_npu::queue::QueueParas *>(cur_addr);
+        auto entry = DEQUEUE_CALL_FUNC_MAP.find(cur_param->paramType);
+        if (entry != DEQUEUE_CALL_FUNC_MAP.end()) {
+            entry->second(cur_param, category);
+        }
+    }
 }
 #endif
 

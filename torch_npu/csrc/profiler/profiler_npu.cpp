@@ -28,29 +28,30 @@ static inline void npuCheck(aclError result, const char *file, int line)
 #define TORCH_NPU_CHECK(result) npuCheck(result, __FILE__, __LINE__);
 
 struct NPUMethods : public ProfilerStubs {
-  void record(int* device, ProfilerVoidEventStub* event, int64_t* cpu_ns)
-      const override {
-    static int local_device = -1;
-    static bool init_flag = false;
-    if (!init_flag) {
-      TORCH_NPU_CHECK(c10_npu::GetDevice(&local_device));
-      init_flag = true;
+    void record(int* device, ProfilerVoidEventStub* event,
+                int64_t* cpu_ns) const override
+    {
+        static int local_device = -1;
+        static bool init_flag = false;
+        if (!init_flag) {
+            TORCH_NPU_CHECK(c10_npu::GetDevice(&local_device));
+            init_flag = true;
+        }
+        if (device) {
+            *device = local_device;
+        }
+        aclrtEvent npu_event = nullptr;
+        TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_TIME_LINE));
+        *event = std::shared_ptr<void>(npu_event, [](aclrtEvent ptr) {
+            TORCH_NPU_CHECK(aclrtDestroyEvent(ptr));
+        });
+        static auto stream = c10_npu::getCurrentNPUStream();
+        if (cpu_ns) {
+            *cpu_ns = c10::getTime();
+        }
+        TORCH_NPU_CHECK(aclrtRecordEvent(npu_event, stream));
+        ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");
     }
-    if (device) {
-      *device = local_device;
-    }
-    aclrtEvent npu_event = nullptr;
-    TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, ACL_EVENT_TIME_LINE));
-    *event = std::shared_ptr<void>(npu_event, [](aclrtEvent ptr) {
-      TORCH_NPU_CHECK(aclrtDestroyEvent(ptr));
-    });
-    static auto stream = c10_npu::getCurrentNPUStream();
-    if (cpu_ns) {
-      *cpu_ns = c10::getTime();
-    }
-    TORCH_NPU_CHECK(aclrtRecordEvent(npu_event, stream));
-    ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed.");
-  }
 
   float elapsed(
       const ProfilerVoidEventStub* event1_,
