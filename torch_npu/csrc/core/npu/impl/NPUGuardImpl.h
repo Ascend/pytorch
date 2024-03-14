@@ -4,7 +4,7 @@
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 #include <c10/macros/Macros.h>
 
-
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -83,7 +83,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
-    NPU_CHECK_WARN(c10_npu::NPUEventManager::GetInstance().LazyDestroy(acl_event));
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(acl_event, device_index));
     ASCEND_LOGI("Event: aclrtDestroyEvent is successfully executed, event=%p", acl_event);
   }
 
@@ -113,7 +113,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
         NPU_CHECK_ERROR(c10_npu::acl::AclrtCreateEventWithFlag(&npu_event, flag_));
         ASCEND_LOGI("Event: aclrtCreateEventWithFlag is successfully executed, event=%p", npu_event);
     }
-    NPU_CHECK_ERROR(aclrtRecordEvent(npu_event, npu_stream));
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchRecordEventTask(npu_event, npu_stream));
     ASCEND_LOGI("Event: aclrtRecordEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false), npu_event);
     // Makes the void* point to the (possibly just allocated) NPU event
     *event = npu_event;
@@ -129,7 +129,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     NPUStream npu_stream{stream};
     const auto orig_device = getDevice();
     setDevice(stream.device());
-    NPU_CHECK_ERROR(aclrtStreamWaitEvent(npu_stream, npu_event));
+    NPU_CHECK_ERROR(c10_npu::queue::LaunchWaitEventTask(npu_event, npu_stream));
     ASCEND_LOGI("Event: aclrtStreamWaitEvent is successfully executed, stream=%p, event=%p", npu_stream.stream(false), npu_event);
     setDevice(orig_device);
   }
