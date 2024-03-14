@@ -29,18 +29,17 @@ namespace at_npu
 
 aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
     bool ge_init_disable = c10_npu::option::OptionsManager::CheckGeInitDisable();
-    if (!ge_init_disable) {
-        typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);
-        static aclSetCompileoptFunc func = nullptr;
-        if (func == nullptr) {
-            func = (aclSetCompileoptFunc)GET_FUNC(aclSetCompileopt);
-        }
-        TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt", OPS_ERROR(ErrCode::NOT_FOUND));
-        auto ret = func(opt, value);
-        return ret;
-    } else {
+    if (ge_init_disable) {
         return ACL_ERROR_NONE;
     }
+    typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);
+    static aclSetCompileoptFunc func = nullptr;
+    if (func == nullptr) {
+        func = (aclSetCompileoptFunc)GET_FUNC(aclSetCompileopt);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt", OPS_ERROR(ErrCode::NOT_FOUND));
+    auto ret = func(opt, value);
+    return ret;
 }
 
 c10::optional<size_t> AclGetCompileoptSize(aclCompileOpt opt) {

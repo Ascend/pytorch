@@ -163,7 +163,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (init_flag_) {
         return INIT_SUCC;
     }
-    init_flag_ = true;
     repeat_init_acl_flag_ = true;
     std::string json_path = GetAclConfigJsonPath();
     const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
@@ -227,7 +226,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
   NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
   NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
-
+  init_flag_ = true;
   ASCEND_LOGD("Npu sys ctrl initialize successfully.");
 
   return INIT_SUCC;
