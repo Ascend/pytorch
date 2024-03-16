@@ -196,7 +196,8 @@ static void initNPUStreamsOnce() {
 }
 
 static inline void check_npu(c10::DeviceIndex device_index) {
-    AT_ASSERT(device_index >= 0 && device_index < num_npus, PTA_ERROR(ErrCode::PARAM));
+    AT_ASSERT(device_index >= 0 && device_index < num_npus, "Invalid device_index : ", device_index,
+              ", valid device_index range is [0, ", num_npus, ")", PTA_ERROR(ErrCode::VALUE));
 }
 
 static uint32_t get_idx(std::atomic<uint32_t>& counter) {
