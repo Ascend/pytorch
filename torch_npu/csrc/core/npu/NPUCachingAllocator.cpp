@@ -2111,7 +2111,8 @@ std::mutex* getFreeMutex() {
 
 static inline void assertValidDevice(int device) {
   int device_num = c10_npu::device_count();
-  AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.", PTA_ERROR(ErrCode::PARAM));
+  AT_ASSERTM(0 <= device && device < device_num, "Invalid device : ", device,
+             ", valid device range is [0, ", device_num, ")", PTA_ERROR(ErrCode::VALUE));
 }
 
 DeviceStats getDeviceStats(int device) {
