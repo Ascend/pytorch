@@ -63,8 +63,10 @@ class NpuInterface(DeviceInterface):
 
     @staticmethod
     def get_compute_capability(device=None):
-        major, minor = get_device_capability(device)
-        return major * 10 + minor
+        r"""Query the minor and major data of device. Cann does not 
+        have a corresponding concept and is not supported. By default, it returns None
+        """
+        return None
 
 
 def _dynamo_register_interface_for_device():
