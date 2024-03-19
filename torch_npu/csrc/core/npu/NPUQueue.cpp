@@ -298,7 +298,7 @@ void Repository::Enqueue(void* cur_paras) {
         if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
             auto cur_paras = static_cast<at_npu::native::ExecuteParas *>(queueParam->paramVal);
             auto op_name = cur_paras->opType;
-            ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for executing and op name is=%s.", *op_name);
+            ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for executing and op name is=%s.", op_name);
         } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
             auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(queueParam->paramVal);
             ASCEND_LOGE("Task queue thread is exit, cann't call Enqueue() for copy, srclen=%zu, dstlen is %zu, kind=%d",
