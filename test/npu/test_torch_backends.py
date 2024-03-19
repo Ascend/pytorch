@@ -7,22 +7,34 @@ class TorchBackendsApiTestCase(TestCase):
     def test_aclnn_allow_hf32(self):
         res = torch.npu.aclnn.allow_hf32
         self.assertEqual(res, True)
-        torch.npu.aclnn.allow_hf32 = True
-        res = torch.npu.aclnn.allow_hf32
-        self.assertEqual(res, True)
-        torch.npu.aclnn.allow_hf32 = False
-        res = torch.npu.aclnn.allow_hf32
-        self.assertEqual(res, False)
+        with torch.npu.aclnn.flags(allow_hf32=True):
+            res = torch.npu.aclnn.allow_hf32
+            self.assertEqual(res, True)
+        with torch.npu.aclnn.flags(allow_hf32=False):
+            res = torch.npu.aclnn.allow_hf32
+            self.assertEqual(res, False)
 
     def test_conv_allow_hf32(self):
-        res = torch.npu.conv.allow_hf32
-        self.assertEqual(res, True)
         torch.npu.conv.allow_hf32 = True
         res = torch.npu.conv.allow_hf32
         self.assertEqual(res, True)
         torch.npu.conv.allow_hf32 = False
         res = torch.npu.conv.allow_hf32
         self.assertEqual(res, False)
+
+    def test_aclnn_to_conv_allow_hf32(self):
+        torch.npu.conv.allow_hf32 = True
+        res = torch.npu.aclnn.allow_hf32
+        self.assertEqual(res, True)
+        torch.npu.conv.allow_hf32 = False
+        res = torch.npu.aclnn.allow_hf32
+        self.assertEqual(res, False)
+        with torch.npu.aclnn.flags(allow_hf32=True):
+            res = torch.npu.conv.allow_hf32
+            self.assertEqual(res, True)
+        with torch.npu.aclnn.flags(allow_hf32=False):
+            res = torch.npu.conv.allow_hf32
+            self.assertEqual(res, False)
 
     def test_matmul_allow_hf32(self):
         res = torch.npu.matmul.allow_hf32
