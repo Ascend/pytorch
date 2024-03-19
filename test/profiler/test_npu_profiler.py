@@ -87,7 +87,6 @@ class TestNpuProfiler(TestCase):
         if os.path.exists(TestNpuProfiler.results_work_path):
             PathManager.remove_path_safety(TestNpuProfiler.results_work_path)
 
-    @unittest.skip("skip test_default_profiler now")
     def test_default_profiler(self):
         worker_name = self.worker_name
         with torch_npu.profiler.profile(
