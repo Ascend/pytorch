@@ -629,3 +629,10 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
     output_dim_list = [nout, cout, hout, wout]
 
     return scale.new_empty(tuple(output_dim_list), dtype=output_dtype)
+
+
+@impl(m, "npu_linear")
+def npu_linear_meta(input, weight, bias=None):
+    dimm = input.size(0)
+    dimn = weight.size(0)
+    return input.new_empty((dimm, dimn))

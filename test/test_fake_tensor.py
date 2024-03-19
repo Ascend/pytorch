@@ -1678,6 +1678,18 @@ class TestAntiQuant(TestCase):
             x = x.to(dstType)
             self.assertTrue(x.numel() * x.element_size() == res.numel() * res.element_size())
 
+
+class TestNpuLinear(TestCase):
+    def test_npu_linear_meta(self):
+        with FakeTensorMode():
+            npu_input1 = torch.randn(16, 128).npu()
+            npu_input2 = torch.randn(32, 128).npu()
+            npu_bias = torch.randn(32,).npu()
+            result = torch_npu.npu_linear(npu_input1, npu_input2, npu_bias)
+
+            self.assertEqual(result.dtype, npu_input1.dtype)
+            self.assertEqual(result.shape, torch.nn.functional.linear(npu_input1, npu_input2, npu_bias).shape)
+
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
 
