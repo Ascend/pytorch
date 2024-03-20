@@ -1,8 +1,11 @@
 import os
+import importlib
+import inspect
 import warnings
 import logging as logger
 import functools
 from functools import wraps
+from packaging.version import Version
 import torch
 import torch_npu
 try:
@@ -33,6 +36,35 @@ torch_cuda_fn_white_list = [
 ]
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location']
+libraries_info_dict = {"transformers": "4.32.0", "accelerate": "0.22.0", "peft": "0.5.0", "trl": "0.5.0"}
+path_by_libraries_list = [[torch.cuda, "is_available", torch.cuda.is_available, torch.npu.is_available]]
+not_patch_libraries_list = []
+
+
+def append_no_patch_module():
+    for lib, version in libraries_info_dict.items():
+        try:
+            imported_module = importlib.import_module(lib)
+            if Version(imported_module.__version__) >= Version(version):
+                not_patch_libraries_list.append(os.path.dirname(imported_module.__file__))
+        except Exception:
+            pass
+
+
+def wrapper_by_module(fn_cuda, fn_npu):
+    @wraps(fn_cuda)
+    def decorated(*args, **kwargs):
+        if not not_patch_libraries_list:
+            return fn_npu(*args, **kwargs)
+        current_stack = inspect.stack()
+        caller_frame = current_stack[1]
+        caller_file_path = caller_frame.filename
+        for item in not_patch_libraries_list:
+            if item in caller_file_path:
+                return fn_cuda(*args, **kwargs)
+        return fn_npu(*args, **kwargs)
+
+    return decorated
 
 
 def wrapper_cuda(fn):
@@ -222,10 +254,14 @@ def init():
         ['torch.' + i for i in torch_fn_white_list] + ['torch.Tensor.' + i for i in torch_tensor_fn_white_list] +
         ['torch.nn.Module.' + i for i in torch_module_fn_white_list]))
     )
+    append_no_patch_module()
 
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+    if not_patch_libraries_list:
+        for item in path_by_libraries_list:
+            setattr(item[0], item[1], wrapper_by_module(item[2], item[3]))
 
     # torch.profiler.*
     patch_profiler()
