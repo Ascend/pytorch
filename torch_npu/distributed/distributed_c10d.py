@@ -4,7 +4,8 @@ import torch.distributed as dist
 from torch.distributed.distributed_c10d import _get_default_group, get_group_rank, _check_single_tensor, \
     _check_tensor_list, _coalescing_manager, _ensure_all_tensors_same_dtype, get_rank, _rank_not_in_group, \
     _warn_not_in_group, GatherOptions, _validate_output_list_for_rank, GroupMember, _get_group_size,\
-    _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend
+    _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
+    get_backend, GatherOptions
 
 
 def batch_isend_irecv(p2p_op_list):
@@ -66,7 +67,7 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
     if gather_list:
         _check_tensor_list(gather_list, "gather_list")
     else:
-        gather_list = [] 
+        gather_list = []
     _ensure_all_tensors_same_dtype(tensor, gather_list)
 
     if _rank_not_in_group(group):
@@ -86,13 +87,30 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
 
     output_tensors = [gather_list]
     input_tensors = [tensor]
+    opts = GatherOptions()
+    opts.rootRank = dst
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
-        _group = default_pg._get_backend(torch.device("npu"))
-        work = _group.allgather(output_tensors, input_tensors)
+        backend_str = get_backend(default_pg)
+        if backend_str == "hccl":
+            _group = default_pg._get_backend(torch.device("npu"))
+            work = _group.allgather(output_tensors, input_tensors)
+        else:
+            if dst != get_rank():
+                output_tensors = []
+            default_pg = _get_default_group()
+            work = default_pg.gather(output_tensors, input_tensors, opts)
     else:
-        _group = group._get_backend(torch.device("npu"))
-        work = _group.allgather(output_tensors, input_tensors)
+        backend_str = get_backend(group)
+        if backend_str == 'hccl':
+            _group = group._get_backend(torch.device("npu"))
+            work = _group.allgather(output_tensors, input_tensors)
+        else:
+            group_dst_rank = get_group_rank(group, dst)
+            if dst != get_rank():
+                output_tensors = []
+            opts.rootRank = group_dst_rank
+            work = group.gather(output_tensors, input_tensors, opts)
     if async_op:
         return work
     else:
