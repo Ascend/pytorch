@@ -19,19 +19,16 @@ class TestActivations(TestCase):
         """
         input1.requires_grad = True
         res = input1 * torch.tanh(F.softplus(input1))
-        output = res.sum()
-        output.backward()
+        res.backward(torch.ones_like(res))
         return res.detach(), input1.grad
 
     def npu_mish(self, input1):
         input1.requires_grad = True
         model = Mish()
         res = model(input1)
-        output = res.sum()
-        output.backward()
+        res.backward(torch.ones_like(res))
         return res.detach().cpu(), input1.grad.cpu()
     
-    @unittest.skip("skip test_mish now")
     def test_mish(self):
         dtype_list = [np.float16, np.float32]
         format_list = [-1, 0, 2]
