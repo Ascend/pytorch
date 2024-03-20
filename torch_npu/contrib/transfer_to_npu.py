@@ -7,6 +7,7 @@ import functools
 from functools import wraps
 from packaging.version import Version
 import torch
+from torch.utils._device import _device_constructors
 import torch_npu
 try:
     import torchair
@@ -14,6 +15,8 @@ except ImportError:
     IS_TORCHAIR_INSTALLED = False
 else:
     IS_TORCHAIR_INSTALLED = True
+
+_device_constructors()
 
 warnings.filterwarnings(action='once')
 
