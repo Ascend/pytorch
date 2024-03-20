@@ -57,6 +57,12 @@ class TestTransferToNpu(TestCase):
         self.assertNotEqual(c_before_autocast, c_after_autocast_args)       
         self.assertEqual(c_after_autocast_args, c_after_autocast_kwargs)
 
+    def test_device_meta(self):
+        with torch.device('meta'):
+            out = torch.nn.Linear(32, 8)
+        device = out.weight.device
+        self.assertEqual(device.type, 'meta')
+
 
 if __name__ == "__main__":
     run_tests()
