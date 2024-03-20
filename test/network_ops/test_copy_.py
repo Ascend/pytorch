@@ -34,6 +34,17 @@ class TestCopy(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_copy_broadcast(self):
+        x = torch.randn(10, 5)
+        y = torch.randn(5).npu()
+        x.copy_(y)
+        self.assertEqual(x[3], y)
+
+        x = torch.randn(10, 5).npu()
+        y = torch.randn(5)
+        x.copy_(y)
+        self.assertEqual(x[3], y)
+
 
 if __name__ == "__main__":
     run_tests()
