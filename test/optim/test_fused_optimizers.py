@@ -150,7 +150,7 @@ class TestFusedOptim(TestCase):
             for i, p in enumerate(params):
                 if p.grad is not None:
                     self.assertRtolEqual(p.sum().item(), self.third_optim_baseline[fused_opt_obj][i])
-
+    
     @unittest.skip("skip test_unscale now")
     def test_unscale(self):
         model = self._create_simple_model()
