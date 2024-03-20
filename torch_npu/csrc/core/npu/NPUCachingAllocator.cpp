@@ -314,6 +314,10 @@ struct ExpandableSegment {
     max_handles_ = numSegments(device_total + device_total / 8);
     NPU_CHECK_ERROR(c10_npu::acl::AclrtReserveMemAddress(
         &ptr_, segment_size_ * max_handles_, 0, NULL, 1));
+    ASCEND_LOGI(
+        "NPUCachingAllocator malloc by AclrtReserveMemAddress: ptr=%p, size=%zu",
+        ptr_,
+        segment_size_ * max_handles_);
   }
   // begin must be aligned to segment_size_.
   // returns the actual range mapped, which may be
@@ -361,6 +365,11 @@ struct ExpandableSegment {
           handles_.at(i).value(),
           0));
     }
+    ASCEND_LOGI(
+        "NPUCachingAllocator map: begin_ptr=%p, end_ptr=%p, segment_size=%zu",
+        (ptr_ + begin * segment_size_),
+        (ptr_ + (end - 1) * segment_size_),
+        segment_size_);
     return rangeFromHandles(begin, end);
   }
 
@@ -389,6 +398,7 @@ struct ExpandableSegment {
     forEachAllocatedRange(
         [&](size_t begin, size_t end) { unmapHandles(begin, end); });
     NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr_));
+    ASCEND_LOGI("NPUCachingAllocator free by AclrtReleaseMemAddress: ptr=%p", ptr_);
   }
 
  private:
@@ -407,6 +417,11 @@ struct ExpandableSegment {
       NPU_CHECK_ERROR(c10_npu::acl::AclrtUnmapMem(ptr_ + segment_size_ * i));
       NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
     }
+      ASCEND_LOGI(
+          "NPUCachingAllocator unmap: begin_ptr=%p, end_ptr=%p, segment_size=%zu",
+          (ptr_ + begin * segment_size_),
+          (ptr_ + (end - 1) * segment_size_),
+          segment_size_);
     trimHandles();
   }
 
@@ -1606,6 +1621,7 @@ class DeviceCachingAllocator {
       p.err = ACL_ERROR_RT_MEMORY_ALLOCATION;
       return false;
     }
+    ASCEND_LOGI("NPUCachingAllocator malloc by AclrtMallocAlign32: ptr=%p, size=%zu", ptr, size);
 
     total_allocated_memory += size;
     p.block = new Block(p.device(), p.stream(), size, p.pool, (char*)ptr);
@@ -1695,6 +1711,7 @@ class DeviceCachingAllocator {
 
   void release_block(Block* block) {
     TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::VALUE));
+    ASCEND_LOGI("NPUCachingAllocator free by aclrtFree: ptr=%p, size=%zu", block->ptr, block->size);
     aclrtFree((void*)block->ptr);
     total_allocated_memory -= block->size;
 
