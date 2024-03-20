@@ -39,7 +39,7 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_collect_env_methods, \
     add_storage_methods, add_serialization_methods, add_dynamo_methods, \
-    _dynamo_register_interface_for_device, add_optim_method
+    _dynamo_register_interface_for_device, add_optim_method, _inductor_register_device_op_overrides
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
@@ -182,3 +182,6 @@ if 'TORCH_NPU_SANITIZER' in os.environ:
     import torch_npu.npu._sanitizer as csan
 
     csan.enable_npu_sanitizer()
+
+# register npu device op overrides for inductor
+_inductor_register_device_op_overrides()
