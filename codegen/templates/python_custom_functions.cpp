@@ -210,7 +210,7 @@ static PyObject * THPVariable_asarray(PyObject* self_, PyObject* args, PyObject*
     if (r.idx == 0) {
         auto obj = r.pyobject(0);
         auto dtype = r.scalartypeOptional(1);
-        auto device  = at_npu::key::parse_npu_device(r.args[2]);
+        auto device  = at_npu::key::parse_npu_device_optional(r.args[2]);
         auto copy = r.toBoolOptional(3);
         auto requires_grad = r.toBool(4);
         return torch::autograd::utils::wrap(torch::utils::asarray(obj, dtype, device, copy, requires_grad));

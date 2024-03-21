@@ -26,6 +26,12 @@ class TestAsarray(TestCase):
         npu_output_default = torch.asarray(np_input, device="npu").cpu().numpy()
         self.assertRtolEqual(cpu_output_default, npu_output_default)
 
+    def test_asarray_device_none(self):
+        npu_input = torch.tensor([1, 2, 3]).npu()
+        npu_input_device = npu_input.device
+        npu_output = torch.asarray(npu_input)
+        npu_output_device = npu_output.device
+        assert npu_input_device == npu_output_device
 
 if __name__ == "__main__":
     run_tests()
