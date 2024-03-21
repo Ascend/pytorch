@@ -70,7 +70,7 @@ bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag
         ASCEND_LOGW("The NPU device is %d, and try to copy and enable p2p with %d. ", source_dev, dest_dev);
         ASCEND_LOGW(
             "However the max number of npus in P2P group is 8. "
-            "Currently NPU device %d has already enable with 8 device, they are %s", source_dev, warning_str);
+            "Currently NPU device %d has already enable with 8 device, they are %s", source_dev, warning_str.c_str());
         return static_cast<bool>(cache_s2d);
     }
     // The aclrtEnablePeerAccess capability is not equal to cuda,
