@@ -3,6 +3,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import SupportedDevices
 
 
 class TestStorage(TestCase):
@@ -194,17 +195,25 @@ class TestStorage(TestCase):
                     "short",
                     "byte",
                     "char",
-                    "complex_double",
-                    "complex_float",
                     # "bfloat16",
                 ]
                 for dt in dtypes:
                     cpu_res = eval("cpu_storage" + "." + dt + "()")
                     npu_res = eval("npu_storage" + "." + dt + "()")
                     self.assertEqual(cpu_res.size(), npu_res.size())
-                    if dt != "complex_double" and dt != "complex_float":
-                        self.assertEqual(cpu_res, npu_res.cpu())
-                        self.assertEqual(cpu_res.tolist(), npu_res.cpu().tolist())
+                    self.assertEqual(cpu_res, npu_res.cpu())
+                    self.assertEqual(cpu_res.tolist(), npu_res.cpu().tolist())
+            
+            @SupportedDevices(['Ascend910B'])
+            def _test_datatype_cast_complex(cpu_storage, npu_storage):
+                dtypes = [
+                    "complex_double",
+                    "complex_float",
+                ]
+                for dt in dtypes:
+                    cpu_res = eval("cpu_storage" + "." + dt + "()")
+                    npu_res = eval("npu_storage" + "." + dt + "()")
+                    self.assertEqual(cpu_res.size(), npu_res.size())
 
             def _test_from_buffer(cpu_storage, npu_storage):
                 cpu_list = [2, 3, 3, 2, 5]
@@ -240,6 +249,7 @@ class TestStorage(TestCase):
             _test_dtype(cpu_storage, npu_storage)
             _test_device(cpu_storage, npu_storage)
             _test_datatype_cast(cpu_storage, npu_storage)
+            _test_datatype_cast_complex(cpu_storage, npu_storage)
             _test_from_buffer(cpu_storage, npu_storage)
 
             ''' test untyped storage only on a certain data type'''
@@ -296,6 +306,7 @@ class TestStorage(TestCase):
                 _test_share_memory_(cpu_storage, npu_storage)
                 _test_device(cpu_storage, npu_storage)
                 _test_datatype_cast(cpu_storage, npu_storage)
+                _test_datatype_cast_complex(cpu_storage, npu_storage)
                 _test_from_buffer(cpu_storage, npu_storage)
                 with self.assertRaisesRegex(RuntimeError, "Storage device not recognized: mps"):
                     _test_mps(cpu_storage, npu_storage)
