@@ -9,5 +9,6 @@ def set_asd_loss_scale(loss_scale=1.0):
 
 
 def register_asd_hook(x, weight):
-    x.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
+    if x is not None and x.requires_grad and x._backward_hooks is None:
+        x.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
     return
