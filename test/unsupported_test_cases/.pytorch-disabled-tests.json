@@ -24964,5 +24964,6 @@
   "test_multiprocessing_contexts (__main__.TestDataLoader)": ["", [""]],
   "test_multiprocessing_contexts (__main__.TestDataLoaderPeristentWorkers)": ["", [""]],
   "test_cache_disabled (__main__.TestAutocastNPU)": ["", [""]],
-  "test_cast_cache_is_global (__main__.TestAutocastNPU)": ["", [""]]
+  "test_cast_cache_is_global (__main__.TestAutocastNPU)": ["", [""]],
+  "test_variant_consistency_eager_split_with_sizes_copy_npu_complex64 (__main__.TestCommonPRIVATEUSE1)": ["", [""]]
 }

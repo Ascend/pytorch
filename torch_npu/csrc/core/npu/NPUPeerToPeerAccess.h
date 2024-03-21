@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <c10/macros/Macros.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace at_npu {
 namespace native {
@@ -21,7 +21,7 @@ public:
     static NpuP2pCtrl& get_instance();
 
     // Check whether the two devices are enabled by p2p and tensor can be copied
-    bool get_p2p_access(int32_t source_dev, int32_t dest_dev);
+    bool get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag);
 
 private:
     NpuP2pCtrl();

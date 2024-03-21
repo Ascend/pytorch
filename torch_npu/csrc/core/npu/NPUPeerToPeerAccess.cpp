@@ -4,7 +4,7 @@
 #include <c10/util/Exception.h>
 #include <c10/util/irange.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
-#include "torch_npu/csrc/aten/common/PeerToPeerAccess.h"
+#include "torch_npu/csrc/core/npu/NPUPeerToPeerAccess.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 
 namespace at_npu {
@@ -12,7 +12,7 @@ namespace native {
 
 NpuP2pCtrl::NpuP2pCtrl()
 {
-    num_devices_ = c10_npu::NpuSysCtrl::GetInstance().InitializedDeviceCount();
+    num_devices_ = c10_npu::device_count();
 
     device_enabled_count_.clear();
     device_enabled_count_.resize(num_devices_, 1);
@@ -41,7 +41,7 @@ void NpuP2pCtrl::enable_peer_access(int32_t source_dev, int32_t dest_dev)
 }
 
 // Check whether the two devices are enabled by p2p and tensor can be copied
-bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev)
+bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev, bool& flag)
 {
     TORCH_INTERNAL_ASSERT(num_devices_ >= 0, "p2p access cache not initialized");
     TORCH_CHECK(source_dev >= 0 && source_dev < num_devices_, source_dev, " is not a device", PTA_ERROR(ErrCode::VALUE));
@@ -70,7 +70,7 @@ bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev)
         ASCEND_LOGW("The NPU device is %d, and try to copy and enable p2p with %d. ", source_dev, dest_dev);
         ASCEND_LOGW(
             "However the max number of npus in P2P group is 8. "
-            "Currently NPU device %d has already enable with 8 device, they are %s", source_dev, warning_str);
+            "Currently NPU device %d has already enable with 8 device, they are %s", source_dev, warning_str.c_str());
         return static_cast<bool>(cache_s2d);
     }
     // The aclrtEnablePeerAccess capability is not equal to cuda,
@@ -83,6 +83,7 @@ bool NpuP2pCtrl::get_p2p_access(int32_t source_dev, int32_t dest_dev)
     if (!result_s2d || !result_d2s) {
         cache_s2d = P2pStatus::COPY_NOT_ALLOWED;
         cache_d2s = P2pStatus::COPY_NOT_ALLOWED;
+        flag = true;
         return static_cast<bool>(cache_s2d);
     }
 

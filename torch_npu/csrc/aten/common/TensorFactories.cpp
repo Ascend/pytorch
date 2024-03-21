@@ -16,6 +16,7 @@
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
@@ -103,6 +104,7 @@ at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                 "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
                 OPS_ERROR(ErrCode::NOT_SUPPORT));
     check_size_nonnegative(size);
+    c10_npu::NPUGuard guard(device_);
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
     int64_t nelements = c10::multiply_integers(size);
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
@@ -281,6 +283,7 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                 "Current settings do not support Complex dtype. Please try again with jit_compile=False.",
                 OPS_ERROR(ErrCode::NOT_SUPPORT));
     check_size_nonnegative(size);
+    c10_npu::NPUGuard guard(device_);
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
     // when the shape and format are not match, fix format here.
     aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
@@ -368,17 +371,13 @@ at::Tensor NPUNativeFunctions::empty_strided(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  check_size_nonnegative(size);
-  c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
-  auto t = NPUNativeFunctions::empty({0},
-                                     dtype_opt,
-                                     layout_opt,
-                                     device_opt,
-                                     pin_memory_opt,
-                                     optional_memory_format);
-  StorageDescHelper::SetDesc(t, size, stride);
-  at_npu::native::resize_impl_npu_(t.unsafeGetTensorImpl(), size, stride);
-  return t;
+    check_size_nonnegative(size);
+    c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
+    auto t = NPUNativeFunctions::empty({0}, dtype_opt, layout_opt, device_opt, pin_memory_opt, optional_memory_format);
+    c10_npu::NPUGuard guard(c10::device_or_default(device_opt));
+    StorageDescHelper::SetDesc(t, size, stride);
+    at_npu::native::resize_impl_npu_(t.unsafeGetTensorImpl(), size, stride);
+    return t;
 }
 
 at::Tensor NPUNativeFunctions::new_empty_strided_symint(
@@ -621,27 +620,23 @@ at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 at::Tensor NPUNativeFunctions::clone(const at::Tensor &src,
                                      c10::optional<c10::MemoryFormat> format) {
-  OptimizationCases opt_cases{"reshape", "slice"};
-  if (TransContiguous::CanOptimize(src, opt_cases))
-  {
-    // clone with any npu formats
-    auto formatTempTensor =
-        TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
-    return formatTempTensor.value();
-  }
-  else
-  {
-    // clone with base formats
-    auto baseSelf =
-        OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
-    at::Tensor baseSrc = src;
-    if (!FormatHelper::IsBaseFormatType(src))
-    {
-      baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+    c10_npu::NPUGuard guard(src.device());
+    OptimizationCases opt_cases{"reshape", "slice"};
+    if (TransContiguous::CanOptimize(src, opt_cases)) {
+        // clone with any npu formats
+        auto formatTempTensor = TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
+        return formatTempTensor.value();
+    } else {
+        // clone with base formats
+        auto baseSelf = OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
+        at::Tensor baseSrc = src;
+        if (!FormatHelper::IsBaseFormatType(src))
+        {
+          baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+        }
+        copy_d2d_dtype_baseformat(baseSelf, baseSrc, false);
+        return baseSelf;
     }
-    copy_d2d_dtype_baseformat(baseSelf, baseSrc, false);
-    return baseSelf;
-  }
 }
 
 at::Tensor NPUNativeFunctions::full(
