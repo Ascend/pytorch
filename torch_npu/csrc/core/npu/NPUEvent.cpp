@@ -133,6 +133,7 @@ void NPUEvent::createEvent(c10::DeviceIndex device_index)
 
 void NPUEvent::moveHelper(NPUEvent&& other)
 {
+    flags_ = c10_npu::acl::IsExistCreateEventExWithFlag() ? ACL_EVENT_SYNC : ACL_EVENT_DEFAULT;
     std::swap(is_created_, other.is_created_);
     std::swap(was_recorded_, other.was_recorded_);
     std::swap(device_index_, other.device_index_);
