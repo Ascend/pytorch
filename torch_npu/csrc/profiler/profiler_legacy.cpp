@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/profiler/profiler.h"
 #include <torch/csrc/autograd/function.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 
 #include <torch/csrc/jit/frontend/tracer.h>
 #include <torch/csrc/jit/runtime/operator.h>
@@ -692,7 +693,8 @@ RecordProfile::RecordProfile(std::ostream& out)
 }
 
 RecordProfile::RecordProfile(const std::string& filename)
-    : file_(new std::ofstream(filename)), out_(*file_) {
+    : file_(new std::ofstream(torch_npu::toolkit::profiler::Utils::RealPath(filename))), out_(*file_)
+{
       init();
 }
 

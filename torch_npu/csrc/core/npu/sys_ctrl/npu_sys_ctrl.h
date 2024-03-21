@@ -71,7 +71,6 @@ private:
     bool is_soc_match;
     std::string soc_name_;
     int device_id_;
-    uint32_t device_count_;
     aclrtContext ctx_ = nullptr;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };

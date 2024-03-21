@@ -20,6 +20,7 @@
 #include <tuple>
 #include <unordered_set>
 #include <unistd.h>
+#include <linux/limits.h>
 #include <fstream>
 #include <iostream>
 
@@ -1005,8 +1006,13 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     auto master_addr = getenv("MASTER_ADDR");
     TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
     fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
+    std::string out_file_path = c10::str(getenv("NSLB_CP"), "/", fileName.str());
     try {
-        outfile.open(c10::str(getenv("NSLB_CP"), "/", fileName.str()), std::ios::app);
+        char abs_path[PATH_MAX] = {'\0'};
+        if (realpath(out_file_path.c_str(), abs_path) == nullptr) {
+            TORCH_CHECK(0, "NSLB_CP path is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
+        }
+        outfile.open(abs_path, std::ios::app);
     } catch (std::exception& e) {
         throw std::runtime_error("Open shared directory failed. Please check whether input path is valid."
                                  + DIST_ERROR(ErrCode::NOT_FOUND));
@@ -1228,7 +1234,11 @@ void nslb_record_end()
     std::ofstream endfile;
     end_file_path = c10::str(getenv("NSLB_CP"), "/end_", getenv("MASTER_ADDR"), "_", getpid(), ".log");
     try {
-        endfile.open(end_file_path, std::ios::out);
+        char abs_path[PATH_MAX] = {'\0'};
+        if (realpath(end_file_path.c_str(), abs_path) == nullptr) {
+            TORCH_CHECK(0, "NSLB_CP path is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
+        }
+        endfile.open(abs_path, std::ios::out);
         endfile.close();
     } catch (std::exception& e) {
         throw std::runtime_error("NSLB set end failed.");
@@ -1322,7 +1332,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     if (nslb_enable && !nslb_is_end) {
         auto nslb_num = c10_npu::option::OptionsManager::GetNslbCntVal();
         if (seq_ <= nslb_num) {
-            auto dataVol = 0;
+            size_t dataVol = 0;
             for (auto tensor:inputs) {
                 dataVol += tensor.storage().nbytes();
             }
