@@ -162,12 +162,14 @@ class ProfInterface:
             Constant.CONFIG: config,
             Constant.START_INFO: start_info,
             Constant.END_INFO: end_info}
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
+        rank_id = os.environ.get('RANK')
+        if rank_id is None and torch.distributed.is_available() and torch.distributed.is_initialized():
             rank_id = torch.distributed.get_rank()
+        if rank_id is None:
+            path = os.path.join(os.path.realpath(self.prof_path), 'profiler_info.json')
+        else:
             path = os.path.join(os.path.realpath(self.prof_path), f'profiler_info_{rank_id}.json')
             total_info["rank_id"] = rank_id
-        else:
-            path = os.path.join(os.path.realpath(self.prof_path), 'profiler_info.json')
         FileManager.create_json_file_by_path(path, total_info, indent=4)
 
     def _dump_metadata(self):
