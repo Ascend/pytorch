@@ -260,8 +260,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
     this->RegisterReleaseFn([=]() ->void {
         c10_npu::NPUEventManager::GetInstance().ClearEvent();
-        auto stream = c10_npu::getCurrentNPUStream();
-        NPU_CHECK_WARN(c10_npu::acl::AclrtDestroyStreamForce(stream));
+        NPU_CHECK_WARN(c10_npu::DestroyUsedStreams());
         NPU_CHECK_WARN(c10_npu::ResetUsedDevices());
         // Maintain a basic point of view, who applies for the resource, the resource is released by whom.
         // If aclInit is not a PTA call, then aclFinalize should not be a PTA call either.
