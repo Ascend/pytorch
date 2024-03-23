@@ -89,8 +89,9 @@ void copy_h2d_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
 {
     c10_npu::NPUGuard guard(dst.device());
     bool same_type = (src.dtype() == dst.dtype());
+    bool same_size = (src.sizes() == dst.sizes());
     bool dst_is_contiguous = dst_must_be_contiguous ? true : dst.is_contiguous();
-    if (same_type && dst_is_contiguous && src.is_contiguous()) {
+    if (same_type && dst_is_contiguous && src.is_contiguous() && same_size) {
         copy_h2d_baseformat_dtype_contigous_opapi(dst, src, non_blocking);
         return;
     }
@@ -118,8 +119,9 @@ void copy_d2h_baseformat_opapi(at::Tensor& dst, const at::Tensor& src, bool non_
 {
     c10_npu::NPUGuard guard(src.device());
     bool same_type = (src.dtype() == dst.dtype());
+    bool same_size = (src.sizes() == dst.sizes());
     bool dst_is_contiguous = dst.is_contiguous();
-    if (same_type && dst_is_contiguous && src.is_contiguous()) {
+    if (same_type && dst_is_contiguous && src.is_contiguous() && same_size) {
         copy_d2h_baseformat_dtype_contigous_opapi(dst, src, non_blocking);
         return;
     }
