@@ -145,6 +145,8 @@ C10_NPU_API bool npuSynchronizeDevice(bool check_error = true);
 
 void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index = -1);
 
+C10_NPU_EXPORT bool npuSynchronizeUsedDevices(bool check_error);
+
 C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
