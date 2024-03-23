@@ -104,6 +104,7 @@ class FileManager:
 
     @classmethod
     def append_trace_json_by_path(cls, output_path: str, data: list, new_name: str) -> None:
+        PathManager.check_directory_path_writeable(output_path)
         try:
             with open(output_path, "a") as file:
                 data = json.dumps(data, ensure_ascii=False)

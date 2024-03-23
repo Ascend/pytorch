@@ -189,7 +189,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), is_soc_match(true) 
 
     // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
     auto ret = aclrtGetDevice(&device_id_);
-    NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count_));
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
         NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
