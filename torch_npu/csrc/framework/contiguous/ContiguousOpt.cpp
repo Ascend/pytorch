@@ -93,8 +93,8 @@ bool TransContiguous::contiguous_optimize_with_anyformat_(
     size_t GetHash_(const c10::SmallVector<int64_t, MAX_DIM>& small_vector_size)
     {
         size_t seed = 0;
-        for (auto i = 0; i < small_vector_size.size(); i++) {
-            seed ^= small_vector_size[i] + (seed << 6) + (seed >> 2);
+        for (size_t i = 0; i < small_vector_size.size(); i++) {
+            seed ^= static_cast<size_t>(small_vector_size[i]) + (seed << 6) + (seed >> 2);
         }
         return seed;
     }
@@ -105,7 +105,7 @@ bool TransContiguous::contiguous_optimize_with_anyformat_(
                                (GetHash_(src_desc.base_sizes_)<<40) +
                                (GetHash_(src_desc.strides_)<<28) +
                                (GetHash_(src_desc.base_strides_)<<16) +
-                               (src_desc.offset_ << 4) +
+                               (static_cast<size_t>(src_desc.offset_) << 4) +
                                src_desc.npu_format_;
         return hash_src_desc;
     }
