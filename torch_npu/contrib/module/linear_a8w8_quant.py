@@ -30,6 +30,7 @@ class LinearA8W8Quant(nn.Module):
             :math:`k = \frac{1}{\text{in\_features}}`
         scale: quant matmul calculation parameter
         offset: quant matmul calculation parameter
+        pertoken_scale: inverse quant matmul calculation parameter
         bias:   the learnable bias of the module of shape :math:`(\text{out\_features})`.
                 If :attr:`bias` is ``True``, the values are initialized from
                 :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})` where
@@ -52,9 +53,11 @@ class LinearA8W8Quant(nn.Module):
     weight: Tensor
     scale: Tensor
     offset: Tensor
+    pertoken_scale: Tensor
+    bias: Tensor
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, offset: bool = False,
-                 device=None, dtype=None, output_dtype=None) -> None:
+    def __init__(self, in_features: int, out_features: int, *, bias: bool = True, offset: bool = False,
+                 pertoken_scale: bool = False, device=None, dtype=None, output_dtype=None) -> None:
 
         super(LinearA8W8Quant, self).__init__()
         self.in_features = in_features
@@ -66,6 +69,12 @@ class LinearA8W8Quant(nn.Module):
             self.offset = Parameter(torch.empty(out_features, dtype=torch.float32), False)
         else:
             self.register_parameter('offset', None)
+
+        if pertoken_scale:
+            self.pertoken_scale = Parameter(torch.empty(out_features, dtype=torch.float32), False)
+        else:
+            self.register_parameter('pertoken_scale', None)
+
         if bias:
             self.bias = Parameter(torch.empty(out_features, dtype=torch.int32), False)
         else:
@@ -73,9 +82,10 @@ class LinearA8W8Quant(nn.Module):
 
     def forward(self, linear_quant_input: Tensor) -> Tensor:
         scale_quant = self.scale
-        weight_k_dim = self.weight.dim() - 1
-        weight_n_dim = self.weight.dim() - 2
-        if self.scale.dtype == torch.float32:
+        first_last_dim = self.weight.dim() - 1
+        second_last_dim = self.weight.dim() - 2
+        if self.scale.dtype == torch.float32 and self.pertoken_scale is None:
             scale_quant = torch_npu.npu_trans_quant_param(self.scale, self.offset)
-        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(weight_n_dim, weight_k_dim),
-                                          scale_quant, self.offset, self.bias, self.output_dtype)
+        
+        return torch_npu.npu_quant_matmul(linear_quant_input, self.weight.transpose(second_last_dim, first_last_dim),
+                                          scale_quant, offset=self.offset, pertoken_scale=self.pertoken_scale, bias=self.bias, output_dtype=self.output_dtype)
