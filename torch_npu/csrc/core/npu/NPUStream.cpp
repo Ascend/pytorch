@@ -367,6 +367,23 @@ bool npuSynchronizeDevice(bool check_error) {
   return acl_ret == ACL_ERROR_NONE;
 }
 
+bool npuSynchronizeUsedDevices(bool check_error) {
+    if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+        NPUStatus ret = c10_npu::emptyAllNPUStream();
+        if (ret != SUCCESS) {
+            ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+        }
+    }
+
+    auto acl_ret = SynchronizeUsedDevices();
+    if (check_error) {
+        NPU_CHECK_ERROR(acl_ret);
+    } else {
+        NPU_CHECK_WARN(acl_ret);
+    }
+    return acl_ret == ACL_ERROR_NONE;
+}
+
 void enCurrentNPUStream(
     void* cur_paras,
     c10::DeviceIndex device_index) {
