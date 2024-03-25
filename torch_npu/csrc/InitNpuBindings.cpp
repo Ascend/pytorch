@@ -50,7 +50,7 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
     bool success = true;
     try {
         ASCEND_LOGI("NPU shutdown synchronize device.");
-        success = c10_npu::npuSynchronizeDevice(false);
+        success = c10_npu::npuSynchronizeUsedDevices(false);
     } catch (std::exception& e) {
         ASCEND_LOGE("npuSynchronizeDevice failed err=:%s", e.what());
         success = false;

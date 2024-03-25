@@ -1,6 +1,7 @@
 #include <mutex>
 #include <unordered_map>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 namespace c10_npu {
     static uint32_t dev_count = 0;
@@ -85,6 +86,37 @@ namespace c10_npu {
             }
         }
         used_devices.clear();
+        return ACL_ERROR_NONE;
+    }
+
+    aclError DestroyUsedStreams()
+    {
+        int32_t temp_device = 0;
+        NPU_CHECK_ERROR(GetDevice(&temp_device));
+        for (const auto it : used_devices) {
+            NPU_CHECK_ERROR(SetDevice(it.first));
+            NPUStream stream = getCurrentNPUStream(it.first);
+            aclError acl_ret = acl::AclrtDestroyStreamForce(stream);
+            if (acl_ret != ACL_ERROR_NONE) {
+                return acl_ret;
+            }
+        }
+        NPU_CHECK_ERROR(SetDevice(temp_device));
+        return ACL_ERROR_NONE;
+    }
+
+    aclError SynchronizeUsedDevices()
+    {
+        int32_t temp_device = 0;
+        NPU_CHECK_ERROR(GetDevice(&temp_device));
+        for (const auto it : used_devices) {
+            NPU_CHECK_ERROR(SetDevice(it.first));
+            aclError acl_ret = aclrtSynchronizeDevice();
+            if (acl_ret != ACL_ERROR_NONE) {
+                return acl_ret;
+            }
+        }
+        NPU_CHECK_ERROR(SetDevice(temp_device));
         return ACL_ERROR_NONE;
     }
 
