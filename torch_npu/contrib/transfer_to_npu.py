@@ -32,7 +32,7 @@ torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like'
                        'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
                        'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
                        '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory', 'autocast', 'load']
+                       'empty_quantized', '_pin_memory', 'autocast', 'load', "Generator"]
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
 torch_cuda_fn_white_list = [
