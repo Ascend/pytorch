@@ -41,18 +41,24 @@ class CANNFileParser:
     ANALYZE = "analyze"
     HOST_TO_DEVICE = "HostToDevice"
     CANN_DATA_MATCH = {
-        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d+.*\.csv"],
-        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d+.*\.csv"],
-        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d+.*\.json"],
-        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d+.*\.csv"],
-        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d+.*\.csv", r"^memory_record_\d+.*\.csv"],
-        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d+.*\.csv", r"^operator_memory_\d+.*\.csv"],
-        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d+.*\.csv"],
-        CANNDataEnum.AI_CPU: [r"^aicpu_\d+.*\.csv"],
+        CANNDataEnum.OP_SUMMARY: [r"^op_summary_\d+.*\.csv", r"^op_summary_slice_\d+.*\.csv"],
+        CANNDataEnum.NPU_MEMORY: [r"^npu_mem_\d+.*\.csv", r"^npu_mem_slice_\d+.*\.csv"],
+        CANNDataEnum.MSPROF_TIMELINE: [r"^msprof_\d+.*\.json", r"^msprof_slice_\d+.*\.json"],
+        CANNDataEnum.STEP_TRACE: [r"^step_trace_\d+.*\.csv", r"^step_trace_slice_\d+.*\.csv"],
+        CANNDataEnum.GE_MEMORY_RECORD: [r"^ge_memory_record_\d+.*\.csv",
+                                        r"^ge_memory_record_slice_\d+.*\.csv",
+                                        r"^memory_record_\d+.*\.csv",
+                                        r"^memory_record_slice_\d+.*\.csv"],
+        CANNDataEnum.GE_OPERATOR_MEMORY: [r"^ge_operator_memory_\d+.*\.csv",
+                                        r"^ge_operator_memory_slice_\d+.*\.csv",
+                                        r"^operator_memory_\d+.*\.csv",
+                                        r"^operator_memory_slice_\d+.*\.csv"],
+        CANNDataEnum.L2_CACHE: [r"^l2_cache_\d+.*\.csv", r"^l2_cache_slice_\d+.*\.csv"],
+        CANNDataEnum.AI_CPU: [r"^aicpu_\d+.*\.csv", r"^aicpu_slice_\d+.*\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
-        CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv"],
-        CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv"],
+        CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv", r"^op_statistic_slice_\d+.*\.csv"],
+        CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv", r"^npu_module_mem_slice_\d+.*\.csv"],
         CANNDataEnum.REPORT_DB: [r"^report_\d+\.db"],
         CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer\.db"]
     }
@@ -165,6 +171,10 @@ class CANNFileParser:
         timeline_path = os.path.join(device_path, "timeline")
         PathManager.remove_path_safety(summary_path)
         PathManager.remove_path_safety(timeline_path)
+
+    def del_output_path_data(self):
+        output_path = os.path.join(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)
+        PathManager.remove_path_safety(output_path)
 
     def _file_dispatch(self):
         all_file_list = ProfilerPathManager.get_output_all_file_list_by_type(self._cann_path, self.MINDSTUDIO_PROFILER_OUTPUT)
