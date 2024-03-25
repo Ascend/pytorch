@@ -321,11 +321,12 @@ def bias_shape_check(x2, bias, batch_val):
     )
 
 
-def quant_matmul_shape_check(x1, x2, scale, offset):
+def quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale):
     X_MAX_DIM = 6
     X_MIN_DIM = 2
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
+    x1_m_dim = x1.size(x1_dim_num - 2)
     x1_k_dim = x1.size(x1_dim_num - 1)
     x2_k_dim = x2.size(x2_dim_num - 2)
     x2_n_dim = x2.size(x2_dim_num - 1)
@@ -352,6 +353,18 @@ def quant_matmul_shape_check(x1, x2, scale, offset):
             offset_first_dim == 1 or offset_first_dim == x2_n_dim,
             lambda: "the offset 1st dim value must be 1 or x2 n dim value, please check offset 1st dim value",
         )
+    if pertoken_scale is not None:
+        pertoken_scale_dim_num = pertoken_scale.dim()
+        torch._check(
+            pertoken_scale_dim_num == 1,
+            lambda: "the pertoken_scale dim num must be 1, please check scale dim num",
+        )
+        pertoken_scale_first_dim = pertoken_scale.size(0)
+        torch._check(
+            pertoken_scale_first_dim == x1_m_dim,
+            lambda: "the pertoken_scale 1st dim value must be x1 m dim value, please check scale 1st dim value ",
+        )
+
     scale_dim_num = scale.dim()
     torch._check(
         scale_dim_num == 1,
@@ -364,7 +377,8 @@ def quant_matmul_shape_check(x1, x2, scale, offset):
     )
 
 
-def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
+def quant_matmul_dtype_check(*args):
+    x1, x2, scale, offset, pertoken_scale, bias = args
     torch._check(
         x1.dtype == torch.int8 and x2.dtype == torch.int8,
         lambda: "x1'type and x2's type should be int8, but x1.dtype is " + str(x1.dtype) + " and x2.dtype is " +
@@ -380,6 +394,11 @@ def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
             offset.dtype == torch.float32,
             lambda: "offset's type supported for float32, but offset.dtype is " + str(offset.dtype),
         )
+    if pertoken_scale is not None:
+        torch._check(
+            pertoken_scale.dtype == torch.float32,
+            lambda: "pertoken_scale's type supported for float32, but pertoken_scale.dtype is " + str(offset.dtype),
+        )
     if bias is not None:
         torch._check(
             bias.dtype == torch.int32 or bias.dtype == torch.bfloat16,
@@ -387,13 +406,13 @@ def quant_matmul_dtype_check(x1, x2, scale, offset, bias):
         )
 
 
-def quant_matmul_scale_offset_out_check(scale, offset, output_dtype):
+def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype):
     if scale.dtype == torch.bfloat16:
         torch._check(
-            output_dtype == "bfloat16",
-            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " + output_dtype,
+            output_dtype == torch.bfloat16,
+            lambda: "When scale's dtype is bfloat16, output_dtype must be bfloat16, but output_dtype is " + str(output_dtype),
         )
-    if output_dtype == "bfloat16":
+    if output_dtype == torch.bfloat16:
         torch._check(
             scale.dtype == torch.bfloat16,
             lambda: "When output_dtype is bfloat16, scale's dtype must be bfloat16, but scale's dtype is " +
@@ -401,13 +420,24 @@ def quant_matmul_scale_offset_out_check(scale, offset, output_dtype):
         )
     if offset is not None:
         torch._check(
-            output_dtype is None or output_dtype == "int8",
-            lambda: "offset only exists when output_dtype is int8, but output_dtype is " + output_dtype,
+            output_dtype is None or output_dtype == torch.int8,
+            lambda: "offset only exists when output_dtype is int8, but output_dtype is " + str(output_dtype),
+        )
+    if pertoken_scale is not None:
+        if output_dtype == torch.float16:
+            torch._check(
+                scale.dtype == torch.float32,
+                lambda: "When output_dtype is float16 and pertoken_scale is not none, scale's dtype must be float32, but scale's dtype is " +
+                str(scale.dtype),
+            )
+        torch._check(
+            output_dtype == torch.float16 or output_dtype == torch.bfloat16,
+            lambda: "When pertoken_scale is not none, output_dtype must be float16 or bfloat16, but output_dtype is " + str(output_dtype),
         )
 
 
 @impl(m, "npu_quant_matmul")
-def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=None):
+def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bias=None, output_dtype=None):
     batch_val = 1
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
@@ -430,7 +460,7 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
     dimn = x2.size(x2.dim() - 1)
     dim_list.append(dimm)
     dim_list.append(dimn)
-    quant_matmul_shape_check(x1, x2, scale, offset)
+    quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale)
     if bias is not None:
         if bias.dim() == 3:
             torch._check(
@@ -438,13 +468,16 @@ def npu_quant_matmul_meta(x1, x2, scale, offset=None, bias=None, output_dtype=No
                 lambda:"when bias dim is 3, out dim need to be 3",
             )
         bias_shape_check(x2, bias, batch_val)
-    quant_matmul_dtype_check(x1, x2, scale, offset, bias)
-    quant_matmul_scale_offset_out_check(scale, offset, output_dtype)
-    if output_dtype == "float16":
+    quant_matmul_dtype_check(x1, x2, scale, offset, pertoken_scale, bias)
+    quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dtype)
+    if output_dtype == torch.float16:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.float16)
-    elif output_dtype == "bfloat16":
+    elif output_dtype == torch.bfloat16:
         return shape_long.new_empty(tuple(dim_list), dtype=torch.bfloat16)
-    return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
+    elif output_dtype is None or output_dtype == torch.int8:
+        return shape_long.new_empty(tuple(dim_list), dtype=torch.int8)
+    else:
+        raise RuntimeError("Not supportted output dtype is " + str(output_dtype))
 
 
 @impl(m, "npu_trans_quant_param")
