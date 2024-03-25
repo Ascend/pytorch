@@ -509,7 +509,7 @@ def gen_target_registration(
         if isinstance(f, NativeFunctionsGroup):
             for func in f.functions():
                 if func.func in target_ops:
-                    target_native_functions.append(f)
+                    target_native_functions.append(func)
         elif f.func in target_ops:
             target_native_functions.append(f)
 
