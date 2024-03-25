@@ -167,6 +167,7 @@ private:
   c10::SmallVector<int64_t, N> sync_index;
   c10::SmallVector<at::Tensor, N> outputTensor;
   c10::SmallVector<at::Tensor, N> inputTensor;
+  c10::DeviceIndex task_device_index_ = -1;
 }; // class OpCommand
 } // namespace native
 } // namespace at_npu
