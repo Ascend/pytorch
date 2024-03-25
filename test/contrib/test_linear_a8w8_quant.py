@@ -10,7 +10,7 @@ DEVICE_NAME = torch_npu.npu.get_device_name(0)[:10]
 class TestLinearA8W8Quant(TestCase):
 
     def npu_linear_quant(self, in_features, out_features, x1, x2, scale):
-        model = LinearA8W8Quant(in_features, out_features, False)
+        model = LinearA8W8Quant(in_features, out_features, bias=False, pertoken_scale=False, offset=False)
         model = model.npu()
         model.weight.data = x2
         model.scale.data = scale
