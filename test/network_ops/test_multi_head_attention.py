@@ -19,6 +19,7 @@ import torch.nn.functional as F
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+torch_npu.npu.set_compile_mode(jit_compile=True)
 
 FORMAT_ND = 2
 FORMAT_NZ = 29
@@ -70,6 +71,7 @@ def create_common_tensor(item, minValue, maxValue, need_grad=True):
     format1 = item[1]
     shape1 = item[2]
 
+    np.random.seed(8)
     input1 = np.random.uniform(minValue, maxValue, shape1).astype(dtype1)
     cpu_input = torch.from_numpy(input1).to(npu_device)
     npu_input = torch.from_numpy(input1).to(npu_device)
@@ -110,7 +112,12 @@ class TestMultiHeadAttention(TestCase):
         attn_batch2 = torch.matmul(attn_probs, v)
         context = attn_batch2.npu_confusion_transpose(perm, (attn_batch2.size()[0] * attn_batch2.size()[2], embed_dim),
                                                       True)
-        attn = torch_npu.npu_linear(context, out_proj_weight, out_proj_bias)
+        # The beachmark is made of serveral little ops in 910a, npu_linear is part of MultiHeadAttentionGrad's beachmark.
+        # The Grad of npu_linear will be fusioned to tbeMatmulFixpipeFusionPass in 910b if context is ND format. 
+        # Because the difference between 910a and 910b, the two has differen tiling logic and add order, result in different compute result.
+        # To avoid fusioned to tbeMatmulFixpipeFusionPass in 910b, the format is changed to NZ, same as 910a.
+        context_nz = torch_npu.npu_format_cast(context, FORMAT_NZ)
+        attn = torch_npu.npu_linear(context_nz, out_proj_weight, out_proj_bias)
 
         return attn, dropout_mask, q, k, v, attn_weights_float, attn_probs, context
 
