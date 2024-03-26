@@ -180,6 +180,7 @@ for name in dir(torch_npu._C._VariableFunctions):
         setattr(torch, name, wrap_torch_warning_func(getattr(torch_npu._C._VariableFunctions, name)))
     else:
         setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
+__all__.append('npu_fusion_attention')
 
 all_monkey_patches = [
     ["npu", torch_npu.npu],
@@ -196,7 +197,6 @@ all_monkey_patches = [
 
 all_monkey_patches += serialization_patches
 all_monkey_patches += fsdp_patches
-
 
 
 def _apply_patches(monkey_patches):
