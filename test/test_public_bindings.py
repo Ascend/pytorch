@@ -477,7 +477,7 @@ class TestPublicBindings(TestCase):
         test_module('torch')
 
         msg = "All the APIs below do not meet our guidelines for public API from " \
-              "https://github.com/pytorch/pytorch/wiki/Public-API-definition-and-documentation.\n"
+              "wiki/Public-API-definition-and-documentation.\n"
         msg += "Make sure that everything that is public is expected (in particular that the module " \
             "has a properly populated `__all__` attribute) and that everything that is supposed to be public " \
             "does look public (it does not start with `_` and has a `__module__` that is properly populated)."

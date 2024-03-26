@@ -740,7 +740,6 @@ class TestNpuMultiNpu(TestCase):
             p2c.get()
             c2p.put(sync_func(self, TestNpuMultiNpu.FIFTY_MIL_CYCLES))
 
-    # Skip the test for ROCm as per https://github.com/pytorch/pytorch/issues/53190
     @skipIfRocm
     @unittest.skipIf(not TEST_MULTINPU, "detected only one NPU")
     def test_stream_event_nogil(self):
@@ -1064,7 +1063,6 @@ class TestNpuMultiNpu(TestCase):
     @unittest.skipIf(not TEST_MULTINPU, "only one NPU detected")
     @unittest.skipIf(IS_SANDCASTLE or IS_REMOTE_GPU, "Does not work on Sandcastle")
     def test_cuda_init_race(self):
-        # See https://github.com/pytorch/pytorch/issues/16559
         import subprocess
         subprocess.check_call([sys.executable, '-c', """\
 import torch

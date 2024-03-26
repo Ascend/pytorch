@@ -1132,8 +1132,6 @@ class TestZeroRedundancyOptimizerDistributed(TestZeroRedundancyOptimizer):
                 local_loss = cast(torch.Tensor, local_optim.step(closure=closure_local))
                 ddp_loss = cast(torch.Tensor, zero_optim.step(closure=closure_ddp))
 
-                # Increased tolerances are needed to pass when using TF32
-                # See: https://github.com/pytorch/pytorch/issues/67764
                 torch.testing.assert_close(
                     local_loss.cpu(),
                     ddp_loss.cpu(),

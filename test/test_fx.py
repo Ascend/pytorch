@@ -253,7 +253,6 @@ class TestFX(JitTestCase):
         t = T()
         symbolic_trace(t)
 
-        # test for issue described at https://github.com/pytorch/pytorch/issues/63883
         class M3(torch.nn.Module):
             def forward(self, x):
                 return torch.relu(x)
@@ -2722,13 +2721,10 @@ class TestFX(JitTestCase):
         self.getitem_inner()
 
     def test_getitem_subproc(self):
-        # need to run this test in a subproc to work around:
-        #   https://github.com/pytorch/pytorch/issues/50710
         proc = Process(target=run_getitem_target)
         proc.start()
         proc.join()
         self.assertEqual(proc.exitcode, 0)
-
 
     def test_user_friendly_call_provenance_with_function(self):
         def fn(x):
@@ -3502,7 +3498,7 @@ class TestFX(JitTestCase):
             .check("Tuple[str, Tuple[()]]")    \
             .run(scripted.code)
 
-    @unittest.skipIf(IS_WINDOWS, "Python Windows bug? https://bugs.python.org/issue45108")
+    @unittest.skipIf(IS_WINDOWS, "Python Windows bug? issue45108")
     @unittest.skipIf(sys.version_info >= (3, 10), "Does not work on Python-3.10")
     def test_assert(self):
         def f(x):
