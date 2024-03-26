@@ -33,11 +33,34 @@ class Str2IdManager:
 
 
 @Singleton
-class ApiIdManager:
+class ConnectionIdManager:
     def __init__(self) -> None:
-        self._curr_api_id = 0
+        self._connecion_id_map = {}
+        self._curr_id = 0
 
-    def get_api_id(self) -> int:
-        api_id = self._curr_api_id
-        self._curr_api_id += 1
-        return api_id
+    def get_id_from_connection_ids(self, connection_ids: list) -> int:
+        res_id = self._curr_id
+        self._connecion_id_map[self._curr_id] = connection_ids
+        self._curr_id += 1
+        return res_id
+    
+    def get_all_connection_ids(self) -> dict:
+        return self._connecion_id_map
+
+
+@Singleton
+class CallChainIdManager:
+    def __init__(self) -> None:
+        self._callchain_id_map = {}
+        self._curr_id = 0
+
+    def get_callchain_id_from_callstack(self, callstack: str) -> int:
+        res_id = self._curr_id
+        stacks = callstack.split(";\r\n")
+        for idx, stack in enumerate(stacks):
+            self._callchain_id_map.setdefault(self._curr_id, []).append([stack, idx])
+        self._curr_id += 1
+        return res_id
+
+    def get_all_callchain_id(self) -> dict:
+        return self._callchain_id_map
