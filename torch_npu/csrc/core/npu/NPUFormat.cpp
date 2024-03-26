@@ -21,9 +21,13 @@
 namespace at_npu {
 namespace native {
 
-int64_t get_npu_format(const at::Tensor &tensor)
+int64_t get_npu_format(const at::Tensor &tensor, bool infer_format)
 {
-    return CalcuOpUtil::GetTensorNpuFormat(tensor);
+    if (infer_format) {
+        return CalcuOpUtil::GetTensorNpuFormat(tensor);
+    } else {
+        return NPUNativeFunctions::get_npu_format(tensor);
+    }
 }
 
 at::Tensor npu_format_cast(const at::Tensor &tensor, int64_t acl_format)
