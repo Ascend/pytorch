@@ -59,7 +59,7 @@ class CANNFileParser:
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
         CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv", r"^op_statistic_slice_\d+.*\.csv"],
         CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv", r"^npu_module_mem_slice_\d+.*\.csv"],
-        CANNDataEnum.REPORT_DB: [r"^report_\d+\.db"],
+        CANNDataEnum.REPORT_DB: [r"^msprof_\d+\.db"],
         CANNDataEnum.ANALYSIS_DB: [r"communication_analyzer\.db"]
     }
 
