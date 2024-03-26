@@ -1398,12 +1398,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     if (asyncErrorHandling_ != NoHandling) {
         workEnqueue(work);
     }
-    work->blockingWait_ = blockingWait_;
-    work->opTimeout_ = opTimeout_;
-    work->store_ = store_;
-    if (asyncErrorHandling_ != NoHandling) {
-        workEnqueue(work);
-    }
     return work;
 }
 

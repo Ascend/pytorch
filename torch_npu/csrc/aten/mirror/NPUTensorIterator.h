@@ -24,13 +24,12 @@
 #include <bitset>
 #include <c10/util/TypeCast.h>
 
-#include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
 
-struct TORCH_NPU_API NPUOperandInfo {
+struct NPUOperandInfo {
     using StrideVector = c10::SmallVector<int64_t, 6>;
     NPUOperandInfo() {}
     explicit NPUOperandInfo(const at::Tensor& t) : tensor(t) {
@@ -52,8 +51,7 @@ struct TORCH_NPU_API NPUOperandInfo {
     void validate() {
         TORCH_CHECK(
             !tensor.defined() || tensor.layout() == at::kStrided,
-            "unsupported tensor layout: ", tensor.layout(),
-            OPS_ERROR(ErrCode::TYPE));
+            "unsupported tensor layout: ", tensor.layout(), OPS_ERROR(ErrCode::TYPE));
     }
 
     StrideVector stride_bytes;
@@ -70,7 +68,7 @@ enum class CommonDTypeStrategy : uint8_t {
     PROMOTE // Promote to common dtype.
 };
 
-class TORCH_NPU_API NPUTensorIterator {
+class NPUTensorIterator {
 public:
     NPUTensorIterator() {}
     ~NPUTensorIterator() {}
@@ -119,7 +117,7 @@ public:
         return operands_;
     }
 
-    /// Construction
+    // Construction
     void add_output(const at::Tensor& output) {
         operands_.emplace_back(output);
         num_outputs_++;
@@ -151,6 +149,6 @@ private:
 }; // class NPUTensorIterator
 
 } // namespace native
-} // namespace at
+} // namespace at_npu
 
 #endif

@@ -19,12 +19,11 @@
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/NPUMacros.h"
 
 namespace c10_npu {
-struct C10_NPU_API SecondaryStreamGuard {
+struct SecondaryStreamGuard {
     explicit SecondaryStreamGuard() = delete;
-    explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {};
+    explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {}
 
     ~SecondaryStreamGuard();
 

@@ -72,17 +72,19 @@ enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 // it's used to store npu synchronization state
 // through this global state to determine the synchronization debug mode
 class WarningState {
- public:
-  void set_sync_debug_mode(SyncDebugMode level) {
-    sync_debug_mode = level;
-  }
+public:
+    void set_sync_debug_mode(SyncDebugMode level)
+    {
+        sync_debug_mode = level;
+    }
 
-  SyncDebugMode get_sync_debug_mode() {
-    return sync_debug_mode;
-  }
+    SyncDebugMode get_sync_debug_mode()
+    {
+        return sync_debug_mode;
+    }
 
- private:
-  SyncDebugMode sync_debug_mode = SyncDebugMode::L_DISABLED;
+private:
+    SyncDebugMode sync_debug_mode = SyncDebugMode::L_DISABLED;
 };
 
 C10_NPU_API inline WarningState& warning_state()

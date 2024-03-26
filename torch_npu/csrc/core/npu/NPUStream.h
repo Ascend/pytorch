@@ -35,88 +35,102 @@ namespace c10_npu {
 
 class C10_NPU_API NPUStream {
 public:
-  enum Unchecked { UNCHECKED };
+    enum Unchecked { UNCHECKED };
 
-  explicit NPUStream(c10::Stream stream) : stream_(stream) {
-    TORCH_CHECK(stream_.device_type() == at_npu::key::NativeDeviceType, PTA_ERROR(ErrCode::PARAM));
-  }
-
-  explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
-
-  ~NPUStream() {}
-
-  bool operator==(const NPUStream& other) const noexcept {
-    return unwrap() == other.unwrap();
-  }
-
-  bool operator!=(const NPUStream& other) const noexcept {
-    return unwrap() != other.unwrap();
-  }
-
-  /// Implicit conversion to rtStream_t.
-  operator aclrtStream() const {
-    return stream();
-  }
-
-  /// Implicit conversion to pytorch Stream.
-  operator c10::Stream() const {
-    return unwrap();
-  }
-
-  /// Get the NPU device index that this stream is associated with.
-  c10::DeviceIndex device_index() const {
-    return stream_.device_index();
-  }
-
-  /// Get the full Device that this stream is associated with.  The Device
-  /// is guaranteed to be a NPU device.
-  c10::Device device() const {
-    return c10::Device(at_npu::key::NativeDeviceType, device_index());
-  }
-
-  c10::StreamId id() const {
-    return stream_.id();
-  }
-
-  bool query() const {
-    c10::DeviceGuard guard{stream_.device()};
-    acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
-    NPU_CHECK_ERROR(acl::AclrtStreamQuery(stream(), &status));
-    if (status == acl::ACL_STREAM_STATUS_COMPLETE) {
-      return true;
+    explicit NPUStream(c10::Stream stream) : stream_(stream)
+    {
+        TORCH_CHECK(stream_.device_type() == at_npu::key::NativeDeviceType, PTA_ERROR(ErrCode::PARAM));
     }
-    return false;
-  }
 
-  void synchronize() const {
-    c10::DeviceGuard guard{stream_.device()};
-    NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
-  }
+    explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
 
-  /// Explicit conversion to rtStream_t.
-  aclrtStream stream() const;
+    ~NPUStream() {}
 
-  /// Explicit conversion to Stream.
-  c10::Stream unwrap() const {
-    return stream_;
-  }
+    bool operator==(const NPUStream& other) const noexcept
+    {
+        return unwrap() == other.unwrap();
+    }
 
-  uint64_t pack() const noexcept {
-    return stream_.pack();
-  }
+    bool operator!=(const NPUStream& other) const noexcept
+    {
+        return unwrap() != other.unwrap();
+    }
 
-  static NPUStream unpack(uint64_t bits) {
-    return NPUStream(c10::Stream::unpack(bits));
-  }
+    // Implicit conversion to rtStream_t.
+    operator aclrtStream() const
+    {
+        return stream();
+    }
 
-  void setDataPreprocessStream(bool is_data_preprocess_stream);
+    // Implicit conversion to pytorch Stream.
+    operator c10::Stream() const
+    {
+        return unwrap();
+    }
 
-  bool isDataPreprocessStream();
+    // Get the NPU device index that this stream is associated with.
+    c10::DeviceIndex device_index() const
+    {
+        return stream_.device_index();
+    }
 
-  /// Explicit conversion to rtStream_t， with out empty taskQ.
-  aclrtStream stream(const bool need_empty) const;
+    // Get the full Device that this stream is associated with.  The Device
+    // is guaranteed to be a NPU device.
+    c10::Device device() const
+    {
+        return c10::Device(at_npu::key::NativeDeviceType, device_index());
+    }
+
+    c10::StreamId id() const
+    {
+        return stream_.id();
+    }
+
+    bool query() const
+    {
+        c10::DeviceGuard guard{stream_.device()};
+        acl::aclrtStreamStatus status = acl::ACL_STREAM_STATUS_RESERVED;
+        NPU_CHECK_ERROR(acl::AclrtStreamQuery(stream(), &status));
+        if (status == acl::ACL_STREAM_STATUS_COMPLETE) {
+            return true;
+        }
+        return false;
+    }
+
+    void synchronize() const
+    {
+        c10::DeviceGuard guard{stream_.device()};
+        NPU_CHECK_ERROR(c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()));
+    }
+
+    // Explicit conversion to rtStream_t.
+    aclrtStream stream() const;
+
+    // Explicit conversion to Stream.
+    c10::Stream unwrap() const
+    {
+        return stream_;
+    }
+
+    uint64_t pack() const noexcept
+    {
+        return stream_.pack();
+    }
+
+    static NPUStream unpack(uint64_t bits)
+    {
+        return NPUStream(c10::Stream::unpack(bits));
+    }
+
+    void setDataPreprocessStream(bool is_data_preprocess_stream);
+
+    bool isDataPreprocessStream();
+
+    // Explicit conversion to rtStream_t， with out empty taskQ.
+    aclrtStream stream(const bool need_empty) const;
+
 private:
-  c10::Stream stream_;
+    c10::Stream stream_;
 };
 
 C10_NPU_API NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
@@ -125,7 +139,7 @@ C10_NPU_API NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
 C10_NPU_API NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
-C10_NPU_API NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
+NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
 aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
@@ -138,13 +152,15 @@ void enCurrentNPUStream(void* cur_paras, c10::DeviceIndex device_index = -1);
 C10_NPU_API void setCurrentNPUStream(NPUStream stream);
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
+
 } // namespace c10_npu
 
 namespace std {
 template <>
 struct hash<c10_npu::NPUStream> {
-  size_t operator()(c10_npu::NPUStream s) const noexcept {
-    return std::hash<c10::Stream>{}(s.unwrap());
-  }
+    size_t operator()(c10_npu::NPUStream s) const noexcept
+    {
+        return std::hash<c10::Stream>{}(s.unwrap());
+    }
 };
 } // namespace std
