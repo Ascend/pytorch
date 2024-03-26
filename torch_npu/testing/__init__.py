@@ -47,7 +47,7 @@ def check_if_enable_npu(test: unittest.TestCase):
     sanitized_testname = remove_device_and_dtype_suffixes(test._testMethodName)
 
     def matches_test(target: str):
-        target_test_parts = re.split(" (?=\\(__main__)", target)
+        target_test_parts = re.split(" (?=\\(__main__)", target) if "__main__" in target else target.split()
         if len(target_test_parts) < 2:
             # poorly formed target test name
             return False
