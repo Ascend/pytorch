@@ -74,6 +74,20 @@ class TestPathManager(TestCase):
         os.makedirs(device_path)
         self.assertEqual(device_path, ProfilerPathManager.get_device_path(cann_path))
 
+    def test_get_device_id(self):
+        self.assertEqual(Constant.INVALID_VALUE, ProfilerPathManager.get_device_id(""))
+        cann_path = os.path.join(self.tmp_dir, "PROF_1_2_3a")
+        os.makedirs(cann_path)
+        self.assertEqual(Constant.INVALID_VALUE, ProfilerPathManager.get_device_id(cann_path))
+        invalid_device_path = os.path.join(cann_path, "device")
+        os.makedirs(invalid_device_path)
+        self.assertEqual(Constant.INVALID_VALUE, ProfilerPathManager.get_device_id(cann_path))
+        invalid_device_path = os.path.join(cann_path, "device_xx")
+        self.assertEqual(Constant.INVALID_VALUE, ProfilerPathManager.get_device_id(cann_path))
+        invalid_device_path = os.path.join(cann_path, "device_0")
+        os.makedirs(invalid_device_path)
+        self.assertEqual(0, ProfilerPathManager.get_device_id(cann_path))
+
     def test_get_start_info_path(self):
         self.assertEqual("", ProfilerPathManager.get_start_info_path(self.tmp_dir))
         cann_path = os.path.join(self.tmp_dir, "PROF_1_2_3a")
