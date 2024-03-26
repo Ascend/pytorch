@@ -34,6 +34,7 @@ class TraceStepTimeDbParser(BaseParser):
         self.task_db_curs = None
         self.analysis_db_con = None
         self.analysis_db_curs = None
+        self.db_path = ""
 
     @staticmethod
     def getE2ETime(task_time_list):
@@ -61,6 +62,7 @@ class TraceStepTimeDbParser(BaseParser):
 
     def run(self, deps_data: dict):
         try:
+            self.db_path = deps_data.get(Constant.DB_PARSER, "")
             self._init_step_range(deps_data)
             self._init_task_info_from_db()
             self.generate_view()
@@ -112,10 +114,9 @@ class TraceStepTimeDbParser(BaseParser):
         self.step_range = deps_data.get(Constant.STEP_INFO_DB_PARSER, [])
     
     def _init_task_info_from_db(self):
-        db_path = os.path.join(self._output_path, DbConstant.DB_ASCEND_PYTORCH)
-        conn, curs = DbManager.create_connect_db(db_path)
+        conn, curs = DbManager.create_connect_db(self.db_path)
         if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {db_path}")
+            print_warn_msg(f"Failed to connect to db file: {self.db_path}")
             return
         self.task_db_con = conn
         self.task_db_curs = curs

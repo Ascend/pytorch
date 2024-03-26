@@ -83,6 +83,20 @@ class ProfilerPathManager:
         return ""
 
     @classmethod
+    def get_device_id(cls, cann_path: str) -> int:
+        if not cann_path:
+            return Constant.INVALID_VALUE
+        device_path = cls.get_device_path(cann_path)
+        if not device_path:
+            return Constant.INVALID_VALUE
+        device_path_split = os.path.basename(device_path).split("_")
+        if len(device_path_split) != 2:
+            return Constant.INVALID_VALUE
+        if not device_path_split[1].isdigit:
+            return Constant.INVALID_VALUE
+        return int(device_path_split[1])
+
+    @classmethod
     def get_start_info_path(cls, cann_path: str) -> str:
         start_info_path = os.path.join(cann_path, "host", "start_info")
         if os.path.exists(start_info_path):

@@ -97,7 +97,7 @@ class CANNTimelineParser(BaseParser):
                             return Constant.SUCCESS, None
                 time.sleep(0.1)
         else:
-            patten = r'ascend_pytorch\.db$'
+            patten = r'^ascend_pytorch_profiler\.db$' if ProfilerConfig().rank_id == -1 else r'^ascend_pytorch_profiler_\d+\.db$'
             while True:
                 for file in os.listdir(self._output_path):
                     if re.match(patten, file) and os.path.isfile(os.path.join(self._output_path, file)):
