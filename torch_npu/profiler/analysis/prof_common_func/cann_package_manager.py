@@ -3,6 +3,8 @@ import subprocess
 
 from .constant import print_error_msg
 
+__all__ = []
+
 
 class CannPackageManager:
     @classmethod

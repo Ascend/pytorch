@@ -6,8 +6,11 @@ from .analysis.prof_common_func.cann_package_manager import CannPackageManager
 __all__ = [
     'supported_profiler_level',
     'supported_ai_core_metrics',
-    'ProfilerLevel', 'AiCMetrics',
-    '_ExperimentalConfig'
+    'supported_export_type',
+    'ProfilerLevel',
+    'AiCMetrics',
+    '_ExperimentalConfig',
+    'ExportType'
 ]
 
 

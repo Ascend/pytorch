@@ -17,6 +17,8 @@ from dataclasses import dataclass
 
 DEFAULT_INT_VALUE = -1
 
+__all__ = []
+
 
 @dataclass
 class TimeRange:

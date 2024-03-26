@@ -19,6 +19,8 @@ from ...prof_bean.torch_op_node import TorchOpNode
 from ...prof_common_func.constant import DbConstant, Constant, print_error_msg, print_warn_msg
 from ...prof_common_func.db_manager import DbManager
 
+__all__ = []
+
 
 class StepInfoDbParser(BaseParser):
 

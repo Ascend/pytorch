@@ -15,6 +15,8 @@
 
 FILTER_COL_LIST = ["Device_id"]
 
+__all__ = []
+
 
 class CommonBean:
     def __init__(self, data: dict):
