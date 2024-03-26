@@ -69,6 +69,7 @@ class ProfilingParser:
             param_dict.update(self._kwargs)
         if ProfilerPathManager.get_cann_path(self._profiler_path):
             CANNFileParser(self._profiler_path).del_summary_and_timeline_data()
+            CANNFileParser(self._profiler_path).del_output_path_data() 
             parser_list = ParserConfig.COMMON_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
         else:
             parser_list = ParserConfig.ONLY_FWK_CONFIG.get(ProfilerConfig().export_type).get(self._analysis_type)
