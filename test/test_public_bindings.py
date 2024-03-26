@@ -36,7 +36,7 @@ def _discover_path_importables(pkg_pth, pkg_name):
     """Yield all importables under a given path and package.
 
     This is like pkgutil.walk_packages, but does *not* skip over namespace
-    packages. Taken from https://stackoverflow.com/questions/41203765/init-py-required-for-pkgutil-walk-packages-in-python3
+    packages. Taken from init-py-required-for-pkgutil-walk-packages-in-python3
     """
     for dir_path, _d, file_names in os.walk(pkg_pth):
         pkg_dir_path = Path(dir_path)
@@ -540,7 +540,7 @@ class TestPublicBindings(TestCase):
         test_module('torch_npu')
 
         msg = "All the APIs below do not meet our guidelines for public API from " \
-              "https://github.com/pytorch/pytorch/wiki/Public-API-definition-and-documentation.\n"
+              "pytorch/wiki/Public-API-definition-and-documentation.\n"
         msg += "Make sure that everything that is public is expected (in particular that the module " \
             "has a properly populated `__all__` attribute) and that everything that is supposed to be public " \
             "does look public (it does not start with `_` and has a `__module__` that is properly populated)."
