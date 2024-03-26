@@ -9303,7 +9303,7 @@ tensor([[[1.+1.j, 1.+1.j, 1.+1.j,  ..., 1.+1.j, 1.+1.j, 1.+1.j],
 
         self.assertRaises(RuntimeError, lambda: x.sigmoid())
 
-    @skipIfTorchDynamo("https://github.com/pytorch/torchdynamo/issues/1993")
+    @skipIfTorchDynamo("pytorch/torchdynamo/issues/1993")
     def test_storage_dead_weak_ref(self):
         x = torch.UntypedStorage(2)
         w_x = weakref.ref(x)

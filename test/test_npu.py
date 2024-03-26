@@ -890,8 +890,6 @@ except RuntimeError as e:
 
         MultiplyInStream = self._make_multiply_in_stream()
 
-        # Tests using grads outside the backward() stream context
-        # See "Stream semantics of backward passes" on https://pytorch.org/docs/stable/notes/cuda.html
         x = torch.randn(5, 5, device='npu', requires_grad=True)
         with torch_npu.npu.stream(stream):
             stream.wait_stream(default_stream)
@@ -918,8 +916,7 @@ except RuntimeError as e:
             self.assertEqual(x.grad, torch.ones_like(x) * 3)
             self.assertEqual(torch_npu.npu.current_stream(), bwd_ambient_stream)
 
-    # Skip the test for ROCm as per https://github.com/pytorch/pytorch/issues/53190
-    @skipIfRocm(msg="flakey on ROCm https://github.com/pytorch/pytorch/issues/53190")
+    @skipIfRocm(msg="flakey on ROCm pytorch/pytorch/issues/53190")
     def test_streaming_backwards_multiple_streams(self):
         MultiplyInStream = self._make_multiply_in_stream()
 
@@ -967,7 +964,6 @@ except RuntimeError as e:
                             x_grad = torch.autograd.grad((loss,), (x,))[0]
                         else:
                             loss.backward()
-                # See "Stream semantics of backward passes" on https://pytorch.org/docs/stable/notes/cuda.html
                 torch_npu.npu.current_stream().wait_stream(stream)
 
                 if out_of_place:
@@ -1011,7 +1007,6 @@ except RuntimeError as e:
                 # bwd ops don't sync with bwd_ambient_stream before consuming grad.
                 torch.autograd.backward(tensors=c, grad_tensors=grad)
 
-                # See https://github.com/pytorch/pytorch/issues/47028
                 # assertEquals below run on bwd_ambient_stream, so this test may also fail
                 # if backward() fails to sync with bwd_ambient_stream at the end.
                 # Synchronizing here works around the issue until a proper fix can be made.
@@ -1626,7 +1621,6 @@ torch_npu.npu.synchronize()
             for t in range(num_threads):
                 self.assertEqual(results[t].sum().item(), size * size)
 
-    # Test is flaky on Windows (https://github.com/pytorch/pytorch/issues/57401)
     @unittest.skipIf(IS_WINDOWS, 'Test is flaky on Windows (see issue 57401)')
     @unittest.skipIf(not TEST_PRIVATEUSE1, 'NPU not available')
     @skipIfRocm
@@ -2017,7 +2011,6 @@ torch_npu.npu.synchronize()
         loss.backward()
 
     def test_autocast_cat_jit(self):
-        # Reported at https://github.com/pytorch/pytorch/issues/38958
 
         class Model(torch.nn.Module):
             def forward(self):
@@ -2117,9 +2110,6 @@ torch_npu.npu.synchronize()
                     self.assertEqual(grad.half(), grad_control)
 
     def test_autocast_cache_leak(self):
-        # Reported at https://github.com/pytorch/pytorch/issues/48049
-        # Test is used to check, if autocast recaches the same parameters
-        # when executed in a `torch.no_grad()` block.
 
         linear = torch.nn.Linear(10, 10).to('npu')
         data = torch.randn(1, 10, device='npu')

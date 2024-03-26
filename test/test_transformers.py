@@ -95,8 +95,6 @@ def get_tolerances(
 
     atol = fudge_factor * max(atol, default_atol[computed_value.dtype])
     rtol = fudge_factor * max(rtol, default_rtol[computed_value.dtype])
-    # torch.isclose() has weird behavior around see:
-    # https://github.com/pytorch/pytorch/issues/102400
     if rtol > 1e30:
         rtol = default_rtol[computed_value.dtype]
     return atol, rtol
@@ -1754,7 +1752,6 @@ class TestSDPA(NNTestCase):
 
     @parametrize("kernel", [SDPBackend.MATH])
     def test_scaled_dot_product_attention_math_with_negative_scale(self, device, kernel: SDPBackend):
-        # https://github.com/pytorch/pytorch/issues/105190.
         def ref(x):
             v1 = torch.matmul(x, x.transpose(-1, -2))
             v2 = v1 / -0.0001
