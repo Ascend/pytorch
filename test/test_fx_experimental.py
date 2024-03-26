@@ -1261,8 +1261,6 @@ class {test_classname}(torch.nn.Module):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
             mod.to_folder(tmp_dir, module_name)
-            # Recipe taken from here:
-            # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
             import importlib.util
 
             spec = importlib.util.spec_from_file_location(
