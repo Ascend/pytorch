@@ -28,9 +28,11 @@ class StepInfoDbParser(BaseParser):
         super().__init__(name, param_dict)
         self.db_conn = None
         self.db_curs = None
+        self._db_path = ""
 
     def run(self, deps_data: dict):
         try:
+            self._db_path = deps_data.get(Constant.DB_PARSER, "")
             torch_op_node = deps_data.get(Constant.TREE_BUILD_PARSER, [])
             if not torch_op_node:
                 return Constant.SUCCESS, []
@@ -42,18 +44,18 @@ class StepInfoDbParser(BaseParser):
         return Constant.SUCCESS, step_range
 
     def get_api_data_in_time_range(self, begin_ts, end_ts, db_cur) -> list:
-        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_API):
+        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_CANN_API):
             print_warn_msg("Failed to get api data from db.")
             return []
-        sql = f"select connectionId from {DbConstant.TABLE_API} " \
+        sql = f"select connectionId from {DbConstant.TABLE_CANN_API} " \
               f"where type={self.NODE_LEVEL} and {begin_ts} <= startNs and endNs <= {end_ts}"
         return DbManager.fetch_all_data(db_cur, sql)
 
     def get_all_api_data(self, db_cur) -> list:
-        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_API):
+        if not DbManager.judge_table_exist(db_cur, DbConstant.TABLE_CANN_API):
             print_warn_msg("Failed to get api data from db.")
             return []
-        sql = f"select connectionId from {DbConstant.TABLE_API} where type={self.NODE_LEVEL}"
+        sql = f"select connectionId from {DbConstant.TABLE_CANN_API} where type={self.NODE_LEVEL}"
         return DbManager.fetch_all_data(db_cur, sql)
 
     def get_task_info_from_api(self, api_data, db_cur) -> dict:
@@ -74,10 +76,9 @@ class StepInfoDbParser(BaseParser):
         for level1_node in root_node.child_node_list:
             if level1_node.is_profiler_step():
                 step_node_list.append(level1_node)
-        db_path = os.path.join(self._output_path, DbConstant.DB_ASCEND_PYTORCH)
-        conn, curs = DbManager.create_connect_db(db_path)
+        conn, curs = DbManager.create_connect_db(self._db_path)
         if not (conn and curs):
-            print_warn_msg(f"Failed to connect to db file: {db_path}")
+            print_warn_msg(f"Failed to connect to db file: {self._db_path}")
             return []
         self.db_conn = conn
         self.db_curs = curs

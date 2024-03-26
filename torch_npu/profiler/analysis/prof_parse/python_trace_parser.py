@@ -136,7 +136,7 @@ class PythonTraceParser:
             return []
         trace_api_data = [None] * len(python_trace_event_list)
         for i, event in enumerate(python_trace_event_list):
-            trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), DbConstant.DB_INVALID_VALUE, event.name, DbConstant.DB_INVALID_VALUE]
+            trace_api_data[i] = [event.ts, event.ts + event.dur, contact_2num(event.pid, event.tid), event.name]
         return trace_api_data
 
     def _replay_stack(self) -> list:
