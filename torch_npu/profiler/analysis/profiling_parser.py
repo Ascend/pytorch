@@ -42,7 +42,7 @@ class ProfilingParser:
         if not cann_path:
             return
         if self._analysis_type == Constant.TENSORBOARD_TRACE_HANDLER and ProfilerConfig().export_type == Constant.Db:
-            patten = r'report_\d+\.db$'
+            patten = r'msprof_\d+\.db$'
             for filename in os.listdir(cann_path):
                 if re.match(patten, filename) and os.path.isfile(os.path.join(cann_path, filename)):
                     PathManager.remove_file_safety(os.path.join(cann_path, filename))

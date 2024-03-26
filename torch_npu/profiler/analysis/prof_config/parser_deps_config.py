@@ -63,7 +63,7 @@ class ParserDepsConfig:
                                            Constant.DEPS: [Constant.DB_PARSER, Constant.CANN_ANALYZE_PARSER,
                                                            Constant.STEP_INFO_DB_PARSER]},
         Constant.TRACE_STEP_TIME_DB_PARSER: {Constant.MODE: ConcurrentMode.SUB_PROCESS,
-                                             Constant.DEPS: [Constant.DB_PARSER, Constant.STEP_INFO_DB_PARSER]}      
+                                             Constant.DEPS: [Constant.DB_PARSER, Constant.STEP_INFO_DB_PARSER]}
     }
 
     ONLY_FWK_CONFIG = {
