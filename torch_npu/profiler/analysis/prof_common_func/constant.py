@@ -236,38 +236,35 @@ class DbConstant():
     DB_INVALID_VALUE = 4294967295
 
     # db name
-    DB_ASCEND_PYTORCH = "ascend_pytorch.db"
+    DB_ASCEND_PYTORCH_PROFILER = "ascend_pytorch_profiler.db"
     DB_ANALYSIS = "analysis.db"
 
     TABLE_STRING_IDS = "STRING_IDS"
 
-    # api table name
-    TABLE_API = "API"
-    # api info table name
-    TABLE_API_INFO = "PYTORCH_API_INFO"
+    # pytorch api table name
+    TABLE_PYTORCH_API = "PYTORCH_API"
+    # api connection ids table name
+    TABLE_CONNECTION_IDS = "CONNECTION_IDS"
+    # call chain table name
+    TABLE_PYTORCH_CALLCHAINS = "PYTORCH_CALLCHAINS"
+    # cann api table name
+    TABLE_CANN_API = "CANN_API"
     # task table name
     TABLE_TASK = "TASK"
-    # api type table name
-    TABLE_ENUM_API_TYPE = "ENUM_API_TYPE"
+    # communicate op table name
+    TABLE_COMMUNICATE_OP = "COMMUNICATE_OP"
     # compute task table name
     TABLE_COMPUTE_TASK_INFO = "COMPUTE_TASK_INFO"
     # communication task table name
     TABLE_COMMUNICATION_TASK_INFO = "COMMUNICATION_TASK_INFO"
-
-    # api type table name
-    TABLE_API_TYPE = "ENUM_API_TYPE"
-    # pytorch api type
-    PYTORCH_API_TYPE = "pytorch"
-    # pytorch api level id
-    PYTORCH_API_TYPE_ID = 30000
 
     # profiler data table name
     TABLE_MEMORY_RECORD = "MEMORY_RECORD"
     TABLE_OPERATOR_MEMORY = "OP_MEMORY"
     TABLE_NPU_OP_MEM = "NPU_OP_MEM"
 
-    # session info table name
-    TABLE_SESSION_INFO = "SESSION_INFO"
+    # rank device map table name
+    TABLE_RANK_DEVICE_MAP = "RANK_DEVICE_MAP"
 
     # analyzer table name
     TABLE_ANALYZER_BANDWIDTH = "CommAnalyzerBandwidth"
@@ -282,63 +279,68 @@ class DbConstant():
 
 class TableColumnsManager():
     TableColumns = {
+        DbConstant.TABLE_CANN_API : [
+            ("startNs", Constant.SQL_INTEGER_TYPE),
+            ("endNs", Constant.SQL_INTEGER_TYPE),
+            ("type", Constant.SQL_INTEGER_TYPE),
+            ("globalTid", Constant.SQL_INTEGER_TYPE),
+            ("connectionId", Constant.SQL_INTEGER_TYPE),
+            ("name", Constant.SQL_INTEGER_TYPE)
+        ],
         DbConstant.TABLE_STRING_IDS : [
             ("id", Constant.SQL_INTEGER_TYPE),
             ("value", Constant.SQL_TEXT_TYPE)
         ],
-        DbConstant.TABLE_API : [
+        DbConstant.TABLE_CONNECTION_IDS : [
+            ("id", Constant.SQL_INTEGER_TYPE),
+            ("connectionId", Constant.SQL_INTEGER_TYPE)
+        ],
+        DbConstant.TABLE_PYTORCH_CALLCHAINS : [
+            ("id", Constant.SQL_INTEGER_TYPE),
+            ("stack", Constant.SQL_TEXT_TYPE),
+            ("stackDepth", Constant.SQL_INTEGER_TYPE)
+        ],
+        DbConstant.TABLE_RANK_DEVICE_MAP : [
+            ("rank_id", Constant.SQL_INTEGER_TYPE),
+            ("device_id", Constant.SQL_INTEGER_TYPE)
+        ],
+        DbConstant.TABLE_PYTORCH_API : [
             ("startNs", Constant.SQL_TEXT_TYPE),
             ("endNs", Constant.SQL_TEXT_TYPE),
-            ("type", Constant.SQL_INTEGER_TYPE),
             ("globalTid", Constant.SQL_INTEGER_TYPE),
             ("connectionId", Constant.SQL_INTEGER_TYPE),
             ("name", Constant.SQL_INTEGER_TYPE),
-            ("apiId", Constant.SQL_INTEGER_TYPE)
-        ],
-        DbConstant.TABLE_API_TYPE : [
-            ("id", Constant.SQL_INTEGER_TYPE),
-            ("name", Constant.SQL_TEXT_TYPE)
-        ],
-        DbConstant.TABLE_API_INFO : [
-            ("apiId", Constant.SQL_INTEGER_TYPE),
             ("sequenceNumber", Constant.SQL_INTEGER_TYPE),
             ("fwdThreadId", Constant.SQL_INTEGER_TYPE),
             ("inputDtypes", Constant.SQL_INTEGER_TYPE),
             ("inputShapes", Constant.SQL_INTEGER_TYPE),
-            ("stack", Constant.SQL_TEXT_TYPE)
+            ("callchainId", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_MEMORY_RECORD : [
-            ("component", Constant.SQL_TEXT_TYPE),
-            ("time_stamp", Constant.SQL_TEXT_TYPE),
-            ("total_allocated", Constant.SQL_NUMERIC_TYPE),
-            ("total_reserved", Constant.SQL_NUMERIC_TYPE),
-            ("total_active", Constant.SQL_NUMERIC_TYPE),
+            ("component", Constant.SQL_INTEGER_TYPE),
+            ("time_stamp", Constant.SQL_INTEGER_TYPE),
+            ("total_allocated", Constant.SQL_INTEGER_TYPE),
+            ("total_reserved", Constant.SQL_INTEGER_TYPE),
+            ("total_active", Constant.SQL_INTEGER_TYPE),
             ("stream_ptr", Constant.SQL_INTEGER_TYPE),
             ("device_id", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_OPERATOR_MEMORY : [
-            ("name", Constant.SQL_TEXT_TYPE),
+            ("name", Constant.SQL_INTEGER_TYPE),
             ("size", Constant.SQL_INTEGER_TYPE),
-            ("allocation_time", Constant.SQL_NUMERIC_TYPE),
-            ("release_time", Constant.SQL_NUMERIC_TYPE),
-            ("active_release_time", Constant.SQL_NUMERIC_TYPE),
-            ("active_duration", Constant.SQL_NUMERIC_TYPE),
-            ("duration", Constant.SQL_NUMERIC_TYPE),
-            ("allocation_total_allocated", Constant.SQL_NUMERIC_TYPE),
-            ("allocation_total_reserved", Constant.SQL_NUMERIC_TYPE),
-            ("allocation_total_active", Constant.SQL_NUMERIC_TYPE),
-            ("release_total_allocated", Constant.SQL_NUMERIC_TYPE),
-            ("release_total_reserved", Constant.SQL_NUMERIC_TYPE),
-            ("release_total_active", Constant.SQL_NUMERIC_TYPE),
+            ("allocation_time", Constant.SQL_INTEGER_TYPE),
+            ("release_time", Constant.SQL_INTEGER_TYPE),
+            ("active_release_time", Constant.SQL_INTEGER_TYPE),
+            ("active_duration", Constant.SQL_INTEGER_TYPE),
+            ("duration", Constant.SQL_INTEGER_TYPE),
+            ("allocation_total_allocated", Constant.SQL_INTEGER_TYPE),
+            ("allocation_total_reserved", Constant.SQL_INTEGER_TYPE),
+            ("allocation_total_active", Constant.SQL_INTEGER_TYPE),
+            ("release_total_allocated", Constant.SQL_INTEGER_TYPE),
+            ("release_total_reserved", Constant.SQL_INTEGER_TYPE),
+            ("release_total_active", Constant.SQL_INTEGER_TYPE),
             ("stream_ptr", Constant.SQL_INTEGER_TYPE),
             ("device_id", Constant.SQL_INTEGER_TYPE),
-        ],
-        DbConstant.TABLE_SESSION_INFO : [
-            ("rankId", Constant.SQL_INTEGER_TYPE)
-        ],
-        DbConstant.TABLE_ENUM_API_TYPE : [
-            ("id", Constant.SQL_INTEGER_TYPE),
-            ("name", Constant.SQL_TEXT_TYPE)
         ],
         DbConstant.TABLE_ANALYZER_BANDWIDTH : [
             ("hccl_op_name", Constant.SQL_TEXT_TYPE),
