@@ -116,6 +116,7 @@ namespace native {
     {
         auto format = FormatHelper::GetFormat(tensor);
         auto size = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_;
+        auto dtype = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.data_type_;
         // TransData: ND->NZ, ND size < 2, we can expand dimension to 2, the storage have no effect.
         // now, only ND->NZ and NZ->ND will call transdata， so we no need to check other format.
         if ((size.size() < 2) && format == ACL_FORMAT_ND)
@@ -125,7 +126,7 @@ namespace native {
                 size.emplace_back(1);
             } while (size.size() < 2);
         }
-        return FormatHelper::GetStorageSizes(format, size);
+        return FormatHelper::GetStorageSizes(format, size, dtype);
     }
 
     bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const at::Tensor &tensor, const c10::IntArrayRef &size)
