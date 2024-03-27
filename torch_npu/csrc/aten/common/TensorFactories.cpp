@@ -287,8 +287,8 @@ at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
     c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
     // when the shape and format are not match, fix format here.
     aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
-    int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
     auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
+    int64_t nelements = StorageDescHelper::GetMemorySize(size, format, dtype);
     int64_t size_bytes = nelements * dtype.itemsize();
     c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
         c10::StorageImpl::use_byte_size_t(),
