@@ -27,7 +27,8 @@ namespace at_npu
 {
   namespace native
   {
-    using baseFormatConverter = std::function<FormatShape(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims)>;
+    using baseFormatConverter =
+        std::function<FormatShape(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims, size_t itemsize)>;
     // helper function of storage format
     class FormatHelper
     {
@@ -49,7 +50,7 @@ namespace at_npu
       // 2. The storage size can be infered between NDC1HWC0 and NDHWC/NCDHW.
       // The storage size can not be infered between different groups.
       template <typename sizeType>
-      static FormatShape GetStorageSizes(aclFormat format, sizeType ori_size);
+      static FormatShape GetStorageSizes(aclFormat format, sizeType ori_size, caffe2::TypeMeta dtype);
       // GetStorageSizes used to calculate the storage sizes of op at npu device at different format.
       static FormatShape GetStorageSizes(const torch_npu::NPUStorageDesc &desc);
       static at::Tensor& unsafe_format_cast(at::Tensor& self, int64_t self_format, int64_t result_format);
@@ -64,7 +65,7 @@ namespace at_npu
       static char *GetFormatName(aclFormat format);
 
     private:
-      using shapeInfer = std::function<FormatShape(c10::IntArrayRef dims)>;
+      using shapeInfer = std::function<FormatShape(c10::IntArrayRef dims, size_t itemsize)>;
       typedef struct FormatInfo_
       {
         aclFormat format = ACL_FORMAT_ND;
@@ -78,14 +79,14 @@ namespace at_npu
 
     // template impl
     template <typename sizeType>
-    FormatShape FormatHelper::GetStorageSizes(aclFormat format, sizeType ori_size)
+    FormatShape FormatHelper::GetStorageSizes(aclFormat format, sizeType ori_size, caffe2::TypeMeta dtype)
     {
       auto itr = info.find(format);
       if (itr != info.end())
       {
         if (itr->second.func)
         {
-          return itr->second.func(ori_size);
+            return itr->second.func(ori_size, dtype.itemsize());
         }
       }
       AT_ERROR("unsupport InferShape with format ", GetFormatName(format), "with shape", ori_size);

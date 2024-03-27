@@ -29,39 +29,39 @@ namespace at_npu
     class StorageDescHelper
     {
     public:
-      // Get Part
-      // sizes, strides in StorageDesc are same as those in MetaData
-      static bool MetaDataAreMatch(const at::Tensor *tensor);
-      // storage offset are match, the npu only support offset == 0
-      static inline bool OffsetAreMatch(const at::Tensor *tensor) {return tensor->storage_offset() == 0;};
+        // Get Part
+        // sizes, strides in StorageDesc are same as those in MetaData
+        static bool MetaDataAreMatch(const at::Tensor *tensor);
+        // storage offset are match, the npu only support offset == 0
+        static inline bool OffsetAreMatch(const at::Tensor *tensor) {return tensor->storage_offset() == 0;};
 
-      // helper function of transdata op.
-      static bool IsSameDesc(const torch_npu::NPUStorageDesc &a, const torch_npu::NPUStorageDesc &b);
-      static bool IsSameDesc(const at::Tensor &a, const at::Tensor &b);
+        // helper function of transdata op.
+        static bool IsSameDesc(const torch_npu::NPUStorageDesc &a, const torch_npu::NPUStorageDesc &b);
+        static bool IsSameDesc(const at::Tensor &a, const at::Tensor &b);
 
-      // calculate storage size need by npu memory
-      static int64_t GetMemorySize(const at::Tensor &dst);
-      static int64_t GetMemorySize(const c10::IntArrayRef& size, aclFormat format);
-      // Calculate the valid memory size of the tensor, because of view operator and so on.
-      static int64_t GetValidMemorySize(const at::Tensor &tensor);
+        // calculate storage size need by npu memory
+        static int64_t GetMemorySize(const at::Tensor &dst);
+        static int64_t GetMemorySize(const c10::IntArrayRef& size, aclFormat format, caffe2::TypeMeta dtype);
+        // Calculate the valid memory size of the tensor, because of view operator and so on.
+        static int64_t GetValidMemorySize(const at::Tensor &tensor);
 
-      // Set Part
-      // StorageDesc Init/Set
-      static void SetDesc(at::Tensor &dst);
-      static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
-      static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
+        // Set Part
+        // StorageDesc Init/Set
+        static void SetDesc(at::Tensor &dst);
+        static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
+        static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
 
-      static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
-      static void CopyDesc(at::Tensor &dst, const c10::Storage &src);
-      static void CopyDesc(const at::Tensor &dst, const torch_npu::NPUStorageDesc &src_desc);
+        static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
+        static void CopyDesc(at::Tensor &dst, const c10::Storage &src);
+        static void CopyDesc(const at::Tensor &dst, const torch_npu::NPUStorageDesc &src_desc);
 
-      static void UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10::IntArrayRef &new_data_sizes,
-                             const c10::IntArrayRef &new_shape_sizes);
+        static void UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, const c10::IntArrayRef &new_data_sizes,
+                              const c10::IntArrayRef &new_shape_sizes);
 
-      static FormatShape ComputeStrideFromShape(const FormatShape &shape);
+        static FormatShape ComputeStrideFromShape(const FormatShape &shape);
 
-      // need to remove later
-      static void ReflushDescBySelf(const at::Tensor &src);
+        // need to remove later
+        static void ReflushDescBySelf(const at::Tensor &src);
 
     private:
       // Get Part

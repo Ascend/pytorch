@@ -165,7 +165,7 @@ namespace at_npu
       aclFormat baseFormat;
       aclFormat npuFormat;
       std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(size, format);
-      npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size);
+      npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size, dtype);
       npu_desc.origin_format_ = baseFormat;
       npu_desc.npu_format_ = npuFormat;
       return npu_desc;
@@ -183,10 +183,10 @@ namespace at_npu
       return GetMemorySize(desc);
     }
 
-    int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format)
+    int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format, caffe2::TypeMeta dtype)
     {
-      const auto &physical_size = FormatHelper::GetStorageSizes(format, size);
-      return c10::multiply_integers(physical_size);
+        const auto &physical_size = FormatHelper::GetStorageSizes(format, size, dtype);
+        return c10::multiply_integers(physical_size);
     }
 
     int64_t StorageDescHelper::GetValidMemorySize(const at::Tensor &tensor)
