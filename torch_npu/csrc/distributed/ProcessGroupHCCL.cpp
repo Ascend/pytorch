@@ -2120,8 +2120,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             outputTensor.size(0) % ranks == 0,
             "Tensor's dim 0 does not divide equally across group size",
             DIST_ERROR(ErrCode::PARAM));
-        uint64_t output_counts = outputTensor.numel() / ranks;
-        uint64_t input_counts = inputTensor.numel() / ranks;
+        uint64_t output_counts = static_cast<uint64_t>(outputTensor.numel() / ranks);
+        uint64_t input_counts =  static_cast<uint64_t>(inputTensor.numel() / ranks);
 
         check_npu_tensors_different_devices(inputTensors);
         check_npu_tensors_different_devices(outputTensors);
