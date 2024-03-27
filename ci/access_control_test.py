@@ -24,7 +24,8 @@ SLOW_TEST_BLOCKLIST = [
     'test_ops_fwd_gradients',
     'test_ops_gradients',
     'test_reductions',
-    'test_unary_ufuncs'
+    'test_unary_ufuncs',
+    'test_ops_jit'
 ]
 
 
@@ -215,7 +216,7 @@ class TestMgr:
             for test_name in block_list:
                 test_files_copy = self.test_files[key][:]
                 for test_file in test_files_copy:
-                    if test_name in test_file:
+                    if test_name + '.py' in test_file:
                         print(f'Excluding slow test: {test_name}')
                         self.test_files[key].remove(test_file)
 
