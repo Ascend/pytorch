@@ -25,7 +25,7 @@ public:
 
     // calculate storage size need by npu memory
     static int64_t GetMemorySize(const at::Tensor &dst);
-    static int64_t GetMemorySize(const c10::IntArrayRef& size, aclFormat format);
+    static int64_t GetMemorySize(const c10::IntArrayRef& size, aclFormat format, caffe2::TypeMeta dtype);
     // Calculate the valid memory size of the tensor, because of view operator and so on.
     static int64_t GetValidMemorySize(const at::Tensor &tensor);
 
