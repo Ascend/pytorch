@@ -131,8 +131,6 @@ int ParallelTcpServer::Start() noexcept
     }
 
     running_ = true;
-    ctlThread_ = std::thread{ [](ParallelTcpServer *server) { server->LoopProcessListenFd(); }, this };
-
     epClientFds_.reserve(threadNum_);
     clientThreads_.reserve(threadNum_);
     auto initializeFailed = false;
@@ -148,6 +146,7 @@ int ParallelTcpServer::Start() noexcept
             this);
     }
 
+    ctlThread_ = std::thread{ [](ParallelTcpServer *server) { server->LoopProcessListenFd(); }, this };
     if (initializeFailed) {
         Stop();
         return -1;
@@ -296,6 +295,7 @@ void ParallelTcpServer::LoopProcessListenFd() noexcept
         for (auto i = 0; i < count; i++) {
             if (events[i].data.fd == listenSocket_) {
                 ProcessListenEvent(events[i].events);
+                break;
             }
         }
     }
