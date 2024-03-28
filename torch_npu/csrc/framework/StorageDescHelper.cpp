@@ -126,7 +126,10 @@ void StorageDescHelper::GetDescForSerialization(const at::Tensor &tensor, std::u
     std::string storage_sizes_;
     small_vector_to_str(base_sizes_, "base_sizes_", desc.base_sizes_);
     small_vector_to_str(base_strides_, "base_strides_", desc.base_strides_);
-    small_vector_to_str(storage_sizes_, "storage_sizes_", FormatHelper::GetStorageSizes(ACL_FORMAT_ND, desc.base_sizes_));
+    small_vector_to_str(
+        storage_sizes_,
+        "storage_sizes_",
+        FormatHelper::GetStorageSizes(ACL_FORMAT_ND, desc.base_sizes_, desc.data_type_));
     desc_map[base_sizes_] = true;
     desc_map[base_strides_] = true;
     desc_map[storage_sizes_] = true;
@@ -238,7 +241,7 @@ torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dty
     aclFormat baseFormat;
     aclFormat npuFormat;
     std::tie(baseFormat, npuFormat) = InferFormat::GuessFormatUnit(size, format);
-    npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size);
+    npu_desc.storage_sizes_ = FormatHelper::GetStorageSizes(npuFormat, size, dtype);
     npu_desc.origin_format_ = baseFormat;
     npu_desc.npu_format_ = npuFormat;
     return npu_desc;
@@ -256,9 +259,9 @@ int64_t StorageDescHelper::GetMemorySize(const at::Tensor &dst)
     return GetMemorySize(desc);
 }
 
-int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format)
+int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format, caffe2::TypeMeta dtype)
 {
-    const auto &physical_size = FormatHelper::GetStorageSizes(format, size);
+    const auto &physical_size = FormatHelper::GetStorageSizes(format, size, dtype);
     return c10::multiply_integers(physical_size);
 }
 

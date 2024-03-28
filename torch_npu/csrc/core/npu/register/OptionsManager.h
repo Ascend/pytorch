@@ -19,6 +19,7 @@ enum ReuseMode {
 class OptionsManager {
 public:
     static bool IsResumeModeEnable();
+    static bool IsInt8FormatNZEnable();
     static ReuseMode GetMultiStreamMemoryReuse();
     static bool CheckInfNanModeEnable();
     static bool CheckBlockingEnable();
