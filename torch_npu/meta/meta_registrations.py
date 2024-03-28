@@ -542,6 +542,18 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
         raise RuntimeError("Not supportted output dtype is " + str(output_dtype))
 
 
+@impl(m, "npu_moe_init_routing")
+def npu_moe_init_routing_meta(x, row_idx, expert_idx, active_num=99):
+    n = x.size(0)
+    h = x.size(1)
+    k = row_idx.size(1)
+    active_num = min(n, active_num)
+    expanded_x_dim_list = [active_num * k, h]
+    expanded_row_idx_dim_list = [n * k]
+    expanded_expert_idx_dim_list = [n * k]
+    return (x.new_empty(tuple(expanded_x_dim_list)), row_idx.new_empty(tuple(expanded_row_idx_dim_list)), row_idx.new_empty(tuple(expanded_row_idx_dim_list)))
+
+
 @impl(m, "npu_trans_quant_param")
 def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()

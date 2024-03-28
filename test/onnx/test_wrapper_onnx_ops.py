@@ -1360,6 +1360,36 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-        
+    
+    @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_moe_init_routing(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, x, row_idx, expert_idx):
+                return torch_npu.npu_moe_init_routing(x, row_idx, expert_idx, active_num=99)
+
+        def export_onnx(onnx_model_name):
+            x = torch.tensor([[0.1, 0.1, 0.1, 0.1],
+                              [0.2, 0.2, 0.2, 0.2],
+                              [0.3, 0.3, 0.3, 0.3]], dtype=torch.float32).to("npu")
+            row_idx = torch.tensor([[0, 3],
+                                    [1, 4],
+                                    [2, 5]], dtype=torch.int32).to("npu")
+            expert_idx = torch.tensor([[1, 2],
+                                       [0, 1],
+                                       [0, 2]], dtype=torch.int32).to("npu")
+            model = Model().to("npu")
+            model(x, row_idx, expert_idx)
+            self.onnx_export(model, (x, row_idx, expert_idx), onnx_model_name,
+                            input_names=["x", "row_idx", "expert_idx"],
+                            output_names=["expanded_x", "expanded_row_idx", "expanded_expert_idx"])
+
+        onnx_model_name = "model_npu_moe_init_routing.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
 if __name__ == '__main__':
     run_tests()

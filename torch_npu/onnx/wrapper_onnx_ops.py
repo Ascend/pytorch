@@ -807,8 +807,23 @@ class NPUQuantizeOP(torch.autograd.Function):
         else:
             raise ValueError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.qint32")
         return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis)
-    
-    
+
+
+class NPUMoeInitRoutingOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_moe_init_routing(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g,
+                 x: torch.Tensor,
+                 row_idx: torch.Tensor,
+                 export_id: torch.Tensor,
+                 active_num: int = 99):
+        return g.op("npu::NPUMoeInitRouting", x, row_idx, export_id, active_num_i=active_num, outputs=3)
+
+
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
     return NPUMaskedSoftmaxWithRelPosBiasOP.apply(x, atten_mask, relative_pos_bias, scale_value, inner_precision_mode)
 
@@ -1088,6 +1103,10 @@ def wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis):
     return NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis)
 
 
+def wrapper_npu_moe_init_routing(x, row_idx, expert_idx, active_num):
+    return NPUMoeInitRoutingOP.apply(x, row_idx, expert_idx, active_num)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -1145,3 +1164,4 @@ def add_onnx_ops():
     torch_npu.npu_weight_quant_batchmatmul = wrapper_npu_weight_quant_batchmatmul
     torch_npu.npu_anti_quant = wrapper_npu_anti_quant
     torch_npu.npu_quantize = wrapper_npu_quantize
+    torch_npu.npu_moe_init_routing = wrapper_npu_moe_init_routing

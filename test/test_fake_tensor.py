@@ -1367,6 +1367,27 @@ class TestMaskedSoftmaxWithRelPosBias(TestCase):
             self.assertTrue(x.shape == res.shape)
 
 
+class TestNpuMoeInitRouting(TestCase):
+    # meta shape推导
+    def testNpuMoeInitRouting(self):
+        with FakeTensorMode():
+            x = torch.randn(3, 4, dtype=torch.float).npu()
+            row_idx = torch.randint(0, 6, (3, 2), dtype=torch.int32).npu()
+            expert_idx = torch.randint(0, 10, (3, 2), dtype=torch.int32).npu()
+            active_num = 3
+            expanded_x_golden = torch.randn(6, 4, dtype=torch.float).npu()
+            expanded_row_idx_golden = torch.randint(0, 6, (6, ), dtype=torch.int32).npu()
+            expanded_expert_idx_golden = torch.randint(0, 6, (6, ), dtype=torch.int32).npu()
+            expanded_x, expanded_row_idx, expanded_expert_idx = torch.ops.npu.npu_moe_init_routing(x, row_idx, expert_idx, active_num=active_num)
+            
+            self.assertTrue(expanded_x.dtype == expanded_x_golden.dtype)
+            self.assertTrue(expanded_row_idx.dtype == expanded_row_idx_golden.dtype)
+            self.assertTrue(expanded_expert_idx.dtype == expanded_expert_idx_golden.dtype)
+            self.assertTrue(expanded_x.shape == expanded_x_golden.shape)
+            self.assertTrue(expanded_row_idx.shape == expanded_row_idx_golden.shape)
+            self.assertTrue(expanded_expert_idx.shape == expanded_expert_idx_golden.shape)
+
+
 class TestScatterUpdateMeta(TestCase):
 
     def test_scatter_update_meta(self):
