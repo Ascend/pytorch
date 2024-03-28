@@ -57,8 +57,6 @@ public:
 
     int InitializedDeviceID();
 
-    int64_t InitializedDeviceCount();
-
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
      void RegisterReleaseFn(ReleaseFn release_fn,
@@ -70,7 +68,6 @@ private:
     bool repeat_init_acl_flag_;
     bool init_flag_;
     int device_id_;
-    uint32_t device_count_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
 

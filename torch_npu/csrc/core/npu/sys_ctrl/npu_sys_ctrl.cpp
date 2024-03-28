@@ -150,7 +150,7 @@ std::string GetAclConfigJsonPath() {
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
+NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), repeat_init_acl_flag_(true) {}
 
 // Get NpuSysCtrl singleton instance
  NpuSysCtrl& NpuSysCtrl::GetInstance() {
@@ -163,7 +163,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (init_flag_) {
         return INIT_SUCC;
     }
-    repeat_init_acl_flag_ = true;
     std::string json_path = GetAclConfigJsonPath();
     const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
     ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
@@ -188,7 +187,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
     // There's no need to call c10_npu::GetDevice at the start of the process, because device 0 may not be needed
     auto ret = aclrtGetDevice(&device_id_);
-    NPU_CHECK_ERROR(aclrtGetDeviceCount(&device_count_));
     if (ret != ACL_ERROR_NONE) {
         device_id_ = (device_id == -1) ? 0 : device_id;
         NPU_CHECK_ERROR(c10_npu::SetDevice(device_id_));
@@ -296,15 +294,6 @@ int NpuSysCtrl::InitializedDeviceID()
 {
     if (GetInitFlag()) {
         return device_id_;
-    }
-    TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
-    return -1;
-}
-
-int64_t NpuSysCtrl::InitializedDeviceCount()
-{
-    if (GetInitFlag()) {
-        return static_cast<int64_t>(device_count_);
     }
     TORCH_CHECK(false, "no npu device has been initialized!", PTA_ERROR(ErrCode::INTERNAL));
     return -1;
