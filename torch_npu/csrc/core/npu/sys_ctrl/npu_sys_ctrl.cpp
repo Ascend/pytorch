@@ -150,7 +150,7 @@ std::string GetAclConfigJsonPath() {
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
+NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), repeat_init_acl_flag_(true) {}
 
 // Get NpuSysCtrl singleton instance
  NpuSysCtrl& NpuSysCtrl::GetInstance() {
@@ -163,7 +163,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (init_flag_) {
         return INIT_SUCC;
     }
-    repeat_init_acl_flag_ = true;
     std::string json_path = GetAclConfigJsonPath();
     const char *json_path_ptr = json_path == "" ? nullptr : json_path.c_str();
     ASCEND_LOGD("get acl json path:%s.", json_path_ptr);
