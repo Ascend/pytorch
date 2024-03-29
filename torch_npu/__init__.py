@@ -49,7 +49,7 @@ from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
 from torch_npu.distributed.checkpoint.checkpoint import apply_dcp_patch
 from torch_npu.utils.error_code import ErrCode, pta_error
-from torch_npu.asd.asd import asd_patch
+from torch_npu.asd.asd import _asd_patch
 from .version import __version__ as __version__
 from .meta import meta_registrations
 from . import _op_plugin_docs
@@ -151,7 +151,7 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
 apply_class_patches()
-asd_patch()
+_asd_patch()
 # this must be placed at the end
 torch_npu._C._initExtension()
 

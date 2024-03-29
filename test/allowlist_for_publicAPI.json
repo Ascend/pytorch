@@ -102,7 +102,10 @@
     "timedelta",
     "ProcessGroupMPI",
     "ProcessGroupNCCL",
-    "is_hccl_available"
+    "is_hccl_available",
+    "batch_isend_irecv",
+    "gather",
+    "gather_object"
   ],
   "torch.distributed.checkpoint.state_dict": [
     "Any",
@@ -142,6 +145,9 @@
     "DistAutogradContext",
     "backward",
     "get_gradients"
+  ],
+  "torch.distributer.checkpoint.optimizer": [
+    "load_sharded_optimizer_state_dict"
   ],
   "torch.distributed.elastic.events": [
     "Dict",
