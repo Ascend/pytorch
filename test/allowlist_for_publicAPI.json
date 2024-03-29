@@ -1435,7 +1435,10 @@
     "convert_us2ns",
     "print_error_msg",
     "print_info_msg",
-    "print_warn_msg"
+    "print_warn_msg",
+    "DbConstant",
+    "TableColumnsManager",
+    "contact_2num"
   ],
   "torch_npu.profiler.analysis.prof_common_func.file_manager": [
     "FileManager"
@@ -1560,5 +1563,54 @@
     "ProfilerAction",
     "Schedule",
     "default_schedule_fn"
+  ],
+  "torch_npu.profiler.analysis.prof_bean.ai_cpu_bean": [
+    "AiCpuBean"
+  ],
+  "torch_npu.profiler.analysis.prof_bean.common_bean": [
+    "CommonBean"
+  ],
+  "torch_npu.profiler.analysis.prof_bean.l2_cache_bean": [
+    "L2CacheBean"
+  ],
+  "torch_npu.profiler.analysis.prof_bean.op_statistic_bean": [
+    "OpStatisticBean"
+  ],
+  "torch_npu.profiler.analysis.prof_common_func.cann_package_manager": [
+    "CannPackageManager"
+  ],
+  "torch_npu.profiler.analysis.prof_common_func.db_manager": [
+    "DbManager",
+    "EmptyClass"
+  ],
+  "torch_npu.profiler.analysis.prof_common_func.time_range_calculator": [
+    "CommunicationTimeRange",
+    "RangeCaculator",
+    "TimeRange"
+  ],
+  "torch_npu.profiler.analysis.prof_view.prof_db_parse.communication_db_parser": [
+    "CommBandwidthTableRow",
+    "CommMatarixTableRow",
+    "CommTimeTableRow",
+    "CommunicationDbParser"
+  ],
+  "torch_npu.profiler.analysis.prof_view.prof_db_parse.db_parser" : [
+    "DbParser"
+  ],
+  "torch_npu.profiler.analysis.prof_view.prof_db_parse.fwk_api_db_parser": [
+    "FwkApiDbParser",
+    "FwkApiInfoTableRow",
+    "FwkApiTableRow"
+  ],
+  "torch_npu.profiler.analysis.prof_view.prof_db_parse.memory_db_parser": [
+    "MemoryDbParser",
+    "MemoryRecordTableRow",
+    "OpMemoryTableRow"
+  ],
+  "torch_npu.profiler.analysis.prof_view.prof_db_parse.step_info_db_parser": [
+    "StepInfoDbParser"
+  ],
+  "torch_npu.profiler.analysis.prof_view.prof_db_parse.trace_step_time_db_parser": [
+    "TraceStepTimeDbParser"
   ]
 }

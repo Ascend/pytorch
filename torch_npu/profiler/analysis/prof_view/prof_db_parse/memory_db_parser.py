@@ -11,6 +11,8 @@ from ...prof_parse.cann_file_parser import CANNFileParser, CANNDataEnum
 from ...prof_common_func.constant import Constant, DbConstant, TableColumnsManager, print_error_msg
 from ..base_parser import BaseParser
 
+__all__ = []
+
 
 class MemoryRecordTableRow(Enum):
     COMPONENT = 0

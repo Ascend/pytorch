@@ -15,6 +15,9 @@
 
 from dataclasses import dataclass
 
+__all__ = []
+
+
 DEFAULT_INT_VALUE = -1
 
 

@@ -1,5 +1,7 @@
 from .common_bean import CommonBean
 
+__all__ = []
+
 
 class L2CacheBean(CommonBean):
     HEADERS = ["Stream Id", "Task Id", "Hit Rate", "Victim Rate", "Op Name"]

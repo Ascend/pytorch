@@ -1,6 +1,8 @@
 from .constant import DbConstant
 from .singleton import Singleton
 
+__all__ = []
+
 
 @Singleton
 class Str2IdManager:
