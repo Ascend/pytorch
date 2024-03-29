@@ -92,6 +92,8 @@ __all__ = [
     "config",
     "matmul",
     "conv",
+    "enable_deterministic_with_backward",
+    "disable_deterministic_with_backward"
 ]
 
 from typing import Tuple, Union
@@ -115,6 +117,7 @@ from .streams import Stream, Event
 from .npu_config import *  # noqa: F403
 from .autocast_utils import *  # noqa: F403
 from .backends import *  # noqa: F403
+from .deterministic import enable_deterministic_with_backward, disable_deterministic_with_backward # noqa: F403
 
 # init profiler
 if not torch_npu._C._profiler_init():
