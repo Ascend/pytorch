@@ -3,7 +3,10 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
 
-def box_dtype_check(box):
+__all__ = ['npu_iou', 'npu_ptiou', 'npu_giou', 'npu_diou', 'npu_ciou']
+
+
+def _box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
     return box
@@ -53,8 +56,8 @@ def npu_iou(boxes1,
     if mode not in ["iou", "ptiou"]:
         raise ValueError("Expected mode in [iou, ptiou]" + ops_error(ErrCode.VALUE))
 
-    boxes1 = box_dtype_check(boxes1)
-    boxes2 = box_dtype_check(boxes2)
+    boxes1 = _box_dtype_check(boxes1)
+    boxes2 = _box_dtype_check(boxes2)
 
     if is_normalized:
         boxes1 = boxes1 * normalized_scale
@@ -115,8 +118,8 @@ def npu_giou(boxes1,
     if boxes1.shape != boxes2.shape:
         raise ValueError("Expected boxes1.shape == boxes2.shape" + ops_error(ErrCode.VALUE))
 
-    boxes1 = box_dtype_check(boxes1)
-    boxes2 = box_dtype_check(boxes2)
+    boxes1 = _box_dtype_check(boxes1)
+    boxes2 = _box_dtype_check(boxes2)
 
     if is_permuted:
         boxes1 = boxes1.permute(1, 0)

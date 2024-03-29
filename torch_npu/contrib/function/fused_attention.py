@@ -3,8 +3,10 @@ import torch
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
+__all__ = ['npu_fused_attention', 'npu_fused_attention_with_layernorm']
 
-def exec_once(func):
+
+def _exec_once(func):
     @functools.wraps(func)
     def wrapper_exec_once(*args, **kwargs):
         if not wrapper_exec_once.called:
@@ -18,13 +20,13 @@ def exec_once(func):
 VALID_FORMAT = [29, 29, 29, 29, 29, 2, 2, 2]
 
 
-def is_format_matched(input_list):
+def _is_format_matched(input_list):
     format_list = list(map(torch_npu.get_npu_format, input_list))
     return format_list == VALID_FORMAT
 
 
-@exec_once
-def check_compatibility_once(hidden_states,
+@_exec_once
+def _check_compatibility_once(hidden_states,
                              attention_mask,
                              query_kernel,
                              key_kernel,
@@ -34,7 +36,7 @@ def check_compatibility_once(hidden_states,
                              value_bias,
                              gamma=None,
                              beta=None):
-    if not is_format_matched(
+    if not _is_format_matched(
             [hidden_states, attention_mask, query_kernel, key_kernel, value_kernel, query_bias, key_bias, value_bias]):
         raise RuntimeError(
             'fused attention check compatibility failed, format not matches' + ops_error(ErrCode.VALUE))
@@ -62,13 +64,13 @@ def check_compatibility_once(hidden_states,
         )
 
 
-def permute_with_reshape(x, new_shape):
+def _permute_with_reshape(x, new_shape):
     return torch_npu.npu_format_cast(torch_npu.npu_confusion_transpose(x,
                                                                        (0, 2, 1, 3),
                                                                        new_shape, False), 29)
 
 
-class FusedAttentionWithLayerNorm(torch.autograd.Function):
+class _FusedAttentionWithLayerNorm(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx,
@@ -84,7 +86,7 @@ class FusedAttentionWithLayerNorm(torch.autograd.Function):
                 beta,
                 scale=1,
                 keep_prob=0):
-        check_compatibility_once(hidden_states, attention_mask, query_kernel,
+        _check_compatibility_once(hidden_states, attention_mask, query_kernel,
                                  key_kernel, value_kernel, query_bias,
                                  key_bias, value_bias, gamma, beta)
 
@@ -125,10 +127,10 @@ class FusedAttentionWithLayerNorm(torch.autograd.Function):
         return g_h_s, None, g_w_q, g_w_k, g_w_v, g_b_q, g_b_k, g_b_v, g_gamma, g_beta, None, None
 
 
-npu_fused_attention_with_layernorm = FusedAttentionWithLayerNorm.apply
+npu_fused_attention_with_layernorm = _FusedAttentionWithLayerNorm.apply
 
 
-class FusedAttention(torch.autograd.Function):
+class _FusedAttention(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx,
@@ -142,7 +144,7 @@ class FusedAttention(torch.autograd.Function):
                 value_bias,
                 scale=1,
                 keep_prob=0):
-        check_compatibility_once(hidden_states, attention_mask, query_kernel,
+        _check_compatibility_once(hidden_states, attention_mask, query_kernel,
                                  key_kernel, value_kernel, query_bias,
                                  key_bias, value_bias, None, None)
 
@@ -153,13 +155,13 @@ class FusedAttention(torch.autograd.Function):
         ]
 
         with torch.no_grad():
-            query_layer = permute_with_reshape(
+            query_layer = _permute_with_reshape(
                 torch_npu.npu_linear(hidden_states, query_kernel.t(), query_bias),
                 (ctx.bsnc[0], ctx.bsnc[1], ctx.bsnc[2], ctx.bsnc[3]))
-            key_layer = permute_with_reshape(
+            key_layer = _permute_with_reshape(
                 torch_npu.npu_linear(hidden_states, key_kernel.t(), key_bias),
                 (ctx.bsnc[0], ctx.bsnc[1], ctx.bsnc[2], ctx.bsnc[3]))
-            value_layer = permute_with_reshape(
+            value_layer = _permute_with_reshape(
                 torch_npu.npu_linear(hidden_states, value_kernel.t(), value_bias),
                 (ctx.bsnc[0], ctx.bsnc[1], ctx.bsnc[2], ctx.bsnc[3]))
 
@@ -186,4 +188,4 @@ class FusedAttention(torch.autograd.Function):
         return g_h_s, None, g_w_q, g_w_k, g_w_v, g_b_q, g_b_k, g_b_v, None, None
 
 
-npu_fused_attention = FusedAttention.apply
+npu_fused_attention = _FusedAttention.apply

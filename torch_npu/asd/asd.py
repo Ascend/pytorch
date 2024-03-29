@@ -7,8 +7,10 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, pta_error
 from .silent_fault_data import SilentFaultData
 
+__all__ = []
 
-def Singleton(cls):
+
+def _Singleton(cls):
     _instances = {}
 
     def _singleton(*args, **kwargs):
@@ -18,8 +20,8 @@ def Singleton(cls):
     return _singleton
 
 
-@Singleton
-class SilentFaultDetector:
+@_Singleton
+class _SilentFaultDetector:
     def __init__(self):
         self.silent_data_dict = dict()
         self.loss_scale = 1.0
@@ -73,28 +75,28 @@ class SilentFaultDetector:
         return hook
 
 
-silent_fault_detector = SilentFaultDetector()
+_silent_fault_detector = _SilentFaultDetector()
 
 
-def patch_layernorm(input_layernorm, normalized_shape, weight, bias, eps):
+def _patch_layernorm(input_layernorm, normalized_shape, weight, bias, eps):
     if input_layernorm is not None and input_layernorm.requires_grad and input_layernorm._backward_hooks is None:
-        input_layernorm.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
+        input_layernorm.register_hook(_silent_fault_detector.silent_fault_check_hook(weight))
     return origin_layernorm(input_layernorm, normalized_shape, weight, bias, eps)
 
 
-def patch_embedding(input_embedding, weight, padding_idx, max_norm,
+def _patch_embedding(input_embedding, weight, padding_idx, max_norm,
             norm_type, scale_grad_by_freq, sparse):
     if weight is not None and weight.requires_grad and weight._backward_hooks is None:
-        weight.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
+        weight.register_hook(_silent_fault_detector.silent_fault_check_hook(weight))
     return origin_embedding(input_embedding, weight, padding_idx, max_norm,
             norm_type, scale_grad_by_freq, sparse)
 
 
-def asd_patch():
+def _asd_patch():
     env_value = os.getenv("NPU_ASD_ENABLE", "0")
     if env_value not in ["0", "1"]:
         raise ValueError("NPU_ASD_ENABLE should be 0 or 1!" + pta_error(ErrCode.VALUE))
 
     if int(env_value):
-        torch.nn.functional.layer_norm = patch_layernorm
-        torch.nn.functional.embedding = patch_embedding
+        torch.nn.functional.layer_norm = _patch_layernorm
+        torch.nn.functional.embedding = _patch_embedding
