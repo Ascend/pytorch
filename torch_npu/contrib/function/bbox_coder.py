@@ -2,14 +2,19 @@ import torch
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
+__all__ = ['npu_bbox_coder_encode_yolo',
+           'npu_bbox_coder_decode_xywh2xyxy',
+           'npu_bbox_coder_encode_xyxy2xywh'
+           ]
 
-def box_dtype_check(box):
+
+def _box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
     return box
 
 
-def stride_dtype_check(stride):
+def _stride_dtype_check(stride):
     if stride not in [torch.int]:
         return stride.int()
     return stride
@@ -40,9 +45,9 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
     if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
         raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4" + ops_error(ErrCode.VALUE))
 
-    bboxes = box_dtype_check(bboxes)
-    gt_bboxes = box_dtype_check(gt_bboxes)
-    stride = stride_dtype_check(stride)
+    bboxes = _box_dtype_check(bboxes)
+    gt_bboxes = _box_dtype_check(gt_bboxes)
+    stride = _stride_dtype_check(stride)
 
     # Explanation of parameter performance_mode in npu_yolo_boxes_encode:
     # The mode parameter is recommended to be set to false.
@@ -91,8 +96,8 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
     if not (bboxes.size(-1) == gt_bboxes.size(-1) == 4):
         raise ValueError("Expected bboxes.size(-1) == gt_bboxes.size(-1) == 4" + ops_error(ErrCode.VALUE))
 
-    bboxes = box_dtype_check(bboxes)
-    gt_bboxes = box_dtype_check(gt_bboxes)
+    bboxes = _box_dtype_check(bboxes)
+    gt_bboxes = _box_dtype_check(gt_bboxes)
 
     if is_normalized:
         bboxes = bboxes * normalized_scale
@@ -149,8 +154,8 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
     if not (bboxes.size(-1) == pred_bboxes.size(-1) == 4):
         raise ValueError("Expected bboxes.size(-1) == pred_bboxes.size(-1) == 4" + ops_error(ErrCode.VALUE))
 
-    bboxes = box_dtype_check(bboxes)
-    pred_bboxes = box_dtype_check(pred_bboxes)
+    bboxes = _box_dtype_check(bboxes)
+    pred_bboxes = _box_dtype_check(pred_bboxes)
 
     bboxes_decoded = torch_npu.npu_bounding_box_decode(
         bboxes, pred_bboxes,
