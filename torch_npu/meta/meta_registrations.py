@@ -743,3 +743,9 @@ def npu_linear_meta(input, weight, bias=None):
     dimm = input.size(0)
     dimn = weight.size(0)
     return input.new_empty((dimm, dimn))
+
+
+@impl(m, "npu_moe_finalize_routing")
+def npu_moe_finalize_routing_meta(expanded_permuted_rows, skip1, skip2_optional, bias, scales, expanded_src_to_dst_row,
+                                  expert_for_source_row):
+    return torch.empty_like(skip1, dtype=skip1.dtype)

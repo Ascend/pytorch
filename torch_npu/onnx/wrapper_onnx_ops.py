@@ -822,6 +822,21 @@ class NPUMoeInitRoutingOP(torch.autograd.Function):
                  export_id: torch.Tensor,
                  active_num: int = 99):
         return g.op("npu::NPUMoeInitRouting", x, row_idx, export_id, active_num_i=active_num, outputs=3)
+    
+
+class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_moe_finalize_routing(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, expanded_permuted_rows: Tensor, skip1: Tensor, skip2_optional: Optional[Tensor], bias: Tensor,
+                 scales: Tensor, expanded_src_to_dst_row: Tensor, expert_for_source_row: Tensor):
+        if skip2_optional is None:
+            skip2_optional = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
+        return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2_optional, bias,
+                 scales, expanded_src_to_dst_row, expert_for_source_row)
 
 
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
@@ -1107,6 +1122,12 @@ def wrapper_npu_moe_init_routing(x, row_idx, expert_idx, active_num):
     return NPUMoeInitRoutingOP.apply(x, row_idx, expert_idx, active_num)
 
 
+def wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
+                                      scales, expanded_src_to_dst_row, expert_for_source_row):
+    return NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2_optional, bias,
+                                          scales, expanded_src_to_dst_row, expert_for_source_row)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -1165,3 +1186,4 @@ def add_onnx_ops():
     torch_npu.npu_anti_quant = wrapper_npu_anti_quant
     torch_npu.npu_quantize = wrapper_npu_quantize
     torch_npu.npu_moe_init_routing = wrapper_npu_moe_init_routing
+    torch_npu.npu_moe_finalize_routing = wrapper_npu_moe_finalize_routing
