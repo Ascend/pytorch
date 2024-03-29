@@ -47,7 +47,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode)
     int deviceIndex = -1;
     c10_npu::GetDevice(&deviceIndex);
     auto rank_id = c10_npu::option::OptionsManager::GetRankId();
-    oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << "). ";
+    oss << "\n[ERROR] " << getCurrentTimestamp() << " (PID:" << getpid() << ", Device:" << deviceIndex << ", RankID:" << rank_id << ") ";
     oss << "ERR" << std::setw(2) << std::setfill('0') << static_cast<int>(submodule);
     oss << std::setw(3) << std::setfill('0') << static_cast<int>(errorCode);
     oss << " " << submoduleMap[submodule] << " " << errCodeMap[errorCode];
@@ -67,8 +67,7 @@ static std::string getCurrentTimestamp()
     auto micro_time = micros.count() % 1000;
 
     std::ostringstream oss;
-    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S") << '.' << std::setw(2) << std::setfill('0') << milli_time
-        << '.' << std::setw(3) << std::setfill('0') << micro_time;
+    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S");
     return oss.str();
 }
 
