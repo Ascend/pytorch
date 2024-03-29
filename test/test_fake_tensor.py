@@ -1742,6 +1742,28 @@ class TestNpuLinear(TestCase):
             self.assertEqual(result.dtype, npu_input1.dtype)
             self.assertEqual(result.shape, torch.nn.functional.linear(npu_input1, npu_input2, npu_bias).shape)
 
+
+class TestMoeFinalizeRouting(TestCase):
+    def test_npu_moe_finalize_routing_meta(self):
+        with FakeTensorMode():
+            num_rows = 50
+            top_k = 4
+            token_len = 10
+            expert_num = 16
+            expanded_permuted_rows = torch.randn(num_rows * top_k, token_len).to(torch.float32)
+            skip1 = torch.randn(num_rows, token_len).to(torch.float32)
+            skip2_optional = torch.randn(num_rows, token_len).to(torch.float32)
+            bias = torch.randn(num_rows, top_k).to(torch.float32)
+            scales = torch.randn(num_rows, top_k).to(torch.float32)
+            expanded_src_to_dst_row = torch.arange(num_rows * top_k).to(torch.int32)
+            expert_for_source_row = torch.randint(low = 0, high = expert_num, size = (num_rows, top_k)).to(torch.int32)
+            
+            result = torch_npu.npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias, scales,
+                                                        expanded_src_to_dst_row, expert_for_source_row)
+
+            self.assertTrue(result.shape == skip1.shape)
+            self.assertTrue(result.dtype == skip1.dtype)
+
 instantiate_parametrized_tests(FakeTensorTest)
 instantiate_device_type_tests(FakeTensorOpInfoTest, globals(), only_for="cpu")
 
