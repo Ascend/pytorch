@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
@@ -89,6 +91,120 @@ class TorchBackendsApiTestCase(TestCase):
         self.assertEqual(res, torch._C._LinalgBackend.Default)
         res = torch.npu.preferred_linalg_library(torch._C._LinalgBackend.Magma)
         self.assertEqual(res, torch._C._LinalgBackend.Default)
+
+    def test_enable_deterministic_with_backward(self):
+        target_dtype = torch.float16
+
+        class DeterministicModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, y):
+                x = x + 1
+                x = torch.npu.enable_deterministic_with_backward(x)
+                add1 = x + y
+                add1 = sum(add1)
+                add1 = add1 + add1
+                return add1
+
+        device = torch.device("npu:0")
+        model = DeterministicModel()
+        npu_mode = model.to(device)
+        ins1 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        ins2 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        output_data = npu_mode(ins1, ins2)
+        self.assertEqual(True, torch.are_deterministic_algorithms_enabled())
+        loss_fn = nn.MSELoss()
+        target_data = torch.randn((1, 2), requires_grad=True).to(target_dtype).npu()
+        loss = loss_fn(output_data, target_data)
+        loss.backward()
+        self.assertEqual(False, torch.are_deterministic_algorithms_enabled())
+
+    def test_disable_deterministic_with_backward(self):
+        target_dtype = torch.float16
+
+        class DeterministicModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, y):
+                x = x + 1
+                x = torch.npu.disable_deterministic_with_backward(x)
+                add1 = x + y
+                add1 = sum(add1)
+                add6 = add1 + add1
+                return add6
+
+        device = torch.device("npu:0")
+        model = DeterministicModel()
+        npu_mode = model.to(device)
+        ins1 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        ins2 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        output_data = npu_mode(ins1, ins2)
+        self.assertEqual(False, torch.are_deterministic_algorithms_enabled())
+        loss_fn = nn.MSELoss()
+        target_data = torch.randn((1, 2), requires_grad=True).to(target_dtype).npu()
+        loss = loss_fn(output_data, target_data)
+        loss.backward()
+        self.assertEqual(True, torch.are_deterministic_algorithms_enabled())
+
+    def test_enable_to_disable_deterministic_with_backward(self):
+        target_dtype = torch.float16
+
+        class DeterministicModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, y):
+                x = x + 1
+                x = torch.npu.enable_deterministic_with_backward(x)
+                add4 = x + y
+                add1 = sum(add4)
+                add1 = torch.npu.disable_deterministic_with_backward(add1)
+                add6 = add1 + add1
+                return add6
+
+        device = torch.device("npu:0")
+        model = DeterministicModel()
+        npu_mode = model.to(device)
+        ins1 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        ins2 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        output_data = npu_mode(ins1, ins2)
+        self.assertEqual(False, torch.are_deterministic_algorithms_enabled())
+        loss_fn = nn.MSELoss()
+        target_data = torch.randn((1, 2), requires_grad=True).to(target_dtype).npu()
+        loss = loss_fn(output_data, target_data)
+        loss.backward()
+        self.assertEqual(False, torch.are_deterministic_algorithms_enabled())
+
+    def test_disable_to_endable_deterministic_algorithms(self):
+        target_dtype = torch.float16
+
+        class DeterministicModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, y):
+                x = x + 1
+                x = torch.npu.disable_deterministic_with_backward(x)
+                add4 = x + y
+                add1 = sum(add4)
+                add1 = torch.npu.enable_deterministic_with_backward(add1)
+                add6 = add1 + add1
+                return add6
+
+        device = torch.device("npu:0")
+        model = DeterministicModel()
+        npu_mode = model.to(device)
+        ins1 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        ins2 = torch.ones((2, 2), requires_grad=True).to(target_dtype).npu()
+        output_data = npu_mode(ins1, ins2)
+        self.assertEqual(True, torch.are_deterministic_algorithms_enabled())
+        loss_fn = nn.MSELoss()
+        target_data = torch.randn((1, 2), requires_grad=True).to(target_dtype).npu()
+        loss = loss_fn(output_data, target_data)
+        loss.backward()
+        self.assertEqual(True, torch.are_deterministic_algorithms_enabled())
 
 
 if __name__ == "__main__":
