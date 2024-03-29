@@ -3,8 +3,15 @@ import torch_npu._C
 from .analysis.prof_common_func.constant import Constant, print_warn_msg
 from .analysis.prof_common_func.cann_package_manager import CannPackageManager
 
-__all__ = ["_ExperimentalConfig", "supported_profiler_level", "supported_ai_core_metrics", \
-    "ProfilerLevel", "AiCMetrics"]
+__all__ = [
+    "_ExperimentalConfig",
+    "supported_profiler_level",
+    "supported_ai_core_metrics",
+    "supported_export_type",
+    "ProfilerLevel",
+    "AiCMetrics",
+    "ExportType"
+]
 
 
 def supported_profiler_level():

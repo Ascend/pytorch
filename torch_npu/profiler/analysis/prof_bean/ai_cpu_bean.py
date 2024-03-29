@@ -1,5 +1,7 @@
 from .common_bean import CommonBean
 
+__all__ = []
+
 
 class AiCpuBean(CommonBean):
     HEADERS = ["Timestamp", "Node", "Compute_time(ms)", "Memcpy_time(us)", "Task_time(ms)", "Dispatch_time(ms)",

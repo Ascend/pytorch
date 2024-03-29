@@ -4,6 +4,8 @@ import sqlite3
 from .constant import Constant, print_warn_msg, print_error_msg
 from .file_manager import FileManager
 
+__all__ = []
+
 
 class EmptyClass:
     def __init__(self, info: str = "") -> None:

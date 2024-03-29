@@ -8,6 +8,8 @@ from ...prof_common_func.path_manager import ProfilerPathManager
 from ..base_parser import BaseParser
 from ...prof_parse.fwk_file_parser import FwkFileParser
 
+__all__ = []
+
 
 class FwkApiTableRow(Enum):
     START_NS = 0

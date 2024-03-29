@@ -9,6 +9,8 @@ from ...prof_common_func.db_manager import DbManager
 from ..base_parser import BaseParser
 from ...profiler_config import ProfilerConfig
 
+__all__ = []
+
 
 class DbParser(BaseParser):
     def __init__(self, name: str, param_dict: dict):

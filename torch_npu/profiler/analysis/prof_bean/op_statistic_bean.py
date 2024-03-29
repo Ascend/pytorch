@@ -15,6 +15,8 @@
 
 from .common_bean import CommonBean
 
+__all__ = []
+
 
 class OpStatisticBean(CommonBean):
     HEADERS = ["OP Type", "Core Type", "Count", "Total Time(us)", "Min Time(us)", "Avg Time(us)",
