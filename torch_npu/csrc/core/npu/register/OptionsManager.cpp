@@ -150,11 +150,11 @@ bool OptionsManager::isACLGlobalLogOn(aclLogLevel level)
     return (getACLGlobalLogLevel <= level);
 }
 
-uint32_t OptionsManager::GetRankId()
+int64_t OptionsManager::GetRankId()
 {
     char* rankId_val = std::getenv("RANK");
     int64_t rankId = (rankId_val != nullptr) ? strtol(rankId_val, nullptr, 10) : -1;
-    return static_cast<uint32_t>(rankId);
+    return rankId;
 }
 
 bool OptionsManager::CheckNslbEnable()
