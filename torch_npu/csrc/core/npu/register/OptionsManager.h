@@ -45,7 +45,7 @@ public:
     static uint32_t CheckUseDesyncDebugEnable();
     static std::string CheckDisableDynamicPath();
     static int32_t GetACLExecTimeout();
-    static uint32_t GetRankId();
+    static int64_t GetRankId();
     static bool CheckNslbEnable();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();

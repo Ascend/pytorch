@@ -78,8 +78,7 @@ static std::string getCurrentTimestamp()
     auto micro_time = micros.count() % 1000;
 
     std::ostringstream oss;
-    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S") << '.' << std::setw(2) << std::setfill('0') << milli_time
-        << '.' << std::setw(3) << std::setfill('0') << micro_time;
+    oss << std::put_time(timeInfo, "%Y-%m-%d-%H:%M:%S");
     return oss.str();
 }
 
