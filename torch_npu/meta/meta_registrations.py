@@ -554,6 +554,26 @@ def npu_moe_init_routing_meta(x, row_idx, expert_idx, active_num=99):
     return (x.new_empty(tuple(expanded_x_dim_list)), row_idx.new_empty(tuple(expanded_row_idx_dim_list)), row_idx.new_empty(tuple(expanded_row_idx_dim_list)))
 
 
+@impl(m, "npu_moe_gating_top_k_softmax")
+def npu_moe_gating_top_k_softmax_meta(x, finished=None, k=1):
+    x_dim = x.dim()
+    torch._check(
+        x_dim == 2 or x_dim == 3,
+        lambda: "the x shape support only 2d and 3d)",
+    )
+    if x_dim == 3:
+        y_dim_list = [x.size(0), x.size(1), k]
+        expert_idx_dim_list = [x.size(0), x.size(1), k]
+        row_idx_dim_list = [x.size(0), x.size(1), k]
+    else:
+        y_dim_list = [x.size(0), k]
+        expert_idx_dim_list = [x.size(0), k]
+        row_idx_dim_list = [x.size(0), k]
+    return (x.new_empty(tuple(y_dim_list), dtype=x.dtype),
+            x.new_empty(tuple(expert_idx_dim_list), dtype=torch.int32),
+            x.new_empty(tuple(row_idx_dim_list), dtype=torch.int32))
+
+
 @impl(m, "npu_trans_quant_param")
 def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()

@@ -822,7 +822,7 @@ class NPUMoeInitRoutingOP(torch.autograd.Function):
                  export_id: torch.Tensor,
                  active_num: int = 99):
         return g.op("npu::NPUMoeInitRouting", x, row_idx, export_id, active_num_i=active_num, outputs=3)
-    
+
 
 class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
 
@@ -837,6 +837,20 @@ class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
             skip2_optional = g.op("Constant", value_t=torch.tensor([]).to(torch.float))
         return g.op("npu::NPUMoeFinalizeRouting", expanded_permuted_rows, skip1, skip2_optional, bias,
                  scales, expanded_src_to_dst_row, expert_for_source_row)
+
+
+class NPUMoeGatingTopKSoftmaxOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_moe_gating_top_k_softmax(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g,
+                 x: torch.Tensor,
+                 finished: Optional[Tensor],
+                 k: int = 1):
+        return g.op("npu::NPUMoeGatingTopKSoftmax", x, finished, k_i=k, outputs=3)
 
 
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
@@ -1128,6 +1142,10 @@ def wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_option
                                           scales, expanded_src_to_dst_row, expert_for_source_row)
 
 
+def wrapper_npu_moe_gating_top_k_softmax(x, finished, k):
+    return NPUMoeGatingTopKSoftmaxOP.apply(x, finished, k)
+
+
 def add_onnx_ops():
     torch_npu.npu_one_hot = wrapper_npu_one_hot
     torch_npu.npu_slice = wrapper_npu_slice
@@ -1187,3 +1205,4 @@ def add_onnx_ops():
     torch_npu.npu_quantize = wrapper_npu_quantize
     torch_npu.npu_moe_init_routing = wrapper_npu_moe_init_routing
     torch_npu.npu_moe_finalize_routing = wrapper_npu_moe_finalize_routing
+    torch_npu.npu_moe_gating_top_k_softmax = wrapper_npu_moe_gating_top_k_softmax

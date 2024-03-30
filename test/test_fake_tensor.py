@@ -1379,13 +1379,31 @@ class TestNpuMoeInitRouting(TestCase):
             expanded_row_idx_golden = torch.randint(0, 6, (6, ), dtype=torch.int32).npu()
             expanded_expert_idx_golden = torch.randint(0, 6, (6, ), dtype=torch.int32).npu()
             expanded_x, expanded_row_idx, expanded_expert_idx = torch.ops.npu.npu_moe_init_routing(x, row_idx, expert_idx, active_num=active_num)
-            
+
             self.assertTrue(expanded_x.dtype == expanded_x_golden.dtype)
             self.assertTrue(expanded_row_idx.dtype == expanded_row_idx_golden.dtype)
             self.assertTrue(expanded_expert_idx.dtype == expanded_expert_idx_golden.dtype)
             self.assertTrue(expanded_x.shape == expanded_x_golden.shape)
             self.assertTrue(expanded_row_idx.shape == expanded_row_idx_golden.shape)
             self.assertTrue(expanded_expert_idx.shape == expanded_expert_idx_golden.shape)
+
+
+class TestNpuMoeGatingTopKSoftmax(TestCase):
+    # meta shape推导
+    def testNpuMoeGatingTopKSoftmax(self):
+        with FakeTensorMode():
+            x = torch.randn(3, 4, dtype=torch.float).npu()
+            y_golden = torch.randn(3, 2, dtype=torch.float).npu()
+            expert_idx_golden = torch.randint(-1, 1, (3, 2), dtype=torch.int32).npu()
+            row_idx_golden = torch.randint(-1, 1, (3, 2), dtype=torch.int32).npu()
+            y, expert_idx, row_idx = torch.ops.npu.npu_moe_gating_top_k_softmax(x, None, k=2)
+
+            self.assertTrue(y.dtype == y_golden.dtype)
+            self.assertTrue(expert_idx.dtype == expert_idx_golden.dtype)
+            self.assertTrue(row_idx.dtype == row_idx_golden.dtype)
+            self.assertTrue(y.shape == y_golden.shape)
+            self.assertTrue(expert_idx.shape == expert_idx_golden.shape)
+            self.assertTrue(row_idx.shape == row_idx_golden.shape)
 
 
 class TestScatterUpdateMeta(TestCase):

@@ -1360,7 +1360,7 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
-    
+
     @SupportedDevices(['Ascend910B'])
     def test_wrapper_npu_moe_init_routing(self):
         class Model(torch.nn.Module):
@@ -1419,6 +1419,32 @@ class TestOnnxOps(TestCase):
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
                                             onnx_model_name)))
+
+
+    @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_moe_gating_top_k_softmax(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, x, finished=None, k=1):
+                return torch_npu.npu_moe_gating_top_k_softmax(x, finished, k=k)
+
+        def export_onnx(onnx_model_name):
+            x = torch.tensor([[0.1, 0.1, 0.1, 0.1],
+                              [0.2, 0.2, 0.2, 0.2],
+                              [0.3, 0.3, 0.3, 0.3]], dtype=torch.float32).to("npu")
+            model = Model().to("npu")
+            model(x, None, 2)
+            self.onnx_export(model, (x, None, 2), onnx_model_name,
+                             input_names=["x", "finished", "k"],
+                             output_names=["y", "expert_idx", "row_idx"])
+
+        onnx_model_name = "model_npu_moe_gating_top_k_softmax.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name)))
+
 
 if __name__ == '__main__':
     run_tests()
