@@ -183,6 +183,7 @@ struct MemoryData : BaseReportData {
     int8_t device_type{0};
     uint8_t device_index{0};
     uint8_t data_type{0};
+    uint8_t allocator_type{0};
     uint64_t thread_id{0};
     uint64_t process_id{0};
     MemoryData(
@@ -196,6 +197,7 @@ struct MemoryData : BaseReportData {
         int8_t device_type,
         uint8_t device_index,
         uint8_t data_type,
+        uint8_t allocator_type,
         uint64_t thread_id,
         uint64_t process_id)
         : BaseReportData(0, "torch.memory_usage"),
@@ -209,6 +211,7 @@ struct MemoryData : BaseReportData {
           device_type(device_type),
           device_index(device_index),
           data_type(data_type),
+          allocator_type(allocator_type),
           thread_id(thread_id),
           process_id(process_id) {}
     std::vector<uint8_t> encode();

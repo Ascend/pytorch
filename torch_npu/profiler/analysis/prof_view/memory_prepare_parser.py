@@ -83,7 +83,8 @@ class MemoryPrepareParser(BaseParser):
         pta_memory_data = sorted(pta_memory_data, key=lambda x: x.time_ns)
         for record in pta_memory_data:
             if record.is_npu():
-                npu_memory_dict.setdefault(record.pid, []).append(record)
+                if record.is_inner_allocator():
+                    npu_memory_dict.setdefault(record.pid, []).append(record)
                 self.pta_record_list.append(record)
         for torch_op in self._torch_op_node:
             torch_op_dict.setdefault(torch_op.pid, []).append(torch_op)
