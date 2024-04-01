@@ -101,6 +101,9 @@ class ProfInterface:
         self._dump_profiler_info()
         self._dump_metadata()
         ProfPathCreator().is_prof_inited = False
+    
+    def delete_prof_dir(self):
+        ProfPathCreator().delete_prof_dir()
 
     def analyse(self, analysis_type: str = Constant.TENSORBOARD_TRACE_HANDLER, output_path: str = None, **kwargs):
         try:
