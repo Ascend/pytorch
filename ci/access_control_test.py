@@ -28,6 +28,16 @@ SLOW_TEST_BLOCKLIST = [
     'test_ops_jit'
 ]
 
+# exclude some not run directly test files
+NOT_RUN_DIRECTLY = {
+    "jit": "test_jit.py",
+}
+
+# include some files
+INCLUDE_FILES = [
+    'jit/test_complexity.py',
+]
+
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
@@ -125,7 +135,7 @@ class DirectoryMappingStrategy(AccurateTest):
         'onnx': 'test/onnx',
         'utils': 'test/test_utils.py',
         'testing': 'test/test_testing.py',
-        'jit': 'test/jit',
+        'jit': 'test/test_jit.py',
         'rpc': 'test/distributed/rpc',
     }
 
@@ -190,7 +200,7 @@ class TestMgr:
             if Path(changed_file).exists()
         ]
         self.test_files['ut_files'] = exist_ut_file
-        self.exclude_test_files(SLOW_TEST_BLOCKLIST)
+        self.exclude_test_files(slow_files=SLOW_TEST_BLOCKLIST)
 
     def load_core_ut(self):
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/npu').rglob('test_*.py')]
@@ -207,17 +217,46 @@ class TestMgr:
         end = rank * len(all_files) // world_size
         self.test_files['ut_files'] = all_files[begin:end]
 
-    def exclude_test_files(self, block_list):
+    def exclude_test_files(self, slow_files=None, not_run_files=None, mode="slow_test"):
+        """
+
+        Args:
+            slow_files: slow test files.
+            not_run_files: not_run_directly test files.
+            mode: "slow_test" or "not_run_directly". Default: "slow_test".
+
+        Returns:
+
+        """
+
         def remove_test_files(key):
+            block_list = not_run_files.keys() if mode == "not_run_directly" else slow_files
             for test_name in block_list:
                 test_files_copy = self.test_files[key][:]
                 for test_file in test_files_copy:
-                    if test_name + ".py" in test_file:
+                    is_remove = False
+                    if mode == "slow_test" and test_name + ".py" in test_file:
                         print(f'Excluding slow test: {test_name}')
+                        is_remove = True
+                    if mode == "not_run_directly":
+                        # remove not run directly files
+                        is_folder_in = not test_name.endswith(".py") and "/" + test_name + "/" in test_file
+                        is_file_in = test_name.endswith(".py") and test_name in test_file
+                        if is_folder_in or is_file_in:
+                            if test_name in ["jit"] and re.search("|".join(INCLUDE_FILES), test_file):
+                                continue
+                            is_remove = True
+                            # add instead file
+                            instead_files.add(str(TEST_DIR / not_run_files[test_name]))
+                    if is_remove:
                         self.test_files[key].remove(test_file)
 
         for test_files_key in self.test_files.keys():
+            instead_files = set()
             remove_test_files(test_files_key)
+            for instead_file in instead_files:
+                if instead_file not in self.test_files[test_files_key]:
+                    self.test_files[test_files_key].append(instead_file)
 
     def get_test_files(self):
         return self.test_files
@@ -350,6 +389,7 @@ if __name__ == "__main__":
                 test_mgr.analyze()
             else:
                 test_mgr.load_core_ut()
+        test_mgr.exclude_test_files(not_run_files=NOT_RUN_DIRECTLY, mode="not_run_directly")
 
     cur_test_files = test_mgr.get_test_files()
 

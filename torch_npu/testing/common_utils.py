@@ -245,7 +245,6 @@ def dump_baseline():
         PerfBaseline.save_baseline()
 
 
-# Shared by test_cuda.py and test_multigpu.py
 def _create_scaling_models_optimizers(device="npu", optimizer_ctor=torch.optim.SGD, optimizer_kwargs=None):
     # Create a module+optimizer that will use scaling, and a control module+optimizer
     # that will not use scaling, against which the scaling-enabled module+optimizer can be compared.
