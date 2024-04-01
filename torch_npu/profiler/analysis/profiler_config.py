@@ -7,7 +7,7 @@ from configparser import ConfigParser
 from .prof_common_func.file_manager import FileManager
 from .prof_common_func.path_manager import ProfilerPathManager
 from .prof_common_func.singleton import Singleton
-from .prof_common_func.constant import Constant, print_warn_msg
+from .prof_common_func.constant import Constant, print_warn_msg, print_error_msg
 from .prof_bean.ai_cpu_bean import AiCpuBean
 from .prof_parse.cann_file_parser import CANNDataEnum, CANNFileParser
 from .prof_bean.l2_cache_bean import L2CacheBean
@@ -63,13 +63,20 @@ class ProfilerConfig:
         return self._rank_id
 
     def is_number(self, string):
-        pattern = re.compile(r'^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$')
+        if not isinstance(string, str):
+            print_error_msg(f"Input string is not str, get type: {type(string)}")
+            return False
+
+        pattern = re.compile(r'^[-+]?[0-9]{0,20}\.?[0-9]{1,20}([eE][-+]?[0-9]{1,20})?$')
         return bool(pattern.match(string))
 
     def get_timestamp_from_syscnt(self, syscnt: int, time_fmt: int = 1000):
         if self._syscnt_enable == False:
             return syscnt
         else:
+            if abs(self._freq) < 1e-15:
+                msg = "The frequency value is too small to be close to zero, please check."
+                raise RuntimeError(msg)
             ratio = time_fmt / self._freq
             timestamp = int((syscnt - self._start_cnt) * ratio) + self._time_offset
             return timestamp
