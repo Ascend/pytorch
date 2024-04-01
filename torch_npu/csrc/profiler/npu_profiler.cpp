@@ -78,7 +78,7 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
   }
 
   bool tracePython() {
-    return config_.with_stack && activities_.count(NpuActivityType::CPU);
+    return (config_.with_stack || config_.with_modules) && activities_.count(NpuActivityType::CPU);
   }
 
   void setCallbackHandle(at::CallbackHandle handle) {
