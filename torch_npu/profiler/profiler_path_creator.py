@@ -49,11 +49,7 @@ class ProfPathCreator:
     def delete_export_only_prof(self):
         if not self._export_only_mode:
             return
-        try:
-            shutil.rmtree(os.path.dirname(self._prof_path))
-        except Exception:
-            msg = f"Remove temporary profiling data saving path failed."
-            print_warn_msg(msg)
+        self.delete_prof_dir()
 
     def create_prof_dir(self):
         if not self._dir_path:
@@ -80,3 +76,10 @@ class ProfPathCreator:
 
     def get_prof_dir(self) -> str:
         return self._prof_path
+
+    def delete_prof_dir(self):
+        try:
+            shutil.rmtree(os.path.dirname(self._prof_path))
+        except Exception:
+            msg = f"Remove temporary profiling data saving path failed."
+            print_warn_msg(msg)

@@ -72,7 +72,7 @@ class ProfActionController:
                 partial(print_warn_msg,
                         "Incorrect schedule: Stop profiler while current state is WARMUP "
                         "which will result in empty parsed data."),
-                self.prof_inst.start_trace, self.prof_inst.stop_trace, self.prof_inst.finalize_trace],
+                self.prof_inst.finalize_trace, self.prof_inst.delete_prof_dir],
             (ProfilerAction.RECORD, None): [
                 partial(print_warn_msg,
                         "Incorrect schedule: Stop profiler while current state is RECORD "
