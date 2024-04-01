@@ -982,20 +982,6 @@ class DeviceCachingAllocator {
       stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
       stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
 
-#ifndef BUILD_LIBTORCH
-    torch_npu::profiler::reportMemoryDataToNpuProfiler({
-        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-        block->device,
-        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
-        reinterpret_cast<int64_t>(block->ptr),
-        block->size,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        reinterpret_cast<int64_t>(block->stream)}
-    );
-#endif
-
   return block;
 }
 
@@ -1028,20 +1014,6 @@ class DeviceCachingAllocator {
         orig_block_size,
         stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
         stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current);
-
-#ifndef BUILD_LIBTORCH
-    torch_npu::profiler::reportMemoryDataToNpuProfiler({
-        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-        block->device,
-        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
-        reinterpret_cast<int64_t>(orig_block_ptr),
-        -orig_block_size,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        reinterpret_cast<int64_t>(block->stream)}
-    );
-#endif
   }
 
   void* getBaseAllocation(Block* block, size_t* outSize) {
@@ -1210,6 +1182,11 @@ class DeviceCachingAllocator {
     } else {
       return kMinBlockSize * ((size + kMinBlockSize - 1) / kMinBlockSize);
     }
+  }
+
+  DeviceStats get_stats()
+  {
+    return stats;
   }
 
  private:
@@ -1400,19 +1377,6 @@ class DeviceCachingAllocator {
           stats.requested_bytes[stat_type],
           -static_cast<std::int64_t>(requested_size));
     });
-#ifndef BUILD_LIBTORCH
-    torch_npu::profiler::reportMemoryDataToNpuProfiler({
-        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
-        block->device,
-        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE),
-        reinterpret_cast<int64_t>(block->ptr),
-        -original_block_size,
-        stats.allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        stats.active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
-        reinterpret_cast<int64_t>(block->stream)}
-    );
-#endif
   }
 
   /** combine previously split blocks. returns the size of the subsumed block, or 0 on failure. **/
@@ -1982,6 +1946,20 @@ class NpuCachingAllocator : public NPUAllocator {
   /** allocates a block which is safe to use from the provided stream */
   void malloc(void** devPtr, int device, size_t size, aclrtStream stream) {
     Block* block = device_allocator[device]->malloc(device, size, stream);
+#ifndef BUILD_LIBTORCH
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+      static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+      block->device,
+      static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+      static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+      reinterpret_cast<int64_t>(block->ptr),
+      block->size,
+      device_allocator[device]->get_stats().allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      device_allocator[device]->get_stats().reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      device_allocator[device]->get_stats().active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      reinterpret_cast<int64_t>(block->stream)}
+    );
+#endif
     add_allocated_block(block);
     *devPtr = static_cast<void*>(block->ptr);
   }
@@ -1995,6 +1973,34 @@ class NpuCachingAllocator : public NPUAllocator {
       AT_ERROR("invalid device pointer: ", ptr);
     }
     device_allocator[block->device]->free(block);
+#ifndef BUILD_LIBTORCH
+    if (block->stream_uses.empty() || !c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+      torch_npu::profiler::reportMemoryDataToNpuProfiler({
+        static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+        block->device,
+        static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE),
+        static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+        reinterpret_cast<int64_t>(block->ptr),
+        -(block->size),
+        device_allocator[block->device]->get_stats().allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        device_allocator[block->device]->get_stats().reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        device_allocator[block->device]->get_stats().active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+        reinterpret_cast<int64_t>(block->stream)}
+      );
+    }
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+      static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+      block->device,
+      static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+      static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_INNER),
+      reinterpret_cast<int64_t>(block->ptr),
+      -(block->size),
+      device_allocator[block->device]->get_stats().allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      device_allocator[block->device]->get_stats().reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      device_allocator[block->device]->get_stats().active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      reinterpret_cast<int64_t>(block->stream)}
+    );
+#endif
   }
 
   void setMemoryFraction(double fraction, int device) override
@@ -2208,6 +2214,20 @@ void* MallocBlock(size_t size, void *stream, int device) {
   AT_ASSERT(stream, PTA_ERROR(ErrCode::NOT_FOUND));
   auto block = caching_allocator.device_allocator[device]->malloc(device, size, stream);
   AT_ASSERT(block, PTA_ERROR(ErrCode::NOT_FOUND));
+#ifndef BUILD_LIBTORCH
+  torch_npu::profiler::reportMemoryDataToNpuProfiler({
+    static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+    block->device,
+    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_MALLOC),
+    static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_EXTERNAL),
+    reinterpret_cast<int64_t>(block->ptr),
+    block->size,
+    caching_allocator.device_allocator[device]->get_stats().allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+    caching_allocator.device_allocator[device]->get_stats().reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+    caching_allocator.device_allocator[device]->get_stats().active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+    reinterpret_cast<int64_t>(block->stream)}
+  );
+#endif
   return reinterpret_cast<void*>(block);
 }
 
@@ -2216,7 +2236,35 @@ void FreeBlock(void *handle) {
   AT_ASSERT(block, PTA_ERROR(ErrCode::PTR));
   caching_allocator.assertValidDevice(block->device);
   AT_ASSERT(caching_allocator.device_allocator[block->device], PTA_ERROR(ErrCode::NOT_FOUND));
-  return caching_allocator.device_allocator[block->device]->free(block);
+  caching_allocator.device_allocator[block->device]->free(block);
+#ifndef BUILD_LIBTORCH
+  if (block->stream_uses.empty() || !c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    torch_npu::profiler::reportMemoryDataToNpuProfiler({
+      static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+      block->device,
+      static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_BLOCK_FREE),
+      static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_EXTERNAL),
+      reinterpret_cast<int64_t>(block->ptr),
+      -(block->size),
+      caching_allocator.device_allocator[block->device]->get_stats().allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      caching_allocator.device_allocator[block->device]->get_stats().reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      caching_allocator.device_allocator[block->device]->get_stats().active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+      reinterpret_cast<int64_t>(block->stream)}
+    );
+  }
+  torch_npu::profiler::reportMemoryDataToNpuProfiler({
+    static_cast<int8_t>(c10::DeviceType::PrivateUse1),
+    block->device,
+    static_cast<uint8_t>(torch_npu::profiler::MemoryDataType::MEMORY_FREE),
+    static_cast<uint8_t>(torch_npu::profiler::MemoryAllocatorType::ALLOCATOR_EXTERNAL),
+    reinterpret_cast<int64_t>(block->ptr),
+    -(block->size),
+    caching_allocator.device_allocator[block->device]->get_stats().allocated_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+    caching_allocator.device_allocator[block->device]->get_stats().reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+    caching_allocator.device_allocator[block->device]->get_stats().active_bytes[static_cast<size_t>(StatType::AGGREGATE)].current,
+    reinterpret_cast<int64_t>(block->stream)}
+  );
+#endif
 }
 
 void* GetBlockPtr(const void *handle) {

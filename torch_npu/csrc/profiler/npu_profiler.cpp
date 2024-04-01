@@ -113,6 +113,7 @@ struct NpuProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
                 static_cast<int8_t>(device.type()),
                 device.index(),
                 0,
+                0,
                 Utils::GetTid(),
                 Utils::GetPid()
             ));
@@ -309,6 +310,7 @@ void reportMemoryDataToNpuProfiler(const MemoryUsage& data)
         data.device_type,
         data.device_index,
         data.data_type,
+        data.allocator_type,
         Utils::GetTid(),
         Utils::GetPid()
     ));

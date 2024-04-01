@@ -25,20 +25,21 @@ class TestMemoryUsageBean(TestCase):
         total_active = random.randint(0, 2**63 - 1)
         device_type = random.choice([0, 20])
         data_type = random.choice([0, 9])
+        allocator_type = random.choice([0, 9])
         device_index = random.randint(0, 2**8 - 1)
         stream_ptr = random.randint(0, 2**63 - 1)
         thread_id = random.randint(0, 2**64 - 1)
         process_id = random.randint(0, 2**64 - 1)
         sample = {
             Constant.CONSTANT_BYTES: struct.pack(
-                "<7qb2B2Q", ptr, time_ns, alloc_size, total_alloc, total_reserve, total_active, stream_ptr, device_type,
-                device_index, data_type, thread_id, process_id),
+                "<7qb3B2Q", ptr, time_ns, alloc_size, total_alloc, total_reserve, total_active, stream_ptr, device_type,
+                device_index, data_type, allocator_type, thread_id, process_id),
             "ptr": ptr, "time_ns": time_ns, "alloc_size": alloc_size / Constant.B_TO_KB, "alloc_size_for_db": alloc_size,
             "total_alloc": total_alloc / Constant.B_TO_MB, "total_alloc_for_db": total_alloc,
             "total_reserve": total_reserve / Constant.B_TO_MB, "total_reserve_for_db": total_reserve,
             "total_active": total_active / Constant.B_TO_MB, "total_active_for_db": total_active,
             "stream_ptr": stream_ptr, "dev_type": device_type, "dev_id": device_index,
-            "data_type": data_type, "thread_id": thread_id, "process_id": process_id
+            "data_type": data_type, "allocator_type": allocator_type, "thread_id": thread_id, "process_id": process_id
         }
         sample["is_npu"] = True if device_type == cls.npu_id else False
 
@@ -62,6 +63,7 @@ class TestMemoryUsageBean(TestCase):
             self.assertEqual(sample.get("total_active"), memory_usage_bean.total_active)
             self.assertEqual(sample.get("total_active_for_db"), memory_usage_bean.total_active_for_db)
             self.assertEqual(sample.get("data_type"), memory_usage_bean.data_type)
+            self.assertEqual(sample.get("allocator_type"), memory_usage_bean.allocator_type)
             self.assertEqual(sample.get("stream_ptr"), memory_usage_bean.stream_ptr)
 
 

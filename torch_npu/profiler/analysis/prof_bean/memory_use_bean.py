@@ -20,14 +20,16 @@ class MemoryEnum(Enum):
     DEVICE_TYPE = 7
     DEVICE_INDEX = 8
     DATA_TYPE = 9
-    THREAD_ID = 10
-    PROCESS_ID = 11
+    ALLOCATOR_TYPE = 10
+    THREAD_ID = 11
+    PROCESS_ID = 12
 
 
 class MemoryUseBean(CommonBean):
-    CONSTANT_STRUCT = "<7qb2B2Q"
+    CONSTANT_STRUCT = "<7qb3B2Q"
     NPU_ID = 20
     CPU_ID = 0
+    INNER_ALLOCATOR = 0
 
     def __init__(self, data: dict):
         super().__init__(data)
@@ -89,6 +91,10 @@ class MemoryUseBean(CommonBean):
     @property
     def data_type(self) -> int:
         return int(self._constant_data[MemoryEnum.DATA_TYPE.value])
+    
+    @property
+    def allocator_type(self) -> int:
+        return int(self._constant_data[MemoryEnum.ALLOCATOR_TYPE.value])
 
     @property
     def tid(self) -> int:
@@ -100,6 +106,9 @@ class MemoryUseBean(CommonBean):
 
     def is_npu(self) -> bool:
         return self.device_type == self.NPU_ID
+
+    def is_inner_allocator(self) -> bool:
+        return self.allocator_type == self.INNER_ALLOCATOR
 
     @property
     def device_tag(self) -> str:
