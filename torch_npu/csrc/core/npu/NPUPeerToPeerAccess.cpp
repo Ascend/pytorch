@@ -1,5 +1,3 @@
-#pragma once
-
 #include <vector>
 #include <c10/util/Exception.h>
 #include <c10/util/irange.h>

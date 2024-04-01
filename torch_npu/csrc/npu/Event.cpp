@@ -16,8 +16,8 @@ static PyObject* THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *k
     unsigned char blocking = 0;
     unsigned char interprocess = 0;
 
-    static char *kwlist[] = {"enable_timing", "blocking", "interprocess", nullptr};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|bbb", kwlist,
+    constexpr const char* kwlist[] = {"enable_timing", "blocking", "interprocess", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|bbb", const_cast<char**>(kwlist),
         &enable_timing, &blocking, &interprocess)) {
         return nullptr;
     }
