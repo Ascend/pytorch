@@ -614,6 +614,12 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1):
     return torch.empty_like(self, dtype=torch.int8)
 
 
+@impl(m, "npu_dynamic_quant")
+def npu_dynamic_quant(input_dummy):
+    return (torch.empty_like(input_dummy, dtype=torch.int8),
+             torch.empty_like(input_dummy.sum(dim=-1), dtype=torch.float32))
+
+
 @impl(m, "npu_anti_quant")
 def npu_anti_quant_meta(x, scale, *, offset=None, dst_dtype=None, src_dtype=None):
     if dst_dtype is None:
