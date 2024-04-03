@@ -689,6 +689,35 @@ class NPUIncreFlashAttentionOP(torch.autograd.Function):
                     block_size, inner_precise)
 
 
+class NPUFusedInferAttentionScoreOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.fused_infer_attention_score(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+                 pse_shift: Optional[Tensor], atten_mask: Optional[Tensor], 
+                 actual_seq_lengths: Optional[Tensor],
+                 actual_seq_lengths_kv: Optional[Tensor],
+                 dequant_scale1: Optional[Tensor], quant_scale1: Optional[Tensor],
+                 dequant_scale2: Optional[Tensor], quant_scale2: Optional[Tensor],
+                 quant_offset2: Optional[Tensor], antiquant_scale: Optional[Tensor],
+                 antiquant_offset: Optional[Tensor], block_table: Optional[Tensor],
+                 query_padding_size: Optional[Tensor], kv_padding_size: Optional[Tensor],
+                 num_heads: int = 1, scale: float = 1.0,
+                 pre_tokens: int = 2147483647, next_tokens: int = 2147483647,
+                 input_layout: str = "BSH", num_key_value_heads: int = 0,
+                 sparse_mode: int = 0, inner_precise: int = 0, block_size: int = 0,
+                 antiquant_mode: int = 0, softmax_lse_flag: bool = False):
+        return g.op("npu::NPUFusedInferAttentionScoreOP", self, query, key, value,
+                    pse_shift, atten_mask, actual_seq_lengths, actual_seq_lengths_kv,
+                    dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2,
+                    antiquant_scale, antiquant_offset, block_table, query_padding_size, kv_padding_size,
+                    num_heads, scale, pre_tokens, next_tokens, input_layout, num_key_value_heads,
+                    sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag)
+
+
 class NPUMaskedSoftmaxWithRelPosBiasOP(torch.autograd.Function):
 
     @staticmethod
@@ -1066,6 +1095,17 @@ def wrapper_npu_incre_flash_attention(self, query, key, value, padding_mask, att
                                           input_layout, num_key_value_heads, block_size, inner_precise)
 
 
+def wrapper_npu_fused_infer_attention_score(self, query, key, value, pse_shift, atten_mask, actual_seq_lengths, actual_seq_lengths_kv,
+                                       dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2, antiquant_scale,
+                                       antiquant_offset, block_table, query_padding_size, kv_padding_size,
+                                       num_heads, scale, pre_tokens, next_tokens, input_layout, num_key_value_heads,
+                                       sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag):
+    return NPUFusedInferAttentionScoreOP.apply(self, query, key, value, pse_shift, atten_mask, actual_seq_lengths, actual_seq_lengths_kv,
+                                       dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2, antiquant_scale,
+                                       antiquant_offset, block_table, query_padding_size, kv_padding_size,
+                                       num_heads, scale, pre_tokens, next_tokens, input_layout, num_key_value_heads,
+                                       sparse_mode, inner_precise, block_size, antiquant_mode, softmax_lse_flag)
+
 
 def wrapper_npu_mm_all_reduce_base(x1, x2, hcom, reduce_op, bias, antiquant_scale, antiquant_offset, x3,
                                    dequant_scale, antiquant_group_size, comm_turn):
@@ -1140,6 +1180,7 @@ def add_onnx_ops():
     torch_npu.npu_rotary_mul = wrapper_npu_rotary_mul
     torch_npu.npu_prompt_flash_attention = wrapper_npu_prompt_flash_attention
     torch_npu.npu_incre_flash_attention = wrapper_npu_incre_flash_attention
+    torch_npu.npu_fused_infer_attention_score = wrapper_npu_fused_infer_attention_score
     torch_npu.npu_masked_softmax_with_rel_pos_bias = wrapper_npu_masked_softmax_with_rel_pos_bias
     torch_npu.npu_mm_all_reduce_base = wrapper_npu_mm_all_reduce_base
     torch_npu.npu_weight_quant_batchmatmul = wrapper_npu_weight_quant_batchmatmul
