@@ -1,4 +1,4 @@
-# Ascend Adapter for PyTorch插件 安全声明
+# Ascend Extension for PyTorch插件 安全声明
 
 ## 漏洞风险提示
 

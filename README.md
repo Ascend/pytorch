@@ -1,8 +1,8 @@
-# PyTorch Ascend Adapter
+# Ascend Extension for PyTorch
 
 ## Overview
 
-This repository develops the **PyTorch Adapter** named **torch_npu** to adapt **Ascend NPU** to **PyTorch** so that developers who use the **PyTorch** can obtain powerful compute capabilities of **Ascend AI Processors**.
+This repository develops the **PyTorch Extension** named **torch_npu** to adapt **Ascend NPU** to **PyTorch** so that developers who use the **PyTorch** can obtain powerful compute capabilities of **Ascend AI Processors**.
 
 Ascend is a full-stack AI computing infrastructure for industry applications and services based on Huawei Ascend processors and software. For more information about Ascend, see [Ascend Community](https://www.hiascend.com/en/).
 
@@ -56,9 +56,9 @@ Take **Aarch64** architecture and **Python 3.8** as an example.
 
 
 ```Python
-wget https://gitee.com/ascend/pytorch/releases/download/v5.0.0-pytorch1.11.0/torch_npu-1.11.0.post8-cp38-cp38-linux_aarch64.whl
+wget https://gitee.com/ascend/pytorch/releases/download/v6.0.rc1-pytorch1.11.0/torch_npu-1.11.0.post11-cp38-cp38-linux_aarch64.whl
 
-pip3 install torch_npu-1.11.0.post8-cp38-cp38-linux_aarch64.whl
+pip3 install torch_npu-1.11.0.post11-cp38-cp38-linux_aarch64.whl
 ```
 
 ### From Source
@@ -125,15 +125,18 @@ print(z)
 | PyTorch Version | Python Version                                            |
 | ------------- | :----------------------------------------------------------- |
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5),Python3.8.x,Python3.9.x,Python3.10.x |
-| PyTorch2.0.1  | Python3.8.x,Python3.9.x,Python3.10.x                       |
 | PyTorch2.1.0  | Python3.8.x,Python3.9.x,Python3.10.x                       |
+| PyTorch2.2.0  | Python3.8.x,Python3.9.x,Python3.10.x                       |
 
 ## Ascend Auxiliary Software
 
-**PyTorch Adapter** versions follow the naming convention `{PyTorch version}-{Ascend version}`, where the former represents the PyTorch version compatible with the **PyTorch Adapter**, and the latter is used to match the CANN version. The detailed matching is as follows:
+**PyTorch Extension** versions follow the naming convention `{PyTorch version}-{Ascend version}`, where the former represents the PyTorch version compatible with the **PyTorch Extension**, and the latter is used to match the CANN version. The detailed matching is as follows:
 
-| CANN Version         | Supported PyTorch Version | Supported Adapter Version | Github Branch          | AscendHub Image Version/Name([Link](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
+| CANN Version         | Supported PyTorch Version | Supported Extension Version | Github Branch          | AscendHub Image Version/Name([Link](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
 |----------------|--------------|-------------------|-------------------|----------------------|
+| CANN 8.0.RC1   | 2.2.0        | 2.2.0             | v2.2.0-6.0.rc1    | -                    |
+|                | 2.1.0        | 2.1.0.post3       | v2.1.0-6.0.rc1    | -                    |
+|                | 1.11.0       | 1.11.0.post11     | v1.11.0-6.0.rc1   | -                    |
 | CANN 7.0.0     | 2.1.0        | 2.1.0             | v2.1.0-5.0.0      | -                    |
 |                | 2.0.1        | 2.0.1.post1       | v2.0.1-5.0.0      | -                    |
 |                | 1.11.0       | 1.11.0.post8      | v1.11.0-5.0.0     | -                    |
@@ -182,24 +185,24 @@ The version branches of AscendPyTorch have the following maintenance phases:
 
 | **PyTorch** |  **Maintenance Policies** | **Status** | **Launch Date**       | **Subsequent Status**            | **EOL Date**     |
 |-----------|--------------------|--------------|------------|-----------------|-----------|
+| 2.2.0     |  Regular Release  | Maintained   | 2024/04/01 | Unmaintained 2024-10-15 estimated |           |
 | 2.1.0     | Long Term Support  | Maintained   | 2023/10/15 | Unmaintained 2024-10-15 estimated |           |
-| 2.0.1     | Regular Release    | Maintained   | 2023/7/19  | Unmaintained 2024-1-19 estimated  |           |
+| 2.0.1     | Regular Release    | EOL   | 2023/7/19  |                 |    2024/3/14       |
 | 1.11.0    | Long Term Support  | Maintained   | 2023/4/19  | Unmaintained 2024-4-19 estimated  |           |
 | 1.8.1     | Long Term Support  | EOL          | 2022/4/10  |                 | 2023/4/10 |
 | 1.5.0     | Long Term Support  | EOL          | 2021/7/29  |                 | 2022/7/29 |
 
 ## Reference Documents
 
-For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [PyTorch Ascend Adapter on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
+For more detailed information on installation guides, model migration, training/inference tutorials, and API lists, please refer to the [Ascend Extension for Pytorch on the HiAI Community](https://www.hiascend.com/software/ai-frameworks/commercial).
 
 | Document Name                    | Document Link                                                 |
 | -------------------------------- | ------------------------------------------------------------ |
-| AscendPyTorch Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/envdeployment/instg/instg_0163.html) |
-| AscendPyTorch Network Model Migration and Training | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000002.html) |
-| AscendPyTorch Online Inference    | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| AscendPyTorch Installation Guide  | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/quickstart/instg) |
+| AscendPyTorch Network Model Migration and Training | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
 | AscendPyTorch Operator Adaptation | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
-| AscendPyTorch API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/ptaoplist_000002.html) |
+| AscendPyTorch API List (PyTorch and Custom Interfaces) | [link](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/apiref/apilist/ptaoplist_000002.html) |
 
 ## License
 
-PyTorch Ascend Adapter has a BSD-style license, as found in the [LICENSE](LICENSE) file.
+Ascend Extension for Pytorch has a BSD-style license, as found in the [LICENSE](LICENSE) file.
