@@ -214,6 +214,8 @@ def memory_stats(device=None):
 
 def memory_stats_as_nested_dict(device=None):
     r"""Returns the result of :func:`~torch_npu.npu.memory_stats` as a nested dictionary."""
+    if not is_initialized():
+        return {}
     device = _get_device_index(device, optional=True)
     return torch_npu._C._npu_memoryStats(device)
 
@@ -324,7 +326,7 @@ def memory_allocated(device=None):
         needs to be created on NPU. See :ref:`npu-memory-management` for more
         details about NPU memory management.
     """
-    return memory_stats(device=device)["allocated_bytes.all.current"]
+    return memory_stats(device=device).get("allocated_bytes.all.current", 0)
 
 
 def max_memory_allocated(device=None):
@@ -346,7 +348,7 @@ def max_memory_allocated(device=None):
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
-    return memory_stats(device=device)["allocated_bytes.all.peak"]
+    return memory_stats(device=device).get("allocated_bytes.all.peak", 0)
 
 
 def memory_reserved(device=None):
@@ -362,7 +364,7 @@ def memory_reserved(device=None):
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
-    return memory_stats(device=device)["reserved_bytes.all.current"]
+    return memory_stats(device=device).get("reserved_bytes.all.current", 0)
 
 
 def max_memory_reserved(device=None):
@@ -384,7 +386,7 @@ def max_memory_reserved(device=None):
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
     """
-    return memory_stats(device=device)["reserved_bytes.all.peak"]
+    return memory_stats(device=device).get("reserved_bytes.all.peak", 0)
 
 
 def memory_cached(device=None):
