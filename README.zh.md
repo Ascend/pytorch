@@ -1,8 +1,8 @@
-# PyTorch Ascend Adapter插件
+# Ascend Extension for PyTorch
 
 ## 简介
 
-本项目开发了名为**torch_npu**的**PyTorch Ascend Adapter**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
+本项目开发了名为**torch_npu**的**PyTorch Ascend Extension**插件，使昇腾NPU可以适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
 
 昇腾为基于华为昇腾处理器和软件的行业应用及服务提供全栈AI计算基础设施。您可以通过访问[昇腾社区](https://www.hiascend.com/zh/)，了解关于昇腾的更多信息。
 
@@ -19,25 +19,25 @@
 **aarch64:**
 
 ```Python
-pip3 install torch==2.1.0
+pip3 install torch==2.2.0
 ```
 
 **x86:**
 
 ```Python
-pip3 install torch==2.1.0+cpu  --index-url https://download.pytorch.org/whl/cpu
+pip3 install torch==2.2.0+cpu  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 若使用pip命令安装失败，请使用下载链接或进入[PyTorch官方网站](https://pytorch.org/)进行查询下载对应版本。
 
 | 架构    | Python版本 | 下载链接                                                     |
 | ------- | ---------- | ------------------------------------------------------------ |
-| x86     | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp38-cp38-linux_x86_64.whl#sha256=9e5cfd931a65b38d222755a45dabb53b836be31bc620532bc66fee77e3ff67dc) |
-| x86     | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=86cc28df491fa84738affe752f9870791026565342f69e4ab63e5b935f00a495) |
-| x86     | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=5077921fc2b54e69a534f3a9c0b98493c79a5547c49d46f5e77e42da3610e011) |
-| aarch64 | Python3.8  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=761822761fffaa1c18a62c5deb13abaa780862577d3eadc428f1daa632536905) |
-| aarch64 | Python3.9  | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=de7d63c6ecece118684415a3dbd4805af4a4c1ee1490cccf7405d8c240a481b4) |
-| aarch64 | Python3.10 | [下载链接](https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=a04a0296d47f28960f51c18c5489a8c3472f624ec3b5bcc8e2096314df8c3342) |
+| x86     | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.2.0%2Bcpu-cp38-cp38-win_amd64.whl#sha256=15e05748815545b6eb99196c0219822b210a5eff0dc194997a283534b8c98d7c) |
+| x86     | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.2.0%2Bcpu-cp39-cp39-linux_x86_64.whl#sha256=4ddaf3393f5123da4a83a53f98fb9c9c64c53d0061da3c7243f982cdfe9eb888) |
+| x86     | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.2.0%2Bcpu-cp310-cp310-linux_x86_64.whl#sha256=5f907293f5a58619c1c520380f17641f76400a136474a4b1a66c363d2563fe5e) |
+| aarch64 | Python3.8      | [link](https://download.pytorch.org/whl/cpu/torch-2.2.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=a5f9772bb95efafd906de683104af2301ef18608d0c7f372ff1a5a61bf792b88) |
+| aarch64 | Python3.9      | [link](https://download.pytorch.org/whl/cpu/torch-2.2.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=e6d2550a8beadf79ce48271aa2a281175e91a3065fed385d2a8b9802c2a744db) |
+| aarch64 | Python3.10     | [link](https://download.pytorch.org/whl/cpu/torch-2.2.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=19e89763bdd9df0bf5e39462e9410c612a7a46aff72ea285b97929ac2045123f) |
 
 2. **安装torch_npu依赖**
 
@@ -51,7 +51,7 @@ pip3 install setuptools
 3. **安装torch_npu**
 
 ```
-pip3 install torch-npu==2.1.0
+pip3 install torch-npu==2.2.0
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -62,7 +62,7 @@ pip3 install torch-npu==2.1.0
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0-5.0.0 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.2.0-6.0.rc1 --depth 1
    ```
 
 2. **构建镜像**
@@ -131,15 +131,18 @@ print(z)
 | PyTorch版本   | Python版本                                                   |
 | ------------- | :----------------------------------------------------------- |
 | PyTorch1.11.0 | Python3.7.x(>=3.7.5), Python3.8.x, Python3.9.x, Python3.10.x |
-| PyTorch2.0.1  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 | PyTorch2.1.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
+| PyTorch2.2.0  | Python3.8.x, Python3.9.x, Python3.10.x                       |
 
 ## 昇腾辅助软件
 
-**PyTorch Adapter**版本号采用`{PyTorch版本}-{昇腾版本}`命名规则，前者为**PyTorch Adapter**匹配的PyTorch版本，后者用于匹配CANN版本，详细匹配如下：
+**PyTorch Extension**版本号采用`{PyTorch版本}-{昇腾版本}`命名规则，前者为**PyTorch Extension**匹配的PyTorch版本，后者用于匹配CANN版本，详细匹配如下：
 
-| CANN版本         | 支持的PyTorch版本 | 支持的Adapter版本 | Gitee分支          | AscendHub镜像版本/名称([链接](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
+| CANN版本         | 支持的PyTorch版本 | 支持的Extension版本 | Gitee分支          | AscendHub镜像版本/名称([链接](https://ascendhub.huawei.com/#/detail/pytorch-modelzoo)) |
 |----------------|--------------|-------------------|-------------------|----------------------|
+| CANN 8.0.RC1   | 2.2.0        | 2.2.0             | v2.2.0-6.0.rc1    | -                    |
+|                | 2.1.0        | 2.1.0.post4       | v2.1.0-6.0.rc1    | -                    |
+|                | 1.11.0       | 1.11.0.post11     | v1.11.0-6.0.rc1   | -                    |
 | CANN 7.0.0     | 2.1.0        | 2.1.0             | v2.1.0-5.0.0      | -                    |
 |                | 2.0.1        | 2.0.1.post1       | v2.0.1-5.0.0      | -                    |
 |                | 1.11.0       | 1.11.0.post8      | v1.11.0-5.0.0     | -                    |
@@ -187,28 +190,28 @@ AscendPyTorch版本分支的维护阶段如下：
 
 | **PyTorch版本** | **维护策略** | **当前状态** | **发布时间** | **后续状态** | **EOL日期** |
 |-----------|-----------|--------|------------|-----------------------|-----------|
+| 2.2.0     |  常规版本  | 维护   | 2024/04/01 | 预计2024/10/15起无维护 |           |
 | 2.1.0     |  长期支持  | 维护   | 2023/10/15 | 预计2024/10/15起无维护 |           |
-| 2.0.1     |  常规版本  | 维护   | 2023/7/19  | 预计2024/1/19起无维护  |           |
+| 2.0.1     |  常规版本  | 维护   | 2023/7/19  |   |     2024/3/14      | 
 | 1.11.0    |  长期支持  | 维护   | 2023/4/19  | 预计2024/4/19起无维护  |           |
 | 1.8.1     |  长期支持  | EOL    | 2022/4/10  |                       | 2023/4/10 |
 | 1.5.0     |  长期支持  | EOL    | 2021/7/29  |                       | 2022/7/29 |
 
 ## 安全声明
 
-[Ascend Adapter for PyTorch插件 安全声明](SECURITYNOTE.md)
+[Ascend Extension for PyTorch插件 安全声明](https://gitee.com/Ascend/pytorch/blob/v2.2.0-6.0.rc1/SECURITYNOTE.md)
 
 ## 参考文档
 
-有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区PyTorch Ascend Adapter](https://www.hiascend.com/software/ai-frameworks/commercial)。
+有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[昇腾社区Ascend Extension for PyTorch](https://www.hiascend.com/software/ai-frameworks/commercial)。
 
 | 文档名称                   | 文档链接                                                     |
 | -------------------------- | ------------------------------------------------------------ |
-| AscendPyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/envdeployment/instg/instg_0083.html) |
-| AscendPyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/AImpug_0002.html) |
-| AscendPyTorch 在线推理           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
+| AscendPyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/quickstart/instg) |
+| AscendPyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/ptmoddevg/trainingmigrguide/PT_LMTMOG_0003.html) |
 | AscendPyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
-| AscendPyTorch API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/70RC1/modeldevpt/ptmigr/ptaoplist_001.html) |
+| AscendPyTorch API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/Pytorch/60RC1/apiref/apilist/ptaoplist_000002.html) |
 
 ## 许可证
 
-PyTorch Ascend Adapter插件使用BSD许可证。详见[LICENSE](LICENSE)文件。
+Ascend Extension for PyTorch插件使用BSD许可证。详见[LICENSE](LICENSE)文件。
