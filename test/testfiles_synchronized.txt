@@ -2,6 +2,10 @@ test/test_comparison_utils.py
 test/test_license.py
 test/test_type_info.py
 test/test_metal.py
+test/test_dynamic_shapes.py
+test/test_jit_disabled.py
+test/test_jit_fuser_legacy.py
+test/test_jit_legacy.py
 test/jit/__init__.py
 test/jit/mydecorator.py
 test/jit/myexception.py
