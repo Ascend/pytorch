@@ -62,7 +62,7 @@ pip3 install torch-npu==2.1.0
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0-6.0.rc1 --depth 1
    ```
 
 2. **构建镜像**
