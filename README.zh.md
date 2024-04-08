@@ -192,8 +192,8 @@ AscendPyTorch版本分支的维护阶段如下：
 |-----------|-----------|--------|------------|-----------------------|-----------|
 | 2.2.0     |  常规版本  | 维护   | 2024/04/01 | 预计2024/10/15起无维护 |           |
 | 2.1.0     |  长期支持  | 维护   | 2023/10/15 | 预计2024/10/15起无维护 |           |
-| 2.0.1     |  常规版本  | EOL   | 2023/7/19  | 预计2024/1/19起无维护  |           |
-| 1.11.0    |  长期支持  | 维护   | 2023/4/19  |   |       2024/3/14    |
+| 2.0.1     |  常规版本  | EOL   | 2023/7/19  |   |           |2024/3/14 
+| 1.11.0    |  长期支持  | 维护   | 2023/4/19  |   预计2024/4/19起无维护|          |
 | 1.8.1     |  长期支持  | EOL    | 2022/4/10  |                       | 2023/4/10 |
 | 1.5.0     |  长期支持  | EOL    | 2021/7/29  |                       | 2022/7/29 |
 
@@ -209,7 +209,6 @@ AscendPyTorch版本分支的维护阶段如下：
 | -------------------------- | ------------------------------------------------------------ |
 | AscendPyTorch 安装指南           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/envdeployment/instg/instg_0163.html) |
 | AscendPyTorch 网络模型迁移和训练 | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000002.html) |
-| AscendPyTorch 在线推理           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptonlineinfer/PyTorch_Infer_000001.html) |
 | AscendPyTorch 算子适配           | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/operatordev/tbeaicpudevg/atlasopdev_10_0086.html) |
 | AscendPyTorch API清单（PyTorch原生接口与自定义接口）            | [参考链接](https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/ptaoplist_000002.html) |
 
