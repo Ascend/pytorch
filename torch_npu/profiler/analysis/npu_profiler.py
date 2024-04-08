@@ -23,7 +23,8 @@ class NpuProfiler:
             return
         # 多profiling数据的解析
         multiprocessing.set_start_method("fork", force=True)
-        process_number = kwargs.get("max_process_number", Constant.DEFAULT_PROCESS_NUMBER)
+        process_number = min(kwargs.get("max_process_number", Constant.DEFAULT_PROCESS_NUMBER),
+                             len(profiler_path_list))
         pool = ProfProcessPool(processes=process_number)
 
         for profiler_path in profiler_path_list:
