@@ -69,7 +69,7 @@ pip3 install torch_npu-1.11.0.post11-cp38-cp38-linux_aarch64.whl
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v1.11.0 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v1.11.0-6.0.rc1 --depth 1
    ```
 
 2. **构建镜像**
