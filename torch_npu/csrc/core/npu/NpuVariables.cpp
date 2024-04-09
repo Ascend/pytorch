@@ -50,7 +50,8 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910C1", SocVersion::Ascend910C1},
     {"Ascend910C2", SocVersion::Ascend910C2},
     {"Ascend910C3", SocVersion::Ascend910C3},
-    {"Ascend910C4", SocVersion::Ascend910C4}};
+    {"Ascend910C4", SocVersion::Ascend910C4},
+    {"Ascend910D1", SocVersion::Ascend910D1}};
 
 bool SetSocVersion(const char* const socVersion) {
   if (socVersion == nullptr ||
