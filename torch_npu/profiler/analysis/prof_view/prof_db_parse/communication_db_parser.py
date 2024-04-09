@@ -151,10 +151,11 @@ class CommunicationDbParser(CommunicationParser):
                 time_op_name_idx_map[op_name]["matrix_idx"].append(idx)
         for idx, data in enumerate(time_data):
             op_name = "%s@%s" % (data[CommTimeTableRow.HCCL_OP_NAME.value], data[CommTimeTableRow.GROUP_NAME.value])
-            if op_name.startswith(self.HCOM_SEND) or op_name.startswith(self.HCOM_RECEIVE) \
-                    or op_name.startswith(self.HCOM_BATCHSENDRECV):
+            lower_op_name = op_name.lower()
+            if lower_op_name.startswith(self.HCOM_SEND) or lower_op_name.startswith(self.HCOM_RECEIVE) \
+                    or lower_op_name.startswith(self.HCOM_BATCHSENDRECV):
                 op_type = self.P2P
-            elif op_name.startswith(self.TOTAL):
+            elif lower_op_name.startswith(self.TOTAL):
                 op_type = ''
             else:
                 op_type = self.COLLECTIVE
