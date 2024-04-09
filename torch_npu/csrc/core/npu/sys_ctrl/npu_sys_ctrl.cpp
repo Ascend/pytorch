@@ -150,7 +150,7 @@ std::string GetAclConfigJsonPath() {
 
 namespace c10_npu {
 
-NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0), repeat_init_acl_flag_(true) {}
+NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), device_id_(0) {}
 
 // Get NpuSysCtrl singleton instance
  NpuSysCtrl& NpuSysCtrl::GetInstance() {

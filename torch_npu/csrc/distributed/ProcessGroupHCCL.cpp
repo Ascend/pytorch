@@ -285,8 +285,8 @@ ProcessGroupHCCL::WorkHCCL::WorkHCCL(const WorkHCCL& w)
     std::enable_shared_from_this<WorkHCCL>(w),
     devices_(w.devices_),
     hcclStartEvents_(w.hcclStartEvents_),
-    hcclEndEvents_(w.hcclEndEvents_),
     hcclComms_(w.hcclComms_),
+    hcclEndEvents_(w.hcclEndEvents_),
     blockingWait_(w.blockingWait_),
     opTimeout_(w.opTimeout_),
     workStartTime_(w.workStartTime_),
@@ -569,9 +569,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     store_(store),
     options_(options),
     hcclCommCounter_(0),
-    terminateProcessGroup_(false),
     traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
-    traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end")
+    traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
+    terminateProcessGroup_(false)
 {
     uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
     // When no env, the default value is 0

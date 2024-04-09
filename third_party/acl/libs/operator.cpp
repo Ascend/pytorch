@@ -47,7 +47,10 @@ void Operator::RequiredAttrRegister(const char* name) {}
 
 void Operator::OutputRegister(const char* name) {}
 
-Operator& Operator::SetAttr(const char* name, const AscendString& attr_value) {}
+Operator& Operator::SetAttr(const char* name, const AscendString& attr_value)
+{
+  return op;
+}
 
 graphStatus Operator::UpdateInputDesc(
     const char* name,

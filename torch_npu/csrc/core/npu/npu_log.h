@@ -37,4 +37,3 @@
             aclAppLog(ACL_DEBUG, __FILENAME__, __FUNCTION__, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__);    \
         }                                                                                               \
     } while (0);
-
