@@ -28,7 +28,7 @@ static PyObject* THNPStream_pynew(
   uint64_t stream_ptr = 0;
 
   // NOLINTNEXTLINE(modernize-avoid-c-arrays,cppcoreguidelines-avoid-c-arrays)
-  constexpr char* kwlist[] = {
+  constexpr const char* kwlist[] = {
       "priority",
       "stream_id",
       "device_index",

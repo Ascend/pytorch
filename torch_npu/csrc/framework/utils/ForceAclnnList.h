@@ -38,4 +38,4 @@ private:
 
 } // namespace native
 } // namespace at_npu
-#endif TORCHNPU_TORCH_NPU_CSRC_FRAMEWORK_UTILS_FORCEACLNNLIST_H_
+#endif

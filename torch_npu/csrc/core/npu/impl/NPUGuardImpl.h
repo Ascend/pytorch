@@ -148,7 +148,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     }
     acl::aclrtEventRecordedStatus status = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
     NPU_CHECK_ERROR(acl::AclQueryEventRecordedStatus(npu_event, &status));
-    return (status == ACL_EVENT_RECORDED_STATUS_COMPLETE);
+    return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
   }
 };
 
