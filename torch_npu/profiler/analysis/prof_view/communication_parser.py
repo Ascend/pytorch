@@ -38,7 +38,7 @@ class CommunicationParser(BaseParser):
     HCOM_BATCHSENDRECV = "hcom_batchsendrecv"
     HCCL_PATTERN = r"send|reduce|invalid|broadcast|allreduce|" \
                    "receive|allgather|reducescatter|scatter|alltoall|alltoallv|alltoallvc|batchsendrecv"
-    TOTAL = "Total"
+    TOTAL = "total"
     SYNCHRONIZATION_TIME_RATIO = "Synchronization Time Ratio"
     SYNCHRONIZATION_TIME_MS = "Synchronization Time(ms)"
     WAIT_TIME_RATIO = "Wait Time Ratio"
@@ -121,10 +121,11 @@ class CommunicationParser(BaseParser):
     def split_communication_p2p_ops(self, op_data: dict):
         comm_op_dict = {self.P2P: {}, self.COLLECTIVE: {}}
         for communication_op, communication_info in op_data.items():
-            if communication_op.startswith(self.HCOM_SEND) or communication_op.startswith(self.HCOM_RECEIVE) \
-                    or communication_op.startswith(self.HCOM_BATCHSENDRECV):
+            lower_op_name = communication_op.lower()
+            if lower_op_name.startswith(self.HCOM_SEND) or lower_op_name.startswith(self.HCOM_RECEIVE) \
+                    or lower_op_name.startswith(self.HCOM_BATCHSENDRECV):
                 comm_op_dict[self.P2P][communication_op] = communication_info
-            elif communication_op.startswith(self.TOTAL):
+            elif lower_op_name.startswith(self.TOTAL):
                 continue
             else:
                 comm_op_dict[self.COLLECTIVE][communication_op] = communication_info
