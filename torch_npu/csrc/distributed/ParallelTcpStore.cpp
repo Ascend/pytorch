@@ -217,9 +217,9 @@ pta::StoreMessage ParallelStoreServer::ProcessWaitKeysRequest(int fd, const pta:
             numKeysToWait++;
         }
     }
+    server_->SetKeysWaitingSocket(waitKeys, fd, numKeysToWait);
     lockGuard.unlock();
 
-    server_->SetKeysWaitingSocket(waitKeys, fd, numKeysToWait);
     return pta::StoreMessage{ pta::MessageType::INVALID_MSG };
 }
 
