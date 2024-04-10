@@ -19,6 +19,7 @@ TEST_DIR = BASE_DIR / 'test'
 # Add slow test cases here (first element must be test_ops)
 SLOW_TEST_BLOCKLIST = [
     'test_ops',
+    'test_foreach',
     'test_modules',
     'test_binary_ufuncs',
     'test_ops_fwd_gradients',
