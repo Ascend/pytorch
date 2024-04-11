@@ -329,17 +329,17 @@ struct ExpandableSegment {
         prop.reserve = 0;
         auto status =
             c10_npu::acl::AclrtMallocPhysical(&handle, segment_size_, &prop, 0);
-      if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
-        for (auto j : c10::irange(begin, i)) {
-          auto h = handles_.at(j).value();
-          handles_.at(j) = c10::nullopt;
-          NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
+        if (status == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+            for (auto j : c10::irange(begin, i)) {
+                auto h = handles_.at(j).value();
+                handles_.at(j) = c10::nullopt;
+                NPU_CHECK_ERROR(c10_npu::acl::AclrtFreePhysical(h));
+            }
+            trimHandles();
+            return rangeFromHandles(begin, begin);
         }
-        trimHandles();
-        return rangeFromHandles(begin, begin);
-      }
-      NPU_CHECK_ERROR(status);
-      handles_.at(i) = handle;
+        NPU_CHECK_ERROR(status, "aclrtMallocPhysical");
+        handles_.at(i) = handle;
     }
     for (auto i : c10::irange(begin, end)) {
       NPU_CHECK_ERROR(c10_npu::acl::AclrtMapMem(

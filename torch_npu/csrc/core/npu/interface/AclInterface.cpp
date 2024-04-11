@@ -427,7 +427,7 @@ bool can_device_access_peer(c10::DeviceIndex device_id, c10::DeviceIndex peer_de
     func = (AclrtDeviceCanAccessPeer)GET_FUNC(aclrtDeviceCanAccessPeer);
   }
   TORCH_CHECK(func, "Failed to find function ", "aclrtDeviceCanAccessPeer", PROF_ERROR(ErrCode::NOT_FOUND));
-  NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id));
+  NPU_CHECK_ERROR(func(&can_access_peer, device_id, peer_device_id), "aclrtDeviceCanAccessPeer");
   return can_access_peer != 0;
 }
 
