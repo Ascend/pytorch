@@ -377,7 +377,7 @@ bool npuSynchronizeDevice(bool check_error) {
 
   auto acl_ret = aclrtSynchronizeDevice();
   if (check_error) {
-    NPU_CHECK_ERROR(acl_ret);
+    NPU_CHECK_ERROR(acl_ret, "aclrtSynchronizeDevice");
   } else {
     NPU_CHECK_WARN(acl_ret);
   }

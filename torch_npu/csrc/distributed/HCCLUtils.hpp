@@ -18,23 +18,28 @@
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
-#include "torch_npu/csrc/core/npu/NPUErrorCodes.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <memory>
 
 #include "hccl/hccl.h"
 #include "hccl/hccl_types.h"
 
-#define HCCL_CHECK_ERROR(cmd)                                       \
-    do {                                                              \
-        HcclResult error = cmd;                                         \
-        if (error != HCCL_SUCCESS) {                                    \
-            std::string err = "[ERROR] HCCL error in: " +                 \
-                std::string(__FILE__) +                                   \
-                ":" + std::to_string(__LINE__) +                  \
+#define HCCL_CHECK_ERROR(err_code, ...)                                      \
+    do {                                                                     \
+        auto Error = err_code;                                               \
+        if ((Error) != HCCL_SUCCESS) {                                       \
+            TORCH_CHECK(                                                     \
+                false,                                                       \
+                __func__,                                                    \
+                ":",                                                         \
+                __FILE__,                                                    \
+                ":",                                                         \
+                __LINE__,                                                    \
+                " HCCL function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),   \
+                ", error code is ", Error,                                   \
                 DIST_ERROR(ErrCode::HCCL) + ".\n" +                          \
-                c10_npu::acl::AclGetErrMsg();                             \
-            throw std::runtime_error(err);                                \
-        }                                                               \
+                c10_npu::acl::AclGetErrMsg());                               \
+        }                                                                    \
     } while (0)
 
 #define ENABLE_HCCL_ERROR_CHECKING

@@ -34,7 +34,7 @@ NPUEvent::~NPUEvent()
         if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
             NPU_CHECK_ERROR(c10_npu::queue::LaunchLazyDestroyEventTask(event_, device_index_));
             if (!c10_npu::acl::IsExistCreateEventExWithFlag()) {
-                NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
+                c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent();
             }
         }
     }

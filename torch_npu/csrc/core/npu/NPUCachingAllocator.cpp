@@ -354,7 +354,7 @@ struct ExpandableSegment {
             trimHandles();
             return rangeFromHandles(begin, begin);
         }
-        NPU_CHECK_ERROR(status);
+        NPU_CHECK_ERROR(status, "aclrtMallocPhysical");
         handles_.at(i) = handle;
     }
     for (auto i : c10::irange(begin, end)) {

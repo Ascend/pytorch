@@ -99,7 +99,18 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
 #define GRAPH_ERROR(error) formatErrorCode(SubModule::GRAPH, error)
 #define PROF_ERROR(error) formatErrorCode(SubModule::PROF, error)
 
-#define NPU_CHECK_ERROR(err_code)                                            \
+inline const char* getErrorFunction(const char* msg)
+{
+    return msg;
+}
+
+// If there is just 1 provided C-string argument, use it.
+inline const char* getErrorFunction(const char* /* msg */, const char* args)
+{
+    return args;
+}
+
+#define NPU_CHECK_ERROR(err_code, ...)                                       \
     do {                                                                     \
         auto Error = err_code;                                               \
         static c10_npu::acl::AclErrorCode err_map;                           \
@@ -111,7 +122,8 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
                 __FILE__,                                                    \
                 ":",                                                         \
                 __LINE__,                                                    \
-                " NPU error, error code is ", Error,                         \
+                " NPU function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
+                ", error code is ", Error,                                   \
                 PTA_ERROR(ErrCode::ACL),                                     \
                 (err_map.error_code_map.find(Error) !=                       \
                 err_map.error_code_map.end() ?                               \
@@ -120,7 +132,7 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
         }                                                                    \
     } while (0)
 
-#define OPS_CHECK_ERROR(err_code)                                            \
+#define OPS_CHECK_ERROR(err_code, ...)                                       \
     do {                                                                     \
         auto Error = err_code;                                               \
         static c10_npu::acl::AclErrorCode err_map;                           \
@@ -132,7 +144,8 @@ std::string formatErrorCode(SubModule submodule, ErrCode errorCode);
                 __FILE__,                                                    \
                 ":",                                                         \
                 __LINE__,                                                    \
-                " NPU error, error code is ", Error,                         \
+                " OPS function error: ", getErrorFunction(#err_code, ##__VA_ARGS__),    \
+                ", error code is ", Error,                                   \
                 OPS_ERROR(ErrCode::ACL),                                     \
                 (err_map.error_code_map.find(Error) !=                       \
                 err_map.error_code_map.end() ?                               \

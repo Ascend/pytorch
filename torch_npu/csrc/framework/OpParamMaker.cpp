@@ -161,10 +161,7 @@ aclError OpCommandImpl::InnerRun(
     do {
         if (params.customHandler) {
             ret = params.customHandler();
-            if (ret != ACL_ERROR_NONE) {
-                C10_NPU_SHOW_ERR_MSG();
-                TORCH_CHECK(false, "Custom hand fail!", OPS_ERROR(ErrCode::ACL));
-            }
+            OPS_CHECK_ERROR(ret, name.c_str());
             index++;
             continue;
         }
@@ -202,7 +199,7 @@ aclError OpCommandImpl::InnerRun(
                 ACL_COMPILE_SYS,
                 NULL,
                 stream);
-            OPS_CHECK_ERROR(ret);
+            OPS_CHECK_ERROR(ret, name.c_str());
         } else {
             int64_t dimSize;
             ret = AclopCompileAndExecuteV2(
@@ -218,7 +215,7 @@ aclError OpCommandImpl::InnerRun(
                 ACL_COMPILE_SYS,
                 NULL,
                 stream);
-            OPS_CHECK_ERROR(ret);
+            OPS_CHECK_ERROR(ret, name.c_str());
             for (size_t i = 0; i < sync_index.size(); i++) {
                 c10::SmallVector<int64_t, N> real_shape;
                 for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {

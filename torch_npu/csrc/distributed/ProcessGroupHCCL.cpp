@@ -1375,7 +1375,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
             // insert sync point fluxLimit(key, i)
             c10_npu::NPUStream& hcclStream = hcclStreams[i];
             hcclUs startut = TIME_NOW();
-            HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream));
+            HCCL_CHECK_ERROR(fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream), opTypeToString(opType).c_str());
             if (c10_npu::option::OptionsManager::GetMultiStreamMemoryReuse() == c10_npu::option::ERASE_RECORD_STREAM) {
                 work->recorded_outputs_.push_back(
                     std::make_pair(outputs[i].storage().getWeakStorageImpl(), hcclStream));
