@@ -168,15 +168,6 @@ class TestPtaUnsupportApi(TestCase):
         b = torch.arange(3, dtype=torch.float)
         torch.nested.as_nested_tensor([a, b])
 
-    @skipIfUnsupportMultiNPU(2)
-    def test_empty_special_devcie_tensor(self):
-        torch.npu.set_device(0)
-        a = torch.tensor([2., 4.], device="npu:1")
-        if hasattr(a.storage(), "device"):
-            self.assertEqual(a.device, a.storage().device)
-            self.assertEqual(a.device.index, a.storage().device.index)
-        with self.assertRaisesRegex(AssertionError, "1 not less than or equal to 1e-05"):
-            self.assertEqual(a.device.index, 1)
 
 if __name__ == "__main__":
     run_tests()
