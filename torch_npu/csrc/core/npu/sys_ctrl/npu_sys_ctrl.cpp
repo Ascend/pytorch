@@ -174,7 +174,7 @@ NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), devic
         repeat_init_acl_flag_ = false;
         ASCEND_LOGI("acl has allready init by other component.");
     } else if (init_ret != ACL_ERROR_NONE) {
-        NPU_CHECK_ERROR(init_ret);
+        NPU_CHECK_ERROR(init_ret, "aclInit");
     }
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
