@@ -24,6 +24,7 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910B2C", SocVersion::Ascend910B2C},
     {"Ascend910B3", SocVersion::Ascend910B3},
     {"Ascend910B4", SocVersion::Ascend910B4},
+    {"Ascend910B4-1", SocVersion::Ascend910B4_1},
     {"Ascend310B1", SocVersion::Ascend310B1},
     {"Ascend310B2", SocVersion::Ascend310B2},
     {"Ascend310B3", SocVersion::Ascend310B3},
@@ -32,6 +33,7 @@ static std::map<std::string, SocVersion> socVersionMap = {
     {"Ascend910C2", SocVersion::Ascend910C2},
     {"Ascend910C3", SocVersion::Ascend910C3},
     {"Ascend910C4", SocVersion::Ascend910C4},
+    {"Ascend910C4-1", SocVersion::Ascend910C4_1},
     {"Ascend910D1", SocVersion::Ascend910D1}};
 
 void SetSocVersion(const char* const socVersion) {
