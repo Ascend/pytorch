@@ -178,8 +178,8 @@ void EventTask::LaunchLazyDestroyTask(c10::DeviceIndex device_index) {
     at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(1, EventParas::EVENT_PARAS_MAP[LAZY_DESTROY_EVENT], params.correlation_id);
 #endif
   } else {
-    NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().LazyDestroy(
-        eventParam_.event));
+    NPU_CHECK_ERROR(c10_npu::NPUEventManager::GetInstance().LazyDestroy(eventParam_.event),
+                    "aclrtDestroyEvent");
   }
 }
 

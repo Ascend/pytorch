@@ -121,7 +121,7 @@ void copy_between_host_and_device(
     NPU_CHECK_ERROR(ret);
     ASCEND_LOGD("non_blocking copy without StreamSynchronize.");
     void* ptr = torch_npu::utils::is_npu(dst) ? src.data_ptr() : dst.data_ptr();
-    NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream));
+    NPU_CHECK_ERROR(THNPUCachingHostAllocator_recordEvent(ptr, stream), "aclrtSynchronizeStreamWithTimeout");
   } else {
     aclError error = c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream);
     auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
@@ -130,7 +130,7 @@ void copy_between_host_and_device(
         std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
         nbytes,
         kind);
-    NPU_CHECK_ERROR(ret);
+    NPU_CHECK_ERROR(ret, "aclrtMemcpy");
     if (error != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();
       if (c10_npu::option::OptionsManager::IsResumeModeEnable()) {
