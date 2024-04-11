@@ -16,7 +16,6 @@ from .batchnorm_with_int32_count import FastBatchNorm1d, \
     FastBatchNorm2d, FastBatchNorm3d, FastSyncBatchNorm
 from .linear_a8w8_quant import LinearA8W8Quant
 from .linear_weight_quant import LinearWeightQuant
-from .quant_conv2d import QuantConv2d
 
 __all__ = [
     "ChannelShuffle",
@@ -39,5 +38,4 @@ __all__ = [
     "Focus",
     "LinearA8W8Quant",
     "LinearWeightQuant",
-    "QuantConv2d",
 ]
