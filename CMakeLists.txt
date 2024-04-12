@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
+find_program(CCACHE ccache)
+if(${CCACHE} STREQUAL "CCACHE-NOTFOUND")
+  message(STATUS "Compile without ccache")
+else()
+  set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE} CACHE PATH "cache Compiler")
+  set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE} CACHE PATH "cache Compiler")
+  message(STATUS "CMAKE_C_COMPILER_LAUNCHER:${CMAKE_C_COMPILER_LAUNCHER}")
+  message(STATUS "CMAKE_CXX_COMPILER_LAUNCHER:${CMAKE_CXX_COMPILER_LAUNCHER}")
+endif()
+
 project(TORCHNPU CXX C)
 
 set(LINUX TRUE)
