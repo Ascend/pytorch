@@ -209,8 +209,8 @@ class FwkFileParser:
             if node.get('start') and node.get('end'):
                 fwb_op_id = node['start']['idx']
                 bwd_op_id = node['end']['idx']
-                torch_op_apis[fwb_op_id][3] = start_connection_id
-                torch_op_apis[bwd_op_id][3] = start_connection_id
+                torch_op_apis[fwb_op_id][3].append(start_connection_id)
+                torch_op_apis[bwd_op_id][3].append(start_connection_id)
                 
                 start_connection_id += 1
 
@@ -223,7 +223,7 @@ class FwkFileParser:
         fwd_bwd_dict = {}
         torch_op_idx = 0
         for torch_op in torch_op_data:
-            torch_api_api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), None, torch_op.name,
+            torch_api_api = [torch_op.ts, torch_op.end_ns, contact_2num(pid, torch_op.tid), [], torch_op.name,
                              torch_op.args.get(Constant.SEQUENCE_UNMBER, -1), torch_op.args.get(Constant.FORWORD_THREAD_ID),
                              torch_op.args.get(Constant.INPUT_SHAPES), torch_op.args.get(Constant.INPUT_DTYPES), torch_op.call_stack]
             torch_op_apis.append(torch_api_api)
