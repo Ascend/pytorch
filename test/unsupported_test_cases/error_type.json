@@ -4,5 +4,6 @@
   "MEMORY": "memory error",
   "NOT_SUPPORT": "feature or operators cannot be supported",
   "HCCL": "hccl error",
+  "ERROR_MSG_UNMATCH": "the RuntimeError string does not match",
   "OTHER": "other errors"
 }

@@ -4175,7 +4175,7 @@ else:
 
             expected = a + (alpha * b) / c
             actual = torch.addcdiv(a, b, c, value=alpha)
-            self.assertEqual(expected, actual.float())
+            self.assertEqual(expected, actual)
 
             with self.assertWarnsOnceRegex(
                     UserWarning, "This overload of addcdiv is deprecated"):
