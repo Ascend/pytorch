@@ -32,7 +32,7 @@ torch_cuda_fn_white_list = [
     'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
-    'reset_peak_memory_stats', 'device'
+    'reset_peak_memory_stats'
 ]
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location']
@@ -229,6 +229,7 @@ def init():
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+    torch.cuda.device.__init__ = wrapper_cuda(torch.cuda.device.__init__)
 
     # torch.profiler.*
     patch_profiler()
@@ -236,6 +237,7 @@ def init():
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
+    torch.UntypedStorage.__new__ = wrapper_cuda(torch.UntypedStorage.__new__)
 
     # torch.Tensor.*
     device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
