@@ -525,6 +525,12 @@ def npu_quantize_meta(self, scales, zero_points, dtype, axis=1):
     return torch.empty_like(self, dtype=torch.int8)
 
 
+@impl(m, "npu_moe_compute_expert_tokens")
+def npu_moe_compute_expert_tokens_meta(sorted_experts, num_experts=1):
+    out = torch.zeros(num_experts, dtype=torch.int32, device='meta')
+    return torch.empty_like(out)
+
+
 @impl(m, "npu_anti_quant")
 def npu_anti_quant_meta(x, scale, *, offset=None, dst_dtype=None, src_dtype=None):
     if dst_dtype is None:

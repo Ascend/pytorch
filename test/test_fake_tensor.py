@@ -1240,6 +1240,19 @@ class TestPromptFlashAttention(TestCase):
             self.assertTrue(q.shape == res.shape)
 
 
+class TestNpuMoeComputeExpertTokens(TestCase):
+    def test_npu_moe_compute_expert_tokens(self):
+        with FakeTensorMode():
+            data = list(range(10))
+            experts = torch.tensor(data, dtype=torch.int32).npu()
+            sorted_experts = torch.sort(experts)[0]
+            num_experts = 10
+            ret = torch.ops.npu.npu_moe_compute_expert_tokens(sorted_experts, num_experts)
+
+            self.assertEqual(sorted_experts.shape, ret.shape)
+            self.assertEqual(sorted_experts.dtype, ret.dtype)
+
+
 class TestMaskedSoftmaxWithRelPosBias(TestCase):
     # meta shape推导
     def testMaskedSoftmaxWithRelPosBias(self):
