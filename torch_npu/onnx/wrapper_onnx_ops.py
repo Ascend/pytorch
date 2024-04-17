@@ -863,6 +863,19 @@ class NPUMoeInitRoutingOP(torch.autograd.Function):
         return g.op("npu::NPUMoeInitRouting", x, row_idx, export_id, active_num_i=active_num, outputs=3)
 
 
+class NPUMoeComputeExpertTokensOP(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_moe_compute_expert_tokens(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g,
+                 sorted_experts: torch.Tensor,
+                 num_experts: int = 1):
+        return g.op("npu::NPUMoeComputeExpertTokens", sorted_experts, num_experts)
+
+
 class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
 
     @staticmethod
@@ -1190,6 +1203,10 @@ def wrapper_npu_moe_init_routing(x, row_idx, expert_idx, active_num):
     return NPUMoeInitRoutingOP.apply(x, row_idx, expert_idx, active_num)
 
 
+def wrapper_npu_moe_compute_expert_tokens(sorted_experts, num_experts=1):
+    return NPUMoeComputeExpertTokensOP.apply(sorted_experts, num_experts)
+
+
 def wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
                                       scales, expanded_src_to_dst_row, expert_for_source_row):
     return NPUMoeFinalizeRoutingOP.apply(expanded_permuted_rows, skip1, skip2_optional, bias,
@@ -1260,5 +1277,6 @@ def add_onnx_ops():
     torch_npu.npu_anti_quant = wrapper_npu_anti_quant
     torch_npu.npu_quantize = wrapper_npu_quantize
     torch_npu.npu_moe_init_routing = wrapper_npu_moe_init_routing
+    torch_npu.npu_moe_compute_expert_tokens = wrapper_npu_moe_compute_expert_tokens
     torch_npu.npu_moe_finalize_routing = wrapper_npu_moe_finalize_routing
     torch_npu.npu_moe_gating_top_k_softmax = wrapper_npu_moe_gating_top_k_softmax

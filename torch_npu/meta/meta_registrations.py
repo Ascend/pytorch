@@ -526,6 +526,12 @@ def quant_matmul_scale_offset_out_check(scale, offset, pertoken_scale, output_dt
         )
 
 
+@impl(m, "npu_moe_compute_expert_tokens")
+def npu_moe_compute_expert_tokens_meta(sorted_experts, num_experts=1):
+    out = torch.zeros(num_experts, dtype=torch.int32, device='meta')
+    return torch.empty_like(out)
+
+
 @impl(m, "npu_quant_matmul")
 def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bias=None, output_dtype=None):
     batch_val = 1
