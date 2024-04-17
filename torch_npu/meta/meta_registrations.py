@@ -516,6 +516,12 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
         raise RuntimeError("Not supportted output dtype is " + str(output_dtype))
 
 
+@impl(m, "npu_moe_compute_expert_tokens")
+def npu_moe_compute_expert_tokens_meta(sorted_experts, num_experts=1):
+    out = torch.zeros(num_experts, dtype=torch.int32, device='meta')
+    return torch.empty_like(out)
+
+
 @impl(m, "npu_trans_quant_param")
 def npu_trans_quant_param_meta(scale, offset=None):
     scale_dim_num = scale.dim()

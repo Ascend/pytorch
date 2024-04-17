@@ -1150,6 +1150,28 @@ class TestOnnxOps(TestCase):
                 return torch_npu.npu_scaled_masked_softmax(input_, mask,
                                                            scale, fixed_triu_mask)
 
+    @SupportedDevices(['Ascend910B'])
+    def test_wrapper_npu_moe_compute_expert_tokens(self):
+        class Model(torch.nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def forward(self, sorted_experts, num_experts):
+                return torch_npu.npu_moe_compute_expert_tokens(sorted_experts, num_experts)
+            
+        def export_onnx(onnx_model_name):
+            data = list(range(10))
+            experts = torch.tensor(data, dtype=torch.int32).npu()
+            sorted_experts = torch.sort(experts)[0]
+            num_experts = torch.randint(low=1, high=11, size=(1,))
+            model = Model().to("npu")
+            model(sorted_experts, num_experts)
+            self.onnx_export(model, (sorted_experts, num_experts), onnx_model_name)
+        onnx_model_name = "model_moe_compute_expert_tokens.onnx"
+        export_onnx(onnx_model_name)
+        assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
+                                            onnx_model_name))) 
+
         def export_onnx(onnx_model_name):
             input_ = torch.rand((4, 3, 64, 64)).npu()
             mask = torch.rand((4, 3, 64, 64)).npu() > 0
