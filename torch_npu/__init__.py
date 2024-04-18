@@ -154,9 +154,20 @@ _asd_patch()
 # this must be placed at the end
 torch_npu._C._initExtension()
 
+
+def _new_process_group_hccl_helper(dist_backend_opts, pg_options):
+    store = dist_backend_opts.store
+    group_rank = dist_backend_opts.group_rank
+    group_size = dist_backend_opts.group_size
+    timeout = dist_backend_opts.timeout
+    # global_ranks_in_group is used for further processGroup code updates and is not currently used.
+    global_ranks_in_group = dist_backend_opts.global_ranks_in_group
+    return torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout)
+
+
 # init and register hccl backend
-torch.distributed.Backend.register_backend("hccl", lambda store, group_rank, group_size, timeout:
-    torch_npu._C._distributed_c10d.ProcessGroupHCCL(store, group_rank, group_size, timeout), devices=["npu"])
+torch.distributed.Backend.register_backend("hccl", lambda dist_backend_opts, pg_options:
+    _new_process_group_hccl_helper(dist_backend_opts, pg_options), extended_api=True, devices=["npu"])
 
 
 # set default device type for gradient checkpointing
