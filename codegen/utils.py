@@ -18,6 +18,7 @@ import sys
 import stat
 import traceback
 import warnings
+import itertools
 from typing import List, Optional, Set, Dict, Union, Sequence
 from collections import defaultdict
 import yaml
@@ -35,11 +36,13 @@ from torchgen.model import (
     NativeFunctionsGroup,
     FunctionSchema,
     OperatorName,
+    TensorOptionsArguments
 )
 from torchgen.api import cpp
 from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
 from torchgen.utils import Target
+from torchgen.dest.register_dispatch_key import RegisterDispatchKey
 
 GLOBAL_STRUCTURED_OP_INFO_CACHE = defaultdict(str)
 GLOBAL_OPAPI_INFO_CACHE = set()
