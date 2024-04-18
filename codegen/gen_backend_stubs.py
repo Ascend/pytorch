@@ -68,7 +68,7 @@ def create_backend_index(backend_ops: List[str],
         dispatch_key=dispatch_key,
         use_out_as_primary=False,
         external=True,
-        device_guard=False,
+        device_guard=True,
         index=metadata)
 
 
@@ -149,7 +149,7 @@ def parse_native_and_custom_yaml(path: str, tag_path: str, custom_path: str) -> 
         indices: Dict[DispatchKey, BackendIndex] = defaultdict(lambda: BackendIndex(
             dispatch_key=DispatchKey.Undefined,
             use_out_as_primary=True,
-            device_guard=False,
+            device_guard=True,
             external=False,
             index={}))
         add_generated_native_functions(rs, bs)
@@ -590,7 +590,7 @@ def gen_target_registration(
         dispatch_key=dispatch_key,
         use_out_as_primary=False,
         external=True,
-        device_guard=False,
+        device_guard=True,
         index=metadata)
 
     native_registration = get_target_native_registration(dispatch_key, backend_indices, metadata, native_functions)
