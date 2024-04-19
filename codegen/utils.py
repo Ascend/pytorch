@@ -529,6 +529,8 @@ def get_target_native_registration(
 
     target_native_functions_kernels = {}
     for op_name in cpu_backend_indices.index.keys():
+        if op_name not in cuda_backend_indices.index.keys():
+            continue
         if cpu_backend_indices.index[op_name].kernel == cuda_backend_indices.index[op_name].kernel \
                 and op_name not in metadata.keys():
             target_native_functions_kernels[op_name] = cpu_backend_indices.index[op_name].kernel

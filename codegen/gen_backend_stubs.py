@@ -712,6 +712,17 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
             native_functions
         )
 
+        gen_target_registration(
+            "sparse_csr",
+            DispatchKey.SparseCsrPrivateUse1,
+            backend_indices,
+            grouped_native_functions,
+            op_plugin_yaml_path,
+            fm,
+            selector,
+            native_functions
+        )
+
 
 def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
