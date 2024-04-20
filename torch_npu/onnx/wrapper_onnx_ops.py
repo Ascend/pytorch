@@ -844,7 +844,7 @@ class NPUMoeComputeExpertTokensOP(torch.autograd.Function):
     def symbolic(g,
                  sorted_experts: torch.Tensor,
                  num_experts: int = 1):
-        return g.op("npu::NPUMoeComputeExpertTokens", sorted_experts, num_experts)
+        return g.op("npu::NPUMoeComputeExpertTokens", sorted_experts, num_experts_i=num_experts)
 
 
 def wrapper_npu_masked_softmax_with_rel_pos_bias(x, atten_mask, relative_pos_bias, scale_value=1.0, inner_precision_mode=0):
