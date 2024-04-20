@@ -828,7 +828,7 @@ class NPUMoeComputeExpertTokensOP(torch.autograd.Function):
     def symbolic(g,
                  sorted_experts: torch.Tensor,
                  num_experts: int = 1):
-        return g.op("npu::NPUMoeComputeExpertTokens", sorted_experts, num_experts)
+        return g.op("npu::NPUMoeComputeExpertTokens", sorted_experts, num_experts_i=num_experts)
 
 
 class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
