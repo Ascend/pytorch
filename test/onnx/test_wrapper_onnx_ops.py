@@ -1145,17 +1145,16 @@ class TestOnnxOps(TestCase):
             def __init__(self):
                 super(Model, self).__init__()
 
-            def forward(self, sorted_experts, num_experts):
-                return torch_npu.npu_moe_compute_expert_tokens(sorted_experts, num_experts)
+            def forward(self, sorted_experts):
+                return torch_npu.npu_moe_compute_expert_tokens(sorted_experts, num_experts=5)
             
         def export_onnx(onnx_model_name):
-            data = list(range(10))
+            data = list(range(20))
             experts = torch.tensor(data, dtype=torch.int32).npu()
             sorted_experts = torch.sort(experts)[0]
-            num_experts = torch.randint(low=1, high=11, size=(1,))
             model = Model().to("npu")
-            model(sorted_experts, num_experts)
-            self.onnx_export(model, (sorted_experts, num_experts), onnx_model_name)
+            model(sorted_experts)
+            self.onnx_export(model, (sorted_experts), onnx_model_name)
         onnx_model_name = "model_moe_compute_expert_tokens.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path,
