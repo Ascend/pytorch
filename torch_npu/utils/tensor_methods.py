@@ -6,7 +6,10 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, pta_error
 
 
-def wrap_tensor_error_func(func):
+__all__ = ["npu_dtype_cast", "npu_confusion_transpose"]
+
+
+def _wrap_tensor_error_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         raise RuntimeError(f"torch.Tensor.{func.__name__} is deprecated and "
@@ -15,37 +18,37 @@ def wrap_tensor_error_func(func):
     return wrapper
 
 
-@wrap_tensor_error_func
-def npu_format_cast_(self, format_or_tensor):
+@_wrap_tensor_error_func
+def _npu_format_cast_(self, format_or_tensor):
     return torch_npu.npu_format_cast_(self, format_or_tensor)
 
 
-@wrap_tensor_error_func
-def npu_format_cast(self, format_or_tensor):
+@_wrap_tensor_error_func
+def _npu_format_cast(self, format_or_tensor):
     return torch_npu.npu_format_cast(self, format_or_tensor)
 
 
-@wrap_tensor_error_func
+@_wrap_tensor_error_func
 def npu_dtype_cast(self, dtype):
     return torch_npu.npu_dtype_cast(self, dtype)
 
 
-@wrap_tensor_error_func
-def npu_dtype_cast_(self, other):
+@_wrap_tensor_error_func
+def _npu_dtype_cast_(self, other):
     return torch_npu.npu_dtype_cast_(self, other)
 
 
-@wrap_tensor_error_func
-def copy_memory_(self, src, non_blocking=False):
+@_wrap_tensor_error_func
+def _copy_memory_(self, src, non_blocking=False):
     return torch_npu.copy_memory_(self, src, non_blocking)
 
 
-@wrap_tensor_error_func
-def one_(self):
+@_wrap_tensor_error_func
+def _one_(self):
     return torch_npu.one_(self)
 
 
-@wrap_tensor_error_func
+@_wrap_tensor_error_func
 def npu_confusion_transpose(self, perm, shape, transpose_first):
     return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
@@ -59,7 +62,7 @@ def _is_npu(self):
     return torch_npu._C.is_npu(self)
 
 
-class NPUTensortypeCache(object):
+class _NPUTensortypeCache(object):
     init = False
     tensortype_list = []
     tensortype_dict = {}
@@ -108,27 +111,27 @@ class NPUTensortypeCache(object):
         return cls.tensortype_dict
 
 
-def npu_type(self, dtype=None, non_blocking=False, **kwargs):
+def _npu_type(self, dtype=None, non_blocking=False, **kwargs):
     if dtype is None:
         return self.type_raw(dtype, non_blocking, **kwargs)
 
-    NPUTensortypeCache.tensortype_list_dict_init()
-    if isinstance(dtype, str) and dtype in NPUTensortypeCache.get_tensortype_dict():
-        tensortype_class = NPUTensortypeCache.get_tensortype_dict()[dtype]
+    _NPUTensortypeCache.tensortype_list_dict_init()
+    if isinstance(dtype, str) and dtype in _NPUTensortypeCache.get_tensortype_dict():
+        tensortype_class = _NPUTensortypeCache.get_tensortype_dict()[dtype]
         return self.to(dtype=tensortype_class.dtype, device='npu', non_blocking=non_blocking)
-    elif dtype in NPUTensortypeCache.get_tensortype_list():
+    elif dtype in _NPUTensortypeCache.get_tensortype_list():
         return self.to(dtype=dtype.dtype, device='npu', non_blocking=non_blocking)
     else:
         return self.type_raw(dtype, non_blocking, **kwargs)
 
 
-def add_tensor_methods():
-    torch.Tensor.npu_format_cast_ = npu_format_cast_
-    torch.Tensor.npu_format_cast = npu_format_cast
+def _add_tensor_methods():
+    torch.Tensor.npu_format_cast_ = _npu_format_cast_
+    torch.Tensor.npu_format_cast = _npu_format_cast
     torch.Tensor.npu_dtype_cast = npu_dtype_cast
-    torch.Tensor.npu_dtype_cast_ = npu_dtype_cast_
-    torch.Tensor.copy_memory_ = copy_memory_
-    torch.Tensor.one_ = one_
+    torch.Tensor.npu_dtype_cast_ = _npu_dtype_cast_
+    torch.Tensor.copy_memory_ = _copy_memory_
+    torch.Tensor.one_ = _one_
     torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
     torch.Tensor.type_raw = torch.Tensor.type
-    torch.Tensor.type = npu_type
+    torch.Tensor.type = _npu_type

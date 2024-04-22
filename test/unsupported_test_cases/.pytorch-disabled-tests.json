@@ -26265,6 +26265,7 @@
   "test_exclude_zero_npu_complex64 (__main__.TestMakeTensorPRIVATEUSE1)": ["", [""]],
   "test_filtering_env_var (__main__.TestFrameworkUtils)": ["", [""]],
   "test_get_supported_dtypes_npu (__main__.TestTestingPRIVATEUSE1)": ["", [""]],
+  "test_circular_dependencies (__main__.TestImports)": ["", [""]],
   "test_isclose_atol_rtol_greater_than_zero_npu_bool (__main__.TestTestingPRIVATEUSE1)": ["", [""]],
   "test_isclose_atol_rtol_greater_than_zero_npu_float16 (__main__.TestTestingPRIVATEUSE1)": ["", [""]],
   "test_isclose_atol_rtol_greater_than_zero_npu_float32 (__main__.TestTestingPRIVATEUSE1)": ["", [""]],

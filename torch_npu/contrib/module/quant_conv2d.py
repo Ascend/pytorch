@@ -7,6 +7,8 @@ from torch.nn.parameter import Parameter
 from torch.nn.modules.utils import _pair
 import torch_npu
 
+__all__ = ['QuantConv2d']
+
 
 class QuantConv2d(nn.Module):
 

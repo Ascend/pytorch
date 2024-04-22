@@ -3,7 +3,10 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
 
-class RollWithIndexSelect(torch.autograd.Function):
+__all__ = ["roll"]
+
+
+class _RollWithIndexSelect(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input1, index_fp, index_bp):
         N, H, W, C = input1.shape
@@ -21,10 +24,10 @@ class RollWithIndexSelect(torch.autograd.Function):
         return grad_input, None, None
 
 
-roll_with_index_select = RollWithIndexSelect.apply
+_roll_with_index_select = _RollWithIndexSelect.apply
 
 
-def get_roll_index(H, W, shifts, device='cpu'):
+def _get_roll_index(H, W, shifts, device='cpu'):
     index = torch.arange(0, H * W).reshape(H, W)
     index_fp = torch.roll(index, shifts=shifts, dims=(0, 1)).reshape(-1).long()
     index_bp_dict = {i:idx for idx, i in enumerate(index_fp.numpy().tolist())}
@@ -33,7 +36,7 @@ def get_roll_index(H, W, shifts, device='cpu'):
     return [index_fp.to(device), index_bp.to(device)]
 
 
-class NpuRollWithIndexSelect():
+class _NpuRollWithIndexSelect():
     """Using NPU affinity writing method to replace the native roll in swin-transformer.
 
     This interface is faster than the original on NPU.
@@ -66,9 +69,9 @@ class NpuRollWithIndexSelect():
         N, H, W, C = x.shape
         key = (H, W, shifts, dims)
         if key not in self.index_dict:
-            self.index_dict[key] = get_roll_index(H, W, shifts, device=x.device)
+            self.index_dict[key] = _get_roll_index(H, W, shifts, device=x.device)
         index_fp, index_bp = self.index_dict[key]
-        return roll_with_index_select(x, index_fp, index_bp)
+        return _roll_with_index_select(x, index_fp, index_bp)
 
 
-roll = NpuRollWithIndexSelect()
+roll = _NpuRollWithIndexSelect()

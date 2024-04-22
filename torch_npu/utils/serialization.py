@@ -17,6 +17,8 @@ ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
 save_async_stream_map = {}
 
+__all__ = ["load", "save", "save_async"]
+
 
 def _get_always_warn_legacy_serialization():
     return ALWAYS_WARN_LEGACY_SERIALIZATION
@@ -117,7 +119,7 @@ def _remap_result(cpu_result, map_location):
         return cpu_result
 
 
-def update_cpu_remap_info(map_location):
+def _update_cpu_remap_info(map_location):
     global RE_MAP_CPU
     RE_MAP_CPU = False
     if isinstance(map_location, (str, torch.device)) and 'cpu' in str(map_location):
@@ -133,7 +135,7 @@ def load(
     mmap: Optional[bool] = None,
     **pickle_load_args: Any
 ) -> Any:
-    update_cpu_remap_info(map_location)
+    _update_cpu_remap_info(map_location)
     torch._C._log_api_usage_once("torch.load")
     UNSAFE_MESSAGE = (
         "Weights only load failed. Re-running `torch.load` with `weights_only` set to `False`"
@@ -274,11 +276,11 @@ def save_async(
     save_args = (obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization, _disable_byteorder_record)
 
     device = torch.npu.current_device()
-    save_thread = threading.Thread(target=save_data_thread, args=(save_args, device, model))
+    save_thread = threading.Thread(target=_save_data_thread, args=(save_args, device, model))
     save_thread.start()
 
 
-def save_data_thread(save_args,
+def _save_data_thread(save_args,
                      device,
                      model: torch.nn.Module = None):
     global save_async_stream_map
@@ -382,6 +384,6 @@ def _save(obj, pickle_module, pickle_protocol):
     return data_value, serialized_storages
 
 
-def add_serialization_methods():
+def _add_serialization_methods():
     torch.save = save
     torch.load = load

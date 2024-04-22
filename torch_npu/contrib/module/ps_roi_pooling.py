@@ -3,6 +3,8 @@ from torch import nn
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
+__all__ = ['PSROIPool']
+
 
 class PSROIPool(nn.Module):
     def __init__(self, pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22):

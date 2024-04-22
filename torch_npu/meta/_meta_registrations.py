@@ -42,12 +42,12 @@ def npu_prompt_flash_attention_forward(query, key, value, *, padding_mask=None, 
 
 
 @impl(m, "npu_fused_infer_attention_score")
-def npu_fused_infer_attention_score_forward(query, key, value, *, pse_shift = None, atten_mask = None, actual_seq_lengths = None, actual_seq_lengths_kv = None,
-                                      dequant_scale1 = None, quant_scale1 = None, dequant_scale2 = None, quant_scale2 = None,
-                                      quant_offset2 = None, antiquant_scale = None, antiquant_offset = None, block_table = None,
-                                      query_padding_size = None, kv_padding_size = None,
-                                      num_heads = 1, scale = 1.0, pre_tokens = 2147483647, next_tokens = 2147483647, input_layout = "BSH", num_key_value_heads = 0,
-                                      sparse_mode = 0, inner_precise = 0, block_size = 0, antiquant_mode = 0, softmax_lse_flag = False):
+def npu_fused_infer_attention_score_forward(query, key, value, *, pse_shift=None, atten_mask=None, actual_seq_lengths=None, actual_seq_lengths_kv=None,
+                                      dequant_scale1=None, quant_scale1=None, dequant_scale2=None, quant_scale2=None,
+                                      quant_offset2=None, antiquant_scale=None, antiquant_offset=None, block_table=None,
+                                      query_padding_size=None, kv_padding_size=None,
+                                      num_heads=1, scale=1.0, pre_tokens=2147483647, next_tokens=2147483647, input_layout="BSH", num_key_value_heads=0,
+                                      sparse_mode=0, inner_precise=0, block_size=0, antiquant_mode=0, softmax_lse_flag=False):
     tmp_out = torch.empty_like(query, dtype=query.dtype, device='meta')
     if input_layout == "BNSD_BSND":
         tmp_out = torch.empty([query.size(0), query.size(2), query.size(1), query.size(3)], dtype=query.dtype, device='meta')
@@ -672,14 +672,14 @@ def npu_apply_rotary_pos_emb_meta(query, key, cos, sin, layout=1):
 
 
 @impl(m, "npu_quant_conv2d")
-def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
+def npu_quant_conv2d(input_, weight, scale, strides, pads, dilations,
                      groups=1, offset_x=0, round_mode='rint', output_dtype=None, bias=None, offset=None):
 
-    input_shape = input.size()
+    input_shape = input_.size()
     weight_shape = weight.size()
     scale_shape = scale.size()
 
-    input_dim = input.dim()
+    input_dim = input_.dim()
     weight_dim = weight.dim()
     scale_dim = scale.dim()
 
@@ -710,8 +710,8 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
 
     def check_basic_inputs_dtype():
         torch._check(
-            input.dtype == torch.int8 and weight.dtype == torch.int8,
-            lambda: "input's dtype and weight's dtype should be int8, but input.dtype is " + str(input.dtype) + ", and weight.dtype is " +
+            input_.dtype == torch.int8 and weight.dtype == torch.int8,
+            lambda: "input's dtype and weight's dtype should be int8, but input.dtype is " + str(input_.dtype) + ", and weight.dtype is " +
                     str(weight.dtype),
         )
 
@@ -735,7 +735,7 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
 
         torch._check(
             bias.dtype == torch.int32,
-            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input.dtype),
+            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input_.dtype),
         )
 
         torch._check(
@@ -804,10 +804,10 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
 
 
 @impl(m, "npu_linear")
-def npu_linear_meta(input, weight, bias=None):
-    dimm = input.size(0)
+def npu_linear_meta(input_, weight, bias=None):
+    dimm = input_.size(0)
     dimn = weight.size(0)
-    return input.new_empty((dimm, dimn))
+    return input_.new_empty((dimm, dimn))
 
 
 @impl(m, "npu_moe_finalize_routing")

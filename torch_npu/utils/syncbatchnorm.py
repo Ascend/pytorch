@@ -6,6 +6,9 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
 
+__all__ = ["SyncBatchNorm"]
+
+
 class SyncBatchNorm(Function):
 
     @staticmethod

@@ -21,6 +21,9 @@ import warnings
 from torch_npu.utils.error_code import ErrCode, pta_error
 
 
+__all__ = ['PathManager']
+
+
 class PathManager:
     MAX_PATH_LENGTH = 4096
     MAX_FILE_NAME_LENGTH = 255

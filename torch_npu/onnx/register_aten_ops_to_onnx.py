@@ -9,6 +9,8 @@ from torch.onnx.symbolic_opset9 import sub, mul, add, pow, sqrt, reciprocal
 
 _onnx_symbolic = functools.partial(registration.onnx_symbolic, opset=11)
 
+__all__ = ["native_layer_norm"]
+
 
 @_onnx_symbolic("aten::native_layer_norm")
 @symbolic_helper.quantized_args(True, False, False, False)

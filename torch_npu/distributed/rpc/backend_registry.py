@@ -9,6 +9,8 @@ from torch.distributed.rpc import constants as rpc_constants
 import torch_npu._C
 from torch_npu.utils.error_code import ErrCode, dist_error
 
+__all__ = ["construct_rpc_backend_options", "init_backend"]
+
 
 def _get_device_count_info():
     # Function used to replace torch.cuda.device_count in torch_npu
