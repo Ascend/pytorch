@@ -2922,5 +2922,12 @@
   ],
   "torch_npu.profiler.analysis.prof_view.prof_db_parse.trace_step_time_db_parser": [
     "TraceStepTimeDbParser"
+  ],
+  "torch_npu.dynamo.torchair": [
+    "CompilerConfig",
+    "dynamo_export",
+    "get_compiler",
+    "get_npu_backend",
+    "use_internal_format_weight"
   ]
 }
