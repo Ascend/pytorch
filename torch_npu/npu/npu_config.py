@@ -10,7 +10,7 @@ from torch_npu.utils.error_code import ErrCode, pta_error, prof_error
 
 __all__ = ["set_option", "set_aoe", 
            "set_compile_mode", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
-           "is_jit_compile_false"]
+           "is_jit_compile_false", "finalize_dump", "init_dump", "set_dump"]
 
 _option_map = {"ACL_PRECISION_MODE": ["allow_fp32_to_fp16", "must_keep_origin_dtype"],
                "ACL_OP_SELECT_IMPL_MODE": ["high_performance", "high_precision"],
@@ -130,7 +130,7 @@ def is_jit_compile_false() -> bool:
     return torch_npu._C._npu_is_jit_compile_false()
 
 
-class npuConfig:
+class _npuConfig:
     @classmethod
     def __setattr__(cls, name, value):
         if name == "allow_internal_format":
@@ -138,7 +138,7 @@ class npuConfig:
             torch_npu._C._npu_setOption(option)
 
 
-class allowHF32Matmul:
+class _allowHF32Matmul:
     @classmethod
     def __setattr__(cls, name, value):
         if name == "allow_hf32":
@@ -153,7 +153,7 @@ class allowHF32Matmul:
         return None
 
 
-class allowHF32Conv:
+class _allowHF32Conv:
     @classmethod
     def __setattr__(cls, name, value):
         if name == "allow_hf32":

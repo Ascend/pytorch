@@ -304,7 +304,7 @@ def _write_data(
         return fut
 
 
-def apply_dcp_patch():
+def _apply_dcp_patch():
     _OverlappingCpuLoader.__init__ = _dcp_loader_init
     torch.distributed.checkpoint.optimizer.load_sharded_optimizer_state_dict = _load_sharded_optimizer_state_dict
     torch.distributed.checkpoint.FileSystemWriter.write_data = _write_data

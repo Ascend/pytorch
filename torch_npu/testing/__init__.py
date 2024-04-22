@@ -48,7 +48,7 @@ if DISABLED_TESTS_FILE:
         warnings.warn(f'disabled test file provided but not found: {DISABLED_TESTS_FILE}')
 
 
-def check_if_enable_npu(test: unittest.TestCase):
+def _check_if_enable_npu(test: unittest.TestCase):
     classname = str(test.__class__).split("'")[1].split(".")[-1]
     sanitized_testname = remove_device_and_dtype_suffixes(test._testMethodName)
 
@@ -208,13 +208,13 @@ def _test_for_npu():
     common_device_type.instantiate_device_type_tests = _instantiate_device_type_tests
 
 
-def apply_test_patchs():
+def _apply_test_patchs():
     update_skip_list()
     OpInfo.get_decorators = get_decorators
     OpInfo.supported_dtypes = _supported_dtypes
     OpInfo.supported_backward_dtypes = _supported_backward_dtypes
-    common_utils.check_if_enable = check_if_enable_npu
+    common_utils.check_if_enable = _check_if_enable_npu
 
 #apply test_ops related patch
-apply_test_patchs()
+_apply_test_patchs()
 _test_for_npu()

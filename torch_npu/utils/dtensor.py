@@ -10,6 +10,8 @@ from torch.distributed._tensor.ops.view_ops import (
 )
 import torch_npu
 
+__all__ = []
+
 
 def _register_ops_under_dtensor_rules():
     npu = torch.ops.npu

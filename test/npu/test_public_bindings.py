@@ -13,6 +13,243 @@ import torch_npu
 import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS
 
+tempFilter = {
+    "torch_npu.contrib.FastBatchNorm1d",
+    "torch_npu.contrib.FastBatchNorm2d",
+    "torch_npu.contrib.FastBatchNorm3d",
+    "torch_npu.contrib.FastSyncBatchNorm",
+    "torch_npu.contrib.module.FastBatchNorm1d",
+    "torch_npu.contrib.module.FastBatchNorm2d",
+    "torch_npu.contrib.module.FastBatchNorm3d",
+    "torch_npu.contrib.module.FastSyncBatchNorm",
+    "torch_npu.contrib.transfer_to_npu.wraps",
+    "torch_npu.dynamo.torchair.CompilerConfig",
+    "torch_npu.dynamo.torchair.dynamo_export",
+    "torch_npu.dynamo.torchair.get_compiler",
+    "torch_npu.dynamo.torchair.get_npu_backend",
+    "torch_npu.dynamo.torchair.load_graph",
+    "torch_npu.dynamo.torchair.save_graph",
+    "torch_npu.dynamo.torchair.use_internal_format_weight",
+    "torch_npu.dynamo.torchair.compiled_model.Any",
+    "torch_npu.dynamo.torchair.compiled_model.Callable",
+    "torch_npu.dynamo.torchair.compiled_model.CompiledModel",
+    "torch_npu.dynamo.torchair.compiled_model.CompilerConfig",
+    "torch_npu.dynamo.torchair.compiled_model.Dict",
+    "torch_npu.dynamo.torchair.compiled_model.ExportSuccess",
+    "torch_npu.dynamo.torchair.compiled_model.List",
+    "torch_npu.dynamo.torchair.compiled_model.Optional",
+    "torch_npu.dynamo.torchair.compiled_model.PathManager",
+    "torch_npu.dynamo.torchair.compiled_model.Tuple",
+    "torch_npu.dynamo.torchair.compiled_model.Union",
+    "torch_npu.dynamo.torchair.compiled_model.dynamo_export",
+    "torch_npu.dynamo.torchair.compiled_model.get_export_file_name",
+    "torch_npu.dynamo.torchair.compiled_model.get_npu_backend",
+    "torch_npu.dynamo.torchair.compiled_model.unserialize_graph",
+    "torch_npu.dynamo.torchair.dynamo_export.CompilerConfig",
+    "torch_npu.dynamo.torchair.dynamo_export.ExportSuccess",
+    "torch_npu.dynamo.torchair.dynamo_export.get_npu_backend",
+    "torch_npu.dynamo.torchair.fx_dumper.Any",
+    "torch_npu.dynamo.torchair.fx_dumper.Argument",
+    "torch_npu.dynamo.torchair.fx_dumper.Callable",
+    "torch_npu.dynamo.torchair.fx_dumper.Dict",
+    "torch_npu.dynamo.torchair.fx_dumper.GraphModule",
+    "torch_npu.dynamo.torchair.fx_dumper.Interpreter",
+    "torch_npu.dynamo.torchair.fx_dumper.List",
+    "torch_npu.dynamo.torchair.fx_dumper.Target",
+    "torch_npu.dynamo.torchair.fx_dumper.Tuple",
+    "torch_npu.dynamo.torchair.fx_dumper.Union",
+    "torch_npu.dynamo.torchair.fx_dumper.contextmanager",
+    "torch_npu.dynamo.torchair.fx_dumper.datetime",
+    "torch_npu.dynamo.torchair.fx_dumper.defaultdict",
+    "torch_npu.dynamo.torchair.fx_summary.Any",
+    "torch_npu.dynamo.torchair.fx_summary.Argument",
+    "torch_npu.dynamo.torchair.fx_summary.Callable",
+    "torch_npu.dynamo.torchair.fx_summary.CompilerConfig",
+    "torch_npu.dynamo.torchair.fx_summary.ConcreteGraph",
+    "torch_npu.dynamo.torchair.fx_summary.ConcreteGraphBase",
+    "torch_npu.dynamo.torchair.fx_summary.Dict",
+    "torch_npu.dynamo.torchair.fx_summary.FakeTensor",
+    "torch_npu.dynamo.torchair.fx_summary.Interpreter",
+    "torch_npu.dynamo.torchair.fx_summary.List",
+    "torch_npu.dynamo.torchair.fx_summary.PathManager",
+    "torch_npu.dynamo.torchair.fx_summary.ShapeEnv",
+    "torch_npu.dynamo.torchair.fx_summary.Target",
+    "torch_npu.dynamo.torchair.fx_summary.Tensor",
+    "torch_npu.dynamo.torchair.fx_summary.Tuple",
+    "torch_npu.dynamo.torchair.fx_summary.Union",
+    "torch_npu.dynamo.torchair.fx_summary.ValuePack",
+    "torch_npu.dynamo.torchair.fx_summary.aot_module_simplified",
+    "torch_npu.dynamo.torchair.fx_summary.core_aten_decompositions",
+    "torch_npu.dynamo.torchair.fx_summary.defaultdict",
+    "torch_npu.dynamo.torchair.fx_summary.detect_fake_mode",
+    "torch_npu.dynamo.torchair.fx_summary.get_decompositions",
+    "torch_npu.dynamo.torchair.fx_summary.is_builtin_callable",
+    "torch_npu.dynamo.torchair.fx_summary.no_dispatch",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Any",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Argument",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Callable",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.CompilerConfig",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.ConcreteGraph",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.ConcreteGraphBase",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Dict",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.DispatchKey",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Interpreter",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.List",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.NpuFxDumper",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Target",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Tuple",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.Union",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.ValuePack",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.add_npu_patch",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.aot_module_simplified",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.aot_module_simplified_joint",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.default_partition",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.detect_fake_mode",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.get_decompositions",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.get_used_syms_in_meta",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.is_builtin_callable",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.is_fake",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.is_sym",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.no_dispatch",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.pretty_error_msg",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.record_function",
+    "torch_npu.dynamo.torchair.npu_fx_compiler.summarize_fx_graph",
+    "torch_npu.dynamo.torchair.utils.Callable",
+    "torch_npu.dynamo.torchair.utils.DispatchKey",
+    "torch_npu.dynamo.torchair.utils.InstructionTranslatorBase",
+    "torch_npu.dynamo.torchair.utils.NNModuleVariable",
+    "torch_npu.dynamo.torchair.utils.OpOverload",
+    "torch_npu.dynamo.torchair.utils.OpOverloadPacket",
+    "torch_npu.dynamo.torchair.utils.Optional",
+    "torch_npu.dynamo.torchair.utils.Tensor",
+    "torch_npu.dynamo.torchair.utils.Tuple",
+    "torch_npu.dynamo.torchair.utils.TupleVariable",
+    "torch_npu.dynamo.torchair.utils.Unsupported",
+    "torch_npu.dynamo.torchair.utils.break_graph_if_unsupported",
+    "torch_npu.dynamo.torchair.utils.lru_cache",
+    "torch_npu.dynamo.torchair.utils.out_wrapper",
+    "torch_npu.dynamo.torchair.utils.raw_batch_norm_func",
+    "torch_npu.dynamo.torchair.utils.reduce",
+    "torch_npu.dynamo.torchair.utils.refs_div",
+    "torch_npu.dynamo.torchair.utils.stack_op",
+    "torch_npu.dynamo.torchair.utils.wraps",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.Any",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.Callable",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.Dict",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.List",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.Optional",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.Tuple",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.Union",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.aot_export_module",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.call_func_with_args",
+    "torch_npu.dynamo.torchair.utils.custom_aot_functions.make_boxed_func",
+    "torch_npu.dynamo.torchair.utils.export_utils.GeGraph",
+    "torch_npu.dynamo.torchair.utils.export_utils.ModelDef",
+    "torch_npu.dynamo.torchair.utils.export_utils.PathManager",
+    "torch_npu.dynamo.torchair.utils.export_utils.TypedDict",
+    "torch_npu.dynamo.torchair.utils.export_utils.compat_as_bytes",
+    "torch_npu.dynamo.torchair.utils.export_utils.dump_graph",
+    "torch_npu.dynamo.torchair.utils.export_utils.torch_type_to_ge_type",
+    "torch_npu.npu.amp.autocast_mode.Any",
+    "torch_npu.npu.amp.autocast_mode.ErrCode",
+    "torch_npu.npu.amp.autocast_mode.pta_error",
+    "torch_npu.npu.amp.grad_scaler.Cuda_GradScaler",
+    "torch_npu.npu.amp.grad_scaler.ErrCode",
+    "torch_npu.npu.amp.grad_scaler.List",
+    "torch_npu.npu.amp.grad_scaler.OptState",
+    "torch_npu.npu.amp.grad_scaler.amp_definitely_not_available",
+    "torch_npu.npu.amp.grad_scaler.defaultdict",
+    "torch_npu.npu.amp.grad_scaler.pta_error",
+    "torch_npu.npu.amp.sharded_grad_scaler.Dict",
+    "torch_npu.npu.amp.sharded_grad_scaler.ErrCode",
+    "torch_npu.npu.amp.sharded_grad_scaler.GradScaler",
+    "torch_npu.npu.amp.sharded_grad_scaler.List",
+    "torch_npu.npu.amp.sharded_grad_scaler.OptState",
+    "torch_npu.npu.amp.sharded_grad_scaler.Optional",
+    "torch_npu.npu.amp.sharded_grad_scaler.ProcessGroup",
+    "torch_npu.npu.amp.sharded_grad_scaler.SGD",
+    "torch_npu.npu.amp.sharded_grad_scaler.Union",
+    "torch_npu.npu.amp.sharded_grad_scaler.defaultdict",
+    "torch_npu.npu.amp.sharded_grad_scaler.npu_check_overflow",
+    "torch_npu.npu.amp.sharded_grad_scaler.pta_error",
+    "torch_npu.npu.deterministic.Function",
+    "torch_npu.npu.deterministic.Tensor",
+    "torch_npu.npu.deterministic.forbid_in_graph",
+    "torch_npu.onnx.add_onnx_ops",
+    "torch_npu.onnx.add_ops_combined_for_onnx",
+    "torch_npu.onnx.native_layer_norm",
+    "torch_npu.onnx.wrapper_onnx_ops.ErrCode",
+    "torch_npu.onnx.wrapper_onnx_ops.List",
+    "torch_npu.onnx.wrapper_onnx_ops.Optional",
+    "torch_npu.onnx.wrapper_onnx_ops.Tensor",
+    "torch_npu.onnx.wrapper_onnx_ops.pta_error",
+    "torch_npu.onnx.wrapper_ops_combined.ErrCode",
+    "torch_npu.onnx.wrapper_ops_combined.pta_error",
+    "torch_npu.profiler.analysis.prof_bean.node_info_bean.NodeInfoBean",
+    "torch_npu.profiler.analysis.prof_common_func.time_range_calculator.dataclass",
+    "torch_npu.profiler.analysis.prof_view.prof_db_parse.fwk_api_db_parser.CannNodeLaunchApiOri",
+    "torch_npu.profiler.analysis.prof_view.prof_db_parse.fwk_api_db_parser.PythonTraceApiDataOri",
+    "torch_npu.profiler.analysis.prof_view.prof_db_parse.fwk_api_db_parser.TaskQueueDataOri",
+    "torch_npu.profiler.analysis.prof_view.prof_db_parse.fwk_api_db_parser.TorchOpDataOri",
+    "torch_npu.profiler.analysis.prof_view.prof_db_parse.memory_db_parser.GeOpMemRecordsOri",
+    "torch_npu.profiler.profiler.supported_activities",
+    "torch_npu.testing.common_distributed.Any",
+    "torch_npu.testing.common_distributed.Dict",
+    "torch_npu.testing.common_distributed.Tuple",
+    "torch_npu.testing.common_distributed.namedtuple",
+    "torch_npu.testing.common_distributed.wraps",
+    "torch_npu.testing.common_methods_invocations.List",
+    "torch_npu.testing.common_methods_invocations.make_tensor",
+    "torch_npu.testing.common_methods_invocations.partial",
+    "torch_npu.testing.common_methods_invocations.sample_inputs_normal_common",
+    "torch_npu.testing.common_methods_invocations.wraps",
+    "torch_npu.testing.common_utils.List",
+    "torch_npu.testing.common_utils.PathManager",
+    "torch_npu.testing.common_utils.contextmanager",
+    "torch_npu.testing.common_utils.product",
+    "torch_npu.testing.common_utils.wraps",
+    "torch_npu.testing.decorator.partialmethod",
+    "torch_npu.testing.decorator.wraps",
+    "torch_npu.testing.testcase.Number",
+    "torch_npu.testing.testcase.OrderedDict",
+    "torch_npu.testing.testcase.Sequence",
+    "torch_npu.testing.testcase.TestResult",
+    "torch_npu.testing.testcase.contextmanager",
+    "torch_npu.testing.testcase.is_iterable",
+    "torch_npu.testing.testcase.iter_indices",
+    "torch_npu.testing.testcase.set_npu_device",
+    "torch_npu.testing.testcase.strclass",
+    "torch_npu.utils.collect_env.PathManager",
+    "torch_npu.utils.collect_env.namedtuple",
+    "torch_npu.utils.profiler.ErrCode",
+    "torch_npu.utils.profiler.Optional",
+    "torch_npu.utils.profiler.prof_error",
+    "torch_npu.npu_add_rms_norm",
+    "torch_npu.npu_deep_norm",
+    "torch_npu.npu_fast_gelu",
+    "torch_npu.npu_ffn",
+    "torch_npu.npu_fused_attention_layernorm_qkv_fwd",
+    "torch_npu.npu_fused_attention_score_fwd",
+    "torch_npu.npu_geglu",
+    "torch_npu.npu_group_norm_silu",
+    "torch_npu.npu_grouped_matmul",
+    "torch_npu.npu_lstm_cell",
+    "torch_npu.npu_masked_softmax_with_rel_pos_bias",
+    "torch_npu.npu_mm_all_reduce_base",
+    "torch_npu.npu_moe_finalize_routing",
+    "torch_npu.npu_quant_matmul",
+    "torch_npu.npu_quant_scatter",
+    "torch_npu.npu_quant_update_scatter",
+    "torch_npu.npu_quantize",
+    "torch_npu.npu_scatter_nd_update_",
+    "torch_npu.npu_stride_copy",
+    "torch_npu.npu_swiglu",
+    "torch_npu.npu_trans_quant_param",
+    "torch_npu.one_",
+    "torch_npu.pta_error",
+    "torch_npu.npu_moe_compute_expert_tokens"
+}
+
 
 class TestPublicBindings(TestCase):
     def test_no_new_bindings(self):
@@ -244,6 +481,15 @@ class TestPublicBindings(TestCase):
                 # Some current failures are not ImportError
                 failures.append((modname, type(e)))
 
+        for _, modname, _ in pkgutil.walk_packages(path=torch_npu.__path__, prefix=torch_npu.__name__ + '.'):
+            try:
+                if "__main__" in modname:
+                    continue
+                import_module(modname)
+            except Exception as e:
+                # Some current failures are not ImportError
+                failures.append((modname, type(e)))
+
         # It is ok to add new entries here but please be careful that these modules
         # do not get imported by public code.
         private_allowlist = {
@@ -309,6 +555,7 @@ class TestPublicBindings(TestCase):
             "torch.distributed.algorithms._optimizer_overlap",
             "torch.distributed.rpc._testing.faulty_agent_backend_registry",
             "torch.distributed.rpc._utils",
+            "torch.utils.tensorboard"
         }
 
         # No new entries should be added to this list.
@@ -345,6 +592,7 @@ class TestPublicBindings(TestCase):
             "torch.distributed.run",
             "torch.distributed.tensor.parallel",
             "torch.distributed.utils",
+            "torch_npu.utils.collect_hccl_info"
         }
 
         errors = []
@@ -373,7 +621,8 @@ class TestPublicBindings(TestCase):
           `__module__` that start with the current submodule.
         '''
         failure_list = []
-        with open(os.path.join(os.path.dirname(__file__), 'allowlist_for_publicAPI.json')) as json_file:
+        with open(
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'allowlist_for_publicAPI.json')) as json_file:
             # no new entries should be added to this allow_dict.
             # New APIs must follow the public API guidelines.
             allow_dict = json.load(json_file)
@@ -424,6 +673,9 @@ class TestPublicBindings(TestCase):
                     why_not_looks_public = f"because it starts with `_` (`{elem}`)"
 
                 if is_public != looks_public:
+                    if f"{modname}.{elem}" in tempFilter:
+                        return
+
                     if modname in allow_dict and elem in allow_dict[modname]:
                         return
 
@@ -474,7 +726,11 @@ class TestPublicBindings(TestCase):
         for _, modname, ispkg in pkgutil.walk_packages(path=torch.__path__, prefix=torch.__name__ + '.'):
             test_module(modname)
 
+        for _, modname, ispkg in pkgutil.walk_packages(path=torch_npu.__path__, prefix=torch_npu.__name__ + '.'):
+            test_module(modname)
+
         test_module('torch')
+        test_module('torch_npu')
 
         msg = "All the APIs below do not meet our guidelines for public API from " \
               "wiki/Public-API-definition-and-documentation.\n"
@@ -489,4 +745,4 @@ class TestPublicBindings(TestCase):
 
 
 if __name__ == '__main__':
-    pass
+    run_tests()

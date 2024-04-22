@@ -54,7 +54,7 @@ def _resize(self, size):
         return self._resize_(size)
 
 
-def add_storage_methods():
+def _add_storage_methods():
     torch.storage.UntypedStorage.cpu = _cpu
     torch.storage.TypedStorage._deepcopy = _deepcopy
     torch.storage.TypedStorage.resize_ = _resize

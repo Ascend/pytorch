@@ -6,6 +6,9 @@ import torch_npu
 from torch_npu.utils.error_code import ErrCode, pta_error
 
 
+__all__ = []
+
+
 def _npu(self, *args, **kwargs):
     return torch_npu._C.npu(self, *args, **kwargs)
 
@@ -15,7 +18,7 @@ def _is_npu(self):
     return torch_npu._C.is_npu(self)
 
 
-class NPUTensortypeCache(object):
+class _NPUTensortypeCache(object):
     init = False
     tensortype_list = []
     tensortype_dict = {}
@@ -64,20 +67,20 @@ class NPUTensortypeCache(object):
         return cls.tensortype_dict
 
 
-def npu_type(self, dtype=None, non_blocking=False, **kwargs):
+def _npu_type(self, dtype=None, non_blocking=False, **kwargs):
     if dtype is None:
         return self.type_raw(dtype, non_blocking, **kwargs)
     
-    NPUTensortypeCache.tensortype_list_dict_init()
-    if isinstance(dtype, str) and dtype in NPUTensortypeCache.get_tensortype_dict():
-        tensortype_class = NPUTensortypeCache.get_tensortype_dict()[dtype]
+    _NPUTensortypeCache.tensortype_list_dict_init()
+    if isinstance(dtype, str) and dtype in _NPUTensortypeCache.get_tensortype_dict():
+        tensortype_class = _NPUTensortypeCache.get_tensortype_dict()[dtype]
         return self.to(dtype=tensortype_class.dtype, device='npu', non_blocking=non_blocking)
-    elif dtype in NPUTensortypeCache.get_tensortype_list():
+    elif dtype in _NPUTensortypeCache.get_tensortype_list():
         return self.to(dtype=dtype.dtype, device='npu', non_blocking=non_blocking)
     else:
         return self.type_raw(dtype, non_blocking, **kwargs)
 
 
-def add_tensor_methods():
+def _add_tensor_methods():
     torch.Tensor.type_raw = torch.Tensor.type
-    torch.Tensor.type = npu_type
+    torch.Tensor.type = _npu_type

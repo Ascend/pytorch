@@ -126,7 +126,7 @@ def cast_weight(self, device):
             sub_module.cast_weight(device)
 
 
-def lstm_forward(self, input1, hx=None):
+def _lstm_forward(self, input1, hx=None):
     orig_input = input1
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
         input1, batch_sizes, sorted_indices, unsorted_indices = input1
@@ -181,7 +181,7 @@ def lstm_forward(self, input1, hx=None):
         return output, self.permute_hidden(hidden, unsorted_indices)
 
 
-def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
+def _syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
     # currently only NPU or GPU input is supported
     if (not input1.is_cuda) and (not input1.is_npu):
         raise ValueError('SyncBatchNorm expected input tensor to be on NPU or GPU' + pta_error(ErrCode.VALUE))
@@ -343,7 +343,7 @@ def _ddp_init_helper(
     self._passing_sync_batchnorm_handle(self.module)
 
 
-def mpdl_iter_init(self, *args, **kwargs):
+def _mpdl_iter_init(self, *args, **kwargs):
     try:
         torch_npu.npu.synchronize()
     except:
@@ -351,10 +351,10 @@ def mpdl_iter_init(self, *args, **kwargs):
     origin_mpdl_iter_init(self, *args, **kwargs)
 
 
-def apply_module_patch():
+def _apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
-    torch.nn.modules.rnn.LSTM.forward = lstm_forward
-    torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
-    torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = mpdl_iter_init
+    torch.nn.modules.rnn.LSTM.forward = _lstm_forward
+    torch.nn.modules.batchnorm.SyncBatchNorm.forward = _syncbn_forward
+    torch.utils.data.dataloader._MultiProcessingDataLoaderIter.__init__ = _mpdl_iter_init

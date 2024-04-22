@@ -5,7 +5,6 @@ from functools import wraps
 
 import torch
 import torch_npu
-from torch_npu.utils.path_manager import PathManager
 from torch_npu.utils.error_code import ErrCode, pta_error
 from .unsupport_api import unsupported_Tensor_api, unsupported_nn_api, unsupported_nested_api
 from .collect_env import get_cann_version
@@ -20,7 +19,10 @@ cann_pytorch_version_map = {
 }
 
 
-def cann_package_check():
+__all__ = []
+
+
+def _cann_package_check():
     if "ASCEND_HOME_PATH" in os.environ:
         ascend_home_path = os.environ["ASCEND_HOME_PATH"]
         if not os.path.exists(ascend_home_path):
@@ -68,7 +70,7 @@ def cann_package_check():
         print(f"Warning : ASCEND_HOME_PATH environment variable is not set.")
 
 
-def create_wrap_func(check_func):
+def _create_wrap_func(check_func):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -81,27 +83,27 @@ def create_wrap_func(check_func):
 
 
 # Specific check functions
-def is_tensor_npu_supported(*args, **kwargs):
+def _is_tensor_npu_supported(*args, **kwargs):
     return torch.is_tensor(args[0]) and args[0].is_npu
 
 
-def is_module_parameters_supported(*args, **kwargs):
+def _is_module_parameters_supported(*args, **kwargs):
     module_args = [m for m in args if isinstance(m, torch.nn.Module) and hasattr(m, "_modules")]
     module_parameters = [p for _, p in module_args[0].named_parameters()]
     return any(p.device is not None and p.device.type == "npu" for p in module_parameters)
 
 
-def is_nested_tensor_npu_supported(*args, **kwargs):
+def _is_nested_tensor_npu_supported(*args, **kwargs):
     return any(torch.is_tensor(t) and t.is_npu for t in args[0])
 
 
-def apply_wrap_func_to_modules(wrap_func, unsupported_modules):
+def _apply_wrap_func_to_modules(wrap_func, unsupported_modules):
     for attr_name, parent_module in unsupported_modules.items():
         setattr(parent_module, attr_name, wrap_func(getattr(parent_module, attr_name)))
 
 
 # Apply wrap functions to specific modules
-def add_intercept_methods():
-    apply_wrap_func_to_modules(create_wrap_func(is_tensor_npu_supported), unsupported_Tensor_api)
-    apply_wrap_func_to_modules(create_wrap_func(is_module_parameters_supported), unsupported_nn_api)
-    apply_wrap_func_to_modules(create_wrap_func(is_nested_tensor_npu_supported), unsupported_nested_api)
+def _add_intercept_methods():
+    _apply_wrap_func_to_modules(_create_wrap_func(_is_tensor_npu_supported), unsupported_Tensor_api)
+    _apply_wrap_func_to_modules(_create_wrap_func(_is_module_parameters_supported), unsupported_nn_api)
+    _apply_wrap_func_to_modules(_create_wrap_func(_is_nested_tensor_npu_supported), unsupported_nested_api)
