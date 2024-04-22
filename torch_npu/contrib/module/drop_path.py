@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, ops_error
 
+__all__ = ['NpuDropPath']
 
-def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
+
+def _npu_drop_path(x, random_tensor, keep_prob: float = 0.):
     """Less ops than timm version.
     Async generating and applying of random tensor for accelerating.
     """
@@ -14,7 +16,7 @@ def npu_drop_path(x, random_tensor, keep_prob: float = 0.):
     return output
 
 
-class DropPathTask:
+class _DropPathTask:
     def __init__(self, shape, device, dtype, ndim, drop_prob):
         self.shape = shape
         self.device = device
@@ -68,14 +70,14 @@ class NpuDropPath(nn.Module):
 
         key = (shape, device, dtype, ndim)
         if key not in NpuDropPath.task_dict:
-            droppath_task = DropPathTask(shape, device, dtype, ndim, self.drop_prob)
+            droppath_task = _DropPathTask(shape, device, dtype, ndim, self.drop_prob)
             droppath_task.request_count += 1
             NpuDropPath.task_dict[key] = droppath_task
         elif not NpuDropPath.task_dict[key].rand_queue:
             NpuDropPath.task_dict[key].request_count += 1
         else:
             random_tensor = NpuDropPath.task_dict[key].rand_queue.pop(0)
-            return npu_drop_path(x, random_tensor, self.keep_prob)
+            return _npu_drop_path(x, random_tensor, self.keep_prob)
 
         return x
 

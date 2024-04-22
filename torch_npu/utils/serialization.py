@@ -13,6 +13,8 @@ from torch_npu.utils.error_code import ErrCode, pta_error
 ALWAYS_WARN_LEGACY_SERIALIZATION = False
 RE_MAP_CPU = False
 
+__all__ = ["load", "save"]
+
 
 def _get_always_warn_legacy_serialization():
     return ALWAYS_WARN_LEGACY_SERIALIZATION
@@ -113,7 +115,7 @@ def _remap_result(cpu_result, map_location):
         return cpu_result
 
 
-def update_cpu_remap_info(map_location):
+def _update_cpu_remap_info(map_location):
     global RE_MAP_CPU
     RE_MAP_CPU = False
     if isinstance(map_location, (str, torch.device)) and 'cpu' in str(map_location):
@@ -129,7 +131,7 @@ def load(
     mmap: Optional[bool] = None,
     **pickle_load_args: Any
 ) -> Any:
-    update_cpu_remap_info(map_location)
+    _update_cpu_remap_info(map_location)
     torch._C._log_api_usage_once("torch.load")
     UNSAFE_MESSAGE = (
         "Weights only load failed. Re-running `torch.load` with `weights_only` set to `False`"
@@ -250,6 +252,6 @@ def save(
     return _get_npu_save_result(obj, f, pickle_module, pickle_protocol, True, _disable_byteorder_record)
 
 
-def add_serialization_methods():
+def _add_serialization_methods():
     torch.save = save
     torch.load = load

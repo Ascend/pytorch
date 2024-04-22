@@ -543,14 +543,14 @@ def npu_apply_rotary_pos_emb_meta(query, key, cos, sin, layout=1):
 
 
 @impl(m, "npu_quant_conv2d")
-def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
+def npu_quant_conv2d(input_, weight, scale, strides, pads, dilations,
                      groups=1, offset_x=0, round_mode='rint', output_dtype=None, bias=None, offset=None):
 
-    input_shape = input.size()
+    input_shape = input_.size()
     weight_shape = weight.size()
     scale_shape = scale.size()
 
-    input_dim = input.dim()
+    input_dim = input_.dim()
     weight_dim = weight.dim()
     scale_dim = scale.dim()
 
@@ -581,8 +581,8 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
 
     def check_basic_inputs_dtype():
         torch._check(
-            input.dtype == torch.int8 and weight.dtype == torch.int8,
-            lambda: "input's dtype and weight's dtype should be int8, but input.dtype is " + str(input.dtype) + ", and weight.dtype is " +
+            input_.dtype == torch.int8 and weight.dtype == torch.int8,
+            lambda: "input's dtype and weight's dtype should be int8, but input.dtype is " + str(input_.dtype) + ", and weight.dtype is " +
                     str(weight.dtype),
         )
 
@@ -606,7 +606,7 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
 
         torch._check(
             bias.dtype == torch.int32,
-            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input.dtype),
+            lambda: "bias' dtype should be int32, but bias.dtype is " + str(input_.dtype),
         )
 
         torch._check(
@@ -675,10 +675,10 @@ def npu_quant_conv2d(input, weight, scale, strides, pads, dilations,
 
 
 @impl(m, "npu_linear")
-def npu_linear_meta(input, weight, bias=None):
-    dimm = input.size(0)
+def npu_linear_meta(input_, weight, bias=None):
+    dimm = input_.size(0)
     dimn = weight.size(0)
-    return input.new_empty((dimm, dimn))
+    return input_.new_empty((dimm, dimn))
 
 
 @impl(m, "npu_moe_finalize_routing")

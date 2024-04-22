@@ -2,6 +2,8 @@ import torch
 import torch_npu
 from torch_npu.utils.error_code import ErrCode, pta_error
 
+__all__ = ["npu_combine_tensors", "get_part_combined_tensor", "is_combined_tensor_valid"]
+
 
 def npu_combine_tensors(list_of_tensor, require_copy_value=True):
     if len(list_of_tensor) == 0:

@@ -37,29 +37,31 @@ import torch_npu._C
 from torch_npu import profiler
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
-from torch_npu.utils import apply_module_patch, add_tensor_methods, add_collect_env_methods, \
-    add_storage_methods, add_serialization_methods, add_dynamo_methods, \
+from torch_npu.utils import _apply_module_patch, _add_tensor_methods, _add_collect_env_methods, \
+    _add_storage_methods, _add_serialization_methods, add_dynamo_methods, \
     _dynamo_register_interface_for_device, add_optim_method, _inductor_register_device_op_overrides
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
-from torch_npu.utils import cann_package_check, add_intercept_methods
+from torch_npu.utils import _cann_package_check, _add_intercept_methods
 from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
 from torch_npu.utils.error_code import ErrCode, pta_error
 from torch_npu.asd.asd import _asd_patch
 from .version import __version__ as __version__
-from .meta import meta_registrations
+from .meta import _meta_registrations
 from . import _op_plugin_docs
 del _op_plugin_docs
 
-cann_package_check()
 
-__all__ = []
+_cann_package_check()
 
 
-def wrap_torch_error_func(func):
+__all__ = ["ErrCode"]
+
+
+def _wrap_torch_error_func(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         raise RuntimeError(f"torch.{func.__name__} is deprecated and will be removed in future version. "
@@ -74,7 +76,7 @@ for name in dir(torch.ops.npu):
     globals()[name] = getattr(torch.ops.npu, name)
     if name in public_npu_functions:
         __all__.append(name)
-    setattr(torch, name, wrap_torch_error_func(getattr(torch.ops.npu, name)))
+    setattr(torch, name, _wrap_torch_error_func(getattr(torch.ops.npu, name)))
 
 all_monkey_patches = [
     ["nn.functional", npu_functional],
@@ -119,20 +121,20 @@ def _apply_distributed_patches():
     _apply_patches([["distributed", torch_npu.distributed]])
 
 
-def apply_zero_patch():
+def _apply_zero_patch():
     torch.distributed.optim.ZeroRedundancyOptimizer._get_optimizer_constructor = _get_optimizer_constructor
 
 
-def apply_class_patches():
-    add_storage_methods()
-    apply_module_patch()
-    add_tensor_methods()
-    add_serialization_methods()
-    add_intercept_methods()
-    add_collect_env_methods()
+def _apply_class_patches():
+    _add_storage_methods()
+    _apply_module_patch()
+    _add_tensor_methods()
+    _add_serialization_methods()
+    _add_intercept_methods()
+    _add_collect_env_methods()
     add_dynamo_methods()
     add_optim_method()
-    apply_zero_patch()
+    _apply_zero_patch()
 
 
 torch.utils.rename_privateuse1_backend("npu")
@@ -145,7 +147,7 @@ torch.utils.generate_methods_for_privateuse1_backend(for_tensor=True, for_module
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
-apply_class_patches()
+_apply_class_patches()
 _asd_patch()
 # this must be placed at the end
 torch_npu._C._initExtension()

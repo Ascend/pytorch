@@ -132,7 +132,7 @@
     "backward",
     "get_gradients"
   ],
-  "torch.distributer.checkpoint.optimizer": [
+  "torch.distributed.checkpoint.optimizer": [
     "load_sharded_optimizer_state_dict"
   ],
   "torch.distributed.elastic.events": [
@@ -2658,12 +2658,16 @@
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
-    "matmul_transpose"
+    "matmul_transpose",
+    "npu_fused_attention"
   ],
   "torch_npu.contrib.function": [
     "matmul_transpose",
     "npu_fused_attention",
     "npu_fused_attention_with_layernorm"
+  ],
+  "torch_npu.contrib.function.matmul_transpose": [
+    "matmul_transpose"
   ],
   "torch_npu.contrib.function.fused_attention": [
     "npu_fused_attention",
@@ -2686,7 +2690,8 @@
     "HalfTensor",
     "IntTensor",
     "LongTensor",
-    "ShortTensor"
+    "ShortTensor",
+    "BFloat16Tensor"
   ],
   "torch_npu.profiler": [
     "ProfilerActivity",

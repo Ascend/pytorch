@@ -2,8 +2,10 @@ import os
 import time
 from enum import Enum
 
+__all__ = ['ErrCode', 'pta_error', 'ops_error', 'dist_error', 'graph_error', 'prof_error']
 
-class SubModuleID(Enum):
+
+class _SubModuleID(Enum):
     PTA = 0
     OPS = 1
     DIST = 2
@@ -38,7 +40,7 @@ class ErrCode(Enum):
         return self.value[1]
 
 
-def format_error_msg(submodule, error_code):
+def _format_error_msg(submodule, error_code):
     def get_device_id():
         try:
             from torch_npu.npu import current_device
@@ -68,20 +70,20 @@ def format_error_msg(submodule, error_code):
 
 
 def pta_error(error: ErrCode) -> str:
-    return format_error_msg(SubModuleID.PTA, error)
+    return _format_error_msg(_SubModuleID.PTA, error)
 
 
 def ops_error(error: ErrCode) -> str:
-    return format_error_msg(SubModuleID.OPS, error)
+    return _format_error_msg(_SubModuleID.OPS, error)
 
 
 def dist_error(error: ErrCode) -> str:
-    return format_error_msg(SubModuleID.DIST, error)
+    return _format_error_msg(_SubModuleID.DIST, error)
 
 
 def graph_error(error: ErrCode) -> str:
-    return format_error_msg(SubModuleID.GRAPH, error)
+    return _format_error_msg(_SubModuleID.GRAPH, error)
 
 
 def prof_error(error: ErrCode) -> str:
-    return format_error_msg(SubModuleID.PROF, error)
+    return _format_error_msg(_SubModuleID.PROF, error)
