@@ -118,6 +118,13 @@ uint32_t OptionsManager::GetHCCLExecTimeout()
     return static_cast<uint32_t>(envFlag);
 }
 
+uint32_t OptionsManager::GetHCCLEventTimeout()
+{
+    char* env_val = std::getenv("HCCL_EVENT_TIMEOUT");
+    int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+    return static_cast<uint32_t>(envFlag);
+}
+
 int32_t OptionsManager::GetACLExecTimeout()
 {
     char* env_val = std::getenv("ACL_STREAM_TIMEOUT");
