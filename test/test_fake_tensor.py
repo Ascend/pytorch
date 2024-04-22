@@ -1640,7 +1640,8 @@ class TestQuantMatmul(TestCase):
 
             expect_ret_bf16 = torch.randint(-1, 1, (1, 1, 100), dtype=torch.bfloat16).npu()
             scale_bf16 = torch.randn(1, dtype=torch.bfloat16).npu()
-            res_bf16 = torch_npu.npu_quant_matmul(x1, x2, scale_bf16, offset=None, bias=bias, output_dtype=torch.bfloat16)
+            bias_bf16 = torch.randint(-1, -1, (1, 1, 100), dtype=torch.bfloat16).npu()
+            res_bf16 = torch_npu.npu_quant_matmul(x1, x2, scale_bf16, offset=None, bias=bias_bf16, output_dtype=torch.bfloat16)
             self.assertTrue(expect_ret_bf16.shape == res_bf16.shape)
             self.assertTrue(expect_ret_bf16.dtype == res_bf16.dtype)
 
