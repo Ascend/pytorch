@@ -51,7 +51,7 @@ pip3 install setuptools
 3. **安装torch_npu**
 
 ```
-pip3 install torch-npu==2.1.0
+pip3 install torch-npu==2.1.0.post3
 ```
 如需要保存安装日志，可在pip3 install命令后面加上参数 `--log <PATH>`，并对您指定的目录`<PATH>`做好权限管控。
 
@@ -62,7 +62,7 @@ pip3 install torch-npu==2.1.0
 1. **克隆torch_npu代码仓**
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0 --depth 1
+   git clone https://gitee.com/ascend/pytorch.git -b v2.1.0-6.0.rc1 --depth 1
    ```
 
 2. **构建镜像**
