@@ -58,7 +58,7 @@ class CallChainIdManager:
         res_id = self._curr_id
         stacks = callstack.split(";\r\n")
         for idx, stack in enumerate(stacks):
-            self._callchain_id_map.setdefault(self._curr_id, []).append([stack, idx])
+            self._callchain_id_map.setdefault(self._curr_id, []).append([Str2IdManager().get_id_from_str(stack), idx])
         self._curr_id += 1
         return res_id
 

@@ -310,7 +310,7 @@ class TableColumnsManager():
         ],
         DbConstant.TABLE_PYTORCH_CALLCHAINS : [
             ("id", Constant.SQL_INTEGER_TYPE),
-            ("stack", Constant.SQL_TEXT_TYPE),
+            ("stack", Constant.SQL_INTEGER_TYPE),
             ("stackDepth", Constant.SQL_INTEGER_TYPE)
         ],
         DbConstant.TABLE_RANK_DEVICE_MAP : [
@@ -344,8 +344,8 @@ class TableColumnsManager():
             ("allocation_time", Constant.SQL_INTEGER_TYPE),
             ("release_time", Constant.SQL_INTEGER_TYPE),
             ("active_release_time", Constant.SQL_INTEGER_TYPE),
-            ("active_duration", Constant.SQL_INTEGER_TYPE),
             ("duration", Constant.SQL_INTEGER_TYPE),
+            ("active_duration", Constant.SQL_INTEGER_TYPE),
             ("allocation_total_allocated", Constant.SQL_INTEGER_TYPE),
             ("allocation_total_reserved", Constant.SQL_INTEGER_TYPE),
             ("allocation_total_active", Constant.SQL_INTEGER_TYPE),
