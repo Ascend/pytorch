@@ -438,7 +438,7 @@ def quant_matmul_dtype_check(*args):
     if bias is not None:
         torch._check(
             bias.dtype == torch.int32 or bias.dtype == torch.bfloat16,
-            lambda: "offset's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype),
+            lambda: "bias's type supported for int32 and bfloat16, but bias.dtype is " + str(bias.dtype),
         )
 
 
@@ -498,6 +498,11 @@ def npu_quant_matmul_meta(x1, x2, scale, *, offset=None, pertoken_scale=None, bi
     dim_list.append(dimn)
     quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale)
     if bias is not None:
+        if bias.dtype == torch.bfloat16:
+            torch._check(
+                output_dtype == torch.bfloat16,
+                lambda: "When bias dtype is bfloat16, output_dtype must be bfloat16, but it is " + str(output_dtype),
+            )
         if bias.dim() == 3:
             torch._check(
                 len(dim_list) == 3,
