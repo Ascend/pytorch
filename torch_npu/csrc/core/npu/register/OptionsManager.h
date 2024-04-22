@@ -28,6 +28,7 @@ public:
     static bool CheckTriCombinedOptimizerEnable();
     static bool CheckAclDumpDateEnable();
     static uint32_t GetHCCLExecTimeout();
+    static uint32_t GetHCCLEventTimeout();
     static std::string CheckDisableDynamicPath();
     static int32_t GetACLExecTimeout();
     static uint32_t CheckUseHcclAsyncErrorHandleEnable();

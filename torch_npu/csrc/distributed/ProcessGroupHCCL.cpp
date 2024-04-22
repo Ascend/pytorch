@@ -573,18 +573,23 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
     terminateProcessGroup_(false)
 {
-    uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
-    // When no env, the default value is 0
-    if (hccl_exec_timeout > 0) {
-        kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
-        if (kOpWaitTimeout <= hccl_exec_timeout) {
-            kOpWaitTimeout = UINT_MAX;
+    uint32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
+    if (hccl_event_timeout > 0) {
+        kOpWaitTimeout = hccl_event_timeout;
+        ASCEND_LOGI("Set op wait timeout to %u.", hccl_event_timeout);
+    } else {
+        uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
+        // When no env, the default value is 0
+        if (hccl_exec_timeout > 0) {
+            kOpWaitTimeout = hccl_exec_timeout + kOpWaitTimeoutOffset;
+            if (kOpWaitTimeout <= hccl_exec_timeout) {
+                kOpWaitTimeout = UINT_MAX;
+            }
         }
+        ASCEND_LOGI(
+            "Get env HCCL_EXEC_TIMEOUT value %u, and set op wait timeout to %u.", hccl_exec_timeout, kOpWaitTimeout);
     }
     NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpWaitTimeout(kOpWaitTimeout));
-    ASCEND_LOGI(
-        "Get env HCCL_EXEC_TIMEOUT value %u, and set op wait timeout to %u.", hccl_exec_timeout, kOpWaitTimeout);
-
     char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
     try {
         if (blockingWait != nullptr) {
