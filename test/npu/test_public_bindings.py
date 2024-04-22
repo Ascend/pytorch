@@ -12,6 +12,7 @@ import torch
 import torch_npu
 import torch_npu.testing
 
+
 tempFilter = {
     "torch_npu.contrib.FastBatchNorm1d",
     "torch_npu.contrib.FastBatchNorm2d",

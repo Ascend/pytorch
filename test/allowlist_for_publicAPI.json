@@ -1353,7 +1353,8 @@
     "npu_get_float_status",
     "npu_nms_rotated",
     "npu_random_choice_with_mask",
-    "npu_rms_norm"
+    "npu_rms_norm",
+    "npu_moe_compute_expert_tokens"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
