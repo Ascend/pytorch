@@ -5,6 +5,7 @@ import functools
 from functools import wraps
 import torch
 from torch.utils._device import _device_constructors
+from torch.utils._triton import has_triton
 import torch_npu
 try:
     import torchair
@@ -172,6 +173,10 @@ def jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None)
     return obj
 
 
+def patch_has_triton():
+    return False
+
+
 def patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
@@ -265,6 +270,8 @@ def init():
 
     if IS_TORCHAIR_INSTALLED:
         torch.compile = wrapper_compile(torch.compile)
+
+    setattr(torch.utils._triton, 'has_triton', patch_has_triton)
 
 
 init()
