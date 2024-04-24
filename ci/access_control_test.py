@@ -82,7 +82,7 @@ class DirectoryStrategy(AccurateTest):
 
     def identify(self, modify_file):
         is_test_file = str(Path(modify_file).parts[0]) == "test" \
-            and re.match("test_(.+).py", Path(modify_file).name)
+                       and re.match("test_(.+).py", Path(modify_file).name)
         return [(str(BASE_DIR / modify_file))] if is_test_file else []
 
 
@@ -193,14 +193,22 @@ class TestMgr():
     def load_distributed_ut(self):
         self.test_files['ut_files'] += [str(i) for i in (BASE_DIR / 'test/distributed').rglob('test_*.py')]
 
-    def load_ut_in_parallel(self, rank, world_size):
+    def load_all_ut(self, include_distributed_case=False):
+        all_files = [str(i) for i in (BASE_DIR / 'test').rglob('test_*.py') if 'distributed' not in str(i)]
+        self.test_files['ut_files'] = all_files
+        if include_distributed_case:
+            self.load_distributed_ut()
+
+    def split_test_files(self, rank, world_size):
         if rank > world_size:
             raise Exception(f'rank {rank} is greater than world_size {world_size}')
-        all_files = [str(i) for i in (BASE_DIR / 'test').rglob('test_*.py')
-                      if 'distributed' not in str(i)]
-        begin = (rank - 1) * len(all_files) // world_size
-        end = rank * len(all_files) // world_size
-        self.test_files['ut_files'] = all_files[begin:end]
+
+        def ordered_split(files, start, step):
+            return sorted(files)[start::step] if files else []
+
+        # node rank starts from 1
+        self.test_files['ut_files'] = ordered_split(self.test_files['ut_files'], rank - 1, world_size)
+        self.test_files['op_ut_files'] = ordered_split(self.test_files['op_ut_files'], rank - 1, world_size)
 
     def get_test_files(self):
         return self.test_files
@@ -257,7 +265,7 @@ def exec_ut(files):
         stdout_t.start()
 
     def print_subprocess_log(log_queue):
-        while (not log_queue.empty()):
+        while not log_queue.empty():
             print((log_queue.get()).strip())
 
     def run_cmd_with_timeout(cmd):
@@ -288,20 +296,20 @@ def exec_ut(files):
             print(err)
         return ret
 
-    def run_tests(files):
-        exec_infos = []
+    def run_tests(test_files):
+        test_infos = []
         has_failed = 0
-        for ut_type, ut_files in files.items():
+        for ut_type, ut_files in test_files.items():
             for ut_file in ut_files:
                 cmd = get_ut_cmd(ut_type, ut_file)
                 ut_info = " ".join(cmd[4:]).replace(" -- -k", "")
                 ret = run_cmd_with_timeout(cmd)
                 if ret:
                     has_failed = ret
-                    exec_infos.append("exec ut {} failed.".format(ut_info))
+                    test_infos.append("exec ut {} failed.".format(ut_info))
                 else:
-                    exec_infos.append("exec ut {} success.".format(ut_info))
-        return has_failed, exec_infos
+                    test_infos.append("exec ut {} success.".format(ut_info))
+        return has_failed, test_infos
 
     ret_status, exec_infos = run_tests(files)
 
@@ -313,27 +321,26 @@ def exec_ut(files):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Control needed ut cases')
-    parser.add_argument(
-        '--only_distributed', action="store_true", help='Only run distributed cases')
-    parser.add_argument(
-        '--rank', default=0, type=int, help='Index of current ut nodes')
-    parser.add_argument(
-        '--world_size', default=0, type=int, help='Number of ut nodes')
+    parser.add_argument('--all', action="store_true", help='Run all testcases')
+    parser.add_argument('--distributed', action="store_true", help='Run distributed testcases')
+    parser.add_argument('--rank', default=0, type=int, help='Index of current ut nodes')
+    parser.add_argument('--world_size', default=0, type=int, help='Number of ut nodes')
     options = parser.parse_args()
     cur_modify_files = str(BASE_DIR / 'modify_files.txt')
     test_mgr = TestMgr()
-    if options.only_distributed:
-        test_mgr.load_distributed_ut()
-    else:
-        if options.rank > 0 and options.world_size > 0:
-            test_mgr.load_ut_in_parallel(options.rank, options.world_size)
-        else:
-            if os.path.exists(cur_modify_files):
-                test_mgr.load(cur_modify_files)
-                test_mgr.analyze()
-            else:
-                test_mgr.load_core_ut()
 
+    if options.all:
+        test_mgr.load_all_ut(options.distributed)
+    elif options.distributed:
+        test_mgr.load_distributed_ut()
+    elif os.path.exists(cur_modify_files):
+        test_mgr.load(cur_modify_files)
+        test_mgr.analyze()
+    else:
+        test_mgr.load_core_ut()
+
+    if options.rank > 0 and options.world_size > 0:
+        test_mgr.split_test_files(options.rank, options.world_size)
     cur_test_files = test_mgr.get_test_files()
 
     test_mgr.print_modify_files()
