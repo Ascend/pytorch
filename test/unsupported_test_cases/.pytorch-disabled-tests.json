@@ -1,5 +1,7 @@
 {
   "test_grad_fn_with_kwargs_dynamic_shapes (__main__.DynamicShapesFuncTorchHigherOrderOpTests)": ["", [""]],
+  "test_mismatching_device_no_check_npu (__main__.TestAssertCloseMultiDevicePRIVATEUSE1)": ["", [""]],
+  "test_ops_decorator_applies_op_and_param_specific_decorators_npu (__main__.TestTestParametrizationDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_grad_pytree_dynamic_shapes (__main__.DynamicShapesFuncTorchHigherOrderOpTests)": ["", [""]],
   "test_mem_eff_backwards_throws_determinism_warning_warn_only_True_npu (__main__.TestSDPANpuOnlyPRIVATEUSE1)": ["", [""]],
   "test_sdp_choice_with_determinism_warn_only_False_npu (__main__.TestSDPANpuOnlyPRIVATEUSE1)": ["", [""]],

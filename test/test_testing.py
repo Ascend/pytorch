@@ -13,7 +13,6 @@ import sys
 import unittest.mock
 from typing import Any, Callable, Iterator, List, Tuple
 import operator
-import numpy as np
 import torch
 import torch_npu
 import torch_npu.testing
@@ -1769,7 +1768,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_device_dtype_specific_{}_float32',
             '{}.test_device_dtype_specific_{}_float64',
@@ -1793,7 +1792,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_bar_{}',
             '{}.test_foo_{}')
@@ -1836,7 +1835,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_default_names_x_0_{}',
             '{}.test_default_names_x_1_{}',
@@ -1864,7 +1863,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = sorted(name.format(device_cls.__name__, device) for name in (
             '{}.test_default_names_x_1_{}',
             '{}.test_default_names_x_0_5_{}',
@@ -1897,7 +1896,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_custom_names_bias_{}',
             '{}.test_custom_names_no_bias_{}',
@@ -1933,7 +1932,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_custom_names_bias_{}',
             '{}.test_custom_names_no_bias_{}',
@@ -1955,7 +1954,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = []
         for op in op_db:
             for dtype in op.supported_dtypes(torch.device(device).type):
@@ -1978,7 +1977,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = []
         for module_info in module_db:
             for dtype in module_info.dtypes:
@@ -2037,7 +2036,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         device = self.device_type
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
 
         for test_func, name in _get_test_funcs_for_test_class(device_cls):
             should_apply = (name == 'test_op_param_test_op_x_2_cpu_float64' or
@@ -2090,7 +2089,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         device = self.device_type
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
 
         for test_func, name in _get_test_funcs_for_test_class(device_cls):
             should_apply = (name == 'test_module_param_TestModule_x_2_cpu_float64' or
@@ -2113,7 +2112,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         device = self.device_type
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
 
         for test_func, name in _get_test_funcs_for_test_class(device_cls):
             should_apply = ('test_param_x_1_y_True' in name)
@@ -2133,7 +2132,7 @@ class TestTestParametrizationDeviceType(TestCase):
 
         instantiate_device_type_tests(TestParametrized, locals(), only_for=device)
 
-        device_cls = locals()[f'TestParametrizedPRIVATEUSE1']
+        device_cls = locals()[f'TestParametrized{device.upper()}']
         expected_test_names = [name.format(device_cls.__name__, device) for name in (
             '{}.test_parametrized_x_0_{}_float32',
             '{}.test_parametrized_x_0_{}_float64',
