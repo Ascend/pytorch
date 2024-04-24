@@ -23,6 +23,7 @@ tempFilter = {
     "torch_npu.contrib.module.FastBatchNorm3d",
     "torch_npu.contrib.module.FastSyncBatchNorm",
     "torch_npu.contrib.transfer_to_npu.wraps",
+    "torch_npu.contrib.transfer_to_npu.has_triton",
     "torch_npu.dynamo.torchair.CompilerConfig",
     "torch_npu.dynamo.torchair.dynamo_export",
     "torch_npu.dynamo.torchair.get_compiler",
