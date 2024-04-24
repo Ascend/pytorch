@@ -51,7 +51,7 @@ If the installation fails, use the download link or visit the [PyTorch official 
 3. **Install torch-npu**
 
 ```
-pip3 install torch-npu==2.1.0
+pip3 install torch-npu==2.1.0.post3
 ```
 
 ### From Source
