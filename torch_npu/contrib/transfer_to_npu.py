@@ -13,15 +13,22 @@
 # limitations under the License.
 
 import os
+import json
+import sys
 import warnings
 import logging as logger
 from functools import wraps
 import torch
 import torch_npu
+try:
+    from packaging.version import Version as Version
+except ImportError:
+    from distutils.version import LooseVersion as Version
 
 warnings.filterwarnings(action='once')
 
 
+__all__ = []
 torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
                        'arange', 'frombuffer', 'normal', '_empty_per_channel_affine_quantized', 'empty_strided',
                        'empty_like', 'scalar_tensor', 'tril_indices', 'bartlett_window', 'ones', 'sparse_coo_tensor',
@@ -41,19 +48,126 @@ torch_cuda_fn_white_list = [
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location']
+is_available = torch.cuda.is_available
+cur_path = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(cur_path, 'apis_config.json')
+python_version = sys.version_info
 
 
-def wrapper_cuda(fn):
+if python_version >= (3, 8):
+    import importlib.metadata
+else:
+    import importlib
+    import pkg_resources
+
+
+def _get_function_from_string(attribute_string):
+    try:
+        module_path, _, attr_name = attribute_string.rpartition('.')
+        module = importlib.import_module(module_path)
+        return module, attr_name
+    except Exception:
+        return None
+    
+
+def _get_method_from_string(attribute_string):
+    try:
+        parts = attribute_string.split('.')
+        module_path = '.'.join(parts[:-2])
+        class_name = parts[-2]
+        attr_name = parts[-1]
+        module = getattr(importlib.import_module(module_path), class_name)
+        return module, attr_name
+    except Exception:
+        return None
+    
+
+def _get_package_version(package_name):
+    if python_version >= (3, 8):
+        try:
+            return importlib.metadata.version(package_name)
+        except importlib.metadata.PackageNotFoundError:
+            return None
+    else:
+        try:
+            return pkg_resources.get_distribution(package_name).version
+        except pkg_resources.DistributionNotFound:
+            return None
+    
+
+def _compare_versions(current_version, version):
+    return Version(current_version) >= Version(version)
+
+
+def _check_input_file_valid(file_path):
+    if os.path.islink(os.path.abspath(file_path)):
+        return False
+    input_path = os.path.realpath(file_path)
+    if not os.path.exists(input_path):
+        return False
+    if not os.access(input_path, os.R_OK):
+        return False
+    if not len(os.path.basename(input_path)) <= 200:
+        return False
+    if os.path.getsize(input_path) > 10 * 1024 ** 2:
+        return False
+    return True
+
+
+def _load_json_file(file_path):
+    if not _check_input_file_valid(file_path):
+        return {}
+    try:
+        with open(file_path, 'r') as file:
+            file_dict = json.load(file)
+            if not isinstance(file_dict, dict):
+                return {}
+            return file_dict
+    except json.JSONDecodeError:
+        return {}
+    
+
+def _wrapper_libraries_func(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        patched_is_available = torch.cuda.is_available
+        torch.cuda.is_available = is_available
+        result = fn(*args, **kwargs)
+        torch.cuda.is_available = patched_is_available
+        return result
+    
+    return decorated
+
+
+def _do_wrapper_libraries_func(json_dict):
+    for key, value in json_dict.items():
+        current_version = _get_package_version(key)
+        if not current_version:
+            continue
+        version = value.get('version')
+        apis = value.get('apis')
+        if version and apis and _compare_versions(current_version, version):
+            for full_name, api_type in apis.items():
+                modules = None
+                if api_type == 'method':
+                    modules = _get_method_from_string(full_name)
+                elif api_type == 'function':
+                    modules = _get_function_from_string(full_name)
+                if modules and getattr(modules[0], modules[1], None):
+                    setattr(modules[0], modules[1], _wrapper_libraries_func(getattr(modules[0], modules[1])))
+
+
+def _wrapper_cuda(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         if args:
             args_new = list(args)
-            args = replace_cuda_to_npu_in_list(args_new)
+            args = _replace_cuda_to_npu_in_list(args_new)
         if kwargs:
             for device_arg in device_kwargs_list: 
                 device = kwargs.get(device_arg, None)
                 if device is not None:
-                    replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)     
+                    _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)     
             if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
                                                                          torch_npu.profiler._ExperimentalConfig):
                 logger.warning(
@@ -63,23 +177,23 @@ def wrapper_cuda(fn):
                 del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
-                device_ids = replace_cuda_to_npu_in_list(device_ids)
+                device_ids = _replace_cuda_to_npu_in_list(device_ids)
         return fn(*args, **kwargs)
 
     return decorated
 
 
-def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
+def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     if isinstance(device, str) and 'cuda' in device:
         kwargs[device_arg] = device.replace('cuda', 'npu')
     elif (isinstance(device, torch.device) or str(type(device)) == "<class 'torch.device'>") and 'cuda' in device.type:
         device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
         kwargs[device_arg] = torch.device(device_info)
     elif isinstance(device, dict):
-        kwargs[device_arg] = replace_cuda_to_npu_in_dict(device)
+        kwargs[device_arg] = _replace_cuda_to_npu_in_dict(device)
 
 
-def replace_cuda_to_npu_in_list(args_list):
+def _replace_cuda_to_npu_in_list(args_list):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and 'cuda' in arg:
             args_list[idx] = arg.replace('cuda', 'npu')
@@ -87,11 +201,11 @@ def replace_cuda_to_npu_in_list(args_list):
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
             args_list[idx] = torch.device(device_info)
         elif isinstance(arg, dict):
-            args_list[idx] = replace_cuda_to_npu_in_dict(arg)
+            args_list[idx] = _replace_cuda_to_npu_in_dict(arg)
     return args_list
 
 
-def replace_cuda_to_npu_in_dict(device_dict):
+def _replace_cuda_to_npu_in_dict(device_dict):
     new_dict = {}
     for key, value in device_dict.items():
         if isinstance(key, str):
@@ -102,14 +216,14 @@ def replace_cuda_to_npu_in_dict(device_dict):
     return new_dict
 
 
-def device_wrapper(enter_fn, white_list):
+def _device_wrapper(enter_fn, white_list):
     for fn_name in white_list:
         fn = getattr(enter_fn, fn_name, None)
         if fn:
-            setattr(enter_fn, fn_name, wrapper_cuda(fn))
+            setattr(enter_fn, fn_name, _wrapper_cuda(fn))
 
 
-def wrapper_hccl(fn):
+def _wrapper_hccl(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         if args:
@@ -126,7 +240,7 @@ def wrapper_hccl(fn):
     return decorated
 
 
-def patch_cuda():
+def _patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
         ['cuda.random', torch_npu.npu.random],
@@ -137,7 +251,7 @@ def patch_cuda():
     torch_npu._apply_patches(patchs)
 
 
-def patch_profiler():
+def _patch_profiler():
     patchs = [
         ['profiler.profile', torch_npu.profiler.profile], 
         ['profiler.schedule', torch_npu.profiler.schedule],
@@ -149,7 +263,7 @@ def patch_profiler():
     torch_npu._apply_patches(patchs)
 
 
-def warning_fn(msg, rank0=True):
+def _warning_fn(msg, rank0=True):
     is_distributed = torch.distributed.is_available() and \
                      torch.distributed.is_initialized() and \
                      torch.distributed.get_world_size() > 1
@@ -165,8 +279,8 @@ def warning_fn(msg, rank0=True):
         warnings.warn(msg, ImportWarning)
 
 
-def init():
-    warning_fn('''
+def _init():
+    _warning_fn('''
     *************************************************************************************************************
     The torch.Tensor.cuda and torch.nn.Module.cuda are replaced with torch.Tensor.npu and torch.nn.Module.npu now..
     The torch.cuda.DoubleTensor is replaced with torch.npu.FloatTensor cause the double type is not supported now..
@@ -181,37 +295,39 @@ def init():
     )
 
     # torch.cuda.*
-    patch_cuda()
-    device_wrapper(torch.cuda, torch_cuda_fn_white_list)
-    torch.cuda.device.__init__ = wrapper_cuda(torch.cuda.device.__init__)
+    _patch_cuda()
+    _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+    torch.cuda.device.__init__ = _wrapper_cuda(torch.cuda.device.__init__)
 
     # torch.profiler.*
-    patch_profiler()
-    device_wrapper(torch.profiler, torch_profiler_fn_white_list)
+    _patch_profiler()
+    _device_wrapper(torch.profiler, torch_profiler_fn_white_list)
 
     # torch.*
-    device_wrapper(torch, torch_fn_white_list)
+    _device_wrapper(torch, torch_fn_white_list)
 
     # torch.Tensor.*
-    device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
+    _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
     torch.Tensor.cuda = torch.Tensor.npu
     torch.Tensor.is_cuda = torch.Tensor.is_npu
     torch.cuda.DoubleTensor = torch.npu.FloatTensor
 
     # torch.nn.Module.*
-    device_wrapper(torch.nn.Module, torch_module_fn_white_list)
+    _device_wrapper(torch.nn.Module, torch_module_fn_white_list)
     torch.nn.Module.cuda = torch.nn.Module.npu
 
     # torch.distributed.init_process_group
-    torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
+    torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
     torch.distributed.distributed_c10d.broadcast_object_list = torch_npu.distributed.distributed_c10d.broadcast_object_list
     torch.distributed.distributed_c10d.all_gather_object = torch_npu.distributed.distributed_c10d.all_gather_object
 
     # torch.nn.parallel.DistributedDataParallel
-    device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
+    _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
 
-    torch.npu.amp.autocast_mode.npu_autocast.__init__ = wrapper_cuda(torch.npu.amp.autocast_mode.npu_autocast.__init__)
+    torch.npu.amp.autocast_mode.npu_autocast.__init__ = _wrapper_cuda(torch.npu.amp.autocast_mode.npu_autocast.__init__)
+
+    _do_wrapper_libraries_func(_load_json_file(config_path))
 
 
-init()
+_init()
