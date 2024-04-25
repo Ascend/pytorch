@@ -48,7 +48,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from .version import __version__ as __version__
 from .meta import _meta_registrations
@@ -152,6 +152,7 @@ _apply_patches(all_monkey_patches)
 _apply_distributed_patches()
 _apply_class_patches()
 _asd_patch()
+_except_handler.patch_excepthook()
 # this must be placed at the end
 torch_npu._C._initExtension()
 
@@ -178,6 +179,7 @@ del DefaultDeviceType
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
+    _except_handler.handle_exception()
     torch_npu._C._npu_shutdown()
 
 
