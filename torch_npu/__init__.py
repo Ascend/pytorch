@@ -62,7 +62,7 @@ from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_fu
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from torch_npu.npu.amp.autocast_mode import apply_autocast_patch
 from torch_npu.utils.exposed_api import public_npu_functions
-from torch_npu.utils.error_code import ErrCode, pta_error
+from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
 
 from torch_npu.asd.asd import asd_patch
 from .version import __version__ as __version__
@@ -240,6 +240,7 @@ def apply_class_patches():
 _apply_patches(all_monkey_patches)
 apply_class_patches()
 asd_patch()
+_except_handler.patch_excepthook()
 
 torch_npu._C._initExtension()
 # Add __doc__ for ops
@@ -249,6 +250,7 @@ del _op_plugin_docs
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
+    _except_handler.handle_exception()
     torch_npu._C._npu_shutdown()
     torch_npu.distributed.distributed_c10d._destructor_process_group()
 
