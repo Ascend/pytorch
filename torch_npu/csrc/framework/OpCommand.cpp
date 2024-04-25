@@ -6,7 +6,6 @@
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
@@ -133,12 +132,6 @@ OpCommand& OpCommand::Output(
 }
 
 void OpCommand::Run() {
-    if (task_device_index_ == -1) {
-        int32_t temp_device_index = -1;
-        NPU_CHECK_ERROR(c10_npu::GetDevice(&temp_device_index));
-        task_device_index_ = temp_device_index;
-    }
-    c10_npu::NPUGuard guard(task_device_index_);
     aclCmd->SetEnginePriority();
     const string &op_name = aclCmd->GetName();
 #ifndef BUILD_LIBTORCH
@@ -195,9 +188,6 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      at::ScalarType forceScaleType,
                                      const string &descName,
                                      const string &realData) {
-    if (task_device_index_ == -1) {
-        task_device_index_ = tensor.device().index();
-    }
     std::tuple <aclTensorDesc*, aclDataBuffer*> res;
     if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
         tensor = custom_ops::npu_dtype_cast(tensor, commonType.value());
@@ -251,9 +241,6 @@ OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType ty
 }
 
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
-    if (task_device_index_ == -1) {
-        task_device_index_ = output.device().index();
-    }
     if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
         output = custom_ops::npu_dtype_cast(output, commonType.value());
     }
@@ -277,11 +264,7 @@ at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType
 at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
     at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
     int deviceIndex = 0;
-    if (task_device_index_ != -1) {
-        deviceIndex = task_device_index_;
-    } else {
-        NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
-    }
+    NPU_CHECK_ERROR(c10_npu::GetDevice(&deviceIndex));
     auto tensor = cpuPinMemTensor.to(
         c10::Device(c10::DeviceType::PrivateUse1, deviceIndex),
         cpuPinMemTensor.scalar_type(),
