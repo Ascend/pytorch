@@ -46,7 +46,7 @@ class MsProfilerInterface:
         self.syscnt_enable = torch_npu._C._profiler._get_syscnt_enable()
         if self.syscnt_enable:
             self.freq = torch_npu._C._profiler._get_freq()
-        self.start_cnt = torch_npu._C._profiler._get_syscnt()
+            self.start_cnt = torch_npu._C._profiler._get_syscnt()
         self.start_monotonic = torch_npu._C._profiler._get_monotonic()
         torch_npu._C._profiler._start_profiler(self.msprof_config, self.activities)
 
