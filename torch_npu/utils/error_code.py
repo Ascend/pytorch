@@ -1,4 +1,6 @@
 import os
+import sys
+import re
 import time
 from enum import Enum
 
@@ -11,6 +13,7 @@ class _SubModuleID(Enum):
     DIST = 2
     GRAPH = 3
     PROF = 4
+    UNKNOWN = 99
 
 
 class ErrCode(Enum):
@@ -30,6 +33,7 @@ class ErrCode(Enum):
     ACL = (100, "call acl api failed")
     HCCL = (200, "call hccl api failed")
     GE = (300, "call ge api failed")
+    EXCEPT = (999, "application exception")
 
     @property
     def code(self):
@@ -87,3 +91,30 @@ def graph_error(error: ErrCode) -> str:
 
 def prof_error(error: ErrCode) -> str:
     return _format_error_msg(_SubModuleID.PROF, error)
+
+
+class _NPUExceptionHandler(object):
+    def __init__(self):
+        self.exception = None
+        self.npu_except_pattern = "\[ERROR\] [0-9\-\:]* \(PID:\d*, Device:\-?\d*, RankID:\-?\d*\) ERR\d{5}"
+
+    def _is_npu_exception(self):
+        if self.exception:
+            return True if re.search(self.npu_except_pattern, self.exception) else False
+        return False
+
+    def _excepthook(self, exc_type, exc, *args):
+        self.exception = str(exc)
+        self._origin_excepthook(exc_type, exc, *args)
+
+    def patch_excepthook(self):
+        self._origin_excepthook = sys.excepthook
+        sys.excepthook = self._excepthook
+
+    def handle_exception(self):
+        # exception raised by other component, such as original PyTorch, third-party library, or application code.
+        if self.exception and not self._is_npu_exception():
+            print(_format_error_msg(_SubModuleID.UNKNOWN, ErrCode.EXCEPT).lstrip())
+
+
+_except_handler = _NPUExceptionHandler()
