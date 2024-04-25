@@ -72,6 +72,13 @@ namespace c10_npu {
         return ACL_ERROR_NONE;
     }
 
+    c10::DeviceIndex current_device()
+    {
+        int cur_device = 0;
+        NPU_CHECK_ERROR(c10_npu::GetDevice(&cur_device));
+        return static_cast<c10::DeviceIndex>(cur_device);
+    }
+
     void set_device(c10::DeviceIndex device)
     {
         NPU_CHECK_ERROR(c10_npu::SetDevice(device));
