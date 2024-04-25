@@ -3,7 +3,6 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -12,7 +11,6 @@ namespace at_npu {
 namespace native {
 
 c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self) {
-    c10_npu::NPUGuard guard(self.device());
     c10::Scalar r;
     AT_DISPATCH_ALL_TYPES_AND3(
         at::ScalarType::Half,
