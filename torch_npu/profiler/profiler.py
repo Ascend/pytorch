@@ -111,7 +111,7 @@ class _KinetoProfile:
         self.syscnt_enable = _get_syscnt_enable()
         if self.syscnt_enable:
             self.freq = _get_freq()
-        self.start_cnt = _get_syscnt()
+            self.start_cnt = _get_syscnt()
         self.start_monotonic = _get_monotonic()
         _start_profiler(npu_prof_config, self.activities)
 
