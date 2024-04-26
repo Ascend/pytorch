@@ -92,7 +92,7 @@ int64_t physical_numel(const at::Tensor& self)
 uint64_t getNumelForHCCL(const at::Tensor& self)
 {
     aclFormat format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
-    if (format != ACL_FORMAT_ND and format != ACL_FORMAT_NCHW) {
+    if (!at_npu::native::FormatHelper::IsBaseFormatType(format)) {
         if (self.storage().data_ptr().get() != self.data_ptr()) {
             TORCH_NPU_WARN_ONCE(
                 "The storage data_ptr is different from tensor data_ptr."
