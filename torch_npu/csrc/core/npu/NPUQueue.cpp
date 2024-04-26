@@ -214,6 +214,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         if (gilState) {
             PyEval_RestoreThread(gilState);
         }
+        read_idx.idx = write_idx.idx;
         throw std::runtime_error("The Inner error is reported as above.\n "
                                 "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
                                 "If you want to get the accurate stacktrace, "
@@ -286,6 +287,7 @@ void Repository::Enqueue(void* cur_paras) {
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
+    read_idx.idx = write_idx.idx;
     throw std::runtime_error("The Inner error is reported as above.\n "\
                              "Since the operator is called asynchronously, the stacktrace may be inaccurate. "\
                              "If you want to get the accurate stacktrace, "\
