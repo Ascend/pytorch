@@ -1322,15 +1322,17 @@ class TestOnnxOps(TestCase):
             def __init__(self):
                 super(Model, self).__init__()
 
-            def forward(self, input_dummy):
-                output, scale = torch_npu.npu_dynamic_quant(input_dummy)
+            def forward(self, input_dummy, smooth_scales_dummy):
+                output, scale = torch_npu.npu_dynamic_quant(input_dummy, smooth_scales=smooth_scales_dummy)
                 return output, scale
             
         def export_onnx(onnx_model_name):
             input_dummy = torch.rand(4, 1024, 512).uniform_(-3, 3).npu().to(torch.float16)
+            smooth_scales_dummy = torch.rand(512).uniform_(-3, 3).npu().to(torch.float16)
             model = Model().to("npu")
-            model(input_dummy)
-            self.onnx_export(model, (input_dummy), onnx_model_name, ["input"], ["output", "scale"])
+            model(input_dummy, smooth_scales_dummy)
+            self.onnx_export(model, (input_dummy, smooth_scales_dummy), onnx_model_name,
+                             ["input", "smooth_scale_dummy"], ["output", "scale"])
         onnx_model_name = "model_npu_dynamic_quant.onnx"
         export_onnx(onnx_model_name)
         assert (os.path.isfile(os.path.join(TestOnnxOps.test_onnx_path, onnx_model_name)))

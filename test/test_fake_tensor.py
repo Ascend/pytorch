@@ -1638,11 +1638,12 @@ class TestNpuDynamicQuant(TestCase):
     def test_npu_dynamic_quant(self):
         with FakeTensorMode():
             input_npu = torch.randn((4, 2048, 1024)).npu().to(torch.float16)
+            smooth_scales_npu = torch.randn((1024)).npu().to(torch.float16)
 
             output = torch.randn((4, 2048, 1024)).npu().to(torch.int8)
             scale = torch.randn((4, 2048)).npu().to(torch.float32)
 
-            actual_output, actual_scale = torch_npu.npu_dynamic_quant(input_npu)
+            actual_output, actual_scale = torch_npu.npu_dynamic_quant(input_npu, smooth_scales=smooth_scales_npu)
 
             self.assertEqual(actual_output.dtype, output.dtype)
             self.assertEqual(actual_output.shape, output.shape)
