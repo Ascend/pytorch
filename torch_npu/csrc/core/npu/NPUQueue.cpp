@@ -215,6 +215,7 @@ NPUStatus Repository::MakeSureQueueEmpty() {
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
+    read_idx.idx = write_idx.idx;
     throw std::runtime_error("The Inner error as above.\n "\
                              "ASCEND kernel errors might be asynchronously reported at some other API call, "\
                              "so the stacktrace may not correct.\n" \
@@ -291,6 +292,7 @@ void Repository::Enqueue(void* cur_paras) {
   if (GetStatus() == RepoStatus::ERROR_EXIT) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
+    read_idx.idx = write_idx.idx;
     throw std::runtime_error("The Inner error as above.\n "\
                              "ASCEND kernel errors might be asynchronously reported at some other API call, "\
                              "so the stacktrace may not correct.\n" \
