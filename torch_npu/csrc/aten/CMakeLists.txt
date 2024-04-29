@@ -8,7 +8,8 @@ FILE(GLOB _ATEN_SRCS
 FILE(GLOB _EXCLUDE
     VariableTypeEverything.cpp
     ADInplaceOrViewTypeEverything.cpp
-    python_functionsEverything.cpp)
+    python_functionsEverything.cpp
+    RegisterFunctionalizationEverything.cpp)
 
 FOREACH(ITEM ${_EXCLUDE})
     LIST(REMOVE_ITEM _ATEN_SRCS ${ITEM})
