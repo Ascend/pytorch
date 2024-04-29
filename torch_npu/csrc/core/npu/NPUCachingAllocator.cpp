@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/core/npu/NPUEvent.h"
 #ifndef BUILD_LIBTORCH
 #include "torch_npu/csrc/profiler/npu_profiler.h"
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
 #endif
 
 namespace c10_npu {
@@ -402,6 +403,13 @@ struct ExpandableSegment {
     // it might grab the GIL which can lead to a deadlock
     // Locking order must be GIL -> Allocator Lock
     NPU_CHECK_ERROR(aclrtSynchronizeStream(stream_));
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuStreamSynchronization(
+            reinterpret_cast<uintptr_t>(stream_));
+    }
+#endif
     for (auto i : c10::irange(begin, end)) {
       aclrtDrvMemHandle h = handles_.at(i).value();
       handles_.at(i) = c10::nullopt;
@@ -2007,12 +2015,17 @@ class DeviceCachingAllocator {
       for (auto& e : st.second) {
         EventPool::Event event = std::move(e.first);
         Block* block = e.second;
-
         if (check_error) {
           NPU_CHECK_ERROR(aclrtSynchronizeEvent(*event));
         } else {
           NPU_CHECK_WARN(aclrtSynchronizeEvent(*event));
         }
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuEventSynchronization(reinterpret_cast<uintptr_t>(event.get()));
+        }
+#endif
         ASCEND_LOGI("Event: aclrtSynchronizeEvent is successfully executed, event=%p", event.get());
 
         block->event_count--;
@@ -2189,6 +2202,13 @@ class NpuCachingAllocator : public NPUAllocator {
 #endif
     add_allocated_block(block);
     *devPtr = static_cast<void*>(block->ptr);
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuMemoryAllocation(
+            reinterpret_cast<uintptr_t>(*devPtr));
+    }
+#endif
   }
 
   void free(void* ptr) {
@@ -2199,6 +2219,13 @@ class NpuCachingAllocator : public NPUAllocator {
     if (!block) {
       AT_ERROR("invalid device pointer: ", ptr);
     }
+#ifndef BUILD_LIBTORCH
+    const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+    if (C10_UNLIKELY(trigger)) {
+        trigger->traceNpuMemoryDeallocation(
+            reinterpret_cast<uintptr_t>(block->ptr));
+    }
+#endif
     device_allocator[block->device]->free(block);
 #ifndef BUILD_LIBTORCH
     if (block->stream_uses.empty() || !c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {

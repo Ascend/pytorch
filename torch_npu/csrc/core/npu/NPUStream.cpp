@@ -16,6 +16,9 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 namespace c10_npu {
 namespace {
@@ -357,8 +360,15 @@ bool npuSynchronizeDevice(bool check_error) {
       ASCEND_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
   }
-
   auto acl_ret = aclrtSynchronizeDevice();
+#ifndef BUILD_LIBTORCH
+  if (acl_ret == ACL_ERROR_NONE) {
+      const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+      if (C10_UNLIKELY(trigger)) {
+          trigger->traceNpuDeviceSynchronization();
+      }
+  }
+#endif
   if (check_error) {
     NPU_CHECK_ERROR(acl_ret, "aclrtSynchronizeDevice");
   } else {
