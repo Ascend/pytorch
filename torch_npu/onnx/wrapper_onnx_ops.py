@@ -727,6 +727,16 @@ class NPUMmAllReduceBaseOP(torch.autograd.Function):
                     dequant_scale, antiquant_group_size, comm_turn)
 
 
+class NPUDynamicQuantOp(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, *args, **kwargs):
+        return torch.ops.npu.npu_dynamic_quant(*args, **kwargs)
+
+    @staticmethod
+    def symbolic(g, input_dummy: Tensor, smooth_scales_dummy: Optional[Tensor] = None):
+        return g.op("npu::NPUDynamicQuant", input_dummy, smooth_scales_dummy, outputs=2)
+
 
 class NPUWeightQuantBatchMatmulOP(torch.autograd.Function):
 
@@ -1057,6 +1067,10 @@ def wrapper_npu_stride_add(self, other, offset1, offset2, c1_len):
     return NPUStrideAddOP.apply(self, other, offset1, offset2, c1_len)
 
 
+def wrapper_npu_dynamic_quant(input_dummy, smooth_scales_dummy):
+    return NPUDynamicQuantOp.apply(input_dummy, smooth_scales_dummy)
+
+
 def wrapper_npu_gru(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
                     seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first):
     return NPUGruOP.apply(inputs, hx, weight_input, weight_hidden, bias_input, bias_hidden,
@@ -1161,6 +1175,7 @@ def add_onnx_ops():
     torch_npu.npu_scatter = wrapper_npu_scatter
     torch_npu.npu_scatter_nd_update = wrapper_npu_scatter_nd_update
     torch_npu.npu_lstm = wrapper_npu_lstm
+    torch_npu.npu_dynamic_quant = wrapper_npu_dynamic_quant
     torch_npu.npu_rms_norm = wrapper_npu_rms_norm
     torch_npu.npu_add_rms_norm = wrapper_npu_add_rms_norm
     torch_npu.npu_lstm_cell = wrapper_npu_lstm_cell
