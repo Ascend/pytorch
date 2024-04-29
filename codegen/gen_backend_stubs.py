@@ -37,11 +37,13 @@ import torchgen.api.dispatcher as dispatcher
 import torchgen.api.native as native
 from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
 from torchgen.gen_backend_stubs import gen_dispatchkey_nativefunc_headers
+from codegen.gen_functionalization_type import gen_functionalization_definition, gen_functionalization_registration
 
-from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured,
-                           add_header_to_template_file, parse_npu_yaml, get_opplugin_wrap_name,
+from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, gen_unstructured, add_header_to_template_file,
+                           get_grouped_native_functions_optional_out, parse_npu_yaml, get_opplugin_wrap_name,
                            get_target_functions, merge_custom_yaml, field_tag, gen_custom_yaml_path,
-                           update_opapi_info, is_opapi, PathManager, filt_exposed_api, get_target_native_registration)
+                           update_opapi_info, is_opapi, PathManager, filt_exposed_api, get_target_native_registration,
+                           NativeFunctionsGroupOptionalOut)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
 
@@ -556,6 +558,37 @@ m.impl("${schema}", TORCH_FN(op_plugin::${kernel}));"""
     })
 
 
+def gen_functionalization(fm: FileManager,
+        selector: "SelectiveBuilder",
+        grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroupOptionalOut]],
+        ):
+    def key_func(
+        fn: Union[NativeFunction, NativeFunctionsGroupOptionalOut]
+    ) -> str:
+        return fn.root_name
+
+    def functionalization_env_callable(g):
+        definition = gen_functionalization_definition(selector, g)
+        register = gen_functionalization_registration(selector, g)
+        return {
+            "func_definitions": definition,
+            "func_registrations": register,
+            }
+
+    fm.write_sharded(
+        "RegisterFunctionalization.cpp",
+        grouped_native_functions,
+        key_fn=key_func,
+        env_callable=functionalization_env_callable,
+        num_shards=2,
+        sharded_keys={
+            "func_definitions",
+            "func_registrations",
+        },
+    )
+    return 
+
+
 def gen_target_registration(
         target_op_type: str,
         dispatch_key: DispatchKey,
@@ -675,6 +708,8 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
         fm = FileManager(install_dir=output_dir, template_dir=pta_template_dir, dry_run=dry_run)
         custom_functions = parse_custom_yaml(source_yaml, tags_yaml_path).native_functions
 
+        grouped_custom_functions = get_grouped_native_functions_optional_out(custom_functions)
+        gen_functionalization(fm, selector, grouped_custom_functions)
         gen_custom_trace(fm, custom_functions)
         gen_custom_functions_dispatch(fm, custom_functions)
 
