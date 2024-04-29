@@ -1592,6 +1592,25 @@ class TestFFN(TestCase):
             self.assertTrue(x.shape == res.shape)
 
 
+class TestNpuDynamicQuant(TestCase):
+    def test_npu_dynamic_quant(self):
+        with FakeTensorMode():
+            input_npu = torch.randn((4, 2048, 1024)).npu().to(torch.float16)
+            smooth_scales_npu = torch.randn((1024)).npu().to(torch.float16)
+
+            output = torch.randn((4, 2048, 1024)).npu().to(torch.int8)
+            scale = torch.randn((4, 2048)).npu().to(torch.float32)
+
+            actual_output, actual_scale = torch_npu.npu_dynamic_quant(input_npu, smooth_scales=smooth_scales_npu)
+
+            self.assertEqual(actual_output.dtype, output.dtype)
+            self.assertEqual(actual_output.shape, output.shape)
+            self.assertEqual(actual_output.device, output.device)
+            self.assertEqual(actual_scale.dtype, scale.dtype)
+            self.assertEqual(actual_scale.shape, scale.shape)
+            self.assertEqual(actual_scale.device, scale.device)
+
+
 class TestGroupedMatmul(TestCase):
     def test_npu_grouped_matmul_meta_0(self):
         with FakeTensorMode():
