@@ -19,8 +19,9 @@ import stat
 import traceback
 import warnings
 import itertools
-from typing import List, Optional, Set, Dict, Union, Sequence
+from typing import List, Optional, Set, Dict, Union, Sequence, Iterator
 from collections import defaultdict
+from dataclasses import dataclass
 import yaml
 
 from torchgen.api.types.signatures import NativeSignature
@@ -36,8 +37,11 @@ from torchgen.model import (
     NativeFunctionsGroup,
     FunctionSchema,
     OperatorName,
-    TensorOptionsArguments
+    TensorOptionsArguments,
+    SchemaKind,
 )
+from torchgen.native_function_generation import pre_group_native_functions
+from torchgen.utils import concatMap
 from torchgen.api import cpp
 from torchgen.api.translate import translate
 from torchgen.api.types import Binding, CppSignatureGroup, kernel_signature
@@ -570,4 +574,71 @@ ${native_kernels}
         dispatch_helpers=[wrap_native_function(f) for f in target_native_functions],
         dispatch_key=dispatch_key.name,
         native_kernels=[register_wrap_native_function(f) for f in target_native_functions]
+    )
+
+
+# A structured kernel is guaranteed to have a functional, optionally out variant and
+# optionally an inplace variant.
+@dataclass(frozen=True)
+class NativeFunctionsGroupOptionalOut:
+    functional: NativeFunction
+    inplace: Optional[NativeFunction]
+    mutable: Optional[NativeFunction]
+    out: Optional[NativeFunction]
+
+    @property
+    def root_name(self) -> str:
+        return self.functional.root_name
+
+    def functions(self) -> Iterator[NativeFunction]:
+        yield self.functional
+        if self.out is not None:
+            yield self.out
+        if self.inplace is not None:
+            yield self.inplace
+        if self.mutable is not None:
+            yield self.mutable
+
+    @staticmethod
+    def from_dict(
+        d: Dict[SchemaKind, NativeFunction]
+    ) -> Optional["NativeFunctionsGroupOptionalOut"]:
+        assert d
+        if len(d) == 1:
+            return None
+        d = dict(d)  # non-destructive updates please
+        functional = d.pop(SchemaKind.functional, None)
+        inplace = d.pop(SchemaKind.inplace, None)
+        mutable = d.pop(SchemaKind.mutable, None)
+        out = d.pop(SchemaKind.out, None)
+        assert not d
+        assert functional is not None
+
+        return NativeFunctionsGroupOptionalOut(
+            functional=functional,
+            inplace=inplace,
+            mutable=mutable,
+            out=out,
+        )
+
+
+def get_grouped_native_functions_optional_out(
+    native_functions: Sequence[NativeFunction],
+) -> Sequence[Union[NativeFunction, NativeFunctionsGroupOptionalOut]]:
+
+    def flatten_pre_group(
+        d: Dict[SchemaKind, NativeFunction]
+    ) -> Sequence[Union[NativeFunction, NativeFunctionsGroupOptionalOut]]:
+        r = NativeFunctionsGroupOptionalOut.from_dict(d)
+        if r is None:
+            # Invariant: any NativeFunctions that are code-generated
+            # should have been grouped into NativeFunctionsGroupOptionalOut objects
+            assert not any("generated" in f.tags for f in d.values())
+            return list(d.values())
+        else:
+            return [r]
+
+    pre_grouped_native_functions = pre_group_native_functions(native_functions)
+    return list(
+        concatMap(flatten_pre_group, list(pre_grouped_native_functions.values()))
     )
