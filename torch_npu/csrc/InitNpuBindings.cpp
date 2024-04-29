@@ -103,14 +103,18 @@ static PyMethodDef TorchNpuMethods[] = {
     {nullptr, nullptr, 0, nullptr}
 };
 
-PyObject* THPModule_sanitizer_enable(PyObject* /* unused */)
+PyObject* THPModule_sanitizer_enable(PyObject* /* unused */, PyObject* args)
 {
-    c10_npu::impl::activateNPUTrace();
+    int mode;
+    if (!PyArg_ParseTuple(args, "i", &mode)) {
+        return NULL;
+    }
+    c10_npu::impl::activateNPUTrace(mode);
     Py_RETURN_NONE;
 }
 
 static PyMethodDef TorchSanitizerMethods[] = {
-    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_NOARGS, nullptr},
+    {"_activate_npu_trace", (PyCFunction)THPModule_sanitizer_enable, METH_VARARGS, nullptr},
     {nullptr, nullptr, 0, nullptr}
 };
 

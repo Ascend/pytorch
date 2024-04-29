@@ -21,7 +21,7 @@ from .torch_funcs import add_torch_funcs
 from .serialization import save, load, _npu_tag, _npu_deserialize, save_async
 from ._tensor_str import add_str_methods
 from .dataloader import add_dataloader_method
-from .utils import manual_seed, seed
+from .utils import manual_seed, seed, print_error_log, print_warn_log, print_info_log
 from .storage import add_storage_methods
 from .fx import add_fx_methods
 from .checkpoint import add_checkpoint_methods

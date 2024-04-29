@@ -185,14 +185,14 @@ void OpCommand::Run() {
     aclCmd->releaseSource(false);
   } else {
     if (C10_UNLIKELY(trigger)) {
-        std::cout << "====== acl operator name: " << op_name << std::endl;
+        trigger->traceNpuAclStartExecution(op_name);
     }
     aclCmd->Run(sync, sync_index, outputTensor);
     if (c10_npu::option::OptionsManager::CheckBlockingEnable()) {
       Sync();
     }
     if (C10_UNLIKELY(trigger)) {
-        (*trigger)->traceNpuAclExecution(op_name);
+        trigger->traceNpuAclFinishExecution(op_name);
     }
     aclCmd->releaseSource();
   }
