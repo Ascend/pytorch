@@ -21,7 +21,7 @@ struct NPUTrace {
     }
 };
 
-TORCH_NPU_API void activateNPUTrace();
+TORCH_NPU_API void activateNPUTrace(const int);
 
 } // namespace impl
 } // namespace c10

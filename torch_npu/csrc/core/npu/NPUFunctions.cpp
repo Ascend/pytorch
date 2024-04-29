@@ -2,6 +2,9 @@
 #include <unordered_map>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
+#ifndef BUILD_LIBTORCH
+#include "torch_npu/csrc/sanitizer/NPUTrace.h"
+#endif
 
 namespace c10_npu {
     static uint32_t dev_count = 0;
@@ -115,6 +118,12 @@ namespace c10_npu {
             if (acl_ret != ACL_ERROR_NONE) {
                 return acl_ret;
             }
+#ifndef BUILD_LIBTORCH
+            const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+            if (C10_UNLIKELY(trigger)) {
+                trigger->traceNpuDeviceSynchronization();
+            }
+#endif
         }
         NPU_CHECK_ERROR(SetDevice(cur_device));
         return ACL_ERROR_NONE;
@@ -144,6 +153,12 @@ namespace c10_npu {
     void device_synchronize()
     {
         NPU_CHECK_ERROR(aclrtSynchronizeDevice());
+#ifndef BUILD_LIBTORCH
+        const c10_npu::impl::PyCallbackTrigger* trigger = c10_npu::impl::NPUTrace::getTrace();
+        if (C10_UNLIKELY(trigger)) {
+            trigger->traceNpuDeviceSynchronization();
+        }
+#endif
     }
 
     int ExchangeDevice(int device)

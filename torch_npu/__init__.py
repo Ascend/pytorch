@@ -48,6 +48,7 @@ from torch_npu.utils import _register_ops_under_dtensor_rules
 from torch_npu.utils.exposed_api import public_npu_functions
 from torch_npu.distributed.optim.zero_redundancy_optimizer import _get_optimizer_constructor
 from torch_npu.distributed.checkpoint.checkpoint import _apply_dcp_patch
+from torch_npu.npu._stream_check import apply_sanitizer_patch
 from torch_npu.utils.error_code import ErrCode, pta_error, _except_handler
 from torch_npu.asd.asd import _asd_patch
 from .version import __version__ as __version__
@@ -139,7 +140,6 @@ def _apply_class_patches():
     _apply_dcp_patch()
 
 
-
 torch.utils.rename_privateuse1_backend("npu")
 # rename device name to 'npu' and register funcs
 torch._register_device_module('npu', torch_npu.npu)
@@ -202,4 +202,5 @@ _dynamo_register_interface_for_device()
 if 'TORCH_NPU_SANITIZER' in os.environ:
     import torch_npu.npu._sanitizer as csan
 
+    apply_sanitizer_patch()
     csan.enable_npu_sanitizer()
