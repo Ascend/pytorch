@@ -40,6 +40,7 @@ from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_collect_env_methods, \
     add_storage_methods, add_serialization_methods, add_dynamo_methods, \
     _dynamo_register_interface_for_device, add_optim_method, _inductor_register_device_op_overrides
+from torch_npu.npu._stream_check import apply_sanitizer_patch
 import torch_npu.utils.custom_ops
 import torch_npu.distributed.rpc
 from torch_npu.distributed.rpc.backend_registry import _rpc_backend_registry
@@ -133,6 +134,7 @@ def apply_class_patches():
     add_dynamo_methods()
     add_optim_method()
     apply_zero_patch()
+    apply_sanitizer_patch()
 
 
 torch.utils.rename_privateuse1_backend("npu")
