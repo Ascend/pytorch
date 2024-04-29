@@ -27643,5 +27643,22 @@
   "test_batch_vs_slicing__refs_i0_npu_int8 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_batch_vs_slicing__refs_i0_npu_uint8 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
   "test_batch_vs_slicing__refs_digamma_npu_float16 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
-  "test_batch_vs_slicing__refs_digamma_npu_float32 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]]
-  }
+  "test_batch_vs_slicing__refs_digamma_npu_float32 (__main__.TestUnaryUfuncsPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_float32 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_float64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex128_int64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_float32 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_float64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_complex64_int64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float32_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float32_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_float64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_int64_complex128 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_unary_op_out_casting_npu_int64_complex64 (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_result_type_tensor_vs_scalar_npu (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_lt_with_type_promotion_npu (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]],
+  "test_comparison_ops_with_type_promotion_npu (__main__.TestTypePromotionPRIVATEUSE1)": ["", [""]]
+}
