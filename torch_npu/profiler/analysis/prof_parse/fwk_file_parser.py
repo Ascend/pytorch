@@ -237,3 +237,9 @@ class FwkFileParser:
         python_trace_apis = python_trace_parser.get_python_trace_api_data()
 
         return {"torch_op": torch_op_apis, "task_queue": task_queues, "python_trace": python_trace_apis}
+
+    def get_first_fwk_op(self):
+        torch_op_data = self.get_file_data_by_tag(FileTag.TORCH_OP)
+        if not torch_op_data:
+            return None
+        return min(torch_op_data, key=lambda op: op.ts)
