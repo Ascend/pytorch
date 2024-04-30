@@ -114,6 +114,7 @@
   "test_do_not_skip_side_effects (__main__.SkipNonTensorTests)": ["", [""]],
   "test_HF_bert_model_output (__main__.TestModelOutput)": ["", [""]],
   "test_module_attribute_mutation_violation_negative_4 (__main__.MutationExportTests)": ["", [""]],
+  "test_module_attribute_mutation_violation_negative_2 (__main__.MutationExportTests)": ["", [""]],
   "test_lstm (__main__.FakeTensorTest)": ["", [""]],
   "test_flash_attention (__main__.FakeTensorOperatorInvariants)": ["", [""]],
   "test_advanced_indexing_backwards_memory_format_npu (__main__.TestAutogradDeviceTypePRIVATEUSE1)": ["", [""]],
