@@ -96,7 +96,8 @@ class StepInfoDbParser(BaseParser):
                     Constant.STEP_ID: step_id,
                     Constant.START_TS: device_start_ts,
                     Constant.END_TS: max(device_end_ts, end_time),
-                    Constant.TASK_INFO: task_info
+                    Constant.TASK_INFO: task_info,
+                    Constant.FWK_START_TS: start_time
                 }
             )
         else:
@@ -113,7 +114,8 @@ class StepInfoDbParser(BaseParser):
                         Constant.STEP_ID: step_id,
                         Constant.START_TS: device_start_ts,
                         Constant.END_TS: max(device_end_ts, step_node.end_time),
-                        Constant.TASK_INFO: task_info
+                        Constant.TASK_INFO: task_info,
+                        Constant.FWK_START_TS: step_node.start_time
                     }
                 )
         DbManager.destroy_db_connect(conn, curs)

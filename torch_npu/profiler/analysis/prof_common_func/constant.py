@@ -145,6 +145,7 @@ class Constant(object):
     END_TS = "end_ts"
     COMM_OPS = "comm_ops"
     TASK_INFO = "task_info"
+    FWK_START_TS = "fwk_step_start_ts"
 
     # multiprocess
     MODE = "mode"
@@ -403,6 +404,7 @@ class TableColumnsManager():
             ("free", Constant.SQL_NUMERIC_TYPE),
             ("stage", Constant.SQL_NUMERIC_TYPE),
             ("bubble", Constant.SQL_NUMERIC_TYPE),
-            ("communication_not_overlapped_and_exclude_receive", Constant.SQL_NUMERIC_TYPE)
+            ("communication_not_overlapped_and_exclude_receive", Constant.SQL_NUMERIC_TYPE),
+            ("preparing", Constant.SQL_NUMERIC_TYPE)
         ]
     }

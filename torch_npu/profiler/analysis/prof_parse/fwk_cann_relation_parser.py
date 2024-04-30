@@ -101,5 +101,6 @@ class FwkCANNRelationParser:
                 [kernel.end_ns for kernel in max_kernel_list]) if max_kernel_list else Constant.INVALID_VALUE
             step_range.append(
                 {Constant.STEP_ID: step_id, Constant.START_TS: device_start_ts,
-                 Constant.END_TS: max(device_end_ts, step_node.end_time), Constant.COMM_OPS: {}})
+                 Constant.END_TS: max(device_end_ts, step_node.end_time), Constant.COMM_OPS: {},
+                 Constant.FWK_START_TS: step_node.start_time})
         return step_range
