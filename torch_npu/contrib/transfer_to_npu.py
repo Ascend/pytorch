@@ -47,7 +47,7 @@ torch_cuda_fn_white_list = [
 ]
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
-device_kwargs_list = ['device', 'device_type', 'map_location']
+device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
 is_available = torch.cuda.is_available
 cur_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(cur_path, 'apis_config.json')
@@ -316,11 +316,13 @@ def _init():
     _device_wrapper(torch.nn.Module, torch_module_fn_white_list)
     torch.nn.Module.cuda = torch.nn.Module.npu
 
-    # torch.distributed.init_process_group
+    # torch.distributed
     torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
     torch.distributed.distributed_c10d.broadcast_object_list = torch_npu.distributed.distributed_c10d.broadcast_object_list
     torch.distributed.distributed_c10d.all_gather_object = torch_npu.distributed.distributed_c10d.all_gather_object
+    torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
+        _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
