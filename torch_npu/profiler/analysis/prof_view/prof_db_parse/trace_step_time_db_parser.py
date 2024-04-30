@@ -20,6 +20,7 @@ from ...prof_common_func.constant import DbConstant, TableColumnsManager
 from ...prof_common_func.db_manager import DbManager
 from ...prof_common_func.constant import convert_ns2us_float
 from ...prof_common_func.time_range_calculator import CommunicationTimeRange, RangeCaculator
+from ...prof_parse.fwk_file_parser import FwkFileParser
 
 __all__ = []
 
@@ -39,7 +40,7 @@ class TraceStepTimeDbParser(BaseParser):
         self.db_path = ""
 
     @staticmethod
-    def getE2ETime(task_time_list):
+    def get_e2e_time(task_time_list):
         start_time = -1
         end_time = -1
         for time_range in task_time_list:
@@ -48,6 +49,14 @@ class TraceStepTimeDbParser(BaseParser):
             if end_time == -1 or time_range.end_ts > end_time:
                 end_time = time_range.end_ts
         return end_time - start_time
+
+    def get_prepare_time(self, first_task_start_ts, step_info):
+        if not first_task_start_ts:
+            return 0
+        if step_info.get(Constant.STEP_ID) is None:
+            first_fwk_op = FwkFileParser(self._profiler_path).get_first_fwk_op()
+            return (first_task_start_ts - first_fwk_op.ts) if first_fwk_op else 0
+        return first_task_start_ts - step_info.get(Constant.FWK_START_TS, 0)
 
     def save_step_trace_db_data(self, output_path, step_trace_data):
         db_path = os.path.join(output_path, DbConstant.DB_ANALYSIS)
@@ -79,14 +88,14 @@ class TraceStepTimeDbParser(BaseParser):
         save_time = []
         if not self.step_range:
             save_time.append(
-                {'step': None, 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0,
-                 'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0})
+                {'step': None, 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0,
+                 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0})
         else:
             # get step time
             for cur_step in self.step_range:
                 save_info = {
                     'step': cur_step.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 
-                    'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0
+                    'comun': 0, 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0
                 }
                 origin_compute_data, origin_communication_data, bubble_data = self._get_task_data_in_step(cur_step)
                 compute_data = RangeCaculator.merge_continuous_intervals(origin_compute_data)
@@ -99,7 +108,9 @@ class TraceStepTimeDbParser(BaseParser):
                     sum(data.end_ts - data.start_ts for data in pure_communication_data)
                 save_info['free'] = sum(data.end_ts - data.start_ts for data in free_data)
                 save_info['bubble'] = sum(data.end_ts - data.start_ts for data in bubble_data)
-                save_info['stage'] = self.getE2ETime(compute_data + communication_data) - save_info['bubble']
+                save_info['stage'] = self.get_e2e_time(compute_data + communication_data) - save_info['bubble']
+                first_task_start_ts = self._get_first_device_task_ts(compute_data, communication_data)
+                save_info['prepare'] = self.get_prepare_time(first_task_start_ts, cur_step)
                 save_time.append(save_info)
 
         for calc_time in save_time:
@@ -107,8 +118,8 @@ class TraceStepTimeDbParser(BaseParser):
             calc_time['Overlp'] = calc_time['comun'] - calc_time['comunNotOverlp']
         reformat_time = []
         for step in save_time:
-            step_time_data = [step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'],
-                              step['free'], step['stage'], step['bubble'], step['comunNotOverlpRec']]
+            step_time_data = [step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'],
+                              step['stage'], step['bubble'], step['comunNotOverlpRec'], step['prepare']]
             reformat_time.append([step['step'], ] + [convert_ns2us_float(data) for data in step_time_data])
         self.save_step_trace_db_data(self._output_path, reformat_time)
 
@@ -152,3 +163,15 @@ class TraceStepTimeDbParser(BaseParser):
                 if task_name.startswith('hcom_receive'):
                     bubble_data.append(time_range)
         return compute_data, communication_data, bubble_data
+
+    def _get_first_device_task_ts(self, compute_task, communication_task):
+        first_compute_task = compute_task[0] if compute_task else None
+        first_communication_task = communication_task[0] if communication_task else None
+        if not first_compute_task and not first_communication_task:
+            return 0
+        first_task_start_ts = 0
+        if first_compute_task:
+            first_task_start_ts = first_compute_task.start_ts
+        if first_communication_task and first_communication_task.start_ts < first_task_start_ts:
+            first_task_start_ts = first_communication_task.start_ts
+        return first_task_start_ts

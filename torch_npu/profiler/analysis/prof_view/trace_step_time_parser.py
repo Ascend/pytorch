@@ -1,11 +1,23 @@
+from enum import Enum
 from .base_parser import BaseParser
 from ..prof_common_func.constant import Constant, print_error_msg
 from ..prof_common_func.file_manager import FileManager
 from ..prof_common_func.constant import convert_ns2us_float
 from ..prof_parse.cann_file_parser import CANNFileParser
 from ..prof_parse.fwk_cann_relation_parser import FwkCANNRelationParser
+from ..prof_parse.fwk_file_parser import FwkFileParser
 
 __all__ = []
+
+
+class _StepInfoIndex(Enum):
+    ID = 0
+    START_TS = 1
+    END_TS = 2
+    E2E_START_TS = 3
+    E2E_END_TS = 4
+    FWK_START_TS = 5
+    FIRST_TASK_TS = 6
 
 
 class TraceStepTimeParser(BaseParser):
@@ -13,7 +25,7 @@ class TraceStepTimeParser(BaseParser):
     timeflag = {'Communication': 'comun', 'Computing': 'compute', 'Free': 'free',
                 'Communication(Not Overlapped)': 'comunNotOverlp', 'hcom_receive': 'bubble'}
     title = ['Step', 'Computing', 'Communication(Not Overlapped)', 'Overlapped', 'Communication', 'Free', 'Stage',
-             'Bubble', 'Communication(Not Overlapped and Exclude Receive)']
+             'Bubble', 'Communication(Not Overlapped and Exclude Receive)', 'Preparing']
 
     def __init__(self, name: str, param_dict: dict):
         super().__init__(name, param_dict)
@@ -28,35 +40,53 @@ class TraceStepTimeParser(BaseParser):
             return False
 
     @classmethod
-    def count_time(cls, addtype, addtime, durtime, step_list, save_time):
+    def count_time(cls, add_type, start_time, duration, step_list, save_time):
         cur_step = None
-        if not cls.is_float_num(addtime) or not cls.is_float_num(durtime):
+        if not cls.is_float_num(start_time) or not cls.is_float_num(duration):
             print('Ts or dur format error!')
             return
-        addtime = float(addtime)
-        durtime = float(durtime)
+        start_time = float(start_time)
+        duration = float(duration)
         for step in step_list:
-            if step[1] <= addtime <= step[2]:
-                cur_step = step[0]
+            if step[_StepInfoIndex.START_TS.value] <= start_time <= step[_StepInfoIndex.END_TS.value]:
+                cur_step = step[_StepInfoIndex.ID.value]
                 break
         for step in step_list:
-            if cur_step == step[0]:
-                if addtime < step[3] or step[3] == -1:
-                    step[3] = addtime
-                if addtime + durtime > step[4] or step[4] == -1:
-                    step[4] = addtime + durtime
+            if cur_step == step[_StepInfoIndex.ID.value]:
+                if start_time < step[_StepInfoIndex.E2E_START_TS.value] or \
+                    step[_StepInfoIndex.E2E_START_TS.value] == -1:
+                    step[_StepInfoIndex.E2E_START_TS.value] = start_time
+                if start_time + duration > step[_StepInfoIndex.E2E_END_TS.value] or \
+                    step[_StepInfoIndex.E2E_END_TS.value] == -1:
+                    step[_StepInfoIndex.E2E_END_TS.value] = start_time + duration
+                if add_type in {'Communication', 'Computing'}:
+                    if start_time < step[_StepInfoIndex.FIRST_TASK_TS.value] or \
+                       step[_StepInfoIndex.FIRST_TASK_TS.value] == -1:
+                        step[_StepInfoIndex.FIRST_TASK_TS.value] = start_time
                 break
         for cur_save in save_time:
             if cur_save.get('step') == cur_step:
-                cur_save[cls.timeflag.get(addtype)] += durtime
+                cur_save[cls.timeflag.get(add_type)] += duration
                 break
 
     @classmethod
-    def getE2ETime(cls, step, step_list):
-        for curStep in step_list:
-            if curStep[0] == step:
-                return curStep[4] - curStep[3]
-        return None
+    def get_e2e_time(cls, step, step_list):
+        for cur_step in step_list:
+            if cur_step[_StepInfoIndex.ID.value] == step:
+                return cur_step[_StepInfoIndex.E2E_END_TS.value] - cur_step[_StepInfoIndex.E2E_START_TS.value]
+        return 0
+
+    def get_prepare_time(self, step, step_list):
+        for cur_step in step_list:
+            if cur_step[_StepInfoIndex.ID.value] == step:
+                fwk_step_start_ts = cur_step[_StepInfoIndex.FWK_START_TS.value]
+                if step is None:
+                    first_fwk_op = FwkFileParser(self._profiler_path).get_first_fwk_op()
+                    start_time = convert_ns2us_float(first_fwk_op.ts) if first_fwk_op else fwk_step_start_ts
+                else:
+                    start_time = fwk_step_start_ts
+                return cur_step[_StepInfoIndex.FIRST_TASK_TS.value] - start_time
+        return 0
 
     def create_step_file(self, output_path: str, json_str: list, file_name: str) -> None:
         step_list = []
@@ -64,18 +94,19 @@ class TraceStepTimeParser(BaseParser):
         if not json_str:
             return
         # get step time
-        for curStep in self.step_range:
+        for cur_step in self.step_range:
             step_list.append(
-                [curStep.get(Constant.STEP_ID), convert_ns2us_float(curStep.get(Constant.START_TS)),
-                 convert_ns2us_float(curStep.get(Constant.END_TS)), -1, -1])
+                [cur_step.get(Constant.STEP_ID), convert_ns2us_float(cur_step.get(Constant.START_TS)),
+                 convert_ns2us_float(cur_step.get(Constant.END_TS)), -1, -1,
+                 convert_ns2us_float(cur_step.get(Constant.FWK_START_TS)), -1])
             save_time.append(
-                {'step': curStep.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0,
-                 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0})
+                {'step': cur_step.get(Constant.STEP_ID), 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0,
+                 'free': 0, 'stage': 0, 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0})
         if not self.step_range:
             save_time.append(
                 {'step': None, 'compute': 0, 'comunNotOverlp': 0, 'Overlp': 0, 'comun': 0, 'free': 0, 'stage': 0,
-                 'bubble': 0, 'comunNotOverlpRec': 0})
-            step_list.append([None, -1, -1, -1, -1])
+                 'bubble': 0, 'comunNotOverlpRec': 0, 'prepare': 0})
+            step_list.append([None, -1, -1, -1, -1, -1, -1])
 
         has_analysis_data_flag = False
         for data in json_str:
@@ -89,12 +120,13 @@ class TraceStepTimeParser(BaseParser):
         for calc_time in save_time:
             calc_time['comunNotOverlpRec'] = calc_time['comunNotOverlp'] - calc_time['bubble']
             calc_time['Overlp'] = calc_time['comun'] - calc_time['comunNotOverlp']
-            calc_time['stage'] = self.getE2ETime(calc_time['step'], step_list) - calc_time['bubble']
+            calc_time['stage'] = self.get_e2e_time(calc_time['step'], step_list) - calc_time['bubble']
+            calc_time['prepare'] = self.get_prepare_time(calc_time['step'], step_list)
         print_time = []
         for step in save_time:
             print_time.append(
                 [step['step'], step['compute'], step['comunNotOverlp'], step['Overlp'], step['comun'], step['free'],
-                 step['stage'], step['bubble'], step['comunNotOverlpRec']])
+                 step['stage'], step['bubble'], step['comunNotOverlpRec'], step['prepare']])
         FileManager.create_csv_file(output_path, print_time, file_name, self.title)
 
     def run(self, deps_data: dict):
