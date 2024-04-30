@@ -11,6 +11,7 @@
 
 #include <ATen/record_function.h>
 #include <unistd.h>
+#include <sstream>
 #include <sys/time.h>
 #include <sys/eventfd.h>
 #include <sys/prctl.h>
@@ -53,6 +54,11 @@ public:
   void SetDelete(const ACL_DELETE_FUNC& func) {
     this->deleteFunc = func;
   }
+
+    void *getCurrentParams(void* head, int offset)
+    {
+        return (uint8_t*)head + sizePerParams * offset;
+    }
 
   int Call(void* head, int offset) {
     TORCH_CHECK(this->execFunc, "Failed to find execution function.", PTA_ERROR(ErrCode::NOT_FOUND));
@@ -142,6 +148,28 @@ NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& exec
 // if the capacity is too small, and the main thread is fast enough,
 // it does not make full use of concurrent design capabilities.
 static constexpr size_t kQueueCapacity = 4096;
+static std::string repo_error;
+
+std::string get_func_error_msg(void* error_paras)
+{
+    auto queueParam = static_cast<c10_npu::queue::QueueParas *>(error_paras);
+    auto type = queueParam->paramType;
+    std::stringstream result;
+    if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
+        auto cur_paras = static_cast<at_npu::native::ExecuteParas *>(queueParam->paramVal);
+        auto op_name = cur_paras->opType;
+        result << "the current working operator name is " << op_name;
+    } else if (type == c10_npu::queue::ASYNC_MEMCPY) {
+        auto cur_paras = static_cast<c10_npu::queue::CopyParas *>(queueParam->paramVal);
+        result << "the current copy params are srclen=" << cur_paras->srcLen
+               << ", dstlen=" << cur_paras->dstLen
+               << ", kind=" << cur_paras->kind;
+    } else {
+        auto cur_paras = static_cast<c10_npu::queue::EventParas *>(queueParam->paramVal);
+        result << "the current working event is " << cur_paras->event;
+    }
+    return result.str();
+}
 
 RepoStatus Repository::GetStatus() const {
   if (initialized == false) {
@@ -224,11 +252,12 @@ NPUStatus Repository::MakeSureQueueEmpty() {
         }
 #endif
         read_idx.idx = write_idx.idx;
-        throw std::runtime_error("The Inner error is reported as above.\n "
-                                "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
-                                "If you want to get the accurate stacktrace, "
-                                "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
-                                PTA_ERROR(ErrCode::ACL));
+        throw std::runtime_error("The Inner error is reported as above. "
+                                 "The process exits for this inner error, and " + repo_error + ".\n" +
+                                 "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+                                 "If you want to get the accurate stacktrace, "
+                                 "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
+                                 PTA_ERROR(ErrCode::ACL));
     }
 
 #ifndef BUILD_LIBTORCH
@@ -255,41 +284,43 @@ bool Repository::WriteQueue(void* cur_paras) {
   return true;
 }
 
-bool Repository::ReadQueue() {
-  if (IsEmptyQueue()) {
-    return false;
-  }
-
-  __sync_synchronize();
-#ifndef BUILD_LIBTORCH
-  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, datas, read_idx.idx);
-  auto ret = manager().Call(datas, read_idx.idx);
-  at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, datas, read_idx.idx);
-#else
-  auto ret = manager().Call(datas, read_idx.idx);
-#endif
-  if (ret != 0) {
-    ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
-                std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
-    while (!IsEmptyQueue()) { // ignore other tasks
-      manager().Release(datas, read_idx.idx, releaseQueue);
-      read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
+bool Repository::ReadQueue()
+{
+    if (IsEmptyQueue()) {
+        return false;
     }
 
-    SetStatus(ERROR_EXIT);
-    read_idx.idx = write_idx.idx;
     __sync_synchronize();
-    eventfd_write(efd_empty, 1);
-    eventfd_write(efd_write, 1);
-    return false;
-  }
+#ifndef BUILD_LIBTORCH
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(2, datas, read_idx.idx);
+    auto ret = manager().Call(datas, read_idx.idx);
+    at_npu::native::NpuUtils::ProfReportMarkDataToNpuProfiler(3, datas, read_idx.idx);
+#else
+    auto ret = manager().Call(datas, read_idx.idx);
+#endif
+    if (ret != 0) {
+        repo_error = get_func_error_msg(manager().getCurrentParams(datas, read_idx.idx));
+        ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %u, read_idx = %u, status = %d, ret = %d",
+                    std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
+        while (!IsEmptyQueue()) { // ignore other tasks
+            manager().Release(datas, read_idx.idx, releaseQueue);
+            read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
+        }
 
-  manager().Release(datas, read_idx.idx, releaseQueue);
-  __sync_synchronize();
+        SetStatus(ERROR_EXIT);
+        read_idx.idx = write_idx.idx;
+        __sync_synchronize();
+        eventfd_write(efd_empty, 1);
+        eventfd_write(efd_write, 1);
+        return false;
+    }
 
-  read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
+    manager().Release(datas, read_idx.idx, releaseQueue);
+    __sync_synchronize();
 
-  return true;
+    read_idx.idx = (read_idx.idx + 1) & (kQueueCapacity - 1);
+
+    return true;
 }
 
 void Repository::Enqueue(void* cur_paras) {
@@ -302,10 +333,12 @@ void Repository::Enqueue(void* cur_paras) {
     // Avoid repeatedly throwing exceptions
     SetStatus(CAN_EXIT);
     read_idx.idx = write_idx.idx;
-    throw std::runtime_error("The Inner error is reported as above.\n "\
-                             "Since the operator is called asynchronously, the stacktrace may be inaccurate. "\
-                             "If you want to get the accurate stacktrace, "\
-                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." + PTA_ERROR(ErrCode::INTERNAL));
+    throw std::runtime_error("The Inner error is reported as above. "
+                             "The process exits for this inner error, and " + repo_error + ".\n" +
+                             "Since the operator is called asynchronously, the stacktrace may be inaccurate. "
+                             "If you want to get the accurate stacktrace, "
+                             "pleace set the environment variable ASCEND_LAUNCH_BLOCKING=1." +
+                             PTA_ERROR(ErrCode::ACL));
   }
 
     if (GetStatus() != RUN && GetStatus() != INIT) {
