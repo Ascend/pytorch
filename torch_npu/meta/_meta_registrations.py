@@ -410,7 +410,6 @@ def bias_shape_check(x2, bias, batch_val):
 def quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale):
     X_MAX_DIM = 6
     X_MIN_DIM = 2
-    LAST_DIM_LIMIT = 65535
     x1_dim_num = x1.dim()
     x2_dim_num = x2.dim()
     x1_m_dim = x1.size(x1_dim_num - 2)
@@ -428,10 +427,6 @@ def quant_matmul_shape_check(x1, x2, scale, offset, pertoken_scale):
     torch._check(
         x1_k_dim == x2_k_dim,
         lambda: "k dim of x1 and x2 need be same, please check k dim of x1 and x2",
-    )
-    torch._check(
-        x1_k_dim <= LAST_DIM_LIMIT and x2_n_dim <= LAST_DIM_LIMIT,
-        lambda: "k dim or n dim is larger than 65535, please check k dim and n dim",
     )
     if offset is not None:
         offset_dim_num = offset.dim()
