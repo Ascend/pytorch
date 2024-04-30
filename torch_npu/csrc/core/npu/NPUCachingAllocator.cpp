@@ -845,9 +845,15 @@ class DeviceCachingAllocator {
           // Free enough available cached blocks to satisfy alloc and retry
           // alloc.
           (release_available_cached_blocks(params) &&
-              alloc_block(params, false)) ||
-          // Free all non-split cached blocks and retry alloc.
-          (release_cached_blocks(true) && alloc_block(params, true));
+              alloc_block(params, false));
+    }
+
+    if (!block_found) {
+        ASCEND_LOGE(
+            "Get a block from the existing pool failed. Try to free cached blocks and reallocate. This error log "
+            "can be ignored.");
+        // Free all non-split cached blocks and retry alloc.
+        block_found = (release_cached_blocks(true) && alloc_block(params, true));
     }
 
     if (!block_found) {
@@ -1909,6 +1915,22 @@ class DeviceCachingAllocator {
   }
 };
 
+bool force_uncached_allocator()
+{
+    static bool force_uncached = getenv("PYTORCH_NO_NPU_MEMORY_CACHING") != nullptr;
+    if (force_uncached) {
+        TORCH_NPU_WARN_ONCE(
+            "PYTORCH_NO_NPU_MEMORY_CACHING is enabled, and the `expandable_segments` is changed to false by default.");
+    }
+    return force_uncached;
+}
+
+static void uncached_delete(void* ptr)
+{
+    c10_npu::npuSynchronizeDevice(true);
+    NPU_CHECK_ERROR(aclrtFree(ptr));
+}
+
 void local_raw_delete(void* ptr);
 
 class NpuCachingAllocator : public NPUAllocator {
@@ -2132,18 +2154,32 @@ class NpuCachingAllocator : public NPUAllocator {
 
   c10::DataPtr allocate(size_t size) const override
   {
-    int device = 0;
-    NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
-    void* r = nullptr;
-    if (size != 0) {
-      const_cast<NpuCachingAllocator*>(this)->malloc(&r, device, size, c10_npu::getCurrentNPUStreamNoWait(device));
-    }
-    return {r, r, &local_raw_delete, c10::Device(c10::DeviceType::PrivateUse1, device)};
+      int device = 0;
+      NPU_CHECK_ERROR(c10_npu::GetDevice(&device));
+      void* devPtr = nullptr;
+      void (*deleteFunc)(void*) = &local_raw_delete;
+
+      if (force_uncached_allocator()) {
+          deleteFunc = &uncached_delete;
+          size_t alloc_size = size + 32;
+          NPU_CHECK_ERROR(
+              c10_npu::acl::AclrtMallocAlign32(&devPtr, alloc_size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
+      } else {
+          if (size != 0) {
+              const_cast<NpuCachingAllocator*>(this)->malloc(&devPtr, device, size,
+                                                             c10_npu::getCurrentNPUStreamNoWait(device));
+          }
+      }
+      return {devPtr, devPtr, deleteFunc, c10::Device(c10::DeviceType::PrivateUse1, device)};
   }
 
   c10::DeleterFnPtr raw_deleter() const override
   {
-      return &local_raw_delete;
+      if (force_uncached_allocator()) {
+          return &uncached_delete;
+      } else {
+          return &local_raw_delete;
+      }
   }
 
   void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock) override
