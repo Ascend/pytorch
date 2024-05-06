@@ -46,8 +46,7 @@ class MyModule(torch.nn.Module):
             if user_function():
                 _variable += 1
         elif self.mode == 3:
-            lambda_f = lambda: torch._utils.is_compiling()  # noqa: E731
-            if lambda_f():
+            if torch._utils.is_compiling():
                 _variable += 1
         elif self.mode == 4:
             for cond in user_generator():
@@ -161,7 +160,7 @@ class SkipNonTensorTests(torch._dynamo.test_case.TestCase):
         assert counter.op_count == 0
 
     def test_do_not_skip_side_effects(self):
-        # see  pytorch issue 110765
+        # See pytorch/pytorch/issues/110765
 
         # By invoking torch._utils.is_compiling(),
         # there may be side-effects inconsistent with eager when

@@ -4,7 +4,6 @@ import unittest.mock
 
 import torch
 import torch_npu
-
 import torch._dynamo.test_case
 import torch._dynamo.testing
 from torch._dynamo.testing import same
@@ -171,7 +170,7 @@ class TestModelOutput(torch._dynamo.test_case.TestCase):
         class BertPooler(torch.nn.Module):
             def __init__(self):
                 super().__init__()
-                self.dense = torch.nn.Linear(768, 768).npu()
+                self.dense = torch.nn.Linear(768, 768).to("npu:0")
                 self.activation = torch.nn.Tanh()
 
             def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
@@ -229,7 +228,7 @@ class TestModelOutput(torch._dynamo.test_case.TestCase):
                 result["pooler_output"] = pooled_output
                 return result
 
-        sequence_output = torch.rand(1, 12, 768).npu()
+        sequence_output = torch.rand(1, 12, 768).to("npu:0")
         model = BertModel()
         orig_result = model(sequence_output)
         compiled_model = torch.compile(model, backend="eager")

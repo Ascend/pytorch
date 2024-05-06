@@ -9,6 +9,7 @@ import warnings
 from typing import Any, Dict, Set
 
 import torch
+import torch_npu
 import torch._dynamo.config as config
 import torch._dynamo.test_case
 import torch._functorch.deprecated as deprecated_func
@@ -314,6 +315,9 @@ class TraceRuleTests(torch._dynamo.test_case.TestCase):
                 f"{m} from trace_rules.MOD_INLINELIST/LEGACY_MOD_INLINELIST is not a python module, please check and correct it.",
             )
 
+    @unittest.skip(
+        "This test keeps getting broken and our disable infra is not handling well. see #120627"
+    )
     def test_torch_name_rule_map_updated(self):
         # Generate the allowed objects based on heuristic defined in `allowed_functions.py`,
         objs = gen_allowed_objs_and_ids(record=True, c_binding_only=True)

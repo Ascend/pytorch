@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import torch
 import torch_npu
-
 import torch._dynamo.test_case
 import torch._dynamo.testing
 import torch._dynamo.utils

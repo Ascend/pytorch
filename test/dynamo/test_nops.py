@@ -1,7 +1,6 @@
 # Owner(s): ["module: dynamo"]
 import torch
 import torch_npu
-
 import torch._dynamo.test_case
 import torch._dynamo.testing
 from torch._dynamo import eval_frame

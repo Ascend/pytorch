@@ -1,7 +1,6 @@
 # Owner(s): ["module: dynamo"]
 import torch
 import torch_npu
-
 import torch._dynamo.test_case
 import torch._dynamo.testing
 from torch._dynamo.testing import same
@@ -12,7 +11,7 @@ except ImportError:
     import utils
 
 
-class Pair:  # noqa: B903
+class Pair:
     def __init__(self, x, y):
         self.x = x
         self.y = y
