@@ -15,6 +15,7 @@
 
 #include <torch/extension.h>
 #include <torch_npu/csrc/aten/NPUNativeFunctions.h>
+#include "torch_npu/csrc/core/npu/NPUFormat.h"
 
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 // test   in  .setup with relative path
@@ -22,17 +23,30 @@
 
 using namespace at;
 
-Tensor tanh_add(Tensor x, Tensor y) {
-  return x.tanh() + y.tanh();
+Tensor tanh_add(Tensor x, Tensor y)
+{
+    return x.tanh() + y.tanh();
 }
 
-Tensor npu_add(const Tensor& self_, const Tensor& other_) {
-  TORCH_INTERNAL_ASSERT(torch_npu::utils::is_npu(self_));
-  TORCH_INTERNAL_ASSERT(torch_npu::utils::is_npu(other_));
-  return at::add(self_, other_, 1);
+Tensor npu_add(const Tensor &self_, const Tensor &other_)
+{
+    TORCH_INTERNAL_ASSERT(torch_npu::utils::is_npu(self_));
+    TORCH_INTERNAL_ASSERT(torch_npu::utils::is_npu(other_));
+    return at::add(self_, other_, 1);
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("tanh_add", &tanh_add, "tanh(x) + tanh(y)");
-  m.def("npu_add", &npu_add, "x + y");
+bool check_storage_sizes(const Tensor &tensor, const c10::IntArrayRef &sizes)
+{
+    auto tensor_sizes = at_npu::native::get_npu_storage_sizes(tensor);
+    if (tensor_sizes.size() == sizes.size()) {
+        return std::equal(tensor_sizes.begin(), tensor_sizes.end(), sizes.begin());
+    }
+    return false;
+}
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
+{
+    m.def("tanh_add", &tanh_add, "tanh(x) + tanh(y)");
+    m.def("npu_add", &npu_add, "x + y");
+    m.def("check_storage_sizes", &check_storage_sizes, "check_storage_sizes");
 }
