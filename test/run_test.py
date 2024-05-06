@@ -243,9 +243,9 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
             return 1
 
     # Wipe the build folder, if it exists already
-    test_cpp_extensions_directory = os.path.join(test_directory, "test_cpp_extension")
-    cpp_extensions_src_dir = os.path.join(test_cpp_extensions_directory, "cpp_extensions")
-    cpp_extensions_test_build_dir = os.path.join(cpp_extensions_src_dir, "build")
+    test_cpp_extensions_directory = os.path.join(test_directory, "cpp_extensions")
+    cpp_extensions_test_build_dir = os.path.join(test_cpp_extensions_directory, "build")
+    cpp_extensions_test_tests_dir = os.path.join(test_cpp_extensions_directory, "test")
     if os.path.exists(cpp_extensions_test_build_dir):
         PathManager.remove_path_safety(cpp_extensions_test_build_dir)
 
@@ -253,7 +253,7 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
     shell_env = os.environ.copy()
     shell_env["USE_NINJA"] = str(1 if use_ninja else 0)
     cmd = [sys.executable, "setup.py", "install", "--root", "./install"]
-    return_code = shell(cmd, cwd=cpp_extensions_src_dir, env=shell_env)
+    return_code = shell(cmd, cwd=test_cpp_extensions_directory, env=shell_env)
     return_code = 0
     if return_code != 0:
         return return_code
@@ -263,20 +263,20 @@ def _test_cpp_extensions_aot(test_directory, options, use_ninja):
 
     test_module = "test_cpp_extensions_aot" + ("_ninja" if use_ninja else "_no_ninja")
     copyfile(
-        test_cpp_extensions_directory + "/test_cpp_extensions_aot.py",
-        test_cpp_extensions_directory + "/" + test_module + ".py",
+        os.path.join(cpp_extensions_test_tests_dir, "test_cpp_extensions_aot.py"),
+        os.path.join(cpp_extensions_test_tests_dir, test_module + ".py")
     )
     try:
         install_directory = ""
         # install directory is the one that is named site-packages
-        for root, directories, _ in os.walk(os.path.join(cpp_extensions_src_dir, "install")):
+        for root, directories, _ in os.walk(os.path.join(test_cpp_extensions_directory, "install")):
             for directory in directories:
                 if "-packages" in directory:
                     install_directory = os.path.join(root, directory)
 
         assert install_directory, "install_directory must not be empty"
         os.environ["PYTHONPATH"] = os.pathsep.join([install_directory, python_path])
-        return run_test(test_module, test_cpp_extensions_directory, options)
+        return run_test(test_module, cpp_extensions_test_tests_dir, options)
     finally:
         os.environ["PYTHONPATH"] = python_path
         if os.path.exists(test_cpp_extensions_directory + "/" + test_module + ".py"):
@@ -298,7 +298,7 @@ def run_cpp_extensions(test, test_directory, options):
 
 CUSTOM_HANDLERS = {
     "distributed": run_distributed_test,
-    "test_cpp_extension": run_cpp_extensions,
+    "cpp_extensions": run_cpp_extensions,
 }
 
 
