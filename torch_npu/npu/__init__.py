@@ -88,12 +88,21 @@ __all__ = [
     "LongTensor",
     "ShortTensor",
     "BFloat16Tensor",
+    "BFloat16Storage",
     "current_blas_handle",
     "config",
     "matmul",
     "conv",
     "enable_deterministic_with_backward",
-    "disable_deterministic_with_backward"
+    "disable_deterministic_with_backward",
+    "enable_flash_sdp",
+    "enable_math_sdp",
+    "enable_mem_efficient_sdp",
+    "flash_sdp_enabled",
+    "math_sdp_enabled",
+    "mem_efficient_sdp_enabled",
+    "preferred_linalg_library",
+    "sdp_kernel"
 ]
 
 from typing import Tuple, Union
@@ -123,10 +132,10 @@ from .deterministic import enable_deterministic_with_backward, disable_determini
 if not torch_npu._C._profiler_init():
     raise RuntimeError("proflier initialization failed" + prof_error(ErrCode.UNAVAIL))
 
-config = npu_config.npuConfig()
+config = npu_config._npuConfig()
 
-matmul = npu_config.allowHF32Matmul()
-conv = npu_config.allowHF32Conv()
+matmul = npu_config._allowHF32Matmul()
+conv = npu_config._allowHF32Conv()
 
 default_generators: Tuple[torch._C.Generator] = ()  # type: ignore[assignment]
 
@@ -155,7 +164,7 @@ def _lazy_call(cb):
         _queued_calls.append((cb, traceback.format_stack()))
 
 
-class DeferredNpuCallError(Exception):
+class _DeferredNpuCallError(Exception):
     pass
 
 

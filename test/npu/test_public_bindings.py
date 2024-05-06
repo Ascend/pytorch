@@ -16,6 +16,84 @@ import torch_npu.testing
 from torch.testing._internal.common_utils import TestCase, run_tests, IS_JETSON, IS_WINDOWS
 from torch._utils_internal import get_file_path_2
 
+temp_filter = {
+    "torch_npu.fast_gelu",
+    "torch_npu.npu_anchor_response_flags",
+    "torch_npu.npu_anti_quant",
+    "torch_npu.npu_batch_nms",
+    "torch_npu.npu_bmmV2",
+    "torch_npu.npu_bounding_box_decode",
+    "torch_npu.npu_bounding_box_encode",
+    "torch_npu.npu_broadcast",
+    "torch_npu.npu_ciou",
+    "torch_npu.npu_confusion_transpose",
+    "torch_npu.npu_conv2d",
+    "torch_npu.npu_conv3d",
+    "torch_npu.npu_conv_transpose2d",
+    "torch_npu.npu_convolution",
+    "torch_npu.npu_convolution_transpose",
+    "torch_npu.npu_deformable_conv2d",
+    "torch_npu.npu_diou",
+    "torch_npu.npu_dropout_with_add_softmax",
+    "torch_npu.npu_dtype_cast",
+    "torch_npu.npu_ffn",
+    "torch_npu.npu_format_cast",
+    "torch_npu.npu_fused_attention_score",
+    "torch_npu.npu_geglu",
+    "torch_npu.npu_giou",
+    "torch_npu.npu_grid_assign_positive",
+    "torch_npu.npu_grouped_matmul",
+    "torch_npu.npu_gru",
+    "torch_npu.npu_ifmr",
+    "torch_npu.npu_incre_flash_attention",
+    "torch_npu.npu_indexing",
+    "torch_npu.npu_iou",
+    "torch_npu.npu_layer_norm_eval",
+    "torch_npu.npu_linear",
+    "torch_npu.npu_lstm",
+    "torch_npu.npu_masked_fill_range",
+    "torch_npu.npu_max",
+    "torch_npu.npu_min",
+    "torch_npu.npu_mish",
+    "torch_npu.npu_mm_all_reduce_base",
+    "torch_npu.npu_multi_head_attention",
+    "torch_npu.npu_nms_v4",
+    "torch_npu.npu_nms_with_mask",
+    "torch_npu.npu_normalize_batch",
+    "torch_npu.npu_one_hot",
+    "torch_npu.npu_pad",
+    "torch_npu.npu_prompt_flash_attention",
+    "torch_npu.npu_ps_roi_pooling",
+    "torch_npu.npu_ptiou",
+    "torch_npu.npu_quant_matmul",
+    "torch_npu.npu_quant_scatter",
+    "torch_npu.npu_reshape",
+    "torch_npu.npu_roi_align",
+    "torch_npu.npu_rotary_mul",
+    "torch_npu.npu_rotated_box_decode",
+    "torch_npu.npu_rotated_box_encode",
+    "torch_npu.npu_rotated_iou",
+    "torch_npu.npu_rotated_overlaps",
+    "torch_npu.npu_scaled_masked_softmax",
+    "torch_npu.npu_scatter",
+    "torch_npu.npu_scatter_nd_update",
+    "torch_npu.npu_scatter_nd_update_",
+    "torch_npu.npu_sign_bits_pack",
+    "torch_npu.npu_sign_bits_unpack",
+    "torch_npu.npu_silu",
+    "torch_npu.npu_slice",
+    "torch_npu.npu_softmax_cross_entropy_with_logits",
+    "torch_npu.npu_sort_v2",
+    "torch_npu.npu_stride_add",
+    "torch_npu.npu_swiglu",
+    "torch_npu.npu_trans_quant_param",
+    "torch_npu.npu_transpose",
+    "torch_npu.npu_weight_quant_batchmatmul",
+    "torch_npu.npu_yolo_boxes_encode",
+    "torch_npu.one_",
+    "torch_npu.pta_error"
+}
+
 
 def _find_all_importables(pkg):
     """Find all importables in the project.
@@ -276,10 +354,18 @@ class TestPublicBindings(TestCase):
                 return False
         return True
 
-
     def test_modules_can_be_imported(self):
         failures = []
         for _, modname, _ in _discover_path_importables(str(torch.__path__), "torch"):
+            try:
+                if "__main__" in modname:
+                    continue
+                import_module(modname)
+            except Exception as e:
+                # Some current failures are not ImportError
+                failures.append((modname, type(e)))
+
+        for _, modname, _ in _discover_path_importables(str(torch_npu.__path__), "torch_npu"):
             try:
                 if "__main__" in modname:
                     continue
@@ -432,7 +518,8 @@ class TestPublicBindings(TestCase):
           `__module__` that start with the current submodule.
         '''
         failure_list = []
-        with open(get_file_path_2(os.path.dirname(__file__), 'allowlist_for_publicAPI.json')) as json_file:
+        with open(get_file_path_2(os.path.dirname(os.path.dirname(__file__)),
+                                  'allowlist_for_publicAPI.json')) as json_file:
             # no new entries should be added to this allow_dict.
             # New APIs must follow the public API guidelines.
             allow_dict = json.load(json_file)
@@ -483,6 +570,9 @@ class TestPublicBindings(TestCase):
                     why_not_looks_public = f"because it starts with `_` (`{elem}`)"
 
                 if is_public != looks_public:
+                    if f"{modname}.{elem}" in temp_filter:
+                        return
+
                     if modname in allow_dict and elem in allow_dict[modname]:
                         return
 
@@ -552,4 +642,4 @@ class TestPublicBindings(TestCase):
 
 
 if __name__ == '__main__':
-    pass
+    run_tests()

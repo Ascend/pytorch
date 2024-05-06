@@ -7,6 +7,8 @@ from torch.distributed.distributed_c10d import _get_default_group, get_group_ran
     _get_pg_default_device, _object_to_tensor, get_world_size, _tensor_to_object, all_gather, Backend,\
     get_backend, GatherOptions
 
+__all__ = ["batch_isend_irecv", "gather", "gather_object", "is_hccl_available"]
+
 
 def batch_isend_irecv(p2p_op_list):
     group = p2p_op_list[0].group
