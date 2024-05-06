@@ -57,6 +57,14 @@ def npu_rotary_mul_meta(embedding, cosine, sine):
     return torch.empty_like(embedding)
 
 
+@impl(m, "npu_rotary_mul_backward")
+def npu_rotary_mul_backward(grad, embedding, cosine, sine):
+    dx = torch.empty_like(embedding, dtype=embedding.dtype, device='meta')
+    dr1 = torch.empty_like(cosine, dtype=embedding.dtype, device='meta')
+    dr2 = torch.empty_like(sine, dtype=embedding.dtype, device='meta')
+    return (dx, dr1, dr2)
+
+
 @impl(m, "fast_gelu")
 def fast_gelu_meta(self):
     return torch.empty_like(self)
