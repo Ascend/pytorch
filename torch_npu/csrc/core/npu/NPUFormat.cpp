@@ -22,13 +22,9 @@
 namespace at_npu {
 namespace native {
 
-int64_t get_npu_format(const at::Tensor& self, bool infer_format)
+int64_t get_npu_format(const at::Tensor& self)
 {
-    if (infer_format) {
-        return CalcuOpUtil::GetTensorNpuFormat(self);
-    } else {
-        return NPUNativeFunctions::get_npu_format(self);
-    }
+    return NPUNativeFunctions::get_npu_format(self);
 }
 
 std::vector<int64_t> get_npu_storage_sizes(const at::Tensor& self)
