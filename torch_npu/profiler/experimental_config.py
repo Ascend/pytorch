@@ -42,6 +42,7 @@ class AiCMetrics:
     MemoryUB = Constant.AicMemoryUB
     ResourceConflictRatio = Constant.AicResourceConflictRatio
     L2Cache = Constant.AicL2Cache
+    AiCoreNone = Constant.AicMetricsNone
 
 
 class ExportType:

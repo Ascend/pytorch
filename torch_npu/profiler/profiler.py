@@ -131,11 +131,12 @@ class _KinetoProfile:
         return [Constant.METRIC_CPU_TIME, Constant.METRIC_NPU_TIME]
 
 
-def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None):
+def tensorboard_trace_handler(dir_name: str = None, worker_name: str = None, analyse_flag: bool = True):
     ProfPathCreator().init(worker_name=worker_name, dir_name=dir_name)
 
     def handler_fn(prof_inst) -> None:
-        prof_inst.analyse()
+        if analyse_flag:
+            prof_inst.analyse()
 
     return handler_fn
 
