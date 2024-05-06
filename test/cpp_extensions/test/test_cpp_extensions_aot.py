@@ -1,10 +1,9 @@
+import os
 import unittest
 
 import torch
-
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-
 
 try:
     import torch_test_cpp_extension.npu as npu_extension
@@ -31,6 +30,18 @@ class TestCppExtensionAOT(TestCase):
 
         npu_z = npu_extension.npu_add(x.npu(), y.npu())
         self.assertEqual(npu_z.cpu(), (x + y))
+
+    def test_storage_sizes(self):
+        os.environ['INT8_FORMAT_NZ_ENABLE'] = '1'
+        t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.int8).npu(), 29)
+        self.assertTrue(npu_extension.check_storage_sizes(t, (16, 8, 16, 32)))
+        t = torch_npu.npu_format_cast(torch.ones(31, 127, 511, dtype=torch.int8).npu(), 29)
+        self.assertTrue(npu_extension.check_storage_sizes(t, (31, 16, 8, 16, 32)))
+        t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.float16).npu(), 29)
+        self.assertTrue(npu_extension.check_storage_sizes(t, (32, 8, 16, 16)))
+        # float32 will cast to float16 before calculate
+        t = torch_npu.npu_format_cast(torch.ones(128, 512, dtype=torch.float32).npu(), 29)
+        self.assertTrue(npu_extension.check_storage_sizes(t, (32, 8, 16, 16)))
 
 
 if __name__ == "__main__":
