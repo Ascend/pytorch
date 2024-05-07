@@ -159,7 +159,8 @@ NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), devic
 }
 
 // Environment Initialize, return Status: SUCCESS, FAILED
- NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
+NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id)
+{
     if (init_flag_) {
         return INIT_SUCC;
     }
@@ -196,39 +197,48 @@ NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), devic
 
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
-      const char *aclConfigPath = "acl.json";
-      NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
-      ASCEND_LOGD("set dump config success");
+        const char *aclConfigPath = "acl.json";
+        NPU_CHECK_ERROR(aclmdlSetDump(aclConfigPath));
+        ASCEND_LOGD("set dump config success");
     }
 
-  auto soc_name = c10_npu::acl::AclGetSocName();
-  // set global soc name
-  c10_npu::SetSocVersion(soc_name);
+    auto soc_name = c10_npu::acl::AclGetSocName();
+    // set global soc name
+    c10_npu::SetSocVersion(soc_name);
 
-  if (c10_npu::IsSupportInfNan()) {
-      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
-  } else {
-      c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
-  }
+    if (c10_npu::IsSupportInfNan()) {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_INFNAN);
+    } else {
+        c10_npu::acl::AclrtSetDeviceSatMode(aclrtFloatOverflowMode::ACL_RT_OVERFLOW_MODE_SATURATION);
+    }
 
-  // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
-  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
-      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
-  NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
+    // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
+    auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
+        "must_keep_origin_dtype" : "allow_fp32_to_fp16";
+    NPU_CHECK_ERROR(at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode));
 
-  // set default compile cache mode and dir for users to improve op compile time
-  MakeCompileCacheDirAndSetOption();
-  // set default jit_Compile value from Get acl defalut value
-  GetAndSetDefaultJitCompileByAcl();
+    // set default compile cache mode and dir for users to improve op compile time
+    MakeCompileCacheDirAndSetOption();
+    // set default jit_Compile value from Get acl defalut value
+    GetAndSetDefaultJitCompileByAcl();
 
-  SetHF32DefaultValue();
+    SetHF32DefaultValue();
 
-  NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
-  NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
-  init_flag_ = true;
-  ASCEND_LOGD("Npu sys ctrl initialize successfully.");
+    NPU_CHECK_ERROR(at_npu::native::AclrtCtxSetSysParamOpt(aclSysParamOpt::ACL_OPT_DETERMINISTIC, 0));
+    NPU_CHECK_SUPPORTED_OR_ERROR(c10_npu::acl::AclrtSetOpExecuteTimeOut(kMaxOpExecuteTimeOut));
 
-  return INIT_SUCC;
+    // lazy call for the setoptin
+    for (const auto& iter : lazy_fn_) {
+        const auto& call_ = iter.first;
+        const auto& in = iter.second;
+        call_(in);
+    }
+    lazy_fn_.clear();
+
+    init_flag_ = true;
+    ASCEND_LOGD("Npu sys ctrl initialize successfully.");
+
+    return INIT_SUCC;
 }
 
  NpuSysCtrl::SysStatus NpuSysCtrl::ExchangeDevice(int pre_device, int device) {
@@ -288,6 +298,11 @@ NpuSysCtrl::NpuSysCtrl() : repeat_init_acl_flag_(true), init_flag_(false), devic
 
  bool NpuSysCtrl::GetInitFlag() {
     return init_flag_;
+}
+
+void NpuSysCtrl::RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in)
+{
+    lazy_fn_.emplace_back(std::make_pair(call_, in));
 }
 
 void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,
