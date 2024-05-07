@@ -815,7 +815,8 @@ class NPUQuantizeOP(torch.autograd.Function):
                  scales: torch.Tensor,
                  zero_points: torch.Tensor,
                  dtype: torch.dtype,
-                 axis: int = 0):
+                 axis: int = 0,
+                 div_mode: bool = True):
         acl_dtype = 2
         if dtype == torch.quint8:
             acl_dtype = 4
@@ -825,7 +826,7 @@ class NPUQuantizeOP(torch.autograd.Function):
             acl_dtype = 3
         else:
             raise ValueError("The argument 'dtype' must be torch.quint8, torch.qint8 or torch.qint32")
-        return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis)
+        return g.op("npu::NPUQuantize", inputs, scales, zero_points, dtype_i=acl_dtype, axis_i=axis, div_mode_i=div_mode)
     
 
 class NPUMoeFinalizeRoutingOP(torch.autograd.Function):
@@ -1122,8 +1123,8 @@ def wrapper_npu_anti_quant(x, scale, offset=None, dst_dtype=None, src_dtype=None
     return NPUAntiQuantOP.apply(x, scale, offset, dst_dtype, src_dtype)
 
 
-def wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis):
-    return NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis)
+def wrapper_npu_quantize(inputs, scales, zero_points, dtype, axis, div_mode=True):
+    return NPUQuantizeOP.apply(inputs, scales, zero_points, dtype, axis, div_mode)
 
 
 def wrapper_npu_moe_finalize_routing(expanded_permuted_rows, skip1, skip2_optional, bias,
