@@ -28,8 +28,10 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/OverflowUtils.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/npu/DataParallelComm.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/npu/NPUPluggableAllocator.h"
+#include "torch_npu/csrc/npu/Stream.h"
 #include "torch_npu/csrc/aten/python_functions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "third_party/acl/inc/acl/acl.h"
@@ -930,4 +932,103 @@ static struct PyMethodDef THNPModule_methods[] = {
 TORCH_NPU_API PyMethodDef* THNPModule_get_methods()
 {
     return THNPModule_methods;
+}
+
+// Data Parallel Commands
+void initCommMethods()
+{
+    auto torch_C_module = THPObjectPtr(PyImport_ImportModule("torch._C"));
+    if (!torch_C_module) {
+        throw python_error();
+    }
+    auto m = py::handle(torch_C_module).cast<py::module>();
+    m.def(
+        "_broadcast_coalesced",
+        [](std::vector<at::Tensor>& tensors,
+            std::vector<int64_t> devices,
+            size_t buffer_size) {
+            return torch_npu::data_parallel::broadcast_coalesced(tensors, devices, buffer_size);
+        },
+        py::arg("tensors"),
+        py::arg("devices"),
+        py::arg("buffer_size"),
+        py::call_guard<py::gil_scoped_release>())
+        .def(
+        "_broadcast",
+        [](at::Tensor& tensor, std::vector<int64_t> devices) {
+            return torch_npu::data_parallel::broadcast(tensor, devices);
+        },
+        py::arg("tensor"),
+        py::arg("devices"),
+        py::call_guard<py::gil_scoped_release>())
+        .def(
+        "_broadcast_out",
+        [](at::Tensor& tensor, std::vector<at::Tensor>& out_tensors) {
+            return torch_npu::data_parallel::broadcast_out(tensor, out_tensors);
+        },
+        py::arg("tensor"),
+        py::arg("out"),
+        py::call_guard<py::gil_scoped_release>())
+        .def(
+        "_scatter",
+        [](at::Tensor& tensor,
+            std::vector<int64_t>& devices,
+            c10::optional<std::vector<int64_t>> chunk_sizes,
+            int64_t dim,
+            c10::optional<py::object> py_streams) {
+            c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>
+                streams;
+            if (py_streams) {
+            py::handle handle = *py_streams;
+            streams = THNPUtils_PySequence_to_NPUStreamList(handle.ptr());
+            }
+            // Note: We're holding the GIL up to here.
+            pybind11::gil_scoped_release no_gil;
+            return torch_npu::data_parallel::scatter(tensor, devices, chunk_sizes, dim, streams);
+        },
+        py::arg("tensor"),
+        py::arg("devices"),
+        py::arg("chunk_sizes"),
+        py::arg("dim"),
+        py::arg("streams"))
+        .def(
+        "_scatter_out",
+        [](at::Tensor& tensor,
+            std::vector<at::Tensor>& out_tensors,
+            int64_t dim,
+            c10::optional<py::object> py_streams) {
+            c10::optional<std::vector<c10::optional<c10_npu::NPUStream>>>
+                streams;
+            if (py_streams) {
+            py::handle handle = *py_streams;
+            streams = THNPUtils_PySequence_to_NPUStreamList(handle.ptr());
+            }
+            // Note: We're holding the GIL up to here.
+            pybind11::gil_scoped_release no_gil;
+            return torch_npu::data_parallel::scatter_out(tensor, out_tensors, dim, streams);
+        },
+        py::arg("tensor"),
+        py::arg("out"),
+        py::arg("dim"),
+        py::arg("streams"))
+        .def(
+        "_gather",
+        [](std::vector<at::Tensor>& tensors,
+            int64_t dim,
+            c10::optional<int32_t> destination_index) {
+            return torch_npu::data_parallel::gather(tensors, dim, destination_index);
+        },
+        py::arg("tensors"),
+        py::arg("dim"),
+        py::arg("destination_index"),
+        py::call_guard<py::gil_scoped_release>())
+        .def(
+        "_gather_out",
+        [](std::vector<at::Tensor>& tensors,
+            at::Tensor& out_tensor,
+            int64_t dim) { return torch_npu::data_parallel::gather_out(tensors, out_tensor, dim); },
+        py::arg("tensors"),
+        py::arg("out"),
+        py::arg("dim"),
+        py::call_guard<py::gil_scoped_release>());
 }

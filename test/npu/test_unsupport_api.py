@@ -77,17 +77,6 @@ class TestPtaUnsupportApi(TestCase):
             input_tensor = torch.tensor([1, 2, 3]).npu()
             input_tensor.share_memory_()
 
-    def test_data_parallel_runtimeerror(self):
-        with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
-            model = SimpleModel().npu()
-            input_tensor = torch.randn(64, 10)
-            model = nn.parallel.data_parallel(model, input_tensor)
-
-    def test_DataParallel_runtimeerror(self):
-        with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
-            model = SimpleModel().npu()
-            model = nn.DataParallel(model)
-
     def test_Module_share_memory_runtimeerror(self):
         with self.assertRaisesRegex(RuntimeError, r"(.*) is not supported in npu."):
             model = SimpleModel().npu()
@@ -149,10 +138,6 @@ class TestPtaUnsupportApi(TestCase):
     def test_Tensor_share_memory_(self):
         input_tensor = torch.tensor([1, 2, 3])
         input_tensor.share_memory_()
-
-    def test_DataParallel(self):
-        model = SimpleModel()
-        model = nn.DataParallel(model)
 
     def test_Module_share_memory(self):
         model = SimpleModel()

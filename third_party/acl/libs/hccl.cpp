@@ -26,3 +26,4 @@ hcclResult_t HcclScatter(void *sendBuf, void *recvBuf, u64 count, HcclDataType d
     aclrtStream stream) {return HCCL_SUCCESS;}
 hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, hcclComm_t comm,
     aclrtStream stream) {return HCCL_SUCCESS;}
+hcclResult_t HcclCommInitAll(u32 ndev, s32 *devices, hcclComm_t *comms) {return HCCL_SUCCESS;}

@@ -209,3 +209,32 @@ void THNPStream_init(PyObject *module)
     throw python_error();
   }
 }
+
+std::vector<c10::optional<c10_npu::NPUStream>> THNPUtils_PySequence_to_NPUStreamList(PyObject* obj)
+{
+    if (!PySequence_Check(obj)) {
+        throw std::runtime_error("Expected a sequence in THNPUtils_PySequence_to_NPUStreamList" + PTA_ERROR(ErrCode::PARAM));
+    }
+    THPObjectPtr seq = THPObjectPtr(PySequence_Fast(obj, nullptr));
+    if (seq.get() == nullptr) {
+        throw std::runtime_error("expected PySequence, but got " + std::string(THPUtils_typename(obj)) + PTA_ERROR(ErrCode::PARAM));
+    }
+
+    std::vector<c10::optional<c10_npu::NPUStream>> streams;
+    Py_ssize_t length = PySequence_Fast_GET_SIZE(seq.get());
+    for (Py_ssize_t i = 0; i < length; i++) {
+        PyObject* stream = PySequence_Fast_GET_ITEM(seq.get(), i);
+
+        if (PyObject_IsInstance(stream, THNPStreamClass)) {
+            streams.emplace_back(c10_npu::NPUStream::unpack3(
+                (reinterpret_cast<THNPStream*>(stream))->stream_id,
+                (reinterpret_cast<THNPStream*>(stream))->device_index,
+                static_cast<c10::DeviceType>((reinterpret_cast<THNPStream*>(stream))->device_type)));
+        } else if (stream == Py_None) {
+            streams.emplace_back();
+        } else {
+            std::runtime_error("Unknown data type found in stream list. Need torch_npu.npu.Stream or None" + PTA_ERROR(ErrCode::TYPE));
+        }
+    }
+    return streams;
+}
