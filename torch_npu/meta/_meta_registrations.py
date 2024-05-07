@@ -553,7 +553,7 @@ def npu_trans_quant_param_meta(scale, offset=None):
 
 
 @impl(m, "npu_quantize")
-def npu_quantize_meta(self, scales, zero_points, dtype, axis=1):
+def npu_quantize_meta(self, scales, zero_points, dtype, axis=1, div_mode=True):
     if dtype == torch.quint8:
         return torch.empty_like(self, dtype=torch.uint8)
     elif dtype == torch.qint8:
