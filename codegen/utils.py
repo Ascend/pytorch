@@ -39,6 +39,8 @@ from torchgen.model import (
     OperatorName,
     TensorOptionsArguments,
     SchemaKind,
+    DeviceCheckType,
+    Argument,
 )
 from torchgen.native_function_generation import pre_group_native_functions
 from torchgen.utils import concatMap
@@ -394,6 +396,12 @@ namespace {{
                 return f'm.impl("{f.func.name}",\n{payload});\n'
         else:
             assert_never(self.target)
+
+
+def gen_device_check(
+        type: DeviceCheckType, args: List[Argument], method_name: str
+    ) -> str:
+    return "  // No device check\n"
 
 
 def arguments(
