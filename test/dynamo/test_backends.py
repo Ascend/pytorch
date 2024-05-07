@@ -1,17 +1,19 @@
 # Owner(s): ["module: dynamo"]
 import functools
 import unittest
-
 import torch
-import torch_npu
-import torchair
 import torch._dynamo
 import torch._dynamo.test_case
 from torch._dynamo.backends.debugging import ExplainWithBackend
 from torch._dynamo.backends.onnxrt import has_onnxruntime
 from torch._dynamo.backends.tvm import has_tvm
 from torch._dynamo.testing import same
+from torch.fx._lazy_graph_module import _force_skip_lazy_graph_module
+from torch.testing._internal.inductor_utils import HAS_CUDA
+import torch_npu
+import torchair
 
+requires_cuda = unittest.skipUnless(HAS_CUDA, "requires cuda")
 requires_npu = functools.partial(unittest.skipIf, not torch.npu.is_available(), "requires npu")
 
 
@@ -98,14 +100,15 @@ class TestOptimizations(torch._dynamo.test_case.TestCase):
 
     def _check_backend_works(self, backend):
         model = Seq().eval()
-        ipt = torch.randn(2, 10)
-        r1 = model(ipt)
-        r2 = torch.compile(model, backend=backend)(ipt)
+        input0 = torch.randn(2, 10)
+        r1 = model(input0)
+        r2 = torch.compile(model, backend=backend)(input0)
         self.assertTrue(same(r1, r2.float(), tol=0.01))
 
     def test_eager(self):
         self._check_backend_works("eager")
 
+    @_force_skip_lazy_graph_module()
     def test_torchscript(self):
         self._check_backend_works("ts")
 
@@ -115,19 +118,21 @@ class TestOptimizations(torch._dynamo.test_case.TestCase):
     def test_aot_eager_decomp_partition(self):
         self._check_backend_works("aot_eager_decomp_partition")
 
+    @_force_skip_lazy_graph_module()
     def test_aot_ts(self):
         self._check_backend_works("aot_ts")
 
-    @unittest.skipIf(not torch.cuda.is_available(), "requires cuda")
+    @requires_cuda
     def test_aot_cudagraphs(self):
         self._check_backend_works("cudagraphs")
-    
+
+    @requires_npu()
     def test_npu_backend(self):
         npu_backend = torchair.get_npu_backend()
         model = Seq().eval()
-        ipt = torch.randn(2, 10)
-        r1 = model(ipt).npu()
-        r2 = torch.compile(model, backend=npu_backend)(ipt)
+        input0 = torch.randn(2, 10).npu()
+        r1 = model(input0)
+        r2 = torch.compile(model, backend=npu_backend)(input0)
         self.assertTrue(same(r1, r2.float(), tol=0.01))
 
     @unittest.skipIf(not has_onnxruntime(), "requires onnxruntime")
@@ -144,6 +149,7 @@ class TestOptimizations(torch._dynamo.test_case.TestCase):
         self.assertNotIn("eager", torch._dynamo.list_backends())
         self.assertNotIn("eager", torch._dynamo.list_backends(exclude_tags=["debug"]))
         self.assertIn("eager", torch._dynamo.list_backends(exclude_tags=[]))
+        self.assertIn("npu", torch._dynamo.list_backends())
 
 
 class NormalizeIRTests(torch._dynamo.test_case.TestCase):

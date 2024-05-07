@@ -6,6 +6,9 @@
   "test_addcmul_npu_int16 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnAddcmul not implemented for DT_INT16"},
   "test_advancedindex_mixed_devices_error_npu (__main__.TestDevicePrecisionPRIVATEUSE1)": {"ERROR_MSG_UNMATCH": "assertRaisesRegex error"},
   "test_assertRaisesRegex_ignore_msg_non_native_device_npu (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"ERROR_MSG_UNMATCH": "assertRaisesRegex error"},
+  "test_autocast_float64 (__main__.CtxManagerTests)": {"DTYPE": "unsupport float64"},
+  "test_autocast_float64_dynamic_shapes (__main__.DynamicShapesCtxManagerTests)": {"DTYPE": "unsupport float64"},
+  "test_autocast_flash_attention (__main__.ActivationCheckpointingViaTagsTests)": {"NOT_SUPPORT": "unsupport aten SDPA for graph module"},
   "test_basic_vitals_read_write (__main__.TestBasicVitalSigns)": {"ERROR_MSG_UNMATCH": "NPU.used not found in '...Dataloader.basic_unit_test...CUDA.used False'"},
   "test_bmm_multithreaded (__main__.TestTorch)": {"OTHER": "not supported on ARM"},
   "test_clamp_npu_float64 (__main__.TestDevicePrecisionPRIVATEUSE1)": {"DTYPE": "aclnnRepeatInterleaveIntWithDim not implemented for DT_DOUBLE"},
@@ -29,5 +32,9 @@
   "test_copy_mem_overlap_npu_float64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnMaxDim not implemented for DT_DOUBLE"},
   "test_copy_transpose_math_view_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnIsClose not implemented for DT_COMPLEX64"},
   "test_corrcoef_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnDiv not implemented for DT_COMPLEX64"},
-  "test_cov_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnDiv not implemented for DT_COMPLEX64"}
+  "test_cov_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnDiv not implemented for DT_COMPLEX64"},
+  "test_compile_selective_checkpoint_outplace_op (__main__.ActivationCheckpointingViaTagsTests)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_npu_amp_autocast (__main__.CtxManagerTests)": {"DTYPE": "unsupport float64"},
+  "test_npu_amp_autocast_dynamic_shapes (__main__.DynamicShapesCtxManagerTests)": {"DTYPE": "unsupport float64"},
+  "test_tvm (__main__.TestOptimizations)": {"OTHER": "skipped in original pytorch too"}
 }
