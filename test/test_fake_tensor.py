@@ -1278,6 +1278,20 @@ class TestPromptFlashAttention(TestCase):
             self.assertTrue(q.shape == res.shape)
 
 
+class TestFusedInferAttentionScore(TestCase):
+    def testFusedInferAttentionScore(self):
+        with FakeTensorMode():
+            q = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            k = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            v = torch.randn(1, 40, 1, 128, dtype=torch.float16).npu()
+            q.requires_grad = True
+            k.requires_grad = True
+            v.requires_grad = True
+            atten_out, softmax_lse = torch.ops.npu.npu_fused_infer_attention_score(q, k, v)
+
+            self.assertTrue(q.shape == atten_out.shape)
+
+
 class TestMmAllReduce(TestCase):
     def test_mm_all_reduce(self):
         with FakeTensorMode():
