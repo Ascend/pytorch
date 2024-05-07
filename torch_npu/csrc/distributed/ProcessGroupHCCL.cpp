@@ -2169,13 +2169,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
             },
             c10d::OpType::ALLTOALL);
     } else {
-        uint64_t index = static_cast<uint64_t>(outputTensor.numel() / ranks);
+        uint64_t index = static_cast<uint64_t>(outputTensor.size(0) / ranks);
         if (outputSplitSizes.empty()) {
             for (int i = 0; i < ranks; i++) {
                 outputSplitSizes.push_back(index);
             }
         }
-        index = static_cast<uint64_t>(inputTensor.numel() / ranks);
+        index = static_cast<uint64_t>(inputTensor.size(0) / ranks);
         if (inputSplitSizes.empty()) {
             for (int i = 0; i < ranks; i++) {
                 inputSplitSizes.push_back(index);
@@ -2186,6 +2186,8 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
 
         int inputSize = static_cast<int>(inputSplitSizes.size());
         int outSize = static_cast<int>(outputSplitSizes.size());
+        int inputRowSize = static_cast<int>(inputTensor.size(0) ? inputTensor.numel() / inputTensor.size(0) : 1);
+        int outputRowSize = static_cast<int>(outputTensor.size(0) ? outputTensor.numel() / outputTensor.size(0) : 1);
         std::vector<uint64_t> inputCounts;
         std::vector<uint64_t> inputSpl;
         std::vector<uint64_t> outputCounts;
@@ -2193,13 +2195,13 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::alltoall_base(
         inputSpl.push_back(0);
         outputSpl.push_back(0);
         for (int i = 0; i < outSize; i++) {
-            outputCounts.push_back(static_cast<uint64_t>(outputSplitSizes[i]));
+            outputCounts.push_back(static_cast<uint64_t>(outputSplitSizes[i] * outputRowSize));
             if (i > 0) {
                 outputSpl.push_back(outputSpl[i - 1] + outputCounts[i - 1]);
             }
         }
         for (int i = 0; i < inputSize; i++) {
-            inputCounts.push_back(static_cast<uint64_t>(inputSplitSizes[i]));
+            inputCounts.push_back(static_cast<uint64_t>(inputSplitSizes[i] * inputRowSize));
             if (i > 0) {
                 inputSpl.push_back(inputSpl[i - 1] + inputCounts[i - 1]);
             }
