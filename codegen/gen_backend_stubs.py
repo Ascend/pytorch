@@ -43,7 +43,7 @@ from codegen.utils import (get_torchgen_dir, rename_privateuse1_dispatch_key, ge
                            get_grouped_native_functions_optional_out, parse_npu_yaml, get_opplugin_wrap_name,
                            get_target_functions, merge_custom_yaml, field_tag, gen_custom_yaml_path,
                            update_opapi_info, is_opapi, PathManager, filt_exposed_api, get_target_native_registration,
-                           NativeFunctionsGroupOptionalOut)
+                           NativeFunctionsGroupOptionalOut, gen_device_check)
 from codegen.custom_functions import (parse_custom_yaml, gen_custom_trace, gen_custom_ops_patch,
                                       gen_custom_functions_dispatch)
 
@@ -761,6 +761,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool,
 
 def apply_torchgen_patch():
     dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
+    dest.RegisterDispatchKey.gen_device_check = gen_device_check
     # generate default arguments
     JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
     add_header_to_template_file()
