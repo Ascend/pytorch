@@ -560,6 +560,8 @@ std::vector<at::Tensor> ProcessGroupHCCL::WorkHCCL::result()
     return *outputs_;
 }
 
+static std::atomic<size_t> process_group_id = 0;
+
 ProcessGroupHCCL::ProcessGroupHCCL(
     const c10::intrusive_ptr<c10d::Store>& store,
     int rank,
@@ -571,7 +573,8 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     hcclCommCounter_(0),
     traceKeyStart_("HCCL_" + std::to_string(rank) + "_trace_start"),
     traceKeyEnd_("HCCL_" + std::to_string(rank) + "_trace_end"),
-    terminateProcessGroup_(false)
+    terminateProcessGroup_(false),
+    uid_(process_group_id++)
 {
     uint32_t hccl_event_timeout = c10_npu::option::OptionsManager::GetHCCLEventTimeout();
     uint32_t hccl_exec_timeout = c10_npu::option::OptionsManager::GetHCCLExecTimeout();
@@ -767,6 +770,16 @@ void ProcessGroupHCCL::logWorkEnd(WorkHCCL& work)
     }
 
     storeError_ = !c10d::traceUpdate(store_, traceKeyEnd_, work.seq_, opTypeToString(work.opType_));
+}
+
+const std::vector<uint64_t>& ProcessGroupHCCL::groupRanks() const
+{
+    if (options_->global_ranks_in_group.empty() && uid_ == 0) {
+        static std::vector<uint64_t> globalRanks(size_);
+        std::iota(globalRanks.begin(), globalRanks.end(), 0);
+        return globalRanks;
+    }
+    return options_->global_ranks_in_group;
 }
 
 void ProcessGroupHCCL::workCleanupLoop()
