@@ -72,3 +72,5 @@ test/jit/test_unsupported_ops.py
 test/jit/test_upgraders.py
 test/jit/test_warn.py
 test/jit/test_with.py
+test/functorch/common_utils.py
+test/functorch/functorch_additional_op_db.py
