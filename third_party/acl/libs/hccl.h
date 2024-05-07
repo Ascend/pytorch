@@ -96,4 +96,5 @@ hcclResult_t HcclGetCommAsyncError(hcclComm_t comm, hcclResult_t* asyncError);
 hcclResult_t HcclScatter(void *sendBuf, void *recvBuf, u64 count, HcclDataType dataType, u32 root, HcclComm comm,
     aclrtStream stream);
 hcclResult_t HcclBatchSendRecv(HcclSendRecvItemDef* sendRecvInfo, u32 itemNum, hcclComm_t comm, aclrtStream stream);
+hcclResult_t HcclCommInitAll(u32 ndev, s32 *devices, hcclComm_t *comms);
 }

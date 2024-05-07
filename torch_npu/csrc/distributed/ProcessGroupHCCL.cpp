@@ -50,32 +50,6 @@ std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
     {c10d::ReduceOp::PRODUCT, HCCL_REDUCE_PROD},
 };
 
-// HCCL DataType mapping
-std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
-    {at::kByte, HCCL_DATA_TYPE_UINT8},
-    {at::kChar, HCCL_DATA_TYPE_INT8},
-    {at::kShort, HCCL_DATA_TYPE_INT16},
-    {at::kInt, HCCL_DATA_TYPE_INT32},
-    {at::kLong, HCCL_DATA_TYPE_INT64},
-    {at::kHalf, HCCL_DATA_TYPE_FP16},
-    {at::kFloat, HCCL_DATA_TYPE_FP32},
-    {at::kDouble, HCCL_DATA_TYPE_FP64},
-    {at::kBool, HCCL_DATA_TYPE_UINT8},
-    {at::kBFloat16, HCCL_DATA_TYPE_BFP16},
-};
-
-std::map<HcclDataType, std::string> kHcclDataTypeToStringMap = {
-    {HCCL_DATA_TYPE_UINT8, "at::kByte/at::kBool"},
-    {HCCL_DATA_TYPE_INT8, "at::kChar"},
-    {HCCL_DATA_TYPE_INT16, "at::kShort"},
-    {HCCL_DATA_TYPE_INT32, "at::kInt"},
-    {HCCL_DATA_TYPE_INT64, "at::kLong"},
-    {HCCL_DATA_TYPE_FP16, "at::kHalf"},
-    {HCCL_DATA_TYPE_FP32, "at::kFloat"},
-    {HCCL_DATA_TYPE_FP64, "at::kDouble"},
-    {HCCL_DATA_TYPE_BFP16, "at::kBFloat16"},
-};
-
 bool nslb_is_end = false;
 
 int64_t physical_numel(const at::Tensor& self)
@@ -101,27 +75,6 @@ uint64_t getNumelForHCCL(const at::Tensor& self)
         return physical_numel(self);
     } else {
         return self.numel();
-    }
-}
-
-// Helper function that gets the data type and issues error if not supported
-HcclDataType getHcclDataType(at::ScalarType type)
-{
-    try {
-        return kScalarTypeToHcclDataType.at(type);
-    } catch (std::out_of_range& e) {
-        throw std::runtime_error("Unsupported data type for HCCL process group" + DIST_ERROR(ErrCode::NOT_SUPPORT));
-    }
-}
-
-std::string getHcclDataTypeSerialString(HcclDataType type)
-{
-    const auto& iter = kHcclDataTypeToStringMap.find(type);
-    if (iter != kHcclDataTypeToStringMap.end()) {
-        return iter->second;
-    } else {
-        TORCH_NPU_WARN_ONCE("Can not serialize undefined hccl data type.");
-        return "";
     }
 }
 

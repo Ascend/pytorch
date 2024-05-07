@@ -171,6 +171,8 @@ extern HcclResult HcclScatter(void *sendBuf, void *recvBuf, uint64_t count, Hccl
 extern HcclResult HcclAlltoAll(const void *sendBuf, uint64_t sendCount, HcclDataType sendType,
     const void *recvBuf, uint64_t recvCount, HcclDataType recvType, HcclComm comm, aclrtStream stream);
 
+extern HcclResult HcclCommInitAll(uint32_t ndev, int32_t *devices, HcclComm *comms);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

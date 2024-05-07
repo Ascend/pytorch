@@ -609,7 +609,8 @@
     "apply_permutation"
   ],
   "torch.nn.parallel": [
-    "DistributedDataParallelCPU"
+    "DistributedDataParallelCPU",
+    "data_parallel"
   ],
   "torch.nn.parallel.comm": [
     "List"
