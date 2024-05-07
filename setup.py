@@ -455,7 +455,7 @@ class BdistWheelBuild(bdist_wheel):
         if which('patchelf') is not None:
             patchelf_dynamic_library()
 
-        if which('eu-strip') is not None:
+        if not DEBUG and which('eu-strip') is not None:
             generate_dbg_files_and_strip()
 
         torch_dependencies = ["libc10.so", "libtorch.so", "libtorch_cpu.so", "libtorch_python.so"]
@@ -593,6 +593,7 @@ setup(
                 extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"InitNpuBindings.cpp\"'],
                 library_dirs=["lib"],
                 extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib'],
+                define_macros=[('_GLIBCXX_USE_CXX11_ABI', '0'), ('GLIBCXX_USE_CXX11_ABI', '0')]
             ),
     ],
     install_requires=requirements,
