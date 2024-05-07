@@ -3,8 +3,11 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
+#include <map>
 #include <memory>
+#include <string>
 
+#include <ATen/ATen.h>
 #include <c10/util/Optional.h>
 #include "hccl/hccl.h"
 #include "hccl/hccl_types.h"
@@ -49,6 +52,10 @@ extern HcclResult hcclGetCommAsyncError(HcclComm comm, HcclResult* asyncError);
 std::string getHcclErrorDetailStr(
     HcclResult error,
     c10::optional<std::string> processGroupFailureReason = c10::nullopt);
+
+HcclDataType getHcclDataType(at::ScalarType type);
+
+std::string getHcclDataTypeSerialString(HcclDataType type);
 
 // RAII wrapper for HCCL communicator
 class HCCLComm {
