@@ -400,7 +400,11 @@ PyObject* c10d_npu_init(PyObject* _unused, PyObject* noargs) {
       "Options",
       dist.attr("ProcessGroup").attr("Options"))
       .def(py::init<>())
-      .def_readwrite("op_timeout", &::c10d_npu::ProcessGroupHCCL::Options::opTimeout);
+      .def_readwrite("op_timeout", &::c10d_npu::ProcessGroupHCCL::Options::opTimeout)
+      .def_readwrite("is_high_priority_stream",
+                     &::c10d_npu::ProcessGroupHCCL::Options::is_high_priority_stream)
+      .def_readwrite("global_ranks_in_group",
+                     &::c10d_npu::ProcessGroupHCCL::Options::global_ranks_in_group);
 
   Py_RETURN_TRUE;
 }

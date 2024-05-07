@@ -241,6 +241,8 @@ public:
         std::chrono::milliseconds opTimeout;
         // Schedule HCCL operations on high priority CUDA streams
         bool is_high_priority_stream;
+
+        std::vector<uint64_t> global_ranks_in_group;
     };
 
     // If you wish to create multiple process groups, each with a potentially
@@ -391,6 +393,9 @@ public:
     void abort(c10::optional<std::string> abortReason = c10::nullopt);
 
     std::string getHcclCommNameWithoutInit(int rankid, std::vector<std::shared_ptr<HCCLComm>>& hcclComms);
+
+    // Return the global ranks of a PG
+    const std::vector<uint64_t>& groupRanks() const;
 protected:
     // Helper that broadcasts HCCL Master ID to all ranks through the store
     void broadcastMasterID(HcclRootInfo* hcclID);
@@ -541,6 +546,8 @@ protected:
 
 
     std::exception_ptr watchDogException_ = nullptr;
+
+    size_t uid_;
 
 private:
     // Helper that encapsulates work shared across all collective communication
