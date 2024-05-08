@@ -26,6 +26,7 @@ from .prof_common_func.constant import Constant, print_warn_msg, print_error_msg
 from .prof_bean.ai_cpu_bean import AiCpuBean
 from .prof_parse.cann_file_parser import CANNDataEnum, CANNFileParser
 from .prof_bean.l2_cache_bean import L2CacheBean
+from .prof_bean.api_statistic_bean import ApiStatisticBean
 from .prof_bean.op_statistic_bean import OpStatisticBean
 from .prof_bean.npu_module_mem_bean import NpuModuleMemoryBean
 
@@ -35,8 +36,11 @@ class ProfilerConfig:
     LEVEL_PARSER_CONFIG = {
         Constant.LEVEL0: [(CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
         Constant.LEVEL1: [(CANNDataEnum.OP_STATISTIC, OpStatisticBean),
+                          (CANNDataEnum.API_STATISTIC, ApiStatisticBean),
                           (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)],
-        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean), (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
+        Constant.LEVEL2: [(CANNDataEnum.AI_CPU, AiCpuBean),
+                          (CANNDataEnum.API_STATISTIC, ApiStatisticBean),
+                          (CANNDataEnum.OP_STATISTIC, OpStatisticBean),
                           (CANNDataEnum.NPU_MODULE_MEM, NpuModuleMemoryBean)]
     }
     LEVEL_PROCESS_PRUNE_CONFIG = {
@@ -46,7 +50,7 @@ class ProfilerConfig:
     }
     LEVEL_TRACE_PRUNE_CONFIG = {
         Constant.LEVEL0: ['HostToDevice'],
-        Constant.LEVEL1: ['Runtime', 'GE', 'Node', 'Model', 'Hccl'],
+        Constant.LEVEL1: [],
         Constant.LEVEL2: []
     }
 
