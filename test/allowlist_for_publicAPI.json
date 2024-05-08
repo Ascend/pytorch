@@ -1592,6 +1592,9 @@
   "torch_npu.profiler.analysis.prof_bean.op_statistic_bean": [
     "OpStatisticBean"
   ],
+  "torch_npu.profiler.analysis.prof_bean.api_statistic_bean": [
+    "ApiStatisticBean"
+  ],
   "torch_npu.profiler.analysis.prof_common_func.cann_package_manager": [
     "CannPackageManager"
   ],
