@@ -76,18 +76,19 @@ class SilentFaultDetector:
 silent_fault_detector = SilentFaultDetector()
 
 
-def patch_layernorm(input_layernorm, normalized_shape, weight, bias, eps):
+def patch_layernorm(input_layernorm, normalized_shape, *args, **kwargs):
     if input_layernorm is not None and input_layernorm.requires_grad and input_layernorm._backward_hooks is None:
-        input_layernorm.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
-    return origin_layernorm(input_layernorm, normalized_shape, weight, bias, eps)
+        if "weight" in kwargs:
+            input_layernorm.register_hook(silent_fault_detector.silent_fault_check_hook(kwargs["weight"]))
+        elif len(args) > 0:
+            input_layernorm.register_hook(silent_fault_detector.silent_fault_check_hook(args[0]))
+    return origin_layernorm(input_layernorm, normalized_shape, *args, **kwargs)
 
 
-def patch_embedding(input_embedding, weight, padding_idx, max_norm,
-            norm_type, scale_grad_by_freq, sparse):
+def patch_embedding(input_embedding, weight, *args, **kwargs):
     if weight is not None and weight.requires_grad and weight._backward_hooks is None:
         weight.register_hook(silent_fault_detector.silent_fault_check_hook(weight))
-    return origin_embedding(input_embedding, weight, padding_idx, max_norm,
-            norm_type, scale_grad_by_freq, sparse)
+    return origin_embedding(input_embedding, weight, *args, **kwargs)
 
 
 def asd_patch():
