@@ -8,6 +8,7 @@ TORCH_NPU_API void BindGetDeviceProperties(PyObject *module);
 TORCH_NPU_API void RegisterNPUDeviceMemories(PyObject *module);
 TORCH_NPU_API void BindGetDeviceMemories(PyObject *module);
 TORCH_NPU_API void RegisterNpuPluggableAllocator(PyObject *module);
+TORCH_NPU_API void initCommMethods();
 PyObject *THNPModule_getDevice_wrap(PyObject *self);
 PyObject *THNPModule_setDevice_wrap(PyObject *self, PyObject *arg);
 PyObject *THNPModule_getDeviceName_wrap(PyObject *self, PyObject *arg);

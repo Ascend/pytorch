@@ -4,6 +4,7 @@
 #include <torch/csrc/Generator.h>
 
 #include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/npu/DataParallelComm.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -58,6 +59,11 @@ PyObject* THPModule_npu_shutdown(PyObject* /* unused */)
     if (!success) {
         ASCEND_LOGE("NPU shutdown synchronize device failed.");
     }
+
+    ASCEND_LOGI("NPU shutdown ReleaseHcclCommList.");
+    torch_npu::data_parallel::ReleaseHcclCommList();
+    ASCEND_LOGI("NPU shutdown ReleaseHcclCommList success.");
+
     THNPUCachingHostAllocator_emptyCache();
     try {
         ASCEND_LOGI("NPU shutdown NPUCachingAllocator emptyCache.");
@@ -133,6 +139,7 @@ PyObject* initModule() {
     RegisterNPUDeviceMemories(module);
     BindGetDeviceMemories(module);
     RegisterNpuPluggableAllocator(module);
+    initCommMethods();
     return module;
 }
 

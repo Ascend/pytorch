@@ -11,8 +11,6 @@ unsupported_Tensor_api = {
 }
 
 unsupported_nn_api = {
-    "__init__": torch.nn.DataParallel,
-    "data_parallel": torch.nn.parallel,
     "share_memory": torch.nn.Module,
     "add_module": torch.jit.ScriptModule,
     "bfloat16": torch.jit.ScriptModule,
