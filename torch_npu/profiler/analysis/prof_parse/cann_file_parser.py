@@ -44,6 +44,7 @@ class CANNDataEnum(Enum):
     NPU_MODULE_MEM = 11
     REPORT_DB = 12
     ANALYSIS_DB = 13
+    API_STATISTIC = 14
 
 
 class CANNFileParser:
@@ -64,6 +65,7 @@ class CANNFileParser:
         CANNDataEnum.AI_CPU: [r"^aicpu_\d+.*\.csv"],
         CANNDataEnum.COMMUNICATION: [r"^communication\.json"],
         CANNDataEnum.MATRIX: [r"^communication_matrix\.json"],
+        CANNDataEnum.API_STATISTIC: [r"^api_statistic_\d+.*\.csv"],
         CANNDataEnum.OP_STATISTIC: [r"^op_statistic_\d+.*\.csv"],
         CANNDataEnum.NPU_MODULE_MEM: [r"^npu_module_mem_\d+.*\.csv"],
         CANNDataEnum.REPORT_DB: [r"^report_\d+\.db"],
