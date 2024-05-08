@@ -2883,6 +2883,9 @@
   "torch_npu.profiler.analysis.prof_bean.l2_cache_bean": [
     "L2CacheBean"
   ],
+  "torch_npu.profiler.analysis.prof_bean.api_statistic_bean": [
+    "ApiStatisticBean"
+  ],
   "torch_npu.profiler.analysis.prof_bean.op_statistic_bean": [
     "OpStatisticBean"
   ],
