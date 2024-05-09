@@ -8,7 +8,6 @@
 #include "c10/macros/Export.h"
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
-#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #define NpuSysStatus c10_npu::NpuSysCtrl::SysStatus
 
 namespace c10_npu {
@@ -63,8 +62,6 @@ public:
         return -1;
     }
 
-    void RegisterLazyFn(const option::OptionCallBack& call_, const std::string& in);
-
     // Register fn to be called during stage of exit and
     // the callability of fn is guaranteed by the caller.
      void RegisterReleaseFn(ReleaseFn release_fn,
@@ -77,7 +74,6 @@ private:
     bool init_flag_;
     int device_id_;
     std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
-    std::vector<std::pair<option::OptionCallBack, std::string>> lazy_fn_;
 };
 
 aclError SetCurrentDevice();
