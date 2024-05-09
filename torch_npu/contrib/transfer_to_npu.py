@@ -213,8 +213,9 @@ def _wrapper_hccl(fn):
                     args_new[idx] = arg.replace('nccl', 'hccl')
             args = args_new
         if kwargs:
-            if type(kwargs.get('backend', None)) == str:
-                kwargs['backend'] = 'hccl'
+            backend = kwargs.get('backend', None)
+            if type(backend) == str and 'nccl' in backend:
+                kwargs['backend'] = backend.replace('nccl', 'hccl')
         return fn(*args, **kwargs)
 
     return decorated
