@@ -67,11 +67,11 @@ public:
 private:
   c10::Device device;
 
-  c10_npu::NPUEvent forward_start = c10_npu::NPUEvent();
-  c10_npu::NPUEvent backward_compute_start = c10_npu::NPUEvent();
-  c10_npu::NPUEvent backward_compute_end = c10_npu::NPUEvent();
-  c10_npu::NPUEvent backward_comm_start = c10_npu::NPUEvent();
-  c10_npu::NPUEvent backward_comm_end = c10_npu::NPUEvent();
+  c10_npu::NPUEvent forward_start = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
+  c10_npu::NPUEvent backward_compute_start = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
+  c10_npu::NPUEvent backward_compute_end = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
+  c10_npu::NPUEvent backward_comm_start = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
+  c10_npu::NPUEvent backward_comm_end = c10_npu::NPUEvent(ACL_EVENT_TIME_LINE);
 
   c10_npu::NPUEvent& getEvent(Event event) {
     switch (event) {
