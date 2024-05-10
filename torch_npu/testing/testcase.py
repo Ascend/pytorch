@@ -160,7 +160,14 @@ class TestCase(expecttest.TestCase):
 
         def _assertRtolEqual(x, y, prec, prec16, message):
             def compare_res(pre, minimum):
-                result = np.abs(y - x)
+                diff = y - x
+                # check that NaNs are in the same locations
+                nan_mask = np.isnan(x)
+                if not np.equal(nan_mask, np.isnan(y)).all():
+                    self.fail(message)
+                if nan_mask.any():
+                    diff[nan_mask] = 0
+                result = np.abs(diff)
                 deno = np.maximum(np.abs(x), np.abs(y))
                 result_atol = np.less_equal(result, pre)
                 result_rtol = np.less_equal(result / np.add(deno, minimum), pre)
