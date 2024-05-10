@@ -1,16 +1,19 @@
 import inspect
 from typing import Dict, List
-
+from functools import lru_cache
 import torch
-from torch._dynamo.utils import tensortype_to_dtype
+from torch._dynamo.utils import tensortype_to_dtype, proxy_args_kwargs
 from torch._dynamo.variables.torch import TorchCtxManagerClassVariable, TorchInGraphFunctionVariable
 from torch._dynamo.variables.base import VariableTracker
 from torch._dynamo.variables.ctx_manager import AutocastModeVariable
 from torch._dynamo.variables.user_defined import UserDefinedClassVariable
 from torch._dynamo.variables.functions import SkipFunctionVariable
 from torch._dynamo.variables.constant import ConstantVariable
+
+
 from torch._dynamo.variables.tensor import TensorVariable
 from torch._dynamo.variables.lists import TupleVariable
+from torch._dynamo.variables.builder import wrap_fx_proxy
 import torch_npu
 
 
@@ -53,10 +56,6 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
     ]:
         return NPUTorchCtxManagerClassVariable(value, **kwargs)
     elif value in [
-        torch.npu.Stream,
-        torch_npu.npu.Stream,
-        torch.npu.streams.Stream,
-        torch_npu.npu.streams.Stream,
         torch_npu.npu.BoolTensor,
         torch_npu.npu.ByteTensor,
         torch_npu.npu.CharTensor,
@@ -67,7 +66,6 @@ def UserDefinedClassVariable__new__(cls, value, **kwargs):
         torch_npu.npu.LongTensor,
         torch_npu.npu.ShortTensor,
         torch_npu.npu.BFloat16Tensor,
-        torch.device,
     ]:
         return TorchInGraphFunctionVariable(value, **kwargs)
     return cls.__new__raw(cls)
@@ -78,6 +76,8 @@ def SkipFunctionVariable__new__(cls, value, reason=None, **kwargs):
         torch.npu.stream,
         torch_npu.npu.stream,
         torch_npu.npu.utils.stream,
+        torch.npu.current_stream,
+        torch_npu.npu.current_stream,
     ]:
         return TorchInGraphFunctionVariable(value, **kwargs)
     return cls.__new__raw(cls)
@@ -103,6 +103,100 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
         return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
 
+def UserDefinedClassVariable_call_function(
+    self, tx, args: "List[VariableTracker]", kwargs: "Dict[str, VariableTracker]"
+    ) -> "VariableTracker":
+    if self.value in [
+        torch.npu.Stream,
+        torch.npu.streams.Stream,
+        torch.npu.streams.Event,
+        torch_npu.npu.Stream,
+        torch_npu.npu.streams.Stream,
+        torch_npu.npu.streams.Event,
+    ]:
+        return wrap_fx_proxy(
+                tx=tx,
+                proxy=tx.output.create_proxy(
+                    "call_function",
+                    self.value,
+                    *proxy_args_kwargs(args, kwargs),
+                ),
+            )
+    else:
+        return UserDefinedClassVariable.call_function_raw(self, tx, args, kwargs)
+
+
+@lru_cache(None)
+def patch_for_update_in_graph_functions():
+    from torch._dynamo.trace_rules import load_object
+    
+    # In graph functions (including constant folding) that are C bindings
+    torch_c_binding_in_graph_functions_npu = dict.fromkeys(
+        [
+            "torch_npu._C.is_autocast_enabled"
+        ],
+        TorchInGraphFunctionVariable,
+    )
+            
+    # In graph functions (including constant folding) that are not C bindings
+    torch_non_c_binding_in_graph_functions_npu = dict.fromkeys(
+        [
+            "torch.npu._utils._get_device_index",
+            "torch_npu.npu._utils._get_device_index",
+            "torch.npu.current_stream",
+            "torch_npu.npu.current_stream",
+            "torch.npu.is_available",
+            "torch_npu.npu.is_available",
+        ],
+        TorchInGraphFunctionVariable,
+    )
+
+    torch_name_rule_map_npu = [
+        torch_c_binding_in_graph_functions_npu,
+        torch_non_c_binding_in_graph_functions_npu,
+    ]
+    
+    constant_fold_functions_npu = dict.fromkeys(
+        [
+            "torch.npu.is_available",
+            "torch_npu.npu.is_available",
+            "torch_npu._C.is_autocast_enabled",
+        ],
+    )
+    
+    def load_object_npu(npu_dict):
+        d: Dict[Any, VariableTracker] = dict()
+        for k, v in npu_dict.items():
+            obj = load_object(k)
+            if obj is not None:
+                if obj in d and d[obj] != v:
+                    raise AssertionError(
+                        f"Duplicate torch object {obj} with different rules: {v}, {d[obj]}"
+                    )
+                else:
+                    d[obj] = v
+        return d
+    
+    # update constant_fold_functions list for torch_npu function
+    def update_constant_fold_functions_list():
+        from torch._dynamo.variables.torch import constant_fold_functions
+        
+        d = list(load_object_npu(constant_fold_functions_npu).keys())
+        constant_fold_functions.extend(d)
+    
+    # update get_torch_obj_rule_map dict for torch_npu function
+    def update_get_torch_obj_rule_map_dict():
+        from torch._dynamo.trace_rules import get_torch_obj_rule_map
+        
+        d: Dict[Any, VariableTracker] = dict()
+        for m in torch_name_rule_map_npu:
+            d.update(load_object_npu(m))
+        get_torch_obj_rule_map().update(d)
+        
+    update_constant_fold_functions_list()
+    update_get_torch_obj_rule_map_dict()
+    
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -110,3 +204,6 @@ def add_dynamo_methods():
     SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
     TensorVariable.call_method_raw = TensorVariable.call_method
     TensorVariable.call_method = TensorVariable_call_method
+    UserDefinedClassVariable.call_function_raw = UserDefinedClassVariable.call_function
+    UserDefinedClassVariable.call_function = UserDefinedClassVariable_call_function
+    patch_for_update_in_graph_functions()

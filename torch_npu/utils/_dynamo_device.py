@@ -71,3 +71,5 @@ class NpuInterface(DeviceInterface):
 
 def _dynamo_register_interface_for_device():
     register_interface_for_device("npu", NpuInterface)
+    for i in range(torch.npu.device_count()):
+        register_interface_for_device(f"npu:{i}", NpuInterface)
