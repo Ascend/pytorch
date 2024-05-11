@@ -326,7 +326,7 @@ struct ExpandableSegment {
       handles_.emplace_back(c10::nullopt);
     }
     for (auto i : c10::irange(begin, end)) {
-        TORCH_INTERNAL_ASSERT(!handles_.at(i), PTA_ERROR(ErrCode::VALUE));
+        TORCH_INTERNAL_ASSERT(!handles_.at(i), PTA_ERROR(ErrCode::INTERNAL));
         aclrtDrvMemHandle handle = nullptr;
         aclrtPhysicalMemProp prop = {};
         prop.handleType = ACL_MEM_HANDLE_TYPE_NONE;
@@ -543,8 +543,8 @@ public:
   EventPool() : pools_(c10_npu::device_count()) {}
 
   Event get(int device) {
-    TORCH_INTERNAL_ASSERT(0 <= device, PTA_ERROR(ErrCode::VALUE));
-    TORCH_INTERNAL_ASSERT(device < static_cast<int>(pools_.size()), PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(0 <= device, PTA_ERROR(ErrCode::INTERNAL));
+    TORCH_INTERNAL_ASSERT(device < static_cast<int>(pools_.size()), PTA_ERROR(ErrCode::INTERNAL));
     auto& pool = pools_[device];
     auto destructor = [&pool](c10_npu::NPUEvent* event) {
       std::lock_guard<std::mutex> g(pool.mutex_);
@@ -616,6 +616,7 @@ class CachingAllocatorConfig {
   size_t m_max_split_size;
   double m_garbage_collection_threshold;
   bool m_expandable_segments;
+  bool set_expandable_segments_flag = false;
 
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
@@ -731,7 +732,7 @@ size_t CachingAllocatorConfig::parseExpandableSegments(
             NPU_CHECK_ERROR(c10_npu::acl::AclrtReleaseMemAddress(ptr));
         } else {
             NPU_CHECK_SUPPORTED_OR_ERROR(status);
-            TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to expandable_segments = false.", OPS_ERROR(ErrCode::VALUE));
+            TORCH_NPU_WARN_ONCE("expandable_segments setting failure, now change to expandable_segments = false.");
             m_expandable_segments = false;
         }
     }
@@ -760,6 +761,7 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     } else if (config[i].compare("garbage_collection_threshold") == 0) {
       i = parseGarbageCollectionThreshold(config, i);
     } else if (config[i] == "expandable_segments") {
+      set_expandable_segments_flag = true;
       i = parseExpandableSegments(config, i);
     } else {
       TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], OPS_ERROR(ErrCode::PARAM));
@@ -768,6 +770,19 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     if (i + 1 < config.size()) {
       consumeToken(config, ++i, ',');
     }
+  }
+
+  if (m_expandable_segments) {
+      if (set_expandable_segments_flag) {
+          TORCH_CHECK(m_max_split_size == std::numeric_limits<size_t>::max() && m_garbage_collection_threshold == 0,
+                      "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
+                      "`expandable_segments`, please set `expandable_segments` to `false`.",
+                      OPS_ERROR(ErrCode::PARAM));
+      } else if (m_max_split_size != std::numeric_limits<size_t>::max() || m_garbage_collection_threshold != 0) {
+          m_expandable_segments = false;
+          TORCH_NPU_WARN_ONCE("`max_split_size_mb` or `garbage_collection_threshold` is enabled, and the "
+                              "`expandable_segments` is changed to `false` by default.");
+      }
   }
 }
 
@@ -1389,7 +1404,7 @@ class DeviceCachingAllocator {
       size_t size,
       const std::shared_ptr<c10::GatheredContext>& ctx)
   {
-    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::INTERNAL));
     TORCH_INTERNAL_ASSERT(
         !to_map->context_when_allocated); // unmapped blocks should not keep
                                           // history
@@ -1400,7 +1415,7 @@ class DeviceCachingAllocator {
       return false;
     }
     TORCH_INTERNAL_ASSERT(
-        mapped_range.ptr == to_map->ptr && mapped_range.size >= size, PTA_ERROR(ErrCode::VALUE));
+        mapped_range.ptr == to_map->ptr && mapped_range.size >= size, PTA_ERROR(ErrCode::INTERNAL));
 
     BlockPool& pool = *to_map->pool;
     pool.unmapped.erase(to_map);
@@ -1464,7 +1479,7 @@ class DeviceCachingAllocator {
         !map_block(candidate, std::min(candidate->size, size), ctx)) {
       return nullptr;
     }
-    TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::INTERNAL));
 
     while (candidate->size < size) {
       // invariant: free -> unmapped -> *
@@ -1870,13 +1885,13 @@ class DeviceCachingAllocator {
   void release_expandable_segment(Block* block) {
     TORCH_INTERNAL_ASSERT(
         block->size == block->expandable_segment_->size(),
-        "block disagrees with segment", PTA_ERROR(ErrCode::VALUE));
-    TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::VALUE));
+        "block disagrees with segment", PTA_ERROR(ErrCode::INTERNAL));
+    TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::INTERNAL));
     auto it = std::find(
         expandable_segments_.begin(),
         expandable_segments_.end(),
         block->expandable_segment_);
-    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end(), PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end(), PTA_ERROR(ErrCode::INTERNAL));
     expandable_segments_.erase(it);
     block->pool->unmapped.erase(block);
     delete block->expandable_segment_;
@@ -1889,7 +1904,7 @@ class DeviceCachingAllocator {
       Block* block,
       const std::shared_ptr<c10::GatheredContext>& context)
   {
-    TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::INTERNAL));
 
     record_trace(
         TraceEntry::SEGMENT_FREE,
