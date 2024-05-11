@@ -11,7 +11,10 @@ from torch._dynamo.variables.functions import SkipFunctionVariable
 from torch._dynamo.variables.constant import ConstantVariable
 from torch._dynamo.variables.tensor import TensorVariable
 from torch._dynamo.variables.lists import TupleVariable
+from torch._dynamo import optimize
+from torch import _TorchCompileWrapper
 import torch_npu
+from torch_npu.dynamo import _get_global_npu_backend
 
 
 class NPUTorchCtxManagerClassVariable(TorchCtxManagerClassVariable):
@@ -103,6 +106,29 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
         return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
 
+def patch_dynamo_optimize():
+    src_optimize = optimize
+
+    def npu_optimize(*args, **kwargs):
+        backend = None
+        if 'backend' in kwargs.keys():
+            backend = kwargs['backend']
+        elif len(args) == 1:
+            backend = args[0]
+
+        backend_name = None
+        if isinstance(backend, str):
+            backend_name = backend
+        elif isinstance(backend, _TorchCompileWrapper):
+            backend_name = backend.compiler_name
+
+        if backend_name == 'npu':
+            # Init torchair ahead of running model.
+            _get_global_npu_backend()
+        return src_optimize(*args, **kwargs)
+    torch._dynamo.optimize = npu_optimize
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -110,3 +136,5 @@ def add_dynamo_methods():
     SkipFunctionVariable.__new__ = SkipFunctionVariable__new__
     TensorVariable.call_method_raw = TensorVariable.call_method
     TensorVariable.call_method = TensorVariable_call_method
+    patch_dynamo_optimize()
+
