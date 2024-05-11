@@ -616,6 +616,7 @@ class CachingAllocatorConfig {
   size_t m_max_split_size;
   double m_garbage_collection_threshold;
   bool m_expandable_segments;
+  bool set_expandable_segments_flag = false;
 
   CachingAllocatorConfig()
       : m_max_split_size(std::numeric_limits<size_t>::max()),
@@ -743,6 +744,7 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     } else if (config[i].compare("garbage_collection_threshold") == 0) {
       i = parseGarbageCollectionThreshold(config, i);
     } else if (config[i] == "expandable_segments") {
+      set_expandable_segments_flag = true;
       i = parseExpandableSegments(config, i);
     } else {
       TORCH_CHECK(false, "Unrecognized CachingAllocator option: ", config[i], PTA_ERROR(ErrCode::VALUE));
@@ -751,6 +753,19 @@ void CachingAllocatorConfig::parseArgs(const char* env) {
     if (i + 1 < config.size()) {
       consumeToken(config, ++i, ',');
     }
+  }
+
+  if (m_expandable_segments) {
+      if (set_expandable_segments_flag) {
+          TORCH_CHECK(m_max_split_size == std::numeric_limits<size_t>::max() && m_garbage_collection_threshold == 0,
+                      "`max_split_size_mb` or `garbage_collection_threshold`, cannot be enabled with "
+                      "`expandable_segments`, please set `expandable_segments` to `false`.",
+                      OPS_ERROR(ErrCode::PARAM));
+      } else if (m_max_split_size != std::numeric_limits<size_t>::max() || m_garbage_collection_threshold != 0) {
+          m_expandable_segments = false;
+          TORCH_NPU_WARN_ONCE("`max_split_size_mb` or `garbage_collection_threshold` is enabled, and the "
+                              "`expandable_segments` is changed to `false` by default.");
+      }
   }
 }
 
@@ -1276,7 +1291,7 @@ class DeviceCachingAllocator {
   bool map_block(
       Block* to_map,
       size_t size) {
-    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(!to_map->mapped && size <= to_map->size, PTA_ERROR(ErrCode::INTERNAL));
     auto mapped_range =
         to_map->expandable_segment_->map(SegmentRange{to_map->ptr, size});
     // failed to map the memory
@@ -1284,7 +1299,7 @@ class DeviceCachingAllocator {
       return false;
     }
     TORCH_INTERNAL_ASSERT(
-        mapped_range.ptr == to_map->ptr && mapped_range.size >= size, PTA_ERROR(ErrCode::VALUE));
+        mapped_range.ptr == to_map->ptr && mapped_range.size >= size, PTA_ERROR(ErrCode::INTERNAL));
 
     BlockPool& pool = *to_map->pool;
     pool.unmapped.erase(to_map);
@@ -1335,7 +1350,7 @@ class DeviceCachingAllocator {
         !map_block(candidate, std::min(candidate->size, size))) {
       return nullptr;
     }
-    TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(candidate->mapped, PTA_ERROR(ErrCode::INTERNAL));
 
     while (candidate->size < size) {
       // invariant: free -> unmapped -> *
@@ -1723,12 +1738,12 @@ class DeviceCachingAllocator {
     TORCH_INTERNAL_ASSERT(
         block->size == block->expandable_segment_->size(),
         "block disagrees with segment", PTA_ERROR(ErrCode::VALUE));
-    TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(!block->mapped, PTA_ERROR(ErrCode::INTERNAL));
     auto it = std::find(
         expandable_segments_.begin(),
         expandable_segments_.end(),
         block->expandable_segment_);
-    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end(), PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(it != expandable_segments_.end(), PTA_ERROR(ErrCode::INTERNAL));
     expandable_segments_.erase(it);
     block->pool->unmapped.erase(block);
     delete block->expandable_segment_;
@@ -1738,7 +1753,7 @@ class DeviceCachingAllocator {
   }
 
   void release_block(Block* block) {
-    TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::VALUE));
+    TORCH_INTERNAL_ASSERT(!block->expandable_segment_, PTA_ERROR(ErrCode::INTERNAL));
     ASCEND_LOGI("NPUCachingAllocator free by aclrtFree: ptr=%p, size=%zu", block->ptr, block->size);
     aclrtFree((void*)block->ptr);
     total_allocated_memory -= block->size;
