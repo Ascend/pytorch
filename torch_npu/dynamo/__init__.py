@@ -1,27 +1,81 @@
 import os
 import sys
 import warnings
+import importlib
 
 from torch._dynamo import register_backend as _register_backend
 from torch._dynamo.backends.registry import _BACKENDS
 from torch.library import Library, impl
 
+from torch_npu.utils.error_code import ErrCode, pta_error
+
+_global_npu_backend = None
 __all__ = []
+
+
+class _TorchairImportError(Exception):
+    def __init__(self):
+        super().__init__(self)
+        self.err_info = (
+            "\nAn error occured when import `torchair` and the above is the specific error message. \n"
+            "This error message was generated when import torchair, but throwed asynchronously here. \n"
+            "Please check the error message above. \n") + pta_error(ErrCode.INTERNAL)
+
+    def __str__(self):
+        return self.err_info
 
 
 class _LazyException:
     def __init__(self, e):
+        self._info = _TorchairImportError()
         self._e = e
 
     def __getattr__(self, name):
-        raise self._e
+        raise self._info from self._e
 
     def __call__(self, *args, **kwargs):
-        raise self._e
+        raise self._info from self._e
 
 
 def _eager_npu_backend(gm, *args, **kwargs):
     return gm
+
+
+def _get_global_npu_backend():
+    global _global_npu_backend
+    if _global_npu_backend is not None:
+        return _global_npu_backend
+    if 'torchair' not in sys.modules:
+        raise AssertionError("Could not find module torchair. "
+                             "Please check if torchair is removed from sys.modules." + pta_error(ErrCode.NOT_FOUND))
+    import torchair
+    _global_npu_backend = torchair.get_npu_backend()
+    return _global_npu_backend
+
+
+class _LazyTorchair:
+    def __init__(self):
+        self._torchair = None
+        self._exception = None
+
+    def __getattr__(self, name):
+        if self._exception is not None:
+            return self._exception()
+
+        if self._torchair is not None:
+            return getattr(self._torchair, name)
+
+        try:
+            from . import torchair
+        except Exception as e:
+            # In cpython, default import loader will suppress error when
+            # find module's __spec__. So here we need to record error and
+            # replay it later (when this func is invoked again).
+            self._exception = _LazyException(e)
+            raise
+
+        self._torchair = torchair
+        return getattr(torchair, name)
 
 
 def _get_default_backend():
@@ -31,15 +85,11 @@ def _get_default_backend():
             "as torch_npu was not compiled with torchair.")
         return _eager_npu_backend
 
-    try:
-        sys.path.insert(0, os.path.dirname(__file__))
-        from . import torchair
-        return torchair.get_npu_backend()
-    except Exception as e:
-        sys.modules['torchair'] = _LazyException(e)
-        return _LazyException(e)
-    finally:
-        del sys.path[0]
+    def _lazy_exec(*args, **kwargs):
+        return _get_global_npu_backend()(*args, **kwargs)
+
+    sys.modules['torchair'] = _LazyTorchair()
+    return _lazy_exec
 
 
 _global_backend = _get_default_backend()

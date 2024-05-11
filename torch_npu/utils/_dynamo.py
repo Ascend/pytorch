@@ -19,7 +19,10 @@ from torch._C import DispatchKey
 from torch._prims.rng_prims import run_and_save_rng_state, run_with_rng_state
 from torch._subclasses.fake_tensor import FakeTensorMode
 from torch._functorch import partitioners
+from torch._dynamo import optimize
+from torch import _TorchCompileWrapper
 import torch_npu
+from torch_npu.dynamo import _get_global_npu_backend
 
 
 def get_device_npu(args, kwargs):
@@ -376,6 +379,29 @@ def TensorVariable_call_method(self, tx, name, args, kwargs):
         return TensorVariable.call_method_raw(self, tx, name, args, kwargs)
 
 
+def patch_dynamo_optimize():
+    src_optimize = optimize
+
+    def npu_optimize(*args, **kwargs):
+        backend = None
+        if 'backend' in kwargs.keys():
+            backend = kwargs['backend']
+        elif len(args) == 1:
+            backend = args[0]
+
+        backend_name = None
+        if isinstance(backend, str):
+            backend_name = backend
+        elif isinstance(backend, _TorchCompileWrapper):
+            backend_name = backend.compiler_name
+
+        if backend_name == 'npu':
+            # Init torchair ahead of running model.
+            _get_global_npu_backend()
+        return src_optimize(*args, **kwargs)
+    torch._dynamo.optimize = npu_optimize
+
+
 def add_dynamo_methods():
     UserDefinedClassVariable.__new__raw = UserDefinedClassVariable.__new__
     UserDefinedClassVariable.__new__ = UserDefinedClassVariable__new__
@@ -385,4 +411,4 @@ def add_dynamo_methods():
     TensorVariable.call_method = TensorVariable_call_method
     patch_higher_order_ops()
     patch_functionalize_rng_ops()
-
+    patch_dynamo_optimize()
