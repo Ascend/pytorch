@@ -1355,7 +1355,8 @@
     "npu_nms_rotated",
     "npu_random_choice_with_mask",
     "npu_rms_norm",
-    "npu_moe_compute_expert_tokens"
+    "npu_moe_compute_expert_tokens",
+    "npu_fused_infer_attention_score"
   ],
   "torch_npu.contrib": [
     "npu_fused_attention_with_layernorm",
