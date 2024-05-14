@@ -27537,5 +27537,11 @@
   "test_against_reference_multi_input_multi_output_jacfwd_npu (__main__.TestJacPRIVATEUSE1)": ["", [""]],
   "test_against_reference_multi_input_jacfwd_npu (__main__.TestJacPRIVATEUSE1)": ["", [""]],
   "test_complex_error_npu (__main__.TestJacPRIVATEUSE1)": ["", [""]],
-  "test_hessian_vectorize_correctness_multi_input_npu (__main__.TestHessianPRIVATEUSE1)": ["", [""]]
+  "test_hessian_vectorize_correctness_multi_input_npu (__main__.TestHessianPRIVATEUSE1)": ["", [""]],
+  "test_restore_device_cuda (test_jit.TestJit)": ["", [""]],
+  "test_traced_module (jit.test_data_parallel.TestDataParallel)": ["", [""]],
+  "test_tensor_sharing_with_forward (jit.test_data_parallel.TestDataParallel)": ["", [""]],
+  "test_tensor_sharing (jit.test_data_parallel.TestDataParallel)": ["", [""]],
+  "test_shared_module (jit.test_data_parallel.TestDataParallel)": ["", [""]],
+  "test_python_submodule_script (jit.test_data_parallel.TestDataParallel)": ["", [""]]
 }
