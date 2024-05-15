@@ -133,20 +133,19 @@ class ProfilerConfig:
             self._start_cnt = start_info.get(Constant.StartCnt, self._start_cnt)
 
     @classmethod
-    def _get_profiler_info_json(cls, profiler_path: str):
-        info_file_path = ProfilerPathManager.get_info_file_path(profiler_path)
-        if not info_file_path:
-            print_warn_msg("Failed to get profiler info file.")
+    def _get_json_data(cls, json_file_path: str):
+        if not json_file_path:
+            print_warn_msg(f"Failed to get file, expect path is {json_file_path}.")
             return {}
         try:
-            return json.loads(FileManager.file_read_all(info_file_path, "rt"))
+            return json.loads(FileManager.file_read_all(json_file_path, "rt"))
         except JSONDecodeError:
-            print_warn_msg("Failed to get profiler info json from file.")
+            print_warn_msg(f"Failed to get json from file, path is {json_file_path}")
             return {}
 
     def load_info(self, profiler_path: str):
         self.load_is_cluster(profiler_path)
-        info_json = self._get_profiler_info_json(profiler_path)
+        info_json = self._get_json_data(ProfilerPathManager.get_info_file_path(profiler_path))
         self.load_rank_info(info_json)
         self.load_experimental_cfg_info(info_json)
         self.load_timediff_info(profiler_path, info_json)

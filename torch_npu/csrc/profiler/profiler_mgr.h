@@ -47,6 +47,7 @@ private:
   explicit ProfilerMgr(ProfilerMgr &&obj) = delete;
   ProfilerMgr& operator=(ProfilerMgr &&obj) = delete;
   void EnableMsProfiler(uint32_t *deviceIdList, uint32_t deviceNum, aclprofAicoreMetrics aicMetrics, uint64_t dataTypeConfig);
+  uint64_t CheckFeatureConfig(uint64_t datatype_config);
 
 private:
   static std::map<std::string, aclprofAicoreMetrics> npu_metrics_map_;

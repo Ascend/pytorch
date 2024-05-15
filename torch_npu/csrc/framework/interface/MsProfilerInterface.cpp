@@ -30,6 +30,7 @@ namespace native {
 
 REGISTER_LIBRARY(libmsprofiler)
 LOAD_FUNCTION(aclprofSetConfig)
+LOAD_FUNCTION(aclprofGetSupportedFeatures)
 
 
 aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size_t configLength) {
@@ -44,5 +45,19 @@ aclError AclprofSetConfig(aclprofConfigType configType, const char* config, size
     TORCH_CHECK(func, "Failed to find function ", "aclprofSetConfig", PROF_ERROR(ErrCode::NOT_FOUND));
     return func(configType, config, configLength);
 }
+
+aclError AclprofGetSupportedFeatures(size_t* featuresSize, void** featuresData)
+{
+    typedef aclError(*AclprofGetSupportedFeaturesFunc)(size_t*, void**);
+    static AclprofGetSupportedFeaturesFunc func = nullptr;
+    if (func == nullptr) {
+        func = (AclprofGetSupportedFeaturesFunc)GET_FUNC(aclprofGetSupportedFeatures);
+        if (func == nullptr) {
+            return ACL_ERROR_PROF_MODULES_UNSUPPORTED;
+        }
+    }
+    return func(featuresSize, featuresData);
+}
+
 }
 }

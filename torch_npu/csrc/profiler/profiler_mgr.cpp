@@ -5,6 +5,7 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/toolkit/profiler/common/utils.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/profiler/feature_mgr.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -36,6 +37,7 @@ void ProfilerMgr::Init(const std::string &path, bool npu_trace) {
   if (npu_trace == true) {
     at_npu::native::AclProfilingInit(path.c_str(), path.size());
     npu_trace_.store(true);
+    FeatureMgr::GetInstance()->Init();
   }
   path_ = path;
 }
@@ -76,6 +78,7 @@ void ProfilerMgr::Start(const NpuTraceConfig &npu_config, bool cpu_trace) {
         NPU_LOGW("not support to set config for sys-hardware-mem.");
       }
     }
+    datatype_config = CheckFeatureConfig(datatype_config);
     int32_t deviceId = 0;
     auto ret = c10_npu::GetDevice(&deviceId);
     if (ret != ACL_ERROR_NONE) {
@@ -134,6 +137,15 @@ void ProfilerMgr::Finalize() {
 
 void ProfilerMgr::Upload(std::unique_ptr<torch_npu::toolkit::profiler::BaseReportData> data) {
   dataReceiver_.Report(std::move(data));
+}
+
+uint64_t ProfilerMgr::CheckFeatureConfig(uint64_t datatype_config)
+{
+    if (!FeatureMgr::GetInstance()->IsSupportFeature(FeatureType::FEATURE_ATTR)) {
+        ASCEND_LOGW("Not support to set config for ATTR.");
+        return datatype_config;
+    }
+    return datatype_config;
 }
 } // profiler
 } // torch_npu

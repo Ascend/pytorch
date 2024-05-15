@@ -114,6 +114,23 @@ class ProfilerPathManager:
         return ""
 
     @classmethod
+    def get_feature_json_path(cls, profiler_path: str) -> str:
+        cann_path = cls.get_cann_path(profiler_path)
+        if cann_path is None:
+            return ""
+        device_path = cls.get_host_path(cann_path)
+        if not device_path:
+            device_path = cls.get_device_path(cann_path)
+            if not device_path:
+                return ""
+        sub_files = os.listdir(device_path)
+        for sub_file in sub_files:
+            if sub_file == "incompatible_features.json":
+                return os.path.join(device_path, sub_file)
+        return ""
+
+
+    @classmethod
     def get_profiler_path_list(cls, input_path: str) -> list:
         if not os.path.isdir(input_path):
             return []
