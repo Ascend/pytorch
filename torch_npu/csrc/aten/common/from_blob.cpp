@@ -48,6 +48,8 @@ at::Tensor TensorMaker::make_tensor()
     auto tensor =
         at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
+    at_npu::native::StorageDescHelper::SetDesc(tensor, sizes_, tensor.strides());
+
     at::TensorImpl* tensor_impl = tensor.unsafeGetTensorImpl();
     if (strides_) {
         tensor_impl->set_sizes_and_strides(sizes_, *strides_);
@@ -58,7 +60,6 @@ at::Tensor TensorMaker::make_tensor()
         tensor_impl->set_storage_offset(*storage_offset_);
     }
 
-    at_npu::native::StorageDescHelper::SetDesc(tensor, sizes_, tensor.strides());
     return tensor;
 }
 
