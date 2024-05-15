@@ -8,6 +8,7 @@
   "test_generate_tensor_from_list_of_numpy_primitive_type (__main__.DynamicShapesMiscTests)": ["", [""]],
   "test_generate_tensor_from_list_of_numpy_primitive_type_dynamic_shapes (__main__.DynamicShapesMiscTests)": ["", [""]],
   "test_autocast_float64 (__main__.CtxManagerTests)": ["", [""]],
+  "test_zero_grad (__main__.TestDataParallel)": ["", [""]],
   "test_conv (__main__.TestMetalRewritePass)": ["", [""]],
   "test_nn_module_tests (__main__.TestComplexity)": ["", [""]],
   "test_autocast_float64 (__main__.DynamicShapesCtxManagerTests)": ["", [""]],
