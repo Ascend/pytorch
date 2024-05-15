@@ -8,6 +8,7 @@ from torch_npu.profiler.analysis.prof_common_func.file_manager import FileManage
 from torch_npu.profiler.analysis.prof_common_func.path_manager import ProfilerPathManager
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.utils.path_manager import PathManager
 
 
 class TestPathManager(TestCase):
@@ -137,6 +138,21 @@ class TestPathManager(TestCase):
                                os.O_WRONLY | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), 'w') as fp:
             fp.write("something")
         self.assertEqual(3, len(ProfilerPathManager.get_output_all_file_list_by_type(cann_path, "mindstudio_profiler_output")))
+
+    def test_get_feature_json_path(self):
+        self.assertEqual("", ProfilerPathManager.get_feature_json_path(self.tmp_dir))
+
+        cann_path = os.path.join(self.tmp_dir, "PROF_001_111111_AAA")
+        PathManager.make_dir_safety(cann_path)
+        self.assertEqual("", ProfilerPathManager.get_feature_json_path(self.tmp_dir))
+
+        host_path = os.path.join(cann_path, "host")
+        PathManager.make_dir_safety(host_path)
+        self.assertEqual("", ProfilerPathManager.get_feature_json_path(self.tmp_dir))
+
+        feature_file = os.path.join(host_path, "incompatible_features.json")
+        FileManager.create_json_file_by_path(feature_file, {"attr": {"version": "1"}})
+        self.assertEqual(feature_file, ProfilerPathManager.get_feature_json_path(self.tmp_dir))
 
     def test_get_analyze_all_file(self):
         self.assertEqual([], ProfilerPathManager.get_analyze_all_file(self.tmp_dir, "analyse"))
