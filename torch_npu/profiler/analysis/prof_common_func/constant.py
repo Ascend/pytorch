@@ -118,6 +118,13 @@ class Constant(object):
     StartMonotonic = "start_monotonic"
     SyscntEable = "syscnt_enable"
 
+    # incompatible_features.json
+    AffectedComponent = "affectedComponent"
+    AffectedComponentVersion = "affectedComponentVersion"
+    Compatibility = "compatibility"
+    FeatureVersion = "featureVersion"
+    InfoLog = "infoLog"
+
     # metric
     METRIC_CPU_TIME = "self_cpu_time_total"
     METRIC_NPU_TIME = "self_npu_time_total"
