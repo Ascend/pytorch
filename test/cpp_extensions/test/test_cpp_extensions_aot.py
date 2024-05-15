@@ -44,7 +44,6 @@ class TestCppExtensionAOT(TestCase):
         self.assertTrue(npu_extension.check_storage_sizes(t, (32, 8, 16, 16)))
 
     def test_from_blob(self):
-        torch.npu.set_compile_mode(jit_compile=False)
         self.assertTrue(npu_extension.check_from_blob())
         self.assertTrue(npu_extension.check_from_blob_strides())
 
