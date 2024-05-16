@@ -51,6 +51,7 @@ std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
 };
 
 bool nslb_is_end = false;
+char* nslb_path = c10_npu::option::OptionsManager::GetNslbPath();
 
 int64_t physical_numel(const at::Tensor& self)
 {
@@ -863,13 +864,12 @@ void ProcessGroupHCCL::recordDataVol(std::string opName, const std::string dataV
     auto master_addr = getenv("MASTER_ADDR");
     TORCH_CHECK(master_addr != nullptr, "Unable to fetch master IP addr, environment variable is null.", DIST_ERROR(ErrCode::NOT_FOUND));
     fileName << master_addr << "_" << commName << "_" << std::to_string(currRank) << ".log";
-    std::string out_file_path = c10::str(getenv("NSLB_CP"), "/", fileName.str());
+    std::string out_file_path = c10::str(nslb_path, "/", fileName.str());
     try {
-        char abs_path[PATH_MAX] = {'\0'};
-        if (realpath(out_file_path.c_str(), abs_path) == nullptr) {
-            TORCH_CHECK(0, "NSLB_CP path is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
+        if (access(nslb_path, W_OK) != 0 && mkdir(nslb_path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+            throw std::exception();
         }
-        outfile.open(abs_path, std::ios::app);
+        outfile.open(out_file_path, std::ios::app);
     } catch (std::exception& e) {
         throw std::runtime_error("Open shared directory failed. Please check whether input path is valid." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
@@ -1095,16 +1095,15 @@ void nslb_record_end()
 {
     std::string end_file_path;
     std::ofstream endfile;
-    end_file_path = c10::str(getenv("NSLB_CP"), "/end_", getenv("MASTER_ADDR"), "_", getpid(), ".log");
+    end_file_path = c10::str(nslb_path, "/end_", getenv("MASTER_ADDR"), "_", getpid(), ".log");
     try {
-        char abs_path[PATH_MAX] = {'\0'};
-        if (realpath(end_file_path.c_str(), abs_path) == nullptr) {
-            TORCH_CHECK(0, "NSLB_CP path is not realpath.", DIST_ERROR(ErrCode::NOT_FOUND));
+        if (access(nslb_path, W_OK) != 0 && mkdir(nslb_path, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+            throw std::exception();
         }
-        endfile.open(abs_path, std::ios::out);
+        endfile.open(end_file_path.c_str(), std::ios::out);
         endfile.close();
     } catch (std::exception& e) {
-        throw std::runtime_error("NSLB set end failed.");
+        throw std::runtime_error("NSLB set end failed." + DIST_ERROR(ErrCode::NOT_FOUND));
     }
 }
 
@@ -1212,8 +1211,7 @@ c10::intrusive_ptr<c10d::Work> ProcessGroupHCCL::collective(
 
     pre(hcclStreams, work);
 
-    bool nslb_enable = c10_npu::option::OptionsManager::CheckNslbEnable();
-    if (nslb_enable && !nslb_is_end) {
+    if (nslb_path != nullptr && !nslb_is_end) {
         auto nslb_num = c10_npu::option::OptionsManager::GetNslbCntVal();
         if (seq_ <= nslb_num) {
             size_t dataVol = 0;
