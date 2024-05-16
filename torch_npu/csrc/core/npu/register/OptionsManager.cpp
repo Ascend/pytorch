@@ -157,17 +157,19 @@ int64_t OptionsManager::GetRankId()
     return rankId;
 }
 
-bool OptionsManager::CheckNslbEnable()
+char *OptionsManager::GetNslbPath()
 {
-    char* nslb_enable = std::getenv("NSLB_CP");
-    return (nslb_enable == nullptr) ? false : true;
+    return std::getenv("NSLB_CP");
 }
 
 uint32_t OptionsManager::GetNslbCntVal()
 {
-    char* nslb_num = std::getenv("NSLB_MAX_RECORD_NUM");
-    int64_t nslb_val = (nslb_num != nullptr) ? strtol(nslb_num, nullptr, 10) : 1000;
-    return static_cast<uint32_t>(nslb_val);
+    const static uint32_t nslb_val = []() -> uint32_t {
+        char* nslb_num = std::getenv("NSLB_MAX_RECORD_NUM");
+        int64_t nslb_val = (nslb_num != nullptr) ? strtol(nslb_num, nullptr, 10) : 1000;
+        return static_cast<uint32_t>(nslb_val);
+    }();
+    return nslb_val;
 }
 
 bool OptionsManager::CheckGeInitDisable()
