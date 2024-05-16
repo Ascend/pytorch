@@ -49,15 +49,36 @@ def npu_fused_infer_attention_score_forward(query, key, value, *, pse_shift=None
                                       num_heads=1, scale=1.0, pre_tokens=2147483647, next_tokens=2147483647, input_layout="BSH", num_key_value_heads=0,
                                       sparse_mode=0, inner_precise=0, block_size=0, antiquant_mode=0, softmax_lse_flag=False):
     tmp_out = torch.empty_like(query, dtype=query.dtype, device='meta')
+    B = 1
+    N = 1
+    S1 = 1
     if input_layout == "BNSD_BSND":
         tmp_out = torch.empty([query.size(0), query.size(2), query.size(1), query.size(3)], dtype=query.dtype, device='meta')
-
+        B = query.size(0)
+        N = query.size(1)
+        S1 = query.size(2)
+    if input_layout == "BNSD":
+        B = query.size(0)
+        N = query.size(1)
+        S1 = query.size(2)
+    if input_layout == "BSH":
+        B = query.size(0)
+        N = num_heads
+        S1 = query.size(1)
+    if input_layout == "BSND":
+        B = query.size(0)
+        N = num_heads
+        S1 = query.size(1)
+    if input_layout == "NSD":
+        B = 1
+        N = query.size(0)
+        S1 = query.size(1)
     if quant_scale2 is not None:
-        return (torch.empty_like(tmp_out, dtype=torch.int8), torch.empty_like(query))
+        return (torch.empty_like(tmp_out, dtype=torch.int8), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
     elif query.dtype == torch.int8:
-        return (torch.empty_like(tmp_out, dtype=torch.half), torch.empty_like(query))
+        return (torch.empty_like(tmp_out, dtype=torch.half), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
     else:
-        return (torch.empty_like(tmp_out), torch.empty_like(query))
+        return (torch.empty_like(tmp_out), torch.empty([B, N, S1, 1], dtype=torch.float32, device='meta'))
 
 
 @impl(m, "npu_fusion_attention")
