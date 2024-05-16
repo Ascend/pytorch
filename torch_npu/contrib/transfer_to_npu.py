@@ -10,12 +10,6 @@ from torch.utils._device import _device_constructors
 import torch_npu
 
 try:
-    import torchair
-except ImportError:
-    IS_TORCHAIR_INSTALLED = False
-else:
-    IS_TORCHAIR_INSTALLED = True
-try:
     from packaging.version import Version as Version
 except ImportError:
     from distutils.version import LooseVersion as Version
@@ -251,22 +245,6 @@ def _wrapper_profiler(fn):
     return decorated
 
 
-def _wrapper_compile(fn):
-    @wraps(fn)
-    def decorated(*args, **kwargs):
-        npu_backend = torchair.get_npu_backend()
-        if kwargs:
-            backend = kwargs.get('backend', None)
-            if not backend or not isinstance(backend, functools.partial) or not isinstance(backend.func,
-                                                                                           type(npu_backend.func)):
-                kwargs['backend'] = npu_backend
-        else:
-            kwargs['backend'] = npu_backend
-        return fn(*args, **kwargs)
-
-    return decorated
-
-
 def _jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
     msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it.'
     warnings.warn(msg, RuntimeWarning)
@@ -365,9 +343,6 @@ def _init():
     torch.jit.script = _jit_script
 
     torch._dynamo.trace_rules._disallowed_callable_ids.function_ids = None
-
-    if IS_TORCHAIR_INSTALLED:
-        torch.compile = _wrapper_compile(torch.compile)
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
 
