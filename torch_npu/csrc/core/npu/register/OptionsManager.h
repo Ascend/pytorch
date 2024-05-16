@@ -46,7 +46,7 @@ public:
     static std::string CheckDisableDynamicPath();
     static int32_t GetACLExecTimeout();
     static int64_t GetRankId();
-    static bool CheckNslbEnable();
+    static char *GetNslbPath();
     static uint32_t GetNslbCntVal();
     static bool CheckGeInitDisable();
 
