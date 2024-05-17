@@ -2,13 +2,19 @@
 
 import copy
 import math
+import functools
+import unittest
 
 import torch
-import torch_npu
-
 import torch._dynamo.test_case
 import torch._dynamo.testing
 import torch._dynamo.utils
+from torch.testing._internal.common_utils import skipIfRocm
+import torch_npu
+
+
+requires_npu = functools.partial(unittest.skipIf, not torch.npu.is_available(), "requires npu")
+requires_triton = functools.partial(unittest.skip, "requires cuda and trion")
 
 
 class CustomFunc1(torch.autograd.Function):
@@ -82,8 +88,8 @@ class Module6(torch.nn.Module):
 class LinearFunction(torch.autograd.Function):
     # Note that forward, setup_context, and backward are @staticmethods
     @staticmethod
-    def forward(ipt, weight, bias):
-        output = ipt.mm(weight.t())
+    def forward(input0, weight, bias):
+        output = input0.mm(weight.t())
         if bias is not None:
             output += bias.unsqueeze(0).expand_as(output)
         return output
@@ -92,18 +98,18 @@ class LinearFunction(torch.autograd.Function):
     # inputs is a Tuple of all of the inputs passed to forward.
     # output is the output of the forward().
     def setup_context(ctx, inputs, output):
-        ipt, weight, bias = inputs
-        ctx.save_for_backward(ipt, weight, bias)
+        input0, weight, bias = inputs
+        ctx.save_for_backward(input0, weight, bias)
 
     # This function has only a single output, so it gets only one gradient
     @staticmethod
     def backward(ctx, grad_output):
-        ipt, weight, bias = ctx.saved_tensors
+        input0, weight, bias = ctx.saved_tensors
         grad_input = grad_weight = grad_bias = None
         if ctx.needs_input_grad[0]:
             grad_input = grad_output.mm(weight)
         if ctx.needs_input_grad[1]:
-            grad_weight = grad_output.t().mm(ipt)
+            grad_weight = grad_output.t().mm(input0)
         if bias is not None and ctx.needs_input_grad[2]:
             grad_bias = grad_output.sum(0)
 
@@ -111,8 +117,8 @@ class LinearFunction(torch.autograd.Function):
 
 
 class ModuleLinear(torch.nn.Module):
-    def forward(self, ipt, weight, bias=None):
-        return LinearFunction.apply(ipt, weight, bias)
+    def forward(self, input0, weight, bias=None):
+        return LinearFunction.apply(input0, weight, bias)
 
 
 class MaterializingGradFunction(torch.autograd.Function):
@@ -247,10 +253,10 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
     def test_linear_setup_context(self):
         model = ModuleLinear()
         opt_model = torch._dynamo.optimize("eager")(model)
-        ipt = torch.randn(2, 2, dtype=torch.double, requires_grad=True)
+        input0 = torch.randn(2, 2, dtype=torch.double, requires_grad=True)
         weight = torch.randn(3, 2, dtype=torch.double, requires_grad=True)
-        optim_result = opt_model(ipt, weight)
-        eager_result = model(ipt, weight)
+        optim_result = opt_model(input0, weight)
+        eager_result = model(input0, weight)
         self.assertEqual(optim_result, eager_result)
 
     def test_materialize_grad(self):
@@ -271,14 +277,51 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
             opt_model(x)
 
     def test_stride_in_bwd(self):
+        torch._dynamo.utils.counters.clear()
+        cnt = torch._dynamo.testing.CompileCounter()
         model = CustomFuncStrideModule()
-        opt_model = torch._dynamo.optimize("eager", nopython=True)(model)
+        opt_model = torch.compile(backend=cnt)(model)
         x = torch.randn(2, 2, dtype=torch.double, requires_grad=True)
-        with self.assertRaisesRegex(
-            torch._dynamo.exc.Unsupported,
-            "Illegal getattr invocation stride in strict mod",
-        ):
-            opt_model(x)
+        ref = model(x)
+        res = opt_model(x)
+
+        self.assertEqual(ref, res)
+        self.assertEqual(cnt.frame_count, 1)
+        # graph break: Illegal getattr invocation stride in strict mod.
+        self.assertEqual(
+            list(torch._dynamo.utils.counters["graph_break"].values()), [1]
+        )
+
+    def test_enum_arg(self):
+        from enum import Enum
+
+        class SomeEnum(Enum):
+            A = 0
+            B = 1
+
+        class Foo(torch.autograd.Function):
+            @staticmethod
+            def forward(ctx, x, e):
+                if e is SomeEnum.A:
+                    return x.sin()
+                else:
+                    return x.cos()
+
+            @staticmethod
+            def backward(ctx, g):
+                return g
+
+        @torch.compile(backend="eager", fullgraph=True)
+        def f(x, enum):
+            output = Foo.apply(
+                x,
+                enum,
+            )
+            return output
+
+        x = torch.tensor([[1.0, 2, 3], [4, 5, 6]], requires_grad=True)
+        y = f(x, SomeEnum.A)
+        self.assertEqual(y, x.sin())
 
     def test_save_for_bwd(self):
         model = SaveForBwdModule()
@@ -595,7 +638,7 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
 
             @staticmethod
             def jvp(ctx, x_t):
-                if jvp_err:
+                if jvp_err:  # noqa: F821
                     return x_t
                 else:
                     return x_t.mul_(2)
@@ -611,7 +654,7 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
 
             @staticmethod
             def jvp(ctx, x_t, y_t):
-                return x_t + y_t, fn(x_t)
+                return x_t + y_t, fn(x_t)  # noqa: F821
 
         class MyFn3(torch.autograd.Function):
             @staticmethod
@@ -697,7 +740,7 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
                 )
 
             @staticmethod
-            def __tensor_unflatten__(tensors, metadatas):
+            def __tensor_unflatten__(tensors, metadatas, outer_size, outer_stride):
                 return FooTensor(tensors["_data"], metadatas[0], metadatas[1])
 
             @classmethod
@@ -713,8 +756,6 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
                     return FooTensor(new_data, args[0]._config, args[0]._scale)
 
                 raise NotImplementedError()
-
-            __torch_function__ = torch._C._disabled_torch_function_impl
 
         class foo_autograd_fn(torch.autograd.Function):
             @staticmethod
@@ -780,6 +821,42 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
         foo(torch.randn(2, requires_grad=True))
         self.assertEqual(cnts.frame_count, 1)
 
+    def test_repeated_save_for_backward_calls(self):
+        from torch.autograd import Function
+
+        class Foo(Function):
+            @staticmethod
+            def forward(ctx, x, y):
+                ctx.save_for_backward(x)
+                ctx.save_for_backward(x, y)
+                return x * y
+
+            @staticmethod
+            def backward(ctx, grad_out):
+                x, y = ctx.saved_tensors
+                return grad_out * x, grad_out * y
+
+        cnts = torch._dynamo.testing.CompileCounter()
+
+        def foo(x, y):
+            return Foo.apply(x, y)
+
+        x_ref = torch.randn(2, requires_grad=True)
+        y_ref = torch.randn(2, requires_grad=True)
+        x_test = x_ref.clone().detach().requires_grad_()
+        y_test = y_ref.clone().detach().requires_grad_()
+
+        out_ref = foo(x_ref, y_ref)
+        out_ref.sum().backward()
+
+        out_test = torch.compile(foo, backend=cnts)(x_test, y_test)
+        out_test.sum().backward()
+
+        self.assertEqual(cnts.frame_count, 1)
+        self.assertEqual(out_ref, out_test)
+        self.assertEqual(x_ref.grad, x_test.grad)
+        self.assertEqual(y_ref.grad, y_test.grad)
+
     def test_smuggle_tensor_and_complex_structures(self):
         from torch.autograd import Function
 
@@ -805,6 +882,94 @@ class AutogradFunctionTests(torch._dynamo.test_case.TestCase):
 
         foo(torch.randn(2, requires_grad=True))
         self.assertEqual(cnts.frame_count, 1)
+
+    def test_default_values(self):
+        from torch.autograd import Function
+
+        class Foo(Function):
+            @staticmethod
+            def forward(ctx, x, alpha=0.99):
+                return x
+
+            @staticmethod
+            def backward(ctx, grad_out):
+                return grad_out
+
+        @torch.compile
+        def foo(x):
+            return Foo.apply(x)
+
+        # Make sure guards for default values do not crash
+        foo(torch.randn(2))
+        foo(torch.randn(2, requires_grad=True))
+
+    @requires_triton()
+    @skipIfRocm
+    def test_triton_kernel_basic(self):
+        class Add(torch.autograd.Function):
+            @staticmethod
+            def forward(ctx, x, y):
+                ctx.save_for_backward(x, y)
+                output = torch.zeros_like(x)
+                n_elements = output.numel()
+                grid = lambda meta: (  # noqa: E731
+                    triton.cdiv(n_elements, meta["BLOCK_SIZE"]),
+                )
+                add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=16)
+                return output
+
+            @staticmethod
+            def backward(ctx, grad_output):
+                x, y = ctx.saved_tensors
+                return x * grad_output, y * grad_output
+
+        @torch.compile(fullgraph=True, backend="npu")
+        def f(x, y):
+            z = Add.apply(x, y)
+            return z
+
+        x = torch.randn(10, device="npu:0", requires_grad=True)
+        y = torch.randn(10, device="npu:0", requires_grad=True)
+        z = f(x, y)
+        loss = z.sum()
+        loss.backward()
+        self.assertEqual(x + y, z)
+
+    @requires_triton()
+    @skipIfRocm
+    def test_triton_kernel_multiple_out(self):
+        class Add(torch.autograd.Function):
+            @staticmethod
+            def forward(ctx, x, y):
+                ctx.save_for_backward(x, y)
+                ctx.t1 = x
+                ctx.t2 = y
+                output = torch.zeros_like(x)
+                n_elements = output.numel()
+                grid = lambda meta: (  # noqa: E731
+                    triton.cdiv(n_elements, meta["BLOCK_SIZE"]),
+                )
+                add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=16)
+                return output, x
+
+            @staticmethod
+            def backward(ctx, grad_output, old_x):
+                x, y = ctx.saved_tensors
+                x1 = ctx.t1
+                y1 = ctx.t2
+                return old_x * x * x1 * grad_output, y * y1 * grad_output
+
+        @torch.compile(fullgraph=True, backend="npu")
+        def f(x, y):
+            z = Add.apply(x, y)
+            return z
+
+        x = torch.randn(10, device="npu:0", requires_grad=True)
+        y = torch.randn(10, device="npu:0", requires_grad=True)
+        z, _ = f(x, y)
+        loss = z.sum()
+        loss.backward()
+        self.assertEqual(x + y, z)
 
 
 if __name__ == "__main__":

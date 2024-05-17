@@ -34,7 +34,15 @@
   "test_corrcoef_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnDiv not implemented for DT_COMPLEX64"},
   "test_cov_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": {"DTYPE": "aclnnDiv not implemented for DT_COMPLEX64"},
   "test_compile_selective_checkpoint_outplace_op (__main__.ActivationCheckpointingViaTagsTests)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_cudagraphs (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_ddp_graphs (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_dynamo_error (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_graph_sizes_dynamic (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_guards_recompiles (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
+  "test_inductor_error (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
   "test_npu_amp_autocast (__main__.CtxManagerTests)": {"DTYPE": "unsupport float64"},
   "test_npu_amp_autocast_dynamic_shapes (__main__.DynamicShapesCtxManagerTests)": {"DTYPE": "unsupport float64"},
+  "test_pattern_matcher (__main__.ActivationCheckpointingViaTagsTests)": {"NOT_SUPPORT": "unsupport aten SDPA for graph module"},
+  "test_schedule (__main__.StructuredTraceTest)": {"NOT_SUPPORT": "failed on both GPU and NPU"},
   "test_tvm (__main__.TestOptimizations)": {"OTHER": "skipped in original pytorch too"}
 }
