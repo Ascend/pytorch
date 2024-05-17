@@ -3453,6 +3453,7 @@
   "test_tensor_storage_type_npu_complex64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_tensor_type_npu (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_to (__main__.TestTorch)": ["", [""]],
+  "test_zero_grad (__main__.TestDataParallel)": ["", [""]],
   "test_type_conversions_same_device_npu (__main__.TestDevicePrecisionPRIVATEUSE1)": ["", [""]],
   "test_typed_storage_deprecation_warning (__main__.TestTorch)": ["", [""]],
   "test_uniform_kstest_npu_bfloat16 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
