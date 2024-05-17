@@ -3398,6 +3398,7 @@
   "test_take_npu_int64 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_take_npu_int8 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_take_npu_uint8 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
+  "test_zero_grad (__main__.TestDataParallel)": ["", [""]],
   "test_tensor_from_storage_npu_bfloat16 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_tensor_from_storage_npu_bool (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
   "test_tensor_from_storage_npu_complex128 (__main__.TestTorchDeviceTypePRIVATEUSE1)": ["", [""]],
