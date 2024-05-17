@@ -3,6 +3,7 @@
   "test_after_dynamo_cuda_compile_error (__main__.MinifierTests)": ["", [""]],
   "test_cpu_cuda_module_after_dynamo (__main__.MinifierTests)": ["", [""]],
   "test_tvm (__main__.TestOptimizations)": ["", [""]],
+  "test_zero_grad (__main__.TestDataParallel)": ["", [""]],
   "test_grad_fn_with_kwargs_dynamic_shapes (__main__.DynamicShapesFuncTorchHigherOrderOpTests)": ["", [""]],
   "test_grad_pytree_dynamic_shapes (__main__.DynamicShapesFuncTorchHigherOrderOpTests)": ["", [""]],
   "test_mem_eff_backwards_throws_determinism_warning_warn_only_True_npu (__main__.TestSDPANpuOnlyPRIVATEUSE1)": ["", [""]],
