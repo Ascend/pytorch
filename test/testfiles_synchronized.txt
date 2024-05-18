@@ -86,3 +86,6 @@ test/onnx/test_fx_to_onnx.py
 test/onnx/error_reproduction.py
 test/functorch/common_utils.py
 test/functorch/functorch_additional_op_db.py
+test/test_jit_string.py
+test/test_jit_simple.py
+test/test_jit_profiling.py
