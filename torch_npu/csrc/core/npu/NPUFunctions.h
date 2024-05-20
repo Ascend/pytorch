@@ -69,6 +69,8 @@ C10_NPU_API void device_synchronize();
 
 C10_NPU_API int ExchangeDevice(int device);
 
+int GetLocalDevice();
+
 enum class SyncDebugMode { L_DISABLED = 0, L_WARN, L_ERROR };
 
 // it's used to store npu synchronization state
