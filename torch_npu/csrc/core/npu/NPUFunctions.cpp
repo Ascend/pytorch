@@ -95,4 +95,9 @@ namespace c10_npu {
 
         return device;
     }
+
+    int GetLocalDevice()
+    {
+        return local_device;
+    }
 }
