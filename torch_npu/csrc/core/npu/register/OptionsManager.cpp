@@ -33,15 +33,6 @@ bool OptionsManager::IsResumeModeEnable()
     return isResumeModeEnable;
 }
 
-bool OptionsManager::IsInt8FormatNZEnable()
-{
-    const static bool isInt8FormatNZEnable = []() -> bool {
-        int32_t enable = OptionsManager::GetBoolTypeOption("INT8_FORMAT_NZ_ENABLE", 0);
-        return enable != 0;
-    }();
-    return isInt8FormatNZEnable;
-}
-
 ReuseMode OptionsManager::GetMultiStreamMemoryReuse()
 {
     const static ReuseMode reuseMode = []() -> ReuseMode {
