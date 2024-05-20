@@ -13,6 +13,9 @@ from torch_npu.testing.common_distributed import skipIfUnsupportMultiNPU
 
 
 class TestDataParallel(TestCase):
+    def setUp(self):
+        super().setUp()
+        os.environ['PYTORCH_NPU_ALLOC_CONF'] = 'expandable_segments:False'
 
     @skipIfUnsupportMultiNPU(2)
     def test_data_parallel_rnn(self):
@@ -279,6 +282,5 @@ class TestDataParallel(TestCase):
 
 
 if __name__ == "__main__":
-    os.environ['PYTORCH_NPU_ALLOC_CONF'] = 'expandable_segments:False'
     TestCase._default_dtype_check_enabled = True
     run_tests()
